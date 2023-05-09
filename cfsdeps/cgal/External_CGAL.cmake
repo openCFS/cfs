@@ -175,6 +175,9 @@ ELSE()
   ENDIF()
 ENDIF()
 
+# copy the appropriate special license in the license folder
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/LICENSE.binary.GPL" DESTINATION "${CFS_BINARY_DIR}/license/")
+
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
