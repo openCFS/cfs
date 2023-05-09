@@ -2101,6 +2101,7 @@ namespace CoupledField
                                                      CoefXpr::OP_SQRT));
           LOG_DBG(acousticpde) << "Define Surface Integrators standard c0 =" << c0->ToString() << "\n";
         }
+
         else
         {
           if (complexFluidFormulation_)
@@ -2111,7 +2112,24 @@ namespace CoupledField
             // note that c0 in this case does not represent the speed of sound
             c0 = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_MULT), CoefXpr::OP_SQRT));
           }
-          // TODO: TDEF else if
+
+          // TODOs TDEF ABC narrow-band
+          // 1) evaluate whether volume region adjacent to the ABC is a TDEF region. Otherwise normal ABC (e.g., for air)
+          // 2) get density and blk modulus, i.e., their inverse for specific frequency
+          // 3) uncomment part below to get alpha (c0)= RE(c0_compl) and beta = IM(c0_compl)
+          // 4) create the stiffnes surface integrator with beta
+          // 5) uncomment el if part below:
+
+          // else if (timeDomainEqFluidFormulation_){
+          //   // TODO: for ABC adjacent to TDEF region, c0 must be the real part of the speed of sound at the provided frequency
+          //   c0_compl = CoefFunction::Generate(mp_, Global::COMPLEX,
+          //                               CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk_f0, dens_f0, CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
+          //   c0 = CoefFunction::Generate(mp_, Global::REAL,
+          //                               CoefXprUnaryOp(mp_, c0_compl, CoefXpr::OP_RE));
+          //   beta = CoefFunction::Generate(mp_, Global::REAL,
+          //                               CoefXprUnaryOp(mp_, c0_compl, CoefXpr::OP_IM));   
+          // }
+
           else
             c0 = CoefFunction::Generate(mp_, Global::REAL,
                                         CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
