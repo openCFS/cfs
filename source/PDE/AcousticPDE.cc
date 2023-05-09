@@ -2113,9 +2113,9 @@ namespace CoupledField
             c0 = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_MULT), CoefXpr::OP_SQRT));
           }
 
-          // TODOs TDEF ABC narrow-band
+          // TODOs TDEF ABC narrow-band according to Abdulkareem et al. 2018
           // 1) evaluate whether volume region adjacent to the ABC is a TDEF region. Otherwise normal ABC (e.g., for air)
-          // 2) get density and blk modulus, i.e., their inverse for specific frequency
+          // 2) get density and blk modulus, i.e., their inverse for specific frequency f0
           // 3) uncomment part below to get alpha (c0)= RE(c0_compl) and beta = IM(c0_compl)
           // 4) create the stiffnes surface integrator with beta
           // 5) uncomment el if part below:
