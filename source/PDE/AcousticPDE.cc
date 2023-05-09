@@ -914,40 +914,32 @@ namespace CoupledField
         StdVector<PtrCoefFct> fncAC;
         StdVector<PtrCoefFct> fncBC;
         StdVector<PtrCoefFct> fncCC;
-        StdVector<PtrCoefFct> fncDC;
         StdVector<PtrCoefFct> fncAlphaC;
         StdVector<PtrCoefFct> fncBetaC;
         StdVector<PtrCoefFct> fncGammaC;
-        StdVector<PtrCoefFct> fncDeltaC;
 
         StdVector<PtrCoefFct> fncAV;
         StdVector<PtrCoefFct> fncBV;
         StdVector<PtrCoefFct> fncCV;
-        StdVector<PtrCoefFct> fncDV;
         StdVector<PtrCoefFct> fncAlphaV;
         StdVector<PtrCoefFct> fncBetaV;
         StdVector<PtrCoefFct> fncGammaV;
-        StdVector<PtrCoefFct> fncDeltaV;
 
         LocPointMapped lpm;
 
         Vector<Double> vecAC;
         Vector<Double> vecBC;
         Vector<Double> vecCC;
-        Vector<Double> vecDC;
         Vector<Double> vecAlphaC;
         Vector<Double> vecBetaC;
         Vector<Double> vecGammaC;
-        Vector<Double> vecDeltaC;
 
         Vector<Double> vecAV;
         Vector<Double> vecBV;
         Vector<Double> vecCV;
-        Vector<Double> vecDV;
         Vector<Double> vecAlphaV;
         Vector<Double> vecBetaV;
         Vector<Double> vecGammaV;
-        Vector<Double> vecDeltaV;
 
         if (nAuxFncAC_[iRegion]>0) {
           PtrCoefFct coefVecAC = materials_[actRegion]->GetVectorCoefFnc(ACOU_TDEF_INVBLK_A, Global::REAL);
@@ -1020,36 +1012,68 @@ namespace CoupledField
         fncBetaV = StdVector<PtrCoefFct>(vecBetaV.GetSize());
         fncGammaV = StdVector<PtrCoefFct>(vecGammaV.GetSize());
 
-        
-        for (UInt ii = 0; ii < vecAC.GetSize(); ii++) 
-        {
+        // real poles
+        for (UInt ii = 0; ii < vecAC.GetSize(); ii++) {
           fncAC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAC[ii]));
           std::cout << "Coef AC: " << std::to_string(vecAC[ii]) << std::endl;
         }
         
-        for (UInt ii = 0; ii < vecAlphaC.GetSize(); ii++) 
-        {
+        for (UInt ii = 0; ii < vecAlphaC.GetSize(); ii++) {
           fncAlphaC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAlphaC[ii]));
           std::cout << "Coef AlphaC: " << std::to_string(vecAlphaC[ii]) << std::endl;
         }
 
 
-        for (UInt ii = 0; ii < vecAV.GetSize(); ii++) 
-        {
+        for (UInt ii = 0; ii < vecAV.GetSize(); ii++) {
           fncAV[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAV[ii]));
           std::cout << "Coef AV: " << std::to_string(vecAV[ii]) << std::endl;
         }
         
-        for (UInt ii = 0; ii < vecAlphaV.GetSize(); ii++) 
-        {
+        for (UInt ii = 0; ii < vecAlphaV.GetSize(); ii++) {
           fncAlphaV[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecAlphaV[ii]));
-          std::cout << "Coef AlphaC: " << std::to_string(vecAlphaV[ii]) << std::endl;
+          std::cout << "Coef AlphaV: " << std::to_string(vecAlphaV[ii]) << std::endl;
         }
 
-        // check if all coefFunctions vectors are smaller than 15
 
-        if (fncAC.GetSize() > 15 || fncDC.GetSize() > 15 || fncBC.GetSize() > 15 || fncGammaC.GetSize() > 15 ||
-            fncAV.GetSize() > 15 || fncDV.GetSize() > 15 || fncBV.GetSize() > 15 || fncGammaV.GetSize() > 15)
+        // Complex Poles
+        for (UInt ii = 0; ii < vecBC.GetSize(); ii++) {
+          fncBC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecBC[ii]));
+          std::cout << "Coef BC: " << std::to_string(vecBC[ii]) << std::endl;
+        }
+        for (UInt ii = 0; ii < vecCC.GetSize(); ii++) {
+          fncCC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecCC[ii]));
+          std::cout << "Coef CC: " << std::to_string(vecCC[ii]) << std::endl;
+        }
+        for (UInt ii = 0; ii < vecBetaC.GetSize(); ii++) {
+          fncBetaC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecBetaC[ii]));
+          std::cout << "Coef BetaC: " << std::to_string(vecBetaC[ii]) << std::endl;
+        }
+        for (UInt ii = 0; ii < vecGammaC.GetSize(); ii++) {
+          fncGammaC[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecGammaC[ii]));
+          std::cout << "Coef GammaC: " << std::to_string(vecGammaC[ii]) << std::endl;
+        }
+
+        for (UInt ii = 0; ii < vecBV.GetSize(); ii++) {
+          fncBV[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecBV[ii]));
+          std::cout << "Coef BV: " << std::to_string(vecBV[ii]) << std::endl;
+        }
+        for (UInt ii = 0; ii < vecCV.GetSize(); ii++) {
+          fncCV[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecCV[ii]));
+          std::cout << "Coef CV: " << std::to_string(vecCV[ii]) << std::endl;
+        }
+        for (UInt ii = 0; ii < vecBetaV.GetSize(); ii++) {
+          fncBetaV[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecBetaV[ii]));
+          std::cout << "Coef BetaV: " << std::to_string(vecBetaV[ii]) << std::endl;
+        }
+        for (UInt ii = 0; ii < vecGammaV.GetSize(); ii++) {
+          fncGammaV[ii] = CoefFunction::Generate(mp_, Global::REAL, std::to_string(vecGammaV[ii]));
+          std::cout << "Coef GammaV: " << std::to_string(vecGammaV[ii]) << std::endl;
+        }
+
+
+        // check if all coefFunctions vectors are smaller than 15
+        if (fncAC.GetSize() > 15 || fncBC.GetSize() > 15 || fncCC.GetSize() > 15 || fncAlphaC.GetSize() > 15 || fncBetaC.GetSize() > 15 || fncGammaC.GetSize() > 15 ||
+            fncAV.GetSize() > 15 || fncBV.GetSize() > 15 || fncCV.GetSize() > 15 || fncAlphaV.GetSize() > 15 || fncBetaV.GetSize() > 15 || fncGammaV.GetSize() > 15)
         {
           EXCEPTION("TDEF: Only 15 ples are allowed, please reduce the number of poles!");
         }
@@ -1061,19 +1085,22 @@ namespace CoupledField
         std::cout << "size fncAlphaC: " << fncAlphaC.GetSize() << std::endl;
         std::cout << "size fncBC: " << fncBC.GetSize() << std::endl;
         std::cout << "size fncBetaC: " << fncBetaC.GetSize() << std::endl;
-        std::cout << "size fncDC: " << fncCC.GetSize() << std::endl;
-        std::cout << "size fncDeltaC: " << fncGammaC.GetSize() << std::endl;
+        std::cout << "size fncCC: " << fncCC.GetSize() << std::endl;
+        std::cout << "size fncGammaC: " << fncGammaC.GetSize() << std::endl;
 
         std::cout << "Rational model of specific volume (inverse density): " << std::endl;
         std::cout << "size fncAv: " << fncAV.GetSize() << std::endl;
         std::cout << "size fncAlphav: " << fncAlphaV.GetSize() << std::endl;
         std::cout << "size fncBv: " << fncBV.GetSize() << std::endl;
         std::cout << "size fncBetav: " << fncBetaV.GetSize() << std::endl;
-        std::cout << "size fncDv: " << fncCV.GetSize() << std::endl;
-        std::cout << "size fncDeltav: " << fncGammaV.GetSize() << std::endl;
+        std::cout << "size fncCv: " << fncCV.GetSize() << std::endl;
+        std::cout << "size fncGammav: " << fncGammaV.GetSize() << std::endl;
 
 
         std::cout << "Establishing the TDEF integrators:" << std::endl << std::endl;
+        
+        // ====================================================================
+        // Loop over real poles of inverse blk modulus (compressibility)
         for (UInt ii = 0; ii < fncAC.GetSize(); ii++)
         {
           std::cout << "re Poles compressibility: " << ii+1 << " from " << fncAC.GetSize() << std::endl;
@@ -1107,42 +1134,19 @@ namespace CoupledField
           feFunctions_[(SolutionType)(ACOU_TDEF_PHI_C_1 + ii)]->AddEntityList(actSDList);
         } // end loop stiffIntTDEFPPHI1
 
-        for (UInt ii = 0; ii < fncCC.GetSize(); ii++)
+        // ====================================================================
+        // Loop over complex poles  of inverse blk modulus (compressibility)
+        for (UInt ii = 0; ii < fncBC.GetSize(); ii++)
         {
-          std::cout << "compl. poles compressibility: " << ii+1 << " from " << fncCC.GetSize() << std::endl;
-          // ====================================================================
-          // K_PPSI1 (TDEF): stiffness integrator, TDEF (D_k^C term)
-          // \int_{Omega_1} D_k^C p^\prime \psi_k^C d\Omega
-          // ====================================================================
-          shared_ptr<FeSpace> spacePsiC = feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]->GetFeSpace();
-          spacePsiC->SetRegionApproximation(actRegion, polyId, integId);
-
-          BiLinearForm *stiffIntTDEFPPSI1 = NULL;
-
-          if (dim_ == 2)
-          {
-            stiffIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncDC[ii], 1.0, updatedGeo_);
-          }
-          else
-          {
-            stiffIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncDC[ii], 1.0, updatedGeo_);
-          }
-
-          stiffIntTDEFPPSI1->SetName("AcousticStiffIntTDEFPPSI1_" + std::to_string(ii));
-
-          BiLinFormContext *stiffIntTDEFPPSI1Context = NULL;
-          stiffIntTDEFPPSI1Context = new BiLinFormContext(stiffIntTDEFPPSI1, STIFFNESS);
-
-          stiffIntTDEFPPSI1Context->SetEntities(actSDList, actSDList);
-          stiffIntTDEFPPSI1Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]);
-          assemble_->AddBiLinearForm(stiffIntTDEFPPSI1Context);
-
-          feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]->AddEntityList(actSDList);
+          std::cout << "compl. poles compressibility: " << ii+1 << " from " << fncBC.GetSize() << std::endl;
 
           // ====================================================================
           // D_PPSI1 (TDEF): damping integrator, TDEF (\frac{B_k^C,\gamma_k^C} term)
           // \int_{Omega_1} \frac{B_k^C,\gamma_k^C} p^\prime \dot{\psi}_k^C d\Omega
           // ====================================================================
+          shared_ptr<FeSpace> spacePsiC = feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]->GetFeSpace();
+          spacePsiC->SetRegionApproximation(actRegion, polyId, integId);
+
           BiLinearForm *dampIntTDEFPPSI1 = NULL;
           PtrCoefFct fncBCgammaC;
           fncBCgammaC = CoefFunction::Generate(mp_, Global::REAL,
@@ -1164,8 +1168,49 @@ namespace CoupledField
           dampIntTDEFPPSI1Context->SetEntities(actSDList, actSDList);
           dampIntTDEFPPSI1Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]);
           assemble_->AddBiLinearForm(dampIntTDEFPPSI1Context);
+
+          feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]->AddEntityList(actSDList);
+          
+          // ====================================================================
+          // K_PPSI1 (TDEF): stiffness integrator, TDEF (D_k^C term)
+          // \int_{Omega_1} D_k^C p^\prime \psi_k^C d\Omega
+          // ====================================================================
+
+          BiLinearForm *stiffIntTDEFPPSI1 = NULL;
+
+          PtrCoefFct fncQuotC;
+          fncQuotC = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncBetaC[ii], fncGammaC[ii], CoefXpr::OP_DIV));
+          PtrCoefFct fncTermC;
+          fncTermC = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncBC[ii], fncQuotC, CoefXpr::OP_MULT));
+          PtrCoefFct fncDC;
+          fncDC = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncCC[ii], fncTermC, CoefXpr::OP_ADD));
+
+          if (dim_ == 2)
+          {
+            stiffIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncDC, 1.0, updatedGeo_);
+          }
+          else
+          {
+            stiffIntTDEFPPSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncDC, 1.0, updatedGeo_);
+          }
+
+          stiffIntTDEFPPSI1->SetName("AcousticStiffIntTDEFPPSI1_" + std::to_string(ii));
+
+          BiLinFormContext *stiffIntTDEFPPSI1Context = NULL;
+          stiffIntTDEFPPSI1Context = new BiLinFormContext(stiffIntTDEFPPSI1, STIFFNESS);
+
+          stiffIntTDEFPPSI1Context->SetEntities(actSDList, actSDList);
+          stiffIntTDEFPPSI1Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_C_1 + ii)]);
+          assemble_->AddBiLinearForm(stiffIntTDEFPPSI1Context);
         } // end loop stiffIntTDEFPPSI1 and dampIntTDEFPPSI1
 
+
+
+        // ====================================================================
+        // Loop over real poles of inverse density (specific volume)
         for (UInt ii = 0; ii < fncAV.GetSize(); ii++)
         {
           std::cout << "re poles density: " << ii+1 << " from " << fncAV.GetSize() << std::endl;
@@ -1199,42 +1244,18 @@ namespace CoupledField
           feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]->AddEntityList(actSDList);
         } // end loop stiffIntTDEFPPHI2
 
-        for (UInt ii = 0; ii < fncDV.GetSize(); ii++)
+        // ====================================================================
+        // Loop over complex poles of inverse density (specific volume)
+        for (UInt ii = 0; ii < fncBV.GetSize(); ii++)
         {
-          std::cout << "compl. poles density: " << ii+1 << " from " << fncDV.GetSize() << std::endl;
-          // ====================================================================
-          // K_PPSI2 (TDEF): stiffness integrator, TDEF (D_k^V term)
-          // \int_{Omega_1} D_m^V \nabla p^\prime \nabla \psi_m^V d\Omega
-          // ====================================================================
-          shared_ptr<FeSpace> spacePsiV = feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]->GetFeSpace();
-          spacePsiV->SetRegionApproximation(actRegion, polyId, integId);
-
-          BiLinearForm *stiffIntTDEFPPSI2 = NULL;
-
-          if (dim_ == 2)
-          {
-            stiffIntTDEFPPSI2 = new BBInt<Double>(new GradientOperator<FeH1, 2>(), fncDC[ii], 1.0, updatedGeo_);
-          }
-          else
-          {
-            stiffIntTDEFPPSI2 = new BBInt<Double>(new GradientOperator<FeH1, 3>(), fncDC[ii], 1.0, updatedGeo_);
-          }
-
-          stiffIntTDEFPPSI2->SetName("AcousticStiffIntTDEFPPSI2_" + std::to_string(ii));
-
-          BiLinFormContext *stiffIntTDEFPPSI2Context = NULL;
-          stiffIntTDEFPPSI2Context = new BiLinFormContext(stiffIntTDEFPPSI2, STIFFNESS);
-
-          stiffIntTDEFPPSI2Context->SetEntities(actSDList, actSDList);
-          stiffIntTDEFPPSI2Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]);
-          assemble_->AddBiLinearForm(stiffIntTDEFPPSI2Context);
-
-          feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]->AddEntityList(actSDList);
-
+          std::cout << "compl. poles density: " << ii+1 << " from " << fncBV.GetSize() << std::endl;
           // ====================================================================
           // D_PPSI2 (TDEF): damping integrator, TDEF (\frac{B_k^V,\gamma_k^V} term)
           // \int_{Omega_1} \frac{B_k^V,\gamma_k^V} p^\prime \dot{\psi}_m^C d\Omega
           // ====================================================================
+          shared_ptr<FeSpace> spacePsiV = feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]->GetFeSpace();
+          spacePsiV->SetRegionApproximation(actRegion, polyId, integId);
+
           BiLinearForm *dampIntTDEFPPSI2 = NULL;
           PtrCoefFct fncBVgammaV;
           fncBVgammaV = CoefFunction::Generate(mp_, Global::REAL,
@@ -1256,6 +1277,42 @@ namespace CoupledField
           dampIntTDEFPPSI2Context->SetEntities(actSDList, actSDList);
           dampIntTDEFPPSI2Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]);
           assemble_->AddBiLinearForm(dampIntTDEFPPSI2Context);
+
+          feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]->AddEntityList(actSDList);
+          
+          // ====================================================================
+          // K_PPSI2 (TDEF): stiffness integrator, TDEF (D_k^V term)
+          // \int_{Omega_1} D_m^V \nabla p^\prime \nabla \psi_m^V d\Omega
+          // ====================================================================
+          BiLinearForm *stiffIntTDEFPPSI2 = NULL;
+
+          PtrCoefFct fncQuotV;
+          fncQuotV = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncBetaV[ii], fncGammaV[ii], CoefXpr::OP_DIV));
+          PtrCoefFct fncTermV;
+          fncTermV = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncBV[ii], fncQuotV, CoefXpr::OP_MULT));
+          PtrCoefFct fncDV;
+          fncDV = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncCV[ii], fncTermV, CoefXpr::OP_ADD));
+          if (dim_ == 2)
+          {
+            stiffIntTDEFPPSI2 = new BBInt<Double>(new GradientOperator<FeH1, 2>(), fncDV, 1.0, updatedGeo_);
+          }
+          else
+          {
+            stiffIntTDEFPPSI2 = new BBInt<Double>(new GradientOperator<FeH1, 3>(), fncDV, 1.0, updatedGeo_);
+          }
+
+          stiffIntTDEFPPSI2->SetName("AcousticStiffIntTDEFPPSI2_" + std::to_string(ii));
+
+          BiLinFormContext *stiffIntTDEFPPSI2Context = NULL;
+          stiffIntTDEFPPSI2Context = new BiLinFormContext(stiffIntTDEFPPSI2, STIFFNESS);
+
+          stiffIntTDEFPPSI2Context->SetEntities(actSDList, actSDList);
+          stiffIntTDEFPPSI2Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PSI_V_1 + ii)]);
+          assemble_->AddBiLinearForm(stiffIntTDEFPPSI2Context);
+
         } // end loop stiffIntTDEFPPSI2 and dampIntTDEFPPSI2
 
 
@@ -1264,13 +1321,8 @@ namespace CoupledField
         // ADE section
         // ######################################################
 
-        // check if all coefFunctions vectors are smaller than 15
-        if (fncAlphaC.GetSize() > 15 || fncBetaC.GetSize() > 15 || fncDeltaC.GetSize() > 15 ||
-            fncAlphaV.GetSize() > 15 || fncBetaV.GetSize() > 15 || fncDeltaV.GetSize() > 15)
-        {
-          EXCEPTION("TDEF: Only 15 poles are allowed, please reduce the number of poles!");
-        }
-
+        // ====================================================================
+        // Loop over real poles of inverse compression modulus (compressibility)
         for (UInt ii = 0; ii < fncAlphaC.GetSize(); ii++)
         {
           std::cout << "re. ADE compress.: " << ii+1 << " from " << fncAlphaC.GetSize() << std::endl;
@@ -1347,6 +1399,9 @@ namespace CoupledField
           assemble_->AddBiLinearForm(massIntTDEFPHI1PContext);
         } // end loop dampIntTDEFPHI1PHI1, stiffIntTDEFPHI1PHI1 and massInteTDEFPHI1P
 
+
+        // ====================================================================
+        // Loop over complex poles of inverse compression modulus (compressibility)
         for (UInt ii = 0; ii < fncGammaC.GetSize(); ii++)
         {
           std::cout << "compl. ADE compress.: " << ii+1 << " from " << fncGammaC.GetSize() << std::endl;
@@ -1408,18 +1463,26 @@ namespace CoupledField
           assemble_->AddBiLinearForm(dampIntTDEFPSI1PSI1Context);
 
           // ====================================================================
-          // K_PSI1PSI1 (TDEF): stiffness integrator, TDEF (\gamma_j^C term)
-          // \int_{Omega_1} \gamma_j^C \psi_j^{C,\prime} \psi_j^C d\Omega
+          // K_PSI1PSI1 (TDEF): stiffness integrator, TDEF (\delta_j^C term)
+          // \int_{Omega_1} \delta_j^C \psi_j^{C,\prime} \psi_j^C d\Omega
           // ====================================================================
           BiLinearForm *stiffIntTDEFPSI1PSI1 = NULL;
-
+          PtrCoefFct fncQuotC;
+          fncQuotC = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncBetaC[ii], fncGammaC[ii], CoefXpr::OP_DIV));
+          PtrCoefFct fncTermC;
+          fncTermC = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncBetaC[ii], fncQuotC, CoefXpr::OP_MULT));
+          PtrCoefFct fncDeltaC;
+          fncDeltaC = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncGammaC[ii], fncTermC, CoefXpr::OP_ADD));
           if (dim_ == 2)
           {
-            stiffIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncGammaC[ii], 1.0, updatedGeo_);
+            stiffIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncDeltaC, 1.0, updatedGeo_);
           }
           else
           {
-            stiffIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncGammaC[ii], 1.0, updatedGeo_);
+            stiffIntTDEFPSI1PSI1 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncDeltaC, 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPSI1PSI1->SetName("AcousticStiffIntTDEFPSI1PSI1_" + std::to_string(ii));
@@ -1456,6 +1519,9 @@ namespace CoupledField
           assemble_->AddBiLinearForm(massIntTDEFPSI1PContext);
         } // end loop massIntTDEFPSI1PSI1, dampIntTDEFPSI1PSI1, stiffIntTDEFPSI1PSI1 and massInteTDEFPSI1P
 
+
+        // ====================================================================
+        // Loop over real poles of inverse density (specific volume)
         for (UInt ii = 0; ii < fncAlphaV.GetSize(); ii++)
         {
           std::cout << "re. ADE density.: " << ii+1 << " from " << fncAlphaV.GetSize() << std::endl << std::endl;
@@ -1532,6 +1598,9 @@ namespace CoupledField
           assemble_->AddBiLinearForm(stiffIntTDEFPHI2PContext);
         } // end loop dampIntTDEFPHI2PHI2, stiffIntTDEFPHI2PHI2 and stiffIntTDEFPHI2P
 
+
+        // ====================================================================
+        // Loop over complex poles of inverse density (specific volume)
         for (UInt ii = 0; ii < fncGammaV.GetSize(); ii++)
         {
           std::cout << "compl. ADE density.: " << ii+1 << " from " << fncGammaV.GetSize() << std::endl;
@@ -1593,18 +1662,26 @@ namespace CoupledField
           assemble_->AddBiLinearForm(dampIntTDEFPSI2PSI2Context);
 
           // ====================================================================
-          // K_PSI2PSI2 (TDEF): stiffness integrator, TDEF (\gamma_m^V term)
-          // \int_{Omega_1} \gamma_m^V \psi_m^{V,\prime} \psi_m^V d\Omega
+          // K_PSI2PSI2 (TDEF): stiffness integrator, TDEF (\delta_m^V term)
+          // \int_{Omega_1} \delta_m^V \psi_m^{V,\prime} \psi_m^V d\Omega
           // ====================================================================
           BiLinearForm *stiffIntTDEFPSI2PSI2 = NULL;
-
+          PtrCoefFct fncQuotV;
+          fncQuotV = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncBetaV[ii], fncGammaV[ii], CoefXpr::OP_DIV));
+          PtrCoefFct fncTermV;
+          fncTermV = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncBetaV[ii], fncQuotV, CoefXpr::OP_MULT));
+          PtrCoefFct fncDeltaV;
+          fncDeltaV = CoefFunction::Generate(mp_, Global::REAL,
+                                               CoefXprBinOp(mp_, fncGammaV[ii], fncTermV, CoefXpr::OP_ADD));
           if (dim_ == 2)
           {
-            stiffIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncGammaV[ii], 1.0, updatedGeo_);
+            stiffIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 2>(), fncDeltaV, 1.0, updatedGeo_);
           }
           else
           {
-            stiffIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncGammaV[ii], 1.0, updatedGeo_);
+            stiffIntTDEFPSI2PSI2 = new BBInt<Double>(new IdentityOperator<FeH1, 3>(), fncDeltaV, 1.0, updatedGeo_);
           }
 
           stiffIntTDEFPSI2PSI2->SetName("AcousticStiffIntTDEFPSI2PSI12_" + std::to_string(ii));
