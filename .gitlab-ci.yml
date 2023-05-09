@@ -16,7 +16,9 @@ variables:
   GIT_SUBMODULE_STRATEGY: recursive
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   # build options for the maximal config
-  MAX_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON"
+  MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON"
+  # build options for the closed config
+  CLOSED_CONFIG_OPTIONS: " -DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON"
 
 # stages in the pipeline run in succession
 stages:
@@ -583,15 +585,27 @@ cfsdeps:intel:
     # general build before script
     - *before-script-build
 
-# ensure maximal build is tested only internally
-.max_never_external_rule: &rule_max_never_external_rule
+# ensure maximal build is tested never tested automatically in forks 
+# if someone wants to enable max-builds one has to manually define the variable "DO_MAX_BUILD" and set its value to "ON"
+.max_never_auto_rule: &rule_max_never_auto_rule
   rules:
-    - if: '$CI_PROJECT_NAMESPACE != "openCFS"'
+    - if: '$DO_MAX_BUILD != "ON"'
       when: never
 
 .max_rules: &max_rules
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_never_auto_rule, rules]
+    - !reference [.build_rules, rules]
+
+# ensure closed build is tested only internally
+.closed_never_external_rule: &rule_closed_never_external_rule
+  rules:
+    - if: '$CI_PROJECT_NAMESPACE != "openCFS"'
+      when: never
+
+.closed_rules: &closed_rules
+  rules:
+    - !reference [.closed_never_external_rule, rules]
     - !reference [.build_rules, rules]
 
 # build artifacts expire early
@@ -636,6 +650,27 @@ linux:gcc7max:
   <<: *gcc_before
   <<: *cache_cfsdeps
   needs: ["cfsdeps:gcc7"]
+
+# closed build using as many options as possible and containing closed source software
+linux:gcc7closed:
+  extends: .default_build_job
+  stage: build
+  image: opencfs/centos6-gcc7
+  tags:
+    - docker
+  variables:
+    BUILD_NAME: "GCC7 closed"
+    CFS_CONFIG_OPTIONS: $CLOSED_CONFIG_OPTIONS
+  <<: *closed_rules
+  <<: *gcc_before
+  <<: *cache_cfsdeps
+  needs: ["cfsdeps:gcc7"]
+  artifacts: null # disable artifacts and use a cache to ensure nothing of the closed source stuff is downloadable
+  cache:
+    key: ${CI_COMMIT_REF_NAME}-gcc7closed
+    paths:
+      - build/CFS-*-Linux.tar.gz # the packed binaries
+      - build/CMakeCache_build-stage.txt
 
 # this is the offcial release buils
 linux:gcc7:
@@ -886,7 +921,7 @@ stable_par:gcc7max:linux:
   stage: test
   image: opencfs/centos6-gcc7
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_never_auto_rule, rules]
     - when: on_success
   variables:
     BUILD_NAME: gcc7 maximal / stable parallel
@@ -896,13 +931,34 @@ stable_par:gcc7max:linux:
   needs:
     - linux:gcc7max
 
+stable_par:gcc7closed:linux:
+  tags:
+    - docker
+  stage: test
+  image: opencfs/centos6-gcc7
+  rules:
+    - !reference [.closed_never_external_rule, rules]
+    - when: on_success
+  variables:
+    BUILD_NAME: gcc7 closed / stable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-LE unstable"
+  <<: *test_generic
+  needs:
+    - linux:gcc7closed
+  cache:
+    key: ${CI_COMMIT_REF_NAME}-gcc7closed
+    paths:
+      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - build/CMakeCache_build-stage.txt
+
 unstable_ser:gcc7max:linux:
   tags:
     - docker
   stage: test
   image: opencfs/centos6-gcc7
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_never_auto_rule, rules]
     - when: on_success
       allow_failure: true
   variables:
@@ -919,7 +975,7 @@ unstable_par:gcc7max:linux:
   stage: test
   image: opencfs/centos6-gcc7
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_never_auto_rule, rules]
     - when: on_success
       allow_failure: true
   variables:
@@ -950,7 +1006,7 @@ no-slow_ser:gcc7max-debug:linux:
   stage: test
   image: opencfs/centos6-gcc7
   rules:
-    - !reference [.max_never_external_rule, rules]
+    - !reference [.max_never_auto_rule, rules]
     - when: on_success
       allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
   variables:

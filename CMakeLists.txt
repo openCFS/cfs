@@ -537,7 +537,18 @@ install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISS
   PATTERN "*.lib" EXCLUDE
   PATTERN "pkgconfig" EXCLUDE )
 # license install
-file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
+# check if we are dealing with a closed-build (or at least some mixed license stuff) and adapt the license if necessary
+if(USE_SCPIP OR USE_SNOPT OR USE_ILUPACK)
+  # we use packages based on a another license model or closed source stuff which is not meant for distribution (should never be downloadable due to cache solution)
+  file(COPY "${CFS_SOURCE_DIR}/share/special_license/LICENSE.MIXED" DESTINATION "${CFS_BINARY_DIR}/license/")
+# check if we are dealing with a max-build (or at least some GPL stuff) and adapt the license if necessary
+elseif(USE_CGAL OR USE_SUITESPARSE)
+  # we use packages based on a GPL license which is not meant for distribution
+  file(COPY "${CFS_SOURCE_DIR}/share/special_license/LICENSE.GPL" DESTINATION "${CFS_BINARY_DIR}/license/")
+else()
+  # standard build
+  file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
+endif()
 install(DIRECTORY "${CFS_BINARY_DIR}/license/" DESTINATION "license" USE_SOURCE_PERMISSIONS)
 
 include(CPack)
