@@ -98,16 +98,6 @@ namespace CoupledField
     unsigned int global_node_number;
   };
   
-  /** Helper struct for SetNodeStates */
-  struct SetStateToNone : public std::unary_function<LevelSetNode, void>
-  {
-    void operator()(LevelSetNode &node) 
-    { 
-      node.state = LevelSetNode::LS_NONE;
-    }
-  };
-
-
   /** A LevelSetElement has links to its nodes, where the actual information
    * is stored. It can be asked for intersections with the zero levelset isosurface
    * and can update the simp density using an interpolated value from the attached
