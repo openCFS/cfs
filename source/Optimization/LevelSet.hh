@@ -178,28 +178,6 @@ namespace CoupledField
   /** Debug output for a single element */
   const std::string ToString(const LevelSetElement &elem);
 
-  /** helper class for sorting a vector of LevelSetNode-pointers by their levelset value */
-  struct SortLevelSetNodesUsingLevelSetValue :
-      public std::binary_function<const LevelSetNode*, const LevelSetNode*, bool>
-  {
-    public:
-      bool operator()(const LevelSetNode *lhs, const LevelSetNode *rhs) const
-      {
-          return (lhs->value < rhs->value);
-      }
-  };
-
-  /** helper class for sorting a vector of LevelSetNode-pointers by their node number */
-  struct SortLevelSetNodesUsingNodeNumber :
-      public std::binary_function<const LevelSetNode*, const LevelSetNode*, bool>
-  {
-    public:
-      bool operator()(const LevelSetNode *lhs, const LevelSetNode *rhs) const
-      {
-        return (lhs->GetNumber() < rhs->GetNumber());
-      }
-  };
-
   /** This class holds the levelset needed for shape optimization
       in here, we assume the use of 2D rectangular or 3D cube elements at several places */
   class LevelSet

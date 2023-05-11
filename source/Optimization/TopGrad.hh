@@ -44,19 +44,21 @@ private:
 
 /** \class CompareElementValues 
  *  \brief Function object for sorting ElementValues comparing their values */
-struct CompareElementValues :
-    public std::binary_function<ElementValues, ElementValues, bool>
+struct CompareElementValues
 {
   bool operator()(const ElementValues &lhs, const ElementValues &rhs) const
-  { return (lhs.GetValue() > rhs.GetValue()); }
+  {
+    return lhs.GetValue() > rhs.GetValue();
+  }
 };
 
 
-struct FindElementValuesByNumber :
-    public std::binary_function<ElementValues, unsigned int, bool>
+struct FindElementValuesByNumber
 {
   bool operator()(const ElementValues &lhs, const unsigned int elemNum) const
-  { return (lhs.GetElemNum() == elemNum); }
+  {
+    return lhs.GetElemNum() == elemNum;
+  }
 };
 
 /** \class TopGrad
