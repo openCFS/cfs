@@ -29,7 +29,7 @@ namespace CoupledField {
   class IntegOrder {
     
     friend bool operator< (const IntegOrder&, const IntegOrder&);
-    
+    friend std::size_t hash_value(const IntegOrder& p);
   public:
     
     
@@ -103,15 +103,6 @@ namespace CoupledField {
     //! Test for equality
     bool operator== (const IntegOrder &) const;
     
-    //! Helper struct for hash function
-    struct Hash
-    : std::unary_function<IntegOrder, std::size_t> {
-      std::size_t operator()(IntegOrder const& p) const {
-        return boost::hash_range(&(p.order_[0]), &(p.order_[2]));
-      }
-    };
-
-    
   private:
 
     //! Vector containing the integration order
@@ -128,6 +119,9 @@ namespace CoupledField {
   
   //! external operator for comparing two IntegOrders
   bool operator<( const IntegOrder& a, const IntegOrder& b );
+
+  /** necessary hash function for unordered_maps of key type involving IntegOrder */
+  std::size_t hash_value(const IntegOrder& p);
 
   //! Class defining Numerical Integration
 
@@ -274,11 +268,11 @@ private:
     void CalcGaussLegendrePointsWeights( UInt order, StdVector<Double>& points, 
                                          StdVector<Double>& weights );
 
-    //! typedef for map of integration points
-    typedef boost::unordered_map< IntegOrder, IntegrationPoints, IntegOrder::Hash > IntPointMap;
+    /** typedef for map of integration points. We need a hash_value() function for IntegOrder */
+    typedef boost::unordered_map< IntegOrder, IntegrationPoints > IntPointMap;
 
     //! typedef for map of integration weights
-    typedef boost::unordered_map< IntegOrder, IntegrationWeights, IntegOrder::Hash > IntWeightMap;
+    typedef boost::unordered_map< IntegOrder, IntegrationWeights > IntWeightMap;
 
     //! Map with integration points for each element type According to the Template Parameter Integration Scheme
     std::map<IntegMethod, IntPointMap > intPoints_;

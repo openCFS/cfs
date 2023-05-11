@@ -51,14 +51,6 @@ struct CompareElementValues :
   { return (lhs.GetValue() > rhs.GetValue()); }
 };
 
-/** \class CompareElementValuesWithZero 
- *  \brief Function object for sorting ElementValues comparing their value to 0.0 */
-struct CompareElementValuesWithZero :
-    public std::unary_function<ElementValues, bool>
-{
-  bool operator()(ElementValues &lhs) const
-  { return (lhs.GetValue() < 0.0); }
-};
 
 struct FindElementValuesByNumber :
     public std::binary_function<ElementValues, unsigned int, bool>
