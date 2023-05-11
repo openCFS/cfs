@@ -165,7 +165,8 @@ void TopGrad::SolveProblemCommon(const unsigned int iter)
   // for sorting we use a function object defined in ElementValues.hh 
   // std::nth_element(topGrads.begin(), topGrads.end() - elems_removed_per_iteration_, 
   //                  topGrads.end(), CompareElementValues());
-  std::sort(topGrads.begin(), topGrads.end(), CompareElementValues());
+  std::sort(topGrads.begin(), topGrads.end(), [] (const ElementValues &lhs, const ElementValues &rhs) {return lhs.GetValue() > rhs.GetValue();});
+
 }
 
 void TopGrad::SolveProblem(const unsigned int iter, boost::shared_ptr<LevelSet> lsptr)
