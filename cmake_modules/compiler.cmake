@@ -375,11 +375,12 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
 
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
 
-  SET(CFS_FORTRAN_DYNRT_LIBS "svml;ifcoremt;imf;dl")
-#    SET(CFS_FORTRAN_DYNRT_LIBS
-#      "svml"
-#      ${CFS_FORTRAN_DYNRT_LIBS})
-#  ENDIF(NOT CFS_ARCH STREQUAL "IA64")
+  if(CMAKE_Fortran_COMPILER_ID MATCHES "IntelLLVM" AND UNIX)
+    # don't know for what it is needed - it seems not to harm on Linux and Mac but does not compile on Windows
+    set(CFS_FORTRAN_DYNRT_LIBS "svml")
+  endif()
+  list(APPEND CFS_FORTRAN_DYNRT_LIBS "ifcoremt;imf;dl") # there was added also once ifcore but the multithreaded version should be sufficient?!
+
 #  SET(CFS_FORTRAN_STATRT_LIBS
 #    "ifcoremt_pic"
 #    "irc"
