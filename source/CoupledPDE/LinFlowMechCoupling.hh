@@ -120,7 +120,8 @@ class MortarInterface;
     bool lmOrderSameAsVel_;
     bool IsLagrangeMultiplierMethod_;
     bool hasMortarIface_;
-
+    bool IncludeSymmetrizationTerm_;
+    
 	//! polyIds for the LinFlow side
     std::string presPolyId_;
     std::string velPolyId_;

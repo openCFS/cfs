@@ -4,7 +4,6 @@
 
 //#include <boost/smart_ptr/shared_ptr.hpp>
 #include "LinFlowMechCoupling.hh"
-
 #include "PDE/SinglePDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/LinFlowPDE.hh"
@@ -15,9 +14,7 @@
 #include "Materials/BaseMaterial.hh"
 #include "Driver/FormsContexts.hh"
 #include "Driver/Assemble.hh"
-
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
-
 // include fespaces
 #include "FeBasis/H1/H1Elems.hh"
 
@@ -30,7 +27,6 @@
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
-
 namespace CoupledField {
 
 
@@ -184,6 +180,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
       }
       std::string formulation = ncList[i]->Get("formulation")->As<std::string>();
       if (formulation == "Nitsche"){
+        IncludeSymmetrizationTerm_ = ncList[i]->Get("IncludeSymmetrizationTerm")->As<bool>();
         MortarInterface * nitscheIf = dynamic_cast<MortarInterface*>(ncIf.get());
         assert(nitscheIf);
         //in case of Nitsche coupling edge/face information is required
@@ -219,53 +216,99 @@ void LinFlowMechCoupling::DefineIntegrators() {
         // extract stiffness tensor from mech pde for stress tensor
         std::map<RegionIdType, BaseMaterial*>  mechMat;
         mechMat = pde2_->GetMaterialData();
-
-        // Here the mechanic PDE must be considered as MASTER
+        //get correct scaling of penalty term
+        Double matVal = 0.0;
         if ( isMaterialComplex_ ) {
           coefMech = mechMat[volMasterId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::COMPLEX);
           StdVector< Matrix<Complex> > mat;
           coefMech->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
+          for (UInt i = 0, numRows = mat[0].GetNumRows(); i < numRows; ++i) {
+            matVal += mat[0][i][i].real();
+          }
+
+        matVal /= (Double) mat[0].GetNumRows();
         }
         else {
           coefMech = mechMat[volMasterId]->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType, Global::REAL);
           StdVector< Matrix<Double> > mat;
           coefMech->GetTensorValuesAtCoords(points, mat, this->ptGrid_);
+          for (UInt i = 0, numRows = mat[0].GetNumRows(); i < numRows; ++i) {
+            matVal += mat[0][i][i];
+          }
+
+        matVal /= (Double) mat[0].GetNumRows();
+        }
+        //estimate of solid elasticity for calculating penalty factor
+        std::string strmatVal = boost::lexical_cast<std::string>(matVal);
+        PtrCoefFct young = CoefFunction::Generate(mp, Global::REAL, strmatVal);
+        //get shear viscosity for calculating penalty factor
+        PtrCoefFct shearViscosity = flowMaterials[volSlaveId]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL);
+        shared_ptr<CoefFunction > omega;
+        if(analysisType_ == BasePDE::HARMONIC){
+          omega = CoefFunction::Generate(mp, Global::REAL, "2*pi*f"); // Angular velocity
+        } else {
+          EXCEPTION("Nitsche method is only implemented for harmonic simulation"); 
+        }
+        RegionIdType surfMasterId = nitscheIf->GetMasterSurfRegion();
+        RegionIdType surfSlaveId = nitscheIf->GetSlaveSurfRegion();
+
+        shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
+                                 elSlave(new SurfElemList(ptGrid_));
+        elMaster->SetRegion(surfMasterId);
+        elSlave->SetRegion(surfSlaveId);
+
+        WARN("Developer Info: For LinFlowMech coupling it is recommended to use hdf5 input" );
+        // GetElem gives an error (in some cases e.g, PlaneWave2D) while using CDB input
+        // Using volMasterId would solve this problem, but produces the same error using hdf5 input
+        const Elem* ptElem1 = elMaster->GetElem(surfMasterId);
+        const Elem* ptElem2 = elSlave->GetElem(surfSlaveId);
+
+        shared_ptr<ElemShapeMap> esm1T = elMaster->GetGrid()->GetElemShapeMap(ptElem1,true);
+        shared_ptr<ElemShapeMap> esm2T = elSlave->GetGrid()->GetElemShapeMap(ptElem2,true);
+
+        //Get minimum element size from solid
+        Double min1,max1; 
+        esm1T->GetMaxMinEdgeLength(max1, min1);
+        std::string str1 = boost::lexical_cast<std::string>(min1);
+        PtrCoefFct h_s = CoefFunction::Generate( mp, Global::REAL, str1);
+        //Get minimum element size from LinFlow 
+        Double min2,max2;
+        esm2T->GetMaxMinEdgeLength(max2, min2);
+        std::string str2 = boost::lexical_cast<std::string>(min2);
+        PtrCoefFct h_f = CoefFunction::Generate(mp, Global::REAL, str2);
+
+        //  betaFluid = shearViscosity/h_f
+        PtrCoefFct betaFluid = CoefFunction::Generate(mp,Global::REAL,
+        CoefXprBinOp(mp,shearViscosity,h_f, CoefXpr::OP_DIV));
+
+        //  betaSolid= YoungModulus/h_s
+        PtrCoefFct betaSolid = CoefFunction::Generate(mp,Global::REAL,
+        CoefXprBinOp(mp,young,h_s, CoefXpr::OP_DIV));
+
+        //  betaSolidFreq = YoungModulus/(h_s*omega)
+        PtrCoefFct betaSolidFreq = CoefFunction::Generate(mp,Global::REAL,
+        CoefXprBinOp(mp,young,CoefXprBinOp(mp,
+                h_s,
+                omega,
+                CoefXpr::OP_MULT
+                ), CoefXpr::OP_DIV));
+        //create scaling of penalty term
+        shared_ptr<CoefFunction> beta_scalingCoef;
+        if (IncludeSymmetrizationTerm_ == true){
+          beta_scalingCoef = CoefFunction::Generate(mp,Global::REAL,
+          CoefXprBinOp(mp,betaFluid,CoefXprBinOp(mp,
+                betaSolid,
+                betaSolidFreq,
+                CoefXpr::OP_ADD
+                ),CoefXpr::OP_ADD));
+        }else{
+          beta_scalingCoef = CoefFunction::Generate(mp,Global::REAL,
+          CoefXprBinOp(mp,betaFluid,betaSolidFreq,CoefXpr::OP_ADD));
         }
 
-        //get correct scaling of penalty term
-        Double Beta = 0.0;
-
-        // extract material from LinFlow pde
-        shared_ptr<CoefFunction > shearViscosity;
-        shared_ptr<CoefFunction > bulkViscosity;
-        shearViscosity = flowMaterials[volSlaveId]->GetScalCoefFnc(FLUID_DYNAMIC_VISCOSITY, Global::REAL);
-        bulkViscosity = flowMaterials[volSlaveId]->GetScalCoefFnc(FLUID_BULK_VISCOSITY, Global::REAL);
-        PtrCoefFct density_f = flowMaterials[volSlaveId]->GetScalCoefFnc(DENSITY, Global::REAL);
-        PtrCoefFct density_s = mechMat[volMasterId]->GetScalCoefFnc(DENSITY, Global::REAL);
-
-        PtrCoefFct shearPlusBulkCoeff = CoefFunction::Generate(mp,Global::REAL,CoefXprBinOp(mp,shearViscosity,bulkViscosity, CoefXpr::OP_ADD)); //sum of the viscosities
-        LocPointMapped map;
-        Double shearPlusBulk = 0;
-        shearPlusBulkCoeff->GetScalar(shearPlusBulk,map);
-        if (shearPlusBulk == 0) {    //make sure viscosities are not zero
-          shearPlusBulkCoeff = CoefFunction::Generate( mp, Global::REAL, "1");
-        }
-
-        // densratiosqr = sqrt(density_f/density_s)
-        PtrCoefFct densratiosqr = CoefFunction::Generate(mp, Global::REAL,
-            CoefXprUnaryOp(mp,
-                CoefXprBinOp(mp,density_f ,density_s ,CoefXpr::OP_DIV)
-                ,CoefXpr::OP_SQRT));
-
-        //  betaCoeff = densratiosqr*(\lambda+\mu)
-        PtrCoefFct betaCoeff = CoefFunction::Generate(mp,Global::REAL,CoefXprBinOp(mp,shearPlusBulkCoeff,densratiosqr, CoefXpr::OP_MULT));
-        betaCoeff->GetScalar(Beta,map);
-
-        // Create final Nitsche's factor
-        beta *= Beta;
-
-        PtrCoefFct coefOne = CoefFunction::Generate( mp, Global::REAL, "1");
-        PtrCoefFct coefMinusOne = CoefFunction::Generate( mp, Global::REAL, "-1.0");
+        PtrCoefFct coefOne = CoefFunction::Generate(mp, Global::REAL, "1");
+        PtrCoefFct coefMinusOne = CoefFunction::Generate(mp, Global::REAL, "-1.0");
+        
         // Note:
         // Define the bilinear forms for the Nitsche coupling consists of six terms
         // The terms are divided into four categories:
@@ -275,6 +318,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
         // 4) The Penalty integrals coupling LinFlow velocity with mechanical displacement
         // assume phi is displacement test function and u is displacement
         // psi is velocity test function and v LinFlow velocity
+        // 5) Symmetrization terms are seperately added to formulation
 
         BiLinearForm* int_PhiM_duM = NULL;   // Term 1: u'M_duM : phi * sigma[u].n
         BiLinearForm* penalty_PhiM_uM = NULL;// term 2  u'M_uM : beta*phi*du/dt
@@ -285,6 +329,8 @@ void LinFlowMechCoupling::DefineIntegrators() {
 
         BaseBOperator * sNSOp1 = NULL;
         BaseBOperator * sNSOp2 = NULL;
+        BaseBOperator * sNSOp3 = NULL;
+        BaseBOperator * sNSOp4 = NULL;
         // ====================================================================
         //  PART ONE
         // ====================================================================
@@ -326,14 +372,14 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PhiM_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              coefOne, beta, BiLinearForm::MASTER_MASTER , false, true, true);
+              beta_scalingCoef, beta, BiLinearForm::MASTER_MASTER , false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PhiM_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              coefOne, beta, BiLinearForm::MASTER_MASTER, false, true, true);
+              beta_scalingCoef, beta, BiLinearForm::MASTER_MASTER, false, true, true);
         }
         else
         {
@@ -341,7 +387,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PhiM_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              coefOne, beta, BiLinearForm::MASTER_MASTER, false, true, true);
+              beta_scalingCoef, beta, BiLinearForm::MASTER_MASTER, false, true, true);
         }
         // --------------------------
         // Term 3 : -beta*phi*v
@@ -351,21 +397,21 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PhiM_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              coefMinusOne, beta,BiLinearForm::MASTER_SLAVE , false, true, true);
+              beta_scalingCoef, -beta,BiLinearForm::MASTER_SLAVE , false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PhiM_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              coefMinusOne, beta, BiLinearForm::MASTER_SLAVE , false, true, true);
+              beta_scalingCoef, -beta, BiLinearForm::MASTER_SLAVE , false, true, true);
         }
         else
         {
           penalty_PhiM_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              coefMinusOne, beta, BiLinearForm::MASTER_SLAVE , false, true, true);
+              beta_scalingCoef, -beta, BiLinearForm::MASTER_SLAVE , false, true, true);
         }
         // ====================================================================
         //  PART THREE
@@ -408,21 +454,21 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              coefOne, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
+              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              coefOne, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
+              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
         }
         else
         {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              coefOne, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, false, true);
+              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, false, true);
         }
         // --------------------------
         // Term 6 : -beta*Psi.du/dt
@@ -433,21 +479,21 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              coefMinusOne, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, true, true);
+              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              coefMinusOne, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, true, true);
+              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, true, true);
         }
         else
         {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              coefMinusOne, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, false, true);
+              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, false, true);
         }
 
         int_PhiM_duM->SetName("int_PhiM_duM");
@@ -456,6 +502,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
         int_PsiS_duM->SetName("int_PsiS_duM");
         penalty_PsiS_vS->SetName("penalty_PsiS_vS");
         penalty_PsiS_uM->SetName("penalty_PsiS_uM");
+
 
         // define contexts for bilinear forms
         SurfaceBiLinFormContext* descr_PhiM_duM = new SurfaceBiLinFormContext(int_PhiM_duM, STIFFNESS, BiLinearForm::MASTER_MASTER);
@@ -466,11 +513,12 @@ void LinFlowMechCoupling::DefineIntegrators() {
         SurfaceBiLinFormContext* descr_PsiS_uM = new SurfaceBiLinFormContext(penalty_PsiS_uM, DAMPING, BiLinearForm::SLAVE_MASTER);
 
         descr_PhiM_duM->SetEntities(actNCSDList, actNCSDList);
-         descr_PhiM_uM->SetEntities(actNCSDList, actNCSDList);
+        descr_PhiM_uM->SetEntities(actNCSDList, actNCSDList);
         descr_PhiM_vS->SetEntities(actNCSDList, actNCSDList);
         descr_PsiS_duM->SetEntities(actNCSDList, actNCSDList);
         descr_PsiS_vS->SetEntities(actNCSDList, actNCSDList);
         descr_PsiS_uM->SetEntities(actNCSDList, actNCSDList);
+
 
         descr_PhiM_duM->SetFeFunctions(dispFct, velFct);
         descr_PhiM_uM->SetFeFunctions(dispFct, velFct);
@@ -479,12 +527,90 @@ void LinFlowMechCoupling::DefineIntegrators() {
         descr_PsiS_vS->SetFeFunctions(dispFct, velFct);
         descr_PsiS_uM->SetFeFunctions(dispFct, velFct);
 
+
         assemble_->AddBiLinearForm(descr_PhiM_duM);
         assemble_->AddBiLinearForm(descr_PhiM_uM);
         assemble_->AddBiLinearForm(descr_PhiM_vS);
         assemble_->AddBiLinearForm(descr_PsiS_duM);
         assemble_->AddBiLinearForm(descr_PsiS_vS);
         assemble_->AddBiLinearForm(descr_PsiS_uM);
+
+        if (IncludeSymmetrizationTerm_ == true){//Symmetrization terms is added
+          BiLinearForm* int_dPhiM_vS = NULL;    // Term 7: du'M_vS : sigma[u'].n*v
+          BiLinearForm* int_dPhiM_uM = NULL;    // Term 8: du'M_Um : -sigma[u'].n*du/dt
+
+          // --------------------------
+          // Term 7 : du'M_vS : sigma[u'].n*v
+          // --------------------------
+          if (dim_ == 3)
+          {
+            sNSOp3 = new SurfaceNormalStressOperator<FeH1, 3, 3,Complex>(subType_ ,false);
+            sNSOp3->SetCoefFunction(coefMech);
+            int_dPhiM_vS = new SurfaceNitscheABInt<Double,Double>
+            (sNSOp3, new SurfaceIdentityOperator<FeH1, 3, 3>(),
+                coefOne, 1.0, BiLinearForm::MASTER_SLAVE, false, true, false);
+          }
+          else if (dim_ == 2 && subType_ == "2.5d")
+          {
+            sNSOp3 = new SurfaceNormalStressOperator<FeH1, 2, 3,Complex>(subType_ ,false);
+            sNSOp3->SetCoefFunction(coefMech);
+            int_dPhiM_vS = new SurfaceNitscheABInt<Double,Double>
+            (sNSOp3, new SurfaceIdentityOperator<FeH1, 2, 3>(),
+                coefOne, 1.0, BiLinearForm::MASTER_SLAVE, false, true, false);
+          }
+          else
+          {
+            sNSOp3 = new SurfaceNormalStressOperator<FeH1, 2, 2,Complex>(subType_ ,false);
+            sNSOp3->SetCoefFunction(coefMech);
+            int_dPhiM_vS = new SurfaceNitscheABInt<Double,Double>
+            (sNSOp3, new SurfaceIdentityOperator<FeH1, 2, 2>(),
+                coefOne, 1.0, BiLinearForm::MASTER_SLAVE, false, true, false);
+          }
+
+          // --------------------------
+          // Term 8 : du'M_Um : -sigma[u'].n*du/dt
+          // --------------------------
+          if (dim_ == 3)
+          {
+            sNSOp4 = new SurfaceNormalStressOperator<FeH1, 3, 3,Complex>(subType_ ,false);
+            sNSOp4->SetCoefFunction(coefMech);
+            int_dPhiM_uM = new SurfaceNitscheABInt<Double,Double>
+            (sNSOp4, new SurfaceIdentityOperator<FeH1, 3, 3>(),
+                coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+          }
+          else if (dim_ == 2 && subType_ == "2.5d")
+          {
+            sNSOp4 = new SurfaceNormalStressOperator<FeH1, 2, 3,Complex>(subType_ ,false);
+            sNSOp4->SetCoefFunction(coefMech);
+            int_dPhiM_uM = new SurfaceNitscheABInt<Double,Double>
+            (sNSOp4, new SurfaceIdentityOperator<FeH1, 2, 3>(),
+                coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+          }
+          else
+          {
+            sNSOp4 = new SurfaceNormalStressOperator<FeH1, 2, 2,Complex>(subType_ ,false);
+            sNSOp4->SetCoefFunction(coefMech);
+            int_dPhiM_uM = new SurfaceNitscheABInt<Double,Double>
+            (sNSOp4, new SurfaceIdentityOperator<FeH1, 2, 2>(),
+                coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+          }
+
+
+          int_dPhiM_vS->SetName("int_dPhiM_vS");
+          int_dPhiM_uM->SetName("int_dPhiM_uM");
+
+          SurfaceBiLinFormContext* descr_dPhiM_vS = new SurfaceBiLinFormContext(int_dPhiM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
+          SurfaceBiLinFormContext* descr_dPhiM_uM = new SurfaceBiLinFormContext(int_dPhiM_uM, DAMPING, BiLinearForm::MASTER_MASTER);
+
+          descr_dPhiM_vS->SetEntities(actNCSDList, actNCSDList);
+          descr_dPhiM_uM->SetEntities(actNCSDList, actNCSDList);
+
+          descr_dPhiM_vS->SetFeFunctions(dispFct, velFct);
+          descr_dPhiM_uM->SetFeFunctions(dispFct, velFct);
+
+          assemble_->AddBiLinearForm(descr_dPhiM_vS);
+          assemble_->AddBiLinearForm(descr_dPhiM_uM);
+        }
       }
       else if (formulation == "Mortar")
       {
