@@ -567,7 +567,16 @@
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required" />
                       <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional"/>
-                      <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="10e10"/>
+                      <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional"/>
+                      <xsd:attribute name="IncludeSymmetrizationTerm" type="xsd:token" use="optional" default="true">
+                        <xsd:annotation>
+                          <xsd:documentation>
+                            In the LinFlowMech coupling using the Nitsche method, it is advisable to incorporate the IncludeSymmetrizationTerm. 
+                            This addition adds two extra bilinear terms, namely sigma[u'].nv and -sigma[u'].ndu/dt 
+                            (where u and v represent solid displacement and fluid velocity, respectively), into the system.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
