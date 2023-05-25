@@ -734,8 +734,26 @@ namespace CoupledField{
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     PtrCoefFct posFct = CoefFunction::Generate( mp_,  part, CoefXprBinOp( mp_, oneOverOmega2rho, presGradFct, CoefXpr::OP_MULT ) );
     DefineFieldResult( posFct, pos );
-  }
 
+    // === WATER_SURFACE_TRACTION ===
+    shared_ptr<ResultInfo> surfaceTractionInfo;
+    shared_ptr<CoefFunctionSurf> surfaceTractionFct;
+    surfaceTractionInfo.reset(new ResultInfo);
+    surfaceTractionInfo->resultType = WATER_SURFACE_TRACTION;
+    surfaceTractionInfo->dofNames = vecDofNames;
+    surfaceTractionInfo->unit = "Pa";
+    surfaceTractionInfo->entryType = ResultInfo::VECTOR;
+    surfaceTractionInfo->definedOn = ResultInfo::SURF_ELEM;
+
+    surfaceTractionFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTractionInfo));
+    DefineFieldResult(surfaceTractionFct, surfaceTractionInfo);
+    surfCoefFcts_[surfaceTractionFct] = feFunctions_[WATER_PRESSURE];
+  }
+  
+  //For Moment
+  //PtrCoefFct intensTmp = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, sigmaFunc, velFnc, CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ)); Ortsvektor
+  //intensFct = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT)); Moment Ortsv x f
+  
   //! Init the time stepping
   void WaterWavePDE::InitTimeStepping(){
 
