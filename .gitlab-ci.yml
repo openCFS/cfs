@@ -25,6 +25,7 @@ stages:
   - cfsdeps
   - build
   - test # we may have several test configs for one build
+  - test_extra # here we test everything that is not required to pass (broken and too unstable stuff)
   - docs
   - deploy
 
@@ -864,7 +865,7 @@ stable_ser:gcc7min:linux:
   variables:
     BUILD_NAME: gcc7 minimal / stable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-LE unstable"
+    CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
     - linux:gcc7min
@@ -880,7 +881,6 @@ unstable_ser:gcc7min:linux:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
-  allow_failure: true
   needs:
     - linux:gcc7min
 
@@ -895,7 +895,7 @@ stable_par:gcc7max:linux:
   variables:
     BUILD_NAME: gcc7 maximal / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable"
+    CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
     - linux:gcc7max
@@ -908,7 +908,6 @@ unstable_ser:gcc7max:linux:
   rules:
     - !reference [.max_never_external_rule, rules]
     - when: on_success
-      allow_failure: true
   variables:
     BUILD_NAME: gcc7 maximal / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -916,55 +915,6 @@ unstable_ser:gcc7max:linux:
   <<: *test_generic
   needs:
     - linux:gcc7max
-
-unstable_par:gcc7max:linux:
-  tags:
-    - docker
-  stage: test
-  image: opencfs/centos6-gcc7
-  rules:
-    - !reference [.max_never_external_rule, rules]
-    - when: on_success
-      allow_failure: true
-  variables:
-    BUILD_NAME: gcc7 maximal / unstable parallel
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-L unstable"      
-  <<: *test_generic
-  needs:
-    - linux:gcc7max
-
-# this test has the speciality that it shall run at an unspecified image 
-all_par:gcc7:any-linux:
-  tags:
-    - linux
-  stage: test 
-  variables:
-    BUILD_NAME: gcc7 default / all parallel any-linux
-    # no special options - we take all default (should be all tests & in parallel if NCPU>1)
-  <<: *test_generic
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
-  needs:
-    - linux:gcc7
-
-# debug is compiled without openmp
-no-slow_ser:gcc7max-debug:linux:
-  tags:
-    - docker
-  stage: test
-  image: opencfs/centos6-gcc7
-  rules:
-    - !reference [.max_never_external_rule, rules]
-    - when: on_success
-      allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
-  variables:
-    BUILD_NAME: gcc maximal debug / no-slow serial
-    # debug is compiled without openmp, we could set the threads to anything and it would be ignored
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    # this special test_no_slow does -LE "unstable|slow"
-  <<: *test_no_slow
-  needs:
-    - linux:gcc7max-debug
 
 stable_par:gcc12:linux:
   image: opencfs/fedora37
@@ -974,7 +924,7 @@ stable_par:gcc12:linux:
   variables:
     BUILD_NAME: gcc12 default / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable"
+    CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
     - linux:gcc12
@@ -989,7 +939,6 @@ unstable_ser:gcc12:linux:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
-  allow_failure: true 
   needs:
     - linux:gcc12
 
@@ -1001,7 +950,7 @@ stable_par:intel:linux:
   variables:
     BUILD_NAME: Intel2021 default / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable"
+    CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   except:
     variables:
@@ -1020,7 +969,6 @@ unstable_ser:intel:linux:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
-  allow_failure: true
   except:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
@@ -1065,6 +1013,157 @@ python:linux:
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
+
+
+#######################################################################
+# TEST_EXTRA STAGE - similar to before, but here we collect everything that is currently not working as intended (everything that is allowed to fail)
+#######################################################################
+
+broken_ser:gcc7min:linux:
+  tags:
+    - linux
+  image: opencfs/ubuntu22.04
+  stage: test_extra
+  variables:
+    # is built without opnemp  
+    BUILD_NAME: gcc7 minimal / broken serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L broken"
+  <<: *test_generic
+  allow_failure: true
+  needs:
+    - linux:gcc7min
+
+# this test has the speciality that it shall run at an unspecified image 
+all_par:gcc7:any-linux:
+  tags:
+    - linux
+  stage: test_extra 
+  variables:
+    BUILD_NAME: gcc7 default / all parallel any-linux
+    # no special options - we take all default (should be all tests & in parallel if NCPU>1)
+  <<: *test_generic
+  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
+  needs:
+    - linux:gcc7
+
+unstable_par:gcc7max:linux:
+  tags:
+    - docker
+  stage: test_extra
+  image: opencfs/centos6-gcc7
+  rules:
+    - !reference [.max_never_external_rule, rules]
+    - when: on_success
+      allow_failure: true
+  variables:
+    BUILD_NAME: gcc7 maximal / unstable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-L unstable"      
+  <<: *test_generic
+  needs:
+    - linux:gcc7max
+
+broken_ser:gcc7max:linux:
+  tags:
+    - docker
+  stage: test_extra
+  image: opencfs/centos6-gcc7
+  rules:
+    - !reference [.max_never_external_rule, rules]
+    - when: on_success
+      allow_failure: true
+  variables:
+    BUILD_NAME: gcc7 maximal / broken serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L broken"      
+  <<: *test_generic
+  allow_failure: true
+  needs:
+    - linux:gcc7max
+
+# debug is compiled without openmp
+no-slow_ser:gcc7max-debug:linux:
+  tags:
+    - docker
+  stage: test_extra
+  image: opencfs/centos6-gcc7
+  rules:
+    - !reference [.max_never_external_rule, rules]
+    - when: on_success
+      allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
+  variables:
+    BUILD_NAME: gcc maximal debug / no-slow serial
+    # debug is compiled without openmp, we could set the threads to anything and it would be ignored
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    # this special test_no_slow does -LE "unstable|slow"
+  <<: *test_no_slow
+  needs:
+    - linux:gcc7max-debug
+
+unstable_par:gcc12:linux:
+  image: opencfs/fedora37
+  tags:
+    - docker
+  stage: test_extra
+  variables:
+    BUILD_NAME: gcc12 default / unstable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-L unstable"
+  <<: *test_generic
+  allow_failure: true
+  needs:
+    - linux:gcc12
+
+broken_ser:gcc12:linux:
+  image: opencfs/fedora37
+  tags:
+    - docker
+  stage: test_extra
+  variables:
+    BUILD_NAME: gcc12 default / broken serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L broken"
+  <<: *test_generic
+  allow_failure: true
+  needs:
+    - linux:gcc12
+
+unstable_par:intel:linux:
+  tags:
+    - linux
+  image: opencfs/ubuntu22.04
+  stage: test_extra
+  variables:
+    BUILD_NAME: Intel2021 default / unstable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-L unstable"
+  <<: *test_generic
+  allow_failure: true
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
+      - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
+  needs:
+    - linux:intel
+
+broken_ser:intel:linux:
+  tags:
+    - linux
+  image: opencfs/ubuntu22.04
+  stage: test_extra
+  variables:
+    BUILD_NAME: Intel2021 default / broken serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L broken"
+  <<: *test_generic
+  allow_failure: true
+  except:
+    variables:
+      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
+      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
+  needs:
+    - linux:intel
 
 #######################################################################
 # DOCS STAGE - Documentation jobs
