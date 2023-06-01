@@ -138,13 +138,17 @@ namespace CoupledField {
           speedOfSnd = CoefFunction::Generate(mp, Global::REAL, "1.0");
           if (pmlFormul == "classic")
           {
-            coefPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd, actSDList, pde1_->GetRegions(), false));
-            coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd, actSDList, pde1_->GetRegions(), true));
+            coefPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd, actSDList, pde1_->GetRegions(), 
+                                                           CoefFunction::CoefDimType::SCALAR));
+            coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd, actSDList, pde1_->GetRegions(), 
+                                                          CoefFunction::CoefDimType::VECTOR));
           }
           else if (pmlFormul == "shifted")
           {
-            coefPMLScal.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd, actSDList, pde1_->GetRegions(), false));
-            coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd, actSDList, pde1_->GetRegions(), true));
+            coefPMLScal.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd, actSDList, 
+                              pde1_->GetRegions(), CoefFunction::CoefDimType::SCALAR));
+            coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd, actSDList, 
+                              pde1_->GetRegions(), CoefFunction::CoefDimType::VECTOR));
           }
           else{
             EXCEPTION("Unknown PML-formulation '" << pmlFormul << "'")
@@ -329,16 +333,20 @@ namespace CoupledField {
               if (pmlFormul == "classic")
               {
                 coefFuncPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), pde1_->GetRegions(), true));
+                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), pde1_->GetRegions(), 
+                                               CoefFunction::CoefDimType::VECTOR));
                 coefFuncPMLScl.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), pde1_->GetRegions(), false));
+                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), pde1_->GetRegions(), 
+                                               CoefFunction::CoefDimType::SCALAR));
               }
               else if (pmlFormul == "shifted")
               {
                 coefFuncPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
-                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), pde1_->GetRegions(), true));
+                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), pde1_->GetRegions(), 
+                                               CoefFunction::CoefDimType::VECTOR));
                 coefFuncPMLScl.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
-                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), pde1_->GetRegions(), false));
+                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), pde1_->GetRegions(), 
+                                               CoefFunction::CoefDimType::SCALAR));
               }
               else
               {

@@ -56,6 +56,8 @@
 #include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MagEdgeSpecialAVPDE.hh"
 #include "PDE/DarwinPDE.hh"
+#include "PDE/FullWaveMaxwellAVPDE.hh"
+#include "PDE/FullWaveMaxwellEPDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/SmoothPDE.hh"
 #include "PDE/TestPDE.hh"
@@ -783,8 +785,12 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
           ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
         }else if(formulation == "specialA-V"){
           ptSinglePde_[i] = new MagEdgeSpecialAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        }else if(formulation == "Darwin" || "Darwin_doubleLagrange"){
+        }else if(formulation == "Darwin" || formulation == "Darwin_doubleLagrange"){
           ptSinglePde_[i] = new DarwinPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        }else if(formulation == "fullwave-AV"){
+          ptSinglePde_[i] = new FullWaveMaxwellAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        }else if(formulation == "fullwave-E"){
+          ptSinglePde_[i] = new FullWaveMaxwellEPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
         }else{
           EXCEPTION("Formulation of MagEdgePDE not known!");
         }

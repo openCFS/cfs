@@ -553,7 +553,7 @@ namespace CoupledField{
     PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", id.c_str());
     // get the diagonal entries of the Jacobi matrix as vector
     shared_ptr<CoefFunction> coeffPMLVector;
-    coeffPMLVector.reset(new CoefFunctionPML<Double>(pmlNode, c0, eList, regions_, true));
+    coeffPMLVector.reset(new CoefFunctionPML<Double>(pmlNode, c0, eList, regions_, CoefFunction::CoefDimType::VECTOR));
 
     // store pml factor
     matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLVector);

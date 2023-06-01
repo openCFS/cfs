@@ -32,7 +32,7 @@ public:
   CoefFunctionMapping(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                   shared_ptr<EntityList> EntList,
                   StdVector<RegionIdType> pdeDomains,
-                  bool isVector );
+                  CoefFunction::CoefDimType );
 
   virtual ~CoefFunctionMapping();
 

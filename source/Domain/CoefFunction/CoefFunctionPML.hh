@@ -246,7 +246,8 @@ class DampFunction{
     //! base constructor
     CoefFunctionPMLBase(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                     shared_ptr<EntityList> EntList,
-                    StdVector<RegionIdType> pdeDomains);
+                    StdVector<RegionIdType> pdeDomains,
+                    CoefFunction::coefDimType dimType);
 
     //! destructor
     virtual ~CoefFunctionPMLBase();
@@ -335,8 +336,8 @@ class DampFunction{
       shared_ptr<DampFunction> dampFunction_;
       //! type of the damping function
       DampFunction::DampingType pmlType_;
-      //! speed of sound
-      PtrCoefFct speedOfSound_;
+      //! speed of wave
+      PtrCoefFct matCoef_;
       //! Pointer to math parser instance
       MathParser* mp_;
       //! Handle for expression
@@ -362,7 +363,7 @@ class DampFunction{
     CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                     shared_ptr<EntityList> EntList,
                     StdVector<RegionIdType> pdeDomains,
-                    bool isVector );
+                    coefDimType dimType);
 
     virtual ~CoefFunctionPML();
 
@@ -408,8 +409,6 @@ class DampFunction{
     Matrix<Double> innerMinMaxComp_;
     Matrix<Double> outerMinMaxComp_;
 
-    //! flag, if PML coefficient functions describes the vector 
-    bool isVector_;
   };
 
 
@@ -422,8 +421,8 @@ class DampFunction{
 
   public:
 
-    CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                          StdVector<RegionIdType> pdeDomains, bool isVector);
+  CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+                         StdVector<RegionIdType> pdeDomains, CoefFunction::CoefDimType dimType);
 
     virtual ~CoefFunctionShiftedPML();
 

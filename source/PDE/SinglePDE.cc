@@ -3975,7 +3975,7 @@ namespace CoupledField {
         factor = materials_[nitscheIf->GetPrimaryVolRegion()]->GetScalCoefFnc( ELEC_CONDUCTIVITY_SCALAR, Global::REAL );
       }
     }
-    else if ( solType == MAG_POTENTIAL) {
+    else if ( (solType == MAG_POTENTIAL) || (solType == ELEC_FIELD_INTENSITY)) {
       //TODO Clean this up
       PtrCoefFct permeability, reluctivity, permeabilityM, permeabilityS, factorM, factorS, factorAdd;
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
@@ -4143,7 +4143,7 @@ namespace CoupledField {
                       new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                       factor, beta, curcpl, updatedGeo_, true, true);
     } else {
-      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV") {
+      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV" || pdename_ == "fullwave-E") {
         if(additionalCoef) {
           // multiharmonic case
           penalty_v1_u1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4184,7 +4184,7 @@ namespace CoupledField {
                       new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                       factor, -1.0, curcpl, updatedGeo_, true);
       } else {
-        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV") {
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV" || pdename_ == "fullwave-E") {
           if(additionalCoef) {
             // multiharmonic case
             flux_dv1_u1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4222,7 +4222,7 @@ namespace CoupledField {
                       new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
                       factor, -1.0, curcpl, updatedGeo_, true);
       } else {
-        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV") {
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV" || pdename_ == "fullwave-E") {
           if(additionalCoef) {
             // multiharmonic case
             flux_v1_du1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4255,7 +4255,7 @@ namespace CoupledField {
                       new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                       factor, beta * -1.0, curcpl, updatedGeo_, true, true);
     } else {
-      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV") {
+      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV" || pdename_ == "fullwave-E") {
         if(additionalCoef){
           // multiharmonic case
           penalty_v1_u2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4296,7 +4296,7 @@ namespace CoupledField {
                       new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                       factor, 1.0, curcpl, updatedGeo_, true);
       } else {
-        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV") {
+        if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV" || pdename_ == "fullwave-E") {
           if(additionalCoef) {
             // multiharmonic case
             flux_dv1_u2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4330,7 +4330,7 @@ namespace CoupledField {
                       new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                       factor, beta, curcpl, updatedGeo_, true, true);
     } else {
-      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV"){
+      if(pdename_ == "magneticEdge" || pdename_ == "magneticEdgeMixedAV" || pdename_ == "magneticEdgeSpecialAV" || pdename_ == "fullwave-E"){
         if(additionalCoef) {
           // multiharmonic case
           penalty_v2_u2 = new SurfaceNitscheABInt<Complex,Complex>

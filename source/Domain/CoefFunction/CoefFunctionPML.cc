@@ -19,23 +19,31 @@ namespace CoupledField{
   // Base Class
   //================================================================================================
   template<typename T>
-  CoefFunctionPMLBase<T>::CoefFunctionPMLBase(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
-                                    shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains): 
+  CoefFunctionPMLBase<T>::CoefFunctionPMLBase(PtrParamNode pmlDef, PtrCoefFct matCoef,
+                                              shared_ptr<EntityList> EntList, 
+                                              StdVector<RegionIdType> pdeDomains,
+                                              CoefFunction::CoefDimType dimType): 
                                     CoefFunction() {
+
     isAnalytic_ = false;
     isComplex_ =  std::is_same<T,Complex>::value;
     dependType_ = GENERAL;
     this->entities_.Push_back(EntList);
     dim_ = entities_[0]->GetGrid()->GetDim();
+
+    //set type: SCALAR, VECTOR, TENSOR :
+    this->dimType_ = dimType;
+
     //orderCoefFct_ = orderCoefFct;
     name_ = "CoefFunctionPMLBase";
     pmlType_ = DampFunction::NO_TYPE;
 
     //check if the coefficient function of the speed of sound is real valued and scalar
-    if(speedOfSound->GetDimType() != CoefFunction::SCALAR || speedOfSound->IsComplex()){
-      EXCEPTION("The PML coefficient function needs a real valued scalar coeffunction as speed of sound");
+    if(matCoef->GetDimType() != CoefFunction::SCALAR || matCoef->IsComplex()){
+      EXCEPTION("The PML coefficient function needs a real valued scalar coeffunction as speed of wave");
     }
-    speedOfSound_ = speedOfSound;
+
+    matCoef_ = matCoef;
   
     //this is just to be up to date with the desired frequency!
     // obtain handle from internal variable coefficient function
@@ -99,9 +107,10 @@ namespace CoupledField{
   // Classic (=Cartesian) PML
   //================================================================================================
   template<typename T>
-  CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
-              shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains, bool isVector) : 
-                  CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
+  CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct matCoef,
+              shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains, CoefFunction::coefDimType dimType) : 
+                  CoefFunctionPMLBase<T>(pmlDef, matCoef, EntList, pdeDomains, dimType) {
+                    
     this->name_ = "CoefFunctionPML";
     //prepare dimenstions of propagation region
     innerMinMaxComp_.Resize(3,2);
@@ -110,15 +119,9 @@ namespace CoupledField{
     outerMinMaxComp_.Resize(3,2);
     outerMinMaxComp_.Init();
 
-    isVector_ = isVector;
     this->formulationType_ = CLASSIC;
     ReadDataPML(pmlDef,pdeDomains);
 
-    if (isVector_ ) {
-      this->dimType_ = CoefFunction::VECTOR;
-    } else {
-      this->dimType_ = CoefFunction::SCALAR;
-    }
   }
 
   template<typename T>
@@ -135,15 +138,37 @@ namespace CoupledField{
     Double locThick=0.0;
     Double position=0.0;
     Complex one(1.0,0.0);
-    Double sos;
-    this->speedOfSound_->GetScalar(sos,lpm);
-    for(UInt i=0;i<this->dim_;++i){
-      GetThicknessAtPoint(locThick,position,lpm,i);
-      if(abs(locThick)>0.0){
-        Complex fac(0.0,-1.0 * sos* this->dampFunction_->ComputeFactor(position,locThick));
-        tensor[i][i] = this->omega_ / (this->omega_ + fac);
-      }else{
-        tensor[i][i] = one;
+    Double waveSpeed;
+    this->matCoef_->GetScalar(waveSpeed,lpm);
+    
+    if(this->used4PDE_ == "fullwave-E"){
+      //special tensor for Electromagnetic Waves
+      //see book FINITE ELEMENT ANALYSIS OF ANTENNAS AND ARRAYS, Jian-Ming Jin, Douglas J. Riley, pp. 64
+      //however, we scale with wave speed!
+      for(UInt i=0;i<this->dim_;++i) {
+        GetThicknessAtPoint(locThick,position,lpm,i);
+        if(abs(locThick)>0.0){
+          Complex fac(0.0, this->dampFunction_->ComputeFactor(position,locThick));
+          sFactors[i] =  1.0 - fac * waveSpeed / (this->omega_);
+        }else{
+          sFactors[i] = one;
+        }
+      } 
+      
+      // removed isActive_ as it was always false!
+      tensor[0][0] = sFactors[1]*sFactors[2] / sFactors[0];
+      tensor[1][1] = sFactors[0]*sFactors[2] / sFactors[1];
+      tensor[2][2] = sFactors[0]*sFactors[1] / sFactors[2];
+    }
+    else{
+      for(UInt i=0;i<this->dim_;++i){
+        GetThicknessAtPoint(locThick,position,lpm,i);
+        if(abs(locThick)>0.0){
+          Complex fac(0.0, -1.0 * waveSpeed * this->dampFunction_->ComputeFactor(position,locThick));
+          tensor[i][i] = this->omega_ / (this->omega_ + fac);
+        }else{
+          tensor[i][i] = one;
+        }
       }
     }
   }
@@ -156,12 +181,12 @@ namespace CoupledField{
     tensor.Init();
     Double locThick=0.0;
     Double position=0.0;
-    Double sos;
-    this->speedOfSound_->GetScalar(sos,lpm);
+    Double waveSpeed;
+    this->matCoef_->GetScalar(waveSpeed,lpm);
     for(UInt i=0;i<this->dim_;++i){
       GetThicknessAtPoint(locThick,position,lpm,i);
       if(abs(locThick)>0.0){
-        tensor[i][i] = this->dampFunction_->ComputeFactor(position,locThick) * sos;
+        tensor[i][i] = this->dampFunction_->ComputeFactor(position,locThick) * waveSpeed;
       }else{
         tensor[i][i] = 0.0;
       }
@@ -177,12 +202,12 @@ namespace CoupledField{
     Double locThick=0.0;
     Double position=0.0;
     Complex dummy(1.0,0.0);
-    Double sos;
-    this->speedOfSound_->GetScalar(sos,lpm);
+    Double waveSpeed;
+    this->matCoef_->GetScalar(waveSpeed,lpm);
     for(UInt i=0;i<this->dim_;++i){
       GetThicknessAtPoint(locThick,position,lpm,i);
       if(abs(locThick)>0.0){
-        Complex fac(1.0,-1.0 * sos* this->dampFunction_->ComputeFactor(position,locThick)/this->omega_);
+        Complex fac(1.0, -1.0 * waveSpeed * this->dampFunction_->ComputeFactor(position,locThick)/this->omega_);
         vec[i] = dummy / fac;
       }else{
         vec[i] = dummy;
@@ -198,17 +223,22 @@ namespace CoupledField{
     vec.Resize(this->dim_,0.0);
     Double locThick=0.0;
     Double position=0.0;
-    Double sos;
-    this->speedOfSound_->GetScalar(sos,lpm);
+    Double waveSpeed;
+    this->matCoef_->GetScalar(waveSpeed,lpm);
     for(UInt i=0;i<this->dim_;++i){
       GetThicknessAtPoint(locThick,position,lpm,i);
       if(abs(locThick)>0.0){
-        vec[i] = this->dampFunction_->ComputeFactor(position,locThick) * sos;
+        vec[i] = this->dampFunction_->ComputeFactor(position,locThick) * waveSpeed;
       }else{
         vec[i] = 0.0;
       }
     }
   }
+
+template<typename T>
+void CoefFunctionPML<T>::UpdateOmega(){
+  omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
+}
 
   template<typename T>
   void CoefFunctionPML<T>::GetScalar(Complex& val,
@@ -218,12 +248,12 @@ namespace CoupledField{
     Double position=0.0;
     Complex dummy(1.0,0.0);
     val = dummy;
-    Double sos;
-    this->speedOfSound_->GetScalar(sos,lpm);
+    Double waveSpeed;
+    this->matCoef_->GetScalar(waveSpeed,lpm);
     for(UInt i=0;i<this->dim_;++i){
       GetThicknessAtPoint(locThick,position,lpm,i);
       if(abs(locThick)>0.0){
-        Complex fac(1.0,-1.0  *  sos * this->dampFunction_->ComputeFactor(position,locThick)/this->omega_);
+        Complex fac(1.0, -1.0 * waveSpeed * this->dampFunction_->ComputeFactor(position,locThick)/this->omega_);
         val *=  fac;
       }else{
         val *= dummy;
@@ -405,18 +435,13 @@ namespace CoupledField{
         sizeof(dampTypeTubles) / sizeof(EnumTuple),
         dampTypeTubles);
 
-  //================================================================================================
-  // Shifted PML
-  //================================================================================================
-
-  template<typename T>
-  CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                                                    StdVector<RegionIdType> pdeDomains, bool isVector)
-    : CoefFunctionPML<T>(pmlDef, speedOfSound, EntList, pdeDomains, isVector)
-  {
-    this->name_ = "CoefFunctionShiftedPML";
-    std::string scalingCoefStr, shiftCoefStr;
-    Double scalingPow = 0.0, shiftPow = 0.0;
+template<typename T>
+CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct matCoef, shared_ptr<EntityList> EntList,
+                                                  StdVector<RegionIdType> pdeDomains, CoefFunction::CoefDimType dimType)
+  : CoefFunctionPML<T>(pmlDef, matCoef, EntList, pdeDomains, dimType)
+{
+  std::string scalingCoefStr, shiftCoefStr;
+  Double scalingPow = 0.0, shiftPow = 0.0;
 
     PtrParamNode scalingNode = pmlDef->Get("scalingCoef", ParamNode::PASS);
     if (scalingNode)
@@ -471,8 +496,8 @@ namespace CoupledField{
 
     // s = kappa + sigma/(alpha + i*w) =
     //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
-    Double sos, alpha, kappa, sigma, frac;
-    this->speedOfSound_->GetScalar(sos, lpm);
+    Double waveSpeed, alpha, kappa, sigma, frac;
+    this->matCoef_->GetScalar(waveSpeed, lpm);
 
     Double kappa0 = 0.0, alpha0 = 0.0;
     scalingCoef_->GetScalar(kappa0, lpm);
@@ -487,7 +512,7 @@ namespace CoupledField{
       this->GetThicknessAtPoint(locThick, position, lpm, i);
       if (abs(locThick) > 0.0)
       {
-        sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
+        sigma = waveSpeed*this->dampFunction_->ComputeFactor(position, locThick);
         kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
         alpha = shiftFunc_->ComputeFactor(position, locThick);
         frac = sigma/(alpha*alpha + this->omega_*this->omega_);
@@ -513,8 +538,8 @@ namespace CoupledField{
 
     // s = kappa + sigma/(alpha + i*w) =
     //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
-    Double sos, alpha, kappa, sigma, frac;
-    this->speedOfSound_->GetScalar(sos, lpm);
+    Double waveSpeed, alpha, kappa, sigma, frac;
+    this->matCoef_->GetScalar(waveSpeed, lpm);
 
     Double kappa0 = 0.0, alpha0 = 0.0;
     scalingCoef_->GetScalar(kappa0, lpm);
@@ -529,7 +554,7 @@ namespace CoupledField{
       this->GetThicknessAtPoint(locThick, position, lpm, i);
       if (abs(locThick) > 0.0)
       {
-        sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
+        sigma = waveSpeed*this->dampFunction_->ComputeFactor(position, locThick);
         kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
         alpha = shiftFunc_->ComputeFactor(position, locThick);
         frac = sigma/(alpha*alpha + this->omega_*this->omega_);

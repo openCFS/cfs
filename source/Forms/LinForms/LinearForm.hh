@@ -45,6 +45,7 @@ namespace CoupledField{
         isSolDependent_ = false;
         extractReal_ = false;
         harm_ = 0;
+        linType_ = STIFFNESS;
       }
 
       //! Copy constructor
@@ -53,6 +54,7 @@ namespace CoupledField{
         this->isSolDependent_ = right.isSolDependent_;
         this->name_ = right.name_;
         this->harm_ = right.harm_;
+        this->linType_ = right.linType_;
         this->ptFeSpace_ = right.ptFeSpace_;
         this->intScheme_ = right.intScheme_;
         this->extractReal_ = right.extractReal_;
@@ -79,6 +81,14 @@ namespace CoupledField{
       
       void SetHarm(const UInt& harm ){
          harm_ = harm;
+      }
+
+      void SetType(FEMatrixType type ){
+         linType_ = type;
+      }
+
+      FEMatrixType GetType( ){
+         return linType_;
       }
 
       UInt GetHarm() const {
@@ -139,6 +149,10 @@ namespace CoupledField{
       //! needed e.g. when taking the result of a complex analysis (energy) as
       //! input of a static simulation (source for example HeatPDE)
       bool extractReal_;
+
+      //! In some rare occasions, a time-derivative is needed for rhs expressions
+      //! we use the same syntax as for DAMPING, STIFFNESS, MASS matrix
+      FEMatrixType linType_;
   };
 }
 

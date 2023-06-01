@@ -444,6 +444,11 @@ public:
     isActive_ = val;
   }
 
+  // set PDE name, for which coedfunction is used
+  virtual void SetPDEname( std::string name) {
+    used4PDE_ = name;
+  }
+
   /** some coef function (e.g. const) give the value, others have a general description.
    * Default is the empty string.
    * @see GetName() */
@@ -935,6 +940,9 @@ protected:
 
   //! sets the rhsFnc active
   bool isActive_;
+
+  //! Name of the PDE for which coefFunction is used
+  std::string used4PDE_;
 
   //! approximate source terms with delta functions
   CoefInverseSourceApprox approxSourceType_;

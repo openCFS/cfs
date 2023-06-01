@@ -25,7 +25,9 @@
         -) specialAV: formulation specialized for total current excitation where the scalar potential V is precomputed with a Laplace problem (e.g. elecConductionPDE)
         -) Darwin: Formulation with magnetic vector potential A and electric scalar potential V, neglecting only wave propagation in Maxwell's equations, capacitive-resistive-inductive are included
         -) Darwin_doubleLagrange: Darwin formulation with an additional Lagrange multiplier used for stabilization
-        
+        -) fullwave-AV: full set of Maxwells equations with magnetic vector potential A and electric scalar potential V
+        -) fullwave-E: "classical" EM wave equation in E-form
+
         if useGradientFields=true, we are using Nedelec edge elements of 2nd kind (not to be mistaken with higher order)
 
         if onlyVacuum=true, all the permeabilities are set to mu_0 (vacuum permeability), even if other permeabilities
@@ -72,11 +74,14 @@
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/> 
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="magVecPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="eVecPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="lagrangeMultPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="magVecIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="eVecIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="lagrangeMultIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
@@ -108,6 +113,19 @@
                     <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="pml" type="DT_DampingPML">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Perfectly Matched Layer</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>                
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -196,6 +214,7 @@
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector"/>
+                <xsd:element name="impressedCurrentDensity" type="DT_BcInhomVector"/>
                 
               </xsd:choice>
             </xsd:complexType>
@@ -222,22 +241,84 @@
         <xsd:attribute name="formulation" use="optional" default="A">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="A"/> 
-              <xsd:enumeration value="A-V"/>
-              <xsd:enumeration value="specialA-V"/> 
-              <xsd:enumeration value="Darwin"/> 
-              <xsd:enumeration value="Darwin_doubleLagrange"/>
+              <xsd:enumeration value="A">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    formulation with reduced magnetic vector potential, sometimes called A* formulation (B-based)
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:enumeration>
+              <xsd:enumeration value="A-V">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    formulation with magnetic vector potential and electric scalar potential (B-based formulation)
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:enumeration>
+              <xsd:enumeration value="specialA-V">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    formulation specialized for total current excitation where the scalar potential V is
+                    precomputed with a Laplace problem (e.g. elecConductionPDE)
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:enumeration>
+              <xsd:enumeration value="Darwin">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    Formulation with magnetic vector potential A and electric scalar potential V, neglecting only wave
+                    propagation in Maxwell's equations, capacitive-resistive-inductive are included
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:enumeration> 
+              <xsd:enumeration value="Darwin_doubleLagrange">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    Darwin formulation with an additional Lagrange multiplier used for stabilization
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:enumeration>
+              <xsd:enumeration value="fullwave-AV">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    full set of Maxwells equations with magnetic vector potential A and electric scalar potential V
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:enumeration>
+              <xsd:enumeration value="fullwave-E">
+                <xsd:annotation>
+                  <xsd:documentation>
+                    "classical" EM wave equation in E-form
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:enumeration>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 
-	
-        <xsd:attribute name="alpha" type="xsd:float" use="optional" default="1.0"/>
-        <xsd:attribute name="useGradientFields" type="xsd:boolean" use="optional" default="false"/>
-        <xsd:attribute name="onlyVacuum" type="xsd:boolean" use="optional" default="false"/>
+	      <xsd:attribute name="alpha" type="xsd:float" use="optional" default="1.0"/>
+        <xsd:attribute name="useGradientFields" type="xsd:boolean" use="optional" default="false">
+          <xsd:annotation>
+            <xsd:documentation>
+              if useGradientFields=true, we are using Nedelec edge elements of 2nd kind (not to be mistaken with higher order)
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="onlyVacuum" type="xsd:boolean" use="optional" default="false">
+          <xsd:annotation>
+            <xsd:documentation>
+              if onlyVacuum=true, all the permeabilities are set to mu_0 (vacuum permeability), even if other permeabilities
+              are defined in the material-xml file. This is needed because for some formulations (Psi-formulation) we need
+              to precompute a source field with the curl-curl equation where are parameters are assumed to be vacuum-parameters.
+              This needs to be handled in this way because the A-formulation of magEdgePDE and the Psi-formulation in
+              MagneticScalarPotentialPDE are using the same material-tag in the material xml file.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
+  
 
   <!-- ******************************************************************* -->
   <!--   Definition of permeability nonlinearity -->
