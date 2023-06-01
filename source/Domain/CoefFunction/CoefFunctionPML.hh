@@ -211,10 +211,10 @@ public:
   //! Enumeration data type describing formulations of PML
   typedef enum{ CLASSIC, SHIFTED } PMLFormulType;
 
-  CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+  CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct matCoef,
                   shared_ptr<EntityList> EntList,
                   StdVector<RegionIdType> pdeDomains,
-                  bool isVector );
+                  CoefDimType type );
 
   virtual ~CoefFunctionPML();
 
@@ -256,6 +256,12 @@ public:
    return dim_;
  }
  
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+    assert(this->dimType_ == TENSOR );
+    numRows = dim_;
+    numCols = dim_;
+  }
 
   void AddEntityList(shared_ptr<EntityList>){
     EXCEPTION("Add Entities may not be called in PML CoefFunction. Specify the region in the constructor!");
@@ -292,7 +298,7 @@ protected:
     void GuessLayerData(StdVector<RegionIdType> pdeDomains);
 
     void GetThicknessAtPoint(Double& thickness,Double& position, LocPointMapped lpm,UInt dir);
-
+    
     PMLFormulType formulationType_;
 
     Matrix<Double> innerMinMaxComp_;
@@ -306,7 +312,7 @@ protected:
     DampFunction::DampingType pmlType_;
 
     //! should be coefFunction in future...
-    PtrCoefFct speedOfSound_;
+    PtrCoefFct matCoef_;
 
     //! Pointer to math parser instance
     MathParser* mp_;
@@ -319,10 +325,6 @@ protected:
     
     //! dimension of the problem
     UInt dim_;
-
-    //! flag, if PML coefficient functions describes the vector 
-    bool isVector_;
-
 };
 
 template<typename T>
@@ -332,7 +334,7 @@ class CoefFunctionShiftedPML : public CoefFunctionPML<T>
 public:
 
   CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                         StdVector<RegionIdType> pdeDomains, bool isVector);
+                         StdVector<RegionIdType> pdeDomains, CoefFunction::CoefDimType type);
 
   virtual ~CoefFunctionShiftedPML();
 

@@ -50,6 +50,7 @@
 
 // multiharmonic stuff
 #include "Driver/MultiHarmonicDriver.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionHarmBalance.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
@@ -378,16 +379,16 @@ namespace CoupledField {
           if (pmlFormul == "classic")
           {
             coefPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                    ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                    ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, CoefFunction::CoefDimType::SCALAR));
             coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                    ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                    ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, CoefFunction::CoefDimType::VECTOR));
           }
           else if (pmlFormul == "shifted")
           {
             coefPMLScal.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
-                    ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                    ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, CoefFunction::CoefDimType::SCALAR));
             coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
-                    ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                    ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, CoefFunction::CoefDimType::VECTOR));
           }
           else
           {
@@ -408,8 +409,10 @@ namespace CoupledField {
           std::string dampId;
           curRegNode->GetValue("dampingId",dampId);
           PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
-          coefMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
-          coefMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
+          coefMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,
+                                                          CoefFunction::CoefDimType::VECTOR));
+          coefMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,
+                                                            CoefFunction::CoefDimType::SCALAR));
           isMapping = true;
         }else{
           harmonicPML = false;
@@ -646,16 +649,17 @@ namespace CoupledField {
               if (pmlFormul == "classic")
               {
                 coefFuncPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, 
+                                               CoefFunction::CoefDimType::VECTOR));
                 coefFuncPMLScl.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, CoefFunction::CoefDimType::SCALAR));
               }
               else if (pmlFormul == "shifted")
               {
                 coefFuncPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
-                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, CoefFunction::CoefDimType::VECTOR));
                 coefFuncPMLScl.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
-                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                        ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, CoefFunction::CoefDimType::SCALAR));
               }
               else
               {

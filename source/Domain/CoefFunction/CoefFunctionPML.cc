@@ -24,10 +24,10 @@
 namespace CoupledField{
 
 template<typename T>
-CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct coef,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains,
-                                    bool isVector):
+                                    CoefFunction::CoefDimType type):
   CoefFunction(){
 
   isAnalytic_ = false;
@@ -45,12 +45,11 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
   dim_ = entities_[0]->GetGrid()->GetDim();
   
   //check if the coefficient function is real valued and scalar
-  if(speedOfSound->GetDimType() != CoefFunction::SCALAR || speedOfSound->IsComplex()){
+  if(coef->GetDimType() != CoefFunction::SCALAR || coef->IsComplex()){
     EXCEPTION("The PML coefficient function needs a real valued scalar coeffunction as speed of sound");
   }
 
-  speedOfSound_ = speedOfSound;
-  isVector_ = isVector;
+  matCoef_ = coef;  
   pmlType_ = DampFunction::NO_TYPE;
   formulationType_ = CLASSIC;
 
@@ -69,13 +68,13 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
       mHandle_ );
   // important: Trigger first-time calculation
   UpdateOmega();
-  
 
-  if (isVector_ ) {
-    this->dimType_ = CoefFunction::VECTOR;
-  } else {
-    this->dimType_ = CoefFunction::SCALAR;
-  }
+  //set active to zero: means no inversion of tensor
+  isActive_ = false;
+  
+//set type: SCALAR, VECTOR, TENSOR
+  this->dimType_ = type;
+
 }
 
 template<typename T>
@@ -93,18 +92,49 @@ void CoefFunctionPML<T>::GetTensor(Matrix<Complex>& tensor,
   
   tensor.Resize(dim_, dim_);
   tensor.Init();
+  Vector<Complex> sFactors(dim_);
+  sFactors.Init();
   Double locThick=0.0;
   Double position=0.0;
   Complex one(1.0,0.0);
-  Double sos;
-  speedOfSound_->GetScalar(sos,lpm);
-  for(UInt i=0;i<dim_;++i){
-    GetThicknessAtPoint(locThick,position,lpm,i);
-    if(abs(locThick)>0.0){
-      Complex fac(0.0,-1.0 * sos* dampFunction_->ComputeFactor(position,locThick));
-      tensor[i][i] = omega_ / (omega_ + fac);
-    }else{
-      tensor[i][i] = one;
+  
+  if ( this->used4PDE_ == "fullwave-E" ) {
+    //special tensor for Electromagnetic Waves
+    //see book FINITE ELEMENT ANALYSIS OF ANTENNAS AND ARRAYS, Jian-Ming Jin, Douglas J. Riley, pp. 64
+    //however, we scale with wave speed!
+    Double waveSpeed;
+    matCoef_->GetScalar(waveSpeed,lpm);
+    for(UInt i=0;i<dim_;++i) {
+      GetThicknessAtPoint(locThick,position,lpm,i);
+      if(abs(locThick)>0.0){
+        Complex fac(0.0,dampFunction_->ComputeFactor(position,locThick));
+        sFactors[i] =  1.0 - fac * waveSpeed / (omega_);
+      }else{
+        sFactors[i] = one;
+      }
+    } 
+    if ( isActive_ ) {
+      tensor[0][0] = sFactors[0] / (sFactors[1]*sFactors[2]);
+      tensor[1][1] = sFactors[1] / (sFactors[0]*sFactors[2]);
+      tensor[2][2] = sFactors[2] / (sFactors[0]*sFactors[1]);
+    }
+    else {
+      tensor[0][0] = sFactors[1]*sFactors[2] / sFactors[0];
+      tensor[1][1] = sFactors[0]*sFactors[2] / sFactors[1];
+      tensor[2][2] = sFactors[0]*sFactors[1] / sFactors[2];
+    } 
+  }
+  else {
+    Double speedOfSound;
+    matCoef_->GetScalar(speedOfSound,lpm);
+    for(UInt i=0;i<dim_;++i) {
+      GetThicknessAtPoint(locThick,position,lpm,i);
+      if(abs(locThick)>0.0){
+        Complex fac(0.0,-1.0 * speedOfSound* dampFunction_->ComputeFactor(position,locThick));
+        tensor[i][i] = omega_ / (omega_ + fac);
+      }else{
+        tensor[i][i] = one;
+      }
     }
   }
 }
@@ -117,12 +147,12 @@ void CoefFunctionPML<T>::GetTensor(Matrix<Double>& tensor,
   tensor.Init();
   Double locThick=0.0;
   Double position=0.0;
-  Double sos;
-  speedOfSound_->GetScalar(sos,lpm);
+  Double speedOfSound;
+  matCoef_->GetScalar(speedOfSound,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
-      tensor[i][i] = dampFunction_->ComputeFactor(position,locThick) * sos;
+      tensor[i][i] = dampFunction_->ComputeFactor(position,locThick) * speedOfSound;
     }else{
       tensor[i][i] = 0.0;
     }
@@ -138,12 +168,12 @@ void CoefFunctionPML<T>::GetVector(Vector<Complex>& vec,
   Double locThick=0.0;
   Double position=0.0;
   Complex dummy(1.0,0.0);
-  Double sos;
-  speedOfSound_->GetScalar(sos,lpm);
+  Double speedOfSound;
+  matCoef_->GetScalar(speedOfSound,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
-      Complex fac(1.0,-1.0 * sos* dampFunction_->ComputeFactor(position,locThick)/omega_);
+      Complex fac(1.0,-1.0 * speedOfSound* dampFunction_->ComputeFactor(position,locThick)/omega_);
       vec[i] = dummy / fac;
     }else{
       vec[i] = dummy;
@@ -159,12 +189,12 @@ void CoefFunctionPML<T>::GetVector(Vector<Double>& vec,
   vec.Resize(dim_,0.0);
   Double locThick=0.0;
   Double position=0.0;
-  Double sos;
-  speedOfSound_->GetScalar(sos,lpm);
+  Double speedOfSound;
+  matCoef_->GetScalar(speedOfSound,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
-      vec[i] = dampFunction_->ComputeFactor(position,locThick) * sos;
+      vec[i] = dampFunction_->ComputeFactor(position,locThick) * speedOfSound;
     }else{
       vec[i] = 0.0;
     }
@@ -184,12 +214,12 @@ void CoefFunctionPML<T>::GetScalar(Complex& val,
   Double position=0.0;
   Complex dummy(1.0,0.0);
   val = dummy;
-  Double sos;
-  speedOfSound_->GetScalar(sos,lpm);
+  Double speedOfSound;
+  matCoef_->GetScalar(speedOfSound,lpm);
   for(UInt i=0;i<dim_;++i){
     GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
-      Complex fac(1.0,-1.0  *  sos * dampFunction_->ComputeFactor(position,locThick)/omega_);
+      Complex fac(1.0,-1.0  *  speedOfSound * dampFunction_->ComputeFactor(position,locThick)/omega_);
       val *=  fac;
     }else{
       val *= dummy;
@@ -403,8 +433,9 @@ Enum<DampFunction::DampingType> DampFunction::DampingTypeEnum = \
 
 template<typename T>
 CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                                                  StdVector<RegionIdType> pdeDomains, bool isVector)
-  : CoefFunctionPML<T>(pmlDef, speedOfSound, EntList, pdeDomains, isVector)
+                                                  StdVector<RegionIdType> pdeDomains, 
+                                                  CoefFunction::CoefDimType type)
+  : CoefFunctionPML<T>(pmlDef, speedOfSound, EntList, pdeDomains, type)
 {
   std::string scalingCoefStr, shiftCoefStr;
   Double scalingPow = 0.0, shiftPow = 0.0;
@@ -463,7 +494,7 @@ void CoefFunctionShiftedPML<T>::GetVector(Vector<Complex>& vector, const LocPoin
   // s = kappa + sigma/(alpha + i*w) =
   //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
   Double sos, alpha, kappa, sigma, frac;
-  this->speedOfSound_->GetScalar(sos, lpm);
+  this->matCoef_->GetScalar(sos, lpm);
 
   Double kappa0 = 0.0, alpha0 = 0.0;
   scalingCoef_->GetScalar(kappa0, lpm);
@@ -505,7 +536,7 @@ void CoefFunctionShiftedPML<T>::GetScalar(Complex& scalar, const LocPointMapped&
   // s = kappa + sigma/(alpha + i*w) =
   //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
   Double sos, alpha, kappa, sigma, frac;
-  this->speedOfSound_->GetScalar(sos, lpm);
+  this->matCoef_->GetScalar(sos, lpm);
 
   Double kappa0 = 0.0, alpha0 = 0.0;
   scalingCoef_->GetScalar(kappa0, lpm);

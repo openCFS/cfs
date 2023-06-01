@@ -372,8 +372,11 @@ namespace CoupledField{
           
           if (pmlFormul == "classic")
           {
-            coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,true));
-            coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,false));
+            coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,
+                                                         CoefFunction::CoefDimType::VECTOR));
+          coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0R,actSDList,regions_,
+                                                          CoefFunction::CoefDimType::SCALAR));
+
             // store pml factor
             matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVec);
             coeffPMLStiff  = CoefFunction::Generate( mp_, Global::COMPLEX,
@@ -764,7 +767,7 @@ namespace CoupledField{
 
     PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",id.c_str());
     shared_ptr<CoefFunction> coeffPMLVec;
-    coeffPMLVec.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true));
+    coeffPMLVec.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,CoefFunction::CoefDimType::VECTOR));
 
     // store pml factor
     matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLVec);
