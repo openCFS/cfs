@@ -247,8 +247,10 @@ namespace CoupledField{
             //EXCEPTION("please use the new <transfromList>");
             std::cout << "please use the new <transfromList> to define a PML or mapping layer\n";
             PtrParamNode transNode = myParam_->Get("dampingList")->GetByVal("pml","id",actDampingId);
-            coeffTransVec.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,true));
-            coeffTransScal.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,false));
+            coeffTransVec.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,
+                                                             CoefFunction::CoefDimType::VECTOR));
+            coeffTransScal.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,
+                                                              CoefFunction::CoefDimType::SCALAR));
             isTransform = true;
         }
         else if (curRegNode->Has("transforms") && (actDampingId == "") ) { // only transform list
@@ -264,8 +266,10 @@ namespace CoupledField{
                 if ( transformType.count(actTransformId) > 0 ) {
                     if (transformType.at(actTransformId)==PML) {
                         transNode = myParam_->Get("transformList")->GetByVal("pml","id",actTransformId);
-                        vec.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,true));
-                        scal.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,false));
+                        vec.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,
+                                                               CoefFunction::CoefDimType::VECTOR));
+                        scal.reset(new CoefFunctionPML<Complex>(transNode,Cdeep_,actSDList,regions_,
+                                                                CoefFunction::CoefDimType::SCALAR));
                     }
                     else if (transformType.at(actTransformId)==MAPPING) {
                         transNode = myParam_->Get("transformList")->GetByVal("mapping","id",actTransformId);
@@ -273,12 +277,16 @@ namespace CoupledField{
                         if(analysistype_ == HARMONIC){
                             PtrCoefFct one = CoefFunction::Generate( mp_, Global::REAL, "1.0");
                             sos = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, one, kdeep_, CoefXpr::OP_DIV));
-                            vec.reset(new CoefFunctionMapping<Complex>(transNode,sos,actSDList,regions_,true));
-                            scal.reset(new CoefFunctionMapping<Complex>(transNode,sos,actSDList,regions_,false));
+                            vec.reset(new CoefFunctionMapping<Complex>(transNode,sos,actSDList,regions_,
+                                                                       CoefFunction::CoefDimType::VECTOR));
+                            scal.reset(new CoefFunctionMapping<Complex>(transNode,sos,actSDList,regions_,
+                                                                        CoefFunction::CoefDimType::SCALAR));
                         }
                         else {
-                            vec.reset(new CoefFunctionMapping<Double>(transNode,sos,actSDList,regions_,true));
-                            scal.reset(new CoefFunctionMapping<Double>(transNode,sos,actSDList,regions_,false));
+                            vec.reset(new CoefFunctionMapping<Double>(transNode,sos,actSDList,regions_,
+                                                                      CoefFunction::CoefDimType::VECTOR));
+                            scal.reset(new CoefFunctionMapping<Double>(transNode,sos,actSDList,regions_,
+                                                                       CoefFunction::CoefDimType::SCALAR));
                         }
                     }
                     else {

@@ -132,18 +132,49 @@ namespace CoupledField{
 
     tensor.Resize(this->dim_, this->dim_);
     tensor.Init();
+    Vector<Complex> sFactors(this->dim_);
+    sFactors.Init();
     Double locThick=0.0;
     Double position=0.0;
     Complex one(1.0,0.0);
     Double sos;
     this->speedOfSound_->GetScalar(sos,lpm);
-    for(UInt i=0;i<this->dim_;++i){
-      GetThicknessAtPoint(locThick,position,lpm,i);
-      if(abs(locThick)>0.0){
-        Complex fac(0.0,-1.0 * sos* this->dampFunction_->ComputeFactor(position,locThick));
-        tensor[i][i] = this->omega_ / (this->omega_ + fac);
-      }else{
-        tensor[i][i] = one;
+
+    if ( this->used4PDE_ == "fullwave-E" ) {
+      //special tensor for Electromagnetic Waves
+      //see book FINITE ELEMENT ANALYSIS OF ANTENNAS AND ARRAYS, Jian-Ming Jin, Douglas J. Riley, pp. 64
+      //however, we scale with wave speed!
+      Double waveSpeed;
+      this->speedOfSound_->GetScalar(waveSpeed,lpm);
+      for(UInt i=0;i<this->dim_;++i) {
+        GetThicknessAtPoint(locThick,position,lpm,i);
+        if(abs(locThick)>0.0){
+          Complex fac(0.0, this->dampFunction_->ComputeFactor(position,locThick));
+          sFactors[i] =  1.0 - fac * waveSpeed / (this->omega_);
+        }else{
+          sFactors[i] = one;
+        }
+      } 
+      if ( isActive_ ) {
+        tensor[0][0] = sFactors[0] / (sFactors[1]*sFactors[2]);
+        tensor[1][1] = sFactors[1] / (sFactors[0]*sFactors[2]);
+        tensor[2][2] = sFactors[2] / (sFactors[0]*sFactors[1]);
+      }
+      else {
+        tensor[0][0] = sFactors[1]*sFactors[2] / sFactors[0];
+        tensor[1][1] = sFactors[0]*sFactors[2] / sFactors[1];
+        tensor[2][2] = sFactors[0]*sFactors[1] / sFactors[2];
+      } 
+    }
+    else {
+      for(UInt i=0;i<this->dim_;++i){
+        GetThicknessAtPoint(locThick,position,lpm,i);
+        if(abs(locThick)>0.0){
+          Complex fac(0.0,-1.0 * sos* this->dampFunction_->ComputeFactor(position,locThick));
+          tensor[i][i] = this->omega_ / (this->omega_ + fac);
+        }else{
+          tensor[i][i] = one;
+        }
       }
     }
   }

@@ -30,11 +30,9 @@
 #include "Forms/Operators/BaseBOperator.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
-
+#include "Utils/PythonKernel.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
-
-#include "Utils/PythonKernel.hh"
 
 namespace CoupledField
 {
@@ -620,7 +618,7 @@ namespace CoupledField
                 LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " cplx CEM -> " << elemMatrixC.ToString();
               } else {
                 form->CalcElementMatrix( elemMatrix, it1, it2 );
-                if(it1.IsElemType()) {
+                if(it1.IsElemType()){
                   LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
                 }
                 LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString();
@@ -1551,7 +1549,6 @@ namespace CoupledField
   }
 
   void Assemble::AssembleRHSLinForms(bool nonLin ) {
-
     python->CallHook(PythonKernel::ASSEMBLE_RHS);
 
     StdVector<Integer> eqnVec;
@@ -1572,7 +1569,7 @@ namespace CoupledField
         continue; //TODO: uncomment this
 
       LinearForm* form = actContext.GetIntegrator();
-
+      
       UInt h = form->GetHarm();
 
       try
@@ -1604,6 +1601,18 @@ namespace CoupledField
 
             // Calculate complex valued element vector
             form->CalcElemVector( elemVec, entIt );
+
+            // Check if a time-derivative is needed for this LinearForm
+            Vector<Complex> elemVec_adapt;
+            if(form->GetType() == FEMatrixType::DAMPING){
+              elemVec_adapt.Resize(elemVec.GetSize());
+              elemVec_adapt.SetPart(Global::ComplexPart::IMAG, elemVec.GetPart(Global::ComplexPart::REAL));
+
+              Double omega = mp_->Eval( mHandle_ );
+              elemVec_adapt *= (1.0)*omega;    
+              elemVec = elemVec_adapt;          
+            }
+
 
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, fctId );

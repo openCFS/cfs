@@ -549,7 +549,7 @@ namespace CoupledField{
 
     PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",id.c_str());
     shared_ptr<CoefFunction> coeffPMLVec;
-    coeffPMLVec.reset( new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true) );
+    coeffPMLVec.reset( new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,CoefFunction::CoefDimType::VECTOR) );
 
     matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLVec);
 

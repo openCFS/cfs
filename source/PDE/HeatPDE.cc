@@ -237,8 +237,10 @@ void HeatPDE::DefineIntegrators() {
         EXCEPTION("Harmonic analysis not allowed!");
       }else{
         PtrParamNode mapNode = myParam_->Get("dampingList")->GetByVal("mapping","id",dampId.c_str());
-        coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,true));
-        coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,false));
+        coeffMAPVec.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,
+                                                          CoefFunction::CoefDimType::VECTOR));
+        coeffMAPScal.reset(new CoefFunctionMapping<Double>(mapNode,val1,actSDList,regions_,
+                                                          CoefFunction::CoefDimType::SCALAR));
         isMapping = true;
       }
     }
