@@ -482,6 +482,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AcousticHD">
         <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
+        <xsd:attribute name="targetFrequency" type="xsd:token" use="required"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

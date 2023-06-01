@@ -85,6 +85,15 @@ namespace CoupledField{
     void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id,
     		                    RegionIdType actRegion, std::string tempId);
 
+    //! create TDEF integrators
+    void DefineTDEFIntegrators(UInt iRegion, RegionIdType actRegion, string polyId, string integId, shared_ptr<ElemList> actSDList);
+
+    //! read TDEF coeficient of a TDEF region
+    void ReadTDEFCoefficients(UInt iRegion);
+
+    //! evaluate the inverse of rational functions for TDEF region
+    void EvalRationalFncs(UInt iRegion, Double ftrg);
+
 //    //! Set special RHS values
 //    virtual void SetRhsValues();
 
@@ -162,6 +171,24 @@ namespace CoupledField{
     Vector<unsigned int> nAuxFncBC_;
     Vector<unsigned int> nAuxFncAV_;
     Vector<unsigned int> nAuxFncBV_;
+    StdVector<bool> isTDEFReg_;
+
+    StdVector<PtrCoefFct>fncAC_;
+    StdVector<PtrCoefFct>fncBC_;
+    StdVector<PtrCoefFct>fncCC_;
+    StdVector<PtrCoefFct>fncAlphaC_;
+    StdVector<PtrCoefFct>fncBetaC_;
+    StdVector<PtrCoefFct>fncGammaC_;
+
+    StdVector<PtrCoefFct>fncAV_;
+    StdVector<PtrCoefFct>fncBV_;
+    StdVector<PtrCoefFct>fncCV_;
+    StdVector<PtrCoefFct>fncAlphaV_;
+    StdVector<PtrCoefFct>fncBetaV_;
+    StdVector<PtrCoefFct>fncGammaV_;
+
+    PtrCoefFct invTDEFBlk_;
+    PtrCoefFct invTDEFDens_;
   };
 
 }
