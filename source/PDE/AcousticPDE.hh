@@ -94,6 +94,9 @@ namespace CoupledField{
     //! evaluate the inverse of rational functions for TDEF region
     void EvalRationalFncs(UInt iRegion, Double ftrg);
 
+    //! evaluate the inverse of rational functions for TDEF region
+    void UpdateFreq();
+
 //    //! Set special RHS values
 //    virtual void SetRhsValues();
 
@@ -189,6 +192,13 @@ namespace CoupledField{
 
     PtrCoefFct invTDEFBlk_;
     PtrCoefFct invTDEFDens_;
+
+    //! Handle for expression
+    unsigned int mHandle_;
+
+    //! storing the current frequency
+    Double freq_;
+
   };
 
 }

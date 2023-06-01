@@ -377,6 +377,7 @@ namespace CoupledField
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region", "name", regionName.c_str());
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
+      std::string useRationalAppr = curRegNode->Get("useRationalMatApproximation")->As<std::string>();
       mySpace->SetRegionApproximation(actRegion, polyId, integId);
 
       //=======================================================================
@@ -387,11 +388,56 @@ namespace CoupledField
       PtrCoefFct blk;
       PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
 
-      if (complexFluidFormulation_)
+      if (complexFluidFormulation_ && useRationalAppr == "false")
       {
         dens = materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::COMPLEX);
         blk = materials_[actRegion]->GetScalCoefFnc(ACOU_BULK_MODULUS, Global::COMPLEX);
       }
+      else if (complexFluidFormulation_ && useRationalAppr == "true"){
+        std::cout << "Using the rational function approximation prvovided by material-file for bulk modulus and density." << std::endl;
+
+
+//########################################################################
+
+         //TODO: get current frequency
+
+
+          // the following passage is taken from CoefFunctionPML.cc
+
+
+
+        //this is just to be up to date with the desired frequency!
+        // obtain handle from internal variable coefficient function
+
+
+        // mp_ = domain->GetMathParser();
+        // mHandle_ = mp_->GetNewHandle(true);
+
+        // mp_->SetExpr(mHandle_,"f");
+
+        // // register callback mechanism if expression changes
+        // mp_->AddExpChangeCallBack(
+        //     boost::bind(&AcousticPDE::UpdateFreq, this ),
+        //     mHandle_ );
+        // // important: Trigger first-time calculation
+        // UpdateFreq();
+
+
+        // //It might be necessary to just disconnect the callback instead of releasing the handle
+        // mp_->ReleaseHandle( mHandle_ );
+
+
+//########################################################################
+
+
+        EvalRationalFncs(iRegion, freq_);
+        dens = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                      CoefXprBinOp(mp_, constOne, invTDEFDens_, CoefXpr::OP_DIV));
+        blk = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                      CoefXprBinOp(mp_, constOne, invTDEFBlk_, CoefXpr::OP_DIV));
+
+      }
+
       else if (timeDomainEqFluidFormulation_)
       {
         // Attention:
@@ -4125,6 +4171,12 @@ namespace CoupledField
     std::cout << "Finished reading TDEF coefficients." << std::endl
               << std::endl;
   }
+
+
+  // void AcousticPDE::UpdateFreq(){
+  // freq_ = this->mp_->Eval(mHandle_);
+  // }
+
 
   void AcousticPDE::EvalRationalFncs(UInt iRegion, Double ftrg)
   {
