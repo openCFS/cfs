@@ -1176,7 +1176,7 @@ namespace CoupledField {
     // Elem::ET_HEXA8
     // =======================================================================
     static const UInt hts[] = {5, 30, 45, 46, 62, 65, 69, 70, 80, 96, 97, 107,
-                               142, 164, 185, 195};
+                               142, 164, 185, 195, 278};
     for (UInt i=0, n=sizeof(hts)/sizeof(hts[0]); i<n; i++) {
       ans2FEType_[(hts[i]-1)*ansysSubTypes_+1] = Elem::ET_HEXA8;
     }
@@ -1187,7 +1187,7 @@ namespace CoupledField {
     // Elem::ET_HEXA20
     // =======================================================================
     static const UInt qhts[] = {89, 90, 95, 117, 120, 122, 128, 147, 186,
-                                191, 226, 231};    
+                                191, 226, 231, 279};    
     for (UInt i=0, n=sizeof(qhts)/sizeof(qhts[0]); i<n; i++) {
       ans2FEType_[(qhts[i]-1)*ansysSubTypes_+1] = Elem::ET_HEXA20;
     }
