@@ -19,6 +19,6 @@
   * [ ] Testsuite-submodule SHA of every CFS commit references a commit in Testsuite Merge Request
   * [ ] Testsuite-submodule SHA of last CFS commit points to HEAD of corresponding Testsuite branch
 * [ ] Pipeline passes for every commit
-  * [ ] all *stable* tests pass
-  * [ ] *testsuite* tests run
+  * [ ] all tests of the stage *test* pass
+  * [ ] tests in the stage *test_extra* run
   * [ ] new tests are actually running (e.g. check if they appear on CDash)
