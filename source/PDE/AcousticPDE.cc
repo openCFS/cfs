@@ -21,8 +21,9 @@
 #include "Forms/Operators/DivOperator.hh"
 
 #include "FeBasis/FeFunctions.hh"
-#include "Utils/StdVector.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
+#include "Utils/StdVector.hh"
+#include "Utils/mathParser/mathParser.hh"
 
 #include "Domain/Results/ResultFunctor.hh"
 
@@ -67,6 +68,7 @@ namespace CoupledField
     isAPML_ = false;
     complexFluidFormulation_ = false;
     timeDomainEqFluidFormulation_ = false;
+    evalRationalFunc_ = false;
 
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
     // check for pressure or potential formulation
@@ -121,14 +123,19 @@ namespace CoupledField
       }
 
       // check for time domain equivalent fluid (TDEF) formulation
-      if (curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes")
+      if (curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" && this->analysistype_ == TRANSIENT)
       {
         timeDomainEqFluidFormulation_ = true;
-        if (this->analysistype_ != TRANSIENT)
-          EXCEPTION("Time domain equivalent fluid formulation only possible in transient analysis");
+        
         // need an acoustic pressure formulation
         if (formulation_ != ACOU_PRESSURE)
           EXCEPTION("Time domain equivalent fluid formulation needs acoustic pressure formulation");
+      }
+
+      // check if complex fluid parameters are provided using a rational function
+      if (curRegNode->Get("useRationalMatApproximation")->As<std::string>() == "yes" && this->analysistype_ == HARMONIC)
+      {
+        evalRationalFunc_ = true;
       }
     }
 
@@ -156,7 +163,7 @@ namespace CoupledField
     // ===================================
     // Check for transient TDEF
     // ===================================
-    if (this->analysistype_ == TRANSIENT && timeDomainEqFluidFormulation_ && this->formulation_ == ACOU_PRESSURE)
+    if (this->analysistype_ == TRANSIENT || this->analysistype_ == HARMONIC && timeDomainEqFluidFormulation_ ||  complexFluidFormulation_ && this->formulation_ == ACOU_PRESSURE)
     {
       // check for the actual size of the auxiliary variables
       nAuxFncAC_.Resize(regions_.GetSize());
@@ -172,7 +179,7 @@ namespace CoupledField
         std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
         PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region", "name", regionName.c_str());
 
-        if (curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes")
+        if (curRegNode->Get("timeDomainEqFluid")->As<std::string>() == "yes" || curRegNode->Get("useRationalMatApproximation")->As<std::string>() == "yes")
         {
           LocPointMapped lpm;
           
@@ -388,13 +395,13 @@ namespace CoupledField
       PtrCoefFct blk;
       PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
 
-      if (complexFluidFormulation_ && useRationalAppr == "false")
+      if (complexFluidFormulation_ && useRationalAppr == "no")
       {
         dens = materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::COMPLEX);
         blk = materials_[actRegion]->GetScalCoefFnc(ACOU_BULK_MODULUS, Global::COMPLEX);
       }
-      else if (complexFluidFormulation_ && useRationalAppr == "true"){
-        std::cout << "Using the rational function approximation prvovided by material-file for bulk modulus and density." << std::endl;
+      else if (complexFluidFormulation_ && useRationalAppr == "yes"){
+        std::cout << "Using the rational function approximation for bulk modulus and density." << std::endl;
 
 
 //########################################################################
@@ -410,31 +417,32 @@ namespace CoupledField
         // obtain handle from internal variable coefficient function
 
 
-        // mp_ = domain->GetMathParser();
-        // mHandle_ = mp_->GetNewHandle(true);
+        mp_ = domain->GetMathParser();
+        mHandle_ = mp_->GetNewHandle(true);
 
-        // mp_->SetExpr(mHandle_,"f");
+        mp_->SetExpr(mHandle_,"f");
 
-        // // register callback mechanism if expression changes
-        // mp_->AddExpChangeCallBack(
-        //     boost::bind(&AcousticPDE::UpdateFreq, this ),
-        //     mHandle_ );
-        // // important: Trigger first-time calculation
-        // UpdateFreq();
+        // register callback mechanism if expression changes
+        mp_->AddExpChangeCallBack(
+            boost::bind(&AcousticPDE::UpdateFreq, this ),
+            mHandle_ );
+        // important: Trigger first-time calculation
+        UpdateFreq();
 
-
-        // //It might be necessary to just disconnect the callback instead of releasing the handle
-        // mp_->ReleaseHandle( mHandle_ );
-
+        Double frequency =this->freq_;
 
 //########################################################################
 
 
-        EvalRationalFncs(iRegion, freq_);
+        EvalRationalFncs(iRegion, frequency);
         dens = CoefFunction::Generate(mp_, Global::COMPLEX,
                                       CoefXprBinOp(mp_, constOne, invTDEFDens_, CoefXpr::OP_DIV));
         blk = CoefFunction::Generate(mp_, Global::COMPLEX,
                                       CoefXprBinOp(mp_, constOne, invTDEFBlk_, CoefXpr::OP_DIV));
+
+        std::cout << "f = " << frequency << "Hz \n";
+        std::cout << "dens(f) = " << dens->ToString() << "\n";
+        std::cout << "blk(f) = " << blk->ToString() << "\n";
 
       }
 
@@ -4173,9 +4181,14 @@ namespace CoupledField
   }
 
 
-  // void AcousticPDE::UpdateFreq(){
-  // freq_ = this->mp_->Eval(mHandle_);
-  // }
+  void AcousticPDE::UpdateFreq(){
+    freq_ = this->mp_->Eval(mHandle_);
+  }
+
+  void AcousticPDE::CleanUp(){
+        //It might be necessary to just disconnect the callback instead of releasing the handle
+        mp_->ReleaseHandle( mHandle_ );
+  }
 
 
   void AcousticPDE::EvalRationalFncs(UInt iRegion, Double ftrg)

@@ -97,6 +97,9 @@ namespace CoupledField{
     //! evaluate the inverse of rational functions for TDEF region
     void UpdateFreq();
 
+    //! Clean up for PDE-specific stuff (e.g., release mp handle)
+    void CleanUp();  
+
 //    //! Set special RHS values
 //    virtual void SetRhsValues();
 
@@ -168,6 +171,9 @@ namespace CoupledField{
 
     //! flag indicating if we have a time domain equivalent fluid formulation
     bool timeDomainEqFluidFormulation_;
+
+    //! flag indicating if at least one complex fluid region is defined using a rational function approximation
+    bool evalRationalFunc_; 
 
     //! vectors storing the length of the auxiliary variables used for the init process of the FE functions
     Vector<unsigned int> nAuxFncAC_;

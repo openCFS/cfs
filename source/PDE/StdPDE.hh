@@ -37,6 +37,9 @@ namespace CoupledField {
     
     //! Virtual destructor
     virtual ~StdPDE();
+
+    //! Clean up for PDE-specific stuff (e.g., release mp handle)
+    void CleanUp( );
     
     // ======================================================
     // ALGSYS SECTION (SOLVER, ...)

@@ -75,7 +75,9 @@ namespace CoupledField
 
     //! Destructor
     virtual ~SinglePDE();
-  
+
+    //! Clean up for PDE-specific stuff (e.g., release mp handle)
+    void CleanUp( );  
   
     // ======================================================
     // GET /SET  METHODS
