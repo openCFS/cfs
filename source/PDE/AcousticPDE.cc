@@ -221,7 +221,10 @@ namespace CoupledField
         }
 
       }
-      
+    }
+
+    if (this->analysistype_ == TRANSIENT && this->formulation_ == ACOU_PRESSURE)
+    {      
       // define the additional unknowns (phiC, psiC, phiV, psiV)
       PtrParamNode spaceNode;
       for (unsigned int i = 0; i < nAuxFncAC_.Max(); i++)
@@ -395,6 +398,10 @@ namespace CoupledField
       PtrCoefFct blk;
       PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
 
+
+      PtrCoefFct freqCoef;
+      PtrCoefFct omegaTrgIm;
+
       if (complexFluidFormulation_ && useRationalAppr == "no")
       {
         dens = materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::COMPLEX);
@@ -403,46 +410,14 @@ namespace CoupledField
       else if (complexFluidFormulation_ && useRationalAppr == "yes"){
         std::cout << "Using the rational function approximation for bulk modulus and density." << std::endl;
 
+         // provide the current frequency
+        freqCoef = CoefFunction::Generate(mp_, Global::REAL, "f");
 
-//########################################################################
-
-         //TODO: get current frequency
-
-
-          // the following passage is taken from CoefFunctionPML.cc
-
-
-
-        //this is just to be up to date with the desired frequency!
-        // obtain handle from internal variable coefficient function
-
-
-        mp_ = domain->GetMathParser();
-        mHandle_ = mp_->GetNewHandle(true);
-
-        mp_->SetExpr(mHandle_,"f");
-
-        // register callback mechanism if expression changes
-        mp_->AddExpChangeCallBack(
-            boost::bind(&AcousticPDE::UpdateFreq, this ),
-            mHandle_ );
-        // important: Trigger first-time calculation
-        UpdateFreq();
-
-        Double frequency =this->freq_;
-
-//########################################################################
-
-
-        EvalRationalFncs(iRegion, frequency);
+        EvalRationalFncs(iRegion, freqCoef);
         dens = CoefFunction::Generate(mp_, Global::COMPLEX,
                                       CoefXprBinOp(mp_, constOne, invTDEFDens_, CoefXpr::OP_DIV));
         blk = CoefFunction::Generate(mp_, Global::COMPLEX,
                                       CoefXprBinOp(mp_, constOne, invTDEFBlk_, CoefXpr::OP_DIV));
-
-        std::cout << "f = " << frequency << "Hz \n";
-        std::cout << "dens(f) = " << dens->ToString() << "\n";
-        std::cout << "blk(f) = " << blk->ToString() << "\n";
 
       }
 
@@ -1956,7 +1931,7 @@ namespace CoupledField
         // c0 = sqrt(bulk_modulus / density)
         PtrCoefFct dens;
         PtrCoefFct blk;
-        PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+        PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::COMPLEX, "1.0", "0.0");
         PtrCoefFct omegaTrg;
 
         if (complexFluidFormulation_)
@@ -1971,12 +1946,12 @@ namespace CoupledField
           std::cout << "TDEF ABC" << std::endl;
           Double ftrg = abcNodes[i]->Get("targetFrequency")->As<UInt>();
 
-          PtrCoefFct targetFreg = CoefFunction::Generate(mp_, Global::REAL, std::to_string(ftrg));
-          omegaTrg = CoefFunction::Generate(mp_, Global::REAL,
-                                                      CoefXprBinOp(mp_, targetFreg, CoefFunction::Generate(mp_, Global::REAL, "2*pi"), CoefXpr::OP_MULT));
+          PtrCoefFct targetFregImag = CoefFunction::Generate(mp_, Global::COMPLEX,"0.0", std::to_string(ftrg));
 
           // TODO get dens blk at trg freq ftrg
-          EvalRationalFncs(iRegion, ftrg);
+          EvalRationalFncs(iRegion, targetFregImag);
+          PtrCoefFct omegaTrgIm = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                                 CoefXprBinOp(mp_, targetFregImag, CoefFunction::Generate(mp_, Global::COMPLEX, "2*pi", "0.0"), CoefXpr::OP_MULT));
 
           dens = CoefFunction::Generate(mp_, Global::COMPLEX,
                                         CoefXprBinOp(mp_, constOne, invTDEFDens_, CoefXpr::OP_DIV));
@@ -4180,29 +4155,17 @@ namespace CoupledField
               << std::endl;
   }
 
-
-  void AcousticPDE::UpdateFreq(){
-    freq_ = this->mp_->Eval(mHandle_);
-  }
-
-  void AcousticPDE::CleanUp(){
-        //It might be necessary to just disconnect the callback instead of releasing the handle
-        mp_->ReleaseHandle( mHandle_ );
-  }
-
-
-  void AcousticPDE::EvalRationalFncs(UInt iRegion, Double ftrg)
+  void AcousticPDE::EvalRationalFncs(UInt iRegion, PtrCoefFct actFreq)
   {
     ReadTDEFCoefficients(iRegion);
 
     PtrCoefFct imagUnit = CoefFunction::Generate(mp_, Global::COMPLEX, "0.0", "1.0");
-    PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+    PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::COMPLEX, "1.0", "0.0");
 
-    PtrCoefFct targetFreg = CoefFunction::Generate(mp_, Global::REAL, std::to_string(ftrg));
-    PtrCoefFct omegaTrg = CoefFunction::Generate(mp_, Global::REAL,
-                                                 CoefXprBinOp(mp_, targetFreg, CoefFunction::Generate(mp_, Global::REAL, "2*pi"), CoefXpr::OP_MULT));
+    PtrCoefFct omega = CoefFunction::Generate(mp_, Global::REAL,
+                                                 CoefXprBinOp(mp_, actFreq, CoefFunction::Generate(mp_, Global::REAL, "2*pi"), CoefXpr::OP_MULT));
     PtrCoefFct omegaIm = CoefFunction::Generate(mp_, Global::COMPLEX,
-                                                CoefXprBinOp(mp_, omegaTrg, imagUnit, CoefXpr::OP_MULT));
+                                                 CoefXprBinOp(mp_, imagUnit, omega, CoefXpr::OP_MULT));
 
     PtrCoefFct fncTerm;
     PtrCoefFct fncDenom;
@@ -4212,8 +4175,52 @@ namespace CoupledField
 
     // initialize the sums with the high frequency limits
     unsigned int aRegion = regions_[iRegion];
-    invTDEFBlk_ = materials_[aRegion]->GetScalCoefFnc(ACOU_TDEF_INVBLK_CONST, Global::REAL);
-    invTDEFDens_ = materials_[aRegion]->GetScalCoefFnc(ACOU_TDEF_INVDENS_CONST, Global::REAL);
+
+
+
+
+
+
+
+
+
+
+
+    // invTDEFBlk_ = CoefFunction::Generate(mp_, Global::COMPLEX,
+    //                                     CoefXprBinOp(mp_, constOne, omegaIm, CoefXpr::OP_ADD));
+    // invTDEFDens_ = CoefFunction::Generate(mp_, Global::COMPLEX,
+    //                                     CoefXprBinOp(mp_, constOne, omegaIm, CoefXpr::OP_ADD));
+
+
+
+
+
+    invTDEFBlk_ = materials_[aRegion]->GetScalCoefFnc(ACOU_TDEF_INVBLK_CONST, Global::COMPLEX);
+    invTDEFDens_ = materials_[aRegion]->GetScalCoefFnc(ACOU_TDEF_INVDENS_CONST, Global::COMPLEX);
+
+    // invTDEFBlk_ = CoefFunction::Generate(mp_, Global::COMPLEX,
+    //                                    CoefXprBinOp(mp_, invTDEFBlk_, omegaIm, CoefXpr::OP_MULT));
+    // invTDEFDens_ = CoefFunction::Generate(mp_, Global::COMPLEX,
+    //                                    CoefXprBinOp(mp_, invTDEFBlk_, omegaIm, CoefXpr::OP_MULT));
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
 
     // TODO: We have to compute alpha + i omega instead alpha - i omega
     // to get the correct sign for the imaginary part
@@ -4350,13 +4357,9 @@ namespace CoupledField
       std::cout << "added complex pole: invTDEFDens_ = " << invTDEFDens_->ToString() << "\n\n";
     }
 
-    PtrCoefFct dens = CoefFunction::Generate(mp_, Global::COMPLEX,
-                                             CoefXprBinOp(mp_, constOne, invTDEFDens_, CoefXpr::OP_DIV));
-    PtrCoefFct Blk = CoefFunction::Generate(mp_, Global::COMPLEX,
-                                            CoefXprBinOp(mp_, constOne, invTDEFBlk_, CoefXpr::OP_DIV));
 
-    std::cout << "final: density = " << dens->ToString() << "\n";
-    std::cout << "final: blk mod = " << Blk->ToString() << "\n\n";
+    std::cout << "final: INVERSE density = " << invTDEFDens_->ToString() << "\n";
+    std::cout << "final: INVERSE blk mod = " << invTDEFBlk_->ToString() << "\n\n";
   }
 
 }

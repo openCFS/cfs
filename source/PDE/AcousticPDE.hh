@@ -92,13 +92,7 @@ namespace CoupledField{
     void ReadTDEFCoefficients(UInt iRegion);
 
     //! evaluate the inverse of rational functions for TDEF region
-    void EvalRationalFncs(UInt iRegion, Double ftrg);
-
-    //! evaluate the inverse of rational functions for TDEF region
-    void UpdateFreq();
-
-    //! Clean up for PDE-specific stuff (e.g., release mp handle)
-    void CleanUp();  
+    void EvalRationalFncs(UInt iRegion, PtrCoefFct actFreq);
 
 //    //! Set special RHS values
 //    virtual void SetRhsValues();
