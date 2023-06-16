@@ -1943,20 +1943,23 @@ namespace CoupledField
         {
           LocPointMapped lpm;
 
-          std::cout << "TDEF ABC" << std::endl;
+          std::cout << "Establishing narrowband ABC for TDEF region. Note: only valide accurate for harmonic excitation at target frequency, when transients are diminished." << std::endl;
           Double ftrg = abcNodes[i]->Get("targetFrequency")->As<UInt>();
 
-          PtrCoefFct targetFregImag = CoefFunction::Generate(mp_, Global::COMPLEX,"0.0", std::to_string(ftrg));
-
-          // TODO get dens blk at trg freq ftrg
-          EvalRationalFncs(iRegion, targetFregImag);
-          PtrCoefFct omegaTrgIm = CoefFunction::Generate(mp_, Global::COMPLEX,
-                                                 CoefXprBinOp(mp_, targetFregImag, CoefFunction::Generate(mp_, Global::COMPLEX, "2*pi", "0.0"), CoefXpr::OP_MULT));
+          PtrCoefFct targetFreg = CoefFunction::Generate(mp_, Global::REAL, std::to_string(ftrg));
+          omegaTrg = CoefFunction::Generate(mp_, Global::REAL,
+                                        CoefXprBinOp(mp_, targetFreg, CoefFunction::Generate(mp_, Global::REAL, "2*pi"), CoefXpr::OP_MULT));
+          // get densyity and bulk modulus at target frequency
+          EvalRationalFncs(iRegion, targetFreg);
 
           dens = CoefFunction::Generate(mp_, Global::COMPLEX,
                                         CoefXprBinOp(mp_, constOne, invTDEFDens_, CoefXpr::OP_DIV));
           blk = CoefFunction::Generate(mp_, Global::COMPLEX,
                                        CoefXprBinOp(mp_, constOne, invTDEFBlk_, CoefXpr::OP_DIV));
+
+          std::cout << "Bulk modulus at f=" << targetFreg->ToString() << "Hz: " << blk->ToString() << "\n";
+          std::cout << "Density at f=" << targetFreg->ToString() << "Hz: " << dens->ToString() << "\n";
+
         }
         else
         {
@@ -2079,7 +2082,6 @@ namespace CoupledField
 
 
           if(isTDEFReg_[iRegion]){
-
             std::cout << "omegaTrg = " << omegaTrg->ToString() << "\n";
             PtrCoefFct alpha = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, coeffDampTmp, omegaTrg, CoefXpr::OP_MULT));
             std::cout << "alpha = " << alpha->ToString() << "\n";
@@ -2150,7 +2152,6 @@ namespace CoupledField
           {
             targetMatrix = STIFFNESS_UPDATE;
           }
-
           abcIntSiffTDEF->SetName("abcIntegratorStiffnTermTDEF");
           BiLinFormContext *abcContextStiffBeta = new BiLinFormContext(abcIntSiffTDEF, targetMatrix);
 
@@ -2158,6 +2159,58 @@ namespace CoupledField
           abcContextStiffBeta->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
           feFunctions_[formulation_]->AddEntityList(actSDList);
           assemble_->AddBiLinearForm(abcContextStiffBeta);
+
+          // ###############################################################################################
+          // Care for auxiliary variables related to the inverse density
+          // We do not have to care for the aux variables related to the inverse blk modulus 
+          // becuase they do not occur in the boundary integral
+          // ====================================================================
+            // Loop over REAL poles of inverse density (specific volume)
+
+
+
+            for (UInt ii = 0; ii < fncAV_.GetSize(); ii++){
+
+              BiLinearForm *stiffIntTDEFABCPDPHI1 = NULL;
+              if (dim_ == 2){
+                stiffIntTDEFABCPDPHI1 = new SurfaceABInt<>(new IdentityOperator<FeH1,2,1>(),
+                                                           new SurfaceNormalDerivOperator<FeH1,2,1>(),
+                                                           fncAV_[ii], 1.0, aRegion);                    
+              }
+
+
+              else{
+                stiffIntTDEFABCPDPHI1 = new SurfaceABInt<>(new IdentityOperator<FeH1,3,1>(),
+                                                           new SurfaceNormalDerivOperator<FeH1,3,1>(),
+                                                           fncAV_[ii], 1.0, aRegion);
+              }
+
+              FEMatrixType targetMatrix = STIFFNESS;
+              if (updatedGeo_)
+              {
+                targetMatrix = STIFFNESS_UPDATE;
+              }
+              stiffIntTDEFABCPDPHI1->SetName("abcIntegratorStiffnTermTDEFAUX" + std::to_string(ii));
+              BiLinFormContext *abcContextStiffAux = new BiLinFormContext(stiffIntTDEFABCPDPHI1, targetMatrix);
+
+              abcContextStiffAux->SetEntities(actSDList, actSDList);
+              abcContextStiffAux->SetFeFunctions(feFunctions_[formulation_], feFunctions_[(SolutionType)(ACOU_TDEF_PHI_V_1 + ii)]);
+              feFunctions_[formulation_]->AddEntityList(actSDList);
+              assemble_->AddBiLinearForm(abcContextStiffAux);
+
+            }
+
+            // Loop over COMPLEX poles of inverse density (specific volume)
+            // for (UInt ii = 0; ii < fncBV_.GetSize(); ii++)
+
+
+
+            // TODO
+
+
+
+          // ##### END of ABC for TDEF     ###############
+
         }
       }
 
