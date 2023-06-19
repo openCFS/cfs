@@ -1914,6 +1914,7 @@ namespace CoupledField
       ParamNodeList abcNodes = bcNode->GetList("absorbingBCs");
       LOG_DBG(acousticpde) << "ABCs count :  " << abcNodes.GetSize() << "\n";
 
+      std::set< RegionIdType > adjVolRegion; // required for surfaceABIntegrator
       for (UInt i = 0; i < abcNodes.GetSize(); i++)
       {
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
@@ -2170,19 +2171,22 @@ namespace CoupledField
 
 
             for (UInt ii = 0; ii < fncAV_.GetSize(); ii++){
+              // Create set of flow regions and map of density functions for surface integrators.
+              adjVolRegion.insert(aRegion);
+
 
               BiLinearForm *stiffIntTDEFABCPDPHI1 = NULL;
               if (dim_ == 2){
                 stiffIntTDEFABCPDPHI1 = new SurfaceABInt<>(new IdentityOperator<FeH1,2,1>(),
                                                            new SurfaceNormalDerivOperator<FeH1,2,1>(),
-                                                           fncAV_[ii], 1.0, aRegion);                    
+                                                           fncAV_[ii], 1.0, adjVolRegion, updatedGeo_);                    
               }
 
 
               else{
                 stiffIntTDEFABCPDPHI1 = new SurfaceABInt<>(new IdentityOperator<FeH1,3,1>(),
                                                            new SurfaceNormalDerivOperator<FeH1,3,1>(),
-                                                           fncAV_[ii], 1.0, aRegion);
+                                                           fncAV_[ii], 1.0, adjVolRegion, updatedGeo_);
               }
 
               FEMatrixType targetMatrix = STIFFNESS;
@@ -3681,13 +3685,25 @@ namespace CoupledField
 
       // b) multiply by factor
       PtrCoefFct densFct = this->GetCoefFct(ELEM_DENSITY);
-      PtrCoefFct factor =
-          CoefFunction::Generate(mp_, Global::COMPLEX, "0", "1/(2*pi*f)");
-      PtrCoefFct factor2 =
-          CoefFunction::Generate(mp_, Global::COMPLEX,
-                                 CoefXprBinOp(mp_, factor, densFct, CoefXpr::OP_DIV));
-      velFct =
-          CoefFunction::Generate(mp_, part,
+      
+      PtrCoefFct factor;
+      PtrCoefFct factor2;
+      if (isComplex_){
+        factor = CoefFunction::Generate(mp_, Global::COMPLEX, "0", "1/(2*pi*f)");
+        factor2 =
+            CoefFunction::Generate(mp_, Global::COMPLEX,
+                                  CoefXprBinOp(mp_, factor, densFct, CoefXpr::OP_DIV));
+      }
+      else{
+        factor = CoefFunction::Generate(mp_, Global::REAL, "1");
+        // we temporary multiply by 1. Acturally, we have to integrate over time!!
+        std::cout<<"ATTENTION: Currently, for a transient analysis, we compute just the time dierivative of the particle velocity and hence, the power. \n";
+        factor2 =
+            CoefFunction::Generate(mp_, Global::REAL,
+                                  CoefXprBinOp(mp_, factor, densFct, CoefXpr::OP_DIV));
+      }
+
+      velFct = CoefFunction::Generate(mp_, part,
                                  CoefXprBinOp(mp_, factor2, presGradFct, CoefXpr::OP_MULT));
       DefineFieldResult(velFct, vel);
 
@@ -3725,8 +3741,14 @@ namespace CoupledField
       // === ACOU_POWER ===
       // Power p = \int_Gamma I *n dGammac
       //  Integrate normal intensity
-      powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens,
+      if (isComplex_){
+        powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens,
                                                          feFct, power));
+      }
+      else{
+        powerFct.reset(new ResultFunctorIntegrate<Double>(sNormIntens,
+                                                         feFct, power));
+      }
       resultFunctors_[ACOU_POWER] = powerFct;
       availResults_.insert(power);
 
@@ -3757,29 +3779,57 @@ namespace CoupledField
 
       PtrCoefFct c0Fct = this->GetCoefFct(ACOU_ELEM_SPEED_OF_SOUND);
       PtrCoefFct constVal = CoefFunction::Generate(mp_, Global::REAL, "0.5");
-      PtrCoefFct val1 =
-          CoefFunction::Generate(mp_, Global::COMPLEX,
-                                 CoefXprBinOp(mp_, c0Fct, densFct, CoefXpr::OP_MULT));
-      PtrCoefFct val2 =
-          CoefFunction::Generate(mp_, Global::COMPLEX,
-                                 CoefXprBinOp(mp_, constVal, val1, CoefXpr::OP_DIV));
 
-      velFctPW =
-          CoefFunction::Generate(mp_, part,
-                                 CoefXprBinOp(mp_, val2, presFct, CoefXpr::OP_MULT));
+      PtrCoefFct val1;
+      PtrCoefFct val2;
+      PtrCoefFct intensPWfnc;
+      if (isComplex_){
+        val1 =
+            CoefFunction::Generate(mp_, Global::COMPLEX,
+                                  CoefXprBinOp(mp_, c0Fct, densFct, CoefXpr::OP_MULT));
+        val2 =
+            CoefFunction::Generate(mp_, Global::COMPLEX,
+                                  CoefXprBinOp(mp_, constVal, val1, CoefXpr::OP_DIV));
 
-      PtrCoefFct intensPWfnc =
-          CoefFunction::Generate(mp_, Global::COMPLEX,
-                                 CoefXprBinOp(mp_, velFctPW, presFct, CoefXpr::OP_MULT_CONJ));
+        velFctPW =
+            CoefFunction::Generate(mp_, part,
+                                  CoefXprBinOp(mp_, val2, presFct, CoefXpr::OP_MULT));
 
+        intensPWfnc =
+            CoefFunction::Generate(mp_, Global::COMPLEX,
+                                  CoefXprBinOp(mp_, velFctPW, presFct, CoefXpr::OP_MULT_CONJ));
+      }
+      else{
+        val1 =
+            CoefFunction::Generate(mp_, Global::REAL,
+                                  CoefXprBinOp(mp_, c0Fct, densFct, CoefXpr::OP_MULT));
+        val2 =
+            CoefFunction::Generate(mp_, Global::REAL,
+                                  CoefXprBinOp(mp_, constVal, val1, CoefXpr::OP_DIV));
+
+        velFctPW =
+            CoefFunction::Generate(mp_, part,
+                                  CoefXprBinOp(mp_, val2, presFct, CoefXpr::OP_MULT));
+
+        intensPWfnc =
+            CoefFunction::Generate(mp_, Global::REAL,
+                                  CoefXprBinOp(mp_, velFctPW, presFct, CoefXpr::OP_MULT_CONJ));
+      }
       // normal acoustic intensity for plane waves
       sNormIntensPW.reset(new CoefFunctionSurf(false, 1.0, intensNormalPW));
       DefineFieldResult(sNormIntensPW, intensNormalPW);
       surfCoefFcts_[sNormIntensPW] = intensPWfnc;
 
       shared_ptr<ResultFunctor> powerFctPW;
-      powerFctPW.reset(new ResultFunctorIntegrate<Complex>(sNormIntensPW,
+
+      if (isComplex_){
+        powerFctPW.reset(new ResultFunctorIntegrate<Complex>(sNormIntensPW,
                                                            feFct, powerPW));
+      }
+      else{
+        powerFctPW.reset(new ResultFunctorIntegrate<Double>(sNormIntensPW,
+                                                           feFct, powerPW));
+      }
       resultFunctors_[ACOU_POWER_PLANEWAVE] = powerFctPW;
       availResults_.insert(powerPW);
     }
