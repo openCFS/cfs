@@ -2194,7 +2194,9 @@ namespace CoupledField
               {
                 targetMatrix = STIFFNESS_UPDATE;
               }
+
               stiffIntTDEFABCPDPHI1->SetName("abcIntegratorStiffnTermTDEFAUX" + std::to_string(ii));
+              stiffIntTDEFABCPDPHI1->SetUseVolEqnB( true ); 
               BiLinFormContext *abcContextStiffAux = new BiLinFormContext(stiffIntTDEFABCPDPHI1, targetMatrix);
 
               abcContextStiffAux->SetEntities(actSDList, actSDList);
@@ -3539,7 +3541,7 @@ namespace CoupledField
 
     // some results are only available in potential and / or
     // harmonic simulation
-    if (formulation_ == ACOU_POTENTIAL || isComplex_)
+    if (formulation_ == ACOU_POTENTIAL || isComplex_ || analysistype_ == TRANSIENT)
     {
       // === ACOU_PRESSURE ===
       pres.reset(new ResultInfo);
@@ -3832,6 +3834,122 @@ namespace CoupledField
       }
       resultFunctors_[ACOU_POWER_PLANEWAVE] = powerFctPW;
       availResults_.insert(powerPW);
+    }
+
+    if (formulation_ == ACOU_PRESSURE && analysistype_ == TRANSIENT)
+    {
+      // --------------------------------
+      //  Pressure formulation & Transient analysis
+      // --------------------------------
+      // Here we have the problem that we get the acoustic particle acceleration form 
+      // the pressure gradient. Thus, we'd have to integrate it in time to get the 
+      // particle velocity. 
+      // However, the time derivatives of the intesity and power can be provieded
+      // straightforwardly.
+
+
+      // === ACOU_POWER WITH PLANE WAVE ASSUMPTION: p/vn = \rho c ===
+      // Power P = \int_Gamma (p^2)/(2*rho*c) dGamma
+      // === ACOU_POWER ===
+      shared_ptr<ResultInfo> powerPW;
+      powerPW.reset(new ResultInfo);
+      powerPW->resultType = ACOU_POWER_PLANEWAVE;
+      powerPW->dofNames = "";
+      powerPW->unit = "W";
+      powerPW->entryType = ResultInfo::SCALAR;
+      powerPW->definedOn = ResultInfo::SURF_REGION;
+
+
+      // === ACOU_NORMAL_INTENSITY ===
+      shared_ptr<ResultInfo> intensNormalPW;
+      intensNormalPW.reset(new ResultInfo);
+      intensNormalPW->resultType = ACOU_NORMAL_INTENSITY_PLANEWAVE;
+      intensNormalPW->dofNames = "";
+      intensNormalPW->unit = "W/m^2";
+      intensNormalPW->entryType = ResultInfo::SCALAR;
+      intensNormalPW->definedOn = ResultInfo::SURF_ELEM;
+
+
+      PtrCoefFct densFct = this->GetCoefFct(ELEM_DENSITY);
+      PtrCoefFct c0Fct = this->GetCoefFct(ACOU_ELEM_SPEED_OF_SOUND);
+      PtrCoefFct constVal = CoefFunction::Generate(mp_, Global::REAL, "1");
+
+      PtrCoefFct val1 =
+          CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, c0Fct, densFct, CoefXpr::OP_MULT));
+      PtrCoefFct val2 =
+          CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constVal, val1, CoefXpr::OP_DIV));
+
+      PtrCoefFct velFctPW =
+          CoefFunction::Generate(mp_, Global::REAL,  CoefXprBinOp(mp_, val2, presFct, CoefXpr::OP_MULT));
+
+      PtrCoefFct intensPWfnc =
+          CoefFunction::Generate(mp_, Global::REAL,  CoefXprBinOp(mp_, velFctPW, presFct, CoefXpr::OP_MULT));
+
+
+      // normal acoustic intensity for plane waves
+      sNormIntensPW.reset(new CoefFunctionSurf(false, 1.0, intensNormalPW));
+      DefineFieldResult(sNormIntensPW, intensNormalPW);
+      surfCoefFcts_[sNormIntensPW] = intensPWfnc;
+
+      shared_ptr<ResultFunctor> powerFctPW;
+      powerFctPW.reset(new ResultFunctorIntegrate<Double>(sNormIntensPW, feFct, powerPW))                                                 ;
+      resultFunctors_[ACOU_POWER_PLANEWAVE] = powerFctPW;
+      availResults_.insert(powerPW);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      presGradFct.reset(new CoefFunctionBOp<Double>(feFct, vel, 1.0));
+      stiffFormCoefs_.insert(presGradFct);
+
+      PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1");
+      PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, densFct, CoefXpr::OP_DIV));
+
+
+      // === ACOU_NORMAL_ACCELERATION ===
+      velFct = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, presGradFct, CoefXpr::OP_MULT));
+
+      DefineFieldResult(velFct, vel);
+
+
+      // === ACOU_NORMAL_VELOCITY ===
+      velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
+      DefineFieldResult(velFctNormal, velNormal);
+      surfCoefFcts_[velFctNormal] = velFct;
+
+      
+
+      // === ACOU_INTENSITY ===
+      // ATTENSTION: TODO: THIS IS ACTUALLY THE TIME DERIV OF THE INTENSITY, BECAUSE WE USE ACOU ACCELERATION!!
+      // Intensity I = p * v
+      intensFct =  CoefFunction::Generate(mp_, Global::REAL,  CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT));
+
+
+      // === ACOU_NORMAL_INTENSITY ===
+      // ATTENSTION: TODO: THIS IS ACTUALLY THE TIME DERIV OF THE NORMAL INTENSITY, BECAUSE WE USE ACOU ACCELERATION!!
+      sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
+      DefineFieldResult(sNormIntens, intensNormal);
+      surfCoefFcts_[sNormIntens] = intensFct;
+
+      // === ACOU_POWER ===
+      // Power p = \int_Gamma I *n dGammac
+      //  Integrate normal intensity
+
+      shared_ptr<ResultFunctor> powerFct;
+      powerFct.reset(new ResultFunctorIntegrate<Double>(sNormIntens, feFct, power));
+      resultFunctors_[ACOU_POWER] = powerFct;
+      availResults_.insert(power);
+
     }
 
     // === ACOUSTIC KINETIC ENERGY ===
