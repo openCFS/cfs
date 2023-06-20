@@ -462,6 +462,13 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- Definition of surface region result types of WaterWave PDE -->
+  <xsd:simpleType name="DT_WaterWaveSurfRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="waterSurfaceForce"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_WaterWaveStoreResults">
     <xsd:annotation>
@@ -504,6 +511,17 @@
             <xsd:complexContent>
               <xsd:extension base="DT_SurfElemResult">
                 <xsd:attribute name="type" type="DT_WaterWaveSurfElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Surfac	e region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_WaterWaveSurfRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

@@ -687,6 +687,9 @@ namespace CoupledField{
   }
 
   void WaterWavePDE::DefinePostProcResults(){
+
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[WATER_PRESSURE];
+
     StdVector<std::string> vecDofNames;
     if( ptGrid_->GetDim() == 3 ) {
       vecDofNames = "x", "y", "z";
@@ -748,6 +751,23 @@ namespace CoupledField{
     surfaceTractionFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTractionInfo));
     DefineFieldResult(surfaceTractionFct, surfaceTractionInfo);
     surfCoefFcts_[surfaceTractionFct] = feFunctions_[WATER_PRESSURE];
+
+    // === FLUID-MECHANIC REACTION FORCE (= integral of surface traction over the surface region ) ===
+    shared_ptr<ResultInfo> reactionForceInfo;
+    reactionForceInfo.reset(new ResultInfo);
+    reactionForceInfo->resultType = WATER_SURFACE_FORCE;
+    reactionForceInfo->dofNames = vecDofNames;
+    reactionForceInfo->unit = MapSolTypeToUnit(WATER_SURFACE_FORCE);
+    reactionForceInfo->entryType = ResultInfo::VECTOR;
+    reactionForceInfo->definedOn = ResultInfo::SURF_REGION;
+    // Integrate surface traction
+    shared_ptr<ResultFunctor> reactionForceFct;
+    if (isComplex_)
+        reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(surfaceTractionFct, feFct, reactionForceInfo));
+    else
+        reactionForceFct.reset(new ResultFunctorIntegrate<Double>(surfaceTractionFct, feFct, reactionForceInfo));
+    resultFunctors_[WATER_SURFACE_FORCE] = reactionForceFct;
+    availResults_.insert(reactionForceInfo);
   }
   
   //For Moment

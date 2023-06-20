@@ -214,6 +214,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(WATER_PMLAUXSCALAR, "waterPmlAuxScalar");
     SolutionTypeEnum.Add(WATER_RHS_LOAD, "waterRhsLoad");
     SolutionTypeEnum.Add(WATER_SURFACE_TRACTION, "waterSurfaceTraction");
+    SolutionTypeEnum.Add(WATER_SURFACE_FORCE, "waterSurfaceForce");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
@@ -827,6 +828,7 @@ namespace CoupledField {
       case MECH_RHS_LOAD:
       case ELEC_FORCE:
       case SMOOTH_CONTACT_FORCE:
+      case WATER_SURFACE_FORCE:
         return "N";
         break;
 
