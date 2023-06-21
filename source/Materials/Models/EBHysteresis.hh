@@ -38,6 +38,8 @@ public:
 
   Matrix<Double> EvaluateLocalMuFiniteDifferences(Vector<Double> E, StdVector<Double> D, UInt idx);
 
+  Matrix<Double> EvaluateLocalMuAnhystersisOnly(Vector<Double> E, StdVector<Double> D, UInt idx);
+
   StdVector<Double> inv3x3(StdVector<Double> A);
 
   Vector<Double> Evaluate(Vector<Double> E, bool saveTmpStageVecs, UInt idx);
