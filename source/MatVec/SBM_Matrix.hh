@@ -168,16 +168,19 @@ namespace CoupledField {
     //! - discards attempts to set sub-matrices in the lower triangle of a
     //!   symmetric %SBM_Matrix issuing a warning
     //!
-    //! \param i           row index for inserting sub-matrix
-    //! \param j           column index for inserting sub-matrix
-    //! \param eType       entry type of sub-matrix
-    //! \param sType       storage format of sub-matrix
-    //! \param nrows       number of rows of sub-matrix
-    //! \param ncols       number of columns of sub-matrix
-    //! \param nnz         number of non-zeros in sub-matrix
+    //! \param i                row index for inserting sub-matrix
+    //! \param j                column index for inserting sub-matrix
+    //! \param eType            entry type of sub-matrix
+    //! \param sType            storage format of sub-matrix
+    //! \param nrows            number of rows of sub-matrix
+    //! \param ncols            number of columns of sub-matrix
+    //! \param nnz              number of non-zeros in sub-matrix
+    //! \param forceOverwrite   forces a matrix overwrite - use carefully!!!
+    //! \param silentOVerwrite  no warning will be issued when the matrix is overwritten - use even more carefully!!!
     void SetSubMatrix( UInt i, UInt j, BaseMatrix::EntryType eType,
                        BaseMatrix::StorageType sType, 
-                       UInt nrows, UInt ncols, UInt nnz );
+                       UInt nrows, UInt ncols, UInt nnz, 
+                       bool forceOverwrite = false, bool silentOverWrite = false );
 
     //! Initialize matrix to zero
     

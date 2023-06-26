@@ -1375,5 +1375,10 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
   }
 
+  void IterSolveStep::SetupGetRidOfZerosActive() {
+    for(UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      rPDE_.PDEs_[i]->GetSolveStep()->SetupGetRidOfZerosActive();
+    }
+  }
     
 } // end of namespace

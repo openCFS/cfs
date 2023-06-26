@@ -178,6 +178,17 @@ namespace CoupledField {
     //! contains an entry for the node itself.
     void SetSparsityPattern( BaseGraph &graph );
 
+    //! The sparsity-pattern with data, which was already set outside this class
+
+    //! We provide the three CRS-vectors externally as StdVectors and
+    //! convert them to arrays in this method
+    //! \param rowP  row-pointer
+    //! \param colI  column-index
+    //! \param data  data-pointer
+    void SetSparsityPatternData( const StdVector<UInt>& rowP,
+                                 const StdVector<UInt>& colI,
+                                 const StdVector<T>& data);
+
     //! Setup the sparsity pattern of the matrix
   
     //! This method provides an alternative form to set the sparsity pattern
@@ -206,6 +217,19 @@ namespace CoupledField {
     //! \return An identifier that can be used to identify the matrix
     //!         pattern when communicating with the PatternPool object.
     PatternIdType TransferPatternToPool( PatternPool *patternPool );
+
+    //! Setup the sparsity pattern of the matrix (manual definition)
+  
+    //! This method provides an alternative form to set the sparsity pattern
+    //! of the matrix. If we already know the pointers usually generated via
+    //! SetSparsityPattern(), we can also set it directly.
+    //! \param rowPtr       Array containing starting indices of the 
+    //!                     different matrix rows
+    //! \param colPtr       Array containing the column indices of the 
+    //!                     non-zero matrix entries
+    //! \param diagPtr      //! Array containing the indices of the 
+    //!                     diagonal matrix entries
+    void SetSparsityPattern( UInt *rowPtr, UInt *colPtr, UInt *diagPtr );
 
     //! Copy the sparsity pattern of another matrix to this matrix 
     
@@ -274,6 +298,11 @@ namespace CoupledField {
     //! Returns the number of entries
     UInt GetNumEntries() const {
       return numEntries_;
+    }
+
+    //! Sets the number of entries
+    void SetNumEntries(UInt numEntries) {
+      numEntries_ = numEntries;
     }
 
     //! Set the length of row i.

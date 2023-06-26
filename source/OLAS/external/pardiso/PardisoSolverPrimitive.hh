@@ -46,6 +46,9 @@ namespace CoupledField {
     //! the Minimum Degree Algorithm and then it will be LU-factorised.
     void Setup( BaseMatrix &sysmat);
 
+    //! Set the flag that a new matrix pattern shall be used in the setup phase
+    void SetNewMatrixPattern();
+
     //! Direct solution of the linear system
 
     //! After Solve is called the matrix (which has already to be factorised
@@ -193,6 +196,8 @@ namespace CoupledField {
     //! Timer objects
     Timer tNumfact_, tSymfact_;
 
+    //! Check if we have a new matrix pattern
+    bool newMatrixPattern_ = false;
   };
 
 }

@@ -104,6 +104,9 @@ namespace CoupledField {
     //! The destructor is not used at all.
     ~PardisoSolver();
 
+    //! Set the flag that a new matrix pattern shall be used in the setup phase
+    void SetNewMatrixPattern();
+    
     //! Reordering and factorization of the linear system
 
     //! After Setup is called the BaseMatrix (expected to be either a CRS
@@ -260,6 +263,9 @@ namespace CoupledField {
 
     //! Timer objects
     Timer tNumfact_, tSymfact_;
+
+    //! Check if we have a new matrix pattern
+    bool newMatrixPattern_ = false;
 
   };
 

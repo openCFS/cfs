@@ -14,6 +14,7 @@
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
+#include "OLAS/solver/BaseSolver.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 //#include "MatVec/SingleVector.hh"
 #include "Domain/Results/MHTimeFreqResult.hh"
@@ -190,6 +191,13 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
     
     if( assemble_->IsMatrixUpdated() ) {
+      // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+      SetupGetRidOfZerosActive();
+      // get rid of unnecessary zeros (if applicable)
+      if( useGetRidOfZeros_ ) {
+        algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
+      }
+
       algsys_->SetupPrecond();
       
       algsys_->SetupSolver();
@@ -197,6 +205,13 @@ namespace CoupledField {
     
     // Solve problem
     algsys_->Solve();
+
+    // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+    // afterwards, we notify the solver that the matrix pattern might change again in the next step
+    if( useGetRidOfZeros_ ) {
+      algsys_->RestoreSystemMatrixFromBackup();
+      algsys_->GetSolver()->SetNewMatrixPattern();
+    }
     
     // Get the solution and store it
     // Since the entries of solVec_ are pointers to the SingleVector
@@ -299,6 +314,12 @@ namespace CoupledField {
         algsys_->ConstructEffectiveMatrix(NO_FCT_ID, matrix_factor_[NO_FCT_ID]);
 
         algsys_->BuildInDirichlet();
+
+        // get rid of unnecessary zeros (if applicable)
+        if( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
+        }
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
         
@@ -307,6 +328,14 @@ namespace CoupledField {
           setIDBC = true;
         
         algsys_->Solve(setIDBC);
+
+        // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+        // afterwards, we notify the solver that the matrix pattern might change again in the next step
+        if( useGetRidOfZeros_ ) {
+          algsys_->RestoreSystemMatrixFromBackup();
+          algsys_->GetSolver()->SetNewMatrixPattern();
+        }
+
         // new solution is only an increment of the full solution =============
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
@@ -447,12 +476,26 @@ namespace CoupledField {
       // recalc the preconditioner eventually
       algsys_->BuildInDirichlet();
 
-      if(assemble_->IsMatrixUpdated()) {
+      if( assemble_->IsMatrixUpdated() ) {
+        // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+        SetupGetRidOfZerosActive();
+        // get rid of unnecessary zeros (if applicable)
+        if( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
+        }
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
       }
 
       algsys_->Solve();
+
+      // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+      // afterwards, we notify the solver that the matrix pattern might change again in the next step
+      if( useGetRidOfZeros_ ) {
+        algsys_->RestoreSystemMatrixFromBackup();
+        algsys_->GetSolver()->SetNewMatrixPattern();
+      }
 
       algsys_->GetSolutionVal(solVec_, true); // true=idbc
 
@@ -499,7 +542,6 @@ namespace CoupledField {
       stageRHS_.GetPointer(id)->Resize(rhsSize);
     }
     stageRHS_.Init();
-    
   }
   
   void StdSolveStep::PreStepTrans() {
@@ -648,7 +690,15 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       // prepare the solver and preconditioner for the updated system matrix
-      if(assemble_->IsMatrixUpdated()){
+      if( assemble_->IsMatrixUpdated() || useGetRidOfZeros_ ) {
+
+        // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+        SetupGetRidOfZerosActive();
+        // get rid of unnecessary zeros (if applicable)
+        if( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
+        }
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
       }
@@ -682,8 +732,16 @@ namespace CoupledField {
       }
       // solve the system of equations using the defined solver
       algsys_->Solve();
-      // Since the entries of solVec_ are pointers to the SingleVector
-      // of the FE function, it automatically inserts the values there
+
+      // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+      // afterwards, we notify the solver that the matrix pattern might change again in the next step
+      if( useGetRidOfZeros_ ) {
+        algsys_->RestoreSystemMatrixFromBackup();
+        algsys_->GetSolver()->SetNewMatrixPattern();
+      }
+      
+     // Since the entries of solVec_ are pointers to the SingleVector
+     // of the FE function, it automatically inserts the values there
       algsys_->GetSolutionVal(stageSol);
     }
     //update stage
@@ -889,6 +947,14 @@ namespace CoupledField {
         
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
+
+        // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+        SetupGetRidOfZerosActive();
+        // get rid of unnecessary zeros (if applicable)
+        if( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
+        }
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
         
@@ -898,6 +964,14 @@ namespace CoupledField {
           setIDBC = true;
         
         algsys_->Solve(setIDBC);
+
+        // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+        // afterwards, we notify the solver that the matrix pattern might change again in the next step
+        if( useGetRidOfZeros_ ) {
+          algsys_->RestoreSystemMatrixFromBackup();
+          algsys_->GetSolver()->SetNewMatrixPattern();
+        }
+
         // if setIDBC is true, solInc will contain the inhom. Dirichlet values
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
@@ -1131,6 +1205,14 @@ namespace CoupledField {
         
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
+
+        // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+        SetupGetRidOfZerosActive();
+        // get rid of unnecessary zeros (if applicable)
+        if( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
+        }
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
         
@@ -1138,6 +1220,14 @@ namespace CoupledField {
         bool setIDBC = true;
         
         algsys_->Solve(setIDBC); 
+
+        // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+        // afterwards, we notify the solver that the matrix pattern might change again in the next step
+        if( useGetRidOfZeros_ ) {
+          algsys_->RestoreSystemMatrixFromBackup();
+          algsys_->GetSolver()->SetNewMatrixPattern();
+        }
+
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal(solNew, setIDBC );
@@ -1325,11 +1415,26 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
+      // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+      SetupGetRidOfZerosActive();
+      // get rid of unnecessary zeros (if applicable)
+      if( useGetRidOfZeros_ ) {
+        algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
+      }
+
       algsys_->SetupPrecond();
       algsys_->SetupSolver();
     }
     
     algsys_->Solve();
+
+    // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+    // afterwards, we notify the solver that the matrix pattern might change again in the next step
+    if( useGetRidOfZeros_ ) {
+      algsys_->RestoreSystemMatrixFromBackup();
+      algsys_->GetSolver()->SetNewMatrixPattern();
+    }
+
     // Since the entries of solVec_ are pointers to the SingleVector
     // of the FE function, it automatically inserts the values there
     algsys_->GetSolutionVal(solVec_);
@@ -1413,12 +1518,25 @@ namespace CoupledField {
     // recalculate the preconditioner eventually
     algsys_->BuildInDirichlet();
 
+    // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+    SetupGetRidOfZerosActive();
+    // get rid of unnecessary zeros (if applicable)
+    if( useGetRidOfZeros_ ) {
+      algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
+    }
+
     algsys_->SetupPrecond();
     algsys_->SetupSolver();
 
     // Solve the linear system
     algsys_->Solve();
 
+    // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+    // afterwards, we notify the solver that the matrix pattern might change again in the next step
+    if( useGetRidOfZeros_ ) {
+      algsys_->RestoreSystemMatrixFromBackup();
+      algsys_->GetSolver()->SetNewMatrixPattern();
+    }
 
     // Get the solution of the initial (linear) multiharmonic system.
     solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
@@ -1533,6 +1651,14 @@ namespace CoupledField {
 
       // Incorporate Boundary conditions and recalc the preconditioner and solver
       algsys_->BuildInDirichlet();
+
+      // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+      SetupGetRidOfZerosActive();
+      // get rid of unnecessary zeros (if applicable)
+      if( useGetRidOfZeros_ ) {
+        algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
+      }
+
       algsys_->SetupPrecond();
       algsys_->SetupSolver();
 
@@ -1541,6 +1667,14 @@ namespace CoupledField {
       // DO WE NEED TO CALL IT WITH SETIDBC? No only in the linear iteration.
       // Now its handled in updateRHS_MultHarm()
       algsys_->Solve(false);
+
+      // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+      // afterwards, we notify the solver that the matrix pattern might change again in the next step
+      if( useGetRidOfZeros_ ) {
+        algsys_->RestoreSystemMatrixFromBackup();
+        algsys_->GetSolver()->SetNewMatrixPattern();
+      }
+
       // Get the incremental solution (deflect vector), second argument is setIDBC
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
@@ -2427,5 +2561,80 @@ namespace CoupledField {
 
   }
 
+  void StdSolveStep::SetupGetRidOfZerosActive(){
+    // Note: Currently we do not support multi-grid or static condensation with this approach
+
+    if( setupGetRidOfZerosDone_ ) {
+      // default parameters (false by default)
+      bool supportedBySolver = true;
+      string getRidOfZerosXML = "auto";
+      bool hasNCI = false;
+      
+      PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
+      PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
+                            this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
+
+      // get info if we have NCI or not
+      if (this->ptgrid_->HasNCI()) {
+          hasNCI = true;
+      }
+
+      // get XML input (otherwise the defaults "auto" and 1e-20 will be used (defined independently in C++ and XML schema))
+      if(seqStepParamNode->Has("linearSystems")) {
+        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros"))
+          getRidOfZerosXML = seqStepParamNode->Get("linearSystems/getRidOfZeros")->As<string>();
+        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance"))
+          getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems/getRidOfZerosTolerance")->As<Double>();
+      }
+
+      // now check the solver list if we use a solver that is supported
+      if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {
+        supportedBySolver = false;
+      }
+      
+      ParamNodeList analysisNode = seqStepParamNode->Get("analysis")->GetChildren();
+      std::string analysisName = analysisNode[0]->GetName();
+
+      // now adapt the switch if any of the untested / not working cases
+      std::string useCase = "";
+      if( algsys_->UseAMG() )
+        useCase = "AMG";
+      else if ( algsys_->UseStaticCondensation() )
+        useCase = "static condensation";
+      else if ( !supportedBySolver || algsys_->HasPrecond() )
+        useCase = "solver setup";
+      else if ( analysisName == "inverseSource" )
+        useCase = "inverseSource";
+      else if ( myParam->Has("optimization") )
+        useCase = "optimization";
+      else if (this->PDE_.IsNonLin())
+        useCase = "nonLinear";
+
+      // we select the scenario based on gatherd data
+      if (useCase != "" && hasNCI && getRidOfZerosXML=="auto") {
+        std::cout << "StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")"; 
+        useGetRidOfZeros_ = false;
+      }
+      else if (useCase == "" && hasNCI && getRidOfZerosXML=="auto") {
+        std::cout << "Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.";
+        useGetRidOfZeros_ = true;
+      }
+      else if (useCase != ""  && getRidOfZerosXML=="yes") {
+        Exception("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" + useCase + ")");
+        useGetRidOfZeros_ = false;
+      }
+      else if (useCase == "" && getRidOfZerosXML=="yes") {
+        useGetRidOfZeros_ = true;
+      }
+      else if (getRidOfZerosXML=="no") {
+        useGetRidOfZeros_ = false;
+      }
+      else {
+        useGetRidOfZeros_ = false;
+      }
+    }
+    // now that everything is setup, we can skip this setup from now on
+    setupGetRidOfZerosDone_ = false;
+  }
   
 } // end of namespace

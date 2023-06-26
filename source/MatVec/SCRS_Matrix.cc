@@ -404,6 +404,68 @@ namespace CoupledField {
     rowPtr_ = myPattern->rptr_;
   }
 
+  // **********************
+  //   SetSparsityPatternData
+  // **********************
+  template<typename T>
+  void SCRS_Matrix<T>::SetSparsityPatternData( const StdVector<UInt>& rowP,
+                                               const StdVector<UInt>& colI,
+                                               const StdVector<T>& data){
+    // Check that no pattern was allocated
+    if ( rowPtr_ != NULL || colInd_ != NULL || patternPool_ != NULL ||
+        this->nrows_ != (rowP.GetSize() - 1) ) {
+      EXCEPTION( "There seems to already be a sparsity pattern!" );
+    }
+    //if(this->nrows_ != (rowP.GetSize() - 1) ) EXCEPTION("CRS_Matrix: rowPointer-1 has other size than number of rows!!")
+    this->nrows_ = rowP.GetSize() - 1;
+    this->nnz_ = colI.GetSize();
+
+    // Allocate memory for row pointers and initialise first one
+    NEWARRAY( rowPtr_, UInt, rowP.GetSize() );
+
+    // Allocate memory for column indices
+    NEWARRAY( colInd_, UInt, colI.GetSize() );
+
+    // Allocate memory for the data vector
+    NEWARRAY( data_ , T, colI.GetSize() );
+
+    UInt maxCol = 0;
+
+    for (UInt i = 0; i < rowP.GetSize(); ++i ) {
+      rowPtr_[i] = rowP[i];
+    }
+    for(UInt i = 0; i < colI.GetSize(); ++i ){
+//      std::cout << colI.GetPointer();
+//      std::cout << "\n";
+//      std::cout << data_;
+//      std::cout << "\n";
+    	//std::cout << *(colI.GetPointer()+i);//TODO: for debugging, remove after
+      //std::cout << "\n";
+    	//std::cout << colI[i];
+//      std::cout << "\n";
+      colInd_[i] = colI[i];
+      data_[i] = data[i];
+
+      if(colI[i] > maxCol) maxCol = colI[i];
+    }
+
+    // Diagonal pointer only if the matrix has square shape, otherwise what's the diagonal?
+    if( maxCol == rowP.GetSize() - 2){
+      // Allocate memory for diagonal indices
+      NEWARRAY( diagPtr_, UInt, this->nrows_ );
+
+      // fill diagonal indices
+      for(UInt i = 0; i < this->nrows_; ++i){
+        for(UInt j = rowPtr_[i]; j < rowPtr_[i + 1]; ++j){
+          if(colInd_[j] == i){
+            diagPtr_[i] = j;
+            break;
+          }
+        }
+      }
+    }
+  }
+
 
   // *************************
   //   TransferPatternToPool

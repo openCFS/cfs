@@ -157,6 +157,9 @@ namespace CoupledField {
     //! might be removed again.
     void Setup( BaseMatrix &sysmat );
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
+
     //! Query type of this solver.
 
     //! This method can be used to query the type of this solver. The answer

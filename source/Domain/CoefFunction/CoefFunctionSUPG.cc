@@ -107,7 +107,6 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
     
     //compute Peclet-Number
     double peclet = (velNorm * lElem) / (2 * m);
-
     
     // check if peclet == 0.0 with the tolerance epsilon
     double epsilon = 1e-13; 
