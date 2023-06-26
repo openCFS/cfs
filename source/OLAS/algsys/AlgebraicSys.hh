@@ -801,6 +801,8 @@ namespace CoupledField {
     //! \note After assembling the dirichlet values, the preconditioner and
     //! the solver have to be set up again.
     void BuildInDirichlet();
+    
+    void GetRidOfZeros();
 
     //! correct RHS according to inhomogeneous Dirichlet bcs
     void AddIDBCToRHS(bool deltaIDBC = false);
