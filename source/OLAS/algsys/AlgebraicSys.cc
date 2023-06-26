@@ -3578,6 +3578,13 @@ namespace CoupledField {
     }
   }
 
+  void AlgebraicSys::GetRidOfZeros()
+  {
+    auto numRows = effMat_->GetNumRows();
+    auto numCols = effMat_->GetNumCols();
+    LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << numRows << " Number of Coloumns: " << numCols;
+  }
+
   void AlgebraicSys::ClearIDBCFromSolutionVal( SBM_Vector& solVec ){
     // resize solVec to match number of functions
     solVec.Resize( numFcts_);

@@ -188,6 +188,8 @@ namespace CoupledField {
     // Incorporate Boundary conditions and
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
+
+    algsys_->GetRidOfZeros();
     
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
