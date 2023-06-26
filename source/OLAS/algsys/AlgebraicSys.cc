@@ -3583,6 +3583,27 @@ namespace CoupledField {
     auto numRows = effMat_->GetNumRows();
     auto numCols = effMat_->GetNumCols();
     LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << numRows << " Number of Coloumns: " << numCols;
+    auto tempMatrix = effMat_->GetPointer(0,0);
+    auto tempMatrixNumberRows = tempMatrix->GetNumRows();
+    auto tempMatrixNumberCols = tempMatrix->GetNumCols();
+    double tempVar{};
+
+    // tempMatrix seems to be SCRS_Matrix. We have an idea of iterating other its row and colomn vectors and storing non-zeros only, saving them to new SCRS_Matrix
+
+    for(int i=0; i< tempMatrixNumberRows; i++)
+    {
+      for(int j=0; j<tempMatrixNumberCols; j++)
+        {
+          tempMatrix->GetMatrixEntry(i,j, tempVar);
+          LOG_DBG(algSys) << "Entity of TempMatrix: " << tempVar;
+          // if (tempVar!=0.0)
+          // {
+          //   emptyMatrix->SetMatrixEntry(i,j,tempVar)
+          // }
+        }
+    }
+    LOG_DBG(algSys) << "Number of Rows of TempMatrix: " << tempMatrixNumberRows << " Number of Coloumns: " << tempMatrixNumberCols;
+    
   }
 
   void AlgebraicSys::ClearIDBCFromSolutionVal( SBM_Vector& solVec ){
