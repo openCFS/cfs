@@ -169,16 +169,15 @@ namespace CoupledField
         {
           // classical nonlinearity with analytic prescription
           PtrCoefFct muNl = actSDMat->GetScalCoefFncNonLin( MAG_PERMEABILITY_SCALAR, Global::REAL, magFieldCoef);
-          
+          perm_->AddRegion(actRegion, muNl);
           if (dim_ == 2)
           {
-            stiffInt = new BBInt<>(new GradientOperator<FeH1, 2>(), muNl, 1.0, updatedGeo_);
+            stiffInt = new BBInt<>(new GradientOperator<FeH1, 2>(), perm_, 1.0, updatedGeo_);
           }
           else
           {
-            stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), muNl, 1.0, updatedGeo_);
+            stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), perm_, 1.0, updatedGeo_);
           }
-          perm_->AddRegion(actRegion, muNl);
         }
 
         stiffInt->SetName("StiffnessIntegratorHysteresis");
@@ -192,11 +191,11 @@ namespace CoupledField
         perm_->AddRegion(actRegion, mu);
         if (dim_ == 2)
         {
-          stiffInt = new BBInt<>(new GradientOperator<FeH1, 2>(), mu, 1.0, updatedGeo_);
+          stiffInt = new BBInt<>(new GradientOperator<FeH1, 2>(), perm_, 1.0, updatedGeo_);
         }
         else
         {
-          stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), mu, 1.0, updatedGeo_);
+          stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), perm_, 1.0, updatedGeo_);
         }
         stiffInt->SetName("StiffnessIntegrator");
       }
@@ -306,7 +305,6 @@ namespace CoupledField
 
             // Here we store the Hs field for every region to have it ready for postprocessing
       Hsmap_[ent[i]->GetRegion()] = coef[i];
-
       if ( (nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ == "nonlinearCurve") || (nonLinTypes.Find(PERMEABILITY) == -1) ){ 
         PtrCoefFct mu_times_Hs = CoefFunction::Generate(mp_, Global::REAL, CoefXprVecScalOp(mp_, coef[i], perm_, CoefXpr::OP_MULT));  
         lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, mu_times_Hs, volRegions, coefUpdateGeo);

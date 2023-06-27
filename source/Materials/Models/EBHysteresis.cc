@@ -216,8 +216,8 @@ DEFINE_LOG(eb, "EBHysteresis")
 
       //mu = EvaluateLocalMu(delta_H, delta_B, idx);
       //mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
-      //mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-      mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
+      mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+      //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
       //mu = EvaluateLocalMuAnhystersisOnly(HVec, B_k, idx);
 
 
@@ -443,10 +443,10 @@ DEFINE_LOG(eb, "EBHysteresis")
       mu.Resize(dim_,dim_);
       double offset = 1e-2;
 
-      if(dim_ == 2){
+      /* if(dim_ == 2){
         dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
         dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
-      }
+      } */
       mu[0][1] = 0.0; //dB[0]/dH[1];
       mu[1][1] = std::abs(dB[1])/std::abs(dH[1]);
       mu[1][0] = 0.0; //dB[1]/dH[0];
@@ -808,7 +808,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       weight[8]=0.00090465; weight[9]=0.0014853; */
 
       // my weights k = 50
-      chi[0]=0; chi[1]=7.7505; chi[2]=21.3061; chi[3]=34.1291; 
+      /* chi[0]=0; chi[1]=7.7505; chi[2]=21.3061; chi[3]=34.1291; 
       chi[4]=44.9371; chi[5]=54.4629; chi[6]=64.2734; chi[7]=73.2565; 
       chi[8]=84.8699; chi[9]=90.5018; chi[10]=103.2363; chi[11]=119.2992; 
       chi[12]=125.3339; chi[13]=129.953; chi[14]=141.0746; chi[15]=153.6859; 
@@ -833,7 +833,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       weight[36]=0.00011055; weight[37]=0.00011055; weight[38]=0.00011055; weight[39]=0.00011055; 
       weight[40]=0.00011055; weight[41]=0.00011055; weight[42]=0.00011055; weight[43]=0.00011055; 
       weight[44]=0.00011055; weight[45]=0.00011055; weight[46]=0.00011055; weight[47]=0.00011055; 
-      weight[48]=0.00011055; weight[49]=0.00011055; weight[50]=0.0014874;
+      weight[48]=0.00011055; weight[49]=0.00011055; weight[50]=0.0014874; */
 
       // anhysteresis 
       aa = 9.082; MSa = 0.792; ab = 137.121; MSb = 0.791;
@@ -961,7 +961,7 @@ DEFINE_LOG(eb, "EBHysteresis")
 
         Double HrxS_prev, HryS_prev, HrzS_prev, MxSprev, MySprev, MzSprev, phi, err, ux, uy,
               uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py, Pz,
-              condition1, theta, i_correct_x,i_correct_y,i_correct_z,Hirr_x,Hirr_y,Hirr_z;
+              condition1, theta, i_correct_x,i_correct_y,i_correct_z,Hirr_x,Hirr_y,Hirr_z,coth_La,coth_Lb,J_an;
         UInt iter;
         StdVector<Double>& HxS_prev = HxS_n_[idx];
         StdVector<Double>& HyS_prev = HyS_n_[idx];
@@ -1003,9 +1003,9 @@ DEFINE_LOG(eb, "EBHysteresis")
           if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
             coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
             coth_Lb = std::cosh(HrS/ab)/std::sinh(HrS/ab);
-            J_an = MSa*(coth_La - aa/HrS) + MSb*(coth_Lb - ab/HrS);
+            J_an = 1*(coth_La - aa/HrS);
             M_an = J_an/(4*M_PI*1e-7);
-/*             MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
+            /* MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
             MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
             MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS; */
             MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
