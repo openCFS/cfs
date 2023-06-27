@@ -3584,25 +3584,41 @@ namespace CoupledField {
     auto numCols = effMat_->GetNumCols();
     LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << numRows << " Number of Coloumns: " << numCols;
     auto tempMatrix = effMat_->GetPointer(0,0);
-    auto tempMatrixNumberRows = tempMatrix->GetNumRows();
-    auto tempMatrixNumberCols = tempMatrix->GetNumCols();
-    double tempVar{};
 
-    // tempMatrix seems to be SCRS_Matrix. We have an idea of iterating other its row and colomn vectors and storing non-zeros only, saving them to new SCRS_Matrix
-
-    for(int i=0; i< tempMatrixNumberRows; i++)
-    {
-      for(int j=0; j<tempMatrixNumberCols; j++)
-        {
-          tempMatrix->GetMatrixEntry(i,j, tempVar);
-          LOG_DBG(algSys) << "Entity of TempMatrix: " << tempVar;
-          // if (tempVar!=0.0)
-          // {
-          //   emptyMatrix->SetMatrixEntry(i,j,tempVar)
-          // }
-        }
+    
+    SCRS_Matrix<Double> &scrsMat = dynamic_cast<SCRS_Matrix<Double>&>(*tempMatrix);
+    auto RowVec = scrsMat.GetRowPointer();
+    auto ColVec = scrsMat.GetColPointer();
+    auto DataVec = scrsMat.GetDataPointer();
+    auto size = scrsMat.GetNumEntries();
+    auto NumRows = scrsMat.GetNumRows();
+    auto counter = 0;
+    for (auto i = 0; i < size; i++) {
+      if (DataVec[i] != 0.0) counter++;
     }
-    LOG_DBG(algSys) << "Number of Rows of TempMatrix: " << tempMatrixNumberRows << " Number of Coloumns: " << tempMatrixNumberCols;
+
+    Double *DataVecNew[counter];
+    UInt *ColVecNew[counter];
+    UInt *RowVecNew[scrsMat.GetNumRows()+1];
+
+    UInt k{0};
+
+    for (auto i = 1; i < NumRows+1; i++) {
+        for (auto j = RowVec[i-1]; j < RowVec[i]; j++) {
+          if (DataVec[j] != 0.0) {
+            DataVecNew[k] = &DataVec[j];
+            ColVecNew[k] = &ColVec[j];
+            k++;
+          }
+        }
+
+        RowVecNew[i] = &k;
+    }
+    
+    RowVecNew[0] = 0;
+
+    LOG_DBG(algSys) << "NNZ according to CFS "<< size << "\n\n";
+    LOG_DBG(algSys) << "NNZ actually counted" << counter << "\n\n";
     
   }
 
