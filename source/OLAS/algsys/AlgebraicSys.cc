@@ -3617,8 +3617,14 @@ namespace CoupledField {
     
     RowVecNew[0] = 0;
 
+    auto counterNew = 0;
+    for (auto i = 0; i < counter; i++) {
+      if (*DataVecNew[i] != 0.0) counterNew++;
+    }
+
     LOG_DBG(algSys) << "NNZ according to CFS "<< size << "\n\n";
     LOG_DBG(algSys) << "NNZ actually counted" << counter << "\n\n";
+    LOG_DBG(algSys) << "NNZ in DataVecNew" << counterNew << "\n\n";
     
   }
 
