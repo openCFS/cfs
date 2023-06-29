@@ -3597,9 +3597,12 @@ namespace CoupledField {
       if (DataVec[i] != 0.0) counter++;
     }
 
-    StdVector<Double> DataVecNew[counter];
-    StdVector<UInt> ColVecNew[counter];
-    StdVector<UInt> RowVecNew[NumRows+1];
+    //StdVector<Double> DataVecNew[counter];
+    //StdVector<UInt> ColVecNew[counter];
+    //StdVector<UInt> RowVecNew[NumRows+1];
+    Double* DataVecNew[counter];
+    UInt*  ColVecNew[counter];
+    UInt RowVecNew[NumRows+1];
 
     UInt k{0};
     RowVecNew[0] = 0;
@@ -3607,8 +3610,8 @@ namespace CoupledField {
     for (auto i = 1; i < NumRows+1; i++) {
         for (auto j = RowVec[i-1]; j < RowVec[i]; j++) {
           if (DataVec[j] != 0.0) {
-            DataVecNew[k] = DataVec[j];
-            ColVecNew[k] = ColVec[j];
+            DataVecNew[k] = &DataVec[j];
+            ColVecNew[k] = &ColVec[j];
             k++;
           }
         }
@@ -3618,18 +3621,22 @@ namespace CoupledField {
 
     LOG_DBG(algSys) << "RowVecNew "<< RowVecNew << "\n\n";
 
-    SCRS_Matrix<Double> newMatrix(NumRows+1, counter, counter);
+    CRS_Matrix<Double> newMatrix(NumRows, NumRows, counter, RowVecNew, *ColVecNew, *DataVecNew);
 
-    CRS_Matrix<Double> newMatrix_CRS = CRS_Matrix<Double>(dynamic_cast<const SCRS_Matrix<Double> &>(newMatrix));
-    newMatrix_CRS.GetVectors(ColVecNew, RowVecNew, DataVecNew);
+    StdMatrix* newMatrix_std = &newMatrix;
+
+    tempMatrix = newMatrix_std;
+    //newMatrix_CRS;
 
     //auto counterNew = 0;
     //for (auto i = 0; i < counter; i++) {
     //  if (DataVecNew[i] != 0.0) counterNew++;
     //}
-
+    CRS_Matrix<Double> &scrsMatNew = dynamic_cast<CRS_Matrix<Double>&>(*tempMatrix);
+    auto sizeNew = scrsMatNew.GetNnz();
     LOG_DBG(algSys) << "NNZ according to CFS "<< size << "\n\n";
     LOG_DBG(algSys) << "NNZ actually counted" << counter << "\n\n";
+    LOG_DBG(algSys) << "CHECK IT "<< sizeNew << "\n\n";
     //LOG_DBG(algSys) << "NNZ in DataVecNew" << counterNew << "\n\n";
     
   }
