@@ -3578,6 +3578,7 @@ namespace CoupledField {
     }
   }
 
+// Remove zero non-zero elements from system matrix
   void AlgebraicSys::GetRidOfZeros()
   {
     auto numRows = effMat_->GetNumRows();
@@ -3590,7 +3591,7 @@ namespace CoupledField {
     auto RowVec = scrsMat.GetRowPointer();
     auto ColVec = scrsMat.GetColPointer();
     auto DataVec = scrsMat.GetDataPointer();
-    auto size = scrsMat.GetNumEntries();
+    auto size = scrsMat.GetNnz();
     auto NumRows = scrsMat.GetNumRows();
     auto counter = 0;
     for (auto i = 0; i < size; i++) {
@@ -3621,18 +3622,35 @@ namespace CoupledField {
 
     LOG_DBG(algSys) << "RowVecNew "<< RowVecNew << "\n\n";
 
-    CRS_Matrix<Double> newMatrix(NumRows, NumRows, counter, RowVecNew, *ColVecNew, *DataVecNew);
+    //CRS_Matrix<Double> newMatrix(NumRows, NumRows, counter, RowVecNew, *ColVecNew, *DataVecNew);
 
-    StdMatrix* newMatrix_std = &newMatrix;
+    //StdMatrix* newMatrix_std = &newMatrix;
 
-    tempMatrix = newMatrix_std;
+    //tempMatrix = newMatrix_std;
+
     //newMatrix_CRS;
 
     //auto counterNew = 0;
     //for (auto i = 0; i < counter; i++) {
     //  if (DataVecNew[i] != 0.0) counterNew++;
     //}
-    CRS_Matrix<Double> &scrsMatNew = dynamic_cast<CRS_Matrix<Double>&>(*tempMatrix);
+    SBM_Matrix someMat = [&]() 
+    {
+      SBM_Matrix someMat(1,1, true);
+      someMat.SetSubMatrix( 0, 0, tempMatrix->GetEntryType(),
+                         tempMatrix->GetStorageType(), 
+                         NumRows, NumRows, counter);
+      auto thisMat = someMat.GetPointer(0,0);
+      SCRS_Matrix<Double> newMatrix(NumRows, NumRows, counter, RowVecNew, *ColVecNew, *DataVecNew);
+      thisMat = &newMatrix;
+      return someMat;
+    }();
+    
+    LOG_DBG(algSys) << "RowVecNew2123131 "<< RowVecNew << "\n\n";
+    effMat_ = &someMat;
+
+    auto newTemp = effMat_->GetPointer(0,0);
+    SCRS_Matrix<Double> &scrsMatNew = dynamic_cast<SCRS_Matrix<Double>&>(*newTemp);
     auto sizeNew = scrsMatNew.GetNnz();
     LOG_DBG(algSys) << "NNZ according to CFS "<< size << "\n\n";
     LOG_DBG(algSys) << "NNZ actually counted" << counter << "\n\n";
