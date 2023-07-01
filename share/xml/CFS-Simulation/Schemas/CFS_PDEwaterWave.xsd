@@ -132,11 +132,6 @@
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <!-- Dirichlet Boundary Conditions -->
-                <xsd:element name="soundSoft" type="DT_BcHomScalar">
-                  <xsd:annotation>
-                    <xsd:documentation>Normal velocity is set zero</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
                 <xsd:element name="pressure" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>pressure is set to zero</xsd:documentation>
@@ -145,6 +140,12 @@
                 <xsd:element name="displacement" type="DT_BcInhomVector">
                   <xsd:annotation>
                     <xsd:documentation>displacement is prescribed: -rho*omega^2 u_n</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <!-- Neumann Boundary Conditions -->
+                <xsd:element name="acceleration" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Boundary acceleration is prescribed as Neumann condition: grad(p)*n = -rho a*n</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
 

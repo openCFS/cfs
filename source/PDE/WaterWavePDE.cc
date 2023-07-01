@@ -551,7 +551,8 @@ namespace CoupledField{
     if(dim_ == 2 && !isaxi_)
       vecDofNames = "x", "y";
     if(dim_ == 2 && isaxi_)
-      vecDofNames = "r", "z";
+      EXCEPTION("Axi is not implemented!");
+      // vecDofNames = "r", "z";
     ReadRhsExcitation( "displacement", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef,coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // ensure that list contains only surface elements
@@ -589,6 +590,43 @@ namespace CoupledField{
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       coef[i]->SetConservative(true);
       this->rhsFeFunctions_[WATER_PRESSURE]->AddLoadCoefFunction(coef[i], ent[i]);
+    }
+
+    // ===========================
+    //  TOTAL ACCELERATION (surface)
+    // ===========================
+    LOG_DBG(waterWavepde) << "Reading acceleration";
+    ReadRhsExcitation( "acceleration", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef,coefUpdateGeo );
+    // complex part for expressions
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // ensure that list contains only surface elements
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim != (dim_-1) ) {
+        EXCEPTION("accelertation can only be defined on surface elements");
+      }
+      PtrCoefFct rhoAcc = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, surfDens, coef[i], CoefXpr::OP_MULT) );
+      if( dim_ == 2) {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,2>(), -1.0, rhoAcc, volRegions, coefUpdateGeo);
+          } else {
+            lin = new BUIntegrator<Double,true>( new IdentityOperatorNormal<FeH1,2>(), -1.0, rhoAcc, volRegions, coefUpdateGeo);
+          }
+      } else  {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,3>(), -1.0, rhoAcc, volRegions, coefUpdateGeo);
+          } else {
+            lin = new BUIntegrator<Double,true>( new IdentityOperatorNormal<FeH1,3>(), -1.0, rhoAcc, volRegions, coefUpdateGeo);
+          }
+      }
+      lin->SetName("AccelerationIntegrator");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
     }
 
   }
