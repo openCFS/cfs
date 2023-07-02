@@ -2179,14 +2179,14 @@ namespace CoupledField
               if (dim_ == 2){
                 stiffIntTDEFABCPDPHI1 = new SurfaceABInt<>(new IdentityOperator<FeH1,2,1>(),
                                                            new SurfaceNormalDerivOperator<FeH1,2,1>(),
-                                                           fncAV_[ii], 1.0, adjVolRegion, updatedGeo_);                    
+                                                           fncAV_[ii], -1.0, adjVolRegion, updatedGeo_);                    
               }
 
 
               else{
                 stiffIntTDEFABCPDPHI1 = new SurfaceABInt<>(new IdentityOperator<FeH1,3,1>(),
                                                            new SurfaceNormalDerivOperator<FeH1,3,1>(),
-                                                           fncAV_[ii], 1.0, adjVolRegion, updatedGeo_);
+                                                           fncAV_[ii], -1.0, adjVolRegion, updatedGeo_);
               }
 
               FEMatrixType targetMatrix = STIFFNESS;
