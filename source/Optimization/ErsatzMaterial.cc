@@ -1420,22 +1420,9 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::DYNAMIC_OUTPUT:
     case Function::CONJUGATE_COMPLIANCE:
     case Function::ABS_OUTPUT:
+      assert(!derivative);
       if(f->ctxt->IsComplex())
-      {
-        if (derivative)
-        {
-          App::Type app = Context::ToApp(f->ctxt->pde);
-          // synthesis of compliant mechanism: As our adjoint PDE
-          // c' = l K' u
-          TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true); // excpetion and use_single
-          double weight = excite.GetWeightedFactor(f);
-//          LOG_DBG(em) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
-          CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
-          return 0.0;
-        }
-        else
-          result = CalcOutput<complex<double> >(excite, f);
-      }
+        result = CalcOutput<complex<double> >(excite, f);
       else
         result = CalcOutput<double>(excite, f);
       break;
@@ -1446,6 +1433,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       break;
 
     case Function::TEMPERATURE:
+      assert(false);
       break;// FIXMEHEAT
 
     case Function::HEAT_ENERGY:

@@ -24,7 +24,7 @@ using namespace CoupledField;
 
 EXTERN_LOG(em)
 
-ParamMat::ParamMat() : ErsatzMaterial()
+ParamMat::ParamMat() : SIMP()
 {
   // Note: this constructor is also called from constructor of ShapeOpt even when no ParamMat is used, in this case, nothing may be done
   // design->SetDesignMaterial was moved to Update() Context.cc to allow designMaterials for multisequence

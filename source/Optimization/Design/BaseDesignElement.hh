@@ -83,9 +83,9 @@ public:
                  RHS_DENSITY, // for mag opt, e.g. coil modelling (scaling current)
                  DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
                  ROTANGLE, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEFIRST, ROTANGLESECOND, ROTANGLETHIRD,
-                 SLACK, ALPHA,  // slack variables
+                 SLACK, ALPHA,  // slack variables or spaghetti scaling
                  NODE, PROFILE, // shape mapping and spaghetti
-                 NORMAL,        // spaghetti height
+                 NORMAL, RADIUS, // spaghetti height and radius
                  CP,            // spline box control point
                  ALL_DESIGNS } Type; // ALL_DESIGNS needs to be last
 
@@ -190,7 +190,6 @@ public:
     costGradient.Resize(objectives, 0.0);
     constraintGradient.Resize(constraints, 0.0);
   }
-
 
   /** helper for LOG output */
   static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);

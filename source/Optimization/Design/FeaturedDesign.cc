@@ -358,9 +358,6 @@ void FeaturedDesign::SetupMapping()
       }
     }
   }
-
-
-
 }
 
 

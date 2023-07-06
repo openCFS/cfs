@@ -1375,11 +1375,10 @@
                   </xsd:simpleType>
                 </xsd:attribute>
 
-                <!-- either 'random' or a float -->
-                <xsd:attribute name="initial" use="required">
-                  <xsd:simpleType>
-                    <xsd:union memberTypes="xsd:token" />
-                  </xsd:simpleType>
+                <xsd:attribute name="initial" use="required" type="xsd:token">
+                  <xsd:annotation>
+                    <xsd:documentation>Either the string 'random' or a float</xsd:documentation>
+                  </xsd:annotation>
                 </xsd:attribute>
                 <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
                 <xsd:attribute name="lower" use="optional" type="xsd:float" />
@@ -1679,12 +1678,32 @@
           <xsd:attribute name="mode" use="optional" default="forward">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="forward" />
-                <xsd:enumeration value="each_forward" />
-                <xsd:enumeration value="adjoint" />
-                <xsd:enumeration value="each_adjoint" />
-                <xsd:enumeration value="both_cases" />
-              </xsd:restriction>
+                <xsd:enumeration value="forward">
+                  <xsd:annotation>
+                    <xsd:documentation>write in .cfs output the state solution. In multiload case the weighted sum of all</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="each_forward">
+                  <xsd:annotation>
+                    <xsd:documentation>write in .cfs output all the state solutions with time steppings x to smaller x + .5</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="adjoint">
+                  <xsd:annotation>
+                    <xsd:documentation>write in .cfs output only the adjoint state solution. In multiload case the weighted sum of all</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="each_adjoint">
+                  <xsd:annotation>
+                    <xsd:documentation>write in .cfs output all adjoint solutions with time steppings x + 0.5 to smaller x + 1</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="both_cases">
+                  <xsd:annotation>
+                    <xsd:documentation>write in .cfs output all forward and adjoint solutions</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
           <xsd:attribute name="stride" type="xsd:nonNegativeInteger" default="1" />
@@ -2162,13 +2181,6 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <xsd:simpleType name="random_token">
-    <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="random" />
-    </xsd:restriction>
-  </xsd:simpleType>
-
-
   <!-- This are some IPOPT 3 option names -->
   <xsd:simpleType name="ipopt_name_values">
     <xsd:restriction base="xsd:token">
@@ -2523,7 +2535,7 @@
   <!-- A noodle is part of a spaghetti(ParamNode) -->
 	<xsd:complexType name="DT_Noodle">
 		<xsd:sequence>
-			<xsd:element name="node" minOccurs="4" maxOccurs="4">
+			<xsd:element name="node" minOccurs="4" maxOccurs="6">
 				<xsd:annotation>
 					<xsd:documentation>We need the nodes for dof=x and dof=y for tip=stat and tip=end</xsd:documentation>
 				</xsd:annotation>
@@ -2544,28 +2556,48 @@
 					<xsd:attribute name="fixed" type="xsd:token" use="optional" />
 				</xsd:complexType>
 			</xsd:element>
-			<xsd:element name="profile" minOccurs="1" maxOccurs="1">
+
+      <xsd:element name="inner" minOccurs="0" maxOccurs="3">
+        <xsd:annotation>
+          <xsd:documentation>Optional inner node for 3D when inital/lower/upper shall/can not be taken fron tip nodes</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="dof" use="required" type="DT_Axis" />
+          <xsd:attribute name="initial" type="xsd:token" use="optional" default="interpolated">
+            <xsd:annotation>
+              <xsd:documentation>Either the string 'interpolated' or a float</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+          <xsd:attribute name="lower" type="xsd:token" use="optional" />
+          <xsd:attribute name="upper" type="xsd:token" use="optional" />
+          <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+        </xsd:complexType>
+      </xsd:element>
+
+			<xsd:element name="profile" minOccurs="1" maxOccurs="1" type="DT_FeatureMappingVariable">
 				<xsd:annotation>
 					<xsd:documentation>The profile is double the half width w. Radius	needs to be larger w</xsd:documentation>
 				</xsd:annotation>
-				<xsd:complexType>
-					<xsd:attribute name="initial" type="xsd:token" use="optional" />
-					<xsd:attribute name="lower" type="xsd:token" use="optional" />
-					<xsd:attribute name="upper" type="xsd:token" use="optional" />
-					<xsd:attribute name="fixed" type="xsd:token" use="optional" />
-				</xsd:complexType>
 			</xsd:element>
-			<xsd:element name="normal" minOccurs="0" maxOccurs="unbounded">
+
+			<xsd:element name="normal" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariable">
 				<xsd:annotation>
-					<xsd:documentation>The normals are the heights between two segments. Use iff segments larger or equal 2</xsd:documentation>
+					<xsd:documentation>The normals are the heights between two segments. Use if segments larger or equal 2</xsd:documentation>
 				</xsd:annotation>
-				<xsd:complexType>
-					<xsd:attribute name="initial" type="xsd:token" use="optional" />
-					<xsd:attribute name="lower" type="xsd:token" use="optional" />
-					<xsd:attribute name="upper" type="xsd:token" use="optional" />
-					<xsd:attribute name="fixed" type="xsd:token" use="optional" />
-				</xsd:complexType>
 			</xsd:element>
+
+      <xsd:element name="radius" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariable">
+        <xsd:annotation>
+          <xsd:documentation>Instead of a global radius in the spaghetti element they can be used also as variables</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+
+      <xsd:element name="alpha" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariable">
+        <xsd:annotation>
+          <xsd:documentation>Noodle scaling using the geometry projection approach</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      
 		</xsd:sequence>
 		<!-- corresponds to segments-1 normals -->
 		<xsd:attribute name="segments" type="xsd:int" use="required" />
@@ -2605,8 +2637,11 @@
     <!-- full transition zone for poly which is 2*h -->
     <xsd:attribute name="transition" type="xsd:float" use="required" />
 
-    <!-- The radius for a spaghetti. Could be a variable in theory -->
-    <xsd:attribute name="radius" type="xsd:float" use="required" />
+    <xsd:attribute name="radius" type="xsd:float" use="optional" default="-1">
+      <xsd:annotation>
+         <xsd:documentation>Radius parameter either given (2D) or a variable noodle variable (3D)</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
 
     <!-- combination approach -->
     <xsd:attribute name="combine" use="optional" default="softmax">
@@ -2626,6 +2661,18 @@
           <xsd:enumeration value="softmax" />
         </xsd:restriction>
       </xsd:simpleType>
+    </xsd:attribute>
+    
+    <xsd:attribute name="p" use="optional" type="xsd:float" default="2">
+      <xsd:annotation>
+        <xsd:documentation>Exponent for combine methods</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
+    <xsd:attribute name="order" use="optional" type="xsd:unsignedInt" default="2">
+      <xsd:annotation>
+        <xsd:documentation>Integration order (given as 1D)</xsd:documentation>
+      </xsd:annotation>
     </xsd:attribute>
 
     <!-- write design and gradient to .grad.plot file -->
@@ -2792,6 +2839,13 @@
     <xsd:attribute name="name" type="xsd:token" use="required" />
   </xsd:complexType>
 
+  <!-- standard feature mapping element -->
+  <xsd:complexType name="DT_FeatureMappingVariable">
+    <xsd:attribute name="initial" type="xsd:token" use="optional" />
+    <xsd:attribute name="lower" type="xsd:token" use="optional" />
+    <xsd:attribute name="upper" type="xsd:token" use="optional" />
+    <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+  </xsd:complexType>
 
   <!-- The possible excitations we have -->
   <xsd:simpleType name="DT_Excitation">

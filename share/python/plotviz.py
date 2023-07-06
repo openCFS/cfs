@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# the purpose of the tool is to provide easy matplotlib visualization for dat files like .plot.dat and .grad.dat
+# the purpose of the tool is to provide easy matplotlib visualization for dat files like .plot.dat, .grad.dat and .snopt
 # it extracts iformation from a header line with like #(1) iter \t(2) compliance ....
 import os.path
 import sys
@@ -49,13 +49,13 @@ linecycler = cycle(lines)
 # Tries to be smart!!
 # @param data the processed content() result. To fill up missing hints in the comment
 # @param comments a list of lines which start with a hashtag
+# @return meta array
 def header(data, comments):
 
   meta = []
-  
   for l in reversed(comments):
-    # we assume the last comment contains the labels. ## are ignored.
-    if l.startswith('##') or l.startswith('--'):
+    # we assume the last comment contains the labels. Special case are ignored
+    if l.startswith('##') or l.startswith('--') or '----' in l:
       continue
   
     if l.startswith('#'):
@@ -119,7 +119,12 @@ def header(data, comments):
   for _ in range(len(data[0]) - len(meta)):
     meta.append('anonymous')
 
-  if len(meta) > len(data[0]):
+  # handle openCFS history case # t (s) (K) -> ['t', '(s)', '(K)']
+  if len(meta) > len(data[0]) and len(meta) >= 2 and '(' not in meta[0] and '(' in meta[1]:
+    meta[0] += meta[1]
+    del meta[1]
+
+  if len(meta) > len(data[0]): # even the above case might not fix all
     print('Error: found too much meta data ', meta, '=', len(meta), ' for data ', data[0], '=',len(data[0]))
     sys.exit()     
 
@@ -416,16 +421,16 @@ def process(input):
   # then the body. For comment/body/comment we ignore comments after body
   for l in lines:
     h = l.strip()
+    # it seems excel creates utf-8 bom at file start, simply skip it
+    if ord(h[0]) == 0xfeff:
+      h = h[1:]
     if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---'):
       if len(body) == 0: # ignore comments after body 
         comments.append(h)
     else:
       body.append(l)  
-
   data = content(body)
   meta = header(data,comments)
-  #print(data, len(data), len(data[0]), type(data))
-  #print(meta, len(meta))
   return meta, data        
 
 # process results from a .info.xml - not optimization iterations!
@@ -449,9 +454,10 @@ def process_info_xml_results(input):
       key = type + '_' + loc
       if 'step_val' in items[0].attrib and items[0].attrib['step_val'] != items[-1].attrib['step_val']:
         meta.append(key + '-step')
-        tmp_data.append([float(x.attrib['step_val']) for x in items])  
-      meta.append(key + '-' + defon)
-      tmp_data.append([int(x.attrib['id']) for x in items])
+        tmp_data.append([float(x.attrib['step_val']) for x in items])
+      if 'id' in items[0].attrib:
+        meta.append(key + '-' + defon)
+        tmp_data.append([int(x.attrib['id']) for x in items])
       if 'value' in items[0].attrib:
         meta.append(key + '-value')
         tmp_data.append([float(x.attrib['value']) for x in items])
@@ -580,9 +586,9 @@ if __name__ == '__main__':
   parser.add_argument("--legend_loc", help="string for matplotlib.legend(loc)")
   parser.add_argument("--legend_ncol", help="number of columns of legend", type=int, default=1)
   parser.add_argument("--title", help='optional title for the plot')
-  parser.add_argument("--yscale", help="scaling type from choice, google matplotlib yscale", choices=["linear", "log", "symlog", "logit"],default='linear')
-  parser.add_argument("--y2scale", help="like --yscale but for y2 axis", choices=["linear", "log", "symlog", "logit"],default='linear')
-  parser.add_argument("--zscale", help="like --yscale but for z axis", choices=["linear", "log", "symlog", "logit"],default='linear')
+  parser.add_argument("--xscale", help="scaling type from choice, google matplotlib xscale", choices=["linear", "log", "symlog", "logit"],default='linear')
+  parser.add_argument("--yscale", help="scaling type from choice, google matplotlib yscale", choices=["linear", "log", "symlog", "logit", "logrel", "percentage"],default='linear')
+  parser.add_argument("--y2scale", help="like --yscale but for y2 axis", choices=["linear", "log", "symlog", "logit", "logrel", "percentage"],default='linear')
   parser.add_argument("--bar", nargs='*', help="indices from y or y2 which are to displayed as bars instead of plots")
   parser.add_argument("--barwidth", help="barplots for datetime need manual adjustment", type=float, default=.8)
   parser.add_argument("--smooth", nargs='*', help="create new smoothed data for given fields")
@@ -742,13 +748,39 @@ if __name__ == '__main__':
     x[i] = x[i][start_idx[i]:end_idx[i]]
     
   for i in range(len(y)):
+    yfactor = 100/(y[i][0])
     idx = abs(fiy[i])-1 # 1-based and +/- to encode bar
-    y[i] = y[i][start_idx[idx]:end_idx[idx]]   
+    y[i] = y[i][start_idx[idx]:end_idx[idx]]
+    if args.yscale == 'percentage':
+      for j in range(len(y[i])):
+        y[i][j] *= yfactor
+    # adjust to value above final value for relative logarithmic scale 'logrel'
+    if args.yscale == 'logrel':
+      for j in range(len(y[i])):
+        y[i][j] = y[i][j] - y[i][-1]
+  if args.yscale == 'percentage':
+    args.yscale = 'linear'
+  if args.yscale == 'logrel':
+    args.yscale = 'log'
 
   for i in range(len(y2)):
+    yfactor = 100/(y2[i][0])
     idx = abs(fiy2[i])-1
     y2[i] = y2[i][start_idx[idx]:end_idx[idx]]
-  # finished with restrictions     
+    if args.yscale == 'percentage':
+      for j in range(len(y[i])):
+        y[i][j] *= yfactor
+    # adjust to value above final value for relative logarithmic scale 'logrel'
+    if args.y2scale == 'logrel':
+      for j in range(len(y[i])):
+        y[i][j] = y[i][j] - y[i][-1]
+  if args.yscale == 'percentage':
+    args.yscale = 'linear'
+  if args.y2scale == 'logrel':
+    args.y2scale = 'log'
+  # finished with restrictions
+
+
 
   # now we can do smooth and grad, identified by the predix smooth_ and grad_ in the label
   y  = apply_smooth(y, ylabel, args.smooth_window, args.smooth_poly) 
@@ -846,7 +878,8 @@ if __name__ == '__main__':
       print('wrote',args.save)
     
     
-  # common stuff for 2D and 3D  
+  # common stuff for 2D and 3D
+  ax.set_xscale(args.xscale)  
   ax.set_yscale(args.yscale)
   # ax.ticklabel_format(useOffset=False)  causes AttributeError: This method only works with the ScalarFormatter
   if args.y2:
@@ -859,7 +892,7 @@ if __name__ == '__main__':
       ax.xaxis.set_major_formatter(matplotlib.dates.DateFormatter("%H:%M"))
   else:
     # name integer format when we assue iterations or such
-    if abs(x[0][-1]-x[0][0]) > 5:
+    if args.xscale == 'linear' and abs(x[0][-1]-x[0][0]) > 5:
       ax.xaxis.set_major_locator(MaxNLocator(integer=True))
 
   if args.xlabel:

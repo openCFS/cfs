@@ -311,6 +311,10 @@ namespace CoupledField {
     return os.str();
   }
 
+  /** We have types for Direction in EnvironmentTypes.hh and ShapeParamElement::Dof
+   * but this is an easy int to x,y,z conversion for loops */
+  std::string Dof(int d);
+  int Dof(const std::string& dim);
 
   /** Returns the sign of a value 
    * @return 0 if 0 or +/- 1 */ 

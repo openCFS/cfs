@@ -302,7 +302,7 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
    // write header
    PtrParamNode in_ = in->Get("header");
 
-   LOG_TRACE(density) << "Create: regular=" << this->space_->IsRegular();
+   LOG_DBG(density) << "Create: regular=" << this->space_->IsRegular();
 
    // design space can be regular, but grid is probably not
    StdVector<unsigned int> grid = domain->GetGrid()->CalcRegulardGridDiscretization();
@@ -431,20 +431,31 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   {
 #ifdef USE_EMBEDDED_PYTHON // currently only the python version
 
-    FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(space_);
+    SpaghettiDesign* sd = dynamic_cast<SpaghettiDesign*>(space_);
     // skip the aux variables slack and alpha -> they are written to the info.xml
     for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
     {
-      SpaghettiDesign::Variable* spe = dynamic_cast<SpaghettiDesign::Variable*>(fd->GetFeaturedDesignElement(i));
+      SpaghettiDesign::Variable* spe = dynamic_cast<SpaghettiDesign::Variable*>(sd->GetFeaturedDesignElement(i));
       assert(spe != NULL);
+
+      LOG_DBG2(density) << "SAWC: " << spe->GetLabel() << " " << spe->ToString();
 
       std::stringstream ss;
       ss << "<shapeParamElement nr=\"" << spe->GetIndex();
       ss << "\" type=\"" << DesignElement::type.ToString(spe->GetType());
-      if(spe->GetType() == DesignElement::NODE) {
+      if(spe->GetType() == DesignElement::NODE)
+      {
         ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
         ss << "\" tip=\"" << SpaghettiDesign::tip.ToString(spe->tip);
+        const SpaghettiDesign::Noodle& n = sd->spaghetti[spe->noodle];
+        ss << "\" num=\"" << (unsigned int) (spe->GetIndex() - n.points[0][0].GetIndex()) / domain->GetGrid()->GetDim();
       }
+      if(spe->GetType() == DesignElement::RADIUS)
+      {
+        const SpaghettiDesign::Noodle& n = sd->spaghetti[spe->noodle];
+        ss << "\" con=\"" << spe->GetIndex() - n.r[0].GetIndex();
+      }
+
       ss << "\" shape=\"" << spe->noodle; // legacy density.xml files don't have this attribute
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";

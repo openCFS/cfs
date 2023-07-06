@@ -7,7 +7,7 @@ import os
 import cfs_utils as ut
 from itertools import product
 from operator import itemgetter
-import copy
+import copy 
 
 # for automatic differentiation, replaced with normal numpy for testcase to work with cfs runners
 #  import autograd
@@ -16,6 +16,7 @@ import numpy as agnp
 
 # for gradient check
 import scipy.optimize as sciopt
+from scipy.optimize import NonlinearConstraint
 
 # interactive
 if __name__ == '__main__':
@@ -30,6 +31,8 @@ if __name__ == '__main__':
   from matplotlib.path import Path
   import matplotlib.patches as patches
   import argparse
+  
+  plt.rcParams['text.usetex'] = True
 
 
 # to conveniently access global values
@@ -38,7 +41,7 @@ class Global:
   def __init__(self):
     self.shapes = []         # array of Spaghetti 
     self.rhomin = 1e-30
-    self.rhomax = 1 
+    self.rhomax = 1
     self.radius = 0.25       # up to now constant for all spaghetti for arc
     self.boundary = 'poly'   # up to now only 'poly' and 'linear'
     self.transition = 0.05   # paramter for boundary: 2*h
@@ -84,7 +87,7 @@ glob = Global()
 ## This functions are called from openCFS via SpaghettiDesign.cc
 
 # called from SpaghettiDesign.cc constructor or via --cfseval
-# @settings dict of key/string fro openCFS or from command line
+# @settings dict of key/string from openCFS or from command line
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
 def cfs_init(settings, design, dict):
@@ -98,9 +101,7 @@ def cfs_init(settings, design, dict):
   glob.combine =  settings['combine']
   if 'orientation' in settings:
     glob.orientation = settings['orientation']
-  assert not ('nz' in settings and int(settings['nz']) != 1)
-  if 'nx' in settings:
-    glob.n = [int(settings['nx']), int(settings['ny']), 1]
+  glob.n = np.array(eval(settings['n']),dtype=int)
   if 'dx' in settings:
     glob.dx = round(float(settings['dx']),8)
   else:
@@ -133,11 +134,15 @@ def cfs_init(settings, design, dict):
   
 ## set spaghetti. Initially create it, otherwise update
 # @param id the 0-based index of the spaghetti, corresponds index within glob.shapes
-def cfs_set_spaghetti(id, px, py, qx, qy, a_list, p):    
-  assert id < len(glob.shapes) + 1 # we may add another spaghetti
+# @param points tuple with two points where a point is list of two doubles 
+def cfs_set_spaghetti(id, points, a_list, p):
+  assert id < int(len(glob.shapes) + 1) # we may add another spaghetti
+  assert len(points) == 2
+  assert len(points[0]) == 2
+  assert len(points[1]) == 2
   
-  P = [px,py]  
-  Q = [qx,qy]
+  P = points[0]  
+  Q = points[1]
   
   if id >= len(glob.shapes):
     base = sum([len(s.optvar()) for s in glob.shapes])
@@ -150,11 +155,11 @@ def cfs_set_spaghetti(id, px, py, qx, qy, a_list, p):
     if not glob.silent:
       print('cfs_set_spaghetti: update ', glob.shapes[id])
   
-## give back the density as 1D numpy arry with the current spaghetti setting
 # @res [nx, ny] if given, otherwise glob.n is used
 def cfs_map_to_design(res = None):
   if not glob.silent and hasattr(glob, 'design'):
     print('cfs_map_to_design: called for designs',glob.design)
+  
   nx = res[0] if res else glob.n[0] 
   ny = res[1] if res else glob.n[1]
   
@@ -373,6 +378,27 @@ def cfs_get_sparsity_arc_overlap(opt):
   print(cfs_jac)
   return cfs_jac
 
+def get_vector_arc_overlap(var_all):
+  const = []
+  for snum, s in enumerate(glob.shapes):
+    var = var_all[s.base:s.base+len(s.optvar())]
+    cfs_set_spaghetti(s.id, [[var[0], var[1]], [var[2], var[3]]], var[5:], var[4])
+    if len(s.idx_a) == 0:
+      continue
+    for i in range(1,s.n+1):
+      const.append(s.get_constraint_arc_overlap(i))
+  return np.array(const)
+
+def get_jacobian_arc_overlap(var_opt):
+  c_jac = np.zeros((len(get_vector_arc_overlap(var_opt)),len(var_opt)))
+  cnum = 0
+  for snum, s in enumerate(glob.shapes):
+    if len(s.idx_a) == 0:
+      continue
+    for i in range(1,s.n+1):
+      c_jac[cnum][s.base:s.base+s.num_optvar]=(s.get_gradient_arc_overlap(i))
+  return c_jac
+
 # as we cannot create a numpy array in C (it should work but fails in reality) we get it here.
 # it shall have the size of rho as a 1D array  
 def cfs_get_drho_vector():
@@ -433,7 +459,7 @@ def dof(val):
 # minimal and maximal are vectors.
 def create_figure(res, minimal, maximal):
 
-  dpi_x = res / ((maximal[0] - minimal[0]) * 100.0)
+  dpi_x = res / ((maximal[0] - minimal[0]) * 100.0) 
 
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x*round(max(1,maximal[0])), dpi_x*round(max(1,maximal[1]))))
   ax = fig.add_subplot(111)
@@ -445,7 +471,7 @@ def dump_shapes(shapes):
   for s in shapes:
      print(s)   
 
-colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+colors = ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
 # transforms ids from 0 to 6 to color codes 'b' to 'k'. Only for matplotlib, not for vtk!
 def matplotlib_color_coder(id):
   return colors[id % len(colors)]
@@ -500,6 +526,9 @@ class Spaghetti:
   
     self.U = self.Q - self.P # base line p -> q
     norm_U = norm(self.U)
+    if norm_U < 1e-20:
+      self.U[:] = [1e-20,0]
+      norm_U = norm(self.U)
     self.U0 = self.U / norm_U
     self.sens['grad_u'][0:5,:] = [[-1, 0],
                 [0, -1],
@@ -690,9 +719,9 @@ class Spaghetti:
         t = self.T[i]
         H = self.H[i]
         # we are in range if (X-C^i+1) @ T^i <= 0 and (X-C^i) @ T^i >= 0.
-        if (X-C1) @ t <= 0 and (X-C0) @ t >= 0:
+        if np.matmul((X-C1), t) <= 0 and np.matmul((X-C0), t) >= 0:
           # (X-g) @ M is distance to segment. Positive on M side, negative on the other side. Instead of g, we can use H
-          minimal = idx_min(minimal, (abs((X-H) @ M) - w,i)) # don't forget abs!
+          minimal = idx_min(minimal, (abs(np.matmul((X-H), M)) - w,i)) # don't forget abs!
     
     # arcs
     if not where or where == 'c':
@@ -704,7 +733,7 @@ class Spaghetti:
         v2 = -self.T[i+1]
         XC = X - C
     
-        if v1 @ XC > 0 and v2 @ XC > 0: # we are in the cone
+        if np.matmul(v1, XC) > 0 and np.matmul(v2, XC) > 0: # we are in the cone
           
           #assert len(self.E) == len(self.C)-2
           #E = self.E[i]
@@ -804,7 +833,7 @@ class Spaghetti:
           sig = 1 if np.sign(np.dot(X-H,M)) >=0 else -1
           grad.append(sig*(np.dot(X-H,self.sens['grad_tvert'][i][gradidx,:])
                                             -np.dot(self.sens['grad_H'][i][gradidx,:],M)))
-      return (abs((X-H) @ M) - w, np.array(grad))
+      return (abs(np.matmul((X-H), M)) - w, np.array(grad))
     
     assert i >= 1 and i <= n-1
     r = self.radius
@@ -824,7 +853,6 @@ class Spaghetti:
     P = agnp.array(var[0:2])
     Q = agnp.array(var[2:4])
     p = var[4]
-    w = p/2.0
     a = var[5:]
     self.set(P, Q, a, p, reset_fields=False)
     if str(args[-1]) == 'u0vert':
@@ -853,7 +881,6 @@ class Spaghetti:
     P = agnp.array(var[0:2])
     Q = agnp.array(var[2:4])
     p = var[4]
-    w = p/2.0
     a = var[5:]
     self.set(P, Q, a, p, reset_fields=False)
     if str(args[-1]) == 'u0vert':
@@ -1013,6 +1040,7 @@ def boundary(dist, derivative=False):
   # in the non-derivative case the first (or in the vtk case, only) value used. Whatever dist[1] is otherwise?!
   phi = -dist if not derivative and type(dist) is float or type(dist) is np.float64 else  -dist[0] # positive inside, negative outside
   h = glob.transition/2.0
+  #phi = phi-h
   rm = glob.rhomin
   rmx = glob.rhomax
   if phi <= -h:
@@ -1020,7 +1048,7 @@ def boundary(dist, derivative=False):
   elif phi >= h:
     rho = rmx
   elif glob.boundary == 'linear':
-     rho = .5*((rmx-rm)*phi/h+rmx+rm)
+    rho = .5*((rmx-rm)*phi/h+rmx+rm)
   elif glob.boundary == 'poly':
     rho = 3.0/4.0*(rmx - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (rmx+rm)
   else:
@@ -1034,8 +1062,7 @@ def boundary(dist, derivative=False):
     elif glob.boundary == 'linear':
       return (rho, .5*((rmx-rm)/h) * dist[1])
     elif glob.boundary == 'poly':
-       # return (rho, -3.0/4.0*(1.0 - rm)*(1/h - phi**2/(h**3)) *  dist[1])
-       return (rho, -3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3)) *  dist[1])
+      return (rho, -3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3)) *  dist[1])
    
 # returns the nodal density value, is ad_differentiable
 # the fast is not for performant calculation (it is NOT) but for having the idx given
@@ -1098,6 +1125,7 @@ def create_idx_field(discretization = None):
         dist[i,j,si] = d
         idx_shapes_only[i,j,si] = k
         idx[i,j,si]  = k if d > -h and d < h else (-1 if d < h else -2)
+        #idx[i,j,si]  = k if d > -2*h and d < 0.01 else (-1 if d <= -2*h else -2)
         # print('cif: i,j,X,d,k',i,j,X,d,k)   
 
   return idx, dist, idx_shapes_only
@@ -1261,6 +1289,8 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=Fa
   idx_seg_or_arc = idx+1 if idx < n else idx - n + 1 # index for segments is still zero-based but not for gradient
   assert idx_seg_or_arc >= 1 and idx_seg_or_arc <= n
   U = Q - P
+  if norm(U) < 1e-20:
+    U = [1e-20, 0]
   V0 = agnp.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
   
   H_s = P if idx_seg_or_arc == 1   else P + (idx_seg_or_arc-1)/n * U + shape.get_a(a, idx_seg_or_arc-1) * V0    # summit of begin of segment
@@ -1540,13 +1570,15 @@ def combine_designs_fd(var,i, j, which = 'rotAngle'):
   res = combine_designs(var,i, j,derivative='grad_check')
   return res[1] if which == 'rotAngle' else res[0]
  
-# generates a density map for a unit square. 
+# generates a density map for a quare. 
 # this is a trivial implementation, serving for reference which whall be deleted in near future     
 def density(size):
   assert len(size) == 2 # [nx, ny]
   rho = cfs_map_to_design(size)
   
+  return rho.reshape((nx,nx),order='F')
   return rho.reshape(size,order='F')
+
 #      
 #   # the serial element list in cfs is row wise orderd with lower left first and upper right last
 #   
@@ -1578,7 +1610,7 @@ def density(size):
 #   
 #   return rho    
       
-# reads 2D and returns list of Shaghettis and domain. Also sets some values to glob!
+# reads 2D and returns list of Spaghetti and domain. Also sets some values to glob!
 # @param radius if given overwrites the value from the xml header
 # @return list of spaghettis and either [[min_x, min_y], [max_x, max_y]] if in density.xml or None
 def read_xml(filename, set = None, radius = None, cfseval = False):
@@ -1595,6 +1627,7 @@ def read_xml(filename, set = None, radius = None, cfseval = False):
   glob.n[0] = int(ot.xpath(xml, '//header/mesh/@x'))
   glob.n[1] = int(ot.xpath(xml, '//header/mesh/@y'))
   glob.n[2] = int(ot.xpath(xml, '//header/mesh/@z'))
+
   assert(glob.n[2] == 1)
 
   domain = None # this feature is only written by modern cfs (solar_heater, 12.2022) but we also want to read old files
@@ -1620,7 +1653,7 @@ def read_xml(filename, set = None, radius = None, cfseval = False):
     Py = float(ot.xpath(xml, base + '[@dof="y"][@tip="start"]/@design'))
     Qx = float(ot.xpath(xml, base + '[@dof="x"][@tip="end"]/@design'))                   
     Qy = float(ot.xpath(xml, base + '[@dof="y"][@tip="end"]/@design'))
-    # with of noodle is 2*w -> don't confuse with P
+    # width of noodle is 2*w -> don't confuse with P
     p  = float(ot.xpath(xml, base + '[@type="profile"]/@design'))
     a = []
     last = -1
@@ -1637,13 +1670,52 @@ def read_xml(filename, set = None, radius = None, cfseval = False):
     noodle = Spaghetti(id=idx, base=base, radius=radius, P=(Px,Py), Q=(Qx,Qy), a=a, p=p)
     shapes.append(noodle)
     if cfseval:
-      cfs_set_spaghetti(idx, Px, Py, Qx, Qy, a, p)
+      cfs_set_spaghetti(idx, [[Px, Py], [Qx, Qy]], a, p)
     print('# read noodle', noodle)
       
   return shapes, domain
+
+# reads 2D and returns list of Spaghetti
+# @param radius if given overwrites the value from the xml header
+def write_xml(filename, shapes, remove_ghosts=False, padnormals=0):
+
+  out = open(filename, "w")
+  out.write('<?xml version="1.0"?>\n')
+  out.write('<cfsErsatzMaterial>\n')
+  out.write('  <header>\n')
+  out.write('    <mesh x="' + str(glob.n[0]) + '" y="' + str(glob.n[1]) + '" z="' + str(glob.n[2]) + '"/>\n')
+  out.write('    <spaghetti radius="' + str(glob.radius) + '"/>\n')
+  out.write('  </header>\n')
+  out.write('  <set id="spaghetti.py">\n')
+
+  nr = 0
+  shapeid = 0
+  for shape in shapes:
+    if remove_ghosts and shape.p < 0.0005:
+      continue
+    out.write('    <shapeParamElement nr="' + str(nr) + '" type="node" dof="x" tip="start" shape="' + str(shapeid) + '" design="' + str(shape.P[0]) + '"/>\n')
+    out.write('    <shapeParamElement nr="' + str(nr+1) + '" type="node" dof="y" tip="start" shape="' + str(shapeid) + '" design="' + str(shape.P[1]) + '"/>\n')
+    out.write('    <shapeParamElement nr="' + str(nr+2) + '" type="node" dof="x" tip="end" shape="' + str(shapeid) + '" design="' + str(shape.Q[0]) + '"/>\n')
+    out.write('    <shapeParamElement nr="' + str(nr+3) + '" type="node" dof="y" tip="end" shape="' + str(shapeid) + '" design="' + str(shape.Q[1]) + '"/>\n')
+    out.write('    <shapeParamElement nr="' + str(nr+4) + '" type="profile" shape="' + str(shapeid) + '" design="' + str(shape.p) + '"/>\n')
+    nr += 5
+    for idx, normal in enumerate(shape.a[1:-1]):
+      out.write('    <shapeParamElement nr="' + str(nr) + '" type="normal" shape="' + str(shapeid) + '" design="' + str(shape.a[idx+1]) + '"/>\n')
+      nr += 1
+    for i in range(len(shape.a)-2, padnormals):
+      out.write('    <shapeParamElement nr="' + str(nr) + '" type="normal" shape="' + str(shapeid) + '" design="0.000000001"/>\n')
+      nr += 1
+    shapeid += 1
+
+
+  out.write('  </set>\n')
+  out.write(' </cfsErsatzMaterial>\n')
+  out.close()
+
+
     
-# creates a matplotlib figure     
-# @domain is [[min_x, min_y],[max_x,max_y]] which is in modern density.xml
+# creates a matplotlib figure
+# @domain is [[min_x, min_y],[max_x,max_y]] which is in modern density.xml     
 # return fig
 def plot_data(res, shapes, detail, domain = None):
 
@@ -1656,21 +1728,22 @@ def plot_data(res, shapes, detail, domain = None):
     minimal = [0,0]
     min_dim = min((glob.n[0],glob.n[1]))
     maximal = [glob.n[0]/min_dim,glob.n[1]/min_dim] # normalize smaller dimension to 1, as there is no other element information in .density.xml
-  
+
+  lineopacity = 0.5 if args.gray else 1 # opacity value for plotting lines and points    
+
   fig, sub = create_figure(res, minimal, maximal)
-  
-  # for subscripts and superscripts using detail = 2
-  SUB = str.maketrans("0123456789", "₀₁₂₃₄₅₆₇₈₉")
-  SUP = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
   
   for s in shapes:
     
+    if s.p < 1e-10: # omit zero-width shapes
+      continue
+
     if detail > 0:
       # plot tangent lines with extended summits
       for num, seg in enumerate(s.segs):
         p1 = seg[0]
         p2 = seg[1]
-        l = plt.Line2D((p1[0],p2[0]),(p1[1],p2[1]), color=s.color)
+        l = plt.Line2D((p1[0],p2[0]),(p1[1],p2[1]), alpha=lineopacity, color=s.color)
         sub.add_line(l)
         if detail > 2:
           p3 = 0.5*(p1+p2)
@@ -1679,7 +1752,7 @@ def plot_data(res, shapes, detail, domain = None):
           p4 = np.array((p3[0]+0.03*n[0], p3[1]-0.03*n[1]+0.01))
           angle = np.arctan2(v[1],v[0])*180/np.pi
           trans_angle = plt.gca().transData.transform_angles(np.array((angle,)),p4.reshape((1, 2)))[0]
-          t = plt.text(p4[0], p4[1], '$t^'+str(num+1)+'$', fontsize=16, rotation=angle, rotation_mode='anchor', color=s.color)
+          t = plt.text(p4[0], p4[1], r'$t^'+str(num+1)+'$', fontsize=16, rotation=angle, rotation_mode='anchor', alpha=lineopacity, color=s.color)
 
       # plot rectangles
       for num, L in enumerate(s.L):
@@ -1691,36 +1764,38 @@ def plot_data(res, shapes, detail, domain = None):
         verts = [L1-w*M, L2-w*M, L2+w*M, L1+w*M, L1-w*M,]
         codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO,Path.CLOSEPOLY,]
         path = Path(verts, codes)
-        col = s.color if detail < 2 else [1,1,1]
-        alph = .3 if detail < 2 else 1
-        filll = True if detail < 2 else False
+        col = s.color #if detail < 2 else [1,1,1]
+        alph = .3 #if detail < 2 else 1
+        filll = True #if detail < 2 else False
         patch = patches.PathPatch(path,facecolor=col, edgecolor=s.color, lw=1, alpha=alph, fill=filll)
         sub.add_patch(patch)
+        patch2 = patches.PathPatch(path,facecolor=col, edgecolor=s.color, alpha=lineopacity, lw=1, fill=False)
+        sub.add_patch(patch2)
         if detail > 1 and num == 0:
           p1 = 0.8*L1+0.2*L2
           sign = np.sign(s.a[1]) if (len(s.a) > 2 and s.a[1] != 0) else 1
           p2 = p1+sign*w*M
-          sub.add_line(plt.Line2D((p1[0],p2[0]),(p1[1],p2[1]), color= 'red'))
-          plt.annotate('p/2', 0.7*p2+0.3*p1, fontsize=14, xytext=(-5,6), textcoords='offset points', color = 'red')
+          sub.add_line(plt.Line2D((p1[0],p2[0]),(p1[1],p2[1]), alpha=lineopacity, color= 'red'))
+          plt.annotate('p/2', 0.7*p2+0.3*p1, fontsize=20, xytext=(-5,6), textcoords='offset points', alpha=lineopacity, color = 'red')
 
       # start and endpoint
-      fig.gca().add_artist(plt.Circle(s.P, 0.01, color = s.color))
-      fig.gca().add_artist(plt.Circle(s.Q, 0.01, color = s.color))
-      sub.add_line(plt.Line2D((s.P[0],s.Q[0]),(s.P[1],s.Q[1]), color= 'gray'))
+      fig.gca().add_artist(plt.Circle(s.P, 0.01, alpha=lineopacity, color = s.color))
+      fig.gca().add_artist(plt.Circle(s.Q, 0.01, alpha=lineopacity, color = s.color))
+      #sub.add_line(plt.Line2D((s.P[0],s.Q[0]),(s.P[1],s.Q[1]), alpha=lineopacity, color= 'gray'))
       if detail == 2:
-        plt.annotate('$P$', s.P, fontsize=16, xytext=(3,3), textcoords='offset points', color = s.color)
-        plt.annotate('$Q$', s.Q, fontsize=16, xytext=(3,3), textcoords='offset points', color = s.color)
+        plt.annotate('$P^0$', s.P, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = s.color)
+        plt.annotate('$P^'+str(s.n)+'$', s.Q, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = s.color)
       if detail > 2:
-        plt.annotate('$P=E^0=H^0=C^0$', s.P, fontsize=16, xytext=(3,3), textcoords='offset points', color = s.color)
-        plt.annotate('$Q=E^{m}=H^{m}=C^m$', s.Q, fontsize=16, xytext=(3,3), textcoords='offset points', color = s.color)
-        plt.annotate('$u$', 0.5*(s.P+s.Q), fontsize=16, xytext=(1,1), textcoords='offset points', color = 'gray')
+        plt.annotate('$P^0=C^0$', s.P, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = s.color)
+        plt.annotate('$P^'+str(s.n)+'=C^'+str(s.n)+'$', s.Q, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = s.color)
+        plt.annotate('$u$', 0.5*(s.P+s.Q), fontsize=16, xytext=(1,1), textcoords='offset points', alpha=lineopacity, color = 'gray')
 
       for num, E in enumerate(s.E):
-        fig.gca().add_artist(plt.Circle(E, 0.005, color = 'black'))
-        if detail > 1:
+        #fig.gca().add_artist(plt.Circle(E, 0.005, alpha=lineopacity, color = 'gray'))
+        if detail > 2:
           H = s.H[num+1]
-          sub.add_line(plt.Line2D((E[0],H[0]),(E[1],H[1]), color= 'green'))
-          plt.annotate('$a_'+str(num+1)+'$', .5*(H+E), fontsize=16, xytext=(3,-6), textcoords='offset points', color = 'green')
+          sub.add_line(plt.Line2D((E[0],H[0]),(E[1],H[1]), alpha=lineopacity, color= 'green'))
+          plt.annotate('$a_'+str(num+1)+'$', .5*(H+E), fontsize=16, xytext=(3,-6), textcoords='offset points', alpha=lineopacity, color = 'green')
           vec = s.P-s.Q
           gamma2 = 180/np.pi*np.arctan2(vec[1],vec[0])
           if s.a[num+1] > 0:
@@ -1728,68 +1803,66 @@ def plot_data(res, shapes, detail, domain = None):
           else:
             gamma1 = gamma2
             gamma2 = gamma1+90
-          sub.add_patch(patches.Arc(E, 0.05, 0.05, theta1=gamma1, theta2=gamma2, edgecolor='green', lw=1))
+          sub.add_patch(patches.Arc(E, 0.05, 0.05, theta1=gamma1, theta2=gamma2, edgecolor='green', alpha=lineopacity, lw=1))
           angle = np.pi/180*.5*(gamma1+gamma2)
           center = E + 0.0125*np.array((np.cos(angle),np.sin(angle)))
-          fig.gca().add_artist(plt.Circle(center, 0.002, color = 'green'))
+          fig.gca().add_artist(plt.Circle(center, 0.002, alpha=lineopacity, color = 'green'))
         if detail > 2:
-          plt.annotate('$E^'+str(num+1)+'$', E, fontsize=16, xytext=(1,1), textcoords='offset points', color = 'black')
+          plt.annotate('$E^'+str(num+1)+'$', E, fontsize=16, xytext=(1,1), textcoords='offset points', alpha=lineopacity, color = 'black')
           if num == 0:
             nvec = vec/norm(vec)
             p1 = E-0.1*nvec
             vec = s.Q-s.P
             nvec = vec/norm(vec)
             normal = np.array((-nvec[1],nvec[0]))
-            plt.arrow(p1[0],p1[1], 0.1*nvec[0],0.1*nvec[1], head_width=0.01, color='black')
-            leg = 'u0'
-            plt.annotate(leg.translate(SUP), p1+.06*nvec, fontsize=16, xytext=(1,0), textcoords='offset points', color = 'black')
-            plt.arrow(p1[0],p1[1], 0.1*normal[0],0.1*normal[1], head_width=0.01, color='black')
-            leg = 'v0'
-            plt.annotate(leg.translate(SUP), p1+.04*normal, fontsize=16, xytext=(-16,1), textcoords='offset points', color = 'black')
+            plt.arrow(p1[0],p1[1], 0.1*nvec[0],0.1*nvec[1], head_width=0.01, alpha=lineopacity, color='black')
+            plt.annotate(r'$u^0$', p1+.06*nvec, fontsize=16, xytext=(1,0), textcoords='offset points', alpha=lineopacity, color = 'black')
+            plt.arrow(p1[0],p1[1], 0.1*normal[0],0.1*normal[1], head_width=0.01, alpha=lineopacity, color='black')
+            plt.annotate(r'$u_0\bot$', p1+.04*normal, fontsize=16, xytext=(-16,1), textcoords='offset points', alpha=lineopacity, color = 'black')
 
       for num, H in enumerate(s.H_int): # the outer H which is P and Q is already in L
-        fig.gca().add_artist(plt.Circle(H, 0.005, color = 'red'))
-        if detail > 2:
-          plt.annotate('$H^'+str(num+1)+'$', H, fontsize=16, xytext=(1,1), textcoords='offset points', color = 'red')
+        fig.gca().add_artist(plt.Circle(H, 0.005, alpha=lineopacity, color = 'tab:gray' if args.gray else 'blue'))
+        if detail > 1:
+          plt.annotate('$P^'+str(num+1)+'$', H, fontsize=26, xytext=(1,1), textcoords='offset points', alpha=lineopacity, color = 'blue')
         
       for num, C in enumerate(s.C[1:-1]): # arcs are only around interior C
-        if detail > 2:
-          plt.annotate('$C^'+str(num+1)+'$', C, fontsize=16, xytext=(1,1), textcoords='offset points', color = 'blue')
         if detail > 1:
-          fig.gca().add_artist(plt.Circle(C, 0.005, color = 'blue'))
+          plt.annotate('$C^'+str(num+1)+'$', C, fontsize=26, xytext=(1,1), textcoords='offset points', alpha=lineopacity, color = 'gray')
+        if detail > 1:
+          fig.gca().add_artist(plt.Circle(C, 0.005, alpha=lineopacity, color = 'blue'))
           L=s.L[num+1][0]
           vec = C-L
+          plt.annotate('$r^'+str(num+1)+'$', L+.5*vec, fontsize=20, xytext=(0,0), textcoords='offset points', alpha=lineopacity, color = 'blue')
           w = s.w
-          L = L+w*vec/norm(vec)
-          sub.add_line(plt.Line2D((L[0],C[0]),(L[1],C[1]), color='gray', lw=1))
+          L = L#+w*vec/norm(vec)
+          sub.add_line(plt.Line2D((L[0],C[0]),(L[1],C[1]), alpha=lineopacity, color='gray', lw=1))
           L=s.L[num][1]
           vec = C-L
           w = s.w
-          L = L+w*vec/norm(vec)
-          sub.add_line(plt.Line2D((L[0],C[0]),(L[1],C[1]), color='gray', lw=1))
+          L = L#+w*vec/norm(vec)
+          sub.add_line(plt.Line2D((L[0],C[0]),(L[1],C[1]), alpha=lineopacity, color='gray', lw=1))
         if detail > 3:
           L=s.L[num][1]
           vec = C-L
-          sub.add_line(plt.Line2D((L[0],C[0]),(L[1],C[1]), color='dodgerblue', lw=1, linestyle='-'))
-          plt.annotate('r', L+.5*vec, fontsize=16, xytext=(0,0), textcoords='offset points', color = 'dodgerblue')
+          sub.add_line(plt.Line2D((L[0],C[0]),(L[1],C[1]), alpha=lineopacity, color='dodgerblue', lw=1, linestyle='-'))
           H = s.H[num+1]
-          sub.add_line(plt.Line2D((L[0],H[0]),(L[1],H[1]), color='dodgerblue', lw=1.5, linestyle='-'))
-          sub.add_line(plt.Line2D((H[0],C[0]),(H[1],C[1]), color='dodgerblue', lw=1, linestyle='--'))
+          sub.add_line(plt.Line2D((L[0],H[0]),(L[1],H[1]), alpha=lineopacity, color='dodgerblue', lw=1.5, linestyle='-'))
+          sub.add_line(plt.Line2D((H[0],C[0]),(H[1],C[1]), alpha=lineopacity, color='dodgerblue', lw=1, linestyle='--'))
           v1 = C-H
           a1 = np.arctan2(v1[1], v1[0])*180/np.pi # Orientation of arc alpha/2
           v2 = s.H[num] - H
           a2 = np.arctan2(v2[1], v2[0])*180/np.pi # Orientation of arc alpha/2  
           alpha2 = np.min((np.abs(a1-a2),360.-np.abs(a1-a2)))
 
-          sub.add_patch(patches.Arc(H, 0.1, 0.1, theta1=a1, theta2=a1+alpha2, edgecolor='dodgerblue', lw=1))
+          sub.add_patch(patches.Arc(H, 0.1, 0.1, theta1=a1, theta2=a1+alpha2, alpha=lineopacity, color = 'dodgerblue', edgecolor='dodgerblue', facecolor='dodgerblue', lw=1))
           angle = a1+.5*(alpha2)
           center = H + 0.05*np.array((np.cos(angle),np.sin(angle)))
           leg = r'$\alpha$'+str(num+1)
-          plt.annotate(leg.translate(SUP), center, fontsize=16, xytext=(0,0), textcoords='offset points', color = 'dodgerblue')
+          plt.annotate(leg, center, fontsize=16, xytext=(0,0), textcoords='offset points', alpha=lineopacity, color = 'dodgerblue')
   
       for L in s.L:  
-        fig.gca().add_artist(plt.Circle(L[0], 0.005, color = 'gray'))
-        fig.gca().add_artist(plt.Circle(L[1], 0.005, color = 'gray'))
+        fig.gca().add_artist(plt.Circle(L[0], 0.005, alpha=lineopacity, color = 'gray'))
+        fig.gca().add_artist(plt.Circle(L[1], 0.005, alpha=lineopacity, color = 'gray'))
       
       # plot normals
       if detail < 0:
@@ -1799,15 +1872,17 @@ def plot_data(res, shapes, detail, domain = None):
           p1 = .5*(s.H[i] + s.H[i+1])
           p2 = p1 + .1*M 
           
-          sub.add_line(plt.Line2D((p1[0],p2[0]),(p1[1],p2[1]), color= 'red'))
+          sub.add_line(plt.Line2D((p1[0],p2[0]),(p1[1],p2[1]), alpha=lineopacity, color= 'red'))
 
     # plot half circles for start and end of noodle 
     M = s.M[0] # normal of the first segment tells us where to draw the radius
     angle = np.arctan2(M[1], M[0])*180/np.pi
-    sub.add_patch(patches.Arc(s.P, 2*s.w, 2*s.w, theta1=angle, theta2=angle-180, edgecolor=s.color, lw=1))
+    sub.add_patch(patches.Arc(s.P, 2*s.w, 2*s.w, theta1=angle, theta2=angle-180, edgecolor=s.color, alpha=lineopacity, lw=1))
+    arc_patch(s.P, 0, s.w, theta1=angle, theta2=angle+180, facecolor=s.color, edgecolor=s.color, lw=1, alpha=0.3, fill=True)
     M = s.M[-1]
     angle = np.arctan2(M[1], M[0])*180/np.pi
-    sub.add_patch(patches.Arc(s.Q, 2*s.w, 2*s.w, theta1=angle+180, theta2=angle, edgecolor=s.color, lw=1))
+    sub.add_patch(patches.Arc(s.Q, 2*s.w, 2*s.w, theta1=angle+180, theta2=angle, edgecolor=s.color, alpha=lineopacity, lw=1))
+    arc_patch(s.Q, 0, s.w, theta1=angle, theta2=angle-180, facecolor=s.color, edgecolor=s.color, lw=1, alpha=0.3, fill=True)
   
     # plot arcs
     r = 2*s.radius
@@ -1822,17 +1897,88 @@ def plot_data(res, shapes, detail, domain = None):
       if (gamma2-gamma1 > 180): # for edge case of arctan2 domain, angle difference should never be this large
         tmp = gamma1
         gamma1 = gamma2
-        gamma2 = tmp
-      
-      if detail == 2:
-        sub.add_patch(patches.Arc(C, r, r, theta1=0, theta2=360, edgecolor='gray', lw=1))
-      sub.add_patch(patches.Arc(C, r-2*s.w, r-2*s.w, theta1=gamma1, theta2=gamma2, edgecolor=s.color, lw=1))
-      sub.add_patch(patches.Arc(C, r+2*s.w, r+2*s.w, theta1=gamma1, theta2=gamma2, edgecolor=s.color, lw=1))
-      if detail > 0:
-        sub.add_patch(patches.Arc(C, r, r, theta1=gamma1, theta2=gamma2, edgecolor=s.color, lw=1.5))
+        gamma2 = tmp+360
+
+      if detail > 1:
+        sub.add_patch(patches.Arc(C, r, r, theta1=0, theta2=360, edgecolor='gray', alpha=lineopacity, lw=1))
+      sub.add_patch(patches.Arc(C, r-2*s.w, r-2*s.w, theta1=gamma1, theta2=gamma2, edgecolor=s.color, alpha=lineopacity, lw=1))
+      arc_patch(C, s.radius-s.w, s.radius+s.w, theta1=gamma1, theta2=gamma2, facecolor=s.color, edgecolor=s.color, lw=1, alpha=0.3, fill=True)
+      sub.add_patch(patches.Arc(C, r+2*s.w, r+2*s.w, theta1=gamma1, theta2=gamma2, edgecolor=s.color, alpha=lineopacity, lw=1))
+      sub.add_patch(patches.Arc(C, r, r, theta1=gamma1, theta2=gamma2, edgecolor=s.color, alpha=lineopacity, lw=1.5))
 
   return fig
 
+# discretized polygonal arc as patches.Arc can't be used with fill=True
+def arc_patch(center, inner_radius, outer_radius, theta1, theta2, ax=None, resolution=50, **kwargs):
+    # make sure ax is not empty
+    if ax is None:
+        ax = plt.gca()
+    # generate the points
+    theta = np.linspace(np.radians(theta1), np.radians(theta2), resolution)
+    ateht = np.linspace(np.radians(theta2), np.radians(theta1), resolution)
+    points = np.vstack((np.concatenate((inner_radius*np.cos(theta) + center[0], outer_radius*np.cos(ateht) + center[0])), 
+                        np.concatenate((inner_radius*np.sin(theta) + center[1], outer_radius*np.sin(ateht) + center[1]))))
+    # build the polygon and add it to the axes
+    poly = patches.Polygon(points.T, closed=True, **kwargs)
+    ax.add_patch(poly)
+    return poly
+
+# do L2-tracking of density
+def track(shapes, design_track, saveall = False, track_iter = 30):
+  rho = cfs_map_to_design()
+  dist = np.sum((design_track.reshape(np.prod(glob.n), order='F')-rho)**2)
+  var_all = glob.var_all()
+  glob.iter = 0
+  print("l2-distance: ", dist)
+  #err = sciopt.check_grad(eval_l2,grad_l2,var_all,design_track)
+  if glob.gradient_check:
+    print("gradient check of l2-tracking: ", sciopt.approx_fprime(var_all, eval_l2, 1.5e-8, [design_track,False])-grad_l2(var_all,[design_track,False]))
+  bound = sciopt.Bounds(lb=np.zeros(len(var_all)),ub=2*np.ones(len(var_all)))
+  #cfs_get_sparsity_arc_overlap(None)
+  n_const = len(get_vector_arc_overlap(var_all))
+  if n_const > 0:
+    nonlinear_constraints = NonlinearConstraint(get_vector_arc_overlap, np.zeros(n_const), np.inf*np.ones(n_const), jac=get_jacobian_arc_overlap)
+    res = sciopt.minimize(eval_l2, var_all, args=[design_track, saveall], method="trust-constr", jac=grad_l2, constraints=nonlinear_constraints, bounds=bound, options={"disp": True, "verbose": 2, "maxiter": track_iter})
+  else:
+    res = sciopt.minimize(eval_l2, var_all, args=[design_track, saveall], method="trust-constr", jac=grad_l2, bounds=bound, options={"disp": True, "verbose": 2, "maxiter": track_iter})
+  return res
+
+# function value for L2 tracking optimization
+def eval_l2(var_all, arg): # args = [density_track, save_figures]
+  for shape in glob.shapes:
+    shape_num = shape.id
+    var = var_all[shape.base:shape.base+len(shape.optvar())]
+    cfs_set_spaghetti(shape_num, [[var[0], var[1]], [var[2], var[3]]], var[5:], var[4])
+  des = cfs_map_to_design()
+  if arg[1]:
+    ot.write_density_file('giffiles/dens' + str(glob.iter).zfill(4) + '.density.xml', np.reshape(des, (glob.n[0],glob.n[1]), 'F'))
+  return np.sum((des - arg[0].reshape(np.prod(glob.n), order='F'))**2)
+
+# gradient for L2 tracking optimization
+def grad_l2(var_all, arg): # args = [density_track, save_figures]
+  for shape in glob.shapes:
+    shape_num = shape.id
+    var = var_all[shape.base:shape.base+len(shape.optvar())]
+    cfs_set_spaghetti(shape_num, [[var[0], var[1]], [var[2], var[3]]], var[5:], var[4])
+  if arg[1]:
+    try:
+      fig = plot_data(800,shapes,args.detail)
+      fig.savefig('giffiles/track' + str(glob.iter).zfill(4) + '.png')
+      plt.close(fig)
+      glob.iter += 1
+    except:
+      print("Could not save file in iteration ", glob.iter)
+    # read the xml file to memory
+    xml = ut.open_xml(args.input)
+    for num_var, var in enumerate(var_all):
+      # modify the xml file
+      ut.replace(xml, '//shapeParamElement[@nr='+str(num_var)+']/@design', str(var))
+
+    # write to a new name
+    xml.write('giffiles/track' + '.density.xml')
+  drho = 2*(cfs_map_to_design() - arg[0].reshape(np.prod(glob.n), order='F'))
+  sens = cfs_get_gradient(drho, "L2-tracking")
+  return sens
 
 # write distance values and that stuff
 def write_vtk(name,N, detailed, derivative):
@@ -1981,10 +2127,10 @@ if __name__ == '__main__':
   parser.add_argument('--saveall', help="save all sets as image with the given format. Might be png, pdf, eps, vtp", action='store_true')
   parser.add_argument('--detail', help="level of technical details for spaghetti plot", choices=[0, 1, 2, 3, 4], default=1, type=int)
   parser.add_argument('--rhomin', help="void outside the feature", type=float, default=1e-6)
-  parser.add_argument('--rhomax', help="density of solid inside feature", type=float, default=1.0)  
+  parser.add_argument('--rhomax', help="density of solid inside feature", type=float, default=1.0)
   parser.add_argument('--transition', help="size of the transition zone (2*h)", type=float, default=.1)
   parser.add_argument('--boundary', help="type of boundary modelling ('poly' or 'linear')", choices=['poly', 'linear'], default='poly')
-  parser.add_argument('--combine', help="type of (smooth) maximum function for combination of shapes", choices=['max', 'KS', 'p-norm'], default='max')
+  parser.add_argument('--combine', help="type of (smooth) maximum function for combination of shapes", choices=['softmax', 'KS', 'p-norm', 'max'], default='softmax')
   parser.add_argument('--order', help="number of integration points per direction", type=int, default=2)
   parser.add_argument('--density', help="write a density.xml to the given filename with density_res")
   parser.add_argument('--density_res', help="resolution for density",type=int, default=60)
@@ -1996,12 +2142,19 @@ if __name__ == '__main__':
   parser.add_argument('--lineplot', help="plots the distance value for the horizontal line crossing H1 in the given res", type=int)
   parser.add_argument('--noshow', help="don't show the image", action='store_true')  
   parser.add_argument('--gradient_check', help="check internal spaghetti derivatives", action='store_true')
+  parser.add_argument('--track', help="track given density file to represent topology using spaghetti shapes")
+  parser.add_argument('--track_iter', help="number of optimization iterations for tracking", type=int, default=30)
+  parser.add_argument('--padnormals', help="pad normals with additional normals (zero-valued) so there is a total of x normals", type=int, default=0)
+  parser.add_argument('--gray', help="plot grayscale image", action='store_true')
+  parser.add_argument('--noticks', help="omit axis tick labels", action='store_true')
 
   args = parser.parse_args()
   
   if not os.path.exists(args.input):
     print("error: cannot find '" + args.input + "'")
     os.sys.exit()
+
+  colors = ['tab:gray'] if args.gray else ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
   
   # sets some values in glob!
   shapes, domain = read_xml(args.input, args.set, args.radius, args.cfseval)
@@ -2014,13 +2167,27 @@ if __name__ == '__main__':
   glob.combine = args.combine
   glob.order = args.order
   glob.gradient_check = args.gradient_check
-  #glob.n = [args.density_res, args.density_res, 1]
+  glob.design = ["density"]
+  dict = {"order": args.order,
+    "silent": '1',
+    "p": 8}
+  if args.density:
+    glob.n = [100, 50, 1]
 
   if args.lineplot:
     if not args.noshow:
       print("error: use lineplot with --noshow")
       os.sys.exit()
     lineplot(args.lineplot)
+
+  if args.track:
+    to_track = ot.read_density(args.track, attribute="design", fill=1.0)
+    #design = ['density', 'rotAngle']
+    design = ["density"]
+    cfs_init(args.rhomin, args.radius, args.boundary, args.transition, args.combine, glob.n[0], glob.n[1], glob.n[2], 1/min(glob.n[0:2]), 'straight', design, dict)
+    res = track(shapes, to_track, args.saveall, args.track_iter)
+    shapes = glob.shapes
+    write_xml(args.track[0:-12] + '_tracked.density.xml', shapes, remove_ghosts=True, padnormals=args.padnormals)
 
   if args.vtk:
     write_vtk(args.vtk, args.vtk_res, args.vtk_detailed, args.vtk_sens)
@@ -2042,7 +2209,8 @@ if __name__ == '__main__':
       ot.write_density_file(args.density,rho)
     else:
       des = cfs_map_to_design()
-      #if len(design)>1:
+      if len(design)>1:
+        des = np.reshape(des, (glob.n[0]*glob.n[1],2), 'F')
       #des = np.reshape(des, (args.density_res*args.density_res,len(design)), 'C')
       ot.write_multi_design_file(args.input[0:-12] + '.eval.density.xml', des, glob.design)
       dummy_drho_vec = np.ones(glob.n[0] * glob.n[1])
@@ -2064,10 +2232,26 @@ if __name__ == '__main__':
       shapes, domain = read_xml(args.input, i, args.radius, args.cfseval)
       glob.shapes = shapes
       fig = plot_data(800,shapes,args.detail, domain)
+      if args.noticks:
+        plt.tick_params(
+          axis='both',          # changes apply to x-axis and y-axis
+          which='both',      # both major and minor ticks are affected
+          bottom=True,      # ticks along the bottom edge are off
+          top=False,         # ticks along the top edge are off
+          labelleft=False,   # labels along the left edge are off
+          labelbottom=False) # labels along the bottom edge are off
       fig.savefig('giffiles/' + str(i).zfill(4) + '.png')
       plt.close(fig)
 
   fig = plot_data(800,shapes,args.detail, domain)
+  if args.noticks:
+    plt.tick_params(
+        axis='both',          # changes apply to x-axis and y-axis
+        which='both',      # both major and minor ticks are affected
+        bottom=True,      # ticks along the bottom edge are off
+        top=False,         # ticks along the top edge are off
+        labelleft=False,   # labels along the left edge are off
+        labelbottom=False) # labels along the bottom edge are off
   if args.save:
     print("write '" + args.save + "'")
     fig.savefig(args.save)

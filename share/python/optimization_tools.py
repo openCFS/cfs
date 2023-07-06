@@ -1550,7 +1550,7 @@ def extract_density_info(data):
  
 def extract_all_density_info(plain, physical, silent = False):
   res = OrderedDict()
-  for t in [(plain, 'plain'), (physical, 'physcial')]:
+  for t in [(plain, 'plain'), (physical, 'physical')]:
     o = t[0]
     l = t[1]
     if not o is None:

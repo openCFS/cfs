@@ -293,6 +293,37 @@ namespace CoupledField {
     return os.str();
   }
 
+  std::string Dof(int d)
+  {
+    switch(d)
+    {
+    case 0:
+      return std::string("x");
+    case 1:
+      return std::string("y");
+    case 2:
+      return std::string("z");
+    default:
+      assert(false);
+    }
+    return "";
+  }
+
+  int Dof(const std::string& dim)
+  {
+    if(dim == "x")
+      return 0;
+    if(dim == "y")
+      return 1;
+    if(dim == "z")
+      return 2;
+    assert(false);
+    return -1;
+  }
+
+
+
+
   /** all vectors need to be either complex or real but the same. */
   void Add(BaseVector& out, double fac1, const BaseVector& vec1, double fac2, const BaseVector& vec2)
   {

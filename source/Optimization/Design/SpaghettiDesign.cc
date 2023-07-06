@@ -29,6 +29,7 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   tip.SetName("SpaghettiDesign::Tip");
   tip.Add(START, "start");
   tip.Add(END, "end");
+  tip.Add(INNER, "inner");
 
   PtrParamNode pn = empn->Get(ErsatzMaterial::method.ToString(method)); // spaghetti or spaghettiParamMat
 
@@ -84,7 +85,8 @@ void SpaghettiDesign::ToInfo(ErsatzMaterial* em)
   sp_info_ = info_->Get("spaghetti");
 
   sp_info_->Get("combine")->SetValue(combine.ToString(combine_));
-  sp_info_->Get("radius")->SetValue(radius);
+  if(radius > 0.0)
+    sp_info_->Get("radius")->SetValue(radius);
   sp_info_->Get("boundary/type")->SetValue(boundary.ToString(boundary_));
   sp_info_->Get("boundary/transition")->SetValue(transition);
   sp_info_->Get("orientation")->SetValue(orientation.ToString(orientation_));
@@ -158,17 +160,29 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
 
   PyObject* arg = PyTuple_New(3);
 
+  Matrix<double> mm;
+  domain->GetGrid()->CalcBoundingBoxOfRegion(GetRegionIds().First(), mm);
+  string box_lower = "[";
+  for(unsigned int i = 0; i < dim_; i++)
+    box_lower += to_string(mm[i][0]) + ",";
+  box_lower += "]";
+  string box_upper = "[";
+  for(unsigned int i = 0; i < dim_; i++)
+    box_upper += to_string(mm[i][1]) + ",";
+  box_upper += "]";
+
   StdVector<pair<string, string> > settings;
   settings.Push_back(make_pair("rhomin", to_string(rhomin)));
   settings.Push_back(make_pair("rhomax", to_string(rhomax)));
-  settings.Push_back(make_pair("radius", to_string(radius)));
+  if(radius > 0)
+    settings.Push_back(make_pair("radius", to_string(radius)));
   settings.Push_back(make_pair("boundary", boundary.ToString(boundary_)));
   settings.Push_back(make_pair("transition", to_string(transition)));
   settings.Push_back(make_pair("combine", combine.ToString(combine_)));
-  settings.Push_back(make_pair("nx", to_string(nx_)));
-  settings.Push_back(make_pair("ny", to_string(ny_)));
-  settings.Push_back(make_pair("nz", to_string(nz_)));
+  settings.Push_back(make_pair("n", "[" + to_string(nx_) + "," + to_string(ny_) + "," + to_string(nz_) + "]"));
   settings.Push_back(make_pair("dx", to_string(dx_)));
+  settings.Push_back(make_pair("box_lower", box_lower));
+  settings.Push_back(make_pair("box_upper", box_upper));
   settings.Push_back(make_pair("orientation", orientation.ToString(orientation_)));
   PyTuple_SetItem(arg, 0, PythonKernel::CreatePythonDict(settings));
 
@@ -204,21 +218,32 @@ void SpaghettiDesign::PythonUpdateSpaghetti()
 
   for(Noodle& s : spaghetti)
   {
-    // create a tuple for a, is allowed to be empty
-    PyObject* pya = PyTuple_New(s.a.GetSize());
-    for(unsigned int ai = 0; ai < s.a.GetSize(); ai++)
-      PyTuple_SetItem(pya, ai, PyFloat_FromDouble(s.a[ai]));
+    // create a tuple for points, minimum two points
+    PyObject* pyp = PyTuple_New(s.points.GetSize());
+    for(unsigned pi = 0; pi < s.points.GetSize(); pi++)
+    {
+      StdVector<Variable>& p = s.points[pi];
+      PyObject* lst = PyList_New(p.GetSize());
+      for(unsigned int li = 0; li < p.GetSize(); li++)
+        PyList_SetItem(lst, li, PyFloat_FromDouble(p[li].GetPlainDesignValue()));
+      PyTuple_SetItem(pyp, pi, lst);
+    }
 
-    PyObject* arg = PyTuple_New(7);
+    // create a tuple for a or r - is allowed to be empty
+    const StdVector<Variable>& vec = s.type == Noodle::NORMAL ? s.a : s.r;
+    PyObject* pyvec = PyTuple_New(vec.GetSize());
+    for(unsigned int vi = 0; vi < vec.GetSize(); vi++)
+      PyTuple_SetItem(pyvec, vi, PyFloat_FromDouble(vec[vi].GetPlainDesignValue()));
+
+    PyObject* arg = PyTuple_New(s.HasAlpha() ? 5 : 4);
     PyTuple_SetItem(arg, 0, PyLong_FromLong(s.idx));
-    PyTuple_SetItem(arg, 1, PyFloat_FromDouble(s.P[0]));
-    PyTuple_SetItem(arg, 2, PyFloat_FromDouble(s.P[1]));
-    PyTuple_SetItem(arg, 3, PyFloat_FromDouble(s.Q[0]));
-    PyTuple_SetItem(arg, 4, PyFloat_FromDouble(s.Q[1]));
-    PyTuple_SetItem(arg, 5, pya);
-    PyTuple_SetItem(arg, 6, PyFloat_FromDouble(s.p));
+    PyTuple_SetItem(arg, 1, pyp);
+    PyTuple_SetItem(arg, 2, pyvec);
+    PyTuple_SetItem(arg, 3, PyFloat_FromDouble(s.p.GetPlainDesignValue()));
+    if(s.HasAlpha())
+      PyTuple_SetItem(arg, 4, PyFloat_FromDouble(s.alpha.GetPlainDesignValue()));
 
-    LOG_DBG2(pasta) << "PUS: s=" << s.idx << " a=" << s.a.GetSize() << " func=" << func << " arg=" << arg << " pya=" << pya;
+    LOG_DBG2(pasta) << "PUS: s=" << s.idx << " vec=" << vec.GetSize() << " func=" << func << " arg=" << PyTuple_Size(arg) << " pyvec=" << pyvec << " alpha? " << s.HasAlpha();
 
     PyObject* ret = PyObject_CallObject(func, arg);
     PythonKernel::CheckPythonReturn(ret);
@@ -389,7 +414,6 @@ void SpaghettiDesign::AddVariable(Variable* var)
 
 void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
 {
-
   assert(f != NULL);
   assert(f->IsLocal(f->GetType()));
   // we shall be called by Local::PostInit() therefore local shall exist
@@ -399,7 +423,7 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
   // we assume fixed only for profile if at all
   assert(locality == Function::Local::FUNCTION_SPECIFIC || locality == Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS);
 
-  vem.Reserve(spaghetti.GetSize()); // assume nothing fixec
+  vem.Reserve(spaghetti.GetSize()); // assume nothing fixed
 
   assert(dim_ == 2);
   StdVector<BaseDesignElement*> nodes;
@@ -412,27 +436,30 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
   for(Noodle& s : spaghetti)
   {
     nodes.Clear();
+    StdVector<Variable>& P = s.points.First();
+    StdVector<Variable>& Q = s.points.Last();
+
     // assume nothing fixed
-    if((s.px.fixed || s.py.fixed || s.qx.fixed || s.qy.fixed) && f->GetType() == Function::DISTANCE)
-      throw Exception("distance constraints currently only for non-fixed nodes");
-    
-    // check bending Bending
-    if(s.px.fixed && s.py.fixed && s.qx.fixed && s.qy.fixed && (s.a_var.GetSize() == 0)) {
-       assert(f->GetType() == Function::BENDING);
-       continue; // won't add empty constraint if all points are fixed
-    }
-    
+    if(P[0].fixed || P[1].fixed || Q[0].fixed || Q[1].fixed)
+      if (f->GetType() == Function::DISTANCE){
+        throw Exception("distance constraints currently only for non-fixed nodes");
+      } else { // Bending
+        if (s.IsFixed(P) && s.IsFixed(Q) && (s.a.GetSize() == 0)){
+          continue; // won't add empty constraint if all points are fixed
+        }
+      }
+
     // px is element, then py, then qx then qy
-    nodes.Push_back(&s.py);
-    nodes.Push_back(&s.qx);
-    nodes.Push_back(&s.qy);
+    nodes.Push_back(&P[1]);
+    nodes.Push_back(&Q[0]);
+    nodes.Push_back(&Q[1]);
 
     if(f->GetType() == Function::DISTANCE)
     {
       if(f->GetDesignType() != BaseDesignElement::NODE)
         throw Exception("Configuration error: distance needs to be defined for node.");
 
-      vem.Push_back(Function::Local::Identifier(&s.px, nodes));
+      vem.Push_back(Function::Local::Identifier(&P[0], nodes));
       LOG_DBG(pasta) << "SVSEM: f=" << f->ToString() << " s=" << s.idx << " id=" << vem.Last().ToString();
     }
     else // Bending
@@ -441,19 +468,19 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
       // but we have the cases for only two segments (0 N 0)
       // or for start ( 0 N N) or end ( N N 0)
 
-      for(unsigned ai = 0; ai < s.a_var.GetSize(); ai++)
+      for(unsigned ai = 0; ai < s.a.GetSize(); ai++)
       {
         StdVector<BaseDesignElement*> buddies(nodes);
         assert(buddies.GetSize() == nodes.GetSize());
         assert(buddies[0] == nodes[0]); // no empty nodes for bending
 
-        if(s.a_var.GetSize() == 1)
+        if(s.a.GetSize() == 1)
         {
-          buddies.Push_back(&s.a_var[0]);
-          vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_1));
+          buddies.Push_back(&s.a[0]);
+          vem.Push_back(Function::Local::Identifier(&P[0], buddies, sign_1));
           vem.Last().bending = Function::Local::Identifier::ZNZ;
           if(two_signs){
-            vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_2));
+            vem.Push_back(Function::Local::Identifier(&P[0], buddies, sign_2));
             vem.Last().bending = Function::Local::Identifier::ZNZ;
           }
         }
@@ -461,38 +488,38 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
         {
           if(ai == 0)
           {
-            buddies.Push_back(&s.a_var[0]);
-            buddies.Push_back(&s.a_var[1]);
-            vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_1));
+            buddies.Push_back(&s.a[0]);
+            buddies.Push_back(&s.a[1]);
+            vem.Push_back(Function::Local::Identifier(&P[0], buddies, sign_1));
             vem.Last().bending = Function::Local::Identifier::ZNN;
             if(two_signs){
-              vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_2));
+              vem.Push_back(Function::Local::Identifier(&P[0], buddies, sign_2));
               vem.Last().bending = Function::Local::Identifier::ZNN;
             }
           }
-          else if(ai == s.a_var.GetSize()-1)
+          else if(ai == s.a.GetSize()-1)
           {
-            buddies.Push_back(&s.a_var[ai-1]);
-            buddies.Push_back(&s.a_var[ai]);
-            vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_1));
+            buddies.Push_back(&s.a[ai-1]);
+            buddies.Push_back(&s.a[ai]);
+            vem.Push_back(Function::Local::Identifier(&P[0], buddies, sign_1));
             vem.Last().bending = Function::Local::Identifier::NNZ;
             if(two_signs){
-              vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_2));
+              vem.Push_back(Function::Local::Identifier(&P[0], buddies, sign_2));
               vem.Last().bending = Function::Local::Identifier::NNZ;
             }
           }
           else
           {
-            assert(ai > 0 && ai < s.a_var.GetSize()-1);
-            buddies.Push_back(&s.a_var[ai-1]);
-            buddies.Push_back(&s.a_var[ai]);
-            buddies.Push_back(&s.a_var[ai+1]);
+            assert(ai > 0 && ai < s.a.GetSize()-1);
+            buddies.Push_back(&s.a[ai-1]);
+            buddies.Push_back(&s.a[ai]);
+            buddies.Push_back(&s.a[ai+1]);
            // vem.Push_back(Function::Local::Identifier(&s.px, buddies));
             //vem.Last().bending = Function::Local::Identifier::NNN;
-            vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_1));
+            vem.Push_back(Function::Local::Identifier(&P[0], buddies, sign_1));
             vem.Last().bending = Function::Local::Identifier::NNN;
             if(two_signs){
-              vem.Push_back(Function::Local::Identifier(&s.px, buddies, sign_2));
+              vem.Push_back(Function::Local::Identifier(&P[0], buddies, sign_2));
               vem.Last().bending = Function::Local::Identifier::NNN;
             }
           }
@@ -508,10 +535,6 @@ int SpaghettiDesign::ReadDesignFromExtern(const double* space_in, bool setAndWri
 {
   // practically updates the Variable objects within spaghetti. Set's design_id
   FeaturedDesign::ReadDesignFromExtern(space_in, setAndWriteCurrent);
-
-  // update also the convenience variables
-  for(Noodle& s : spaghetti)
-    s.Update();
 
   PythonUpdateSpaghetti();
 
@@ -557,12 +580,8 @@ void SpaghettiDesign::ReadDensityXml(PtrParamNode set, double& lower_violation, 
         EXCEPTION("shapeParamElement nr=" << pnnr << " in density.xml has not expected 'tip' value " << SpaghettiDesign::tip.ToString(var->tip));
     }
 
-
     var->SetDesign(pn->Get("design")->As<double>());
   }
-
-  for(Noodle& s : spaghetti)
-    s.Update();
 
   // it shall be save to update the design_id, because we changed stuff
   design_id++;
@@ -586,7 +605,6 @@ void SpaghettiDesign::SetupDesign(PtrParamNode base)
   {
     Noodle& noodle = spaghetti[i];
     noodle.Parse(pnl[i], i);
-    assert(dim_ == 2);
     total += noodle.GetTotalVariables();
     opt   += noodle.GetOptVariables();
   }
@@ -595,87 +613,194 @@ void SpaghettiDesign::SetupDesign(PtrParamNode base)
   shape_param_.Reserve(total);
   opt_shape_param_.Reserve(opt);
 
-  // the order of 1) nodes, 2) profiles, 3) normals
-  // could also be by noodle - this is just a decision. Change it, when it hurts.
-  // reading shall be transparent die to shape (noodle) idx.
+  // the order is by noodles: nodes, profile, [alpha|, normals/radii
+  // reading shall be transparent due to shape (noodle) idx.
   for(Noodle& noodle : spaghetti)
   {
-    AddVariable(&(noodle.px));
-    AddVariable(&(noodle.py));
-    AddVariable(&(noodle.qx));
-    AddVariable(&(noodle.qy));
-    AddVariable(&(noodle.p_var));
-    for(Variable& var : noodle.a_var)
+    for(auto& p : noodle.points) // P, [inner], Q
+      for(auto& v : p)
+        AddVariable(&v);
+
+    assert(noodle.a.IsEmpty() || noodle.r.IsEmpty()); // or both are empty
+    for(Variable& var : noodle.r)
+      AddVariable(&var);
+
+    AddVariable(&(noodle.p));
+
+    if(noodle.HasAlpha())
+      AddVariable(&(noodle.alpha));
+
+    for(Variable& var : noodle.a)
       AddVariable(&var);
   }
-
 
   // we did exact space "estimation"
   assert(shape_param_.GetCapacity() == shape_param_.GetSize());
   assert(opt_shape_param_.GetCapacity() == opt_shape_param_.GetSize());
 }
 
+SpaghettiDesign::Noodle::Noodle()
+{
+  type = dim_ == 2 ? NORMAL : POINTS;
+}
+
 
 void SpaghettiDesign::Noodle::Parse(PtrParamNode noodle, int idx)
 {
   this->idx = idx;
+  opt_variables_ = 0;
 
   int n = noodle->Get("segments")->As<int>();
+  if(n < 1)
+    throw Exception("'noodle' requires at least 1 segment");
 
-  assert(dim_ == 2);
-  px.Parse(noodle->GetByVal("node", "dof", "x", "tip", "start"),idx);
-  py.Parse(noodle->GetByVal("node", "dof", "y", "tip", "start"),idx);
-  qx.Parse(noodle->GetByVal("node", "dof", "x", "tip", "end"),idx);
-  qy.Parse(noodle->GetByVal("node", "dof", "y", "tip", "end"),idx);
-  p_var.Parse(noodle->Get("profile"),idx); // exactly one
+  assert(points.IsEmpty());
+  points.Resize(dim_ == 2 ? 2 : n + 1);
+
+  // add tip
+  StdVector<Variable>& start = points.First();
+  start.Resize(dim_);
+  start[0].Parse(noodle->GetByVal("node", "dof", "x", "tip", "start"),idx);
+  start[1].Parse(noodle->GetByVal("node", "dof", "y", "tip", "start"),idx);
+  if(dim_ == 3)
+    start[2].Parse(noodle->GetByVal("node", "dof", "z", "tip", "start"),idx);
+  opt_variables_ += CountNonFixed(start);
+
+  StdVector<Variable>& end = points.Last();
+  end.Resize(dim_);
+  end[0].Parse(noodle->GetByVal("node", "dof", "x", "tip", "end"),idx);
+  end[1].Parse(noodle->GetByVal("node", "dof", "y", "tip", "end"),idx);
+  if(dim_ == 3)
+    end[2].Parse(noodle->GetByVal("node", "dof", "z", "tip", "end"),idx);
+  opt_variables_ += CountNonFixed(end);
+
+  if(n == 1 && noodle->Has("inner"))
+    throw Exception("'noodle' has defined 1 segment but 'inner' is given");
+
+  if(dim_ == 3)
+  {
+    Vector<double> P = Variable::AsVector(start);
+    Vector<double> Q = Variable::AsVector(end);
+    for(int pi = 1; pi < n; pi++) // n = 1 -> no inner point; n = 2 -> 1 inner point 1; n = 3 -> 2 inner points 1,2
+    {
+      StdVector<Variable>& point = points[pi];
+      point.Resize(dim_);
+
+      for(unsigned int d = 0; d < dim_; d++)
+      {
+        double inter = Interpolate(P[d],Q[d],pi,points.GetSize());
+        string dof = ShapeParamElement::dof.ToString((ShapeParamElement::Dof) d);
+        // either we have inner or require clear lower and upper from P and Q
+        if(noodle->HasByVal("inner", "dof", dof)) // either interpolate for value or math parser stuff
+        {
+          point[d].Parse(noodle->GetByVal("inner", "dof", dof), this->idx, inter);
+          point[d].tip = INNER;
+        }
+        else
+        {
+          if(start[d].GetLowerBound() != end[d].GetLowerBound() || start[d].fixed || end[d].fixed)
+            throw Exception("As bounds for tips do not match or are fixed, 'inner' needs to be given for dof " + dof);
+          point[d].InitInnerNode(idx, (ShapeParamElement::Dof) d, inter, start[d].GetLowerBound(), start[d].GetUpperBound());
+        }
+      }
+
+      opt_variables_ += dim_;
+    }
+  }
+
+  p.Parse(noodle->Get("profile"),idx); // exactly one
+  opt_variables_ += p.fixed ? 0 : 1;
 
   // number of normals is segments-1
-  if(n < 1)
-    EXCEPTION("'noodle' requires at least 1 segment");
-  if(n == 1 && noodle->Has("normal"))
-    EXCEPTION("'noodle' has defined 1 segment but 'normal' is given");
-  if(n >= 2 && ! noodle->Has("normal"))
-    EXCEPTION("'noodle' has defined " << n << " segments but no 'normal' given");
+  if(type == NORMAL)
+  {
+    if(noodle->Has("radius"))
+      throw Exception("no 'radius' for this 'noodle' type expected (to be implemented :))");
+    if(n == 1 && noodle->Has("normal"))
+      throw Exception("'noodle' has defined 1 segment but 'normal' is given");
+    if(n >= 2 && ! noodle->Has("normal"))
+      throw Exception("'noodle' has defined " + std::to_string(n) + " segments but no 'normal' given");
 
-  a_var.Resize(n-1);
-  for(int i = 0; i < n-1; i++)
-    a_var[i].Parse(noodle->Get("normal"),this->idx); // todo handle mathparser
+    a.Resize(n-1);
+    for(int i = 0; i < n-1; i++)
+      a[i].Parse(noodle->Get("normal"),this->idx);
 
-  opt_variables_  = px.fixed ? 0 : 1;
-  opt_variables_ += py.fixed ? 0 : 1;
-  opt_variables_ += qx.fixed ? 0 : 1;
-  opt_variables_ += qy.fixed ? 0 : 1;
-  opt_variables_ += p_var.fixed  ? 0 : 1;
-  opt_variables_ += !a_var.IsEmpty() && !a_var[0].fixed ? a_var.GetSize() : 0;
+    opt_variables_ += !a.IsEmpty() && !a[0].fixed ? a.GetSize() : 0;
+  }
+  else
+  {
+    assert(type == POINTS);
+    if(noodle->Has("normal"))
+      throw Exception("no 'normal' for this 'noodle' type expected");
 
-  LOG_DBG(pasta) << "N:P px=" << px.GetPlainDesignValue() << " py=" << py.GetPlainDesignValue();
+    if(n == 1 && noodle->Has("radius"))
+      throw Exception("'noodle' has defined 1 segment but 'radius' is given");
+    if(n >= 2 && ! noodle->Has("radius"))
+      throw Exception("'noodle' has defined " + std::to_string(n) + " segments but no 'radius' given");
 
-  Update();
+    r.Resize(n-1);
+    for(int i = 0; i < n-1; i++)
+      r[i].Parse(noodle->Get("radius"),this->idx);
+
+    opt_variables_ += !r.IsEmpty() && !r[0].fixed ? r.GetSize() : 0;
+
+    alpha.Parse(noodle->Get("alpha"),idx); // exactly one
+    opt_variables_ += alpha.fixed ? 0 : 1;
+  }
+
+  LOG_DBG(pasta) << "N:start ov=" << opt_variables_ << " " << ToString();
 }
 
-void SpaghettiDesign::Noodle::Update()
+bool SpaghettiDesign::Noodle::IsFixed(const StdVector<Variable>& point) const
 {
-  P.Resize(2); // cheap so save doing it in constructor
-  P[0] = px.GetPlainDesignValue();
-  P[1] = py.GetPlainDesignValue();
-
-  Q.Resize(2);
-  Q[0] = qx.GetPlainDesignValue();
-  Q[1] = qy.GetPlainDesignValue();
-
-  p = p_var.GetPlainDesignValue();
-
-  a.Resize(a_var.GetSize());
-  for(unsigned int i = 0; i < a_var.GetSize(); i++)
-    a[i] = a_var[i].GetPlainDesignValue();
-
-  LOG_DBG(pasta) << "N:U " << ToString();
+  assert(point.GetSize() == dim_);
+  for(const Variable& v : point)
+    if(v.fixed)
+      return true;
+  return false;
 }
+
+int SpaghettiDesign::Noodle::CountNonFixed(const StdVector<Variable>& point) const
+{
+  int sum = 0;
+  assert(point.GetSize() == dim_);
+  for(const Variable& v : point)
+    sum += v.fixed ? 0 : 1;
+  return sum;
+}
+
+double SpaghettiDesign::Noodle::Interpolate(double start, double end, unsigned int idx, unsigned int n_segments)
+{
+  return start + (end-start)/(n_segments-1) * idx;
+}
+
+int SpaghettiDesign::Noodle::GetTotalVariables() const
+{
+  int vars = 1; // profile p
+  assert(a.IsEmpty() || r.IsEmpty());
+  vars += dim_ * points.GetSize() + a.GetSize() + r.GetSize();
+  if(HasAlpha())
+    vars += 1;
+
+  return vars;
+}
+
 
 string SpaghettiDesign::Noodle::ToString()
 {
   std::stringstream ss;
-  ss << "idx=" << idx << " P=" << P.ToString() << " Q=" << Q.ToString() << " p=" << p << " a=" << a.ToString();
+
+  ss << "idx=" << idx << " type=" << (type == NORMAL ? "normal" : "points");
+  if(points.GetSize() > 1)
+  {
+    ss << " start=" << Variable::ToString(points.First());
+    ss << " end=" << Variable::ToString(points.Last());
+    for(unsigned int i = 1; i < points.GetSize()-1; i++)
+      ss << " num_" << i << "=" << Variable::ToString(points[i]);
+  }
+  ss << " p=" << (p.fixed ? "*" : "") << p.GetPlainDesignValue();
+  ss << " a=" << Variable::ToString(a);
+  ss << " r=" << Variable::ToString(r);
   return ss.str();
 }
 
@@ -685,45 +810,138 @@ void SpaghettiDesign::Noodle::ToInfo(PtrParamNode in)
   in->Get("segments")->SetValue(a.GetSize() + 1);
 
   // one could combine P and Q as coordinates.
-  px.ToInfo(in->Get("px", ParamNode::APPEND));
-  py.ToInfo(in->Get("py", ParamNode::APPEND));
-  qx.ToInfo(in->Get("qx", ParamNode::APPEND));
-  qy.ToInfo(in->Get("qy", ParamNode::APPEND));
-  p_var.ToInfo(in->Get("p", ParamNode::APPEND));
-  if(!a_var.IsEmpty()) {
-    const Variable& a0 = a_var.First();
-    a0.ToInfo(in->Get("a", ParamNode::APPEND));
-    in->Get("a/size")->SetValue(a_var.GetSize());
-    // check if the first element values are valid for all (e.g. from mathparser)
-    for(unsigned int i = 1; i < a_var.GetSize(); i++) {
-      const Variable& t = a_var[i];
-      assert(a0.fixed == t.fixed);
-      if(a0.fixed) {
-        if(a0.GetPlainDesignValue() != t.GetPlainDesignValue()) {
-          in->Get("a/fixed")->SetValue("not constant");
-          break;
-        }
-      } else {
-        bool cancel = false;
-        if(a0.GetLowerBound() != t.GetLowerBound()) {
-          in->Get("a/lower")->SetValue("not constant");
-          cancel = true;
-        }
-        if(a0.GetUpperBound() != t.GetUpperBound()) {
-          in->Get("a/upper")->SetValue("not constant");
-          cancel = true;
-        }
-        if(cancel)
-          break;
-      }
-    }
-  }
+  auto& P = points.First();
+  auto& Q = points.Last();
 
+  for(unsigned int d = 0; d < dim_; d++)
+    P[d].ToInfo(in->Get("p" + Dof(d), ParamNode::APPEND));
+
+  if(HasInner())
+    for(unsigned int d = 0; d < dim_; d++)
+      ToInfo(in, Variable::NODE, "i" + Dof(d), d);
+
+  for(unsigned int d = 0; d < dim_; d++)
+    Q[d].ToInfo(in->Get("p" + Dof(d), ParamNode::APPEND));
+
+  p.ToInfo(in->Get("p", ParamNode::APPEND));
+
+  if(HasAlpha())
+    alpha.ToInfo(in->Get("alpha", ParamNode::APPEND));
+
+  // will do nothing for empty vectors
+  ToInfo(in, Variable::NORMAL, "a");
+  ToInfo(in, Variable::RADIUS, "r");
 }
 
 
+void SpaghettiDesign::Noodle::CompareToInfoHelper(const Variable& v0, const Variable& test, std::string& fixed, std::string& lower, std::string& upper) const
+{
+  assert(v0.fixed == test.fixed);
 
-void SpaghettiDesign::Variable::Parse(PtrParamNode pn, int noodle_idx)
+  if(v0.GetPlainDesignValue() == test.GetPlainDesignValue()) {
+    if(fixed != "not constant")
+      fixed = std::to_string(v0.GetPlainDesignValue());
+  } else
+    fixed = "not constant";
+
+  if(v0.GetLowerBound() == test.GetLowerBound()) {
+    if(lower != "not constant")
+      lower = std::to_string(v0.GetLowerBound());
+  } else
+    lower = "not constant";
+
+  if(v0.GetUpperBound() == test.GetUpperBound()) {
+    if(upper != "not constant")
+      upper = std::to_string(v0.GetUpperBound());
+  } else
+    upper = "not constant";
+}
+
+void SpaghettiDesign::Noodle::ToInfo(PtrParamNode in, Variable::Type type, const std::string& label, int dim) const
+{
+  std::string fixed;
+  std::string lower;
+  std::string upper;
+  const Variable* v0 = nullptr;
+  int size = -1;
+
+  if(type == Variable::NORMAL || type == Variable::RADIUS)
+  {
+    const StdVector<Variable>& vec = type == Variable::NORMAL ? a : r;
+    if(vec.IsEmpty())
+      return;
+
+    v0 = &(vec[0]);
+    size = vec.GetSize();
+
+    // check if the element values are valid for all (e.g. from mathparser)
+    for(unsigned int i = 0; i < vec.GetSize(); i++)
+      CompareToInfoHelper(*v0, vec[i], fixed, lower, upper);
+  }
+  else
+  {
+    assert(type == Variable::NODE);
+    assert(dim >= 0 && dim <= 2);
+    if(points.GetSize() <= 2)
+      return;
+
+    v0 = &(points[1][dim]);
+    assert(v0->tip == INNER);
+    size = points.GetSize() - 2; // minus P and Q
+
+    for(unsigned int i = 1; i < points.GetSize()-1; i++)
+      CompareToInfoHelper(*v0, points[i][dim], fixed, lower, upper);
+  }
+
+  v0->ToInfo(in->Get(label, ParamNode::APPEND));
+  in->Get(label + "/size")->SetValue(size);
+  if(v0->fixed)
+    in->Get(label + "/fixed")->SetValue(fixed);
+  else {
+    in->Get(label + "/lower")->SetValue(lower);
+    in->Get(label + "/upper")->SetValue(upper);
+  }
+}
+
+std::string SpaghettiDesign::Variable::ToString(const StdVector<Variable>& vec, bool show_fixed)
+{
+  std::stringstream ss;
+  ss << "[";
+  for(unsigned int i = 0; i < vec.GetSize(); i++)
+  {
+    const Variable& v = vec[i];
+    if(show_fixed && v.fixed)
+      ss << "*";
+    ss << v.GetPlainDesignValue();
+    if(i < vec.GetSize()-1)
+      ss << ", ";
+  }
+  ss << "]";
+  return ss.str();
+}
+
+Vector<double> SpaghettiDesign::Variable::AsVector(const StdVector<Variable>& vec)
+{
+  Vector<double> res(vec.GetSize());
+  for(unsigned int i = 0; i < vec.GetSize(); i++)
+    res[i] = vec[i].GetPlainDesignValue();
+  return res;
+}
+
+void SpaghettiDesign::Variable::InitInnerNode(int noodle_idx, Dof dof, double val, double lower, double upper)
+{
+  this->type_ = NODE;
+  this->fixed = false;
+  this->noodle = noodle_idx;
+  this->dof_ = dof;
+  this->tip = INNER;
+  SetDesign(val);
+  SetLowerBound(lower);
+  SetUpperBound(upper);
+  LOG_DBG(pasta) << "V:IIN " << ToString();
+}
+
+void SpaghettiDesign::Variable::Parse(PtrParamNode pn, int noodle_idx, double interpolate_value)
 {
   this->noodle = noodle_idx;
 
@@ -733,7 +951,6 @@ void SpaghettiDesign::Variable::Parse(PtrParamNode pn, int noodle_idx)
 
   string value;
 
-  // todo: add mathparser!!
   if(pn->Has("fixed")) {
     value = pn->Get("fixed")->As<string>();
     if(pn->Has("upper") || pn->Has("lower") || pn->Has("initial"))
@@ -752,21 +969,27 @@ void SpaghettiDesign::Variable::Parse(PtrParamNode pn, int noodle_idx)
   }
 
   // this might contain a formula or simply a value
-  mp->SetExpr(handle, value);
-  SetDesign(mp->Eval(handle));
+  if(value == "interpolated")
+  {
+    assert(interpolate_value != -12.34);
+    SetDesign(interpolate_value);
+  }
+  else
+  {
+    mp->SetExpr(handle, value);
+    SetDesign(mp->Eval(handle));
+  }
 
   mp->ReleaseHandle(handle);
 
-  if(pn->Has("tip"))
+  if(pn->Has("tip")) // node requires tip
     tip = SpaghettiDesign::tip.Parse(pn->Get("tip")->As<string>());
 
-  if(pn->Has("dof"))
+  if(pn->Has("dof")) // node and inner require top
     dof_ = dof.Parse(pn->Get("dof")->As<string>());
 
-  type_ = type.Parse(pn->GetName());
+  type_ = pn->GetName() == "inner" ? NODE : type.Parse(pn->GetName()); // we use inner only for the problem xml, it is a NODE int the end
 
-  if(type_ == NODE && (tip == NO_TIP || dof_ == NOT_SET))
-    throw Exception("A 'node' within 'noodle' requires 'dof' and 'tip'");
   if(type_ != NODE && (tip != NO_TIP || dof_ != NOT_SET))
     throw Exception("Within 'noodle' use 'dof' and 'tip' only for 'node'");
 }
@@ -774,10 +997,11 @@ void SpaghettiDesign::Variable::Parse(PtrParamNode pn, int noodle_idx)
 void SpaghettiDesign::Variable::ToInfo(PtrParamNode in) const
 {
   in->Get("type")->SetValue(type.ToString(type_));
-  if(type_ == NODE) {
+  if(type_ == NODE)
     in->Get("dof")->SetValue(ShapeParamElement::dof.ToString(dof_));
+  if(type_ == NODE && tip != NO_TIP) // inner has no top -> one could use "inner" ?!
     in->Get("tip")->SetValue(SpaghettiDesign::tip.ToString(tip));
-  }
+
   // in the NORMAL case the values below might be overwritten by Noode::ToInfo().
   if(fixed)
    in->Get("fixed")->SetValue(GetPlainDesignValue());
@@ -788,6 +1012,13 @@ void SpaghettiDesign::Variable::ToInfo(PtrParamNode in) const
 }
 
 
+std::string SpaghettiDesign::Variable::ToString() const
+{
+  std::stringstream ss;
+  ss << ShapeParamElement::ToString() << " noodle=" << noodle << " type=" << type.ToString(type_) << " dof=" << dof.ToString(dof_) << " tip=" << tip;
+  return ss.str();
+}
+
 std::string SpaghettiDesign::Variable::GetLabel() const
 {
   std::stringstream ss;
@@ -795,22 +1026,33 @@ std::string SpaghettiDesign::Variable::GetLabel() const
   switch(type_)
   {
   case NODE:
-    ss << (tip == START ? "p" : "q");
+    if(tip == START)
+      ss << "p";
+    else if(tip == END)
+      ss << "q";
+    else // We increment after x/y/z. As P is first, inner is 1-based as desired
+      ss << "i" << (unsigned int) GetIndex() / dim_;
     ss << dof.ToString(dof_);
     break;
   case PROFILE:
     ss << "p";
     break;
-  case NORMAL: {
-    ss << "a";
+  case ALPHA:
+    ss << "alpha";
+    break;
+  case NORMAL: // intentionally both cases
+  case RADIUS:
+  {
     assert(domain->GetOptimization() != NULL);
     SpaghettiDesign* sd = dynamic_cast<SpaghettiDesign*>(domain->GetOptimization()->GetDesign());
     const Noodle& n = sd->spaghetti[noodle];
-    assert(!n.a_var.IsEmpty()); // we are in GetLable() and shall have it
-    unsigned int pos = GetIndex() - n.a_var.First().GetIndex();
+    ss << (type_ == NORMAL ? "a" : "r");
+    assert(!(n.a.GetSize() > 0 && n.r.GetSize() > 0)); // we are in GetLable() and shall have it
+    unsigned int pos = GetIndex() - (type_ == NORMAL ? n.a.First().GetIndex() : n.r.First().GetIndex());
     ss << (pos + 1); // 1-based
     break;
   }
+
   default:
     assert(false);
     break;
