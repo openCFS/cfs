@@ -217,7 +217,7 @@ protected:
   unsigned int ny_ = 0;
   unsigned int nz_ = 0; // 1 for 2D
 
-  /** discrectization spacing (assumed regular!) */
+  /** discretization spacing (assumed regular!) */
   double dx_ = 0;
 
   /** repeats nx_, ny_ and nz_ */

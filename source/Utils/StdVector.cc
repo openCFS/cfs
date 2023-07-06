@@ -142,6 +142,16 @@ namespace CoupledField {
     Init(entry);
   }
 
+  template<class TYPE>
+  StdVector<TYPE> StdVector<TYPE>::Slice(size_type start, size_type stride)
+  {
+    assert(stride > 0);
+    size_type size = start >= size ? 0 : (size_type) ((size_ - start) / stride) + 1;
+    StdVector<TYPE> res(size);
+    for(size_type i = 0; i < size; i++)
+      res[i] = data_[start + i * stride];
+    return res;
+  }
   
   // *************
   //   operator=

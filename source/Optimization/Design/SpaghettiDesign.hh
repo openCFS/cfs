@@ -34,7 +34,7 @@ public:
   /** the spaghetti python script */
   PyObject* GetPythonModule() override;
 
-  typedef enum { NO_TIP = -1, START, END } Tip;
+  typedef enum { NO_TIP = -1, START, END, INNER } Tip;
 
   static Enum<Tip> tip;
 
@@ -44,13 +44,25 @@ public:
   class Variable : public ShapeParamElement
   {
   public:
-    void Parse(PtrParamNode pn, int noodle);
+
+    static std::string ToString(const StdVector<Variable>& vec, bool show_fixed = true);
+
+    static Vector<double> AsVector(const StdVector<Variable>& vec);
+
+    /** optional late constructor */
+    void InitInnerNode(int noodle_idx, Dof dof, double val, double lower, double upper);
+
+    void Parse(PtrParamNode pn, int noodle, double interpolate_value = -12.34);
 
     /** all other BaseDesignElement children do this in the constructor.
      * @see SetOptIndex() */
     void SetIndex(int idx) { index_ = idx; }
 
     void ToInfo(PtrParamNode in) const;
+
+    /** for debug info */
+    std::string ToString() const override;
+
 
     std::string GetLabel() const override;
 
@@ -63,6 +75,78 @@ public:
     /** noodle index */
     int noodle = -1;
   };
+
+  struct Noodle
+  {
+  public:
+
+    /** NORMAL means we have vector a - which is for 2D, POINTS are 3D */
+    typedef enum { NO_TYPE = -1, NORMAL = 0, POINTS = 1 } Type;
+
+    Noodle();
+
+    void Parse(PtrParamNode pn, int idx);
+
+    void ToInfo(PtrParamNode info);
+
+    /** helper for a and r */
+    void ToInfo(PtrParamNode in, Variable::Type type, const std::string& label, int dim = -1) const;
+    void CompareToInfoHelper(const Variable& v0, const Variable& test, std::string& fixed, std::string& lower, std::string& upper) const;
+
+    /** for debug purpose */
+    std::string ToString();
+
+    int GetTotalVariables() const;
+
+    int GetOptVariables() const { return opt_variables_; }
+
+    /** check all components of point */
+    bool IsFixed(const StdVector<Variable>& point) const;
+
+    int CountNonFixed(const StdVector<Variable>& point) const;
+
+    /** Helper for Variable::Parser() in case of inner */
+    double Interpolate(double start, double end, unsigned int idx, unsigned int n);
+
+    /** to make it easier generic also for 2d */
+    bool HasAlpha() const { return type == POINTS; }
+
+    /** do we have normals or inner points */
+    bool HasInner() const { return dim_ == 3; }
+
+    /** Variable objects are the read design variables in a technical sense.
+      points contains all nodal coordinates with first point (2d or 3d) the tip start P and the last the tip end Q.
+      In the POINTS case (3d) the points in between are the alternative variables to normals a.
+      The in between points are either automatically created with interpolated values or a single inner point
+      gives initial/upper/lower - all also by mathparser. inner is only necessary if the bounds for P and Q are not clear */
+    StdVector<StdVector<Variable> > points;
+
+    /** the scalar profile variable */
+    Variable p;
+
+    /** the scalar scaling in the geometry projection style */
+    Variable alpha;
+
+    /** the segments-1 normal variables only for NORMAL mode */
+    StdVector<Variable> a;
+
+    /** the segments-1 radius variables only for POINTS, could be extended also for 2D */
+    StdVector<Variable> r;
+
+    /** shape index */
+    int idx = -1;
+
+    /** up to now obtained by dim_ */
+    Type type = NO_TYPE;
+
+  private:
+    int opt_variables_ = -1;
+  };
+
+  /** structured access to the full design space. Note that spaghetti is a plural of noodle.
+   * Within the noodles are all Variables referenced in FeaturedDesign::shape_param_ and FeaturedDesign::opt_shape_param_
+   * @See SetupDesign(), also for ordering within (opt_)shape_param_ */
+  StdVector<Noodle> spaghetti;
 
 private:
 
@@ -84,46 +168,6 @@ private:
    * MapFeatureGradient() is called for every function and the generic design might be for the next call only. */
   void PrepareSpecialResults() override;
 
-
-
-  struct Noodle
-  {
-  public:
-    void Parse(PtrParamNode pn, int idx);
-
-    void ToInfo(PtrParamNode info);
-
-    /** priliminarily for debug purpose */
-    std::string ToString();
-
-    int GetTotalVariables() const { return 5 + a_var.GetSize(); }
-    int GetOptVariables() const { return opt_variables_; }
-
-    /** copy from Variable objects to convenience variables P,Q,p,a */
-    void Update();
-
-    // Variable objects are the read design variables in a technical sense
-
-    Variable px; // make this vectors for 2D/3D
-    Variable py;
-    Variable qx;
-    Variable qy;
-    Variable p_var;
-    StdVector<Variable> a_var;
-
-    // the following data are convenience objects filled by Update() from the Variable objects.
-    // we use capital letters for vectors and points following math and spaghetti.py
-    Vector<double> P; // start point coordinate
-    Vector<double> Q; // end point coordinate
-    double         p = -1; // profile is doubled width
-    StdVector<double> a; // list normals
-
-    /** shape index */
-    int idx = -1;
-  private:
-    int opt_variables_ = -1;
-  };
-
   /** Helper for SetupDesign(). Stores the variable to shape_param_ and opt_shape_param_ */
   void AddVariable(Variable* var);
 
@@ -135,11 +179,6 @@ private:
 
   /** gives the result of the python function cfs_info_field_keys */
   StdVector<std::string> PythonGetInfoFieldKeys();
-
-  /** structured access to the full design space. Note that spaghetti is a plural of noodle.
-   * Within the noodles are all Variables referenced in FeaturedDesign::shape_param_ and FeaturedDesign::opt_shape_param_
-   * @See SetupDesign(), also for ordering within (opt_)shape_param_ */
-  StdVector<Noodle> spaghetti;
 
   /** spaghetti radius - needs to confirm profile and curvature of normals */
   double radius = -1;

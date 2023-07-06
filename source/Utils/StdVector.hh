@@ -288,6 +288,11 @@ namespace CoupledField {
      * @note Init() is called with this value */
     void Resize(size_type size, TYPE entry);
     
+    /** extract part of the vector by a pattern
+     * @param start this is index of the first item to be returned
+     * @param stride the returned values are for start, start+stride, start+2*stride, ... */
+    StdVector Slice(size_type start, size_type stride);
+
     //! Overloading of operation =
     StdVector     &operator=      (const StdVector &);
 

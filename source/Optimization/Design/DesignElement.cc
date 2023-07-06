@@ -928,6 +928,7 @@ void DesignElement::SetEnums()
   type.Add(NODE, "node");
   type.Add(PROFILE, "profile");
   type.Add(NORMAL, "normal");
+  type.Add(RADIUS, "radius");
   type.Add(CP, "controlpoint");
   type.Add(ALL_DESIGNS, "allDesigns");
 

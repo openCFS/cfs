@@ -1,8 +1,7 @@
 #ifndef PARAMMAT_HH_
 #define PARAMMAT_HH_
 
-#include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/Optimization.hh"
+#include "Optimization/SIMP.hh"
 
 namespace CoupledField {
 
@@ -11,7 +10,7 @@ class DenseMatrix;
 class DesignElement;
 class TransferFunction;
 
-  class ParamMat : public ErsatzMaterial
+  class ParamMat : public SIMP
   {
   public:
     /** constructor for parametric material optimization, most is already done in ErsatzMaterial */

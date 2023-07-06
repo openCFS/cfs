@@ -2,7 +2,7 @@
 
 # the purpose of this tool is to process snopt output files. There are three purposes
 # 1) extract the convergence information as a nice tabular file, e.g. for gnuplot or plotviz.py
-# 2) when a second file is given, filter from the secon file the lines corresponding to major iterations of the snopt file
+# 2) when a second file is given, filter from the second file the lines corresponding to major iterations of the snopt file
 # 3) provide the information of 1) as a function to be called directly from plotviz.py
 
 import os.path
@@ -164,9 +164,9 @@ def minmax(data):
   mal = max([len(t) for t in data[1:]])
   return mil, mal
 
-# parse dat or (later .density.xml) file
-# return list of header string and list of content strings
-def parseother(file):   
+# parse dat file and extend relevant header line by snopt_major columns
+# return list of header string (one is extended!) and list of content strings
+def parseother_and_extend_snopt_major(file):   
   # copy and paste from plotviz.py process()
   f = open(file, 'r')
   lines = f.readlines()
@@ -181,6 +181,24 @@ def parseother(file):
     else:
       body.append(l.strip())  
   
+  if header:
+    cols = len(body[0].split()) # number of columns we expect
+
+    # loop through header and extend the first which has cols splittings
+    for idx, line in enumerate(header):
+      l = line.strip()[1:].strip() # skip #
+      for test in [':', '(', '|', ',', '\t']:
+        if l.count(test) == cols:
+          header[idx] += ' \t'
+          if test == ':':
+            header[idx] += str(cols+1) + ':'
+          elif test == '(':                  
+            header[idx] += '(' + str(cols+1) + ') '
+          else: 
+            header[idx] +=  test
+          header[idx] += 'snopt_major'
+          return header, body
+  
   return header, body
    
 # plotviz.py is imported by plotviz.py, so guard argparse
@@ -188,7 +206,7 @@ if __name__ == '__main__':
   import argparse
 
   parser = argparse.ArgumentParser(description="process a .snopt output file. When a second file is given, it is filtered by snopt file's majors")
-  parser.add_argument("input", nargs='+', help="first file shall be a snopt file, second if is an optional cfs plot file")
+  parser.add_argument("input", nargs='+', help="first file shall be a snopt file, optioanlly a second .plot.dat or .density.xml")
   
   args = parser.parse_args()
 
@@ -209,26 +227,28 @@ if __name__ == '__main__':
       print('  '.join(l))
   else:
     idx = header.index('nObj' if 'nObj' in header else 'nCon')
-    nobj = [int(l[idx]) for l in data]
+    neval = [int(l[idx]) for l in data]
 
     if args.input[1].endswith('.dat'):
-      # we want to filter the content which belongs to majors
-      comments, body = parseother(args.input[1])
+      # we want to filter the content which belongs to majors. 
+      comments, body = parseother_and_extend_snopt_major(args.input[1]) # list of strings
       
-      # e.g. nobj[-1] = 31 --> len(body) shall be 31. 
-      if nobj[-1] != len(body):
-        print('Warning: expect',nobj[-1],'data lines in ', args.input[1],'but have',len(body), 'possible missmatch with',args.input[0])
+      # e.g. neval[-1] = 31 --> len(body) shall be 31. 
+      if neval[-1] != len(body):
+        print('# Warning: expect',neval[-1],'data lines in ', args.input[1],'but have',len(body), 'possible missmatch with',args.input[0])
       
-      # print the filtered stuff
-      for l in comments:
-        print(l)
-      for i in nobj: # we could add somehow the major
-        print(body[i-1]) # zero based.
+      # print the comments where one line shall be enriched by major_snopt
+      for l in comments: 
+        print(l) 
+      # fault tolerant printing all data  
+      for idx in range(min(len(neval), len(body))): # we could add somehow the major
+        major = neval[idx] -1
+        print(body[major] + ' \t' + str(idx)) # snopt is one-based.
     elif args.input[1].endswith('.density.xml'):
       xml = open_xml(args.input[1])
-      for i in range(nobj[-1]):
-        if i == (nobj[0]-1):
-          nobj.pop(0)
+      for i in range(neval[-1]):
+        if i == (neval[0]-1):
+          neval.pop(0)
         else:
         #  pathname = '//set[@id="' + str(i) + '"]'
         #  print(pathname)
