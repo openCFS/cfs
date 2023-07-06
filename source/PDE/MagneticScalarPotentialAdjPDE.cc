@@ -250,7 +250,7 @@ namespace CoupledField
       UInt entDim = ent[i]->GetGrid()->GetEntityDim(ptGrid_->GetRegionName(ent[i]->GetRegion()));
       std::string regName = ptGrid_->GetRegionName(ent[i]->GetRegion());
       std::string entName = ent[i]->GetName();
-      LOG_DBG(magscalpde) << "Entity with name " << entName
+      LOG_DBG(magscaladjpde) << "Entity with name " << entName
                           << " is in region with name "
                           << entName
                           << "\n and has the spatial dimension "
