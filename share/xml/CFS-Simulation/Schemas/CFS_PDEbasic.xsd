@@ -28,6 +28,7 @@
     <xsd:attribute name="pdeFormulation" type="DT_FeFormulationBasic" use="optional"
       default="default"/>
     <xsd:attribute name="systemId" type="xsd:token" use="optional" default="default"/>
+    <xsd:attribute name="isAdjoint" type="xsd:boolean" use="optional" default="false"/>
   </xsd:complexType>
 
 

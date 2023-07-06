@@ -244,7 +244,9 @@ namespace CoupledField {
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_ADJ, "magPotentialAdj");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DERIV1, "magPotentialD1");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_ADJ_DERIV1, "magPotentialAdjD1");
     SolutionTypeEnum.Add(MAG_TOTAL_POTENTIAL, "magTotalPotential");
     SolutionTypeEnum.Add(MAG_REDUCED_POTENTIAL, "magReducedPotential");
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
@@ -262,6 +264,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES, "magJouleLossPowerDensityOnNodes");
     SolutionTypeEnum.Add(MAG_JOULE_LOSS_POWER, "magJouleLossPower");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_ADJ_DIV, "magPotentialAdjDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY_STATIC, "magForceLorentzDensityStatic");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY_HARMONIC, "magForceLorentzDensityHarmonic");    
@@ -1199,6 +1202,7 @@ namespace CoupledField {
       case ELEC_FIELD_INTENSITY:
       case ELEC_FIELD_INTENSITY_SURF:
       case MAG_POTENTIAL_DERIV1:
+      case MAG_POTENTIAL_ADJ_DERIV1:
         return "V/m";
         break;
 
@@ -1211,7 +1215,11 @@ namespace CoupledField {
       case MAG_POTENTIAL:
         return "Vs/m";
         break;
-        
+
+      case MAG_POTENTIAL_ADJ:
+        return "Vs/m";
+        break;
+
       case MAG_FLUX_DENSITY:
       case MAG_FLUX_DENSITY_SURF:
       case MAG_NORMAL_FLUX_DENSITY:

@@ -51,6 +51,7 @@
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -84,6 +85,19 @@
             </xsd:complexType>
           </xsd:element>
           
+          <!-- List defining material dependencies -->
+          <xsd:element name="matDependencyList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="permeability" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>Magnetic permeability depends on magnetic intensity</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Type of velocity (optional) -->
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
