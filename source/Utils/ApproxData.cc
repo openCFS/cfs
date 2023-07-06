@@ -355,13 +355,13 @@ void ApproxData::PerformChecksOnInputData( std::string nlFileName ) {
     //now check, if we have monoton increasing x- and y-values
     for ( UInt k=0; k<numMeas_-1; k++ ) {
       double epsX = 1.0;
-      double epsY = 1e-3;
+      double epsY = 1e-6;
       if ( x_[k+1] - x_[k] < epsX ) {
         std::string str = "The H-values in file '" + nlFileName +
             "', are not monoton increasing (epsH = 1)! ";
         EXCEPTION( str );
       }
-      if ( y_[k+1] - y_[k] < epsY ) {
+      if ( y_[k+1] - y_[k] < epsY ) {        
         std::string str = "The B-values in file '" + nlFileName +
             "', are not monoton increasing (epsB = 1e-3)!";
         EXCEPTION( str );
