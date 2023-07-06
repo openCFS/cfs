@@ -1276,9 +1276,8 @@ namespace CoupledField {
       //========================================================================================
       // complexWaveNumber = sqrt(complexWaveNumber1)
       // https://math.stackexchange.com/questions/44406/how-do-i-get-the-square-root-of-a-complex-number
-      // z=c+di, and we want to find sqrt(z)=a+bi
-      // a = sqrt((c+norm(z))/2), norm(z) = sqrt(c^2+d^2)
-      // b = d/abs(d)*sqrt((-c+norm(z))/2)
+      // First: complex wave number is calculated
+      // Second: impedance is computed as rhoC/(1+real(complexWaveNum)/complexWaveNum)
       //========================================================================================
       for( UInt i = 0; i < abcNodes.GetSize(); i++ ) {
         std::string regionName = abcNodes[i]->Get("name")->As<std::string>();
@@ -1326,36 +1325,9 @@ namespace CoupledField {
                                 CoefXpr::OP_MULT)), complexWaveNum2,
                                 CoefXpr::OP_DIV)),
                                 CoefXpr::OP_MULT ));
-        //finding c and d
-        PtrCoefFct complexWaveNumRe1 = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNum1, CoefXpr::OP_RE));//real
-        PtrCoefFct complexWaveNumIm1 = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNum1, CoefXpr::OP_IM));//imag
-        // norm(z)
-        PtrCoefFct complexWaveNumAbs = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNum1, CoefXpr::OP_NORM));
-        //finding a = sqrt((c+norm(z))/2), norm(z) = sqrt(c^2+d^2)
-        PtrCoefFct complexWaveNumRe = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_,
-            CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_,
-                CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_,complexWaveNumAbs,complexWaveNumRe1, CoefXpr::OP_ADD)),
-                CoefFunction::Generate( mp_, Global::REAL, "2"),
-                CoefXpr::OP_DIV)),
-                CoefXpr::OP_SQRT));
-        //d/abs(d)
-        PtrCoefFct dabsd = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_,complexWaveNumIm1,
-            CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNumIm1, CoefXpr::OP_NORM)), CoefXpr::OP_DIV));
-        //finding b = d/abs(d)*sqrt((-c+norm(z))/2)
-        PtrCoefFct complexWaveNumIm = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_,dabsd,
-            CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_,
-                CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_,
-                    CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_, complexWaveNumAbs, complexWaveNumRe1, CoefXpr::OP_SUB)),
-                    CoefFunction::Generate( mp_, Global::REAL, "2"),
-                    CoefXpr::OP_DIV)),
-                    CoefXpr::OP_SQRT)),
-                    CoefXpr::OP_MULT));
-        //create a+bi
-        PtrCoefFct complexWaveNum = CoefFunction::Generate(mp_, Global::COMPLEX ,CoefXprBinOp(mp_,complexWaveNumRe,
-            CoefFunction::Generate( mp_, Global::COMPLEX,CoefXprBinOp(mp_,
-                complexWaveNumIm, CoefFunction::Generate( mp_, Global::COMPLEX, "0", "1"),
-                CoefXpr::OP_MULT)),
-                CoefXpr::OP_ADD));
+        //complexWaveNumber = sqrt[-rho*omega^2/(K+(4/3 shearVisc+ bulkVisc)*jomega))]                       
+        PtrCoefFct complexWaveNum = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprUnaryOp(mp_, complexWaveNum1, CoefXpr::OP_SQRT));
+        PtrCoefFct complexWaveNumRe = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, complexWaveNum, CoefXpr::OP_RE));
         // rhoC = rho*C =sqrt(rho*k)
         PtrCoefFct rhoC = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_,
             CoefFunction::Generate( mp_, Global::REAL,CoefXprBinOp(mp_, density, compressionModulus, CoefXpr::OP_MULT)),
