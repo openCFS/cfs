@@ -6,6 +6,7 @@ SET(PDE_SRCS
   BasePDE.cc
   ElecPDE.cc
   MagneticScalarPotentialPDE.cc
+  MagneticScalarPotentialAdjPDE.cc
   PerturbedFlowPDE.cc
   HeatPDE.cc
   MagBasePDE.cc

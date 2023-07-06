@@ -52,6 +52,7 @@
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagneticScalarPotentialPDE.hh"
+#include "PDE/MagneticScalarPotentialAdjPDE.hh"
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MagEdgeSpecialAVPDE.hh"
@@ -742,6 +743,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
   {
 
     std::string actPdeName = pdeNodes[i]->GetName();
+    bool isAdjoint = pdeNodes[i]->Get("isAdjoint")->As<bool>();
     PtrParamNode actPdeNode = pdeNodes[i];
     if( isParentDomain_) 
       std::cout << "++ Creating PDE '" + actPdeName + "' for analysis '"
@@ -768,8 +770,12 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       if (formulation == "A") {
         ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }else if(formulation == "Psi") {
-        ptSinglePde_[i] = new MagneticScalarPotentialPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-      }else{
+        if ( isAdjoint )
+          ptSinglePde_[i] = new MagneticScalarPotentialAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        else
+          ptSinglePde_[i] = new MagneticScalarPotentialPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      }
+      else{
         EXCEPTION("Formulation of MagEdgePDE not known!");
       }
     }
