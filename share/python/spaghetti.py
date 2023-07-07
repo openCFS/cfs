@@ -1480,7 +1480,7 @@ def combine_designs(var, i, j, derivative, verbose=False):
     # for angle average use only non-zero values
     sidx = np.nonzero(rho_shape_weights > 1e-14)
     if len(sidx[0]) != 0:
-      angles_shapes = np.array([get_material_rotation(var, idx, i, j, derivative) for idx in sidx[0]])
+      angles_shapes = [get_material_rotation(var, idx, i, j, derivative) for idx in sidx[0]]
       if derivative == True:
         ang, grad_ang = zip(*angles_shapes)
         if verbose:
