@@ -667,7 +667,7 @@ namespace CoupledField
               ReMapEquations(eqnVec1, fctId1);
               ReMapEquations(eqnVec2, fctId2);
 
-              LOG_DBG3(assemble) << "eqnVec1: " << eqnVec1.ToString() << "\n\n";
+              LOG_DBG3(assemble) << "eqnVec1 [1-based]: " << eqnVec1.ToString() << "\n\n";
               // Pass element matrix to algebraic system (primary matrix)
               if ( form->IsComplex() )
                 InsertMatrix( destMat, actContext, elemMatrixC, eqnVec1, eqnVec2, fctId1, fctId2);

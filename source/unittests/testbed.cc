@@ -13,12 +13,14 @@ using namespace CoupledField;
 BOOST_AUTO_TEST_CASE(StringParse)
 {
   std::stringstream ss( "1,.1 .2  .3\t.4 .5   ");
+  // somehow the tokenizer does not work when using ss.str() directly
+  std::string str = ss.str();
 
   boost::char_separator<char> sep(", \t;");
-  boost::tokenizer<boost::char_separator<char> > tokens(ss.str(), sep);
+  boost::tokenizer<boost::char_separator<char> > tokens(str, sep);
 
   // for(const auto& t: tokens)
-  //  std::cout  << "'"<< t << "'" << std::endl;
+  //   std::cout  << "'"<< t << "'" << std::endl;
 
   // tokenizer has no size() :(
 

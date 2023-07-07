@@ -62,8 +62,8 @@ public:
    * @param out_set needs to be a set output rhs where we add our stuff ad the dofs of de */
   void CalcElemAdjointRHS(DesignElement* de, double alpha, Vector<T>& out_set);
 
-  /** is actually the max(0, stress-c)^2 applied per element. if the bound c is too large it is all zero */
-  Vector<double> CalcGlobalizationFactor(const Vector<double>& stresses, bool gradient);
+  /** is actually the max(0, local_values-c)^2 applied per element. if the bound c is too large it is all zero */
+  Vector<double> CalcGlobalizationFactor(const Vector<double>& local_values, bool gradient);
 
   /** this is a cache for K' * u on element level
    *  for the local stress gradients we have to calculate lambda^T * K' * u,

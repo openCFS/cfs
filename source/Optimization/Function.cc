@@ -156,6 +156,7 @@ Function::Function(PtrParamNode pn)
   case GLOBAL_OSCILLATION:
   case GLOBAL_MOLE:
   case GLOBAL_STRESS:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
   case PERIMETER:
     if (!pn->Has("parameter"))
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
@@ -372,7 +373,7 @@ void Function::ToInfo(PtrParamNode info) {
   if(type_ == GLOBAL_STRESS  || type_ == LOCAL_STRESS)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
 
-  if(type_ == EIGENFREQUENCY || type_ == GLOBAL_BUCKLING_LOAD_FACTOR || type_ == LOCAL_BUCKLING_LOAD_FACTOR)
+  if(type_ == EIGENFREQUENCY || type_ == BUCKLING_LOAD_FACTOR || type_ == LOCAL_BUCKLING_LOAD_FACTOR)
     info->Get("ev")->SetValue(eigenvalue_id_);
 
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
@@ -423,7 +424,7 @@ string Function::ToString() const
   else
     os << access.ToString(access_) + "_" + tn;
 
-  if(type_ == GLOBAL_BUCKLING_LOAD_FACTOR || type_ == LOCAL_BUCKLING_LOAD_FACTOR)
+  if(type_ == BUCKLING_LOAD_FACTOR || type_ == LOCAL_BUCKLING_LOAD_FACTOR)
     os << "_" << eigenvalue_id_;
 
   return os.str();
@@ -532,13 +533,14 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case TEMP_TRACKING_AT_INTERFACE:
   case GLOBAL_STRESS:
   case EIGENFREQUENCY:
-  case GLOBAL_BUCKLING_LOAD_FACTOR:
+  case BUCKLING_LOAD_FACTOR:
   case LOCAL_BUCKLING_LOAD_FACTOR:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
   case PRESSURE_DROP:
   case ISOTROPY:
   case ISO_ORTHOTROPY:
   case ORTHOTROPY:
-  case DESIGN_TRACKING: // according to comment against physcial design
+  case DESIGN_TRACKING: // according to comment against physical design
     return PHYSICAL;
 
   case MULTI_OBJECTIVE:
@@ -685,8 +687,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_STRESS:
   case LOCAL_STRESS:
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
-  case GLOBAL_BUCKLING_LOAD_FACTOR:
+  case BUCKLING_LOAD_FACTOR:
   case LOCAL_BUCKLING_LOAD_FACTOR:
+  case GLOBAL_BUCKLING_LOAD_FACTOR: // blubber
     // there might be the optional excitation index set
     if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all") {
       excite_ = excite_index == UNSET_EX ? ALL_EX : excite_index;
@@ -717,7 +720,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   LOG_DBG(func) << "SE f=" << ToString() << " exite_=" << excite_ << " ex=" << sample_excitation_->GetFullLabel();
 }
 
-/** Shall/must we evaluate this objective at this excitation?
+/** Shall/must we evaluate this function at this excitation?
  * Stress constraints in homogenization are triggered for a single constraint only. */
 bool Function::DoEvaluate(const Excitation* excite) const {
   assert(excite != NULL);
@@ -810,8 +813,9 @@ bool Function::IsAdjointBased() const {
   case SQR_MAG_FLUX_DENS_RZ:
   case LOSS_MAG_FLUX_RZ:
   case MAG_COUPLING:
-  case GLOBAL_BUCKLING_LOAD_FACTOR:
+  case BUCKLING_LOAD_FACTOR:
   case LOCAL_BUCKLING_LOAD_FACTOR:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
     return true;
 
   case COMPLIANCE: // only in the transient case
@@ -981,6 +985,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region)
       case GLOBAL_STRESS:
       case LOCAL_STRESS:
       case LOCAL_BUCKLING_LOAD_FACTOR:
+      case GLOBAL_BUCKLING_LOAD_FACTOR: // blubber
       case SQR_MAG_FLUX_DENS_X:
       case SQR_MAG_FLUX_DENS_Y:
       case SQR_MAG_FLUX_DENS_RZ:
@@ -1095,6 +1100,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case GLOBAL_STRESS:
   case LOCAL_STRESS:
   case LOCAL_BUCKLING_LOAD_FACTOR:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
   case SUM_MODULI:
   case SHAPE_INF:
     // we need no neighbors.
@@ -1246,6 +1252,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_SLOPE:
   case GLOBAL_DESIGN:
   case GLOBAL_STRESS:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
     this->globalized_ = true;
     break;
 
@@ -1391,6 +1398,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_STRESS:
   case LOCAL_STRESS:
   case LOCAL_BUCKLING_LOAD_FACTOR:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
   case DESIGN:
   case GLOBAL_DESIGN:
     if (locality_ != ELEMENT && locality_ != DEFAULT)
@@ -2303,9 +2311,16 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
 
   // short cut for the gradient in the 1-norm
   if (grad_glob && local->power_ == 1.0) {
-    LOG_DBG2(func)<< "L:I:EF: global! p=" << local->power_ << " gg=" << grad_glob << " -> " << 1.0;
+    double factor = 1.0;
+    if (local->DoNormalizeGlobal())
+      factor = (f->type_ == GLOBAL_TWO_SCALE_VOL && !local->space->IsRegular()) ? (1./local->total_vol_) : (1.0 / local->virtual_elem_map.GetSize());
 
-    return 1.0;
+    LOG_DBG(func)<< "L:I:EF: global! p=" << local->power_ << " gg=" << grad_glob << " normalize=" << local->DoNormalizeGlobal() << " -> " << factor;
+
+    if (f->type_ == GLOBAL_BUCKLING_LOAD_FACTOR)
+        factor *= (f->GetValue() < f->GetParameter()) ? -1.0 : 0.0;
+
+    return factor;
   }
 
   switch (f->type_) {
@@ -2313,7 +2328,8 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   case GLOBAL_STRESS:
   case LOCAL_STRESS:
   case LOCAL_BUCKLING_LOAD_FACTOR:
-    fv = f->GetValue(); // from local_values, set in SIMP::Calc[Global/Local]VonMisesStress[OrLoadFactor]() or ErsatzMaterial::CalcGlobalFunction() for the global case, we might be objective function.
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
+    fv = f->GetValue(); // from local_values, set in ErsatzMaterial::Calc[Global/Local]VonMisesStress[OrLoadFactor]() or ErsatzMaterial::CalcGlobalFunction() for the global case, we might be objective function.
     assert(fv != -1);
     break;
 
@@ -2455,30 +2471,28 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
   case GLOBAL_TWO_SCALE_VOL:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
+  case GLOBAL_BUCKLING_LOAD_FACTOR:
   {
     // we normalize all values by the number of "constraints". Note that it is
     // sufficient for the function value, the gradient is then also right
     double factor;
     if (local->DoNormalizeGlobal()) {
-      if (f->type_ == GLOBAL_TWO_SCALE_VOL) {
-        factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : (1./local->total_vol_) ;
-      } else {
-        factor = 1.0 / local->virtual_elem_map.GetSize();
-      }
+      factor = (f->type_ == GLOBAL_TWO_SCALE_VOL && !local->space->IsRegular()) ? (1./local->total_vol_) : (1.0 / local->virtual_elem_map.GetSize());
     } else {
       factor = 1.;
     }
 
-    double v = std::max(0.0, fv - f->GetParameter());
+    double fac = (f->type_ == GLOBAL_BUCKLING_LOAD_FACTOR) ? -1. : 1.;
+    double v = std::max(0.0, fac * (fv - f->GetParameter()));
 
     double p = local->GetPower();
 
-    double res = grad_glob ? p * std::pow(v, p - 1.0) : std::pow(v, p);
+    double res = grad_glob ? fac * p * std::pow(v, p - 1.0) : std::pow(v, p);
 
     res *= factor;
 
-    LOG_DBG2(func)<< "L:I:EF: global! bound=" << f->GetParameter() << " fv=" << fv << " v=" << v << " p=" << p
-       << " factor=" << factor << " gg=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
+    LOG_DBG(func)<< "L:I:EF: global! bound=" << f->GetParameter() << " fv=" << std::setprecision(12) << fv << " v=" << v << " p=" << p
+       << " factor=" << factor << " gg=" << grad_glob << " power=" << local->GetPower() << " v^p="<< std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
   }
@@ -2589,7 +2603,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case GLOBAL_STRESS:
     case LOCAL_STRESS:
     case LOCAL_BUCKLING_LOAD_FACTOR:
-      assert(false); // in SIMP::Calc[Local/Global]VonMisesStress[OrLoadFactor]() only!
+    case GLOBAL_BUCKLING_LOAD_FACTOR:
+      assert(false); // in ErsatzMaterial::Calc[Local/Global]VonMisesStress[OrLoadFactor]() only!
       break;
 
     case SUM_MODULI:
@@ -2659,20 +2674,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     // post process the globalized functions. The perimeter is not globalized in that sense
     if (local->IsGlobalized())
     {
-      // actually the normalization is already in grad_glob_fv if power != 1.0!
-      double factor = 1.0;
-      if (local->DoNormalizeGlobal() && local->power_ == 1.0) {
-        if (ft == GLOBAL_TWO_SCALE_VOL) {
-          factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : 1. / local->total_vol_ ;
-        } else {
-          factor = 1.0 / local->virtual_elem_map.GetSize();
-        }
-      }
-      gv  *= grad_glob_fv * factor;
+      gv *= grad_glob_fv;
       LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                      << element->GetIndex() << " sign=" << sign << " n=" << n
                      << " curr=" << GetElement(n)->GetIndex()
-                     << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
+                     << " bound! grad_glob_gv=" << grad_glob_fv << " new gv=" << gv;
     }
 
     BaseDesignElement* bde = GetElement(n);
@@ -3637,6 +3643,7 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   DesignElement* de = dynamic_cast<DesignElement*>(element);
   int dim = domain->GetGrid()->GetDim();
 
+  assert(Optimization::context->dm);
   if (Optimization::context->dm->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 2) {
     throw Exception("CalcTwoScaleVolume is not implemented for dim = 2 and HOM_ISO_C1.");
   }
@@ -3686,7 +3693,7 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
       }
     } else {
       vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-      assert(vol!= -1);
+      assert(vol != -1);
       return vol;
     }
   }

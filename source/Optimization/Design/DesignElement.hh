@@ -214,8 +214,9 @@ public:
       SM_NODE_B, /*!< for 3D shape map */
       SM_PROFILE,  /*!< for shape map */
       SP_CP, /*!< for spline box mapping */
-      BUCKLINGLOADFACTOR, /*!< macroscopic load factor */
-      LOCALBUCKLINGLOADFACTOR,  /*!< microscopic load factor */
+      BUCKLING_LOAD_FACTOR, /*!< macroscopic load factor */
+      LOCAL_BUCKLING_LOAD_FACTOR, /*!< microscopic load factor */
+      GLOBAL_BUCKLING_LOAD_FACTOR, /*!< globalized microscopic load factor */
       SIN,  /*!< sine value, e.g. for filteredDesign: F*sin(x)*/
       COS,  /*!< cosine value, e.g. for filteredDesign: F*cos(x)*/
     } Detail;

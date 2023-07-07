@@ -38,7 +38,7 @@ BOOST_AUTO_TEST_CASE(cubic_interpolation_test)
   ci->CalcApproximation();
 
   // evaluate and check some example data
-  // linear interpolation has to be exact
+  // interpolation of linear data has to be exact
   double val;
   val = ci->EvaluateFunc(2);
   BOOST_TEST(val == 2.*2., tt::tolerance(1e-12));
@@ -54,6 +54,14 @@ BOOST_AUTO_TEST_CASE(cubic_interpolation_test)
   BOOST_TEST(dvalc == 2., tt::tolerance(1e-12));
   dvalc = ci->EvaluateDeriv(std::sqrt(2));
   BOOST_TEST(dvalc == 2., tt::tolerance(1e-12));
+
+  double ddvalc;
+  ddvalc = ci->EvaluateSecondDeriv(2);
+  BOOST_TEST(ddvalc == 0., tt::tolerance(1e-12));
+  ddvalc = ci->EvaluateSecondDeriv(7.1);
+  BOOST_TEST(ddvalc == 0., tt::tolerance(1e-12));
+  ddvalc = ci->EvaluateSecondDeriv(std::sqrt(2));
+  BOOST_TEST(ddvalc == 0., tt::tolerance(1e-12));
 
   // generate nonlinear data of periodic function
   for (unsigned int i = 0; i < m; ++i)
@@ -81,7 +89,10 @@ BOOST_AUTO_TEST_CASE(cubic_interpolation_test)
   dvalc = ci2->EvaluateDeriv(std::sqrt(2));
   BOOST_TEST(dvalc == std::cos(std::sqrt(2) / (x[m-1]-x[0]) * 2 * M_PI) / (x[m-1]-x[0]) * 2 * M_PI, tt::tolerance(0.2));
 
+
   //////////////////////////////////// 2D ////////////////////////////////////
+
+  // generate linear data
   StdVector<double> databc(m*n);
   for (unsigned int i = 0; i < m; ++i) {
     for (unsigned int j = 0; j < n; ++j) {
@@ -151,6 +162,8 @@ BOOST_AUTO_TEST_CASE(cubic_interpolation_test)
   BOOST_TEST(dvalb[1] == -std::sin(M_PI          / (y[n-1]-y[0]) * 2 * M_PI) / (y[n-1]-y[0]) * 2 * M_PI, tt::tolerance(0.01));
 
   //////////////////////////////////// 3D ////////////////////////////////////
+
+  // generate linear data
   StdVector<double> datatc(m*n*o);
   for (unsigned int i = 0; i < m; ++i) {
     for (unsigned int j = 0; j < n; ++j) {
@@ -169,8 +182,8 @@ BOOST_AUTO_TEST_CASE(cubic_interpolation_test)
   // linear interpolation has to be exact
   val = tci->EvaluateFunc(2, 5, 3);
   BOOST_TEST(val == 2.*2. + 5. + 3.*3., tt::tolerance(1e-12));
-  val = tci->EvaluateFunc(7.1, 1.4, 10.0);
-  BOOST_TEST(val == 2.*7.1 + 1.4 + 3.*10.0, tt::tolerance(1e-12));
+  val = tci->EvaluateFunc(7.1, 4.4, 10.0);
+  BOOST_TEST(val == 2.*7.1 + 4.4 + 3.*10.0, tt::tolerance(1e-12));
   val = tci->EvaluateFunc(std::sqrt(20), M_PI, 4.5);
   BOOST_TEST(val == 2.*std::sqrt(20) + M_PI + 3.*4.5, tt::tolerance(1e-12));
 
@@ -183,7 +196,7 @@ BOOST_AUTO_TEST_CASE(cubic_interpolation_test)
   // tt::per_element() does not work, because there is no elem_op for Vector
   for (unsigned int i = 0; i < reft.GetSize(); ++i)
     BOOST_TEST(dvalb[i] == reft[i], tt::tolerance(1e-10));
-  dvalb = tci->EvaluatePrime(7.1, 1.4, 10.0);
+  dvalb = tci->EvaluatePrime(7.1, 4.4, 10.0);
   for (unsigned int i = 0; i < reft.GetSize(); ++i)
     BOOST_TEST(dvalb[i] == reft[i], tt::tolerance(1e-10));
   dvalb = tci->EvaluatePrime(std::sqrt(20), M_PI, 4.5);

@@ -41,6 +41,12 @@ public:
   /** Initialize mechanic material derivatives by checking if MECH_11 is in space */
   void InitMechMatDeriv(StdVector<RegionIdType>& reg);
 
+  /** set a material derivative */
+  void SetMatDeriv(const string& integrator, RegionIdType reg, DesignElement::Type dir, int design_id);
+
+  /** deletes cached data */
+  void ClearMatDeriv(const string& integrator, RegionIdType reg, DesignElement::Type dir, int design_id);
+
   /** This is essentially a replicate of CoefFunctionOpt::State which we cannot easily use
    * due to cyclic dependencies */
   typedef enum { NONE = -1, ORG = 0, SHADOW, DIRECTION } Type;
@@ -53,10 +59,10 @@ public:
 
   /** variant for gradient evaluation without copying the stored data. */
   template<class T>
-  const Matrix<T>& CachedElement(const string& integrator, Type type, const Elem* elem, DesignElement::Type dir = DesignElement::NO_DERIVATIVE, PtrCoefFct shadow_coef = PtrCoefFct());
+  const Matrix<T>& CachedElement(const string& integrator, Type type, const Elem* elem, DesignElement::Type dir = DesignElement::NO_DERIVATIVE, PtrCoefFct shadow_coef = PtrCoefFct(), int design_id = -1);
 
-  bool HasCachedData(const string& integrator, Type type, DesignElement::Type dir = DesignElement::NO_DERIVATIVE, PtrCoefFct shadow_coef = PtrCoefFct()) {
-    return active_ ? GetFormData(integrator, type, dir, shadow_coef) != NULL : false;
+  bool HasCachedData(const string& integrator, Type type, DesignElement::Type dir = DesignElement::NO_DERIVATIVE, PtrCoefFct shadow_coef = PtrCoefFct(), int design_id = -1) {
+    return active_ ? GetFormData(integrator, type, dir, shadow_coef, design_id) != NULL : false;
   }
 
   template<class T>
@@ -70,8 +76,8 @@ public:
   }
 
   template<class T>
-  const Matrix<T>& CachedMatDerivElement(const string& integrator, const Elem* elem, DesignElement::Type dir) {
-    return CachedElement<T>(integrator, DIRECTION, elem, dir);
+  const Matrix<T>& CachedMatDerivElement(const string& integrator, const Elem* elem, DesignElement::Type dir, int design_id = -1) {
+    return CachedElement<T>(integrator, DIRECTION, elem, dir, PtrCoefFct(), design_id);
   }
 
   void ToInfo(PtrParamNode info);
@@ -109,6 +115,7 @@ private:
 
     /** index within data_real_ or data_cplx_ */
     int    idx = -1;
+
     /** the name of the bilinear form */
     string integrator;
 
@@ -138,6 +145,9 @@ private:
     /** which data to fill */
     bool isComplex = false;
 
+    /** which iteration the data belongs to */
+    int designID = -1;
+
     /** Helper to hide complex.
      * @param region write to region_ or elem_. region_ must be written only once! */
     void CalcElementMatrix(BiLinearForm* form, EntityIterator& entity, bool region);
@@ -152,13 +162,14 @@ private:
     std::string ToString();
   };
 
-  /** searches the data and conditioanlly creates it */
+  /** searches the data and conditionally creates it */
   FormData& GetFormData(const BiLinearForm* form, Type type, DesignElement::Type dir, bool create = false);
 
   /** @return NULL if the data could not be found */
   LocalElementCache::FormData* GetFormData(const string& integrator, Type type,
       DesignElement::Type dir = DesignElement::NO_DERIVATIVE,
-      PtrCoefFct shadow_coef = PtrCoefFct())
+      PtrCoefFct shadow_coef = PtrCoefFct(),
+      int design_id = -1)
   {
     // try to avoid as many string comparisons as possible!
     int res_idx = -1;
@@ -167,6 +178,7 @@ private:
     case ORG:
       assert(dir == DesignElement::NO_DERIVATIVE);
       assert(!shadow_coef);
+      assert(design_id == -1);
       for(unsigned int i = 0; res_idx == -1 && i < org_end_; i++)
         if(data_[i].CheckContext() && data_[i].integrator == integrator)
           res_idx = i;
@@ -174,6 +186,7 @@ private:
     case SHADOW:
       assert(dir == DesignElement::NO_DERIVATIVE);
       assert(shadow_coef);
+      assert(design_id == -1);
       for(unsigned int i = org_end_; res_idx == -1 && i < shadow_end_; i++)
         if(data_[i].CheckContext() && data_[i].integrator == integrator && data_[i].shadow == shadow_coef)
           res_idx = i;
@@ -182,7 +195,7 @@ private:
       assert(dir != DesignElement::NO_DERIVATIVE);
       assert(!shadow_coef);
       for(unsigned int i= shadow_end_; res_idx == -1 && i < dir_end_; i++)
-        if(data_[i].CheckContext() && data_[i].dir == dir && data_[i].integrator == integrator)
+        if(data_[i].CheckContext() && data_[i].dir == dir && data_[i].integrator == integrator && data_[i].designID == design_id)
           res_idx = i;
       break;
     default:
@@ -194,11 +207,12 @@ private:
     assert(data_[res_idx].integrator == integrator);
     assert(data_[res_idx].type == type);
     assert(data_[res_idx].contex == (int) Optimization::context->context_idx);
+    assert(data_[res_idx].designID == design_id);
     return &data_[res_idx];
   }
 
   /** Helper for GetFormData() */
-  FormData* AppendFormData(const BiLinearForm* form, Type type, DesignElement::Type dir = DesignElement::NO_DERIVATIVE, PtrCoefFct shadow_coef = PtrCoefFct());
+  FormData* AppendFormData(const BiLinearForm* form, Type type, DesignElement::Type dir = DesignElement::NO_DERIVATIVE, PtrCoefFct shadow_coef = PtrCoefFct(), int design_id = -1);
 
   /** fills either all elements for the region or all elements of the region.
    * Switches the Form to the type encoded in data!

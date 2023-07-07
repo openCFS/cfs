@@ -46,12 +46,14 @@ void EvaluateOnly::SolveProblem()
   StdVector<double> gu(gl.GetSize());
   GetBounds(xl.GetSize(), xl.GetPointer(), xu.GetPointer(), gl.GetSize(), gl.GetPointer(), gu.GetPointer());
 
+#ifndef NDEBUG
   for(int i = 0; i < optimization->constraints.view->GetNumberOfActiveConstraints(); i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
     LOG_DBG(eval) << "SP: bnds g[" << i << " (" << (g->GetIndex()+1) << ")]=" << g->ToString() << " -> " << gl[i] << " ... " << gu[i];
   }
   optimization->constraints.view->Done();
+#endif
 
   // in the harmonic case we sweep over multiple frequencies if we have not "multipleExcitation"
   HarmonicDriver* hd = Optimization::context->GetHarmonicDriver();
@@ -91,8 +93,9 @@ void EvaluateOnly::SolveProblem()
     LOG_DBG(eval) << "SP: obj=" << design_.value;
     // calc gradients, they might be stored in store results!
     // gradients might need adjoints
+    optimization->SolveAdjointProblems(excite);
+
     if(eval_grad){
-      optimization->SolveAdjointProblems(excite);
       eval_grad_obj_timer_->Start();
       optimization->CalcObjectiveGradient(&grad, excite);
       eval_grad_obj_timer_->Stop();
@@ -111,7 +114,7 @@ void EvaluateOnly::SolveProblem()
 
       double scaling = g->DoObjectiveScaling() ? objective->scaling.value : g->manual_scaling_value;
 
-      LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v * scaling; // snopt index in brackets
+      LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << std::setprecision(10) << v * scaling; // snopt index in brackets
 
       if(!g->IsObservation()) // not for observation stuff
       {
@@ -120,11 +123,14 @@ void EvaluateOnly::SolveProblem()
         eval_grad_const_timer_->Start();
         optimization->CalcConstraintGradient(g, &grad, excite);
         eval_grad_const_timer_->Stop();
+#ifndef NDEBUG
         for(unsigned int i = 0; i < pattern.GetSize(); i++) {
           BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(pattern[i]);
           LOG_DBG2(eval) << "SP: grad g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " i=" << i
-                         << "(" << (i+1) << ") pi=" << pattern[i] << "(" << (pattern[i]+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i] * scaling;
+                         << "(" << (i+1) << ") pi=" << pattern[i] << "(" << (pattern[i]+1) <<  ") de=\"" << de->ToString()
+                         << "\" -> " << std::setprecision(10) << grad[i] * scaling;
         }
+#endif
       }
     }
     optimization->constraints.view->Done(); // reset the slope constraints to global

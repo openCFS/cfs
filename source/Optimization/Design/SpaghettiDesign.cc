@@ -45,9 +45,6 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   if(pn->Get("gradplot")->As<bool>()) // todo: move to FeaturedDesign
    gradplot_.open((progOpts->GetSimName() + ".grad.dat").c_str()); // the auto destructor does the job.
 
-  // n_ and nx_, ny_, nz_
-  SetupMeshStructure();
-
   // map_
   SetupMapping();
 

@@ -151,11 +151,13 @@ public:
     double EvaluateC1Interpolation1D(double p, const Matrix<double>& coeff, int& j) const;
 
     /** evaluates the first derivative of the one dimensional C1 interpolation polynomial at point p
-     * f'(x) = a1 + 2*a2*p + 3*a3*p**2 */
+     * f'(x) = a1 + 2*a2*p + 3*a3*p**2
+     * direction is only passed for an assertion */
     double EvaluateC1Interpolation1D_Deriv(double p, const Matrix<double> & coeff, int & j, DesignElement::Type direction) const;
 
     /** evaluates the second derivative of the one dimensional C1 interpolation polynomial at point p
-     * f'(x) = 2*a2 + 6*a3*p */
+     * f'(x) = 2*a2 + 6*a3*p
+     * direction is only passed for an assertion */
     double EvaluateC1Interpolation1D_Deriv2(double p, const Matrix<double> & coeff, int & j, DesignElement::Type direction) const;
 
     /** evaluates the twodimensional C1 interpolation polynomial at point p and returns function value as double */
@@ -176,6 +178,11 @@ public:
     /** Get the index of the local interpolation interval
      * if point is outside of interval, it is set to interval's bounds*/
     int GetInterpolationIndex(const Vector<double>& interval, double& point) const;
+
+    /** Calculates a local load factor for normalized stress by evaluating
+     * an interpolated function (stored in the material catalogue file).
+     * Also does a quadratic extrapolation to avoid too large values for vol -> 1. */
+    double GetMicroLoadFactor(double vol, DesignElement::Type direction);
 
     /** checks for a parameter. Checks the thread local storage. */
     inline bool HasParameter(const DesignElement::Type p) const {
@@ -246,7 +253,7 @@ protected:
 private:
     /* note that most of these functions are called really often, so inlining is used */
 
-    void ReadCoeff(PtrParamNode pn, const string& name, int nRows, int nCols, Matrix<double>& coeff) const;
+    bool ReadCoeff(PtrParamNode pn, const string& name, int nRows, int nCols, Matrix<double>& coeff) const;
 
     /** create a new interpolator (cubic|bicubic|tricubic) with coeff as polynomial coefficients */
     ApproxData* CreateInterpolator(StdVector<double>& a, StdVector<double>& b, StdVector<double>& c, Matrix<double>& coeff);
@@ -379,7 +386,7 @@ private:
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
     Matrix<double> hom_rect_samples_;
-    /** sampled values for coefficients of the bicubic interpolation polynomial; number of sample elements rows and 16 columns/64 columns (3D)*/
+    /** sampled values for coefficients of the interpolation polynomial; number of sample elements is rows and 16 columns/64 columns (3D)*/
     Matrix<double> hom_rect_coeff11_;
     Matrix<double> hom_rect_coeff12_;
     Matrix<double> hom_rect_coeff13_;
@@ -404,6 +411,11 @@ private:
     Vector<double> hom_rect_a_;
     Vector<double> hom_rect_b_;
     Vector<double> hom_rect_c_;
+
+    /** sampled values for coefficients of the interpolation polynomial for a micro load factor */
+    Matrix<double> hom_mlf_coeff_;
+    /** micro load factors are extrapolated above a given threshold */
+    double extrapolationThreshold_ = 0.0;
 
     /** MSFEM element matrix coefficients of the bi-/tricubic interpolation polynomial from material catalogue; number of sample elements rows and 64 columns */
     Vector<double> msfem_a_;
@@ -441,6 +453,7 @@ private:
     ApproxData* interpolator55_ = nullptr;
     ApproxData* interpolator56_ = nullptr;
     ApproxData* interpolator66_ = nullptr;
+    ApproxData* interpolatorMLF_ = nullptr;
 
 #ifdef USE_SGPP
     /** members for SGPP interpolation */

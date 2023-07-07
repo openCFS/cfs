@@ -247,7 +247,7 @@ boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
     return eval_grad_obj_timer_;
   if(eval_grad_const_timer_->IsRunning())
     return eval_grad_const_timer_;
-  // Nothing is running when we no a direct eval constraint call
+  // Nothing is running when we do a direct eval constraint call
   //std::cout << "BO:GRET -> NULL\n";
   return boost::shared_ptr<Timer>(); // http://stackoverflow.com/questions/16229401/initialize-a-boostshared-ptr-to-null
 }
@@ -363,7 +363,6 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 
   eval_obj_timer_->Start();
 
-
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
   LOG_DBG(optimizer) << " set new design: avg " <<  Average(x, n)  << " std_dev = " << StandardDeviation(x, n) << " -> " << new_design;
@@ -443,14 +442,18 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
 
 bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, StdVector<double>& grad_f)
 {
-  assert(optimization->CalcObjectiveCalled());
+//  assert(optimization->CalcObjectiveCalled());
+  Optimization* opt = domain->GetOptimization();
+  if(!opt->CalcObjectiveCalled())
+    opt->CalcObjective();
+
   bool opt_run = optimizer_timer_->IsRunning(); // in the scale case we have to optimization_timer
   if(opt_run)
     optimizer_timer_->Stop();
 
   python->CallHook(PythonKernel::OPT_EVAL_GRAD);
 
-  // might trigger EvalObjective so start timer afterwards
+  // triggers EvalObjective, so start timer afterwards
   bool need_eval = SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
 
   eval_grad_obj_timer_->Start();
@@ -575,7 +578,7 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
       << " base=" << base << " ms=" << manual_scaling
       << " os=" << objective_scaling << " scaled=" << scaled << " -> " << val;
 
- if(direct_call) {
+  if(direct_call) {
     eval_const_timer_->Stop();
     optimizer_timer_->Start();
   }
@@ -593,8 +596,11 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 
   python->CallHook(PythonKernel::OPT_EVAL_GRAD);
 
-  // might trigger EvalObjective so start timer afterwards
-  SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
+  if(grtype != LINEAR)
+    // triggers EvalObjective, so start timer afterwards
+    SolveAdjointProblemsIfNeeded(n, x, cfs_scale);
+  else
+    EvalObjective(n, x, cfs_scale);
 
   eval_grad_const_timer_->Start();
 

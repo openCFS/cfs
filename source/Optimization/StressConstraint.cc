@@ -44,11 +44,12 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
     elemList(domain->GetGrid())
 {
   Function::Type type = f->GetType();
-  assert(type == Function::GLOBAL_STRESS || type == Function::LOCAL_STRESS || type == Function::LOCAL_BUCKLING_LOAD_FACTOR);
+  assert(type == Function::GLOBAL_STRESS || type == Function::LOCAL_STRESS
+      || type == Function::LOCAL_BUCKLING_LOAD_FACTOR || type == Function::GLOBAL_BUCKLING_LOAD_FACTOR);
 
   this->excite = excite;
   this->f = f;
-  this->em =em;
+  this->em = em;
   this->forward = forward;
 
   space = em->GetDesign();
@@ -58,12 +59,11 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
   this->u2_elem_ptr = NULL;
 
   // global initializations
-  if(type == Function::LOCAL_BUCKLING_LOAD_FACTOR)
+  if(type == Function::LOCAL_BUCKLING_LOAD_FACTOR || type == Function::GLOBAL_BUCKLING_LOAD_FACTOR)
     // for the local buckling load factor we need the norm of the stress
     M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetHillMandelMatrix(domain->GetGrid()->GetDim());
   else
     M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
-
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
     tf = TransferFunction(App::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());
@@ -114,7 +114,6 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
     all_u1_elem = &(forward->Get(excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
     all_u2_elem = &(forward->Get(excite)->elem[app.second == App::MECH ? App::MECH : App::ELEC]); // for the adjoint rhs we need no app2 solution
 
-
     ElementAccess ea(em->context->GetBiLinFormContext(f->elements[0]->elem->regionId, app.first, app.second, true));
 
     // It might be that stress sensitive region is not within the design domain itself
@@ -122,9 +121,13 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
     {
       DesignElement* de = f->elements[e];
       ea.SetElem(de->elem);
-      SetupElement(&ea, de, app.first, mode);
+      if (mode == STRESS)
+        SetupElement(&ea, de, app.first, mode);
+      else {
+        assert(mode == GRAD_STRESS);
+        SetupElement(&ea, de, app.first, mode, de->GetType());
+      }
       double elem_vol = ea.esm->CalcVolume();
-
 
       // we integrate over the element by averages summation and then multiplying with the volume
       for(unsigned int ip = 0; ip < ea.intPoints.GetSize(); ip++)
@@ -142,7 +145,7 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
 
         out[e] += factor * Real(inner);
 
-        LOG_DBG2(sc) << "CS de=" << de->ToString() << " ip=" << ip << " inner=" << inner << " w=" << ea.weights[ip] << " f=" << factor
+        LOG_DBG2(sc) << "CS: de=" << de->ToString() << " ip=" << ip << " inner=" << inner << " w=" << ea.weights[ip] << " f=" << factor
                      << " stress1=" << stress1.ToString() << " M_stress2=" << M_stress2.ToString() << " -> " << (factor * Real(inner));
       }
 
@@ -153,7 +156,8 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
         // LOG_DBG3(em) << "CS:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << out[e];
       }
 
-      LOG_DBG2(sc) << "CS de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " ev=" << ea.esm->CalcVolume() << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
+      LOG_DBG2(sc) << "CS: de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " evol=" << ea.esm->CalcVolume()
+          << " mode=" << mode << " sMs=" << out[e] << " trans=" <<  tf.Transform(de, DesignElement::SMART);
     }
   }
 }
@@ -206,7 +210,7 @@ double StressConstraint<T>::CalcElementStress(Mode mode, int res_idx, DesignElem
 
       res += factor * Real(inner);
 
-      LOG_DBG2(sc) << "CS de=" << de->ToString() << " ip=" << ip << " inner=" << inner << " w=" << ea.weights[ip] << " f=" << factor
+      LOG_DBG2(sc) << "CS: de=" << de->ToString() << " ip=" << ip << " inner=" << inner << " w=" << ea.weights[ip] << " f=" << factor
           << " stress1=" << stress1.ToString() << " M_stress2=" << M_stress2.ToString() << " -> " << (factor * Real(inner));
     }
 
@@ -216,7 +220,7 @@ double StressConstraint<T>::CalcElementStress(Mode mode, int res_idx, DesignElem
       de->specialResult[res_idx] = res;
       // LOG_DBG3(em) << "CS:sr de=" << de->ToString() << " res_idx=" << res_idx << " v=" << out[e];
     }
-    LOG_DBG2(sc) << "CES de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " ev=" << ea.esm->CalcVolume() << " sMs=" << res << " trans=" <<  tf.Transform(de, DesignElement::SMART);
+    LOG_DBG2(sc) << "CES: de=" << de->ToString() << " rho=" << de->GetDesign(DesignElement::SMART) << " evol=" << ea.esm->CalcVolume() << " sMs=" << res << " trans=" <<  tf.Transform(de, DesignElement::SMART);
   }
 
   return res;
@@ -237,7 +241,20 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   // app2 determines the pde. The elastic case is simply App::MECH, App::MECH
 
   const Vector<double> stress = CalcStresses();
-  Vector<double> alpha = CalcGlobalizationFactor(stress, true);
+
+  Vector<double> local_values = stress;
+  if(f->GetType() == Function::GLOBAL_BUCKLING_LOAD_FACTOR)
+  {
+    // it might be that stress sensitive region is not within the design domain itself
+    for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
+    {
+      double vol = f->elements[e]->GetDesign(DesignElement::SMART);
+      double ev_interpolated = em->GetMicroLoadFactor(vol);
+      local_values[e] = ev_interpolated / std::sqrt(local_values[e]);
+    }
+  }
+
+  Vector<double> alpha = CalcGlobalizationFactor(local_values, true);
 
   SingleVector* sv = em->forward.Get(excite)->GetVector(StateSolution::RAW_VECTOR);
   assert(out.GetSize() == 0); // if not, check the logic
@@ -249,6 +266,15 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
   {
     DesignElement* de = f->elements[e];
+
+    if(f->GetType() == Function::GLOBAL_BUCKLING_LOAD_FACTOR)
+    {
+      double vol = de->GetDesign(DesignElement::SMART);
+      double ev_interpolated = em->GetMicroLoadFactor(vol);
+      alpha[e] *= - ev_interpolated * 0.5 / std::sqrt(stress[e]) / stress[e];
+      LOG_DBG(sc) << "CARHS: de=" << de->ToString() << " ev=" << ev_interpolated << " stress=" << stress[e] << " -> " << alpha[e];
+    }
+
     CalcElemAdjointRHS(de, alpha[e], out);
   }
 }
@@ -279,7 +305,7 @@ void StressConstraint<T>::CalcElemAdjointRHS(DesignElement* de, double alpha, Ve
     all_u2_elem = all_u1_elem; // for the adjoint rhs we need no app2 solution
 
     ea.SetElem(de->elem);
-    LOG_DBG3(sc) << "CEAR " << ea.ToString(2);
+    LOG_DBG3(sc) << "CEAR: " << ea.ToString(2);
     SetupElement(&ea, de, app.first, ADJOINT_RHS);
     double elem_vol = ea.esm->CalcVolume(); // see ::CalcStresses()
 
@@ -295,18 +321,18 @@ void StressConstraint<T>::CalcElemAdjointRHS(DesignElement* de, double alpha, Ve
 
       // finally :)
       rhs_transp = stress_transp * M_E2_B2;
+      LOG_DBG3(sc) << "CEAR: stress=" << stress_transp.ToString() << " MEB=" << M_E2_B2.ToString() << " rhs=" << rhs_transp;
 
       // include all the factors
-
       double factor = (harmonic ? -1.0 : -2.0) * ea.weights[ip] * ea.lpm.jacDet / elem_vol;
 
-      LOG_DBG3(sc) << "CEAR ip=" << ip << " w=" << ea.weights[ip] << " jD=" << ea.lpm.jacDet << " vol=" << ea.esm->CalcVolume() << " -> " << factor;
+      LOG_DBG3(sc) << "CEAR: ip=" << ip << " w=" << ea.weights[ip] << " jD=" << ea.lpm.jacDet << " vol=" << ea.esm->CalcVolume() << " -> " << factor;
 
       // there is a factor from the globalization function, which is the gradient of the glob function(func_val)
       rhs_transp *= factor * alpha;
 
-      LOG_DBG3(sc) << "CEAR " << ea.ToString(3) << " alpha=" << alpha << " factor=" << factor;
-      LOG_DBG3(sc) << "CEAR idx=" << ea.elem_eqn_idx.ToString() << " rhs=" << rhs_transp.ToString();
+      LOG_DBG3(sc) << "CEAR: " << ea.ToString(3) << " alpha=" << alpha << " factor=" << factor;
+      LOG_DBG3(sc) << "CEAR: idx=" << ea.elem_eqn_idx.ToString() << " rhs=" << rhs_transp.ToString();
 
       for(unsigned int n = 0; n < ea.elem_eqn_idx.GetSize(); n++)
       {
@@ -314,7 +340,7 @@ void StressConstraint<T>::CalcElemAdjointRHS(DesignElement* de, double alpha, Ve
         if(ea.elem_eqn_idx[n] >= 0)
         {
           out_set[ea.elem_eqn_idx[n]] += rhs_transp[0][n];
-          // LOG_DBG3(sc) << "CEAR de=" << de->ToString() << " alpha=" << alpha << " factor=" << factor << " n=" << n << " val=" << rhs_transp[0][n] << " -> " << out_set[ea.elem_eqn_idx[n]];
+          // LOG_DBG3(sc) << "CEAR: de=" << de->ToString() << " alpha=" << alpha << " factor=" << factor << " n=" << n << " val=" << rhs_transp[0][n] << " -> " << out_set[ea.elem_eqn_idx[n]];
         }
       }
     } // ip
@@ -322,18 +348,18 @@ void StressConstraint<T>::CalcElemAdjointRHS(DesignElement* de, double alpha, Ve
 }
 
 template<typename T>
-Vector<double> StressConstraint<T>::CalcGlobalizationFactor(const Vector<double>& stress, bool gradient)
+Vector<double> StressConstraint<T>::CalcGlobalizationFactor(const Vector<double>& local_values, bool gradient)
 {
   Function::Local* local = f->GetLocal();
   assert(local != NULL);
 
-  Vector<double> out(stress.GetSize());
+  Vector<double> out(local_values.GetSize());
 
   // this is a complicated way to calc element wise power*max(0,stress)^(power-1) but that way
   // we are open for further globalization functions and it is not that expensive
 
   StdVector<Function::Local::Identifier>& vem = local->virtual_elem_map;
-  assert(vem.GetSize() == stress.GetSize());
+  assert(vem.GetSize() == local_values.GetSize());
 
   double org_value = f->GetValue(); // we use it for the local evaluation but don't want to spoil info.xml and plot.dat output
 
@@ -341,13 +367,13 @@ Vector<double> StressConstraint<T>::CalcGlobalizationFactor(const Vector<double>
   {
     Function::Local::Identifier& id = vem[i];
     assert(id.neighbor.GetSize() == 0);
-    f->SetValue(stress[i]); // in case of objective LocalCondition::GetValue() is not available
+    f->SetValue(local_values[i]); // in case of objective LocalCondition::GetValue() is not available
     double gfv = id.EvalFunction(local, gradient);
     out[i] = gfv;
   }
   f->SetValue(org_value);
 
-  LOG_DBG2(sc) << "CGF ex=" << excite->index << " alpha=" << out.ToString();
+  LOG_DBG(sc) << "CGF: ex=" << excite->index << " alpha=" << out.ToString();
 
   return out;
 }
@@ -396,7 +422,7 @@ void StressConstraint<T>::SetupElement(ElementAccess* ea, DesignElement* de, App
     }
   }
 
-  LOG_DBG3(sc) << "SE: de=" << de->elem->elemNum << " E1=" << E1.ToString();
+  LOG_DBG3(sc) << "SE: de=" << de->elem->elemNum << " E1=" << E1.ToString() << " E2=" << E2.ToString();
 }
 
 
@@ -414,11 +440,12 @@ void StressConstraint<T>::EvalIP(Mode mode, ElementAccess* ea, unsigned int ip)
   // B1 and B2
   form->GetBOp()->CalcOpMat(B1, ea->lpm, ea->CurrBaseFE());
   B2 = B1; // clearly this is from form2 in the coupling case
+  LOG_DBG3(sc) << "SE: de=" << ea->CurrElem()->elemNum << " B1=" << B1.ToString();
 
   // left side stress
   strain1 = B1 * u1_elem;
   stress1 = E1 * strain1;
-  LOG_DBG3(sc) << "SE de=" << ea->CurrElem()->elemNum << " strain1=" << strain1.ToString() << " stress1=" << stress1.ToString();
+  LOG_DBG3(sc) << "SE: de=" << ea->CurrElem()->elemNum << " strain1=" << strain1.ToString() << " stress1=" << stress1.ToString();
 
   // right side stress - ignored for adjoint but clean that way
   if(mode == ADJOINT_RHS)
@@ -431,7 +458,7 @@ void StressConstraint<T>::EvalIP(Mode mode, ElementAccess* ea, unsigned int ip)
   {
     strain2 = B2 * u2_elem;
     stress2 = E2 * strain2; // E2 might be dE2
-    LOG_DBG3(sc) << "SE de=" << ea->CurrElem()->elemNum << "  strain2=" << strain2.ToString() << " stress2=" << stress2.ToString();
+    LOG_DBG3(sc) << "SE: de=" << ea->CurrElem()->elemNum << " strain2=" << strain2.ToString() << " stress2=" << stress2.ToString();
   }
 }
 

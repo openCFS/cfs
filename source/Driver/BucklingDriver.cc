@@ -79,10 +79,9 @@ BucklingDriver::BucklingDriver(UInt sequenceStep,
   isStoredSymmetric_ = false;
 
   numEV_ = -1;
-  eigenValues = new Vector<Complex>();
-  errors = new Vector<Complex>();
-
-  loadFactors_ = new Vector<Complex>();
+  eigenValues = new Vector<Double>();
+  errors = new Vector<Double>();
+  loadFactors_ = new Vector<Double>();
 
   //specifying parameter node
   param_ = param_->Get("buckling");
@@ -132,6 +131,13 @@ void BucklingDriver::Init(bool restart) {
   // set definition of PDE relevant matrices
   InitializePDEs();
 
+  if (minVal_ < 0)
+    EXCEPTION("minVal has to be non-negative");
+  if (maxVal_ < 0 || maxVal_ < minVal_)
+    EXCEPTION("maxVal has to be non-negative and larger than minVal");
+  if (valueShift_ < 0)
+    EXCEPTION("valueShift has to be non-negative");
+
   if (numMode_ > 0 && valueShift_ == 0.0) {
     valueShift_ = 0.1;
     info_->Get(ParamNode::HEADER)->SetWarning("valueShift = 0 should not be used for buckling. Changed to 0.1.");
@@ -141,6 +147,7 @@ void BucklingDriver::Init(bool restart) {
   // would invert valueShift_ all the time
   if (isInverseProblem_) {
     valueShift_ = 1.0/valueShift_;
+    // we cannot divide by zero, so slightly shift the value
     if (std::abs(minVal_) < 1e-10) minVal_ = -1e-10;
     if (std::abs(maxVal_) < 1e-10) maxVal_ =  1e-10;
     double tmp = minVal_;
@@ -248,10 +255,7 @@ void BucklingDriver::SetupSolver() {
 
   // unfortunately the implemented eigenSolvers have serious usage restrictions.
   // currently only FEAST with non-symmetric matrices gives relabel solutions
-  if (solverType_ == BaseEigenSolver::FEAST && isStoredSymmetric_ == true) {
-    EXCEPTION("Wrong matrix storage type. Please define an non-symmetric storage type.");
-  }
-  else if (solverType_ == BaseEigenSolver::FEAST && inputMethod_ != 1) {
+  if (solverType_ == BaseEigenSolver::FEAST && inputMethod_ != 1) {
     EXCEPTION("FEAST eigenSolver does currently not support input as numModes & shiftMode.");
   }
   else if (solverType_ == BaseEigenSolver::ARPACK && inputMethod_ != 2) {
@@ -261,31 +265,24 @@ void BucklingDriver::SetupSolver() {
     EXCEPTION("PHIST is currently not supported.");
   }
 
-/* TODO FEAST
- * - add inputMethod_ 2, as numModes / shiftMode
- */
-/* TODO ARPACK
- * - add inputMethod_ 1, as min/maxValue
- */
-/* TODO PHIST
- * - add non-symmetric Mode (?)
- */
-
-  if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
+  // feast handles non symmetric problems as complex problems
+  if (!isStoredSymmetric_ && solverType_ == BaseEigenSolver::FEAST) {
     delete eigenValues;
     delete errors;
     delete loadFactors_;
-    eigenValues = new Vector<Double>();
-    errors = new Vector<Double>();
-    loadFactors_ = new Vector<Double>();
-  } // else vectors are complex, see constructor
+    eigenValues = new Vector<Complex>();
+    errors = new Vector<Complex>();
+    loadFactors_ = new Vector<Complex>();
+  }
+
+  solver->GetSetupTimer()->Start();
 
   // setup \f$(G - 1/\lambda * K) * v = 0\f$
-  // unfortunately the implemented eigenSolvers do not conform to a single scheme
   if (isInverseProblem_)
     solver->Setup(*(geoStiffMat->GetPointer(0, 0)), *(stiffMat->GetPointer(0, 0)), false);
   else
 #ifdef USE_ARPACK
+    // arpack has a special buckling mode
     if (!isInverseProblem_ && solver->GetEigenSolverName() == BaseEigenSolver::ARPACK)
       // this is necessary for the original problem, but might lead to wrong results
       // for the reformulated problem due to wrong ordering of the eigenvalues
@@ -294,13 +291,11 @@ void BucklingDriver::SetupSolver() {
 #endif
       solver->Setup(*(stiffMat->GetPointer(0, 0)), *(geoStiffMat->GetPointer(0, 0)), false);
 
-  if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
-    assert(solverType_ == BaseEigenSolver::ARPACK);
-    isStoredSymmetric_ = true;
-  }
+  solver->GetSetupTimer()->Stop();
 }
 
 void BucklingDriver::CalcValues(unsigned int recursionCount) {
+  solver->GetSolveTimer()->Start();
   if (inputMethod_ == 1) { // inputMethod_ = minVal & maxVal
     assert(solverType_ ==  BaseEigenSolver::FEAST);
     solver->CalcEigenValues(*eigenValues, *errors, minVal_, maxVal_);
@@ -309,12 +304,28 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     assert(solverType_ == BaseEigenSolver::ARPACK);
     solver->CalcEigenValues(*eigenValues, *errors, numMode_, valueShift_);
   }
+  solver->GetSolveTimer()->Stop();
 
   numEV_ = eigenValues->GetSize();
 
   // If no eigenvalue at all converged, just leave
   if(numEV_ == 0) {
-    EXCEPTION( "Did not find any eigenvalue!" );
+    if(recursionCount < 3) {
+      if (inputMethod_ == 1) { // inputMethod_ = minVal & maxVal
+        minVal_ = minVal_ / 2.0;
+        maxVal_ = maxVal_ * 2.0;
+      }
+      else if (inputMethod_ == 2) {// inputMethod_ = numMode & valueShift
+        numMode_ = numMode_ * 2.0;
+      }
+      CalcValues(++recursionCount);
+    }
+    else {
+      string str = "Did not find any eigenvalue!";
+      if(solverType_ == BaseEigenSolver::FEAST)
+        str.append("\nTry a smaller or larger interval.");
+      EXCEPTION(str);
+    }
   }
 
   LOG_DBG3(buckD) << "CV: eigenvalues = " << eigenValues->ToString();
@@ -324,6 +335,7 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
   SortModes(false);
 
   // treat negative eigenvalues
+  // this will never happen for feast, which has minVal as input
   if (eigenValuesRealPart.Min() < 0 && recursionCount < 3)
   {
     LOG_DBG3(buckD) << "CV: Found negative eigenvalue";
@@ -331,26 +343,26 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
     assert(eigenValues->IsComplex() == false); // this part is written only for real eigenValues
 
     // remove negative eigenvalues and corresponding modes
-    Vector<Double> tmp1;
-    StdVector<unsigned int> tmp2;
-    for (unsigned int ev = 0; ev < numEV_; ev++) {
-      if (eigenValuesRealPart[ev] >= 0) {
-        tmp1.Push_back(eigenValuesRealPart[ev]);
-        tmp2.push_back(modeOrder_[ev]);
-      }
-    }
-    (*eigenValues) = tmp1; //copy
-    modeOrder_ = tmp2;
-    numEV_ = eigenValues->GetSize();
-
-    LOG_DBG3(buckD) << "CV: eigenValues = " << eigenValues->ToString();
-    LOG_DBG3(buckD) << "CV: modeOrder_ = " << modeOrder_.ToString();
+// DO WE REALLY WANT TO DO THIS? negative ev -> force had to be reversed for buckling
+//    Vector<Double> tmp1;
+//    StdVector<unsigned int> tmp2;
+//    for (unsigned int ev = 0; ev < numEV_; ev++) {
+//      if (eigenValuesRealPart[ev] >= 0) {
+//        tmp1.Push_back(eigenValuesRealPart[ev]);
+//        tmp2.push_back(modeOrder_[ev]);
+//      }
+//    }
+//    (*eigenValues) = tmp1; //copy
+//    modeOrder_ = tmp2;
+//    numEV_ = eigenValues->GetSize();
+//
+//    LOG_DBG3(buckD) << "CV: eigenValues = " << eigenValues->ToString();
+//    LOG_DBG3(buckD) << "CV: modeOrder_ = " << modeOrder_.ToString();
 
     // if all eigenvalues were negative, search for more
-    if (numEV_ == 0)
+    if (numEV_ == 0 || eigenValuesRealPart.Max() < 0)
     {
       if (inputMethod_ == 1) { // inputMethod_ = minVal & maxVal
-        assert(minVal_ >= 0 && maxVal_ >= 0);
         minVal_ = minVal_ / 2.0;
         maxVal_ = maxVal_ * 2.0;
       }
@@ -390,6 +402,7 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
 }
 
 void BucklingDriver::StoreMode(unsigned int index) {
+  std::cout << "hello" << std::endl;
   Vector<Double> loadFactorsRealPart = GetRealPartOfVector(loadFactors_);
   Double currentLoadFactor = loadFactorsRealPart[modeOrder_[index]];
 
@@ -423,7 +436,7 @@ void BucklingDriver::PrintResult() {
     std::cout << " Mode | ";
     std::cout << setw(fieldwidth) << "Load Factor" << " | ";
     std::cout << setw(fieldwidth) << "Error" << " | ";
-    if (!isStoredSymmetric_) {
+    if (!isStoredSymmetric_ && solverType_ == BaseEigenSolver::FEAST) {
       std::cout << setw(fieldwidth) << "Imaginary Part" << " | ";
     }
     std::cout << "\n";
@@ -474,7 +487,7 @@ void BucklingDriver::PrintResult() {
     PtrParamNode mode = res->Get("mode", ParamNode::APPEND);
 
     mode->Get("nr")->SetValue(i+1); // not the mode but eigenvalue in list
-    if (isStoredSymmetric_) {
+    if (isStoredSymmetric_ || solverType_ == BaseEigenSolver::ARPACK) {
       mode->Get("loadfactor")->SetValue(loadFactors_->GetDoubleEntry(i),15);
       mode->Get("error")->SetValue(errors->GetDoubleEntry(i));
     }

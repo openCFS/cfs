@@ -15,14 +15,20 @@ else
            1 1 1
            0 1 0];
         x = [E(1), E(2), dEda(1)*da];
+        c = A\x';
+        c(4) = 0;
     else
-        A=[1 0 0
-           1 1 1
-           0 1 2];
-        x = [E(1), E(2), dEda(2)*da];
+        % Quadratische Interpolation kann zu Unterschwingern fuehren
+%         A=[1 0 0
+%            1 1 1
+%            0 1 2];
+%         x = [E(1), E(2), dEda(2)*da];
+        A=[1 0 0 0
+           1 1 1 1
+           0 1 0 0
+           0 1 2 3];
+        x = [E(1), E(2), 0, dEda(2)*da];
+        c = A\x';
     end
-
-    c = A\x';
-    c(4) = 0;
 end
 end

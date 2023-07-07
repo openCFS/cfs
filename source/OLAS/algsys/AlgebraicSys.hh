@@ -43,7 +43,7 @@ namespace CoupledField {
   //! (preconditioned) solvers. To allow for efficient solution strategies,
   //! it maintains internally a flexible mapping and separates thus the 
   //! FeFunction-oriented view of CFS from the matrix-oriented view of the 
-  //! objcet oriented algebraic system (OLAS).
+  //! object oriented algebraic system (OLAS).
   //!
   //! OLAS internally uses so-called super-block-matrices (SBM, \ref SBM_Matrix) 
   //! which can be seen as dense matrices whose entries are again sparse
@@ -59,12 +59,12 @@ namespace CoupledField {
   //! can be re-ordered to minimize the bandwidth. 
   //!
   //! Furthermore we can define a sub-matrix structure, so called sub-blocks.
-  //! which camn be used e.g. for block-preconditioners. They are only
+  //! which cann be used e.g. for block-preconditioners. They are only
   //! stored as additional indices within one matrix block.
   //! 
   //! \note The indices for FeFunctionId and SBM-blockindices are 0-based,
   //!       whereas equation numbers and row/col indices are 1-based, in
-  //!       order to represent homogeneous values (Drichlet values)
+  //!       order to represent homogeneous values (Dirichlet values)
   //!       by a 0 equation number / index.
   class AlgebraicSys {
   public:

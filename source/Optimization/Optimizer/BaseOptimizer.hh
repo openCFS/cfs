@@ -242,6 +242,7 @@ namespace CoupledField
   private:
 
     /** we need the adjoint for gradients only. In case of a line search the state problems are sufficient.
+     * If the design changed, the state problems are solved and the objective is evaluated.
      * For the harmonic case we need to do the adjoint with the state as as for multiple frequences the system is reassembled.
      * Also note the multiple sequence issue! */
     bool SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale);

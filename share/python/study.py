@@ -24,10 +24,10 @@ def make_range(par):
     step  = 1.0 if len(par) < 3 else float(par[2])
     
     if start.is_integer() and end.is_integer and step.is_integer():
-      r = range(int(start), int(end), int(step))
+      r = range(int(start), int(end+1), int(step))
       return [str(t) for t in r]
     else:
-      r = np.arange(start, end, step)
+      r = np.arange(start, end+step/2, step)
       return [str(round(t,8)) for t in r]
   except ValueError:
     print('Error: cannot convert to floats:', par)
@@ -38,8 +38,8 @@ def label(query, given):
     return given
   
   # clean the stuff as much as possible
-  for s in ['/','[', ']', '@', '"', '=', 'cfs:', 'value', 'type', 'name', 'param', 'constraint']:
-    query = query.replace(s,'')     
+  for s in ['/','[', ']', '@', '"', '=', 'cfs:', 'value', 'type', 'name', 'parameter', 'param', 'constraint']:
+    query = query.replace(s,'')
   
   if query == 'volume':
     return 'vol'
@@ -52,7 +52,7 @@ def label(query, given):
     
   
   # extend for typical usage
-  
+
   return query  
       
 txt =  'perform easy parameter studies. Afterwards use postproc.py and plotviz.py.\n'      
@@ -69,7 +69,7 @@ parser.add_argument('-b', '--base', help="the common base name for the study", r
 parser.add_argument('-v', '--var', help='the query for the variable, e.g. \'//cfs:constraint[@type="volume"]/@value\'', required=True)
 parser.add_argument('-r', '--range', nargs='+', help='the range for the variable as <start> <end> [<step>] in Python style')
 parser.add_argument('-c', '--choice', nargs='+', help='range for var as alternative to --range, e.g. 1 10 100 1000')
-parser.add_argument('-l', '--label', help="short label for the var varibale if  automatism fails")
+parser.add_argument('-l', '--label', help="short label for the var variable if automatism fails")
 
 parser.add_argument('-v2', '--var2', help='optional outer loop of var/[range/choice]/label')
 parser.add_argument('-r2', '--range2', nargs='+', help='optional outer loop of var/[range/choice]/label')
@@ -133,13 +133,15 @@ try:
         
       for v1 in r1: # cannot be None
         problem = p2 + '-' + l1 + '_' + v1
-        replace(xml, args.var, v1)
+        replace(xml, args.var, v1, False)
+        #replace(xml, '//cfs:constraint[@type="globalBucklingLoadFactor"]/@parameter', v1, False)
 
         xml.write(problem + '.xml')
 
         # setting the innermost variable as id allows easy sorting with postproc.py
         # if id is not set, we cannot simply replace(xml, ..) it
-        c = cmd + problem + ' --id ' + v1    
+        c = cmd + problem + ' --id ' + v1
+        c = cmd + '-x ' + problem[0:6] + problem[12:] + '.density.xml ' + problem + ' --id ' + v1
         
         if args.redirect_output:
           c = c + ' > ' + problem + '.txt 2>&1'

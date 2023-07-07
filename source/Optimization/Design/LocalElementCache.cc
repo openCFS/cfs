@@ -128,7 +128,7 @@ void LocalElementCache::InitMechMatDeriv(StdVector<RegionIdType>& reg)
 
   for(unsigned int d = 0; d < des.GetSize(); d++)
     for(unsigned int r = 0; r < reg.GetSize(); r++)
-      if(space_->GetRegion(reg[r], des[r], -1, false) != NULL) // no exception to throw
+      if(space_->GetRegion(reg[r], des[d], -1, false) != NULL) // no exception to throw
         InitMatDeriv("LinElastInt", reg[r], des[d]);
 
   // TODO add Piezo ParamMat stuff with other integrators
@@ -175,6 +175,42 @@ void LocalElementCache::Init(const string& integrator, RegionIdType reg, Type ty
   active_ = true;
 }
 
+void LocalElementCache::SetMatDeriv(const string& integrator, RegionIdType reg, DesignElement::Type dir, int design_id)
+{
+  assert(Optimization::context->DoBuckling());
+  assert(space_->FindDesign(DesignElement::STIFF1, false) >= 0);
+
+  if(space_->GetRegion(reg, DesignElement::STIFF1, -1, false) != NULL) // no exception to throw
+  {
+    active_ = false;
+
+    SinglePDE* pde = Optimization::context->pde;
+    assert(pde != NULL);
+
+    BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm(integrator, reg, pde, pde, false); // not silent
+    BiLinearForm* form = c->GetIntegrator();
+    assert(form->GetName() == "LinElastInt" || form->GetName() == "PreStressInt");
+
+    LOG_DBG(lec) << "LEC:CC id=" << design_id << " region=" << reg << " int=" << form->GetName() << " dir=" << DesignElement::type.ToString(dir);
+
+    PtrCoefFct coef = PtrCoefFct();
+
+    FormData* data = GetFormData(integrator, DIRECTION, dir, coef, design_id);
+    if(data == NULL)
+      data = AppendFormData(form, DIRECTION, dir, coef, design_id);
+    assert(data != NULL);
+
+    BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
+    shared_ptr<CoefFunctionOpt> opt = dynamic_pointer_cast<CoefFunctionOpt>(bdb->GetCoef());
+    if(opt)
+      opt->SetToOptimization();
+
+    FillFormData(*data, form, reg); // sets the form temporarily to SHADOW
+
+    active_ = true;
+  }
+}
+
 bool LocalElementCache::FillFormData(FormData& data, BiLinearForm* form, RegionIdType reg)
 {
   BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(form);
@@ -215,7 +251,7 @@ bool LocalElementCache::FillFormData(FormData& data, BiLinearForm* form, RegionI
 
   assert(CheckFormState(form, data.type));
 
-  if(regular_)
+  if(regular_ && Optimization::context->dm == NULL)
   {
     // the region case
     elemList.SetElement(elems[0]); // region's first element
@@ -259,7 +295,7 @@ inline LocalElementCache::FormData& LocalElementCache::GetFormData(const BiLinea
   return *fd;
 }
 
-LocalElementCache::FormData* LocalElementCache::AppendFormData(const BiLinearForm* form, Type type, DesignElement::Type dir, PtrCoefFct shadow_coef)
+LocalElementCache::FormData* LocalElementCache::AppendFormData(const BiLinearForm* form, Type type, DesignElement::Type dir, PtrCoefFct shadow_coef, int design_id)
 {
   switch(type)
   {
@@ -284,6 +320,7 @@ LocalElementCache::FormData* LocalElementCache::AppendFormData(const BiLinearFor
     assert(dir != DesignElement::NO_DERIVATIVE);
     data_.Push_back(FormData());
     data_.Last().dir = dir;
+    data_.Last().designID = design_id;
     dir_end_    = data_.GetSize();
     break;
   default:
@@ -307,13 +344,31 @@ LocalElementCache::FormData* LocalElementCache::AppendFormData(const BiLinearFor
   return &fd;
 }
 
+void LocalElementCache::ClearMatDeriv(const string& integrator, RegionIdType reg, DesignElement::Type dir, int design_id)
+{
+  assert(Optimization::context->DoBuckling());
+  assert(space_->FindDesign(DesignElement::STIFF1, false) >= 0);
+
+  if(space_->GetRegion(reg, DesignElement::STIFF1, -1, false) != NULL) // no exception to throw
+  {
+    PtrCoefFct coef = PtrCoefFct();
+
+    FormData* data = GetFormData(integrator, DIRECTION, dir, coef, design_id);
+    if(data != NULL)
+    {
+      data->region_cplx.Clear(false);
+      data->region_real.Clear(false);
+    }
+  }
+}
+
 void LocalElementCache::FormData::Init(const BiLinearForm* form, bool structured)
 {
   this->integrator = form->GetName();
   this->isComplex = form->IsComplex();
 
   Grid* grid = domain->GetGrid();
-  if(structured)
+  if(structured && Optimization::context->dm == NULL)
   {
     int size = grid->regionData.GetSize();
     if(isComplex)
@@ -390,30 +445,30 @@ string LocalElementCache::FormData::ToString()
 }
 
 template <>
-const Matrix<double>& LocalElementCache::CachedElement<double>(const string& integrator, Type type, const Elem* elem, DesignElement::Type dir, PtrCoefFct shadow_coef)
+const Matrix<double>& LocalElementCache::CachedElement<double>(const string& integrator, Type type, const Elem* elem, DesignElement::Type dir, PtrCoefFct shadow_coef, int design_id)
 {
-  FormData* data = GetFormData(integrator, type, dir, shadow_coef);
+  FormData* data = GetFormData(integrator, type, dir, shadow_coef, design_id);
   assert(data != NULL);
   assert(data->type == type);
   assert(!data->isComplex);
 
   // TODO: bug if we cache not optimization data for simulation!!
-  if(regular_)
+  if(regular_ && Optimization::context->dm == NULL)
     return data->region_real[elem->regionId];
   else
     return data->elem_real[elem->elemNum];
 }
 
 template <>
-const Matrix<complex<double> >& LocalElementCache::CachedElement<complex<double> >(const string& integrator, Type type, const Elem* elem, DesignElement::Type dir, PtrCoefFct shadow_coef)
+const Matrix<complex<double> >& LocalElementCache::CachedElement<complex<double> >(const string& integrator, Type type, const Elem* elem, DesignElement::Type dir, PtrCoefFct shadow_coef, int design_id)
 {
-  FormData* data = GetFormData(integrator, type, dir, shadow_coef);
+  FormData* data = GetFormData(integrator, type, dir, shadow_coef, design_id);
   assert(data != NULL);
   assert(data->type == type);
   assert(data->contex == (int) Optimization::context->context_idx);
   assert(data->isComplex);
 
-  if(regular_)
+  if(regular_ && Optimization::context->dm == NULL)
     return data->region_cplx[elem->regionId];
   else
    return data->elem_cplx[elem->elemNum];

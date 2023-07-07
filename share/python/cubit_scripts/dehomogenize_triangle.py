@@ -1,28 +1,30 @@
-#!python
-#!python
 #!/usr/bin/env python3
 
 # this reloads matviz_cubit each time, when this script runs.
 # necessary, if matviz_cubit has changed
-import cubit_scripts.matviz_cubit as mc
+import cubit_scripts.cubit_tools as mc
 import importlib
 importlib.reload(mc)
+
+import time
 
 import os
 import numpy
 import h5py
 import hdf5_tools
-from cubit_scripts.matviz_cubit import cubit
+from cubit_scripts.cubit_tools import cubit
 
 input = '/home/daniel/manni/BE_study/homogenDesign_v0.4.cfs'
+input = '/home/daniel/manni/optimization/pillar/worst_case/globBuck_locBuck/validation2/0.700_snopt.cfs'
 
 # radius of rounded corners
 radius = 0.6
 
-meshsize = 0.00125
+meshsize = 0.1
 
 samples = 2
-samp = [2,4,6,8,10,12,14,16,18,20,22]
+samp = [8,12,16,20]
+samp=[12]
 
 grad = 'linear'
 
@@ -35,6 +37,7 @@ for samples in samp:
   # create some filenames
   inputpath, inputfile = os.path.split(input)
   filename, _ = os.path.splitext(inputfile)
+  filename = filename + '_rot'
   meshfilename = os.path.join(inputpath, '{}_b{:.3f}_{:.6f}_{:d}'.format(filename, radius, meshsize, samples))
   savefilename = os.path.join(inputpath,'{}_b{:.3f}_{:d}'.format(filename, radius, samples))
 
@@ -60,7 +63,7 @@ for samples in samp:
       min_bb = numpy.min([min_bb, reg_min_bb], 0);
       max_bb = numpy.max([max_bb, reg_max_bb], 0);
     centers = centers[1:,:]
-  
+
     coords = (centers, min_bb, max_bb, elem_dim)
   
     dim_2D = min_bb[2] == max_bb[2]
@@ -72,7 +75,7 @@ for samples in samp:
     while not hdf5_tools.has_element(fid, "design_stiff1_smart", step):
       step -= 1
     design = hdf5_tools.get_element(fid, "design_stiff1_smart", "mech", step)
-  
+
     # if samples is only a number, create a list (one entry for each dimension)
     if samples is not None:
       samples = samples if isinstance(samples, (list, tuple)) else [int(samples), int(samples)]
@@ -123,4 +126,3 @@ for samples in samp:
   #mc.mesh_shape(shape, meshsize, meshfilename)
   # *6 yields approximately same number of nodes and elements as meshing with cubit
   mc.mesh_shape_with_gmsh(shape, meshsize*2, meshfilename)
-

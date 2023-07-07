@@ -23,15 +23,18 @@ public:
   //! computes the approximation polynom
   virtual void CalcApproximation(const bool start=true) override;
 
-  //! returns f(x)
+  //! returns function value at x -> f(x)
   virtual double EvaluateFunc(const double x) const override;
 
   virtual double EvaluateFunc(const Vector<double>& p) const override { return EvaluateFunc(p[0]); };
 
-  //! returns d f(x) / dx
+  //! returns first derivative -> d f(x) / dx
   virtual double EvaluateDeriv(const double x) const override;
 
   virtual double EvaluateDeriv(const Vector<double>& p, const int dparam) const override { return EvaluateDeriv(p[0]); };
+
+  //! returns second derivative -> d^2 f(x) / dx^2
+  virtual double EvaluateSecondDeriv(const double x) const override;
 
   //! returns grad f(x) = d f(x) / dx
   virtual Vector<double> EvaluatePrime(const Vector<double>& p) const override;
@@ -41,7 +44,7 @@ public:
 
 private:
 
-  typedef enum { NONE, X} Derivative;
+  typedef enum { NONE, X, XX } Derivative;
 
   // approximate partial derivatives by finite differences
   void ApproxPartialDeriv(StdVector<double>& dFda) const;

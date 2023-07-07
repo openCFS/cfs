@@ -85,11 +85,11 @@ private:
   inline void SetSnOptOptions();
   
   /** mainly fills the index StdVectors iGfun, jGvar, iAfun, jAvar */
-  inline void initJacobians();
+  inline void InitJacobians();
   
   /** if we have linear constraints we only have to set them up once;
    *  this is done in SolveProblem before the call to snopta_ */
-  inline void setupLinearConstraints();
+  inline void SetupLinearConstraints();
   
   /** Helper function for setting an integer option
    *  currently known options are:

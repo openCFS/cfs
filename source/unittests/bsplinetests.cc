@@ -10,13 +10,9 @@ BOOST_AUTO_TEST_CASE(bspline_test)
   StdVector<double> ref;
   Matrix<double> Ref;
 
-  StdVector<double> knot_range;
-  knot_range.Resize(2);
-  knot_range[0] = 0.0;
-  knot_range[1] = 10.0;
-  BSpline bspline(3, 8, knot_range);
+  BSpline Bspline(3, 8, 0, 10);
 
-  StdVector<double> ga = bspline.GrevilleAbscissae();
+  StdVector<double> ga = Bspline.GrevilleAbscissae();
   ref.Resize(4);
   ref[0] = 0; ref[1] = 10/3.; ref[2] = 20/3.; ref[3] = 10;
   // BOOST_TEST(ga == ref); // only works in boost version > 1.66
@@ -26,7 +22,7 @@ BOOST_AUTO_TEST_CASE(bspline_test)
 
   StdVector<double> b(3);
   b[0] = 0; b[1] = 5; b[2] = 10;
-  Matrix<double> basis = bspline.Eval(&b);
+  Matrix<double> basis = Bspline.Eval(&b);
   ref.Resize(3);
   ref[0] = 1; ref[1] = 1/8.; ref[2] = 0;
   for(unsigned int i = 0; i < 3; ++i) {

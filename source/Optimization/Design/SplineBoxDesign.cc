@@ -1657,7 +1657,7 @@ void SplineBoxDesign::UpdateFEMesh(Matrix<double> new_coords)
     if(local_index_[i] != -1.0) {
       Vector<Double> p;
       new_coords.GetRow(p, local_index_[i]);
-      grid->SetNodeCoordinate(i, p);
+      grid->SetNodeCoordinate(i+1, p); //1-based
     }
   }
 }

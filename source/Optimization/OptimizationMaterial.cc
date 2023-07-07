@@ -276,10 +276,11 @@ const DenseMatrix& OptimizationMaterial::GetElementMatrix(OptimizationMaterial::
   // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
   //bool new_wave_vector = ctxt_->DoBloch() && ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
 
-  LOG_DBG3(om) << "OM:S: sys=" << system_ << " el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial; // << " index=" << index;
+  LOG_DBG(om) << "OM:S: sys=" << system_ << " el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial; // << " index=" << index;
 
   LocalElementCache* lec = space->elementCache;
   bool is_complex = ComplexElementMatrix(elem->regionId);
+  int design_id = ctxt_->DoBuckling() ? space->GetCurrentDesignId() : -1;
 
   if(bimaterial)
   {
@@ -304,7 +305,28 @@ const DenseMatrix& OptimizationMaterial::GetElementMatrix(OptimizationMaterial::
 
   if(mat_deriv != DesignElement::NO_DERIVATIVE && mat_deriv != DesignElement::NO_MULTIMATERIAL)
   {
-    if(lec == NULL || !lec->HasCachedData(id.integrator, lec->DIRECTION, mat_deriv))
+    if(ctxt_->DoBuckling())
+    {
+      // One (macroscopic) buckling constraint depends on the derivative of the
+      // stiffness matrix twice and the derivative of the stress stiffness
+      // matrix once (see ErsatzMaterial::CalcEigenvalueDerivativeBuckling). If
+      // we have multiple constraints, these derivatives don't change. Thus, we
+      // use the LocalElementCache to store dK_e and dG_e for an iteration.
+      if(lec != NULL && !lec->HasCachedData(id.integrator, lec->DIRECTION, mat_deriv, PtrCoefFct(), design_id))
+      {
+        // remove the previously cached data to save memory
+        if(space->GetCurrentDesignId() > 0)
+          lec->ClearMatDeriv(id.integrator, elem->regionId, mat_deriv, design_id - 1);
+
+        // compute element matrix and store it in cache
+        lec->SetMatDeriv(id.integrator, elem->regionId, mat_deriv, design_id);
+
+        // call GetElementMatrix again. this time, lec->HasCachedData will be True
+        return GetElementMatrix(id, elem, bimaterial, multimaterial, mat_deriv);
+      }
+    }
+
+    if(lec == NULL || !lec->HasCachedData(id.integrator, lec->DIRECTION, mat_deriv, PtrCoefFct(), design_id))
     {
       if(is_complex)
         return ComputeElementMatrix(id.calc_cplx.Mine(), id.integrator, elem, false, mat_deriv);
@@ -314,9 +336,9 @@ const DenseMatrix& OptimizationMaterial::GetElementMatrix(OptimizationMaterial::
     else
     {
       if(is_complex)
-        return lec->CachedMatDerivElement<Complex>(id.integrator, elem, mat_deriv);
+        return lec->CachedMatDerivElement<Complex>(id.integrator, elem, mat_deriv, design_id);
       else
-        return lec->CachedMatDerivElement<double>(id.integrator, elem, mat_deriv);
+        return lec->CachedMatDerivElement<double>(id.integrator, elem, mat_deriv, design_id);
     }
   }
 

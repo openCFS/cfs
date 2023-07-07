@@ -1156,6 +1156,8 @@ void ParamNode::ToFile(const std::string& filename, bool force)
 
   // Then we print the tree
   ToXML(out);
+
+  out << std::endl;
 }
 
 void ParamNode::Dump(int level) const
