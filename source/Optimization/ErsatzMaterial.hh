@@ -126,6 +126,11 @@ public:
   /** Here we store the solution of the adjoint problem. */
   StateContainer adjoint;
 
+  /** Calculates a local load factor for normalized stress by evaluating
+   * an interpolated function (stored in the material catalogue file).
+   * Also does a quadratic extrapolation to avoid too large values for vol -> 1. */
+  double GetMicroLoadFactor(double vol, bool derivative = false);
+
 protected:
   
   /** overwrites the Optimization version. To be called within Optimization::CommitIteration() */
@@ -308,6 +313,10 @@ protected:
 
   void CalcEigenvalueDerivativeBuckling(Excitation& excite, Function* f, StateSolution* sol, Double ev);
 
+  /** calculates the global stresses and the gradients. The weight is always 1 as the stress needs to be per excitation */
+  template<class TYPE>
+  double CalcGlobalVonMisesStressOrLoadFactor(Excitation& excite, Function* f, bool gradient);
+
   /** calculates local stress value or local microscopic load factor or gradient for any of those two.
    * We do not go via LocalFunction here! */
   double CalcLocalVonMisesStressOrLoadFactor(Excitation& excite, Function* f, bool gradient);
@@ -373,10 +382,10 @@ protected:
    * @return the E^H tensor entry if !derivative or 0 */
   double CalcHomogenizedTensorEntry(Function* f, const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
 
-  /** Calculates globalized local functions. globalSlope and globalCheckerboard.
+  /** Calculates globalized local functions: globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality */
-   double CalcGlobalFunction(Function* f, bool derivative);
+   double CalcGlobalFunction(Excitation& excite, Function* f, bool derivative);
 
   /** Evaluates objective and constraint functiond and gradient.
    * Overloaded in PiezoSIMP for own objectives.
@@ -488,7 +497,8 @@ private:
    * @param g constraint the result is to be stored with */
   void CalcNewmarkDerivative(Excitation& excite, StateContainer& forward, StateContainer& adjoint, double factor, Objective* f, Condition* g);
 
-  /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
+  /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS().
+   * For local functions every adjoint is stored at index 0 and overwrites the previous one! */
   template<class T> void SolveAdjointProblem(Excitation* excite, Function* f);
 
   /** Set the rhs for the adjoint equation, called by assemble */
@@ -571,22 +581,11 @@ private:
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
 
-  /**
-   * Get the prescribed macro stress from the xml for buckling homogenization.
-   */
+  /** Get the prescribed macro stress from the xml for buckling homogenization. */
   Vector<Double> GetMacroStress();
 
-  /** Calculates a local load factor for normalized stress by evaluating
-   * an interpolated function (stored in the material catalogue file).
-   * Also does a quadratic extrapolation to avoid too
-   * large values for vol -> 1. Threshold is hardcoded!
-   */
-  double GetMicroLoadFactor(double vol, bool derivative = false);
-
-  /** coefficients of polynomials from Hermite interpolation for micro loadfactor*/
-  Vector<double> mlf_a_;
-  Matrix<double> mlf_coeff_;
-  double extrapolationThreshold_ = 0.0;
+  /** Calculates a local load factor for a given stress or the derivative */
+  double CalcLoadFactor(Excitation& excite, Function* f, DesignElement* de, double stress, bool gradient = false, Vector<double>* alpha = nullptr);
 
   /** Have we already calculated gradient of interface driven load gradient for each design element?*/
   bool interfaceDrivenGradCalc_ = false;

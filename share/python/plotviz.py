@@ -573,7 +573,9 @@ if __name__ == '__main__':
   parser.add_argument("-y2", nargs='*', help="optional indices or labels for the secondary ordinate")
   parser.add_argument("-z", nargs='*',  help="trigger 3D plots wich requires a single -x and -y component")
   parser.add_argument("--range", help='range (day fractions for datetime) to be shown. negative for final range', type=float)
+  parser.add_argument("--irange", help='index-based range to be shown. negative for final range', type=int)
   parser.add_argument("--shift", help='shift range (day fractions for datetime)', type=float)
+  parser.add_argument("--ishift", help='index-based shift range', type=int)
   parser.add_argument("--ylim", nargs=2, help='range for y-axis', type=float)
   parser.add_argument("--y2lim", nargs=2, help='range for y2-axis', type=float)
   parser.add_argument("--xlabel", help='optional label for the abscissa')
@@ -723,7 +725,6 @@ if __name__ == '__main__':
       r = datetime.timedelta(seconds=abs(args.range) * 86400) if args.range else delta # postive timedelta is easier to handle
       s = datetime.timedelta(seconds=(args.shift if args.shift else 0) * 86400)
 
-     
     if r > delta:
       print('Warning: given range larger than data range')
     if s > delta:  
@@ -740,6 +741,12 @@ if __name__ == '__main__':
       print('actual restriction', (t[si] if ei != 0 else '-'),'to',(t[ei-1] if ei != 0 else '-'),'which are',(ei-si),'/',len(x[i]),'datapoints:',args.input[i])
       start_idx[i] = si 
       end_idx[i] = ei
+  elif args.irange or args.ishift:
+    for i, t in enumerate(x):
+      si = args.ishift if args.shift else 0
+      ei = end_idx[i]
+      start_idx[i] = si                      if (args.range == None or args.range > 0) else max(ei-args.range, si)
+      end_idx[i]   = min(si+args.irange, ei) if (args.range == None or args.range > 0) else ei
   else:
     print('plot all',mal,'datapoints') 
         

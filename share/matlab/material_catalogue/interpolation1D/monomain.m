@@ -181,7 +181,6 @@ for k = 1:length(names)
     [temp(:,:,k)] = interpolation_func(params, E.(names{k}), deriv);
 end
 
-
 coeffs = struct(...
 'coeff11', temp(:,:,1),...
 'coeff12', temp(:,:,2),...
@@ -225,7 +224,11 @@ nparamintervals = zeros(3,1);
 dparams = zeros(3,1);
 
 for d=1:3
-    nparamintervals(d) = max(0, list(1,d));
+    if d < size(list,2)
+        nparamintervals(d) = max(0, list(1,d));
+    else
+        nparamintervals(d) = 0;
+    end
     if nparamintervals(d) > 1
         params{d} = unique(list(2:end,d));
         dparams(d) = list(3,d) - list(2,d);

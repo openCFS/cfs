@@ -350,7 +350,7 @@ BOOST_AUTO_TEST_CASE(choleksy_lapack_solver)
   std::cout << "choleksy_lapack_solver" << std::endl;
   std::cout << "H=" << H.ToString(TS_PYTHON) << std::endl;
   std::cout << "grad=" << grad.ToString(TS_PYTHON) << std::endl;
-  std::cout << " x=" << x.ToString(TS_PYTHON);
+  std::cout << "x=" << x.ToString(TS_PYTHON);
   if (ok)
     std::cout << "-> ok" << std::endl;
   else

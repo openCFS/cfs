@@ -67,18 +67,18 @@ def replace(xml, path, value, unique = True):
   # in the attribute case we have to fake
   idx = path.rfind('/@')
   if idx > 0:
-      # query element
-      elem = xml.xpath(path[0:idx], namespaces = namespace(path))
-      for e in elem:
-        data = e.attrib[path[idx+2:]]
-        by_nx = str(data).find('/nx') > 0 and str(value).find('/nx') == -1
-        e.attrib[path[idx+2:]] = str(value) + ('/nx' if by_nx else '')    
-      return len(elem)   
+    # query element
+    elem = xml.xpath(path[0:idx], namespaces = namespace(path))
+    for e in elem:
+      data = e.attrib[path[idx+2:]]
+      by_nx = str(data).find('/nx') > 0 and str(value).find('/nx') == -1
+      e.attrib[path[idx+2:]] = str(value) + ('/nx' if by_nx else '')
+    return len(elem)
   else:
-      for e in res:
-          e.text = str(value)
-      return len(res)
-  
+    for e in res:
+      e.text = str(value)
+    return len(res)
+
 ## removes the defined xml entity.
 def remove(xml, path, unique = True):
   res = xml.xpath(path, namespaces = namespace(path)) 

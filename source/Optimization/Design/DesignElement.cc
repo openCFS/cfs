@@ -658,11 +658,7 @@ inline double DesignElement::GetPlainCostGradient() const {
 
   // get values of all objectives
   // opt->CalcObjective() has to been had called before, such that the values are set!
-#pragma omp critical
-  {
-  if(!opt->CalcObjectiveCalled())
-    opt->CalcObjective();
-  }
+  assert(opt->CalcObjectiveCalled());
   size_t n = opt->objectives.data.GetSize();
   StdVector<double> ov(n);
   for(size_t i = 0; i < n; ++i)
@@ -1018,8 +1014,9 @@ void DesignElement::SetEnums()
   detail.Add(SM_NODE_B, "node_b");
   detail.Add(SM_PROFILE, "profile");
   detail.Add(SP_CP, "controlpoint");
-  detail.Add(BUCKLINGLOADFACTOR, "bucklingLoadFactor");
-  detail.Add(LOCALBUCKLINGLOADFACTOR, "localBucklingLoadFactor");
+  detail.Add(BUCKLING_LOAD_FACTOR, "bucklingLoadFactor");
+  detail.Add(LOCAL_BUCKLING_LOAD_FACTOR, "localBucklingLoadFactor");
+  detail.Add(GLOBAL_BUCKLING_LOAD_FACTOR, "globalBucklingLoadFactor");
   detail.Add(SIN, "sin");
   detail.Add(COS, "cos");
 }

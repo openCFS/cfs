@@ -137,7 +137,7 @@ void SnOpt::Init()
   Fstate.Resize(nF + 1, 0);
   
   // init Jacobian(s)
-  initJacobians();
+  InitJacobians();
 
   GetBounds(n, xlow.GetPointer(), xupp.GetPointer(), nF - 1, &Flow[1], &Fupp[1]);
 
@@ -202,7 +202,7 @@ void SnOpt::SolveProblem()
   // if we have linear constraints we have to setup the gradient
   if(lin_constraints > 0)
   {
-    setupLinearConstraints();
+    SetupLinearConstraints();
   }  
   else
   {
@@ -600,7 +600,7 @@ void SnOpt::SetSnOptOptions()
   if(!setItLimit) SetIntegerValue("iterations_limit", 1000000); // total minors
 }
 
-void SnOpt::initJacobians()
+void SnOpt::InitJacobians()
 {
   LOG_DBG(snopt) << "initJacobians()";
   
@@ -689,7 +689,7 @@ void SnOpt::initJacobians()
   LOG_DBG(snopt) << "end of initJacobians()";
 }
 
-void SnOpt::setupLinearConstraints()
+void SnOpt::SetupLinearConstraints()
 {
   // setup linear constraints
   StdVector<double> lincon(nA);
@@ -745,6 +745,8 @@ void SnOpt::SetIntegerValue(const std::string& key, integer value)
   else if(key == "verify_level")
   {
     option = "Verify level";
+    if(value > -1 && domain->GetOptimization()->GetDesign()->elementCache != NULL)
+      info_->Get(ParamNode::HEADER)->SetWarning("SNOPT's gradient check might not work with LocalElementCache.");
   }
   else if(key == "major_print_level")
   {

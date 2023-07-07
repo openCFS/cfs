@@ -702,7 +702,7 @@ namespace CoupledField {
             refLoadFound = true;
           }
           else {
-            // check if current region has referencLoad
+            // check if current region has referenceLoad
             if (referenceLoadNode)
               variant_referenceLoadNode = referenceLoadNode->Get("referenceStress", ParamNode::PASS);
             if (variant_referenceLoadNode) {
@@ -727,7 +727,7 @@ namespace CoupledField {
         }
 
         if (refLoadFound == false)
-          EXCEPTION("No referenceLoad defined.")
+          EXCEPTION("No reference load defined.")
       }// end Geometric Stiffness Matrix
 
     }

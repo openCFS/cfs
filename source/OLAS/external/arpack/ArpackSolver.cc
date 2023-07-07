@@ -194,7 +194,7 @@ namespace CoupledField {
     iparams[0] = 1; // ISHIFT = 1:
     iparams[2] = maxIterations_; // NXITER
     iparams[3] = 1; // NB blocksize to be used in the recurrence
-    // https://www.caam.rice.edu/software/ARPACK/UG/node136.html
+    // ARPACK manual, chap 3.5
     if (computeMode_ == ArpackMatInterface::BUCKLING) {
       assert(!complex);
       iparams[6] = 4;

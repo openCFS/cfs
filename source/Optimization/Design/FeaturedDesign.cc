@@ -297,6 +297,9 @@ void FeaturedDesign::SetupMeshStructure()
 
 void FeaturedDesign::SetupMapping()
 {
+  // n_ and nx_, ny_, nz_
+  SetupMeshStructure();
+
   // set physical design, which is usually the density but for spaghetti also angles.
   map_.Resize(data.GetSize());
   StdVector<Elem*> designElems;
@@ -319,6 +322,7 @@ void FeaturedDesign::SetupMapping()
                  << " coord=" << domain->GetGrid()->GetElemNodesCoord(item.elemval->elem).ToString();
   }
 
+  assert(!(n_.size() == 0));
   // #designElems can be smaller nx_*ny_*ny_ -> see comment in SetupMeshStructure()
   assert(!(designElems.GetSize() > n_.Product()));
   assert(elements == designElems.GetSize());

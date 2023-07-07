@@ -14,7 +14,7 @@ set(UNIT_TESTS_SRC
   muparsertests.cc
   testbed.cc
 #  bsplinetests.cc
-  #cubicinttests.cc
+#  cubicinttests.cc
 )
 
 set(TARGET_LL 

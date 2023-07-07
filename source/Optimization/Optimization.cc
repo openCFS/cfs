@@ -217,7 +217,7 @@ void Optimization::PostInitSecond()
   if(design->HasAlphaVariable())
     log.AddToHeader("alpha");
 
-  if(design->HasSlackVariable() &&  !objectives.Has(Function::SLACK))
+  if(design->HasSlackVariable() && !objectives.Has(Function::SLACK))
     log.AddToHeader("slack");
 
   log.Init(this, optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
@@ -432,8 +432,9 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
-  Function::type.Add(Function::GLOBAL_BUCKLING_LOAD_FACTOR, "bucklingLoadFactor");
+  Function::type.Add(Function::BUCKLING_LOAD_FACTOR, "bucklingLoadFactor");
   Function::type.Add(Function::LOCAL_BUCKLING_LOAD_FACTOR, "localBucklingLoadFactor");
+  Function::type.Add(Function::GLOBAL_BUCKLING_LOAD_FACTOR, "globalBucklingLoadFactor");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::SLACK_FNCT, "slackFunction");
@@ -874,14 +875,14 @@ void Optimization::SolveAdjointProblems(Excitation* excite)
   assert(baseOptimizer_->ValidateTimers());
 
   // solve for objectives and constraints
-  // solve also for observe
+  // do not solve for observe
   StdVector<Function*> ff = GetFunctions(false);
 
   for(unsigned int i = 0; i < ff.GetSize(); ++i)
   {
     Function* f = ff[i];
     assert(f != NULL);
-    if(f->ctxt == context && f->IsAdjointBased() && f->DoEvaluate(excite))
+    if(f->ctxt == context && f->IsAdjointBased() && f->DoEvaluate(excite) && !f->IsLocal() && (f->IsObjective() || !dynamic_cast<Condition*>(f)->IsObservation()))
       SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
 }
@@ -971,8 +972,8 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
 
   double result = 0.0;
 
-  StdVector<double> ovp;
-  StdVector<double> ovpw;
+  StdVector<double> ovp; // objective value * penalty
+  StdVector<double> ovpw; // objective value * penalty * weight
 
   // the multiple excitation case is a special case - for all other cases this is executed once
   for(unsigned int e = 0; e < (ev_only_excite != NULL ? 1 : me->excitations.GetSize()); e++)

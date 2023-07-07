@@ -420,9 +420,12 @@ def create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, 
       e.type = Ansys.TRIA3 if triangles else Ansys.QUAD4
       e.region = 'mech'
       # assign nodes
-      ll = (nx+1) * y + x  # lowerleft
+      ll = (nx+1) * y + x if row_major else (ny+1) * x + y # lowerleft
       if not triangles:
-        e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))
+        if row_major:
+          e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))
+        else:
+          e.nodes = ((ll, ll + ny + 1, ll + 1 + ny + 1, ll + 1))
         mesh.elements.append(e)
       else:          
         e.nodes = ((ll, ll + 1, ll + 1 + nx + 1))

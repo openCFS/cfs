@@ -32,12 +32,11 @@ def set_timer(node):
   if l == 'timer':
     l = node.attrib['label'] if 'label' in node.attrib else None
     if l == None: # do our best
+      l = node.getparent().tag if node.getparent().tag != "summary" else node.getparent().getparent().tag
       # is this the root node?
-      if node.getparent().getparent().tag == "cfsInfo":
+      if l == "cfsInfo":
         l = 'total'
         i = -1 # skip counter 
-      else:
-        l = node.getparent().tag if node.getparent().tag != "summary" else node.getparent().getparent().tag
   # the optional attribute sub="true" indicates that this is sub-element 
   # and shall not be considered for missing_time
   s = node.attrib['sub'] if 'sub' in node.attrib else None

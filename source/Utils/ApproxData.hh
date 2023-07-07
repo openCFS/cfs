@@ -57,7 +57,7 @@ namespace CoupledField {
 
     //! evaluates the functions
     virtual double EvaluateFunc(const double x) const {
-      EXCEPTION("only implemented in LinInterpolate");
+      EXCEPTION("only implemented in LinInterpolate and CubicInterpolate");
       return 0;
     }
 
@@ -84,6 +84,12 @@ namespace CoupledField {
 
     virtual double EvaluateDeriv(const Vector<double>& p, const int dparam) const {
       EXCEPTION("only implemented in derived classes");
+      return 0;
+    }
+
+    //! returns d^2 f(x) / dx^2
+    virtual double EvaluateSecondDeriv(const double x) const {
+      EXCEPTION("only implemented in CubicInterpolate");
       return 0;
     }
 

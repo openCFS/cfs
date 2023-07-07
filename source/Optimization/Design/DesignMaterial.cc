@@ -103,7 +103,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     }
   }
   if (!CheckRequiredDesigns(d)) {
-    throw Exception("Not all Parameters for chosen DesignMaterial given");
+    throw Exception("Not all Parameters for chosen DesignMaterial given. See DesignMaterial::CheckRequiredDesigns().");
   }else if(d.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed
     domain->GetInfoRoot()->Get("optimization/designSpace/header")->SetWarning("There are designs specified that are not used!");
   }
@@ -237,6 +237,9 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       }
     // full C1 interpolation with XML coefficients
     } else if (interpolation_str == "c1") {
+
+      bool is_non_ortho = (type_ == HOM_ISO_C1) ? true : false;
+
       interpolation_ = C1;
       PtrParamNode root = XmlReader::ParseFile(file);
       MaterialTensorNotation notation = tensorNotation.Parse(root->Get("notation")->As<string>());
@@ -291,9 +294,11 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           hom_rect_coeff66_ *= (notation == HILL_MANDEL) ? 0.5 : 1.0;
         }
 
-        if (type_ == HOM_ISO_C1) {
+        // returns true if coefficients for entry 14 are given in catalogue
+        is_non_ortho = ReadCoeff(root, "coeff14", num_intervals, num_interp_coeffs, hom_rect_coeff14_);
+
+        if (is_non_ortho) {
           // only necessary for the non-ortho case
-          ReadCoeff(root, "coeff14", num_intervals, num_interp_coeffs, hom_rect_coeff14_);
           ReadCoeff(root, "coeff15", num_intervals, num_interp_coeffs, hom_rect_coeff15_);
           ReadCoeff(root, "coeff16", num_intervals, num_interp_coeffs, hom_rect_coeff16_);
           ReadCoeff(root, "coeff24", num_intervals, num_interp_coeffs, hom_rect_coeff24_);
@@ -320,6 +325,12 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         }
       }
 
+      // read micro load factor coefficients and threshold above which micro load factors are extrapolated
+      bool hasMLF = ReadCoeff(root, "microloadfactor", num_intervals, num_interp_coeffs, hom_mlf_coeff_);
+
+      if (hasMLF)
+        extrapolationThreshold_ = hr->Get("mlfExtrapolationThreshold")->As<double>();
+
       // copy Vector to StdVector
       StdVector<double> a(hom_rect_a_.GetSize()), b(hom_rect_b_.GetSize()), c(hom_rect_c_.GetSize());
       std::copy(hom_rect_a_.GetPointer(), hom_rect_a_.GetPointer() + hom_rect_a_.GetSize(), a.Begin());
@@ -341,7 +352,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           interpolator55_ = CreateInterpolator(a, b, c, hom_rect_coeff55_);
           interpolator66_ = CreateInterpolator(a, b, c, hom_rect_coeff66_);
         }
-        if (type_ == HOM_ISO_C1) {
+        if (is_non_ortho) {
           // only necessary for the non-ortho case
           interpolator14_ = CreateInterpolator(a, b, c, hom_rect_coeff14_);
           interpolator15_ = CreateInterpolator(a, b, c, hom_rect_coeff15_);
@@ -357,6 +368,10 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           interpolator56_ = CreateInterpolator(a, b, c, hom_rect_coeff56_);
         }
       }
+
+      // create interpolator for micro load factor
+      if (hasMLF)
+        interpolatorMLF_ = CreateInterpolator(a, b, c, hom_mlf_coeff_);
 
       LOG_DBG3(dm) << "a = " << hom_rect_a_;
       LOG_DBG3(dm) << "b = " << hom_rect_b_;
@@ -551,6 +566,7 @@ DesignMaterial::~DesignMaterial() {
   if(interpolator55_) { delete interpolator55_; }
   if(interpolator56_) { delete interpolator56_; }
   if(interpolator66_) { delete interpolator66_; }
+  if(interpolatorMLF_) { delete interpolatorMLF_; }
 }
 
 ApproxData* DesignMaterial::CreateInterpolator(StdVector<double>& a, StdVector<double>& b, StdVector<double>& c, Matrix<double>& coeff) {
@@ -576,12 +592,14 @@ ApproxData* DesignMaterial::CreateInterpolator(StdVector<double>& a, StdVector<d
   return interpolator;
 }
 
-inline void DesignMaterial::ReadCoeff(PtrParamNode pn, const string& name, int nRows, int nCols, Matrix<double>& coeff) const {
-  if (pn->Has(name))
+inline bool DesignMaterial::ReadCoeff(PtrParamNode pn, const string& name, int nRows, int nCols, Matrix<double>& coeff) const {
+  if (pn->Has(name)) {
     ParamTools::AsTensor<double>(pn->Get(name + "/matrix/real"), nRows, nCols, coeff);
-  else {
+    return true;
+  } else {
     coeff.Resize(nRows,nCols);
     coeff.Init();
+    return false;
   }
 }
 
@@ -1855,6 +1873,29 @@ inline void DesignMaterial::GetInterpolatedHomTensor(MaterialTensor<double>& mt,
 }
 
 
+double DesignMaterial::GetMicroLoadFactor(double vol, DesignElement::Type direction)
+{
+  // do a quadratic extrapolation for all x > x0
+  double x0 = extrapolationThreshold_;
+  double ev0 = interpolatorMLF_->EvaluateFunc(x0);
+  double dev0 = interpolatorMLF_->EvaluateDeriv(x0);
+  double ddev0 = interpolatorMLF_->EvaluateSecondDeriv(x0);
+
+  double ev = -1;
+  if(direction == DesignElement::NO_DERIVATIVE)
+    if(vol < x0)
+      ev = interpolatorMLF_->EvaluateFunc(vol);
+    else
+      ev = ddev0/2 * std::pow(vol-x0, 2) + dev0 * (vol-x0) + ev0;
+  else
+    if(vol < x0)
+      ev = interpolatorMLF_->EvaluateDeriv(vol);
+    else
+      ev = ddev0 * (vol-x0) + dev0;
+
+  return ev;
+}
+
 
 void DesignMaterial::GetHomRectTensor(MaterialTensor<double>& mt, const Vector<double>& shape) const
 {
@@ -1910,22 +1951,34 @@ void DesignMaterial::GetHomC1Tensor(MaterialTensor<double>& mt, Vector<double>& 
       E[2][2] = interpolator33_->EvaluateFunc(p);
       LOG_DBG(dm) << "E11= " << E[0][0] << " E12= " << E[0][1] << " E13= " << E[0][2] << " E22= " << E[1][1] << " E23= " << E[1][2]<< " E33= " << E[2][2];
       if (type_ != HEAT) {
-//        E[0][3] = interpolator14_->EvaluateFunc(p);
-//        E[0][4] = interpolator15_->EvaluateFunc(p);
-//        E[0][5] = interpolator16_->EvaluateFunc(p);
-//        E[1][3] = interpolator24_->EvaluateFunc(p);
-//        E[1][4] = interpolator25_->EvaluateFunc(p);
-//        E[1][5] = interpolator26_->EvaluateFunc(p);
-//        E[2][3] = interpolator34_->EvaluateFunc(p);
-//        E[2][4] = interpolator35_->EvaluateFunc(p);
-//        E[2][5] = interpolator36_->EvaluateFunc(p);
         E[3][3] = interpolator44_->EvaluateFunc(p);
-//        E[3][4] = interpolator45_->EvaluateFunc(p);
-//        E[3][5] = interpolator46_->EvaluateFunc(p);
         E[4][4] = interpolator55_->EvaluateFunc(p);
-//        E[4][5] = interpolator56_->EvaluateFunc(p);
         E[5][5] = interpolator66_->EvaluateFunc(p);
         LOG_DBG(dm) << " E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+        E[0][3] = interpolator14_ ? interpolator14_->EvaluateFunc(p) : 0.0;
+        E[0][4] = interpolator15_ ? interpolator15_->EvaluateFunc(p) : 0.0;
+        E[0][5] = interpolator16_ ? interpolator16_->EvaluateFunc(p) : 0.0;
+        E[1][3] = interpolator24_ ? interpolator24_->EvaluateFunc(p) : 0.0;
+        E[1][4] = interpolator25_ ? interpolator25_->EvaluateFunc(p) : 0.0;
+        E[1][5] = interpolator26_ ? interpolator26_->EvaluateFunc(p) : 0.0;
+        E[2][3] = interpolator34_ ? interpolator34_->EvaluateFunc(p) : 0.0;
+        E[2][4] = interpolator35_ ? interpolator35_->EvaluateFunc(p) : 0.0;
+        E[2][5] = interpolator36_ ? interpolator36_->EvaluateFunc(p) : 0.0;
+        E[3][4] = interpolator45_ ? interpolator45_->EvaluateFunc(p) : 0.0;
+        E[3][5] = interpolator46_ ? interpolator46_->EvaluateFunc(p) : 0.0;
+        E[4][5] = interpolator56_ ? interpolator56_->EvaluateFunc(p) : 0.0;
+        E[3][0] = E[0][3];
+        E[4][0] = E[0][4];
+        E[5][0] = E[0][5];
+        E[3][1] = E[1][3];
+        E[4][1] = E[1][4];
+        E[5][1] = E[1][5];
+        E[3][2] = E[2][3];
+        E[4][2] = E[2][4];
+        E[5][2] = E[2][5];
+        E[4][3] = E[3][4];
+        E[5][3] = E[3][5];
+        E[5][4] = E[4][5];
       }
     } else {
       // Calculation of the interpolated tensor derivatives
@@ -1948,6 +2001,31 @@ void DesignMaterial::GetHomC1Tensor(MaterialTensor<double>& mt, Vector<double>& 
         E[4][4] = EvaluateC1Interpolation_Deriv(p, interpolator55_, direction);
         E[5][5] = EvaluateC1Interpolation_Deriv(p, interpolator66_, direction);
         LOG_DBG(dm)<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
+
+        E[0][3] = EvaluateC1Interpolation_Deriv(p, interpolator14_, direction);
+        E[0][4] = EvaluateC1Interpolation_Deriv(p, interpolator15_, direction);
+        E[0][5] = EvaluateC1Interpolation_Deriv(p, interpolator16_, direction);
+        E[1][3] = EvaluateC1Interpolation_Deriv(p, interpolator24_, direction);
+        E[1][4] = EvaluateC1Interpolation_Deriv(p, interpolator25_, direction);
+        E[1][5] = EvaluateC1Interpolation_Deriv(p, interpolator26_, direction);
+        E[2][3] = EvaluateC1Interpolation_Deriv(p, interpolator34_, direction);
+        E[2][4] = EvaluateC1Interpolation_Deriv(p, interpolator35_, direction);
+        E[2][5] = EvaluateC1Interpolation_Deriv(p, interpolator36_, direction);
+        E[3][4] = EvaluateC1Interpolation_Deriv(p, interpolator45_, direction);
+        E[3][5] = EvaluateC1Interpolation_Deriv(p, interpolator46_, direction);
+        E[4][5] = EvaluateC1Interpolation_Deriv(p, interpolator56_, direction);
+        E[3][0] = E[0][3];
+        E[4][0] = E[0][4];
+        E[5][0] = E[0][5];
+        E[3][1] = E[1][3];
+        E[4][1] = E[1][4];
+        E[5][1] = E[1][5];
+        E[3][2] = E[2][3];
+        E[4][2] = E[2][4];
+        E[5][2] = E[2][5];
+        E[4][3] = E[3][4];
+        E[5][3] = E[3][5];
+        E[5][4] = E[4][5];
       }
     }
   } else {
@@ -3729,7 +3807,7 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
     Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
   }
   LOG_DBG3(dm) << "Corresponding Q is " << Q.ToString();
-  if(direction != DesignElement::ROTANGLETHIRD && direction != DesignElement::ROTANGLESECOND && direction != DesignElement::ROTANGLEFIRST && direction != DesignElement::ROTANGLE){
+  if(direction != DesignElement::ROTANGLETHIRD && direction != DesignElement::ROTANGLESECOND && direction != DesignElement::ROTANGLEFIRST && direction != DesignElement::ROTANGLE) {
     // calculate Q*t*Q' and store back to t. unfortunately MultT is the wrong way
     Matrix<Double> help(dimQ, dimQ);
     Q.Mult(t, help);
@@ -3737,7 +3815,7 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
     QT.Resize(dimQ, dimQ);
     Q.Transpose(QT);
     help.Mult(QT, t);
-  }else{ // we need a derivative
+  } else { // we need a derivative
     Matrix<Double> dR(dim, dim);
     SetRotationMatrix(dR, theta1, theta2, theta3, direction); // this now produces the derivative
 
@@ -3753,7 +3831,7 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
     dQ[l][1] = (dR[0][1]*R[1][1]+R[0][1]*dR[1][1]);
     dQ[l][l] = (dR[0][0]*R[1][1]+R[0][0]*dR[1][1]) + (dR[0][1]*R[1][0]+R[0][1]*dR[1][0]);
 
-    if(dim == 3){
+    if(dim == 3) {
       dQ[0][2] = (dR[0][2]*R[0][2]+R[0][2]*dR[0][2]);
       dQ[0][3] = 2.0*(dR[0][1]*R[0][2]+R[0][1]*dR[0][2]);
       dQ[0][4] = 2.0*(dR[0][0]*R[0][2]+R[0][0]*dR[0][2]);
@@ -3923,6 +4001,8 @@ void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double 
       axis1 = 2;
       break;
     }
+
+    assert((axis1 != -1) && (axis2 != -1) && (axis3 != -1));
 
     SetOneAxisRotationMatrix(R1, theta1, axis1, direction == DesignElement::ROTANGLEFIRST);
     SetOneAxisRotationMatrix(R2, theta2, axis2, direction == DesignElement::ROTANGLESECOND);

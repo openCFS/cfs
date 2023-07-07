@@ -234,8 +234,13 @@ namespace CoupledField {
         LOG_DBG(resHandler) << "Evaluating result '" << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
                             << "' on '" << actContext.result->GetEntityList()->GetName() << "'";
 
+        shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("results/timer")->AsTimer();
+        timer->Start();
         actContext.functor->EvalResult(actContext.result);
+        timer->Stop();
+
         UpdateResult(actContext.result);
+
       }
     }
   }

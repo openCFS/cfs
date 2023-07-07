@@ -1012,6 +1012,8 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& re
   if(idx == -1)
     return false;
 
+  CoefFunctionOpt::State old_state_inner = CoefFunctionOpt::OPT;
+
   //LOG_DBG3(designSpace) << "APD: form name=" << coef->GetForm()->GetName() << ", dir=" << DesignElement::type.ToString(coef->GetMaterialDerivative());
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
   if(Optimization::context->dm != NULL) // easy to extend to piezo and other stuff!
@@ -1050,7 +1052,6 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& re
       // In OptimizationMaterial::ComputeElementMatrix the outer coeffunction is set to material derivative
       // and we do it here for the inner one (resulting in D')
       // Only then, `coef->orgMat->GetTensor(retMat, *lpm)` will use the correct tensor D' for retMat = stress
-      assert(coef->GetForm()->GetName() == "PreStressInt");
       CoefFunctionCompound<Double>* stressTens = dynamic_cast<CoefFunctionCompound<Double>*>(coef->orgMat.get());
       assert(stressTens != NULL);
 
@@ -1064,7 +1065,10 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& re
       BaseBDBInt* bdb = forms[lpm->ptEl->regionId];
       assert(bdb != NULL);
       assert(bdb->GetCoef());
-      dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get())->SetToMaterialDerivative(coef->GetMaterialDerivative());
+
+      CoefFunctionOpt* innerCoef = dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get());
+      old_state_inner = innerCoef->GetState();
+      innerCoef->SetToMaterialDerivative(coef->GetMaterialDerivative());
     }
   }
 
@@ -1085,6 +1089,22 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& re
   else
     // we store the original material tensor in retMat
     coef->orgMat->GetTensor(retMat, *lpm);
+
+  if(Optimization::context->dm != NULL && coef->GetMaterialDerivative() != DesignElement::NO_DERIVATIVE)
+  {
+    assert(coef->GetForm()->GetName() == "PreStressInt");
+    // Reset the inner CoefFunction
+    CoefFunctionCompound<Double>* stressTens = dynamic_cast<CoefFunctionCompound<Double>*>(coef->orgMat.get());
+    std::map<std::string, PtrCoefFct>& map = stressTens->GetCoefFcts();
+    CoefFunctionFlux<Complex>* stressVec = dynamic_cast<CoefFunctionFlux<Complex>*>(map["a"].get());
+    std::map<RegionIdType, BaseBDBInt* > forms = stressVec->GetForms();
+    BaseBDBInt* bdb = forms[lpm->ptEl->regionId];
+    CoefFunctionOpt* innerCoef = dynamic_cast<CoefFunctionOpt*>(bdb->GetCoef().get());
+    if(old_state_inner == CoefFunctionOpt::ORG)
+      innerCoef->SetToOrgMaterial();
+    else
+      innerCoef->SetToOptimization();
+  }
 
   if(app == App::MAG)
   {

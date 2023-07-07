@@ -81,7 +81,19 @@ double CubicInterpolate::EvaluateDeriv(double x) const {
 
   fValue = EvaluatePolynom(index, xloc, Derivative::X) / dxloc * scaleX_ * factor_;
 
-  LOG_DBG2(cubicappx) << "TCI::ED df(" << x << ")= " << fValue;
+  LOG_DBG2(cubicappx) << "CI::ED df(" << x << ")= " << fValue;
+  return fValue;
+}
+
+double CubicInterpolate::EvaluateSecondDeriv(double x) const {
+  double fValue = 0.0;
+
+  double xloc, dxloc;
+  unsigned int index = GetLocalValues(x, xloc, dxloc);
+
+  fValue = EvaluatePolynom(index, xloc, Derivative::XX) / dxloc * scaleX_ / dxloc * scaleX_ * factor_;
+
+  LOG_DBG2(cubicappx) << "CI::ESD ddf(" << x << ")= " << fValue;
   return fValue;
 }
 
@@ -96,6 +108,11 @@ double CubicInterpolate::EvaluatePolynom(unsigned int index, double x, Derivativ
   case Derivative::X:
     for(unsigned int i = 1; i < 4; ++i) {
       ret += coeff_[index][i] * i * pow(x,i-1);
+    }
+    break;
+  case Derivative::XX:
+    for(unsigned int i = 2; i < 4; ++i) {
+      ret += coeff_[index][i] * i * (i-1) * pow(x,i-2);
     }
     break;
   }
@@ -159,7 +176,7 @@ void CubicInterpolate::ApproxPartialDeriv(StdVector<double>& dFdx) const {
       dx += 1;
 
     // the scaled derivative. for the real one, this has to be multiplied with scaleX_
-    //f(i+1)-f(i-1) / 2
+    // (f(i+1)-f(i-1)) / (x(i+1)-x(i-1))
     dFdx[i] = (data_[iu] - data_[il]) / dx;
 
     LOG_DBG3(cubicappx) << "APD: idx= " << i << " dFdx= " << dFdx[i] * scaleX_;

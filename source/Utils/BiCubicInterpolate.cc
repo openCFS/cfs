@@ -111,7 +111,7 @@ double BiCubicInterpolate::EvaluateDeriv(double x, double y, int dparam) const {
     fValue = EvaluatePolynom(index, xloc, yloc, Derivative::Y) / dyloc * scaleY_ * factor_;
     break;
   }
-  LOG_DBG2(bicubicappx) << "TCI::ED deriv=" << dparam << ", df(" << x << ", " << y << ")= " << fValue;
+  LOG_DBG2(bicubicappx) << "BCI::ED deriv=" << dparam << ", df(" << x << ", " << y << ")= " << fValue;
   return fValue;
 }
 

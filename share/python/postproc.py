@@ -127,7 +127,7 @@ def read_info_xml_input(args, input):
       if args.perf:
         read_perf(xml, dic, args.extend)
       else:   
-        if args.extend: 
+        if args.extend:
           read_all_opt(xml, dic, args.first)
         else:
           read_selected_opt(xml, dic, args.first)
@@ -138,10 +138,12 @@ def read_info_xml_input(args, input):
       res.append(dic)
     except KeyboardInterrupt:
       os.sys.exit(1)
+    except KeyError as re:
+      handle_exception(args, problem, 'KeyError', str(re))
     except RuntimeError as re:
-     handle_exception(args, problem, 'RuntimeError', str(re)) 
+      handle_exception(args, problem, 'RuntimeError', str(re))
     except lxml.etree.XMLSyntaxError as se:
-     handle_exception(args, problem, 'XMLSyntaxError', str(se))    
+      handle_exception(args, problem, 'XMLSyntaxError', str(se))
   #  except:
   #   handle_exception(args, problem, 'exception', str(sys.exc_info()[0]))    
   return res  
@@ -306,5 +308,3 @@ for dic in res:
       s = '{:>' + str(size[k]) + '}'
       print(s.format(dic[k]) + ' ',end='')
     print()
-    
-
