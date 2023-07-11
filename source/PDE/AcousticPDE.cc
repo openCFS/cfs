@@ -406,6 +406,8 @@ namespace CoupledField
       {
         dens = materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::COMPLEX);
         blk = materials_[actRegion]->GetScalCoefFnc(ACOU_BULK_MODULUS, Global::COMPLEX);
+        std::cout << "complex blk = " << blk->ToString() << "\n";
+        std::cout << "complex dens = " << dens->ToString() << "\n";
       }
       else if (complexFluidFormulation_ && useRationalAppr == "yes"){
         std::cout << "Using the rational function approximation for bulk modulus and density." << std::endl;
@@ -2075,19 +2077,18 @@ namespace CoupledField
           PtrCoefFct coeffDampTmp = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, abcCoefTDEFre, abcCoefTDEFdenom, CoefXpr::OP_DIV));
 
 
-          // scale by high frequency limit of inverse density
-          PtrCoefFct invDensInf;
-          invDensInf = materials_[aRegion]->GetScalCoefFnc(ACOU_TDEF_INVDENS_CONST, Global::REAL);
-          coeffDamp = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, coeffDampTmp, invDensInf, CoefXpr::OP_MULT));
-          std::cout << "coeffDamp = " << coeffDamp->ToString() << "\n";
-
-
           if(isTDEFReg_[iRegion]){
+            // scale by high frequency limit of inverse density
+            PtrCoefFct invDensInf;
+            invDensInf = materials_[aRegion]->GetScalCoefFnc(ACOU_TDEF_INVDENS_CONST, Global::REAL);
+            coeffDamp = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, coeffDampTmp, invDensInf, CoefXpr::OP_MULT));
+            std::cout << "coeffDamp = " << coeffDamp->ToString() << "\n";
+
             std::cout << "omegaTrg = " << omegaTrg->ToString() << "\n";
             PtrCoefFct alpha = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, coeffDampTmp, omegaTrg, CoefXpr::OP_MULT));
             std::cout << "alpha = " << alpha->ToString() << "\n";
 
-            // for a TDEF region case, an additional stiffnes term is required for the (narrow-band for the giben target frequency) ABC
+            // for a TDEF region case, an additional stiffnes term is required for the (narrow-band for the given target frequency) ABC
             
             PtrCoefFct betaTmp = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, abcCoefTDEFim, abcCoefTDEFdenom, CoefXpr::OP_DIV));
             PtrCoefFct beta = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, betaTmp, omegaTrg, CoefXpr::OP_MULT));
@@ -2096,14 +2097,13 @@ namespace CoupledField
             coeffStiffTDEF = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, beta, invDensInf, CoefXpr::OP_MULT));            
             std::cout << "coeffStiffTDEF = " << coeffStiffTDEF->ToString() << "\n";
           }
-        }
-        else
-        {
-          // factor for damping matrix: factor / c0
-          if (complexFluidFormulation_)
-            coeffDamp = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV));
           else
-            coeffDamp = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV));
+          {
+            // factor for damping matrix: 1 / density for air region
+            coeffDampTmp = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV));
+            coeffDamp = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, coeffDampTmp, c0, CoefXpr::OP_DIV));
+            std::cout << "coeffDamp = " << coeffDamp->ToString() << "\n";
+          }
         }
         LOG_DBG(acousticpde) << "Define Surface Integrator: coeffDamp =" << coeffDamp->ToString() << "\n";
 
