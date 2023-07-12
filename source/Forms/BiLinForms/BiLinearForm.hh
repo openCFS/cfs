@@ -161,10 +161,10 @@ class BiLinearForm : public CfsCopyable{
     	  isSolDependent_ = depend;
       }
 
-      IntScheme* GetIntScheme() { return intScheme_.get(); }
+      IntScheme* GetIntScheme() const { return intScheme_.get(); }
       shared_ptr<IntScheme> GetPtrIntScheme() { return intScheme_; }
 
-      FeSpace* GetFeSpace1() { return ptFeSpace1_.get(); }
+      FeSpace* GetFeSpace1() const { return ptFeSpace1_.get(); }
       shared_ptr<FeSpace> GetPtrFeSpace1() { return ptFeSpace1_; }
 
       //! Set eqn evaluation to volume for A operator

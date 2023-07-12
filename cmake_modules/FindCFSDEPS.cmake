@@ -397,6 +397,15 @@ if(USE_IPOPT)
 endif()
 
 #-----------------------------------------------------------------------------
+# Find external SGP (Sequential Global Programming) library - An open source optimizer for structural optimization problems
+# Currently: Simulatneous topology + local orientation optimization 
+#-----------------------------------------------------------------------------
+if(USE_SGP)
+  include("${CFSDEPS_DIR}/sgp/External_SGP.cmake")
+endif()
+
+
+#-----------------------------------------------------------------------------
 # Find SGPP - A toolbox for sparse grid interpolation 
 #-----------------------------------------------------------------------------
 IF(USE_SGPP)

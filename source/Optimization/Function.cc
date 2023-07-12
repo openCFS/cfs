@@ -1039,7 +1039,11 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
 {
   // in the constructor we had to guess the filter type, now confirm
   LOG_DBG(func) << "PP: f_=" << Filter::type.ToString(filter_) << " sft=" << Filter::type.ToString(space->GetFilterType());
-  assert(filter_ == space->GetFilterType());
+  if (domain->GetOptimization()->GetOptimizerType() != Optimization::SGP_SOLVER)
+    // if SGP: cfs assembles the filters and passes them (without applying to the design) to external SGP solver
+    // BUT: GuessFilter() returns density filter (which is ok) and GetFilterType() returns NO_FILTERING (need this to prevent cfs from applying the filter)
+    // thus, in SGP case, this assert will fail
+    assert(filter_ == space->GetFilterType());
 
   if(BaseDesignElement::IsShapeMapType(design_))
   {

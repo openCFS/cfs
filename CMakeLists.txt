@@ -142,6 +142,8 @@ option(USE_SCPIP "Use the external academic SCPIP optimizer." ${USE_SCPIP_DEFAUL
 option(USE_SNOPT "Use the external commercial SNOPT optimizer." ${USE_SNOPT_DEFAULT})
 # open source IPOPT optimizer library.
 option(USE_IPOPT "Use the external open source IPOPT optimizer." ${USE_IPOPT_DEFAULT})
+# open source SGP optimizer library.
+option(USE_SGP "Use the external open source SGP optimizer." ${USE_SGP_DEFAULT})
 option(USE_CGAL "Activate fast element mapping using CGAL library." ${USE_CGAL_DEFAULT})
 # Use libfbi toggles the inclusion of the Fast Box Intersection library.
 # Please note, that either CGAL or libfbi can be used at a time, but not both!
@@ -188,6 +190,10 @@ endif()
 
 if(BUILD_TESTING AND NOT BUILD_CFSTOOL)
   message(FATAL_ERROR "BUILD_CFSTOOL required for BUILD_TESTING")
+endif()
+
+if(USE_SGP AND NOT USE_BLAS_LAPACK STREQUAL "MKL")
+  message(FATAL_ERROR "USE_SGP requires USE_BLAS_LAPACK=MKL")    
 endif()
 
 #-----------------------------------------------------------------------------

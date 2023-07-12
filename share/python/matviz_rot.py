@@ -29,7 +29,8 @@ def dump_tensor(tensor, toString=False):
 
   return out
 
-## This rotates in 2D counterclockwise around the z-axis.
+## This rotates a 2x2 2D tensor via the third direction. As in Richter and CFS
+## WARNING!!!! This rotates in clockwise direction and not counter-clockwise as in CFS!!!
 def get_rot_2x2(angle):
   R = np.zeros((2,2))
 
@@ -40,9 +41,11 @@ def get_rot_2x2(angle):
 
   return R
 
-## This rotates a 3*3 2D tensor counterclockwise around the z-axis.
+## This rotates a 3x3 2D material tensor in Voigt notation via the third direction. 
+## Richter rotates clockwise and CFS counter-clockwise (default). 
+## The rotation direction of this matrix depends on the direction of get_rot_2x2(angle)
 def get_rot_3x3(angle):
-
+  
   R = get_rot_2x2(angle)
 
   Q = np.zeros((3,3))
@@ -61,6 +64,7 @@ def get_rot_3x3(angle):
 
   return Q
 
+
 ## This is a variant of DesignMaterial::SetOneAxisRotationMatrix
 #  see Wikipedia: Kardan/Tait–Bryan angles, x-y-z (extrinsic rotation)
 # @param axis is either 'x', 'y' or 'z'
@@ -74,6 +78,7 @@ def get_rot_3x3_3d_one_axis(axis, angle):
     return np.array([ [cos(angle),-sin(angle),0], [sin(angle),cos(angle),0], [0,0,1] ])
   
   assert False, 'inavild axis value'
+
   
 ## This rotates in 3D counterclockwise around three axes.
 # @param axes 'xyz' rotates first by gamma around z and last by alpha around x and is default 

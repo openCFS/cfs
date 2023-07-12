@@ -1092,6 +1092,8 @@ namespace CoupledField {
 
     BaseEigenSolver* GetEigenSolver(){ return eigenSolver_; };
 
+    BaseSolver* GetSolver(){ return solver_; };
+
     //! Return if it is a multiharmonic analysis
     bool IsMultHarm(){return isMultHarm_; };
 

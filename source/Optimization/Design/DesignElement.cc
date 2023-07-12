@@ -520,7 +520,9 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == SPLINE_BOX_GRAD_Z
       || rd.value == SPLINE_BOX_INT_ORDER
       || rd.value == SPLINE_BOX_INT_CORNER
-      || rd.value == GENERIC_ELEM)
+      || rd.value == GENERIC_ELEM
+      || rd.value == FILTERED_DESIGN
+      || rd.value == DIFF_FILTERED_DESIGN)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -979,6 +981,8 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(MMA_CON_GRADIANT_1, "mmaGradiant_1");
   valueSpecifier.Add(MMA_CON_GRADIANT_2, "mmaGradiant_2");
   valueSpecifier.Add(GENERIC_ELEM, "genericElem");
+  valueSpecifier.Add(FILTERED_DESIGN, "filteredDesign");
+  valueSpecifier.Add(DIFF_FILTERED_DESIGN, "diffFilteredDesign");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
@@ -1016,6 +1020,8 @@ void DesignElement::SetEnums()
   detail.Add(SP_CP, "controlpoint");
   detail.Add(BUCKLINGLOADFACTOR, "bucklingLoadFactor");
   detail.Add(LOCALBUCKLINGLOADFACTOR, "localBucklingLoadFactor");
+  detail.Add(SIN, "sin");
+  detail.Add(COS, "cos");
 }
 
 
@@ -1136,12 +1142,15 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   // we initialize numerator and denominator with the values obtained from this element
 
   double p_filt = 0.0;
-
-  if (space->is_matrix_filt)
-  {
-    int elem_num = de_->GetIndex();
-    p_filt =  space->density_filter[fix].filtered_vec[elem_num];
-    LOG_DBG3(desel)<<"elemNum"<<de_->elem->elemNum<<"Filtered Value"<<p_filt;
+  if (space->is_matrix_filt){
+    // (idx within DesignSpace::data, dt, FE ElemNum):
+    // we assume that in DesignSpace::data, an equally large number of design variables exists for each defined design type
+    // here: 3 x density, 3 x angle
+    // (0, density, 1),(1, density, 2), (2, density, 3), (3, angle, 1), (4, angle, 2), (5, angle, 3)
+    LOG_DBG3(desel) << "de idx=" << de_->GetIndex() << " space->FindDesign(de_->GetType()):" << space->FindDesign(de_->GetType()) << "  space->GetNumberOfElements():" << space->GetNumberOfElements();
+    unsigned int elem_idx = de_->GetIndex() - space->FindDesign(de_->GetType()) * space->GetNumberOfElements();
+    p_filt =  space->density_filter[fix].filtered_vec[elem_idx];
+    LOG_DBG3(desel) << "elemNum=" << de_->elem->elemNum << " filtered value=" << p_filt;
   }
   else
   {

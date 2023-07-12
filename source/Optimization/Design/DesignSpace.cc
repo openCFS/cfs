@@ -344,6 +344,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
                   || method == ErsatzMaterial::SPLINE_BOX)
               {
                 DesignElement* ptr = &(data.Last());
+                assert(ptr->simp == NULL);
                 ptr->simp = new SIMPElement(ptr);
               }
               // store the element mapping only for the first design
@@ -396,7 +397,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
    // which give out design vector needs to be modified for making mat vec based filtering work for constant region
    StdVector<DesignRegion>& cur_des = regions.Last();
    // Assume if one design element has the attribute constant_on_all_region , all other design element should have this.
-   if(cur_des.Last().constant == VARIABLE && design.GetSize() == 1)
+   // matrix filter is required for SGP solver, but the member optimizer_ of Optimization is not set yet -> thus, take it from xml file
+   if ((cur_des.Last().constant == VARIABLE && design.GetSize() == 1) || domain->GetParamRoot()->Get("optimization/optimizer/type")->As<string>() == "sgp")
      is_mat_possible = true;
    // won't work with non-indentiy mat_filter transfer function -> is also checked in DesginStructure::SetFilter()
    if(pn->Has("filters/filter/density/type") && pn->Get("filters/filter/density/type")->As<string>() == "material")
@@ -584,8 +586,9 @@ void DesignSpace::SetupLocalElementCache()
       if(ctxt->DoBloch())
         ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(w);
 
-      // we can cache material derivatives only for FMO which is also used by SGP
-      if(Optimization::context->dm != NULL)
+      // we can cache material derivatives only for FMO
+      // we don't need this stuff for  SGP
+      if(Optimization::context->dm != NULL && domain->GetOptimization()->GetOptimizerType() != Optimization::SGP_SOLVER)
         elementCache->InitMechMatDeriv(regionIds_); // no init org! and no piezo stuff
       else
       {
@@ -1602,6 +1605,13 @@ int DesignSpace::ReadDesignFromExtern(const double* space, bool setAndWriteCurre
     if(df && setAndWriteCurrent)
       df->SetAndWriteCurrent(domain->GetOptimization()->GetCurrentIteration());
   }
+  // allow for mutiple filters
+  Vector<double> des_vec;
+  des_vec.Replace(DesignSpace::GetNumberOfVariables(),const_cast<double*>(space),false);
+  if (density_filter.GetSize() > 0 && is_matrix_filt){
+     for(unsigned int i = 0; i < density_filter.GetSize(); i++)
+       density_filter[i].CacheDensityFilteredValue(des_vec);
+  }
   return design_id;
 }
 int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space, bool setAndWriteCurrent)
@@ -1676,19 +1686,54 @@ int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
     } // for r
   } // for des
   assert(d == DesignSpace::GetNumberOfVariables());
+
   return design_id;
 }
 
-int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out, bool scaling) const
+int DesignSpace::WriteDesignToExtern(double* space, DesignElement::Type type, bool scaling) const
 {
-  space_out.Reserve(GetNumberOfVariables());
-  return WriteDesignToExtern(space_out.GetPointer(), scaling);
+  unsigned int d = 0;
+  int did = FindDesign(type, true);
+  const StdVector<DesignRegion>& cur_des = regions[did];
+  const unsigned int nr = cur_des.GetSize();
+  for(unsigned int r = 0; r < nr; r++){
+    const DesignRegion& cur_reg = cur_des[r];
+    LOG_DBG2(designSpace) << "WDTE: dr=" << cur_reg.ToString();
+    const double rscaling = scaling ? 1.0 /cur_reg.scale_design : 1.0;
+    const double translation = scaling ? cur_reg.translate_design : 0.0;
+    if(cur_reg.constant == VARIABLE){
+      const unsigned int u = cur_reg.base + cur_reg.elements;
+      for(unsigned int s = cur_reg.base; s < u; s++){
+        LOG_DBG3(designSpace) << "WriteDesignToExtern: non-constant region " << r << ": out[" << d << "] = design[" << s << "]=" << data[s].GetDesign(DesignElement::PLAIN);
+
+        space[d++] = (data[s].GetDesign(DesignElement::PLAIN) - translation) * rscaling;
+      }
+    }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS) { // in FIXED case nothing is done
+      LOG_DBG3(designSpace) << "WriteDesignToExtern: constant " << (cur_reg.constant == CONSTANT_PER_REGION ? "region" : "design") << r << ": out[" << d << "] = design[" << cur_reg.base << "]=" << data[cur_reg.base].GetDesign(DesignElement::PLAIN);
+      space[d++] = (data[cur_reg.base].GetDesign(DesignElement::PLAIN) - translation) * rscaling;
+      if(cur_reg.constant == CONSTANT_ON_ALL_REGIONS) break; // the other regions are ignored
+    } // if/else constant
+  } // for r
+
+  return design_id;
 }
 
-int DesignSpace::WriteDesignToExtern(Vector<double>& space_out, bool scaling) const
+int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out, bool scaling, DesignElement::Type type) const
+{
+  space_out.Reserve(GetNumberOfVariables());
+  if (type == DesignElement::ALL_DESIGNS)
+    return WriteDesignToExtern(space_out.GetPointer(), scaling);
+  else
+    return WriteDesignToExtern(space_out.GetPointer(), type, scaling);
+}
+
+int DesignSpace::WriteDesignToExtern(Vector<double>& space_out, bool scaling, DesignElement::Type type) const
 {
   space_out.Resize(GetNumberOfVariables());
-  return WriteDesignToExtern(space_out.GetPointer(), scaling);
+  if (type == DesignElement::ALL_DESIGNS)
+    return WriteDesignToExtern(space_out.GetPointer(), scaling);
+  else
+    return WriteDesignToExtern(space_out.GetPointer(), type, scaling);
 }
 
 void DesignSpace::WriteBoundsToExtern(StdVector<double>& x_l, StdVector<double>& x_u) const
@@ -1699,8 +1744,30 @@ void DesignSpace::WriteBoundsToExtern(StdVector<double>& x_l, StdVector<double>&
   WriteBoundsToExtern(x_l.GetPointer(), x_u.GetPointer());
 }
 
+void DesignSpace::WriteBoundsToExtern(StdVector<double>& x_l, StdVector<double>& x_u, DesignElement::Type type) const {
+  // make sure push_back does not hurt
+  assert(x_l.empty() && x_u.empty());
+  int did = FindDesign(type, true);
+  const StdVector<DesignRegion>& cur_des = regions[did];
+  const unsigned int nr = cur_des.GetSize();
 
-
+  for(unsigned int r = 0; r < nr; r++){
+    const DesignRegion& cur_reg = cur_des[r];
+    const double rscaling = 1.0 / cur_reg.scale_design;
+    const double translation = cur_reg.translate_design;
+    if(cur_reg.constant == VARIABLE){
+      const unsigned int u = cur_reg.base + cur_reg.elements;
+      for(unsigned int s = cur_reg.base; s < u; s++){
+        x_l.push_back((data[s].GetLowerBound() - translation) * rscaling);
+        x_u.push_back((data[s].GetUpperBound() - translation) * rscaling);
+      }
+    }else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS) { // in FIXED case nothing is done
+      x_l.push_back((data[cur_reg.base].GetLowerBound() - translation) * rscaling);
+      x_u.push_back((data[cur_reg.base].GetUpperBound() - translation) * rscaling);
+      if(cur_reg.constant == CONSTANT_ON_ALL_REGIONS) break;
+    }
+  }
+}
 
 void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   const unsigned int nd = design.GetSize();
@@ -2497,9 +2564,8 @@ void DensityFilterMat::CacheDensityFilteredValue(const Vector<double>& design_ve
   this->filter_mat.Mult(design_vec, this->filtered_vec);
 }
 
-void DensityFilterMat::ExportDensityFilterMatrix()
-{
-  this->filter_mat.ExportMatrixMarket("filter_matrix.mtx","filter_matrix");
+void DensityFilterMat::ExportDensityFilterMatrix(std::string filename){
+  this->filter_mat.ExportMatrixMarket(filename,"filter_matrix");
 }
 
 

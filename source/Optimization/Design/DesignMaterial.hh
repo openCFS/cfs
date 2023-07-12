@@ -42,7 +42,7 @@ public:
     DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC,
     DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,
     D_INTERP_IN718_TENSOR, D_INTERP_IN718_TENSOR_ROT, LAMINATES, D_LAMINATES,
-    HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, HEAT} Type;
+    HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, SGP_MATLAB, SGP_GRADIENTCHECK, HEAT} Type;
 
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -70,13 +70,13 @@ public:
 
     ~DesignMaterial();
 
-    bool GetTensor(MaterialTensor<double>& mt, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, MaterialTensorNotation notation, bool pure = false);
+    bool GetTensor(MaterialTensor<double>& mt, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, MaterialTensorNotation notation, bool core = false);
 
     /** Calculate the derivative tensor from the given material parameters
      * Sets the Tensor in VOIGT notation.
-     * @param pure if true, return the material tensor without multiplication with penalized pseudo-density */
-    bool GetMechTensor(MaterialTensor<double>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool pure = false);
-    bool GetMechTensor(MaterialTensor<Complex>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool pure = false);
+     * @param core if true, return the material tensor without multiplication with penalized pseudo-density */
+    bool GetMechTensor(MaterialTensor<double>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool core = false);
+    bool GetMechTensor(MaterialTensor<Complex>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool core = false);
 
     bool GetPiezoCouplingTensor(MaterialTensor<double>& mt, const Elem* elem, DesignElement::Type direction);
 
@@ -177,6 +177,11 @@ public:
      * if point is outside of interval, it is set to interval's bounds*/
     int GetInterpolationIndex(const Vector<double>& interval, double& point) const;
 
+    /** checks for a parameter. Checks the thread local storage. */
+    inline bool HasParameter(const DesignElement::Type p) const {
+      return params_.ConstMine().find(p) != params_.ConstMine().end();
+    };
+
 protected:
 
     /** Set a parameter for the parametric material optimization.
@@ -185,9 +190,6 @@ protected:
 
     /** to access the the local copy of the map but have the checks in debug mode */
     double GetParameter(const std::map<DesignElement::Type, double>& map, const DesignElement::Type p);
-
-    /** checks for a parameter. Checks the thread local storage. */
-    bool HasParameter(const DesignElement::Type p) const;
 
     /** Sets all Material Parameters in designMaterial for given element in the current context */
     bool CollectMaterialParametersForElement(DesignSpace* space, const Elem* elem);
@@ -253,8 +255,8 @@ private:
     void GetLameMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Trans-Iso Tensor
-     * @param pure if true, return the material tensor without multiplication with penalized pseudo-density */
-    void GetTransIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool pure = false);
+     * @param core if true, return the material tensor without multiplication with penalized pseudo-density */
+    void GetTransIsoMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool core = false);
 
     /* general anisotropic FMO tensor */
     void GetElasticFMOTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
@@ -267,8 +269,8 @@ private:
     void GetOrthotropicMaterialTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);
 
     /** Calculate the Tensor for Density times Tensor
-     * @param pure if true, return the material tensor without multiplication with penalized pseudo-density */
-    void GetDensityTimes2dTensorTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool pure = false);
+     * @param core if true, return the material tensor without multiplication with penalized pseudo-density */
+    void GetDensityTimes2dTensorTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction, bool core = false);
 
     /** Calculate the tensor for Laminates */
     void GetLaminatesTensor(MaterialTensor<double>& mt, SubTensorType subTensor, DesignElement::Type direction);

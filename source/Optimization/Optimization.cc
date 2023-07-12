@@ -54,7 +54,16 @@
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
 #include "def_use_embedded_python.hh"
+#include "def_use_sgp.hh"
 #include "Optimization/Optimizer/MMA.hh"
+
+#ifdef USE_SGP
+// check if Intel MKL is available
+// need it for SGP
+  #include <def_use_blas.hh>
+  #include "Optimization/Optimizer/SGPHolder.hh"
+#endif
+
 // IPOPT, SCPIP and SnOpt are not necessarily linked
 #ifdef USE_IPOPT
   #include "Optimization/Optimizer/IPOPTHolder.hh"
@@ -292,6 +301,15 @@ void Optimization::PostInitSecond()
          #endif
          break;
 
+    case SGP_SOLVER:
+         #ifdef USE_SGP
+           baseOptimizer_ = new SGPHolder(this, opt);
+         #else
+           throw Exception("openCFS was compiled w/o external SGP lib!");
+         #endif
+
+         break;
+
     case OPTIMALITY_CONDITION:
          baseOptimizer_ = new OptimalityCondition(this, opt);
          break;
@@ -499,6 +517,7 @@ void Optimization::SetEnums()
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(FEAS_PP_SOLVER, "feasPP");
   optimizer.Add(MMA_SOLVER, "mma");
+  optimizer.Add(SGP_SOLVER, "sgp");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(PYTHON_SOLVER, "python");

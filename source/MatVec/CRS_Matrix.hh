@@ -478,6 +478,10 @@ namespace CoupledField {
       return max;
     }
 
+    unsigned int GetNnz() const {
+      return this->nnz_;
+    }
+
 
     //! Set the length (i.e. number of non-zero entries) of i-th row
 

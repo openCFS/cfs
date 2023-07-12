@@ -215,7 +215,9 @@ public:
       SM_PROFILE,  /*!< for shape map */
       SP_CP, /*!< for spline box mapping */
       BUCKLINGLOADFACTOR, /*!< macroscopic load factor */
-      LOCALBUCKLINGLOADFACTOR  /*!< microscopic load factor */
+      LOCALBUCKLINGLOADFACTOR,  /*!< microscopic load factor */
+      SIN,  /*!< sine value, e.g. for filteredDesign: F*sin(x)*/
+      COS,  /*!< cosine value, e.g. for filteredDesign: F*cos(x)*/
     } Detail;
 
     /** Gets the design element

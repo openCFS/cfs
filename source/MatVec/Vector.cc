@@ -486,7 +486,7 @@ namespace CoupledField {
   inline T Vector<T>::MaxAbs(int & loc) const {
     T m = data_[0];
     double abs, m_abs = 0;
-    for(int i = 1; i < (int)size_; ++i) {
+    for(int i = 0; i < (int)size_; ++i) {
       abs = (double) std::abs(data_[i]);
       if ( abs > m_abs ) {
         m_abs = abs;

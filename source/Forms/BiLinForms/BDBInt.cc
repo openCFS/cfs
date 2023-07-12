@@ -128,12 +128,12 @@ namespace CoupledField{
 #else
       dbMat_ = (dMat_ * bMat_) * fac;
       elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
+
       //LOG_DBG3(bdbint) << "bMat: " << bMat_.ToString() << " transpose:"  << TransposeConjugate(bMat_).ToString();
       LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << factor_ << " dMat= " << dMat_.ToString() << " bmat=" << bMat_.ToString();
       //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " dBMat=" << dbMat_.ToString() << " -> K_" << i << "=" << elemMat.ToString();
 #endif
 
-      LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " elemMat=" << elemMat.ToString();
     }
 
     //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " elemMat=" << elemMat.ToString();

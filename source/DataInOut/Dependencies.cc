@@ -21,6 +21,7 @@
 #include <def_use_petsc.hh>
 #include <def_use_phist_cg.hh>
 #include <def_use_phist_ev.hh>
+#include <def_use_sgp.hh>
 #include <def_use_sgpp.hh>
 #include <def_use_snopt.hh>
 #include <def_use_scpip.hh>
@@ -170,7 +171,10 @@ void Dependencies::ReadSetting()
 
   Dependency omp("OpenMP", "USE_OPENMP", EASY);
 #ifdef USE_OPENMP
-  omp.SetVersion(OpenMP_CXX_VERSION);
+  // for some cmake versions, OpenMP_CXX_VERSION is not set
+  #ifdef OpenMP_CXX_VERSION
+    omp.SetVersion(OpenMP_CXX_VERSION);
+  #endif  
   ss.clear();
   ss << "OMP_NUM_THREADS=" << (getenv("OMP_NUM_THREADS") != NULL ? getenv("OMP_NUM_THREADS") : "-") << ", ";
   if(HasBlasThreadsEnvVariable()) { // false for openblas (would be again OMP_NUM_THREADS) or netlib (is serial)
@@ -415,10 +419,17 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(python);
 
-  // to be replaced by a open source version when it is avaiable
+  // was developed from FAU
+  Dependency sgp("SGP", "USE_SGP", MIT);
+#ifdef USE_SGP
+  sgp.SetVersion(SGP_VER);
+#endif
+  data.Push_back(sgp);
+
+  // to be replaced by a open source version when it is available
   Dependency sgpp("SGPP", "USE_SGPP", COMMERCIAL);
 #ifdef USE_SGPP
-  sgpp.SetVersion(SGPP_VER)
+  sgpp.SetVersion(SGPP_VER);
 #endif
   data.Push_back(sgpp);
 

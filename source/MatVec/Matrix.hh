@@ -260,6 +260,11 @@ namespace CoupledField
     /** give a specific column */
     void GetCol(Vector<TYPE>& vec_out, UInt col) const;
 
+    //! Set the given column 'vec_in' at position (:, \a col) in the matrix
+    //! \param vec_in (input) data column
+    //! \param col (input) Column idx to be set
+    void SetCol(Vector<TYPE>& vec_in, UInt col) const;
+
     /** For each row the minimum over all columns. For Complex see Vector::Min() */
     void GetColMin(Vector<TYPE>& vec_out) const;
 

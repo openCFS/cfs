@@ -121,7 +121,8 @@ def read_density_as_vector(filename, dt="density", attribute="design", set=None,
        elif tag == 'mesh':
          self.dim = (int(att['x']), int(att['y']), int(att['z']))    
      elif tag == self.elem:
-       self.values.append(float(att[self.att])) # als int or original string could be of interest      
+       if att['type'] == self.dt:
+         self.values.append(float(att[self.att])) # als int or original string could be of interest      
    
    def endElement(self, tag):    
      #print('endElement', tag)
