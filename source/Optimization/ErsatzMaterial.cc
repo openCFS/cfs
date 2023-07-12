@@ -192,9 +192,15 @@ void ErsatzMaterial::PostInit()
   // updates context which we need for the filters (pde)
   Optimization::PostInit();
   ParamNodeList list;
+
   // from the filters we detect robustness which we need for multiple excitations
   if(pn->Has("filters"))
   {
+    // for sgp, we don't want cfs to use them but just to pass them to external lib
+    bool skip_filter = pn->Get("filters/pass_to_external")->As<bool>();
+    if (optimizer_ == SGP_SOLVER && !skip_filter)
+      EXCEPTION("Turn on 'pass_to_external' in section 'filters' for external SGP solver!")
+
     list = pn->Get("filters")->GetList("filter");
     // reserve the density filter mat here since the struct doesn't have explicit copy constructor and push back will lead to error.
     design->density_filter.Reserve(list.GetSize());
@@ -202,7 +208,7 @@ void ErsatzMaterial::PostInit()
     assert(structure_ == NULL);
     structure_ = new DesignStructure(this);
     for(auto pn : list)
-      structure_->SetFilter(pn);
+      structure_->SetFilter(pn, skip_filter);
     structure_->WriteFilterInfo(this->optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"));
     design->SetFilterType(structure_->GetCommonFilterType());
     LOG_DBG(em) << "PI dft=" << Filter::type.ToString(design->GetFilterType());
@@ -388,13 +394,14 @@ void ErsatzMaterial::PostInit()
     }
   }
 
-  if(pn->Has("filters") && design->is_matrix_filt) {
-    // read the design variables and calculate the density filtered values using the filter mat and cache it.
-    // This operations are not in design space post init because the design changes if we read it from a external file
-    Vector<double> design_vec;
-    design->WriteDesignToExtern(design_vec, false);
-    for(DensityFilterMat& filt : design->density_filter)
-      filt.CacheDensityFilteredValue(design_vec);
+  if(pn->Has("filters")&& design->is_matrix_filt){
+      // read the design variables and calculate the density filtered values using the filter mat and cache it.
+      // These operations are not in the design space post init because the design changes if we read it from a external file
+      for(unsigned int i = 0; i < design->density_filter.GetSize(); i++){
+        Vector<double> design_vec;
+        design->WriteDesignToExtern(design_vec,false);
+        design->density_filter[i].CacheDensityFilteredValue(design_vec);
+      }
   }
 
   // make basic logging
@@ -4885,7 +4892,7 @@ void ErsatzMaterial::CalcStressesForBucklingHomogenization(Matrix<double>& S, co
     if(res_idx != -1)
     {
       DesignElement* de = design->Find(lpm->ptEl->elemNum, DesignElement::DENSITY, true);
-      assert(de->specialResult[res_idx] == 0);
+      assert(close(de->specialResult[res_idx], 0.0));
       de->specialResult[res_idx] = sigma[j] / B.GetNumCols() * dim;
       //LOG_DBG3(em) << "CSFBH: de=" << de->ToString() << " res_idx=" << res_idx << " v=" << sigma[j] << " " << de->specialResult[res_idx];
     }

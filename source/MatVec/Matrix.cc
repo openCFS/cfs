@@ -3709,6 +3709,14 @@ namespace CoupledField
   }
 
   template<class TYPE>
+  void Matrix<TYPE>::SetCol(Vector<TYPE>& vec_in, UInt col) const
+  {
+      assert(size_col_ > col);
+      for(unsigned int i = 0; i < size_row_; i++)
+        data_[i][col] = vec_in[i];
+  }
+
+  template<class TYPE>
   void Matrix<TYPE>::GetColMin(Vector<TYPE>& vec) const
   {
     GetCol(vec, 0);

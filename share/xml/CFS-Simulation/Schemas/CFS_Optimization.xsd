@@ -432,6 +432,9 @@
 
             <!-- we made scpip the look like ipopt -->
             <xsd:element name="scpip" minOccurs="0" type="DT_SCPIP" />
+            
+            <!-- we made sgp the look like ipopt -->
+            <xsd:element name="sgp" minOccurs="0" type="DT_SGP" />
 
             <!-- Sonja Lehmann's feasible scp solver with ipopt subproblem parameters -->
             <xsd:element name="feasSCP" minOccurs="0" type="DT_FEAS_SCP" />
@@ -882,6 +885,7 @@
                 <xsd:enumeration value="feasPP"/>
                 <!-- this is a new MMA implemenation  -->
                 <xsd:enumeration value="mma"/>
+                <xsd:enumeration value="sgp"/>
                 <xsd:enumeration value="snopt"/>
                 <xsd:enumeration value="knitro"/>
                 <!-- this is for own implementation of BFGS optimization method presented by Tim Kelly https://ctk.math.ncsu.edu/matlab_darts.html -->
@@ -947,6 +951,8 @@
                 </xsd:attribute>
                 <xsd:attribute name="use_mat_filt" type="DT_Bool_Default" use="optional" />
                 <xsd:attribute name="write_mat_filt" type="DT_Bool_Default" use="optional" />
+                <!-- filters will not be applied by cfs, but filter matrices will be passed to external package (e.g. sgp solver) -->
+                <xsd:attribute name="pass_to_external" type="DT_Bool_Default" use="optional" default="false"/>
               </xsd:complexType>
             </xsd:element>
 
@@ -1534,6 +1540,10 @@
                       <xsd:enumeration value="splineBoxIntOrder" />
                       <!-- for feature mapping (spline box) the difference of maximal to minimal corner value -->
                       <xsd:enumeration value="splineBoxMinMaxCorner" />
+                      <!-- filtered design Fx, where F is filter matrix and x the design -->
+                      <xsd:enumeration value="filteredDesign" />
+                      <!-- difference between filtered and unfiltered design: x - Fx, where F is filter matrix and x the design -->
+                      <xsd:enumeration value="diffFilteredDesign" />
 
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient" />
@@ -1566,7 +1576,7 @@
                       <xsd:enumeration value="heatNodalTrackValue" />
                       <xsd:enumeration value="tempAtInterface" />
                       <!-- for attribute generic where possible content is found within the .info.xml -->
-                       <xsd:enumeration value="genericElem" />
+                      <xsd:enumeration value="genericElem" />
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -2297,6 +2307,9 @@
       <xsd:enumeration value="controlpoint" />
       <xsd:enumeration value="bucklingLoadFactor" />
       <xsd:enumeration value="localBucklingLoadFactor" />
+      <!-- for non-linear filtering with sin + cos of angles -->
+      <xsd:enumeration value="sin"/>
+      <xsd:enumeration value="cos" />
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -2735,8 +2748,79 @@
     </xsd:sequence>
     <xsd:attribute name="fromWarmstart" type="xsd:boolean" default="true" />
   </xsd:complexType>
+  
+  <!-- the same base for SGP, scpip and feasSCP -->
+  <xsd:complexType name="DT_SGP">
+    <xsd:sequence>
+      <!-- We can have many option childs. Each with three attributes -->
+      <xsd:element name="option" minOccurs="0" maxOccurs="20">
+        <xsd:complexType>
+          <!-- the type attribute is from a restriction -->
+          <xsd:attribute name="type" use="required">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="string" />
+                <xsd:enumeration value="integer" />
+                <xsd:enumeration value="real"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <xsd:attribute name="name" use="required">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <!-- string type -->
+                <xsd:enumeration value="approximation"/>
+                <xsd:enumeration value="regularization"/>
+                <xsd:enumeration value="filtering"/>
+                
+                <!-- integer type -->
+                <xsd:enumeration value="levels" />
+                <!-- set same value for density and angles -->
+                <xsd:enumeration value="samples_per_level"/>
+                <!-- set individual values for density and angles -->
+                <xsd:enumeration value="samples_per_level_density"/>
+                <xsd:enumeration value="samples_per_level_angle"/>
+                <xsd:enumeration value="max_bisections" />
+                <!-- max number of globalization steps -->
+                <xsd:enumeration value="max_globs" />
 
+                <!-- real type -->
+                <xsd:enumeration value="tau_init"/>
+                <xsd:enumeration value="tau_factor"/>
+                <xsd:enumeration value="p_filt_density"/>
+                <xsd:enumeration value="p_filt_angle"/>
+                <xsd:enumeration value="convergence_criteria"/>
+                <xsd:enumeration value="pmin_vol"/>
+                <xsd:enumeration value="pmax_vol"/>
+                <xsd:enumeration value="tolerance"/>
+                <xsd:enumeration value="volume_tolerance"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <!-- the value attribute is always string, nontheless the type -->
+          <xsd:attribute name="value" use="required">
+            <xsd:simpleType>
+              <!-- the sgp_option_values are for 'string' type, for 'integer' and 'real' is the float type -->
+              <xsd:union memberTypes="sgp_option_values xsd:token"></xsd:union>
+            </xsd:simpleType>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="gradientCheck" type="xsd:boolean" use="optional" default="false"/>
+    <xsd:attribute name="precomputeTensors" type="xsd:boolean" use="optional" default="false"/>
+    <xsd:attribute name="generatePlotData" type="xsd:boolean" use="optional" default="false"/>
+  </xsd:complexType>
 
+  <!-- These are some external SGP option names -->
+  <xsd:simpleType name="sgp_option_values">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="exact" />
+      <xsd:enumeration value="asymptotes" />
+      <xsd:enumeration value="linear"/>
+      <xsd:enumeration value="non_linear" />
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <!-- This extens DT_SCPIP by ipopt subsolver parameters for FeasSCP -->
   <xsd:complexType name="DT_FEAS_SCP">
@@ -3088,6 +3172,9 @@
           <!-- samples for homogenizes a-b rectangulars for C1-interpolation. -->
           <xsd:enumeration value="hom-rect-C1" />
           <xsd:enumeration value="hom-iso-C1" />
+          <xsd:enumeration value="sgp-matlab" />
+          <!-- gradient check for derivative w.r.t. tensor derivative -->
+          <xsd:enumeration value="sgp-gradient-check" />
           <!-- msfem material catalog for C1-interpolation. -->
           <xsd:enumeration value="msfem-C1" />
         </xsd:restriction>
@@ -3105,13 +3192,14 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    
     <xsd:attribute name="rotationtype" use="optional" default="xyz">
       <xsd:annotation>
         <xsd:documentation>The order of application is read from right to left, hence the default xyz means that
-      we rotate first around z, then y and finally araound x. 
-      We apply conventions of extrinsic rotation, see
-      https://en.wikipedia.org/wiki/Euler_angles#Conventions_by_extrinsic_rotations  
-      The formats ABA are Euler angles, the format ABC are Tait–Bryan angles (Kardanwinkel in German) 
+        we rotate first around z, then y and finally araound x. 
+        We apply conventions of extrinsic rotation, see
+        https://en.wikipedia.org/wiki/Euler_angles#Conventions_by_extrinsic_rotations  
+        The formats ABA are Euler angles, the format ABC are Tait–Bryan angles (Kardanwinkel in German) 
         </xsd:documentation>
       </xsd:annotation>
       <xsd:simpleType>

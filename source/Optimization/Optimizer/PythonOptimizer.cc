@@ -30,7 +30,6 @@ using std::string;
 using std::to_string;
 using std::make_pair;
 
-
 PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   BaseOptimizer(opt, pn, Optimization::PYTHON_SOLVER)
 {
@@ -347,9 +346,9 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
   bool mult_excite = me->IsEnabled();
 
   // the multiple excitation case is a special case - for all other cases this is executed once
-  for(unsigned int e = 0; e < (mult_excite ? me->excitations.GetSize() : 1); e++)
+  for(unsigned int ex = 0; ex < (mult_excite ? me->excitations.GetSize() : 1); ex++)
   {
-    Excitation* excite = mult_excite ? &(me->excitations[e]) : f->GetExcitation();
+    Excitation* excite = mult_excite ? &(me->excitations[ex]) : f->GetExcitation();
     assert(excite != NULL);
     assert(excite->index < (int) me->excitations.GetSize());
     // the stored element solution vector

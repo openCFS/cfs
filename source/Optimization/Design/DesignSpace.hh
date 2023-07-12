@@ -43,9 +43,10 @@ namespace CoupledField
       Vector<double> inv_weighted_sum;
       Vector<double> filtered_vec;
       CRS_Matrix<double> filter_mat;
+      DesignElement::Type designType;
       void AssembleFilterMatrix(StdVector<DesignElement>&data, int sum_neighbour, int filter_idx, unsigned int start = 0, unsigned int end = 0);
       void CacheDensityFilteredValue(const Vector<double>& design_vec);
-      void ExportDensityFilterMatrix();
+      void ExportDensityFilterMatrix(std::string filename = "filter_matrix.mtx");
 
     };
   /** This is the container of DesingElements which also holds the transferFunctions.
@@ -238,8 +239,18 @@ namespace CoupledField
       * @return the internal design_id as calculated by ReadDesignFromExtern()
       * @see SetDesignSpace() */
      virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
-     int WriteDesignToExtern(StdVector<double>& space_out, bool scaling = true) const;
-     int WriteDesignToExtern(Vector<double>& space_out, bool scaling = true) const;
+
+     /** Similar to virtual WriteDesignToExtern: but we want to have data for a specific design type
+      * @param space_out to this array of GetDesignSpaceSize() the initial guess is written to.
+      * @param scaling false to return the unscaled design variables (for logging),
+      * true to return the variables as scaled for the optimizer
+      * @param type: allow to pick particular design type if we don't want to output all available designs
+      * @return the internal design_id as calculated by ReadDesignFromExtern()
+      * @see SetDesignSpace() */
+     int WriteDesignToExtern(double* space_out, DesignElement::Type type, bool scaling = true) const;
+
+     int WriteDesignToExtern(StdVector<double>& space_out, bool scaling = true, DesignElement::Type type = DesignElement::ALL_DESIGNS) const;
+     int WriteDesignToExtern(Vector<double>& space_out, bool scaling = true, DesignElement::Type type = DesignElement::ALL_DESIGNS) const;
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
@@ -253,6 +264,9 @@ namespace CoupledField
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
      virtual void WriteBoundsToExtern(StdVector<double>& x_l, StdVector<double>& x_u) const;
+
+     /** allow specification of design type */
+     virtual void WriteBoundsToExtern(StdVector<double>& x_l, StdVector<double>& x_u, DesignElement::Type type) const;
 
      virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
 
@@ -282,6 +296,14 @@ namespace CoupledField
       * @return -1 if not throw_exception and not found
       * @see double context for ShapeMapDesign::FindDesign()! */
      virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
+
+     /**
+      * Service wrapper for FindDesign(), doesn't throw exception if dt cannot be find
+      */
+     bool HasDesign(DesignElement::Type dt) const {
+       return (FindDesign(dt, false) != -1);
+     }
+
 
      /** gives a design element by idx. Handles als AuxDesign */
      virtual BaseDesignElement* GetDesignElement(unsigned int idx);
@@ -336,6 +358,9 @@ namespace CoupledField
 
      /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }
+
+     /** number of designs*/
+     unsigned int GetNumberOfDesigns() const {return design.GetSize(); }
 
      /** The number of optimization variables over all regions. Counts every time.
       * Takes constant regions into account - hence can be smaller than the number of elements even for

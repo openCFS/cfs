@@ -39,10 +39,12 @@ public:
   DesignStructure(DesignSpace* space, StdVector<RegionIdType>& regions);
 
   /** This is the actual, expensive action. It sets the filters for all
+
    * relevant design elements of simp->design.data.
    * Might be called multiple times for multiple filter definitions.
-   * @param pn our parameter section of the filer, includes design name (might be allDesigns) */
-  void SetFilter(PtrParamNode pn);
+   * @param pn our parameter section of the filer, includes design name (might be allDesigns) 
+   * @param skip_cfs_filtering is a shortcut to prevent cfs from applying (only assembling) the declared filters in xml-file (e.g. for SGP)*/
+  void SetFilter(PtrParamNode pn, bool skip_cfs_filtering = false);
 
   /** Service function to be called after the SetFilter() calls.
    * Searches common type in DesignSpace::filter */
@@ -88,8 +90,9 @@ private:
   void Initialize();
 
   /** parses s single filter element. Service for SetFilter()
-   * The return value is created and there shall be no copy operation necessary */
-  GlobalFilter Parse(PtrParamNode pn, const DesignElement* ref_de);
+   * The return value is created and there shall be no copy operation necessary
+   * @param skip_cfs_filtering: assemble filter but don't apply it to design, e.g. pass to external SGP solver*/
+  GlobalFilter Parse(PtrParamNode pn, const DesignElement* ref_de, bool skip_cfs_filtering);
 
   /** finds quite efficiently the neighborhood with an regular grid.
    * The idea is that by radius and edge size we construct a 2D/3D cube and check every element for distance.

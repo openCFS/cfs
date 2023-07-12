@@ -111,7 +111,8 @@ void DesignStructure::Initialize()
   initialized_ = true;
 }
 
-void DesignStructure::SetFilter(PtrParamNode pn)
+
+void DesignStructure::SetFilter(PtrParamNode pn, bool skip_cfs_filtering)
 {
   if(!initialized_)
     Initialize();
@@ -130,13 +131,15 @@ void DesignStructure::SetFilter(PtrParamNode pn)
 
   assert(filter.GetCapacity() > filter.GetSize()); // e.g. in the robust case we might already have a filter
 
-  filter.Push_back(Parse(pn, &data[start]));
+  filter.Push_back(Parse(pn, &data[start], skip_cfs_filtering));
   // while meeting other regions or designs we create new global filters based on this one.
   GlobalFilter* global = &filter.Last();
   LOG_DBG(ds) << "SF: initial global=" << global->ToString();
 
   // do we have to do something?
-  if(global->type == Filter::NO_FILTERING)
+  // in case skip_cfs_filtering is true, we don't want cfs to apply filter but still assemble it for external (SGP) lib
+  if(global->type == Filter::NO_FILTERING && !skip_cfs_filtering)
+
     return;
 
   // the initialization was separated!
@@ -276,9 +279,12 @@ void DesignStructure::SetFilter(PtrParamNode pn)
     if(filter.Last().density == Filter::MATERIAL)
       throw Exception("Disable use_mat_filt with material filter - it would only work in special cases");
     DensityFilterMat filter_mat;
+    filter_mat.designType = design;
     space->density_filter.Push_back(filter_mat);
-    int filter_index =space->density_filter.GetSize() - 1 ;
-    space->density_filter.Last().AssembleFilterMatrix(data,total_sum_neigbors,filter_index);
+    // avoid robust case where we have density and multiple filters per element
+    bool do_robust = space->density_filter.GetSize() > 1  && space->design.GetSize() == 1;
+    int filter_index = do_robust ? space->density_filter.GetSize() - 1 : 0;
+    space->density_filter.Last().AssembleFilterMatrix(data,total_sum_neigbors,filter_index,start,end);
   }
 
   if (space->write_matrix_filt && total_sum_neigbors > 0)
@@ -299,14 +305,15 @@ void DesignStructure::SetFilter(PtrParamNode pn)
 //    //size_t arrayOfTLength = (end - start);
 //    //StdVector<DesignElement> data_red(arrayOfT);
 //    space->density_filter.Last().AssembleFilterMatrix(data,sum_neighbours,filter_index,start,end);
-    space->density_filter.Last().ExportDensityFilterMatrix();
+    space->density_filter.Last().ExportDensityFilterMatrix("filterMat" + std::to_string(space->density_filter.GetSize()-1) + ".mtx");
     // makes sure that matrix is only written once for first filter radius > 1
-    space->write_matrix_filt = false;
+    if (space->density_filter.GetSize() == space->density_filter.GetCapacity())
+      space->write_matrix_filt = false;
   }
 }
 
 
-GlobalFilter DesignStructure::Parse(PtrParamNode pn, const DesignElement* ref_de)
+GlobalFilter DesignStructure::Parse(PtrParamNode pn, const DesignElement* ref_de, bool skip_cfs_filtering)
 {
   GlobalFilter global;
 
@@ -338,7 +345,7 @@ GlobalFilter DesignStructure::Parse(PtrParamNode pn, const DesignElement* ref_de
   global.contribution = pn->Get("contribution")->As<string>() == "linear" ? Filter::LINEAR : Filter::CONSTANT;
 
   global.value  = pn->Get("value")->As<double>();
-  if(global.value <= 0.0)
+  if(global.value <= 0.0 || skip_cfs_filtering)
     global.type = Filter::NO_FILTERING;
 
   if(global.type == Filter::SENSITIVITY && pn->Has("sensitivity"))

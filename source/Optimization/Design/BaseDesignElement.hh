@@ -55,7 +55,9 @@ public:
     SPLINE_BOX_GRAD_Z, /* gradient (sum over all ip w.r.t. control point movement in z direction) for a rho element for spline box mapping */
     SPLINE_BOX_INT_ORDER, /* the number of integration points for this element */
     SPLINE_BOX_INT_CORNER, /* the difference between the minimal and maximal corner values*/
-    GENERIC_ELEM /** with attribute generic with content from .info.xml, e.g. for Python spaghetti */
+    GENERIC_ELEM, /** with attribute generic with content from .info.xml, e.g. for Python spaghetti */
+    FILTERED_DESIGN,
+    DIFF_FILTERED_DESIGN, /** x - F*x, where F is filter matrix and x is the design vector */
   } ValueSpecifier;
 
   /** The type of this design element, influences the Get*Bound() methods.

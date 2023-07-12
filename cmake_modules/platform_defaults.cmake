@@ -41,18 +41,20 @@ set(USE_PHIST_CG_DEFAULT OFF) # phist and ghost are difficult to build
 set(USE_PHIST_EV_DEFAULT OFF)
 set(BUILD_GHOST_DEFAULT OFF)
 set(USE_FEAST_DEFAULT ON)
-set(USE_SUITESPARSE_DEFAULT OFF) # is configured as GPL
 set(USE_LIS_DEFAULT ON)
 set(USE_SUPERLU_DEFAULT ON)
 set(USE_CGNS_DEFAULT ON)
 set(USE_METIS_DEFAULT ON)
+set(USE_SGP_DEFAULT ON) # external SGP optimizer 
 
 # commercial or condifential code required for the developer building the modules
+set(USE_SUITESPARSE_DEFAULT OFF) # is configured as GPL
 set(USE_SCPIP_DEFAULT OFF)  
 set(USE_SNOPT_DEFAULT OFF)
 set(USE_SGPP_DEFAULT OFF) # rarely used
 set(USE_IPOPT_DEFAULT ON)
 set(USE_CGAL_DEFAULT OFF) # GPL
+
 set(USE_LIBFBI_DEFAULT OFF)
 set(USE_FLANN_DEFAULT ON)
 

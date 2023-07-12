@@ -1,0 +1,6 @@
+// Define used to check if SGP optimization library is used
+
+#cmakedefine USE_SGP
+
+#define SGP_VER "@SGP_VER@"
+

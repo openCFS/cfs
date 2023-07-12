@@ -367,7 +367,6 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
   LOG_DBG(optimizer) << " set new design: avg " <<  Average(x, n)  << " std_dev = " << StandardDeviation(x, n) << " -> " << new_design;
-
   bool need_eval;
   
   if(new_design != design_.design_id)
@@ -671,8 +670,6 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
   return nnz;
 }
 
-
-
 void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u)
 {
   assert(n == (int) optimization->GetDesign()->GetNumberOfVariables());
@@ -683,10 +680,21 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
   
   optimization->GetDesign()->WriteBoundsToExtern(x_l,x_u);
 
+  GetConstraintsBounds(m, g_l, g_u);
+
+  if(restart_timer)
+    optimizer_timer_->Start();
+}
+
+void BaseOptimizer::GetConstraintsBounds(int m, double* g_l, double* g_u)
+{
   assert(m == (int) optimization->constraints.view->GetNumberOfActiveConstraints());
-    
+
+  bool restart_timer = optimizer_timer_->IsRunning();
+  if(restart_timer)
+    optimizer_timer_->Stop(); // makes not much sense for EvaluateOnly!
+
   // normalization to =0 and <=0 constraints is done SCPIPBase   
-    
   for(int i = 0; i < m; i++)
   {
     Condition* g = optimization->constraints.view->Get(i);
@@ -719,7 +727,7 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
     LOG_DBG2(optimizer) << "BO::GB i=" << i << " g=" << g->ToString() << " bv=" << g->GetBoundValue() << " DB=" << g->IsDoubleBounded() << " l=" << g_l[i] << " u=" << g_u[i];
   }
   optimization->constraints.view->Done(); // reset slope constraint to global mode
-  
+
   if(restart_timer)
     optimizer_timer_->Start();
 }

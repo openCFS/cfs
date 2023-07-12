@@ -66,6 +66,8 @@ public:
   static Enum<Density>     density;
 
   bool Enabled() const;
+  
+  void SetType(Type t);
 
   Type GetType() const;
 
@@ -133,6 +135,8 @@ public:
   /** Set non_lin_scale and non_lin_offset. Harmless for not nonlinear filters
   * @param de reference design element for bounds */
   void SetNonLinCorrection(const DesignElement* ref);
+  
+  void SetType(Filter::Type t) {type = t;}
 
   Filter::Type GetType() const { return type; }
 
@@ -199,6 +203,11 @@ public:
 inline bool Filter::Enabled() const
 {
   return global->GetType() != NO_FILTERING;
+}
+
+inline void Filter::SetType(Type t)
+{
+  global->SetType(t);
 }
 
 inline Filter::Type Filter::GetType() const

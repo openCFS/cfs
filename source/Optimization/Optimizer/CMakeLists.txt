@@ -24,8 +24,9 @@ set(TARGET_LL
 set(DEPENDS
   "${LAPACK_LIBRARY}"
   "${BLAS_LIBRARY}"
-  "${CFS_FORTRAN_LIBS}")
-
+  "${CFS_FORTRAN_LIBS}"
+  )
+  
 if(USE_KNITRO)
    #set(TARGET_LL ${TARGET_LL} ${KNITRO_LIBRARY})
    set(TARGET_LL ${TARGET_LL} knitro700)
@@ -67,6 +68,12 @@ if(USE_EMBEDDED_PYTHON)
   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} PythonOptimizer.cc)
 endif()
 
+if(USE_SGP)
+  # we always need MKL for building SGP
+  set(TARGET_LL ${TARGET_LL} ${SGP_LIBRARY} ${DEPENDS} ${MKL_BLAS_LIB})
+  include_directories(${MKL_INCLUDE_DIR})
+  set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SGP.cc SGPHolder.cc)
+endif()
 
 add_library(optimizer STATIC ${OPTIMIZER_SRCS})
 

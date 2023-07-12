@@ -24,6 +24,8 @@ namespace CoupledField
     /** IPOPT would inherint from BaseOptimizer if there wouldn't be that 
      * SharedPointer stuff. Hence it is a friend */
     friend class IPOPT;
+    /** same situation as with IPOPT*/
+    friend class SGP;
     
   public:
 
@@ -128,6 +130,10 @@ namespace CoupledField
      * Note that snopt is able to do sparse linear abs functions like slope constraints by setting upper and lower bounds */
     void GetBounds(int n, double* x_l, double* x_u, int m, double* g_l, double* g_u);
     
+    /** Provide upper and lower bounds on constraints to the optimizer.
+     * This function is also called by GetBounds(), but we also want to allow that it can be called independently from GetBounds() */
+    void GetConstraintsBounds(int m, double* g_l, double* g_u);
+
     /** If the actual optimizer is able to handle active sets return here the total number of active
      * constraints (including equality constraints which usually always active).
      * @return < 0 does not implement active sets, >= 0 the current active set */
