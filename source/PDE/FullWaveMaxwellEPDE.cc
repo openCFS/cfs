@@ -369,8 +369,13 @@ namespace CoupledField
         EXCEPTION("FullWaveMaxwellEPDE: Mortar NC interfaces not tested!");
       case NC_NITSCHE:
       {
-        EXCEPTION("FullWaveMaxwellEPDE: Nitsche NC interfaces not tested!");
-        // it should actually be totally equivalent to good ol' MagEdgePDE
+
+        if (dim_ == 2){
+            EXCEPTION("FullWaveMaxwellEPDE only works for 3D geometry!")
+        } else {
+            DefineNitscheCoupling<3,1>(ELEC_FIELD_INTENSITY, *ncIt );
+        }
+          break;
       }
       default:
         EXCEPTION("Unknown type of ncInterface");
@@ -487,13 +492,65 @@ namespace CoupledField
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, false));
     matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
     DefineFieldResult(permFct, permeability);
-
   }
 
   void FullWaveMaxwellEPDE::DefinePostProcResults()
   {
-  
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_FIELD_INTENSITY];
+
+    // === MAGNETIC ENERGY DENSITY INTEGRATED OVER PERIOD  (in the harmonic case)===
+    shared_ptr<ResultInfo> jld(new ResultInfo);
+    jld->resultType = MAG_ENERGY_DENSITY;
+    jld->dofNames = "";
+    jld->unit = "";
+    jld->definedOn = ResultInfo::ELEMENT;
+    jld->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
+    DefineFieldResult( jldCoef, jld );  
+
+
+    // === MAGNETIC ENERGY ===
+    shared_ptr<ResultInfo> jldRes(new ResultInfo());
+    jldRes->resultType = MAG_ENERGY;
+    jldRes->dofNames = "";
+    jldRes->unit = "";
+    jldRes->definedOn = ResultInfo::REGION;
+    jldRes->entryType = ResultInfo::SCALAR;
+    availResults_.insert( jldRes );
+    shared_ptr<ResultFunctor> jldFunc;
+    jldFunc.reset( new ResultFunctorIntegrate<Complex>(jldCoef, feFct, jldRes) );
+    resultFunctors_[MAG_ENERGY] = jldFunc;
   }
+
+
+  void FullWaveMaxwellEPDE::FinalizePostProcResults() {
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    StdVector<RegionIdType>::iterator regIt = regions_.Begin();
+    
+    // Initialize standard postprocessing results
+    SinglePDE::FinalizePostProcResults();
+
+
+    shared_ptr<CoefFunctionMulti> elecIntensCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_INTENSITY]);
+
+    // ============ E*E averaged over one period ============
+    shared_ptr<CoefFunctionMulti> eCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_ENERGY_DENSITY]);
+    PtrCoefFct conjEinE = CoefFunction::Generate( mp_, part,
+            CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY),
+                               GetCoefFct(ELEC_FIELD_INTENSITY), CoefXpr::OP_MULT_CONJ) );
+    PtrCoefFct halfCoef = CoefFunction::Generate( mp_, part, "0.5");
+
+    regIt = regions_.Begin();
+    // for the sake of simplicity we should real with the total current density
+    for( ; regIt != regions_.End(); ++regIt ) {
+      RegionIdType actRegion = *regIt;
+      eCoef->AddRegion(actRegion, CoefFunction::Generate( mp_, part,  CoefXprBinOp(mp_, conjEinE, halfCoef, CoefXpr::OP_MULT) ));
+    }
+
+
+
+  }
+
 
 
   std::map<SolutionType, shared_ptr<FeSpace>>
