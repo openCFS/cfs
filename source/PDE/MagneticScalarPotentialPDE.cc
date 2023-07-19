@@ -415,7 +415,11 @@ namespace CoupledField
     shared_ptr<CoefFunctionFormBased> perm_coef;
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
-      perm->dofNames = "xx", "yy", "xy";
+      if(dim_ == 2){
+        perm->dofNames = "xx", "yy","xy";
+      } else {
+        perm->dofNames = "xx", "yy","zz","yz","xz","xy";
+      }
       perm->unit = "Vs/Am";
       perm->definedOn = ResultInfo::ELEMENT;
       perm->entryType = ResultInfo::TENSOR;

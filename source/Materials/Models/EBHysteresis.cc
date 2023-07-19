@@ -686,8 +686,8 @@ DEFINE_LOG(eb, "EBHysteresis")
                     << "\n\t dHvec = " << dHvec.ToString()
                     << "\n\t rightM = " << rightM.ToString();
 
-        mu[0][1] = 0.0;
-        mu[1][0] = 0.0;
+        /* mu[0][1] = 0.0;
+        mu[1][0] = 0.0; */
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
               Matrix<Double> e = mu_[idx];
@@ -782,6 +782,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         chi[i] = chi_factor_ * i / (numS_ - 1) + 0.001;
         chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
       }
+      
 
       // #######################################################################################
       // #######################################################################################
@@ -1001,16 +1002,16 @@ DEFINE_LOG(eb, "EBHysteresis")
           }  
           HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
           if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
-            coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
+            /* coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
             coth_Lb = std::cosh(HrS/ab)/std::sinh(HrS/ab);
             J_an = 1*(coth_La - aa/HrS);
-            M_an = J_an/(4*M_PI*1e-7);
-            /* MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
+            M_an = J_an/(4*M_PI*1e-7); */
+            MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
             MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
-            MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS; */
-            MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
+            MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS;
+            /* MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
             MyS_sol[k] = M_an * HryS_sol[k]/HrS;
-            MzS_sol[k] = M_an * HrzS_sol[k]/HrS;
+            MzS_sol[k] = M_an * HrzS_sol[k]/HrS; */
           }else{
             MxS_sol[k] = 0.0;
             MyS_sol[k] = 0.0;
