@@ -56,6 +56,7 @@ namespace CoupledField{
         this->ptFeSpace_ = right.ptFeSpace_;
         this->intScheme_ = right.intScheme_;
         this->extractReal_ = right.extractReal_;
+        this->normalizeToVol_ = false;
       }
 
       //! Make deep copy of object pointer
@@ -115,6 +116,14 @@ namespace CoupledField{
     	  return extractReal_;
       }
 
+      virtual void SetScalVec(Vector<Double>& vec ) {
+        scalVec_ = vec; 
+      }
+
+      virtual void SetNormalizeToVol() {
+        normalizeToVol_ = true;
+      }
+
     protected:
       //! name of linearform
       std::string name_;
@@ -129,6 +138,9 @@ namespace CoupledField{
       //! flag if linearform is solution dependent
       bool isSolDependent_;
 
+      //! normalize RHS to volume
+      bool normalizeToVol_;
+
       //! pointer to finite element space 1
       shared_ptr<FeSpace> ptFeSpace_;
       
@@ -139,6 +151,9 @@ namespace CoupledField{
       //! needed e.g. when taking the result of a complex analysis (energy) as
       //! input of a static simulation (source for example HeatPDE)
       bool extractReal_;
+
+      //! set scaling for coefVec
+      Vector<Double> scalVec_;
   };
 }
 
