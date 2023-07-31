@@ -73,6 +73,20 @@ class Global:
     self.silent = False
     self.vtk_lists = False
     self.num_threads = int(os.environ.get('OMP_NUM_THREADS'))
+    self.anisotropic = False
+    self.base_tensor = np.zeros((6,6))
+    self.base_tensor[0,0] = 3423.1
+    self.base_tensor[1,1] = 3423.1
+    self.base_tensor[2,2] = 68840
+    self.base_tensor[3,3] = 2200
+    self.base_tensor[4,4] = 2200
+    self.base_tensor[5,5] = 1153.85
+    self.base_tensor[0,1] = 1115.45
+    self.base_tensor[1,0] = 1115.45
+    self.base_tensor[0,2] = 2950.1
+    self.base_tensor[2,0] = 2950.1
+    self.base_tensor[1,2] = 2950.1
+    self.base_tensor[2,1] = 2950.1
 
   # total number of variables (not cached)
   def total(self):
@@ -360,6 +374,12 @@ class Spaghetti:
       grad_normal_arc = np.cross(-self.sens['grad_t'][i-1],self.t[i])+np.cross(-self.t[i-1],self.sens['grad_t'][i])
       self.sens['grad_n0_arc'][i] = grad_normal_arc/norm(normal_arc) - normal_arc/norm(normal_arc)**3*np.dot(grad_normal_arc, np.expand_dims(normal_arc, axis=1))
 
+    if glob.anisotropic:
+      self.mat_tensors = np.empty((self.m,6,6))
+      for i in range(self.m):
+        self.mat_tensors[i] = self.get_tensor_by_idx(i)
+        print(self.mat_tensors[i])
+
   # give optimzation variables as defined array such that we can easily differentiate
   # @return profile,P^0_x,P^0_y,P^0_z,P^1_x,P^1_y,P^1_z,...,P^m_x,P^m_y,P^m_z,r_1,...r_m-1
   def optvar(self):
@@ -567,6 +587,83 @@ class Spaghetti:
     else:
       assert(False)
 
+  ## This returns the vector rotation matrix between [0,0,1]-direction and spaghetti direction
+  def get_rotation_matrix_by_idx(self, idx, X=None):
+    profile = self.profile # profile, we are negative inside and 0 at the boundary
+    m = self.m # number of segments, one arc less
+
+    if idx == 2*m-1: # circular cap around P^0 -> orientation of 0-th segment
+      idx = 0
+    elif idx == 2*m: # circular cap around P^m -> orientation of last segment
+      idx = m-1
+    # straight segments
+    if idx < m:
+      t = self.t[idx]
+      e0 = np.array([0,0,1])
+      a = np.cross(e0,t)
+      s = norm(a)
+      if s>1e-15:
+        a *= 1/s
+      c = t[2]
+      R = c*np.eye(3) + np.array([[(1-c)*a[0]*a[0],(1-c)*a[0]*a[1],s*a[1]],[(1-c)*a[0]*a[1],(1-c)*a[1]*a[1],-s*a[0]],[-s*a[1],s*a[0],0]])
+      assert(norm(np.eye(3)-np.dot(np.transpose(R),R))<1e-6)
+      return R
+
+  ## This takes a vector rotation matrix and computes the corresponding
+  # 6x6 rotation matrix for a 3D elasticity tensor
+  def get_rot_6x6(self, R):
+
+    Q = np.zeros((6,6))
+
+    Q[0][0] = R[0][0]*R[0][0]
+    Q[0][1] = R[0][1]*R[0][1]
+    Q[0][2] = R[0][2]*R[0][2]
+    Q[0][3] = 2.0*R[0][1]*R[0][2]
+    Q[0][4] = 2.0*R[0][0]*R[0][2]
+    Q[0][5] = 2.0*R[0][0]*R[0][1]
+
+    Q[1][0] = R[1][0]*R[1][0]
+    Q[1][1] = R[1][1]*R[1][1]
+    Q[1][2] = R[1][2]*R[1][2]
+    Q[1][3] = 2.0*R[1][1]*R[1][2]
+    Q[1][4] = 2.0*R[1][0]*R[1][2]
+    Q[1][5] = 2.0*R[1][0]*R[1][1]
+
+    Q[2][0] = R[2][0]*R[2][0]
+    Q[2][1] = R[2][1]*R[2][1]
+    Q[2][2] = R[2][2]*R[2][2]
+    Q[2][3] = 2.0*R[2][1]*R[2][2]
+    Q[2][4] = 2.0*R[2][0]*R[2][2]
+    Q[2][5] = 2.0*R[2][0]*R[2][1]
+
+    Q[3][0] = R[1][0]*R[2][0]
+    Q[3][1] = R[1][1]*R[2][1]
+    Q[3][2] = R[1][2]*R[2][2]
+    Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1]
+    Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0]
+    Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0]
+
+    Q[4][0] = R[0][0]*R[2][0]
+    Q[4][1] = R[0][1]*R[2][1]
+    Q[4][2] = R[0][2]*R[2][2]
+    Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1]
+    Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0]
+    Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0]
+
+    Q[5][0] = R[0][0]*R[1][0]
+    Q[5][1] = R[0][1]*R[1][1]
+    Q[5][2] = R[0][2]*R[1][2]
+    Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1]
+    Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0]
+    Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0]
+
+    return Q
+
+  # This returns the base material tensor rotated to spaghetti direction
+  def get_tensor_by_idx(self, idx, X=None):
+    R = self.get_rotation_matrix_by_idx(idx, X)
+    Q = self.get_rot_6x6(R)
+    return np.dot(Q, np.dot(glob.base_tensor, Q.transpose()))
 
   # return indices of potential segments cutting element and whether element is full material
   def fe_get_indices(self, X, dx, tr_half):
