@@ -7,6 +7,7 @@
 #endif
 #include "Domain/CoefFunction/CoefFunctionScatteredData.hh"
 #include "Domain/CoefFunction/CoefFunctionFileData.hh"
+#include "Domain/CoefFunction/CoefFunctionFileDataMeas.hh"
 #include "Domain/CoefFunction/CoefFunctionPython.hh"
 
 #include "PDE/SinglePDE.hh"
@@ -2842,7 +2843,8 @@ namespace CoupledField {
     ReadUserFieldValues(list, valueNode, compNames, type, isComplex, coef, definedDofs, updateGeo);
   }
 
-  void SinglePDE::ReadUserFieldValues( shared_ptr<EntityList> list,
+  void SinglePDE::
+  ReadUserFieldValues( shared_ptr<EntityList> list,
                             PtrParamNode valueNode,
                             const StdVector<std::string>& compNames,
                             ResultInfo::EntryType type,
@@ -2866,6 +2868,8 @@ namespace CoupledField {
 
     UInt numComp = compNames.GetSize();
     StdVector<std::string> vals(numComp), phases(numComp);
+    std::string dofString = "";
+
     vals.Init("0.0");
     phases.Init("0.0");
     definedDofs.clear();
@@ -2912,8 +2916,7 @@ namespace CoupledField {
           }
 
       } while (iss);
-
-
+    
       // here we assume no updated geometry
       updateGeo = false;
       
@@ -2937,6 +2940,9 @@ namespace CoupledField {
       std::string quantityName = qNode->Get("name")->As<std::string>();
       std::string pdeName = qNode->Get("pdeName")->As<std::string>();
       SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+      
+      //read in the defined dofs
+      dofString = qNode->Get("dofs")->As<std::string>();
       
       try {
         Domain * inDomain = NULL;
@@ -3115,7 +3121,11 @@ namespace CoupledField {
 
       PtrParamNode pnfd = valueNode->Get("fileData");
       int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
-      coef.reset(new CoefFunctionFileData(pnfd, mydim));
+      if (compNames[0] == "Hx") {
+        coef.reset(new CoefFunctionFileDataMeas(domain_, pdename_, pnfd, mydim));  
+      } else {
+        coef.reset(new CoefFunctionFileData(pnfd, mydim));
+      }
     }
     else if(valueNode->Has("python"))
     {
@@ -3274,12 +3284,16 @@ namespace CoupledField {
       updateGeo = updatedGeo_;
     }
 
+
     // obtain coordinate system and set it at coefficient function
     std::string coordSysId = "default";
     valueNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
     if( coordSysId != "default" ) {
       coef->SetCoordinateSystem( domain_->GetCoordSystem(coordSysId) );
     }
+
+    //defined in xml, set dof names
+    coef->SetDofNames(dofString);
 
     // return 
   }
