@@ -621,10 +621,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         forceSolDependent = true;
         mRHSRegions_[curReg] = rhsMag;
       } else if(curFixedMagCoef != NULL) {
-        std::cout << "Use constant magnetization " << std::endl;
+        //std::cout << "Use constant magnetization " << std::endl;
         rhsMag = mRHSRegions_[curReg];
       } else {
-        std::cout << "Neither hysteresis nor constant magnetization prescribed " << std::endl;
+        //std::cout << "Neither hysteresis nor constant magnetization prescribed " << std::endl;
         continue;
       }
 

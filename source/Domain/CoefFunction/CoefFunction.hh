@@ -410,6 +410,16 @@ public:
     return dimType_;
   }
   
+  //set active dof string
+  void SetDofNames( std::string dofNames ) {
+    definedDofs_ = dofNames;
+  } 
+
+  //get active dof string
+  std::string GetDofNames() const {
+    return definedDofs_;
+  }
+
   //! Return if coeffunction is zero
   
   //! Returns, if the coefficient function is zero. In general, this
@@ -914,6 +924,9 @@ protected:
 
   //! how the source term is approximated
   CoefInverseSourceApprox inverseApproxType_;
+
+  //! dof string
+  std::string definedDofs_;
 
   //! Flag, if coefficient function is analytic (= can be represented as string)
   bool isAnalytic_;

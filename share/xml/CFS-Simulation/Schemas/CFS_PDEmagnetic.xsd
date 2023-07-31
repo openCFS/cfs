@@ -156,6 +156,11 @@
                     <xsd:documentation>Exciting magnetic field intensity precomupted by curl-curl formulation</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="measuredFieldIntensity" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Measured magnetic field intensity (will be read from file) </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>                
                 <!-- for iterative coupling to magnetostrictive material -->
                 <xsd:element name="mechStrain"      type="DT_BcInhomVector"    />
               </xsd:choice>
@@ -366,6 +371,7 @@
       <xsd:enumeration value="magPolarization"/>
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
+      <xsd:enumeration value="magPotentialGrad"/>
       
       <!-- non-physical design variable for simp topology optimization of magnetic material (standard case) -->
       <xsd:enumeration value="pseudoDensity" />
@@ -401,6 +407,9 @@
       <xsd:enumeration value="magForceLorentz"/>
       <xsd:enumeration value="magCoreLoss"/>
       <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magGradAdjParam"/>
+      <xsd:enumeration value="volume"/>
+      <xsd:enumeration value="magAveragedFieldIntensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
