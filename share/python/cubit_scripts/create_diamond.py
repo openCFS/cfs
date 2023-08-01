@@ -1,6 +1,6 @@
 #!python
 
-import cubit_scripts.matviz_cubit as mc
+import cubit_scripts.cubit_tools as mc
 import importlib
 importlib.reload(mc)
 

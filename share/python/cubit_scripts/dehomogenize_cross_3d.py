@@ -10,7 +10,7 @@ import hdf5_tools
 
 # this reloads matviz_cubit each time, when this script runs.
 # necessary, if matviz_cubit has changed
-import cubit_scripts.matviz_cubit as mc
+import cubit_scripts.cubit_tools as mc
 import importlib
 importlib.reload(mc)
 
