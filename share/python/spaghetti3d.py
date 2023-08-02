@@ -75,6 +75,8 @@ class Global:
     self.num_threads = int(os.environ.get('OMP_NUM_THREADS'))
     self.anisotropic = False
     self.base_tensor = np.zeros((6,6))
+    # transversely isotropic default base tensor
+    # CFRP with fibers in 2-direction
     self.base_tensor[0,0] = 3423.1
     self.base_tensor[1,1] = 3423.1
     self.base_tensor[2,2] = 68840
@@ -377,8 +379,7 @@ class Spaghetti:
     if glob.anisotropic:
       self.mat_tensors = np.empty((self.m,6,6))
       for i in range(self.m):
-        self.mat_tensors[i] = self.get_tensor_by_idx(i)
-        print(self.mat_tensors[i])
+        self.mat_tensors[i] = self.get_tensor_init(i)
 
   # give optimzation variables as defined array such that we can easily differentiate
   # @return profile,P^0_x,P^0_y,P^0_z,P^1_x,P^1_y,P^1_z,...,P^m_x,P^m_y,P^m_z,r_1,...r_m-1
@@ -549,7 +550,7 @@ class Spaghetti:
         print('Distance is None at point', X, 'with indices', indexlist, '. Actual distance is', d)
       return (glob.transition, np.zeros(self.num_optvar))
 
-    if what == 'gradient' or what == 'didxgrad':
+    if what == 'gradient' or what == 'distgradidx':
       idx = minimal[1]
       grad = np.zeros(self.num_optvar)
       if idx == 2*m-1: # starting point
@@ -575,8 +576,8 @@ class Spaghetti:
           grad[varidx] = 0.5/np.sqrt((r-norm(C-X_projected))**2+norm(X-X_projected)**2)*(2*(r-norm(C-X_projected))*(grad_r - 1/norm(C-X_projected)*(np.matmul(C-X_projected,self.sens['grad_C'][i][varidx,:] - grad_X_projected))) - 2*np.matmul(X-X_projected, grad_X_projected))
 
       grad[-2] = -1
-      if what == 'didxgrad':
-        return (minimal, grad)
+      if what == 'distgradidx':
+        return (minimal[0], grad, minimal[1])
       return (minimal[0], grad)
     elif what == 'all':
       return minimal
@@ -589,7 +590,6 @@ class Spaghetti:
 
   ## This returns the vector rotation matrix between [0,0,1]-direction and spaghetti direction
   def get_rotation_matrix_by_idx(self, idx, X=None):
-    profile = self.profile # profile, we are negative inside and 0 at the boundary
     m = self.m # number of segments, one arc less
 
     if idx == 2*m-1: # circular cap around P^0 -> orientation of 0-th segment
@@ -598,16 +598,22 @@ class Spaghetti:
       idx = m-1
     # straight segments
     if idx < m:
-      t = self.t[idx]
-      e0 = np.array([0,0,1])
-      a = np.cross(e0,t)
-      s = norm(a)
-      if s>1e-15:
-        a *= 1/s
-      c = t[2]
-      R = c*np.eye(3) + np.array([[(1-c)*a[0]*a[0],(1-c)*a[0]*a[1],s*a[1]],[(1-c)*a[0]*a[1],(1-c)*a[1]*a[1],-s*a[0]],[-s*a[1],s*a[0],0]])
-      assert(norm(np.eye(3)-np.dot(np.transpose(R),R))<1e-6)
-      return R
+      v = self.t[idx]
+    # arcs
+    elif idx < 2*m-1:
+      i = idx - m + 1
+      v = np.cross(X-self.C[i], self.n0_arc[i])
+    e0 = np.array([0,0,1])
+    a = np.cross(e0,v)
+    s = norm(a)
+    if s>1e-15:
+      a *= 1/s
+    c = v[2]
+    R = c*np.eye(3) + np.array([[(1-c)*a[0]*a[0],(1-c)*a[0]*a[1],s*a[1]],[(1-c)*a[0]*a[1],(1-c)*a[1]*a[1],-s*a[0]],[-s*a[1],s*a[0],0]])
+    assert(norm(np.eye(3)-np.dot(np.transpose(R),R))<1e-8)
+    return R
+
+
 
   ## This takes a vector rotation matrix and computes the corresponding
   # 6x6 rotation matrix for a 3D elasticity tensor
@@ -661,7 +667,26 @@ class Spaghetti:
 
   # This returns the base material tensor rotated to spaghetti direction
   def get_tensor_by_idx(self, idx, X=None):
-    R = self.get_rotation_matrix_by_idx(idx, X)
+    m = self.m # number of segments, one arc less
+
+    if idx == 2*m-1: # circular cap around P^0 -> orientation of 0-th segment
+      idx = 0
+    elif idx == 2*m: # circular cap around P^m -> orientation of last segment
+      idx = m-1
+    # straight segments
+    if idx < m:
+      return self.mat_tensors[idx]
+    # arcs
+    elif idx < 2*m-1:
+      R = self.get_rotation_matrix_by_idx(idx, X)
+      Q = self.get_rot_6x6(R)
+      return np.dot(Q, np.dot(glob.base_tensor, Q.transpose()))
+    else:
+      assert(False)
+
+  # This returns the base material tensor rotated to spaghetti direction to cache for straight segments
+  def get_tensor_init(self, idx):
+    R = self.get_rotation_matrix_by_idx(idx)
     Q = self.get_rot_6x6(R)
     return np.dot(Q, np.dot(glob.base_tensor, Q.transpose()))
 
@@ -669,7 +694,7 @@ class Spaghetti:
   def fe_get_indices(self, X, dx, tr_half):
     idx_intermediate = [self.id]
 
-    lax = 0.51*dx if glob.order == 2 else 0.01*dx # relax index search to distance to integration points
+    lax = 0.51*dx if glob.order == 2 else 0.0001*dx # relax index search to distance to integration points
     profile = self.profile # profile, we are negative inside and 0 at the boundary
     m = self.m # number of segments, one arc less
 
@@ -880,25 +905,26 @@ def boundary(dist, derivative=False, alpha=None):
   if derivative != True:
     return rho
   else:
+    idx = dist[2] if len(dist)>1 else None
     if phi <= -h:
-      return (rho, np.zeros(dist[1].shape))
+      return (rho, np.zeros(dist[1].shape), idx)
     elif phi >= h:
       if not alpha:
-        return (rho, np.zeros(dist[1].shape))
+        return (rho, np.zeros(dist[1].shape), idx)
       else:
         grad = np.zeros(dist[1].shape)
         grad[-1] = rho_orig
-        return (rho, grad)
+        return (rho, grad, idx)
     elif glob.boundary == 'linear':
       grad *= .5*((rmx-rm)/h)
       if alpha:
         grad[-1] = rho_orig
-      return (rho, grad)
+      return (rho, grad, idx)
     elif glob.boundary == 'poly':
       grad *= -3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3))
       if alpha:
         grad[-1] = rho_orig
-      return (rho, grad)
+      return (rho, grad, idx)
 
 
 # create a idx field for fast access where >= 0 for closest part, -1 for inside and -2 for too far outside
@@ -1046,25 +1072,30 @@ def integrate_fe(fe_num):
   order = glob.order
   dx = glob.dx
   eta = .5*dx/np.sqrt(3) # distance for Gauss-points
+  Xmid = glob.mid_lower + np.array([i,j,k],dtype=int)*dx
 
   rho_sm = 0
   grad_rho = np.zeros(glob.total())
   w_s_full = []
   rho_s_full = []
+  tensors_s_full = []
   if glob.fe_list[i][j][k].shapes_full: # at least one shape full
     #glob.dist_field[i,j,k] = -glob.transition
     for snum in glob.fe_list[i][j][k].shapes_full:
       rho_s_full.append(glob.rhomax*glob.shapes[snum].alpha)
       w_s_full.append(np.exp(glob.rhomax*glob.p*glob.shapes[snum].alpha))
+      tensors_s_full.append(glob.shapes[snum].get_tensor_by_idx(glob.shapes[snum].dist(Xmid, what='index'), Xmid))
   rho_s_full = np.array(rho_s_full)
   w_s_full = np.array(w_s_full)
   sum_w_s_full = np.sum(w_s_full)
+  tensors_s_full = np.array(tensors_s_full)
   num_full = len(glob.fe_list[i][j][k].shapes_full)
   if glob.fe_list[i][j][k].shapes_idx_list: # list not empty, have to integrate
-    Xmid = glob.mid_lower + np.array([i,j,k],dtype=int)*dx
     XX = [[Xmid[0]+it[0], Xmid[1]+it[1], Xmid[2]+it[2]] for it in product([-eta, eta],repeat=3)] if order == 2 else [Xmid]
     rho_s = []
     grad_rho_s = []
+    idx_s = []
+    tensors_s = []
     s_idx_intermediate = []
     #d_min = 100*glob.transition
     for shape_idx_list in glob.fe_list[i][j][k].shapes_idx_list:
@@ -1074,14 +1105,23 @@ def integrate_fe(fe_num):
       #  glob.dist_field[i,j,k] = d
       #  d_min = d
       #rho = boundary([d, gradd], derivative=True)
-      rho, grad_ip = zip(*[boundary(glob.shapes[shape_idx_list[0]].dist_by_idx(X, shape_idx_list[1:]),derivative=True,alpha=glob.shapes[shape_idx_list[0]].alpha) for X in XX])
+      rho, grad_ip, idx_ip = zip(*[boundary(glob.shapes[shape_idx_list[0]].dist_by_idx(X, shape_idx_list[1:],what='distgradidx'),derivative=True,alpha=glob.shapes[shape_idx_list[0]].alpha) for X in XX])
       rho_s.append(rho)
       grad_rho_s.append(grad_ip)
+      idx_s.append(idx_ip)
+      if glob.anisotropic:
+        tensors_s.append([glob.shapes[shape_idx_list[0]].get_tensor_by_idx(idx_s[ip][0], XX[ip]) for ip in range(len(XX))])
     rho = np.array(rho_s)
     w_s = np.exp(glob.p*rho)
     sum_w_s = np.sum(w_s,axis=0)+sum_w_s_full+len(glob.shapes)-len(w_s)-num_full
     rho_sm = (np.sum(w_s*rho,axis=0)+np.sum(rho_s_full*w_s_full))/sum_w_s
     rho_sm = np.sum(rho_sm)/order**3
+    if glob.anisotropic:
+      tensors_s = np.array(tensors_s)
+      tensors_sm = np.sum(np.reshape(w_s*rho,(rho.shape[0],1,1,1))*tensors_s,axis=0)
+      if len(rho_s_full)>0:
+        tensors_sm += np.sum(np.reshape(rho_s_full*w_s_full,(rho_s_full.shape[0],1,1))*tensors_s_full,axis=0)
+      tensors_sm /= sum_w_s
     for num, sidx in enumerate(s_idx_intermediate):
       grad_rho[glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = np.sum(np.expand_dims(w_s[num]/sum_w_s*(1+glob.p*(rho_s[num] - rho_sm)),axis=1)*grad_rho_s[num],axis=0)/order**3
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
@@ -1091,6 +1131,8 @@ def integrate_fe(fe_num):
     rho_sm = np.sum(rho_s_full*w_s_full)/(sum_w_s_full+len(glob.shapes)-num_full)
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(1+glob.p*(rho_s_full[num]-rho_sm))
+    if glob.anisotropic:
+      tensors_sm = np.sum(np.reshape(rho_s_full*w_s_full,(rho_s_full.shape[0],1,1))*tensors_s_full,axis=0)/(sum_w_s_full+len(glob.shapes)-num_full)
   return (rho_sm, grad_rho)
 
 # get constraint sparsity pattern
