@@ -272,7 +272,7 @@ namespace CoupledField
 
       // Here we store the H-field of the previous (forward) simulation
       //std::cout << "measuredFieldIntensity: Add coef to Hsmap_ for region: " << regName << std::endl;
-      Hsmap_[ent[reg]->GetRegion()] = coef[reg];
+     //Hsmap_[ent[reg]->GetRegion()] = coef[reg];
       
       actSDMat = materials_[actRegion];      
       PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);   
@@ -521,7 +521,7 @@ namespace CoupledField
     hFunc.reset(new CoefFunctionBOp<Double>(feFct, hf, 1.0));
     DefineFieldResult(hFunc, hf);
     stiffFormCoefs_.insert(hFunc); 
-    availResults_.insert(hf);  
+    //availResults_.insert(hf);  
 
     // === Compute the volume
     shared_ptr<ResultInfo> vol(new ResultInfo);
@@ -542,10 +542,36 @@ namespace CoupledField
     averagedH->dofNames = vecDofNames;
     averagedH->unit = "A/m";
     averagedH->entryType = ResultInfo::VECTOR;
-    averagedH->definedOn = ResultInfo::REGION;
+    averagedH->definedOn = ResultInfo::ELEMENT;
     // The computation is defined in FinalizePostProcResults()
     shared_ptr<CoefFunctionMulti> averagedHfnc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
-    DefineFieldResult(averagedHfnc, averagedH);       
+    DefineFieldResult(averagedHfnc, averagedH);    
+
+        // === Gradient via adjoint ===
+    shared_ptr<ResultInfo> gradAdjParam;
+    gradAdjParam.reset(new ResultInfo);
+    gradAdjParam->resultType = MAG_GRAD_ADJ_PARAM;
+    gradAdjParam->dofNames = "";
+    gradAdjParam->unit = "";
+    gradAdjParam->entryType = ResultInfo::SCALAR;
+    gradAdjParam->definedOn = ResultInfo::REGION;    
+    availResults_.insert(gradAdjParam);                            
+    shared_ptr<ResultFunctor> gradRegion;
+    gradRegion.reset(new ResultFunctorIntegrate<Double>(mult, feFct, gradAdjParam));
+    resultFunctors_[MAG_GRAD_ADJ_PARAM] = gradRegion;
+
+    //averaged hfield
+    shared_ptr<ResultInfo> resH1(new ResultInfo());
+    resH1->resultType = MAG_AVERAGED_FIELD_INTENSITY;
+    resH1->dofNames = vecDofNames; //hField->GetDofNames();
+    resH1->unit = "A/m";
+    resH1->entryType = ResultInfo::VECTOR;
+    resH1->definedOn = ResultInfo::REGION;   
+    availResults_.insert(resH1);                             
+    shared_ptr<ResultFunctor> averagedHfield;
+    averagedHfield.reset(new ResultFunctorIntegrate<Double>(averagedHfnc, feFct, resH1));
+    dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(averagedHfield)->SetAveraged(true);
+    resultFunctors_[MAG_AVERAGED_FIELD_INTENSITY] = averagedHfield;   
   }
 
   void MagneticScalarPotentialAdjPDE::FinalizePostProcResults() {
@@ -574,48 +600,23 @@ namespace CoupledField
     regIt = regions_.Begin();
     for (; regIt != regions_.End(); ++regIt) {
       // ========= H field =============
-      PtrCoefFct hs, mult;
+      PtrCoefFct hs = NULL;
+      PtrCoefFct mult = NULL;
+      RegionIdType actRegion = *regIt;
       if(Hsmap_.find(*regIt) != Hsmap_.end()){
         // H from previous (forward) simulation
         hs = Hsmap_[*regIt];
-        // result MAG_POTENTIAL_DIV is grad(p), where p is the adjoint solution!
+        //result MAG_POTENTIAL_DIV is grad(p), where p is the adjoint solution!
         PtrCoefFct gradPot = this->GetCoefFct(MAG_POTENTIAL_GRAD);
         mult = CoefFunction::Generate( mp_, Global::REAL,
-                               CoefXprBinOp(mp_, gradPot, hs, CoefXpr::OP_MULT) );        
-        scalMult->AddRegion(*regIt, mult);
+                               CoefXprBinOp(mp_, hs, gradPot, CoefXpr::OP_MULT) );        
+        scalMult->AddRegion(actRegion, mult);
 
-        //H from previous (forward) simulation
+        // //H from previous (forward) simulation
         hField->AddRegion(*regIt, hs);
       }
     } // loop over regions
 
-    // === Gradient via adjoint ===
-    shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL_ADJ];
-    shared_ptr<ResultInfo> gradAdjParam;
-    gradAdjParam.reset(new ResultInfo);
-    gradAdjParam->resultType = MAG_GRAD_ADJ_PARAM;
-    gradAdjParam->dofNames = "";
-    gradAdjParam->unit = "";
-    gradAdjParam->entryType = ResultInfo::SCALAR;
-    gradAdjParam->definedOn = ResultInfo::REGION;    
-    availResults_.insert(gradAdjParam);                            
-    shared_ptr<ResultFunctor> gradRegion;
-    gradRegion.reset(new ResultFunctorIntegrate<Double>(scalMult, feFct, gradAdjParam));
-    resultFunctors_[MAG_GRAD_ADJ_PARAM] = gradRegion;
-
-    //averaged hfield
-    shared_ptr<ResultInfo> resH;
-    resH.reset(new ResultInfo);
-    resH->resultType = MAG_AVERAGED_FIELD_INTENSITY;
-    resH->dofNames = vecDofNames; //hField->GetDofNames();
-    resH->unit = "A/m";
-    resH->entryType = ResultInfo::VECTOR;
-    resH->definedOn = ResultInfo::REGION;   
-    availResults_.insert(resH);                             
-    shared_ptr<ResultFunctor> averagedH;
-    averagedH.reset(new ResultFunctorIntegrate<Double>(hField, feFct, resH));
-    dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(averagedH)->SetAveraged(true);
-    resultFunctors_[MAG_AVERAGED_FIELD_INTENSITY] = averagedH;
   }    
 
   // create the FEspace (H1 in this case)
