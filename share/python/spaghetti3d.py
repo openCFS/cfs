@@ -73,22 +73,34 @@ class Global:
     self.silent = False
     self.vtk_lists = False
     self.num_threads = int(os.environ.get('OMP_NUM_THREADS'))
-    self.anisotropic = False
-    self.base_tensor = np.zeros((6,6))
+    self.anisotropic = True
+    self.base_tensor = np.zeros((3,6,6))
     # transversely isotropic default base tensor
     # CFRP with fibers in 2-direction
-    self.base_tensor[0,0] = 3423.1
-    self.base_tensor[1,1] = 3423.1
-    self.base_tensor[2,2] = 68840
-    self.base_tensor[3,3] = 2200
-    self.base_tensor[4,4] = 2200
-    self.base_tensor[5,5] = 1153.85
-    self.base_tensor[0,1] = 1115.45
-    self.base_tensor[1,0] = 1115.45
-    self.base_tensor[0,2] = 2950.1
-    self.base_tensor[2,0] = 2950.1
-    self.base_tensor[1,2] = 2950.1
-    self.base_tensor[2,1] = 2950.1
+    self.base_tensor[2,0,0] = 3423.1
+    self.base_tensor[2,1,1] = 3423.1
+    self.base_tensor[2,2,2] = 68840
+    self.base_tensor[2,3,3] = 2200
+    self.base_tensor[2,4,4] = 2200
+    self.base_tensor[2,5,5] = 1153.85
+    self.base_tensor[2,0,1] = 1115.45
+    self.base_tensor[2,1,0] = 1115.45
+    self.base_tensor[2,0,2] = 2950.1
+    self.base_tensor[2,2,0] = 2950.1
+    self.base_tensor[2,1,2] = 2950.1
+    self.base_tensor[2,2,1] = 2950.1
+    self.base_tensor[0,1,1] = 3423.1
+    self.base_tensor[0,2,2] = 3423.1
+    self.base_tensor[0,0,0] = 68840
+    self.base_tensor[0,3,3] = 1153.85
+    self.base_tensor[0,4,4] = 2200
+    self.base_tensor[0,5,5] = 2200
+    self.base_tensor[0,1,2] = 1115.45
+    self.base_tensor[0,2,1] = 1115.45
+    self.base_tensor[0,0,1] = 2950.1
+    self.base_tensor[0,1,0] = 2950.1
+    self.base_tensor[0,0,2] = 2950.1
+    self.base_tensor[0,2,0] = 2950.1
 
   # total number of variables (not cached)
   def total(self):
@@ -380,6 +392,7 @@ class Spaghetti:
       self.mat_tensors = np.empty((self.m,6,6))
       for i in range(self.m):
         self.mat_tensors[i] = self.get_tensor_init(i)
+        print(self.mat_tensors[i])
 
   # give optimzation variables as defined array such that we can easily differentiate
   # @return profile,P^0_x,P^0_y,P^0_z,P^1_x,P^1_y,P^1_z,...,P^m_x,P^m_y,P^m_z,r_1,...r_m-1
@@ -589,7 +602,7 @@ class Spaghetti:
       assert(False)
 
   ## This returns the vector rotation matrix between [0,0,1]-direction and spaghetti direction
-  def get_rotation_matrix_by_idx(self, idx, X=None):
+  def get_rotation_matrix_by_idx(self, idx, X=None, derivative=False):
     m = self.m # number of segments, one arc less
 
     if idx == 2*m-1: # circular cap around P^0 -> orientation of 0-th segment
@@ -599,19 +612,25 @@ class Spaghetti:
     # straight segments
     if idx < m:
       v = self.t[idx]
+      dv = self.sens['grad_t'][idx]
     # arcs
     elif idx < 2*m-1:
       i = idx - m + 1
       v = np.cross(X-self.C[i], self.n0_arc[i])
-    e0 = np.array([0,0,1])
-    a = np.cross(e0,v)
-    s = norm(a)
-    if s>1e-15:
-      a *= 1/s
-    c = v[2]
-    R = c*np.eye(3) + np.array([[(1-c)*a[0]*a[0],(1-c)*a[0]*a[1],s*a[1]],[(1-c)*a[0]*a[1],(1-c)*a[1]*a[1],-s*a[0]],[-s*a[1],s*a[0],0]])
-    assert(norm(np.eye(3)-np.dot(np.transpose(R),R))<1e-8)
-    return R
+      v /= norm(v)
+      dv = np.cross(X-self.C[i], self.sens['grad_n0_arc']) - np.cross(self.sens['grad_C'][i], self.n0_arc[i])
+
+    axis = 2 if v[2] > v[0] else 0
+    if axis == 2:
+      R = np.array([[(v[1]*v[1])/(v[2]+1)+v[2], -v[0]*v[1]/(v[2]+1), v[0]], \
+                    [-v[0]*v[1]/(v[2]+1), (v[0]*v[0])/(v[2]+1)+v[2], v[1]], \
+                    [-v[0], -v[1], v[2]]])
+    elif axis == 0:
+      R = np.array([[v[0], -v[1], -v[2]], \
+                    [v[1], (v[2]*v[2])/(v[0]+1)+v[0], -v[1]*v[2]/(v[0]+1)], \
+                    [v[2], -v[1]*v[2]/(v[0]+1), (v[1]*v[1])/(v[0]+1)+v[0]]])
+    assert(derivative or norm(np.eye(3)-np.dot(np.transpose(R),R))<1e-8)
+    return R, axis
 
 
 
@@ -678,17 +697,17 @@ class Spaghetti:
       return self.mat_tensors[idx]
     # arcs
     elif idx < 2*m-1:
-      R = self.get_rotation_matrix_by_idx(idx, X)
+      R, axis = self.get_rotation_matrix_by_idx(idx, X)
       Q = self.get_rot_6x6(R)
-      return np.dot(Q, np.dot(glob.base_tensor, Q.transpose()))
+      return np.dot(Q, np.dot(glob.base_tensor[axis], Q.transpose()))
     else:
       assert(False)
 
   # This returns the base material tensor rotated to spaghetti direction to cache for straight segments
   def get_tensor_init(self, idx):
-    R = self.get_rotation_matrix_by_idx(idx)
+    R, axis = self.get_rotation_matrix_by_idx(idx)
     Q = self.get_rot_6x6(R)
-    return np.dot(Q, np.dot(glob.base_tensor, Q.transpose()))
+    return np.dot(Q, np.dot(glob.base_tensor[axis], Q.transpose()))
 
   # return indices of potential segments cutting element and whether element is full material
   def fe_get_indices(self, X, dx, tr_half):
@@ -1084,7 +1103,8 @@ def integrate_fe(fe_num):
     for snum in glob.fe_list[i][j][k].shapes_full:
       rho_s_full.append(glob.rhomax*glob.shapes[snum].alpha)
       w_s_full.append(np.exp(glob.rhomax*glob.p*glob.shapes[snum].alpha))
-      tensors_s_full.append(glob.shapes[snum].get_tensor_by_idx(glob.shapes[snum].dist(Xmid, what='index'), Xmid))
+      if glob.anisotropic:
+        tensors_s_full.append(glob.shapes[snum].get_tensor_by_idx(glob.shapes[snum].dist(Xmid, what='index'), Xmid))
   rho_s_full = np.array(rho_s_full)
   w_s_full = np.array(w_s_full)
   sum_w_s_full = np.sum(w_s_full)
