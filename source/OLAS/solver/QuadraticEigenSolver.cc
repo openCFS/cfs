@@ -388,6 +388,27 @@ namespace CoupledField
     LOG_DBG(quadEigenSolver) << "CalcEigenValues: END";
   }
 
+  void QuadraticEigenSolver::
+      CalcEigenValues(BaseVector &sol, BaseVector &err)
+  {
+    LOG_DBG(quadEigenSolver) << "CalcEigenValues: START";
+    shared_ptr<Timer> timer = info_->Get("QuadraticEigenSolver/timer")->AsTimer();
+    timer->Start();
+
+    //The timer shows how long it took the chosen Solver to calculate the Eigenvalues
+    clock_t t;
+    t = clock();
+
+    // Pass the Problem to the "CalcEigenValues" function of the chosen solver:
+    solverForGeneralisedEVP->CalcEigenValues(sol, err);
+
+    t = clock() - t;
+    std::cout << "Time needed to solve the Eigenvalue problem: " << (float)t / CLOCKS_PER_SEC << " sec\n";
+
+    timer->Stop();
+    LOG_DBG(quadEigenSolver) << "CalcEigenValues: END";
+  }
+
   void QuadraticEigenSolver::GetEigenMode(unsigned int modeNr, Vector<Complex> &mode, bool right)
   {
     // Pass the Problem to the "GetEigenMode" function of the chosen solver

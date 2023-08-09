@@ -238,6 +238,7 @@ namespace CoupledField {
     //!       was called previously.
     void CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err);
     void CalcEigenValues(BaseVector &sol, BaseVector &err, Double minVal, Double maxVal);
+    void CalcEigenValues(BaseVector &sol, BaseVector &err);
 
     //! Calculate eigenmodes of a generalized eigenvalue problem
 

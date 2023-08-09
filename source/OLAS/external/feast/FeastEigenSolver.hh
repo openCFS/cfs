@@ -50,6 +50,7 @@ namespace CoupledField {
                 unsigned int numFreq, double freqShift, bool sort );
 
     void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal);
+    void CalcEigenValues(BaseVector& sol, BaseVector& err);
     void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint){
         EXCEPTION("not implemented yet");
     }
@@ -76,6 +77,9 @@ namespace CoupledField {
     std::string FeastInfo(Integer info);
 
   private:
+    /** actually solve problem */
+    void DoCalculation(BaseVector& sol, BaseVector& err);
+
     /** print setup information */
     void ToInfo();
 
@@ -149,6 +153,28 @@ namespace CoupledField {
 
     /**compute only the stochastic estimate for the number of eigenvalues*/
     bool stochasticEstimate_=false;
+
+    /**variables for using custom search contour*/
+    int numP_ = -1; // number of pieces that make up contour
+    StdVector<Double> z_edge_; // endpoints of each contour piece
+    StdVector<Integer> t_edge_; // type of contour piece
+    StdVector<Integer> n_edge_; // integration intervals per contour piece
+    int numNc_ = -1; // total number of integration nodes
+    StdVector<Double> integrationNodes_; // custom integration nodes
+    StdVector<Double> integrationWeights_; // custom integration weights
+
+    /**search contour parameters*/
+    // set List-I parameters depending on problem type
+    // I1, I2 = { Emid, r } : complex-general, complex-symmetric, real-general
+    // I1, I2 = { Emin, Emax } : complex-hermitian, real-symmetric
+    double I1_ [2];
+    double I2_;
+
+    /**no idea what this does*/
+    char uplo_ = 'U'; // according to CFS doku U
+
+    /** # of subspace iteration*/
+    int loop_ = -1; // # of feast subspace iteration
 
   }; // end of class
 } // end of namespace

@@ -1450,6 +1450,66 @@
           </xsd:element>
           <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
+          <xsd:element name="eigenValues" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice>
+                <xsd:element name="rectangularContour" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Rectangular search contour defined by min/max of real and imag value. TO BE IMPLEMENTED!!!
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="customContour" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Fully custom designed search contour defined by segments, which have to be defined in a clockwise direction.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="segment" minOccurs="1" maxOccurs="unbounded">
+                        <xsd:annotation>
+                          <xsd:documentation>
+                            Define one segment of the search contour.
+                            It is defined by its endpoints, the shape (line/ellipsoid) and the amount of integration nodes along the segment.
+                            The startpoint of the segment is the endpoint of the previous segment. The startpoint of the first segment is the endpoint of the last segment.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                        <xsd:complexType>
+                          <xsd:sequence>
+                            <xsd:element name="endpoint" minOccurs="1" maxOccurs="1">
+                              <xsd:complexType>
+                                <xsd:attribute name="real" type="xsd:double" use="required"/>
+                                <xsd:attribute name="imag" type="xsd:double" use="required"/>
+                              </xsd:complexType>
+                            </xsd:element>
+                            <xsd:choice>
+                              <xsd:element name="line" minOccurs="1" maxOccurs="1"/>
+                              <xsd:element name="ellipsoid" minOccurs="1" maxOccurs="1">
+                                <xsd:annotation>
+                                  <xsd:documentation>
+                This defines the ratio of the elliptical radii a/b. It has to be bigger than zero and can be 1 at max.
+                0 resembles a line, 1 a semicircle.
+                                  </xsd:documentation>
+                                </xsd:annotation>
+                                <xsd:complexType>
+                                  <xsd:attribute name="ratio" type="xsd:double" use="required"/>
+                                </xsd:complexType>
+                              </xsd:element>
+                            </xsd:choice>
+                            <xsd:element name="nodes" type="xsd:positiveInteger" minOccurs="0" maxOccurs="1">
+                            </xsd:element>
+                          </xsd:sequence>
+                          <!--xsd:attribute name="nodes" type="xsd:positiveInteger" use="optional"/-->
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
         </xsd:all>
       </xsd:extension>
     </xsd:complexContent>
