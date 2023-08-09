@@ -76,6 +76,7 @@ public:
   }
 
   void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal);
+  void CalcEigenValues(BaseVector& sol, BaseVector& err);
   void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint);
   void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Complex shiftPoint){
     solverForGeneralisedEVP->CalcEigenValues(sol,err,N,shiftPoint);

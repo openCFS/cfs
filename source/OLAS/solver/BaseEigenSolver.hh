@@ -171,6 +171,10 @@ namespace CoupledField {
      * @param err Vector with error bound of eigenvalues */
     virtual void CalcEigenFrequencies( BaseVector &sol, BaseVector &err ) = 0;// ToDo: remove due to new structure
 
+    //! compute the eigenvalues based on solver defined settings
+    //! the return type StdVector<T> depends on the problem type
+    virtual void CalcEigenValues( BaseVector &sol, BaseVector &err) = 0;
+
     //! compute the eigenvalues in an interval [minVal,maxVal]
     //! the return type StdVector<T> depends on the problem type
     virtual void CalcEigenValues( BaseVector &sol, BaseVector &err, Double minVal, Double maxVal ) = 0;

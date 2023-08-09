@@ -89,6 +89,9 @@ public:
   void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal){
     EXCEPTION("not implemented yet");
   }
+  void CalcEigenValues(BaseVector& sol, BaseVector& err){
+    EXCEPTION("not implemented yet");
+  }
   void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Double shiftPoint);
   void CalcEigenValues(BaseVector& sol, BaseVector& err, UInt N, Complex shiftPoint){
     EXCEPTION("not implemented yet");

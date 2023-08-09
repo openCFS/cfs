@@ -93,11 +93,12 @@ void EigenValueDriver::Init(bool restart) {
       param_->Get("valuesAround")->Get("shiftPoint")->GetValue("Imag", shiftPoint_Imag_, ParamNode::PASS);
       shiftPoint_ = Complex(shiftPoint_Real_,shiftPoint_Imag_);
 	}
-    if(param_->Has("inInterval"))
+  if(param_->Has("inInterval"))
     {
       param_->Get("inInterval")->GetValue("min", minVal_, ParamNode::INSERT);
       param_->Get("inInterval")->GetValue("max", maxVal_, ParamNode::INSERT);
     }
+  solverDefined_ = param_->Has("solverDefined");
   param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS);
   calcModes_  = param_->Has("eigenVectors");
 
@@ -269,7 +270,7 @@ void EigenValueDriver::SolveProblem() {
   sstep->GetAlgSys()->ExportLinSys(true, false, false); // if asked, export matrices
 
   // define input method, which is needed in CalcValues()
-  // inputMethod_ is 1 for minVal & maxVal, 2 for numModes & shiftMode
+  // inputMethod_ is 1 for minVal & maxVal, 2 for numModes & shiftMode, 3 for solver defined (currently only FEAST custom contour)
   if (minVal_ < maxVal_) {
     inputMethod_ = 1;
   }
@@ -278,6 +279,9 @@ void EigenValueDriver::SolveProblem() {
   }
   else if (numValue_ > 0) {
     inputMethod_ = 2;
+  }
+  else if ( solverDefined_ ) {
+    inputMethod_ = 3;
   }
   else {
     // this case should not be possible in the XML schema
@@ -387,6 +391,14 @@ void EigenValueDriver::CalcEigenValues() {
               solver->CalcEigenValues(eigenValues_, errBounds_, numValue_, shiftPoint_);
             }
         }
+        if (inputMethod_ == 3) { 
+          if (complexEV) {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_);
+          }
+          else {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_);
+          }
+        }
   	  }
   	  break;
   	  }
@@ -426,7 +438,14 @@ void EigenValueDriver::CalcEigenValues() {
                 else {
                   solver->CalcEigenValues(eigenValues_, errBounds_, numValue_, shiftPoint_);
                 }
-
+        }
+        if (inputMethod_ == 3) { 
+          if (complexEV) {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_);
+          }
+          else {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_);
+          }
         }
   	  }
   		break;
@@ -467,6 +486,16 @@ void EigenValueDriver::CalcEigenValues() {
                 //check storage type
 
           	    solver->CalcEigenValues(eigenValuesComplex_, errBounds_, numValue_, shiftPoint_);
+        }
+        if (inputMethod_ == 3) { 
+          solver->Setup(*(matrixC->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), *(matrixA->GetPointer(0, 0)));
+          bool complexEV = solver->HasComplexEigenvalues();
+          if (complexEV) {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_);
+          }
+          else {
+            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_);
+          }
         }
   	  }
   	  }

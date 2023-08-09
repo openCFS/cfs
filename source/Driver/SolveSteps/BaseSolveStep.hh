@@ -108,6 +108,11 @@ namespace CoupledField
         EXCEPTION( "Not implemented here!");
     }
 
+    //! Call for the "solverDefined" eigenvalue selection.
+    virtual void CalcEigenValues(BaseVector &sol, BaseVector &err){
+        EXCEPTION( "Not implemented here!");
+    }
+
     //! extract the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
     virtual void GetEigenMode( UInt numMode, bool right=true ) {

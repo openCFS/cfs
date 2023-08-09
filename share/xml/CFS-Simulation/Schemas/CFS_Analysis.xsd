@@ -408,6 +408,14 @@
       <xsd:extension base="DT_AnalysisBasic">
         <xsd:sequence>
         <xsd:choice minOccurs="1" maxOccurs="1">
+          <xsd:element name="solverDefined">
+            <xsd:annotation>
+              <xsd:documentation>
+        Use solver specific eigenvalue selection. Further specifications have to be made in the solver settings under the tag eigenValues.
+        Currently this option is only available for the FEAST eigensolver!
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
 	        <xsd:element name="inInterval">
 	        <xsd:annotation>
               <xsd:documentation>

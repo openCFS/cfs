@@ -90,6 +90,9 @@ namespace CoupledField {
     void CalcEigenValues(BaseVector& sol, BaseVector& err, Double minVal, Double maxVal) {
       EXCEPTION( "Not implemented yet!" );
     };
+    void CalcEigenValues(BaseVector& sol, BaseVector& err) {
+      EXCEPTION( "Not implemented yet!" );
+    };
 
     //! This method triggers the calculation of the eigenvalue problem.
     //! \param sol Vector with converged eigenvalues. The size is the number of converged evs

@@ -93,6 +93,9 @@ class EigenValueDriver: public virtual SingleDriver {
     // return the part of a complex-valued eigenvalue for which we want to sort 
     double GetSortValue(Complex entry);
 
+    //! input parameter for input method 3, solver defined way of defining a region
+    bool solverDefined_ = false;
+
     //! input parameter for input method 2, number of modes to be calculated
     unsigned int numValue_;
 

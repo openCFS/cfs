@@ -1020,6 +1020,23 @@ namespace CoupledField {
     eigenSolver_->GetSolveTimer()->Stop();
   }
 
+  void AlgebraicSys::CalcEigenValues(BaseVector &sol, BaseVector &err){
+    // start timer of solver
+    eigenSolver_->GetSolveTimer()->Start();
+
+    eigenSolver_->CalcEigenValues(sol,err);
+    //SingleVector ev = dynamic_cast< SingleVector & > sol;
+    //SingleVector * sv = dynamic_cast<BaseVector &>(sol);
+    //eigenValues_ = dynamic_cast<SingleVector &>(sol);
+    //eigenValues_ = dynamic_cast<SingleVector>(*sol);
+    //eigenValues_ = dynamic_cast<SingleVector>(&sol);// target is not pinter or ref
+    eigenValues_ = dynamic_cast<SingleVector *>(&sol);
+    ExportLinSys(false, false, true);
+
+    // stop timer associated with solver
+    eigenSolver_->GetSolveTimer()->Stop();
+  }
+
   void AlgebraicSys::GetEigenMode( UInt numMode, bool right )  {
 
     LOG_DBG(algSys) << "GEM #" << numMode;
