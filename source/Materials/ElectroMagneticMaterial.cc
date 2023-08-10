@@ -37,6 +37,10 @@ namespace CoupledField
     isAllowed_.insert( MAG_RELUCTIVITY_TENSOR );
     isAllowed_.insert( MAG_RELUCTIVITY_SCALAR );
     isAllowed_.insert( MAG_RELUCTIVITY_DERIV );
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P1 );
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P2 );
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P3 );
+    isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P4 );            
     isAllowed_.insert( MAG_CONDUCTIVITY_TENSOR );
     isAllowed_.insert( MAG_CONDUCTIVITY_SCALAR );
     isAllowed_.insert( MAG_CONDUCTIVITY_1 );
@@ -789,6 +793,10 @@ namespace CoupledField
 
     // Ensure that only MAG_RELUCTIVITY or CORE_LOSS are queried
     if( matType != MAG_RELUCTIVITY_SCALAR &&
+        matType != MAG_RELUCTIVITY_DERIV_P1 &&
+        matType != MAG_RELUCTIVITY_DERIV_P2 &&
+        matType != MAG_RELUCTIVITY_DERIV_P3 &&
+        matType != MAG_RELUCTIVITY_DERIV_P4 &&
         matType != MAG_PERMEABILITY_SCALAR &&
         matType != MAG_CORE_LOSS_PER_MASS &&
         matType != MAG_CONDUCTIVITY_SCALAR) {
@@ -805,7 +813,8 @@ namespace CoupledField
 
     // TODO: There is so much C&P code, please refactor that!
 
-    if( matType == MAG_RELUCTIVITY_SCALAR ){
+    if( matType == MAG_RELUCTIVITY_SCALAR || matType == MAG_RELUCTIVITY_DERIV_P1 || matType == MAG_RELUCTIVITY_DERIV_P2 || 
+        matType == MAG_RELUCTIVITY_DERIV_P3 || matType == MAG_RELUCTIVITY_DERIV_P4){
       // -----------
       // RELUCTIVITY
       // -----------
@@ -1251,7 +1260,72 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
 
      return ret;
    }
+
   
+  PtrCoefFct ElectroMagneticMaterial:: 
+  GetScalCoefFncNonLinDerivParam(MaterialType matType,
+                                 Global::ComplexPart matDataType,
+                                 PtrCoefFct fluxCoef) {
+    //This method allocates the objects handling the drivatives of the
+    //reluctivity w.r.t parameters
+    //needed in adjoint magnetic PDE
+
+    // do check
+    if( matType != MAG_RELUCTIVITY_DERIV_P1 &&
+        matType != MAG_RELUCTIVITY_DERIV_P2 &&
+        matType != MAG_RELUCTIVITY_DERIV_P3 &&
+        matType != MAG_RELUCTIVITY_DERIV_P4 ) {
+      EXCEPTION("Derivative of Scalar reluctivity w.r.t. paremeters P1 - P4 allowed!");
+    }
+
+    // Ensure that only real-valued parameters are used
+    if ( matDataType != Global::REAL ) {
+      EXCEPTION( "Only real-valued nonlinear parameters are supported");
+    }
+
+    PtrCoefFct ret;
+
+    // check, if nonlinear curve was already calculated
+    MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY_SCALAR];
+    if ( matNl.approxType == ANALYTIC ) {
+      // this is for describing the reluctivity directly in the xml as analytic formula
+      // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
+
+      // get Euclidean norm of B
+      CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
+      PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
+
+      // get function of B
+      std::string fncStr;
+      if ( matType == MAG_RELUCTIVITY_DERIV_P1 ) {
+        fncStr = matNl.analyticExprDerivP1;
+      } 
+      else if ( matType == MAG_RELUCTIVITY_DERIV_P2 ) {
+        fncStr = matNl.analyticExprDerivP2;
+      }
+      else if ( matType == MAG_RELUCTIVITY_DERIV_P3 ) {
+        fncStr = matNl.analyticExprDerivP3;
+      } 
+      else if ( matType == MAG_RELUCTIVITY_DERIV_P4 ) {
+        fncStr = matNl.analyticExprDerivP4;
+      } 
+      else {
+        EXCEPTION("matType has to be MAG_RELUCTIVITY_DERIV_P1 - P4!");
+      }
+
+      shared_ptr<CoefFunctionCompound<Double> > parFnc(new CoefFunctionCompound<Double>(mp_));
+      std::map<std::string,PtrCoefFct> symbolsNu;
+      symbolsNu["B"] = fluxDensAbs;
+      fncStr.insert(0,"( ");
+      fncStr.append(" )");
+      parFnc->SetScalar(fncStr,symbolsNu);
+      ret = parFnc;
+    } else {
+      EXCEPTION("Just ANALYTIC functions are allowed")
+    }
+    return ret;
+  }
+
 
   PtrCoefFct ElectroMagneticMaterial::
   GetTensorCoefFncNonLin( MaterialType matType,

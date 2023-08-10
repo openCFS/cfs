@@ -45,6 +45,7 @@ namespace CoupledField{
         isSolDependent_ = false;
         extractReal_ = false;
         harm_ = 0;
+        normalizeToVol_ = false;
       }
 
       //! Copy constructor
@@ -56,7 +57,8 @@ namespace CoupledField{
         this->ptFeSpace_ = right.ptFeSpace_;
         this->intScheme_ = right.intScheme_;
         this->extractReal_ = right.extractReal_;
-        this->normalizeToVol_ = false;
+        this->normalizeToVol_ = right.normalizeToVol_;
+        this->scalVec_ = right.scalVec_;
       }
 
       //! Make deep copy of object pointer
