@@ -36,17 +36,33 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
   //get the actual time step, time
   BaseDriver* driver = domain_->GetDriver();
   TransientDriver * tDriver = dynamic_cast<TransientDriver*>(driver);
-  UInt timeStep = 0;
-  Double dt, actTime;
+  UInt timeStep = 1;
+  Double dt = 1.0;
+  Double actTime = 1.0;
   if (tDriver != NULL) {
     timeStep = tDriver->GetActStep(pdeName_);
     dt       = tDriver->GetDeltaT();
-    actTime  = (timeStep+1)*dt;
+    actTime  = timeStep*dt;
   }
   //std::cout << "actStep: " << timeStep << "  actTime: " << actTime << std::endl;
 
-  std::list<StdVector<Double> >::iterator iter = dataH_.begin();
-  StdVector<Double> dataVec = *iter;
+  //get correct index
+  std::list<StdVector<Double> >::iterator iterData = dataH_.begin();
+  std::list<double>::iterator iterTime = time_.begin();
+
+  for(UInt i=0; i< timeStep-1; i++) {
+        ++iterData;
+        ++iterTime;
+  }
+
+  StdVector<Double> dataVec = *iterData;
+  double time = *iterTime;
+
+  //check time
+  if ( actTime != time )
+    EXCEPTION("In CoefFunctionFileDataMeas::GetVector: time from file and transient analysis does not fit!")
+
+  vec.Resize(dataVec.size());
   for ( UInt k=0; k<dataVec.size();k++)
     vec[k] = dataVec[k];
 

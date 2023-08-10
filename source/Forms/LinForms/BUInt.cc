@@ -175,7 +175,7 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
         }
       }
     }  
-    elemVec += bMat * cVec * fac;
+    elemVec += bMat * cVec * fac;    
   }  
   if ( normalizeToVol_) {
     elemVec /= vol;    
