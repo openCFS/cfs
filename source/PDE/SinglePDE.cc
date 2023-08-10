@@ -3183,7 +3183,7 @@ namespace CoupledField {
 
       PtrParamNode pnfd = valueNode->Get("fileData");
       int mydim = type == ResultInfo::SCALAR ? 1 : dim_;
-      if (compNames[0] == "Hx") {
+      if (compNames[0] == "Hx" || compNames[0] == "Bx") {
         coef.reset(new CoefFunctionFileDataMeas(domain_, pdename_, pnfd, mydim));  
       } else {
         coef.reset(new CoefFunctionFileData(pnfd, mydim));

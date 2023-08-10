@@ -163,6 +163,7 @@ namespace CoupledField
           {
             stiffInt = new BDBInt<>(new GradientOperator<FeH1, 3>(), muNL, 1.0, updatedGeo_);
           }
+          stiffInt->SetSolDependent(true);
         }
         else
         {
@@ -327,6 +328,7 @@ namespace CoupledField
           lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, muHs, volRegions, coefUpdateGeo); 
         }
         lin2->SetName("SourceMagFieldIntensityInt");
+        lin2->SetSolDependent();
         LinearFormContext *ctx = new LinearFormContext(lin2);
         ctx->SetEntities(ent[i]);
         ctx->SetFeFunction(feFunc_reduced);

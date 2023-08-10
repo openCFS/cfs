@@ -54,6 +54,7 @@
 #include "PDE/MagneticScalarPotentialPDE.hh"
 #include "PDE/MagneticScalarPotentialAdjPDE.hh"
 #include "PDE/MagEdgePDE.hh"
+#include "PDE/MagEdgeAdjPDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MagEdgeSpecialAVPDE.hh"
 #include "PDE/DarwinPDE.hh"
@@ -783,9 +784,11 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     else if (actPdeName == "magneticEdge"){
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
       if (formulation == "A") {
-        ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);        
       }else{
-        if(formulation == "A-V"){
+        if (formulation == "A-Adj") {
+          ptSinglePde_[i] = new MagEdgeAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);     
+        }else if(formulation == "A-V"){
           ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
         }else if(formulation == "specialA-V"){
           ptSinglePde_[i] = new MagEdgeSpecialAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);

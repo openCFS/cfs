@@ -971,6 +971,22 @@ namespace CoupledField {
           if(permNodes[i]->Has("nonlinear/isotropic/nuDerivExpr")){
             info.analyticExprDeriv = permNodes[i]->Get("nonlinear/isotropic/nuDerivExpr")->As<std::string>().c_str();
           }
+          // read analytic derivative of nu w.r.t. parameter 1
+          if(permNodes[i]->Has("nonlinear/isotropic/nuDerivP1")){
+            info.analyticExprDerivP1 = permNodes[i]->Get("nonlinear/isotropic/nuDerivP1")->As<std::string>().c_str();
+          }
+          // read analytic derivative of nu w.r.t. parameter 2
+          if(permNodes[i]->Has("nonlinear/isotropic/nuDerivP2")){
+            info.analyticExprDerivP2 = permNodes[i]->Get("nonlinear/isotropic/nuDerivP2")->As<std::string>().c_str();
+          }
+          // read analytic derivative of nu w.r.t. parameter 1
+          if(permNodes[i]->Has("nonlinear/isotropic/nuDerivP3")){
+            info.analyticExprDerivP3 = permNodes[i]->Get("nonlinear/isotropic/nuDerivP3")->As<std::string>().c_str();
+          }
+          // read analytic derivative of nu w.r.t. parameter 1
+          if(permNodes[i]->Has("nonlinear/isotropic/nuDerivP4")){
+            info.analyticExprDerivP4 = permNodes[i]->Get("nonlinear/isotropic/nuDerivP4")->As<std::string>().c_str();
+          }
         }
         material->SetNonLinMatIsoTempDependBH(MAG_PERMEABILITY_SCALAR, nlData);
       }
@@ -1015,6 +1031,22 @@ namespace CoupledField {
             {
               info.analyticExprDeriv = iso->Get("muDerivExpr")->As<std::string>();
             }
+            // read analytic derivative of nu w.r.t. parameter 1
+            if(iso->Has("nuDerivP1")){
+              info.analyticExprDerivP1 = iso->Get("nuDerivP1")->As<std::string>().c_str();
+            }
+            // read analytic derivative of nu w.r.t. parameter 2
+            if(iso->Has("nuDerivP2")){
+              info.analyticExprDerivP2 = iso->Get("nuDerivP2")->As<std::string>().c_str();
+            }
+            // read analytic derivative of nu w.r.t. parameter 1
+            if(iso->Has("nuDerivP3")){
+              info.analyticExprDerivP3 = iso->Get("nuDerivP3")->As<std::string>().c_str();
+            }
+            // read analytic derivative of nu w.r.t. parameter 1
+            if(iso->Has("nuDerivP4")){
+              info.analyticExprDerivP4 = iso->Get("nuDerivP4")->As<std::string>().c_str();
+            }            
             // pass info to material class
             material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);
           } // nonlinear isotropic material
