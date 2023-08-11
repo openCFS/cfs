@@ -463,7 +463,6 @@ namespace CoupledField
   {
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
-
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
 
