@@ -64,7 +64,7 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
 
   vec.Resize(dataVec.size());
   for ( UInt k=0; k<dataVec.size();k++)
-    vec[k] = dataVec[k];
+     vec[k] = dataVec[k];
 
   //std::cout << "DataVec: " << vec << std::endl;
  }
