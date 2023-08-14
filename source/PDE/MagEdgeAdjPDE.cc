@@ -421,6 +421,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       }
       lin2->SetName("MagFlux4ForwardIntegrator");
       lin2->SetScalVec(scalVec);
+      //std::cout << "ScalVec: " << scalVec << std::endl;
       lin2->SetNormalizeToVol();
       LinearFormContext *ctx = new LinearFormContext( lin2 );
       ctx->SetEntities( ent[i] );
@@ -742,6 +743,14 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
         PtrCoefFct relucParam3;
         PtrCoefFct relucParam4;        
         RegionIdType actRegion = *regIt;
+
+        if(Bmap_.find(*regIt) != Bmap_.end()){
+          // B from previous (forward) simulation
+          Bforward = Bmap_[*regIt];
+          // B from previous (forward) simulation
+          bField->AddRegion(*regIt, Bforward);
+        }
+
         if (bPostproc_.find(*regIt) != bPostproc_.end()) {
           // B from previous (forward) simulation
           Bforward = bPostproc_[*regIt];
