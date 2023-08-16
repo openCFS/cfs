@@ -24,6 +24,7 @@
   <xsd:include schemaLocation="Schemas/CFS_MATheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATmagnetic.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATmechanical.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_MATsmooth.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATpiezo.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATtest.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATpyroelectric.xsd"/>
@@ -43,6 +44,8 @@
           <xsd:complexType>
             <xsd:sequence>
               <xsd:element name="mechanical" type="DT_MatMechanical"
+                minOccurs="0" maxOccurs="1"/>
+              <xsd:element name="smooth" type="DT_MatSmooth"
                 minOccurs="0" maxOccurs="1"/>
               <xsd:element name="acoustic" type="DT_MatAcoustic"
                 minOccurs="0" maxOccurs="1"/>

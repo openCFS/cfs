@@ -6,6 +6,7 @@ SET(MATERIALS_SRCS
   ElecQuasistaticMaterial.cc
   HeatMaterial.cc
   MechanicMaterial.cc
+  SmoothMaterial.cc
   FlowMaterial.cc 
   PiezoMaterial.cc
   MagStrictMaterial.cc

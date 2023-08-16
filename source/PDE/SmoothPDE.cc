@@ -47,7 +47,7 @@ namespace CoupledField {
           shared_ptr<SimState> simState, Domain* domain )
   :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
     pdename_          = "smooth";
-    pdematerialclass_ = MECHANIC;
+    pdematerialclass_ = SMOOTH;
     
     nonLin_        = false;
     nonLinMaterial_= false;
@@ -104,7 +104,7 @@ namespace CoupledField {
     
     // Sanity check: 3D can only be computed if 3D elements are present/
     if(subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0)
-      EXCEPTION("Can not calculate 3D mechanics without 3D elements in the grid!");
+      EXCEPTION("Can not calculate 3D smooth without 3D elements in the grid!");
     
   }
   
@@ -131,7 +131,7 @@ namespace CoupledField {
     
     unsigned int rows = 0;
     unsigned int cols = 0;
-    materials_.begin()->second->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL)->GetTensorSize(rows, cols);
+    materials_.begin()->second->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::REAL)->GetTensorSize(rows, cols);
     assert(rows > 0 && cols > 0);
     
     //  Loop over all regions
@@ -211,7 +211,7 @@ namespace CoupledField {
       //========================================================================================
       // Normal X : assumes a normal traction proportional to the normal Y
       // X/Y = Stiffness/Displacement or Damping/Velocity or Mass/Acceleration
-      // Essentially the mechanic boundary traction arising in the weak form u'*t_n
+      // Essentially the smooth boundary traction arising in the weak form u'*t_n
       // is replaced by u'*k u_n = u'*(k u*n n) = k u'*n u*n
       // where k is the parameter read from the input file, and u represents the unknown Y
       //========================================================================================
@@ -307,7 +307,7 @@ namespace CoupledField {
       
       // In case of a total force, we can not have a spatial dependency
       if(coef[i]->IsSpacialDependent()) {
-        EXCEPTION("Check changes in mechPDE for spatial dependent forces");
+        EXCEPTION("Check changes in smoothPDE for spatial dependent forces");
       }
       
       // check type of entitylist
@@ -349,7 +349,7 @@ namespace CoupledField {
     // ===============
     //  PRESSURE 
     // ===============
-    LOG_DBG(smoothpde) << "Reading mechanical pressure";
+    LOG_DBG(smoothpde) << "Reading smooth pressure";
     StdVector<std::string> empty;
     ReadRhsExcitation("pressure", empty, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo, input);
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
@@ -357,7 +357,7 @@ namespace CoupledField {
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
-        EXCEPTION("Mechanical pressure must be defined on elements")
+        EXCEPTION("Smooth pressure must be defined on elements")
       }
       
       // Factor for the pressure:
@@ -451,9 +451,9 @@ namespace CoupledField {
     // ------------------------
     shared_ptr<CoefFunction > curCoef;
     if( isComplex )
-      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
+      curCoef = actSDMat->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
     else
-      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
+      curCoef = actSDMat->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
     
     // store coefficient function for later use (e.g. in boundary integrators)
     regionStiffness_[regionId] = curCoef;
@@ -606,19 +606,22 @@ namespace CoupledField {
       availResults_.insert( vel );
       DefineTimeDerivResult( SMOOTH_VELOCITY, 1, SMOOTH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[SMOOTH_VELOCITY];
-      //feFunctions_[MECH_VELOCITY] = vFct;
+      //feFunctions_[SMOOTH_VELOCITY] = vFct;
 
       // === GRID ACCELERATION ===
-      /*shared_ptr<ResultInfo> acc(new ResultInfo);
-      acc->resultType = SMOOTH_ACCELERATION;
-      acc->dofNames = dispDofNames;
-      acc->unit = "m^2/s";
-      acc->entryType = ResultInfo::VECTOR;
-      acc->definedOn = ResultInfo::NODE;
-      availResults_.insert( acc );
-      DefineTimeDerivResult( SMOOTH_ACCELERATION, 2, SMOOTH_DISPLACEMENT );
-      aFct = timeDerivFeFunctions_[SMOOTH_ACCELERATION];*/
-      //feFunctions_[SMOOTH_ACCELERATION] = aFct;
+
+      // shared_ptr<ResultInfo> acc(new ResultInfo);
+      // acc->resultType = SMOOTH_ACCELERATION;
+      // acc->dofNames = dispDofNames;
+      // acc->unit = "m^2/s";
+      // acc->entryType = ResultInfo::VECTOR;
+      // acc->definedOn = ResultInfo::NODE;
+      // availResults_.insert( acc );
+      // DefineTimeDerivResult( SMOOTH_ACCELERATION, 2, SMOOTH_DISPLACEMENT );
+
+      // the following two lines cause problems - include whenever needed
+      // aFct = timeDerivFeFunctions_[SMOOTH_ACCELERATION];
+      // feFunctions_[SMOOTH_ACCELERATION] = aFct;
     }
     
 

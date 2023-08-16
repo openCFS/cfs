@@ -14,7 +14,7 @@
 
 
   <!-- ******************************************************************* -->
-  <!--   Definition of element for mechanic PDEs -->
+  <!--   Definition of element for smooth PDEs -->
   <!-- ******************************************************************* -->
   <xsd:element name="smooth" type="DT_PDESmooth" substitutionGroup="PDEBasic">
     <xsd:unique name="CS_SmoothRegion">
@@ -259,7 +259,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothDisplacement"/>
       <xsd:enumeration value="smoothVelocity"/>
-      <xsd:enumeration value="smoothAcceleration"/>
+      <!-- <xsd:enumeration value="smoothAcceleration"/> -->
       <xsd:enumeration value="smoothZeroStress"/>
     </xsd:restriction>
   </xsd:simpleType>

@@ -153,7 +153,7 @@ namespace CoupledField {
     //smoothing PDE
     SolutionTypeEnum.Add(SMOOTH_DISPLACEMENT, "smoothDisplacement");
     SolutionTypeEnum.Add(SMOOTH_VELOCITY, "smoothVelocity");
-    SolutionTypeEnum.Add(SMOOTH_ACCELERATION, "smoothAcceleration");
+    // SolutionTypeEnum.Add(SMOOTH_ACCELERATION, "smoothAcceleration");
     SolutionTypeEnum.Add(SMOOTH_ZERO_PRESSURE, "smoothZeroStress");
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE_DENSITY, "smoothContactForceDensity");
@@ -725,6 +725,22 @@ namespace CoupledField {
     MaterialTypeEnum.Add( TRACE_FORCE_RETRACING, "traceForceRetracing" );
     MaterialTypeEnum.Add( TRACE_JAC_RESOLUTION, "traceJacResolution" );
 
+    // -- Smooth --
+    MaterialTypeEnum.Add( SMOOTH_STIFFNESS_TENSOR, "Smooth_Stiffness_Tensor" );
+    MaterialTypeEnum.Add( SMOOTH_KMODULUS, "Smooth_Bulk_Modulus" );
+    MaterialTypeEnum.Add( SMOOTH_LAME_MU, "Smooth_Lame_Mu" );
+    MaterialTypeEnum.Add( SMOOTH_LAME_LAMBDA, "Smooth_Lame_Lambda" );
+    MaterialTypeEnum.Add( SMOOTH_EMODULUS, "Smooth_Elasticity_Modulus" );
+    MaterialTypeEnum.Add( SMOOTH_EMODULUS_1, "Smooth_Elasticity_Modulus_1" );
+    MaterialTypeEnum.Add( SMOOTH_EMODULUS_2, "Smooth_Elasticity_Modulus_2" );
+    MaterialTypeEnum.Add( SMOOTH_EMODULUS_3, "Smooth_Elasticity_Modulus_3" );
+    MaterialTypeEnum.Add( SMOOTH_POISSON, "Smooth_Poisson_Ratio" );
+    MaterialTypeEnum.Add( SMOOTH_POISSON_3, "Smooth_Poisson_Ratio_3" );
+    MaterialTypeEnum.Add( SMOOTH_POISSON_12, "Smooth_PoissonRation_12" );
+    MaterialTypeEnum.Add( SMOOTH_POISSON_23, "Smooth_PoissonRation_23" );
+    MaterialTypeEnum.Add( SMOOTH_POISSON_13, "Smooth_PoissonRation_13" );
+    MaterialTypeEnum.Add( SMOOTH_GMODULUS, "Smooth_Shear_Modulus" );
+
     // ==== Initialization of Material Classes ====
     MaterialClassEnum.Add(NO_CLASS, "no material class");
     MaterialClassEnum.Add(TESTMAT, "test");
@@ -739,6 +755,7 @@ namespace CoupledField {
     MaterialClassEnum.Add(THERMOELASTIC, "thermoelastic");
     MaterialClassEnum.Add(MAGNETOSTRICTIVE, "magnetostrictive");
     MaterialClassEnum.Add(ELECTRICCONDUCTION, "conductive");
+    MaterialClassEnum.Add(SMOOTH, "smooth");
 
     // ==== Initialization of Material tensor notations ====
     tensorNotation.SetName("MaterialTensorNotation");
@@ -863,7 +880,7 @@ namespace CoupledField {
         break;
 
       case MECH_ACCELERATION:
-      case SMOOTH_ACCELERATION:
+      // case SMOOTH_ACCELERATION:
         return "m/s^2";
         break;
 
@@ -1354,7 +1371,9 @@ namespace CoupledField {
       case MAGNETOSTRICTIVE:
         out = "magnetoStrictive";
         break;
-
+      case SMOOTH:
+        out = "smooth";
+        break;
       default:
         EXCEPTION("No conversion found for your 'MaterialClass'" );
     }
@@ -1408,6 +1427,9 @@ namespace CoupledField {
     }
     else if ( in == "magnetoStrictive" ) {
       out = MAGNETOSTRICTIVE;
+    }
+    else if ( in == "smooth" ) {
+      out = SMOOTH;
     }
     else {
       EXCEPTION( "'" << in << "' cannot be converted into an '"
