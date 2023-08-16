@@ -17,6 +17,7 @@
 #include "Materials/HeatMaterial.hh"
 #include "Materials/AcousticMaterial.hh"
 #include "Materials/MechanicMaterial.hh"
+#include "Materials/SmoothMaterial.hh"
 #include "Materials/PiezoMaterial.hh"
 #include "Materials/FlowMaterial.hh"
 #include "Materials/TestMaterial.hh"
@@ -100,7 +101,11 @@ namespace CoupledField {
       else if ( matClass == MECHANIC ) {
         material = new MechanicMaterial(mp, cs);
         ReadMechanic( dynamic_cast<MechanicMaterial *>(material), pn );
-      }    
+      }
+      else if (matClass == SMOOTH) {
+        material = new SmoothMaterial(mp, cs);
+        ReadSmooth( material, pn );
+      }
       else if ( matClass == ACOUSTIC ) {\
         material = new AcousticMaterial(mp, cs);
         ReadAcoustic( material, pn );
@@ -249,7 +254,7 @@ namespace CoupledField {
         if (pcc->Has("scaleForceMech")) {
           material->SetScalar(pcc->Get("scaleForceMech")->As<Double>(), SCALE_FORCE_MECH, Global::REAL ); 
         }
-        // 
+        //
         if (pcc->Has("scaleForceCouple")) {
           material->SetScalar(pcc->Get("scaleForceCouple")->As<Double>(), SCALE_FORCE_COUPLE, Global::REAL ); 
         }
@@ -540,6 +545,42 @@ namespace CoupledField {
         }
       }
     }
+  }
+
+
+  //**********************************************************************
+  //*************  READ SMOOTH ****************************************
+  //**********************************************************************
+  void XMLMaterialHandler::ReadSmooth(BaseMaterial *material, PtrParamNode smooth)
+  {
+    // ---------
+    //  density
+    // ---------
+    if (smooth->Has("density")) {
+      PtrCoefFct densCoef = ReadScalarLin( smooth, "density", Global::COMPLEX );
+      material->SetCoefFct(DENSITY, densCoef);
+    }
+    
+    PtrParamNode elast = smooth->Get("elasticity");
+    if (elast) {
+      // -------------------
+      //  linear elasticity
+      // -------------------
+      if (elast->Has("linear")) {
+        PtrParamNode lin = elast->Get("linear");
+        BM::SymmetryType symType = BM::NOSYMMETRY;
+        BM::CoefMap coefMap;
+
+        symType = ReadStiffnessTensorSmooth(lin, Global::COMPLEX, coefMap);
+
+        BM::CoefMap::iterator coefIt = coefMap.begin(), coefEnd = coefMap.end();
+        for ( ; coefIt != coefEnd; ++coefIt) {
+          material->SetCoefFct(coefIt->first, coefIt->second);
+        }
+
+        material->SetSymmetryType( SMOOTH_STIFFNESS_TENSOR, symType );
+      }
+    }  
   }
   
   //**********************************************************************
@@ -2625,6 +2666,36 @@ namespace CoupledField {
       coefMap[MECH_GMODULUS_23] = elastCoef;
 
       return BM::ORTHOTROPIC;
+    }
+
+    return BM::NOSYMMETRY;
+  }
+
+  // Read a smooth stiffness tensor
+  BM::SymmetryType XMLMaterialHandler::ReadStiffnessTensorSmooth(PtrParamNode ptrNode,
+                                                                  Global::ComplexPart type,
+                                                                  BM::CoefMap &coefMap)
+  {
+    PtrCoefFct elastCoef;
+
+    if (ptrNode->HasByVal("tensor", "dim1", "6") || ptrNode->HasByVal("tensor", "dim1", "3")) {
+      PtrParamNode elastTensor = ptrNode->Get("tensor");
+      elastCoef = ReadTensor( elastTensor, type );
+      coefMap[SMOOTH_STIFFNESS_TENSOR] = elastCoef;
+      return BM::GENERAL;
+    }
+
+    if (ptrNode->Has("isotropic")) {
+      PtrParamNode elastIso = ptrNode->Get("isotropic");
+
+      if (elastIso->Has("elasticityModulus") && elastIso->Has("poissonNumber")) {
+        elastCoef = ReadScalar(elastIso, "elasticityModulus", type );
+        coefMap[SMOOTH_EMODULUS] = elastCoef;
+        elastCoef = ReadScalar(elastIso, "poissonNumber", type );
+        coefMap[SMOOTH_POISSON] = elastCoef;
+      }
+
+      return BM::ISOTROPIC;
     }
 
     return BM::NOSYMMETRY;

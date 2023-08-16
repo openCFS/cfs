@@ -2471,6 +2471,7 @@ const string DesignSpace::ToForm(MaterialClass mc, MaterialType mt)
       assert(false);
     }
     break;
+
   case THERMIC:
     switch(mt)
     {

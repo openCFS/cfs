@@ -134,6 +134,9 @@ namespace CoupledField
     else if (class_ == MECHANIC && model == MAT_MODEL_LINEARVISCOELASTIC) {
       model_ = model;
     }
+    else if (class_ == SMOOTH && model == MAT_MODEL_LINEARVISCOELASTIC) {
+      model_ = model;
+    }
     else {
       EXCEPTION("Cannot use " << MaterialModelEnum.ToString(model)
           << " model for material '" << name_ /*<< "', because it is a "
@@ -1362,6 +1365,8 @@ namespace CoupledField
       return PIEZO_TENSOR;
     case ELECTROSTATIC:
       return MECH_STIFFNESS_TENSOR;
+    case SMOOTH:
+      return SMOOTH_STIFFNESS_TENSOR;
     default:
       assert(false); // implement for your needs!
       break;

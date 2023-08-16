@@ -59,6 +59,10 @@ namespace CoupledField {
     //! \param material Material object to be filled with data
     void ReadMechanic(BaseMaterial *material, PtrParamNode pn);
 
+    //! Reads smooth material.
+    //! \param material Material object to be filled with data
+    void ReadSmooth(BaseMaterial *material, PtrParamNode pn);
+
     //! Reads acoustic material.
     //! \param material Material object to be filled with data
     void ReadAcoustic(BaseMaterial *material, PtrParamNode pn);
@@ -151,6 +155,11 @@ namespace CoupledField {
     BaseMaterial::SymmetryType ReadStiffnessTensor(PtrParamNode ptrNode,
                                                    Global::ComplexPart type,
                                                    BaseMaterial::CoefMap &coefMap);
+
+    //! Read a smooth stiffness tensor
+    BaseMaterial::SymmetryType ReadStiffnessTensorSmooth(PtrParamNode ptrNode,
+                                                          Global::ComplexPart type,
+                                                          BaseMaterial::CoefMap &coefMap);
 
     //! Reads the bh values out of the material file
     void ReadXYValues( PtrParamNode paramNode,

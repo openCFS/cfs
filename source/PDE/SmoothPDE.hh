@@ -17,7 +17,7 @@ namespace CoupledField
   class LinearFormContext;
   class set;
 
-  //! Class for mechanic equation (no adaptivity)
+  //! Class for smooth equation (no adaptivity)
   class SmoothPDE: public SinglePDE
   {
 

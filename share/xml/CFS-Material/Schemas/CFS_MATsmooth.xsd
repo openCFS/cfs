@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org/material"
+  xmlns="http://www.cfs++.org/material"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an smooth material
+    </xsd:documentation>
+  </xsd:annotation>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for smooth PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatSmooth">
+    <xsd:sequence>
+      <xsd:element name="elasticity" type="DT_SmoothElasticityLinNonlin"/>
+      <xsd:element name="damping" type="DT_SmoothDamping" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ********************************************************** -->
+  <!--   Definition of linear scalars                             -->
+  <!--***********************************************************-->
+  <xsd:complexType name="DT_SmoothScalarLinear">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_ScalarType" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ********************************************************** -->
+  <!--   Definition of linear/nonlinear smooth elasticity    -->
+  <!--***********************************************************-->
+  <xsd:complexType name="DT_SmoothElasticityLinNonlin">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_SmoothElasticity" minOccurs="0"/>
+      <xsd:element name="nonlinear" type="DT_SmoothNonLin" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of smooth elasticity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothElasticity">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_SmoothElastIsotropic"/>
+      <xsd:element name="transversalIsotropic" type="DT_SmoothElastTransIsotrop"/>
+      <xsd:element name="orthotropic" type="DT_SmoothElastOrthotropic"/>
+      <xsd:element name="tensor" type="DT_SmoothElastTensor"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of smooth elasticity tensor                        -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothElastTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_TokenList">
+            <xsd:maxLength value="36"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+      <!-- so far imag may always be set to zero -->
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_TokenList">
+            <xsd:maxLength value="36"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic smooth elasticity                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothElastIsotropic">
+    <xsd:choice>
+      <xsd:sequence>
+        <xsd:element name="elasticityModulus" type="DT_ScalarType"/>
+        <xsd:element name="poissonNumber" type="DT_ScalarType"/>
+      </xsd:sequence>
+      <xsd:sequence>
+        <xsd:element name="shearModulus" type="DT_ScalarType"/>
+        <xsd:element name="compressionModulus" type="DT_ScalarType"/>
+      </xsd:sequence>
+      <xsd:sequence>
+        <xsd:element name="lameParameterMu" type="DT_ScalarType"/>
+        <xsd:element name="lameParameterLambda" type="DT_ScalarType"/>
+      </xsd:sequence>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of transversal isotropic smooth elasticity         -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothElastTransIsotrop">
+    <xsd:choice>
+      <xsd:sequence>
+        <xsd:element name="elasticityModulus" type="DT_ScalarType"/>
+        <xsd:element name="elasticityModulus_3" type="DT_ScalarType"/>
+        <xsd:element name="poissonNumber" type="DT_ScalarType"/>
+        <xsd:element name="poissonNumber_3" type="DT_ScalarType"/>
+        <xsd:element name="shearModulus" type="DT_ScalarType"/>
+        <xsd:element name="shearModulus_3" type="DT_ScalarType"/>
+      </xsd:sequence>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of orthotropic smooth elasticity                   -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothElastOrthotropic">
+    <xsd:sequence>
+      <xsd:element name="elasticityModulus_1" type="DT_ScalarType"/>
+      <xsd:element name="elasticityModulus_2" type="DT_ScalarType"/>
+      <xsd:element name="elasticityModulus_3" type="DT_ScalarType"/>
+      <xsd:element name="poissonNumber_12" type="DT_ScalarType"/>
+      <xsd:element name="poissonNumber_13" type="DT_ScalarType"/>
+      <xsd:element name="poissonNumber_23" type="DT_ScalarType"/>
+      <xsd:element name="shearModulus_12" type="DT_ScalarType"/>
+      <xsd:element name="shearModulus_13" type="DT_ScalarType"/>
+      <xsd:element name="shearModulus_23" type="DT_ScalarType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--  Definition of smooth nonlinearity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothNonLin">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_MatNonLinearity"/>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of viscoelasticity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothViscoElasticity">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_SmoothViscoElastIsotropic"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic viscoelasticity                           -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothViscoElastIsotropic">
+    <xsd:sequence maxOccurs="1">
+      <xsd:element name="bulkModulus" minOccurs="0">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="linear" type="DT_ScalarType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="shearModulus" minOccurs="0">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="linear" type="DT_ScalarType"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of smooth damping                                  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_SmoothDamping">
+    <xsd:sequence>
+      <xsd:element name="rayleigh" type="DT_RayleighDamping" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+</xsd:schema>
