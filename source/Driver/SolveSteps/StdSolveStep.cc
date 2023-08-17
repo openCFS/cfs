@@ -2006,8 +2006,8 @@ namespace CoupledField {
       algsys_->CalcEigenValues( sol, err, minVal, maxVal );
   }
 
-  void StdSolveStep::GetEigenMode( UInt numMode ) {
-    algsys_->GetEigenMode( numMode );
+  void StdSolveStep::GetEigenMode( UInt numMode, bool right ) {
+    algsys_->GetEigenMode( numMode, right );
     
     // Get the solution and store it
     // Since the entries of solVec_ are pointers to the SingleVector
