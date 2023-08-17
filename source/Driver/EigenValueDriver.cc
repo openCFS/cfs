@@ -62,6 +62,7 @@ EigenValueDriver::EigenValueDriver(UInt sequenceStep,
   maxVal_ = 0.0;
   modeNormalization_ = BaseEigenSolver::NONE;
   isStoredSymmetric_ = false;
+  rightEigenvectors_ = true;
 
   //specifying parameter node
   param_ = param_->Get("eigenValue");
@@ -115,6 +116,18 @@ void EigenValueDriver::Init(bool restart) {
     }
     else {
       EXCEPTION("Specified mode normalization '" + normString + "' not implemented");
+    }
+    // check if left or right eigenvectors should be written in hdf5
+    std::string sideString = "";
+    param_->Get("eigenVectors")->GetValue("side", sideString, ParamNode::PASS);
+    if (sideString == "right") {
+      rightEigenvectors_ = true;
+    }
+    else if (sideString == "left") {
+      rightEigenvectors_ = false;
+    }
+    else {
+      EXCEPTION("Select left or right eigenvectors!")
     }
   }
 
@@ -502,7 +515,13 @@ unsigned int EigenValueDriver::StoreResults(unsigned int stepNum, double step_va
       ptPDE_->GetSolveStep()->SetActStep(fi);
       ptPDE_->GetSolveStep()->SetActFreq(eigenValuesComplex_[modeOrder_[fi]].imag());
       ptPDE_->GetDomain()->GetMathParser()->SetValue(MathParser::GLOB_HANDLER, "f", eigenValuesComplex_[modeOrder_[fi]].imag());
-      ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi]); // this stores the eigen mode result in AlgSys's sol_
+      if (rightEigenvectors_) {
+        ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi]); // store right eigenmode
+      }
+      else{
+        ptPDE_->GetSolveStep()->GetEigenMode(modeOrder_[fi], false); // store left eigenmode
+      }
+      
 
       // stupid paraview needs an increasing series of save_value :(
 

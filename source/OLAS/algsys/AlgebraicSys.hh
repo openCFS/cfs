@@ -250,7 +250,7 @@ namespace CoupledField {
     //!                eigenfrequency
     //! \note This method may only ba called if SetupEigenfrequencySolver()
     //!       and CalcEigenfrequencies was called previously.
-    void GetEigenMode(UInt numMode);
+    void GetEigenMode(UInt numMode, bool right=true );
 
     //@}
 

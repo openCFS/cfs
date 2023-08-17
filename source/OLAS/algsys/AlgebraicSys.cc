@@ -1020,12 +1020,12 @@ namespace CoupledField {
     eigenSolver_->GetSolveTimer()->Stop();
   }
 
-  void AlgebraicSys::GetEigenMode( UInt numMode )  {
+  void AlgebraicSys::GetEigenMode( UInt numMode, bool right )  {
 
     LOG_DBG(algSys) << "GEM #" << numMode;
     Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
 
-    eigenSolver_->GetNormalizedEigenMode(numMode, solHelp);
+    eigenSolver_->GetNormalizedEigenMode(numMode, solHelp, right);
 
     LOG_DBG2(algSys) << "GEM -> " << sol_->ToString();
   }

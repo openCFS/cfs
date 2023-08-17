@@ -125,6 +125,10 @@ class EigenValueDriver: public virtual SingleDriver {
     //! input parameter, true if eigenmodes shall be calculated
     bool calcModes_;
 
+    //! input parameter, true if right eigenmodes should be written in hdf5,
+    // false if left eigenvectors should be written in hdf5
+    bool rightEigenvectors_;
+
     //! needed parameter see calcMode()
     unsigned int save_step_;
 
