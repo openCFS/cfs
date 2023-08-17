@@ -541,6 +541,14 @@ namespace CoupledField
         biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
       }
 
+      // sort bilinear forms so that we can handle matrix after matrix and start with the NCI search
+
+      // THIS WON'T WORK SINCE WE LOOP OVER ALL BILINEARFORMS IN THE OUTER LOOP
+
+      // Only valid solution would be to consider the actual size during the initialization by precomputing the intersection grid
+      //--> get intersectionCandiatesIdx_ via PreComputeIntersectionCandidatesCGAL (currently only used with CGAL!)
+
+
 //     #pragma omp critical
 //         {
 //             std::cout << "Thread #" << omp_get_thread_num() << " computing entites from " << start << " to " << end << " for " << end-start << " entities" << std::endl;
@@ -708,6 +716,12 @@ namespace CoupledField
               RETHROW_EXCEPTION(e, "Could not calculate element matrix of BiLinearForm '" << form->GetName() << "' on '" << actContext.GetFirstEntities()->GetName()<< "'");
             }
           } //if block to skip assembly
+
+
+          // delete unnecessary zero entries (e.g. NCI stuff)
+
+          //TODO
+
         }// loop over bilinearforms
         // The size of the entity lists is checked because FeSpaceConst can add single rows/columns.
         if( firstEntities.GetSize() != 1 )
