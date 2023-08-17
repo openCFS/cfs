@@ -304,6 +304,7 @@ void EigenValueDriver::SolveProblem() {
   numEV_ = eigenValuesComplex_.GetSize();
   SortModes();
   PrintResult();
+  ToInfo();
   // store to hdf5
   if (calcModes_) {
 	  StoreResults(1, -1.0);
@@ -499,7 +500,30 @@ void EigenValueDriver::PrintResult() {
     }
   }
 }
-
+// ***************
+//   Saving the eigenvalues to info.xml
+// ***************
+void EigenValueDriver::ToInfo() {
+  // saving of eigenvalues to .info.xml
+  // this is especially necessary for complex eigenvalues, since only their magnitude is saved in the hdf5 file
+  PtrParamNode res = info_->Get("result", ParamNode::APPEND);
+  PtrParamNode evals = res->Get("eigenvalues", ParamNode::APPEND);
+  for (unsigned int i = 0; i < modeOrder_.GetSize(); i++) {
+    if (eigenValues_.GetSize() > 0) {
+      // save in .info.xml
+      PtrParamNode mode = evals->Get("mode", ParamNode::APPEND);
+      mode->Get("nr")->SetValue(i+1);
+      mode->Get("real")->SetValue(eigenValues_[modeOrder_[i]]);
+    }
+    else {
+      // save in .info.xml
+      PtrParamNode mode = evals->Get("mode", ParamNode::APPEND);
+      mode->Get("nr")->SetValue(i+1);
+      mode->Get("real")->SetValue(eigenValuesComplex_[modeOrder_[i]].real());
+      mode->Get("imag")->SetValue(eigenValuesComplex_[modeOrder_[i]].imag());
+    }
+  }
+}
 unsigned int EigenValueDriver::StoreResults(unsigned int stepNum, double step_val)
 {
   // stepNum and step_val are ignored

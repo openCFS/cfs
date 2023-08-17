@@ -81,6 +81,9 @@ class EigenValueDriver: public virtual SingleDriver {
     // print eigenValues to the console
     void PrintResult();
 
+    // save eigenvalues to info.xml
+    void ToInfo();
+
     // actually calculate eigenValues
     void CalcEigenValues();
 
