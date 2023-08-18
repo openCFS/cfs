@@ -3581,6 +3581,12 @@ namespace CoupledField {
 // Remove zero non-zero elements from system matrix
   void AlgebraicSys::GetRidOfZeros()
   {
+    //this->sysMat_
+    //SBM_Matrix * actMat = sysMat_[SYSTEM];
+    //StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmCol);
+    //stdMat->AddToMatrixEntry( rList1[i], cList1[j],
+    //                                    elemMat[rowInd][colInd] );
+    
     auto numRows = effMat_->GetNumRows();
     auto numCols = effMat_->GetNumCols();
     LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << numRows << " Number of Coloumns: " << numCols;
@@ -3594,8 +3600,8 @@ namespace CoupledField {
     auto size = scrsMat.GetNnz();
     auto NumRows = scrsMat.GetNumRows();
     auto counter = 0;
-    for (auto i = 0; i < size; i++) {
-      if (DataVec[i] != 0.0) counter++;
+    for (UInt i = 0; i < size; i++) {
+      if (DataVec[i] < abs(1e-14)) counter++;
     }
 
     //StdVector<Double> DataVecNew[counter];
@@ -3634,7 +3640,9 @@ namespace CoupledField {
     //for (auto i = 0; i < counter; i++) {
     //  if (DataVecNew[i] != 0.0) counterNew++;
     //}
-    SBM_Matrix someMat = [&]() 
+
+    
+    /* SBM_Matrix someMat = [&]() 
     {
       SBM_Matrix someMat(1,1, true);
       someMat.SetSubMatrix( 0, 0, tempMatrix->GetEntryType(),
@@ -3654,7 +3662,7 @@ namespace CoupledField {
     auto sizeNew = scrsMatNew.GetNnz();
     LOG_DBG(algSys) << "NNZ according to CFS "<< size << "\n\n";
     LOG_DBG(algSys) << "NNZ actually counted" << counter << "\n\n";
-    LOG_DBG(algSys) << "CHECK IT "<< sizeNew << "\n\n";
+    LOG_DBG(algSys) << "CHECK IT "<< sizeNew << "\n\n"; */
     //LOG_DBG(algSys) << "NNZ in DataVecNew" << counterNew << "\n\n";
     
   }
