@@ -3896,7 +3896,27 @@ namespace CoupledField {
     
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
-    bool isMoving = updatedGeo_;
+    // check if we can actually move
+    // we have two cases:
+    // 1: the interface can move based on the definition of the IF (rotation, general motion) 
+    //    --> nciF->NeedsUpdate() knows about that and will be set if this is the case
+    // 2: we have the mechanic PDE or the smoothPDE in our problem definition
+    //    --> this could be refined by checking if it is defined for this very region, 
+    //        but for now we check only the general existence
+    PtrParamNode myParam = this->GetDomain()->GetParamRoot();
+    ParamNodeList pdeNodes = myParam->GetByVal("sequenceStep", std::string("index"), this->sequenceStep_)->Get("pdeList")->GetChildren();
+  
+    bool hasMechOrSmooth = false;
+    for (UInt i = 0; i < pdeNodes.GetSize(); i++)
+    {
+      std::string actPdeName = pdeNodes[i]->GetName();
+      
+      if (actPdeName == "mechanic" || actPdeName == "smooth"){
+        hasMechOrSmooth = true;
+      }
+    }
+
+    bool isMoving = ncIf->NeedsUpdate() || hasMechOrSmooth;
     bool changeForms = iface.movingMortarForm 
                      && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
     
@@ -4060,7 +4080,27 @@ namespace CoupledField {
 
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
-    bool isMoving = updatedGeo_;
+    // check if we can actually move
+    // we have two cases:
+    // 1: the interface can move based on the definition of the IF (rotation, general motion) 
+    //    --> nciF->NeedsUpdate() knows about that and will be set if this is the case
+    // 2: we have the mechanic PDE or the smoothPDE in our problem definition
+    //    --> this could be refined by checking if it is defined for this very region, 
+    //        but for now we check only the general existence
+    PtrParamNode myParam = this->GetDomain()->GetParamRoot();
+    ParamNodeList pdeNodes = myParam->GetByVal("sequenceStep", std::string("index"), this->sequenceStep_)->Get("pdeList")->GetChildren();
+  
+    bool hasMechOrSmooth = false;
+    for (UInt i = 0; i < pdeNodes.GetSize(); i++)
+    {
+      std::string actPdeName = pdeNodes[i]->GetName();
+      
+      if (actPdeName == "mechanic" || actPdeName == "smooth"){
+        hasMechOrSmooth = true;
+      }
+    }
+
+    bool isMoving = ncIf->NeedsUpdate() || hasMechOrSmooth;
     bool changeForms =   iface.movingMortarForm  && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
 
     // create new entity list
@@ -4635,7 +4675,6 @@ namespace CoupledField {
         ncIf->RegisterIntegrator( penalty_u1_v2_M_Context );
       }
 
-      // make this switch dependent on the simulation definition (smoothPDE present, acoustic rotating stuff, etc)
       penalty_u1_v1_Context->SetMotion(true);
       penalty_u2_v2_Context->SetMotion(true);
       penalty_u1_v2_Context->SetMotion(true);
