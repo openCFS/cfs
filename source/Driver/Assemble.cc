@@ -458,6 +458,9 @@ namespace CoupledField
       AssembleMatrices_Std(isNewtonPart);
     }
 
+    // reduce the computed matrices by removing zero elements
+    
+
   }
 
   void Assemble::AssembleMatrices_Std(bool isNewtonPart) {
