@@ -189,7 +189,11 @@ namespace CoupledField {
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
-    algsys_->GetRidOfZeros();
+    // Clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+    // Currently we do not support multi-grid or static condensation with this approach
+    if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() ){
+      algsys_->GetRidOfZeros();
+    }
     
     if( assemble_->IsMatrixUpdated() ) {
       algsys_->SetupPrecond();
