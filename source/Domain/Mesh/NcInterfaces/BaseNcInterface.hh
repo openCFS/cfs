@@ -39,6 +39,8 @@ class BaseNcInterface {
     }
     
     virtual bool NeedsUpdate() const = 0;
+
+    virtual void SetMotion(bool moving) = 0;
     
     virtual void ResetInterface() = 0;
 
