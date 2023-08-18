@@ -364,6 +364,7 @@ namespace CoupledField
               if(ncContext->NeedsFullMatrix())
                 full = true;
             }
+            
 
             if (ncContext && full) {
               // Just get all equations, so we out a dense block in the graph
