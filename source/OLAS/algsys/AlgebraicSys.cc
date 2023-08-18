@@ -3601,7 +3601,12 @@ namespace CoupledField {
     auto NumRows = scrsMat.GetNumRows();
     auto counter = 0;
     for (UInt i = 0; i < size; i++) {
-      if (DataVec[i] < abs(1e-14)) counter++;
+      if (DataVec[i] > abs(1e-14)) counter++;
+    }
+
+    auto counterZero = 0;
+    for (UInt i = 0; i < size; i++) {
+      if (DataVec[i] != 0.0) counterZero++;
     }
 
     //StdVector<Double> DataVecNew[counter];
