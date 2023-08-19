@@ -93,7 +93,7 @@ namespace CoupledField {
                                  BaseMatrix::EntryType eType,
                                  BaseMatrix::StorageType sType,
                                  UInt nrows, UInt ncols,
-                                 UInt nnz ) {
+                                 UInt nnz, bool forceOverwrite ) {
     
     // Only set submatrix, if this is not a cheap copy
     if( !ownSubMatrices_ ) {
@@ -116,8 +116,12 @@ namespace CoupledField {
 
     // Check that there is no sub-matrix at this position yet
     if ( subMat_[ ComputeIndex(i,j) ] != NULL ) {
-      EXCEPTION( "SBM_Matrix::SetSubMatrix: Cowardly refusing the over-write"
-               << " sub-matrix at position ( " << i << " , " << j << " )");
+      if ( forceOverwrite ) {
+        WARN("SBM_Matrix got overwritten");
+      } else {
+        EXCEPTION( "SBM_Matrix::SetSubMatrix: Cowardly refusing the over-write"
+                 << " sub-matrix at position ( " << i << " , " << j << " )");
+      }
     }
 
     // Check that entry type of sub-matrix is valid, i.e. matches

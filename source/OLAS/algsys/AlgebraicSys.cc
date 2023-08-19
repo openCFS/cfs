@@ -3593,11 +3593,11 @@ namespace CoupledField {
     UInt nRows = actMat->GetNumRows();
     UInt nCols = actMat->GetNumCols();
 
-    LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << nRows << " Number of Coloumns: " << nCols;
+    LOG_DBG(algSys) << "\tGet rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << nRows << " Number of Coloumns: " << nCols;
     for ( UInt row = 0; row < nRows; row++ ){
       for ( UInt col = 0; col < nRows; col++ ){
         // get the current sub matrix
-        LOG_DBG(algSys) << "Editing SBM sub matrix (" << row << "," << col << ")";
+        LOG_DBG(algSys) << "\tEditing SBM sub matrix (" << row << "," << col << ")";
         StdMatrix * stdMat = actMat->GetPointer(row,col);
         
         UInt* RowVec;
@@ -3645,37 +3645,57 @@ namespace CoupledField {
           // debug info
           std::cout << "Old NNZ:" << oldNnz << std::endl << "New NNZ: " << newNnz << std::endl;
 
-          // construct new matrix
-          StdVector<Double> DataVecNew[newNnz];
-          StdVector<UInt> ColVecNew[newNnz];
-          StdVector<UInt> RowVecNew[NumRows+1];
-          /* Double* DataVecNew[newNnz];
-          UInt*  ColVecNew[newNnz];    
-          UInt RowVecNew[NumRows+1]; */
+          // log intermediate results
+          LOG_DBG(algSys) << "\tNNZ according to initial guess "<< oldNnz;
+          LOG_DBG(algSys) << "\tNNZ actually counted" << newNnz;
 
-          UInt k{0};
-          RowVecNew[0] = 0;
+          // check if we would actually gain anything from this procedure
+          if ( newNnz < oldNnz ) {
+            LOG_DBG(algSys) << "\tProceeding to create new matrix";
+            // we have less non-zero entries, proceed to construct the new matrix
+            StdVector<Double> DataVecNew[newNnz];
+            StdVector<UInt> ColVecNew[newNnz];
+            StdVector<UInt> RowVecNew[NumRows+1];
+            /* Double* DataVecNew[newNnz];
+            UInt*  ColVecNew[newNnz];    
+            UInt RowVecNew[NumRows+1]; */
 
-          for (UInt i = 1; i < NumRows+1; i++) {
-              for (UInt j = RowVec[i-1]; j < RowVec[i]; j++) {
-                if (DataVec[j] != 0.0) {
-                  DataVecNew[k] = DataVec[j];
-                  ColVecNew[k] = ColVec[j];
-                  k++;
+            UInt k{0};
+            RowVecNew[0] = 0;
+
+            for (UInt i = 1; i < NumRows+1; i++) {
+                for (UInt j = RowVec[i-1]; j < RowVec[i]; j++) {
+                  if (DataVec[j] != 0.0) {
+                    DataVecNew[k] = DataVec[j];
+                    ColVecNew[k] = ColVec[j];
+                    k++;
+                  }
                 }
-              }
-              RowVecNew[i] = k;
-          } 
+                RowVecNew[i] = k;
+            } 
 
 
-          // overwrite old matrix with new (resized) empty matrix
-          
-          actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
-                                stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz);
+            // overwrite old matrix with new (resized) empty matrix (the last bool forces an overwrite)
+            LOG_DBG(algSys) << "\tOverwriting old sub matrix";
+            actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
+                                  stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz, true);
 
-          // loop over entries and reset non zero entries
+            // loop over entries and reset non zero entries
+            /* for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
+              rowInd = rIndList1[i];
+              for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
+                colInd = cIndList1[j];
+                stdMat->AddToMatrixEntry( rList1[i], cList1[j],
+                                          elemMat[rowInd][colInd] );
+              } //j
+            } //i */
 
 
+
+          } else {
+            // no zeros found, we skip everything
+            LOG_DBG(algSys) << "No zero entries found, skipping this matrix";
+          }
 
 
         } else if ( stdMat->GetEntryType()==BaseMatrix::COMPLEX ) {
@@ -3685,20 +3705,7 @@ namespace CoupledField {
           WARN("AlgebraicSys::GetRidOfZeros: EntryType of BaseMatrix not known, skipping this matrix");
         }
         
-        
-        //DONE
-        // try to cast the StdMatrix into a (S)CRS-Matrix
-        //const SCRS_Matrix<double>* tmp = dynamic_cast<const SCRS_Matrix<double>*>(stdMat);
-        //SCRS_Matrix<Double> &tmp = dynamic_cast<SCRS_Matrix<Double>&>(*stdMat);
-
-        
-
-        
-
-
-        //const SCRS_Matrix<double>* tmp = dynamic_cast<const SCRS_Matrix<double>*>(this);
-
-
+        // DONE
         /* UInt numRows = effMat_->GetNumRows();
         UInt numCols = effMat_->GetNumCols();
         LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << numRows << " Number of Coloumns: " << numCols;
@@ -3720,11 +3727,7 @@ namespace CoupledField {
         for (UInt i = 0; i < size; i++) {
           if (DataVec[i] != 0.0) counterZero++;
         } */
-        // DONE END
-
-
-
-
+        
         // TODO enable matrix overwrite
 
         stdMat->GetNnz();
@@ -3738,7 +3741,10 @@ namespace CoupledField {
         //stdMat->GetMatrixEntry
         // TODO
         // get entries and directly pass it to the new matrix
-
+        
+        
+        
+        // DONE END
       }
     }
 
