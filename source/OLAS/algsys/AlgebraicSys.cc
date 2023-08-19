@@ -3632,7 +3632,7 @@ namespace CoupledField {
             break;
           
           default:
-            WARN("Could not find suitable matrix conversion to get rid of zeros, skipping this matrix");
+            WARN("AlgebraicSys::GetRidOfZeros: Could not find suitable matrix conversion to get rid of zeros, skipping this matrix");
             break;
           }
 
@@ -3642,13 +3642,47 @@ namespace CoupledField {
           }
 
           UInt oldNnz = stdMat->GetNnz();
-          std::cout << "Old NNZ:" << oldNnz << "; New NNZ: " << newNnz;
+          // debug info
+          std::cout << "Old NNZ:" << oldNnz << std::endl << "New NNZ: " << newNnz << std::endl;
+
+          // construct new matrix
+          StdVector<Double> DataVecNew[newNnz];
+          StdVector<UInt> ColVecNew[newNnz];
+          StdVector<UInt> RowVecNew[NumRows+1];
+          /* Double* DataVecNew[newNnz];
+          UInt*  ColVecNew[newNnz];    
+          UInt RowVecNew[NumRows+1]; */
+
+          UInt k{0};
+          RowVecNew[0] = 0;
+
+          for (UInt i = 1; i < NumRows+1; i++) {
+              for (UInt j = RowVec[i-1]; j < RowVec[i]; j++) {
+                if (DataVec[j] != 0.0) {
+                  DataVecNew[k] = DataVec[j];
+                  ColVecNew[k] = ColVec[j];
+                  k++;
+                }
+              }
+              RowVecNew[i] = k;
+          } 
 
 
+          // overwrite old matrix with new (resized) empty matrix
+          
+          actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
+                                stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz);
+
+          // loop over entries and reset non zero entries
+
+
+
+
+        } else if ( stdMat->GetEntryType()==BaseMatrix::COMPLEX ) {
+          //Complex* DataVec;
 
         } else {
-          Complex* DataVec;
-
+          WARN("AlgebraicSys::GetRidOfZeros: EntryType of BaseMatrix not known, skipping this matrix");
         }
         
         
