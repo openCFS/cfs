@@ -3587,34 +3587,136 @@ namespace CoupledField {
     //stdMat->AddToMatrixEntry( rList1[i], cList1[j],
     //                                    elemMat[rowInd][colInd] );
     
-    auto numRows = effMat_->GetNumRows();
-    auto numCols = effMat_->GetNumCols();
-    LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << numRows << " Number of Coloumns: " << numCols;
-    auto tempMatrix = effMat_->GetPointer(0,0);
+    // effMat_ eventually gets passed to the solver, but this is just a weak copy of sysMat_[SYSTEM], hence we modify the system matrix itself
+    
+    SBM_Matrix * actMat = sysMat_[SYSTEM];
+    UInt nRows = actMat->GetNumRows();
+    UInt nCols = actMat->GetNumCols();
+
+    LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << nRows << " Number of Coloumns: " << nCols;
+    for ( UInt row = 0; row < nRows; row++ ){
+      for ( UInt col = 0; col < nRows; col++ ){
+        // get the current sub matrix
+        LOG_DBG(algSys) << "Editing SBM sub matrix (" << row << "," << col << ")";
+        StdMatrix * stdMat = actMat->GetPointer(row,col);
+        
+        UInt* RowVec;
+        UInt* ColVec;
+        UInt size;
+        UInt NumRows;
+        UInt newNnz = 0;
+        // TODO: get actual NNZ and create new sparse matrix
+        // now loop over the entries of the sub matrix and check for zero entries --> compute new NNZ
+
+        // switch between complex and double
+        if( stdMat->GetEntryType()==BaseMatrix::DOUBLE ){
+          Double* DataVec;
+
+          // check for SCRS/CRS
+          switch(stdMat->GetStorageType())
+          {
+          case BaseMatrix::SPARSE_SYM:
+          {
+            SCRS_Matrix<Double> &tmpDoubleSym = dynamic_cast<SCRS_Matrix<Double>&>(*stdMat);
+            RowVec = tmpDoubleSym.GetRowPointer();
+            ColVec = tmpDoubleSym.GetColPointer();
+            DataVec = tmpDoubleSym.GetDataPointer();
+            size = tmpDoubleSym.GetNnz();
+            NumRows = tmpDoubleSym.GetNumRows();
+          }
+            break;
+          case BaseMatrix::SPARSE_NONSYM:
+          {
+            CRS_Matrix<Double> &tmpDoubleNonSym = dynamic_cast<CRS_Matrix<Double>&>(*stdMat);
+          }
+            break;
+          
+          default:
+            WARN("Could not find suitable matrix conversion to get rid of zeros, skipping this matrix");
+            break;
+          }
+
+          // count NNZ
+          for (UInt i = 0; i < size; i++) {
+            if (DataVec[i] != 0.0) newNnz++;
+          }
+
+          UInt oldNnz = stdMat->GetNnz();
+          std::cout << "Old NNZ:" << oldNnz << "; New NNZ: " << newNnz;
+
+
+
+        } else {
+          Complex* DataVec;
+
+        }
+        
+        
+        //DONE
+        // try to cast the StdMatrix into a (S)CRS-Matrix
+        //const SCRS_Matrix<double>* tmp = dynamic_cast<const SCRS_Matrix<double>*>(stdMat);
+        //SCRS_Matrix<Double> &tmp = dynamic_cast<SCRS_Matrix<Double>&>(*stdMat);
+
+        
+
+        
+
+
+        //const SCRS_Matrix<double>* tmp = dynamic_cast<const SCRS_Matrix<double>*>(this);
+
+
+        /* UInt numRows = effMat_->GetNumRows();
+        UInt numCols = effMat_->GetNumCols();
+        LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << numRows << " Number of Coloumns: " << numCols;
+        auto tempMatrix = effMat_->GetPointer(0,0);
+
+        
+        SCRS_Matrix<Double> &scrsMat = dynamic_cast<SCRS_Matrix<Double>&>(*tempMatrix);
+        auto RowVec2 = scrsMat.GetRowPointer();
+        auto ColVec2 = scrsMat.GetColPointer();
+        auto DataVec2 = scrsMat.GetDataPointer();
+        auto size2 = scrsMat.GetNnz();
+        auto NumRows2 = scrsMat.GetNumRows();
+        auto counter2 = 0;
+        for (UInt i = 0; i < size; i++) {
+          if (abs(DataVec[i]) > 1e-15) counter++;
+        }
+
+        auto counterZero = 0;
+        for (UInt i = 0; i < size; i++) {
+          if (DataVec[i] != 0.0) counterZero++;
+        } */
+        // DONE END
+
+
+
+
+        // TODO enable matrix overwrite
+
+        stdMat->GetNnz();
+
+        // like a better version of GetColPointer
+        StdVector<int> crsRows;
+        StdVector<int> crsCols;
+        stdMat->ExportCRSRows(crsRows, 1, false);
+        stdMat->ExportCRSColumns(crsCols, 1);
+
+        //stdMat->GetMatrixEntry
+        // TODO
+        // get entries and directly pass it to the new matrix
+
+      }
+    }
 
     
-    SCRS_Matrix<Double> &scrsMat = dynamic_cast<SCRS_Matrix<Double>&>(*tempMatrix);
-    auto RowVec = scrsMat.GetRowPointer();
-    auto ColVec = scrsMat.GetColPointer();
-    auto DataVec = scrsMat.GetDataPointer();
-    auto size = scrsMat.GetNnz();
-    auto NumRows = scrsMat.GetNumRows();
-    auto counter = 0;
-    for (UInt i = 0; i < size; i++) {
-      if (abs(DataVec[i]) > 1e-15) counter++;
-    }
-
-    auto counterZero = 0;
-    for (UInt i = 0; i < size; i++) {
-      if (DataVec[i] != 0.0) counterZero++;
-    }
+    
+    
 
     //StdVector<Double> DataVecNew[counter];
     //StdVector<UInt> ColVecNew[counter];
     //StdVector<UInt> RowVecNew[NumRows+1];
-    Double* DataVecNew[counter];
-    UInt*  ColVecNew[counter];
-    UInt RowVecNew[NumRows+1];
+    /* Double* DataVecNew[counter];
+    UInt*  ColVecNew[counter];    UInt RowVecNew[NumRows+1];
 
     UInt k{0};
     RowVecNew[0] = 0;
@@ -3631,7 +3733,12 @@ namespace CoupledField {
         RowVecNew[i] = k;
     } 
 
-    LOG_DBG(algSys) << "RowVecNew "<< RowVecNew << "\n\n";
+    LOG_DBG(algSys) << "RowVecNew "<< RowVecNew << "\n\n"; */
+
+
+
+
+
 
     //CRS_Matrix<Double> newMatrix(NumRows, NumRows, counter, RowVecNew, *ColVecNew, *DataVecNew);
 

@@ -4097,10 +4097,10 @@ namespace CoupledField {
         ncIf->SetMotion(true);
       }
     }
-    //ncIf->SetMotion(true);
+    ncIf->SetMotion(true);
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
-    bool isMoving = ncIf->NeedsUpdate();
+    bool isMoving = ncIf->NeedsUpdate() || true;
     bool changeForms =   iface.movingMortarForm  && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
 
     // create new entity list
