@@ -3677,8 +3677,8 @@ namespace CoupledField {
 
             // overwrite old matrix with new (resized) empty matrix (the last bool forces an overwrite)
             LOG_DBG(algSys) << "\tOverwriting old sub matrix";
-            actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
-                                  stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz, true);
+            /* actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
+                                  stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz, true); */
 
             // loop over entries and reset non zero entries
             /* for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
@@ -3730,13 +3730,13 @@ namespace CoupledField {
         
         // TODO enable matrix overwrite
 
-        stdMat->GetNnz();
+        //stdMat->GetNnz();
 
         // like a better version of GetColPointer
-        StdVector<int> crsRows;
+        /* StdVector<int> crsRows;
         StdVector<int> crsCols;
         stdMat->ExportCRSRows(crsRows, 1, false);
-        stdMat->ExportCRSColumns(crsCols, 1);
+        stdMat->ExportCRSColumns(crsCols, 1); */
 
         //stdMat->GetMatrixEntry
         // TODO
