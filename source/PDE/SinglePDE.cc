@@ -3910,7 +3910,7 @@ namespace CoupledField {
       
       if (actPdeName == "mechanic" || actPdeName == "smooth"){
         // if it is not set by another motion type already, we also notify the NCI of the possible movement
-        ncIf->SetMotion(true);
+        //ncIf->SetMotion(true);
       }
     }
 
@@ -4094,7 +4094,7 @@ namespace CoupledField {
       
       if (actPdeName == "mechanic" || actPdeName == "smooth"){
         // if it is not set by another motion type already, we also notify the NCI of the possible movement
-        ncIf->SetMotion(true);
+        //ncIf->SetMotion(true);
       }
     }
     // just for testing

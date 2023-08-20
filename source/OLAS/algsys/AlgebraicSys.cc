@@ -3675,6 +3675,7 @@ namespace CoupledField {
             } 
 
 
+            stdMat->Export("oldMat.mtx", BaseMatrix::MATRIX_MARKET);
             // overwrite old matrix with new (resized) empty matrix (the last bool forces an overwrite)
             LOG_DBG(algSys) << "\tOverwriting old sub matrix";
             /* actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
@@ -3689,6 +3690,7 @@ namespace CoupledField {
                                           elemMat[rowInd][colInd] );
               } //j
             } //i */
+            stdMat->Export("newMat.mtx", BaseMatrix::MATRIX_MARKET);
 
 
 
