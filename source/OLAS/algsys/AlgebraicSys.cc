@@ -3628,6 +3628,11 @@ namespace CoupledField {
           case BaseMatrix::SPARSE_NONSYM:
           {
             CRS_Matrix<Double> &tmpDoubleNonSym = dynamic_cast<CRS_Matrix<Double>&>(*stdMat);
+            RowVec = tmpDoubleNonSym.GetRowPointer();
+            ColVec = tmpDoubleNonSym.GetColPointer();
+            DataVec = tmpDoubleNonSym.GetDataPointer();
+            size = tmpDoubleNonSym.GetNnz();
+            NumRows = tmpDoubleNonSym.GetNumRows();
           }
             break;
           
