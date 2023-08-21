@@ -3709,18 +3709,8 @@ namespace CoupledField {
             std::cout << "Found " << nnzMatCount << " non-zero elements (including potential zeros on the diagonal)" << std::endl;
             LOG_DBG(algSys) << "\tNNZ actually counted in the used matrix (including potential zeros on the diagonal)" << nnzMatCount;
 
-            // finally, get the current layout in order to correctly define the new matrix
-            //CRS_Matrix::subFormat = stdMat->GetCurrentLayout();
-
-            /* for (UInt i = RowVec[NumRows]+1; i <= size; i++) {
-              if (abs(DataVec[i]) >= countEps) {
-              //if (DataVec[i] != 0.0) {
-                std::cout << "Entry " << i << " is of size " << DataVec[i] << std::endl;
-              }
-            } */
-
-
-            stdMat->Export("oldMat.mtx", BaseMatrix::MATRIX_MARKET);
+            // debug
+            //stdMat->Export("oldMat.mtx", BaseMatrix::MATRIX_MARKET);
             // overwrite old matrix with new (resized) empty matrix (the last bool forces an overwrite)
             LOG_DBG(algSys) << "\tOverwriting old sub matrix";
             actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
@@ -3746,55 +3736,13 @@ namespace CoupledField {
               EXCEPTION("This should not be possible")
               break;
             }
-            //stdMat->SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
-
-            /* for ( UInt j = RowVecNew[0]; j < RowVecNew[1]; j++) {
-              std::cout << "ColVecNew[" << j << "] = " << ColVecNew[j] << std::endl;
-            } */
-
-
             
-            //stdMat->Export("newInitMat.mtx", BaseMatrix::MATRIX_MARKET);
-            // loop over entries and reset non zero entries
-            // loop over all rows
-
-            // with set sparsityPatternData we won't need this function anymore
-            /* for ( UInt i = 0; i < NumRows+1; i++ ) {
-              // loop over all entries in the corresponding row
-              for ( UInt j = RowVecNew[i]; j < RowVecNew[i+1]; j++) {
-                // j is now the starting index for the evaluation in this row
-
-                //len colvec = len datavec; entries <=66
-                //row vec len 66+1; kann größer 66 sein
-                std::cout << "RowVecNew[" << i << "] = " << RowVecNew[i] << std::endl;
-                std::cout << "ColVecNew[" << j << "] = " << ColVecNew[j] << std::endl;
-                std::cout << "Supposed entry: (" << i << "," << ColVecNew[j] << ")" << std::endl;
-                stdMat->AddToMatrixEntry( i, ColVecNew[j],
-                                          DataVecNew[j] );
-                std::cout << "Found and set entry!" << std::endl;
-
-              }
-            } */
-
-
-            /* for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
-              rowInd = rIndList1[i];
-              for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
-                colInd = cIndList1[j];
-                stdMat->AddToMatrixEntry( rList1[i], cList1[j],
-                                          elemMat[rowInd][colInd] );
-              } //j
-            } //i */
-            stdMat->Export("newMat.mtx", BaseMatrix::MATRIX_MARKET);
-
-
-
+            // debug
+            //stdMat->Export("newMat.mtx", BaseMatrix::MATRIX_MARKET);
           } else {
             // no zeros found, we skip everything
             LOG_DBG(algSys) << "No zero entries found, skipping this matrix";
           }
-
-
         } else if ( stdMat->GetEntryType()==BaseMatrix::COMPLEX ) {
           //Complex* DataVec;
 
