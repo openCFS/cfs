@@ -118,6 +118,7 @@ namespace CoupledField {
     if ( subMat_[ ComputeIndex(i,j) ] != NULL ) {
       if ( forceOverwrite ) {
         WARN("SBM_Matrix got overwritten");
+        delete subMat_[ ComputeIndex(i,j) ];
       } else {
         EXCEPTION( "SBM_Matrix::SetSubMatrix: Cowardly refusing the over-write"
                  << " sub-matrix at position ( " << i << " , " << j << " )");
