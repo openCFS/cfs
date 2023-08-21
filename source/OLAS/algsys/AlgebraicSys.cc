@@ -3661,6 +3661,7 @@ namespace CoupledField {
             StdVector<Double> DataVecNew;
             StdVector<UInt> ColVecNew;
             StdVector<UInt> RowVecNew;
+            StdVector<UInt> DiagVecNew;
             /* Double* DataVecNew[newNnz];
             UInt*  ColVecNew[newNnz];    
             UInt RowVecNew[NumRows+1]; */
@@ -3670,17 +3671,29 @@ namespace CoupledField {
 
             UInt matCount = 0;
             UInt nnzMatCount = 0;
+            UInt diagCounter = 0;
             for (UInt i = 0; i < NumRows; i++) {
               std::cout << "RowVec[i]: " << RowVec[i] << "; RowVec[i+1]: " << RowVec[i+1] << std::endl;
+
+              // Assume that there is no diagonal entry (and correct
+              // it below, if we find one)
+              DiagVecNew.push_back(0);
+
               for (UInt j = RowVec[i]; j < RowVec[i+1]; j++) {
                 matCount++;
                 //if (DataVec[j] != 0.0) {
-                if (abs(DataVec[j]) >= countEps) {
+                // add non-zero entries as well as diagonal entries (regardless of their actual value)
+                if (abs(DataVec[j]) >= countEps || i==ColVec[j]) {
                   DataVecNew.push_back(DataVec[j]);
                   ColVecNew.push_back(ColVec[j]);
                   k++;
                   nnzMatCount++;
                 }
+                // replace zero with actual diagonal value
+                if (i==ColVec[j]) {
+                  DiagVecNew[i] = j;
+                }
+                
               }
               RowVecNew.push_back(k);
             }
@@ -3688,8 +3701,11 @@ namespace CoupledField {
               std::cout << "RowVecNew[" << i << "] = " << RowVecNew[i] << std::endl;
             }
             std::cout << "Looped over " << matCount << " elements" << std::endl;
-            std::cout << "Found " << nnzMatCount << " non-zero elements" << std::endl;
-            LOG_DBG(algSys) << "\tNNZ actually counted in the used matrix" << nnzMatCount;
+            std::cout << "Found " << nnzMatCount << " non-zero elements (including potential zeros on the diagonal)" << std::endl;
+            LOG_DBG(algSys) << "\tNNZ actually counted in the used matrix (including potential zeros on the diagonal)" << nnzMatCount;
+
+            // finally, get the current layout in order to correctly define the new matrix
+            //CRS_Matrix::subFormat = stdMat->GetCurrentLayout();
 
             /* for (UInt i = RowVec[NumRows]+1; i <= size; i++) {
               if (abs(DataVec[i]) >= countEps) {
@@ -3704,15 +3720,41 @@ namespace CoupledField {
             LOG_DBG(algSys) << "\tOverwriting old sub matrix";
             actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
                                   stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz, true);
-
-            for ( UInt j = RowVecNew[0]; j < RowVecNew[1]; j++) {
-              std::cout << "ColVecNew[" << j << "] = " << ColVecNew[j] << std::endl;
+            //TODO
+            // new function where we can directly set rowPtr and colPtr as well as the diagPtr
+            // pass the layout from the old matrix via GetCurrentLayout
+            switch(stdMat->GetStorageType())
+            {
+            case BaseMatrix::SPARSE_SYM:
+            {
+              SCRS_Matrix<Double> &tmpDoubleSym = dynamic_cast<SCRS_Matrix<Double>&>(*stdMat);
+              tmpDoubleSym.SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
             }
+              break;
+            case BaseMatrix::SPARSE_NONSYM:
+            {
+              CRS_Matrix<Double> &tmpDoubleNonSym = dynamic_cast<CRS_Matrix<Double>&>(*stdMat);
+              tmpDoubleNonSym.SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
+            }
+              break;
+            default:
+              EXCEPTION("This should not be possible")
+              break;
+            }
+            //stdMat->SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
+
+            /* for ( UInt j = RowVecNew[0]; j < RowVecNew[1]; j++) {
+              std::cout << "ColVecNew[" << j << "] = " << ColVecNew[j] << std::endl;
+            } */
+
+
             
-            stdMat->Export("newInitMat.mtx", BaseMatrix::MATRIX_MARKET);
+            //stdMat->Export("newInitMat.mtx", BaseMatrix::MATRIX_MARKET);
             // loop over entries and reset non zero entries
             // loop over all rows
-            for ( UInt i = 0; i < NumRows+1; i++ ) {
+
+            // with set sparsityPatternData we won't need this function anymore
+            /* for ( UInt i = 0; i < NumRows+1; i++ ) {
               // loop over all entries in the corresponding row
               for ( UInt j = RowVecNew[i]; j < RowVecNew[i+1]; j++) {
                 // j is now the starting index for the evaluation in this row
@@ -3720,14 +3762,16 @@ namespace CoupledField {
                 //len colvec = len datavec; entries <=66
                 //row vec len 66+1; kann größer 66 sein
                 std::cout << "RowVecNew[" << i << "] = " << RowVecNew[i] << std::endl;
-                std::cout << "ColVecNew[" << i+j << "] = " << ColVecNew[i+j] << std::endl;
-                std::cout << "Supposed entry: (" << i << "," << ColVecNew[i+j] << ")" << std::endl;
-                stdMat->AddToMatrixEntry( i, ColVecNew[i+j],
-                                          DataVecNew[i+j] );
+                std::cout << "ColVecNew[" << j << "] = " << ColVecNew[j] << std::endl;
+                std::cout << "Supposed entry: (" << i << "," << ColVecNew[j] << ")" << std::endl;
+                stdMat->AddToMatrixEntry( i, ColVecNew[j],
+                                          DataVecNew[j] );
                 std::cout << "Found and set entry!" << std::endl;
 
               }
-            }
+            } */
+
+
             /* for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
               rowInd = rIndList1[i];
               for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
