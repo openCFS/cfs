@@ -3637,8 +3637,10 @@ namespace CoupledField {
           }
 
           // count NNZ
+          double countEps = 1e-20;
           for (UInt i = 0; i < size; i++) {
-            if (DataVec[i] != 0.0) newNnz++;
+            //if (DataVec[i] != 0.0) newNnz++;
+            if (abs(DataVec[i]) >= countEps) newNnz++;
           }
 
           UInt oldNnz = stdMat->GetNnz();
@@ -3647,41 +3649,85 @@ namespace CoupledField {
 
           // log intermediate results
           LOG_DBG(algSys) << "\tNNZ according to initial guess "<< oldNnz;
-          LOG_DBG(algSys) << "\tNNZ actually counted" << newNnz;
+          LOG_DBG(algSys) << "\tNNZ actually counted in the overall vector" << newNnz;
 
           // check if we would actually gain anything from this procedure
           if ( newNnz < oldNnz ) {
             LOG_DBG(algSys) << "\tProceeding to create new matrix";
             // we have less non-zero entries, proceed to construct the new matrix
-            StdVector<Double> DataVecNew[newNnz];
-            StdVector<UInt> ColVecNew[newNnz];
-            StdVector<UInt> RowVecNew[NumRows+1];
+            //StdVector<Double> DataVecNew(newNnz);
+            //StdVector<UInt> ColVecNew(newNnz);
+            //StdVector<UInt> RowVecNew(NumRows+1);
+            StdVector<Double> DataVecNew;
+            StdVector<UInt> ColVecNew;
+            StdVector<UInt> RowVecNew;
             /* Double* DataVecNew[newNnz];
             UInt*  ColVecNew[newNnz];    
             UInt RowVecNew[NumRows+1]; */
 
             UInt k{0};
-            RowVecNew[0] = 0;
+            RowVecNew.push_back(RowVec[0]);
 
-            for (UInt i = 1; i < NumRows+1; i++) {
-                for (UInt j = RowVec[i-1]; j < RowVec[i]; j++) {
-                  if (DataVec[j] != 0.0) {
-                    DataVecNew[k] = DataVec[j];
-                    ColVecNew[k] = ColVec[j];
-                    k++;
-                  }
+            UInt matCount = 0;
+            UInt nnzMatCount = 0;
+            for (UInt i = 0; i < NumRows; i++) {
+              std::cout << "RowVec[i]: " << RowVec[i] << "; RowVec[i+1]: " << RowVec[i+1] << std::endl;
+              for (UInt j = RowVec[i]; j < RowVec[i+1]; j++) {
+                matCount++;
+                //if (DataVec[j] != 0.0) {
+                if (abs(DataVec[j]) >= countEps) {
+                  DataVecNew.push_back(DataVec[j]);
+                  ColVecNew.push_back(ColVec[j]);
+                  k++;
+                  nnzMatCount++;
                 }
-                RowVecNew[i] = k;
-            } 
+              }
+              RowVecNew.push_back(k);
+            }
+            for (UInt i = 0; i < RowVecNew.size(); i++) {
+              std::cout << "RowVecNew[" << i << "] = " << RowVecNew[i] << std::endl;
+            }
+            std::cout << "Looped over " << matCount << " elements" << std::endl;
+            std::cout << "Found " << nnzMatCount << " non-zero elements" << std::endl;
+            LOG_DBG(algSys) << "\tNNZ actually counted in the used matrix" << nnzMatCount;
+
+            /* for (UInt i = RowVec[NumRows]+1; i <= size; i++) {
+              if (abs(DataVec[i]) >= countEps) {
+              //if (DataVec[i] != 0.0) {
+                std::cout << "Entry " << i << " is of size " << DataVec[i] << std::endl;
+              }
+            } */
 
 
             stdMat->Export("oldMat.mtx", BaseMatrix::MATRIX_MARKET);
             // overwrite old matrix with new (resized) empty matrix (the last bool forces an overwrite)
             LOG_DBG(algSys) << "\tOverwriting old sub matrix";
-            /* actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
-                                  stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz, true); */
+            actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
+                                  stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz, true);
 
+            for ( UInt j = RowVecNew[0]; j < RowVecNew[1]; j++) {
+              std::cout << "ColVecNew[" << j << "] = " << ColVecNew[j] << std::endl;
+            }
+            
+            stdMat->Export("newInitMat.mtx", BaseMatrix::MATRIX_MARKET);
             // loop over entries and reset non zero entries
+            // loop over all rows
+            for ( UInt i = 0; i < NumRows+1; i++ ) {
+              // loop over all entries in the corresponding row
+              for ( UInt j = RowVecNew[i]; j < RowVecNew[i+1]; j++) {
+                // j is now the starting index for the evaluation in this row
+
+                //len colvec = len datavec; entries <=66
+                //row vec len 66+1; kann größer 66 sein
+                std::cout << "RowVecNew[" << i << "] = " << RowVecNew[i] << std::endl;
+                std::cout << "ColVecNew[" << i+j << "] = " << ColVecNew[i+j] << std::endl;
+                std::cout << "Supposed entry: (" << i << "," << ColVecNew[i+j] << ")" << std::endl;
+                stdMat->AddToMatrixEntry( i, ColVecNew[i+j],
+                                          DataVecNew[i+j] );
+                std::cout << "Found and set entry!" << std::endl;
+
+              }
+            }
             /* for ( UInt i = 0; i < rList1.GetSize(); i++ ) {
               rowInd = rIndList1[i];
               for ( UInt j = 0; j < cList1.GetSize(); j++ ) {
