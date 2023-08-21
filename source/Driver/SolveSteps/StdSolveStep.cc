@@ -191,7 +191,12 @@ namespace CoupledField {
 
     // Clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
     // Currently we do not support multi-grid or static condensation with this approach
-    if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() ){
+    PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
+    
+    bool getRidOfZeros = myParam->GetByVal("sequenceStep", std::string("index"),
+                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep())->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
+  
+    if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() && getRidOfZeros ){
       algsys_->GetRidOfZeros();
     }
     
