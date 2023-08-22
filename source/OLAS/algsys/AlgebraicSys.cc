@@ -3579,17 +3579,12 @@ namespace CoupledField {
   }
 
 // Remove zero non-zero elements from system matrix
-  void AlgebraicSys::GetRidOfZeros()
-  {
-    //this->sysMat_
-    //SBM_Matrix * actMat = sysMat_[SYSTEM];
-    //StdMatrix * stdMat = actMat->GetPointer(sbmRow, sbmCol);
-    //stdMat->AddToMatrixEntry( rList1[i], cList1[j],
-    //                                    elemMat[rowInd][colInd] );
-    
+  void AlgebraicSys::GetRidOfZeros(double tol)
+  { 
     // effMat_ eventually gets passed to the solver, but this is just a weak copy of sysMat_[SYSTEM], hence we modify the system matrix itself
     
-    SBM_Matrix * actMat = sysMat_[SYSTEM];
+    // create a deep copy and work with the copy
+    SBM_Matrix * actMat = new SBM_Matrix(*(sysMat_[SYSTEM]));
     UInt nRows = actMat->GetNumRows();
     UInt nCols = actMat->GetNumCols();
 
@@ -3605,8 +3600,6 @@ namespace CoupledField {
         UInt size;
         UInt NumRows;
         UInt newNnz = 0;
-        // TODO: get actual NNZ and create new sparse matrix
-        // now loop over the entries of the sub matrix and check for zero entries --> compute new NNZ
 
         // switch between complex and double
         if( stdMat->GetEntryType()==BaseMatrix::DOUBLE ){
@@ -3641,16 +3634,15 @@ namespace CoupledField {
             break;
           }
 
-          // count NNZ
-          double countEps = 1e-20;
+          // now loop over the entries of the sub matrix and check for zero entries --> compute new NNZ
           for (UInt i = 0; i < size; i++) {
             //if (DataVec[i] != 0.0) newNnz++;
-            if (abs(DataVec[i]) >= countEps) newNnz++;
+            if (abs(DataVec[i]) >= tol) newNnz++;
           }
 
           UInt oldNnz = stdMat->GetNnz();
           // debug info
-          std::cout << "Old NNZ:" << oldNnz << std::endl << "New NNZ: " << newNnz << std::endl;
+          //std::cout << "Old NNZ:" << oldNnz << std::endl << "New NNZ: " << newNnz << std::endl;
 
           // log intermediate results
           LOG_DBG(algSys) << "\tNNZ according to initial guess "<< oldNnz;
@@ -3660,25 +3652,19 @@ namespace CoupledField {
           if ( newNnz < oldNnz ) {
             LOG_DBG(algSys) << "\tProceeding to create new matrix";
             // we have less non-zero entries, proceed to construct the new matrix
-            //StdVector<Double> DataVecNew(newNnz);
-            //StdVector<UInt> ColVecNew(newNnz);
-            //StdVector<UInt> RowVecNew(NumRows+1);
             StdVector<Double> DataVecNew;
             StdVector<UInt> ColVecNew;
             StdVector<UInt> RowVecNew;
             StdVector<UInt> DiagVecNew;
-            /* Double* DataVecNew[newNnz];
-            UInt*  ColVecNew[newNnz];    
-            UInt RowVecNew[NumRows+1]; */
 
             UInt k{0};
             RowVecNew.push_back(RowVec[0]);
 
             UInt matCount = 0;
             UInt nnzMatCount = 0;
-            UInt diagCounter = 0;
             for (UInt i = 0; i < NumRows; i++) {
-              std::cout << "RowVec[i]: " << RowVec[i] << "; RowVec[i+1]: " << RowVec[i+1] << std::endl;
+              // debug
+              //std::cout << "RowVec[i]: " << RowVec[i] << "; RowVec[i+1]: " << RowVec[i+1] << std::endl;
 
               // Assume that there is no diagonal entry (and correct
               // it below, if we find one)
@@ -3688,7 +3674,7 @@ namespace CoupledField {
                 matCount++;
                 //if (DataVec[j] != 0.0) {
                 // add non-zero entries as well as diagonal entries (regardless of their actual value)
-                if (abs(DataVec[j]) >= countEps || i==ColVec[j]) {
+                if (abs(DataVec[j]) >= tol || i==ColVec[j]) {
                   DataVecNew.push_back(DataVec[j]);
                   ColVecNew.push_back(ColVec[j]);
                   k++;
@@ -3698,32 +3684,43 @@ namespace CoupledField {
                 if (i==ColVec[j]) {
                   DiagVecNew[i] = j;
                 }
-                
               }
               RowVecNew.push_back(k);
             }
-            for (UInt i = 0; i < RowVecNew.size(); i++) {
+            // debug
+            /* for (UInt i = 0; i < RowVecNew.size(); i++) {
               std::cout << "RowVecNew[" << i << "] = " << RowVecNew[i] << std::endl;
-            }
-            std::cout << "Looped over " << matCount << " elements" << std::endl;
-            std::cout << "Found " << nnzMatCount << " non-zero elements (including potential zeros on the diagonal)" << std::endl;
+            } */
+            //std::cout << "Looped over " << matCount << " elements" << std::endl;
+            //std::cout << "Found " << nnzMatCount << " non-zero elements (including potential zeros on the diagonal)" << std::endl;
+            
+            // log
+            LOG_DBG(algSys) << "\tLooped over " << matCount << " elements";
             LOG_DBG(algSys) << "\tNNZ actually counted in the used matrix (including potential zeros on the diagonal)" << nnzMatCount;
 
             // debug
             //stdMat->Export("oldMat.mtx", BaseMatrix::MATRIX_MARKET);
+
+            // delete the old effMat_ since otherwise we'll have some not so nice heap corruption
+            delete effMat_;
+
             // overwrite old matrix with new (resized) empty matrix (the last bool forces an overwrite)
             LOG_DBG(algSys) << "\tOverwriting old sub matrix";
+
+            // generate new empty SBM-Matrix
             actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
-                                  stdMat->GetNumRows(), stdMat->GetNumCols(), newNnz, true);
-            //TODO
-            // new function where we can directly set rowPtr and colPtr as well as the diagPtr
-            // pass the layout from the old matrix via GetCurrentLayout
+                                  stdMat->GetNumRows(), stdMat->GetNumCols(), nnzMatCount, true);
+            
+            // now set the sparsity pattern data for the newly created submatrix
             switch(stdMat->GetStorageType())
             {
             case BaseMatrix::SPARSE_SYM:
             {
               SCRS_Matrix<Double> &tmpDoubleSym = dynamic_cast<SCRS_Matrix<Double>&>(*stdMat);
               tmpDoubleSym.SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
+              // here we also have to correct the wrongly initialized numEntries variable
+              tmpDoubleSym.SetNumEntries(nnzMatCount);
+              stdMat->Export("stdMat", BaseMatrix::OutputFormat::MATRIX_MARKET, "stdMat");
             }
               break;
             case BaseMatrix::SPARSE_NONSYM:
@@ -3736,132 +3733,41 @@ namespace CoupledField {
               EXCEPTION("This should not be possible")
               break;
             }
-            
+
+            // delete the old sysMat_[SYSTEM]
+            delete sysMat_[SYSTEM];
+
+            // now we have a full and cleaned copy of sysMat_[SYSTEM] (actMat), we just need to pass it back
+            sysMat_[SYSTEM] = actMat;
+            LOG_DBG(algSys) << "\tCreated new sysMat_ entry";
+
             // debug
-            //stdMat->Export("newMat.mtx", BaseMatrix::MATRIX_MARKET);
+            //actMat->Export("actMat", BaseMatrix::OutputFormat::MATRIX_MARKET, "actMat");
+            //sysMat_[SYSTEM]->Export("sysMat", BaseMatrix::OutputFormat::MATRIX_MARKET, "sysMat");
+
+            // rebuild effMat_
+            UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
+            for ( UInt k = 0; k < nB; k++ ) {
+              if (statCond_) {
+                effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
+                                          numBlocks_-1 );
+              } else {
+                effMat_ = new SBM_Matrix( *actMat, nB, nB );
+              }
+            }
+            LOG_DBG(algSys) << "\tRebuilt effMat_";
+            LOG_DBG(algSys) << "\tSuccessfully reduced complexity of the system by eliminating unnecessary zeros";
           } else {
             // no zeros found, we skip everything
             LOG_DBG(algSys) << "No zero entries found, skipping this matrix";
           }
         } else if ( stdMat->GetEntryType()==BaseMatrix::COMPLEX ) {
-          //Complex* DataVec;
-
+          WARN("AlgebraicSys::GetRidOfZeros: Reduction of complex valued matrices not implemented yet.");
         } else {
           WARN("AlgebraicSys::GetRidOfZeros: EntryType of BaseMatrix not known, skipping this matrix");
         }
-        
-        // DONE
-        /* UInt numRows = effMat_->GetNumRows();
-        UInt numCols = effMat_->GetNumCols();
-        LOG_DBG(algSys) << "Get rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << numRows << " Number of Coloumns: " << numCols;
-        auto tempMatrix = effMat_->GetPointer(0,0);
-
-        
-        SCRS_Matrix<Double> &scrsMat = dynamic_cast<SCRS_Matrix<Double>&>(*tempMatrix);
-        auto RowVec2 = scrsMat.GetRowPointer();
-        auto ColVec2 = scrsMat.GetColPointer();
-        auto DataVec2 = scrsMat.GetDataPointer();
-        auto size2 = scrsMat.GetNnz();
-        auto NumRows2 = scrsMat.GetNumRows();
-        auto counter2 = 0;
-        for (UInt i = 0; i < size; i++) {
-          if (abs(DataVec[i]) > 1e-15) counter++;
-        }
-
-        auto counterZero = 0;
-        for (UInt i = 0; i < size; i++) {
-          if (DataVec[i] != 0.0) counterZero++;
-        } */
-        
-        // TODO enable matrix overwrite
-
-        //stdMat->GetNnz();
-
-        // like a better version of GetColPointer
-        /* StdVector<int> crsRows;
-        StdVector<int> crsCols;
-        stdMat->ExportCRSRows(crsRows, 1, false);
-        stdMat->ExportCRSColumns(crsCols, 1); */
-
-        //stdMat->GetMatrixEntry
-        // TODO
-        // get entries and directly pass it to the new matrix
-        
-        
-        
-        // DONE END
       }
     }
-
-    
-    
-    
-
-    //StdVector<Double> DataVecNew[counter];
-    //StdVector<UInt> ColVecNew[counter];
-    //StdVector<UInt> RowVecNew[NumRows+1];
-    /* Double* DataVecNew[counter];
-    UInt*  ColVecNew[counter];    UInt RowVecNew[NumRows+1];
-
-    UInt k{0};
-    RowVecNew[0] = 0;
-
-    for (auto i = 1; i < NumRows+1; i++) {
-        for (auto j = RowVec[i-1]; j < RowVec[i]; j++) {
-          if (DataVec[j] != 0.0) {
-            DataVecNew[k] = &DataVec[j];
-            ColVecNew[k] = &ColVec[j];
-            k++;
-          }
-        }
-
-        RowVecNew[i] = k;
-    } 
-
-    LOG_DBG(algSys) << "RowVecNew "<< RowVecNew << "\n\n"; */
-
-
-
-
-
-
-    //CRS_Matrix<Double> newMatrix(NumRows, NumRows, counter, RowVecNew, *ColVecNew, *DataVecNew);
-
-    //StdMatrix* newMatrix_std = &newMatrix;
-
-    //tempMatrix = newMatrix_std;
-
-    //newMatrix_CRS;
-
-    //auto counterNew = 0;
-    //for (auto i = 0; i < counter; i++) {
-    //  if (DataVecNew[i] != 0.0) counterNew++;
-    //}
-
-    
-    /* SBM_Matrix someMat = [&]() 
-    {
-      SBM_Matrix someMat(1,1, true);
-      someMat.SetSubMatrix( 0, 0, tempMatrix->GetEntryType(),
-                         tempMatrix->GetStorageType(), 
-                         NumRows, NumRows, counter);
-      auto thisMat = someMat.GetPointer(0,0);
-      SCRS_Matrix<Double> newMatrix(NumRows, NumRows, counter, RowVecNew, *ColVecNew, *DataVecNew);
-      thisMat = &newMatrix;
-      return someMat;
-    }();
-    
-    LOG_DBG(algSys) << "RowVecNew2123131 "<< RowVecNew << "\n\n";
-    effMat_ = &someMat;
-
-    auto newTemp = effMat_->GetPointer(0,0);
-    SCRS_Matrix<Double> &scrsMatNew = dynamic_cast<SCRS_Matrix<Double>&>(*newTemp);
-    auto sizeNew = scrsMatNew.GetNnz();
-    LOG_DBG(algSys) << "NNZ according to CFS "<< size << "\n\n";
-    LOG_DBG(algSys) << "NNZ actually counted" << counter << "\n\n";
-    LOG_DBG(algSys) << "CHECK IT "<< sizeNew << "\n\n"; */
-    //LOG_DBG(algSys) << "NNZ in DataVecNew" << counterNew << "\n\n";
-    
   }
 
   void AlgebraicSys::ClearIDBCFromSolutionVal( SBM_Vector& solVec ){
