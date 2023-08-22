@@ -3904,15 +3904,6 @@ namespace CoupledField {
     PtrParamNode myParam = this->GetDomain()->GetParamRoot();
     ParamNodeList pdeNodes = myParam->GetByVal("sequenceStep", std::string("index"), this->sequenceStep_)->Get("pdeList")->GetChildren();
   
-    for (UInt i = 0; i < pdeNodes.GetSize(); i++)
-    {
-      std::string actPdeName = pdeNodes[i]->GetName();
-      
-      if (actPdeName == "mechanic" || actPdeName == "smooth"){
-        // if it is not set by another motion type already, we also notify the NCI of the possible movement
-        //ncIf->SetMotion(true);
-      }
-    }
 
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
@@ -4087,19 +4078,7 @@ namespace CoupledField {
     //        but for now we check only the general existence
     PtrParamNode myParam = this->GetDomain()->GetParamRoot();
     ParamNodeList pdeNodes = myParam->GetByVal("sequenceStep", std::string("index"), this->sequenceStep_)->Get("pdeList")->GetChildren();
-  
-    for (UInt i = 0; i < pdeNodes.GetSize(); i++)
-    {
-      std::string actPdeName = pdeNodes[i]->GetName();
-      
-      if (actPdeName == "mechanic" || actPdeName == "smooth"){
-        // if it is not set by another motion type already, we also notify the NCI of the possible movement
-        //ncIf->SetMotion(true);
-      }
-    }
-    // just for testing
-    //ncIf->SetMotion(true);
-    //bool isMoving = ncIf->NeedsUpdate() || true;
+
 
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?

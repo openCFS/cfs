@@ -219,7 +219,6 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   if (nciNode->Has("rotation") || nciNode->Has("generalMotion")){
     isMoving_ = true;
   }
-  // if this is not the case, movement can still be set by the SinglePDE afterwards if PDE based movement is possible
 
   PtrParamNode motionNode = nciNode->Get("rotation", ParamNode::PASS);
   if (motionNode) {
