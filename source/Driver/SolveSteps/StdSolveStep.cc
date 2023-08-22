@@ -2650,7 +2650,14 @@ namespace CoupledField {
 
   void StdSolveStep::GetRidOfZeros(){
     // Currently we do not support multi-grid or static condensation with this approach
-    PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
+
+    // force this function for testing purposes
+    double tol = 1e-20;
+    if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() ){
+      algsys_->GetRidOfZeros(tol);
+    }
+
+    /* PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
     
     PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
                           this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
@@ -2668,7 +2675,7 @@ namespace CoupledField {
           algsys_->GetRidOfZeros(tol);
         }
       }
-    }
+    } */
   }
 
   
