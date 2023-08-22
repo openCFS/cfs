@@ -3894,17 +3894,6 @@ namespace CoupledField {
     MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(&(*ncIf));
     assert(mortarIf);
     
-    // check if we can actually move
-    // we have two cases:
-    // 1: the interface can move based on the definition of the IF (rotation, general motion) 
-    //    --> nciF->NeedsUpdate() knows about that and will be set if this is the case
-    // 2: we have the mechanic PDE or the smoothPDE in our problem definition
-    //    --> this could be refined by checking if it is defined for this very region, 
-    //        but for now we check only the general existence
-    PtrParamNode myParam = this->GetDomain()->GetParamRoot();
-    ParamNodeList pdeNodes = myParam->GetByVal("sequenceStep", std::string("index"), this->sequenceStep_)->Get("pdeList")->GetChildren();
-  
-
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
     bool isMoving = ncIf->NeedsUpdate();
@@ -4068,17 +4057,6 @@ namespace CoupledField {
     //in case of Nitsche coupling edge/face information is required
     this->ptGrid_->MapEdges();
     this->ptGrid_->MapFaces();
-
-    // check if we can actually move
-    // we have two cases:
-    // 1: the interface can move based on the definition of the IF (rotation, general motion) 
-    //    --> nciF->NeedsUpdate() knows about that and will be set if this is the case
-    // 2: we have the mechanic PDE or the smoothPDE in our problem definition
-    //    --> this could be refined by checking if it is defined for this very region, 
-    //        but for now we check only the general existence
-    PtrParamNode myParam = this->GetDomain()->GetParamRoot();
-    ParamNodeList pdeNodes = myParam->GetByVal("sequenceStep", std::string("index"), this->sequenceStep_)->Get("pdeList")->GetChildren();
-
 
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
