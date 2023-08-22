@@ -802,7 +802,7 @@ namespace CoupledField {
     //! the solver have to be set up again.
     void BuildInDirichlet();
     
-    void GetRidOfZeros();
+    void GetRidOfZeros(double tol);
 
     //! correct RHS according to inhomogeneous Dirichlet bcs
     void AddIDBCToRHS(bool deltaIDBC = false);

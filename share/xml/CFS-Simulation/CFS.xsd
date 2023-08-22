@@ -173,6 +173,7 @@
 										<xsd:element name="system" type="DT_SystemSpec" minOccurs="1" maxOccurs="unbounded" />
 									</xsd:sequence>
 									<xsd:attribute name="getRidOfZeros" type="xsd:boolean" default="false"/> 
+									<xsd:attribute name="getRidOfZerosTolerance" type="xsd:double" default="1e-20"/> 
 								</xsd:complexType>
 							</xsd:element>
 						</xsd:sequence>

@@ -302,6 +302,11 @@ namespace CoupledField {
       return numEntries_;
     }
 
+    //! Sets the number of entries
+    void SetNumEntries(UInt numEntries) {
+      numEntries_ = numEntries;
+    }
+
     //! Set the length of row i.
 
     //! The method can be used to set the length of row i to the value size.

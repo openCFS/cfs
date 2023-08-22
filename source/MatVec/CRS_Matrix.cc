@@ -589,6 +589,9 @@ namespace CoupledField {
     // Allocate memory for column indices
     NEWARRAY( colInd_, UInt, colI.GetSize() );
 
+    // Allocate memory for the data vector
+    NEWARRAY( data_ , T, colI.GetSize() );
+
     UInt maxCol = 0;
 
     for (UInt i = 0; i < rowP.GetSize(); ++i ) {
