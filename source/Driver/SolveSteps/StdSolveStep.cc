@@ -193,13 +193,23 @@ namespace CoupledField {
     // Currently we do not support multi-grid or static condensation with this approach
     PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
     
-    bool getRidOfZeros = myParam->GetByVal("sequenceStep", std::string("index"),
-                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep())->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
-    double tol = myParam->GetByVal("sequenceStep", std::string("index"),
-                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep())->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
-  
-    if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() && getRidOfZeros ){
-      algsys_->GetRidOfZeros(tol);
+    PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
+                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
+    if(seqStepParamNode->Has("linearSystems")) 
+    {
+      if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) 
+      {
+        bool getRidOfZeros = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
+        double tol = 1e-20;
+        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance")) 
+        {
+          tol = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
+        }
+        if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() && getRidOfZeros ){
+          algsys_->GetRidOfZeros(tol);
+        }
+      }
+
     }
     
     if( assemble_->IsMatrixUpdated() ) {
