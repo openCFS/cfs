@@ -2461,13 +2461,12 @@ namespace CoupledField {
   void StdSolveStep::GetRidOfZeros(){
     // Currently we do not support multi-grid or static condensation with this approach
 
-    // force this function for testing purposes
+    // we assume that we should perform GetRidOfZeros(), if this is not the case, this will be set afterwards
     double tol = 1e-20;
-    if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() ){
-      algsys_->GetRidOfZeros(tol);
-    }
+    bool getRidOfZerosSwitch = true;
+    
 
-    /* PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
+    PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
     
     PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
                           this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
@@ -2475,17 +2474,50 @@ namespace CoupledField {
     {
       if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) 
       {
-        bool getRidOfZeros = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
-        double tol = 1e-20;
+        getRidOfZerosSwitch = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
         if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance")) 
         {
           tol = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
         }
-        if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() && getRidOfZeros ){
-          algsys_->GetRidOfZeros(tol);
-        }
       }
-    } */
+    }
+    
+    ParamNodeList analysisNode = seqStepParamNode->Get("analysis")->GetChildren();
+    std::string analysisName = analysisNode[0]->GetName();
+
+    // now adapt the switch if any of the untested / not working stuff is present
+    std::string useCase = "";
+    if( algsys_->UseAMG() ) {
+      getRidOfZerosSwitch = false;
+      useCase = "AMG";
+    } else if ( algsys_->UseStaticCondensation() ) {
+      getRidOfZerosSwitch = false;
+      useCase = "static condensation";
+    } else if ( analysisName == "harmonic" ) {
+      getRidOfZerosSwitch = false;
+      useCase = "harmonic";
+    } else if ( analysisName == "multiharmonic" ) {
+      getRidOfZerosSwitch = false;
+      useCase = "multiharmonic";
+    } else if ( analysisName == "eigenFrequency" ) {
+      getRidOfZerosSwitch = false;
+      useCase = "eigenFrequency";
+    } else if ( analysisName == "inverseSource" ) {
+      getRidOfZerosSwitch = false;
+      useCase = "inverseSource";
+    } else if ( analysisName == "buckling" ) {
+      getRidOfZerosSwitch = false;
+      useCase = "buckling";
+    } else if ( analysisName == "eigenValue" ) {
+      getRidOfZerosSwitch = false;
+      useCase = "eigenValue";
+    }
+
+    if( getRidOfZerosSwitch ){
+      algsys_->GetRidOfZeros(tol);
+    } else {
+      WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")");
+    }
   }
 
   
