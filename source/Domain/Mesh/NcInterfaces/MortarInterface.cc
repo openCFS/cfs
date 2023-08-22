@@ -215,11 +215,6 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
     translationVector_ *= 0.5;
   }
 
-  // check if movement is caused by either rotation or some general motion
-  if (nciNode->Has("rotation") || nciNode->Has("generalMotion")){
-    isMoving_ = true;
-  }
-
   PtrParamNode motionNode = nciNode->Get("rotation", ParamNode::PASS);
   if (motionNode) {
     if(motionNode->Has("connectedRegions")){
