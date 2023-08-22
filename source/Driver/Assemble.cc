@@ -365,7 +365,6 @@ namespace CoupledField
                 full = true;
             }
             
-
             if (ncContext && full) {
               // Just get all equations, so we out a dense block in the graph
               ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
@@ -459,9 +458,6 @@ namespace CoupledField
       AssembleMatrices_Std(isNewtonPart);
     }
 
-    // reduce the computed matrices by removing zero elements
-    
-
   }
 
   void Assemble::AssembleMatrices_Std(bool isNewtonPart) {
@@ -544,14 +540,6 @@ namespace CoupledField
         //copy bilinear forms
         biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
       }
-
-      // sort bilinear forms so that we can handle matrix after matrix and start with the NCI search
-
-      // THIS WON'T WORK SINCE WE LOOP OVER ALL BILINEARFORMS IN THE OUTER LOOP
-
-      // Only valid solution would be to consider the actual size during the initialization by precomputing the intersection grid
-      //--> get intersectionCandiatesIdx_ via PreComputeIntersectionCandidatesCGAL (currently only used with CGAL!)
-
 
 //     #pragma omp critical
 //         {
@@ -720,12 +708,6 @@ namespace CoupledField
               RETHROW_EXCEPTION(e, "Could not calculate element matrix of BiLinearForm '" << form->GetName() << "' on '" << actContext.GetFirstEntities()->GetName()<< "'");
             }
           } //if block to skip assembly
-
-
-          // delete unnecessary zero entries (e.g. NCI stuff)
-
-          //TODO
-
         }// loop over bilinearforms
         // The size of the entity lists is checked because FeSpaceConst can add single rows/columns.
         if( firstEntities.GetSize() != 1 )

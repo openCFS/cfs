@@ -466,22 +466,6 @@ namespace CoupledField {
       return NO_PATTERN_ID;
     }
 
-    /* //! Setup the sparsity pattern of the matrix (manual definition)
-  
-    //! This method provides an alternative form to set the sparsity pattern
-    //! of the matrix. If we already know the pointers usually generated via
-    //! SetSparsityPattern(), we can also set it directly.
-    //! \param rowPtr       Array containing starting indices of the 
-    //!                     different matrix rows
-    //! \param colPtr       Array containing the column indices of the 
-    //!                     non-zero matrix entries
-    //! \param diagPtr      //! Array containing the indices of the 
-    //!                     diagonal matrix entries
-    virtual void SetSparsityPattern( UInt *rowPtr, UInt *colPtr, UInt *diagPtr ) {
-      EXCEPTION("Sorry, but SetSparsityPattern is only implemented "
-               << "for the (S)CRS_Matrix class currently!");
-    } */
-
     //! Copy the sparsity pattern of another matrix to this matrix 
     
     //! This method copies the sparsity pattern of the source matrix to the

@@ -137,8 +137,6 @@ namespace CoupledField {
     //! \param sparseMat sparse matrix in coordinate format
     SCRS_Matrix(CoordFormat<T> &sparseMat);
 
-    SCRS_Matrix(UInt nr, UInt nc, UInt nnz, UInt* row_ptr, UInt* col_ptr, T* data_ptr);
-
     //! Destructor
 
     //! The default destructor is deep. It frees all memory dynamically

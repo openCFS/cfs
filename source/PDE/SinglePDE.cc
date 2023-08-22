@@ -4634,7 +4634,6 @@ namespace CoupledField {
         ncIf->RegisterIntegrator( penalty_u2_v2_M_Context );
         ncIf->RegisterIntegrator( penalty_u1_v2_M_Context );
       }
-
       penalty_u1_v1_Context->SetMotion(true);
       penalty_u2_v2_Context->SetMotion(true);
       penalty_u1_v2_Context->SetMotion(true);
