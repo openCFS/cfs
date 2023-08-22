@@ -195,9 +195,11 @@ namespace CoupledField {
     
     bool getRidOfZeros = myParam->GetByVal("sequenceStep", std::string("index"),
                           this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep())->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
+    double tol = myParam->GetByVal("sequenceStep", std::string("index"),
+                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep())->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
   
     if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() && getRidOfZeros ){
-      algsys_->GetRidOfZeros();
+      algsys_->GetRidOfZeros(tol);
     }
     
     if( assemble_->IsMatrixUpdated() ) {
