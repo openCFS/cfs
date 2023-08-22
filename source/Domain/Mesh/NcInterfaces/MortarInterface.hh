@@ -46,10 +46,6 @@ class MortarInterface : public BaseNcInterface {
     bool IsEulerian() const { return isEulerian_; }
 
     bool NeedsUpdate() const { return isMoving_; }
-
-    void SetMotion(bool moving){
-      isMoving_ = moving;
-    }
     
     const std::string& GetCoordSys() const { return coordSysId_; }
     
