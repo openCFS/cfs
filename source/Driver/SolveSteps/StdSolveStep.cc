@@ -904,7 +904,8 @@ namespace CoupledField {
         algsys_->BuildInDirichlet();
 
         // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-        GetRidOfZeros();
+        bool optimizedSysMat;
+        optimizedSysMat = GetRidOfZeros();
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
@@ -919,6 +920,11 @@ namespace CoupledField {
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal(solInc, setIDBC );
+
+        // we store the old (non-optimized) matrix back so that all matrix update operations work again
+        if (optimizedSysMat) {
+          algsys_->RestoreSysMat();
+        }
         
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
@@ -2458,7 +2464,7 @@ namespace CoupledField {
 
   }
 
-  void StdSolveStep::GetRidOfZeros(){
+  bool StdSolveStep::GetRidOfZeros(){
     // Currently we do not support multi-grid or static condensation with this approach
 
     // we assume that we should perform GetRidOfZeros(), if this is not the case, this will be set afterwards
@@ -2518,6 +2524,8 @@ namespace CoupledField {
     } else {
       WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")");
     }
+
+    //optimizedSysMat = getRidOfZerosSwitch;
   }
 
   

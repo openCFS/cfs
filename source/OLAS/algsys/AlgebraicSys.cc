@@ -151,6 +151,8 @@ namespace CoupledField {
     }
     sysMat_.clear();
 
+    delete sysMatCopy_;
+
     delete rhs_;
     rhs_ = NULL;
 
@@ -3588,6 +3590,9 @@ namespace CoupledField {
     UInt nRows = actMat->GetNumRows();
     UInt nCols = actMat->GetNumCols();
 
+    // store the old sysMat so that we can access it later on
+    SetSysMatCopy(actMat);
+
     LOG_DBG(algSys) << "\tGet rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << nRows << " Number of Coloumns: " << nCols;
     for ( UInt row = 0; row < nRows; row++ ){
       for ( UInt col = 0; col < nRows; col++ ){
@@ -3768,6 +3773,16 @@ namespace CoupledField {
         }
       }
     }
+  }
+
+  void AlgebraicSys::SetSysMatCopy( SBM_Matrix* actMat ){
+    delete sysMatCopy_;
+    sysMatCopy_ = new SBM_Matrix(*actMat);
+  }
+
+  void AlgebraicSys::RestoreSysMat(){
+    delete sysMat_[SYSTEM];
+    sysMat_[SYSTEM] = sysMatCopy_;
   }
 
   void AlgebraicSys::ClearIDBCFromSolutionVal( SBM_Vector& solVec ){

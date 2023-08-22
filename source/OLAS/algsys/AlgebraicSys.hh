@@ -804,6 +804,12 @@ namespace CoupledField {
     
     void GetRidOfZeros(double tol);
 
+    void SetSysMatCopy( SBM_Matrix* actMat );
+
+    SBM_Matrix* GetSysMatCopy(){return sysMatCopy_;};
+
+    void RestoreSysMat();
+
     //! correct RHS according to inhomogeneous Dirichlet bcs
     void AddIDBCToRHS(bool deltaIDBC = false);
 
@@ -1399,6 +1405,9 @@ namespace CoupledField {
     //! Flag if we have distinct matrix graphs for different matric types
     bool distinctMatGraphs_;
     //@}
+
+    //! dummy sysMat for storing it between GetRidOfZeros optimization
+    SBM_Matrix* sysMatCopy_;
 
     // =======================================================================
     // AMG SECTION
