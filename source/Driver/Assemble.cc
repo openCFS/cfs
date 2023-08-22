@@ -364,7 +364,7 @@ namespace CoupledField
               if(ncContext->NeedsFullMatrix())
                 full = true;
             }
-            
+
             if (ncContext && full) {
               // Just get all equations, so we out a dense block in the graph
               ncContext->GetEqns(eqnVec1, eqnVec2, id1, id2);
