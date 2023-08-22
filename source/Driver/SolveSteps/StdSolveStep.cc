@@ -189,30 +189,11 @@ namespace CoupledField {
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
 
-    // Clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-    // Currently we do not support multi-grid or static condensation with this approach
-    PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
-    
-    PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
-                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
-    if(seqStepParamNode->Has("linearSystems")) 
-    {
-      if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) 
-      {
-        bool getRidOfZeros = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
-        double tol = 1e-20;
-        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance")) 
-        {
-          tol = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
-        }
-        if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() && getRidOfZeros ){
-          algsys_->GetRidOfZeros(tol);
-        }
-      }
-
-    }
     
     if( assemble_->IsMatrixUpdated() ) {
+      // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+      GetRidOfZeros();
+
       algsys_->SetupPrecond();
       
       algsys_->SetupSolver();
@@ -322,6 +303,10 @@ namespace CoupledField {
         algsys_->ConstructEffectiveMatrix(NO_FCT_ID, matrix_factor_[NO_FCT_ID]);
 
         algsys_->BuildInDirichlet();
+
+        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+        GetRidOfZeros();
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
         
@@ -471,6 +456,9 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       if(assemble_->IsMatrixUpdated()) {
+        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+        GetRidOfZeros();
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
       }
@@ -705,8 +693,11 @@ namespace CoupledField {
       // set boundary conditions
       PDE_.SetBCs();
       algsys_->BuildInDirichlet();
-      
+
       if( effectiveMatrixUpdated ){
+        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+        GetRidOfZeros();
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
       }
@@ -954,6 +945,10 @@ namespace CoupledField {
         
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
+
+        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+        GetRidOfZeros();
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
         
@@ -1196,6 +1191,10 @@ namespace CoupledField {
         
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
+
+        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+        GetRidOfZeros();
+
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
         
@@ -1537,6 +1536,9 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
+      // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+      GetRidOfZeros();
+
       algsys_->SetupPrecond();
       algsys_->SetupSolver();
     }
@@ -1624,6 +1626,9 @@ namespace CoupledField {
     // Incorporate Boundary conditions and
     // recalculate the preconditioner eventually
     algsys_->BuildInDirichlet();
+
+    // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+    GetRidOfZeros();
 
     algsys_->SetupPrecond();
     algsys_->SetupSolver();
@@ -1745,6 +1750,10 @@ namespace CoupledField {
 
       // Incorporate Boundary conditions and recalc the preconditioner and solver
       algsys_->BuildInDirichlet();
+
+      // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
+      GetRidOfZeros();
+
       algsys_->SetupPrecond();
       algsys_->SetupSolver();
 
@@ -2637,6 +2646,29 @@ namespace CoupledField {
       logFile_.flush();
     }
 
+  }
+
+  void StdSolveStep::GetRidOfZeros(){
+    // Currently we do not support multi-grid or static condensation with this approach
+    PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
+    
+    PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
+                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
+    if(seqStepParamNode->Has("linearSystems")) 
+    {
+      if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) 
+      {
+        bool getRidOfZeros = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
+        double tol = 1e-20;
+        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance")) 
+        {
+          tol = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
+        }
+        if( !algsys_->UseAMG() && !algsys_->UseStaticCondensation() && getRidOfZeros ){
+          algsys_->GetRidOfZeros(tol);
+        }
+      }
+    }
   }
 
   
