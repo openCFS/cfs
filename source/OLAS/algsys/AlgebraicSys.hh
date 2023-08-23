@@ -1407,7 +1407,7 @@ namespace CoupledField {
     //@}
 
     //! dummy sysMat for storing it between GetRidOfZeros optimization
-    SBM_Matrix* sysMatCopy_;
+    SBM_Matrix* sysMatCopy_ = NULL;
 
     // =======================================================================
     // AMG SECTION

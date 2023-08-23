@@ -3751,13 +3751,14 @@ namespace CoupledField {
             //sysMat_[SYSTEM]->Export("sysMat", BaseMatrix::OutputFormat::MATRIX_MARKET, "sysMat");
 
             // rebuild effMat_
+            // TODO: we might have to do this outside of the loop, should be only important for harmonic analysis which is not working anyways at the moment
             UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
             for ( UInt k = 0; k < nB; k++ ) {
               if (statCond_) {
                 effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
                                           numBlocks_-1 );
               } else {
-                effMat_ = new SBM_Matrix( *actMat, nB, nB );
+                effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], nB, nB );
               }
             }
             LOG_DBG(algSys) << "\tRebuilt effMat_";
@@ -3781,8 +3782,20 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::RestoreSysMat(){
+    delete effMat_;
     delete sysMat_[SYSTEM];
-    sysMat_[SYSTEM] = sysMatCopy_;
+    sysMat_[SYSTEM] = new SBM_Matrix(*sysMatCopy_);
+
+    UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
+    for ( UInt k = 0; k < nB; k++ ) {
+      if (statCond_) {
+        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
+                                  numBlocks_-1 );
+      } else {
+        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], nB, nB );
+      }
+    }
+    LOG_DBG(algSys) << "\tRestored sysMat_[SYSTEM] and effMat_";
   }
 
   void AlgebraicSys::ClearIDBCFromSolutionVal( SBM_Vector& solVec ){
