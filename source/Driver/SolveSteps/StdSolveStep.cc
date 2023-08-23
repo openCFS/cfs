@@ -948,7 +948,9 @@ namespace CoupledField {
 
         // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
         bool optimizedSysMat;
+        //algsys_->PrintMatrixPart(SYSTEM);
         optimizedSysMat = GetRidOfZeros();
+        //algsys_->PrintMatrixPart(SYSTEM);
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
@@ -968,6 +970,7 @@ namespace CoupledField {
         if (optimizedSysMat) {
           algsys_->RestoreSysMat();
         }
+        //algsys_->PrintMatrixPart(SYSTEM);
         
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
@@ -2707,6 +2710,9 @@ namespace CoupledField {
     } else if ( analysisName == "eigenValue" ) {
       getRidOfZerosSwitch = false;
       useCase = "eigenValue";
+    } else if ( myParam->Has("optimization") ) {
+      getRidOfZerosSwitch = false;
+      useCase = "optimization";
     }
 
     if( getRidOfZerosSwitch ){
@@ -2715,7 +2721,7 @@ namespace CoupledField {
       WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")");
     }
 
-    //optimizedSysMat = getRidOfZerosSwitch;
+    return getRidOfZerosSwitch;
   }
 
   
