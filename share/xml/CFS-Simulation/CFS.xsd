@@ -172,8 +172,20 @@
 									<xsd:sequence>
 										<xsd:element name="system" type="DT_SystemSpec" minOccurs="1" maxOccurs="unbounded" />
 									</xsd:sequence>
-									<xsd:attribute name="getRidOfZeros" type="xsd:boolean" default="true"/> 
-									<xsd:attribute name="getRidOfZerosTolerance" type="xsd:double" default="1e-20"/> 
+									<xsd:attribute name="getRidOfZeros" type="xsd:boolean" default="true">
+										<xsd:annotation>
+											<xsd:documentation>
+												If this is set we loop over the system matrix and remove all zero entries. This is currently only available for static and transient analysis.
+											</xsd:documentation>
+										</xsd:annotation>
+									</xsd:attribute> 
+									<xsd:attribute name="getRidOfZerosTolerance" type="xsd:double" default="1e-20">
+										<xsd:annotation>
+											<xsd:documentation>
+												The tolerance used to decide if an entry is considered zero or non-zero.
+											</xsd:documentation>
+										</xsd:annotation>
+									</xsd:attribute> 
 								</xsd:complexType>
 							</xsd:element>
 						</xsd:sequence>

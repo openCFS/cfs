@@ -176,7 +176,7 @@ namespace CoupledField
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
 
-    bool GetRidOfZeros();
+    bool GetRidOfZeros(bool supportedBySolver);
     
     void SetSolveVecZero(){
       solVec_.Init();

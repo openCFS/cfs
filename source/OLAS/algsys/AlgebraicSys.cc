@@ -545,6 +545,12 @@ namespace CoupledField {
 
   }
 
+  bool AlgebraicSys::HasPrecond() {
+    if( precond_ != NULL ) {
+      return true;
+    }
+  }
+
   void AlgebraicSys::SetupSolver() {
 
     LOG_DBG(algSys) << "Setup of solver";
@@ -3583,6 +3589,13 @@ namespace CoupledField {
 // Remove zero non-zero elements from system matrix
   void AlgebraicSys::GetRidOfZeros(double tol)
   { 
+    // TODO
+    // This routine works as it is, but it might be better to introduce to combine it with the function setting IDBCs.
+    // Since assembling IDBCs might change some entries, we should check beforehand which entries should not be touched.
+    // Otherwise, we have to reiterate over all entries which might take some time. By redefining a pattern compliant 
+    // with the IDBC handler, we could store and reuse the location of the non-zero entries. This could potentially save
+    // us the call to the solver where we have to set a new matrix pattern. This might not be restricted to IDBCs and 
+    // should be thoroughly tested.
     // effMat_ eventually gets passed to the solver, but this is just a weak copy of sysMat_[SYSTEM], hence we modify the system matrix itself
     
     // create a deep copy and work with the copy

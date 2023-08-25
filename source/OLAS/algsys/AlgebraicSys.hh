@@ -166,6 +166,9 @@ namespace CoupledField {
     //! to solver which solves a system Ax=b. */
     void SetupPrecond();
 
+    //! Checks if a preconditioner has been defined
+    bool HasPrecond();
+
     //! Trigger setup of solution method.
     
     //! Calling this method will trigger the setup phase of the solver. This
