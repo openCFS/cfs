@@ -23,6 +23,9 @@ namespace CoupledField {
 
     void Setup( BaseMatrix& sysmat);
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
+
     void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
     /** Query type of this solver.
