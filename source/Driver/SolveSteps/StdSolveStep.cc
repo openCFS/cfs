@@ -694,7 +694,7 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       // prepare the solver and preconditioner for the updated system matrix
-      if(assemble_->IsMatrixUpdated()){
+      if(assemble_->IsMatrixUpdated() || useGetRidOfZeros_){
         // check if getRidOfZeros() should be used
         SetupGetRidOfZeros();
         // get rid of unnecessary zeros (if applicable)
@@ -2651,6 +2651,8 @@ namespace CoupledField {
 
       if( !useGetRidOfZeros_ ){
         WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")");
+      } else {
+        WARN("The SBM_Matrix will be overwritten in each step/iteration to reduce the effort for the solver - please use carefully!");
       }
     }
     // now that everything is setup, we can skip this setup from now on

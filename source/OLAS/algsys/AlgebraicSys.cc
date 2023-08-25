@@ -546,10 +546,10 @@ namespace CoupledField {
   }
 
   bool AlgebraicSys::HasPrecond() {
-    if( precond_ != NULL ) {
-      return true;
-    } else {
+    if( precond_->GetPrecondType() == BasePrecond::NOPRECOND || precond_->GetPrecondType() == BasePrecond::ID ) {
       return false;
+    } else {
+      return true;
     }
   }
 
@@ -3729,7 +3729,7 @@ namespace CoupledField {
 
             // generate new empty SBM-Matrix
             actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
-                                  stdMat->GetNumRows(), stdMat->GetNumCols(), nnzMatCount, true);
+                                  stdMat->GetNumRows(), stdMat->GetNumCols(), nnzMatCount, true, true);
             
             // now set the sparsity pattern data for the newly created submatrix
             switch(stdMat->GetStorageType())
