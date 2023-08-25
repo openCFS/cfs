@@ -93,7 +93,8 @@ namespace CoupledField {
                                  BaseMatrix::EntryType eType,
                                  BaseMatrix::StorageType sType,
                                  UInt nrows, UInt ncols,
-                                 UInt nnz, bool forceOverwrite ) {
+                                 UInt nnz, bool forceOverwrite, 
+                                 bool silentOverWrite ) {
     
     // Only set submatrix, if this is not a cheap copy
     if( !ownSubMatrices_ ) {
@@ -118,8 +119,10 @@ namespace CoupledField {
     if ( subMat_[ ComputeIndex(i,j) ] != NULL ) {
       if ( forceOverwrite ) {
         if( ownSubMatrices_ ) {
-          WARN("SBM_Matrix got overwritten");
           delete subMat_[ ComputeIndex(i,j) ];
+          if ( !silentOverWrite ) {
+            WARN("SBM_Matrix got overwritten");
+          }
         } else {
           EXCEPTION("I do not own this matrix and therefore can't overwrite it!");
         }

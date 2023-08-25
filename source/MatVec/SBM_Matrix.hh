@@ -176,9 +176,11 @@ namespace CoupledField {
     //! \param ncols            number of columns of sub-matrix
     //! \param nnz              number of non-zeros in sub-matrix
     //! \param forceOverwrite   forces a matrix overwrite - use carefully!!!
+    //! \param silentOVerwrite  no warning will be issued when the matrix is overwritten - use even more carefully!!!
     void SetSubMatrix( UInt i, UInt j, BaseMatrix::EntryType eType,
                        BaseMatrix::StorageType sType, 
-                       UInt nrows, UInt ncols, UInt nnz, bool forceOverwrite = false );
+                       UInt nrows, UInt ncols, UInt nnz, 
+                       bool forceOverwrite = false, bool silentOverWrite = false );
 
     //! Initialize matrix to zero
     
