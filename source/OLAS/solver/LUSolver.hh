@@ -101,6 +101,9 @@ namespace CoupledField {
     //! reference.
     void Setup( BaseMatrix& sysMat);
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
+
     //! Direct solution of the linear system
 
     //! The solve method takes care of the solution of the linear system.

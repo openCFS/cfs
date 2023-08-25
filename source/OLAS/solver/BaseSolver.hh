@@ -57,8 +57,11 @@ namespace CoupledField {
       return ptPrecond_;
     }
     
+    //! Notify the solver that a new matrix pattern has been set
+    virtual void SetNewMatrixPattern() = 0;
+    
     //! \see BasePrecond::Setup
-    virtual void Setup(BaseMatrix& sysmat) = 0;
+    //virtual void Setup(BaseMatrix& sysmat) = 0;
     
   
     //! Solve the linear system sysmat*sol=rhs for sol

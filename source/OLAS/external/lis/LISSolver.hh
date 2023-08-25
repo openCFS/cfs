@@ -85,6 +85,9 @@ namespace CoupledField
    /** Every call sets up a new preconditionier. */
    void Setup(BaseMatrix &sysmat);
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
+
    /** To satisfy the compiler
     * @param sysmat shall be the one Setup() is called with */
    void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);

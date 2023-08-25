@@ -133,6 +133,10 @@ namespace CoupledField
     {EXCEPTION("PostStepTransHarmonic not implemented!");};
 
 
+    //----------------------- GetRidOfZeros-----------------------------------
+    virtual void SetupGetRidOfZeros()
+    {EXCEPTION("PostStepTransHarmonic not implemented!");};
+
     //----------------------- SET/ GET METHODS--------------------------------
 
     //! Set actual time
