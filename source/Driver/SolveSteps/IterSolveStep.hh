@@ -274,6 +274,10 @@ namespace CoupledField
     virtual void PostStepHarmonic(  ) {;};
 
 
+    //----------------------- GetRidOfZeros-----------------------------------
+    virtual void SetupGetRidOfZeros();
+
+
     //----------------------- SET/GET METHODS--------------------------------
     
     //! Set actual time

@@ -47,6 +47,9 @@ namespace CoupledField {
     void Solve(const BaseMatrix& sysmat,
 	       const BaseVector& rhs, BaseVector& sol );
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
+
     //! Dummy setup method
 
     //! This method implements the pure virtual setup function defined in the

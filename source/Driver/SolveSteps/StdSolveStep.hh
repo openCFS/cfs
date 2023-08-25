@@ -176,7 +176,7 @@ namespace CoupledField
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
 
-    bool GetRidOfZeros(bool supportedBySolver);
+    void SetupGetRidOfZeros();
     
     void SetSolveVecZero(){
       solVec_.Init();
@@ -285,6 +285,16 @@ namespace CoupledField
     std::ofstream logFile_;
     unsigned int mHandle_;
     MathParser* mParser_;
+
+    //! Bool to check if getRidOfZeros should be used
+    // we assume that we should perform GetRidOfZeros(), if this is not the case, this will be set afterwards
+    bool useGetRidOfZeros_ = true;
+
+    //! Tolerance used to determine if an entry is zero or not in getRidOfZeros
+    double getRidOfZerosTol_ = 1e-20;
+
+    //! Bool to check the setup of the evaluation of GetRidOfZeros() only once
+    bool firstTime_ = true;
 
 private:
   void AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks = false);

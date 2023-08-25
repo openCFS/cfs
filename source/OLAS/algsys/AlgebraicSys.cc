@@ -548,6 +548,8 @@ namespace CoupledField {
   bool AlgebraicSys::HasPrecond() {
     if( precond_ != NULL ) {
       return true;
+    } else {
+      return false;
     }
   }
 

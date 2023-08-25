@@ -14,6 +14,7 @@
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
+#include "OLAS/solver/BaseSolver.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 //#include "MatVec/SingleVector.hh"
 #include "Domain/Results/MHTimeFreqResult.hh"
@@ -191,8 +192,12 @@ namespace CoupledField {
 
     
     if( assemble_->IsMatrixUpdated() ) {
-      // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-      GetRidOfZeros();
+      // check if getRidOfZeros() should be used
+      SetupGetRidOfZeros();
+      // get rid of unnecessary zeros (if applicable)
+      if ( useGetRidOfZeros_ ) {
+        algsys_->GetRidOfZeros(getRidOfZerosTol_);
+      }
 
       algsys_->SetupPrecond();
       
@@ -201,6 +206,13 @@ namespace CoupledField {
     
     // Solve problem
     algsys_->Solve();
+
+    // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+    // afterwards, we notify the solver that the matrix pattern might change again in the next step
+    if (useGetRidOfZeros_) {
+      algsys_->RestoreSysMat();
+      algsys_->GetSolver()->SetNewMatrixPattern();
+    }
     
     // Get the solution and store it
     // Since the entries of solVec_ are pointers to the SingleVector
@@ -304,8 +316,12 @@ namespace CoupledField {
 
         algsys_->BuildInDirichlet();
 
-        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-        GetRidOfZeros();
+        // check if getRidOfZeros() should be used
+        SetupGetRidOfZeros();
+        // get rid of unnecessary zeros (if applicable)
+        if ( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+        }
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
@@ -315,6 +331,14 @@ namespace CoupledField {
           setIDBC = true;
         
         algsys_->Solve(setIDBC);
+
+        // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+        // afterwards, we notify the solver that the matrix pattern might change again in the next step
+        if (useGetRidOfZeros_) {
+          algsys_->RestoreSysMat();
+          algsys_->GetSolver()->SetNewMatrixPattern();
+        }
+
         // new solution is only an increment of the full solution =============
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
@@ -456,14 +480,25 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       if(assemble_->IsMatrixUpdated()) {
-        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-        GetRidOfZeros();
+        // check if getRidOfZeros() should be used
+        SetupGetRidOfZeros();
+        // get rid of unnecessary zeros (if applicable)
+        if ( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+        }
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
       }
 
       algsys_->Solve();
+
+      // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+      // afterwards, we notify the solver that the matrix pattern might change again in the next step
+      if (useGetRidOfZeros_) {
+        algsys_->RestoreSysMat();
+        algsys_->GetSolver()->SetNewMatrixPattern();
+      }
 
       algsys_->GetSolutionVal(solVec_, true); // true=idbc
 
@@ -510,7 +545,7 @@ namespace CoupledField {
       stageRHS_.GetPointer(id)->Resize(rhsSize);
     }
     stageRHS_.Init();
-    
+
   }
   
   void StdSolveStep::PreStepTrans() {
@@ -695,8 +730,12 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       if( effectiveMatrixUpdated ){
-        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-        GetRidOfZeros();
+        // check if getRidOfZeros() should be used
+        SetupGetRidOfZeros();
+        // get rid of unnecessary zeros (if applicable)
+        if ( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+        }
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
@@ -734,6 +773,13 @@ namespace CoupledField {
       }
 
       algsys_->Solve();
+
+      // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+      // afterwards, we notify the solver that the matrix pattern might change again in the next step
+      if (useGetRidOfZeros_) {
+        algsys_->RestoreSysMat();
+        algsys_->GetSolver()->SetNewMatrixPattern();
+      }
       
      // Since the entries of solVec_ are pointers to the SingleVector
      // of the FE function, it automatically inserts the values there
@@ -946,11 +992,12 @@ namespace CoupledField {
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
 
-        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-        bool optimizedSysMat;
-        algsys_->HasPrecond()
-        optimizedSysMat = GetRidOfZeros();
-        //algsys_->PrintMatrixPart(SYSTEM);
+        // check if getRidOfZeros() should be used
+        SetupGetRidOfZeros();
+        // get rid of unnecessary zeros (if applicable)
+        if ( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+        }
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
@@ -963,8 +1010,10 @@ namespace CoupledField {
         algsys_->Solve(setIDBC);
 
         // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
-        if (optimizedSysMat) {
+        // afterwards, we notify the solver that the matrix pattern might change again in the next step
+        if (useGetRidOfZeros_) {
           algsys_->RestoreSysMat();
+          algsys_->GetSolver()->SetNewMatrixPattern();
         }
 
         // if setIDBC is true, solInc will contain the inhom. Dirichlet values
@@ -1204,8 +1253,12 @@ namespace CoupledField {
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
 
-        // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-        GetRidOfZeros();
+        // check if getRidOfZeros() should be used
+        SetupGetRidOfZeros();
+        // get rid of unnecessary zeros (if applicable)
+        if ( useGetRidOfZeros_ ) {
+          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+        }
 
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
@@ -1214,6 +1267,14 @@ namespace CoupledField {
         bool setIDBC = true;
         
         algsys_->Solve(setIDBC); 
+
+        // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+        // afterwards, we notify the solver that the matrix pattern might change again in the next step
+        if (useGetRidOfZeros_) {
+          algsys_->RestoreSysMat();
+          algsys_->GetSolver()->SetNewMatrixPattern();
+        }
+
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal(solNew, setIDBC );
@@ -1548,14 +1609,26 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
-      // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-      GetRidOfZeros();
+      // check if getRidOfZeros() should be used
+      SetupGetRidOfZeros();
+      // get rid of unnecessary zeros (if applicable)
+      if ( useGetRidOfZeros_ ) {
+        algsys_->GetRidOfZeros(getRidOfZerosTol_);
+      }
 
       algsys_->SetupPrecond();
       algsys_->SetupSolver();
     }
     
     algsys_->Solve();
+
+    // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+    // afterwards, we notify the solver that the matrix pattern might change again in the next step
+    if (useGetRidOfZeros_) {
+      algsys_->RestoreSysMat();
+      algsys_->GetSolver()->SetNewMatrixPattern();
+    }
+
     // Since the entries of solVec_ are pointers to the SingleVector
     // of the FE function, it automatically inserts the values there
     algsys_->GetSolutionVal(solVec_);
@@ -1639,8 +1712,12 @@ namespace CoupledField {
     // recalculate the preconditioner eventually
     algsys_->BuildInDirichlet();
 
-    // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-    GetRidOfZeros();
+    // check if getRidOfZeros() should be used
+    SetupGetRidOfZeros();
+    // get rid of unnecessary zeros (if applicable)
+    if ( useGetRidOfZeros_ ) {
+      algsys_->GetRidOfZeros(getRidOfZerosTol_);
+    }
 
     algsys_->SetupPrecond();
     algsys_->SetupSolver();
@@ -1648,6 +1725,12 @@ namespace CoupledField {
     // Solve the linear system
     algsys_->Solve();
 
+    // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+    // afterwards, we notify the solver that the matrix pattern might change again in the next step
+    if (useGetRidOfZeros_) {
+      algsys_->RestoreSysMat();
+      algsys_->GetSolver()->SetNewMatrixPattern();
+    }
 
     // Get the solution of the initial (linear) multiharmonic system.
     solVecMH_.ResetEntryType(BaseMatrix::EntryType::COMPLEX);
@@ -1763,8 +1846,12 @@ namespace CoupledField {
       // Incorporate Boundary conditions and recalc the preconditioner and solver
       algsys_->BuildInDirichlet();
 
-      // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
-      GetRidOfZeros();
+      // check if getRidOfZeros() should be used
+      SetupGetRidOfZeros();
+      // get rid of unnecessary zeros (if applicable)
+      if ( useGetRidOfZeros_ ) {
+        algsys_->GetRidOfZeros(getRidOfZerosTol_);
+      }
 
       algsys_->SetupPrecond();
       algsys_->SetupSolver();
@@ -1774,6 +1861,14 @@ namespace CoupledField {
       // DO WE NEED TO CALL IT WITH SETIDBC? No only in the linear iteration.
       // Now its handled in updateRHS_MultHarm()
       algsys_->Solve(false);
+
+      // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+      // afterwards, we notify the solver that the matrix pattern might change again in the next step
+      if (useGetRidOfZeros_) {
+        algsys_->RestoreSysMat();
+        algsys_->GetSolver()->SetNewMatrixPattern();
+      }
+
       // Get the incremental solution (deflect vector), second argument is setIDBC
       algsys_->GetFullMultiHarmSolutionVal( solInc, false);
 
@@ -2660,74 +2755,94 @@ namespace CoupledField {
 
   }
 
-  bool StdSolveStep::GetRidOfZeros(bool supportedBySolver){
-    // Currently we do not support multi-grid or static condensation with this approach
+  void StdSolveStep::SetupGetRidOfZeros(){
+    // Note: Currently we do not support multi-grid or static condensation with this approach
 
-    // we assume that we should perform GetRidOfZeros(), if this is not the case, this will be set afterwards
-    double tol = 1e-20;
-    bool getRidOfZerosSwitch = true;
-    
+    if( firstTime_ ) {
+      // we assume this is ok, if not, the we will set it to false down below
+      bool supportedBySolver = true;
+      
 
-    PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
-    
-    PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
-                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
-    if(seqStepParamNode->Has("linearSystems")) 
-    {
-      if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) 
-      {
-        getRidOfZerosSwitch = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
-        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance")) 
-        {
-          tol = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
+      PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
+      
+      PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
+                            this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
+      if(seqStepParamNode->Has("linearSystems")) {
+        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) {
+          useGetRidOfZeros_ = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
+          if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance")) {
+            getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
+          }
+        }
+
+        // now check the solver list if we use a solver that is supported
+        if(seqStepParamNode->Get("linearSystems")->Has("system")) {
+          // loop over systems
+          PtrParamNode sysList = seqStepParamNode->Get("linearSystems")->Get("system", ParamNode::INSERT);
+          ParamNodeList sysNodes =  sysList->GetChildren();
+          PtrParamNode sysNode;
+          for( UInt i = 0; i < sysNodes.GetSize(); ++i ){
+            if( sysNodes[i]->Has("solverList") ) {
+              PtrParamNode solverList = seqStepParamNode->Get("solverList", ParamNode::INSERT);
+              ParamNodeList sNodes =  solverList->GetChildren();
+              PtrParamNode solverNode;
+              for( UInt i = 0; i < sNodes.GetSize(); ++i ){
+                  solverNode = sNodes[i];
+                  if( solverNode ) {
+                    std::string solverName = solverNode->GetName();
+                    if( solverName != "pardiso") {
+                      supportedBySolver = false;
+                    }
+                  }
+              }
+            }
+          }
         }
       }
-    }
-    
-    ParamNodeList analysisNode = seqStepParamNode->Get("analysis")->GetChildren();
-    std::string analysisName = analysisNode[0]->GetName();
+      
+      ParamNodeList analysisNode = seqStepParamNode->Get("analysis")->GetChildren();
+      std::string analysisName = analysisNode[0]->GetName();
 
-    // now adapt the switch if any of the untested / not working stuff is present
-    std::string useCase = "";
-    if( algsys_->UseAMG() ) {
-      getRidOfZerosSwitch = false;
-      useCase = "AMG";
-    } else if ( algsys_->UseStaticCondensation() ) {
-      getRidOfZerosSwitch = false;
-      useCase = "static condensation";
-    } else if ( analysisName == "harmonic" ) {
-      getRidOfZerosSwitch = false;
-      useCase = "harmonic";
-    } else if ( analysisName == "multiharmonic" ) {
-      getRidOfZerosSwitch = false;
-      useCase = "multiharmonic";
-    } else if ( analysisName == "eigenFrequency" ) {
-      getRidOfZerosSwitch = false;
-      useCase = "eigenFrequency";
-    } else if ( analysisName == "inverseSource" ) {
-      getRidOfZerosSwitch = false;
-      useCase = "inverseSource";
-    } else if ( analysisName == "buckling" ) {
-      getRidOfZerosSwitch = false;
-      useCase = "buckling";
-    } else if ( analysisName == "eigenValue" ) {
-      getRidOfZerosSwitch = false;
-      useCase = "eigenValue";
-    } else if ( myParam->Has("optimization") ) {
-      getRidOfZerosSwitch = false;
-      useCase = "optimization";
-    }
-
-    if( getRidOfZerosSwitch ){
-      // even if the analysis type is suitable, the solver might not support it (yet)
-      if ( supportedBySolver ) {
-        algsys_->GetRidOfZeros(tol);
+      // now adapt the switch if any of the untested / not working stuff is present
+      std::string useCase = "";
+      if( algsys_->UseAMG() ) {
+        useGetRidOfZeros_ = false;
+        useCase = "AMG";
+      } else if ( algsys_->UseStaticCondensation() ) {
+        useGetRidOfZeros_ = false;
+        useCase = "static condensation";
+      } else if ( !supportedBySolver || algsys_->HasPrecond() ) {
+        useGetRidOfZeros_ = false;
+        useCase = "solver setup";
+      } else if ( analysisName == "harmonic" ) {
+        useGetRidOfZeros_ = false;
+        useCase = "harmonic";
+      } else if ( analysisName == "multiharmonic" ) {
+        useGetRidOfZeros_ = false;
+        useCase = "multiharmonic";
+      } else if ( analysisName == "eigenFrequency" ) {
+        useGetRidOfZeros_ = false;
+        useCase = "eigenFrequency";
+      } else if ( analysisName == "inverseSource" ) {
+        useGetRidOfZeros_ = false;
+        useCase = "inverseSource";
+      } else if ( analysisName == "buckling" ) {
+        useGetRidOfZeros_ = false;
+        useCase = "buckling";
+      } else if ( analysisName == "eigenValue" ) {
+        useGetRidOfZeros_ = false;
+        useCase = "eigenValue";
+      } else if ( myParam->Has("optimization") ) {
+        useGetRidOfZeros_ = false;
+        useCase = "optimization";
       }
-    } else {
-      WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")");
-    }
 
-    return getRidOfZerosSwitch;
+      if( !useGetRidOfZeros_ ){
+        WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")");
+      }
+    }
+    // now that everything is setup, we can skip this setup from now on
+    firstTime_ = false;
   }
 
   
