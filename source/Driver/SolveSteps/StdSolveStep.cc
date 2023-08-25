@@ -905,7 +905,7 @@ namespace CoupledField {
 
         // Check if we should clean the system matrix of unnecessary zeros (introduced e.g. by NCIs)
         bool optimizedSysMat;
-        //algsys_->PrintMatrixPart(SYSTEM);
+        algsys_->HasPrecond()
         optimizedSysMat = GetRidOfZeros();
         //algsys_->PrintMatrixPart(SYSTEM);
 
@@ -918,15 +918,18 @@ namespace CoupledField {
           setIDBC = true;
         
         algsys_->Solve(setIDBC);
+
+        // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+        if (optimizedSysMat) {
+          algsys_->RestoreSysMat();
+        }
+
         // if setIDBC is true, solInc will contain the inhom. Dirichlet values
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal(solInc, setIDBC );
 
-        // we store the old (non-optimized) matrix back so that all matrix update operations work again
-        if (optimizedSysMat) {
-          algsys_->RestoreSysMat();
-        }
+        
         //algsys_->PrintMatrixPart(SYSTEM);
         
         Double residualL2Norm = 0.0;
@@ -2467,7 +2470,7 @@ namespace CoupledField {
 
   }
 
-  bool StdSolveStep::GetRidOfZeros(){
+  bool StdSolveStep::GetRidOfZeros(bool supportedBySolver){
     // Currently we do not support multi-grid or static condensation with this approach
 
     // we assume that we should perform GetRidOfZeros(), if this is not the case, this will be set afterwards
@@ -2526,7 +2529,10 @@ namespace CoupledField {
     }
 
     if( getRidOfZerosSwitch ){
-      algsys_->GetRidOfZeros(tol);
+      // even if the analysis type is suitable, the solver might not support it (yet)
+      if ( supportedBySolver ) {
+        algsys_->GetRidOfZeros(tol);
+      }
     } else {
       WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")");
     }
