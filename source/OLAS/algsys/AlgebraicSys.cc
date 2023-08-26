@@ -3655,9 +3655,18 @@ namespace CoupledField {
           }
 
           // now loop over the entries of the sub matrix and check for zero entries --> compute new NNZ
-          for (UInt i = 0; i < size; i++) {
+          /* for (UInt i = 0; i < size; i++) {
             //if (DataVec[i] != 0.0) newNnz++;
             if (abs(DataVec[i]) >= tol) newNnz++;
+          } */
+          // above you can find the old implementation which can cause probmes because sometimes - for
+          // whatever reason - the dataVec contains quite a bit more entries than those which are
+          // actually accessed via the row- and column vector. Hence, we also use those vectors to
+          // compute our NNZ
+          for (UInt i = 0; i < NumRows; i++) {
+            for (UInt j = RowVec[i]; j < RowVec[i+1]; j++) {
+              if (abs(DataVec[j]) >= tol) newNnz++;
+            }
           }
 
           UInt oldNnz = stdMat->GetNnz();
