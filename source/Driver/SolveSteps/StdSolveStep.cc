@@ -2588,27 +2588,8 @@ namespace CoupledField {
         }
 
         // now check the solver list if we use a solver that is supported
-        if(seqStepParamNode->Get("linearSystems")->Has("system")) {
-          // loop over systems
-          PtrParamNode sysList = seqStepParamNode->Get("linearSystems")->Get("system", ParamNode::INSERT);
-          ParamNodeList sysNodes =  sysList->GetChildren();
-          PtrParamNode sysNode;
-          for( UInt i = 0; i < sysNodes.GetSize(); ++i ){
-            if( sysNodes[i]->Has("solverList") ) {
-              PtrParamNode solverList = seqStepParamNode->Get("solverList", ParamNode::INSERT);
-              ParamNodeList sNodes =  solverList->GetChildren();
-              PtrParamNode solverNode;
-              for( UInt i = 0; i < sNodes.GetSize(); ++i ){
-                  solverNode = sNodes[i];
-                  if( solverNode ) {
-                    std::string solverName = solverNode->GetName();
-                    if( solverName != "pardiso") {
-                      supportedBySolver = false;
-                    }
-                  }
-              }
-            }
-          }
+        if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {
+          supportedBySolver = false;
         }
       }
       

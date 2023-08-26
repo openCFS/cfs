@@ -110,6 +110,9 @@ namespace CoupledField {
     //! the Minimum Degree Algorithm and then it will be LU-factorised.
     void Setup( BaseMatrix &sysmat);
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
+
     //! Direct solution of the linear system
 
     //! After Solve is called the matrix (which has already to be factorised

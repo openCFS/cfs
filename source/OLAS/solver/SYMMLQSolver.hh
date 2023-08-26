@@ -156,6 +156,9 @@ namespace CoupledField {
     //! memory if necessary.
     void Setup( BaseMatrix &sysMat );
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
+
     //! Solve a linear system using SYMMLQ.
 
     //! Solve the linear system \f$Ax=b\f$ with the square matrix \f$A\f$ and
