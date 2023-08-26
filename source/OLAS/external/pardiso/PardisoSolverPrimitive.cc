@@ -215,6 +215,15 @@ extern "C" {
   }
 
 
+  // ******************
+  // Set matrix pattern
+  // ******************
+  template<typename T>
+  void PardisoSolverPrimitive<T>::SetNewMatrixPattern(void) {
+    newMatrixPattern_ = true;
+  }
+
+
   // *********
   //   Setup
   // *********
@@ -248,10 +257,10 @@ extern "C" {
       //       and gets never changed elsewhere. A more intelligent
       //       test would ask the matrix if its pattern did change.
 
-      bool newMatrixPattern = false;
+      //bool newMatrixPattern = false;
       // When the matrix pattern has changed, we need to re-do
       // both steps, also the symbolical one
-      if( newMatrixPattern ) {
+      if( newMatrixPattern_ ) {
         facSymbolic = true;
         facNumeric  = true;
       }
