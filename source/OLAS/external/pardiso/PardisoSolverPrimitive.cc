@@ -257,6 +257,9 @@ extern "C" {
       //       and gets never changed elsewhere. A more intelligent
       //       test would ask the matrix if its pattern did change.
 
+      // Update 20230826: Now it makes a little more sense since we
+      // can actually change it now externally.
+      
       //bool newMatrixPattern = false;
       // When the matrix pattern has changed, we need to re-do
       // both steps, also the symbolical one

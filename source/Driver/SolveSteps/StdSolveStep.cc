@@ -189,7 +189,6 @@ namespace CoupledField {
     // Incorporate Boundary conditions and
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
-
     
     if( assemble_->IsMatrixUpdated() ) {
       // check if getRidOfZeros() should be used
@@ -545,7 +544,6 @@ namespace CoupledField {
       stageRHS_.GetPointer(id)->Resize(rhsSize);
     }
     stageRHS_.Init();
-
   }
   
   void StdSolveStep::PreStepTrans() {
@@ -979,9 +977,6 @@ namespace CoupledField {
         // Since the entries of solVec_ are pointers to the SingleVector
         // of the FE function, it automatically inserts the values there
         algsys_->GetSolutionVal(solInc, setIDBC );
-
-        
-        //algsys_->PrintMatrixPart(SYSTEM);
         
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;

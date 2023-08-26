@@ -176,6 +176,7 @@ namespace CoupledField
                               Double& etaLineSearch, Double& RHSLin2Norm,
                               bool trans=false);
 
+    //! checks if getRidOfZeros should be actually used and if yes, defines everything accordingly and warns the user about it
     void SetupGetRidOfZeros();
     
     void SetSolveVecZero(){
