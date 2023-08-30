@@ -35,6 +35,7 @@
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionDiagTensorFromScalar.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 
 #include <boost/lexical_cast.hpp>
@@ -66,6 +67,12 @@ namespace CoupledField{
     isTimeDomPML_      = false;
 
     isAPML_ = false;
+
+    // Check the subtype of the problem
+    paramNode->GetValue("subType", subType_);
+
+    //type of geometry
+    isaxi_ = ptGrid_->IsAxi();
 
     //check, if subtype is surface gravity waves
     isSurfaceGravityWave_ = false;
@@ -684,6 +691,40 @@ namespace CoupledField{
     //first call base class method
     SinglePDE::FinalizePostProcResults();
 
+    // complex part for expressions
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
+    // TorqueDensityTensor
+    // compute r x sigma (cross product of location vector and stress tensor)
+    // The cross product can be written as Matrix R times vector (inner product), thus generalizes to R in sigma
+    // since sigma is diagonal with p (pressure) as entries we compute R p (Matrix R times scalar p)
+    PtrCoefFct presCoef = GetCoefFct(WATER_PRESSURE);
+    assert(presCoef);
+    shared_ptr<CoefFunctionMulti> tdCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[WATER_TDT]);
+    // setup the matrix
+    StdVector<std::string> crossProductMatrixElements;
+    // set the nonzero entries
+    if ( ptGrid_->GetDim() == 3 ) { // for general 3D tensor (unsymmatric)
+      crossProductMatrixElements = "0","-z","y" , "z","0","-x" , "-y","x","0";
+    } else { // in 2d we have only a result in z-direction (Mz = - P*nx*ry + P*ny*rx )
+      crossProductMatrixElements = "-y","x";
+    }
+    // generate the matrix R and multiply by p
+    PtrCoefFct crossProductMat;
+    if(!isComplex_){
+      crossProductMat = CoefFunction::Generate(mp_,Global::REAL,crossProductMatrixElements);
+    } else {
+      StdVector<std::string> zeroElements; zeroElements.Resize(crossProductMatrixElements.GetSize(),"0");
+      crossProductMat = CoefFunction::Generate(mp_,Global::COMPLEX,crossProductMatrixElements,zeroElements);
+    }
+    PtrCoefFct tdtXpr = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, presCoef, crossProductMat, CoefXpr::OP_MULT));
+    // now set the expression for all regions
+    StdVector<RegionIdType>::iterator regIt = regions_.Begin();
+    for( ; regIt != regions_.End(); ++regIt ) {
+      RegionIdType actRegion = *regIt;
+      tdCoef->AddRegion( actRegion, tdtXpr );
+    }
+
   }
 
   void WaterWavePDE::DefinePostProcResults(){
@@ -719,7 +760,7 @@ namespace CoupledField{
     pos->unit = "m";
     pos->entryType = ResultInfo::VECTOR;
     pos->definedOn = ResultInfo::ELEMENT;
-
+    // pressure gradient
     shared_ptr<CoefFunctionFormBased> presGradFct;
     shared_ptr<BaseFeFunction> presFct = feFunctions_[WATER_PRESSURE];
     if( isComplex_ ) {
@@ -728,15 +769,44 @@ namespace CoupledField{
       presGradFct.reset(new CoefFunctionBOp<Double>(presFct, pos, 1.0));
     }
     stiffFormCoefs_.insert(presGradFct);
-
     // u = 1/(rho*omega^2) * grad(p)
     PtrCoefFct oneOverOmega2rho = CoefFunction::Generate( mp_, Global::REAL,
               CoefXprBinOp( mp_, CoefFunction::Generate( mp_, Global::REAL,"1.0"),
                 CoefXprBinOp(mp_,CoefFunction::Generate( mp_, Global::REAL, "4*pi*pi*f*f"), densFct, CoefXpr::OP_MULT ),
               CoefXpr::OP_DIV ));
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-    PtrCoefFct posFct = CoefFunction::Generate( mp_,  part, CoefXprBinOp( mp_, oneOverOmega2rho, presGradFct, CoefXpr::OP_MULT ) );
+    PtrCoefFct posFct = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, oneOverOmega2rho, presGradFct, CoefXpr::OP_MULT ) );
     DefineFieldResult( posFct, pos );
+
+    // === WATER PRESSURE TENSOR ===
+    // p I
+    shared_ptr<ResultInfo> presTens(new ResultInfo);
+    presTens->resultType = WATER_PRES_TENS;
+    StdVector<std::string> tensorComponentNames;
+    if(dim_==3){
+      tensorComponentNames = "xx", "yy", "zz", "yz", "xz", "xy";
+    } else { // 2d
+      tensorComponentNames = "xx", "yy", "xy";
+    }
+    presTens->dofNames = tensorComponentNames;
+    presTens->unit = MapSolTypeToUnit(WATER_PRES_TENS);
+    presTens->entryType = ResultInfo::TENSOR;
+    presTens->definedOn = ResultInfo::ELEMENT;
+    presTens->SetFeFunction(feFunctions_[WATER_PRESSURE]);
+    availResults_.insert( presTens );
+    StdVector<PtrCoefFct> presTensDiagValues;
+    presTensDiagValues = StdVector<PtrCoefFct>(dim_);
+    for(UInt i = 0; i < dim_; i++){
+      presTensDiagValues[i] = this->GetCoefFct( WATER_PRESSURE );
+    }
+    std::string presTensSubType;
+    if (dim_==2) {
+      presTensSubType = "plane";
+    } else { // should be 3D
+      presTensSubType = "3d";
+    }
+    shared_ptr<CoefFunction> presTensCoef (new CoefFunctionDiagTensorFromScalar(presTensDiagValues,presTensSubType));
+    DefineFieldResult( presTensCoef, presTens );
 
     // === WATER_SURFACE_TRACTION ===
     shared_ptr<ResultInfo> surfaceTractionInfo;
@@ -747,7 +817,6 @@ namespace CoupledField{
     surfaceTractionInfo->unit = "Pa";
     surfaceTractionInfo->entryType = ResultInfo::VECTOR;
     surfaceTractionInfo->definedOn = ResultInfo::SURF_ELEM;
-
     surfaceTractionFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTractionInfo));
     DefineFieldResult(surfaceTractionFct, surfaceTractionInfo);
     surfCoefFcts_[surfaceTractionFct] = feFunctions_[WATER_PRESSURE];
@@ -763,16 +832,68 @@ namespace CoupledField{
     // Integrate surface traction
     shared_ptr<ResultFunctor> reactionForceFct;
     if (isComplex_)
-        reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(surfaceTractionFct, feFct, reactionForceInfo));
+      reactionForceFct.reset(new ResultFunctorIntegrate<Complex>(surfaceTractionFct, feFct, reactionForceInfo));
     else
-        reactionForceFct.reset(new ResultFunctorIntegrate<Double>(surfaceTractionFct, feFct, reactionForceInfo));
+      reactionForceFct.reset(new ResultFunctorIntegrate<Double>(surfaceTractionFct, feFct, reactionForceInfo));
     resultFunctors_[WATER_SURFACE_FORCE] = reactionForceFct;
     availResults_.insert(reactionForceInfo);
+    
+    // === TorqueDensityTensor TDT (= cross product of location vector with stress tensor ) ===
+    // implemented as a vector, such that the normal mapping with CoefFunctionSurf works
+    shared_ptr<ResultInfo> torqueDensityTensorInfo;
+    torqueDensityTensorInfo.reset(new ResultInfo);
+    torqueDensityTensorInfo->resultType = WATER_TDT;
+    StdVector<std::string> tensorFullComponentNames;
+    if(dim_==3){
+      tensorFullComponentNames = "xx","xy","yz","yx","yy","yz","zx","zy","zz";
+    } else { // 2d
+      tensorFullComponentNames = "x","y";
+    }
+    torqueDensityTensorInfo->dofNames = tensorFullComponentNames;
+    torqueDensityTensorInfo->unit = MapSolTypeToUnit(WATER_TDT);
+    torqueDensityTensorInfo->entryType = ResultInfo::TENSOR;
+    torqueDensityTensorInfo->definedOn = ResultInfo::ELEMENT;
+    // actual computation (expression) is defined in finalize, 
+    // Tensor valued results are (can be?) evaluated from vector-type coefFunctions
+    shared_ptr<CoefFunctionMulti> torqueDensityTensorFct(new CoefFunctionMulti(CoefFunction::VECTOR, tensorFullComponentNames.GetSize(), 1, isComplex_));
+    DefineFieldResult(torqueDensityTensorFct, torqueDensityTensorInfo);
+
+    // === FLUID-MECHANIC REACTION TORQUE DENSITY (= cross product of location vector with surface traction ) ===
+    // since the surface traction cannot be used in CoefExpressions we map a "torque density tensor" in normal direction
+    shared_ptr<ResultInfo> surfaceTorqueDensityInfo;
+    shared_ptr<CoefFunctionSurf> surfaceTorqueDensityFct;
+    surfaceTorqueDensityInfo.reset(new ResultInfo);
+    surfaceTorqueDensityInfo->resultType = WATER_SURFACE_TORQUE_DENSITY;
+    surfaceTorqueDensityInfo->dofNames = vecDofNames;
+    surfaceTorqueDensityInfo->unit = MapSolTypeToUnit(WATER_SURFACE_TORQUE_DENSITY);
+    surfaceTorqueDensityInfo->entryType = ResultInfo::VECTOR;
+    surfaceTorqueDensityInfo->definedOn = ResultInfo::SURF_ELEM;
+    surfaceTorqueDensityFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTorqueDensityInfo));
+    DefineFieldResult(surfaceTorqueDensityFct, surfaceTorqueDensityInfo);
+    surfCoefFcts_[surfaceTorqueDensityFct] = torqueDensityTensorFct;
+
+    // === FLUID-MECHANIC REACTION TORQUE (= integral of surface torque density over the surface region ) ===
+    shared_ptr<ResultInfo> reactionTorqueInfo;
+    reactionTorqueInfo.reset(new ResultInfo);
+    reactionTorqueInfo->resultType = WATER_SURFACE_TORQUE;
+    StdVector<std::string> torqueDofNames;
+    if(dim_==3)
+      torqueDofNames = vecDofNames;
+    else // 2D, we only have a z-direction, but since Vector-results are expected to have size=dim_ we add a dummy component
+      torqueDofNames = "z","dummy";
+    reactionTorqueInfo->dofNames = torqueDofNames;
+    reactionTorqueInfo->unit = MapSolTypeToUnit(WATER_SURFACE_TORQUE);
+    reactionTorqueInfo->entryType = ResultInfo::VECTOR;
+    reactionTorqueInfo->definedOn = ResultInfo::SURF_REGION;
+    // Integrate surface torque
+    shared_ptr<ResultFunctor> reactionTorqueFct;
+    if (isComplex_)
+        reactionTorqueFct.reset(new ResultFunctorIntegrate<Complex>(surfaceTorqueDensityFct, feFct, reactionTorqueInfo));
+    else
+        reactionTorqueFct.reset(new ResultFunctorIntegrate<Double>(surfaceTorqueDensityFct, feFct, reactionTorqueInfo));
+    resultFunctors_[WATER_SURFACE_TORQUE] = reactionTorqueFct;
+    availResults_.insert(reactionTorqueInfo);
   }
-  
-  //For Moment
-  //PtrCoefFct intensTmp = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, sigmaFunc, velFnc, CoefXpr::OP_MULT_VOIGT_TENSOR_VEC_CONJ)); Ortsvektor
-  //intensFct = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_,  "-1.0", intensTmp , CoefXpr::OP_MULT)); Moment Ortsv x f
   
   //! Init the time stepping
   void WaterWavePDE::InitTimeStepping(){

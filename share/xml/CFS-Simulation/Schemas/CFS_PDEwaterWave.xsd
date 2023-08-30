@@ -452,6 +452,15 @@
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="waterPosition"/>
       <xsd:enumeration value="pmlDampFactor"/>
+      <xsd:enumeration value="waterPressureTensor"/>
+      <xsd:enumeration value="waterTorqueDensityTensor">
+        <xsd:annotation>
+          <xsd:documentation>
+Defines r x sigma, i.e. the creoss product between the location vector and the stress tensor.
+Implemented for the computation of the waterSurfaceTroqueDensity.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -459,6 +468,7 @@
   <xsd:simpleType name="DT_WaterWaveSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="waterSurfaceTraction"/> 
+      <xsd:enumeration value="waterSurfaceTorqueDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -466,6 +476,7 @@
   <xsd:simpleType name="DT_WaterWaveSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="waterSurfaceForce"/>
+      <xsd:enumeration value="waterSurfaceTorque"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -516,7 +527,7 @@
           </xsd:complexType>
         </xsd:element>
 
-        <!-- Surfac	e region result definition -->
+        <!-- Surface region result definition -->
         <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>

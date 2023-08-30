@@ -213,8 +213,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(WATER_PMLAUXVEC,"waterPmlAuxVec");
     SolutionTypeEnum.Add(WATER_PMLAUXSCALAR, "waterPmlAuxScalar");
     SolutionTypeEnum.Add(WATER_RHS_LOAD, "waterRhsLoad");
+    SolutionTypeEnum.Add(WATER_PRES_TENS, "waterPressureTensor");
     SolutionTypeEnum.Add(WATER_SURFACE_TRACTION, "waterSurfaceTraction");
     SolutionTypeEnum.Add(WATER_SURFACE_FORCE, "waterSurfaceForce");
+    SolutionTypeEnum.Add(WATER_SURFACE_TORQUE, "waterSurfaceTorque");
+    SolutionTypeEnum.Add(WATER_TDT, "waterTorqueDensityTensor");
+    SolutionTypeEnum.Add(WATER_SURFACE_TORQUE_DENSITY, "waterSurfaceTorqueDensity");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
@@ -937,6 +941,7 @@ namespace CoupledField {
       case FLUIDMECH_SURFACE_TRACTION:
       case FLUIDMECH_ZERO_PRESSURE:
       case WATER_PRESSURE:
+      case WATER_PRES_TENS:
       case SMOOTH_ZERO_PRESSURE:
       case WATER_SURFACE_TRACTION:
         return "Pa";
@@ -1033,6 +1038,15 @@ namespace CoupledField {
 
       case FLUIDMECH_TKE:
         return "J";
+        break;
+
+      case WATER_SURFACE_TORQUE:
+        return "Nm";
+        break;
+
+      case WATER_TDT:
+      case WATER_SURFACE_TORQUE_DENSITY:
+        return "N/m";
         break;
 
       case FLUIDMECH_WVT:

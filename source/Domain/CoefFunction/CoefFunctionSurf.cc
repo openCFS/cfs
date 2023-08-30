@@ -17,6 +17,7 @@ CoefFunctionSurf::CoefFunctionSurf( bool mapNormal,
   isComplex_ =  false;
   mapNormal_ = mapNormal;
   factor_ = factor;
+  dim_= 0;
   
   if( this->mapNormal_) {
     if( !surfInfo) {
@@ -219,7 +220,14 @@ void CoefFunctionSurf::GetScalar(Complex& coefScalar,
 }
 
 UInt CoefFunctionSurf::GetVecSize() const {
-  return 0;
+  assert(this->dimType_ == VECTOR);
+  // determine size from secondary CoefFunction: only possible if there is no surface mapping
+  //UInt dim;
+  //for (auto const& it : coefs_)
+  //{
+  //  dim = (it.second)->GetVecSize();
+  //}
+  return dim_;
 }
 
 
@@ -267,7 +275,19 @@ void CoefFunctionSurf::MapTensorNormal( Vector<TYPE>& ret, const Vector<TYPE>& t
     ret.Resize(2);
     ret[0] = tensor[0]*n[0] + tensor[2]*n[1];
     ret[1] = tensor[1]*n[1] + tensor[2]*n[0];
-  } else {
+  } else if (tensor.GetSize() == 9) {
+    // 3D non-symmetric tensor (defined row-wise, currenty only used in WaterWavePDE)
+    ret.Resize(3);
+    ret[0] = tensor[0]*n[0] + tensor[1]*n[1] + tensor[2]*n[2];
+    ret[1] = tensor[3]*n[0] + tensor[4]*n[1] + tensor[5]*n[2];
+    ret[2] = tensor[6]*n[0] + tensor[7]*n[1] + tensor[8]*n[2];
+  } else if (tensor.GetSize() == 2 ) {
+    // 2D cross product case (currenty only used in WaterWavePDE)
+    ret.Resize(2); // needs to be 2 since the result functor wants to evaluate a 2d vector in a 2d analysis
+    ret[0] = tensor[0]*n[0] + tensor[1]*n[1]; // this is the z-component (only physical component)
+    ret[1] = 0.0; // dummy component = always zero
+  }
+  else {
     EXCEPTION( "Case not implemented" << tensor.GetSize());
   }
 }

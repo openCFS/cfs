@@ -71,6 +71,11 @@ public:
   //! \copydoc CoefFunction::GetVecSize
   UInt GetVecSize() const;
 
+  //! Set the dimension of the physical vector returned by the coef function (needed in CoefExpressions)
+  void SetDim(UInt dim){
+    dim_ = dim;
+  }
+
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const;
 
@@ -114,6 +119,9 @@ public:
 
   //! information
   SolutionType resultType_;
+
+  //! dimension of space, needed to return sipe of physical vectors
+  UInt dim_;
 };
 
 //! This class represents coefficient functions, which are defined just on a
