@@ -355,152 +355,85 @@ void EigenValueDriver::CalcEigenValues() {
   SBM_Matrix *matrixA;
   SBM_Matrix *matrixB;
   SBM_Matrix *matrixC;
-  // get needed matrices
-  switch(evpType_)
-  {
-  	  // Standard EVP
-  	  case STANDARD:
-  	  {
+  // switch matrix setup based on EVP type
+  switch(evpType_) {
+    // Standard EVP
+    case STANDARD:
+    {
+      matrixA = sstep->GetAlgSys()->GetMatrix(matrixA_);
+      if (matrixA->GetNumCols()>1) {
+          EXCEPTION("only implemented for SBM matrices with a single block")
+      }
+      assert(matrixA->GetNumCols() == matrixA->GetNumRows());
+      solver->Setup(*(matrixA->GetPointer(0, 0)), false);
+      break;
+    }
+    //Generalized EVP
+    case GENERALIZED:
+    {
+      matrixA = sstep->GetAlgSys()->GetMatrix(matrixA_);
 
-        matrixA = sstep->GetAlgSys()->GetMatrix(matrixA_);
-        if (matrixA->GetNumCols()>1) {
-            EXCEPTION("only implemented for SBM matrices with a single block")
-        }
-  	    assert(matrixA->GetNumCols() == matrixA->GetNumRows());
-        solver->Setup(*(matrixA->GetPointer(0, 0)), false);
-        bool complexEV = solver->HasComplexEigenvalues();
-        if (inputMethod_ == 1) { // we have an interval
-          if (complexEV) {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_,minVal_,maxVal_);
-          }
-          else {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_,minVal_,maxVal_);
-          }
-        }
-        else{ if (inputMethod_ == 2) // inputMethod_ = numMode & valueShift
-      	  {
-      	    if (shiftPoint_ == 0.0) {
-      	    	shiftPoint_ = 0.1;
-      	      info_->Get(ParamNode::HEADER)->SetWarning("valueShift = 0 should not be used for EigenValue. Changed to 0.1.");
-      	    }
+      matrixB = sstep->GetAlgSys()->GetMatrix(matrixB_);
+      if (matrixA->GetNumCols()>1) {
+          EXCEPTION("only implemented for SBM matrices with a single block")
+      }
+      assert(matrixA->GetNumCols() == matrixA->GetNumRows());
+      assert(matrixB->GetNumCols() == matrixB->GetNumRows());
+      solver->Setup(*(matrixA->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), false);
+      bool isReal;
+      solver->CheckMatrix(isReal, isStoredSymmetric_, *(matrixB->GetPointer(0, 0)));
+      break;
+    }
 
-            if (complexEV) {
-              solver->CalcEigenValues(eigenValuesComplex_, errBounds_, numValue_, shiftPoint_);
-            }
-            else {
-              solver->CalcEigenValues(eigenValues_, errBounds_, numValue_, shiftPoint_);
-            }
-        }
-        if (inputMethod_ == 3) { 
-          if (complexEV) {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_);
-          }
-          else {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_);
-          }
-        }
-  	  }
-  	  break;
-  	  }
-  	  //Generalized EVP
-  	  case GENERALIZED:
-  	  {
-  		matrixA = sstep->GetAlgSys()->GetMatrix(matrixA_);
+    //Quadratic EVP
+    case QUADRATIC:
+    {
+      matrixA = sstep->GetAlgSys()->GetMatrix(matrixA_);
+      matrixB = sstep->GetAlgSys()->GetMatrix(matrixB_);
+      matrixC = sstep->GetAlgSys()->GetMatrix(matrixC_);
+      if (matrixA->GetNumCols()>1) {
+          EXCEPTION("only implemented for SBM matrices with a single block")
+      }
+      //Check Matrix dimensions
+      assert(matrixA->GetNumCols() == matrixA->GetNumRows());
+      assert(matrixB->GetNumCols() == matrixB->GetNumRows());
+      assert(matrixC->GetNumCols() == matrixC->GetNumRows());
 
-  		matrixB = sstep->GetAlgSys()->GetMatrix(matrixB_);
-        if (matrixA->GetNumCols()>1) {
-            EXCEPTION("only implemented for SBM matrices with a single block")
-        }
-        assert(matrixA->GetNumCols() == matrixA->GetNumRows());
-        assert(matrixB->GetNumCols() == matrixB->GetNumRows());
-        solver->Setup(*(matrixA->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), false);
-        bool isReal;
-        solver->CheckMatrix(isReal, isStoredSymmetric_, *(matrixB->GetPointer(0, 0)));
-        bool complexEV = solver->HasComplexEigenvalues();
-        if (inputMethod_ == 1) { // we have an interval
-          if (complexEV) {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_,minVal_,maxVal_);
-          }
-          else {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_,minVal_,maxVal_);
-          }
-        }
-        else{ if (inputMethod_ == 2) // inputMethod_ = numMode & valueShift
-      	  {
-          	    if (shiftPoint_ == 0.0) {
-          	    	shiftPoint_ = 0.1;
-          	      info_->Get(ParamNode::HEADER)->SetWarning("valueShift = 0 should not be used for EigenValue. Changed to 0.1.");
-          	    }
+      solver->Setup(*(matrixC->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), *(matrixA->GetPointer(0, 0)));
+      break;
+    }
+  }
 
-                if (complexEV) {
-                  solver->CalcEigenValues(eigenValuesComplex_, errBounds_, numValue_, shiftPoint_);
-                }
-                else {
-                  solver->CalcEigenValues(eigenValues_, errBounds_, numValue_, shiftPoint_);
-                }
-        }
-        if (inputMethod_ == 3) { 
-          if (complexEV) {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_);
-          }
-          else {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_);
-          }
-        }
-  	  }
-  		break;
-  	  }
+  // check if complex eigenvalues
+  bool complexEV = solver->HasComplexEigenvalues();
 
-  	  //Quadratic EVP
-  	  case QUADRATIC:
-  	  {
-  		matrixA = sstep->GetAlgSys()->GetMatrix(matrixA_);
-  		matrixB = sstep->GetAlgSys()->GetMatrix(matrixB_);
-  		matrixC = sstep->GetAlgSys()->GetMatrix(matrixC_);
-        if (matrixA->GetNumCols()>1) {
-            EXCEPTION("only implemented for SBM matrices with a single block")
-        }
-        //Check Matrix dimensions
-        assert(matrixA->GetNumCols() == matrixA->GetNumRows());
-        assert(matrixB->GetNumCols() == matrixB->GetNumRows());
-        assert(matrixC->GetNumCols() == matrixC->GetNumRows());
-
-        if (inputMethod_ == 1) { // we have an interval
-        solver->Setup(*(matrixC->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), *(matrixA->GetPointer(0, 0)));
-        bool complexEV = solver->HasComplexEigenvalues();
-          if (complexEV) {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_,minVal_,maxVal_);
-          }
-          else {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_,minVal_,maxVal_);
-          }
-        }
-        else{ if (inputMethod_ == 2) // inputMethod_ = numMode & valueShift
-      	  {
-          	    if (shiftPoint_ == 0.0) {
-          	    	shiftPoint_ = 0.1;
-          	      info_->Get(ParamNode::HEADER)->SetWarning("valueShift = 0 should not be used for EigenValue. Changed to 0.1.");
-          	    }
-
-                solver->Setup(*(matrixC->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), *(matrixA->GetPointer(0, 0)));
-                //check storage type
-
-          	    solver->CalcEigenValues(eigenValuesComplex_, errBounds_, numValue_, shiftPoint_);
-        }
-        if (inputMethod_ == 3) { 
-          solver->Setup(*(matrixC->GetPointer(0, 0)), *(matrixB->GetPointer(0, 0)), *(matrixA->GetPointer(0, 0)));
-          bool complexEV = solver->HasComplexEigenvalues();
-          if (complexEV) {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_);
-          }
-          else {
-            sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_);
-          }
-        }
-  	  }
-  	  }
-  		break;
-
+  // switch CalcEigenValues method based on input
+  switch(inputMethod_){
+    // minVal + maxVal
+    case 1: {
+      if (complexEV) {
+        sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_,minVal_,maxVal_);
+      }
+      else {
+        sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_,minVal_,maxVal_);
+      }
+      break;
+    }
+    // numMode + freqShift
+    case 2: {
+      solver->CalcEigenValues(eigenValuesComplex_, errBounds_, numValue_, shiftPoint_);
+      break;
+    }
+    // solver defined
+    case 3: {
+      if (complexEV) {
+        sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValuesComplex_,errBoundsComplex_);
+      }
+      else {
+        sstep->GetAlgSys()->GetEigenSolver()->CalcEigenValues(eigenValues_,errBounds_);
+      }
+      break;
+    }
   }
 }
 // ***************
