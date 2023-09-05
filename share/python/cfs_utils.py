@@ -95,6 +95,7 @@ def remove(xml, path, unique = True):
 # example '//cfs:materialData/@file' for any materialData element;
 # to get text inside a xml tag, e.g. material tensor from .info.xml:
 # xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") gives a string
+# the manulal operation with namespaces would be xml.xpath("//cfs:cfsSimulation", namespaces={"cfs": "http://www.cfs++.org/simulation"})
 def xpath(xml, path):
   # assume lxml first
   try:
