@@ -191,6 +191,7 @@ elseif(APPLE) # note tha APPLE is ALSO UNIX!
   # for macOS and clang and MKL we need to link -lgcc_s.1.dylib from the libgfortran.a location
   # to prevent undefined references ___divtf3, ___eqtf2, ___gttf2, ..., ___subtf3, ___unordtf2
   # according to nm there is no static lib to provide this (used by libgfortran.a)
+  # Edit: at least on macOS there is a static libgcc.a, see GFORTAN_LIBGCC_STATIC in CheckFortranRuntime.cmake
   if(NOT GFORTRAN_LIBRARY)
     message(FATAL_ERROR "neeed path to libgcc_s.1.dylib from GFORTRAN_LIBRARY")
   endif()

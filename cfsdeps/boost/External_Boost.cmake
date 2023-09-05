@@ -21,12 +21,14 @@ add_standard_mirrors_or_set_local()
 # the following generic code could set a specific compiler, but the question is, how important it is to have the
 # few libs compiled with the exact compiler? Most of boost is header only and most important is that openCFS compiles :)
 # PATCH_COMMAND echo "using <clang/gcc/...> : ${CFS_CXX_COMPILER_VER} : ${CMAKE_CXX_COMPILER} $<SEMICOLON>" > user-config.jam
+# in case change cfs to version in zlib-toolset-config.jam.in - bjam is unfortuantely a real pain and horrible compared to cmake!
 # set(TOOLSET --user-config=user-config.jam toolset=<clang/gcc/...>)
 # see https://www.intel.com/content/www/us/en/developer/articles/technical/building-boost-with-oneapi.html
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang") # matches also AppleClang
   set(TOOLSET toolset=clang)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   set(TOOLSET toolset=gcc)
+  # for APPLE and gcc we would need set(TOOLSET_NAME gcc) but the have the version in zlib-toolset-config.jam.in   
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") # Linux and Windows
   # https://www.boost.org/doc/libs/1_81_0/tools/build/doc/html/index.html
   set(TOOLSET_NAME clang) # this triggers to use zlib-toolset-config.jam.in instead of zlib-config.jam.in
@@ -38,8 +40,6 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
 else()
   message(STATUS "no specific boost toolset for ${CMAKE_CXX_COMPILER_ID} implemented, could work anyway ...")
 endif()
-
-# cmake_print_variables(TOOLSET)
 
  # we'll disable fortran for lis by not using saamg which is fast, but very sensitive to system condition
 use_c_and_fortran(ON OFF)

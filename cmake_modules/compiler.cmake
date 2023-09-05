@@ -160,7 +160,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
 
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
-  IF(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
     # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared
     # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
@@ -174,7 +174,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-unknown-warning-option")
     # boost 1.73 'unary_function<bool, unsigned long>' is deprecated
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations")
-  ENDIF()
+    
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
+      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wenum-constexpr-conversion")
+    endif()
+  endif()
 
   if(UNIX AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang") # no need for AppleClang
     # we are in the strict Linux case

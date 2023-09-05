@@ -21,7 +21,6 @@ SET(CFS_FORTRAN_LIBS "")
 # on most Linuxes and MacOS.
 #-----------------------------------------------------------------------------
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-  # message(STATUS "GNU Fortran")
   #---------------------------------------------------------------------------
   # On Unix we may encounter the situation, that we have Intel as Fortran
   # compiler but some system libs depend on GFortran. Therefore, we assume,
@@ -77,9 +76,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     NO_CMAKE_ENVIRONMENT_PATH
     NO_CMAKE_PATH
     NO_SYSTEM_ENVIRONMENT_PATH
-    NO_CMAKE_SYSTEM_PATH 
-  )
-
+    NO_CMAKE_SYSTEM_PATH)
   MARK_AS_ADVANCED(GFORTRAN_LIBRARY)
 
   #---------------------------------------------------------------------------
@@ -92,9 +89,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     NO_CMAKE_ENVIRONMENT_PATH
     NO_CMAKE_PATH
     NO_SYSTEM_ENVIRONMENT_PATH
-    NO_CMAKE_SYSTEM_PATH
-  )
-  #message("QUADMATH_LIBRARY_STATIC=${QUADMATH_LIBRARY_STATIC}")
+    NO_CMAKE_SYSTEM_PATH)
   MARK_AS_ADVANCED(QUADMATH_LIBRARY_STATIC)
 
   FIND_LIBRARY(GFORTRAN_LIBRARY_STATIC
@@ -104,10 +99,20 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     NO_CMAKE_ENVIRONMENT_PATH
     NO_CMAKE_PATH
     NO_SYSTEM_ENVIRONMENT_PATH
-    NO_CMAKE_SYSTEM_PATH
-  )
-  #message("GFORTRAN_LIBRARY_STATIC=${GFORTRAN_LIBRARY_STATIC}")
+    NO_CMAKE_SYSTEM_PATH)
   MARK_AS_ADVANCED(GFORTRAN_LIBRARY_STATIC)
+
+  # at least for macOS Ventura (13) we need to link libgcc (e.g. /usr/local/gfortran/lib/gcc/aarch64-apple-darwin22/12.2.0/libgcc.a)
+  # otherwise stuff like ___aarch64_cas8_sync, ___divtf3, ___unordtf2, ... is missing for libgfortran.a
+  find_library(GFORTAN_LIBGCC_STATIC
+    NAMES libgcc${CMAKE_STATIC_LIBRARY_SUFFIX}
+    PATHS ${GFORTRAN_SEARCH_DIRS}
+    NO_DEFAULT_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_CMAKE_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_SYSTEM_PATH)
+  mark_as_advanced(GFORTAN_LIBGCC_STATIC)
 
   #---------------------------------------------------------------------------
   # Prefer static runtime libs over shared ones.
@@ -115,6 +120,11 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
   if(NOT GFORTRAN_LIBRARY_STATIC MATCHES "NOTFOUND" AND NOT QUADMATH_LIBRARY_STATIC MATCHES "NOTFOUND")
     # both libs are found
     list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
+
+    # for apple add libgcc.a, if you have the above missing link issues, check this option also for other systems
+    if(APPLE AND NOT GFORTAN_LIBGCC_STATIC MATCHES "NOTFOUND")
+      list(APPEND CFS_FORTRAN_LIBS "${GFORTAN_LIBGCC_STATIC}")
+    endif() 
     
     # clang complains about -static-libgfortran"
     if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
@@ -153,8 +163,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
       NO_CMAKE_ENVIRONMENT_PATH
       NO_CMAKE_PATH
       NO_SYSTEM_ENVIRONMENT_PATH
-      NO_CMAKE_SYSTEM_PATH 
-      )
+      NO_CMAKE_SYSTEM_PATH )
     MARK_AS_ADVANCED(IFORT_${lib}_LIBRARY)
     #message(STATUS "${lib}")
     # copy over intel shared libs
@@ -168,20 +177,19 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
       	)
       mark_as_advanced(IFORT_${lib}_LIBRARY_STATIC)
       if("${IFORT_${lib}_LIBRARY_STATIC}" MATCHES "NOTFOUND")
-	message(WARNING "no static version of ${IFORT_${lib}_LIBRARY} found in ${inteldir} using dynamic version.\n
-	It will be installed by cpack, but not copied over into the build directory.")
+       message(WARNING "no static version of ${IFORT_${lib}_LIBRARY} found in ${inteldir} using dynamic version.\n
+                        It will be installed by cpack, but not copied over into the build directory.")
         #one can't simply copy over because cmake will complain about "Cannot generate a safe linker search path ..."
         install(FILES "${IFORT_${lib}_LIBRARY}" DESTINATION "lib")
         list(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY}")
       else()
-	message(STATUS "  found static lib: ${IFORT_${lib}_LIBRARY_STATIC} and using it.")
-	list(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY_STATIC}")
+      message(STATUS "  found static lib: ${IFORT_${lib}_LIBRARY_STATIC} and using it.")
+      list(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY_STATIC}")
       endif()
     endif()
   endforeach()
 endif() # Intel
 
-# support for the Open64 Fortran compiler removed. Check svn version 15997
 #==============================================================================
 # Create a header file include/def_cfs_fortran_interface.hh with the correct
 # mangling for the Fortran routines called in openCFS.
