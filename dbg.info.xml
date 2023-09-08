@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="running" infoWriteCounter="1" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.002s" wall="0.002" cpu="0.0026" calls="1"/>
+  </summary>
+  <header>
+    <environment started="2023-Sep-08 18:03:58" host="L13"/>
+  </header>
+</cfsInfo>

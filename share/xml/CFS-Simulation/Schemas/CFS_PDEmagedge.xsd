@@ -227,6 +227,7 @@
               <xsd:enumeration value="specialA-V"/> 
               <xsd:enumeration value="Darwin"/> 
               <xsd:enumeration value="Darwin_doubleLagrange"/>
+              <xsd:enumeration value="H"/> 
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 

@@ -53,6 +53,7 @@
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagneticScalarPotentialPDE.hh"
 #include "PDE/MagEdgePDE.hh"
+#include "PDE/MagEdgeHPDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MagEdgeSpecialAVPDE.hh"
 #include "PDE/DarwinPDE.hh"
@@ -772,20 +773,26 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
     else if (actPdeName == "magneticEdge"){
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
+      std::cout<<formulation<<std::endl;
       if (formulation == "A") {
+        std::cout<<"making A"<<std::endl;
         ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-      }else{
-        if(formulation == "A-V"){
+      }else if(formulation == "A-V"){
+          std::cout<<"making A-V"<<std::endl;
           ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        }else if(formulation == "specialA-V"){
+      }else if(formulation == "specialA-V"){
+          std::cout<<"making sA-V"<<std::endl;
           ptSinglePde_[i] = new MagEdgeSpecialAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        }else if(formulation == "Darwin" || "Darwin_doubleLagrange"){
+      }else if((formulation == "Darwin") || (formulation == "Darwin_doubleLagrange")){
+          std::cout<<"making Darwin"<<std::endl;
           ptSinglePde_[i] = new DarwinPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        }else{
+      }else if(formulation == "H"){
+          std::cout<<"making H"<<std::endl;
+          ptSinglePde_[i] = new MagEdgeHPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      }else{
           EXCEPTION("Formulation of MagEdgePDE not known!");
         }
       }
-    }
 
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
