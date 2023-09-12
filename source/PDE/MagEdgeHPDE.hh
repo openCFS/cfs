@@ -36,12 +36,16 @@ namespace CoupledField
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return MAG_FIELD_INTENSITY; }
 
+    //! Initialize NonLinearities
+    virtual void InitNonLin();
   protected:
     
+    LinearForm* GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId = "" );
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
     void DefineStandardIntegrators();
+    void DefineCoilIntegrators();
 
     //! Defines the integrators needed for ncInterfaces
     void DefineNcIntegrators(){};
@@ -49,8 +53,9 @@ namespace CoupledField
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){}; // not implemented
 
-    LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ){}; // not implemented
-    BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity ){}; // not implemented
+    LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ){return NULL;}; // not implemented
+    BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity ){return NULL;}; // not implemented
+    void InitMagnetization(){}; // not implemented
 
     //! Define available primary result types
     void DefinePrimaryResults();
@@ -60,11 +65,6 @@ namespace CoupledField
      
     //! Define available postprocessing results
     void DefinePostProcResults();
-    
-    // =======================================================================
-    //   COILS
-    // =======================================================================
-    LinearForm* GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId = "" );
 
 
     //! \copydoc SinglePDE::CreateFeSpace

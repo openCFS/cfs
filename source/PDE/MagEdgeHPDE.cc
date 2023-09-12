@@ -53,8 +53,8 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
 
   // **************
   //  Constructor
-  // **************
-  MagEdgeHPDE::MagEdgeHPDE( Grid * aptgrid, PtrParamNode paramNode,
+// **************
+   MagEdgeHPDE::MagEdgeHPDE( Grid * aptgrid, PtrParamNode paramNode,
                           PtrParamNode infoNode,
                           shared_ptr<SimState> simState, Domain* domain )
     :MagBasePDE( aptgrid, paramNode, infoNode, simState, domain ) {
@@ -85,13 +85,84 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
   MagEdgeHPDE::~MagEdgeHPDE() {
   }
 
+  // ****************************
+  //  Initialize Nonlinearities
+  // ****************************
+  void MagEdgeHPDE::InitNonLin() {
+    SinglePDE::InitNonLin();
+  }
+
   // *****************************
   //  Definition of Integrators
   // *****************************
   void MagEdgeHPDE::DefineIntegrators() {
     this->DefineStandardIntegrators();
     // in MagBasePDE
-    DefineCoilIntegrators(1.0);
+    DefineCoilIntegrators();
+  }
+
+
+  LinearForm* MagEdgeHPDE::GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId)
+  {
+    LinearForm * ret = NULL;
+    ret = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), factor, coef, updatedGeo_);
+    return ret;
+  }
+
+
+  void MagEdgeHPDE::DefineCoilIntegrators()
+  {
+
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
+    shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY];
+    shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
+
+    std::map<Coil::IdType, shared_ptr<Coil>>::iterator coilIt;
+    coilIt = coils_.begin();
+    for (; coilIt != coils_.end(); coilIt++)
+    {
+      Coil &actCoil = *(coilIt->second);
+      // run over all parts
+      std::map<RegionIdType, shared_ptr<Coil::Part>>::iterator partIt;
+      partIt = actCoil.parts_.begin();
+
+      if (actCoil.sourceType_ != Coil::CURRENT)
+      {
+        EXCEPTION("Only current excitation is implemented in H-formulation!!");
+      }
+      else
+      {
+
+        for (partIt = actCoil.parts_.begin();
+             partIt != actCoil.parts_.end();
+             partIt++)
+        {
+          Coil::Part &actPart = *(partIt->second);
+          RegionIdType actRegion = partIt->first;
+          shared_ptr<ElemList> actSDList(new ElemList(ptGrid_));
+          actSDList->SetRegion(actRegion);
+          LinearForm* curInt = NULL;
+
+
+          std::map<UInt, PtrCoefFct> jFct;
+          CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_, CoefXpr::OP_MULT);
+          PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
+
+          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
+          jFct[0] = CoefFunction::Generate(mp_, part, jVec);
+
+          coilCurrentDens_[actRegion] = jFct[0];
+          curInt = GetCurrentDensityInt( 1.0, jFct[0] );
+          curInt->SetName("CoilIntegrator");
+          LinearFormContext * coilContext = new LinearFormContext( curInt );
+          coilContext->SetEntities( actSDList );
+          coilContext->SetFeFunction( feFunc );
+          assemble_->AddLinearForm( coilContext );
+
+        } // loop: parts
+      }
+    } // loop: coils
   }
 
 
@@ -173,11 +244,6 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         }// end for regions
     }
 
-    LinearForm* MagEdgeHPDE::GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId){
-      LinearForm * ret = NULL;
-      ret = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3,Double>(), factor, coef, updatedGeo_);
-      return ret;
-    }
 
     void MagEdgeHPDE::DefinePrimaryResults() {
 
