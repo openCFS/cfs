@@ -151,8 +151,6 @@ namespace CoupledField {
     }
     sysMat_.clear();
 
-    delete sysMatCopy_;
-
     delete rhs_;
     rhs_ = NULL;
 
@@ -3801,14 +3799,14 @@ namespace CoupledField {
   }
 
   void AlgebraicSys::SetSysMatCopy( SBM_Matrix* actMat ){
-    delete sysMatCopy_;
-    sysMatCopy_ = new SBM_Matrix(*actMat);
+    delete sysMat_[BACKUP];
+    sysMat_[BACKUP] = new SBM_Matrix(*actMat);
   }
 
   void AlgebraicSys::RestoreSysMat(){
     delete effMat_;
     delete sysMat_[SYSTEM];
-    sysMat_[SYSTEM] = new SBM_Matrix(*sysMatCopy_);
+    sysMat_[SYSTEM] = new SBM_Matrix(*sysMat_[BACKUP]);
 
     UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
     for ( UInt k = 0; k < nB; k++ ) {
