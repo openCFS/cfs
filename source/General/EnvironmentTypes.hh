@@ -599,6 +599,7 @@ namespace CoupledField {
   //! - SYSTEM_DELTAMAT_JACOBIAN - as FD_JACOBIAN, but df_hyst/du is approximated using the deltaMat approach
   //!                    (i.e. no full FD_JACOBIAN but difference quotient between current and previous values)
   //! - GEOMETRIC_STIFFNESS - used in Buckling Analysis (also called stress stiffness matrix)
+  //! - BACKUP - currently unused? Will be now used to store a copy of the system matrix when we reduce the number of non-zero elements
 
   typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, DAMPING_AUX, CONVECTION, MASS, AUXILIARY, STIFFNESS_UPDATE, DAMPING_UPDATE , MASS_UPDATE,
     SYSTEM_HYSTFREE, SYSTEM_FIXPOINT, SYSTEM_FD_JACOBIAN, SYSTEM_DELTAMAT_JACOBIAN, BACKUP, GEOMETRIC_STIFFNESS}
