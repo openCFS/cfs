@@ -809,7 +809,7 @@ namespace CoupledField {
 
     void SetSysMatCopy( SBM_Matrix* actMat );
 
-    SBM_Matrix* GetSysMatCopy(){return sysMatCopy_;};
+    SBM_Matrix* GetSysMatCopy(){return sysMat_[BACKUP];};
 
     void RestoreSysMat();
 
@@ -1409,8 +1409,6 @@ namespace CoupledField {
     bool distinctMatGraphs_;
     //@}
 
-    //! dummy sysMat for storing it between GetRidOfZeros optimization
-    SBM_Matrix* sysMatCopy_ = NULL;
 
     // =======================================================================
     // AMG SECTION
