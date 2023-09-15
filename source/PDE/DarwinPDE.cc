@@ -623,6 +623,26 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       EXCEPTION("Currently no rhs for fieldIntensity possible in DarwinPDE");
     }
+
+  // ==================
+    //  IMPRESSED CURRENT DENSITY
+    // ==================
+    LOG_DBG(darwinPDE) << "Reading impressed current density";
+    LinearForm *lin = NULL;
+    ReadRhsExcitation( "impressedCurrentDensity", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+    for (UInt i = 0; i < ent.GetSize(); ++i)
+    {
+      UInt entDim = ent[i]->GetGrid()->GetEntityDim(ptGrid_->GetRegionName(ent[i]->GetRegion()));
+      std::string regName = ptGrid_->GetRegionName(ent[i]->GetRegion());
+      std::string entName = ent[i]->GetName();
+      lin = new BUIntegrator<Complex>(new IdentityOperator<FeHCurl,3,1,Double>(), 1.0, coef[i], coefUpdateGeo);      
+      lin->SetName("ImpressedCurrentDensityInt");
+      LinearFormContext *ctx = new LinearFormContext(lin);
+      ctx->SetEntities(ent[i]);
+      ctx->SetFeFunction(magVecPotFeFunc);
+      assemble_->AddLinearForm(ctx);
+    } // end loop over entities
+
   }
 
 

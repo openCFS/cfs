@@ -196,6 +196,8 @@
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector"/>
+                <xsd:element name="impressedCurrentDensity" type="DT_BcInhomVector"/>
+
                 
               </xsd:choice>
             </xsd:complexType>
