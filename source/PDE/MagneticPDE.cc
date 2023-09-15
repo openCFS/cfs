@@ -1040,6 +1040,70 @@ namespace CoupledField {
       feFct->AddEntityList(ent[i]);
     } // for
 
+
+
+
+
+
+
+
+    PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
+    if( bcNode ) {
+
+      // Zweckentfremdung: das wird der c1 Vektor
+      ParamNodeList eNodes = bcNode->GetList( "c1" );
+      for( UInt i = 0; i < eNodes.GetSize(); i++ ) {
+        std::string regionName = eNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::ELEM_LIST,regionName ); 
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(regionName);
+       
+        PtrCoefFct conductivityCoeff;
+        Double conductivity = 0.0;
+        materials_[aRegion]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
+        conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(conductivity));
+
+        LinearForm * c1Int = NULL;
+        
+        c1Int = new BUIntegrator<Double>(new IdentityOperator<FeH1,2,1>(), 1.0, conductivityCoeff, updatedGeo_);
+        c1Int->SetName("c1Integrator");
+        LinearFormContext *c1Context = new LinearFormContext(c1Int );
+        c1Context->SetEntities( actSDList );
+        c1Context->SetFeFunction( feFunctions_[MAG_POTENTIAL] );
+        feFunctions_[MAG_POTENTIAL]->AddEntityList( actSDList );
+        assemble_->AddLinearForm( c1Context );
+      }
+
+      // Zweckentfremdung: das wird der c2 Vektor
+      eNodes = bcNode->GetList( "c2" );
+      for( UInt i = 0; i < eNodes.GetSize(); i++ ) {
+        std::string regionName = eNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName ); 
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(regionName);
+
+        std::set<RegionIdType> volRegions;
+        std::string volRegionName = eNodes[i]->Get("volumeRegion")->As<std::string>();
+        shared_ptr<EntityList> actSDListVol =  ptGrid_->GetEntityList( EntityList::ELEM_LIST,volRegionName ); 
+        RegionIdType aRegionVol = ptGrid_->GetRegion().Parse(volRegionName);
+        volRegions.insert(aRegionVol);
+        StdVector<std::string> realVal(2);
+        realVal[0] = "0.0";
+        realVal[1] = "1.0";
+        PtrCoefFct coef = CoefFunction::Generate( mp_, Global::REAL, realVal);
+
+        LinearForm * c2Int = NULL;
+        
+        c2Int = new BUIntegrator<Double, true>(new CurlOperatorAxi<Double>(), 1.0, coef, volRegions, updatedGeo_);
+        c2Int->SetName("c2Integrator");
+        LinearFormContext *c2Context = new LinearFormContext(c2Int );
+        c2Context->SetEntities( actSDList );
+        c2Context->SetFeFunction( feFunctions_[MAG_POTENTIAL] );
+        feFunctions_[MAG_POTENTIAL]->AddEntityList( actSDList );
+        assemble_->AddLinearForm( c2Context );
+      }
+
+    }
+
+
   }
 
   void MagneticPDE::DefinePrimaryResults()
