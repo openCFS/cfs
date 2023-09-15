@@ -132,7 +132,16 @@ namespace CoupledField
       }
     }
 
-    nrFncs = ptFe->GetNumFncs();
+    // nrFncs = ptFe->GetNumFncs();
+  
+    if (useVolume4Edge_)
+    {
+      nrFncs = ptFeVol->GetNumFncs();
+    }
+    else
+    {
+      nrFncs = ptFe->GetNumFncs();
+    }  
 
     // Get shape map from grid
     shared_ptr<ElemShapeMap> esm =
