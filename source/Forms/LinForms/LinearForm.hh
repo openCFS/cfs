@@ -45,6 +45,7 @@ namespace CoupledField{
         isSolDependent_ = false;
         extractReal_ = false;
         harm_ = 0;
+        useVolume4Edge_ = false;
       }
 
       //! Copy constructor
@@ -56,6 +57,7 @@ namespace CoupledField{
         this->ptFeSpace_ = right.ptFeSpace_;
         this->intScheme_ = right.intScheme_;
         this->extractReal_ = right.extractReal_;
+        this->useVolume4Edge_ = false;
       }
 
       //! Make deep copy of object pointer
@@ -115,6 +117,14 @@ namespace CoupledField{
     	  return extractReal_;
       }
 
+      bool UseVolForSurface() const{
+        return useVolume4Edge_;
+      }
+
+      UInt SurfaceVolReg() const{
+        return surfaceVolReg_;
+      }
+
     protected:
       //! name of linearform
       std::string name_;
@@ -139,6 +149,13 @@ namespace CoupledField{
       //! needed e.g. when taking the result of a complex analysis (energy) as
       //! input of a static simulation (source for example HeatPDE)
       bool extractReal_;
+
+      //! Flag if the corresponding volume element should be used to
+      //! evaluate the operator for edge elements
+      bool useVolume4Edge_;
+
+      //! DIRTY!!! which region shall be used
+      UInt surfaceVolReg_;
   };
 }
 

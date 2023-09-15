@@ -218,6 +218,24 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
     
   }
   
+  void LinearFormContext::MapEqns( EntityIterator& it,
+                                   StdVector<Integer>& eqnVec,
+                                   FeFctIdType& id,
+                                   UInt surfaceVolSide ) {
+    
+    const SurfElem* el= it.GetSurfElem();
+  
+    // Get equation numbers
+    //map_->GetEqns( eqnVec, *result_, it );
+    feFct_.lock()->GetFeSpace()->GetElemEqns(eqnVec, el->ptVolElems[surfaceVolSide] );
+//    feFct_.lock()->GetFeSpace()->GetEqns(eqnVec,it);
+    
+    // Get Pde Id
+    id = feFct_.lock()->GetFctId();
+    
+  }
+
+
   void LinearFormContext::SetPtPde(SinglePDE* ptPde ) {
     
     ptPde_ = ptPde;

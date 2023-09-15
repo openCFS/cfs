@@ -124,8 +124,10 @@ namespace CoupledField
       bool isInVol2 = this->volRegions_.find(volRegionId2) != this->volRegions_.end();
 
       if(isInVol1){
+        this->surfaceVolReg_ = 0;
         ptFeVol = ptFeSpace_->GetFe(ent.GetSurfElem()->ptVolElems[0]->elemNum);
       }else if(isInVol2){
+        this->surfaceVolReg_ = 1;
         ptFeVol = ptFeSpace_->GetFe(ent.GetSurfElem()->ptVolElems[1]->elemNum);
       }else{
         EXCEPTION("Specified surface region is not in the provided volume regions!");

@@ -123,9 +123,6 @@ protected:
   //! dimension of b-operator
   UInt Bdim_ = 0;
 
-  //! Flag if the corresponding volume element should be used to
-  //! evaluate the operator for edge elements
-  bool useVolume4Edge_;
 
 };
 

@@ -1640,7 +1640,13 @@ namespace CoupledField
             }
             
             // Map equation numbers. eqnVec can be empty if nodes are not in system (e.g. not simulated region)
-            actContext.MapEqns(entIt, eqnVec, fctId);
+            if(form->UseVolForSurface()){
+              UInt surfaceVolSide = form->SurfaceVolReg();
+              actContext.MapEqns(entIt, eqnVec, fctId, surfaceVolSide);
+            }else{
+              actContext.MapEqns(entIt, eqnVec, fctId);  
+            }
+
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.GetSize() << " -> " << eqnVec.ToString();
 
             // Perform remapping

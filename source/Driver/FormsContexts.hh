@@ -284,6 +284,12 @@ namespace CoupledField
                   StdVector<Integer>& eqnVec,
                   FeFctIdType& id );
 
+    void MapEqns( EntityIterator& it,
+                  StdVector<Integer>& eqnVec,
+                  FeFctIdType& id,
+                  UInt surfaceVolSide );
+
+
     // ======================================================
     // ENTITIES / RESULTS
     // ======================================================
