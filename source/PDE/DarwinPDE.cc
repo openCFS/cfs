@@ -1057,16 +1057,19 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       jDensLCoef->AddRegion(*regIt, curr);
 
 
-      // Displacement Current Density dD/dt = epsilon * dE/dt
-      // and in frequency-domain hat(D) = j * 2*pi*f * hat(E)
-      // but remember: due to the Darwin approximation, dE/dt only consists of the time-derivative of the scalar potential
-      PtrCoefFct tmp = CoefFunction::Generate( mp_,
-          part, CoefXprVecScalOp(mp_, longitudinal, permittivityCoef, CoefXpr::OP_MULT));
-      PtrCoefFct coefFreqFactor = NULL;
-      coefFreqFactor = CoefFunction::Generate( mp_, Global::COMPLEX, "-2*pi*f");
-      PtrCoefFct dispcurr = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coefFreqFactor, tmp, CoefXpr::OP_MULT) );
+      if( (analysistype_ == HARMONIC) || (analysistype_ == MULTIHARMONIC) ){
+        // Displacement Current Density dD/dt = epsilon * dE/dt
+        // and in frequency-domain hat(D) = j * 2*pi*f * hat(E)
+        // but remember: due to the Darwin approximation, dE/dt only consists of the time-derivative of the scalar potential
+        PtrCoefFct tmp = CoefFunction::Generate( mp_,
+            part, CoefXprVecScalOp(mp_, longitudinal, permittivityCoef, CoefXpr::OP_MULT));
+        PtrCoefFct coefFreqFactor = NULL;
+        coefFreqFactor = CoefFunction::Generate( mp_, part, "-2*pi*f");
+        PtrCoefFct dispcurr = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coefFreqFactor, tmp, CoefXpr::OP_MULT) );
 
-      dispCurrDensCoef->AddRegion(*regIt, dispcurr);
+        dispCurrDensCoef->AddRegion(*regIt, dispcurr);
+      }
+
 
 
     }
