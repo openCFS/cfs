@@ -1,5 +1,6 @@
 SET(OPERATORS_SRCS
   #No cc files yet but will be in the future
+  DaeOperator.hh
   )
 
 ADD_LIBRARY(operators STATIC ${OPERATORS_SRCS})
