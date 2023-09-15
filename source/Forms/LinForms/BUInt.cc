@@ -16,55 +16,58 @@
 // 
 // =====================================================================================
 
+namespace CoupledField
+{
 
+  template <class VEC_DATA_TYPE, bool SURFACE>
+  BUIntegrator<VEC_DATA_TYPE, SURFACE>::
+      BUIntegrator(BaseBOperator *bOp,
+                   VEC_DATA_TYPE factor,
+                   shared_ptr<CoefFunction> rhsCoef,
+                   bool coordUpdate,
+                   bool fullEvaluation,
+                   bool extractReal,
+                   const string &id)
+      : LinearForm(coordUpdate),
+        fullEvaluation_(fullEvaluation)
+  {
+    factor_ = factor;
+    this->name_ = "RhsBUIntegrator";
+    this->bOperator_ = bOp;
 
-namespace CoupledField{
+    this->rhsCoefs_ = rhsCoef;
+    extractReal_ = extractReal;
+    id_ = id;
+    useVolume4Edge_ = false;
+  }
 
-template< class VEC_DATA_TYPE, bool SURFACE >
-BUIntegrator<VEC_DATA_TYPE,SURFACE>::
-BUIntegrator(BaseBOperator * bOp,
-             VEC_DATA_TYPE factor,
-             shared_ptr<CoefFunction > rhsCoef, 
-             bool coordUpdate,
-             bool fullEvaluation,
-             bool extractReal,
-             const string& id)
-             : LinearForm( coordUpdate ),
-               fullEvaluation_(fullEvaluation) {
-  factor_ = factor;
-  this->name_ = "RhsBUIntegrator";
-  this->bOperator_= bOp;
+  template <class VEC_DATA_TYPE, bool SURFACE>
+  BUIntegrator<VEC_DATA_TYPE, SURFACE>::
+      BUIntegrator(BaseBOperator *bOp,
+                   VEC_DATA_TYPE factor,
+                   shared_ptr<CoefFunction> rhsCoef,
+                   const std::set<RegionIdType> &volRegions,
+                   bool coordUpdate,
+                   bool fullEvaluation,
+                   bool extractReal,
+                   const string &id,
+                   bool useVolume4Edge)
+      : LinearForm(coordUpdate),
+        fullEvaluation_(fullEvaluation)
+  {
+    factor_ = factor;
+    this->name_ = "RhsBUIntegrator";
+    this->bOperator_ = bOp;
+    extractReal_ = extractReal;
+    id_ = id;
+    useVolume4Edge_ = useVolume4Edge;
 
-  this->rhsCoefs_ = rhsCoef;
-  extractReal_ = extractReal;
-  id_ = id;
-
-}
-
-template< class VEC_DATA_TYPE, bool SURFACE >
-BUIntegrator<VEC_DATA_TYPE,SURFACE>::
-BUIntegrator(BaseBOperator * bOp,
-             VEC_DATA_TYPE factor,
-             shared_ptr<CoefFunction > rhsCoef,
-             const std::set<RegionIdType>& volRegions,
-             bool coordUpdate,
-             bool fullEvaluation,
-             bool extractReal,
-             const string& id)
-             : LinearForm( coordUpdate ), 
-               fullEvaluation_(fullEvaluation) 
-               {
-  factor_ = factor;
-  this->name_ = "RhsBUIntegrator";
-  this->bOperator_= bOp;
-  extractReal_ = extractReal;
-  id_ = id;
-
-  assert(rhsCoef->GetDimType() == CoefFunction::VECTOR ||
-         rhsCoef->GetDimType() == CoefFunction::SCALAR);
+    assert(rhsCoef->GetDimType() == CoefFunction::VECTOR ||
+           rhsCoef->GetDimType() == CoefFunction::SCALAR);
 #ifndef NDEBUG
-  if(rhsCoef->GetDimType()  != CoefFunction::VECTOR &&
-      rhsCoef->GetDimType() != CoefFunction::SCALAR){
+  if (rhsCoef->GetDimType() != CoefFunction::VECTOR &&
+      rhsCoef->GetDimType() != CoefFunction::SCALAR)
+  {
     Exception("BDB integrator expects the coefficient function to be vectorial or scalar!");
   }
 #endif
@@ -72,104 +75,151 @@ BUIntegrator(BaseBOperator * bOp,
   volRegions_ = volRegions;
 }
 
-  template< class VEC_DATA_TYPE, bool SURFACE >
-  void BUIntegrator<VEC_DATA_TYPE,SURFACE>::
-  CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
-                  EntityIterator& ent){
+  template <class VEC_DATA_TYPE, bool SURFACE>
+  void BUIntegrator<VEC_DATA_TYPE, SURFACE>::
+      CalcElemVector(Vector<VEC_DATA_TYPE> &elemVec,
+                     EntityIterator &ent)
+  {
 
-	 assert(rhsCoefs_->GetDimType() != CoefFunction::NO_DIM);
+    assert(rhsCoefs_->GetDimType() != CoefFunction::NO_DIM);
 
-	  // Declare necessary variables
-     const Elem* ptElem = ent.GetElem();
-     Matrix<Double> bMat;
-     Vector<VEC_DATA_TYPE> cVec;
-     StdVector<LocPoint> intPoints;
-     StdVector<Double> weights;
-     UInt nrFncs = 0;
-     VEC_DATA_TYPE fac(0.0);
+    // Declare necessary variables
+    const Elem *ptElem = ent.GetElem();
+    Matrix<Double> bMat;
+    Vector<VEC_DATA_TYPE> cVec;
+    StdVector<LocPoint> intPoints;
+    StdVector<Double> weights;
+    UInt nrFncs = 0;
+    VEC_DATA_TYPE fac(0.0);
 
-     //Surface: inverse of jacobian
-     Vector<VEC_DATA_TYPE> pt1;
-     Vector<VEC_DATA_TYPE> pt2;
-     Matrix<Double> JacT;
-     Matrix<Double> TF;
-     Matrix<Double> TFinv;
+    // Surface: inverse of jacobian
+    Vector<VEC_DATA_TYPE> pt1;
+    Vector<VEC_DATA_TYPE> pt2;
+    Matrix<Double> JacT;
+    Matrix<Double> TF;
+    Matrix<Double> TFinv;
 
-     // Obtain FE element from feSpace and integration scheme
-     IntegOrder order;
-     IntScheme::IntegMethod method;
-     BaseFE* ptFe = ptFeSpace_->GetFe( ent, method, order );
+    // Obtain FE element from feSpace and integration scheme
+    IntegOrder order;
+    IntScheme::IntegMethod method;
+    BaseFE *ptFe = ptFeSpace_->GetFe(ent, method, order);
+    BaseFE *ptFeVol = NULL;
+    if (useVolume4Edge_)
+    {
+      // call the specialized version when using edge elements and apply
+      // the operator to the volume shape functions (altough the integral
+      // is a surface integral)
+      // But first we need to get the volume-element side that was specified in the
+      // PDE definition (volRegions)
+      RegionIdType volRegionId1;
+      RegionIdType volRegionId2;
+      if(ent.GetSurfElem()->ptVolElems.size() > 0){
+        ent.GetGrid()->GetElemRegion(ent.GetSurfElem()->ptVolElems[0]->elemNum, volRegionId1);
+      }
+      if ((ent.GetSurfElem()->ptVolElems.size() > 1) && (ent.GetSurfElem()->ptVolElems[1] != NULL)){
+        ent.GetGrid()->GetElemRegion(ent.GetSurfElem()->ptVolElems[1]->elemNum, volRegionId2);
+      }
 
-     nrFncs = ptFe->GetNumFncs();
+      bool isInVol1 = this->volRegions_.find(volRegionId1) != this->volRegions_.end();
+      bool isInVol2 = this->volRegions_.find(volRegionId2) != this->volRegions_.end();
 
-     // Get shape map from grid
-     shared_ptr<ElemShapeMap> esm =
-         ent.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+      if(isInVol1){
+        ptFeVol = ptFeSpace_->GetFe(ent.GetSurfElem()->ptVolElems[0]->elemNum);
+      }else if(isInVol2){
+        ptFeVol = ptFeSpace_->GetFe(ent.GetSurfElem()->ptVolElems[1]->elemNum);
+      }else{
+        EXCEPTION("Specified surface region is not in the provided volume regions!");
+      }
+    }
 
-     // Get integration points
-     intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 
-                               intPoints, weights );
+    nrFncs = ptFe->GetNumFncs();
 
-     LocPointMapped lp;
-     elemVec.Resize( nrFncs * Bdim_);
-     elemVec.Init();
-     
-     // Pre-evaluate coefficient function in case of reduced accuracy
-     if(! fullEvaluation_ ) {
-       const ElemShape sh = Elem::shapes[ptElem->type];
-       lp.Set( sh.midPointCoord, esm, sh.volume );
-       if( rhsCoefs_->GetDimType() == CoefFunction::SCALAR ) {
-         cVec.Resize(1);
-         rhsCoefs_->GetScalar(cVec[0],lp);
-       } else {
-         rhsCoefs_->GetVector(cVec,lp);
-       }
-     }
+    // Get shape map from grid
+    shared_ptr<ElemShapeMap> esm =
+        ent.GetGrid()->GetElemShapeMap(ptElem, this->coordUpdate_);
 
-     // Loop over all integration points
-     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+    // Get integration points
+    intScheme_->GetIntPoints(Elem::GetShapeType(ptElem->type), method, order,
+                             intPoints, weights);
 
-       // Calculate for each integration point the LocPointMapped
-       if (SURFACE) {
-         lp.Set( intPoints[i], esm, volRegions_, weights[i] );
-       } else {
-         lp.Set( intPoints[i], esm, weights[i] );
-       }
+    LocPointMapped lp;
+    elemVec.Resize(nrFncs * Bdim_);
+    elemVec.Init();
 
-       //calc factor
-       fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
-       fac *= factor_;
-       // Call the CalcBMat()-method
-       bOperator_->CalcOpMatTransposed( bMat, lp, ptFe);
+    // Pre-evaluate coefficient function in case of reduced accuracy
+    if (!fullEvaluation_)
+    {
+      const ElemShape sh = Elem::shapes[ptElem->type];
+      lp.Set(sh.midPointCoord, esm, sh.volume);
+      if (rhsCoefs_->GetDimType() == CoefFunction::SCALAR)
+      {
+        cVec.Resize(1);
+        rhsCoefs_->GetScalar(cVec[0], lp);
+      }
+      else
+      {
+        rhsCoefs_->GetVector(cVec, lp);
+      }
+    }
 
-       // Evaluate coefficient function in integration point
-       // ( in case of full order)
-       if( fullEvaluation_ ) {
-         if( rhsCoefs_->GetDimType() == CoefFunction::SCALAR ) {
-           cVec.Resize(1);
-           rhsCoefs_->GetScalar(cVec[0],lp);
-         } else {
-           rhsCoefs_->GetVector(cVec,lp);
-           if (SURFACE && (ptFeSpace_->GetSpaceType() == FeSpace::HCURL)) {
-             //uxn
-             pt1 = lp.normal;
-             cVec.CrossProduct(pt1,pt2);
+    // Loop over all integration points
+    for (UInt i = 0; i < intPoints.GetSize(); i++)
+    {
 
-             // Jacobian of surface element
-             lp.jac.Transpose(JacT);
+      // Calculate for each integration point the LocPointMapped
+      if (SURFACE)
+      {
+        lp.Set(intPoints[i], esm, volRegions_, weights[i]);
+      }
+      else
+      {
+        lp.Set(intPoints[i], esm, weights[i]);
+      }
 
-             //Metric and its inverse
-             TF = JacT * lp.jac;
-             TF.Invert(TFinv);
+      // calc factor
+      fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
+      fac *= factor_;
 
-             // Transformation of a function in curl space (see Zaglmayer Lemma 4.15)
-             cVec = (TFinv * JacT) * pt2;
-             fac *= lp.lpmVol->jacDet;
-           }
-         }
-       }
-       elemVec += bMat * cVec * fac;
+      if (useVolume4Edge_)
+      {
+        bOperator_->CalcOpMatTransposed(bMat, lp, ptFeVol);
+      }
+      else
+      {
+        bOperator_->CalcOpMatTransposed(bMat, lp, ptFe);
+      }
+      // Evaluate coefficient function in integration point
+      // ( in case of full order)
+      if (fullEvaluation_)
+      {
+        if (rhsCoefs_->GetDimType() == CoefFunction::SCALAR)
+        {
+          cVec.Resize(1);
+          rhsCoefs_->GetScalar(cVec[0], lp);
+        }
+        else
+        {
+          rhsCoefs_->GetVector(cVec, lp);
+          if (SURFACE && (ptFeSpace_->GetSpaceType() == FeSpace::HCURL))
+          {
+            // uxn
+            pt1 = lp.normal;
+            cVec.CrossProduct(pt1, pt2);
 
-     }
+            // Jacobian of surface element
+            lp.jac.Transpose(JacT);
+
+            // Metric and its inverse
+            TF = JacT * lp.jac;
+            TF.Invert(TFinv);
+
+            // Transformation of a function in curl space (see Zaglmayer Lemma 4.15)
+            cVec = (TFinv * JacT) * pt2;
+            fac *= lp.lpmVol->jacDet;
+          }
+        }
+      }
+      elemVec += bMat * cVec * fac;
+    }
   }
 }

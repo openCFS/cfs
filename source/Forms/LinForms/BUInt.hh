@@ -24,7 +24,8 @@
 #include "LinearForm.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Forms/Operators/BaseBOperator.hh"
-
+#include "Domain/ElemMapping/SurfElem.hh"
+#include "FeBasis/HCurl/HCurlElemsHi.hh"
 namespace CoupledField{
 
 template< class VEC_DATA_TYPE=Double,
@@ -49,7 +50,8 @@ public:
       bool coordUpdate = false,
       bool fullEvaluation = true,
       bool extractReal = false,
-      const string& id = ""); // to save coil id
+      const string& id = "",
+      bool useVolume4Edge = false); // to save coil id
 
   //! Copy constructor
   BUIntegrator(const BUIntegrator& right )
@@ -120,6 +122,10 @@ protected:
 
   //! dimension of b-operator
   UInt Bdim_ = 0;
+
+  //! Flag if the corresponding volume element should be used to
+  //! evaluate the operator for edge elements
+  bool useVolume4Edge_;
 
 };
 
