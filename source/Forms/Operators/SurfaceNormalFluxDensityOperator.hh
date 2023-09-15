@@ -22,7 +22,7 @@
 namespace CoupledField
 {
 
-template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
+template<class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
 class SurfaceNormalFluxDensityOperator : public BaseBOperator
 {
 public:
@@ -221,7 +221,7 @@ void SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(M
   //check if lp is surface and ptFe is volume
   assert(lp.isSurface);
   assert(D == ptFe->shape_.dim);
-  assert(this->coef_);
+  //assert(this->coef_);
 
   UInt numFncs = ptFe->GetNumFncs();
   // Set correct size of matrix B and initialise with zeros
@@ -229,8 +229,8 @@ void SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(M
   bMat.InitValue(0.0);
 
   //obtain external field
-  Matrix<Double> matTensor;
-  this->coef_->GetTensor(matTensor, lp);
+  //Matrix<Double> matTensor;
+  //this->coef_->GetTensor(matTensor, lp);
 
   // Get B-Operator of local shape functions with respect to global
   // coords (format: nrNodes x spaceDim)
@@ -242,7 +242,8 @@ void SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(M
   Matrix<Double> normalOp;
   ComputeNormalOperator(normalOp, lp);
 
-  bMat = gradMat*matTensor*normalOp;
+  //bMat = gradMat*matTensor*normalOp;
+  bMat = gradMat*normalOp;
 }
 
 template<class FE, UInt D, UInt D_DOF, class TYPE>
@@ -259,7 +260,7 @@ void SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(M
   //check if lp is surface and ptFe is volume
   assert(lp.isSurface);
   assert(D == ptFe->shape_.dim);
-  assert(this->coef_);
+  //assert(this->coef_);
 
   UInt numFncs = ptFe->GetNumFncs();
   // Set correct size of matrix B and initialise with zeros
@@ -267,8 +268,8 @@ void SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(M
   bMat.InitValue(0.0);
 
   //obtain external field
-  Matrix<Complex> matTensor;
-  this->coef_->GetTensor(matTensor, lp);
+  //Matrix<Complex> matTensor;
+  //this->coef_->GetTensor(matTensor, lp);
 
   // Get B-Operator of local shape functions with respect to global
   // coords (format: nrNodes x spaceDim)
@@ -280,7 +281,8 @@ void SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(M
   Matrix<Complex> normalOp;
   ComputeNormalOperator(normalOp, lp);
 
-  bMat = gradMat*matTensor*normalOp;
+  //bMat = gradMat*matTensor*normalOp;
+  bMat = gradMat*normalOp;
 }
 
 template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>

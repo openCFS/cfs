@@ -31,6 +31,7 @@
 #include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/DaeOperator.hh"
+#include "Forms/Operators/SurfaceNormalFluxDensityOperator.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -644,6 +645,8 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
       assemble_->AddLinearForm(ctx);
     } // end loop over entities
 
+    
+    
     PtrParamNode bcNode = myParam_->Get( "bcsAndLoads", ParamNode::PASS );
     if( bcNode ) {
 
@@ -704,8 +707,36 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
         feFunctions_[MAG_POTENTIAL]->AddEntityList( actSDList );
         assemble_->AddLinearForm( c2Context );
       }
-    }
 
+      // Zweckentfremdung: das wird der c3 Vektor
+      eNodes = bcNode->GetList( "c3" );
+      for( UInt i = 0; i < eNodes.GetSize(); i++ ) {
+        std::string regionName = eNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName ); 
+       
+        std::set<RegionIdType> volRegions;
+        std::string volRegionName = eNodes[i]->Get("volumeRegion")->As<std::string>();
+        shared_ptr<EntityList> actSDListVol =  ptGrid_->GetEntityList( EntityList::ELEM_LIST,volRegionName ); 
+        RegionIdType aRegionVol = ptGrid_->GetRegion().Parse(volRegionName);
+
+        PtrCoefFct conductivityCoeff;
+        Double conductivity = 0.0;
+        materials_[aRegionVol]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
+        conductivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(conductivity));
+        volRegions.insert(aRegionVol);
+
+
+        
+        LinearForm * c3Int = NULL;
+     
+        c3Int = new BUIntegrator<Double,true>(new SurfaceNormalFluxDensityOperator<FeH1,3,1>("3d"), 1.0, conductivityCoeff, volRegions, updatedGeo_, true, false, "", true);
+        c3Int->SetName("c3Integrator");
+        LinearFormContext *c3Context = new LinearFormContext(c3Int );
+        c3Context->SetEntities( actSDList );
+        c3Context->SetFeFunction( feFunctions_[ELEC_POTENTIAL] );
+        assemble_->AddLinearForm( c3Context );
+      } 
+    }
 
   }
 
