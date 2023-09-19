@@ -333,8 +333,10 @@ namespace CoupledField{
     static const UInt DIM_D_MAT = 1; 
     //@}
 
+    PtrCoefFct dir = NULL;
 
-    DaeIdentityOperatorProjected(){
+    DaeIdentityOperatorProjected(PtrCoefFct directions){
+      this->dir = directions;
       return;
     }
 
@@ -439,8 +441,10 @@ namespace CoupledField{
     static const UInt DIM_D_MAT = 1; 
     //@}
 
+    PtrCoefFct dir = NULL;
 
-    DaeIdentityOperatorProjected(){
+    DaeIdentityOperatorProjected(PtrCoefFct directions){
+      this->dir = directions;
       return;
     }
 

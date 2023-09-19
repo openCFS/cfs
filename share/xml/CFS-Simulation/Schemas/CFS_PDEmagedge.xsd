@@ -211,6 +211,12 @@
                   </xsd:annotation>
                 </xsd:element>
 
+                <xsd:element name="c4" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Export vector for MOR method</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector"/>

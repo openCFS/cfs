@@ -736,6 +736,52 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
         c3Context->SetFeFunction( feFunctions_[ELEC_POTENTIAL] );
         assemble_->AddLinearForm( c3Context );
       } 
+
+
+      // Zweckentfremdung: das wird der c4 Vektor
+      ParamNodeList c4Nodes = bcNode->GetList( "c4" );
+      for( UInt i = 0; i < c4Nodes.GetSize(); i++ ) {
+        // surface region name
+        std::string regionName = c4Nodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName ); 
+       
+        // volume region name
+       
+        std::set<RegionIdType> volRegions;
+        std::string volRegionName = c4Nodes[i]->Get("regionList/region/name")->As<std::string>();
+        shared_ptr<EntityList> actSDListVol =  ptGrid_->GetEntityList( EntityList::ELEM_LIST,volRegionName ); 
+        RegionIdType aRegionVol = ptGrid_->GetRegion().Parse(volRegionName);
+        volRegions.insert(aRegionVol);
+
+        // Read in components
+        ParamNodeList compList = c4Nodes[i]->GetList("comp");
+        UInt dim = ptGrid_->GetDim();
+        StdVector<std::string> real(dim);
+        real.Init("0.0");
+        std::string dof, val;
+        StdVector<Double> components;
+        components.Resize(3);
+        for( UInt j = 0; j < compList.GetSize(); ++j  ) {
+          compList[j]->GetValue("dof", dof);
+          compList[j]->GetValue("value", val, ParamNode::PASS );
+          real[j] = val;
+          components[j] = stod(val);
+        }
+        PtrCoefFct dirCoef;
+        dirCoef = CoefFunction::Generate(mp_, Global::ComplexPart::REAL, real);
+          
+        PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+        LinearForm * c4Int = NULL;
+        c4Int = new BUIntegrator<Double,true>(new DaeIdentityOperatorProjected<FeHCurl,3,1,Double>(dirCoef), 1.0, factor, volRegions, updatedGeo_, true, false, "", true);
+        //c1Int = new BUIntegrator<Double,true>(new IdentityOperator<FeHCurl,3,1,Double>(), 1.0, conductivityCoeff, volRegions, updatedGeo_);
+        c4Int->SetName("c4Integrator");
+        LinearFormContext *c4Context = new LinearFormContext(c4Int );
+        c4Context->SetEntities( actSDList );
+        c4Context->SetFeFunction( feFunctions_[MAG_POTENTIAL] );
+        //feFunctions_[MAG_POTENTIAL]->AddEntityList( actSDList );
+        assemble_->AddLinearForm( c4Context );
+      }
+
     }
 
   }
