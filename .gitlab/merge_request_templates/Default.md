@@ -2,14 +2,14 @@
 
 ( Summarise the changes introduced in this merge request )
 
-( mention associated Testsuite merge request by pasting a link )
+__Testsuite merge request__: ( no Testsuite changes | paste a link to the Testsuite merge request )
 
 ## Check before assigning to a maintainer for review
 
-* [ ] the history is clean
-* [ ] code is well documented and understandable
-* [ ] there is a testcase (in case of new functionality)
-* [ ] every commit passes the pipeline
+* [ ] The history is clean
+* [ ] New Code is well-documented and understandable
+* [ ] There is a test case (in case of new functionality)
+* [ ] Every commit passes the pipeline
 
 ## Maintainer checks before merge
 

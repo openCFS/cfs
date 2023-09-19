@@ -80,13 +80,15 @@ Please use the following workflow to contribute
 2. Create a topic-**branch** and start coding.
   As soon as possible, **commit** and **push** your work and
 3. open a **merge request**.
-   * Mark the merge request as *draft* or *work in progress*.
-   * Add a description to the merge request (e.g. to-do list, discussion outcome of the issue, ...)
-   * Comments, changes, and pipeline results will be collected within the merge request page on gitlab. 
+   * Mark the merge request as *draft* or *work in progress*. This disables automatically running CI pipelines.
+   * Add a description to the merge request (e.g. to-do list, discussion outcome of the issue, ...).
+   * Comments, changes, and pipeline results will be collected within the merge request page on gitlab.
 4. Once you're done (contribution adheres to guidelines, pipeline passes), start the review: **assign** the merge request to a _maintainer_.
    * The maintainer might assign reviewers to comment on the contribution.
    * If there is still an issue the reviewer/maintainer will tell you about it and assign the issue back to you.
    * Once you're done resolving everything, change the assignment of the MR again.
+   * To allow maintainers to directly fix things, you can [allow commits from upstream members](https://docs.gitlab.com/ee/user/project/merge_requests/allow_collaboration.html#allow-commits-from-upstream-members) in your fork.
+     By selecting the respective checkbox when creating/editing the MR you can give openCFS maintainers write permission on the MR-source-branch in your fork.
    * Please do not open a new merge request!
 
 Notes for Maintainers
