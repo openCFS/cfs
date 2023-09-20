@@ -23,6 +23,7 @@
 #include <algorithm>
 #include <vector>
 
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 // check if Intel MKL is available
 #include <def_use_blas.hh>
@@ -32,6 +33,9 @@
 #endif
 
 namespace CFSDat{
+
+  // declare logging stream
+  DEFINE_LOG(nearestNeighbourInterpolator, "NearestNeighbourInterpolator")
 
 NearestNeighbourInterpolator::NearestNeighbourInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
                      :AbstractInterpolator(numWorkers,config,resMan){
@@ -140,10 +144,10 @@ void NearestNeighbourInterpolator::FillMatrix(StdVector<CF::UInt>& globSrcEntity
         }
         for (i = 0; i < numNeighbors_; i++) {
           srcFactors[i] /= weights;
-	      std::cout << "\t\t\t scrFactor " << srcFactors[i] << std::endl;
+          LOG_TRACE(nearestNeighbourInterpolator) << "\t\t\t scrFactor " << srcFactors[i] << std::endl;
 
           srcFactors[i] = srcFactors[i] * globalFactor_;
-	      std::cout << "\t\t\t scrFactor mult " << srcFactors[i] << std::endl;
+          LOG_TRACE(nearestNeighbourInterpolator) << "\t\t\t scrFactor mult " << srcFactors[i] << std::endl;
         }
       } else {
         outIn[ITrgSrcIndex] = nearestIndices[0];
