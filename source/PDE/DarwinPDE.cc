@@ -772,7 +772,7 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
           
         PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL, "1.0");
         LinearForm * c4Int = NULL;
-        c4Int = new BUIntegrator<Double,true>(new DaeIdentityOperatorProjected<FeHCurl,3,1,Double>(dirCoef), 1.0, factor, volRegions, updatedGeo_, true, false, "", true);
+        c4Int = new BUIntegrator<Complex,true>(new DaeIdentityOperatorProjected<FeHCurl,3,1,Double>(components), 1.0, factor, volRegions, updatedGeo_, true, false, "", true);
         //c1Int = new BUIntegrator<Double,true>(new IdentityOperator<FeHCurl,3,1,Double>(), 1.0, conductivityCoeff, volRegions, updatedGeo_);
         c4Int->SetName("c4Integrator");
         LinearFormContext *c4Context = new LinearFormContext(c4Int );

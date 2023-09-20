@@ -333,9 +333,9 @@ namespace CoupledField{
     static const UInt DIM_D_MAT = 1; 
     //@}
 
-    PtrCoefFct dir = NULL;
+    StdVector<Double> dir;
 
-    DaeIdentityOperatorProjected(PtrCoefFct directions){
+    DaeIdentityOperatorProjected(StdVector<Double> directions){
       this->dir = directions;
       return;
     }
@@ -441,9 +441,10 @@ namespace CoupledField{
     static const UInt DIM_D_MAT = 1; 
     //@}
 
-    PtrCoefFct dir = NULL;
+    //! Additional variable describing a xml user-input vector for projection
+    StdVector<Double> dir;
 
-    DaeIdentityOperatorProjected(PtrCoefFct directions){
+    DaeIdentityOperatorProjected(StdVector<Double> directions){
       this->dir = directions;
       return;
     }
@@ -528,10 +529,11 @@ namespace CoupledField{
     //         any influence (currently not yet implemented).
     
     fe->GetShFnc( shFncMat, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem());
-
+    
     for(UInt sh = 0; sh < numFncs; sh++){
       for(UInt d = 0; d < DIM_SPACE; d++){
-    	  bMat[0][sh] += shFncMat[d][sh] * lp.normal[d];
+//    	  bMat[0][sh] += shFncMat[d][sh] * lp.normal[d];
+     	  bMat[0][sh] += shFncMat[d][sh] * this->dir[d];
       }
     }
 
