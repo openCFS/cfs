@@ -175,8 +175,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     # boost 1.73 'unary_function<bool, unsigned long>' is deprecated
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations")
     
-    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16)
-      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wenum-constexpr-conversion")
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15)
+      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-builtins") # at least AppleClang
+      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-enum-constexpr-conversion")
     endif()
   endif()
 
@@ -197,6 +198,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     # practically we need homebrew for libquadmath (on x86_64) we might already have this from openmp
     if(NOT USE_OPENMP)
       set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -L${CFS_BREW_BASE}/lib")  
+    endif()
+
+    # linker issue with xcode 15 on mac
+    # https://developer.apple.com/forums/thread/735426
+    if(CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -ld_classic")
     endif()
 
     # warning! don't do -Wl,-nowarn_compact_unwind to prevent unwind warnings! This kills exception catching!
