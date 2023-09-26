@@ -12,6 +12,7 @@ SET(PDE_SRCS
   MagEdgePDE.cc
   MagEdgeSpecialAVPDE.cc
   MagEdgeMixedAVPDE.cc
+  MagEdgeMixedSFGPDE.cc
   MagneticPDE.cc
   DarwinPDE.cc
   MechPDE.cc
