@@ -75,10 +75,14 @@
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="magVecPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="VecPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="ScaPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="lagrangeMultPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="magVecIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="VecIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="ScaIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="lagrangeMultIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
@@ -238,6 +242,7 @@
               <xsd:enumeration value="specialA-V"/> 
               <xsd:enumeration value="Darwin"/> 
               <xsd:enumeration value="Darwin_doubleLagrange"/>
+              <xsd:enumeration value="mixedSFG"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 
