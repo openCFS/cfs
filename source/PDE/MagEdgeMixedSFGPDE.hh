@@ -40,6 +40,10 @@ namespace CoupledField
     //! the ReadCoils() method brought into being.
     ~MagEdgeMixedSFGPDE();
 
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return MAG_FIELD_INTENSITY; }
+
+
     //! Initialize NonLinearities
     virtual void InitNonLin(){}; // not implemented
 
@@ -47,11 +51,12 @@ namespace CoupledField
 
     LinearForm* GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId = "" );
 
-    //! read special boundary conditions (coils, magnets)
-    void ReadSpecialBCs(){}; // not implemented
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
+    void DefineStandardIntegrators();
+    void DefineCoilIntegrators();
+
 
     //! Defines the integrators needed for ncInterfaces
     void DefineNcIntegrators(){}; // not implemented
@@ -62,10 +67,6 @@ namespace CoupledField
     LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ){return NULL;}; // not implemented
     BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity ){return NULL;}; // not implemented
     void InitMagnetization(){}; // not implemented
-
-
-    //! Define all RHS linearforms
-    void DefineCoilIntegrators();
     
     // =======================================================================
     //  Initialization
@@ -87,15 +88,6 @@ namespace CoupledField
     std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string& formulation, 
                     PtrParamNode infoNode );
-    
-
-  private:
-
-    //! Define integrators for general coils/inductors
-    void DefineGeneralCoilIntegrator(){}; // not implemented
-
-    //! Define integrators for classical cylindrical coils
-    void DefineCylindricalCoilIntegrator(){}; // not implemented
 
   };
 

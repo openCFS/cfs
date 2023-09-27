@@ -76,12 +76,19 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
   MagEdgeMixedSFGPDE::~MagEdgeMixedSFGPDE() {
   }
 
+  void MagEdgeMixedSFGPDE::DefineIntegrators() {
+    this->DefineStandardIntegrators();
+    // in MagBasePDE
+    DefineCoilIntegrators();
+  }
+
+
 
 
   // *****************************
   //  Definition of Integrators
   // *****************************
-  void MagEdgeMixedSFGPDE::DefineIntegrators() {
+  void MagEdgeMixedSFGPDE::DefineStandardIntegrators() {
 
     RegionIdType actRegion;
 
