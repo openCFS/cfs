@@ -375,8 +375,8 @@ namespace CoupledField
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
     gamma = 1.0;
-    Double phi = 2.0;
-    Double alpha = 1.0e-4;
+    Double phi = 1.5;
+    Double alpha = 0.1;
     UInt numLSIter = 0;
     Double res_x_trial = 0.0;
 
@@ -401,7 +401,7 @@ namespace CoupledField
 
       if( res_x_trial < (1.0 - alpha*gamma)*startingResidual ){
         break;
-      }else if( gamma < 1.0e-16){
+      }else if( gamma < 0.02){
         break;
       }else{
         gamma = 1.0/std::pow(phi,numLSIter);
