@@ -646,21 +646,13 @@ DEFINE_LOG(eb, "EBHysteresis")
         ret.Push_back(Py);
 
       }else{   
-        // 3D Version
+        // 3D Version (VPM)
         // volumetric weight for each pseudo particle
-        StdVector<Double> weight(numS_);
-        weight.Init(1.0/numS_);
-        // dissipation scalar parameter (can also be a tensor if anisotropy is needed) 
-        StdVector<Double> chi(numS_);
-        Double offset = 1e-22;
-        for(UInt i = 0; i < numS_; i++){
-          chi[i] = chi_factor_ * i / (numS_ - 1) + offset;
-        }
-        StdVector<Double> error, dir_phi, dir_theta, HrxS_sol, HryS_sol,HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
+        //EXCEPTION("NO 3D!!!")
+        StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
         StdVector<UInt> numIter;
         error.Resize(numS_, 0.0);
-        dir_phi.Resize(numS_, 0.0);
-        dir_theta.Resize(numS_, 0.0);
+        dir.Resize(numS_, 0.0);
         numIter.Resize(numS_, 0);
         HrxS_sol.Resize(numS_, 0.0);
         HryS_sol.Resize(numS_, 0.0);
@@ -672,18 +664,10 @@ DEFINE_LOG(eb, "EBHysteresis")
         Double Hex_x = Hn[0];
         Double Hex_y = Hn[1];
         Double Hex_z = Hn[2];
-        // all needed variables
-        Double HrxS_prev, HryS_prev, HrzS_prev, MxSprev, MySprev, MzSprev, phi, err, ux, uy, uz, uabs,
-            du_dphi_x, du_dphi_y, du_dphi_z, du_dtheta_x, du_dtheta_y, du_dtheta_z,
-            d2u_dphi2_x, d2u_dphi2_y, d2u_dphi2_z, d2u_dtheta2_x, d2u_dtheta2_y, d2u_dtheta2_z,
-            d2u_dthetadphi_x, d2u_dthetadphi_y, d2u_dthetadphi_z,
-            Man, Man_strich, theta,
-            g_strich_x, g_strich_y,
-            phi_initial, theta_initial,
-            g_strich_strich_11, g_strich_strich_12, g_strich_strich_21, g_strich_strich_22,
-            thetaNew, phiNew, det_g_strich_strich, inv_det_g_strich_strich, normHrev, Px, Py, Pz, c1,c2,
-            i_correct_x, i_correct_y, i_correct_z, Hirr_x, Hirr_y, Hirr_z,
-            condition1, norm_i_initial;
+
+        Double HrxS_prev, HryS_prev, HrzS_prev, MxSprev, MySprev, MzSprev, phi, err, ux, uy,
+              uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py, Pz,
+              condition1, theta, i_correct_x,i_correct_y,i_correct_z,Hirr_x,Hirr_y,Hirr_z,coth_La,coth_Lb,J_an;
         UInt iter;
         StdVector<Double>& HxS_prev = HxS_n_[idx];
         StdVector<Double>& HyS_prev = HyS_n_[idx];
@@ -691,14 +675,8 @@ DEFINE_LOG(eb, "EBHysteresis")
         StdVector<Double>& MxS_prev = MxS_n_[idx];
         StdVector<Double>& MyS_prev = MyS_n_[idx];
         StdVector<Double>& MzS_prev = MzS_n_[idx];
-        StdVector<Double> invCHI(9); invCHI.Init(0.0);
-        StdVector<Double> CHI(9); CHI.Init(0.0);
-        Px = 0.0;
-        Py = 0.0;
-        Pz = 0.0;
-        // #############################################################
-        //LOOP OVER ALL PARTICLES
-        //#############################################################
+
+
         for(int k = 0; k < numS_; k++){
           HrxS_prev = HxS_prev[k];
           HryS_prev = HyS_prev[k];
@@ -706,154 +684,53 @@ DEFINE_LOG(eb, "EBHysteresis")
           MxSprev = MxS_prev[k];
           MySprev = MyS_prev[k];
           MzSprev = MzS_prev[k];
-          // checks what the state of the dissipation is
-          CHI[0] = chi[k]; CHI[1] = offset; CHI[2] = offset; CHI[3] = offset; CHI[4] = chi[k]; CHI[5] = offset; CHI[6] = offset; CHI[7] = offset; CHI[8] = chi[k];
-          condition1 = (std::pow((Hex_x-HrxS_prev)/chi[k],2) + std::pow((Hex_y-HryS_prev)/chi[k],2) + std::pow((Hex_z-HrzS_prev)/chi[k],2));
-          if( condition1 <= 1 ){
+          condition1 = ( std::pow((Hex_x - HrxS_prev)/chi[k], 2) + std::pow((Hex_y - HryS_prev)/chi[k], 2) + std::pow((Hex_z - HrzS_prev)/chi[k], 2) );
+          if( condition1 <= 1.0){
             HrxS_sol[k] = HrxS_prev;
             HryS_sol[k] = HryS_prev;
             HrzS_sol[k] = HrzS_prev;
-          }else if( condition1 > 1.0){
-            StdVector<Double> i_initial(3); i_initial.Init(0.0);
-            invCHI = inv3x3(CHI);
-            if(k > 0){
+          }else{
+            // dissipation now reached (just arrived at the border of the sphere)
+            if(k == 0){
+              HrxS_sol[k] = Hex_x;
+              HryS_sol[k] = Hex_y;
+              HrzS_sol[k] = Hex_z;
+            }else{
               // use the direction of the vector play model as initial direction
-/*                 i_initial[0] = invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z) / std::sqrt(std::pow(invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z),2));
-                i_initial[1] = invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z) / std::sqrt(std::pow(invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z),2));
-                i_initial[2] = invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z) / std::sqrt(std::pow(invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z),2)); */
-                i_initial[0] = invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z);
-                i_initial[1] = invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z);
-                i_initial[2] = invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z);
-                norm_i_initial = std::sqrt(std::pow(invCHI[0]*(HrxS_prev-Hex_x)+invCHI[1]*(HryS_prev-Hex_y)+invCHI[2]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[3]*(HrxS_prev-Hex_x)+invCHI[4]*(HryS_prev-Hex_y)+invCHI[5]*(HrzS_prev-Hex_z),2)+std::pow(invCHI[6]*(HrxS_prev-Hex_x)+invCHI[7]*(HryS_prev-Hex_y)+invCHI[8]*(HrzS_prev-Hex_z),2));
-                i_initial[0] = i_initial[0]/norm_i_initial;
-                i_initial[1] = i_initial[1]/norm_i_initial;
-                i_initial[2] = i_initial[2]/norm_i_initial;
+              Hirr_x = chi[k]* (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
+              Hirr_y = chi[k]* (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
+              Hirr_z = chi[k]* (Hex_z - HrzS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
+              HrxS_sol[k] = Hex_x - Hirr_x;
+              HryS_sol[k] = Hex_y - Hirr_y;
+              HrzS_sol[k] = Hex_z - Hirr_z;
             }
-            else{
-              i_initial[0] = 0.0;
-              i_initial[1] = 0.0;
-              i_initial[2] = 0.0;
-            }
-            if (k > 0){
-                phi_initial = std::atan2(i_initial[1],i_initial[0]);
-                theta_initial = std::acos(i_initial[2]);
-            }else{
-                phi_initial = 0.0;
-                theta_initial = 0.0;
-            }
-            
-            // NEWTON SCHEME
-            err = 1.0;
-            phi = phi_initial;
-            theta = theta_initial;
-            iter = 0;
-            while(err > 1e-3 && iter<10){
-                // calc all needed stuff for the Newton step: x_k+1 = x_k - inv(H)*f'(x_k)
-                // H ... Hessian, f' ... first derivative
-                ux = Hex_x + chi[k]*std::cos(phi)*std::sin(theta)+offset*std::sin(phi)*std::sin(theta)+offset*std::cos(theta);
-                uy = Hex_y + offset*std::cos(phi)*std::sin(theta)+chi[k]*std::sin(phi)*std::sin(theta)+offset*std::cos(theta);
-                uz = Hex_z + offset*std::cos(phi)*std::sin(theta)+offset*std::sin(phi)*std::sin(theta)+chi[k]*std::cos(theta);
-                uabs = std::sqrt( std::pow(ux, 2) + std::pow(uy, 2) + std::pow(uz, 2));
-
-                du_dphi_x = chi[k]*(-1)*std::sin(phi)*std::sin(theta)+offset*std::cos(phi)*std::sin(theta)+offset*0;
-                du_dphi_y = offset*(-1)*std::sin(phi)*std::sin(theta)+chi[k]*std::cos(phi)*std::sin(theta)+offset*0;
-                du_dphi_z = offset*(-1)*std::sin(phi)*std::sin(theta)+offset*std::cos(phi)*std::sin(theta)+chi[k]*0;
-                du_dtheta_x = chi[k]*std::cos(phi)*std::cos(theta)+offset*std::sin(phi)*std::cos(theta)+offset*(-1)*std::sin(theta);
-                du_dtheta_y = offset*std::cos(phi)*std::cos(theta)+chi[k]*std::sin(phi)*std::cos(theta)+offset*(-1)*std::sin(theta);
-                du_dtheta_z = offset*std::cos(phi)*std::cos(theta)+offset*std::sin(phi)*std::cos(theta)+chi[k]*(-1)*std::sin(theta);
-
-                d2u_dphi2_x = chi[k]*(-1)*cos(phi)*sin(theta)+offset*(-1)*sin(phi)*sin(theta)+ offset*0;
-                d2u_dphi2_y = offset*(-1)*cos(phi)*sin(theta)+chi[k]*(-1)*sin(phi)*sin(theta)+ offset*0;
-                d2u_dphi2_z = offset*(-1)*cos(phi)*sin(theta)+offset*(-1)*sin(phi)*sin(theta)+ chi[k]*0;
-                d2u_dtheta2_x = chi[k]*(-1)*cos(phi)*sin(theta)+offset*(-1)*sin(phi)*sin(theta)+offset*(-1)*cos(theta);
-                d2u_dtheta2_y = offset*(-1)*cos(phi)*sin(theta)+chi[k]*(-1)*sin(phi)*sin(theta)+offset*(-1)*cos(theta);
-                d2u_dtheta2_z = offset*(-1)*cos(phi)*sin(theta)+offset*(-1)*sin(phi)*sin(theta)+chi[k]*(-1)*cos(theta);
-
-                d2u_dthetadphi_x = chi[k]*(-1)*std::sin(phi)*std::cos(theta)+offset*std::cos(phi)*std::cos(theta)+offset*0;
-                d2u_dthetadphi_y = offset*(-1)*std::sin(phi)*std::cos(theta)+chi[k]*std::cos(phi)*std::cos(theta)+offset*0;
-                d2u_dthetadphi_z = offset*(-1)*std::sin(phi)*std::cos(theta)+offset*std::cos(phi)*std::cos(theta)+chi[k]*0;
-
-                //anhysteretic function + first derivative
-                Man = (2*Ps_/M_PI) * std::atan(uabs/A_);
-                Man_strich = (2*Ps_/(A_*M_PI)) * (1.0/(1.0+std::pow(uabs/A_, 2)));
-                // first derivative of objective function after phi and theta (now vector-valued)
-                c1 = Man/uabs;
-                c2 = (uabs*Man_strich-Man)/(std::pow(uabs,2));
-                g_strich_x = (c1*ux-MxSprev)*du_dphi_x + (c1*uy-MySprev)*du_dphi_y + (c1*uz-MzSprev)*du_dphi_z;
-                g_strich_y =  (c1*ux-MxSprev)*du_dtheta_x + (c1*uy-MySprev)*du_dtheta_y + (c1*uz-MzSprev)*du_dtheta_z; 
-                
-                
-                // second derivative (jacobi/hessian-matrix)
-                g_strich_strich_11 = c1*(ux*d2u_dphi2_x+uy*d2u_dphi2_y+uz*d2u_dphi2_z) + 
-                                            c1*(du_dphi_x*du_dphi_x+du_dphi_y*du_dphi_y+du_dphi_z*du_dphi_z) + 
-                                            c2*((ux/uabs)*du_dphi_x+(uy/uabs)*du_dphi_y+(uz/uabs)*du_dphi_z)*(ux*du_dphi_x+uy*du_dphi_y+uz*du_dphi_z) - 
-                                            (MxSprev*d2u_dphi2_x+MySprev*d2u_dphi2_y+MzSprev*d2u_dphi2_z); 
-                
-                g_strich_strich_12 = c1*(ux*d2u_dthetadphi_x+uy*d2u_dthetadphi_y+uz*d2u_dthetadphi_z) + 
-                                            c1*(du_dphi_x*du_dtheta_x+du_dphi_y*du_dtheta_y+du_dphi_z*du_dtheta_z) + 
-                                            c2*((ux/uabs)*du_dtheta_x+(uy/uabs)*du_dtheta_y+(uz/uabs)*du_dtheta_z)*(ux*du_dphi_x+uy*du_dphi_y+uz*du_dphi_z) - 
-                                            (MxSprev*d2u_dthetadphi_x+MySprev*d2u_dthetadphi_y+MzSprev*d2u_dthetadphi_z);
-                
-                g_strich_strich_21 = c1*(ux*d2u_dthetadphi_x+uy*d2u_dthetadphi_y+uz*d2u_dthetadphi_z) + 
-                                            c1*(du_dphi_x*du_dtheta_x+du_dphi_y*du_dtheta_y+du_dphi_z*du_dtheta_z) + 
-                                            c2*((ux/uabs)*du_dphi_x+(uy/uabs)*du_dphi_y+(uz/uabs)*du_dphi_z)*(ux*du_dtheta_x+uy*du_dtheta_y+uz*du_dtheta_z) - 
-                                            (MxSprev*d2u_dthetadphi_x+MySprev*d2u_dthetadphi_y+MzSprev*d2u_dthetadphi_z);
-                
-                g_strich_strich_22 = c1*(ux*d2u_dtheta2_x+uy*d2u_dtheta2_y+uz*d2u_dtheta2_z) + 
-                                            c1*(du_dtheta_x*du_dtheta_x+du_dtheta_y*du_dtheta_y+du_dtheta_z*du_dtheta_z) + 
-                                            c2*((ux/uabs)*du_dtheta_x+(uy/uabs)*du_dtheta_y+(uz/uabs)*du_dtheta_z)*(ux*du_dtheta_x+uy*du_dtheta_y+uz*du_dtheta_z) - 
-                                            (MxSprev*d2u_dtheta2_x+MySprev*d2u_dtheta2_y+MzSprev*d2u_dtheta2_z);
-                if( std::sqrt(std::pow(g_strich_x,2)+std::pow(g_strich_y,2)) < 1e-8){
-                    phiNew = phi;
-                    thetaNew = theta;
-                }else{
-                    // full Newton step
-                    det_g_strich_strich = (g_strich_strich_11 * g_strich_strich_22) - (g_strich_strich_12*g_strich_strich_21);
-                    inv_det_g_strich_strich = 1.0/det_g_strich_strich; // maybe check if det(J) is zero? --> error
-
-                    phiNew = phi - inv_det_g_strich_strich*(g_strich_strich_22*g_strich_x - g_strich_strich_12*g_strich_y);
-                    thetaNew = theta - inv_det_g_strich_strich*((-1)*g_strich_strich_21*g_strich_x + g_strich_strich_11*g_strich_y);
-                }
-                err = std::sqrt(std::pow(phiNew-phi,2)+std::pow(thetaNew-theta,2));
-                phi = phiNew;
-                theta = thetaNew;
-                iter++;
-            }
-            i_correct_x = std::cos(phi)*std::sin(theta);
-            i_correct_y = std::sin(phi)*std::sin(theta);
-            i_correct_z = std::cos(theta);
-            Hirr_x = chi[k]*i_correct_x+offset*i_correct_y+offset*i_correct_z;
-            Hirr_y = offset*i_correct_x+chi[k]*i_correct_y+offset*i_correct_z;
-            Hirr_z = offset*i_correct_x+offset*i_correct_y+chi[k]*i_correct_z;
-            HrxS_sol[k] = Hex_x + Hirr_x;
-            HryS_sol[k] = Hex_y + Hirr_y;
-            HrzS_sol[k] = Hex_z + Hirr_z;
-            }else{
-            HrxS_sol[k] = Hex_x;
-            HryS_sol[k] = Hex_y;
-            HrzS_sol[k] = Hex_z;
-            }
-        normHrev = std::sqrt(std::pow(HrxS_sol[k],2)+ std::pow(HryS_sol[k],2)+std::pow(HrzS_sol[k],2));
-        if( normHrev > 1e-20){
-            MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(normHrev/A_) * HrxS_sol[k]/normHrev;
-            MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(normHrev/A_) * HryS_sol[k]/normHrev;
-            MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(normHrev/A_) * HrzS_sol[k]/normHrev;
-        }else{
+          }  
+          HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
+          if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
+            /* coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
+            coth_Lb = std::cosh(HrS/ab)/std::sinh(HrS/ab);
+            J_an = 1*(coth_La - aa/HrS);
+            M_an = J_an/(4*M_PI*1e-7); */
+            MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
+            MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
+            MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS;
+            /* MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
+            MyS_sol[k] = M_an * HryS_sol[k]/HrS;
+            MzS_sol[k] = M_an * HrzS_sol[k]/HrS; */
+          }else{
             MxS_sol[k] = 0.0;
             MyS_sol[k] = 0.0;
             MzS_sol[k] = 0.0;
+          }
         }
-        Px += weight[k] * MxS_sol[k];
-        Py += weight[k] * MyS_sol[k];
-        Pz += weight[k] * MzS_sol[k];
+        Px = 0.0;
+        Py = 0.0;
+        Pz = 0.0;
+        for(int k = 0; k < numS_; k++){
+          Px += weight[k] * MxS_sol[k];
+          Py += weight[k] * MyS_sol[k];
+          Pz += weight[k] * MzS_sol[k];
         }
-        LOG_DBG3(eb)<< "HrxS_sol" << HrxS_sol.ToString();
-        LOG_DBG3(eb)<< "HryS_sol" << HryS_sol.ToString();
-        LOG_DBG3(eb)<< "HrzS_sol" << HrzS_sol.ToString();
-        LOG_DBG3(eb)<< "MxS_sol" << MxS_sol.ToString();
-        LOG_DBG3(eb)<< "MyS_sol" << MyS_sol.ToString();
-        LOG_DBG3(eb)<< "MzS_sol" << MzS_sol.ToString();
-        LOG_DBG3(eb)<< "weight" << weight.ToString();
         if(saveTmpStageVecs){
           HxS_n_tmp_[idx] = HrxS_sol;
           HyS_n_tmp_[idx] = HryS_sol;
@@ -862,7 +739,6 @@ DEFINE_LOG(eb, "EBHysteresis")
           MyS_n_tmp_[idx] = MyS_sol;
           MzS_n_tmp_[idx] = MzS_sol;
         }
-        // output polarization
         ret.Push_back(Px);
         ret.Push_back(Py);
         ret.Push_back(Pz);
