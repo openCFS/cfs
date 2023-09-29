@@ -76,18 +76,20 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
   MagEdgeMixedSFGPDE::~MagEdgeMixedSFGPDE() {
   }
 
+  // ********************************************************************************
+  //  METHOD THAT CALLS ALL METHODS FOR THE DEFINITION OF INTEGRATORS
+  // ********************************************************************************
   void MagEdgeMixedSFGPDE::DefineIntegrators() {
     this->DefineStandardIntegrators();
-    // in MagBasePDE
     DefineCoilIntegrators();
   }
 
 
 
 
-  // *****************************
-  //  Definition of Integrators
-  // *****************************
+  // ********************************************************************************
+  //  DEFINITION OF STIFFNESS INTEGRATORS
+  // ********************************************************************************
   void MagEdgeMixedSFGPDE::DefineStandardIntegrators() {
 
     RegionIdType actRegion;
@@ -97,8 +99,6 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
     shared_ptr<BaseFeFunction> ScaFeFunc = feFunctions_[LAGRANGE_MULT];
     shared_ptr<FeSpace> VecFeSpace = VecFeFunc->GetFeSpace();
     shared_ptr<FeSpace> ScaFeSpace = ScaFeFunc->GetFeSpace();
-
-
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
@@ -128,50 +128,49 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
       ScaFeFunc->AddEntityList( actSDList );
 
 
-        // ====================================================================
-        // STIFFNESS INTEGRATOR [START]
-        // (I) : curlN curlN + gradV N
-        // (II): N gradV
-        // ====================================================================
+      // ====================================================================
+      // STIFFNESS INTEGRATOR (start)
+      // (I) : curlh curlh' + gradu h'
+      // (II): h gradu'
+      // ====================================================================
 
+      // upper left matrix: curlN curlN
+      // ==============================
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      BaseBDBInt* stiffUpperLeft = NULL;
+      stiffUpperLeft = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constOne, 1.0, updatedGeo_) ;
+      stiffUpperLeft->SetName("CurlNCurlNIntegrator");
+      BiLinFormContext * stiffUpperLeftContext = new BiLinFormContext(stiffUpperLeft, STIFFNESS );
+      stiffUpperLeftContext->SetEntities( actSDList, actSDList );
+      stiffUpperLeftContext->SetFeFunctions( VecFeFunc, VecFeFunc );
+      assemble_->AddBiLinearForm( stiffUpperLeftContext );
 
-        // upper left matrix: curlN curlN
-        // ==============================
-        PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-        BaseBDBInt* stiffUpperLeft = NULL;
-        stiffUpperLeft = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constOne, 1.0, updatedGeo_) ;
-        stiffUpperLeft->SetName("CurlNCurlNIntegrator");
+      // upper right matrix: gradV N
+      // ==============================
+      BiLinearForm* stiffUpperRight = NULL;
+      stiffUpperRight = new ABInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),
+                                    new GradientOperator<FeH1,3,1,Double>(),
+                                    constOne, 1.0, updatedGeo_);
+      stiffUpperRight->SetName("GradVNIntegrator");
+      BiLinFormContext * stiffUpperRightContext = new BiLinFormContext(stiffUpperRight, STIFFNESS );
+      stiffUpperRightContext->SetEntities( actSDList, actSDList );
+      stiffUpperRightContext->SetFeFunctions( VecFeFunc, ScaFeFunc );
+      assemble_->AddBiLinearForm( stiffUpperRightContext );
 
-        BiLinFormContext * stiffUpperLeftContext = new BiLinFormContext(stiffUpperLeft, STIFFNESS );
-        stiffUpperLeftContext->SetEntities( actSDList, actSDList );
-        stiffUpperLeftContext->SetFeFunctions( VecFeFunc, VecFeFunc );
-        assemble_->AddBiLinearForm( stiffUpperLeftContext );
-
-        // upper right matrix: gradV N
-        // ==============================
-        BiLinearForm* stiffUpperRight = NULL;
-        stiffUpperRight = new ABInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),
-                                      new GradientOperator<FeH1,3,1,Double>(),
-                                      constOne, 1.0, updatedGeo_);
-        stiffUpperRight->SetName("GradVNIntegrator");
-
-        BiLinFormContext * stiffUpperRightContext = new BiLinFormContext(stiffUpperRight, STIFFNESS );
-        stiffUpperRightContext->SetEntities( actSDList, actSDList );
-        stiffUpperRightContext->SetFeFunctions( VecFeFunc, ScaFeFunc );
-        assemble_->AddBiLinearForm( stiffUpperRightContext );
-
-        // lower left matrix: N gradV
-        // ==============================
-        BiLinearForm* stiffLowerLeft = NULL;
-        stiffLowerLeft = new ABInt<>(new GradientOperator<FeH1,3,1,Double>(),
-                                      new IdentityOperator<FeHCurl,3,1,Double>(),
-                                      constOne, 1.0, updatedGeo_);
-        stiffLowerLeft->SetName("GradVIdentityAIntegratorLowerLeft");
-
-        BiLinFormContext * stiffLowerLeftContext = new BiLinFormContext(stiffLowerLeft, STIFFNESS );
-        stiffLowerLeftContext->SetEntities( actSDList, actSDList );
-        stiffLowerLeftContext->SetFeFunctions(ScaFeFunc, VecFeFunc  );
-        assemble_->AddBiLinearForm( stiffLowerLeftContext );
+      // lower left matrix: N gradV
+      // ==============================
+      BiLinearForm* stiffLowerLeft = NULL;
+      stiffLowerLeft = new ABInt<>(new GradientOperator<FeH1,3,1,Double>(),
+                                    new IdentityOperator<FeHCurl,3,1,Double>(),
+                                    constOne, 1.0, updatedGeo_);
+      stiffLowerLeft->SetName("GradVIdentityAIntegratorLowerLeft");
+      BiLinFormContext * stiffLowerLeftContext = new BiLinFormContext(stiffLowerLeft, STIFFNESS );
+      stiffLowerLeftContext->SetEntities( actSDList, actSDList );
+      stiffLowerLeftContext->SetFeFunctions(ScaFeFunc, VecFeFunc  );
+      assemble_->AddBiLinearForm( stiffLowerLeftContext );
+      // ====================================================================
+      // STIFFNESS INTEGRATOR (end)
+      // ====================================================================
     } // end for regions
   } // end DefineIntegrators
 
@@ -183,10 +182,11 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
     return ret;
   }
 
-
+  // ********************************************************************************
+  //  DEFINITION OF RHS INTEGRATORS (that are coming solely from coils in this PDE)
+  // ********************************************************************************
   void MagEdgeMixedSFGPDE::DefineCoilIntegrators()
   {
-
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY];
@@ -194,6 +194,7 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
 
     std::map<Coil::IdType, shared_ptr<Coil>>::iterator coilIt;
     coilIt = coils_.begin();
+
     for (; coilIt != coils_.end(); coilIt++)
     {
       Coil &actCoil = *(coilIt->second);
@@ -203,7 +204,7 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
 
       if (actCoil.sourceType_ != Coil::CURRENT)
       {
-        EXCEPTION("Only current excitation is implemented in H-formulation!!");
+        EXCEPTION("Only current excitation is implemented in mixedSFG formulation");
       }
       else
       {
@@ -218,7 +219,6 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
           actSDList->SetRegion(actRegion);
           LinearForm* curInt = NULL;
 
-
           std::map<UInt, PtrCoefFct> jFct;
           CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_, CoefXpr::OP_MULT);
           PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
@@ -226,6 +226,11 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
           CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
           jFct[0] = CoefFunction::Generate(mp_, part, jVec);
 
+          // ====================================================================
+          // RHS INTEGRATOR (start)
+          // (I) : j curlh'
+          // (II): 0
+          // ====================================================================
           coilCurrentDens_[actRegion] = jFct[0];
           curInt = GetCurrentDensityInt( 1.0, jFct[0] );
           curInt->SetName("CoilIntegrator");
@@ -233,7 +238,11 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
           coilContext->SetEntities( actSDList );
           coilContext->SetFeFunction( feFunc );
           assemble_->AddLinearForm( coilContext );
-
+          // ====================================================================
+          // RHS INTEGRATOR (end)
+          // (I) : j curlh'
+          // (II): 0
+          // ====================================================================
         } // loop: parts
       }
     } // loop: coils
@@ -243,9 +252,9 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
 
 
 
-  // ======================================================
+  // ********************************************************************************
   // TIME-STEPPING SECTION
-  // ======================================================
+  // ********************************************************************************
   void MagEdgeMixedSFGPDE::InitTimeStepping() {
 	// Use complete implicit scheme
     Double gamma = 1.0;
@@ -261,7 +270,11 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
     feFunctions_[LAGRANGE_MULT]->SetTimeScheme(myScheme2);
   }
 
-
+  // ********************************************************************************
+  // PRIMARY RESULTS:
+  // 1) h on the edges of the mesh
+  // 1) u lagrange multiplier on the nodes of the mesh
+  // ********************************************************************************
   void MagEdgeMixedSFGPDE::DefinePrimaryResults() {
 
       StdVector<std::string> vecComponents;
@@ -292,19 +305,25 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
       availResults_.insert( res2 );
       scalFct->SetResultInfo(res2);
       DefineFieldResult( scalFct, res2 );
-
-
   }
 
+  // ********************************************************************************
+  // POSTPROCESSING RESULTS: not needed, since h is already the source field hs
+  // ********************************************************************************
   void MagEdgeMixedSFGPDE::DefinePostProcResults() {
-
   }
 
+  // ********************************************************************************
+  // FINALIZE POSTPROCESSING RESULTS
+  // ********************************************************************************
   void MagEdgeMixedSFGPDE::FinalizePostProcResults() {
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
     }
 
+  // ********************************************************************************
+  // CREATE FE-SPACES
+  // ********************************************************************************
   std::map<SolutionType, shared_ptr<FeSpace> >
   MagEdgeMixedSFGPDE::CreateFeSpaces(const std::string& formulation,
                              PtrParamNode infoNode ) {
@@ -319,8 +338,6 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
     crSpaces[LAGRANGE_MULT] = FeSpace::CreateInstance(myParam_, ScaSpaceNode, FeSpace::H1, ptGrid_);
     crSpaces[LAGRANGE_MULT]->Init(solStrat_);
     return crSpaces;
-
   }
-
 } // end of namespace
 
