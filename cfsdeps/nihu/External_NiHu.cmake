@@ -11,12 +11,11 @@ include(ExternalProject)
 ###link_directories(${GLOBAL_OUTPUT_PATH}) # Where else to put!?
 ###file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/external/NIHU/)
 
-message("STARTING EXTERNAL_NIHU!!")
 include(ExternalProject)
 
 ExternalProject_Add(
   NiHu
-  
+
   PREFIX ${CMAKE_BINARY_DIR}/cfsdeps/nihu    # external project's base path
   GIT_REPOSITORY "git://last.hit.bme.hu/toolbox/nihu.git"
   GIT_TAG "nightly"

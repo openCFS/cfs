@@ -83,6 +83,29 @@ if(USE_GIDPOST)
 endif()
 
 #-----------------------------------------------------------------------------
+# Find Intel Math Kernel library
+# see NETLIB comment
+#-----------------------------------------------------------------------------
+
+
+if(USE_BLAS_LAPACK STREQUAL "MKL")
+  include("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
+endif()
+
+# Apple's Accelerate Framework is a system lib - nothing to build
+if(USE_BLAS_LAPACK STREQUAL "ACCELERATE")
+  include("${CFS_SOURCE_DIR}/cmake_modules/FindAppleAccelerate.cmake")
+endif()
+
+#-----------------------------------------------------------------------------
+# Find NiHu BEM library
+# NiHu is a boundary element method solver
+#-----------------------------------------------------------------------------
+# if(USE_NIHU)
+#   include("${CFSDEPS_DIR}/nihu/External_NIHU.cmake")
+# endif()
+
+#-----------------------------------------------------------------------------
 # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
 # duces a new incompatible API due to the new iterative solver feature.
 # However MKL still uses the old API of Pardiso 3.x. This is obviously a
