@@ -130,6 +130,8 @@ option(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi instal
 option(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
 option(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 option(USE_METIS "Use Metis Graph partitioning." ${USE_METIS_DEFAULT})
+# NiHu - BoundaryElementMethod (TU Budapest)
+option(USE_NIHU "Use NiHu (BoundaryElementMethod) solver." ${USE_NIHU_DEFAULT})
 # CGNS - CFD General Notation System
 option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
 # SCPIP optimizer library.
@@ -262,6 +264,20 @@ if(DEBUG)
   set(CHECK_MEMORY 1)
 else()
   set(CMAKE_BUILD_TYPE "RELEASE" CACHE STRING "Only DEBUG and RELEASE types are valid." FORCE)
+endif()
+
+# NiHu conditional
+if(USE_NIHU)
+  # TODO: check boost's existance
+  find_package(Boost)
+  if(Boost_FOUND)
+    set(BOOST_AVAILABLE TRUE)
+    ###include(External_NiHu.cmake)
+  else()
+    set(BOOST_AVAILABLE FALSE)
+  
+  include(External_NiHu.cmake)
+  
 endif()
 
 #-----------------------------------------------------------------------------
