@@ -268,9 +268,16 @@ endif()
 
 # NiHu conditional
 if(USE_NIHU)
-  include(cfsdeps/nihu/External_NiHu.cmake)
-  # include("${CFSDEPS_DIR}/nihu/External_NIHU.cmake")
-  # include(External_NiHu.cmake)
+  # TODO: check boost's existance
+  find_package(Boost)
+  if(Boost_FOUND)
+    set(BOOST_AVAILABLE TRUE)
+    ###include(External_NiHu.cmake)
+  else()
+    set(BOOST_AVAILABLE FALSE)
+  
+  include(External_NiHu.cmake)
+  
 endif()
 
 #-----------------------------------------------------------------------------
