@@ -267,18 +267,18 @@ else()
 endif()
 
 # NiHu conditional
-if(USE_NIHU)
-  # TODO: check boost's existance
-  find_package(Boost)
-  if(Boost_FOUND)
-    set(BOOST_AVAILABLE TRUE)
-    ###include(External_NiHu.cmake)
-  else()
-    set(BOOST_AVAILABLE FALSE)
+# if(USE_NIHU)
+#   # TODO: check boost's existance
+#   find_package(Boost)
+#   if(Boost_FOUND)
+#     set(BOOST_AVAILABLE TRUE)
+#     ###include(External_NiHu.cmake)
+#   else()
+#     set(BOOST_AVAILABLE FALSE)
   
-  include(External_NiHu.cmake)
-  
-endif()
+#   include(cfsdeps/External_NiHu.cmake)
+
+# endif()
 
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
