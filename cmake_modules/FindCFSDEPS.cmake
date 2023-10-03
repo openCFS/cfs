@@ -101,9 +101,9 @@ endif()
 # Find NiHu BEM library
 # NiHu is a boundary element method solver
 #-----------------------------------------------------------------------------
-if(USE_NIHU)
-  include("${CFSDEPS_DIR}/nihu/External_NIHU.cmake")
-endif()
+# if(USE_NIHU)
+#   include("${CFSDEPS_DIR}/nihu/External_NIHU.cmake")
+# endif()
 
 #-----------------------------------------------------------------------------
 # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
