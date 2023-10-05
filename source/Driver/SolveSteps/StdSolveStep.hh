@@ -238,6 +238,7 @@ namespace CoupledField
     bool recalc_;               //!< flag indicating reassembling of system matrix
 
     std::string lineSearch_;   //!< switch for lineSearch
+    std::string JacobianCalculationMethod_; //!< switch for JacobianCalculationMethod
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool isHyst_;           //!< flag for hystersis modeling

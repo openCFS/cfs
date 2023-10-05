@@ -107,11 +107,9 @@ DEFINE_LOG(eb, "EBHysteresis")
       hasElemSolution_.Resize(numElems_, false);
     }
 
-
     Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum) {
       EXCEPTION("Not implemented here, this is a vector hysteresis model!");
     }
-
 
     Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum) {
       Vector<Double> B(dim_);
@@ -129,8 +127,6 @@ DEFINE_LOG(eb, "EBHysteresis")
       LOG_DBG3(eb) << "\n\t B = " << B.ToString();
       return B;
     }
-
-
 
     Matrix<Double> EBHysteresis::ComputeTensorialMaterialParameter(Vector<Double> HVec, const Integer ElemNum) {
 #pragma omp critical
@@ -171,18 +167,10 @@ DEFINE_LOG(eb, "EBHysteresis")
       mu_FD.InitValue(0.0);
 
       LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
+
+      // To obtain a good starting point for the quasi-Newton method in the first time step
+      // and first Newton iteration the Jacobian is approximated by forward finite differences
       if(timeStep_== 1 && globalIter_ == 1){
-/*         mu[0][0] = mu_0*1e6;
-        mu[0][1] = 0.0;
-        mu[1][0] = 0.0;
-        mu[1][1] = mu_0*1e6;
-        if(dim_ == 3){
-          mu[2][0] = 0.0;
-          mu[2][1] = 0.0;
-          mu[0][2] = 0.0;
-          mu[1][2] = 0.0;
-          mu[2][2] = mu_0*1e6;
-        } */
         Vector<Double> M;
         M = Evaluate(HVec, false, idx);
         StdVector<Double> B_k(dim_);
@@ -216,9 +204,14 @@ DEFINE_LOG(eb, "EBHysteresis")
 
       //mu = EvaluateLocalMu(delta_H, delta_B, idx);
       //mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
-      mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+      //mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
       //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-      //mu = EvaluateLocalMuAnhystersisOnly(HVec, B_k, idx);
+      mu = EvaluateLocalMuAnhystersisOnly(HVec, B_k, idx);
+
+      /* if (numS_ == 1){
+        
+      } */
+        
 
 
       M_dummy = Evaluate(HVec, true, idx);
@@ -267,10 +260,6 @@ DEFINE_LOG(eb, "EBHysteresis")
         term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2))/(std::pow(A_,2)))+1);
         chi[0][0] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
 
-      if (idx == 32){
-        printf("std::atan = %f\n",std::atan(std::sqrt((std::pow(HVec[0],2)+std::pow(HVec[1],2)))/A_));
-      }  
-
         term1_nominator =  2*HVec[0]*Ps_*HVec[1];
         term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2))/(std::pow(A_,2)))+1);
         term2_nominator = 2*HVec[0]*M_PI*HVec[1]*std::atan((std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)))/A_);
@@ -308,14 +297,14 @@ DEFINE_LOG(eb, "EBHysteresis")
         term2_nominator = 2*HVec[0]*M_PI*HVec[1]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
         term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
         chi[0][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        chi[0][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        //chi[0][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
         // dMx/dHz
         term1_nominator =  2*HVec[0]*Ps_*HVec[2];
         term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
         term2_nominator = 2*HVec[0]*M_PI*HVec[2]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
         term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
         chi[0][2] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        chi[0][2] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        //chi[0][2] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
 
         // dMy/dHy
         term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
@@ -332,7 +321,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         term2_nominator = 2*HVec[1]*M_PI*HVec[2]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
         term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
         chi[2][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        chi[2][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        //chi[2][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
 
         // dMz/dHz
         term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
@@ -348,7 +337,6 @@ DEFINE_LOG(eb, "EBHysteresis")
         chi[2][0] = chi[0][2];
         chi[2][1] = chi[1][2];
 
-
         mu[0][0] = mu0*(chi[0][0] + 1);
         mu[0][1] = mu0*(chi[0][1] + 0);
         mu[0][2] = mu0*(chi[0][2] + 0);
@@ -358,13 +346,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[2][0] = mu0*(chi[2][0] + 0);
         mu[2][1] = mu0*(chi[2][1] + 0);
         mu[2][2] = mu0*(chi[2][2] + 1);
-
-
-      }
-      if (idx == 32){
-        printf("mu_anhyst = %f\n",mu[0][0]);
-        printf("Hx = %f\n",HVec[0]);
-      }  
+      } 
       return mu;
     }
 
@@ -372,7 +354,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       Matrix<Double> mu;
       mu.Resize(dim_,dim_);
 
-      Double h = 1*10^(-13);
+      Double h = 1*10^(-4);
       Vector<Double> eh_x(dim_);
       Vector<Double> eh_y(dim_);
       Vector<Double> eh_z(dim_);
@@ -432,9 +414,9 @@ DEFINE_LOG(eb, "EBHysteresis")
           mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
 
       } 
-      if (idx == 32){
+/*       if (idx == 32){
         printf("mu_FD = %f\n",mu[0][0]);
-      }  
+      }   */
       return mu;
     }
 
@@ -654,8 +636,6 @@ DEFINE_LOG(eb, "EBHysteresis")
       return mu;
     }
 
-
-
     Matrix<Double> EBHysteresis::EvaluateLocalMuGBM(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
       Matrix<Double> mu;
       mu.Resize(dim_,dim_);
@@ -739,8 +719,9 @@ DEFINE_LOG(eb, "EBHysteresis")
       if (idx == 15){
         printf("mu_Broyden = %f\n",mu[0][0]);
       }
-      return mu;
       //############### delete as soon as it works #######################
+      return mu;
+      
     }
 
     StdVector<Double> EBHysteresis::inv3x3(StdVector<Double> A){
@@ -769,7 +750,6 @@ DEFINE_LOG(eb, "EBHysteresis")
       return invA;
     }
 
-
     Vector<Double> EBHysteresis::Evaluate(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx) {
 
       StdVector<Double> weight(numS_);
@@ -782,65 +762,6 @@ DEFINE_LOG(eb, "EBHysteresis")
         chi[i] = chi_factor_ * i / (numS_ - 1) + 0.001;
         chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
       }
-      
-
-      // #######################################################################################
-      // #######################################################################################
-
-      /* just for TEAMProblem32 parameter, since using the mat.xml file only evenly 
-      distributed w(k) can be generated and no double Langevin function as anhystersis curve
-      can be defined (for normal simulations just comment it out) !! */
-      Double M_an,aa, MSa, ab, MSb, J_an,coth_La,coth_Lb;
-
-      // weights from Jacques
-      /* chi[0] = 0; chi[1] = 55; chi[2] = 199;
-      weight[0] = 0.03; weight[1] = 0.92; weight[2] = 0.05; */ 
-
-      // my weights k = 5
-      /* chi[0] = 0; chi[1] = 50.97; chi[2] = 118.73; chi[3] = 222.41; chi[4] = 709.7;
-      weight[0] = 0.028703738149827; weight[1] = 0.847068065612296; weight[2] = 0.092764375057132; weight[3] = 0.029978499149262; weight[4] = 0.001485322031482; */ 
-
-      // my weights k = 10
-      /* chi[0]=0; chi[1]=35.9778; chi[2]=64.1895; chi[3]=107.8238; 
-      chi[4]=151.2311; chi[5]=188.1423; chi[6]=240.4219; chi[7]=160.602; 
-      chi[8]=460.8971; chi[9]=709.6528;  
-      weight[0]=0.028704; weight[1]=0.39699; weight[2]=0.45008; weight[3]=0.069457; 
-      weight[4]=0.023307; weight[5]=0.012757; weight[6]=0.015412; weight[7]=0.00090465; 
-      weight[8]=0.00090465; weight[9]=0.0014853; */
-
-      // my weights k = 50
-      /* chi[0]=0; chi[1]=7.7505; chi[2]=21.3061; chi[3]=34.1291; 
-      chi[4]=44.9371; chi[5]=54.4629; chi[6]=64.2734; chi[7]=73.2565; 
-      chi[8]=84.8699; chi[9]=90.5018; chi[10]=103.2363; chi[11]=119.2992; 
-      chi[12]=125.3339; chi[13]=129.953; chi[14]=141.0746; chi[15]=153.6859; 
-      chi[16]=167.7871; chi[17]=183.3781; chi[18]=198.7852; chi[19]=172.6219; 
-      chi[20]=175.3508; chi[21]=180.0113; chi[22]=186.6034; chi[23]=195.1272; 
-      chi[24]=205.5826; chi[25]=217.9696; chi[26]=232.2882; chi[27]=248.5385; 
-      chi[28]=266.7204; chi[29]=286.8339; chi[30]=308.8791; chi[31]=331.1456; 
-      chi[32]=-51.2161; chi[33]=-9.241; chi[34]=32.1366; chi[35]=72.9166; 
-      chi[36]=113.0991; chi[37]=152.684; chi[38]=191.6713; chi[39]=230.061; 
-      chi[40]=267.8532; chi[41]=305.0478; chi[42]=341.6448; chi[43]=377.6443; 
-      chi[44]=413.0462; chi[45]=447.8505; chi[46]=482.0572; chi[47]=515.6664; 
-      chi[48]=548.678; chi[49]=581.0921; chi[50]=709.4941; 
-      weight[0]=0.028704; weight[1]=0.026403; weight[2]=0.054303; weight[3]=0.12049; 
-      weight[4]=0.19363; weight[5]=0.18951; weight[6]=0.13623; weight[7]=0.070348; 
-      weight[8]=0.054056; weight[9]=0.020644; weight[10]=0.020644; weight[11]=0.020644; 
-      weight[12]=0.0085211; weight[13]=0.0056961; weight[14]=0.0056961; weight[15]=0.0056961; 
-      weight[16]=0.0056961; weight[17]=0.0056961; weight[18]=0.0052661; weight[19]=0.0014384; 
-      weight[20]=0.0014384; weight[21]=0.0014384; weight[22]=0.0014384; weight[23]=0.0014384; 
-      weight[24]=0.0014384; weight[25]=0.0014384; weight[26]=0.0014384; weight[27]=0.0014384; 
-      weight[28]=0.0014384; weight[29]=0.0014384; weight[30]=0.0014384; weight[31]=0.0013878; 
-      weight[32]=0.00011055; weight[33]=0.00011055; weight[34]=0.00011055; weight[35]=0.00011055; 
-      weight[36]=0.00011055; weight[37]=0.00011055; weight[38]=0.00011055; weight[39]=0.00011055; 
-      weight[40]=0.00011055; weight[41]=0.00011055; weight[42]=0.00011055; weight[43]=0.00011055; 
-      weight[44]=0.00011055; weight[45]=0.00011055; weight[46]=0.00011055; weight[47]=0.00011055; 
-      weight[48]=0.00011055; weight[49]=0.00011055; weight[50]=0.0014874; */
-
-      // anhysteresis 
-      aa = 9.082; MSa = 0.792; ab = 137.121; MSb = 0.791;
-
-      // #######################################################################################
-      // #######################################################################################
 
       if(dim_ == 2){
         StdVector<Double> error, dir, HrxS_sol, HryS_sol, MxS_sol, MyS_sol;
@@ -1002,16 +923,9 @@ DEFINE_LOG(eb, "EBHysteresis")
           }  
           HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
           if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
-            /* coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
-            coth_Lb = std::cosh(HrS/ab)/std::sinh(HrS/ab);
-            J_an = 1*(coth_La - aa/HrS);
-            M_an = J_an/(4*M_PI*1e-7); */
             MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
             MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
             MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS;
-            /* MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
-            MyS_sol[k] = M_an * HryS_sol[k]/HrS;
-            MzS_sol[k] = M_an * HrzS_sol[k]/HrS; */
           }else{
             MxS_sol[k] = 0.0;
             MyS_sol[k] = 0.0;
