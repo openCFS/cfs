@@ -1,17 +1,17 @@
 CFS++ build dependencies for Centos 7
 =====================================
 
-This sould also work (with slight adaptions) on derivates like 
+This should also work (with slight adaptions) on derivates like 
 * Fedora
 * Centos
 * Scientific Linux
 
-For the minimal build config we need some tools
+For the default build config, we need some tools
 ```shell
 yum install -y make patch m4 file which findutils diffutils
 ```
-Furthermore, we need a c++14 ready compiler,
-we enable the [software-collections repo](https://wiki.centos.org/AdditionalResources/Repositories/SCL)
+Furthermore, we need a c++14-ready compiler,
+we enable the [software-collections repo](https://www.softwarecollections.org/en/docs/)
 and install GCC7 compilers from devtoolset-7
 ```shell
 yum install -y centos-release-scl
@@ -46,7 +46,7 @@ yum install -y cpio
 
 Intel MKL can be installed using [Intel's YUM repositories](https://software.intel.com/en-us/articles/installing-intel-free-libs-and-python-yum-repo).
 
-First add the repo and install the GPG key
+First, add the repo and install the GPG key
 ```shell
 yum-config-manager --add-repo https://yum.repos.intel.com/mkl/setup/intel-mkl.repo
 rpm --import https://yum.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
@@ -58,7 +58,7 @@ LATEST_MKL=$(yum search -y intel-mkl-64bit | grep intel-mkl-64bit | tail -n 1 | 
 yum install -y $LATEST_MKL
 ```
 
-Additionally every developer should have git installed
+Additionally, every developer should have git installed
 ```shell
 yum install -y git
 ```
