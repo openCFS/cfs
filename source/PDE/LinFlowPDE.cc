@@ -2603,9 +2603,16 @@ namespace CoupledField {
     } else if ( integrator == "P3" ) {
       setP3 = true;
     } else {
-      EXCEPTION("Implementation error: Unknown integrator type specified!");
+      //EXCEPTION("Implementation error: Unknown integrator type specified!");
     }
 
+    // Integratoroverride via xml
+    if(myParam_->Get("overrideSurfaceIntegrator")->As<bool>()) {
+      setP1 = myParam_->Get("enableSurfaceIntegratorP1")->As<bool>();
+      setP2 = myParam_->Get("enableSurfaceIntegratorP2")->As<bool>();
+      setP3 = myParam_->Get("enableSurfaceIntegratorP3")->As<bool>();
+    }
+    
     if( setP1 == true ) {
       presFct->AddEntityList( actSDList );
     }

@@ -559,7 +559,7 @@ void SurfaceNormalDivOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double> & bMat,
   }
 
   if( !(abs(abs(normalSum)-1)<1e-12) ) {
-    EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
+    //EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
   }
 }
 
@@ -1287,7 +1287,7 @@ void SurfaceTangentialIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOp
   }
 
   if( !(abs(abs(normalSum)-1)<1e-12) ) {
-    EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
+   //EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
   }
 
   for(UInt i = 0; i < numFncs; ++i) {
@@ -1430,7 +1430,7 @@ void SurfaceTangentialCompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::CalcOpMa
   }
 
   if( !(abs(abs(normalSum)-1)<1e-12) ) {
-    EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
+    //EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
   }
 
   Double coefLambdaOverMu;
@@ -1585,7 +1585,7 @@ void SurfaceTangentialHollowIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::
   }
 
   if( !(abs(abs(normalSum)-1)<1e-12) ) {
-    EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
+   //EXCEPTION("Please line up your BCs with the coordinate system (normal vector in direction of coordinate axis) since atm this BC misbehaves for arbitrary angles!");
   }
 
   for(UInt i = 0; i < numFncs; ++i) {

@@ -346,6 +346,11 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+        <!-- Debug flags-->
+        <xsd:attribute name="overrideSurfaceIntegrator" type="xsd:boolean" default="false"/>
+        <xsd:attribute name="enableSurfaceIntegratorP1" type="xsd:boolean" default="true"/>
+        <xsd:attribute name="enableSurfaceIntegratorP2" type="xsd:boolean" default="true"/>
+        <xsd:attribute name="enableSurfaceIntegratorP3" type="xsd:boolean" default="true"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
