@@ -1436,8 +1436,11 @@ namespace CoupledField {
         if( isNoSlipBC || isMaxwellBC ) {
           // since the velocity is enforced weakly we have to add the missing surface term stemming from partial integration
           // similar to the noPenetration BC we only add the pressure term, otherwise stuff gets unstable for the noSlip BC
-          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P1");
-
+          if(myParam_->Get("useLambda2Version")->As<bool>()) {
+            // nothing to do here
+          } else {
+            AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P1");
+          }
 
           // conservation of momentum: \int_\Gamma_D v' \lambda
           BiLinearForm * surfVelocityConstraintIntVL = NULL;
@@ -1524,8 +1527,12 @@ namespace CoupledField {
           // for the Maxwell BC we also add the rest of the terms stemming from partial integration
           // this is necessary in order to not get a mesh dependent BC, which would be the case if the missing terms are neglected
           // for the Maxwell BC adding these terms does not seem to introduce instability when the normal vector is parallel to an axis
-          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P2");
-          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P3");
+          if(myParam_->Get("useLambda2Version")->As<bool>()) {
+            // nothing to do here
+          } else {
+            AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P2");
+            AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P3");
+          }
           
           
           // constraint equation: \int_\Gamma_D \lambda^\star \cdot  M(u)
@@ -1599,7 +1606,12 @@ namespace CoupledField {
           surfVelocityConstraintMaxwellContextLV->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[FLUIDMECH_VELOCITY]);
           feFunctions_[LAGRANGE_MULT]->AddEntityList( actSDList );
           feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
-          surfVelocityConstraintMaxwellContextLV->SetCounterPart(true);
+
+          if(myParam_->Get("useLambda2Version")->As<bool>()) {
+            // nothing to do here, the first part is already set in line 1445
+          } else {
+            surfVelocityConstraintMaxwellContextLV->SetCounterPart(true);
+          } 
           assemble_->AddBiLinearForm( surfVelocityConstraintMaxwellContextLV );
         }
       }
