@@ -201,7 +201,6 @@ DEFINE_LOG(eb, "EBHysteresis")
         M1_[idx][i] = M[i];
       }
 
-
       //mu = EvaluateLocalMu(delta_H, delta_B, idx);
       //mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
       //mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
@@ -297,14 +296,14 @@ DEFINE_LOG(eb, "EBHysteresis")
         term2_nominator = 2*HVec[0]*M_PI*HVec[1]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
         term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
         chi[0][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        //chi[0][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        chi[0][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
         // dMx/dHz
         term1_nominator =  2*HVec[0]*Ps_*HVec[2];
         term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
         term2_nominator = 2*HVec[0]*M_PI*HVec[2]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
         term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
         chi[0][2] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        //chi[0][2] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        chi[0][2] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
 
         // dMy/dHy
         term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
@@ -321,7 +320,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         term2_nominator = 2*HVec[1]*M_PI*HVec[2]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
         term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
         chi[2][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        //chi[2][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        chi[2][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
 
         // dMz/dHz
         term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
