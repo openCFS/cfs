@@ -1482,14 +1482,21 @@ namespace CoupledField {
           }
         }
 
-        // setup the integrators
+        //Getting the Maxwell slip formulation from the XML
+        std::string maxwellSlipFormulation = myParam_->Get("maxwellSlipFormulation")->As<std::string>(); 
 
+        // setup the integrators
 
         if( isNoSlipBC || isMaxwellBC ) {
           // since the velocity is enforced weakly we have to add the missing surface term stemming from partial integration
           // similar to the noPenetration BC we only add the pressure term, otherwise stuff gets unstable for the noSlip BC
-          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P1");
-
+          if(maxwellSlipFormulation=="lagrangelike") {
+            AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P1");
+          } else if(maxwellSlipFormulation=="lagrangelikeSimple") {
+            //do nothing
+          } else if(maxwellSlipFormulation=="mortarlike") {
+            //do nothing
+          }
 
           // conservation of momentum: \int_\Gamma_D v' \lambda
           BiLinearForm * surfVelocityConstraintIntVL = NULL;
@@ -1576,8 +1583,18 @@ namespace CoupledField {
           // for the Maxwell BC we also add the rest of the terms stemming from partial integration
           // this is necessary in order to not get a mesh dependent BC, which would be the case if the missing terms are neglected
           // for the Maxwell BC adding these terms does not seem to introduce instability when the normal vector is parallel to an axis
-          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P2");
-          AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P3");
+          
+          if(maxwellSlipFormulation=="lagrangelike") {
+            AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P2");
+            AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P3");
+
+          } else if(maxwellSlipFormulation=="lagrangelikeSimple") {
+            AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P2");
+            AddSurfaceIntegratorFromPartialIntegration(i, volumeRegions, ent, "P3");
+            
+          } else if(maxwellSlipFormulation=="mortarlike") {
+            // nothing to do here
+          }
           
           
           // constraint equation: \int_\Gamma_D \lambda^\star \cdot  M(u)
@@ -1602,9 +1619,28 @@ namespace CoupledField {
               } else {
                 EXCEPTION("Unknown formulation for the Maxwell slip BC!");
               }
-            } else {
-              EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
+
+            } else if (dim_ == 3){
+              if (maxwellFormulationString == "hollowIncompressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
+                                                                                        new SurfaceTangentialHollowIncompressibleStrainOperator3D<FeH1,3,3>(),
+                                                                                        coefMaxwellBC, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
+              } else if (maxwellFormulationString == "incompressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
+                                                                                        new SurfaceTangentialIncompressibleStrainOperator3D<FeH1,3,3>(),
+                                                                                        coefMaxwellBC, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
+              } else if (maxwellFormulationString == "compressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<Complex,Complex>(new IdentityOperator<FeH1,3,3>(),
+                                                                                        new SurfaceTangentialCompressibleStrainOperator3D<FeH1,3,3>(),
+                                                                                        coefMaxwellBC, Complex(balanceOfMomentumSign_,0), volRegion, updatedGeo_ );
+              } else {
+                EXCEPTION("Unknown formulation for the Maxwell slip BC!");
+              }
+            } 
+            else {
+              EXCEPTION("Unknown dimension for the Maxwell slip BC! (2D and 3D implemented)");
             }
+
           } else {
             if (dim_ == 2) {
               if (maxwellFormulationString == "hollowIncompressibleStress") {
@@ -1623,8 +1659,25 @@ namespace CoupledField {
               else {
                 EXCEPTION("Unknown formulation for the Maxwell slip BC!");
               }
+            } else if (dim_ == 3) {
+              if (maxwellFormulationString == "hollowIncompressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                                                        new SurfaceTangentialHollowIncompressibleStrainOperator3D<FeH1,3,3>(),
+                                                                        coefMaxwellBC, balanceOfMomentumSign_, volRegion, updatedGeo_ );
+              } else if (maxwellFormulationString == "incompressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                                                        new SurfaceTangentialIncompressibleStrainOperator3D<FeH1,3,3>(),
+                                                                        coefMaxwellBC, balanceOfMomentumSign_, volRegion, updatedGeo_ );
+              } else if (maxwellFormulationString == "compressibleStress") {
+                surfVelocityConstraintMaxwellIntLV = new SurfaceABInt<>(new IdentityOperator<FeH1,3,3>(),
+                                                                        new SurfaceTangentialCompressibleStrainOperator3D<FeH1,3,3>(),
+                                                                        coefMaxwellBC, balanceOfMomentumSign_, volRegion, updatedGeo_ );
+              }
+              else {
+                EXCEPTION("Unknown formulation for the Maxwell slip BC!");
+              }
             } else {
-              EXCEPTION("3D weakly enforced Dirichlet BCs not available for LinFlow, please implement me!");
+              EXCEPTION("Unknown dimension for the Maxwell slip BC! (2D and 3D implemented)");
             }
           }
 
@@ -1651,7 +1704,16 @@ namespace CoupledField {
           surfVelocityConstraintMaxwellContextLV->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[FLUIDMECH_VELOCITY]);
           feFunctions_[LAGRANGE_MULT]->AddEntityList( actSDList );
           feFunctions_[FLUIDMECH_VELOCITY]->AddEntityList( actSDList );
-          surfVelocityConstraintMaxwellContextLV->SetCounterPart(true);
+
+          if(maxwellSlipFormulation=="lagrangelike") {
+            surfVelocityConstraintMaxwellContextLV->SetCounterPart(true);
+
+          } else if(maxwellSlipFormulation=="lagrangelikeSimple") {
+            surfVelocityConstraintMaxwellContextLV->SetCounterPart(true);
+            
+          } else if(maxwellSlipFormulation=="mortarlike") {
+            // nothing to do here
+          }
           assemble_->AddBiLinearForm( surfVelocityConstraintMaxwellContextLV );
         }
       }
@@ -2583,6 +2645,7 @@ namespace CoupledField {
     std::set<RegionIdType> volRegion;
     volRegion.insert(aRegion);
     std::string regionName = ent[i]->GetName();
+
     shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
 
     // define coefFunctions for the material
@@ -2655,9 +2718,9 @@ namespace CoupledField {
     } else if ( integrator == "P3" ) {
       setP3 = true;
     } else {
-      EXCEPTION("Implementation error: Unknown integrator type specified!");
+      //EXCEPTION("Implementation error: Unknown integrator type specified!");
     }
-
+    
     if( setP1 == true ) {
       presFct->AddEntityList( actSDList );
     }
@@ -2704,6 +2767,7 @@ namespace CoupledField {
           stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
                                 sNSOp1,
                                 constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
+          
         } else {
           sNSOp1 = new SurfaceNormalStressOperator<FeH1,2,2,Double>(subType, false);
           sNSOp1->SetCoefFunction(coefBB);
@@ -2715,13 +2779,13 @@ namespace CoupledField {
         if( isComplex_ ) {
           sNSOp1 = new SurfaceNormalStressOperator<FeH1,3,3,Complex>(subType, false);
           sNSOp1->SetCoefFunction(coefBB);
-          stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
+          stiffIntVP2Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,3,3>(),
                                 sNSOp1,
                                 constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
         } else {
           sNSOp1 = new SurfaceNormalStressOperator<FeH1,3,3,Double>(subType, false);
           sNSOp1->SetCoefFunction(coefBB);
-          stiffIntVP2Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
+          stiffIntVP2Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,3,3>(),
                                 sNSOp1,
                                 constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
         }
@@ -2768,13 +2832,13 @@ namespace CoupledField {
           if( isComplex_ ) {
             sNDOp1 = new SurfaceNormalDivOperator<FeH1,3,Complex>();
             sNDOp1->SetCoefFunction(coefDivDiv);
-            stiffIntVP3Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,2,2>(),
+            stiffIntVP3Surf = new SurfaceABInt<Complex,Complex>(new SurfaceIdentityOperator<FeH1,3,3>(),
                                   sNDOp1,
                                   constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
           } else {
             sNDOp1 = new SurfaceNormalDivOperator<FeH1,3,Double>();
             sNDOp1->SetCoefFunction(coefDivDiv);
-            stiffIntVP3Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,2,2>(),
+            stiffIntVP3Surf = new SurfaceABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,3,3>(),
                                   sNDOp1,
                                   constOne, -balanceOfMomentumSign_, volRegion, updatedGeo_);
           }

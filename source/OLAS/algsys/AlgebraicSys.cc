@@ -2462,10 +2462,10 @@ namespace CoupledField {
     // Security check: check if we have as many equations as numRows/Cols
     // of the matrix
     if(eqnNrs1.GetSize() != elemMat.GetNumRows()){
-      EXCEPTION("dummy1 " << eqnNrs1.GetSize() << " : eMat " << elemMat.GetNumRows() )
+      EXCEPTION("Number of Equations in EqnVec1:" << eqnNrs1.GetSize() << " does not match the Number of Equations expected for elemMat: " << elemMat.GetNumRows() )
     }
     if(eqnNrs2.GetSize() != elemMat.GetNumCols()){
-      EXCEPTION("dummy2 " << eqnNrs2.GetSize() << " : eMat " << elemMat.GetNumCols() )
+      EXCEPTION("Number of Equations in EqnVec2: " << eqnNrs2.GetSize() << " does not match the Number of Equations expected for elemMat: " << elemMat.GetNumCols() )
     }
     assert( eqnNrs1.GetSize() == elemMat.GetNumRows());
     assert( eqnNrs2.GetSize() == elemMat.GetNumCols());

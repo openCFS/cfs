@@ -346,6 +346,36 @@
             </xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
+
+        <!-- MawellSlipBC Intergrator Formulations -->
+        <xsd:attribute name="maxwellSlipFormulation" use="optional" default="mortarlike" >
+          <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="mortarlike">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                        \int_\Gamma \lambda \cdot v'
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="lagrangelike">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                        \int_\Gamma \delta_n \cdot n + \int_\Gamma \lambda \cdot (v' + S(v')) 
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="lagrangelikeSimple">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                        Formulation is grid dependent!
+                        \int_\Gamma \lambda \cdot (v' + S(v')) 
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+              </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
