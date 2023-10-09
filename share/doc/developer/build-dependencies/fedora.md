@@ -1,14 +1,14 @@
-CFS++ build dependencies for Fedora Core
-========================================
+CFS build-dependencies for Fedora
+=================================
 
-For the default build config we need
+For the default build config, we need
 ```shell
 dnf install -y make gcc gcc-c++ gcc-gfortran cmake patch m4 findutils diffutils
 ```
 
 Intel MKL can be installed using the package manager from [Intel's oneAPI repositories](https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux/top/installation/install-using-package-managers/yum-dnf-zypper.html#yum-dnf-zypper).
 
-First create the repo file
+First, create the repo file
 ```shell
 tee > /tmp/oneAPI.repo << EOF
 [oneAPI]
@@ -30,13 +30,13 @@ Finally, install the most recent MKL release
 yum install -y intel-oneapi-mkl-devel
 ```
 
-Additionally every developer should have git installed
+Additionally, every developer should have Git installed
 ```shell
 dnf install -y git
 ```
 
-Further more having python including some handy libraries is recommended
-(and required for some parts of the testsuite).
+Furthermore, having Python including some handy libraries is recommended
+(and required for some parts of the Testsuite).
 ```shell
 dnf install -y python3 python3-lxml python3-numpy python3-h5py python3-scipy python3-vtk
 ```
