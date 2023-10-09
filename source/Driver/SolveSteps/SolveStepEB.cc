@@ -373,12 +373,12 @@ namespace CoupledField
 
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
-    const UInt nrEtas = 4;
-    //const Double eta[nrEtas] = {1,0.6667,0.4444,0.2963,0.1975,0.1317,0.0878,0.0585,0.039,0.026,0.01733333333};
-    const Double eta[nrEtas] = {1,0.1,0.01,0.001};
+    const UInt nrEtas = 11;
+    const Double eta[nrEtas] = {1,0.6667,0.4444,0.2963,0.1975,0.1317,0.0878,0.0585,0.039,0.026,0.01733333333};
+    //const Double eta[nrEtas] = {1,0.1,0.01,0.001,0.0001,0.00001,0.000001,0.0000001,0.00000001,0.000000001};
     const Double eta0 = 0;
 
-    Double delta = 1e-1;
+    Double delta = 1e-8;
     
     // initialize etaOpt
     Double etaOpt = 0.0;
@@ -408,20 +408,21 @@ namespace CoupledField
       // obtain trial residual (end)
 
       // check if the trial residual has a sufficient decrease
-      if (residualL2Norm <= (1.0 - delta*eta[i])*residualL2Norm_eta0) {
+      if (residualL2Norm < (1.0 - delta*eta[i])*residualL2Norm_eta0) {
+        //printf("residualL2Norm: %f; residualL2Norm_eta0: %f\n",residualL2Norm,residualL2Norm_eta0);
         etaOpt = eta[i];
         break;
       }
       // after all possible line search parameter are tried take the last one and break the for loop
-      if (i == nrEtas){
+      if (i == nrEtas-1){
         etaOpt = eta[i];
         break;
       }
     }
     etaLineSearch = etaOpt;
-    printf("eta: %f \n", etaOpt);
     // Set new solution
     actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+    
   }
 
 
@@ -437,10 +438,10 @@ namespace CoupledField
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
-    
+
+
     for( UInt i=0; i<nrEtas; i++) {
       actSol.Add( 1.0, solOld, eta[i], solIncrement);
-
       //store new solution
       solVec_ = actSol;
 
