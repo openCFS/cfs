@@ -224,6 +224,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="A"/> 
               <xsd:enumeration value="A-V"/>
+              <xsd:enumeration value="AH"/>
               <xsd:enumeration value="specialA-V"/> 
               <xsd:enumeration value="Darwin"/> 
               <xsd:enumeration value="Darwin_doubleLagrange"/>
