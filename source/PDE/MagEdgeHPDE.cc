@@ -149,8 +149,27 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_, CoefXpr::OP_MULT);
           PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
 
-          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
+          // ----------- IMPORTANT (start) -------------------------------------
+          // Here the value for the current density vector j is determined.
+          // The linearform of the formulation is as follows
+          //         (rho_art j, curl(h')) ,
+          // where rho_art is an artificial resistivity that occurs due to the
+          // penalty method to end up in this formulation.
+          // A common way to calculate this coefficient is
+          //         rho_art = mu*10^(n/2) ,
+          // where mu is the permeability in this region and n is parameter
+          // that should be chosen rather small. However, since coils are usually 
+          // in regions where mu ~ mu0 this factor is harcoded and only n can be 
+          // altered.  Anyway, this should work also for the nonlinear hysteretic case,
+          // since the coil region is usually linear material.
+          // (Honestly, I did not know how to implement it differently)
+          // get the penaltyParameter from the .xml file and set the default value
+          Double penaltyParameter = 5;
+          myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
+          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/(1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
           jFct[0] = CoefFunction::Generate(mp_, part, jVec);
+          // ----------- IMPORTANT (end) -------------------------------------
+
 
           coilCurrentDens_[actRegion] = jFct[0];
           curInt = GetCurrentDensityInt( 1.0, jFct[0] );
@@ -171,9 +190,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     RegionIdType actRegion;
     BaseMaterial * actMat = NULL;
 
-    // initially, check for regularization factor
-    Double regularizationFactor = 1e-6;
-    myParam_->GetValue("penaltyFactor", regularizationFactor, ParamNode::PASS);
+    // get the penaltyParameter from the .xml file and set the default value
+    Double penaltyParameter = 5;
+    myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
+
+    std::cout << penaltyParameter << std::endl;
 
     // get FEFunction and space
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY]; // MAG_POTENTIAL
@@ -203,12 +224,16 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // STIFFNESS INTEGRATOR [START] (curlN, curlN)
         // ====================================================================
         // get material coefficient (in this case: artificial conductivity that regularizes the PDE and is defined as 1/sigma_artificial = mu*10^(n/2)
-        // where n is a integer number)
-        PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-        //curCoef = actMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
+        // where n is an integer number)
+        PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "100");
+        //mu_regularize = actMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
+        Double mu_regularize;
+        materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
+        PtrCoefFct rho;
+        rho = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,penaltyParameter/2)));
 
         BaseBDBInt* curlcurl = NULL;
-        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constOne,1.0, updatedGeo_);
+        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho,1.0, updatedGeo_);
         curlcurl->SetName("CurlCurlIntegrator");
 
         BiLinFormContext * stiffContext = new BiLinFormContext(curlcurl, STIFFNESS );
@@ -225,11 +250,12 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // ====================================================================
         // MASS INTEGRATOR [START] (N, N)
         // ====================================================================
-        PtrCoefFct curCoef = NULL;
-        curCoef = actMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
+        PtrCoefFct mu = NULL;
+        mu = actMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
 
         BaseBDBInt *massInt = NULL;
-        massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),curCoef,1.0);
+        //massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),mu,1.0);
+        massInt = new BBIntMassEdge<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
         massInt->SetName("MassIntegrator");
 
         BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
@@ -264,6 +290,18 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     }
 
     void MagEdgeHPDE::DefinePostProcResults() {
+
+      StdVector<std::string> vecComponents;
+      vecComponents = "x", "y", "z";
+
+      // === MAGNETIC FLUX DENSITY ===
+      shared_ptr<ResultInfo> magFlux(new ResultInfo);
+      magFlux->resultType = MAG_FLUX_DENSITY;
+      magFlux->SetVectorDOFs(dim_, isaxi_);
+      magFlux->dofNames = vecComponents;
+      magFlux->unit = "Vs/m^2";
+      magFlux->definedOn = ResultInfo::ELEMENT;
+      magFlux->entryType = ResultInfo::VECTOR;
 
     }
 

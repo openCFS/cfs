@@ -57,6 +57,13 @@
             </xsd:annotation>
           </xsd:element>
 
+          <!-- set penalty factor for static / non-conductive regimes in the h-formulation -->
+          <xsd:element name="penaltyFunctionParameter" type="xsd:float" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Sets the variable n in the penalty function which is penaltyFactor = mu*10^(n/2)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <xsd:element name="thinElements" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:attribute name="maxAspectRatio" type="xsd:float" default="10"/>
