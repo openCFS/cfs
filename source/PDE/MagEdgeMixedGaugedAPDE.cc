@@ -81,7 +81,7 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
   // ********************************************************************************
   void MagEdgeMixedGaugedAPDE::DefineIntegrators() {
     this->DefineStandardIntegrators();
-    DefineCoilIntegrators();
+    DefineCoilIntegrators(1.0);
   }
 
 
@@ -183,13 +183,14 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
   {
     LinearForm * ret = NULL;
     ret = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3,1, Double>(), factor, coef, updatedGeo_);
+    //ret = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), factor, coef, updatedGeo_);
     return ret;
   }
 
   // ********************************************************************************
   //  DEFINITION OF RHS INTEGRATORS (that are coming solely from coils in this PDE)
   // ********************************************************************************
-  void MagEdgeMixedGaugedAPDE::DefineCoilIntegrators()
+/*   void MagEdgeMixedGaugedAPDE::DefineCoilIntegrators()
   {
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
@@ -248,7 +249,7 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
         } // loop: parts
       }
     } // loop: coils
-  }
+  } */
 
 
 
@@ -313,6 +314,12 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
     availResults_.insert( res2 );
     scalFct->SetResultInfo(res2);
     DefineFieldResult( scalFct, res2 );
+
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    hdbcSolNameMap_[LAGRANGE_MULT] = "fluxParallel";
+
   }
 
   // ********************************************************************************
@@ -327,21 +334,18 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
 
-    if(!fluxDensityDefined_){
-      DefineMagFluxDensity();
-    }
-    PtrCoefFct bFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
-
-/*     // === MAGNETIC FIELD INTENSITY ===
-    shared_ptr<ResultInfo> magIntens(new ResultInfo);
-    magIntens->resultType = MAG_FIELD_INTENSITY;
-    magIntens->SetVectorDOFs(dim_, isaxi_);
-    magIntens->dofNames = vecComponents;
-    magIntens->unit = "A/m";
-    magIntens->definedOn = ResultInfo::ELEMENT;
-    magIntens->entryType = ResultInfo::VECTOR;
-    DefineFieldResult( fieldIntensity_, magIntens );
-    availResults_.insert( magIntens ); */
+    // === MAGNETIC FLUX DENSITY ===
+    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
+    fluxDens->resultType = MAG_FLUX_DENSITY;
+    fluxDens->dofNames = vecComponents;
+    fluxDens->unit = "Vs/m^2";
+    fluxDens->definedOn = ResultInfo::ELEMENT;
+    fluxDens->entryType = ResultInfo::VECTOR;
+    fluxDens->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
+    shared_ptr<CoefFunctionFormBased> bFunc;
+    bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
+    DefineFieldResult( bFunc, fluxDens );
+    stiffFormCoefs_.insert(bFunc);
   }
 
   // ********************************************************************************
@@ -350,7 +354,7 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
   void MagEdgeMixedGaugedAPDE::FinalizePostProcResults() {
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
-    }
+  }
 
   // ********************************************************************************
   // CREATE FE-SPACES

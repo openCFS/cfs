@@ -49,7 +49,7 @@ namespace CoupledField
     ~MagEdgeMixedGaugedAPDE();
 
     /** @see virtual SinglePDE::GetNativeSolutionType() */
-    SolutionType GetNativeSolutionType() const { return MAG_FIELD_INTENSITY; }
+    SolutionType GetNativeSolutionType() const { return MAG_POTENTIAL; }
 
   protected:
     // =======================================================================
@@ -58,7 +58,7 @@ namespace CoupledField
     void DefineIntegrators();
     void DefineStandardIntegrators();
     LinearForm* GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId = "" );
-    void DefineCoilIntegrators();
+    //void DefineCoilIntegrators();
 
     // =======================================================================
     //  NOT IMPLEMENTED BUT NECESSARY METHODS
