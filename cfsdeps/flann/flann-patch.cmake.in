@@ -13,11 +13,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 #=============================================================================
 # Apply some patches.
 #=============================================================================
-if(WIN32)
-  set(patches "flann-for-cfs_win.patch")
-else()
-  set(patches "flann-for-cfs.patch")
-endif()
+set(patches "flann-for-cfs.patch")
 
 list(APPEND patches
   # remove unused variable in header code which fails for strict debug with clang
@@ -28,16 +24,17 @@ list(APPEND patches
 
   # warning: ‘struct flann::anyimpl::base_any_policy’ has virtual functions
   # but non-virtual destructor 
-  "flann-any.patch"
+  "flann-any.patch")
 
-  # flann will not build with cmake version > 3.10
-  # https://github.com/mariusmuja/flann/issues/369
-  # this is a tricky patch untill flann is fixed - there is 1.9.2 but this does not work on Windows out of the box 
-  "flann-new-cmake.patch" )
-  
+# both cmake patches are almost the same and possibly could be merged?!  
 if(UNIX AND CMAKE_VERSION VERSION_GREATER "3.11")
   # needed due to https://github.com/mariusmuja/flann/issues/369
   list(APPEND patches "flann-linux-gcc-cmakev3.11-plus.patch")
+elseif()
+  # flann will not build with cmake version > 3.10
+  # https://github.com/mariusmuja/flann/issues/369
+  # this is a tricky patch untill flann is fixed - there is 1.9.2 but this does not work on Windows out of the box 
+  list(APPEND patches "flann-new-cmake.patch")
 endif()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/flann")

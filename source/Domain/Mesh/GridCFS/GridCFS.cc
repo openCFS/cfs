@@ -33,6 +33,10 @@
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ParamHandling/XmlReader.hh"
 
+#ifdef WIN32
+#include <direct.h>
+#endif
+
 namespace CoupledField {
 
   // declare class specific logging stream

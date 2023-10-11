@@ -10,7 +10,7 @@ set(PACKAGE_NAME "flann")
 set(PACKAGE_VER "1.9.1")
 set(PACKAGE_FILE "${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "4a6cc62db8ed09dd8a0c6537f6720f12")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -29,7 +29,8 @@ use_c_and_fortran(ON OFF)
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
-set_package_library_list_lib_prefix("flann_cpp_s")
+# our lib has not the standard name but standard prefix and suffix
+set_package_library_list("flann_cpp_s")
 
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()

@@ -79,55 +79,110 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 # Set linking libraries, the exact order of .a files is of highest importance
 #-------------------------------------------------------------------------------
 SET(LD "${vtk_install}/lib")
-SET(VTK_LIBRARY
-     ${LD}/libvtkIOParallel-${VTK_VERSION}.a
-     ${LD}/libvtkexoIIc-${VTK_VERSION}.a
-     ${LD}/libvtkIOXML-${VTK_VERSION}.a
-     ${LD}/libvtkIOXMLParser-${VTK_VERSION}.a
-     ${LD}/libvtkexpat-${VTK_VERSION}.a
-     ${LD}/libvtkIONetCDF-${VTK_VERSION}.a
-     ${LD}/libvtkNetCDF_cxx-${VTK_VERSION}.a
-     ${LD}/libvtkNetCDF-${VTK_VERSION}.a
-     ${LD}/libvtkhdf5_hl-${VTK_VERSION}.a
-     ${LD}/libvtkhdf5-${VTK_VERSION}.a
-     ${LD}/libvtkIOImage-${VTK_VERSION}.a
-     ${LD}/libvtktiff-${VTK_VERSION}.a
-     ${LD}/libvtkpng-${VTK_VERSION}.a
-     ${LD}/libvtkjpeg-${VTK_VERSION}.a
-     ${LD}/libvtkmetaio-${VTK_VERSION}.a
-     ${LD}/libvtkIOGeometry-${VTK_VERSION}.a
-     ${LD}/libvtkjsoncpp-${VTK_VERSION}.a
-     ${LD}/libvtkIOEnSight-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersSMP-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersParallel-${VTK_VERSION}.a
-     ${LD}/libvtkRenderingCore-${VTK_VERSION}.a
-     ${LD}/libvtkParallelCore-${VTK_VERSION}.a
-     ${LD}/libvtkIOLegacy-${VTK_VERSION}.a
-     ${LD}/libvtkIOCore-${VTK_VERSION}.a
-     #${LD}/libvtkIOXML-${VTK_VERSION}.a
-     ${LD}/libvtkzlib-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersModeling-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersGeometry-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersSources-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersExtraction-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersStatistics-${VTK_VERSION}.a
-     ${LD}/libvtkalglib-${VTK_VERSION}.a
-     ${LD}/libvtkImagingFourier-${VTK_VERSION}.a
-     ${LD}/libvtkImagingCore-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersGeneral-${VTK_VERSION}.a
-     ${LD}/libvtkFiltersCore-${VTK_VERSION}.a
-     ${LD}/libvtkDICOMParser-${VTK_VERSION}.a
-     ${LD}/libvtkCommonExecutionModel-${VTK_VERSION}.a
-     ${LD}/libvtkCommonComputationalGeometry-${VTK_VERSION}.a
-     ${LD}/libvtkCommonDataModel-${VTK_VERSION}.a
-     ${LD}/libvtkCommonTransforms-${VTK_VERSION}.a
-     ${LD}/libvtkCommonSystem-${VTK_VERSION}.a
-     ${LD}/libvtkCommonMisc-${VTK_VERSION}.a
-     ${LD}/libvtkCommonMath-${VTK_VERSION}.a
-     ${LD}/libvtkCommonCore-${VTK_VERSION}.a
-     ${LD}/libvtksys-${VTK_VERSION}.a
+SET(PRF "lib")
+SET(EXT "a")
+IF(WIN32)
+  SET(PRF "")
+  SET(EXT "lib")
+  SET(VTK_LIBRARY
+     ${LD}/${PRF}vtkIOParallel-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkexoIIc-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOXML-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOXMLParser-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkexpat-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIONetCDF-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkNetCDF_cxx-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkNetCDF-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkhdf5_hl-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkhdf5-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOImage-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtktiff-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkpng-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkjpeg-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkmetaio-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOGeometry-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkjsoncpp-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOEnSight-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersSMP-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersParallel-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkRenderingCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkParallelCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOLegacy-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOCore-${VTK_VERSION}.${EXT}
+     #${LD}/${PRF}vtkIOXML-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkzlib-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersModeling-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersGeometry-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersSources-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersExtraction-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersStatistics-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkalglib-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkImagingFourier-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkImagingCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersGeneral-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkDICOMParser-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonExecutionModel-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonComputationalGeometry-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonDataModel-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonTransforms-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonSystem-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonMisc-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonMath-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtksys-${VTK_VERSION}.${EXT}
+  CACHE FILEPATH "VTK library.")
+ELSE(WIN32)
+  SET(VTK_LIBRARY
+     ${LD}/${PRF}vtkIOParallel-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkexoIIc-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOXML-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOXMLParser-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkexpat-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIONetCDF-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkNetCDF_cxx-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkNetCDF-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkhdf5_hl-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkhdf5-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOImage-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtktiff-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkpng-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkjpeg-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkmetaio-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOGeometry-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkjsoncpp-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOEnSight-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersSMP-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersParallel-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkRenderingCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkParallelCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOLegacy-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkIOCore-${VTK_VERSION}.${EXT}
+     #${LD}/${PRF}vtkIOXML-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkzlib-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersModeling-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersGeometry-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersSources-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersExtraction-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersStatistics-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkalglib-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkImagingFourier-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkImagingCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersGeneral-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkFiltersCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkDICOMParser-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonExecutionModel-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonComputationalGeometry-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonDataModel-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonTransforms-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonSystem-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonMisc-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonMath-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtkCommonCore-${VTK_VERSION}.${EXT}
+     ${LD}/${PRF}vtksys-${VTK_VERSION}.${EXT}
      dl
   CACHE FILEPATH "VTK library.")
+ENDIF(WIN32)
 MARK_AS_ADVANCED(VTK_LIBRARY)
 
 #-------------------------------------------------------------------------------
