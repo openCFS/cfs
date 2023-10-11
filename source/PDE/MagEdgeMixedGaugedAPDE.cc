@@ -57,7 +57,7 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
     // =====================================================================
     // set solution information
     // =====================================================================
-    pdename_          = "magneticEdgeMixedSFG";
+    pdename_          = "magneticEdgeGaugedA";
     pdematerialclass_ = ELECTROMAGNETIC;
 
     //! Always use updated Lagrangian formulation
@@ -67,6 +67,9 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
     bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if ( !is3d )
       EXCEPTION("MagEdgeMixedGaugedAPDE is just implemented for 3D setups!");
+
+    // initialize material coef functions covering all regions
+    reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
   }
 
 
@@ -140,6 +143,7 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
       // ==============================
       PtrCoefFct nu = NULL;
       nu = actMat->GetScalCoefFnc( MAG_RELUCTIVITY_SCALAR, Global::REAL); // get magnetic reluctivity
+      reluc_->AddRegion(actRegion, nu);
       BaseBDBInt* stiffUpperLeft = NULL;
       stiffUpperLeft = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nu, 1.0, updatedGeo_) ;
       stiffUpperLeft->SetName("CurlNCurlNIntegrator");
@@ -147,6 +151,8 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
       stiffUpperLeftContext->SetEntities( actSDList, actSDList );
       stiffUpperLeftContext->SetFeFunctions( VecFeFunc, VecFeFunc );
       assemble_->AddBiLinearForm( stiffUpperLeftContext );
+      // Add bdb-integrator to global list, needed for flux density evaluation
+      bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffUpperLeft) );
 
       // upper right matrix: (gradu, a')
       // ==============================
@@ -346,6 +352,17 @@ DEFINE_LOG(MagEdgeMixedGaugedAPDE, "MagEdgeMixedGaugedAPDE")
     bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
     DefineFieldResult( bFunc, fluxDens );
     stiffFormCoefs_.insert(bFunc);
+
+    // === MAGNETIC FIELD INTENSITY ===
+    shared_ptr<ResultInfo> magIntens(new ResultInfo);
+    magIntens->resultType = MAG_FIELD_INTENSITY;
+    magIntens->SetVectorDOFs(dim_, isaxi_);
+    magIntens->dofNames = vecComponents;
+    magIntens->unit = "A/m";
+    magIntens->definedOn = ResultInfo::ELEMENT;
+    magIntens->entryType = ResultInfo::VECTOR;
+    DefineFieldResult( bFunc, magIntens );
+    availResults_.insert( magIntens );
   }
 
   // ********************************************************************************

@@ -81,6 +81,10 @@ namespace CoupledField
     void DefinePostProcResults();
     //! Init the time stepping
     void InitTimeStepping();
+
+    //! Coefficient function, containing the overall permeability
+    shared_ptr<CoefFunctionMulti> reluc_;
+
     //! \copydoc SinglePDE::CreateFeSpace
     std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string& formulation, 
