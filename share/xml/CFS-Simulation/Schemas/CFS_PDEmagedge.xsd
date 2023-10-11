@@ -74,10 +74,14 @@
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="magVecPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="VecPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalPolyId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="ScaPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="lagrangeMultPolyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="magVecIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="VecIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="elecScalIntegId" type="xsd:string" use="optional" default="default"/>
+                    <xsd:attribute name="ScaIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="lagrangeMultIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
@@ -86,6 +90,7 @@
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
+
 
           <!-- List defining nonlinear types -->
           <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
@@ -222,7 +227,8 @@
         <xsd:attribute name="formulation" use="optional" default="A">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="A"/> 
+              <xsd:enumeration value="A"/>
+              <xsd:enumeration value="mixedGaugedA"/> 
               <xsd:enumeration value="A-V"/>
               <xsd:enumeration value="specialA-V"/> 
               <xsd:enumeration value="Darwin"/> 
