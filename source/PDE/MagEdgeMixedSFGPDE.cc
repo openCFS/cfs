@@ -305,6 +305,11 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
       availResults_.insert( res2 );
       scalFct->SetResultInfo(res2);
       DefineFieldResult( scalFct, res2 );
+      // -----------------------------------
+      //  Define xml-names of Dirichlet BCs
+      // -----------------------------------
+      hdbcSolNameMap_[LAGRANGE_MULT] = "fluxparallel";
+
   }
 
   // ********************************************************************************
