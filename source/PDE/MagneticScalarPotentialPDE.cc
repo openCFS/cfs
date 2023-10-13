@@ -115,14 +115,18 @@ namespace CoupledField
       feFunc_reduced->AddEntityList(actSDList);
 
       // ====================================================================
-      // STIFFNESS INTEGRATOR (start)
+      // stiffness integrator - NONLINEAR
       // ====================================================================
       BaseBDBInt *stiffInt = NULL;
       PtrCoefFct muNL = NULL;
       PtrCoefFct flux = NULL;
       if (nonLinTypes.Find(PERMEABILITY) != -1)
       {
-        // NONLINEAR CASE ( \int gradPhi dBdH gradPhi' )
+        // ====================================================================
+        // stiffness integrator - NONLINEAR
+        // ====================================================================
+
+        // hysteretic - Energy Based
         if (modelName_ == "JilesAthertonModel")
         {
           EXCEPTION("Jiles-Atherton model not implemented for MagneticScalarPotentialPDE");
@@ -144,6 +148,7 @@ namespace CoupledField
 
           //TODO kroppert: I do not like that, we should pass the actSDMat instead of these ParameterMap-stuff
           moreThan1HystRegion = true;
+          
           std::map<std::string, double> ParameterMap;
           actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
@@ -187,28 +192,30 @@ namespace CoupledField
       }
       else
       {
-        // LINEAR CASE ( \int gradPhi \mu gradPhi' )
+        // ====================================================================
+        // stiffness integrator - LINEAR
+        // ====================================================================
         PtrCoefFct mu = actSDMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
         perm_->AddRegion(actRegion, mu);
         if (dim_ == 2)
         {
-          stiffInt = new BBInt<>(new GradientOperator<FeH1, 2>(), perm_, 1.0, updatedGeo_);
+          stiffInt = new BBInt<>(new GradientOperator<FeH1, 2>(), mu, 1.0, updatedGeo_);
         }
         else
         {
-          stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), perm_, 1.0, updatedGeo_);
+          stiffInt = new BBInt<>(new GradientOperator<FeH1, 3>(), mu, 1.0, updatedGeo_);
         }
         stiffInt->SetName("(mu grad phi, grad phi')");
       }
+
       BiLinFormContext *stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS);
+
       stiffIntDescr->SetEntities(actSDList, actSDList);
       stiffIntDescr->SetFeFunctions(feFunc_reduced, feFunc_reduced);
       stiffInt->SetFeSpace(feSpace_reduced);
+
       assemble_->AddBiLinearForm(stiffIntDescr);
       bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, stiffInt));
-      // ====================================================================
-      // STIFFNESS INTEGRATOR (end)
-      // ====================================================================
     }
   }
 
@@ -253,7 +260,6 @@ namespace CoupledField
         }
         else if (modelName_ == "EBHysteresisModel")
         {
-          isHystereticMat = true;
           if( dim_ == 2 ) {
             lin = new BUIntegrator<Double>( new GradientOperator<FeH1,2> (),
                     (1.0), fluxDensityNL, coefUpdateGeo, false);
@@ -266,12 +272,12 @@ namespace CoupledField
         EXCEPTION("MagneticScalarPotentialPDE: no valid material model provided");
       }
 
-    lin->SetName("(B,grad phi'): nonlinear problem; nonlinear subregion RHS");
-    lin->SetSolDependent();
-    LinearFormContext *ctx = new LinearFormContext( lin );
-    ctx->SetEntities( actSDList );
-    ctx->SetFeFunction(feFunc_reduced);
-    assemble_->AddLinearForm(ctx);
+      lin->SetName("(B,grad phi'): nonlinear problem; nonlinear subregion RHS");
+      lin->SetSolDependent();
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( actSDList );
+      ctx->SetFeFunction(feFunc_reduced);
+      assemble_->AddLinearForm(ctx);
     }
     // ===============================================================================================
     // NONLINEAR CASE AND NONLINEAR REGION: \int B(H) \gradPhi' (end)
@@ -396,6 +402,7 @@ namespace CoupledField
     // ===============================================================================================
   }
 
+
   // ****************************
   //  Initialize Nonlinearities
   // ****************************
@@ -488,11 +495,7 @@ namespace CoupledField
     shared_ptr<CoefFunctionFormBased> perm_coef;
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
-      if(dim_ == 2){
-        perm->dofNames = "xx", "yy","xy";
-      } else {
-        perm->dofNames = "xx", "yy","zz","yz","xz","xy";
-      }
+      perm->dofNames = "xx", "yy", "xy";
       perm->unit = "Vs/Am";
       perm->definedOn = ResultInfo::ELEMENT;
       perm->entryType = ResultInfo::TENSOR;
@@ -552,6 +555,7 @@ namespace CoupledField
   void MagneticScalarPotentialPDE::FinalizePostProcResults()
   {
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
 
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
