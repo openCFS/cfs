@@ -57,6 +57,7 @@ Please consult our [contributing guide](CONTRIBUTING.md) for details.
 Want to suggest an awesome feature? 
 Did you _really_ find a bug? 
 Please create an [issue](https://gitlab.com/openCFS/cfs/-/issues)!
+You can also reach the issue tracker by [email](mailto:contact-project+opencfs-cfs-support@incoming.gitlab.com).  
 
 
 Resources
