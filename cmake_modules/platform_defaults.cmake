@@ -45,7 +45,7 @@ set(USE_LIS_DEFAULT ON)
 set(USE_SUPERLU_DEFAULT ON)
 set(USE_CGNS_DEFAULT ON)
 set(USE_METIS_DEFAULT ON)
-set(USE_SGP_DEFAULT ON) # external SGP optimizer 
+set(USE_SGP_DEFAULT OFF) # external SGP optimizer from FAU. Is MIT open but has issues with some compilers (and required MKL) 
 set(USE_EIGEN_DEFAULT OFF)
 
 # commercial or condifential code required for the developer building the modules
