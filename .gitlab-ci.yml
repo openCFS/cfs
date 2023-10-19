@@ -451,7 +451,7 @@ rhel:9:
     - *restore_Testsuite_ignore
   needs: []
 
-cfsdeps:gcc7:
+.cfsdeps:gcc7:
   image: opencfs/centos6-gcc7
   <<: *cfsdeps_default
   <<: *cache_cfsdeps
@@ -462,7 +462,7 @@ cfsdeps:gcc7:
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
-cfsdeps:gcc12:
+.cfsdeps:gcc12:
   image: opencfs/fedora37
   <<: *cfsdeps_default
   <<: *cache_cfsdeps
@@ -474,7 +474,7 @@ cfsdeps:gcc12:
     expire_in: 6 hours
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
-cfsdeps:intel:
+.cfsdeps:intel:
   image: opencfs/centos7-intel
   <<: *cfsdeps_default
   <<: *cache_cfsdeps-intel
@@ -703,7 +703,7 @@ linux:intel:
   needs: ["cfsdeps:intel"]
 
 # LLVM clang compiler builds
-linux:clang-debug:
+.linux:clang-debug:
   extends: .default_build_job
   stage: build
   image: opencfs/fedora37-clang
