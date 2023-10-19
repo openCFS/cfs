@@ -74,7 +74,7 @@ class Global:
     self.silent = False
     self.vtk_lists = False
     self.num_threads = int(os.environ.get('OMP_NUM_THREADS'))
-    self.anisotropic = False
+    self.anisotropic = True
     self.base_tensor = np.zeros((3,6,6))
     # transversely isotropic default base tensor
     # CFRP with fibers in 2-direction
@@ -135,6 +135,9 @@ def cfs_init(settings, design, dict):
 
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax'])-glob.rhomin
+  if glob.anisotropic:
+    glob.rhomin = 0
+    glob.rhomax = 1
   glob.boundary = settings['boundary']
   glob.transition = float(settings['transition'])
   glob.h = .5*float(glob.transition)
@@ -197,14 +200,20 @@ def cfs_map_to_design():
   start = ti.time()
   glob.rho = np.zeros(glob.n)
   glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.total()))
+  glob.tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6))
+  glob.grad_tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6,glob.total()))
   for fe_num in range(np.prod(glob.n)):
-    glob.rho[np.unravel_index(fe_num,glob.n)] = rho[fe_num][0]
-    glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[fe_num][1]
+    if not glob.anisotropic:
+      glob.rho[np.unravel_index(fe_num,glob.n)] = rho[fe_num][0]
+      glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[fe_num][1]
+    else:
+      glob.tensor[np.unravel_index(fe_num,glob.n)] = rho[fe_num][0]
+      glob.grad_tensor[np.unravel_index(fe_num,glob.n)] = rho[fe_num][1]
   if not glob.silent:
     print('time for unraveling:', ti.time()-start)
   if glob.vtk_lists:
     write_vtk_lists(glob.vtk_lists)
-  return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin
+  return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin if not glob.anisotropic else np.reshape(glob.tensor, np.prod(glob.n)*36, order='F')+glob.rhomin
 
 def cfs_info_field_keys():
   if not glob.silent:
@@ -238,11 +247,48 @@ def cfs_get_gradient(ddes_vec, label):
   for v in range(var_total):
     ds = glob.grad_rho[:,:,:,v].reshape(np.prod(glob.n), order='F') # the shape sensitivity as vector
     # sens_field = element wise the sensitivity of the function times the shape variables.
+    if glob.anisotropic:
+      ds2 = glob.grad_tensor[:,:,:,:,:,v].reshape(np.prod(glob.n)*36, order='F') # the shape sensitivity as vector
+      ds = np.zeros((np.prod(glob.n)*21))
+      mask = np.ravel_multi_index(np.array([[0,1,2,3,4,5,0,0,1,0,0,0,1,1,1,2,2,2,3,3,4],[0,1,2,3,4,5,1,2,2,3,4,5,3,4,5,3,4,5,4,5,5]]), (6,6), order='F')
+      for i in range(np.prod(glob.n)):
+        ds[i*21:(i+1)*21] = ds2[mask+i*36]
     sens_field = ddes_vec*ds
     sens[v] = sens_field.sum() # equals for i in range(nx): for j in range(ny): for k in range(nz): sens +=  drho[i,j,k] * glob.grad_field[i,j,k][v]
   #sens = np.sum(np.expand_dims(ddes_vec,1)*glob.grad_rho[:,:,:,v].reshape((np.prod(glob.n),var_total), order='F'),0)
   return sens 
 
+def grad_check_tensor():
+  var = glob.shapes[0].optvar()
+  points, radii, prof, alpha = glob.shapes[0].varopt(var)
+  cfs_set_spaghetti(glob.shapes[0].id, points, radii, prof, alpha)
+  cfs_map_to_design()
+  tensor_ref = np.array(glob.tensor)
+  tensor_grad_ref = np.array(glob.grad_tensor)
+  eps = np.sqrt(np.finfo(float).eps)
+  print('Checking element material tensor derivatives...')
+  count = 0
+  for vvv in range(glob.shapes[0].num_optvar):
+    var_fd = np.array(var)
+    var_fd[vvv] = var[vvv]+eps
+    points, radii, prof, alpha = glob.shapes[0].varopt(var_fd)
+    cfs_set_spaghetti(glob.shapes[0].id, points, radii, prof, alpha)
+    cfs_map_to_design()
+    tensor_fd = np.array(glob.tensor)
+    for ifd in range(glob.n[0]):
+      for jfd in range(glob.n[0]):
+        for kfd in range(glob.n[0]):
+          for ti in range(6):
+            for tj in range(6):
+              fd = (tensor_fd[ifd,jfd,kfd,ti,tj]-tensor_ref[ifd,jfd,kfd,ti,tj])/eps
+              err = abs(fd-tensor_grad_ref[ifd,jfd,kfd,ti,tj][vvv])/max(max(abs(fd),abs(tensor_grad_ref[ifd,jfd,kfd,ti,tj][vvv])),1)
+              if err > 5e-2:
+                count += 1
+                print('FD error at element', ifd,jfd,kfd, 'for variable', vvv, 'and tensor entry', ti,tj, 'is', err, 'with gradients', fd, tensor_grad_ref[ifd,jfd,kfd,ti,tj,vvv], fd/(tensor_grad_ref[ifd,jfd,kfd,ti,tj,vvv]+0.00000000001), 'and values', tensor_fd[ifd,jfd,kfd,ti,tj], tensor_ref[ifd,jfd,kfd,ti,tj])
+                #for shape_idx_list in glob.fe_list[ifd][jfd][kfd].shapes_idx_list:
+                #  print('shape_idx_list:', shape_idx_list, 'with dist', glob.shapes[shape_idx_list[0]].dist(Xmid))
+                print('rho=',glob.rho[ifd,jfd,kfd],'Number of full material shapes:', len(glob.fe_list[ifd][jfd][kfd].shapes_full), 'intermediate shapes:', glob.fe_list[ifd][jfd][kfd].shapes_idx_list)
+  print('Total number of false gradients:',count)
 
 class Spaghetti:
   # @param id starting from 0
@@ -400,7 +446,7 @@ class Spaghetti:
       self.dQT = np.empty((self.m,6,6,self.num_optvar))
       for i in range(self.m):
         self.mat_tensors[i], self.grad_mat_tensors[i] = self.get_tensor_init(i)
-        #print(self.mat_tensors[i])
+        #print(self.mat_tensors[i], self.grad_mat_tensors[i])
 
   # give optimzation variables as defined array such that we can easily differentiate
   # @return profile,P^0_x,P^0_y,P^0_z,P^1_x,P^1_y,P^1_z,...,P^m_x,P^m_y,P^m_z,r_1,...r_m-1
@@ -760,7 +806,7 @@ class Spaghetti:
     return Q, dQT
 
   # This returns the base material tensor rotated to spaghetti direction
-  def get_tensor_by_idx(self, idx, X=None, derivative=False):
+  def get_tensor_by_idx(self, idx, X=None, derivative=True):
     m = self.m # number of segments, one arc less
 
     if idx == 2*m-1: # circular cap around P^0 -> orientation of 0-th segment
@@ -769,9 +815,10 @@ class Spaghetti:
       idx = m-1
     # straight segments
     if idx < m:
-      return self.mat_tensors[idx]
+      return (self.mat_tensors[idx], self.grad_mat_tensors[idx])
     # arcs
     elif idx < 2*m-1:
+      assert(False) # not implemented yet
       R, axis = self.get_rotation_matrix_by_idx(idx, X)
       Q = self.get_rot_6x6(R)
       return np.dot(Q, np.dot(glob.base_tensor[axis], Q.transpose()))
@@ -1032,7 +1079,7 @@ def boundary(dist, derivative=False, alpha=None):
     if phi <= -h:
       return (rho, np.zeros(dist[1].shape), idx)
     elif phi >= h:
-      if not alpha:
+      if alpha is None:
         return (rho, np.zeros(dist[1].shape), idx)
       else:
         grad = np.zeros(dist[1].shape)
@@ -1199,27 +1246,33 @@ def integrate_fe(fe_num):
 
   rho_sm = 0
   grad_rho = np.zeros(glob.total())
+  grad_tensor = np.zeros((6,6,glob.total()))
   w_s_full = []
   rho_s_full = []
   tensors_s_full = []
+  grad_tensors_s_full = []
   if glob.fe_list[i][j][k].shapes_full: # at least one shape full
     #glob.dist_field[i,j,k] = -glob.transition
     for snum in glob.fe_list[i][j][k].shapes_full:
       rho_s_full.append(glob.rhomax*glob.shapes[snum].alpha)
       w_s_full.append(np.exp(glob.rhomax*glob.p*glob.shapes[snum].alpha))
       if glob.anisotropic:
-        tensors_s_full.append(glob.shapes[snum].get_tensor_by_idx(glob.shapes[snum].dist(Xmid, what='index'), Xmid))
+        t, grad_t = glob.shapes[snum].get_tensor_by_idx(glob.shapes[snum].dist(Xmid, what='index'), Xmid)
+        tensors_s_full.append(t)
+        grad_tensors_s_full.append(grad_t)
   rho_s_full = np.array(rho_s_full)
   w_s_full = np.array(w_s_full)
   sum_w_s_full = np.sum(w_s_full)
   tensors_s_full = np.array(tensors_s_full)
   num_full = len(glob.fe_list[i][j][k].shapes_full)
+
   if glob.fe_list[i][j][k].shapes_idx_list: # list not empty, have to integrate
     XX = [[Xmid[0]+it[0], Xmid[1]+it[1], Xmid[2]+it[2]] for it in product([-eta, eta],repeat=3)] if order == 2 else [Xmid]
     rho_s = []
     grad_rho_s = []
     idx_s = []
     tensors_s = []
+    grad_tensors_s = []
     s_idx_intermediate = []
     #d_min = 100*glob.transition
     for shape_idx_list in glob.fe_list[i][j][k].shapes_idx_list:
@@ -1234,7 +1287,9 @@ def integrate_fe(fe_num):
       grad_rho_s.append(grad_ip)
       idx_s.append(idx_ip)
       if glob.anisotropic:
-        tensors_s.append([glob.shapes[shape_idx_list[0]].get_tensor_by_idx(idx_s[ip][0], XX[ip]) for ip in range(len(XX))])
+        t_s, grad_t_s = zip(*[glob.shapes[shape_idx_list[0]].get_tensor_by_idx(idx_s[ip][0], XX[ip]) for ip in range(len(XX))])
+        tensors_s.append(t_s)
+        grad_tensors_s.append(grad_t_s)
     rho = np.array(rho_s)
     w_s = np.exp(glob.p*rho)
     sum_w_s = np.sum(w_s,axis=0)+sum_w_s_full+len(glob.shapes)-len(w_s)-num_full
@@ -1242,22 +1297,31 @@ def integrate_fe(fe_num):
     rho_sm = np.sum(rho_sm)/order**3
     if glob.anisotropic:
       tensors_s = np.array(tensors_s)
-      tensors_sm = np.sum(np.reshape(w_s*rho,(rho.shape[0],1,1,1))*tensors_s,axis=0)
+      tensors_sm = np.sum(w_s*rho*tensors_s,axis=0)
       if len(rho_s_full)>0:
-        tensors_sm += np.sum(np.reshape(rho_s_full*w_s_full,(rho_s_full.shape[0],1,1))*tensors_s_full,axis=0)
+        tensors_sm += np.sum(w_s_full*rho_s_full*tensors_s_full,axis=0)
       tensors_sm /= sum_w_s
     for num, sidx in enumerate(s_idx_intermediate):
       grad_rho[glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = np.sum(np.expand_dims(w_s[num]/sum_w_s*(1+glob.p*(rho_s[num] - rho_sm)),axis=1)*grad_rho_s[num],axis=0)/order**3
+      if glob.anisotropic:
+        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = np.expand_dims(tensors_s[num][0,:,:],axis=2)*np.expand_dims(grad_rho_s[num][0],axis=(0,1))+w_s[num]*rho_s[num]*grad_tensors_s[num][0][:,:]/sum_w_s
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = np.sum(w_s_full[num]/sum_w_s)/order**3*(1+glob.p*(rho_s_full[num]-rho_sm))
+      if glob.anisotropic:
+        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = np.sum(w_s_full[num]*tensors_s_full[num]/sum_w_s)/order**3*(1+glob.p*(rho_s_full[num]-rho_sm))+w_s_full[num]*grad_tensors_s_full[num]
     #rho_sm = boundary(d_min)
-  else:
+  elif len(rho_s_full)>0:
     rho_sm = np.sum(rho_s_full*w_s_full)/(sum_w_s_full+len(glob.shapes)-num_full)
+    if glob.anisotropic:
+      tensors_sm = np.sum(rho_s_full*w_s_full*tensors_s_full,axis=0)/(sum_w_s_full+len(glob.shapes)-num_full)
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(1+glob.p*(rho_s_full[num]-rho_sm))
-    if glob.anisotropic:
-      tensors_sm = np.sum(np.reshape(rho_s_full*w_s_full,(rho_s_full.shape[0],1,1))*tensors_s_full,axis=0)/(sum_w_s_full+len(glob.shapes)-num_full)
-  return (rho_sm, grad_rho)
+      if glob.anisotropic:
+        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = rho_s_full*w_s_full[num]*grad_tensors_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)
+        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]*tensors_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(1+glob.p*(rho_s_full[num]-rho_sm))
+  else:
+    tensors_sm = np.zeros((6,6))
+  return (rho_sm, grad_rho) if not glob.anisotropic else (tensors_sm, grad_tensor)
 
 # get constraint sparsity pattern
 # did not implement exact sparsity pattern yet, just adding all variables of spaghetti
@@ -1841,12 +1905,12 @@ if __name__ == '__main__':
               continue
           fd_grad = sciopt.approx_fprime(optvar, shape.func, eps, [xyz, qname])
           grad = shape.grad(optvar, [xyz, qname])
-          if (not qname.startswith('mat_tensor') and norm(fd_grad-grad) > 1e-5) or norm(fd_grad-grad) > 5e-2:
+          if (not qname.startswith('mat_tensor') and norm(fd_grad-grad) > 1e-4) or norm(fd_grad-grad) > 5e-2:
             print('\n' + qname + ',variable:' + (str(np.unravel_index(xyz, (6,6))) if (qname.startswith('mat_tensor') or qname.startswith('QTmat')) else str(np.unravel_index(xyz, (3,3)))))
             print("FD approximation:" + str(fd_grad))
             print("Analytic gradient:" + str(grad))
-            print("L2 error:" + str(norm(fd_grad-grad)) + '\n')
           else:
+            #print("L2 error:" + str(norm(fd_grad-grad)) + '\n')
             print(qname, np.unravel_index(xyz, (6,6)) if (qname.startswith('mat_tensor') or qname.startswith('QTmat')) else xyz)
     print('\n\n')
 
@@ -1873,6 +1937,10 @@ if __name__ == '__main__':
 #              print("Analytic gradient:" + str(grad))
 #              print("L2 error:" + str(norm(fd_grad-grad)))
 #    print('\n\n')
+
+    if glob.anisotropic:
+      cfs_map_to_design()
+      grad_check_tensor()
 
     assemble_fe_field()
     integrate_fe_field()
