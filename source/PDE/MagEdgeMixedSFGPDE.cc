@@ -283,6 +283,7 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
       // === MAGNETIC RESULT FIELD INTENSITY ===
       shared_ptr<ResultInfo> potInfo(new ResultInfo);
       potInfo->resultType = MAG_FIELD_INTENSITY;
+      potInfo->SetFeFunction(feFunctions_[MAG_FIELD_INTENSITY]);
       potInfo->dofNames = vecComponents;
       potInfo->unit = "A/m";
       potInfo->definedOn = ResultInfo::ELEMENT;

@@ -52,7 +52,7 @@ namespace CoupledField
     // =====================================================================
     // set solution information
     // =====================================================================
-    pdename_ = "magnetic";
+    pdename_ = "magneticScalarPotential";
     pdematerialclass_ = ELECTROMAGNETIC;
 
     nonLin_ = false;
@@ -87,7 +87,8 @@ namespace CoupledField
 
     PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
     // Init material model for hysteretic transient analysis
-    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve")) {
+    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
+    {
       matModelCoef_->Init(magFieldCoef, modelName_, dim_);
     }
 
@@ -157,7 +158,6 @@ namespace CoupledField
           {
             stiffInt = new BDBInt<>(new GradientOperator<FeH1, 3>(), muNL, 1.0, updatedGeo_);
           }
-          stiffInt->SetSolDependent(true);
         }
         stiffInt->SetName("StiffnessIntegratorHysteresis");
       }
@@ -188,19 +188,23 @@ namespace CoupledField
     }
   }
 
-  void MagneticScalarPotentialPDE::DefineRhsLoadIntegrators()  {
+  void MagneticScalarPotentialPDE::DefineRhsLoadIntegrators()
+  {
+
     // get FEFunctions and space
     shared_ptr<BaseFeFunction> feFunc_reduced = feFunctions_[MAG_POTENTIAL];
     shared_ptr<FeSpace> feSpace_reduced = feFunc_reduced->GetFeSpace();
 
     LinearForm * lin = NULL;
-    BaseMaterial *actSDMat = NULL;
     RegionIdType actRegion;
+
     bool coefUpdateGeo = true;
     bool isHystereticMat = false;
 
+
     // iterate over the region (or materials)
-    for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
+    for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++)
+    {
       // set current region and material
       actRegion = regions_[iRegion];
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
@@ -229,18 +233,18 @@ namespace CoupledField
           isHystereticMat = true;
           if( dim_ == 2 ) {
             lin = new BUIntegrator<Double>( new GradientOperator<FeH1,2> (),
-                    (1.0), coefFnc, coefUpdateGeo, false);
+                    (1.0), fluxDensityNL, coefUpdateGeo, false);
           } else {
             lin = new BUIntegrator<Double>( new GradientOperator<FeH1,3> (),
-                    (1.0), coefFnc, coefUpdateGeo, false);
+                    (1.0), fluxDensityNL, coefUpdateGeo, false);
           }
-          lin->SetName("residualInt");
-          lin->SetSolDependent();        
-          LinearFormContext *ctx = new LinearFormContext( lin );
-          ctx->SetEntities( actSDList );
-          ctx->SetFeFunction(feFunc_reduced);
-          assemble_->AddLinearForm(ctx);      
         }
+      lin->SetName("residualInt");
+      lin->SetSolDependent();
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( actSDList );
+      ctx->SetFeFunction(feFunc_reduced);
+      assemble_->AddLinearForm(ctx);
       }
       // ===============================================================================================
       // NONLINEAR CASE AND NONLINEAR REGION: \int B(H) \gradPhi' (end)
@@ -253,13 +257,8 @@ namespace CoupledField
     StdVector<std::string> dofNames;
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     ReadRhsExcitation("fieldIntensity", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
-
-    //here, we have to do something in linear and classical nonlinear case (with analytic prescription)
-    for (UInt i = 0; i < ent.GetSize(); ++i) {
-      // set current region and material
-      actRegion = regions_[i];
-      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
-
+    for (UInt i = 0; i < ent.GetSize(); ++i)
+    {
       UInt entDim = ent[i]->GetGrid()->GetEntityDim(ptGrid_->GetRegionName(ent[i]->GetRegion()));
       std::string regName = ptGrid_->GetRegionName(ent[i]->GetRegion());
       std::string entName = ent[i]->GetName();
@@ -274,10 +273,12 @@ namespace CoupledField
      
 
       // check type of entitylist
-      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+      if (ent[i]->GetType() == EntityList::NODE_LIST)
+      {
         EXCEPTION("Magnetic field intensity must be defined on elements")
       }
-      if (regName.compare(entName) != 0) {
+      if (regName.compare(entName) != 0)
+      {
         EXCEPTION("There seems to be an error with region and entity names")
       }
       
@@ -393,6 +394,7 @@ namespace CoupledField
     ef->unit = "A/m";
     ef->definedOn = ResultInfo::ELEMENT;
     ef->entryType = ResultInfo::VECTOR;
+    ef->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     // The recipe about how to actually evaluate H, is defined in FinalizePostProcResults()
     shared_ptr<CoefFunctionMulti> hIntensFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     DefineFieldResult(hIntensFunc, ef);
@@ -401,6 +403,7 @@ namespace CoupledField
     // === PERMEABILITY  ===
     shared_ptr<ResultInfo> perm(new ResultInfo);
     perm->resultType = MAG_ELEM_PERMEABILITY;
+    perm->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionFormBased> perm_coef;
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
@@ -427,6 +430,7 @@ namespace CoupledField
     // === MAGNETIC FLUX DENSITY ===
     shared_ptr<ResultInfo> bf(new ResultInfo);
     bf->resultType = MAG_FLUX_DENSITY;
+    bf->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     bf->dofNames = vecDofNames;
     bf->unit = "T";
     bf->definedOn = ResultInfo::ELEMENT;
@@ -438,6 +442,7 @@ namespace CoupledField
     // === - GRADIENT PHI (helper result)===
     shared_ptr<ResultInfo> hf(new ResultInfo);
     hf->resultType = MAG_POTENTIAL_DIV;
+    hf->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     hf->dofNames = vecDofNames;
     hf->unit = "A/m";
     hf->definedOn = ResultInfo::ELEMENT;
