@@ -75,5 +75,8 @@ ENDIF()
 
 # Target link libraries for openCFS executable target.
 TARGET_LINK_LIBRARIES(cfs ${TARGET_LL})
+if(MKL_BLAS_LIB AND CMAKE_VERSION VERSION_GREATER "3.24")
+  target_link_libraries(cfs "$<LINK_GROUP:RESCAN,${MKL_LIBS}>") # keept the group together
+endif()
 
 SET_TARGET_PROPERTIES(cfs PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")

@@ -2124,7 +2124,7 @@ namespace CoupledField {
 
     CFS_NUM_THREADS = cfs; // this is a global int variable
 
-#if defined(_MSC_VER) && (!defined(__INTEL_COMPILER))
+#if defined(_MSC_VER) && (!defined(__INTEL_COMPILER)) && (!defined(__INTEL_LLVM_COMPILER))
     if(!quiet && cfs > 1)
     {
       cout << "==================================================================================" << std::endl;

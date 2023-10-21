@@ -98,16 +98,6 @@ namespace CoupledField
     unsigned int global_node_number;
   };
   
-  /** Helper struct for SetNodeStates */
-  struct SetStateToNone : public std::unary_function<LevelSetNode, void>
-  {
-    void operator()(LevelSetNode &node) 
-    { 
-      node.state = LevelSetNode::LS_NONE;
-    }
-  };
-
-
   /** A LevelSetElement has links to its nodes, where the actual information
    * is stored. It can be asked for intersections with the zero levelset isosurface
    * and can update the simp density using an interpolated value from the attached
@@ -187,28 +177,6 @@ namespace CoupledField
   
   /** Debug output for a single element */
   const std::string ToString(const LevelSetElement &elem);
-
-  /** helper class for sorting a vector of LevelSetNode-pointers by their levelset value */
-  struct SortLevelSetNodesUsingLevelSetValue :
-      public std::binary_function<const LevelSetNode*, const LevelSetNode*, bool>
-  {
-    public:
-      bool operator()(const LevelSetNode *lhs, const LevelSetNode *rhs) const
-      {
-          return (lhs->value < rhs->value);
-      }
-  };
-
-  /** helper class for sorting a vector of LevelSetNode-pointers by their node number */
-  struct SortLevelSetNodesUsingNodeNumber :
-      public std::binary_function<const LevelSetNode*, const LevelSetNode*, bool>
-  {
-    public:
-      bool operator()(const LevelSetNode *lhs, const LevelSetNode *rhs) const
-      {
-        return (lhs->GetNumber() < rhs->GetNumber());
-      }
-  };
 
   /** This class holds the levelset needed for shape optimization
       in here, we assume the use of 2D rectangular or 3D cube elements at several places */

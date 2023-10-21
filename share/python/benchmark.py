@@ -2,6 +2,7 @@
 import argparse
 from cfs_utils import *
 from mesh_tool import *
+import platform
 
 # the purposee of this script is to assist in running cfs benchmarks. It contains the probems.
 # The resulting .info.xml shall be analysed with performance,py
@@ -222,7 +223,7 @@ if not os.path.exists(mesh):
   mo = create_3d_mesh(args.res)
   write_ansys_mesh(mo, mesh)
    
-host = args.hostname if args.hostname else os.uname().nodename.split('.')[0]   
+host = args.hostname if args.hostname else platform.uname().node.split('.')[0]   
     
 tests = []    
 if not args.skip_cholmod:

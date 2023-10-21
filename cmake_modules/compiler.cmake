@@ -266,11 +266,14 @@ ELSEIF(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
 # check for Intel oneAPI llvm based compiler
 elseif(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). Interface seems compatible
-  # mandatoy for Windows, correct but not necessary on UNIX
-  set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -DBOOST_ALL_NO_LIB")
+  # BOOST_ALL_NO_LIB is mandatoy for Windows, correct but not necessary on UNIX
+  set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -DBOOST_ALL_NO_LIB ")
 
+  # having fast-math makes some tests to fail and warn about all isnan() having no effect (later only linux)
   if(WIN32)
-   set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D_WIN32_WINNT=0x0A00")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -D_WIN32_WINNT=0x0A00 /fp:precise")
+  else()
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -fp-model=precise")
   endif()
 
   # also icx on Windows with MSVC command line interface seems to understand gcc style
@@ -370,7 +373,7 @@ ENDIF()
 #-------------------------------------------------------------------------------
 # Check for Intel Fortran compiler
 #-------------------------------------------------------------------------------
-if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
+if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
   #-----------------------------------------------------------------------------
   # Set Intel Fortran library paths in dedicated variables
   #-----------------------------------------------------------------------------
@@ -386,17 +389,15 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
 
   LINK_DIRECTORIES(${IFORT_LIB_PATH})
 
-#  SET(CFS_FORTRAN_DYNRT_LIBS "ifcoremt;imf;dl")
-#  IF(NOT CFS_ARCH STREQUAL "IA64")
-#    SET(CFS_FORTRAN_DYNRT_LIBS
-#      "svml"
-#      ${CFS_FORTRAN_DYNRT_LIBS})
-#  ENDIF(NOT CFS_ARCH STREQUAL "IA64")
+  if(CMAKE_Fortran_COMPILER_ID MATCHES "IntelLLVM" AND UNIX)
+    # don't know for what it is needed - it seems not to harm on Linux and Mac but does not compile on Windows
+    set(CFS_FORTRAN_DYNRT_LIBS "svml;ifcoremt;imf;dl")
+  endif()
+
 #  SET(CFS_FORTRAN_STATRT_LIBS
 #    "ifcoremt_pic"
 #    "irc"
 #    )
-
   IF(WIN32)
    
     # TODO: this block could be doubled with FindIntelMKL.cmake ! 
@@ -422,7 +423,17 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "Intel")
     SET(LIB_DEST_DIR "${CFS_BINARY_DIR}/bin/")
     GET_FILENAME_COMPONENT(INTEL_COMPILER_DIR ${CMAKE_Fortran_COMPILER} PATH)    
 
-	  set(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64_win/compiler/")
+    # compiler_dir: 
+    # ifx: C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\bin
+    # ifort: C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\bin\intel64
+    if(INTEL_COMPILER_DIR MATCHES "intel64")
+      set(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64_win/compiler") # ifort 
+    else()
+      set(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../redist/intel64_win/compiler") # ifx 
+    endif()
+    # C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\redist\intel64_win\compiler  
+    # cmake_print_variables(ICC_REDIST_DIR)
+    # cmake_print_variables(INTEL_COMPILER_DIR)
     # for  parallel studio pre oneApi was set(ICC_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64/compiler/")
     
     MESSAGE(STATUS "Copying INTEL redistributable files from ${ICC_REDIST_DIR} to ${LIB_DEST_DIR}")
