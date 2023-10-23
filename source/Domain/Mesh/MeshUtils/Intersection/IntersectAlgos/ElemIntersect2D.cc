@@ -18,6 +18,10 @@
 
 #ifdef USE_CGAL
 
+#pragma GCC diagnostic push
+// for gcc7 and CGAL 4.9.1
+#pragma GCC diagnostic ignored "-Wuninitialized"
+
 #include <CGAL/Cartesian.h>
 #include <CGAL/Polygon_2_algorithms.h>
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
@@ -27,6 +31,8 @@ typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
 typedef Kernel::Point_2 CGALPoint2;
 typedef CGAL::Polygon_2<Kernel> CGALPolygon2;
 typedef CGAL::Polygon_with_holes_2<Kernel> CGALPolygonWithHoles2;
+
+#pragma GCC diagnostic pop
 
 #endif
 

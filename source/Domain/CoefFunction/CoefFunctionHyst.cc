@@ -1663,7 +1663,7 @@ namespace CoupledField {
         int isIsotropic = 1;
         material->GetScalar(isIsotropic, MaterialType(PREISACH_MAYERGOYZ_ISOTROPIC+enumOffset));
 
-        if((isIsotropic == 0)){
+        if(isIsotropic == 0){
 //        if( (dim_ != 2) || (isIsotropic == 0)){
           EXCEPTION("Mayergoyz vector model currently only implemented for isotropic materials");
         } else {
@@ -1954,7 +1954,7 @@ namespace CoupledField {
     } else if(paramSet.methodName_ == "vectorPreisach_Mayergoyz"){
       int isIsotropic = 1;
       material->GetScalar(isIsotropic, MaterialType(PREISACH_MAYERGOYZ_ISOTROPIC+enumOffset));
-      if((isIsotropic == 0)){
+      if(isIsotropic == 0){
 //        if( (dim_ != 2) || (isIsotropic == 0)){
         EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
       }
@@ -4145,7 +4145,7 @@ namespace CoupledField {
     bool reuseOldState = false;
     bool useJacobian = false;
 
-    if((timelevel_old == 3)){
+    if(timelevel_old == 3){
       useJacobian = true;
     } else if((timelevel_new == timelevel_old)||(timelevel_old == 2)){
       /*
@@ -4828,7 +4828,7 @@ namespace CoupledField {
     bool reuseOldState = false;
     bool useJacobian = false;
 
-    if((timelevel_old == 3)){
+    if(timelevel_old == 3){
       useJacobian = true;
     } else if((timelevel_new == timelevel_old)||(timelevel_old == 2)){
       /*
@@ -5084,7 +5084,7 @@ namespace CoupledField {
 //      miniOutput = true;
 //    }
 //
-//    if((timelevel_old == 3)){
+//    if(timelevel_old == 3){
 //      useJacobian = true;
 //    }
 //
@@ -8601,7 +8601,6 @@ namespace CoupledField {
 		UInt maxNumberOfLinesearchIterations = 0;
 
 		// counter for forward evaluation
-		UInt forwardFails = 0;
 		UInt forwardReused = 0;
 		UInt forwardAnhystOnly = 0;
 		UInt forwardOverwrite = 0;
@@ -9394,7 +9393,6 @@ namespace CoupledField {
       }
 
 			if(successFlagForward == -1){
-				forwardFails++;
 			} else if(successFlagForward == 0){
 				forwardReused++;
 			} else if(successFlagForward == 1){
@@ -10223,7 +10221,7 @@ namespace CoupledField {
 //      // anisotropic case: each model different; choice of directions matters; weights are harder to obtain
 //      int isIsotropic = 1;
 //      material_->GetScalar(isIsotropic, PREISACH_MAYERGOYZ_ISOTROPIC);
-//      if((isIsotropic == 0)){
+//      if(isIsotropic == 0){
 ////        if( (dim_ != 2) || (isIsotropic == 0)){
 //        EXCEPTION("Mayergoyz vector model currently only implemented for 2d isotropic materials");
 //      }
@@ -12733,9 +12731,11 @@ namespace CoupledField {
       negCoercivity = 0.0;
       maxPolarization = 0.0;
 
-      UInt idxMaxSlope, idxMinSlope;
-      Double fieldMaxPolarization;
-      Double fieldMaxSlope, fieldMinSlope;
+      UInt idxMaxSlope = 0;
+      UInt idxMinSlope = 0;
+      Double fieldMaxPolarization = 0;
+      Double fieldMaxSlope = 0;
+      Double fieldMinSlope = 0;
 
       Vector<Double> vecIn = Vector<Double>(dim_);
       Vector<Double> vecOut = Vector<Double>(dim_);

@@ -1862,11 +1862,9 @@ namespace CoupledField {
 
     // loop on all found en commands
 
-    UInt lCount = 0;
     for (UInt ib=0; ib<linePtsENCmnds_.size(); ib++) {
 
       GetLine(line,linePtsENCmnds_[ib]);
-      lCount++;
       UInt numTok = SplitLine(line, tokens);
 
       numElemNodes = std::strtoul(tokens[3].c_str(), NULL, 0);
@@ -1875,7 +1873,6 @@ namespace CoupledField {
 
       // Get next line from input
       GetNextLine(line);
-      lCount++;
       numTok = SplitLine(line, tokens);
 
       std::fill(elemNodes.begin(), elemNodes.end(), 0);
@@ -1888,7 +1885,6 @@ namespace CoupledField {
       if (numElemNodes > 8) {
         // Get next line from input
         GetNextLine(line);
-        lCount++;
         numTok = SplitLine(line, tokens);
 
         for (UInt i=0, n=numTok-3; i<n; i++) {
@@ -1899,7 +1895,6 @@ namespace CoupledField {
       if (numElemNodes > 16) {
         // Get next line from input
         GetNextLine(line);
-        lCount++;
         numTok = SplitLine(line, tokens);
 
         for (UInt i=0, n=numTok-3; i<n; i++) {
@@ -1988,7 +1983,6 @@ namespace CoupledField {
     std::map< UInt, StdVector<UInt> > matRegions;
 
     // loop on all found MAT commands
-    UInt lCount = 0;
     for (UInt ib=0; ib<linePtsMATCmnds_.size(); ib++) {
 
 #if(WIN32)
@@ -2014,12 +2008,10 @@ namespace CoupledField {
 #endif
 
       GetLine(line, typeLinePos);
-      lCount++;
       UInt numTok = SplitLine(line, tokens);
       elemType = std::strtoul(tokens[1].c_str(), NULL, 0);
 
       GetLine(line, matLinePos);
-      lCount++;
       numTok = SplitLine(line, tokens);
       elemMat = std::strtoul(tokens[1].c_str(), NULL, 0);
 
@@ -2515,7 +2507,7 @@ namespace CoupledField {
     std::map<std::string, StdVector<UInt> > regions;
     std::map<std::string, StdVector<UInt> >::const_iterator rIt, rEnd;
     std::map<UInt, UInt>::iterator eIt, eEnd;
-    UInt idx = 0;
+
     StdVector<UInt> topo(128);
 
     eIt = elemTypes_.begin();
@@ -2565,7 +2557,7 @@ namespace CoupledField {
     rIt = regions.begin();
     rEnd = regions.end();
     std::vector<std::string>::iterator ngnIt;
-    for(idx=0; rIt != rEnd; rIt++) 
+    for(; rIt != rEnd; rIt++)
     {
       std::string regionName = rIt->first;
       const StdVector<UInt>& elems = rIt->second;
@@ -2575,8 +2567,6 @@ namespace CoupledField {
       ngnIt = std::find(nodeGroupNames_.begin(), nodeGroupNames_.end(),
                         regionName);
       (*ngnIt) = regionName+"_NODES";
-
-      idx++;
     }
   }
 

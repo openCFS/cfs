@@ -152,14 +152,9 @@ void EqnMapSimple::GetSubsetEquations(CF::StdVector<UInt> & eqns, CF::StdVector<
 
 void EqnMapSimple::GetReverseEntityMap(CF::StdVector<UInt>& revMap) const {
   revMap.Resize(GetNumEntities());
-  UInt used = 0;
-  UInt notUsed = 0;
   for (UInt i = 1; i <= maxNumEqns_; i++) {
     if (IsEntityUsed(i)) {
       revMap[GetEntityIndex(i)] = i;
-      used++;
-    } else {
-      notUsed++;
     }
   }
 }

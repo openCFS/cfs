@@ -15,6 +15,10 @@ if(POLICY CMP0135)
   # howerver, setting this to NEW makes make always build the complete source
   cmake_policy(SET CMP0135 OLD)
 endif()
+if(POLICY CMP0148)
+  # to fix this, we need minimum cmake 3.12: The FindPythonInterp and FindPythonLibs modules are removed
+  cmake_policy(SET CMP0148 OLD)
+endif()
 
 # Note: "Policy CMP0077 is not set: option() honors normal variables." 
 # is likely when the USE_* option is set, e.g. in .cfs_platform_defaults.cmake
@@ -64,7 +68,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "23")
-set(CFS_VERSION_MONTH "05")
+set(CFS_VERSION_MONTH "10")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name

@@ -489,12 +489,9 @@ void FEBasedInterpolator::FindTargetElements(Grid* findGrid, std::set<std::strin
     }
     bool hasPutSomeNewElements = true;
     UInt countEls = 0;
-    UInt count = 0;
     while (hasPutSomeNewElements) {
       
-      //std::cout << " count " << count << std::endl;
       countEls = 0;
-      count++;
       hasPutSomeNewElements = false;
       std::vector<bool> newAddedElements(numSearchEntities,false);
       if (useFV_) {

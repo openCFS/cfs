@@ -82,9 +82,9 @@ namespace CoupledField{
     //! [s1 s2 s3 s4]
     //!
     //! (example for N_DOF = 3 and numFncs = 4):
-    //! / s1  0  0 s2  0  0 s3  0  0 s4  0  0 \ 
-    //! |  0 s1  0  0 s2  0  0 s4  0  0 s4  0 |
-    //! \  0  0 s1  0  0 s2  0  0 s3  0  0 s4 /
+    //! / s1  0  0 s2  0  0 s3  0  0 s4  0  0 \ .
+    //! |  0 s1  0  0 s2  0  0 s4  0  0 s4  0 | .
+    //! \  0  0 s1  0  0 s2  0  0 s3  0  0 s4 / .
     //! \param bMat (out) the output matrix
     //! \param lp (in) the local point mapped
     //! \param ptFe (in) pointer to the Fe function space

@@ -438,13 +438,13 @@ void SpaghettiDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Functio
 
     // assume nothing fixed
     if(P[0].fixed || P[1].fixed || Q[0].fixed || Q[1].fixed)
-      if (f->GetType() == Function::DISTANCE){
+    {
+      if (f->GetType() == Function::DISTANCE)
         throw Exception("distance constraints currently only for non-fixed nodes");
-      } else { // Bending
-        if (s.IsFixed(P) && s.IsFixed(Q) && (s.a.GetSize() == 0)){
-          continue; // won't add empty constraint if all points are fixed
-        }
-      }
+      // else: Bending
+      if (s.IsFixed(P) && s.IsFixed(Q) && (s.a.GetSize() == 0))
+        continue; // won't add empty constraint if all points are fixed -> next noodle
+    }
 
     // px is element, then py, then qx then qy
     nodes.Push_back(&P[1]);

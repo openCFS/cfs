@@ -146,17 +146,16 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-sign-compare ")
   endif()
 
-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 12.0)
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0)
     # to prevent error with gcc 12: struct std::unary_function’ is deprecated
     # unary_function is used in cfs and in boost. Shall be removed in cfs when boost is updated
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations ")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-deprecated-declarations -Wno-stringop-overflow -Wno-array-bounds")
+  endif()
+
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0)
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-overloaded-virtual ")
     # gcc13 complains this about CGAL
     set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-catch-value -Wno-dangling-reference ")
-    if(DEBUG)
-      # gcc13 spams the console with this output but it might be worse to check first if some
-      # warnings make sense - but disable for debug
-      set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-overloaded-virtual ")
-    endif() 
   endif()
 
   # most specific -Wno-error= are for plain old boost and gcc >= 6. Check to skip them for newer boost than 1.58
@@ -279,7 +278,11 @@ elseif(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx
   # also icx on Windows with MSVC command line interface seems to understand gcc style
   set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment ")
   if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 2023)
-    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-enum-constexpr-conversion -Wno-deprecated-builtins ")
+    # to allow typeid(*fct) we need -Wno-potentially-evaluated-expression
+    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-enum-constexpr-conversion -Wno-deprecated-builtins -Wno-potentially-evaluated-expression")
+    if(WIN32)
+      set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-variable -Wno-unused-private-field -Wno-microsoft-unqualified-friend -Wno-macro-redefined")
+    endif()
   endif()
 
 # Check for Intel C++ compiler (classic compiler) - to be depreciated mid 2023

@@ -202,10 +202,12 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
   // an exceptional case where we also calculate the function value as we share a lot code with the gradient
   if(f->GetType() == Function::GLOBAL_STRESS)
+  {
     if(f->ctxt->IsComplex())
       return CalcGlobalVonMisesStressOrLoadFactor<Complex>(excite, f, derivative);
     else
       return CalcGlobalVonMisesStressOrLoadFactor<double>(excite, f, derivative);
+  }
 
   // microscopic load factor is interpolated value divided by local stress
   if(f->GetType() == Function::LOCAL_STRESS || f->GetType() == Function::LOCAL_BUCKLING_LOAD_FACTOR)

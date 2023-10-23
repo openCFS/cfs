@@ -2,7 +2,11 @@
 #define PIEZO_MICRO_MODELL_BK_HH
 
 #include <string>
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #include <boost/multi_array.hpp>
+#pragma GCC diagnostic pop
 
 #include "Domain/Mesh/Grid.hh"
 #include "Utils/tools.hh"

@@ -43,7 +43,8 @@ public:
   bool DoNormalize() const override { return normalize_; }
 
   unsigned int GetVecSize() const override { return dim_; }
-private:
+
+protected: // we have protected instead of private to avoid "private field is not used" errors when compiled w/o
 
   /** do the actual function call */
   PyObject* CallFunction(const LocPointMapped& lpm);

@@ -251,8 +251,6 @@ void CentroidInterpolator::PrepareCalculation(){
       shFnc.Init();
       myElem->GetShFnc(shFnc,localPoint,curTE);
 
-      UInt negativeCounter = 0;
-      UInt nanInfCounter = 0;
       for(UInt aNode = 0; aNode < tElemConnect.GetSize(); aNode++){
         downMap->GetEquation(tNodeEq,tElemConnect[aNode],ResultInfo::NODE);
         Double curval  = shFnc[aNode] * vol;

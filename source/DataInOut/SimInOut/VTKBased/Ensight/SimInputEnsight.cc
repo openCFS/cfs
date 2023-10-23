@@ -16,6 +16,9 @@
 
 #include "Domain/Results/ResultInfo.hh"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winconsistent-missing-override"
+#pragma clang diagnostic ignored "-Warray-parameter"
 
 #include "vtkEnSight6Reader.h"
 #include "vtkEnSight6BinaryReader.h"
@@ -30,6 +33,8 @@
 #include "vtkMultiBlockDataSet.h"
 #include "vtkArrayIteratorTemplate.h"
 #include "vtkFloatArray.h"
+
+#pragma clang diagnostic pop
 
 #include <boost/numeric/conversion/cast.hpp>
 

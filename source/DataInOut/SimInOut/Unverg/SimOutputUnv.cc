@@ -294,14 +294,12 @@ namespace CoupledField {
 
     StdVector<RegionIdType> subdoms;
     ptGrid_->GetVolRegionIds(subdoms);
-    UInt i, j, k;
-    k = 0;
-    for (i=0; i<subdoms.GetSize(); i++) {
+
+    for (unsigned int i=0; i<subdoms.GetSize(); i++) {
 
       ptGrid_->GetVolElems(elemssd,subdoms[i]);
 
-      for ( j = 0; j < elemssd.GetSize(); j++ ) {  
-        k++;
+      for (unsigned int j = 0; j < elemssd.GetSize(); j++ ) {
         connect=elemssd[j]->connect;
         (*output) << std::setw(10) << elemssd[j]->elemNum << std::setw(10);
 
@@ -384,8 +382,7 @@ namespace CoupledField {
     StdVector<RegionIdType> surfsubdoms;
     ptGrid_->GetSurfRegionIds(surfsubdoms);
 
-    UInt i, j, k;
-    k = 0;
+    UInt i, j;
     for (i=0; i<surfsubdoms.GetSize(); i++) {
       subdoms.Push_back(surfsubdoms[i]);
     }
@@ -395,7 +392,6 @@ namespace CoupledField {
       ptGrid_->GetElems(elemssd,subdoms[i]);
 
       for ( j = 0; j < elemssd.GetSize(); j++ ) {  
-        k++;
         connect=elemssd[j]->connect;
         UInt unvId = 0;
         

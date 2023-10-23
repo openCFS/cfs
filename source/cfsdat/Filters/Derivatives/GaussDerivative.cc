@@ -238,7 +238,6 @@ void GaussDerivative::CreateGaussComputation(Grid::FiniteVolumeRepresentation& f
   StdVector<Double>& outInVector = derivMatrix.outInVector; 
   outInVector.Resize(factorIdx * 3);
   outInVector.Init(0.0);
-  UInt numUsedFaces = 0;
   for (UInt iFace = 0; iFace < numFaces; iFace++) {
     Vector<Double> finalFaceVector(3, 0.0);
       
@@ -302,7 +301,6 @@ void GaussDerivative::CreateGaussComputation(Grid::FiniteVolumeRepresentation& f
     }
       
     if (useFace[iFace]) {
-      numUsedFaces++;
       if (useMaster) {
         UInt startIdx = outInIndex[masterIdx];
         UInt writeVecIdx = startIdx * 3;

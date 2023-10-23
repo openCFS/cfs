@@ -399,7 +399,7 @@ class DampFunction{
     using CoefFunctionPMLBase<T>::CreateDampFunction;
 
   protected:
-    void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains);
+    void ReadDataPML(PtrParamNode pmlDef,StdVector<RegionIdType> pdeDomains) override;
 
     void GuessLayerData(StdVector<RegionIdType> pdeDomains);
 

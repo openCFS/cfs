@@ -3849,10 +3849,12 @@ double ErsatzMaterial::CalcGlobalFunction(Excitation& excite, Function* f, bool 
 {
   // an exceptional case where we also calculate the function value as we share a lot code with the gradient
   if(f->GetType() == Function::GLOBAL_STRESS || f->GetType() == Function::GLOBAL_BUCKLING_LOAD_FACTOR)
+  {
     if(f->ctxt->IsComplex())
       return CalcGlobalVonMisesStressOrLoadFactor<Complex>(excite, f, derivative);
     else
       return CalcGlobalVonMisesStressOrLoadFactor<double>(excite, f, derivative);
+  }
 
   LOG_DBG(em) << "CGF c=" << f->type.ToString(f->GetType()) << " derivative=" << derivative;
   Function::Local* local = f->GetLocal();

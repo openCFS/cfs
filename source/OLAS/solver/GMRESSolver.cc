@@ -420,8 +420,9 @@ namespace CoupledField {
 
       // Generate space for new upper Hessenberg matrix
       hMatNumRows_ = maxKrylovDim_ + 1;
-      NEWARRAY( hMat_, T*, hMatNumRows_ );
-      NEWARRAY( hMat_[1], T, maxKrylovDim_ );
+      hMat_ = new T*[hMatNumRows_];
+      assert(hMatNumRows_ > 1);
+      hMat_[1] = new T[hMatNumRows_];
       UInt rowSize = 0;
       UInt offset = 0;
       for ( UInt i = 2; i < hMatNumRows_; i++ ) {
@@ -435,24 +436,29 @@ namespace CoupledField {
   }
 
 
+#pragma GCC diagnostic push
+// GMRESSolver.cc:452:11: warning: ‘void operator delete [](void*)’ called on pointer ‘*prephitmp_110 + ivtmp.619_119’ with nonzero offset [8, 34359738344] [-Wfree-nonheap-object]
+#pragma GCC diagnostic ignored "-Wfree-nonheap-object"
+
   // **************************
   //   DeleteHessenbergMatrix
   // **************************
   template<typename T>
-  void GMRESSolver<T>::DeleteHessenbergMatrix() {
-
-
-    if ( hMat_ != NULL ) {
+  void GMRESSolver<T>::DeleteHessenbergMatrix()
+  {
+    if ( hMat_ != NULL )
+    {
       delete [] ( hMat_[1]  );
-      for ( UInt i = 2; i < hMatNumRows_; i++ ) {
-        if ( hMat_[i] != NULL ) {
-          delete [] ( hMat_[i] + i - 1 );
-        }
+      for ( UInt i = 2; i < hMatNumRows_; i++ )
+      {
+        if ( hMat_[i] != NULL )
+          delete [] ( hMat_[i] + i - 1 ); // that appears to be wrong (compared to hMat_[i] = new T[rowSize] but chaning the line causes segfaults?!
       }
       delete [] ( hMat_ );  hMat_  = NULL;
     }
   }
 
+#pragma GCC diagnostic pop
 
   // ***********************
   //   AllocateKrylovBasis

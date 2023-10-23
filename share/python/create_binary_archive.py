@@ -60,7 +60,7 @@ if os.path.exists(base + '/share/python/__pycache__'):
   shutil.rmtree(base + '/share/python/__pycache__')
 shutil.rmtree(base + '/share/doc')
 shutil.copytree('bin/', base + '/bin/')
-shutil.copytree('lib/', base + '/lib/')
+# do not copy lib - add copying shared libs when ipopt is enabled for windows
 shutil.copytree('license/', base + '/license/')
 
 # we use python when we need not encryption

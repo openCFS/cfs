@@ -24,6 +24,11 @@
 #include <boost/shared_ptr.hpp>
 
 #ifdef USE_CGAL
+
+#pragma GCC diagnostic push
+// for gcc7 and CGAL 4.9.1
+#pragma GCC diagnostic ignored "-Wuninitialized"
+
 #include <CGAL/Exact_predicates_exact_constructions_kernel.h>
 #include <CGAL/Boolean_set_operations_2.h>
 
@@ -32,6 +37,8 @@ typedef Kernel::Point_2 CGALPoint2;
 typedef CGAL::Polygon_2<Kernel> CGALPolygon2;
 typedef CGAL::Polygon_with_holes_2<Kernel> CGALPolygonWithHoles2;
 #endif
+
+#pragma GCC diagnostic pop
 
 namespace CoupledField {
 

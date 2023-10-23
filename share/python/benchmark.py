@@ -206,9 +206,14 @@ parser.add_argument("--skip_pardiso", help="skip the BLAS benchmark which requir
 parser.add_argument("--skip_shapemap", help="skip the shape map non-blas benchmark", action='store_true')
 
 args = parser.parse_args()
+WIN = platform.system() == 'Windows'
 
 if len(args.cfs) > 2:
   print('Error: usage is benchmark.py <executable> [<comment>] [--<...>]')
+  sys.exit(1)
+
+if args.permutate and WIN:
+  print('Error: --permutate does not work on Windows')
   sys.exit(1)
 
 comment = 'default' if len(args.cfs) == 1 else args.cfs[1]  
@@ -223,8 +228,10 @@ if not os.path.exists(mesh):
   mo = create_3d_mesh(args.res)
   write_ansys_mesh(mo, mesh)
    
-host = args.hostname if args.hostname else platform.uname().node.split('.')[0]   
-    
+host = args.hostname if args.hostname else platform.uname().node.split('.')[0]
+# host can be mojo.mi.uni-erlangen.de or ca8c49d1-e336-417a-ba4e-bb348a961a55.fritz.box
+if host.count("-") >= 2:
+  host = 'local' 
 tests = []    
 if not args.skip_cholmod:
   f = open("bench_cholmod.xml","w")
@@ -242,7 +249,7 @@ if not args.skip_shapemap:
   f.close()
   tests.append('shapemap')
   
-# the threads we run with. 0=CFS_NUM_THREADS, 1=OMP_NUM_THREADS, 2=MKL_NUM_THREADS=VECLIB_MAXIMUM_THREADS
+# the threads we run with on linux/mac:. 0=CFS_NUM_THREADS, 1=OMP_NUM_THREADS, 2=MKL_NUM_THREADS=VECLIB_MAXIMUM_THREADS
 threads = [] 
 t0 = args.threads[0] # there is at least one entry due to nargs='+'
 for i, t in enumerate(args.threads):
@@ -251,7 +258,7 @@ for i, t in enumerate(args.threads):
     threads.append([t0,t,t0]) # only OMP high
     threads.append([t0,t,t])  # only OMP and MKL high
     threads.append([t,t0,t0]) # CFS and MKL high
-  threads.append([t,t,t])
+  threads.append([t,t,t]) # the only possibility on Windows
 
 # here we optinally write the log file to
 log = open(args.log, "w") if args.log else False
@@ -267,8 +274,11 @@ for tst in tests:
       continue 
 
     problem = 'bench_' + host + '-' + comment + '-' + tst + '-res_' + str(args.res) + '-cfs_' + t[0] + '-omp_' + t[1] + '-mkl_' + t[2]
-    cmd = 'CFS_NUM_THREADS=' + str(t[0]) + ' OMP_NUM_THREADS=' + str(t[1]) + ' MKL_NUM_THREADS=' + str(t[2]) + ' VECLIB_MAXIMUM_THREADS=' + str(t[2]) + ' '
-    cmd += args.cfs[0] + ' -q -m ' + mesh + ' -p bench_' + tst + '.xml ' + problem 
+    env = 'CFS_NUM_THREADS=' + str(t[0]) + ' OMP_NUM_THREADS=' + str(t[1]) + ' MKL_NUM_THREADS=' + str(t[2]) + ' VECLIB_MAXIMUM_THREADS=' + str(t[2]) + ' '
+    flag = ' -t ' + str(t[0]) if WIN else '' # on Windows no env and all threads same as we have no permutation
+    cmd = '' if WIN else env
+    cmd += args.cfs[0] + flag + ' -q -m ' + mesh + ' -p bench_' + tst + '.xml ' + problem
+ 
     if args.dry:
       print(cmd)
     else:

@@ -3247,7 +3247,6 @@ namespace CoupledField {
 
     // variables for file reading
     std::string currentLine;
-    UInt lineCounter = 0;
     string::size_type startPosition;   // position to start reading for each line
     StdVector<std::string> readColumn; // a single column
     std::istringstream iss;            // stream for reading
@@ -3261,7 +3260,6 @@ namespace CoupledField {
 
     // now read the file...
     while (std::getline(readFile, currentLine)) {
-      ++lineCounter;
       // skip empty or commented lines
       if (currentLine.empty() || currentLine[0] == commentCharacter[0]) {
         continue;
