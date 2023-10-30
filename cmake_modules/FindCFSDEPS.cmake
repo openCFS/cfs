@@ -9,83 +9,12 @@
 #=============================================================================
 
 include(ExternalProject) # cmake external project
-include("cmake_modules/DependencyTools.cmake") # or own helper
-
+include("cmake_modules/DependencyTools.cmake") # our own helper for cfsdeps handling (pseudo object oriented)
 
 SET(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
 SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 
-#-----------------------------------------------------------------------------
-# Set common CFLAGS (and CXXFLAGS) common for all external projects.
-#-----------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------
-# We do not want to see warnings from external projects, since they would
-# show up on CDash.
-#-----------------------------------------------------------------------------
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  if(NOT CFS_OPT_FLAGS)
-    message(STATUS "CFS_OPT_FLAGS not set, check order with compile.cmake")
-  endif()
-  set(CFSDEPS_C_FLAGS "${CFS_OPT_FLAGS} -w")
-  set(CFSDEPS_CXX_FLAGS "${CFS_OPT_FLAGS} -w ${CFSDEPS_CXX_FLAGS}")
-  if(USE_CGAL) # remove when we use header only CGAL
-    set(CFSDEPS_C_FLAGS "-frounding-math ${CFSDEPS_C_FLAGS}")
-    set(CFSDEPS_CXX_FLAGS "-frounding-math ${CFSDEPS_CXX_FLAGS}")
-  endif()
-endif()
-if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Flang") # not sure if Flang and LLVMFlang is used?!
-  set(CFSDEPS_Fortran_FLAGS "${CFS_OPT_FLAGS} -w")
-endif()  
-
-# TODO: Intel is missing but there is a lot CFSDEPS_ stuff for intel in compiler.cmake
-#message(STATUS "CFS_OPT_FLAGS = ${CFS_OPT_FLAGS}")
-#message(STATUS "CMAKE_COMPILER_IS_GNUCXX = ${CMAKE_COMPILER_IS_GNUCXX}")
-#message(STATUS "CMAKE_CXX_COMPILER_ID = ${CMAKE_CXX_COMPILER_ID}")
-#message(STATUS "CMAKE_Fortran_COMPILER_ID = ${CMAKE_Fortran_COMPILER_ID}")
-#message(STATUS "CFSDEPS_CXX_FLAGS = ${CFSDEPS_CXX_FLAGS}")
-if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-  if(USE_SUPERLU)
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-function-declaration -Wno-implicit-int")
-  endif()
-  if(USE_VTK)
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -Wno-implicit-function-declaration")
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-function-declaration")
-  endif()
-endif()
-
-# handle gfortran flags depending on version
-# these flags allow an argument mismatch when building
-if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0)) # gfortran version >= 10 (gcc10+)
-  # was once --std=legacy
-  # see https://github.com/Reference-LAPACK/lapack/issues/353
-  set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -fallow-argument-mismatch")
-elseif(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 10.0)) # gfortran <10 (gcc7), this is required to build FEAST with gcc7
-  set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -Wno-argument-mismatch")
-endif()  
-
-if(MSVC)
-  STRING(REPLACE "/W3" "/w" CFSDEPS_C_FLAGS "${CMAKE_C_FLAGS_INIT}")
-  STRING(REPLACE "/W3" "/w" CFSDEPS_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT}")
-  STRING(REPLACE "/W3" "/w" CFSDEPS_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_INIT}")
-endif()
-
-#-----------------------------------------------------------------------------
-# On Mac OS X we want to build the external libs for the same SDK and 
-# architecture as openCFS.
-#-----------------------------------------------------------------------------
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
-  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
-
-  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
-  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
-
-  IF(CXX_HAS_SYSROOT_FLAG)
-    SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
-    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
-  ENDIF()
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+# CFSDEPS_*_FLAGS are set in compiler.cmake
 
 #-----------------------------------------------------------------------------
 # If user has set environment variables use them. If not use defaults

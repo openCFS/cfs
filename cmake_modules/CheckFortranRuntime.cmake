@@ -1,7 +1,7 @@
 #=============================================================================
-# The first part of this file is dedicated to finding the Fortran runtime
-# libraries of our various supported compilers. These are needed, since we
-# link from C++ to Fortran libraries out of CFSDEPS which have been built
+# The first part of this file is dedicated to finding and copying the Fortran 
+# runtime libraries of our various supported compilers. These are needed, since 
+# we link from C++ to Fortran libraries out of CFSDEPS which have been built
 # using these Fortran compiler.
 #
 # The second part is dedicated to obtaining informations on the name mangling
@@ -22,26 +22,14 @@ SET(CFS_FORTRAN_LIBS "")
 #-----------------------------------------------------------------------------
 if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
   #---------------------------------------------------------------------------
-  # On Unix we may encounter the situation, that we have Intel as Fortran
-  # compiler but some system libs depend on GFortran. Therefore, we assume,
-  # that the system GFortran compiler is on the PATH and is named gfortran.
-  #---------------------------------------------------------------------------
-  if(NOT CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-    set(GFORTRAN_EXECUTABLE "gfortran")
-  else()
-    set(GFORTRAN_EXECUTABLE "${CMAKE_Fortran_COMPILER}")
-  endif()
-
-  #---------------------------------------------------------------------------
   # Let gfortran print its internal search directories, so that we can use
   # them to find its runtime libs.
   #---------------------------------------------------------------------------
   EXECUTE_PROCESS(
-    COMMAND "${GFORTRAN_EXECUTABLE}" -print-search-dirs
+    COMMAND "${CMAKE_Fortran_COMPILER}" -print-search-dirs
     WORKING_DIRECTORY "${CFS_BINARY_DIR}"
     OUTPUT_VARIABLE GFORTRAN_SEARCH_DIRS
-    RESULT_VARIABLE RETVAL
-    )
+    RESULT_VARIABLE RETVAL )
 
   #---------------------------------------------------------------------------
   # Prepare search paths for input to the FIND_LIBRARY function
@@ -146,49 +134,75 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
   set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES "") # disable dynamic linking of gfortran and quadmath caused by this variable
 endif(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
 
-#-----------------------------------------------------------------------------
 # Lets find the runtime libraries of the Intel Fortran compiler.
-#-----------------------------------------------------------------------------
-if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel")
-  message(STATUS "Intel Fortran compiler")
+if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel") # ifort and ifx
   #---------------------------------------------------------------------------
   # Search explicitely for implicitely defined Fortran libs
   # CMake-magic: https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_IMPLICIT_LINK_LIBRARIES.html
   #---------------------------------------------------------------------------
-  foreach(lib IN LISTS CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES)
-    FIND_LIBRARY(IFORT_${lib}_LIBRARY
-      NAMES ${lib}
+  # search relevant libs for the intel fortran compiler (can be ifort and ifx)
+  foreach(LIB IN LISTS CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES)
+    find_library(FORTRAN_${LIB}_LIBRARY
+      NAMES ${LIB}
       PATHS ${CMAKE_Fortran_IMPLICIT_LINK_DIRECTORIES}
-      NO_DEFAULT_PATH
-      NO_CMAKE_ENVIRONMENT_PATH
-      NO_CMAKE_PATH
-      NO_SYSTEM_ENVIRONMENT_PATH
-      NO_CMAKE_SYSTEM_PATH )
-    MARK_AS_ADVANCED(IFORT_${lib}_LIBRARY)
-    #message(STATUS "${lib}")
-    # copy over intel shared libs
-    if("${lib}" MATCHES "(ifport)|(ifcoremt)|(imf)|(svml)|(irc)$")
+      NO_DEFAULT_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_PATH NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+    # e.g. FORTRAN_m_LIBRARY = /usr/lib64/libm.so
+    #   or FORTRAN_svml_LIBRARY = /opt/intel/oneapi/compiler/2023.2.1/linux/compiler/lib/intel64_lin/libsvml.so 
+    mark_as_advanced(FORTRAN_${LIB}_LIBRARY) 
+    
+    # for a known set of libs search the shared variant and copy it
+    if("${LIB}" MATCHES "(ifport)|(ifcoremt)|(imf)|(svml)|(irc)$")
       # the dynamic version is usually in the same dir as the static one
-      get_filename_component(inteldir "${IFORT_${lib}_LIBRARY}" DIRECTORY)
-      FIND_LIBRARY(IFORT_${lib}_LIBRARY_STATIC
-        NAMES lib${lib}${CMAKE_STATIC_LIBRARY_SUFFIX}
-        PATHS ${inteldir}
-        NO_DEFAULT_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_PATH NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH
-      	)
-      mark_as_advanced(IFORT_${lib}_LIBRARY_STATIC)
-      if("${IFORT_${lib}_LIBRARY_STATIC}" MATCHES "NOTFOUND")
-       message(WARNING "no static version of ${IFORT_${lib}_LIBRARY} found in ${inteldir} using dynamic version.\n
+      get_filename_component(INTEL_DIR "${FORTRAN_${LIB}_LIBRARY}" DIRECTORY)
+      find_library(FORTRAN_${LIB}_LIBRARY_STATIC
+        NAMES lib${LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}
+        PATHS ${INTEL_DIR}
+        NO_DEFAULT_PATH NO_CMAKE_ENVIRONMENT_PATH NO_CMAKE_PATH NO_SYSTEM_ENVIRONMENT_PATH NO_CMAKE_SYSTEM_PATH)
+      mark_as_advanced(FORTRAN_${LIB}_LIBRARY_STATIC)
+      if("${FORTRAN_${LIB}_LIBRARY_STATIC}" MATCHES "NOTFOUND")
+        message(WARNING "no static version of ${FORTRAN_${LIB}_LIBRARY} found in ${INTEL_DIR} using dynamic version.\n
                         It will be installed by cpack, but not copied over into the build directory.")
         #one can't simply copy over because cmake will complain about "Cannot generate a safe linker search path ..."
-        install(FILES "${IFORT_${lib}_LIBRARY}" DESTINATION "lib")
-        list(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY}")
+        install(FILES "${FORTRAN_${LIB}_LIBRARY}" DESTINATION "lib")
+        list(APPEND CFS_FORTRAN_LIBS "${FORTRAN_${LIB}_LIBRARY}")
       else()
-      message(STATUS "  found static lib: ${IFORT_${lib}_LIBRARY_STATIC} and using it.")
-      list(APPEND CFS_FORTRAN_LIBS "${IFORT_${lib}_LIBRARY_STATIC}")
+        message(STATUS "  found static lib: ${FORTRAN_${LIB}_LIBRARY_STATIC} and using it.")
+        list(APPEND CFS_FORTRAN_LIBS "${FORTRAN_${LIB}_LIBRARY_STATIC}")
       endif()
-    endif()
-  endforeach()
+    endif() # one of the special interest libs
+  endforeach() # all LIST lib names
 endif() # Intel
+
+# check for ifort and ifx and link intel libs for Linux and copy for Windows -> redistribute!
+# we don't assume to distribute intel stuff for Linux
+if(WIN32 AND CMAKE_Fortran_COMPILER_ID MATCHES "Intel")  # ifort and ifx
+  # Copy compiler runtime .dlls to bin directory
+  set(INTEL_DLLS libifcoremd.dll libifportmd.dll libiomp5md.dll libmmd.dll svml_dispmd.dll)
+  if(DEBUG)
+    list(APPEND INTEL_DLLS libifcoremdd.dll libmmdd.dll)
+  endif()
+  
+  # from the intel fortran compiler name construct the redist directory containing the libs above  
+  get_filename_component(INTEL_COMPILER_DIR ${CMAKE_Fortran_COMPILER} PATH)    
+  #cmake_print_variables(INTEL_COMPILER_DIR)
+
+  # compiler_dir: 
+  # ifx: C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\bin
+  # ifort: C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\bin\intel64
+  if(INTEL_COMPILER_DIR MATCHES "intel64")
+    set(INTEL_REDIST_DIR "${INTEL_COMPILER_DIR}/../../redist/intel64_win/compiler") # ifort 
+  else()
+    set(INTEL_REDIST_DIR "${INTEL_COMPILER_DIR}/../redist/intel64_win/compiler") # ifx 
+  endif()
+  # C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\redist\intel64_win\compiler  
+  #cmake_print_variables(INTEL_REDIST_DIR)
+    
+  # Windows requires the libs in bin
+  message(STATUS "Copying Intel redistributable files from ${INTEL_REDIST_DIR} to ${CFS_BINARY_DIR}/bin")
+  foreach(LIB IN LISTS INTEL_DLLS)
+    install(FILES ${INTEL_REDIST_DIR}/${LIB} DESTINATION ${CFS_BINARY_DIR}/bin)
+  endforeach()
+endif() # WIN32 ifort and ifx
 
 #==============================================================================
 # Create a header file include/def_cfs_fortran_interface.hh with the correct
@@ -201,8 +215,6 @@ endif() # Intel
 # Fortran for C/C++ developers made easier with CMake:
 # http://www.kitware.com/blog/home/post/231
 #==============================================================================
-
-message(STATUS "setting CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
 
 include(FortranCInterface)
 

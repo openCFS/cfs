@@ -81,7 +81,7 @@ namespace CoupledField{
          harm_ = harm;
       }
 
-      const UInt GetHarm(){
+      UInt GetHarm() const {
          return harm_;
       }
 

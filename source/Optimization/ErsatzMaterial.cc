@@ -2143,11 +2143,12 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
   // surface normal
   Vector<double> normal;
   // traverse our surface elements
+  /* FIXME
   EntityIterator it = sel->GetIterator();
   for(it.Begin(); !it.IsEnd(); it++)
   {
     assert(false);
-    /* FIXME
+
     const SurfElem* se = it.GetSurfElem();
     const Elem* vol = se->ptVolElem1 != NULL && se->ptVolElem1->regionId == vol_neigh ? se->ptVolElem1 : se->ptVolElem2;
     assert(vol->regionId == vol_neigh);
@@ -2200,8 +2201,8 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
       }
       LOG_DBG3(em) << "SEFV: vol=" << vol->elemNum << " node=" << node << " eqn_nr=" << eqn_nr << " count=" << count[eqn_idx] << " sum=" << sum;
     }
-    */
   }
+  */ // FIXME
   // LOG_DBG2(em) << "SEFV: q_u_glob=" << q_u_glob.ToString(TS_INFO);
   // LOG_DBG2(em) << "SEFV: count=" << count.ToString(TS_INFO);
 // normalize Q*u^*

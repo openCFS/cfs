@@ -39,10 +39,10 @@ void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 
   // TODO: extend for multi-region-optimization if necessary
   assert(false);
-  const BaseMaterial* bm = NULL; // FIXME = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
-  bm->GetScalar(lambda, MECH_LAME_LAMBDA, Global::REAL);
-  bm->GetScalar(mu, MECH_LAME_MU, Global::REAL);
-  LOG_DBG3(shapeGrad) << "lame parameters:  lambda = " << lambda << ", mu = " << mu;
+  // const BaseMaterial* bm = NULL; // FIXME = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
+  // bm->GetScalar(lambda, MECH_LAME_LAMBDA, Global::REAL);
+  // bm->GetScalar(mu, MECH_LAME_MU, Global::REAL);
+  // LOG_DBG3(shapeGrad) << "lame parameters:  lambda = " << lambda << ", mu = " << mu;
 }
 
 void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
