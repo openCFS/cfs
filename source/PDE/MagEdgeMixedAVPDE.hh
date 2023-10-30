@@ -137,6 +137,9 @@ namespace CoupledField
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;
     std::map<RegionIdType, BaseBDBInt*> velocityInts_2;
 
+    std::map<RegionIdType, BaseBDBInt*> UpwindingInt1_1;
+    std::map<RegionIdType, BaseBDBInt*> UpwindingInt2_1;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
