@@ -213,6 +213,8 @@ class mat_converter:
         self._convert_mechanical(pde, result)
       elif tagname == "acoustic":
         self._convert_acoustic(pde, result)
+      # elif tagname == "acoustic_BEM":
+      #   self._convert_acoustic_BEM(pde, result)
       elif tagname == "electric":
         self._convert_electric(pde, result)
       elif tagname == "flow":

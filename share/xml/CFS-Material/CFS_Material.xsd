@@ -19,6 +19,7 @@
   <!--   Include definition of Material classes                            -->
   <!-- ******************************************************************* -->
   <xsd:include schemaLocation="Schemas/CFS_MATacoustic.xsd"/>
+  <!-- <xsd:include schemaLocation="Schemas/CFS_MATacousticBEM.xsd"/> -->
   <xsd:include schemaLocation="Schemas/CFS_MATelectric.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATflow.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_MATheatConduction.xsd"/>
@@ -49,6 +50,8 @@
                 minOccurs="0" maxOccurs="1"/>
               <xsd:element name="acoustic" type="DT_MatAcoustic"
                 minOccurs="0" maxOccurs="1"/>
+              <!-- <xsd:element name="acoustic_BEM" type="DT_MatAcoustic_BEM"
+                minOccurs="0" maxOccurs="1"/> -->
               <xsd:element name="electric" type="DT_MatElectric"
                 minOccurs="0" maxOccurs="1"/>
               <xsd:element name="flow" type="DT_MatFlow"

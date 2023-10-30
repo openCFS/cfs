@@ -16,6 +16,7 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Misc.xsd ${DST_DIR}/Schemas/CFS_Misc.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEacoustic.xsd ${DST_DIR}/Schemas/CFS_PDEacoustic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEacousticMixed.xsd ${DST_DIR}/Schemas/CFS_PDEacousticMixed.xsd
+  # COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEacousticBEM.xsd ${DST_DIR}/Schemas/CFS_PDEacousticBEM.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEbasic.xsd ${DST_DIR}/Schemas/CFS_PDEbasic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEelectrostatic.xsd ${DST_DIR}/Schemas/CFS_PDEelectrostatic.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEfluidMech.xsd ${DST_DIR}/Schemas/CFS_PDEfluidMech.xsd
@@ -46,6 +47,7 @@ SET(DST_DIR ${CFS_BINARY_DIR}/share/xml/CFS-Material)
 ADD_CUSTOM_TARGET(share_xml_cfsmat ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/CFS_Material.xsd ${DST_DIR}/CFS_Material.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATacoustic.xsd ${DST_DIR}/Schemas/CFS_MATacoustic.xsd
+  # COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATacousticBEM.xsd ${DST_DIR}/Schemas/CFS_MATacousticBEM.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATelectric.xsd ${DST_DIR}/Schemas/CFS_MATelectric.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATflow.xsd ${DST_DIR}/Schemas/CFS_MATflow.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_MATelecConduction.xsd ${DST_DIR}/Schemas/CFS_MATelecConduction.xsd

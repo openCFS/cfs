@@ -136,7 +136,11 @@
       <xsd:enumeration value="abc"/>
       <xsd:enumeration value="pml"/>
       <xsd:enumeration value="aeroacoustics"/>
+<<<<<<< HEAD
       <xsd:enumeration value="tdef"/>
+=======
+      <!-- <xsd:enumeration value="acoustic_BEM"/> -->
+>>>>>>> 61c131f75 (First steps in the direction of an AcousticPDE_BEM)
       
       <!-- Water waves -->
       <xsd:enumeration value="waterWaves"/>

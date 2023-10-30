@@ -329,6 +329,11 @@ bool Context::SetPDEs()
       pdes[App::ACOUSTIC] = pde;
     }
 
+    if(sp->GetName() == "acoustic_BEM") {
+      pde = domain->GetSinglePDE("acoustic_BEM", true);
+      pdes[App::ACOUSTIC_BEM] = pde;
+    }
+
     // this sets elec for the piezo-case even if we want only to optimize mechanic
     if(sp->GetName() == "electrostatic") {
       pde = domain->GetSinglePDE("electrostatic", true);

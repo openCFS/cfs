@@ -811,6 +811,7 @@ namespace CoupledField {
     MaterialClassEnum.Add(ELECTROMAGNETIC, "electromagnetic");
     MaterialClassEnum.Add(ELECTROSTATIC, "electrostatic");
     MaterialClassEnum.Add(ACOUSTIC, "acoustic");
+    MaterialClassEnum.Add(ACOUSTIC_BEM, "acoustic_BEM");
     MaterialClassEnum.Add(FLOW, "fluid");
     MaterialClassEnum.Add(MECHANIC, "mechanical");
     MaterialClassEnum.Add(PIEZO, "piezo");
@@ -1461,6 +1462,9 @@ namespace CoupledField {
         break;
       case ACOUSTIC:
         out = "acoustic";
+        break;
+      case ACOUSTIC_BEM:
+        out = "acoustic_BEM";
         break;
       case FLOW:
         out = "flow";

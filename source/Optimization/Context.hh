@@ -26,8 +26,14 @@ class BiLinFormContext;
 struct App
 {
   /** The App::Type type identifies the PDE to use.
+<<<<<<< HEAD
    *  A subset of the values are PDE identifiers for Context::ToPDE() and Context::ToApp().*/
   typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, MAG, BUCKLING, NO_APP} Type;
+=======
+   *  A subset of the values are PDE identifiers for Context::ToPDE() and Context::ToApp().
+   *  The heat and acoustic transfer functions are Laplace! */
+  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, ACOUSTIC_BEM, LAPLACE, STRESS, LBM, MAG, BUCKLING, NO_APP} Type;
+>>>>>>> 61c131f75 (First steps in the direction of an AcousticPDE_BEM)
 };
 
 

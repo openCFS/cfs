@@ -1,7 +1,7 @@
 Many of the classes in CFS++ are grouped into modules. These modules define the building blocks of any finite element program: 
 
 * Computational Domain ([CoefFunction](./Domain/CoefFunction/README.md), ElemMapping, Mesh, Results, ...) 
-* [PDEs](./PDE/README.md) (StdPDE, SinglePDE, AcousticPDE, ElecPDE, MechPDE, ...)
+* [PDEs](./PDE/README.md) (StdPDE, SinglePDE, AcousticPDE, AcousticPDE_BEM, ElecPDE, MechPDE, ...)
 * CoupledPDEs (DirectCoupledPDEs, IterCoupledPDEs, ...)
 * [Driver](/source/Driver/README.md) (MultiSequence, Static, Transient, Harmonic, EigenFrequency, ...)
 * [FeBasis](/source/FeBasis/README.md) (FeSpace for H1, Hcurl, Hdiv, L2; FeFunction, ...)
