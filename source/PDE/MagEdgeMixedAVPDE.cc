@@ -1,5 +1,6 @@
 #include <fstream>
 
+#include "MagEdgePDE.hh"
 #include "MagEdgeMixedAVPDE.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -52,7 +53,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
   MagEdgeMixedAVPDE::MagEdgeMixedAVPDE( Grid * aptgrid, PtrParamNode paramNode,
                           PtrParamNode infoNode,
                           shared_ptr<SimState> simState, Domain* domain )
-    :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
+    :MagEdgePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
     // =====================================================================
     // set solution information
@@ -89,12 +90,28 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
     SinglePDE::InitNonLin();
   }
+  void MagEdgeMixedAVPDE::ReadSpecialBCs() {
+    // --------------------------------------------------------------------
+    //   Get information about coils and open files for measurement coils
+    // --------------------------------------------------------------------
+
+    ReadCoils();
+
+  }
+
+  void MagEdgeMixedAVPDE::DefineIntegrators() {
+
+    this->DefineAVIntegrators();
+
+
+    DefineCoilIntegrators(1.0);
+  }
 
 
   // *****************************
   //  Definition of Integrators
   // *****************************
-  void MagEdgeMixedAVPDE::DefineIntegrators() {
+  void MagEdgeMixedAVPDE::DefineAVIntegrators() {
 
     RegionIdType actRegion;
     BaseMaterial * actMat = NULL;
@@ -153,7 +170,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
             "Mostly c&p form MagEdgePDE.");
       }
 
-
+      //check if a veloctyId is assigned
+      std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
 
       if ( nonLinTypes.GetSize() > 0 ){
         // =================================================================================
@@ -187,7 +205,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
         /* ==============================================
          * Upper left STIFFNESS part:
-         * curl(A) \cdot curl(A)
+         * curl(A) \cdot curl(A’)
            ============================================== */
         BaseBDBInt* stiffUpperLeft = NULL;
         stiffUpperLeft = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
@@ -202,7 +220,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
         /* ==============================================
          * Upper right STIFFNESS part:
-         * \sigma grad(V) \cdot A
+         * \sigma grad(V) \cdot A’
            ============================================== */
         if( isConducRegion ){
           BiLinearForm* stiffUpperRight = NULL;
@@ -220,7 +238,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
         /* ==============================================
          * Lower right STIFFNESS part:
-         * \sigma grad(V) \cdot grad(V)
+         * \sigma grad(V’) \cdot grad(V)
            ============================================== */
         if( isConducRegion ){
           BaseBDBInt* stiffLowerRight = NULL;
@@ -240,8 +258,11 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         /* ==============================================
          * Lower left STIFFNESS part:
          * \sigma grad(V) \cdot A
-           ============================================== */
-        if( isConducRegion ){
+         * This term is only needed because of symmetry reason!
+         * If one uses this formulation for a case with velocity, this term is not allowed to be used!
+           ============================================== */ 
+        /*   
+        if( isConducRegion){
           BiLinearForm* stiffLowerLeft = NULL;
           stiffLowerLeft = new ABInt<>(new GradientOperator<FeH1,3,1,Double>(),
                                         new IdentityOperator<FeHCurl,3,1,Double>(),
@@ -253,8 +274,87 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
           stiffLowerLeftContext->SetFeFunctions(elecScalPotFeFunc, magVecPotFeFunc  );
           assemble_->AddBiLinearForm( stiffLowerLeftContext );
         }
+      */
+
+      // ====================================================================
+      // check for velocity
+      // ====================================================================
+      if(velocityId != "")
+      {
+        // Get result info object for flow
+        shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
+
+        // Add the region information
+        PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+
+        // Read velocity coefficient function for this region and add it to velocity functor
+        PtrCoefFct regionMoving;
+        std::set<UInt> definedDofs;
+        bool coefUpdateGeo;
+        //we assume that velocity is real
+        ReadUserFieldValues( actSDList, velNode, velInfo->dofNames, velInfo->entryType, isComplex_, regionMoving, definedDofs, coefUpdateGeo );
+        VelocityCoef_->AddRegion( actRegion, regionMoving );
+
+        /* ==============================================
+         * Upper VELOCITY part:
+         * \gamma \cdot (A’ \cdot (v x curl(A)))
+           ============================================== 
+        */
+        // Create the integrators
+        BaseBDBInt   *velocityStiff = NULL;
+
+        // ConvectiveOperator doesn't work with FeHCurl, works at the moment just with FeH1, I am working on it
+        if( isComplex_ )
+        {
+          EXCEPTION("MagEdgePDE: VelocityStiffInt not implemented for complex case!");
+        } else {
+          if(dim_ == 2)
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,2,1>(),new CurlOperatorMag<FeHCurl,2,Double>(),conducCoef, -1.0, coefUpdateGeo);
+          else
+            velocityStiff  = new ABInt<>(new IdentityOperator<FeHCurl,3,1>(),new CurlOperatorMag<FeHCurl,3,Double>(),conducCoef, -1.0, coefUpdateGeo);
+        }
+        assert(velocityStiff != NULL);
+
+        //Gets the Velocity Vector, and using this Vector in CurlOperatorMag
+        velocityStiff->SetBCoefFunctionOpB(VelocityCoef_);
+        velocityStiff->SetName("VelocityStiffInt");
+        velocityInts_[actRegion] = velocityStiff;
+
+        BiLinFormContext *VelocityContextStiff =  new BiLinFormContext(velocityStiff, STIFFNESS );
+        VelocityContextStiff->SetEntities( actSDList, actSDList );
+        VelocityContextStiff->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc);
+        assemble_->AddBiLinearForm( VelocityContextStiff );
 
 
+        /* ==============================================
+         * Lower VELOCITY part:
+         * \gamma \cdot (grad(V’) \cdot (v x curl(A)))
+           ============================================== 
+        */
+        BaseBDBInt   *velocityStiff2 = NULL;
+
+        // ConvectiveOperator doesn't work with FeHCurl, works at the moment just with FeH1, I am working on it
+        if( isComplex_ )
+        {
+          EXCEPTION("MagEdgePDE: VelocityStiffInt2 not implemented for complex case!");
+        } else {
+          if(dim_ == 2)
+            velocityStiff2  = new ABInt<>(new GradientOperator<FeH1,2,1>(),new CurlOperatorMag<FeHCurl,2,Double>(),conducCoef, -1.0, coefUpdateGeo);
+          else
+            velocityStiff2  = new ABInt<>(new GradientOperator<FeH1,3,1>(),new CurlOperatorMag<FeHCurl,3,Double>(),conducCoef, -1.0, coefUpdateGeo);
+        }
+        assert(velocityStiff2 != NULL);
+
+        //Gets the Velocity Vector, and using this Vector in CurlOperatorMag
+        velocityStiff2->SetBCoefFunctionOpB(VelocityCoef_);
+        velocityStiff2->SetName("VelocityStiffInt2");
+        velocityInts_2[actRegion] = velocityStiff2;
+
+        BiLinFormContext *VelocityContextStiff2 =  new BiLinFormContext(velocityStiff2, STIFFNESS );
+        VelocityContextStiff2->SetEntities( actSDList, actSDList );
+        VelocityContextStiff2->SetFeFunctions( elecScalPotFeFunc, magVecPotFeFunc);
+        assemble_->AddBiLinearForm( VelocityContextStiff2 );
+      } // end velocityId
 
         // =================================================================================
         //  LINEAR MASS SECTION
@@ -277,7 +377,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
         /* ==============================================
          * Upper left MASS part:
-         * \sigma grad(A) \cdot grad(A)
+         * \sigma \frac{dA}{dt} \cdot A’
            ============================================== */
         BaseBDBInt *massUpperLeftInt;
         BiLinFormContext * massUpperLeftContext;
@@ -371,20 +471,9 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         std::set<RegionIdType> volRegions;
         volRegions.insert(aRegion);
 
-
         PtrCoefFct voltCoef = CoefFunction::Generate( mp_, Global::REAL, voltage);
-
-
-
-
-
-
-
+        
         BiLinearForm * voltInt = NULL;
-
-
-
-
         if( dim_ == 2 ) {
           voltInt = new SurfaceABInt<>(new IdentityOperator<FeH1,3,1,Complex>(),
                                        new GradientOperator<FeH1,3,1,Complex>(),
@@ -395,7 +484,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
                                        new GradientOperator<FeH1,3,1,Double>(),
                                        voltCoef, -1.0, volRegions, updatedGeo_);
         }
-
 
 
         voltInt->SetName("voltIntegrator");
@@ -409,9 +497,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       }
     }
   }
-
-
-
 
   void MagEdgeMixedAVPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(magEdgeMixedAVPde) << "Defining rhs load integrators for MagEdgeMixedAVPDE";
@@ -453,7 +538,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     solveStep_ = new StdSolveStep(*this);
   }
 
-
   // ======================================================
   // TIME-STEPPING SECTION
   // ======================================================
@@ -473,6 +557,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme2);
   }
 
+  /*
   // ******************************************************
   //   Query parameter object for information about coils
   // ******************************************************
@@ -483,7 +568,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       EXCEPTION("Currently no coils are supported for MagEdgeMixedAVPDE");
     }
   }
-
+  */
 
   void MagEdgeMixedAVPDE::DefinePrimaryResults() {
 
@@ -541,6 +626,34 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
     DefineFieldResult(permFct, permeability);
 
+
+    //creates the velocity
+    StdVector<std::string> vecDofNames;
+    if( ptGrid_->GetDim() == 3 ) {
+      vecDofNames = "x", "y", "z";
+    } else {
+      if( ptGrid_->IsAxi() ) {
+        WARN("No implementation for axi-symmetric model in the MagEdge Case");
+        //vecDofNames = "r", "z";
+      } else {
+        vecDofNames = "x", "y";
+      }
+    }
+
+    //// === VELOCITY ===
+    shared_ptr<ResultInfo> velocity( new ResultInfo);
+    velocity->resultType = MEAN_FLUIDMECH_VELOCITY;
+    velocity->dofNames = vecDofNames;
+    velocity->unit = "m/s";
+
+    velocity->definedOn = ResultInfo::NODE;
+    velocity->entryType = ResultInfo::VECTOR;
+
+    VelocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    DefineFieldResult( VelocityCoef_, velocity );
+
+    results_.Push_back( velocity );
+    availResults_.insert( velocity );
   }
 
   void MagEdgeMixedAVPDE::DefinePostProcResults() {
@@ -563,6 +676,8 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       aDot->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
       availResults_.insert( aDot );
       DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
+
+    }
 
       // === GRADIENT ELEC SCALAR POTENTIAL ===
       shared_ptr<ResultInfo> gradV(new ResultInfo);
@@ -660,9 +775,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       resultFunctors_[MAG_EDDY_CURRENT2] = eddyCurrentFuncElecScalPot;
 
 
-    }
-
-
     // === MAGNETIC FLUX DENSITY ===
     shared_ptr<ResultInfo> fluxDens(new ResultInfo);
     fluxDens->resultType = MAG_FLUX_DENSITY;
@@ -711,6 +823,64 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     resultFunctors_[MAG_FLUX] = fluxFct;
     availResults_.insert(flux);
 
+    // === COIL CURRENT DENSITY ===
+    shared_ptr<ResultInfo> ccd(new ResultInfo);
+    ccd->resultType = MAG_COIL_CURRENT_DENSITY;
+    ccd->dofNames = vecComponents;
+    ccd->unit = "A/m^2";
+    ccd->definedOn = ResultInfo::ELEMENT;
+    ccd->entryType = ResultInfo::VECTOR;
+    availResults_.insert( ccd );
+    shared_ptr<CoefFunctionMulti> ccdCoef(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+                                                                isComplex_));
+    DefineFieldResult( ccdCoef, ccd );
+
+
+    /* For integrating total current density over a surface
+      * integration in Hcurl FE space MAG_EDDY_CURRENT
+    */
+    // === TOTAL CURRENT DENSITY ===
+    shared_ptr<ResultInfo> tcd(new ResultInfo);
+    tcd->resultType = MAG_TOTAL_CURRENT_DENSITY;
+    tcd->dofNames = vecComponents;
+    tcd->unit = "A/m^2";
+    tcd->definedOn = ResultInfo::ELEMENT;
+    tcd->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionMulti> tcdCoef(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,
+                                                                isComplex_));
+    DefineFieldResult( tcdCoef, tcd );
+
+    // === TOTAL CURRENT (SURFACE RESULT) ===
+    shared_ptr<ResultInfo> ect(new ResultInfo());
+    ect->resultType = MAG_TOTAL_CURRENT;
+    ect->dofNames = "";
+    ect->unit = "A";
+    ect->definedOn = ResultInfo::SURF_REGION;
+    ect->entryType = ResultInfo::SCALAR;
+    availResults_.insert( ect );
+
+    // first, create normal mapping, -1.0 because we want the inward pointing normal vector
+    shared_ptr<CoefFunctionSurf> ncdt(new CoefFunctionSurf(true, -1.0, ect));
+    surfCoefFcts_[ncdt] = tcdCoef;
+
+    // then, integrate values
+    shared_ptr<ResultFunctor> totalCurrentFuncMagVecPot;
+    if( isComplex_ ) {
+      totalCurrentFuncMagVecPot.reset(new ResultFunctorIntegrate<Complex>(ncdt, magVecPotFeFct, ect ) );
+    } else {
+      totalCurrentFuncMagVecPot.reset(new ResultFunctorIntegrate<Double>(ncdt, magVecPotFeFct, ect ) );
+    }
+    resultFunctors_[MAG_TOTAL_CURRENT] = totalCurrentFuncMagVecPot;
+
+    // === RELUCTIVITY  ===
+    shared_ptr<ResultInfo> reluc(new ResultInfo);
+    reluc->resultType = MAG_ELEM_RELUCTIVITY;
+    reluc->dofNames = "";
+    reluc->unit = "Am/Vs";
+    reluc->definedOn = ResultInfo::ELEMENT;
+    reluc->entryType = ResultInfo::SCALAR;
+    DefineFieldResult( reluc_, reluc );
+
   }
 
   void MagEdgeMixedAVPDE::FinalizePostProcResults() {
@@ -737,13 +907,19 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       // Get flag if we need to consider an electric scalar potential in this region
       bool isConducRegion = curRegNode->Get("isConducRegion")->As<bool>();
       if( isConducRegion ){
+        if( analysistype_ != STATIC ) {
         PtrCoefFct h = CoefFunction::Generate( mp_, part,
             CoefXprBinOp( mp_, GetCoefFct( GRAD_ELEC_POTENTIAL ),
                 GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_ADD ) );
         PtrCoefFct h2 = CoefFunction::Generate( mp_, part,
             CoefXprVecScalOp(mp_, h, constOne, CoefXpr::OP_MULT));
-
-        elecIntensCoef->AddRegion(*regIt, h2);
+            elecIntensCoef->AddRegion(*regIt, h2);
+        }
+        else{
+          PtrCoefFct h2 = 
+          CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_, GetCoefFct( GRAD_ELEC_POTENTIAL ), constOne, CoefXpr::OP_MULT));
+          elecIntensCoef->AddRegion(*regIt, h2);
+        }
       }
     }
 
@@ -761,8 +937,46 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       eddyJCoef->AddRegion(*regIt, jE);
     }
 
+    // === COIL CURRENT DENSITY ===
+    shared_ptr<CoefFunctionMulti> ccdCoef =
+        dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_COIL_CURRENT_DENSITY]);
+    // loop over all coil coefficients and add contribution to coef
+    std::map<RegionIdType, PtrCoefFct>::iterator coilIt = coilCurrentDens_.begin();
+    for( ; coilIt != coilCurrentDens_.end(); ++coilIt ) {
+      ccdCoef->AddRegion( coilIt->first, coilIt->second);
+    }
 
+    // === TOTAL CURRENT DENSITY ===
+    PtrCoefFct jEddy = GetCoefFct(MAG_EDDY_CURRENT_DENSITY);
+    PtrCoefFct velocity = GetCoefFct(MEAN_FLUIDMECH_VELOCITY);
+    PtrCoefFct fluxDensity = GetCoefFct(MAG_FLUX_DENSITY);
+    shared_ptr<CoefFunctionMulti> tcdCoef =
+        dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_TOTAL_CURRENT_DENSITY]);
+    // loop over all regions and assemble total current density:
+    //  - if region is coil -> take coil current
+    //  - if region is no coil and analyis is transient/harmonic -> eddy
 
+    StdVector<RegionIdType>::iterator regIt2 = regions_.Begin();
+    for( ; regIt2 != regions_.End(); ++regIt2 ) {
+      RegionIdType actRegion = *regIt2;
+      if( coilCurrentDens_.find(actRegion) != coilCurrentDens_.end() ) {
+        // region is a coil
+        tcdCoef->AddRegion( actRegion, coilCurrentDens_[actRegion] );
+      } else {
+        // region is no coil
+        if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC || analysistype_ == STATIC) {
+          Double conductivity;
+          materials_[*regIt2]->GetScalar(conductivity,MAG_CONDUCTIVITY_SCALAR,Global::REAL);
+          PtrCoefFct conducCoef = materials_[*regIt2]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
+          
+          PtrCoefFct F_L = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, velocity, fluxDensity, CoefXpr::OP_CROSS));
+          PtrCoefFct jvel = CoefFunction::Generate( mp_, part,
+                  CoefXprVecScalOp(mp_, F_L, conducCoef, CoefXpr::OP_MULT));
+          PtrCoefFct jTotal = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, jvel, jEddy, CoefXpr::OP_ADD));
+          tcdCoef->AddRegion( actRegion, jTotal );
+        }
+      }
+    }
 
 
   }

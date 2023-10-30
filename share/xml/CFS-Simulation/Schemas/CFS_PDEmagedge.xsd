@@ -424,6 +424,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEddyCurrent"/>
       <xsd:enumeration value="magEddyCurrent1"/>
+      <xsd:enumeration value="magTotalCurrent"/>
       <xsd:enumeration value="magEddyCurrent2"/>
       <xsd:enumeration value="displacementCurrent"/>
       <xsd:enumeration value="magFlux"/>

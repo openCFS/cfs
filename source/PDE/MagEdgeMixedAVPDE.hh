@@ -23,7 +23,9 @@
 #define FILE_MAGNETICEDGEMIXEDAVPDE
 
 #include <map>
+#include "MagBasePDE.hh"
 #include "SinglePDE.hh" 
+#include "MagEdgePDE.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Coil.hh"
 
@@ -32,7 +34,7 @@ namespace CoupledField
 
 
   //! Class for 3D magnetics using edge elements and scalar nodal elements
-  class MagEdgeMixedAVPDE : public SinglePDE
+  class MagEdgeMixedAVPDE : public MagEdgePDE
   {
   public:
 
@@ -49,7 +51,7 @@ namespace CoupledField
 
     //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
     //! specifying coil results.
-    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
+    //shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
 
   protected:
     
@@ -57,7 +59,7 @@ namespace CoupledField
     virtual void InitNonLin();
 
     //! read special boundary conditions (coils, magnets)
-    void ReadSpecialBCs(){};
+    void ReadSpecialBCs();
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
@@ -73,6 +75,8 @@ namespace CoupledField
 
     //! define the SoltionStep-Driver
     void DefineSolveStep();
+
+    void DefineAVIntegrators();
     
     // =======================================================================
     //  Initialization
@@ -88,7 +92,7 @@ namespace CoupledField
     void DefinePostProcResults();
     
     //! Query parameter object for information on coils
-    void ReadCoils();
+    //void ReadCoils();
     
     //! Init the time stepping
     void InitTimeStepping();
@@ -120,10 +124,24 @@ namespace CoupledField
   private:
 
     //! Define integrators for general coils/inductors
-    void DefineGeneralCoilIntegrator();
+    //void DefineGeneralCoilIntegrator();
 
     //! Define integrators for classical cylindrical coils
-    void DefineCylindricalCoilIntegrator();
+    //void DefineCylindricalCoilIntegrator();
+
+    //! This coefficient function describes the velocity field.
+    shared_ptr<CoefFunctionMulti> VelocityCoef_;
+
+    //! Use gradient fields in shape functions (Edge elements of second kind)
+    bool useGradFields_;
+
+    //! For the calculation of the source field Hs (magnetic scalar potential PDE),
+    //! we need to consider every region as vacuum
+    //bool onlyVacuum_;
+
+    //! store velocity bilinear forms
+    std::map<RegionIdType, BaseBDBInt*> velocityInts_;
+    std::map<RegionIdType, BaseBDBInt*> velocityInts_2;
 
   };
 
