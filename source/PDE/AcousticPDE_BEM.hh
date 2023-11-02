@@ -79,9 +79,12 @@ namespace CoupledField{
     //! Init the time stepping
     void InitTimeStepping();
 
+<<<<<<< HEAD
     // define callNiHu()
     void callNiHu(/* const char output */);
 
+=======
+>>>>>>> 151bd976c (AcousticPDE_BEM needs AcousticPDE dependencies .. check unnecessary ones or fix this)
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);
 

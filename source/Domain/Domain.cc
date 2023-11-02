@@ -759,7 +759,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
     else if (actPdeName == "acoustic_BEM") {
         ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
+<<<<<<< HEAD
         CreateBemPDE();
+=======
+>>>>>>> 151bd976c (AcousticPDE_BEM needs AcousticPDE dependencies .. check unnecessary ones or fix this)
     }
     else if (actPdeName == "split") {
       ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
