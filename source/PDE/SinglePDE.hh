@@ -56,7 +56,7 @@ namespace CoupledField
     //! Initialize PDEs (2st stage)
     
     //! The second phase of initialization depends on all other SinglePDEs to
-    //! have finished stage1. Within stage 2, the following things are performed
+    //! have finished stage1. Within stage 2, the foDefineIntegratorsllowing things are performed
     //! - definition of boundary conditions
     //! - definition of integrators
     //! - definition of loads and RHS integrators 

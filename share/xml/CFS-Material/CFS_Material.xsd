@@ -50,7 +50,7 @@
                 minOccurs="0" maxOccurs="1"/>
               <xsd:element name="acoustic" type="DT_MatAcoustic"
                 minOccurs="0" maxOccurs="1"/>
-              <!-- <xsd:element name="acoustic_BEM" type="DT_MatAcoustic_BEM"
+              <!-- <xsd:element name="acoustic_BEM" type="DT_MatAcousticBEM"
                 minOccurs="0" maxOccurs="1"/> -->
               <xsd:element name="electric" type="DT_MatElectric"
                 minOccurs="0" maxOccurs="1"/>

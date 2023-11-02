@@ -323,9 +323,6 @@ for tag in autotags:
     if(tag == 'Acoustic'):
       r = xml.xpathEval('//cfs:pdeList/cfs:acoustic')
 
-    if(tag == 'AcousticBEM'):
-      r = xml.xpathEval('//cfs:pdeList/cfs:acousticBEM')
-
     if(tag == 'ExportLinSys'):
       r = xml.xpathEval('//cfs:exportLinSys')
 
