@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.6.0 FATAL_ERROR)
-
 message(STATUS "Using CMake ${CMAKE_VERSION} with generator ${CMAKE_GENERATOR}")
 
 # Include global definitions for openCFS development server (host name, etc.)
@@ -66,9 +65,9 @@ include(CMakeDependentOption)
 include("cmake_modules/CFS_macros.cmake")
 
 # CFS version number.  Simply the last modification date. 
-# It is good practice to keep this up to date (CFS_NAME can stay)
+# It is good practice to keep this up to date, independent on the significance of the change (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "23")
-set(CFS_VERSION_MONTH "10")
+set(CFS_VERSION_MONTH "11")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name

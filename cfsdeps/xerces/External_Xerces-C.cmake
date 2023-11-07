@@ -51,7 +51,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${
 
 generate_patches_script() # sets PATCHES_SCRIPT
 
-# generate package ceation script. We want to skip bin and share and therefore use no manifest
+# generate package creation script. We want to skip bin and share and therefore use no manifest
 generate_packing_script_install_dir()
 
 # we have no postinstall, so don't call generate_postinstall_script()

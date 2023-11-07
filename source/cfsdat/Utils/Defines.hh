@@ -23,7 +23,9 @@
 #include <boost/shared_ptr.hpp>
 #include <sstream>
 #include <string>
-#include <unistd.h>
+#if !defined(WIN32)
+  #include <unistd.h>
+#endif
 #include <ios>
 #include <cmath>
 #include <fstream>

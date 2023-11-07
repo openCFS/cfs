@@ -55,7 +55,7 @@ if(WIN32)
   generate_patches_script() # for UNIX create_external_configure() asserts this not to be set
 endif()
 
-# generate package ceation script. 
+# generate package creation script. We do not get the files from an install_manifest.txt
 generate_packing_script_install_dir()
 
 # we have no postinstall, so don't call generate_postinstall_script()

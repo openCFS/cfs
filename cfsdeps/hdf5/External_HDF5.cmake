@@ -66,7 +66,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
 
 assert_unset(PATCHES_SCRIPT)
 
-# generate package ceation script. 
+# generate package creation script. 
 generate_packing_script_manifest()
 
 # we have no postinstall, so don't call generate_postinstall_script()

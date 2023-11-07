@@ -44,10 +44,9 @@ function(MKL_VERSION_FROM_HEADER)
   IF(${MKL_MAJOR_VERSION} LESS 2019)
     MESSAGE(FATAL_ERROR "MKL version has to be at least 2019.0.0 MKL_VERSION: ${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}.${MKL_UPDATE}")
   ENDIF()
-
 endfunction(MKL_VERSION_FROM_HEADER)
 
-if(MSVC)
+if(MSVC) # this is also icx in Windows!
   #-----------------------------------------------------------------------------
   # If not specified by the user, try to determine proper MKL root directory.
   #-----------------------------------------------------------------------------

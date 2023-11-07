@@ -1,24 +1,27 @@
-# Arpack is the standard eigenvalue solver
-# https://github.com/opencollab/arpack-ng
+# ThirdPary-HSL is a helper for the Ipopt optimizer if IPOPT has no MKL (e.g. ARM)
+# It requires the solver sourcode Coin-HSL from https://licences.stfc.ac.uk/product/coin-hsl
+# the result is the dynamic hsl libraray (libshl.dylib) loaded by Iptop at runtime
+# https://github.com/coin-or-tools/ThirdParty-HSL
 
 # make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
 clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
-set(PACKAGE_NAME "arpack")
-set(PACKAGE_VER "3.7.0")
-set(ARPACK_VER ${PACKAGE_VER}) # for Dependencies.cc
+set(PACKAGE_NAME "hsl")
+set(PACKAGE_VER "2.2.2")
 set(PACKAGE_FILE "${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "6fc6c6bf78dbd4f144595ef0675c8430")
+set(PACKAGE_MD5 "9edd0d6e9ab57996d90886e743bbc8fa")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
+set(COINHSL_VER "2023.05.26") # this is the coinhsl version
+
 # the mirrors can point to arbitrary file names. 
-set(PACKAGE_MIRRORS "https://github.com/opencollab/arpack-ng/archive/${PACKAGE_FILE}")
+set(PACKAGE_MIRRORS "https://codeload.github.com/coin-or-tools/ThirdParty-HSL/tar.gz/refs/tags/releases/${PACKAGE_VER}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
- # we only have a fortran compiler
-use_c_and_fortran(OFF ON)
+# HSL is almost pure Fortran 
+use_c_and_fortran(ON ON)
 
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
@@ -27,32 +30,28 @@ set_precompiled_pckg_file()
 set_package_library_default()
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()
-# this is the standard target for cmake projects. The files to package come from the install_manifest.txt
-set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
+# this is the standard target for configure projects (builds in source). This directory will be zipped
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
-# set DEPS_ARG with defaults for a cmake project
-set_deps_args_default(ON) # set compiler flags 
-# add the specific settings for the packge which comes in cmake style
-set(DEPS_ARGS
-  ${DEPS_ARGS}
-   # for our 3.7.0 patch only
-  -DSYSTEM_BLAS:BOOL=OFF
-  -DSYSTEM_LAPACK:BOOL=OFF
-  -DTESTS:BOOL=OFF )
+set_configure_default()
+if(False AND USE_METIS)
+  string(CONCAT LAPACK_STR "-L${CMAKE_BINARY_DIR}/lib -lmetis") # handle quote stuff
+  set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --with-metis-lflags=${LAPACK_STR})
+endif()
 
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
-
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
-generate_patches_script() # sets PATCHES_SCRIPT
+# copy local original coinhsl source into ThirdParty-HSL following it' README.md 
+generate_patches_script()
 
-# generate package creation script. We get the files from an install_manifest.txt
-generate_packing_script_manifest()
+# generate package creation script.
+set(DEPS_LIB_TYPE "dynamic")
+generate_packing_script_install_dir()
 
-# we have no postinstall, so don't call generate_postinstall_script()
-assert_unset(POSTINSTALL_SCRIPT)
+# follow again the ThirdParty-HSL README.md. We need a rename 
+generate_postinstall_script()
 
 #dump_depencency_variables()
 
@@ -60,17 +59,18 @@ assert_unset(POSTINSTALL_SCRIPT)
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # copy files from cache
   create_external_unpack_precompiled()
-
 # if not, build newly and possibly pack the stuff
 else()
   # add external project step actually building an cmake package including a patch 
   # also genearate the patch script via generate_patches_script()
-  create_external_cmake_patched()  
-
+  create_external_configure()  
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
     # add custom step to zip a precompiled package to the cache.
     add_external_storage_step()
+  else()
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()  
   endif()  
 endif()
 

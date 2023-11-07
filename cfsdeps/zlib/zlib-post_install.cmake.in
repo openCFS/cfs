@@ -1,2 +1,0 @@
-FILE(COPY  "@CFS_BINARY_DIR@/cfsdeps/zlib/src/zlib-build/zconf.h"
-     DESTINATION "@CFS_BINARY_DIR@/cfsdeps/zlib/src/zlib" )

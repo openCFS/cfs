@@ -1,6 +1,7 @@
 # IPOPT is a general purpose open source optimizer 
 # https://coin-or.github.io/Ipopt/
 # https://github.com/coin-or/Ipopt
+# w/o MKL we need HSL, for Windows we use precompiled code (External_IPOPT_Win.cmake)
 
 # make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
 clear_depencency_variables()
@@ -11,9 +12,9 @@ endif()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "ipopt")
-set(PACKAGE_VER "3.14.10")
+set(PACKAGE_VER "3.14.12")  # it makes sense to have this in sync with External_IPOPT_Win.cmake
 set(PACKAGE_FILE "${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "f22da4b75d9c936e607febe1f7e63815")
+set(PACKAGE_MD5 "b2bcb362be4c10eccde02829d3025faa")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names. 
@@ -60,7 +61,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
 
 assert_unset(PATCHES_SCRIPT)
 
-# generate package ceation script. We get the files from an install_manifest.txt
+# generate package creation script. We do not get the files from an install_manifest.txt
 generate_packing_script_install_dir()
 
 # we have no postinstall, so don't call generate_postinstall_script()

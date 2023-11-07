@@ -93,21 +93,8 @@ endif()
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
-SET(ZLIB_VER "1.2.8")
-SET(ZLIB_GZ "zlib-${ZLIB_VER}.tar.gz")
-SET(ZLIB_MD5 "44d667c142d7cda120332623eab69f40")
+include("${CFSDEPS_DIR}/zlib/External_zlib.cmake")
 
-INCLUDE("${CFSDEPS_DIR}/zlib/External_zlib.cmake")
-
-#-------------------------------------------------------------------------------
-# Build bzip2 library
-#-------------------------------------------------------------------------------
-SET(BZIP2_URL "${CFS_DS_SOURCES_DIR}/bzip2")
-SET(BZIP2_VER "1.0.8")
-SET(BZIP2_GZ "bzip2-${BZIP2_VER}.tar.gz")
-SET(BZIP2_MD5 "67e051268d0c475ea773822f7500d0e5")
-
-INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
@@ -164,6 +151,7 @@ if(USE_BLAS_LAPACK STREQUAL "MKL")
   include("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
 endif()
 
+# Apple's Accelerate Framework is a system lib - nothing to build
 if(USE_BLAS_LAPACK STREQUAL "ACCELERATE")
   include("${CFS_SOURCE_DIR}/cmake_modules/FindAppleAccelerate.cmake")
 endif()
@@ -222,15 +210,7 @@ include("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 #-------------------------------------------------------------------------------
 # Build MuParser library
 #-------------------------------------------------------------------------------
-# https://github.com/beltoforion/muparser/archive/v2.2.6.1.tar.gz
-# revision 388b3f9 contains a necessary feature request not available in 2.2.6.1
-# someone shall switch to a real revision once strfunc4-5 are there
-# https://codeload.github.com/beltoforion/muparser/zip/388b3f9
-SET(MUPARSER_VER "2.2.6.1")
-SET(MUPARSER_TGZ "v${MUPARSER_VER}.tar.gz") 
-SET(MUPARSER_MD5 "410d29b4c58d1cdc2fc9ed1c1c7f67fe") # 2.2.6.1
-
-INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
+include("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
 # Xerces library or libxml2, triggered by CFS_XML_READER
@@ -249,12 +229,9 @@ endif()
 #-----------------------------------------------------------------------------
 # Find VTK - used for Ensight only
 #-----------------------------------------------------------------------------
-IF(USE_VTK)
-  SET(VTK_TAR "VTK-7.1.1.tar.gz")
-  SET(VTK_VERSION "7.1") # must be 2 digits for include-dir to be correct
-  SET(VTK_MD5 "daee43460f4e95547f0635240ffbc9cb")
-  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/vtk/External_VTK.cmake")
-ENDIF(USE_VTK)
+if(USE_VTK)
+  include("${CFS_SOURCE_DIR}/cfsdeps/vtk/External_VTK.cmake")
+endif(USE_VTK)
 
 #-----------------------------------------------------------------------------
 # Find CGAL
@@ -332,10 +309,18 @@ if(USE_SNOPT)
 endif()
 
 #-----------------------------------------------------------------------------
-# Find IPOPT - A general purpose open source optimizer 
+# Find Ipopt - A general purpose open source optimizer 
 #-----------------------------------------------------------------------------
 if(USE_IPOPT)
-  include("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
+  if(WIN32)
+    include("${CFSDEPS_DIR}/ipopt/External_IPOPT_Win.cmake")
+  else()
+    include("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
+    # if no MKL is available, use HSL via ThirdParty-HSL. creates dynamic coinlib for Ipopt
+    if(NOT(USE_BLAS_LAPACK STREQUAL "MKL"))
+      include("${CFSDEPS_DIR}/hsl/External_HSL.cmake")
+    endif()
+  endif()
 endif()
 
 #-----------------------------------------------------------------------------
@@ -345,7 +330,6 @@ endif()
 if(USE_SGP)
   include("${CFSDEPS_DIR}/sgp/External_SGP.cmake")
 endif()
-
 
 #-----------------------------------------------------------------------------
 # Find SGPP - A toolbox for sparse grid interpolation 

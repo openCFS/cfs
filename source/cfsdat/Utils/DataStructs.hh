@@ -21,7 +21,6 @@
 #include "cfsdat/Utils/ResultCache.hh"
 #include "EqnNumberingSimple.hh"
 
-
 #include <boost/fusion/include/sequence.hpp>
 #include <boost/fusion/include/algorithm.hpp>
 #include <boost/fusion/include/vector.hpp>
@@ -37,7 +36,9 @@
 #include <boost/mpl/range_c.hpp>
 #include <boost/mpl/for_each.hpp>
 #include <typeinfo>
-#include <cxxabi.h>
+#if !defined(WIN32)
+  #include <cxxabi.h>
+#endif
 
 using namespace boost::placeholders;
 

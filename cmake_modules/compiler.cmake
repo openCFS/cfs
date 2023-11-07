@@ -170,7 +170,7 @@ endif() # CXX GNU+Clang
 if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). Interface seems compatible
   # BOOST_ALL_NO_LIB is mandatoy for Windows, correct but not necessary on UNIX
   if(WIN32)
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -std=c++14 -D_WIN32_WINNT=0x0A00  -DBOOST_ALL_NO_LIB /fp:precise")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Qstd=c++14 -D_WIN32_WINNT=0x0A00  -DBOOST_ALL_NO_LIB /fp:precise")
     set(CFSDEPS_C_FLAGS " -D_WIN32_WINNT=0x0A00 /fp:precise")
     set(CFSDEPS_CXX_FLAGS " -D_WIN32_WINNT=0x0A00 /fp:precise")
   else()
@@ -183,6 +183,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
   
   set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} ${CFS_OPT_FLAGS} -w -Wno-everything")
   set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} ${CFS_OPT_FLAGS} -w -Wno-everything")
+  if(WIN32)
+    # error: cannot use 'throw' with exceptions disabled
+    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /EHsc")
+  endif() 
   if(USE_CGAL) # remove when we use header only CGAL
     set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
@@ -238,6 +242,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} /wd4101")
   # Unbekanntes Pragma "GCC".
   set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} /wd4068")
+
+  # silencing all warnings with /w for cfsdeps does not work as cmake sets /W4 which overrides /w
+  set(CFSDEPS_CXX_FLAGS "${CFS_CXX_FLAGS} /EHsc ${CFS_SUPPRESSIONS} /wd4310")
 
 endif() # MSVC
 

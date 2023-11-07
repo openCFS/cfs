@@ -47,7 +47,6 @@
 #include <openblas/openblas_config.h>
 #endif
 
-#include <bzlib.h>
 #include <zlib.h>
 
 #include <H5public.h>
@@ -476,9 +475,6 @@ void Dependencies::ReadSetting()
 
   // https://de.wikipedia.org/wiki/Zlib-Lizenz
   data.Push_back(Dependency("zlib", "", zlibVersion(), EASY));
-
-  // https://spdx.org/licenses/bzip2-1.0.6.html
-  data.Push_back(Dependency("bzip2", "", BZ2_bzlibVersion(), EASY));
 
   // https://github.com/beltoforion/muparser
   data.Push_back(Dependency("muparser", "", MUP_VERSION, BSD, ""));
