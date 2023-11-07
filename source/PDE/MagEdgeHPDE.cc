@@ -166,7 +166,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           // get the penaltyParameter from the .xml file and set the default value
           Double penaltyParameter = 5;
           myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
-          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/(1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
+          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/((1/(std::pow(penaltyParameter,0.01)))*1000*1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
           jFct[0] = CoefFunction::Generate(mp_, part, jVec);
           // ----------- IMPORTANT (end) -------------------------------------
 
@@ -229,11 +229,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         //mu_regularize = actMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
         Double mu_regularize;
         materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
-        PtrCoefFct rho;
-        rho = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,penaltyParameter/2)));
+        PtrCoefFct rho_art;
+        rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>((1/(std::pow(penaltyParameter,0.01)))*1000*mu_regularize*std::pow(10,penaltyParameter/2)));
 
         BaseBDBInt* curlcurl = NULL;
-        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho,1.0, updatedGeo_);
+        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho_art,1.0, updatedGeo_);
         curlcurl->SetName("CurlCurlIntegrator");
 
         BiLinFormContext * stiffContext = new BiLinFormContext(curlcurl, STIFFNESS );
