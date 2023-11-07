@@ -36,19 +36,25 @@ namespace CoupledField
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return MAG_FIELD_INTENSITY; }
 
+    //stores the flux for hystersis and nonlinear models
+    shared_ptr<CoefFunctionMulti> nlFluxCoef_;
+
     //! Initialize NonLinearities
     virtual void InitNonLin();
   protected:
     
     LinearForm* GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId = "" );
 
-    //! define all (bilinearform) integrators needed for this pde
+    // define all integrators: bilinear forms and linearforms (left hand side and right hand side)
     void DefineIntegrators();
+    //! define all (bilinearform) integrators needed for this pde
     void DefineStandardIntegrators();
+    //! Define all RHS linearforms for load / excitation
     void DefineCoilIntegrators();
+    void DefineRhsLoadIntegrators(); 
 
     //! Defines the integrators needed for ncInterfaces
-    void DefineNcIntegrators(){};
+    void DefineNcIntegrators(){}; // not implemented
 
     //! define surface integrators needed for this pde
     void DefineSurfaceIntegrators( ){}; // not implemented
@@ -56,6 +62,11 @@ namespace CoupledField
     LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ){return NULL;}; // not implemented
     BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity ){return NULL;}; // not implemented
     void InitMagnetization(){}; // not implemented
+
+
+
+    //! Define the SolveStep-Driver
+    void DefineSolveStep();
 
     //! Define available primary result types
     void DefinePrimaryResults();
@@ -65,6 +76,12 @@ namespace CoupledField
      
     //! Define available postprocessing results
     void DefinePostProcResults();
+
+    //! Init the time stepping:
+    void InitTimeStepping();
+
+    //! Coefficient function, containing the overall permeability
+    shared_ptr<CoefFunctionMulti> perm_;
 
 
     //! \copydoc SinglePDE::CreateFeSpace

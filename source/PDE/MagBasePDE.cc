@@ -7,6 +7,7 @@
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
 #include "Driver/SolveSteps/SolveStepHyst.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/SolveSteps/SolveStepEB.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -84,16 +85,16 @@ namespace CoupledField
    */
   void MagBasePDE::DefineSolveStep() {
     // isHysteresis_ is set in SinglePDE.cc during InitNonLin
+    std::cout << modelName_ << std::endl;
 		if(isHysteresis_){
 			solveStep_ = new SolveStepHyst(*this);
-		} else {
+    } else {
 			solveStep_ = new StdSolveStep(*this);
 		}
   }
 
   void MagBasePDE::InitNonLin() {
     SinglePDE::InitNonLin();
-
     InitMagnetization();
   }
 

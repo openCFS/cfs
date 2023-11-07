@@ -41,8 +41,6 @@ namespace CoupledField
     //! Destructor
     virtual ~MagneticScalarPotentialPDE(){};
     
-
-
     //stores the flux for hystersis and nonlinear models
     shared_ptr<CoefFunctionMulti> nlFluxCoef_;
     
@@ -76,7 +74,6 @@ namespace CoupledField
     
     //! Define available postprocessing results
     void DefinePostProcResults();
-
     void FinalizePostProcResults();
     
     //! Init the time stepping:
