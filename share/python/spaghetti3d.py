@@ -1303,29 +1303,25 @@ def integrate_fe(fe_num):
       tensors_sm /= sum_w_s
     for num, sidx in enumerate(s_idx_intermediate):
       grad_rho_ip = np.expand_dims(w_s[num]/sum_w_s*(1+glob.p*(rho_s[num] - rho_sm)),axis=1)*grad_rho_s[num]
+      grad_tensor_ip = np.expand_dims(np.squeeze((w_s[num][0]/sum_w_s*(tensors_s[num][0,:,:]+glob.p*(rho_s[num][0]*tensors_s[num][0,:,:] - tensors_sm)))),axis=2)*np.expand_dims(grad_rho_s[num],axis=0)
       grad_rho[glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = np.sum(grad_rho_ip,axis=0)/order**3
       if glob.anisotropic:
-        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = np.expand_dims(tensors_s[num][0,:,:],axis=2)*np.expand_dims(np.expand_dims(grad_rho_ip,axis=0),axis=0)+w_s[num]*rho_s[num]*grad_tensors_s[num][0][:,:]/sum_w_s
+        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = grad_tensor_ip+w_s[num]*rho_s[num]*grad_tensors_s[num][0][:,:]/sum_w_s
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = np.sum(w_s_full[num]/sum_w_s)/order**3*(1+glob.p*(rho_s_full[num]-rho_sm))
       if glob.anisotropic:
-        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = w_s_full[num]*rho_s_full[num]*grad_tensors_s_full[num]
-        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] += np.sum(w_s_full[num]*tensors_s_full[num]/sum_w_s,axis=0)/order**3*(1+glob.p*(rho_s_full[num]-rho_sm))*tensors_s_full[num]
+        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = w_s_full[num]*rho_s_full[num]*grad_tensors_s_full[num]/sum_w_s
+        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] += w_s_full[num]/sum_w_s*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm[0,:,:]))
     #rho_sm = boundary(d_min)
   elif len(rho_s_full)>0:
     rho_sm = np.sum(rho_s_full*w_s_full)/(sum_w_s_full+len(glob.shapes)-num_full)
     if glob.anisotropic:
       tensors_sm = np.sum(np.expand_dims(np.expand_dims(rho_s_full*w_s_full,axis=1),axis=2)*tensors_s_full,axis=0)/(sum_w_s_full+len(glob.shapes)-num_full)
-      tensors_sm = np.zeros((6,6))
-      for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
-        tensors_sm += rho_s_full[num]*w_s_full[num]*tensors_s_full[num]
-      tensors_sm /= (sum_w_s_full+len(glob.shapes)-num_full)
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(1+glob.p*(rho_s_full[num]-rho_sm))
       if glob.anisotropic:
         grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = rho_s_full[num]*w_s_full[num]*grad_tensors_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)
-        #grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(1+glob.p*(rho_s_full[num]*tensors_s_full[num]-rho_sm*tensors_sm))
-        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] += grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1]*tensors_s_full[num]
+        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm))
   else:
     tensors_sm = np.zeros((6,6))
   return (rho_sm, grad_rho) if not glob.anisotropic else (tensors_sm, grad_tensor)
