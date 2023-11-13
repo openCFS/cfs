@@ -74,7 +74,7 @@ class Global:
     self.silent = False
     self.vtk_lists = False
     self.num_threads = int(os.environ.get('OMP_NUM_THREADS'))
-    self.anisotropic = True
+    self.anisotropic = False
     self.base_tensor = np.zeros((3,6,6))
     # transversely isotropic default base tensor
     # CFRP with fibers in 2-direction
@@ -102,6 +102,11 @@ class Global:
     self.base_tensor[0,2,0] = 2950.1
     self.base_tensor[0,1,2] = 1115.45
     self.base_tensor[0,2,1] = 1115.45
+    mu = 1
+    lam = 0.1
+    mulam = 2*mu+lam
+    self.void = np.zeros((21))
+    self.void[0:9] = [mulam, mulam, mulam, mu, mu, mu, lam, lam, lam]
     #print('base_tensor_x:\n', self.base_tensor[0])
     #print('base_tensor_z:\n', self.base_tensor[2])
 
@@ -133,6 +138,10 @@ class FE:
 # @dict dictionary transparently given from the xml file to python
 def cfs_init(settings, design, dict):
 
+  glob.design = design
+  if 'mech_11' in design:
+    glob.anisotropic = True
+
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax'])-glob.rhomin
   if glob.anisotropic:
@@ -158,7 +167,6 @@ def cfs_init(settings, design, dict):
   if 'silent' in dict:
     glob.silent = int(dict['silent'])
 
-  glob.design = design
   glob.opts = dict
 
 
@@ -213,7 +221,15 @@ def cfs_map_to_design():
     print('time for unraveling:', ti.time()-start)
   if glob.vtk_lists:
     write_vtk_lists(glob.vtk_lists)
-  return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin if not glob.anisotropic else np.reshape(glob.tensor, np.prod(glob.n)*36, order='F')+glob.rhomin
+  if not glob.anisotropic:
+    return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin
+  else:
+    ds2 = glob.tensor.reshape((np.prod(glob.n),6,6), order='F')
+    ds = np.zeros((np.prod(glob.n)*21))
+    mask = np.array([[0,1,2,3,4,5,0,0,1,0,0,0,1,1,1,2,2,2,3,3,4],[0,1,2,3,4,5,1,2,2,3,4,5,3,4,5,3,4,5,4,5,5]])
+    for i in range(21):
+      ds[i*np.prod(glob.n):(i+1)*np.prod(glob.n)] = ds2[:,mask[0,i],mask[1,i]]+glob.void[i]
+    return ds
 
 def cfs_info_field_keys():
   if not glob.silent:
@@ -248,11 +264,11 @@ def cfs_get_gradient(ddes_vec, label):
     ds = glob.grad_rho[:,:,:,v].reshape(np.prod(glob.n), order='F') # the shape sensitivity as vector
     # sens_field = element wise the sensitivity of the function times the shape variables.
     if glob.anisotropic:
-      ds2 = glob.grad_tensor[:,:,:,:,:,v].reshape(np.prod(glob.n)*36, order='F') # the shape sensitivity as vector
+      ds2 = glob.grad_tensor[:,:,:,:,:,v].reshape((np.prod(glob.n),6,6), order='F') # the shape sensitivity as vector
       ds = np.zeros((np.prod(glob.n)*21))
-      mask = np.ravel_multi_index(np.array([[0,1,2,3,4,5,0,0,1,0,0,0,1,1,1,2,2,2,3,3,4],[0,1,2,3,4,5,1,2,2,3,4,5,3,4,5,3,4,5,4,5,5]]), (6,6), order='F')
-      for i in range(np.prod(glob.n)):
-        ds[i*21:(i+1)*21] = ds2[mask+i*36]
+      mask = np.array([[0,1,2,3,4,5,0,0,1,0,0,0,1,1,1,2,2,2,3,3,4],[0,1,2,3,4,5,1,2,2,3,4,5,3,4,5,3,4,5,4,5,5]])
+      for i in range(21):
+        ds[i*np.prod(glob.n):(i+1)*np.prod(glob.n)] = ds2[:,mask[0,i],mask[1,i]]
     sens_field = ddes_vec*ds
     sens[v] = sens_field.sum() # equals for i in range(nx): for j in range(ny): for k in range(nz): sens +=  drho[i,j,k] * glob.grad_field[i,j,k][v]
   #sens = np.sum(np.expand_dims(ddes_vec,1)*glob.grad_rho[:,:,:,v].reshape((np.prod(glob.n),var_total), order='F'),0)
@@ -1270,7 +1286,6 @@ def integrate_fe(fe_num):
     XX = [[Xmid[0]+it[0], Xmid[1]+it[1], Xmid[2]+it[2]] for it in product([-eta, eta],repeat=3)] if order == 2 else [Xmid]
     rho_s = []
     grad_rho_s = []
-    idx_s = []
     tensors_s = []
     grad_tensors_s = []
     s_idx_intermediate = []
@@ -1285,9 +1300,8 @@ def integrate_fe(fe_num):
       rho, grad_ip, idx_ip = zip(*[boundary(glob.shapes[shape_idx_list[0]].dist_by_idx(X, shape_idx_list[1:],what='distgradidx'),derivative=True,alpha=glob.shapes[shape_idx_list[0]].alpha) for X in XX])
       rho_s.append(rho)
       grad_rho_s.append(grad_ip)
-      idx_s.append(idx_ip)
       if glob.anisotropic:
-        t_s, grad_t_s = zip(*[glob.shapes[shape_idx_list[0]].get_tensor_by_idx(idx_s[ip][0], XX[ip]) for ip in range(len(XX))])
+        t_s, grad_t_s = zip(*[glob.shapes[shape_idx_list[0]].get_tensor_by_idx(idx_ip[ip], XX[ip]) for ip in range(len(XX))])
         tensors_s.append(t_s)
         grad_tensors_s.append(grad_t_s)
     rho = np.array(rho_s)
@@ -1299,19 +1313,20 @@ def integrate_fe(fe_num):
       tensors_s = np.array(tensors_s)
       tensors_sm = np.sum(np.expand_dims(np.expand_dims(w_s*rho,axis=2),axis=3)*tensors_s,axis=0)
       if len(rho_s_full)>0:
-        tensors_sm += np.sum(np.expand_dims(np.expand_dims(w_s_full*rho_s_full,axis=1),axis=2)*tensors_s_full,axis=0)
-      tensors_sm /= sum_w_s
+        tensors_sm += np.sum(np.expand_dims(w_s_full*rho_s_full,axis=(1,2))*tensors_s_full,axis=0)
+      tensors_sm /= np.expand_dims(sum_w_s,axis=(1,2))
+      tensors_sm = np.sum(tensors_sm,axis=0)/(order**3)
     for num, sidx in enumerate(s_idx_intermediate):
       grad_rho_ip = np.expand_dims(w_s[num]/sum_w_s*(1+glob.p*(rho_s[num] - rho_sm)),axis=1)*grad_rho_s[num]
-      grad_tensor_ip = np.expand_dims(np.squeeze((w_s[num][0]/sum_w_s*(tensors_s[num][0,:,:]+glob.p*(rho_s[num][0]*tensors_s[num][0,:,:] - tensors_sm)))),axis=2)*np.expand_dims(grad_rho_s[num],axis=0)
       grad_rho[glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = np.sum(grad_rho_ip,axis=0)/order**3
       if glob.anisotropic:
-        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = grad_tensor_ip+w_s[num]*rho_s[num]*grad_tensors_s[num][0][:,:]/sum_w_s
+        grad_tensor_ip = np.expand_dims(np.expand_dims(w_s[num]/sum_w_s,axis=(1,2))*(tensors_s[num]+glob.p*(np.expand_dims(rho_s[num],axis=(1,2))*tensors_s[num] - tensors_sm)),axis=3)*np.expand_dims(grad_rho_s[num],axis=(1,2))
+        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = (np.sum(grad_tensor_ip,axis=0)+np.sum(w_s[num]*rho_s[num]*grad_tensors_s[num]/sum_w_s,axis=0))/(order**3)
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = np.sum(w_s_full[num]/sum_w_s)/order**3*(1+glob.p*(rho_s_full[num]-rho_sm))
       if glob.anisotropic:
         grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = w_s_full[num]*rho_s_full[num]*grad_tensors_s_full[num]/sum_w_s
-        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] += w_s_full[num]/sum_w_s*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm[0,:,:]))
+        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] += w_s_full[num]/sum_w_s*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm))
     #rho_sm = boundary(d_min)
   elif len(rho_s_full)>0:
     rho_sm = np.sum(rho_s_full*w_s_full)/(sum_w_s_full+len(glob.shapes)-num_full)
@@ -1852,7 +1867,8 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml")
   parser.add_argument("--set", help="set within a .density.file", type=int)
-  parser.add_argument("--order", help="number of integration points per dimension and element", choices=[1, 2], default=1, type=int)  
+  parser.add_argument("--order", help="number of integration points per dimension and element", choices=[1, 2], default=1, type=int)
+  parser.add_argument("--anisotropic", help="use anisotropic carbon fiber material oriented along spaghetti", action='store_true')
   parser.add_argument("--silent", help="verbosity of print output", action='store_true')
   parser.add_argument('--vtk', help="write vtk file for given name (w/o extenstion)")
   parser.add_argument('--vtk_res', help="resolution for vtk export", type=int, default=200)
@@ -1876,6 +1892,7 @@ if __name__ == '__main__':
   glob.rhomin = 0
   glob.gradient_check = args.gradient_check
   glob.silent = args.silent
+  glob.anisotropic = args.anisotropic
 
   if args.vtk_lists:
     cfs_map_to_design()
