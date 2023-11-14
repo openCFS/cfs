@@ -164,7 +164,7 @@ ErsatzMaterial::ErsatzMaterial() :
     if((   dt == DesignElement::MECH_TRACE || dt == DesignElement::MECH_ALL
         || dt == DesignElement::DIELEC_TRACE || dt == DesignElement::DIELEC_ALL
         || dt == DesignElement::PIEZO_ALL || dt == DesignElement::ALL_DESIGNS)
-       && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
+       && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT || method_ == SPAGHETTI_PARAM_MAT))
       continue;
 
     if(dt != DesignElement::DEFAULT && design->FindDesign(g->GetDesignType(), false) == -1)
