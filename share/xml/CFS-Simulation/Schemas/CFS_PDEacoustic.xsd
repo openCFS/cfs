@@ -727,6 +727,8 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPower"/>
       <xsd:enumeration value="acouPowerPlaneWave"/>
+      <xsd:enumeration value="acouPowerReflection"/>
+      <xsd:enumeration value="acouPowerTransmission"/>
     </xsd:restriction>
   </xsd:simpleType>
 

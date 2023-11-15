@@ -2158,7 +2158,138 @@ namespace CoupledField{
   
   void AcousticPDE::FinalizePostProcResults(){
     //first call base class method
+    
     SinglePDE::FinalizePostProcResults();
+    
+    // complex part for expressions
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    // === ACOUSTIC ENERGY Coefficients ===
+    // Power P = \int_Gamma (pt^2) dGamma
+    // === ACOU_POWER ===
+    shared_ptr<BaseFeFunction> deriv1vFct;
+    if ( formulation_ == ACOU_PRESSURE )
+      deriv1vFct = timeDerivFeFunctions_[ACOU_PRESSURE_DERIV_1];
+    else
+      deriv1vFct = timeDerivFeFunctions_[ACOU_POTENTIAL_DERIV_1];
+    PtrCoefFct PWfnc1 =
+                      CoefFunction::Generate( mp_, Global::COMPLEX,
+                                             CoefXprBinOp(mp_, deriv1vFct, deriv1vFct, CoefXpr::OP_MULT_CONJ ) );
+
+    
+    PtrCoefFct c0Fct = this->GetCoefFct( ACOU_ELEM_SPEED_OF_SOUND);
+
+     // === ACOU_NORMAL ===
+    shared_ptr<ResultInfo> vel;
+    shared_ptr<CoefFunctionFormBased>  presGradFct;
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[formulation_];
+    if( isComplex_ ) {
+      presGradFct.reset(new CoefFunctionBOp<Complex>(feFct, vel, 1.0));  
+      } else {
+      presGradFct.reset(new CoefFunctionBOp<Double>(feFct, vel, 1.0));
+      }
+    stiffFormCoefs_.insert(presGradFct); 
+    shared_ptr<ResultInfo> pressureNormalPW;
+
+    // normal acoustic pressure for plane waves
+    shared_ptr<CoefFunctionSurf> sNormPressurePW;
+    sNormPressurePW.reset(new CoefFunctionSurf(false, 1.0, pressureNormalPW));
+    //DefineFieldResult( sNormPressurePW, pressureNormalPW );
+    surfCoefFcts_[sNormPressurePW] = presGradFct; 
+
+ 
+    PtrCoefFct cPressureNorm =
+          CoefFunction::Generate( mp_, Global::COMPLEX,
+                                 CoefXprBinOp(mp_,c0Fct, sNormPressurePW, CoefXpr::OP_MULT ) );
+
+    PtrCoefFct PWfnc2 =
+                CoefFunction::Generate( mp_, Global::COMPLEX,
+                                       CoefXprBinOp(mp_, cPressureNorm, cPressureNorm, CoefXpr::OP_MULT_CONJ ) );                             
+
+    PtrCoefFct PWfnc3Half =
+                CoefFunction::Generate( mp_, Global::COMPLEX,
+                                       CoefXprBinOp(mp_, cPressureNorm, deriv1vFct, CoefXpr::OP_MULT_CONJ ) ); 
+
+    PtrCoefFct constTwo = CoefFunction::Generate( mp_, Global::REAL, "2.0");
+    PtrCoefFct PWfnc3 =
+                CoefFunction::Generate( mp_, Global::COMPLEX,
+                                       CoefXprBinOp(mp_,constTwo, PWfnc3Half, CoefXpr::OP_MULT ) );
+
+    
+    // PWfnc1 + PWfnc2 
+    //pt²+c*p.n²
+    PtrCoefFct PWfnc1plus2  =
+          CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, PWfnc1, PWfnc2, CoefXpr::OP_ADD ) );
+
+
+    // PWfnc1 + PWfnc2 + PWfnc3
+    //(pt+c*p.n)²
+    PtrCoefFct PWfnc1plus2plus3  =
+          CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, PWfnc1plus2, PWfnc3, CoefXpr::OP_ADD ) );
+
+    // PWfnc1 + PWfnc2 - PWfnc3
+    // (pt-c*p.n)² 
+    PtrCoefFct PWfnc1plus2minus3  =
+          CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, PWfnc1plus2, PWfnc3, CoefXpr::OP_SUB ) );
+
+    
+    // (pt-c*p.n)² /(pt+c*p.n)²
+    PtrCoefFct reflectionCoeff  =
+          CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, PWfnc1plus2minus3, PWfnc1plus2plus3, CoefXpr::OP_DIV ) );
+
+
+    // (pt-c*p.n)² /(pt+c*p.n)²
+    PtrCoefFct transmissionCoeff  =
+          CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, PWfnc1plus2minus3, PWfnc1plus2plus3, CoefXpr::OP_DIV ) );
+
+
+      
+    // === ACOU_POWER_REFLECTION ===
+    shared_ptr<ResultInfo> powerReflection;
+    powerReflection.reset(new ResultInfo);
+    powerReflection->resultType = ACOU_POWER_REFLECTION;      
+    powerReflection->dofNames = "";
+    powerReflection->unit = "W";
+    powerReflection->entryType = ResultInfo::SCALAR;
+    powerReflection->definedOn = ResultInfo::SURF_REGION;
+   
+    // === ACOU_POWER_Transmission ===
+    shared_ptr<ResultInfo> powerTransmission;
+    powerTransmission.reset(new ResultInfo);
+    powerTransmission->resultType = ACOU_POWER_TRANSMISSION;
+    powerTransmission->dofNames = "";
+    powerTransmission->unit = "W";
+    powerTransmission->entryType = ResultInfo::SCALAR;
+    powerTransmission->definedOn = ResultInfo::SURF_REGION;
+
+    // === ACOU_POWER_REFLECTION ===
+    // Power Re = [\int_Gamma_L (pt-c*p.n)² dGamma]/[\int_Gamma_L (pt+c*p.n)² dGamma]
+    shared_ptr<ResultFunctor> powerFctReflection;
+    if( isComplex_ ) {
+      powerFctReflection.reset(new ResultFunctorIntegrate<Complex>(reflectionCoeff, 
+                                                            feFct, powerReflection ) );      
+                                                            } else {
+      powerFctReflection.reset(new ResultFunctorIntegrate<Double>(reflectionCoeff, 
+                                                           feFct, powerReflection ) );
+                                                            }
+      resultFunctors_[ACOU_POWER_REFLECTION] = powerFctReflection;
+      availResults_.insert(powerReflection);
+
+
+
+    // === ACOU_POWER_Transmission ===
+    // Power tra = [\int_Gamma_R (pt-c*p.n)² dGamma]/[\int_Gamma_L (pt+c*p.n)² dGamma]
+      shared_ptr<ResultFunctor> powerFctTransmission;
+    if( isComplex_ ) {
+      powerFctTransmission.reset(new ResultFunctorIntegrate<Complex>(transmissionCoeff, 
+                                                            feFct, powerTransmission ) );
+    } else {
+      powerFctTransmission.reset(new ResultFunctorIntegrate<Double>(transmissionCoeff, 
+                                                         feFct, powerTransmission ) );
+    }
+    resultFunctors_[ACOU_POWER_TRANSMISSION] = powerFctTransmission;
+    availResults_.insert(powerTransmission);
+
+
   }
 
   void AcousticPDE::DefinePostProcResults(){

@@ -182,6 +182,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_ELEM_SPEED_OF_SOUND,"acouSpeedOfSound");
     SolutionTypeEnum.Add(ACOU_POWERDENSITY, "acouPowerDensity");
     SolutionTypeEnum.Add(ACOU_POWER, "acouPower");
+    SolutionTypeEnum.Add(ACOU_POWER_REFLECTION, "acouPowerReflection");
+    SolutionTypeEnum.Add(ACOU_POWER_TRANSMISSION, "acouPowerTransmission");
     SolutionTypeEnum.Add(ACOU_POWER_PLANEWAVE, "acouPowerPlaneWave");
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
     SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY, "acouNormalIntensity");
