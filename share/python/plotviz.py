@@ -417,14 +417,15 @@ def process(input):
   comments = []
   body = [] 
  
-  # we assume first comments (and assume the last comment to be the header descriotion)
+  # we assume first comments (and assume the last comment to be the header description)
   # then the body. For comment/body/comment we ignore comments after body
   for l in lines:
     h = l.strip()
     # it seems excel creates utf-8 bom at file start, simply skip it
     if ord(h[0]) == 0xfeff:
       h = h[1:]
-    if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---'):
+    #if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---') or (:
+    if h.startswith('---') or (len(h) > 0 and not h[0].isnumeric()): # take also text headers without prefix like DATE,PM2.5,...
       if len(body) == 0: # ignore comments after body 
         comments.append(h)
     else:
