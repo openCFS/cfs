@@ -64,12 +64,12 @@ public:
 
   //! Return row and columns size of tensor if coefficient function is a tensor
   void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-    numRows = 2;
-    numCols = 2;
+    numRows = spaceDim_;
+    numCols = spaceDim_;
   }
 
   UInt GetVecSize() const {
-    return 2;
+    return spaceDim_;
   }
 
   // Init  the used material model

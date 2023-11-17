@@ -1,3 +1,27 @@
+/** DOCUMENTATION HEADER
+ * This PDE is used to calculate the magnetostatic field via
+ * the penalized h-formulation that originates from the mixed ha-formulation [1]:
+ * 
+ * (I):  (curlh,a') = (j,a')              for all a',
+ * (II): (mu h,h') - (a,curlh') = 0       for all h'.
+ * 
+ * Eliminate the mag. vector potential a yields the penalized h-formulation
+ * 
+ * (I): (mu h,h') + (rho_art curlh,curlh') = (rho_art j, curlh') for all h'.
+ * 
+ * This is the equation that is solved using this class.
+ * The equation can involve nonlinear materials, which is realized by the
+ * energy-based hysteresis model [2], which is able to perform anhystertic and
+ * hysteretic materials.
+ * 
+ * REFERENCES:
+ * [1]  C. Gaier and H. Haas, "Edge element analysis of magnetostatic and transient eddy current fields using
+ *      H/spl I.oarr/-formulations," in IEEE Transactions on Magnetics, vol. 31, no. 3, pp. 1460-1463, May 1995, 
+ *      doi: 10.1109/20.376304.
+ * [2] L. Prigozhin, V. Sokolovsky, J. W. Barrett and S. E. Zirka, "On the Energy-Based Variational Model for 
+ *     Vector Magnetic Hysteresis," in IEEE Transactions on Magnetics, vol. 52, no. 12, pp. 1-11, Dec. 2016, 
+ *     Art no. 7301211, doi: 10.1109/TMAG.2016.2599143.
+ */
 #ifndef FILE_MAGNETICEDGEHPDE
 #define FILE_MAGNETICEDGEHPDE
 
@@ -5,6 +29,9 @@
 #include "MagBasePDE.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Coil.hh"
+
+#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
+
 
 namespace CoupledField
 {
@@ -62,8 +89,6 @@ namespace CoupledField
     LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation ){return NULL;}; // not implemented
     BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity ){return NULL;}; // not implemented
     void InitMagnetization(){}; // not implemented
-
-
 
     //! Define the SolveStep-Driver
     void DefineSolveStep();

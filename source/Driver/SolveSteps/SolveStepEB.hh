@@ -37,14 +37,12 @@ namespace CoupledField
 
     void StepTransNonLin();
 
-
-    // Heavy linesearch checks the eta space from (0,1) for the
-    // smallest residual
+    // Heavy linesearch checks the eta space from (0,1) for the smallest residual
     void LineSearchHeavy(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch);
 
     void LineSearchArmijoRegularization(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch, UInt iterationCounter);
 
-    void LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch, UInt iterationCounter);
+    void LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch);
 
   private:
 
@@ -55,3 +53,4 @@ namespace CoupledField
 } // end of namespace
 
 #endif
+

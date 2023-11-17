@@ -227,6 +227,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_FLUX, "magFlux");
     SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
+    SolutionTypeEnum.Add(MAG_FIELD_INTENSITY_CURL, "magFieldIntensityCurl");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
     SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
@@ -1058,6 +1059,7 @@ namespace CoupledField {
 
       case MAG_EDDY_CURRENT_DENSITY:
       case MAG_TOTAL_CURRENT_DENSITY:
+      case MAG_FIELD_INTENSITY_CURL:
         return "A/m^2";
         break;
 

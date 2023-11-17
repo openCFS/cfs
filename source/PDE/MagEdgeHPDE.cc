@@ -91,37 +91,42 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
   }
 
 
-  // *************
+  // **********************************************************
   //  Destructor
-  // *************
-  MagEdgeHPDE::~MagEdgeHPDE() {
+  // **********************************************************
+  MagEdgeHPDE::~MagEdgeHPDE(){
   }
 
 
-  // ****************************
+  // **********************************************************
   //  Initialize Nonlinearities
-  // ****************************
-  void MagEdgeHPDE::InitNonLin() {
+  // **********************************************************
+  void MagEdgeHPDE::InitNonLin(){
     SinglePDE::InitNonLin();
   }
 
 
-  // ********************************************************
+  // **********************************************************
   // Define SolveStep depending on the material law
   // nonlinear/hysteresis: SolveStepEB
   // linear:               StdSolveStep
-  // ********************************************************
-  void MagEdgeHPDE::DefineSolveStep()
-  {
+  // **********************************************************
+  void MagEdgeHPDE::DefineSolveStep(){
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
       solveStep_ = new SolveStepEB(*this);
-    }else{
+      //solveStep_ = new StdSolveStep(*this);
+    } 
+    else{
       solveStep_ = new StdSolveStep(*this);
     }
   }
 
-  void MagEdgeHPDE::InitTimeStepping()
-  {
+
+  // **********************************************************
+  // INIT. TIME STEPPING (not a real time stepping, since the
+  // resulting FEM system is not an ODE)
+  // **********************************************************
+  void MagEdgeHPDE::InitTimeStepping(){
     Double gamma = 1.0;
     GLMScheme *scheme = new Trapezoidal(gamma);
 
@@ -134,23 +139,28 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
   // **********************************************************
   //  Definition of Integrators
   // **********************************************************
-  void MagEdgeHPDE::DefineIntegrators() {
+  void MagEdgeHPDE::DefineIntegrators(){
     this->DefineStandardIntegrators();
-    // in MagBasePDE
-    DefineCoilIntegrators();
+    DefineCoilIntegrators(); // in MagBasePDE
   }
 
 
-  LinearForm* MagEdgeHPDE::GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId)
-  {
+  // **********************************************************
+  // just a helper function for DefineCoilIntegrators()
+  // **********************************************************
+  LinearForm* MagEdgeHPDE::GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId){
     LinearForm * ret = NULL;
     ret = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), factor, coef, updatedGeo_);
     return ret;
   }
 
 
-  void MagEdgeHPDE::DefineCoilIntegrators()
-  {
+  // *************************************************************
+  // Definition of linearforms that involve coils
+  // linear:    (rho_art j,curlN)
+  // nonlinear: - (rho_art j,curlN); negative due to Newton scheme
+  // *************************************************************
+  void MagEdgeHPDE::DefineCoilIntegrators(){
 
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
@@ -159,71 +169,73 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
 
     std::map<Coil::IdType, shared_ptr<Coil>>::iterator coilIt;
     coilIt = coils_.begin();
-    for (; coilIt != coils_.end(); coilIt++)
-    {
+    for (; coilIt != coils_.end(); coilIt++){
       Coil &actCoil = *(coilIt->second);
       // run over all parts
       std::map<RegionIdType, shared_ptr<Coil::Part>>::iterator partIt;
       partIt = actCoil.parts_.begin();
 
-      if (actCoil.sourceType_ != Coil::CURRENT)
-      {
+      if (actCoil.sourceType_ != Coil::CURRENT){
         EXCEPTION("Only current excitation is implemented in H-formulation!!");
-      }
-      else
-      {
+      } 
+      else{
 
-        for (partIt = actCoil.parts_.begin();
-             partIt != actCoil.parts_.end();
-             partIt++)
-        {
+        for (partIt = actCoil.parts_.begin(); partIt != actCoil.parts_.end(); partIt++){
           Coil::Part &actPart = *(partIt->second);
           RegionIdType actRegion = partIt->first;
           shared_ptr<ElemList> actSDList(new ElemList(ptGrid_));
           actSDList->SetRegion(actRegion);
           LinearForm* curInt = NULL;
 
-
           std::map<UInt, PtrCoefFct> jFct;
           CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_, CoefXpr::OP_MULT);
           PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
 
-          // ----------- IMPORTANT (start) -------------------------------------
+          // ============= IMPORTANT (START) =======================================
           // Here the value for the current density vector j is determined.
           // The linearform of the formulation is as follows
           //         (rho_art j, curl(h')) ,
           // where rho_art is an artificial resistivity that occurs due to the
           // penalty method to end up in this formulation.
           // A common way to calculate this coefficient is
-          //         rho_art = mu*10^(n/2) ,
-          // where mu is the permeability in this region and n is parameter
+          //         rho_art = 1/(n^0.01)*mu_rmax*mu*10^(n/2) ,
+          // where mu is the permeability in this region and n is a penalty parameter
           // that should be chosen rather small. However, since coils are usually 
           // in regions where mu ~ mu0 this factor is harcoded and only n can be 
           // altered.  Anyway, this should work also for the nonlinear hysteretic case,
           // since the coil region is usually linear material.
           // (Honestly, I did not know how to implement it differently)
-          // get the penaltyParameter from the .xml file and set the default value
-          Double penaltyParameter = 5;
-          myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
-          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/((1/(std::pow(penaltyParameter,0.01)))*1000*1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
-          jFct[0] = CoefFunction::Generate(mp_, part, jVec);
-          // ----------- IMPORTANT (end) -------------------------------------
-
+          // ============= IMPORTANT (END) ======================================= 
+          Double penaltyParameter = 1e-6; // default value for n
+          myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS); // get the penaltyParameter from the .xml file and set the default value
+          if(nonLin_ && (modelName_ == "EBHysteresisModel")){
+            //CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/((1/(std::pow(penaltyParameter,0.01)))*1*1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
+            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/(1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
+            jFct[0] = CoefFunction::Generate(mp_, part, jVec);
+          } 
+          else{
+            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/((1/(std::pow(penaltyParameter,0.01)))*1*1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
+            jFct[0] = CoefFunction::Generate(mp_, part, jVec);
+          }
 
           coilCurrentDens_[actRegion] = jFct[0];
           curInt = GetCurrentDensityInt( 1.0, jFct[0] );
-          curInt->SetName("CoilIntegrator");
+          curInt->SetName("(rho_art j,curlN): CoilIntegrator");
           LinearFormContext * coilContext = new LinearFormContext( curInt );
           coilContext->SetEntities( actSDList );
           coilContext->SetFeFunction( feFunc );
           assemble_->AddLinearForm( coilContext );
-
         } // loop: parts
       }
     } // loop: coils
   }
 
 
+  // **********************************************************
+  // Definition of all bilinearforms
+  // linear:    (rho_art curlN, curlN) + (mu N, N)
+  // nonlinear: (rho_art curlN, curlN) + (db/dh N, N)
+  // **********************************************************
   void MagEdgeHPDE::DefineStandardIntegrators(){
 
     RegionIdType actRegion;
@@ -233,7 +245,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     perm_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, false));
 
     // get the penaltyParameter from the .xml file and set the default value
-    Double penaltyParameter = 5;
+    Double penaltyParameter = 1e-6;
     myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
 
     std::cout << penaltyParameter << std::endl;
@@ -244,8 +256,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
 
     PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
     // Init material model for hysteretic transient analysis
-    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
-    {
+    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve")){
       matModelCoef_->Init(magFieldCoef, modelName_, dim_);
     }
 
@@ -254,11 +265,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     bool moreThan1HystRegion = false;
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
-        
         // set current region and materials
         actRegion = regions_[iRegion];
         actMat    = materials_[actRegion];
         StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+
         // get current region name
         std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
@@ -276,18 +287,98 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         feFunc->AddEntityList( actSDList );
 
         // ====================================================================
+        // MASS INTEGRATOR [START] (c N, N)
+        // The coefficient c of this integrator depends on the material case:
+        // ~ linear:     use just the value of the permeability of this region.
+        // ~ nonlinear:  use the derivative of the material law b = b(h) as the
+        //             value of the coefficient, since this is the Jacobian J 
+        //             of the Newton-Raphson scheme J = db/dh.
+        // ~ hysteresis: same as in the nonlinear case. However typically the 
+        //             Jacobian can not be determined analytically, but by 
+        //             a numerical method like finite differences or Broyden.
+        // So here the only thing that is "if cased", is the determination of
+        // coefficient and the integrator that accepts also tensors as 
+        // material coefficent. The integrator (structure, (c N, N)) itself
+        // stays the same!
+        // ====================================================================
+        PtrCoefFct mu = NULL;
+        BaseBDBInt *massInt = NULL;
+        if (nonLinTypes.Find(PERMEABILITY) != -1){ // NONLINEAR/HYSTERESIS CASE
+          if (modelName_ == "JilesAthertonModel"){ // just because, nobody wonders that it does not work with this model
+            EXCEPTION("Jiles-Atherton model not implemented for MagEdgeHPDE");
+          }
+          else if (modelName_ == "EBHysteresisModel"){ // (this is the model we want to use!)
+            if(moreThan1HystRegion){ // has to be fixed!
+              EXCEPTION("Currently only ONE hysteretic region is allowed!");
+            }
+            // get nonlinear/hysteretic material parameter
+            std::map<std::string, double> ParameterMap;
+            actMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
+            actMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
+            actMat->GetScalar(ParameterMap["mu0"], MAG_MU0_EB, Global::REAL);
+            actMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
+            actMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
+            ParameterMap["isMH"] = 0;
+            matModelCoef_->InitModel(ParameterMap, actSDList);
+            // evaluate the dbdh = mu
+            mu = matModelCoef_;
+            nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
+            massInt = new BDBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
+            massInt->SetName("(db/dh N,N): IdentityIntegrator");
+          }
+        }
+        else{ // LINEAR CASE (difference is described above)
+          mu = actMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
+          perm_->AddRegion(actRegion, mu);
+          massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
+          massInt->SetName("(mu N,N): IdentityIntegrator");
+        }
+
+        BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
+        massContext->SetEntities( actSDList, actSDList );
+        massContext->SetFeFunctions( feFunc, feFunc );
+        assemble_->AddBiLinearForm( massContext );
+        massInts_[actRegion] = massInt; // insert mass integrator to list of defined mass integrators
+        // ====================================================================
+        // MASS INTEGRATOR [END]
+        // ====================================================================
+
+        // ====================================================================
         // STIFFNESS INTEGRATOR [START] (rho_art curlN, curlN)
+        // The coefficent rho_art depends on the material case:
+        // ~ linear:      rho_art = (1/(std::pow(penaltyParameter,0.01)))*1*mu_regularize*std::pow(10,penaltyParameter/2)
+        // ~ nonlinear:   rho_art = (1/penaltyParameter^0.01)*||mu_regularize||_inf*10^(penaltyParameter/2)
+        //                since mu in the nonlinear case is a tensor the inf-norm is a good choice for mu_regularize
+        // ~ hysteresis: same as in the nonlinear case
         // ====================================================================
         // get material coefficient (in this case: artificial resistivity that regularizes the PDE and is defined as 1/sigma_artificial = mu*10^(n/2)
         // where n is an integer number)
         Double mu_regularize;
         materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
         PtrCoefFct rho_art;
-        rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>((1/(std::pow(penaltyParameter,0.01)))*1000*mu_regularize*std::pow(10,penaltyParameter/2)));
-
+        PtrCoefFct rho_art_nl;
         BaseBDBInt* curlcurl = NULL;
-        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho_art,1.0, updatedGeo_);
-        curlcurl->SetName("CurlCurlIntegrator");
+
+        if (nonLinTypes.Find(PERMEABILITY) != -1){ // NONLINEAR/HYSTERESIS CASE
+          if (modelName_ == "JilesAthertonModel"){ // just because, nobody wonders that it does not work with this model
+            EXCEPTION("Jiles-Atherton model not implemented for MagEdgeHPDE");
+          }
+          else if (modelName_ == "EBHysteresisModel"){ // (this is the model we want to use!)
+            if(moreThan1HystRegion){ // has to be fixed!
+              EXCEPTION("Currently only ONE hysteretic region is allowed!");
+            }
+            moreThan1HystRegion = true;
+            // get nonlinear/hysteretic material parameter
+            rho_art_nl = matModelCoef_;
+            curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho_art_nl,1., updatedGeo_);
+            curlcurl->SetName("(rho_art_nl curlN,CurlN): CurlCurlIntegrator");
+          }
+        } else{
+          //rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>((1/(std::pow(penaltyParameter,0.01)))*1*mu_regularize*std::pow(10,penaltyParameter/2)));
+          rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,penaltyParameter/2)));
+          curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho_art,1.0, updatedGeo_);
+          curlcurl->SetName("(rho_art curlN,CurlN): CurlCurlIntegrator");
+        }
 
         BiLinFormContext * stiffContext = new BiLinFormContext(curlcurl, STIFFNESS );
         stiffContext->SetEntities( actSDList, actSDList );
@@ -300,71 +391,15 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // ====================================================================
         // STIFFNESS INTEGRATOR [END]
         // ====================================================================
-
-        // ====================================================================
-        // MASS INTEGRATOR [START] (c N, N)
-        // The coefficient c of this integrator depends on the material case:
-        // linear:     use just the value of the permeability of this region.
-        // nonlinear:  use the derivative of the material law b = b(h) as the
-        //             value of the coefficient, since this is the Jacobian J 
-        //             of the Newton-Raphson scheme J = db/dh.
-        // hysteresis: same as in the nonlinear case. However typically the 
-        //             Jacobian can not be determined analytically, but by 
-        //             a numerical method like finite differences or Broyden.
-        // So here the only thing that is "if cased", is the determination of
-        // coefficient and the integrator that accepts also tensors as 
-        // material coefficent. The integrator (structure, (c N, N)) itself
-        // stays the same!
-        // ====================================================================
-        PtrCoefFct mu = NULL;
-        BaseBDBInt *massInt = NULL;
-        if (nonLinTypes.Find(PERMEABILITY) != -1) // NONLINEAR/HYSTERESIS CASE
-        {
-          if (modelName_ == "JilesAthertonModel") // just because, nobody wonders that it does not work with this model
-          {
-            EXCEPTION("Jiles-Atherton model not implemented for MagEdgeHPDE");
-          }
-          else if (modelName_ == "EBHysteresisModel") // (this is the model we want to use!)
-          {
-            if(moreThan1HystRegion){ // has to be fixed!
-              EXCEPTION("Currently only ONE hysteretic region is allowed!");
-            }
-            moreThan1HystRegion = true;
-            std::map<std::string, double> ParameterMap;
-            actMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
-            actMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
-            actMat->GetScalar(ParameterMap["mu0"], MAG_MU0_EB, Global::REAL);
-            actMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
-            actMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
-            ParameterMap["isMH"] = 0;
-            matModelCoef_->InitModel(ParameterMap, actSDList);
-            mu = matModelCoef_;
-            nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
-            massInt = new BDBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
-            massInt->SetName("MassIntegrator");
-            //EXCEPTION("NONLINEAR CASE DOES NOT WORK YET!");
-          }
-        }
-        else // LINEAR CASE (difference is described above)
-        {
-          mu = actMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
-          perm_->AddRegion(actRegion, mu);
-          massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
-          massInt->SetName("MassIntegrator");
-        }
-
-        BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
-        massContext->SetEntities( actSDList, actSDList );
-        massContext->SetFeFunctions( feFunc, feFunc );
-        assemble_->AddBiLinearForm( massContext );
-        massInts_[actRegion] = massInt; // insert mass integrator to list of defined mass integrators
-        // ====================================================================
-        // MASS INTEGRATOR [END]
-        // ====================================================================
         }// end for regions
     }
 
 
+  // **********************************************************
+  // Definition of all linearforms that do NOT involve coils
+  // linear:    nothing
+  // nonlinear: (rho_art curlh, curlN) + (b(h), N)
+  // **********************************************************
   void MagEdgeHPDE::DefineRhsLoadIntegrators(){
     // ============= IMPORTANT (START) ================================
     // all linearforms defined here only occur in the nonlinear case.
@@ -386,6 +421,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
       bool coefUpdateGeo = true;
       bool isHystereticMat = false;
 
+      Double penaltyParameter = 1e-6;
+      myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
+
       // iterate over the region (or materials)
       for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++)
       {
@@ -406,11 +444,32 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
 
         // ===============================================================================================
         // lin1: (rho_art curlh,curlN) [START]
-        // the curlh is the obtained from the mag. field intensity h from the last Newton iteration.
-        // rho_art: regularization parameter that depends on the current scalar permeability
+        // curlh:   is obtained by the mag. field intensity h from the last Newton iteration.
+        // rho_art: regularization parameter that depends on the current scalar permeability mu
         // ===============================================================================================
+        // generate the coefFct that is the multiplication of the curlh and rho_art (rho_art*curlh)
+        Double mu_regularize;
+        materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
+        //PtrCoefFct mu = GetCoefFct(MAG_ELEM_PERMEABILITY);
+        PtrCoefFct rho_art;
+        PtrCoefFct rho_art_nl;
+        rho_art_nl = matModelCoef_;
+        PtrCoefFct rho_times_curlh;
+        //PtrCoefFct bla = GetScalarXpr(matModelCoef_);
+        CoefXprUnaryOp bla2 = CoefXprUnaryOp(mp_, matModelCoef_, CoefXpr::OP_NORM);
+        PtrCoefFct blabla = CoefFunction::Generate(mp_, Global::REAL, bla2);
 
-
+        //rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>((1/(std::pow(penaltyParameter,0.01)))*1*mu_regularize*std::pow(10,penaltyParameter/2)));
+        //rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(1e-6*std::pow(10,penaltyParameter/2)));
+        CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), blabla, CoefXpr::OP_MULT);
+        rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
+        
+        lin1 = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, rho_times_curlh, volRegions, coefUpdateGeo);
+        lin1->SetName("(rho_art curlh,curlN): residual");
+        LinearFormContext *ctx = new LinearFormContext(lin1);
+        ctx->SetEntities(actSDList);
+        ctx->SetFeFunction(feFunc);
+        assemble_->AddLinearForm(ctx);
         // ===============================================================================================
         // lin1: (rho_art curlh,curlN) [END]
         // ===============================================================================================
@@ -425,10 +484,10 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           {
             EXCEPTION("Jiles-Atherton model not implemented for MagneticScalarPotentialPDE");
           }
-          else if (modelName_ == "EBHysteresisModel")
+          else if (modelName_ == "EBHysteresisModel") // NONLINEAR CASE, AND NONLINEAR SUBREGION
           {
             isHystereticMat = true;
-            lin2 = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(1.0), fluxDensityNL, coefUpdateGeo, false);
+            lin2 = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(-1.0), fluxDensityNL, coefUpdateGeo, false);
           }
           lin2->SetName("(b(h),N): residual");
           lin2->SetSolDependent();
@@ -436,10 +495,8 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           ctx->SetEntities( actSDList );
           ctx->SetFeFunction(feFunc);
           assemble_->AddLinearForm(ctx);
-        } else {
-          // HERE SHOULD BE THE LINEAR B(H) IN THE LINEAR MATERIALS
-          lin2 = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(1.0), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo); // SEGFAULT!!
-          //lin2 = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(1.0), fluxDensityNL, coefUpdateGeo, false);
+        } else { // NONLINEAR CASE, BUT LINEAR SUBREGION
+          lin2 = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(-1.0), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
           lin2->SetName("(b(h)_linear,N): residual");
           LinearFormContext *ctx = new LinearFormContext(lin2);
           ctx->SetEntities(actSDList);
@@ -456,14 +513,21 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
   }
 
 
+  // **********************************************************
+  // definition of the primary result 
+  // magnetic field intensity h
+  // **********************************************************
   void MagEdgeHPDE::DefinePrimaryResults() {
 
     StdVector<std::string> vecComponents;
     vecComponents = "x", "y", "z";
 
-    // === MAGNETIC RESULT FIELD INTENSITY ===
+    // =====================================================
+    // MAG_FIELD_INTENSITY (START)
+    // =====================================================
     shared_ptr<ResultInfo> potInfo(new ResultInfo);
     potInfo->resultType = MAG_FIELD_INTENSITY;
+    potInfo->SetFeFunction(feFunctions_[MAG_FIELD_INTENSITY]);
     potInfo->dofNames = vecComponents;
     potInfo->unit = "A/m";
     potInfo->definedOn = ResultInfo::ELEMENT;
@@ -471,16 +535,27 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
 
     feFunctions_[MAG_FIELD_INTENSITY]->SetResultInfo(potInfo);
     DefineFieldResult( feFunctions_[MAG_FIELD_INTENSITY], potInfo );
+    // =====================================================
+    // MAG_FIELD_INTENSITY (END)
+    // =====================================================
 
   }
 
 
+  // **********************************************************
+  // definition of postprocessed results 
+  // - magnetic flux density:  b = mu h
+  // - source current density: j = curlh
+  // **********************************************************
   void MagEdgeHPDE::DefinePostProcResults() {
 
     StdVector<std::string> vecComponents;
     vecComponents = "x", "y", "z";
+    shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY];
 
-    // === MAGNETIC FLUX DENSITY ===
+    // =====================================================
+    // MAG_FLUX_DENSTIY (START)
+    // =====================================================
     shared_ptr<ResultInfo> magFlux(new ResultInfo);
     magFlux->resultType = MAG_FLUX_DENSITY;
     magFlux->SetVectorDOFs(dim_, isaxi_);
@@ -491,23 +566,44 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     // The recipe about how to actually evaluate B, is defined in FinalizePostProcResults()
     shared_ptr<CoefFunctionMulti> bFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     DefineFieldResult(bFunc, magFlux);
+    // =====================================================
+    // MAG_FLUX_DENSTIY (END)
+    // =====================================================
+
+    // =====================================================
+    // MAG_FIELD_INTENSITY_CURL (curlh = j; source current) (START)
+    // =====================================================
+    shared_ptr<ResultInfo> magFieldIntensCurl(new ResultInfo);
+    magFieldIntensCurl->resultType = MAG_FIELD_INTENSITY_CURL;
+    magFieldIntensCurl->dofNames = vecComponents;
+    magFieldIntensCurl->unit = "A/m^2";
+    magFieldIntensCurl->definedOn = ResultInfo::ELEMENT;
+    magFieldIntensCurl->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionFormBased> curlhFunc;
+    curlhFunc.reset(new CoefFunctionBOp<Double>(feFunc, magFieldIntensCurl, 1.0));
+    DefineFieldResult(curlhFunc, magFieldIntensCurl);
+    stiffFormCoefs_.insert(curlhFunc);
+
+
+    // =====================================================
+    // MAG_FIELD_INTENSITY_CURL (curlh = j; source current) (END)
+    // =====================================================
   }
 
-
+  // **********************************************************
+  // recipe to do the postprocessing for certain quantities:
+  // MAG_FLUX_DENSTIY
+  // **********************************************************
   void MagEdgeHPDE::FinalizePostProcResults() {
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
 
-
     shared_ptr<CoefFunctionMulti> bCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FLUX_DENSITY]);
-
-
 
     StdVector<RegionIdType>::iterator regIt = regions_.Begin();
     regIt = regions_.Begin();
 
-    for (; regIt != regions_.End(); ++regIt)
-    {
+    for (; regIt != regions_.End(); ++regIt){
       // =====================================================
       // MAG_FLUX_DENSTIY (START)
       // =====================================================
@@ -515,7 +611,8 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
       if( nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve" ){
         // hysteretic/nonlinear case
         bCoef->AddRegion(*regIt, nlFluxCoef_);
-      }else{
+      }
+      else{
         // classical nonlinear case and linear case
         PtrCoefFct b = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY ), perm_, CoefXpr::OP_MULT));
         bCoef->AddRegion(*regIt, b);
@@ -527,11 +624,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
   }
 
 
+
+
   std::map<SolutionType, shared_ptr<FeSpace> >
-  MagEdgeHPDE::CreateFeSpaces(const std::string& formulation,
-                              PtrParamNode infoNode ) {
-      //ok default case so we create grid based approximation H1 elements
-      //and standard Gauss integration
+  MagEdgeHPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode ) {
+      //create grid based approximation Hcurl elements and standard Gauss integration
       std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
       if(formulation == "default" || formulation == "H_CURL"){
       PtrParamNode potSpaceNode = infoNode->Get("magFieldIntensity");

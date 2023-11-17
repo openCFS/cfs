@@ -51,7 +51,6 @@ namespace CoupledField
     mParser_->SetExpr(MathParser::GLOB_HANDLER,"iterationCounter");
     mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", 0);
 
-    LOG_TRACE(solvestepeb) << "SolveStepEB::StepTransNonLin";
     bool performOneMoreStep;
     bool isNewton = false;
     
@@ -79,20 +78,15 @@ namespace CoupledField
       }
       stageSol.SetOwnership(false);
 
-      //do initialization 
+/*       //do initialization 
       rhsVec_.Init();
-      LOG_DBG(solvestepeb) << "StepTransNonLin: Stage: " << i ;
       
       // setup right hand side
       algsys_->InitRHS();
-      assemble_->AssembleLinRHS();
+      assemble_->AssembleLinRHS(); */
 
       // set iteration counter
       UInt iterationCounter=0;
-
-      LOG_DBG3(solvestepeb) << "\n===========================================================================\n"
-                             << "============================ TIMESTEP: "<< PDE_.GetSolveStep()->GetActStep()<<" ==========================\n"
-                             << "============================================================================";
 
 
       iterationCounter++;
@@ -116,22 +110,6 @@ namespace CoupledField
         }
       }
 
-      PDE_.SetBCs();
-      algsys_->BuildInDirichlet();
-      algsys_->SetupPrecond();
-      algsys_->SetupSolver();
-
-      // just set inh. Dirichlet BCs for the first iteration
-      bool setIDBC = true;        
-      algsys_->Solve(setIDBC);
-
-      // if setIDBC is true, solInc will contain the inhom. Dirichlet values
-      // Since the entries of solVec_ are pointers to the SingleVector
-      // of the FE function, it automatically inserts the values there
-      algsys_->GetSolutionVal(solInc, setIDBC );
-      
-      stageSol.Init();
-      stageSol.Add(1.0, solInc);
       solVec_  = stageSol;
       
       LOG_DBG3(solvestepeb) << "================ Vectors after stageSol.Add(1.0, solInc): ======================="
@@ -186,8 +164,6 @@ namespace CoupledField
         algsys_->BuildInDirichlet();
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
-        
-        // just set inh. Dirichlet BCs for the first iteration
         bool setIDBC = false;
         algsys_->Solve(setIDBC);
 
@@ -204,7 +180,8 @@ namespace CoupledField
         }else if ( lineSearch_ == "minEnergy"){
           LineSearchHeavy(solInc, stageSol, etaLineSearch);
         }else if ( lineSearch_ == "Armijo"){
-          LineSearchArmijo(solInc, stageSol, etaLineSearch, iterationCounter);
+          //LineSearchArmijo(solInc, stageSol, etaLineSearch, iterationCounter);
+          LineSearchArmijo(solInc, stageSol, etaLineSearch);
         }else if ( lineSearch_ == "ArmijoRegularization"){
           LineSearchArmijoRegularization(solInc, stageSol, etaLineSearch, iterationCounter);
         }
@@ -369,45 +346,60 @@ namespace CoupledField
 
 
 
-  void SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol,
-  Double& gamma, UInt iterationCounter)  {
-    
+  void SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch)   {
+
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
-    gamma = 1.0;
-    Double phi = 2.0;
-    Double alpha = 1.0e-4;
-    UInt numLSIter = 0;
-    Double res_x_trial = 0.0;
+    const UInt nrEtas = 4;
+    //const Double eta[nrEtas] = {1,0.6667,0.4444,0.2963,0.1975,0.1317,0.0878,0.0585,0.039,0.026,0.01733333333};
+    const Double eta[nrEtas] = {1,0.1,0.01,0.001};
+    const Double eta0 = 0;
 
+    Double delta = 1e-4;
+    
+    // initialize etaOpt
+    Double etaOpt = 0.0;
+
+    // obtain reference residual (start)
+    actSol.Add( 1.0, solOld, eta0, solIncrement);
+    solVec_ = actSol;
     algsys_->InitRHS();
+    assemble_->AssembleLinRHS();
     assemble_->AssembleNonLinRHS();
     SBM_Vector actRHS(BaseMatrix::DOUBLE);
     algsys_->GetRHSVal( actRHS );
-    Double startingResidual = actRHS.NormL2();
+    Double residualL2Norm_eta0 = actRHS.NormL2();
+    // obtain reference residual (end)
+    
+    for( UInt i=0; i<nrEtas; i++) {
 
-    do{
-      actSol.Add( 1.0, solOld, gamma, solIncrement);
-      //store new solution
+      // obtain trial residual (start)
+      actSol.Add( 1.0, solOld, eta[i], solIncrement);
       solVec_ = actSol;
-
-      // ======= residual computation ============
       algsys_->InitRHS();
       assemble_->AssembleLinRHS();
       assemble_->AssembleNonLinRHS();
+      SBM_Vector actRHS(BaseMatrix::DOUBLE);
       algsys_->GetRHSVal( actRHS );
-      // calculation of residual error =======================================
-      res_x_trial = actRHS.NormL2();
+      Double residualL2Norm = actRHS.NormL2();
+      // obtain trial residual (end)
 
-      if( res_x_trial < (1.0 - alpha*gamma)*startingResidual ){
+      // check if the trial residual has a sufficient decrease
+      if (residualL2Norm < (1.0 - delta*eta[i])*residualL2Norm_eta0) {
+        //printf("residualL2Norm: %f; residualL2Norm_eta0: %f\n",residualL2Norm,residualL2Norm_eta0);
+        etaOpt = eta[i];
         break;
-      }else if( gamma < 1.0e-16){
-        break;
-      }else{
-        gamma = 1.0/std::pow(phi,numLSIter);
       }
-      numLSIter++;
-    }while(numLSIter < 100); 
+      // after all possible line search parameter are tried take the last one and break the for loop
+      if (i == nrEtas-1){
+        etaOpt = eta[i];
+        break;
+      }
+    }
+    etaLineSearch = etaOpt;
+    // Set new solution
+    actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+    
   }
 
 
@@ -416,15 +408,17 @@ namespace CoupledField
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
     const UInt nrEtas = 10;
-    const Double eta[nrEtas] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+    //const Double eta[nrEtas] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0};
+    const Double eta[nrEtas] = {0.026,0.039,0.0585,0.0878,0.1317,0.1975,0.2963,0.4444,0.6667,1};
+    printf("eta[0]: %f\n",eta[0]);
     
     // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
-    
+
+
     for( UInt i=0; i<nrEtas; i++) {
       actSol.Add( 1.0, solOld, eta[i], solIncrement);
-
       //store new solution
       solVec_ = actSol;
 

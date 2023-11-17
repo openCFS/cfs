@@ -26,6 +26,7 @@
 #include "FeBasis/BaseFE.hh"
 #include "MatVec/promote.hh"
 #include "FeBasis/HCurl/HCurlElemsHi.hh"
+#include "Materials/Models/EBHysteresis.hh"
 
 
 namespace CoupledField {
