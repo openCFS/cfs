@@ -802,45 +802,12 @@ void CoefXprUnaryOp::GetScalarXpr( std::string& real, std::string& imag ) const 
       if( (numRowsA == 3) && (numColsA == 3)) {
         StdVector<std::string> args;
         if( !isComplex_ ) {
-/*           args = "( ";
-          for( UInt i = 0; i < numRowsA; ++ i ) {
-              for( UInt j = 0; j < numRowsA; ++ j ) { 
-                if((i+j)!=0){
-                  args.Push_back("+");     
-                }
-                std::string tmp = aR[3*i+j];
-                std::string absaR;
-                ApplyUnaryFunc(absaR, tmp, OP_NORM);
-                std::string powaR;
-                ApplyBinaryFunc(powaR, absaR, "100", OP_POW);
-                args.Push_back(powaR);
-              }
-          }
-          args.Push_back(")");
-          std::cout<<args<<std::endl;
-
-          std::string unpow = args.Serialize(' ');
-          std::string withpow;
-          ApplyBinaryFunc(withpow, unpow, "1/100", OP_POW);
-          std::cout<<withpow<<std::endl; */
-          //std::string tmp = aR[0];
-          //std::string tmp = "1";
-          //real = B(tmp);
-          std::string tmpR;
-          ApplyBinaryFunc( tmpR, aR[0], aR[3], OP_MULT );
-          real = tmpR + "-";
-          ApplyBinaryFunc( tmpR, aR[1], aR[2], OP_MULT );
-          real += tmpR;
-          real = B(real);
-          //real = withpow;
-//          real = ApplyBinaryFunc(args.Serialize(' '), "1/100", OP_POW);
-
-        
+          EXCEPTION("Unary operation of type " <<op_<<" not implemented for tensors");        
         } else {
-          EXCEPTION("Unary operation of type " <<op_<<" only imlemented for real tensors")
+          EXCEPTION("Unary operation of type " <<op_<<" only imlemented for real tensors");
         }
       }else{
-        EXCEPTION("Unary operation of type " <<op_<<" only works for quadratic tensors")
+        EXCEPTION("Unary operation of type " <<op_<<" only works for quadratic tensors");
       }
     }else{
         EXCEPTION( "Unary operation of type " << op_ 

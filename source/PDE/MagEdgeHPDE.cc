@@ -85,6 +85,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     matModelCoef_.reset(new CoefFunctionMaterialModel<Complex>());
     // init the nlFluxCoef
     nlFluxCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
+    nlScalCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_, true));
 
     if ( !is3d_ )
       EXCEPTION("MagEdgeHPDE is just implemented for 3D setups!");
@@ -323,6 +324,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             // evaluate the dbdh = mu
             mu = matModelCoef_;
             nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
+            nlScalCoef_->AddRegion(actRegion, matModelCoef_);
             massInt = new BDBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
             massInt->SetName("(db/dh N,N): IdentityIntegrator");
           }
@@ -448,21 +450,12 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // rho_art: regularization parameter that depends on the current scalar permeability mu
         // ===============================================================================================
         // generate the coefFct that is the multiplication of the curlh and rho_art (rho_art*curlh)
-        Double mu_regularize;
-        materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
-        //PtrCoefFct mu = GetCoefFct(MAG_ELEM_PERMEABILITY);
+        // Double mu_regularize;
+        // materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
         PtrCoefFct rho_art;
         PtrCoefFct rho_art_nl;
-        rho_art_nl = matModelCoef_;
-        PtrCoefFct rho_times_curlh;
-        //PtrCoefFct bla = GetScalarXpr(matModelCoef_);
-        CoefXprUnaryOp bla2 = CoefXprUnaryOp(mp_, matModelCoef_, CoefXpr::OP_NORM);
-        PtrCoefFct blabla = CoefFunction::Generate(mp_, Global::REAL, bla2);
-
-        //rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>((1/(std::pow(penaltyParameter,0.01)))*1*mu_regularize*std::pow(10,penaltyParameter/2)));
-        //rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(1e-6*std::pow(10,penaltyParameter/2)));
-        CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), blabla, CoefXpr::OP_MULT);
-        rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
+        CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), nlScalCoef_, CoefXpr::OP_MULT);
+        PtrCoefFct rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
         
         lin1 = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, rho_times_curlh, volRegions, coefUpdateGeo);
         lin1->SetName("(rho_art curlh,curlN): residual");

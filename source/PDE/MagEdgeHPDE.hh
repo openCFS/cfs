@@ -65,6 +65,7 @@ namespace CoupledField
 
     //stores the flux for hystersis and nonlinear models
     shared_ptr<CoefFunctionMulti> nlFluxCoef_;
+    shared_ptr<CoefFunctionMulti> nlScalCoef_;
 
     //! Initialize NonLinearities
     virtual void InitNonLin();
