@@ -40,26 +40,11 @@ namespace CoupledField{
 
      this->coefScalar_->GetDimType();
 
-     // ============= IMPORTANT (start) ====================
-     // TODO: The check if its really a scalar value is here disabled.
-     //       However, it is smart to check it.
-     //       The problem is that, if the material model is from the EBHysteresis class
-     //       it is ALWAYS defined as a tensor, even though it is a scalar.
-     //       So it should be checked if the EBHysteresis is used, and if then the check
-     //       can be skipped.
-     // ============= IMPORTANT (end) ====================
-
-
-/*      EBHysteresis * test = dynamic_cast<EBHysteresis *>(&(*this->coefScalar_.get()));
-     if (test != NULL){
-      Double a = 1;
-     } */
-
-/*      // Ensure, that the coefficient set is a scalar valued one
+     // Ensure, that the coefficient set is a scalar valued one
      if( this->coefScalar_->GetDimType() != CoefFunction::SCALAR ) {
        EXCEPTION( "The BBInt-class only works with scalar-valued "
            << "coefficient functions!");
-     } */
+     }
    }
 
    template< class COEF_DATA_TYPE, class B_DATA_TYPE> 

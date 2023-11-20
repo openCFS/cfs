@@ -370,8 +370,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
               EXCEPTION("Currently only ONE hysteretic region is allowed!");
             }
             moreThan1HystRegion = true;
-            // get nonlinear/hysteretic material parameter
-            rho_art_nl = matModelCoef_;
+            rho_art_nl = nlScalCoef_;
             curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho_art_nl,1., updatedGeo_);
             curlcurl->SetName("(rho_art_nl curlN,CurlN): CurlCurlIntegrator");
           }
@@ -448,17 +447,28 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // lin1: (rho_art curlh,curlN) [START]
         // curlh:   is obtained by the mag. field intensity h from the last Newton iteration.
         // rho_art: regularization parameter that depends on the current scalar permeability mu
+        //    -    nonlinear subregion: uses nlScalCoef_ to get the norm of dbdh
+        //    -    linear subregion:    uses linear case to get rho_art
         // ===============================================================================================
         // generate the coefFct that is the multiplication of the curlh and rho_art (rho_art*curlh)
-        // Double mu_regularize;
-        // materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
+        Double mu_regularize;
+        materials_[actRegion]->GetScalar( mu_regularize, MAG_PERMEABILITY_SCALAR, Global::REAL );
         PtrCoefFct rho_art;
         PtrCoefFct rho_art_nl;
-        CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), nlScalCoef_, CoefXpr::OP_MULT);
-        PtrCoefFct rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
+        PtrCoefFct rho_times_curlh;
+        if (nonLinTypes.Find(PERMEABILITY) != -1){ // NONLINEAR CASE, NONLINEAR SUBREGION
+          CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), nlScalCoef_, CoefXpr::OP_MULT);
+          PtrCoefFct rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
+          lin1 = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, rho_times_curlh, volRegions, coefUpdateGeo);
+          lin1->SetName("(rho_art_nl curlh,curlN): residual");
+        } else{ // NONLINEAR CASE, LINEAR SUBREGION
+          rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,penaltyParameter/2)));
+          CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), rho_art, CoefXpr::OP_MULT);
+          PtrCoefFct rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
+          lin1 = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, rho_times_curlh, volRegions, coefUpdateGeo);
+          lin1->SetName("(rho_art curlh,curlN): residual");
+        }
         
-        lin1 = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, rho_times_curlh, volRegions, coefUpdateGeo);
-        lin1->SetName("(rho_art curlh,curlN): residual");
         LinearFormContext *ctx = new LinearFormContext(lin1);
         ctx->SetEntities(actSDList);
         ctx->SetFeFunction(feFunc);

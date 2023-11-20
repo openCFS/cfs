@@ -110,7 +110,7 @@ DEFINE_LOG(eb, "EBHysteresis")
     Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum) {
       //EXCEPTION("Not implemented here, this is a vector hysteresis model!");
 
-      Double normH; normH = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2] );
+
       Matrix<Double> mu = ComputeTensorialMaterialParameter(HVec, ElemNum);
       Double num1 = mu[0][0]; Double num2 = mu[1][1]; Double num3 = mu[2][2];
 
@@ -122,7 +122,13 @@ DEFINE_LOG(eb, "EBHysteresis")
           return num3*std::pow(10,1e-6/2);
       }
 
-      return (2*A_*Ps_)/(M_PI*(normH*normH+A_*A_))*std::pow(10,1e-6/2);
+/*       Double normH; normH = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2] );
+      Double mu0;Double mu; Double chi;
+      mu0 = 4*M_PI*std::pow(10,-7);
+      chi = (2*A_*Ps_)/(M_PI*(normH*normH+A_*A_));
+      mu = mu0*(1+chi); 
+      return mu*std::pow(10,1e-6/2);*/
+      
 
     }
 
@@ -314,7 +320,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         if (std::isnan(chi[0][1])){
           chi[0][1] = 0;
         }
-        //chi[0][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        chi[0][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
         // dMx/dHz
         term1_nominator =  2*HVec[0]*Ps_*HVec[2];
         term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
@@ -324,7 +330,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         if (std::isnan(chi[0][2])){
           chi[0][2] = 0;
         }
-        //chi[0][2] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        chi[0][2] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
         // dMy/dHy
         term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
         term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2));
@@ -345,7 +351,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         if (std::isnan(chi[2][1])){
           chi[2][1] = 0;
         }
-        //chi[2][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        chi[2][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
 
         // dMz/dHz
         term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
@@ -376,7 +382,6 @@ DEFINE_LOG(eb, "EBHysteresis")
       if (idx == 32){
         printf("mu_anhyst = %f\n",mu[0][0]);
       }  
-
       return mu;
     }
 
