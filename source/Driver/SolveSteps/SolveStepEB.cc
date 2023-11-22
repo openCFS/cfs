@@ -78,7 +78,7 @@ namespace CoupledField
       }
       stageSol.SetOwnership(false);
 
-/*       //do initialization 
+      /* //do initialization 
       rhsVec_.Init();
       
       // setup right hand side
@@ -89,13 +89,13 @@ namespace CoupledField
       UInt iterationCounter=0;
 
 
-      iterationCounter++;
-      mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
+      /* iterationCounter++;
+      mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter); */
                 
       // setup the matrices, which automatically evaluates the EBHysteresis model
       // in the EBHysteresis class, we have a switch to detect the iterationstep=1
       // and use the values from the previous timestep
-      if(PDE_.GetSolveStep()->GetActStep() == 1){
+      /* if(PDE_.GetSolveStep()->GetActStep() == 1){
         isNewton = false;
         assemble_->AssembleMatrices(isNewton);
         matrix_factor_.clear();
@@ -108,27 +108,107 @@ namespace CoupledField
           ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
           algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
-      }
+      } */
 
-      solVec_  = stageSol;
+      //solVec_  = stageSol;
       
-      LOG_DBG3(solvestepeb) << "================ Vectors after stageSol.Add(1.0, solInc): ======================="
-            << "\n ===== iterationCounter:"<< iterationCounter
-            << "\n solInc:"<< solInc.ToString()
-            << "\n actSol:"<< actSol.ToString()
-            << "\n solVec_:"<< solVec_.ToString()
-            << "\n stageSol:"<< stageSol.ToString()
-            << "\n rhsVec_:"<< rhsVec_.ToString()
-            << "\n RhsLinVal_:"<< RhsLinVal_.ToString()
-            << "\n stageRHS_:"<< stageRHS_.ToString();
+      // ===================================================================================
+      // =================== START NONLINEAR ITERATION =====================================
+      // ===================================================================================
+      while (true){
+        iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
 
+        algsys_->InitRHS();
+        assemble_->AssembleLinRHS();
+        assemble_->AssembleNonLinRHS(); // if the RHS depends on the nonlinearity, we have to re-assemble it
+        algsys_->GetRHSVal( actRHS );
+        LOG_DBG3(solvestepeb)
+                              << "\n actRHS1:"<< actRHS.NormL2();
+        // setup the matrices, which automatically evaluates the EBHysteresis model
+        // since this is iterationstep > 1, we actually perform the material tensor evaluation
+        isNewton = false;
+        assemble_->AssembleMatrices(isNewton);
+        matrix_factor_.clear();
+        // set system matrix to zero initially, as ConstructEffectiveMatrix only
+        // sums up the contributions
+        algsys_->InitMatrix(SYSTEM);
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+          FeFctIdType fctId = fncIt->second->GetFctId();
+          fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+        }
+
+
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
+        bool setIDBC = false;
+        algsys_->Solve(setIDBC);
+        algsys_->GetSolutionVal(solInc, setIDBC );
+
+
+        Double etaLineSearch = 1.0;
+
+        /* if ( lineSearch_ == "none"){
+          stageSol.Add(etaLineSearch, solInc);
+        }else if ( lineSearch_ == "minEnergy"){
+          LineSearchHeavy(solInc, stageSol, etaLineSearch);
+        }else if ( lineSearch_ == "Armijo"){
+          //LineSearchArmijo(solInc, stageSol, etaLineSearch, iterationCounter);
+          LineSearchArmijo(solInc, stageSol, etaLineSearch);
+        }else if ( lineSearch_ == "ArmijoRegularization"){
+          LineSearchArmijoRegularization(solInc, stageSol, etaLineSearch, iterationCounter);
+        }
+        solVec_  = stageSol; */
+
+        stageSol.Add(etaLineSearch, solInc);
+        solVec_  = stageSol;
+
+        // residual
+        algsys_->InitRHS();
+        assemble_->AssembleLinRHS();
+        assemble_->AssembleNonLinRHS(); // if the RHS depends on the nonlinearity, we have to re-assemble it
+        algsys_->GetRHSVal( actRHS );
+        LOG_DBG3(solvestepeb)
+                              << "\n actRHS2:"<< actRHS.NormL2();
+        // calculation of residual error =======================================
+        Double residualL2Norm = 0.0;
+        residualL2Norm = actRHS.NormL2();
+        Double residualErr = residualL2Norm;
+        // calculate incremental error ========================================
+        Double incrementalErr;
+        Double solIncrL2Norm = solInc.NormL2();
+        Double actSolL2Norm  = stageSol.NormL2();
+        if ( actSolL2Norm )
+          incrementalErr = solIncrL2Norm/actSolL2Norm;
+        else {
+          incrementalErr = solIncrL2Norm;
+          //WARN("Zero solution vector!! ");
+        }
+
+        OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+
+        // boolean variable, holds condition if another iteration step is necessary
+        performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+        if ( performOneMoreStep == 0){
+          break;
+        }
+        
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                  << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                  << "' at iteration '" << iterationCounter 
+                  << "'.\n ==> incremental error: " << incrementalErr
+                  << "\n ==> residual error: " << residualErr);
+        }
+      }
+      
 
 
 
       // ===================================================================================
       // =================== START NONLINEAR ITERATION =====================================
       // ===================================================================================
-      do {
+      /* do {
         iterationCounter++;
         mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
                   
@@ -154,14 +234,14 @@ namespace CoupledField
           algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
 
-        algsys_->GetRHSVal( actRHS );
+        //algsys_->GetRHSVal( actRHS );
         LOG_DBG3(solvestepeb) << "rhsVec_:"<< rhsVec_.ToString()
                               << "\n RhsLinVal_:"<< RhsLinVal_.ToString()
                               << "\n stageRHS_:"<< stageRHS_.ToString()
-                              << "\n actRHS:"<< actRHS.ToString();
+                              << "\n actRHS:"<< actRHS.ToString(); 
 
-        PDE_.SetBCs();
-        algsys_->BuildInDirichlet();
+        //PDE_.SetBCs();
+        //algsys_->BuildInDirichlet();
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
         bool setIDBC = false;
@@ -252,7 +332,7 @@ namespace CoupledField
                   << "'.\n ==> incremental error: " << incrementalErr
                   << "\n ==> residual error: " << residualErr);
         }
-      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);      
+      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  */     
     } //stages
     
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;

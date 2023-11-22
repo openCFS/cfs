@@ -115,7 +115,6 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
   void MagEdgeHPDE::DefineSolveStep(){
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
       solveStep_ = new SolveStepEB(*this);
-      //solveStep_ = new StdSolveStep(*this);
     } 
     else{
       solveStep_ = new StdSolveStep(*this);
@@ -468,7 +467,6 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           lin1 = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, rho_times_curlh, volRegions, coefUpdateGeo);
           lin1->SetName("(rho_art curlh,curlN): residual");
         }
-        
         LinearFormContext *ctx = new LinearFormContext(lin1);
         ctx->SetEntities(actSDList);
         ctx->SetFeFunction(feFunc);
@@ -510,8 +508,6 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // lin2: (b(h),N) [END]
         // ===============================================================================================
       }// end loop over entities
-
-
     } 
   }
 

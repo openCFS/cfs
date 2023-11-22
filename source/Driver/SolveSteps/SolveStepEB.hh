@@ -28,7 +28,6 @@ namespace CoupledField
     //! Destructor
     virtual ~SolveStepEB();
 
-
     //! base method for solving one transient step 
     void SolveStepTrans();
 

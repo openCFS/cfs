@@ -114,22 +114,61 @@ DEFINE_LOG(eb, "EBHysteresis")
       Matrix<Double> mu = ComputeTensorialMaterialParameter(HVec, ElemNum);
       Double num1 = mu[0][0]; Double num2 = mu[1][1]; Double num3 = mu[2][2];
 
-      if (num1 >= num2 && num1 >= num3) {
+      //return num2;
+
+/*       if (num1 >= num2 && num1 >= num3) {
           return num1*std::pow(10,1e-6/2);
       } else if (num2 >= num1 && num2 >= num3) {
           return num2*std::pow(10,1e-6/2);
       } else {
           return num3*std::pow(10,1e-6/2);
-      }
+      } */
 
 /*       Double normH; normH = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2] );
       Double mu0;Double mu; Double chi;
       mu0 = 4*M_PI*std::pow(10,-7);
       chi = (2*A_*Ps_)/(M_PI*(normH*normH+A_*A_));
       mu = mu0*(1+chi); 
-      return mu*std::pow(10,1e-6/2);*/
-      
+      return mu*std::pow(10,1e-6/2); */
 
+
+      
+      // SVD approach
+      Matrix<Double> A = ComputeTensorialMaterialParameter(HVec, ElemNum);
+      Matrix<Double> AtA(dim_,dim_);
+      for(UInt idx=0;idx<3;idx++){
+        for(UInt jdx=0;jdx<3;jdx++){
+            // Compute the (i, j)-th entry of AtA
+            for (int kdx = 0; kdx < 3; ++kdx) {
+              AtA[idx][jdx] += A[kdx][idx] * A[kdx][jdx];
+            }
+        }
+      }
+      Double a,b,c;
+      // Compute the coefficients of the characteristic polynomial directly
+      a = 1.0;
+      b = -1.0 * (A[0][0] + A[1][1] + A[2][2]);
+      c = A[0][0] * (A[1][1] * A[2][2] - A[2][1] * A[1][2]) +
+          A[1][1] * A[2][2] * A[0][0] +
+          A[2][2] * A[0][0] * A[1][1] -
+          A[0][1] * A[1][0] * A[2][2] -
+          A[1][2] * A[2][1] * A[0][0] -
+          A[2][0] * A[0][2] * A[1][1];
+
+      Double discriminant = b * b - 4 * a * c;
+      Double lambda1 = (-b + std::sqrt(discriminant)) / (2 * a);
+      Double lambda2 = (-b - std::sqrt(discriminant)) / (2 * a);
+      Double lambda3 = (A[0][0] + A[1][1] + A[2][2]) - lambda1 - lambda2;
+
+      Double svd1 = std::sqrt(std::abs(lambda1)); Double svd2 = std::sqrt(std::abs(lambda2)); Double svd3 = std::sqrt(std::abs(lambda3));
+
+      if (svd1 >= svd2 && svd1 >= svd3) {
+          return svd1*std::pow(10,1e-6/2);
+      } else if (svd2 >= svd1 && svd2 >= svd3) {
+          return svd2*std::pow(10,1e-6/2);
+      } else {
+          return svd3*std::pow(10,1e-6/2);
+      }
     }
 
     Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum) {
@@ -300,71 +339,75 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu[1][1] = mu0*(chi[1][1] + 1);
       }else{ // 3D case (x,y,z)
         //EXCEPTION("NO 3D!!!")
-        // dMx/dHx
-        term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2));
-        term2_nominator = 2*M_PI*std::pow(HVec[0],2)*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
+        Double normH = std::sqrt(std::pow(HVec[0],2) + std::pow(HVec[1],2) + std::pow(HVec[2],2));
+        Double beta = std::pow(HVec[0],2) + std::pow(HVec[1],2) + std::pow(HVec[2],2);
+
+        // entry (1,1): dMx/dHx
+        term1_nominator =  2*Ps_*std::atan(normH/A_);
+        term1_denominator = M_PI*normH;
+        term2_nominator = 2*M_PI*std::pow(HVec[0],2)*std::atan(normH/A_);
+        term2_denominator = M_PI*std::pow(beta,3/2);
         term3_nominator = 2*Ps_*std::pow(HVec[0],2);
-        term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
+        term3_denominator = M_PI*A_*beta*((beta/(std::pow(A_,2)))+1);
         chi[0][0] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
         if (std::isnan(chi[0][0])){
           chi[0][0] = 0;
         }
-        // dMx/dHy
+
+        // entry (1,2): dMx/dHy
         term1_nominator =  2*HVec[0]*Ps_*HVec[1];
-        term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        term2_nominator = 2*HVec[0]*M_PI*HVec[1]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
+        term1_denominator = M_PI*A_*beta*((beta/(std::pow(A_,2)))+1);
+        term2_nominator = 2*HVec[0]*M_PI*HVec[1]*std::atan(normH/A_);
+        term2_denominator = M_PI*std::pow(beta,3/2);
         chi[0][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
         if (std::isnan(chi[0][1])){
           chi[0][1] = 0;
         }
-        chi[0][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
-        // dMx/dHz
+
+        // entry (1,3): dMx/dHz
         term1_nominator =  2*HVec[0]*Ps_*HVec[2];
-        term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        term2_nominator = 2*HVec[0]*M_PI*HVec[2]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
+        term1_denominator = M_PI*A_*beta*((beta/(std::pow(A_,2)))+1);
+        term2_nominator = 2*HVec[0]*M_PI*HVec[2]*std::atan(normH/A_);
+        term2_denominator = M_PI*std::pow(beta,3/2);
         chi[0][2] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
         if (std::isnan(chi[0][2])){
           chi[0][2] = 0;
         }
-        chi[0][2] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
-        // dMy/dHy
-        term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2));
-        term2_nominator = 2*M_PI*std::pow(HVec[1],2)*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
+
+        // entry (2,2): dMy/dHy
+        term1_nominator =  2*Ps_*std::atan(normH/A_);
+        term1_denominator = M_PI*normH;
+        term2_nominator = 2*M_PI*std::pow(HVec[1],2)*std::atan(normH/A_);
+        term2_denominator = M_PI*std::pow(beta,3/2);
         term3_nominator = 2*Ps_*std::pow(HVec[1],2);
-        term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
+        term3_denominator = M_PI*A_*beta*((beta/(std::pow(A_,2)))+1);
         chi[1][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
         if (std::isnan(chi[1][1])){
           chi[1][1] = 0;
         }
-        // dMy/dHz
+
+        // entry (2,3): dMy/dHz
         term1_nominator =  2*HVec[1]*Ps_*HVec[2];
-        term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        term2_nominator = 2*HVec[1]*M_PI*HVec[2]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
+        term1_denominator = M_PI*A_*beta*((beta/(std::pow(A_,2)))+1);
+        term2_nominator = 2*HVec[1]*M_PI*HVec[2]*std::atan(normH/A_);
+        term2_denominator = M_PI*std::pow(beta,3/2);
         chi[2][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
         if (std::isnan(chi[2][1])){
           chi[2][1] = 0;
         }
-        chi[2][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
 
-        // dMz/dHz
-        term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2));
-        term2_nominator = 2*M_PI*std::pow(HVec[2],2)*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
+        // entry (3,3): dMz/dHz
+        term1_nominator =  2*Ps_*std::atan(normH/A_);
+        term1_denominator = M_PI*normH;
+        term2_nominator = 2*M_PI*std::pow(HVec[2],2)*std::atan(normH/A_);
+        term2_denominator = M_PI*std::pow(beta,3/2);
         term3_nominator = 2*Ps_*std::pow(HVec[2],2);
-        term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
+        term3_denominator = M_PI*A_*beta*((beta/(std::pow(A_,2)))+1);
         chi[2][2] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
         if (std::isnan(chi[2][2])){
           chi[2][2] = 0;
         }
-        // due to symmetric dM/dH tensor:
+        // due to symmetric dM/dH tensor
         chi[1][0] = chi[0][1];
         chi[2][0] = chi[0][2];
         chi[2][1] = chi[1][2];
@@ -443,7 +486,7 @@ DEFINE_LOG(eb, "EBHysteresis")
             B_incy[i] = mu_0 * (H_incy[i] + M_incy[i]);
             B_incz[i] = mu_0 * (H_incz[i] + M_incz[i]);
           }
-          // calculate the mu tesnor (dB/dH) for every entry
+          // calculate the mu tensor (dB/dH) for every entry
           mu[0][0] = (B_incx[0] - B_k[0]) / h; mu[0][1] = 0;                        mu[0][2] = 0;
           mu[1][0] = 0;                        mu[1][1] = (B_incy[1] - B_k[1]) / h; mu[1][2] = 0;
           mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
