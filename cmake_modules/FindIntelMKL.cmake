@@ -200,10 +200,6 @@ elseif(APPLE) # note tha APPLE is ALSO UNIX!
     ${MKL_BLAS_LIB}
     -L${GFORTRAN_LIB_DIR}
     -lgcc_s.1)
-
-  # the path for libimp5 is not set by defeault: LD_LIBRARY_PATH=$MKLROOT/../compiler/lib/ works, 
-  # but it is easier to copy the file to the lib-dir.
-  file(COPY ${MKL_ROOT_DIR}/../compiler/lib/libiomp5${CMAKE_SHARED_LIBRARY_SUFFIX} DESTINATION "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
      
   set(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
 
@@ -263,6 +259,11 @@ elseif(UNIX AND NOT APPLE) # neither MSVC and neither APPLE. Hence UNIX and Linu
     if(NOT EXISTS "${MKL_OMP_LIB}")
       set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../../compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so")
     endif()
+    # path for oneAPI 2024.0: There is a new "Unified Directory Layout", https://www.intel.com/content/www/us/en/developer/articles/release-notes/onemkl-release-notes.html
+    if(NOT EXISTS "${MKL_OMP_LIB}")
+      set(MKL_OMP_LIB "${MKL_ROOT_DIR}/../../compiler/${MKL_MAJOR_VERSION}.${MKL_MINOR_VERSION}/lib/libiomp5.so")
+    endif()
+    cmake_print_variables(MKL_OMP_LIB)
     # copy over
     file(COPY ${MKL_OMP_LIB} DESTINATION ${LIBRARY_OUTPUT_PATH})
     set(MKL_OMP_LIB_LINE "-L${LIBRARY_OUTPUT_PATH} -liomp5")

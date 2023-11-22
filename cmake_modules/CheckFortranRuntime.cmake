@@ -154,8 +154,13 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel") # ifort and ifx
   
   # we statically link only on Linux/legacy macOS with Intel 
   if(UNIX)
-    set(INTEL_LINK_DIR "${INTEL_BASE}/compiler/lib/intel64") 
-  
+    if(CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 2024)
+      set(INTEL_LINK_DIR "${INTEL_BASE}/compiler/lib/intel64")
+    else()
+      #cmake_print_variables(INTEL_COMPILER_DIR)
+      set(INTEL_LINK_DIR "${INTEL_COMPILER_DIR}/../lib")
+    endif()
+
     # this are the libs we link statically on Windows and UNIX
     set(INTEL_LINK_LIBS ifport ifcore imf svml irc) # one might want to check if all are still necesarray? 
 
