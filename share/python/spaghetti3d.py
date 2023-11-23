@@ -8,59 +8,54 @@ import matviz_rot as mvrot
 from itertools import product
 import multiprocessing
 import time as ti
+import optimization_tools as ot
+import argparse
+# noinspection PyUnresolvedReferences
+import vtkmodules.vtkInteractionStyle
+# noinspection PyUnresolvedReferences
+import vtkmodules.vtkRenderingOpenGL2
+from vtkmodules.vtkCommonColor import vtkNamedColors
+from vtkmodules.vtkCommonTransforms import vtkTransform
+from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
+from vtkmodules.vtkRenderingAnnotation import vtkAxesActor
+from vtkmodules.vtkCommonCore import vtkPoints
+from vtkmodules.vtkIOXML import vtkXMLPolyDataWriter
+from vtkmodules.vtkCommonDataModel import (
+    vtkCellArray,
+    vtkPolyData
+)
+from vtkmodules.vtkFiltersCore import vtkGlyph3D
+from vtkmodules.vtkFiltersSources import (
+  vtkCylinderSource,
+  vtkSphereSource,
+  vtkParametricFunctionSource,
+  vtkArrowSource
+)
+from vtkmodules.vtkCommonComputationalGeometry import vtkParametricTorus
+from vtkmodules.vtkRenderingCore import (
+    vtkActor,
+    vtkPolyDataMapper,
+    vtkRenderWindow,
+    vtkRenderWindowInteractor,
+    vtkRenderer
+)
+from vtk import (
+  vtkOBJExporter,
+  vtkX3DExporter
+)
+import sys
 
 # for gradient check
 import scipy.optimize as sciopt
 import scipy.sparse as scispr
-
-# fails with default 'spawn' on macOS
-# https://stackoverflow.com/questions/69493104/multiprocessing-example-giving-attributeerror-on-mac
-multiprocessing.set_start_method('fork',force=True)
-
-# interactive
-if __name__ == '__main__':
-  import optimization_tools as ot
-  import argparse
-  # noinspection PyUnresolvedReferences
-  import vtkmodules.vtkInteractionStyle
-  # noinspection PyUnresolvedReferences
-  import vtkmodules.vtkRenderingOpenGL2
-  from vtkmodules.vtkCommonColor import vtkNamedColors
-  from vtkmodules.vtkCommonTransforms import vtkTransform
-  from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
-  from vtkmodules.vtkRenderingAnnotation import vtkAxesActor
-  from vtkmodules.vtkCommonCore import vtkPoints
-  from vtkmodules.vtkIOXML import vtkXMLPolyDataWriter
-  from vtkmodules.vtkCommonDataModel import (
-      vtkCellArray,
-      vtkPolyData
-  )
-  from vtkmodules.vtkFiltersCore import vtkGlyph3D
-  from vtkmodules.vtkFiltersSources import (
-    vtkCylinderSource,
-    vtkSphereSource,
-    vtkParametricFunctionSource,
-    vtkArrowSource
-  )
-  from vtkmodules.vtkCommonComputationalGeometry import vtkParametricTorus
-  from vtkmodules.vtkRenderingCore import (
-      vtkActor,
-      vtkPolyDataMapper,
-      vtkRenderWindow,
-      vtkRenderWindowInteractor,
-      vtkRenderer
-  )
-  from vtk import (
-    vtkOBJExporter,
-    vtkX3DExporter
-  )
 
 # to conveniently access global values
 class Global:
   # the default value are for easy debugging via import spaghetti
   def __init__(self):
     self.shapes = []         # array of Spaghetti
-    self.rhomin = 1e-4      # void
+    self.rhomin = 0      # void
+    self.rhomax = 1
     self.boundary = 'poly'   # up to now only 'poly' and 'linear'
     self.p = 10              # penalty parameter for smooth maximum
     self.penalty = 3           # penalty parameter for
@@ -1872,12 +1867,24 @@ def write_xml(filename, shapes, remove_ghosts=-1, remove_alpha=0, padnormals=0):
 
 # __name__ is 'spaghetti' if imported or '__main__' if run as commandline tool
 if __name__ == '__main__':
+  import cProfile
+  # if check avoids hackery when not profiling
+  # Optional; hackery *seems* to work fine even when not profiling, it's just wasteful
+  if sys.modules['__main__'].__file__ == cProfile.__file__:
+      import spaghetti3d  # Imports you again (does *not* use cache or execute as __main__)
+      globals().update(vars(spaghetti3d))  # Replaces current contents with newly imported stuff
+      sys.modules['__main__'] = spaghetti3d  # Ensures pickle lookups on __main__ find matching version
+
+  # fails with default 'spawn' on macOS
+  # https://stackoverflow.com/questions/69493104/multiprocessing-example-giving-attributeerror-on-mac
+  multiprocessing.set_start_method('fork',force=True)
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml")
   parser.add_argument("--set", help="set within a .density.file", type=int)
   parser.add_argument("--order", help="number of integration points per dimension and element", choices=[1, 2], default=1, type=int)
   parser.add_argument("--anisotropic", help="use anisotropic carbon fiber material oriented along spaghetti", action='store_true')
   parser.add_argument("--silent", help="verbosity of print output", action='store_true')
+  parser.add_argument('--cfs_eval', help="evaluate design and gradients as from cfs", action='store_true')
   parser.add_argument('--vtk', help="write vtk file for given name (w/o extenstion)")
   parser.add_argument('--vtk_res', help="resolution for vtk export", type=int, default=200)
   parser.add_argument('--vtk_lists', help="write vtk file for given name (w/o extention)")
@@ -1894,14 +1901,17 @@ if __name__ == '__main__':
 
   args = parser.parse_args()
 
+  glob.anisotropic = args.anisotropic
   glob.shapes = read_xml(args.input, args.set)
   glob.order = args.order
   glob.rhomax = 1
   glob.rhomin = 0
   glob.gradient_check = args.gradient_check
   glob.silent = args.silent
-  glob.anisotropic = args.anisotropic
 
+  if args.cfs_eval:
+    cfs_map_to_design()
+    cfs_get_gradient(np.ones((np.prod(glob.n)*21)), 'eval')
   if args.vtk_lists:
     cfs_map_to_design()
     write_vtk_lists(args.vtk_lists)
