@@ -62,7 +62,8 @@ class Global:
     self.shapes = []         # array of Spaghetti
     self.rhomin = 1e-4      # void
     self.boundary = 'poly'   # up to now only 'poly' and 'linear'
-    self.p = 10              # penalty parameter
+    self.p = 10              # penalty parameter for smooth maximum
+    self.penalty = 3           # penalty parameter for
     self.transition = 0.05   # parameter for boundary: 2*h
     self.h = 0.5*self.transition
     self.n = np.array([40,40,40],dtype=int)       # [nx, ny, nz]
@@ -102,11 +103,6 @@ class Global:
     self.base_tensor[0,2,0] = 2950.1
     self.base_tensor[0,1,2] = 1115.45
     self.base_tensor[0,2,1] = 1115.45
-    mu = 1
-    lam = 0.1
-    mulam = 2*mu+lam
-    self.void = np.zeros((21))
-    self.void[0:9] = [mulam, mulam, mulam, mu, mu, mu, lam, lam, lam]
     #print('base_tensor_x:\n', self.base_tensor[0])
     #print('base_tensor_z:\n', self.base_tensor[2])
 
@@ -183,6 +179,9 @@ def cfs_set_spaghetti(id, points, r, p, alpha):
   px = [v[0] for v in points]
   py = [v[1] for v in points]
   pz = [v[2] for v in points]
+  for i in range(len(px)-1):
+    if ((px[i]-px[i+1])**2+(py[i]-py[i+1])**2+(pz[i]-pz[i+1])**2)<1e-15:
+      px[i+1] = px[i+1]+1e-15
 
   if id >= len(glob.shapes):
     base = sum([len(s.optvar()) for s in glob.shapes])
@@ -228,7 +227,7 @@ def cfs_map_to_design():
     ds = np.zeros((np.prod(glob.n)*21))
     mask = np.array([[0,1,2,3,4,5,0,0,1,0,0,0,1,1,1,2,2,2,3,3,4],[0,1,2,3,4,5,1,2,2,3,4,5,3,4,5,3,4,5,4,5,5]])
     for i in range(21):
-      ds[i*np.prod(glob.n):(i+1)*np.prod(glob.n)] = ds2[:,mask[0,i],mask[1,i]]+glob.void[i]
+      ds[i*np.prod(glob.n):(i+1)*np.prod(glob.n)] = ds2[:,mask[0,i],mask[1,i]]
     return ds
 
 def cfs_info_field_keys():
@@ -1080,6 +1079,8 @@ def boundary(dist, derivative=False, alpha=None):
     rho = .5*((rmx-rm)*phi/h+rmx+rm)
   elif glob.boundary == 'poly':
     rho = 3.0/4.0*(rmx - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (rmx+rm)
+  elif glob.boundary == 'poly-simp':
+    rho = (3.0/4.0*(rmx - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (rmx+rm))**glob.penalty
   else:
     print("Error: boundary type '" + glob.boundary + "' not implemented!")
     os.sys.exit()
@@ -1108,6 +1109,11 @@ def boundary(dist, derivative=False, alpha=None):
       return (rho, grad, idx)
     elif glob.boundary == 'poly':
       grad *= -3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3))
+      if alpha:
+        grad[-1] = rho_orig
+      return (rho, grad, idx)
+    elif glob.boundary == 'poly-simp':
+      grad *= glob.penalty*(-3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3)))**(glob.penalty-1)
       if alpha:
         grad[-1] = rho_orig
       return (rho, grad, idx)
@@ -1617,6 +1623,8 @@ def visualize(shapes, filename):
       cylinder.SetCapping(False)
       vec = L2-L1
       height = norm(vec)
+      if height < 1e-15:
+        print("Warning: segment of zero length for shape", s.id, s.P)
       vec = vec/height
       cylinder.SetHeight(height)
       rot = np.cross(vec,np.array((0,1,0)))
