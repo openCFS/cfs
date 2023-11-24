@@ -747,9 +747,19 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     std::string actPdeName = pdeNodes[i]->GetName();
     bool isAdjoint = pdeNodes[i]->Get("isAdjoint")->As<bool>();
     PtrParamNode actPdeNode = pdeNodes[i];
-    if( isParentDomain_) 
-      std::cout << "++ Creating PDE '" + actPdeName + "' with formulation '" + actPdeNode->Get("formulation")->As<std::string>() 
-                    + "' for analysis '" << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;
+    if( isParentDomain_) {
+      //check for formulation
+      std::string formulation = "NO";
+      if ( actPdeNode->Has("formulation") ) {
+        formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      }
+      if ( formulation != "NO" )
+        std::cout << "++ Creating PDE '" + actPdeName + "' with formulation '" + formulation + "' for analysis '" 
+                  << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;    
+      else
+        std::cout << "++ Creating PDE '" + actPdeName + "' for analysis '" 
+                  << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;        
+    }
 
     if (actPdeName == "electrostatic")
       ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
@@ -768,7 +778,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "magnetic"){
-      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
+      std::string formulation = "No Special Formuation";
+      if ( actPdeNode->Has("formulation") ) {
+        formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      }
       if (formulation == "A") {
         ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }else if(formulation == "Psi") {
@@ -783,7 +796,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
 
     else if (actPdeName == "magneticEdge"){
-      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      std::string formulation = "No Special Formuation";
+      if ( actPdeNode->Has("formulation") ) {
+        formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      }
       if (formulation == "A") {        
         ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       } else if (formulation == "A-Adj") {
@@ -807,8 +823,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       ptSinglePde_[i] = new LinFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "fluidMech") {
-      std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
-
+      std::string formulation = "No Special Formuation";
+      if ( actPdeNode->Has("formulation") ) {
+        formulation = actPdeNode->Get("formulation")->As<std::string>();     
+      }      
       if (formulation == "perturbed") {
         ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }
