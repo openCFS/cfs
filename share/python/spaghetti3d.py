@@ -10,6 +10,8 @@ import multiprocessing
 import time as ti
 import optimization_tools as ot
 import argparse
+from multiprocessing.pool import Pool as Pool # preferably to line below
+#from multiprocessing.pool import ThreadPool as Pool # only necessary for python profiling using kernprof
 # noinspection PyUnresolvedReferences
 import vtkmodules.vtkInteractionStyle
 # noinspection PyUnresolvedReferences
@@ -192,7 +194,7 @@ def cfs_set_spaghetti(id, points, r, p, alpha):
 def cfs_map_to_design():
   assemble_fe_field()
   start = ti.time()
-  with multiprocessing.Pool(glob.num_threads) as pool:
+  with Pool(glob.num_threads) as pool:
     rho = pool.map(integrate_fe, range(np.prod(glob.n)))
     pool.close()
     pool.join()
@@ -1154,7 +1156,7 @@ def create_idx_field(discretization = None):
 
 # setup fe lists in shapes
 def create_fe_lists():
-  with multiprocessing.Pool(glob.num_threads) as pool:
+  with Pool(glob.num_threads) as pool:
     res = pool.map(setup_fe_list_glob, glob.shapes)
     pool.close()
     pool.join()
@@ -1878,6 +1880,7 @@ if __name__ == '__main__':
   # fails with default 'spawn' on macOS
   # https://stackoverflow.com/questions/69493104/multiprocessing-example-giving-attributeerror-on-mac
   multiprocessing.set_start_method('fork',force=True)
+
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml")
   parser.add_argument("--set", help="set within a .density.file", type=int)
@@ -1987,7 +1990,7 @@ if __name__ == '__main__':
     opt = np.zeros(glob.total())
     for s in glob.shapes:
       opt[s.base:s.base+s.num_optvar] = s.optvar()
-    with multiprocessing.Pool(glob.num_threads) as pool:
+    with Pool(glob.num_threads) as pool:
       for i in range(n[0]):
         for j in range(n[1]):
           for k in range(n[2]):

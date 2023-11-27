@@ -533,7 +533,9 @@ int SpaghettiDesign::ReadDesignFromExtern(const double* space_in, bool setAndWri
   // practically updates the Variable objects within spaghetti. Set's design_id
   FeaturedDesign::ReadDesignFromExtern(space_in, setAndWriteCurrent);
 
-  PythonUpdateSpaghetti();
+  if(mapped_design_ != design_id){
+    PythonUpdateSpaghetti();
+  }
 
   LOG_DBG(pasta) << "RDFE mid=" << mapped_design_ << " did=" << design_id;
 
