@@ -592,6 +592,7 @@ if __name__ == '__main__':
   parser.add_argument("--xscale", help="scaling type from choice, google matplotlib xscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--yscale", help="scaling type from choice, google matplotlib yscale", choices=["linear", "log", "symlog", "logit", "logrel", "percentage"],default='linear')
   parser.add_argument("--y2scale", help="like --yscale but for y2 axis", choices=["linear", "log", "symlog", "logit", "logrel", "percentage"],default='linear')
+  parser.add_argument("--zscale", help="scaling type from choice, google matplotlib xscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--bar", nargs='*', help="indices from y or y2 which are to displayed as bars instead of plots")
   parser.add_argument("--barwidth", help="barplots for datetime need manual adjustment", type=float, default=.8)
   parser.add_argument("--smooth", nargs='*', help="create new smoothed data for given fields")
@@ -756,10 +757,13 @@ if __name__ == '__main__':
     x[i] = x[i][start_idx[i]:end_idx[i]]
     
   for i in range(len(y)):
-    yfactor = 100/(y[i][0])
+    yfactor = 100/(y[i][0]) if y[i][0] !=0 else np.nan
     idx = abs(fiy[i])-1 # 1-based and +/- to encode bar
     y[i] = y[i][start_idx[idx]:end_idx[idx]]
     if args.yscale == 'percentage':
+      if yfactor == np.nan:
+        print("0 in data range, cannot scale by 'percentage'")
+        sys.exit()
       for j in range(len(y[i])):
         y[i][j] *= yfactor
     # adjust to value above final value for relative logarithmic scale 'logrel'
@@ -772,16 +776,19 @@ if __name__ == '__main__':
     args.yscale = 'log'
 
   for i in range(len(y2)):
-    yfactor = 100/(y2[i][0])
+    yfactor = 100/(y2[i][0]) if y2[i][0] !=0 else np.nan
     idx = abs(fiy2[i])-1
     y2[i] = y2[i][start_idx[idx]:end_idx[idx]]
     if args.yscale == 'percentage':
-      for j in range(len(y[i])):
-        y[i][j] *= yfactor
+      if yfactor == np.nan:
+        print("0 in data range, cannot scale by 'percentage'")
+        sys.exit()
+      for j in range(len(y2[i])):
+        y2[i][j] *= yfactor
     # adjust to value above final value for relative logarithmic scale 'logrel'
-    if args.y2scale == 'logrel':
-      for j in range(len(y[i])):
-        y[i][j] = y[i][j] - y[i][-1]
+    if args.y2scale == 'logrel': 
+      for j in range(len(y2[i])):
+        y2[i][j] = y2[i][j] - y2[i][-1]
   if args.yscale == 'percentage':
     args.yscale = 'linear'
   if args.y2scale == 'logrel':
