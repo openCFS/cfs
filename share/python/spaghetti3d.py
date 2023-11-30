@@ -131,15 +131,19 @@ class FE:
 # @dict dictionary transparently given from the xml file to python
 def cfs_init(settings, design, dict):
 
-  glob.design = design
-  if 'mech_11' in design:
-    glob.anisotropic = True
-
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax'])-glob.rhomin
-  if glob.anisotropic:
+  glob.design = design
+  glob.order = setting['order']
+  if 'mech_11' in design:
+    glob.anisotropic = True
+    if (glob.rhomin > 1e-15) or abs(glob.rhomax-1) > 1e-15:
+      print('WARNING!!! for anisotropic spaghetti, rhomin needs to be 0 and rhomax 1')
     glob.rhomin = 0
     glob.rhomax = 1
+    if glob.order > 1:
+      print('WARNING!!! order > 1 may give wrong results for anisotropic material!')
+
   glob.boundary = settings['boundary']
   glob.transition = float(settings['transition'])
   glob.h = .5*float(glob.transition)
@@ -178,12 +182,13 @@ def cfs_set_spaghetti(id, points, r, p, alpha):
   pz = [v[2] for v in points]
   for i in range(len(px)-1):
     if ((px[i]-px[i+1])**2+(py[i]-py[i+1])**2+(pz[i]-pz[i+1])**2)<1e-15:
-      px[i+1] = px[i+1]+1e-15
+      px[i+1] = px[i+1]+1e-15 # slight modification to prevent division by zero
 
   if id >= len(glob.shapes):
     base = sum([len(s.optvar()) for s in glob.shapes])
     # def __init__(self,id,base,radius,P,Q,a,p):
     glob.shapes.append(Spaghetti(id, base, px,py,pz,r,p,alpha))
+    glob.num_total = glob.total()
     print('cfs_set_spaghetti: create ', glob.shapes[-1], 'id=',id,'points=',points,'r=',r,'p=',p,'alpha=',alpha)
   else:
     glob.shapes[id].set(px,py,pz,r,p,alpha)
@@ -191,11 +196,17 @@ def cfs_set_spaghetti(id, points, r, p, alpha):
       print('cfs_set_spaghetti: update ', glob.shapes[id])
 
 ## return 1D-array with mapped design
+
 def cfs_map_to_design():
+  if glob.rho is not None:
+    if not glob.anisotropic:
+      return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin
+    else:
+      return glob.tensor_cfs_fmo
   assemble_fe_field()
   start = ti.time()
   with Pool(glob.num_threads) as pool:
-    rho = pool.map(integrate_fe, range(np.prod(glob.n)))
+    rho = pool.map(integrate_fe, glob.integrate)
     pool.close()
     pool.join()
   #integrate_fe_field()
@@ -203,16 +214,16 @@ def cfs_map_to_design():
     print('time for integration:', ti.time()-start)
   start = ti.time()
   glob.rho = np.zeros(glob.n)
-  glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.total()))
+  glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.num_total))
   glob.tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6))
-  glob.grad_tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6,glob.total()))
-  for fe_num in range(np.prod(glob.n)):
+  glob.grad_tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6,glob.num_total))
+  for idx, fe_num in enumerate(glob.integrate):
     if not glob.anisotropic:
-      glob.rho[np.unravel_index(fe_num,glob.n)] = rho[fe_num][0]
-      glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[fe_num][1]
+      glob.rho[np.unravel_index(fe_num,glob.n)] = rho[idx][0]
+      glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[idx][1]
     else:
-      glob.tensor[np.unravel_index(fe_num,glob.n)] = rho[fe_num][0]
-      glob.grad_tensor[np.unravel_index(fe_num,glob.n)] = rho[fe_num][1]
+      glob.tensor[np.unravel_index(fe_num,glob.n)] = rho[idx][0]
+      glob.grad_tensor[np.unravel_index(fe_num,glob.n)] = rho[idx][1]
   if not glob.silent:
     print('time for unraveling:', ti.time()-start)
   if glob.vtk_lists:
@@ -221,11 +232,19 @@ def cfs_map_to_design():
     return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin
   else:
     ds2 = glob.tensor.reshape((np.prod(glob.n),6,6), order='F')
-    ds = np.zeros((np.prod(glob.n)*21))
+    # cfs tensor optimization (type="fmo") only uses upper right diagonal as optimization variables
+    # extract relevant tensor variables for cfs
+    glob.tensor_cfs_fmo = np.zeros((np.prod(glob.n)*21))
     mask = np.array([[0,1,2,3,4,5,0,0,1,0,0,0,1,1,1,2,2,2,3,3,4],[0,1,2,3,4,5,1,2,2,3,4,5,3,4,5,3,4,5,4,5,5]])
     for i in range(21):
-      ds[i*np.prod(glob.n):(i+1)*np.prod(glob.n)] = ds2[:,mask[0,i],mask[1,i]]
-    return ds
+      glob.tensor_cfs_fmo[i*np.prod(glob.n):(i+1)*np.prod(glob.n)] = ds2[:,mask[0,i],mask[1,i]]
+    glob.grad_tensor_cfs_fmo = np.zeros(((np.prod(glob.n)*21),glob.num_total))
+    for v in range(glob.num_total):
+      ds2 = glob.grad_tensor[:,:,:,:,:,v].reshape((np.prod(glob.n),6,6), order='F') # the shape sensitivity as vector
+      ds = np.zeros((np.prod(glob.n)*21))
+      for i in range(21):
+        glob.grad_tensor_cfs_fmo[i*np.prod(glob.n):(i+1)*np.prod(glob.n),v] = ds2[:,mask[0,i],mask[1,i]]
+    return glob.tensor_cfs_fmo
 
 def cfs_info_field_keys():
   if not glob.silent:
@@ -249,22 +268,19 @@ def cfs_get_drho_vector():
 # @param drho is a 1D np.array with d func/d rho - this is to be handled via chainrule.
 # @param label the name of the current drho_vec's function to allow for cfs_get_field_info  
 # @return d func/ d shape  
+
 def cfs_get_gradient(ddes_vec, label):
   if glob.grad_rho is None:
     cfs_map_to_design()
 
-  var_total = glob.total()
-  sens = np.zeros(var_total)   # return vector 
+  sens = np.zeros(glob.num_total)   # return vector
   # drho_vec represents a 2D matrix, glob.grad_field is three dimensional with the last dimension the variable 
-  for v in range(var_total):
-    ds = glob.grad_rho[:,:,:,v].reshape(np.prod(glob.n), order='F') # the shape sensitivity as vector
+  for v in range(glob.num_total):
     # sens_field = element wise the sensitivity of the function times the shape variables.
     if glob.anisotropic:
-      ds2 = glob.grad_tensor[:,:,:,:,:,v].reshape((np.prod(glob.n),6,6), order='F') # the shape sensitivity as vector
-      ds = np.zeros((np.prod(glob.n)*21))
-      mask = np.array([[0,1,2,3,4,5,0,0,1,0,0,0,1,1,1,2,2,2,3,3,4],[0,1,2,3,4,5,1,2,2,3,4,5,3,4,5,3,4,5,4,5,5]])
-      for i in range(21):
-        ds[i*np.prod(glob.n):(i+1)*np.prod(glob.n)] = ds2[:,mask[0,i],mask[1,i]]
+      ds = glob.grad_tensor_cfs_fmo[:,v]
+    else:
+      ds = glob.grad_rho[:,:,:,v].reshape(np.prod(glob.n), order='F') # the shape sensitivity as vector
     sens_field = ddes_vec*ds
     sens[v] = sens_field.sum() # equals for i in range(nx): for j in range(ny): for k in range(nz): sens +=  drho[i,j,k] * glob.grad_field[i,j,k][v]
   #sens = np.sum(np.expand_dims(ddes_vec,1)*glob.grad_rho[:,:,:,v].reshape((np.prod(glob.n),var_total), order='F'),0)
@@ -1136,7 +1152,7 @@ def create_idx_field(discretization = None):
 
   idx = np.ones((Nx,Ny,Nz,len(shapes)),dtype=int)
   idx_shapes_only = np.ones((Nx,Ny,Nz,len(shapes)),dtype=int)
-  grad_field = np.zeros((Nx,Ny,Nz,len(shapes),glob.total()))
+  grad_field = np.zeros((Nx,Ny,Nz,len(shapes),glob.num_total))
   dist  = np.ones((Nx,Ny,Nz,len(shapes)))
 
   for i, x in enumerate(x_ls):
@@ -1155,6 +1171,7 @@ def create_idx_field(discretization = None):
   return idx, dist, idx_shapes_only
 
 # setup fe lists in shapes
+
 def create_fe_lists():
   with Pool(glob.num_threads) as pool:
     res = pool.map(setup_fe_list_glob, glob.shapes)
@@ -1172,6 +1189,7 @@ def create_fe_lists_serial():
     s.setup_fe_list()
 
 # assemble fe field list from shapes
+
 def assemble_fe_field(discretization = None):
   start = ti.time()
   create_fe_lists()
@@ -1182,13 +1200,25 @@ def assemble_fe_field(discretization = None):
   #print('setting up FE lists serially:', ti.time()-start, 'seconds')
   start = ti.time()
   glob.fe_list = [[[FE(i,j,k) for i in range(glob.n[2])] for j in range(glob.n[1])] for k in range(glob.n[0])]
+  integratei = []
+  integratej = []
+  integratek = []
   if not glob.silent:
     print(len(glob.fe_list),len(glob.fe_list[0]),len(glob.fe_list[0][0]))
   for snum, s in enumerate(glob.shapes):
     for idx in s.fe_list_full:
       glob.fe_list[idx[0]][idx[1]][idx[2]].shapes_full.append(snum)
+      integratei.append(idx[0])
+      integratej.append(idx[1])
+      integratek.append(idx[2])
     for idx in s.fe_list_intermediate:
       glob.fe_list[idx[0]][idx[1]][idx[2]].shapes_idx_list.append(idx[3])
+      integratei.append(idx[0])
+      integratej.append(idx[1])
+      integratek.append(idx[2])
+  arr = np.array([integratei, integratej, integratek], dtype=int)
+  #save which elements to actually integrate later
+  glob.integrate = np.unique(np.ravel_multi_index(arr, glob.n))
   if not glob.silent:
     print('assembling global FE field:', ti.time()-start, 'seconds')
 
@@ -1198,7 +1228,7 @@ def integrate_fe_field():
   order = glob.order
   #glob.dist_field = np.ones(glob.n)
   glob.rho = np.zeros(glob.n)
-  glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.total()))
+  glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.num_total))
   dx = glob.dx
   eta = .5*dx/np.sqrt(3) # distance for Gauss-points
   total_fe = 0
@@ -1206,7 +1236,7 @@ def integrate_fe_field():
     for j in range(glob.n[1]):
       for k in range(glob.n[2]):
         rho_sm = 0
-        grad_rho = np.zeros(glob.total())
+        grad_rho = np.zeros(glob.num_total)
         w_s_full = []
         rho_s_full = []
         if glob.fe_list[i][j][k].shapes_full: # at least one shape full
@@ -1264,8 +1294,8 @@ def integrate_fe(fe_num):
   Xmid = glob.mid_lower + np.array([i,j,k],dtype=int)*dx
 
   rho_sm = 0
-  grad_rho = np.zeros(glob.total())
-  grad_tensor = np.zeros((6,6,glob.total()))
+  grad_rho = np.zeros(glob.num_total)
+  grad_tensor = np.zeros((6,6,glob.num_total))
   w_s_full = []
   rho_s_full = []
   tensors_s_full = []
@@ -1329,7 +1359,7 @@ def integrate_fe(fe_num):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = np.sum(w_s_full[num]/sum_w_s)/order**3*(1+glob.p*(rho_s_full[num]-rho_sm))
       if glob.anisotropic:
         grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = w_s_full[num]*rho_s_full[num]*grad_tensors_s_full[num]/sum_w_s
-        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] += w_s_full[num]/sum_w_s*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm))
+        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] += w_s_full[num]/np.sum(sum_w_s)*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm))
     #rho_sm = boundary(d_min)
   elif len(rho_s_full)>0:
     rho_sm = np.sum(rho_s_full*w_s_full)/(sum_w_s_full+len(glob.shapes)-num_full)
@@ -1888,6 +1918,7 @@ if __name__ == '__main__':
   parser.add_argument("--anisotropic", help="use anisotropic carbon fiber material oriented along spaghetti", action='store_true')
   parser.add_argument("--silent", help="verbosity of print output", action='store_true')
   parser.add_argument('--cfs_eval', help="evaluate design and gradients as from cfs", action='store_true')
+  parser.add_argument('--transition', help="transition size for cfs_eval", type=float)
   parser.add_argument('--vtk', help="write vtk file for given name (w/o extenstion)")
   parser.add_argument('--vtk_res', help="resolution for vtk export", type=int, default=200)
   parser.add_argument('--vtk_lists', help="write vtk file for given name (w/o extention)")
@@ -1905,14 +1936,18 @@ if __name__ == '__main__':
   args = parser.parse_args()
 
   glob.anisotropic = args.anisotropic
+  if glob.anisotropic:
+    glob.rhomax = 1
+    glob.rhomin = 0
   glob.shapes = read_xml(args.input, args.set)
   glob.order = args.order
-  glob.rhomax = 1
-  glob.rhomin = 0
   glob.gradient_check = args.gradient_check
   glob.silent = args.silent
+  glob.num_total = glob.total()
 
   if args.cfs_eval:
+    if args.transition:
+      glob.transition = args.transition
     cfs_map_to_design()
     cfs_get_gradient(np.ones((np.prod(glob.n)*21)), 'eval')
   if args.vtk_lists:
@@ -1987,7 +2022,7 @@ if __name__ == '__main__':
     integrate_fe_field()
     n = glob.n
     count = 0
-    opt = np.zeros(glob.total())
+    opt = np.zeros(glob.num_total)
     for s in glob.shapes:
       opt[s.base:s.base+s.num_optvar] = s.optvar()
     with Pool(glob.num_threads) as pool:
@@ -2016,8 +2051,8 @@ if __name__ == '__main__':
             rho_ref = np.sum(w_s*rho_ref_s)/np.sum(w_s)
             if rho_ref < 1e-16:
               continue
-            for optvar in range(glob.total()):
-              delta = np.zeros(glob.total())
+            for optvar in range(glob.num_total):
+              delta = np.zeros(glob.num_total)
               delta[optvar] = eps
               #rho_sm = boundary(s.func(s.optvar()+delta, [Xmid, 'distance']))
               rho_s = np.array([s.func(opt[s.base:s.base+s.num_optvar]+delta[s.base:s.base+s.num_optvar], [Xmid, 'boundary']) for s in glob.shapes])
