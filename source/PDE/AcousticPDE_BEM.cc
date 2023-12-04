@@ -58,23 +58,23 @@ namespace CoupledField
     pdematerialclass_  = ACOUSTIC;
     nonLin_            = false;
 
-    // isMechCoupled_     = false;
-    // formulation_ = ACOU_PRESSURE;
+    isMechCoupled_     = false;
+    formulation_ = ACOU_PRESSURE;
 
-    // //! Always use total Lagrangian formulation
-    // updatedGeo_        = false;
-    // isTimeDomPML_      = false;
-    // isAPML_            = false;
-    // complexFluidFormulation_ = false;
-    // std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
+    //! Always use total Lagrangian formulation
+    updatedGeo_        = false;
+    isTimeDomPML_      = false;
+    isAPML_            = false;
+    complexFluidFormulation_ = false;
+    std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
 
-    // //check for pressure or potential formulation
-    // sosAtLaplace_ = (pdeFormulation == "acouPressureSOSatLaplace")? true : false;
+    // check for pressure or potential formulation
+    sosAtLaplace_ = (pdeFormulation == "acouPressureSOSatLaplace")? true : false;
 
-    // if(pdeFormulation != "default" && pdeFormulation != "acouPressureSOSatLaplace")
-    // {
-    //   formulation_ = SolutionTypeEnum.Parse(pdeFormulation);
-    // } 
+    if(pdeFormulation != "default" && pdeFormulation != "acouPressureSOSatLaplace")
+    {
+      formulation_ = SolutionTypeEnum.Parse(pdeFormulation);
+    } 
   }
 
   std::map<SolutionType, shared_ptr<FeSpace> > AcousticPDE_BEM::CreateFeSpaces( const std::string&  formulation,
