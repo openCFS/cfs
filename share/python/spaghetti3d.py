@@ -134,7 +134,7 @@ def cfs_init(settings, design, dict):
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax'])-glob.rhomin
   glob.design = design
-  glob.order = setting['order']
+  glob.order = settings['order']
   if 'mech_11' in design:
     glob.anisotropic = True
     if (glob.rhomin > 1e-15) or abs(glob.rhomax-1) > 1e-15:

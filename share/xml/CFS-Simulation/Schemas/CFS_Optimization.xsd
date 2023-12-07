@@ -2644,6 +2644,8 @@
         <xsd:restriction base="xsd:token">
           <!-- the polynomial is almost cos and requires transition -->
           <xsd:enumeration value="poly" />
+          <!-- like "poly", but with simp penalization in the boundary function directly -->
+          <xsd:enumeration value="poly-simp" />
           <!-- simple linear interpolation, also requires transition -->
           <xsd:enumeration value="linear" />
         </xsd:restriction>
