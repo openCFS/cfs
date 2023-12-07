@@ -208,16 +208,12 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           // ============= IMPORTANT (END) ======================================= 
           Double penaltyParameter = 1e-6; // default value for n
           myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS); // get the penaltyParameter from the .xml file and set the default value
-          if(nonLin_ && (modelName_ == "EBHysteresisModel")){
-            //CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/((1/(std::pow(penaltyParameter,0.01)))*1*1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
-            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/(1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
-            jFct[0] = CoefFunction::Generate(mp_, part, jVec);
-          } 
-          else{
-            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/((1/(std::pow(penaltyParameter,0.01)))*1*1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
-            jFct[0] = CoefFunction::Generate(mp_, part, jVec);
-          }
-
+          std::cout << "penalty j curlh" << penaltyParameter << std::endl;
+          //CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect*(1/((1/(std::pow(penaltyParameter,0.01)))*1*1.256637061e-06*std::pow(10,penaltyParameter/2)))), CoefXpr::OP_DIV);
+          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
+          PtrCoefFct jVec_coefFct = CoefFunction::Generate(mp_, part, jVec);
+          CoefXprVecScalOp rho_art_times_jVec = CoefXprVecScalOp(mp_, jVec_coefFct, boost::lexical_cast<std::string>(1.256637061e-06*std::pow(10,penaltyParameter/2)), CoefXpr::OP_MULT);
+          jFct[0] = CoefFunction::Generate(mp_, part, rho_art_times_jVec);
           coilCurrentDens_[actRegion] = jFct[0];
           curInt = GetCurrentDensityInt( 1.0, jFct[0] );
           curInt->SetName("(rho_art j,curlN): CoilIntegrator");
@@ -247,6 +243,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     // get the penaltyParameter from the .xml file and set the default value
     Double penaltyParameter = 1e-6;
     myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
+    std::cout << "penalty bilinear" << penaltyParameter << std::endl;
 
     std::cout << penaltyParameter << std::endl;
 
@@ -260,10 +257,8 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
       matModelCoef_->Init(magFieldCoef, modelName_, dim_);
     }
 
-
     // currently we are only allowed to have one hysteresis region
     bool moreThan1HystRegion = false;
-
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
         // set current region and materials
         actRegion = regions_[iRegion];
@@ -320,7 +315,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             actMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
             ParameterMap["isMH"] = 0;
             matModelCoef_->InitModel(ParameterMap, actSDList);
-            // evaluate the dbdh = mu
+            // evaluate dbdh = mu
             mu = matModelCoef_;
             nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
             nlScalCoef_->AddRegion(actRegion, matModelCoef_);
@@ -334,7 +329,6 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
           massInt->SetName("(mu N,N): IdentityIntegrator");
         }
-
         BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
         massContext->SetEntities( actSDList, actSDList );
         massContext->SetFeFunctions( feFunc, feFunc );
@@ -370,10 +364,10 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             }
             moreThan1HystRegion = true;
             rho_art_nl = nlScalCoef_;
-            curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho_art_nl,1., updatedGeo_);
+            curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho_art_nl,1.0, updatedGeo_);
             curlcurl->SetName("(rho_art_nl curlN,CurlN): CurlCurlIntegrator");
           }
-        } else{
+        } else{ // LINEAR CASE
           //rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>((1/(std::pow(penaltyParameter,0.01)))*1*mu_regularize*std::pow(10,penaltyParameter/2)));
           rho_art = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,penaltyParameter/2)));
           curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho_art,1.0, updatedGeo_);
@@ -384,12 +378,26 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         stiffContext->SetEntities( actSDList, actSDList );
         stiffContext->SetFeFunctions( feFunc, feFunc );
         assemble_->AddBiLinearForm( stiffContext );
-
-        // Important: Add bdb-integrator to global list, as we need them later
-        // for calculation of postprocessing results
-        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,curlcurl) );
         // ====================================================================
         // STIFFNESS INTEGRATOR [END]
+        // ====================================================================
+
+        // ====================================================================
+        // AUXILIARY CURL-CURL INTEGRATOR [START]
+        // ====================================================================
+        BaseBDBInt* AUX_curlcurl = NULL;
+        PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        AUX_curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constOne,1.0, updatedGeo_);
+        AUX_curlcurl->SetName("(curlN,CurlN): Auxiliary,CurlCurlIntegrator (just for postprocessing: get curlh from h)");
+        BiLinFormContext * AUX_stiffContext = new BiLinFormContext(AUX_curlcurl, STIFFNESS );
+        AUX_stiffContext->SetEntities( actSDList, actSDList );
+        AUX_stiffContext->SetFeFunctions( feFunc, feFunc );
+        // Important: Add bdb-integrator to global list, as we need them later
+        // for calculation of postprocessing results
+        // - curlh
+        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,AUX_curlcurl));
+        // ====================================================================
+        // AUXILIARY CURL-CURL INTEGRATOR [END]
         // ====================================================================
         }// end for regions
     }
@@ -531,7 +539,6 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     potInfo->unit = "A/m";
     potInfo->definedOn = ResultInfo::ELEMENT;
     potInfo->entryType = ResultInfo::VECTOR;
-
     feFunctions_[MAG_FIELD_INTENSITY]->SetResultInfo(potInfo);
     DefineFieldResult( feFunctions_[MAG_FIELD_INTENSITY], potInfo );
     // =====================================================
@@ -570,10 +577,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     // =====================================================
 
     // =====================================================
-    // MAG_FIELD_INTENSITY_CURL (curlh = j; source current) (START)
+    // MAG_FIELD_INTENSITY_CURL (START)
     // =====================================================
     shared_ptr<ResultInfo> magFieldIntensCurl(new ResultInfo);
     magFieldIntensCurl->resultType = MAG_FIELD_INTENSITY_CURL;
+    magFieldIntensCurl->SetVectorDOFs(dim_, isaxi_);
     magFieldIntensCurl->dofNames = vecComponents;
     magFieldIntensCurl->unit = "A/m^2";
     magFieldIntensCurl->definedOn = ResultInfo::ELEMENT;
@@ -582,16 +590,16 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     curlhFunc.reset(new CoefFunctionBOp<Double>(feFunc, magFieldIntensCurl, 1.0));
     DefineFieldResult(curlhFunc, magFieldIntensCurl);
     stiffFormCoefs_.insert(curlhFunc);
-
-
     // =====================================================
-    // MAG_FIELD_INTENSITY_CURL (curlh = j; source current) (END)
+    // MAG_FIELD_INTENSITY_CURL (END)
     // =====================================================
+
   }
 
   // **********************************************************
   // recipe to do the postprocessing for certain quantities:
   // MAG_FLUX_DENSTIY
+  // MAG_FIELD_INTENSITY_CURL
   // **********************************************************
   void MagEdgeHPDE::FinalizePostProcResults() {
     // Initialize standard postprocessing results
