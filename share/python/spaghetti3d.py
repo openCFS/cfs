@@ -130,11 +130,10 @@ class FE:
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
 def cfs_init(settings, design, dict):
-
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax'])-glob.rhomin
   glob.design = design
-  glob.order = settings['order']
+  glob.order = int(settings['order'])
   if 'mech_11' in design:
     glob.anisotropic = True
     if (glob.rhomin > 1e-15) or abs(glob.rhomax-1) > 1e-15:

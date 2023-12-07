@@ -39,6 +39,7 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
     orientation_ = orientation.Parse(pn->Get("orientation")->As<string>());
   }
 
+  order = pn->Get("order")->As<unsigned int>();
   transition = pn->Get("transition")->As<double>(); // make optional
   radius = pn->Get("radius")->As<double>();
 
@@ -176,6 +177,7 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   settings.Push_back(make_pair("boundary", boundary.ToString(boundary_)));
   settings.Push_back(make_pair("transition", to_string(transition)));
   settings.Push_back(make_pair("combine", combine.ToString(combine_)));
+  settings.Push_back(make_pair("order", to_string(order)));
   settings.Push_back(make_pair("n", "[" + to_string(nx_) + "," + to_string(ny_) + "," + to_string(nz_) + "]"));
   settings.Push_back(make_pair("dx", to_string(dx_)));
   settings.Push_back(make_pair("box_lower", box_lower));
