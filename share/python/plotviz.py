@@ -133,7 +133,6 @@ def header(data, comments):
 # print header in a nice way
 def print_header(meta,data,inputs):
   assert len(meta) == len(data) == len(inputs)
-  
   ml = max([len(max(m, key = len)) for m in meta]) # find largest meta key
   
   print('key: ' + 'label'.ljust(ml) + ' : first value         : file')
@@ -617,10 +616,13 @@ if __name__ == '__main__':
   meta = [] 
   # matrix of data per file
   data = []
-  
   # handle Windows and macOS debugging
   if len(args.input) == 1:
+    org = args.input
     args.input = glob.glob(args.input[0]) # replace with more content in case there are Wildcards
+  if len(args.input) == 0: # in case of a wrong filename we clob nothing, no args.input is not allowed
+    print('Error: cannot open', org[0])
+    sys.exit()
   for input in args.input:
     if not os.path.exists(input):
       print('Error: no valid .dat or .snopt file given', input)
@@ -637,7 +639,6 @@ if __name__ == '__main__':
       m, d = process(input)
     meta.append(m)
     data.append(d)  
-  
   # insert artificial index for linspace x-axis as 0th file
   #meta.insert(0,['index']) # for each file a list of header names
   # the index 'file' are row column lists
