@@ -903,7 +903,8 @@ if __name__ == '__main__':
     
     
   # common stuff for 2D and 3D
-  ax.set_xscale(args.xscale)  
+  if not has_dt:
+    ax.set_xscale(args.xscale) # would brake datetime with dates 
   ax.set_yscale(args.yscale)
   # ax.ticklabel_format(useOffset=False)  causes AttributeError: This method only works with the ScalarFormatter
   if args.y2:
