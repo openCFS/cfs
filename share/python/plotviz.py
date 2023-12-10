@@ -18,7 +18,7 @@ if __name__ == '__main__':
   import matplotlib
   import matplotlib.pyplot as plt
   from matplotlib.ticker import MaxNLocator
-  import snopt # our snopt.py helper fticklabel_formator process
+  import snopt # our snopt.py helper process
 
   # in case we have --dashed we use c_cms_y and c_cms_y2
   # https://stackoverflow.com/questions/7358118/matplotlib-black-white-colormap-with-dashes-dots-etc
@@ -227,7 +227,8 @@ def check(format, test):
   try:
     time = datetime.datetime.strptime(test, format)
     #  8.9819 -> 9819-08-01 00:00:00 9819
-    if time.year == 0 or (time.year >= 2010 and time.year <= 2030):
+    # allow for checks with time only, then the year is 0 or default
+    if time.year in [0,1900] or (time.year >= 2010 and time.year <= 2030):
       return True
     else:
       return False
