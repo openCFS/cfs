@@ -2288,220 +2288,158 @@ namespace CoupledField{
       presFct = this->GetCoefFct(ACOU_PRESSURE);
     }
     
+    shared_ptr<CoefFunctionFormBased> presGradFct;
     
-    shared_ptr<ResultInfo> pos, vel, velNormal, intensity, surfIntensity, intensNormal, power, pres;
-    PtrCoefFct intensFct, velFct, velFctPW, posFct;
-    shared_ptr<CoefFunctionSurf> sNormIntens, sIntens, velFctNormal, sNormIntensPW;
-    shared_ptr<CoefFunctionFormBased>  presGradFct, velFctPot;
-    shared_ptr<ResultFunctor> powerFct;
-
-    PtrCoefFct one = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-    
-    // some results are only available in potential and / or
-    // harmonic simulation
+    // some results are only available in potential formulation (both transient and harmonic) or
+    // pressure formulation (harmonic only)
     if( formulation_ == ACOU_POTENTIAL || isComplex_ ){
-      // === ACOU_PRESSURE ===
-      // Pressure p_{\mathrm{a}} = \rho_{0} {\frac{\partial \psi_mathrm{a}} {\partial t}}
-      pres.reset(new ResultInfo);
-      pres->resultType = ACOU_PRESSURE;
-      pres->dofNames = "";
-      pres->unit = MapSolTypeToUnit(ACOU_PRESSURE);
-      pres->entryType = ResultInfo::SCALAR;
-      pres->definedOn = ResultInfo::ELEMENT;
-      
       // === ACOU_VELOCITY ===
-      // Velocity \bm{v_{\mathrm{a}}} = -\nabla \psi_mathrm{a}
-      vel.reset(new ResultInfo);
+      // for potential formulation
+      // Velocity \bm{v}_{\mathrm{a}} = -\nabla \psi_\mathrm{a}
+      // or for pressure formulation
+      // Velocity \bm{v}_\mathrm{a} = j \frac{1} {\omega* \rho} \nabla p_\mathrm{a}
+      shared_ptr<ResultInfo> vel(new ResultInfo);
       vel->resultType = ACOU_VELOCITY;
       vel->dofNames = vecDofNames;
       vel->unit = MapSolTypeToUnit(ACOU_VELOCITY);
       vel->entryType = ResultInfo::VECTOR;
       vel->definedOn = ResultInfo::ELEMENT;
-      
-      // === ACOU_POSITION ===
-      pos.reset(new ResultInfo);
-      pos->resultType = ACOU_POSITION;
-      pos->dofNames = vecDofNames;
-      pos->unit = MapSolTypeToUnit(ACOU_POSITION);
-      pos->entryType = ResultInfo::VECTOR;
-      pos->definedOn = ResultInfo::ELEMENT;
+      PtrCoefFct velFct;
+      shared_ptr<CoefFunctionFormBased> velFctPot;
+      if( formulation_ == ACOU_POTENTIAL) {
+        // Velocity v = - grad Psi
+        if( isComplex_ ) {
+          velFctPot.reset(new CoefFunctionBOp<Complex>(feFct, vel, -1.0));
+        } else {
+          velFctPot.reset(new CoefFunctionBOp<Double>(feFct, vel, -1.0));
+        }
+        velFct = velFctPot;
+        stiffFormCoefs_.insert(velFctPot);
+        DefineFieldResult( velFct, vel );
+      }
+      else if( formulation_ == ACOU_PRESSURE && isComplex_ ) {
+        // Velocity v = j* 1/(omega*rho) * grad(p)
+        // a) define gradient of pressure
+        presGradFct.reset(new CoefFunctionBOp<Complex>(feFct, vel, 1.0));  
+        stiffFormCoefs_.insert(presGradFct);
+        
+        // b) multiply by factor
+        PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
+        PtrCoefFct factor = 
+            CoefFunction::Generate( mp_, Global::COMPLEX, "0","1/(2*pi*f)");
+        PtrCoefFct factor2 = 
+            CoefFunction::Generate( mp_, Global::COMPLEX,
+                                  CoefXprBinOp(mp_,factor, densFct, CoefXpr::OP_DIV ) );
+        velFct = 
+            CoefFunction::Generate( mp_,  part,
+                                    CoefXprBinOp( mp_, factor2, presGradFct, CoefXpr::OP_MULT ) );
+        DefineFieldResult( velFct, vel );
+      }
 
       // === ACOU_NORMAL_VELOCITY ===
-      // Normal velocity v_{\mathrm{a,n}} = - \nabla \psi_mathrm{a} \cdot \bm{n}
-      velNormal.reset(new ResultInfo);
+      // Normal velocity v_{\mathrm{a,n}} = -\nabla \psi_mathrm{a} \cdot \bm{n}
+      shared_ptr<ResultInfo> velNormal(new ResultInfo);
       velNormal->resultType = ACOU_NORMAL_VELOCITY;
       velNormal->dofNames = "";
       velNormal->unit = MapSolTypeToUnit(ACOU_NORMAL_VELOCITY);
       velNormal->entryType = ResultInfo::SCALAR;
       velNormal->definedOn = ResultInfo::SURF_ELEM;
+      shared_ptr<CoefFunctionSurf> velFctNormal;
+      velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
+      DefineFieldResult(velFctNormal, velNormal);
+      if( formulation_ == ACOU_POTENTIAL ) {
+        surfCoefFcts_[velFctNormal] = velFctPot;
+      }
+      else if ( formulation_ == ACOU_PRESSURE && isComplex_ ) {
+        surfCoefFcts_[velFctNormal] = velFct;
+      }
       
       // === ACOU_INTENSITY ===
-      // Intensity \bm{\mathrm{I}}_{\mathrm{a}} = p_{\mathrm{a}} \bm{v}_{\mathrm{a}}
-      intensity.reset(new ResultInfo);
+      // Intensity \bm{\mathrm{I}}_{\mathrm{a}} = p_{\mathrm{a}} \overline{\bm{v}_{\mathrm{a}}}
+      shared_ptr<ResultInfo> intensity(new ResultInfo);
       intensity->resultType = ACOU_INTENSITY;
       intensity->dofNames = vecDofNames;
       intensity->unit = MapSolTypeToUnit(ACOU_INTENSITY);
       intensity->entryType = ResultInfo::VECTOR;
       intensity->definedOn = ResultInfo::ELEMENT;
+      PtrCoefFct intensFct;
+      // Intensity I = p * conj(v)
+      intensFct = 
+          CoefFunction::Generate( mp_, part,
+                                CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
+      DefineFieldResult(intensFct, intensity);
       
       // === ACOU_SURFINTENSITY ===
       // Surface intensity \bm{I}_{\mathrm{a,surf}} =  p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
-      surfIntensity.reset(new ResultInfo);
+      shared_ptr<ResultInfo> surfIntensity(new ResultInfo);
       surfIntensity->resultType = ACOU_SURFINTENSITY;
       surfIntensity->dofNames = vecDofNames;
       surfIntensity->unit = MapSolTypeToUnit(ACOU_SURFINTENSITY);
       surfIntensity->entryType = ResultInfo::VECTOR;
       surfIntensity->definedOn = ResultInfo::SURF_ELEM;
+      shared_ptr<CoefFunctionSurf> sIntens;
+      sIntens.reset(new CoefFunctionSurf(false, 1.0, surfIntensity));
+      DefineFieldResult(sIntens, surfIntensity);
+      surfCoefFcts_[sIntens] = intensFct;
 
       // === ACOU_NORMAL_INTENSITY ===
       // Normal intensity I_{\mathrm{a}} = p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
-      intensNormal.reset(new ResultInfo);
+      shared_ptr<ResultInfo> intensNormal(new ResultInfo);
       intensNormal->resultType = ACOU_NORMAL_INTENSITY;
       intensNormal->dofNames = "";
       intensNormal->unit = MapSolTypeToUnit(ACOU_NORMAL_INTENSITY);
       intensNormal->entryType = ResultInfo::SCALAR;
-      intensNormal->definedOn = ResultInfo::SURF_ELEM;  
-      
+      intensNormal->definedOn = ResultInfo::SURF_ELEM;
+      shared_ptr<CoefFunctionSurf> sNormIntens;
+      sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
+      DefineFieldResult( sNormIntens, intensNormal );
+      surfCoefFcts_[sNormIntens] = intensFct;
+
       // === ACOU_POWER ===
       // Power P_{\mathrm{a}} = \int_{\Gamma} I_{\mathrm{a}} \ \mathrm{d} \Gamma
-      power.reset(new ResultInfo);
+      shared_ptr<ResultInfo> power(new ResultInfo);
       power->resultType = ACOU_POWER;
       power->dofNames = "";
       power->unit = MapSolTypeToUnit(ACOU_POWER);
       power->entryType = ResultInfo::SCALAR;
       power->definedOn = ResultInfo::SURF_REGION;
-    }
-    
-
-    if( formulation_ == ACOU_POTENTIAL ) {
-      // --------------------------
-      //  POTENTENTIAL FORMULATION
-      // --------------------------
-      // === ACOU_VELOCITY ===
-      // Velocity \bm{v}_{\mathrm{a}} = -\nabla \psi_mathrm{a}
-      if( isComplex_ ) {
-        velFctPot.reset(new CoefFunctionBOp<Complex>(feFct, vel, -1.0));
-      } else {
-        velFctPot.reset(new CoefFunctionBOp<Double>(feFct, vel, -1.0));
-      }
-      velFct = velFctPot;
-      stiffFormCoefs_.insert(velFctPot);
-      DefineFieldResult( velFct, vel );
-      
-      // === ACOU_NORMAL_VELOCITY ===
-      // Normal velocity v_{\mathrm{a,n}} = - \nabla \psi_mathrm{a} \cdot \bm{n}
-      velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
-      DefineFieldResult(velFctNormal, velNormal);
-      surfCoefFcts_[velFctNormal] = velFctPot;
-
-      // === ACOU_INTENSITY ===
-      // Intensity \bm{\mathrm{I}}_{\mathrm{a}} = p_{\mathrm{a}} \overline{\bm{v}_{\mathrm{a}}}
-      intensFct = 
-          CoefFunction::Generate( mp_, part,
-                                 CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
-      DefineFieldResult(intensFct, intensity);
-
-      sIntens.reset(new CoefFunctionSurf(false, 1.0, surfIntensity));
-      DefineFieldResult(sIntens, surfIntensity);
-      surfCoefFcts_[sIntens] = intensFct;
-      
-      // === ACOU_NORMAL_INTENSITY ===
-      // Normal intensity I_{\mathrm{a}} =  p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
-      sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
-      DefineFieldResult( sNormIntens, intensNormal );
-      surfCoefFcts_[sNormIntens] = intensFct;
-
-      // === ACOU_POWER ===
-      // Power P_{\mathrm{a}} = \int_{\Gamma} I_{\mathrm{a}} \ \mathrm{d} \Gamma
+      // Power p = \int_Gamma I *n dGamma
       // Integrate normal intensity
+      shared_ptr<ResultFunctor> powerFct;
       if( isComplex_ ) {
         powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
                                                             feFct, power ) );
       } else {
         powerFct.reset(new ResultFunctorIntegrate<Double>(sNormIntens, 
-                                                           feFct, power ) );
+                                                          feFct, power ) );
       }
       resultFunctors_[ACOU_POWER] = powerFct;
       availResults_.insert(power);
     }
-    
-    if( formulation_ == ACOU_PRESSURE && isComplex_ ) {
+
+    // some results are only available in pressure formulation with harmonic simulation
+    if ( formulation_ == ACOU_PRESSURE && isComplex_ ) {
       // --------------------------------
       //  COMPLEX & PRESSURE FORMULATION
       // --------------------------------
       
-      // === ACOU_VELOCITY ===
-      // Velocity \bm{v}_\mathrm{a} = j \frac{1} {\omega* \rho} \nabla p_\mathrm{a}
-      // a) define gradient of pressure
-      if( isComplex_ ) {
-        presGradFct.reset(new CoefFunctionBOp<Complex>(feFct, vel, 1.0));  
-      } else {
-        presGradFct.reset(new CoefFunctionBOp<Double>(feFct, vel, 1.0));
-      }
-      stiffFormCoefs_.insert(presGradFct);
-      
-      // b) multiply by factor
-      PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
-      PtrCoefFct factor = 
-          CoefFunction::Generate( mp_, Global::COMPLEX, "0","1/(2*pi*f)");
-      PtrCoefFct factor2 = 
-          CoefFunction::Generate( mp_, Global::COMPLEX,
-                                 CoefXprBinOp(mp_,factor, densFct, CoefXpr::OP_DIV ) );
-      velFct = 
-          CoefFunction::Generate( mp_,  part,
-                                  CoefXprBinOp( mp_, factor2, presGradFct, CoefXpr::OP_MULT ) );
-      DefineFieldResult( velFct, vel );
-
-      // === ACOU Particle Position ===
+      // === ACOU_POSITION ===
       // Particle Position u_\mathrm{a} = \frac{1} {\rho* \omega^2} \nabla p_\mathrm{a}
+      shared_ptr<ResultInfo> pos(new ResultInfo);
+      pos->resultType = ACOU_POSITION;
+      pos->dofNames = vecDofNames;
+      pos->unit = MapSolTypeToUnit(ACOU_POSITION);
+      pos->entryType = ResultInfo::VECTOR;
+      pos->definedOn = ResultInfo::ELEMENT;
+      // u = 1/(rho*omega^2) * grad(p)
+      PtrCoefFct one = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
       PtrCoefFct oneOverOmega2rho = CoefFunction::Generate( mp_, part,
           CoefXprBinOp( mp_, one,
             CoefXprBinOp(mp_,CoefFunction::Generate( mp_, Global::REAL, "4*pi*pi*f*f"), densFct, CoefXpr::OP_MULT ),
           CoefXpr::OP_DIV ));
-      posFct = CoefFunction::Generate( mp_,  part, CoefXprBinOp( mp_, oneOverOmega2rho, presGradFct, CoefXpr::OP_MULT ) );
+      PtrCoefFct posFct = CoefFunction::Generate( mp_,  part, CoefXprBinOp( mp_, oneOverOmega2rho, presGradFct, CoefXpr::OP_MULT ) );
       DefineFieldResult( posFct, pos );
-
-      // === ACOU_NORMAL_VELOCITY ===
-      // Normal velocity v_{\mathrm{a,n}} = -\nabla \psi_mathrm{a} \cdot \bm{n}
-      velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
-      DefineFieldResult(velFctNormal, velNormal);
-      surfCoefFcts_[velFctNormal] = velFct;
-      
-      // === ACOU_INTENSITY ===
-      // Intensity \bm{\mathrm{I}}_{\mathrm{a}} = p_{\mathrm{a}} \overline{\bm{v}_{\mathrm{a}}}
-      intensFct = 
-          CoefFunction::Generate( mp_, part,
-                                 CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
-
-      DefineFieldResult(intensFct, intensity);
-
-      sIntens.reset(new CoefFunctionSurf(false, 1.0, surfIntensity));
-      DefineFieldResult(sIntens, surfIntensity);
-      surfCoefFcts_[sIntens] = intensFct;
-
-      // === ACOU_NORMAL_INTENSITY ===
-      // Normal intensity I_{\mathrm{a}} =  p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
-      sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
-      DefineFieldResult( sNormIntens, intensNormal );
-      surfCoefFcts_[sNormIntens] = intensFct;
-      
-      // === ACOU_POWER ===
-      // Power P_{\mathrm{a}} = \int_{\Gamma} I_{\mathrm{a}} \ \mathrm{d} \Gamma
-      //  Integrate normal intensity
-      powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
-                                                         feFct, power ) );
-      resultFunctors_[ACOU_POWER] = powerFct;
-      availResults_.insert(power);
-
-      // === ACOU_POWER WITH PLANE WAVE ASSUMPTION: p/vn = \rho c ===
-      // Power P = \int_{\Gamma} \frac{p_{\mathrm{a}}^2} {2 \rho c} \ \mathrm{d} \Gamma
-      shared_ptr<ResultInfo> powerPW;
-      powerPW.reset(new ResultInfo);
-      powerPW->resultType = ACOU_POWER_PLANEWAVE;
-      powerPW->dofNames = "";
-      powerPW->unit = MapSolTypeToUnit(ACOU_POWER_PLANEWAVE);
-      powerPW->entryType = ResultInfo::SCALAR;
-      powerPW->definedOn = ResultInfo::SURF_REGION;
 
       // === ACOU_NORMAL_INTENSITY ===
       // Normal intensity I_{\mathrm{a}} = p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
@@ -2522,28 +2460,37 @@ namespace CoupledField{
       PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "0.5");
       PtrCoefFct val1 =
                 CoefFunction::Generate( mp_, Global::COMPLEX,
-                                       CoefXprBinOp(mp_,c0Fct, densFct, CoefXpr::OP_MULT ) );
+                                      CoefXprBinOp(mp_,c0Fct, densFct, CoefXpr::OP_MULT ) );
       PtrCoefFct val2 =
                       CoefFunction::Generate( mp_, Global::COMPLEX,
-                                             CoefXprBinOp(mp_,constVal, val1, CoefXpr::OP_DIV ) );
+                                            CoefXprBinOp(mp_,constVal, val1, CoefXpr::OP_DIV ) );
 
-      velFctPW =
+      PtrCoefFct velFctPW =
           CoefFunction::Generate( mp_,  part,
                                   CoefXprBinOp( mp_, val2, presFct, CoefXpr::OP_MULT ) );
 
       PtrCoefFct intensPWfnc =
                       CoefFunction::Generate( mp_, Global::COMPLEX,
-                                             CoefXprBinOp(mp_, velFctPW, presFct, CoefXpr::OP_MULT_CONJ ) );
+                                            CoefXprBinOp(mp_, velFctPW, presFct, CoefXpr::OP_MULT_CONJ ) );
 
       // normal acoustic intensity for plane waves
+      shared_ptr<CoefFunctionSurf> sNormIntensPW;
       sNormIntensPW.reset(new CoefFunctionSurf(false, 1.0, intensNormalPW));
       DefineFieldResult( sNormIntensPW, intensNormalPW );
       surfCoefFcts_[sNormIntensPW] = intensPWfnc;
 
-
+      // === ACOU_POWER WITH PLANE WAVE ASSUMPTION: p/vn = \rho c ===
+      // Power P = \int_{\Gamma} \frac{p_{\mathrm{a}}^2} {2 \rho c} \ \mathrm{d} \Gamma
+      shared_ptr<ResultInfo> powerPW;
+      powerPW.reset(new ResultInfo);
+      powerPW->resultType = ACOU_POWER_PLANEWAVE;
+      powerPW->dofNames = "";
+      powerPW->unit = MapSolTypeToUnit(ACOU_POWER_PLANEWAVE);
+      powerPW->entryType = ResultInfo::SCALAR;
+      powerPW->definedOn = ResultInfo::SURF_REGION;
       shared_ptr<ResultFunctor> powerFctPW;
       powerFctPW.reset(new ResultFunctorIntegrate<Complex>(sNormIntensPW,
-                                                         feFct, powerPW ) );
+                                                        feFct, powerPW ) );
       resultFunctors_[ACOU_POWER_PLANEWAVE] = powerFctPW;
       availResults_.insert(powerPW);
     }
