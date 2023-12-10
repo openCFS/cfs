@@ -595,6 +595,7 @@ if __name__ == '__main__':
   parser.add_argument("--zscale", help="scaling type from choice, google matplotlib xscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--bar", nargs='*', help="indices from y or y2 which are to displayed as bars instead of plots")
   parser.add_argument("--barwidth", help="barplots for datetime need manual adjustment", type=float, default=.8)
+  parser.add_argument("--ignore_day", help="overwrite any date with current day but keep time",action='store_true')
   parser.add_argument("--smooth", nargs='*', help="create new smoothed data for given fields")
   parser.add_argument("--smooth_window", help="window size of Savitzky–Golay filter", type=int, default = 7)
   parser.add_argument("--smooth_poly", help="polynomial order of Savitzky–Golay filter", type=int, default = 3)
@@ -693,7 +694,13 @@ if __name__ == '__main__':
       sys.exit()      
   
   has_dt = type(x[0][0]) == datetime.datetime # we validated common type for all x before
-  
+
+  if args.ignore_day:
+    today = datetime.datetime.today()
+    for file_col in x:
+      for i in range(len(file_col)):
+        file_col[i] = file_col[i].replace(year=today.year, month=today.month, day=today.day)
+
   # now do restrictions
   # for restrictions, this is the start index and end index for the x array of columns
   # currently multiple input needs to be datetime
