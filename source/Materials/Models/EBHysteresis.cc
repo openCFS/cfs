@@ -291,7 +291,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       Matrix<Double> mu;
       mu.Resize(dim_,dim_);
 
-      Double h = 1*10^(-13);
+      Double h = 1*10^(-7);
       Vector<Double> eh_x(dim_);
       Vector<Double> eh_y(dim_);
       Vector<Double> eh_z(dim_);

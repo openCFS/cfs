@@ -77,7 +77,8 @@ namespace CoupledField
         fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
-      solVec_  = stageSol;
+      stageSol.Init();
+      //solVec_  = stageSol;
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -85,8 +86,8 @@ namespace CoupledField
       // ===================================================================================
       // =================== START NONLINEAR ITERATION =====================================
       // ===================================================================================
-      std::cout << "iteration" << "     " << "residual 2-norm" << "     " <<"step 2-norm" << std::endl;
-      std::cout << "---------" << "     " << "---------------" << "     " <<"-----------" << std::endl;
+      std::cout << "iteration" << "     " << "residual 2-norm" << "     " <<"step 2-norm" << "           " <<"    eta    " << std::endl;
+      std::cout << "---------" << "     " << "---------------" << "     " <<"-----------" << "           " <<"-----------" << std::endl;
       while (true){
         iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
         stageSol_temp = stageSol;
@@ -116,21 +117,18 @@ namespace CoupledField
         algsys_->Solve(setIDBC);
         algsys_->GetSolutionVal(solInc, setIDBC );
 
-
         Double etaLineSearch = 1.0;
         if ( lineSearch_ == "none"){
           stageSol.Add(etaLineSearch, solInc);
         }else if ( lineSearch_ == "minEnergy"){
-          etaLineSearch = ExactLineSearch(solInc, stageSol_temp);
-          //etaLineSearch = 1.0;
-          stageSol.Add(etaLineSearch, solInc);
+          etaLineSearch = ExactLineSearch(solInc, stageSol);
+          stageSol_temp.Add(etaLineSearch, solInc);
+          stageSol = stageSol_temp;
         }
 
-        double test;
-        double test_eta = 0.5;
-        //test = GetLineSearchDerivativeFunctionValue(solInc, stageSol_temp,test_eta);
 
-        solVec_  = stageSol;
+        double eta = 0;
+        double print_var = 0;
         // residual
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
@@ -138,7 +136,7 @@ namespace CoupledField
         algsys_->GetRHSVal( actRHS );
         // calculation of residual error =======================================
         Double residualL2Norm = 0.0;
-        residualL2Norm = actRHS.NormL2();
+        residualL2Norm = actRHS.NormL2()*actRHS.NormL2();
         Double residualErr = residualL2Norm;
         // calculate incremental error ========================================
         Double incrementalErr = 0.0;
@@ -149,7 +147,7 @@ namespace CoupledField
         else {
           incrementalErr = solIncrL2Norm;
         }
-        std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr <<"\n" << std::scientific;
+        std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr << "       " << etaLineSearch <<"\n" << std::scientific;
         OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
 
         // boolean variable, holds condition if another iteration step is necessary
@@ -200,8 +198,8 @@ namespace CoupledField
 
   double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol){
 
-    Double bottom_interval = 0+1e-15;
-    Double top_interval = 1;
+    Double bottom_interval = 0.0 + 1e-15;
+    Double top_interval = 1; 
     Double gamma = 0;
     
     gamma = BrentMethod(solIncrement, actSol, bottom_interval, top_interval);
@@ -209,20 +207,18 @@ namespace CoupledField
   }
 
   double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol,Double eta){
+    
     SBM_Vector residual_vector(BaseMatrix::DOUBLE);
-    SBM_Vector temp_solution_vector(BaseMatrix::DOUBLE); temp_solution_vector = actSol;
-    SBM_Vector temp_solIncrement(BaseMatrix::DOUBLE); temp_solIncrement = solIncrement;
-    SBM_Vector actSol_local(BaseMatrix::DOUBLE); actSol_local = actSol;
+    SBM_Vector actSol_temp(BaseMatrix::DOUBLE); actSol_temp = actSol;
     double EnergyDerivative = 0;
 
-    temp_solution_vector.Add( 1.0, actSol_local, eta, temp_solIncrement);
-
-    solVec_ = temp_solution_vector;
+    actSol.Add(eta,solIncrement);
     algsys_->InitRHS();
     assemble_->AssembleLinRHS();
     assemble_->AssembleNonLinRHS();
     algsys_->GetRHSVal( residual_vector );
-    residual_vector.Inner(temp_solution_vector,EnergyDerivative);
+    residual_vector.Inner(solIncrement,EnergyDerivative);
+    actSol = actSol_temp;
 
     return EnergyDerivative;
   }
@@ -237,13 +233,15 @@ namespace CoupledField
     double iter_counter = 0;
     double prev_step = 0;
     double tol_act = 0;
-    double eps = 1e-16;
+    double eps = 2.2204e-16;
     double new_step = 0;
     double cb = 0;
     double t1 = 0;
     double t2 = 0;
     double p = 0;
     double q = 0;
+
+    SBM_Vector actSol_temp(BaseMatrix::DOUBLE); actSol_temp = actSol;
 
     Fa = GetLineSearchDerivativeFunctionValue(solIncrement, actSol, a);
     Fb = GetLineSearchDerivativeFunctionValue(solIncrement, actSol, b);
