@@ -782,6 +782,35 @@ DEFINE_LOG(darwinPDE, "darwinPDE")
         assemble_->AddLinearForm( c4Context );
       }
 
+      // Zweckentfremdung: das wird der c5 Vektor
+      eNodes = bcNode->GetList( "c5" );
+      for( UInt i = 0; i < eNodes.GetSize(); i++ ) {
+        std::string regionName = eNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName ); 
+       
+        std::set<RegionIdType> volRegions;
+        std::string volRegionName = eNodes[i]->Get("volumeRegion")->As<std::string>();
+        shared_ptr<EntityList> actSDListVol =  ptGrid_->GetEntityList( EntityList::ELEM_LIST,volRegionName ); 
+        RegionIdType aRegionVol = ptGrid_->GetRegion().Parse(volRegionName);
+
+        PtrCoefFct permittivityCoeff;
+        Double permittivity = 0.0;
+        materials_[aRegionVol]->GetScalar(permittivity,MAG_PERMITTIVITY_SCALAR,Global::REAL);
+        permittivityCoeff = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(permittivity));
+        volRegions.insert(aRegionVol);
+
+
+        
+        LinearForm * c5Int = NULL;
+     
+        c5Int = new BUIntegrator<Double,true>(new SurfaceNormalFluxDensityOperator<FeH1,3,1>("3d"), 1.0, permittivityCoeff, volRegions, updatedGeo_, true, false, "", true);
+        c5Int->SetName("c5Integrator");
+        LinearFormContext *c5Context = new LinearFormContext(c5Int );
+        c5Context->SetEntities( actSDList );
+        c5Context->SetFeFunction( feFunctions_[ELEC_POTENTIAL] );
+        assemble_->AddLinearForm( c5Context );
+      } 
+
     }
 
   }
