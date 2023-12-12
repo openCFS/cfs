@@ -52,7 +52,8 @@ namespace CoupledField
   AcousticPDE_BEM::AcousticPDE_BEM( Grid* aGrid, PtrParamNode paramNode,
                             PtrParamNode infoNode,
                             shared_ptr<SimState> simState, Domain* domain)
-              : SinglePDE( aGrid, paramNode, infoNode, simState, domain ){
+              : SinglePDE( aGrid, paramNode, infoNode, simState, domain )
+  {
 
     pdename_           = "acoustic_BEM";
     pdematerialclass_  = ACOUSTIC;
@@ -66,7 +67,7 @@ namespace CoupledField
     isTimeDomPML_      = false;
     isAPML_            = false;
     complexFluidFormulation_ = false;
-    std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
+    std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>(); // WICHTIG!!
 
     // check for pressure or potential formulation
     sosAtLaplace_ = (pdeFormulation == "acouPressureSOSatLaplace")? true : false;
@@ -75,11 +76,19 @@ namespace CoupledField
     {
       formulation_ = SolutionTypeEnum.Parse(pdeFormulation);
     } 
+
+    // LUCA ON
+
+    // not elegant but from here I suppose to find the current directory
+    callNiHu(/* paramNode */);
+
+    // LUCA OFF
+
   }
 
   std::map<SolutionType, shared_ptr<FeSpace> > AcousticPDE_BEM::CreateFeSpaces( const std::string&  formulation,
-                  PtrParamNode infoNode ){
-
+                  PtrParamNode infoNode )
+  {
     if(this->analysistype_ == STATIC)
       EXCEPTION("No STATIC analysis in AcousticPDE_BEM");
 
@@ -90,7 +99,10 @@ namespace CoupledField
       crSpaces[formulation_] =
         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[formulation_]->Init(solStrat_);
-    }else{
+    }
+    
+    else
+    {
       EXCEPTION("The formulation " << formulation << "of acoustic PDE is not known!");
     }
 
@@ -2002,25 +2014,28 @@ namespace CoupledField
     solveStep_ = new StdSolveStep(*this);
   }
 
-  void AcousticPDE_BEM::DefinePrimaryResults(){
-	//check for complex fluid formulation
-	RegionIdType actRegion;
-	std::map<RegionIdType, BaseMaterial*>::iterator it;
-	for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-		actRegion = it->first;
-		std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
-		PtrParamNode curRegNode =
-		   			myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-		if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) {
-			complexFluidFormulation_ = true;
-			isMaterialComplex_ = true;
-			if ( this->analysistype_ != HARMONIC )
-				EXCEPTION("Complex fluid region just allowed in harmonic analysis");
-	   		//need an acoustic pressure formulation
-			if ( formulation_ != ACOU_PRESSURE )
-				EXCEPTION("Complex fluid needs acoustic pressure formulation");
-		}
-	}
+  void AcousticPDE_BEM::DefinePrimaryResults()
+  {
+    //check for complex fluid formulation
+    RegionIdType actRegion;
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) 
+    {
+      actRegion = it->first;
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+      PtrParamNode curRegNode =
+              myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+      if ( curRegNode->Get("complexFluid")->As<std::string>() == "yes" ) 
+      {
+        complexFluidFormulation_ = true;
+        isMaterialComplex_ = true;
+        if ( this->analysistype_ != HARMONIC )
+          EXCEPTION("Complex fluid region just allowed in harmonic analysis");
+          //need an acoustic pressure formulation
+        if ( formulation_ != ACOU_PRESSURE )
+          EXCEPTION("Complex fluid needs acoustic pressure formulation");
+      }
+	  }
 
     // === Primary result according to definition ===
     shared_ptr<ResultInfo> res1( new ResultInfo);
@@ -2666,6 +2681,50 @@ namespace CoupledField
     	  // c^2 = bulk_modulus / density
     	  cSQR = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV) );
       }
+  }
+
+  // What if (...) ???
+  void AcousticPDE_BEM::callNiHu(/* PtrParamNode paramNode */)
+  {
+    // just call a CMakeLists.txt
+    const char* cmakeCommand = "cmake ./NiHu";  // unused - What did I intend with that?
+
+    // Debug Log
+    std::cout << "Current Working Directory: " << std::endl;
+    std::cout << "In callNiHu()" << std::endl;
+    // std::cout << "Looking for " << cmakeCommand << std::endl;
+    // std::cout << "Currently in " << std::endl;
+
+    // std::system("pwd");
+    std::system("cd NiHu");
+    // std::system("pwd");
+    // std::system("rm ./NiHu/CMakeCache.txt");
+    // std::system("rm CMakeCache.txt");  // possibly expensive
+
+    // call command line (stdio)
+    // int system_return_cmake = std::system("cmake .");
+
+    std::system("g++ NiHu/hello_world.cc -std=c++14 -o hello_world_OIDA");  // build NiHu-Simulation
+    std::system("./hello_world_OIDA");                                      // execute NiHu-Simulation
+
+    // system_return = 0 : success
+    // if ( system_return_cmake == 0 )
+    // {
+    //   std::cout << "Success! CMakeLists was found!" << std::endl;
+
+    //   int system_return_make = std::system("make");
+
+    //   if ( system_return_make == 0 )
+    //   {
+    //     std::cout << "Success! cmake could be executed!" << std::endl;
+    //   }
+    // }
+
+    // system_return != 0 : failure
+    // else
+    // {
+    //   std::cout << "Fatal! CMakeLists not found!" << std::endl;
+    // }
   }
 }
     

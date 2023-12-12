@@ -483,64 +483,61 @@ void Domain::SolveProblem()
     driver->SolveProblem();
 }
 
-  // **********************
-  //   Getter function
-  // **********************
-  StdPDE* Domain::GetStdPDE(const std::string pdeName)
-  {
-    bool pdeFound = false;
-    UInt i;
-    std::string errMsg;
+// **********************
+//   Getter function
+// **********************
+StdPDE* Domain::GetStdPDE(const std::string pdeName)
+{
+  bool pdeFound = false;
+  UInt i;
+  std::string errMsg;
 
-    // search the direct coupled pdes
-    for (i=0; i<ptDirectCoupledPde_.GetSize(); i++) {
-      if ( ptDirectCoupledPde_[i]->GetName() == pdeName ) {
-        pdeFound = true;
-        break;
-      } 
-    }
-
-    if ( pdeFound == true)
-      return ptDirectCoupledPde_[i];
-    else {
-      // search the single pdes
-      std::map<SinglePDE*,bool>::iterator it;
-      
-      for (i=0; i<ptSinglePde_.GetSize(); i++) {
-        
-        if (ptSinglePde_[i]->GetName() == pdeName) {
-          
-          // check if SinglePDE is not coupled directly
-          it = isDirectCoupled_.find( ptSinglePde_[i] );
-          
-          if ( it == isDirectCoupled_.end() ) {
-            EXCEPTION("It was impossible to determine, if the PDE "
-                      << "with the name '" << pdeName << "' is directly "
-                      << "coupled or not" );
-          }
-          
-          //         if ( (*it).second == false ) {
-          //           pdeFound = true;
-          //           break;
-          //         }
-          pdeFound = true;
-          break;
-        }
-      }
-   
-      
-      if (pdeFound == true)
-        return ptSinglePde_[i];
-      else {
-        EXCEPTION( "Domain:GetPDE: PDE with name '" << pdeName
-                   << "' was not found/created!." );
-        return NULL;
-      }
-    }
+  // search the direct coupled pdes
+  for (i=0; i<ptDirectCoupledPde_.GetSize(); i++) {
+    if ( ptDirectCoupledPde_[i]->GetName() == pdeName ) {
+      pdeFound = true;
+      break;
+    } 
   }
 
-
-
+  if ( pdeFound == true)
+    return ptDirectCoupledPde_[i];
+  else {
+    // search the single pdes
+    std::map<SinglePDE*,bool>::iterator it;
+    
+    for (i=0; i<ptSinglePde_.GetSize(); i++) {
+      
+      if (ptSinglePde_[i]->GetName() == pdeName) {
+        
+        // check if SinglePDE is not coupled directly
+        it = isDirectCoupled_.find( ptSinglePde_[i] );
+        
+        if ( it == isDirectCoupled_.end() ) {
+          EXCEPTION("It was impossible to determine, if the PDE "
+                    << "with the name '" << pdeName << "' is directly "
+                    << "coupled or not" );
+        }
+        
+        //         if ( (*it).second == false ) {
+        //           pdeFound = true;
+        //           break;
+        //         }
+        pdeFound = true;
+        break;
+      }
+    }
+  
+    
+    if (pdeFound == true)
+      return ptSinglePde_[i];
+    else {
+      EXCEPTION( "Domain:GetPDE: PDE with name '" << pdeName
+                  << "' was not found/created!." );
+      return NULL;
+    }
+  }
+}
 
 SinglePDE* Domain::GetSinglePDE(const std::string pdeName,  bool throw_exception)
 {
