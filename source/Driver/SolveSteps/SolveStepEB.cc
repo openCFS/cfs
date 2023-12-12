@@ -127,6 +127,10 @@ namespace CoupledField
           etaLineSearch = ExactLineSearch(solInc, stageSol);
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
+        }else if ( lineSearch_ == "Armijo"){
+          etaLineSearch = LineSearchArmijo(solInc, stageSol);
+          stageSol_temp.Add(etaLineSearch, solInc);
+          stageSol = stageSol_temp;
         }
 
 
@@ -218,10 +222,63 @@ namespace CoupledField
     assemble_->AssembleNonLinRHS();
     algsys_->GetRHSVal( residual_vector );
     residual_vector.Inner(solIncrement,EnergyDerivative);
-    actSol = actSol_temp;;
+    actSol = actSol_temp;
 
     return EnergyDerivative;
   }
+
+
+
+double SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol)   {
+
+    SBM_Vector actSol_temp(BaseMatrix::DOUBLE); actSol_temp = actSol;
+    SBM_Vector refRHS(BaseMatrix::DOUBLE);
+    SBM_Vector stepRHS(BaseMatrix::DOUBLE);
+    Double residual_ref = 0.0;
+    Double residual_step = 0.0;
+
+    const UInt nrEtas = 4;
+    //const Double eta[nrEtas] = {1,0.6667,0.4444,0.2963,0.1975,0.1317,0.0878,0.0585,0.039,0.026,0.01733333333};
+    const Double eta[nrEtas] = {1,0.1,0.01,0.001};
+    const Double eta0 = 0;
+    Double etaOpt = 0.0;
+
+    Double delta = 1e-4;
+    
+    // obtain reference residual (start)
+    actSol.Add(eta0,solIncrement);
+    algsys_->InitRHS();
+    assemble_->AssembleLinRHS();
+    assemble_->AssembleNonLinRHS();
+    algsys_->GetRHSVal( refRHS );
+    residual_ref = refRHS.NormL2();
+    // obtain reference residual (end)
+    
+    for( UInt i=0; i<nrEtas; i++) {
+
+      // obtain trial residual (start)
+      actSol.Add(eta[i],solIncrement);
+      algsys_->InitRHS();
+      assemble_->AssembleLinRHS();
+      assemble_->AssembleNonLinRHS();
+      algsys_->GetRHSVal( stepRHS );
+      residual_step = stepRHS.NormL2();
+      // obtain trial residual (end)
+
+      // check if the trial residual has a sufficient decrease
+      if (residual_step < (1.0 - delta*eta[i])*residual_ref) {
+        etaOpt = eta[i];
+        break;
+      }
+      if (i == nrEtas-1){ // after all possible line search parameter are tried take the last one and break the for loop
+        etaOpt = eta[i];
+        break;
+      }
+    }
+    actSol = actSol_temp;
+    return etaOpt;
+  }
+
 
 
   double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b){

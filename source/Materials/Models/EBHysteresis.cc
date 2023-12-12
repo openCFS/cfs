@@ -208,15 +208,18 @@ DEFINE_LOG(eb, "EBHysteresis")
       if(hasElemSolution_[idx] == true){
         return mu_[idx];
       }
-      StdVector<Double> B_k(dim_);
+
       Vector<Double> M;
+      Vector<Double> M_dummy;
       Matrix<Double> mu(dim_,dim_); mu.InitValue(0.0);
 
       M = Evaluate(HVec, false, idx);
-      for(UInt i = 0; i < dim_; i++){
-        B_k[i] = mu_0 * (HVec[i] + M[i]);
-      }
 
+      // get the values for H and M from the last timestep and get deltaH and deltaB
+      StdVector<Double>& H0 = H0_[idx];
+      StdVector<Double>& M0 = M0_[idx];
+      StdVector<Double> B_k(dim_);
+      StdVector<Double> B_k_0(dim_);
       StdVector<Double> delta_H(dim_);
       StdVector<Double> delta_B(dim_);
       for(UInt i = 0; i < dim_; i++){
@@ -229,9 +232,14 @@ DEFINE_LOG(eb, "EBHysteresis")
       }
 
    
-      //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-      mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
+      if (numS_ > 1 ){ // hysteretic case
+        mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
+      } else { // nonlinear case (only anhysteresis)
+        mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
+      }
       mu_[idx] = mu;
+
+      M_dummy = Evaluate(HVec, true, idx);
 
       // mark this element as computed
       hasElemSolution_[idx] = true;
@@ -569,12 +577,12 @@ DEFINE_LOG(eb, "EBHysteresis")
                     << "\n\t epsilon_km1 = " << mu_[idx].ToString()
                     << "\n\t A = " << A.ToString();
 
-        mu[0][1] = 0.0;
+        /* mu[0][1] = 0.0;
         mu[1][0] = 0.0;
         mu[2][0] = 0.0;
         mu[0][2] = 0.0;
         mu[1][2] = 0.0;
-        mu[2][1] = 0.0;
+        mu[2][1] = 0.0; */
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
               Matrix<Double> e = mu_[idx];
@@ -845,7 +853,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         StdVector<Double>& MzS_prev = MzS_n_[idx];
 
 
-        /* for(int k = 0; k < numS_; k++){
+        for(int k = 0; k < numS_; k++){
           HrxS_prev = HxS_prev[k];
           HryS_prev = HyS_prev[k];
           HrzS_prev = HzS_prev[k];
@@ -899,8 +907,8 @@ DEFINE_LOG(eb, "EBHysteresis")
           MxS_n_tmp_[idx] = MxS_sol;
           MyS_n_tmp_[idx] = MyS_sol;
           MzS_n_tmp_[idx] = MzS_sol;
-        } */
-        Px = 0.0;
+        }
+        /* Px = 0.0;
         Py = 0.0;
         Pz = 0.0;
         Double normH;
@@ -916,7 +924,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         }
         if (std::isnan(Pz)){
           Pz = 0;
-        }
+        } */
         ret.Push_back(Px);
         ret.Push_back(Py);
         ret.Push_back(Pz);
