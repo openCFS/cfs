@@ -371,12 +371,12 @@ DEFINE_LOG(eb, "EBHysteresis")
           mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
 
       } 
-        if (idx == 1){
+       /*  if (idx == 1){
           std::cout << "FDHx: " << HVec[0] << ", FDHy: " << HVec[1] << ", FDHz: " << HVec[2] << std::endl;
           std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
           std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
           std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-        }
+        } */
       return mu;
     }
 
