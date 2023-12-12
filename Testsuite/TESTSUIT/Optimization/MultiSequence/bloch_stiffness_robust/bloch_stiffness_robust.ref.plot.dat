@@ -1,2 +1,0 @@
-#1:iter	2:slack	3:duration	4:alpha	5:bandgap	6:ev_2_max	7:ev_3_max	8:ev_4_min	9:ev_5_min	10:youngsModulusE1_f_0	11:youngsModulusE1_f_1	12:homTensor_p11_m22_f_0	13:homTensor_p13_f_0	14:homTensor_p23_f_0	15:homTensor_p11_m22_f_1	16:homTensor_p13_f_1	17:homTensor_p23_f_1	18:volume	19:greyness	20:physical_greyness
-0 	0 	2.731 	100 	-315.425 	1356.89 	1680.61 	1365.18 	1642.7 	1.05922 	0.466854 	6.43929e-15 	-4.03672e-16 	-4.44721e-15 	4.55191e-15 	2.51872e-16 	-2.38183e-15 	0.380239 	0 	0.317858

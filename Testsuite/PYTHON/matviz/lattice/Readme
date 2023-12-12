@@ -1,4 +1,0 @@
-
-Run the following line, which should produce a vtk model (reference: lattice_2x2x2.ref.vtp)
-
-matviz.py --show hom_rect --hom_samples 2 --hom_grad linear lattice_2x2x2.h5 --save lattice_2x2x2.vtp

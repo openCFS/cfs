@@ -28,7 +28,6 @@ namespace CoupledField
     //! Destructor
     virtual ~SolveStepEB();
 
-
     //! base method for solving one transient step 
     void SolveStepTrans();
 
@@ -37,13 +36,11 @@ namespace CoupledField
 
     void StepTransNonLin();
 
-    // Heavy linesearch checks the eta space from (0,1) for the
-    // smallest residual
-    void LineSearchHeavy(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch);
+    Double ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol);
 
-    void LineSearchArmijoRegularization(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch, UInt iterationCounter);
+    double GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta);
 
-    void LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol, Double& etaLineSearch);
+    double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, double a, double b);
 
   private:
 

@@ -40,7 +40,7 @@ namespace CoupledField {
 
       Matrix<Double> EvaluateLocalMuFiniteDifferences(Vector<Double> E, StdVector<Double> D, UInt idx);
 
-      Matrix<Double> EvaluateLocalMuAnhystersisOnly(Vector<Double> E, StdVector<Double> D, UInt idx);
+      Matrix<Double> EvaluateLocalMuAnhystersisOnly(Vector<Double> E, UInt idx);
 
       StdVector<Double> inv3x3(StdVector<Double> A);
 

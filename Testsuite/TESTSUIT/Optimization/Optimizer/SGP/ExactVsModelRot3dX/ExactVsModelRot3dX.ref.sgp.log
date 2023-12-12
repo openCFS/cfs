@@ -1,9 +1,0 @@
-   Iteration |           J |     F_merit |      F_phys |       F_vol |       F_reg |         tau |      lambda |         vol |   J_old - J |    n_subprb |        time
-           1 |   0.0966257 |     0.24983 |     0.24983 |           1 |           0 |       1e-09 |           0 |           1 |    0.854375 |           1 |   0.0537109
-
-WARNING: Algorithm not converged. Maximum number of iterations reached!
-Computation time:
-total time:             T = 0.0537109 s
-eval_J():             t_J = 0.00231728 s = 0.043 T
-eval_dJ():           t_dJ = 0.00328533 s = 0.061 T
-solve subproblems:    t_s = 0.0480822 s = 0.895 T

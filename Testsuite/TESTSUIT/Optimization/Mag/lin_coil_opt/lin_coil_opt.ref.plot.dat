@@ -1,4 +1,0 @@
-#1:iter	2:sqrMagFluxDensY	3:duration	4:volume_(density)	5:volume_(rhsDensity)_lowerBound	6:volume_(rhsDensity)_upperBound
-0 	8.00033e-10 	0.287 	0.5 	0.5 	0.5
-1 	2.87439e-10 	0.073 	0.5 	0.3 	0.3
-2 	2.87439e-10 	0.448 	0.5 	0.3 	0.3

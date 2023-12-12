@@ -1,8 +1,0 @@
-*PARAMETER
-loadTotal = -1.0 <= -1.0>
-height = 3.0 <= 3.0>
-width = 4.0 <= 4.0>
-area = height*width <= 12.0>
-pressureLoad = loadTotal/area <= -0.08333333333333333>
-***************** <ABAQUS comment>
-**** MATERIAL *** <ABAQUS comment>

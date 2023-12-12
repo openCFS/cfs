@@ -1,8 +1,0 @@
-   Iteration |           J |     F_merit |      F_phys |       F_vol |       F_reg |         tau |      lambda |         vol |   J_old - J |    n_subprb |        time
-
-WARNING: Algorithm not converged. Aborted by user!
-Computation time:
-total time:             T =        0 s
-eval_J():             t_J = 0.00240425 s =   inf T
-eval_dJ():           t_dJ = 0.00440638 s =   inf T
-solve subproblems:    t_s = 0.189856 s =   inf T
