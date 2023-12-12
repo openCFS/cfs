@@ -2141,7 +2141,7 @@ if __name__ == '__main__':
   parser.add_argument('--track_iter', help="number of optimization iterations for tracking", type=int, default=30)
   parser.add_argument('--padnormals', help="pad normals with additional normals (zero-valued) so there is a total of x normals", type=int, default=0)
   parser.add_argument('--gray', help="plot grayscale image", action='store_true')
-  parser.add_argument('--noticks', help="omit axis tick labels", action='store_true')
+  parser.add_argument('--noaxis', help="dont plot axis and ticks", action='store_true')
 
   args = parser.parse_args()
   
@@ -2227,26 +2227,14 @@ if __name__ == '__main__':
       shapes, domain = read_xml(args.input, i, args.radius, args.cfseval)
       glob.shapes = shapes
       fig = plot_data(800,shapes,args.detail, domain)
-      if args.noticks:
-        plt.tick_params(
-          axis='both',          # changes apply to x-axis and y-axis
-          which='both',      # both major and minor ticks are affected
-          bottom=True,      # ticks along the bottom edge are off
-          top=False,         # ticks along the top edge are off
-          labelleft=False,   # labels along the left edge are off
-          labelbottom=False) # labels along the bottom edge are off
+      if args.noaxis:
+        plt.axis('off')
       fig.savefig('giffiles/' + str(i).zfill(4) + '.png')
       plt.close(fig)
 
   fig = plot_data(800,shapes,args.detail, domain)
-  if args.noticks:
-    plt.tick_params(
-        axis='both',          # changes apply to x-axis and y-axis
-        which='both',      # both major and minor ticks are affected
-        bottom=True,      # ticks along the bottom edge are off
-        top=False,         # ticks along the top edge are off
-        labelleft=False,   # labels along the left edge are off
-        labelbottom=False) # labels along the bottom edge are off
+  if args.noaxis:
+    plt.axis('off')
   if args.save:
     print("write '" + args.save + "'")
     fig.savefig(args.save)
