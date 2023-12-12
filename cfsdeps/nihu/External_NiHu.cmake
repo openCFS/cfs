@@ -25,7 +25,11 @@ ExternalProject_Add(
 
   ## path to NiHu's CMakeLists
   CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu/src
+  # TODO: make that an alias to further use in NiHu-executable builds
 
   # Here we could utilize an alias e.g.
-  CMAKE_ARGS -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
+  # CMAKE_ARGS -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
+  CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu/src
+             -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
+             -DNIHU_EIGEN_INSTALL=1
 )
