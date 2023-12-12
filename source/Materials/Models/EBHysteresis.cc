@@ -58,7 +58,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       } else {
         varHandle_="step";
       }
-      mu_0 = 4 * M_PI * 1e-7;
+      mu_0 = 1.256637061e-06;
 
       Ps_ = ParameterMap["Ps"];
       A_ = ParameterMap["A"];
@@ -108,7 +108,63 @@ DEFINE_LOG(eb, "EBHysteresis")
     }
 
     Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum) {
-      EXCEPTION("Not implemented here, this is a vector hysteresis model!");
+      // This method gives the rho_art for the h-form.
+
+      Double penaltyParameter = 1e-6; // default value for n
+
+      /* Matrix<Double> mu = ComputeTensorialMaterialParameter(HVec, ElemNum);
+      Double num1 = mu[0][0]; Double num2 = mu[1][1]; Double num3 = mu[2][2];
+      if (num1 >= num2 && num1 >= num3) {
+        return num1*std::pow(10,penaltyParameter/2);
+      } else if (num2 >= num1 && num2 >= num3) {
+        return num2*std::pow(10,penaltyParameter/2);
+      } else {
+        return num3*std::pow(10,penaltyParameter/2);
+      } */
+
+      /* Double normH; normH = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2]);
+      Double mu0;Double material_scalar; Double chi;
+      mu0 = 1.256637061e-06;;
+      chi = (2*A_*Ps_)/(M_PI*(normH*normH+A_*A_));
+      material_scalar = mu0*(1+chi); 
+      return material_scalar*std::pow(10,penaltyParameter/2); */
+
+      // SVD approach
+      Matrix<Double> A = ComputeTensorialMaterialParameter(HVec, ElemNum);
+      Matrix<Double> AtA(dim_,dim_);
+      for(UInt idx=0;idx<3;idx++){
+        for(UInt jdx=0;jdx<3;jdx++){
+            // Compute the (i, j)-th entry of AtA
+            for (int kdx = 0; kdx < 3; ++kdx) {
+              AtA[idx][jdx] += A[kdx][idx]*A[kdx][jdx];
+            }
+        }
+      }
+      Double a,b,c;
+      // Compute the coefficients of the characteristic polynomial directly
+      a = 1.0;
+      b = -1.0 * (A[0][0] + A[1][1] + A[2][2]);
+      c = A[0][0] * (A[1][1] * A[2][2] - A[2][1] * A[1][2]) +
+          A[1][1] * A[2][2] * A[0][0] +
+          A[2][2] * A[0][0] * A[1][1] -
+          A[0][1] * A[1][0] * A[2][2] -
+          A[1][2] * A[2][1] * A[0][0] -
+          A[2][0] * A[0][2] * A[1][1];
+
+      Double discriminant = b * b - 4 * a * c;
+      Double lambda1 = (-b + std::sqrt(discriminant)) / (2 * a);
+      Double lambda2 = (-b - std::sqrt(discriminant)) / (2 * a);
+      Double lambda3 = (A[0][0] + A[1][1] + A[2][2]) - lambda1 - lambda2;
+
+      Double svd1 = std::sqrt(std::abs(lambda1)); Double svd2 = std::sqrt(std::abs(lambda2)); Double svd3 = std::sqrt(std::abs(lambda3));
+
+      if (svd1 >= svd2 && svd1 >= svd3) {
+          return svd1*std::pow(10,penaltyParameter/2);
+      } else if (svd2 >= svd1 && svd2 >= svd3) {
+          return svd2*std::pow(10,penaltyParameter/2);
+      } else {
+          return svd3*std::pow(10,penaltyParameter/2);
+      }
     }
 
     Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum) {
@@ -121,7 +177,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       LOG_DBG3(eb) << "\n\t M = " << M.ToString();
       
       for(UInt i = 0; i < dim_; ++i){
-        B[i] = mu_0 * (HVec[i] + M[i]);
+        B[i] = mu_0*(HVec[i] + M[i]);
       }
 
       LOG_DBG3(eb) << "\n\t B = " << B.ToString();
@@ -149,47 +205,18 @@ DEFINE_LOG(eb, "EBHysteresis")
       }
 }
       UInt idx = ElemNum2Idx_[ElemNum];
-
-      // since the material tensor is computed per element and one element has 
-      // several integration points, there are several evaluations of this
-      // ComputeTensorialMaterialParameter function. But after every evaluation
-      // of this function we store the H1_ and M1_ and mu_ variables for the particular
-      // element and re-evaluating it again, would result in wrong delta values for the
-      // Broyden or DFP formula. Therefore, we check if this particular element was already
-      // evaluated in this iteration step. If so, we return the already computed values.
       if(hasElemSolution_[idx] == true){
         return mu_[idx];
       }
+      StdVector<Double> B_k(dim_);
+      Vector<Double> M;
+      Matrix<Double> mu(dim_,dim_); mu.InitValue(0.0);
 
-      Matrix<Double> mu(dim_,dim_);
-      mu.InitValue(0.0);
-      Matrix<Double> mu_FD(dim_,dim_);
-      mu_FD.InitValue(0.0);
-
-      LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
-
-      // To obtain a good starting point for the quasi-Newton method in the first time step
-      // and first Newton iteration the Jacobian is approximated by forward finite differences
-      if(timeStep_== 1 && globalIter_ == 1){
-        Vector<Double> M;
-        M = Evaluate(HVec, false, idx);
-        StdVector<Double> B_k(dim_);
-        for(UInt i = 0; i < dim_; i++){
-            B_k[i] = mu_0 * (HVec[i] + M[i]);
-        }
-        mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-        mu_[idx] = mu;
-        return mu;
+      M = Evaluate(HVec, false, idx);
+      for(UInt i = 0; i < dim_; i++){
+        B_k[i] = mu_0 * (HVec[i] + M[i]);
       }
 
-      Vector<Double> M, H, M_dummy;
-      M = Evaluate(HVec, false, idx);
-
-      // get the values for H and M from the last timestep
-      StdVector<Double>& H0 = H0_[idx];
-      StdVector<Double>& M0 = M0_[idx];
-      StdVector<Double> B_k(dim_);
-      StdVector<Double> B_k_0(dim_);
       StdVector<Double> delta_H(dim_);
       StdVector<Double> delta_B(dim_);
       for(UInt i = 0; i < dim_; i++){
@@ -201,151 +228,74 @@ DEFINE_LOG(eb, "EBHysteresis")
         M1_[idx][i] = M[i];
       }
 
-      //mu = EvaluateLocalMu(delta_H, delta_B, idx);
-      //mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
-      //mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+   
       //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-      mu = EvaluateLocalMuAnhystersisOnly(HVec, B_k, idx);
-
-      /* if (numS_ == 1){
-        
-      } */
-        
-
-
-      M_dummy = Evaluate(HVec, true, idx);
-      LOG_DBG3(eb)<< "AFTER EVALUATION" 
-                  << "\n\t HVec =  \t" << HVec.ToString()
-                  << "\n\t H0_["<<idx<<"] = \t"<<H0_[idx].ToString()
-                  << "\n\t M0_["<<idx<<"] = \t"<<M0_[idx].ToString()
-                  << "\n\t H1_["<<idx<<"] = \t"<<H1_[idx].ToString()
-                  << "\n\t M1_["<<idx<<"] = \t"<<M1_[idx].ToString()
-                  << "\n\t B_k = \t\t"<<B_k.ToString()
-                  << "\n\t B_k_0 = \t"<<B_k_0.ToString()
-                  << "\n\t delta_H = \t"<<delta_H.ToString()
-                  << "\n\t delta_B = \t"<<delta_B.ToString();
-
-      LOG_DBG3(eb) << "\n\t mu = " << mu.ToString();
-
+      mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
       mu_[idx] = mu;
-      M0_[idx] = M1_[idx];
-      H0_[idx] = H1_[idx];
 
       // mark this element as computed
       hasElemSolution_[idx] = true;
       return mu;
     }
 
-    Matrix<Double> EBHysteresis::EvaluateLocalMuAnhystersisOnly(Vector<Double> HVec, StdVector<Double> B_k, UInt idx){
-      Matrix<Double> mu;
-      mu.Resize(dim_,dim_);
-      Matrix<Double> chi;
-      chi.Resize(dim_,dim_);
+    Matrix<Double> EBHysteresis::EvaluateLocalMuAnhystersisOnly(Vector<Double> HVec, UInt idx){
+      Matrix<Double> mu; mu.Resize(dim_,dim_);
+      Matrix<Double> chi; chi.Resize(dim_,dim_);
+      Matrix<Double> T2; T2.Resize(dim_,dim_);
+      Matrix<Double> identity; identity.Resize(dim_,dim_); 
 
-      Double term1_nominator, term1_denominator, 
-             term2_nominator, term2_denominator, 
-             term3_nominator, term3_denominator;
-      Double mu0;
-      mu0 = 4*M_PI*std::pow(10,-7);
+      Double t0, t1, t3, factor1,factor2,factor3;
+      Double mu0 = 1.256637061e-06;;
 
       // 2D case (x,y)
       if (dim_ == 2){
+        t0 = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1]);
+        t1 = t0/A_;
+        t3 = std::atan(t1);
+        factor1 = (2*Ps_/(t1*t1+1))/(M_PI*t0*t0*A_);
+        factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
+        factor3 = (2*Ps_*t3)/(M_PI*t0);
 
-        term1_nominator =  2*Ps_*std::atan(std::sqrt((std::pow(HVec[0],2)+std::pow(HVec[1],2)))/A_);
-        term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2));
-        term2_nominator = 2*M_PI*std::pow(HVec[0],2)*std::atan(std::sqrt((std::pow(HVec[0],2)+std::pow(HVec[1],2)))/A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2),3/2);
-        term3_nominator = 2*Ps_*std::pow(HVec[0],2);
-        term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2))/(std::pow(A_,2)))+1);
-        chi[0][0] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
-
-        term1_nominator =  2*HVec[0]*Ps_*HVec[1];
-        term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2))/(std::pow(A_,2)))+1);
-        term2_nominator = 2*HVec[0]*M_PI*HVec[1]*std::atan((std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)))/A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2),3/2);
-        chi[1][0] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        //chi[1][0] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
-        chi[0][1] = chi[1][0];
-
-
-        term1_nominator =  2*Ps_*std::atan((std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)))/A_);
-        term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2));
-        term2_nominator = 2*M_PI*std::pow(HVec[1],2)*std::atan(std::sqrt((std::pow(HVec[0],2)+std::pow(HVec[1],2)))/A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2),3/2);
-        term3_nominator = 2*Ps_*std::pow(HVec[1],2);
-        term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2))/(std::pow(A_,2)))+1);
-        chi[1][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
-
-        mu[0][0] = mu0*(chi[0][0] + 1);
-        mu[1][0] = mu0*(chi[1][0] + 0);
-        mu[0][1] = mu0*(chi[0][1] + 0);
-        mu[1][1] = mu0*(chi[1][1] + 1);
+        for (int i = 0; i < dim_; ++i){
+          for (int j = 0; j < dim_; ++j){
+              identity[i][j] = (i == j) ? 1 : 0;
+              T2[i][j] = HVec[i]*HVec[j];
+              chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
+              if (std::isnan(chi[i][j])){
+                chi[i][j] = 0;
+              }
+              mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
+          }
+        }
       }else{ // 3D case (x,y,z)
-        //EXCEPTION("NO 3D!!!")
-        // dMx/dHx
-        term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2));
-        term2_nominator = 2*M_PI*std::pow(HVec[0],2)*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
-        term3_nominator = 2*Ps_*std::pow(HVec[0],2);
-        term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        chi[0][0] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
-        // dMx/dHy
-        term1_nominator =  2*HVec[0]*Ps_*HVec[1];
-        term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        term2_nominator = 2*HVec[0]*M_PI*HVec[1]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
-        chi[0][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        chi[0][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
-        // dMx/dHz
-        term1_nominator =  2*HVec[0]*Ps_*HVec[2];
-        term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        term2_nominator = 2*HVec[0]*M_PI*HVec[2]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
-        chi[0][2] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        chi[0][2] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
+        HVec[0] = (HVec[0] == 0) ? 1e-12 : HVec[0];
+        HVec[1] = (HVec[1] == 0) ? 1e-12 : HVec[1];
+        HVec[2] = (HVec[2] == 0) ? 1e-12 : HVec[2];
+        t0 = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2]);
+        t1 = t0/A_;
+        t3 = std::atan(t1);
+        factor1 = (2*Ps_/(t1*t1+1))/(M_PI*t0*t0*A_);
+        factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
+        factor3 = (2*Ps_*t3)/(M_PI*t0);
 
-        // dMy/dHy
-        term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2));
-        term2_nominator = 2*M_PI*std::pow(HVec[1],2)*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
-        term3_nominator = 2*Ps_*std::pow(HVec[1],2);
-        term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        chi[1][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
-
-        // dMy/dHz
-        term1_nominator =  2*HVec[1]*Ps_*HVec[2];
-        term1_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        term2_nominator = 2*HVec[1]*M_PI*HVec[2]*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2))+std::pow(HVec[2],2),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
-        chi[2][1] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator);
-        chi[2][1] = 0; // for all other methods we set the off diagonals also to zero, so why not here as well?
-
-        // dMz/dHz
-        term1_nominator =  2*Ps_*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term1_denominator = M_PI*std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2));
-        term2_nominator = 2*M_PI*std::pow(HVec[2],2)*std::atan2(std::sqrt(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2)),A_);
-        term2_denominator = M_PI*std::pow(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2),3/2);
-        term3_nominator = 2*Ps_*std::pow(HVec[2],2);
-        term3_denominator = M_PI*A_*(std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))*(((std::pow(HVec[0],2)+std::pow(HVec[1],2)+std::pow(HVec[2],2))/(std::pow(A_,2)))+1);
-        chi[2][2] = (term1_nominator / term1_denominator) - (term2_nominator / term2_denominator) + (term3_nominator / term3_denominator);
-
-        // due to symmetric dM/dH tensor:
-        chi[1][0] = chi[0][1];
-        chi[2][0] = chi[0][2];
-        chi[2][1] = chi[1][2];
-
-        mu[0][0] = mu0*(chi[0][0] + 1);
-        mu[0][1] = mu0*(chi[0][1] + 0);
-        mu[0][2] = mu0*(chi[0][2] + 0);
-        mu[1][0] = mu0*(chi[1][0] + 0);
-        mu[1][1] = mu0*(chi[1][1] + 1);
-        mu[1][2] = mu0*(chi[1][2] + 0);
-        mu[2][0] = mu0*(chi[2][0] + 0);
-        mu[2][1] = mu0*(chi[2][1] + 0);
-        mu[2][2] = mu0*(chi[2][2] + 1);
+        for (int i = 0; i < dim_; ++i){
+          for (int j = 0; j < dim_; ++j){
+              identity[i][j] = (i == j) ? 1 : 0;
+              T2[i][j] = HVec[i]*HVec[j];
+              chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
+              if (std::isnan(chi[i][j])){
+                chi[i][j] = 0;
+              }
+              mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
+          }
+        }
       } 
+        /* if (idx == 1){
+          std::cout << "Hx: " << HVec[0] << ", Hy: " << HVec[1] << ", Hz: " << HVec[2] << std::endl;
+          std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
+          std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
+          std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
+        } */
       return mu;
     }
 
@@ -353,7 +303,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       Matrix<Double> mu;
       mu.Resize(dim_,dim_);
 
-      Double h = 1*10^(-4);
+      Double h = 1*10^(-7);
       Vector<Double> eh_x(dim_);
       Vector<Double> eh_y(dim_);
       Vector<Double> eh_z(dim_);
@@ -407,15 +357,18 @@ DEFINE_LOG(eb, "EBHysteresis")
             B_incy[i] = mu_0 * (H_incy[i] + M_incy[i]);
             B_incz[i] = mu_0 * (H_incz[i] + M_incz[i]);
           }
-          // calculate the mu tesnor (dB/dH) for every entry
+          // calculate the mu tensor (dB/dH) for every entry
           mu[0][0] = (B_incx[0] - B_k[0]) / h; mu[0][1] = 0;                        mu[0][2] = 0;
           mu[1][0] = 0;                        mu[1][1] = (B_incy[1] - B_k[1]) / h; mu[1][2] = 0;
           mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
 
       } 
-/*       if (idx == 32){
-        printf("mu_FD = %f\n",mu[0][0]);
-      }   */
+        if (idx == 1){
+          std::cout << "FDHx: " << HVec[0] << ", FDHy: " << HVec[1] << ", FDHz: " << HVec[2] << std::endl;
+          std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
+          std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
+          std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
+        }
       return mu;
     }
 
@@ -892,7 +845,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         StdVector<Double>& MzS_prev = MzS_n_[idx];
 
 
-        for(int k = 0; k < numS_; k++){
+        /* for(int k = 0; k < numS_; k++){
           HrxS_prev = HxS_prev[k];
           HryS_prev = HyS_prev[k];
           HrzS_prev = HzS_prev[k];
@@ -946,6 +899,23 @@ DEFINE_LOG(eb, "EBHysteresis")
           MxS_n_tmp_[idx] = MxS_sol;
           MyS_n_tmp_[idx] = MyS_sol;
           MzS_n_tmp_[idx] = MzS_sol;
+        } */
+        Px = 0.0;
+        Py = 0.0;
+        Pz = 0.0;
+        Double normH;
+        normH = std::sqrt(Hn[0]*Hn[0] + Hn[1]*Hn[1] + Hn[2]*Hn[2]);
+        Px = (2.0*Ps_/M_PI)*std::atan(normH/A_) * Hn[0]/normH;
+        Py = (2.0*Ps_/M_PI)*std::atan(normH/A_) * Hn[1]/normH;
+        Pz = (2.0*Ps_/M_PI)*std::atan(normH/A_) * Hn[2]/normH;
+        if (std::isnan(Px)){
+          Px = 0;
+        }
+        if (std::isnan(Py)){
+          Py = 0;
+        }
+        if (std::isnan(Pz)){
+          Pz = 0;
         }
         ret.Push_back(Px);
         ret.Push_back(Py);
@@ -954,5 +924,3 @@ DEFINE_LOG(eb, "EBHysteresis")
     return ret; 
     }
   }
-
-
