@@ -11,6 +11,8 @@ include(ExternalProject)
 ###link_directories(${GLOBAL_OUTPUT_PATH}) # Where else to put!?
 ###file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/external/NIHU/)
 
+set(NIHU_SRC_DIR ${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu/src)
+
 include(ExternalProject)
 
 ExternalProject_Add(
@@ -29,7 +31,10 @@ ExternalProject_Add(
 
   # Here we could utilize an alias e.g.
   # CMAKE_ARGS -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
-  CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu/src
+  # CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu/src
+  #            -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
+  #            -DNIHU_EIGEN_INSTALL=1
+  CMAKE_ARGS -H${NIHU_SRC_DIR}
              -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
              -DNIHU_EIGEN_INSTALL=1
 )
