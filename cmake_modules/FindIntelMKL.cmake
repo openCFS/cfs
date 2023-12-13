@@ -55,7 +55,8 @@ if(MSVC) # this is also icx in Windows!
       "e:/dev/intel/MKL/composer_xe_2013"
       "e:/dev/intel/MKL/10.0.5.025"
       "$ENV{MKLROOT}"
-      "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2019.4.228/windows/mkl" )
+      "C:/Program Files (x86)/IntelSWTools/compilers_and_libraries_2019.4.228/windows/mkl"
+      "C:/Program Files (x86)/Intel/oneAPI/mkl/latest" )
 
     find_file(MKL_H
       "include/mkl.h"
@@ -81,11 +82,17 @@ if(MSVC) # this is also icx in Windows!
   MKL_VERSION_FROM_HEADER()
   set(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include" CACHE PATH "mkl include dir")
   
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
-    set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_win" CACHE PATH "here we assume the mkl libs")
+  if(MKL_MAJOR_VERSION VERSION_GREATER_EQUAL 2024)
+    set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib" CACHE PATH "here we assume the mkl libs")
   else()
-    set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64" CACHE PATH "here we assume the mkl libs")
+    # this should depend on the MKL installation, not on CXX compiler
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
+      set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64_win" CACHE PATH "here we assume the mkl libs")
+    else()
+     set(MKL_LIB_DIR "${MKL_ROOT_DIR}/lib/intel64" CACHE PATH "here we assume the mkl libs")
+    endif()
   endif()
+
   assert_dir_exists(${MKL_LIB_DIR})
   set(MKL_ROOT_DIR ${MKL_ROOT_DIR} CACHE PATH "Directory of MKL.")
 
@@ -120,11 +127,15 @@ if(MSVC) # this is also icx in Windows!
   # Copy MKL redistributable dlls to bin/ directory
   
   # redistributable directory
-  if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
-    set(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
+  if(MKL_MAJOR_VERSION VERSION_LESS 2024)
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_LESS_EQUAL 19.1)
+      set(MKL_REDIST_DIR "${MKL_ROOT_DIR}/../redist/intel64/mkl/")
+    else()
+      # C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\redist\intel64_win\compiler>
+      set(MKL_REDIST_DIR "${MKL_ROOT_DIR}/redist/intel64/")
+    endif()
   else()
-    # C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\redist\intel64_win\compiler>
-    set(MKL_REDIST_DIR "${MKL_ROOT_DIR}/redist/intel64/")
+    set(MKL_REDIST_DIR "${MKL_ROOT_DIR}/lib/")
   endif()
   assert_dir_exists(${MKL_REDIST_DIR})
 

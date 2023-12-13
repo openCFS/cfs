@@ -135,7 +135,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel") # ifort and ifx
 
   # An alternative would be to use CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES to find relevant libs, 
   # use find_library on the libs of interest, use get_filename_component() to get the path, and then possibly 
-  # create the static and dynamic variant  
+  # create the static and dynamic variant
 
   # compiler_dir: 
   # ifx: C:\Program Files (x86)\Intel\oneAPI\compiler\latest\windows\bin
@@ -180,7 +180,11 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel") # ifort and ifx
       list(APPEND INTEL_DLLS libifcoremdd.dll libmmdd.dll)
     endif()
   
-    set(INTEL_REDIST_DIR "${INTEL_BASE}/redist/intel64_win/compiler") 
+    if(INTEL_COMPILER_DIR MATCHES "2024.0" OR CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 2024) # new oneAPI Unified Directory Layout (even with old ifort 2021)
+      set(INTEL_REDIST_DIR "${INTEL_COMPILER_DIR}")
+    else() # probalby old directory structure
+      set(INTEL_REDIST_DIR "${INTEL_BASE}/redist/intel64_win/compiler")
+    endif()
     
     # Windows requires the libs in bin
     message(STATUS "Copying Intel redistributable files from ${INTEL_REDIST_DIR} to ${CFS_BINARY_DIR}/bin")
