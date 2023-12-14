@@ -139,7 +139,7 @@ namespace CoupledField
         assemble_->AssembleLinRHS();
         assemble_->AssembleNonLinRHS();
         algsys_->GetRHSVal( actRHS );
-        residualErr = actRHS.NormL2();//*actRHS.NormL2();
+        residualErr = actRHS.NormL2();
         residualErr = residualErr*residualErr;
 
 

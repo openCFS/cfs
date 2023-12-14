@@ -208,10 +208,26 @@ DEFINE_LOG(eb, "EBHysteresis")
       if(hasElemSolution_[idx] == true){
         return mu_[idx];
       }
-
       Vector<Double> M;
       Vector<Double> M_dummy;
       Matrix<Double> mu(dim_,dim_); mu.InitValue(0.0);
+
+      // To obtain a good starting point for the quasi-Newton method in the first time step
+      // and first Newton iteration the Jacobian is approximated by forward finite differences
+      //if(timeStep_== 1 && globalIter_ == 1){
+      if(globalIter_ == 1){
+        Vector<Double> M;
+        M = Evaluate(HVec, false, idx);
+        StdVector<Double> B_k(dim_);
+        for(UInt i = 0; i < dim_; i++){
+            B_k[i] = mu_0 * (HVec[i] + M[i]);
+        }
+        mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
+        mu_[idx] = mu;
+        hasElemSolution_[idx] = true;
+        return mu;
+      }
+
 
       M = Evaluate(HVec, false, idx);
 
@@ -233,13 +249,20 @@ DEFINE_LOG(eb, "EBHysteresis")
 
    
       if (numS_ > 1 ){ // hysteretic case
-        mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
+        //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
+        //mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+        //M_dummy = Evaluate(HVec, true, idx);
       } else { // nonlinear case (only anhysteresis)
-        mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
+        //mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
+        //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
+        //mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+        mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
       }
       mu_[idx] = mu;
+      M0_[idx] = M1_[idx];
+      H0_[idx] = H1_[idx];
 
-      M_dummy = Evaluate(HVec, true, idx);
+
 
       // mark this element as computed
       hasElemSolution_[idx] = true;
@@ -371,12 +394,12 @@ DEFINE_LOG(eb, "EBHysteresis")
           mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
 
       } 
-       /*  if (idx == 1){
-          std::cout << "FDHx: " << HVec[0] << ", FDHy: " << HVec[1] << ", FDHz: " << HVec[2] << std::endl;
-          std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-          std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-          std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-        } */
+      if (idx == 15){
+        std::cout << "FD" << std::endl;
+        std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
+        std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
+        std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
+      }
       return mu;
     }
 
@@ -577,12 +600,12 @@ DEFINE_LOG(eb, "EBHysteresis")
                     << "\n\t epsilon_km1 = " << mu_[idx].ToString()
                     << "\n\t A = " << A.ToString();
 
-        /* mu[0][1] = 0.0;
+        mu[0][1] = 0.0;
         mu[1][0] = 0.0;
         mu[2][0] = 0.0;
         mu[0][2] = 0.0;
         mu[1][2] = 0.0;
-        mu[2][1] = 0.0; */
+        mu[2][1] = 0.0;
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
               Matrix<Double> e = mu_[idx];
@@ -676,9 +699,12 @@ DEFINE_LOG(eb, "EBHysteresis")
         }
       }
       //################### just for checking some things #################
-      if (idx == 15){
-        printf("mu_Broyden = %f\n",mu[0][0]);
-      }
+        if (idx == 15){
+          std::cout << "Broyden" << std::endl;
+          std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
+          std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
+          std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
+        }
       //############### delete as soon as it works #######################
       return mu;
       
