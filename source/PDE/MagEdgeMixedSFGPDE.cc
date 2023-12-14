@@ -288,9 +288,9 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
       potInfo->unit = "A/m";
       potInfo->definedOn = ResultInfo::ELEMENT;
       potInfo->entryType = ResultInfo::VECTOR;
-
       feFunctions_[MAG_FIELD_INTENSITY]->SetResultInfo(potInfo);
       DefineFieldResult( feFunctions_[MAG_FIELD_INTENSITY], potInfo );
+      hdbcSolNameMap_[MAG_FIELD_INTENSITY] = "fluxParallel";
 
 
       // === LAGRANGE MULTIPLIER ===
@@ -309,7 +309,7 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
       // -----------------------------------
       //  Define xml-names of Dirichlet BCs
       // -----------------------------------
-      hdbcSolNameMap_[LAGRANGE_MULT] = "fluxparallel";
+      hdbcSolNameMap_[LAGRANGE_MULT] = "fluxParallel";
 
   }
 
