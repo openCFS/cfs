@@ -76,30 +76,30 @@ class Global:
     self.base_tensor = np.zeros((3,6,6))
     # transversely isotropic default base tensor
     # CFRP with fibers in 2-direction
-    self.base_tensor[2,0,0] = 3423.1
-    self.base_tensor[2,1,1] = 3423.1
-    self.base_tensor[2,2,2] = 68835
+    self.base_tensor[2,0,0] = 6050.80614923135
+    self.base_tensor[2,1,1] = 6050.80614923135
+    self.base_tensor[2,2,2] = 66535.43307086615
     self.base_tensor[2,3,3] = 2200.0
     self.base_tensor[2,4,4] = 2200.0
-    self.base_tensor[2,5,5] = 1153.85
-    self.base_tensor[2,0,1] = 1115.45
-    self.base_tensor[2,1,0] = 1115.45
-    self.base_tensor[2,0,2] = 2950.1
-    self.base_tensor[2,2,0] = 2950.1
-    self.base_tensor[2,1,2] = 2950.1
-    self.base_tensor[2,2,1] = 2950.1
-    self.base_tensor[0,0,0] = 68835
-    self.base_tensor[0,1,1] = 3423.1
-    self.base_tensor[0,2,2] = 3423.1
-    self.base_tensor[0,3,3] = 1153.85
+    self.base_tensor[2,5,5] = 1785.71428571429
+    self.base_tensor[2,0,1] = 2479.37757780277
+    self.base_tensor[2,1,0] = 2479.37757780277
+    self.base_tensor[2,0,2] = 2559.05511811024
+    self.base_tensor[2,2,0] = 2559.05511811024
+    self.base_tensor[2,1,2] = 2559.05511811024
+    self.base_tensor[2,2,1] = 2559.05511811024
+    self.base_tensor[0,0,0] = 66535.43307086615
+    self.base_tensor[0,1,1] = 6050.80614923135
+    self.base_tensor[0,2,2] = 6050.80614923135
+    self.base_tensor[0,3,3] = 1785.71428571429
     self.base_tensor[0,4,4] = 2200.0
     self.base_tensor[0,5,5] = 2200.0
-    self.base_tensor[0,0,1] = 2950.1
-    self.base_tensor[0,1,0] = 2950.1
-    self.base_tensor[0,0,2] = 2950.1
-    self.base_tensor[0,2,0] = 2950.1
-    self.base_tensor[0,1,2] = 1115.45
-    self.base_tensor[0,2,1] = 1115.45
+    self.base_tensor[0,0,1] = 2559.05511811024
+    self.base_tensor[0,1,0] = 2559.05511811024
+    self.base_tensor[0,0,2] = 2559.05511811024
+    self.base_tensor[0,2,0] = 2559.05511811024
+    self.base_tensor[0,1,2] = 2479.37757780277
+    self.base_tensor[0,2,1] = 2479.37757780277
     #print('base_tensor_x:\n', self.base_tensor[0])
     #print('base_tensor_z:\n', self.base_tensor[2])
 
