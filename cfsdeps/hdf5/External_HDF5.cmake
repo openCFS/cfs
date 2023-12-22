@@ -90,3 +90,6 @@ endif()
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
+
+# hdf5 depends on zlib
+add_dependencies(hdf5 zlib)
