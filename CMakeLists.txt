@@ -371,12 +371,15 @@ endif(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
 if(NOT PIPELINE_TEST_STAGE_CONFIG)
 
 # add packing and build test
-#  - probably won't work for WIN or Mac
 #  - only used in CI pipeline
 if(DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
   include(CTest)
   # Create distributable binary via cpack running ctest, alternatively use create_binary_archive.py
-  add_test(Pipeline_Build_cpack-Linux-TGZ cpack -G TGZ --verbose)
+  if(UNIX) # pack to a tar.gz archive
+    add_test(Pipeline_Build_cpack-TGZ cpack -G TGZ --verbose)
+  else() # probably windows, we do zip
+    add_test(Pipeline_Build_cpack-ZIP cpack -G ZIP --verbose)
+  endif()
   # Use an additional test during the build stage to grep the compiler errors
   add_test(Pipeline_Build_check-compiler-errors grep "0 Compiler errors" build.log)
   enable_testing()
