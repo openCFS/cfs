@@ -135,11 +135,20 @@ macro(set_standard_variables)
   set(DEPS_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}")
   set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 
-  # the clean-<package> target deletes everything to allow a clean make <package>
+  # the clean-<package> target deletes the precompiled package, local cfsdeps and the lib.
+  # to allow a clean make <package>, however, it does not remove 
+  # the cached <package>_LIBRARY and <package>_INCLUDE_DIR which cannot be overwritten. 
+  # For this use overwrite-<package>  
   add_custom_target(clean-${PACKAGE_NAME} cmake -E remove_directory ${DEPS_PREFIX}
      COMMAND cmake -E remove ${PRECOMPILED_PCKG_FILE}
      COMMAND cmake -E remove ${PACKAGE_LIBRARY}
      COMMENT "delete cfsdeps/${PACKAGE_NAME}, the lib and precompiled")
+     
+  # deletes <package>_LIBRARY and <package>_INCLUDE_DIR, 
+  # note that this will directly trigger setting it with new values as it calls cmake!
+  # you might usually also want to call the clean-<package> target   
+  add_custom_target(overwrite-${PACKAGE_NAME} cmake . -U ${_UPPER_PACKAGE_NAME}_LIBRARY -U ${_UPPER_PACKAGE_NAME}_INCLUDE_DIR
+     COMMENT "delete cached ${PACKAGE_NAME}_LIBRARY and _INCLUDE_DIR")
 endmacro()
 
 

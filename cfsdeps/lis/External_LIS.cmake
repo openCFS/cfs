@@ -42,6 +42,10 @@ endif()
 set_configure_default()
 if(USE_OPENMP) # don't combine with setting DEPS_ID - mixes up order of called macros.
   list(APPEND DEPS_CONFIGURE --enable-omp=yes)
+  if(APPLE)
+    assert_set(OpenMP_LIBDIR) # compiler.cmake, no system path on homebrew >= Oct 2022
+    list(APPEND DEPS_CONFIGURE_ENV LDFLAGS=-L${OpenMP_LIBDIR} CPPFLAGS=-I${OpenMP_C_INCLUDE_DIR})
+  endif()
 else()
   list(APPEND DEPS_CONFIGURE --enable-omp=no)
 endif()
