@@ -33,7 +33,22 @@ endif()
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
 # as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
+if("$ENV{CI_JOB_STAGE}" MATCHES "test(_extra)?")
+  message(STATUS "detected running in CI pipeline 'test' or 'test_extra' stage via environment variable CI_JOB_STAGE=$ENV{CI_JOB_STAGE}")
+  # just some debug/info output
+  if(DEFINED PIPELINE_TEST_STAGE_CONFIG) # check if the variable is already set
+    message(WARNING "PIPELINE_TEST_STAGE_CONFIG does not need to be set any more, we use environment variables to do it automatically")
+    if(PIPELINE_TEST_STAGE_CONFIG)
+      message(STATUS "variable PIPELINE_TEST_STAGE_CONFIG set to ON in the test-stage")
+    else()
+      message(WARNING "why is PIPELINE_TEST_STAGE_CONFIG=OFF in the test stage? maybe the closed build")
+    endif()
+  else() # set the variable to get easy if statements
+    set(PIPELINE_TEST_STAGE_CONFIG ON)  
+  endif()  
+endif()
 if(PIPELINE_TEST_STAGE_CONFIG)
+  message(STATUS "No compiler check due to PIPELINE_TEST_STAGE_CONFIG variable (=${PIPELINE_TEST_STAGE_CONFIG})")
   if(NOT DEFINED ENV{CI_SERVER}) # only issue a warning if we're not on a CI server
     message(WARNING "No compiler check - this should only occur in the testing stage of the gitlab pipeline")
   endif()
@@ -350,29 +365,14 @@ if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
   # set a build name
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" CACHE STRING "Name of build on the dashboard")
   mark_as_advanced(BUILDNAME)
-  if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
-    # get the build host
-    execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
-                    COMMAND grep CFS_BUILD_HOST
-                    COMMAND awk "{print $2}"
-                    RESULT_VARIABLE var
-                    OUTPUT_VARIABLE ORIGINAL_BUILD_HOST)
-    string(STRIP "${ORIGINAL_BUILD_HOST}" ORIGINAL_BUILD_HOST) # important for comparison !
-    #message("CFS_BUILD_HOST='${CFS_BUILD_HOST}' ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
-    if(NOT (CFS_BUILD_HOST STREQUAL "${ORIGINAL_BUILD_HOST}") )
-      # extract the short name (first 2 domain name components)
-      string(REGEX MATCH "[^.]+([.][^.]+)?" ORIGINAL_BUILD_HOST "${ORIGINAL_BUILD_HOST}")
-      message("current build host CFS_BUILD_HOST='${CFS_BUILD_HOST}'")
-      message("build host where the binary is from ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
-    endif()
-  endif(GITLAB_TEST_TAG)
   enable_testing()
 endif(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
 if(NOT PIPELINE_TEST_STAGE_CONFIG)
 
 # add packing and build test
 #  - only used in CI pipeline
-if(DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
+if(DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS} OR "$ENV{CI_JOB_STAGE}" MATCHES "build")
+  message(STATUS "running in CI pipeline 'build' stage detected -> creating build and pack tests")
   include(CTest)
   # Create distributable binary via cpack running ctest, alternatively use create_binary_archive.py
   if(UNIX) # pack to a tar.gz archive

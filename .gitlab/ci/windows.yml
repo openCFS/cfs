@@ -1,0 +1,194 @@
+# templates for windows jobs
+
+.windows-shared_tags: &windows-shared_tags
+  tags:
+  - shared-windows
+  - windows
+  - windows-1809
+
+# define when cfsdeps need to be rebuilt based on changes
+.require-cfsdeps-rebuild-changes: &require-cfsdeps-rebuild-changes
+  # changes that require the cfsdeps to be re-built
+  # currently only used for windows
+  changes:
+    - "cfsdeps/**/*"
+    - "cmake_modules/FindCFSDEPS.cmake"
+    - ".gitlab/ci/install_windows.bat"
+    - ".gitlab/ci/windows-shared-runner_install-build-tools.ps1"
+    - ".gitlab/ci/windows.yml"
+# here are the rules for cfsdeps
+.cfsdeps_rebuild_rules: &cfsdeps_rebuild_rules
+  rules:
+    # set to manual if the merge request title start with Draft:
+    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/'
+      when: manual
+      allow_failure: false
+    # activate builds in schedule (nightly builds)
+    # here changes will always evalute to true, thus the cache will be populated regularly
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      <<: *require-cfsdeps-rebuild-changes
+    # when the commit message contains "cfsdeps" rebuild them
+    - if: '$CI_COMMIT_MESSAGE =~ /cfsdeps/'
+    # this job should match and ensure we build
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      <<: *require-cfsdeps-rebuild-changes
+
+.windwos_output_cdash_links:
+  script:
+    - cat "Testing/*/Done.xml" # debug
+    - $BUILD_ID=(Select-Xml -Path "Testing/*/Done.xml" -XPath "//buildId" | Select-Object -ExpandProperty Node)."#text"
+    - echo "$BUILD_ID" # debug
+    - echo "Build on CDash - http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=$BUILD_ID"
+    - echo "Tests on CDash - http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=$BUILD_ID"
+ 
+ # headers for collapsible sections, see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
+.powershell-debug-start_collapsed:
+  script: &powershell-debug-start_collapsed
+    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output[collapsed=true]$([char]13)$([char]27)[0KDebug Information (klick to expand)"
+.powershell-debug-end:
+  script: &powershell-debug-end
+    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output$([char]13)$([char]27)[0K"
+
+.windows-shared-build:
+  <<: *windows-shared_tags
+  variables:
+    INTEL_INSTALL_DIR: $CI_PROJECT_DIR\cache\oneAPI
+    FC: ifort
+    #CI_DEBUG_TRACE: "true"
+    GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
+    CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+    # define config by variable # cfsdat leads to build error on Windows?
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON"
+    # set the default cache policy (for build jobs) to pull
+    # see https://docs.gitlab.com/ee/ci/caching/index.html#use-a-variable-to-control-a-jobs-cache-policy
+    INSTALL_POLICY: pull
+    CFSDEPS_SOURCES_POLICY: pull
+    CFSDEPS_PRECOMPILED_POLICY: pull
+    #BUILD_COMMAND: $CI_PROJECT_DIR\.gitlab\ci\dashboard-build.bat
+  # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
+  # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
+  # setvars.bat scripts might not work. The remedy is to install to the default location.
+  # This is done by https://gitlab.com/mmzakhar/oneapi-ci/ where most of the scripts come from.
+  # We install to INTEL_INSTALL_DIR since GitLab CI cannot cache files outside the build directory.
+  cache:
+    - key:
+        prefix: windows-shared-install
+        files:
+        - .gitlab/ci/windows-shared-runner_install-build-tools.ps1
+        - .gitlab/ci/install_windows.bat
+      paths:
+        - cache
+      policy: $INSTALL_POLICY
+    - key: cfsdeps-sources
+      paths:
+        - build/cfsdeps/cache/sources
+      policy: $CFSDEPS_SOURCES_POLICY
+    - key: cfsdeps-precombiled-windows
+      paths:
+        - build/cfsdeps/cache/precompiled
+      policy: $CFSDEPS_PRECOMPILED_POLICY
+  before_script:
+    # install the tools to cache
+    - if(!(Test-Path cache)) { .gitlab/ci/windows-shared-runner_install-build-tools.ps1 } else { ls cache }
+    # debug
+    - if((Test-Path build)) { ls build }
+    # set git path for tools like patch and diff
+    - $env:Path += ";${pwd}/cache/git/usr/bin"
+    # info about free space (debug)
+    - Get-Volume
+  script:
+    # Create a build directory (might be there already due to cache)
+    - New-Item -ItemType Directory -Force -Path build -ErrorAction SilentlyContinue
+    # Go into build
+    - cd build
+    - echo "$BUILD_COMMAND" # debug
+    # Now do the configure and build using a repo-based batch-script
+    # from https://gitlab.com/guided-explorations/microsoft/windows/call-cmd-from-powershell
+    - |
+      write-host "Shared runners default to PowerShell, we run cmd ..."
+      CMD.EXE /C "$CI_PROJECT_DIR\.gitlab\ci\windows-shared-runner_build.bat"
+      if ($LastExitCode -ne 0) {
+        exit $LastExitCode
+      }
+  after_script:
+    # debug
+    - *powershell-debug-start_collapsed
+    - Get-Volume # info about free space
+    - if((Test-Path cache)) { ls cache }
+    - if((Test-Path build)) { ls build }
+    - if((Test-Path build/cfsdeps/cache/precompiled )) { ls build/cfsdeps/cache/precompiled }
+    - *powershell-debug-end
+    # save build-id and output CDash links - will fail if no dashboard has been started, therefore put it last
+    - cd build
+    - !reference [.windwos_output_cdash_links, script]
+
+### TESTS ###
+
+.windows-shared-test:
+  <<: *windows-shared_tags
+  variables:
+    # Override already defined variable to get submodules
+    # see https://docs.gitlab.com/ee/ci/yaml/yaml_optimization.html#merge-details for merge-details with 'extends'
+    GIT_SUBMODULE_STRATEGY: recursive
+  # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
+  # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
+  # setvars.bat scripts might not work. The remedy is to install to the default location.
+  # This is done by https://gitlab.com/mmzakhar/oneapi-ci/ where most of the scripts come from.
+  before_script:
+    # info about free space (debug)
+    - Get-Volume
+    - ls Testsuite # check if Testsuite has been properly cloned (debug)
+    # Create a build directory (might be there already due to cache)
+    - New-Item -ItemType Directory -Force -Path build -ErrorAction SilentlyContinue
+    # Go into build
+    - cd build
+    - ls # debug
+    # extract CFS
+    - cmake -E tar xvf "CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract
+    - mv CFS-$CI_COMMIT_SHA-win64/* .
+    # clean up to save space
+    - rm "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
+    # obtain the build config
+    - ./bin/cfs --dependencies config.cmake
+  # the script section is defined below: unding variables as command arguments is not working well
+  after_script:
+    - *powershell-debug-start_collapsed
+    - Get-Volume
+    - if((Test-Path cache)) { ls cache }
+    - if((Test-Path build)) { ls build }
+    - *powershell-debug-end
+    - cd build
+    # submit the result (also on fail)
+    - ctest -D ExperimentalSubmit --track $CDASH_TRACK
+    # save build-id and output CDash links, shold be easily visible (put it last)
+    - !reference [.windwos_output_cdash_links, script]
+  coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
+  # artifacts for debugging
+  artifacts:
+    # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
+    reports:
+      junit: build/ctest-junit.xml
+    when: always
+
+.script_windows-test_config-dashboard: &script_windows-test_config-dashboard
+    # debug output
+    - echo "TEST_CONFIG_OPTIONS=$TEST_CONFIG_OPTIONS"
+    # configure first
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE="$env:CI_PROJECT_DIR\build\config.cmake" -DTESTSUITE_DIR="$env:CI_PROJECT_DIR\Testsuite" -DTESTSUITE_PYTHON=OFF -DTESTSUITE_INFO_XML=OFF $env:TEST_CONFIG_OPTIONS ..
+    # now start dashboard
+    - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    # tests will be included by the specific templates below
+.windows-test_stable:
+  script:
+    - *script_windows-test_config-dashboard
+    - ctest -D ExperimentalTest -LE "unstable|broken" --track $CDASH_TRACK --output-junit ctest-junit.xml
+.windows-test_unstable:
+  script:
+    - *script_windows-test_config-dashboard
+    - ctest -D ExperimentalTest -L "unstable" --track $CDASH_TRACK --output-junit ctest-junit.xml
+.windows-test_broken:
+  script:
+    - *script_windows-test_config-dashboard
+    - ctest -D ExperimentalTest -L "broken" --track $CDASH_TRACK --output-junit ctest-junit.xml

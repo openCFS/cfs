@@ -5,6 +5,10 @@
 # * check on https://cfs-dev.mdmt.tuwien.ac.at/ci/lint
 # * do not use a command `echo "warning: the : is not allowed in a string"`
 
+# include common stuff to make this file shorter
+include:
+  - local: .gitlab/ci/windows.yml
+
 # short manual section about tags (define which jobs can be run by which runners):
 # - docker: runners using docker, all is defined by the image, no other tags required (python, linux, ...)
 # - linux: generic linux
@@ -13,7 +17,7 @@
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
-  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_STRATEGY: recursive # by default clone the testsuite, switch to 'none' to save time if not required
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   # build options for the maximal config
   MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON"
@@ -65,6 +69,7 @@ testsuite-revision:
   variables:
     # we clone to make sure we have everything (including current names of the SHAs)
     GIT_STRATEGY: clone
+    GIT_SUBMODULE_STRATEGY: recursive
   rules:
     # only run the job for merge requests if there are changes in the Testsuite submodule
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
@@ -151,6 +156,7 @@ runner-debug:
     - echo $CI_RUNNER_ID
     - echo $CI_RUNNER_SHORT_TOKEN
     - echo $CI_PROJECT_NAMESPACE
+    - echo $CI_PROJECT_DIR
     - echo $CI_PIPELINE_URL
     - echo $CI_PAGES_URL
     - echo $CI_MERGE_REQUEST_IID
@@ -485,6 +491,33 @@ cfsdeps:intel:
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
+cfsdeps:MSVC2019-Ifort2021:
+  extends: .windows-shared-build
+  stage: cfsdeps
+  rules:
+    - !reference [.cfsdeps_rebuild_rules,rules]
+    # disable the build job because it is optional (regular jobs can build cfsdeps)
+    - when: never
+  variables:
+    # set the cache policy to pull-push to update the cache
+    INSTALL_POLICY: pull-push
+    CFSDEPS_SOURCES_POLICY: pull-push
+    CFSDEPS_PRECOMPILED_POLICY: pull-push
+    # define the build command
+    BUILD_COMMAND: "cmake --build . --target cfsdeps"
+  after_script:
+    # just debug
+    - !reference [.powershell-debug-start_collapsed,script]
+    - ls build/cfsdeps/cache/precompiled
+    - !reference [.powershell-debug-end,script]
+  artifacts:
+    when: on_success
+    paths:
+      - build/cfsdeps/cache/precompiled/*.zip
+    expire_in: 2 days
+  # Set empty needs so that the jobs start immediately (not per stage)
+  needs: []
+
 #######################################################################
 # BUILD STAGE definitions
 #######################################################################
@@ -504,7 +537,6 @@ cfsdeps:intel:
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
-    CI_PIPELINE_USE_BUILDTESTS: "ON" # we define this variable to include additional build tests
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"
@@ -612,6 +644,7 @@ cfsdeps:intel:
 #######################################################################
 # BUILD STAGE
 #######################################################################
+
 
 # maximal build using as many options as possible
 linux:gcc7max-debug:
@@ -753,6 +786,36 @@ linux:gcc12:ninja:
   <<: *cache_cfsdeps
   needs: ["cfsdeps:gcc12"]
 
+# windows build
+windows:MSVC2019-Ifort2021:
+  extends: .windows-shared-build
+  stage: build
+  <<: *release_build_rules
+  variables:
+    # see https://yaml-multiline.info/ for multiline info
+    BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
+                    ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
+                    ctest -D ExperimentalConfigure --track $CDASH_TRACK -V &&
+                    ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
+                    ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.log &&
+                    ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
+                    ctest -D ExperimentalTest --track $CDASH_TRACK -V"
+  script:
+    # inherit the standard script, then extend by mv command
+    - !reference [.windows-shared-build, script]
+    # rename packaged file to branch-based name
+    - mv "CFS-$CI_COMMIT_SHA-win64.zip" "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
+  artifacts:
+    when: on_success
+    paths:
+      - build/CFS-*-Windows.zip
+    expire_in: 1 days
+  needs:
+    # set the needs to 'optional' since the cfsdeps job might not be present
+    - job: cfsdeps:MSVC2019-Ifort2021
+      optional: true
+
+
 #######################################################################
 # TEST STAGE
 #######################################################################
@@ -783,7 +846,7 @@ linux:gcc12:ninja:
     - *cmake_test_or_install
     # CDash submit
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    # save buidid
+    # save buildid
     - *save_cdash_buildid
     # create JUnit output from cdash data
     - ../share/python/cdash2junit.py $BUILD_ID # run conversion/augmentation script
@@ -851,8 +914,6 @@ linux:gcc12:ninja:
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -LE "unstable|slow" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
-
-
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -924,24 +985,24 @@ stable_par:gcc7closed:linux:
   tags:
     - docker
   variables:
-    CI_PIPELINE_USE_BUILDTESTS: "ON" # we define this variable to include additional build tests
     BUILD_NAME: "GCC7 closed / stable opt parallel"
     # embedded_python is not closed but technically not that easy deployable
     CFS_CONFIG_OPTIONS: "-DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_SUITESPARSE=ON -DBUILD_CFSDAT=OFF" 
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF -DPIPELINE_TEST_STAGE_CONFIG=OFF"
     CTEST_OPTIONS: "-LE unstable|broken -R Opt"
   # ensure closed build is tested only when the keys are set
   rules:
     - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
       when: never
     - !reference [.build_rules, rules]
-  <<: *gcc_before
-  <<: *cache_cfsdeps
+  <<: [*gcc_before,*cache_cfsdeps]
   script:
     ## BUILD STAGE
+    - echo "CFS_CONFIG_OPTIONS="$CFS_CONFIG_OPTIONS
+    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
+    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
     # configure once to have dashboard ready
-    - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DTESTSUITE_DIR="${CI_PROJECT_DIR}/Testsuite" -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ${TEST_CONFIG_OPTIONS} ..
     # start cdash dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     # update to current revision (gives link on CDash)
@@ -952,29 +1013,14 @@ stable_par:gcc7closed:linux:
     # build
     - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
-    # install test to create arifacts (first delete stuff to make space for packing)
+    # save some space by deleting stuff
     - df -h # debug
     - du -h --max-depth=1 . # debug
     - find cfsdeps/* -type d -not -wholename "*/cache" -not -wholename "*/cache/*" -prune -exec rm -rf {} + # delete cfsdeps (except cache)
     - find -name CMakeFiles -type d -exec rm -rf {} + # delete cmake directories
     - find -iregex ".*\(\([.]a\)\|\([.]hpp\)\)$" -delete # delete *.a and *.hpp files
     - du -h --max-depth=1 . # debug
-
-    ## TEST STAGE     
-    - ls # debug
-    # obtain the build config
-    - ./bin/cfs --dependencies config.cmake
-    # optionally install cmake if not present
-    - *cmake_test_or_install
-
-    # show variables for debug
-    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
-    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
-    # configure and run the testsuite
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
-    #- ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    #- ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
-    #- ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    # run the testsuite
     - ctest -D ExperimentalTest ${CTEST_OPTIONS} --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   after_script:
     - cd build
@@ -1052,6 +1098,41 @@ unstable_ser:intel:linux:
       - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
   needs:
     - linux:intel
+
+# windows tests
+stable_ser:MSVC2019-Ifort2021:windows:
+  extends: .windows-shared-test
+  stage: test
+  variables:
+    BUILD_NAME: MSVC2019-Ifort2021 / stable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+  script: 
+    - !reference [.windows-test_stable, script]
+  needs:
+    - windows:MSVC2019-Ifort2021
+
+stable_par:MSVC2019-Ifort2021:windows:
+  extends: .windows-shared-test
+  stage: test
+  variables:
+    BUILD_NAME: MSVC2019-Ifort2021 / stable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+  script: 
+    - !reference [.windows-test_stable, script]
+  when: manual # since OpenMP in MSVC does not work, parallel tests are not very useful
+  needs:
+    - windows:MSVC2019-Ifort2021
+
+unstable_ser:MSVC2019-Ifort2021:windows:
+  extends: .windows-shared-test
+  stage: test
+  variables:
+    BUILD_NAME: MSVC2019-Ifort2021 / unstable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+  script:
+    - !reference [.windows-test_unstable, script]
+  needs:
+    - windows:MSVC2019-Ifort2021
 
 python:linux:
   image: opencfs/ubuntu22.04
@@ -1242,6 +1323,18 @@ broken_ser:intel:linux:
   needs:
     - linux:intel
 
+broken_ser:MSVC2019-Ifort2021:windows:
+  extends: .windows-shared-test
+  stage: test_extra
+  variables:
+    BUILD_NAME: MSVC2019-Ifort2021 / broken serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+  script:
+    - !reference [.windows-test_broken, script]
+  allow_failure: true
+  needs:
+    - windows:MSVC2019-Ifort2021
+
 #######################################################################
 # DOCS STAGE - Documentation jobs
 #######################################################################
@@ -1327,12 +1420,18 @@ pages:
     GIT_STRATEGY: none
   dependencies:
     - linux:gcc7
+    - windows:MSVC2019-Ifort2021
     - doxygen
   script:
-    - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
-    - mkdir -p public/doxygen
-    - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
+    - mkdir -p public # create public dir
+    # publish XML scheme
+    - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build (for XML schema)
     - cp -r "CFS-$CI_COMMIT_SHA-Linux/share/xml" "public/." # publish XML scheme
+    # publish the builds
+    - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
+    - mv "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" "public/."
+    # publish doxygen
+    - mkdir -p public/doxygen
     - tar -xzf doxygen-html.tgz -C public/doxygen
   artifacts:
     paths:
@@ -1357,6 +1456,7 @@ pages:
     #                                                    projects/:id/packages/generic/:package_name/:package_version/:file_name
     PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/openCFS/${CI_COMMIT_TAG}"
     LINUX_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Linux.tar.gz"
+    WINDOWS_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Windows.zip"
   rules:
     - if: $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"  # Run this job when a tag is created
   cache: {}
@@ -1368,13 +1468,21 @@ package:
   image: curlimages/curl:latest
   needs:
     - linux:gcc7
+    - windows:MSVC2019-Ifort2021
   script:
+    # linux
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
     - tar -czvf "${LINUX_ARCHIVE}" CFS-$CI_COMMIT_TAG-Linux # repack
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${LINUX_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
-
+    # windows
+    - apk add zip # install zip
+    - unzip "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract
+    - mv "CFS-$CI_COMMIT_SHA-win64" "CFS-$CI_COMMIT_TAG-Windows" # rename
+    - zip -r -9 "${WINDOWS_ARCHIVE}" CFS-$CI_COMMIT_TAG-Windows # repack
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${WINDOWS_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
 release:
   <<: *package-release_common
   image: registry.gitlab.com/gitlab-org/release-cli:latest
@@ -1394,6 +1502,10 @@ release:
         - name: 'Linux binary (tar.gz)'
           url: "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}" # uploaded by 'package' job before
           filepath: '/CFS-Linux.tar.gz' # optional, but required for 'latest', defines the URL (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
+          link_type: 'package' # optional, defines the section and icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
+        - name: 'Windows binary (zip)'
+          url: "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}" # uploaded by 'package' job before
+          filepath: '/CFS-Windows.zip' # optional, but required for 'latest', defines the URL (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
           link_type: 'package' # optional, defines the section and icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
 
 copy_to_draco:
