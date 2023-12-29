@@ -3603,6 +3603,17 @@ namespace CoupledField {
       if (newIface.movingMortarForm && newIface.type != NC_MORTAR) {
         WARN("Moving formulation is only available with Mortar coupling");
       }
+      if (nciNode->Has( "thinLayer")){ // check if thin layer element is within xml file
+        newIface.thinLayer = true;
+        nciNode->GetValue( "thinLayer/layerThickness", newIface.layerThickness, ParamNode::INSERT ); // parameter for thin layer formulation non conforming interface condition
+        nciNode->GetValue( "thinLayer/layerMaterial", newIface.layerMaterial, ParamNode::INSERT ); // parameter for thin layer formulation non conforming interface condition
+        if(newIface.type != NC_NITSCHE){
+          EXCEPTION("Thin layer formulation is only available with Nitsche type coupling");
+        }
+      }
+      else {
+        newIface.thinLayer = false;
+      }
       ncInterfaces_.Push_back(newIface);
     }
   }
@@ -4058,9 +4069,34 @@ namespace CoupledField {
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
 
+    Double assignedFactor = 0.0; // used to set beta / factors within integrator definition below
+    Double alphaHeat = 0.0;
+    bool isPenalty = true;
+
+    // check if thin layer formulation is set, read and calculate parameters
+    bool isThinLayer = false;
+    if (iface.thinLayer){
+      isThinLayer = true;
+      Double layerThickness = iface.layerThickness; // not yet used
+      string layerMaterial = iface.layerMaterial; // not yet used
+      if (solType == HEAT_TEMPERATURE){
+        // Read material data
+        MaterialHandler* matLoader = domain->GetMaterialHandler();
+        BaseMaterial* mat = matLoader->LoadMaterial(layerMaterial, THERMIC);
+        std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > tl_materials;
+        tl_materials[THERMIC][HEAT_CONDUCTIVITY_SCALAR] = mat->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
+        double tl_heatConductivity = std::stod(tl_materials[THERMIC][HEAT_CONDUCTIVITY_SCALAR]->ToString());
+        alphaHeat = tl_heatConductivity / layerThickness; // calculated value for heat transfer coefficient
+        //WARN("Thin layer formulation used with alphaHeat = " << alphaHeat);
+      }
+      else
+        EXCEPTION("Thin layer is currently implemented only for HeatPDE"); // Handle not implemented formulation
+    }
+
+
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
-    if ( solType == HEAT_TEMPERATURE ) {
+    if ( solType == HEAT_TEMPERATURE && !isThinLayer) {
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
     }
     else if ( solType == ELEC_POTENTIAL && pdename_  != "elecQuasistatic") {
@@ -4255,12 +4291,19 @@ namespace CoupledField {
                 factor, beta, curcpl, updatedGeo_, true, true);
         }
       }else{
+        if(isThinLayer){ // Nitsche term with thinLayer formulaiton
+          assignedFactor = alphaHeat; 
+          isPenalty = false;
+        }
+        else{
+          assignedFactor = beta;
+          isPenalty = true;
+        }
         penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+          (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              factor, beta, curcpl, updatedGeo_, true, true);
-      }
-
+              factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+        }
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
@@ -4292,12 +4335,14 @@ namespace CoupledField {
                factor, -1.0, curcpl, updatedGeo_, true);
     	    }
 
-          }else{
+        }else{
+          if(!isThinLayer) {
             flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-                 ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                   new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                   factor, -1.0, curcpl, updatedGeo_, true);
+                ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                  factor, -1.0, curcpl, updatedGeo_, true);
           }
+        }
     	}
     }
 
@@ -4330,12 +4375,14 @@ namespace CoupledField {
                  factor, -1.0, curcpl, updatedGeo_, true);
           }
 
-          }else{
+        }else{
+          if(!isThinLayer){ 
             flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
                 (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                   new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                   factor, -1.0, curcpl, updatedGeo_, true);
+                  new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                  factor, -1.0, curcpl, updatedGeo_, true);
           }
+        }
     	}
     }
 
@@ -4364,12 +4411,19 @@ namespace CoupledField {
           }
 
         }else{
+          if(isThinLayer){ 
+            assignedFactor = alphaHeat * -1.0; // thin layer formulation
+            isPenalty = false;
+          }
+          else{
+            assignedFactor = beta * -1.0;
+            isPenalty = true;
+          }
           penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-                ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                  factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+              (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         }
-
     }
     
     if ( solType == MECH_DISPLACEMENT ) {
@@ -4403,10 +4457,12 @@ namespace CoupledField {
           }
 
         }else{
-          flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-             (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              factor, 1.0, curcpl, updatedGeo_, true);
+          if(!isThinLayer){
+            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+              (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, 1.0, curcpl, updatedGeo_, true);
+          }
         }
     	}
     }
@@ -4436,12 +4492,19 @@ namespace CoupledField {
         }
 
       }else{
+        if( isThinLayer){
+          assignedFactor = alphaHeat; //thin layer formulation
+          isPenalty = false;
+        }
+        else{
+          assignedFactor = beta;
+          isPenalty = true;
+        }
         penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-                ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                  factor, beta, curcpl, updatedGeo_, true, true);
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
       }
-
     }
 
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
@@ -4458,13 +4521,13 @@ namespace CoupledField {
 
     curcpl = BiLinearForm::MASTER_MASTER;
     penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, targetMatrix, curcpl);
-    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , targetMatrix, curcpl);
-    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , targetMatrix, curcpl);
+    if (flux_du1_v1){ flux_du1_v1_Context = new SurfaceBiLinFormContext(flux_du1_v1  , targetMatrix, curcpl);}
+    if (flux_u1_dv1){ flux_u1_dv1_Context = new SurfaceBiLinFormContext(flux_u1_dv1  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SLAVE_SLAVE;
     penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, targetMatrix, curcpl);
     curcpl = BiLinearForm::MASTER_SLAVE;
     penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, targetMatrix, curcpl);
-    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , targetMatrix, curcpl);
+    if (flux_du1_v2){ flux_du1_v2_Context = new SurfaceBiLinFormContext(flux_du1_v2  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SLAVE_MASTER;
 
     if (isMoving) {
@@ -4574,48 +4637,49 @@ namespace CoupledField {
       penalty_u1_v1_Context->SetMotion(true);
       penalty_u2_v2_Context->SetMotion(true);
       penalty_u1_v2_Context->SetMotion(true);
-      flux_du1_v1_Context->SetMotion(true);
-      flux_u1_dv1_Context->SetMotion(true);
-      flux_du1_v2_Context->SetMotion(true);
+      if (flux_du1_v1_Context){ flux_du1_v1_Context->SetMotion(true);}
+      if (flux_u1_dv1_Context){ flux_u1_dv1_Context->SetMotion(true);}
+      if (flux_du1_v2_Context){ flux_du1_v2_Context->SetMotion(true);}
     }
 
     penalty_u2_v2->SetName("penalty_u2_v2");
     penalty_u1_v2->SetName("penalty_u1_v2");
     penalty_u1_v1->SetName("penalty_u1_v1");
-    flux_du1_v1->SetName("flux_du1_v1");
-    flux_u1_dv1->SetName("flux_u1_dv1");
-    flux_du1_v2->SetName("flux_du1_v2");
+    if (flux_du1_v1){ flux_du1_v1->SetName("flux_du1_v1");}
+    if (flux_u1_dv1){ flux_u1_dv1->SetName("flux_u1_dv1");}
+    if (flux_du1_v2){ flux_du1_v2->SetName("flux_du1_v2");}
+    
 
     penalty_u1_v1_Context->SetEntities(actSDList,actSDList);
     penalty_u2_v2_Context->SetEntities(actSDList,actSDList);
     penalty_u1_v2_Context->SetEntities(actSDList,actSDList);
-    flux_du1_v1_Context->SetEntities(actSDList,actSDList);
-    flux_u1_dv1_Context->SetEntities(actSDList,actSDList);
-    flux_du1_v2_Context->SetEntities(actSDList,actSDList);
+    if (flux_du1_v1_Context){ flux_du1_v1_Context->SetEntities(actSDList,actSDList);}
+    if (flux_u1_dv1_Context){ flux_u1_dv1_Context->SetEntities(actSDList,actSDList);}
+    if (flux_du1_v2_Context){ flux_du1_v2_Context->SetEntities(actSDList,actSDList);}    
 
     penalty_u1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_u2_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_u1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
-    flux_du1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
-    flux_u1_dv1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
-    flux_du1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+    if (flux_du1_v1_Context){ flux_du1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (flux_u1_dv1_Context){ flux_u1_dv1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (flux_du1_v2_Context){ flux_du1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
 
     penalty_u1_v2_Context->SetCounterPart(true);
-    flux_du1_v2_Context->SetCounterPart(true);
+    if (flux_du1_v2_Context){ flux_du1_v2_Context->SetCounterPart(true);}
 
     assemble_->AddBiLinearForm( penalty_u1_v1_Context );
     assemble_->AddBiLinearForm( penalty_u2_v2_Context );
     assemble_->AddBiLinearForm( penalty_u1_v2_Context );
-    assemble_->AddBiLinearForm( flux_du1_v1_Context );
-    assemble_->AddBiLinearForm( flux_u1_dv1_Context );
-    assemble_->AddBiLinearForm( flux_du1_v2_Context );
+    if (flux_du1_v1_Context){ assemble_->AddBiLinearForm( flux_du1_v1_Context );}
+    if (flux_u1_dv1_Context){ assemble_->AddBiLinearForm( flux_u1_dv1_Context );}
+    if (flux_du1_v2_Context){ assemble_->AddBiLinearForm( flux_du1_v2_Context );}
 
     ncIf->RegisterIntegrator( penalty_u1_v1_Context );
     ncIf->RegisterIntegrator( penalty_u2_v2_Context );
     ncIf->RegisterIntegrator( penalty_u1_v2_Context );
-    ncIf->RegisterIntegrator( flux_du1_v1_Context );
-    ncIf->RegisterIntegrator( flux_u1_dv1_Context );
-    ncIf->RegisterIntegrator( flux_du1_v2_Context );
+    if (flux_du1_v1_Context){ ncIf->RegisterIntegrator( flux_du1_v1_Context );}
+    if (flux_u1_dv1_Context){ ncIf->RegisterIntegrator( flux_u1_dv1_Context );}
+    if (flux_du1_v2_Context){ ncIf->RegisterIntegrator( flux_du1_v2_Context );}
   }
 
   template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Double>&, std::string);
