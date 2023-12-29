@@ -838,13 +838,10 @@ windows:MSVC2019-Ifort2021:
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # save buildid
     - *save_cdash_buildid
-    # create JUnit output from cdash data
-    - ../share/python/cdash2junit.py $BUILD_ID # run conversion/augmentation script
-    - cp "${BUILD_ID}.xml" "${CI_JOB_ID}_junit.xml" # save under expected name for artifacts
   artifacts:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
-      junit: build/${CI_JOB_ID}_junit.xml
+      junit: build/${CI_JOB_ID}.xml
       annotations: build/annotations.json
     when: always
 
@@ -1019,15 +1016,12 @@ stable_par:gcc7closed:linux:
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # save buildid
     - *save_cdash_buildid
-    # create JUnit output from cdash data
-    - ../share/python/cdash2junit.py $BUILD_ID # run conversion/augmentation script
-    - cp "${BUILD_ID}.xml" "${CI_JOB_ID}_junit.xml" # save under expected name for artifacts
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/' # regular expression that searches through the job output and extracts the matching line. (\s = whitespace, \d = digit, ? = match 0 or 1 of the preceeding character, % = % sign; see https://docs.gitlab.com/ee/ci/yaml/#coverage for coverage infos)
   needs: ["cfsdeps:gcc7"]
   artifacts:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
-      junit: build/${CI_JOB_ID}_junit.xml
+      junit: build/${CI_JOB_ID}.xml
       annotations: build/annotations.json
     when: always
 
