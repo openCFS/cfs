@@ -842,6 +842,14 @@
             default="Mortar"/>
           <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100"/>
           <xsd:attribute name="nitscheFactorDamping" type="xsd:double" use="optional" default="1e-2"/>
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+          <xsd:attribute name="heatTransferCoefficient" type="xsd:double" use="optional" default="0"/>
+>>>>>>> 91becb9f (added heatTransferCoefficient to xml scheme CFS_PDEbasic.xsd, SinglePDE.cc and StdPDE.hh)
+=======
+          <xsd:attribute name="heatTransferCoefficient" type="xsd:double" use="optional" default="0.0"/>
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
           <xsd:attribute name="lagrangeMultType" use="optional" default="standard">          
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">

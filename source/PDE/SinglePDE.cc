@@ -3517,6 +3517,8 @@ namespace CoupledField {
                           ParamNode::INSERT );
       nciNode->GetValue( "crossPointHandling", newIface.crossPointHandling,
                          ParamNode::INSERT );
+      nciNode->GetValue( "heatTransferCoefficient", newIface.heatTransferCoefficient,
+                         ParamNode::INSERT ); // parameter for heatPDE with non conforming interface condition
 
       if (newIface.crossPointHandling) {
         WARN("Cross-point handling is not implemented yet");
@@ -3977,6 +3979,7 @@ namespace CoupledField {
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
 
+<<<<<<< HEAD
     Double assignedFactor = 0.0; // used to set beta / factors within integrator definition below
     Double alphaHeat = 0.0;
     bool isPenalty = true;
@@ -3998,11 +4001,30 @@ namespace CoupledField {
         //WARN("Thin layer formulation used with alphaHeat = " << alphaHeat);
       }
     }
+=======
+    //we set here the parameter for heatPDE with non conforming interface condition
+    Double alphaHeat = iface.heatTransferCoefficient;
+<<<<<<< HEAD
+    WARN("Non conforming interface: alpha=" << alphaHeat);
+>>>>>>> 91becb9f (added heatTransferCoefficient to xml scheme CFS_PDEbasic.xsd, SinglePDE.cc and StdPDE.hh)
 
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
     if ( solType == HEAT_TEMPERATURE && !isThinLayer) {
+=======
+    if (solType == HEAT_TEMPERATURE && alphaHeat > 0.0 ){
+      WARN("Non conforming interface with jump condition defined: alpha=" << alphaHeat);
+    }
+    else{
+      WARN("Non conforming interface without jump condition defined: alpha=" << alphaHeat);
+    }
+
+    //possible material parameter and adaption of penalty term
+    PtrCoefFct factor;
+    if ( solType == HEAT_TEMPERATURE && alphaHeat == 0.0) {
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
+      WARN("Non conforming interface without jump condition defined: factor = kappa");
     }
     else if ( solType == ELEC_POTENTIAL && pdename_  != "elecQuasistatic") {
     	if(additionalCoef){
@@ -4098,6 +4120,12 @@ namespace CoupledField {
     }
     else{
       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+<<<<<<< HEAD
+=======
+      if(alphaHeat != 0.0){
+        WARN("Non conforming interface with jump condition defined: factor = 1.0");
+      }
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
     }
 
 
@@ -4197,6 +4225,7 @@ namespace CoupledField {
                 factor, beta, curcpl, updatedGeo_, true, true);
         }
       }else{
+<<<<<<< HEAD
         if( solType == HEAT_TEMPERATURE && isThinLayer){ // Nitsche term
           assignedFactor = alphaHeat; // heat conduction coupling with thin layer formulation
           isPenalty = false;
@@ -4209,6 +4238,20 @@ namespace CoupledField {
           (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+=======
+        if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+          penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double> // Nitsche term
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, alphaHeat, curcpl, updatedGeo_, true, false);
+        }
+        else{
+          penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+            (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, beta, curcpl, updatedGeo_, true, true);
+        }
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
       }
 
     }
@@ -4243,10 +4286,20 @@ namespace CoupledField {
     	    }
 
           }else{
+<<<<<<< HEAD
             if( solType == HEAT_TEMPERATURE && isThinLayer){ // heat conduction coupling with thin layer formulation
               // flux_du1_v1 = NULL // flux term
             }
             else{ // heat conduction with Nitsche coupling (without jump condition)
+=======
+            if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+              flux_du1_v1 = new SurfaceNitscheABInt<Double,Double> // flux term
+                  ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    factor, 0.0, curcpl, updatedGeo_, true);
+            }
+            else{
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
               flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
                   ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
                     new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -4286,10 +4339,20 @@ namespace CoupledField {
           }
 
           }else{
+<<<<<<< HEAD
             if( solType == HEAT_TEMPERATURE && isThinLayer){ // heat conduction coupling with thin layer formulation
               // flux_u1_dv1 = NULL; // flux term
             }
             else{ // heat conduction with Nitsche coupling (without jump condition)
+=======
+            if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+              flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double> // flux term
+                  (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                    factor, 0.0, curcpl, updatedGeo_, true);
+            }
+            else{
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
               flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
                   (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                     new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
@@ -4324,6 +4387,7 @@ namespace CoupledField {
           }
 
         }else{
+<<<<<<< HEAD
           if( solType == HEAT_TEMPERATURE && isThinLayer){ // coupling term
             assignedFactor = alphaHeat * -1.0; // heat conduction coupling with thin layer formulation
             isPenalty = false;
@@ -4336,6 +4400,20 @@ namespace CoupledField {
             ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+=======
+          if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double> // coupling term
+                  ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    factor, alphaHeat * -1.0, curcpl, updatedGeo_, true, false);
+          }
+          else{
+            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+                  ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+          }
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
         }
 
     }
@@ -4371,10 +4449,20 @@ namespace CoupledField {
           }
 
         }else{
+<<<<<<< HEAD
           if( solType == HEAT_TEMPERATURE && isThinLayer){ // heat conduction coupling with thin layer formulation
             // flux_du1_v2 = NULL; // flux term
           }
           else{ // heat conduction with Nitsche coupling (without jump condition)
+=======
+          if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double> // flux term
+              (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, 0.0, curcpl, updatedGeo_, true);
+          }
+          else{
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
             flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
               (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
                 new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -4409,6 +4497,7 @@ namespace CoupledField {
         }
 
       }else{
+<<<<<<< HEAD
         if( solType == HEAT_TEMPERATURE && isThinLayer){ // Nitsche term
           assignedFactor = alphaHeat; // heat conduction coupling with thin layer formulation
           isPenalty = false;
@@ -4421,6 +4510,20 @@ namespace CoupledField {
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+=======
+        if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+          penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double> // Nitsche term
+              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, alphaHeat, curcpl, updatedGeo_, true, false);
+        }
+        else{
+          penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, beta, curcpl, updatedGeo_, true, true);
+        }
+>>>>>>> 26d88606 (added if else and for non conforming formulation, additional factor if noncofnforming)
       }
 
     }

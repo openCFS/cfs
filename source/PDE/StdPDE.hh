@@ -253,9 +253,13 @@ namespace CoupledField {
       LagrangeMultType  lagrangeMultType;
       Double            nitscheFactor;
       Double            nitscheFactorDamp;
+<<<<<<< HEAD
       Double            layerThickness; // parameter for thin layer formulation with non conforming interface condition
       string            layerMaterial; // material for thin layer formulation with non conforming interface condition
       bool              thinLayer;
+=======
+      Double            heatTransferCoefficient; // parameter for heatPDE with non conforming interface condition
+>>>>>>> 91becb9f (added heatTransferCoefficient to xml scheme CFS_PDEbasic.xsd, SinglePDE.cc and StdPDE.hh)
       bool              crossPointHandling;
       bool              movingMortarForm;
     };
