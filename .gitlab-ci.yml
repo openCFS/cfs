@@ -459,9 +459,7 @@ rhel:9:
 
 cfsdeps:gcc7:
   image: opencfs/centos6-gcc7
-  <<: *cfsdeps_default
-  <<: *cache_cfsdeps
-  <<: *release_build_rules
+  <<: [*cfsdeps_default, *cache_cfsdeps, *release_build_rules]
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_7*.zip
@@ -470,9 +468,7 @@ cfsdeps:gcc7:
 
 cfsdeps:gcc12:
   image: opencfs/fedora37
-  <<: *cfsdeps_default
-  <<: *cache_cfsdeps
-  <<: *build_rules
+  <<: [*cfsdeps_default, *cache_cfsdeps, *build_rules]
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_12*.zip
@@ -482,9 +478,7 @@ cfsdeps:gcc12:
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
   image: opencfs/centos7-intel
-  <<: *cfsdeps_default
-  <<: *cache_cfsdeps-intel
-  <<: *build_rules
+  <<: [*cfsdeps_default, *cache_cfsdeps-intel, *build_rules]
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*Intel*.zip
@@ -656,9 +650,7 @@ linux:gcc7max-debug:
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
-  <<: *max_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
+  <<: [*max_rules, *gcc_before, *cache_cfsdeps]
   needs: ["cfsdeps:gcc7"]
 
 # maximal build using as many options as possible
@@ -671,9 +663,7 @@ linux:gcc7max:
   variables:
     BUILD_NAME: "GCC7 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
-  <<: *max_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
+  <<: [*max_rules, *gcc_before, *cache_cfsdeps]
   needs: ["cfsdeps:gcc7"]
 
 # this is the offcial release buils
@@ -685,9 +675,7 @@ linux:gcc7:
     - docker
   variables:
     BUILD_NAME: "GCC7"
-  <<: *release_build_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
+  <<: [*release_build_rules, *gcc_before, *cache_cfsdeps]
   needs: ["cfsdeps:gcc7"]
 
 linux:gcc7min:
@@ -699,9 +687,7 @@ linux:gcc7min:
   variables:
     BUILD_NAME: "GCC7 minimal"
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
-  <<: *build_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
+  <<: [*build_rules, *gcc_before, *cache_cfsdeps]
   needs: ["cfsdeps:gcc7"]
 
 linux:gcc12:
@@ -712,9 +698,7 @@ linux:gcc12:
     - docker
   variables:
     BUILD_NAME: "GCC12"
-  <<: *build_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
+  <<: [*build_rules, *gcc_before, *cache_cfsdeps]
   needs: ["cfsdeps:gcc12"]
 
 # intel compiler builds
@@ -731,8 +715,7 @@ linux:intel:
       when: manual
       allow_failure: true
     - !reference [.build_rules, rules]
-  <<: *intel_before
-  <<: *cache_cfsdeps-intel
+  <<: [*intel_before,*cache_cfsdeps-intel]
   needs: ["cfsdeps:intel"]
 
 # LLVM clang compiler builds
@@ -756,8 +739,7 @@ linux:clang-debug:
     # general build before script
     - *before-script-build
   # artifacts are not needed long since no tests are done for this job
-  <<: *build_artifacs_short
-  <<: *cache_cfsdeps
+  <<: [*build_artifacs_short, *cache_cfsdeps]
   needs: []
 
 # build with ninja
@@ -782,8 +764,7 @@ linux:gcc12:ninja:
   after_script:
     - ls -la
   when: manual
-  <<: *build_artifacs_short
-  <<: *cache_cfsdeps
+  <<: [*build_artifacs_short, *cache_cfsdeps]
   needs: ["cfsdeps:gcc12"]
 
 # windows build
