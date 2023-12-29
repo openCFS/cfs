@@ -496,7 +496,7 @@ cfsdeps:MSVC2019-Ifort2021:
   stage: cfsdeps
   rules:
     - !reference [.cfsdeps_rebuild_rules,rules]
-    # disable the build job because it is optional (regular jobs can build cfsdeps)
+    # disable the build job because it is optional (subsequent standard build jobs can build cfsdeps too)
     - when: never
   variables:
     # set the cache policy to pull-push to update the cache
@@ -792,6 +792,7 @@ windows:MSVC2019-Ifort2021:
   stage: build
   <<: *release_build_rules
   variables:
+    BUILD_NAME: "MSVC2019-Ifort2021"
     # see https://yaml-multiline.info/ for multiline info
     BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
@@ -925,7 +926,7 @@ stable_ser:gcc7min:linux:
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: gcc7 minimal / stable serial
+    BUILD_NAME: "GCC7 minimal / stable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -939,7 +940,7 @@ unstable_ser:gcc7min:linux:
   stage: test
   variables:
     # is built without opnemp  
-    BUILD_NAME: gcc7 minimal / unstable serial
+    BUILD_NAME: "GCC7 minimal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -955,7 +956,7 @@ stable_par:gcc7max:linux:
     - !reference [.max_never_auto_rule, rules]
     - when: on_success
   variables:
-    BUILD_NAME: gcc7 maximal / stable parallel
+    BUILD_NAME: "GCC7 maximal / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -971,7 +972,7 @@ unstable_ser:gcc7max:linux:
     - !reference [.max_never_auto_rule, rules]
     - when: on_success
   variables:
-    BUILD_NAME: gcc7 maximal / unstable serial
+    BUILD_NAME: "GCC7 maximal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1045,7 +1046,7 @@ stable_par:gcc12:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: gcc12 default / stable parallel
+    BUILD_NAME: "GCC12 default / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1058,7 +1059,7 @@ unstable_ser:gcc12:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: gcc12 default / unstable serial
+    BUILD_NAME: "GCC12 default / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1163,10 +1164,10 @@ python:linux:
     - mkdir -p build
     - cd build
     - *cmake_test_or_install # optionally install cmake if not present
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY=ON -DBUILD_TESTING=ON -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK -VV --debug # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
@@ -1184,7 +1185,7 @@ broken_ser:gcc7min:linux:
   stage: test_extra
   variables:
     # is built without opnemp  
-    BUILD_NAME: gcc7 minimal / broken serial
+    BUILD_NAME: "GCC7 minimal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   <<: *test_generic
@@ -1198,7 +1199,7 @@ all_par:gcc7:any-linux:
     - linux
   stage: test_extra 
   variables:
-    BUILD_NAME: gcc7 default / all parallel any-linux
+    BUILD_NAME: "GCC7 default / all parallel any-linux"
     # no special options - we take all default (should be all tests & in parallel if NCPU>1)
   <<: *test_generic
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
@@ -1215,7 +1216,7 @@ unstable_par:gcc7max:linux:
     - when: on_success
       allow_failure: true
   variables:
-    BUILD_NAME: gcc7 maximal / unstable parallel
+    BUILD_NAME: "GCC7 maximal / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"      
   <<: *test_generic
@@ -1232,7 +1233,7 @@ broken_ser:gcc7max:linux:
     - when: on_success
       allow_failure: true
   variables:
-    BUILD_NAME: gcc7 maximal / broken serial
+    BUILD_NAME: "GCC7 maximal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"      
   <<: *test_generic
@@ -1251,7 +1252,7 @@ no-slow_ser:gcc7max-debug:linux:
     - when: on_success
       allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
   variables:
-    BUILD_NAME: gcc maximal debug / no-slow serial
+    BUILD_NAME: "GCC7 maximal debug / no-slow serial"
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     # this special test_no_slow does -LE "unstable|slow"
@@ -1265,7 +1266,7 @@ unstable_par:gcc12:linux:
     - docker
   stage: test_extra
   variables:
-    BUILD_NAME: gcc12 default / unstable parallel
+    BUILD_NAME: "GCC12 default / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1279,7 +1280,7 @@ broken_ser:gcc12:linux:
     - docker
   stage: test_extra
   variables:
-    BUILD_NAME: gcc12 default / broken serial
+    BUILD_NAME: "GCC12 default / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   <<: *test_generic
