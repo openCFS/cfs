@@ -36,10 +36,19 @@
 .windwos_output_cdash_links:
   script:
     - cat "Testing/*/Done.xml" # debug
+    # get the build ID from the Done.xml file
     - $BUILD_ID=(Select-Xml -Path "Testing/*/Done.xml" -XPath "//buildId" | Select-Object -ExpandProperty Node)."#text"
+    - $CDASH_BUILD_URL="http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}"
+    - $CDASH_TEST_URL="http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}"
     - echo "$BUILD_ID" # debug
-    - echo "Build on CDash - http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=$BUILD_ID"
-    - echo "Tests on CDash - http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=$BUILD_ID"
+    # build up annotations JSON file, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
+    - $Tlink=@{}; $Tlink.Add( "label", "CDash Tests" ); $Tlink.Add( "url", $CDASH_TEST_URL )
+    - $Blink=@{}; $Blink.Add( "label", "CDash Build" ); $Blink.Add( "url", $CDASH_BUILD_URL )
+    - $annotations = @{ CDash = @( @{ external_link=$Tlink },@{ external_link=$Blink } ) }
+    - $annotations | ConvertTo-Json -Depth 5 | Out-File -FilePath annotations.json
+    # output URLs in job log
+    - echo "Build on CDash - $CDASH_BUILD_URL"
+    - echo "Tests on CDash - $CDASH_TEST_URL"
  
  # headers for collapsible sections, see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
 .powershell-debug-start_collapsed:
@@ -168,6 +177,7 @@
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
       junit: build/ctest-junit.xml
+      annotations: build/annotations.json
     when: always
 
 .script_windows-test_config-dashboard: &script_windows-test_config-dashboard

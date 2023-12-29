@@ -523,9 +523,17 @@ cfsdeps:MSVC2019-Ifort2021:
   - ls -R Testing # debug
   - cat Testing/*/Done.xml # debug
   - grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml # debug
+  # get build ID from file
   - BUILD_ID=$( grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml )
-  - echo "Build on CDash - http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}"
-  - echo "Tests on CDash - http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}"
+  # save links as variables
+  - CDASH_BUILD_URL=$( echo "http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
+  - CDASH_TEST_URL=$( echo "http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
+  # output to annotations
+  # https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
+  - echo '{"CDash":[{"external_link":{"label":"CDash Build","url":"'$CDASH_BUILD_URL'"}},{"external_link":{"label":"CDash Tests","url":"'$CDASH_TEST_URL'"}}]}' > annotations.json
+  # output to job log
+  - echo "Build on CDash - $CDASH_BUILD_URL"
+  - echo "Tests on CDash - $CDASH_TEST_URL"
 
 .default_build_job: &default_build_job
   variables:
@@ -837,6 +845,7 @@ windows:MSVC2019-Ifort2021:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
       junit: build/${CI_JOB_ID}_junit.xml
+      annotations: build/annotations.json
     when: always
 
 # test preparation starts by extracting the build files from assets
@@ -1019,6 +1028,7 @@ stable_par:gcc7closed:linux:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
       junit: build/${CI_JOB_ID}_junit.xml
+      annotations: build/annotations.json
     when: always
 
 stable_par:gcc12:linux:
