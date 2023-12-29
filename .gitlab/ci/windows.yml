@@ -1,5 +1,10 @@
 # templates for windows jobs
 
+# we used the shared runners on GitLab.com
+# https://docs.gitlab.com/ee/ci/runners/saas/windows_saas_runner.html
+# they are currently in beta state and expected as "Generally Available" sometime in 2025
+# it there are annoying/breaking changes, we can just set all windwos jobs with 'allow_failure: true'
+# preinstalled software: https://gitlab.com/gitlab-org/ci-cd/shared-runners/images/gcp/windows-containers/blob/main/cookbooks/preinstalled-software/README.md
 .windows-shared_tags: &windows-shared_tags
   tags:
   - shared-windows
@@ -50,7 +55,8 @@
     - echo "Build on CDash - $CDASH_BUILD_URL"
     - echo "Tests on CDash - $CDASH_TEST_URL"
  
- # headers for collapsible sections, see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
+# headers for collapsible sections https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
+# for Powershell see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
 .powershell-debug-start_collapsed:
   script: &powershell-debug-start_collapsed
     - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output[collapsed=true]$([char]13)$([char]27)[0KDebug Information (klick to expand)"
