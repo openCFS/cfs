@@ -22,16 +22,6 @@ if(DEBUG)
   set(CHECK_MEM_ALLOC 1)
 endif()
 
-#-------------------------------------------------------------------------------
-# Prepare for macOS
-#-------------------------------------------------------------------------------
-# pracically one needs brew to compile cfs on macOS. The base is system dependent
-if(CFS_ARCH MATCHES "ARM64") # don't care for non-Apple - no harm
-  set(CFS_BREW_BASE "/opt/homebrew")
-else()
-  set(CFS_BREW_BASE "/usr/local")
-endif()    
-
 # Check if compiler supports OpenMP
 find_package(OpenMP) # properties might be used from deps even with USE_OPENMP=OFF
 
@@ -43,9 +33,12 @@ if(USE_OPENMP)
   set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS}")
 
   if(APPLE)
-    # best is to use homebrew llvm: https://stackoverflow.com/questions/43555410/enable-openmp-support-in-clang-in-mac-os-x-sierra-mojave
-    include_directories(AFTER SYSTEM "${CFS_BREW_BASE}/include")
-    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L${CFS_BREW_BASE}/lib ")
+    # homebrew uses since Okt 2022 not the system path and we need to help cfs and lis
+    assert_set(OpenMP_CXX_INCLUDE_DIR) # /opt/homebrew[/opt/libomp]/include
+    assert_set(OpenMP_libomp_LIBRARY) # /opt/homebrew[/opt/libomp]/lib/libomp.dylib"
+    get_filename_component(OpenMP_LIBDIR ${OpenMP_libomp_LIBRARY} DIRECTORY) # also use for lis
+    include_directories(AFTER SYSTEM "${OpenMP_CXX_INCLUDE_DIR}")
+    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L${OpenMP_LIBDIR} ")
   endif()   
 endif() # USE_OPENMP
 
@@ -99,11 +92,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
 
   if(APPLE)
-    # practically we need homebrew for libquadmath (on x86_64) we might already have this from openmp
-    if(NOT USE_OPENMP)
-      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -L${CFS_BREW_BASE}/lib")  
-    endif()
-
     # linker issue with xcode 15 on mac
     # https://developer.apple.com/forums/thread/735426
     if(CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")

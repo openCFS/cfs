@@ -97,7 +97,8 @@ void SimInputEnsight::GetTimeValues(){
     vtkDataArray* da = daciter->GetDataArray();
     for(int i=0; i < da->GetNumberOfTuples(); ++i){
       Double tmp = da->GetTuple1(i);
-      Double test = this->dround(tmp,6);
+      // apparently, the read-in values do not have double precision...
+      Double test = this->dround(tmp,8);
       timeSteps.insert(test);
     }
   }
