@@ -129,9 +129,9 @@
     # debug
     - *powershell-debug-start_collapsed
     - Get-Volume # info about free space
-    - if((Test-Path cache)) { ls cache }
-    - if((Test-Path build)) { ls build }
-    - if((Test-Path build/cfsdeps/cache/precompiled )) { ls build/cfsdeps/cache/precompiled }
+    - Get-ChildItem -Path cache -ErrorAction SilentlyContinue
+    - Get-ChildItem -Path build -ErrorAction SilentlyContinue
+    - Get-ChildItem -Path build/cfsdeps/cache/precompiled -ErrorAction SilentlyContinue
     - *powershell-debug-end
     # save build-id and output CDash links - will fail if no dashboard has been started, therefore put it last
     - cd build
@@ -167,10 +167,11 @@
     - ./bin/cfs --dependencies config.cmake
   # the script section is defined below: unding variables as command arguments is not working well
   after_script:
+    - echo "after script starting - put a comment here to mayby correct output shift"
     - *powershell-debug-start_collapsed
     - Get-Volume
-    - if((Test-Path cache)) { ls cache }
-    - if((Test-Path build)) { ls build }
+    - Get-ChildItem -Path cache -ErrorAction SilentlyContinue
+    - Get-ChildItem -Path build -ErrorAction SilentlyContinue
     - *powershell-debug-end
     - cd build
     # submit the result (also on fail)
