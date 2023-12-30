@@ -38,23 +38,50 @@ stages:
 # https://docs.gitlab.com/ee/ci/yaml/#workflowrules
 # https://docs.gitlab.com/ee/ci/jobs/job_control.html#common-if-clauses-for-rules
 # we create pipelines for merge requests, schedules, and the web-ui
+# se set the variable CFS_PIPELINE_TYPE to indicate which jobs should be run in which way
+#  - test : run a maximum amount of tests automatically
+#  - manual : create all tests but set them to manual (default)
+#  - release : create jobs for releases
+#  - nightly : regular tests for the CDash dashboard
 workflow:
+  name: "$CFS_PIPELINE_NAME"
   rules:
-  # run for merge requests
+  # We want pipelines to 'test' for merge requests
+  # set to manual if the merge request title start with Draft:
+  - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/'
+    variables:
+      CFS_PIPELINE_TYPE: "manual"
+      CFS_PIPELINE_NAME: "Manual pipeline for draft merge request $CI_MERGE_REQUEST_IID"    
+  # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
-  # run for tags
-  - if: $CI_COMMIT_TAG
+    variables:
+      CFS_PIPELINE_TYPE: "test"
+      CFS_PIPELINE_NAME: "Test Pipeline for merge request $CI_MERGE_REQUEST_IID"
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
     when: never
-  # automatically run if branch name starts with test
-  - if: '$CI_COMMIT_BRANCH =~ /^test.*$/'
-  # run if a commit comes to the default branch
+  # We need pipelines to deploy stuff -> set the 'release' type
+  # for tags on the default branch we create releases
+  - if: $CI_COMMIT_TAG && ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH )
+    variables:
+      CFS_PIPELINE_TYPE: "release"
+      CFS_PIPELINE_NAME: "Release Pipeline for tag $CI_COMMIT_TAG"
+  # this will run for accepted merge requests
   - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-  # run for 'run pipeline' button on web-ui
-  - if: '$CI_PIPELINE_SOURCE == "web"'
+    variables:
+      CFS_PIPELINE_TYPE: "release"
+      CFS_PIPELINE_NAME: "Release Pipeline for new commit on $CI_DEFAULT_BRANCH"
   # run for schedules
   - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    variables:
+      CFS_PIPELINE_TYPE: "nightly"
+      CFS_PIPELINE_NAME: "Scheduled Pipeline for branch $CI_COMMIT_BRANCH"
+  # automatically run if branch name starts or ends with test or is scheduled
+  - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
+    variables:
+      CFS_PIPELINE_TYPE: "test"
+      CFS_PIPELINE_NAME: "Test Pipeline for branch $CI_COMMIT_BRANCH"
+  # when no rule triggers, no pipeline is created
 
 #################################################
 # Check STAGE
@@ -63,29 +90,44 @@ workflow:
 # some only get created in certain cases (pipeline-changes) and then fail 
 # to generate a warning (they are allowed to fail)
 
-# Check the revision of the testsuite submodule
-testsuite-revision:
+.check:
   stage: check
   tags:
     - docker
+  # switch off cloning any code
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
+  cache: {} # disable
+  when: never # do not create job if not explicitly requested
+
+# Check the revision of the testsuite submodule
+.Testsuite_changes: &Testsuite_changes
+      changes:
+        paths:
+          - Testsuite
+        compare_to: 'refs/heads/master'
+
+testsuite-revision:
+  extends: .check
   image: opencfs/fedora32
   variables:
     # we clone to make sure we have everything (including current names of the SHAs)
     GIT_STRATEGY: clone
     GIT_SUBMODULE_STRATEGY: recursive
   rules:
-    # only run the job for merge requests if there are changes in the Testsuite submodule
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - Testsuite
-      when: always
-      allow_failure: true # it will pop up as warning (maintainers should not ignore)
-      # otherwise create it but set it to manual
-    - when: manual
+    # only create the job if there are changes in the Testsuite submodule
+    - if: $CFS_PIPELINE_TYPE == "test" 
+      <<: *Testsuite_changes
+      when: on_success
+      allow_failure: true
+    - if: $CFS_PIPELINE_TYPE != /test/
+      <<: *Testsuite_changes
+      when: manual
       allow_failure: true
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
-    - echo "$CI_COMMIT_REF_NAME"
+    - echo "The Testsuite in $CI_COMMIT_REF_NAME has changes compared to master!"
   script:
     # check in Testsuite submodule
     - cd Testsuite
@@ -94,18 +136,21 @@ testsuite-revision:
     - git --no-pager log -1 --pretty=tformat:'%h %D' | egrep -w "(${CI_COMMIT_REF_NAME})|(master)"
   after_script:
     - pwd # debug
-  cache: {} # disable
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
-  stage: check
+  extends: .check
   image: 
     name: ghcr.io/tcort/markdown-link-check # working label :3.9.2
     entrypoint: ["/bin/sh","-c"]
-  tags:
-    - docker
   variables:
-    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: fetch
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test"
+      allow_failure: true # do not prevent merge
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true # do not prevent merge
   script:
     - markdown-link-check README.md
     - markdown-link-check CONTRIBUTING.md
@@ -113,44 +158,44 @@ markdown-link-check:
     - find source -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
     - find share/doc/developer/build-dependencies -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
     - find .gitlab -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
-  allow_failure: true
-  cache: {} # disable
 
 # this job is intended as a warning if the pipeline has changed
 # it is running only if there are changes, and will always fail if there are some
+.pipeline_changes: &pipeline_changes
+      changes:
+        paths:
+        - .gitlab-ci.yml
+        - .gitlab/ci/*.yml
+        compare_to: 'refs/heads/master'
 pipeline-changes:
-  stage: check
-  tags:
-    - linux
+  extends: .check
   image: opencfs/fedora32
   # switch off cloning the Testsuite submodule
   variables:
-    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
   rules:
     # only run the job for merge requests if there are changes in the pipeline definition
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - .gitlab-ci.yml
-      when: always
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *pipeline_changes
       allow_failure: true
-    # otherwise create it but set it to manual
-    - when: manual
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *pipeline_changes
+      when: manual
       allow_failure: true
   before_script:
     - echo $CI_MERGE_REQUEST_TARGET_BRANCH_NAME 
     - git diff remotes/origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME -- .gitlab-ci.yml || git diff HEAD~1 -- .gitlab-ci.yml
   script:
     - /the/pipeline/has/changed
-  cache: {} # disable
 
 runner-debug:
-  stage: check
+  extends: .check
   tags:
     - linux
-  # switch off cloning any code
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
-    GIT_STRATEGY: none
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
+      when: manual
+      allow_failure: true
   script:
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
@@ -168,22 +213,18 @@ runner-debug:
     - echo $CI_COMMIT_REF_NAME
     - echo $CI_PIPELINE_SOURCE
     - echo $CI_PIPELINE_IID
-  when: manual
-  allow_failure: true
-  cache: {} # disable
 
 # this job is created when there is a skip-build in the commit message
 skip-build:
-  stage: check
+  extends: .check
   tags:
     - linux
-  # switch off cloning any code
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
-    GIT_STRATEGY: none
   rules:
-    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/'
+    - if: $CI_COMMIT_MESSAGE =~ /skip-build/ && $CFS_PIPELINE_TYPE == "test"
       when: always
+      allow_failure: true
+    - if: $CI_COMMIT_MESSAGE =~ /skip-build/ && $CFS_PIPELINE_TYPE == "manual"
+      when: manual
       allow_failure: true
   script:
     - /commit/message/contained/skip-build
@@ -199,19 +240,18 @@ skip-build:
     - source/**/*.{hh,cc,h,c}
     - Testsuite
 
-mr-with-code-changes:
-  stage: check
+cpp-code-changes:
+  extends: .check
   tags:
     - linux
-  # switch off cloning any code
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
-    GIT_STRATEGY: none
   rules:
-    # this job should match and ensure we build
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
       when: always
+      allow_failure: true
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+      when: manual
       allow_failure: true
   script:
     - /merge/request/ and /the/code/has/changed
