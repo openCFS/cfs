@@ -99,7 +99,6 @@ workflow:
     GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
   cache: {} # disable
-  when: never # do not create job if not explicitly requested
 
 # Check the revision of the testsuite submodule
 .Testsuite_changes: &Testsuite_changes
@@ -125,6 +124,7 @@ testsuite-revision:
       <<: *Testsuite_changes
       when: manual
       allow_failure: true
+    - when: never
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
     - echo "The Testsuite in $CI_COMMIT_REF_NAME has changes compared to master!"
@@ -151,6 +151,7 @@ markdown-link-check:
     - if: $CFS_PIPELINE_TYPE == "manual"
       when: manual
       allow_failure: true # do not prevent merge
+    - when: never
   script:
     - markdown-link-check README.md
     - markdown-link-check CONTRIBUTING.md
@@ -182,6 +183,7 @@ pipeline-changes:
       <<: *pipeline_changes
       when: manual
       allow_failure: true
+    - when: never
   before_script:
     - echo $CI_MERGE_REQUEST_TARGET_BRANCH_NAME 
     - git diff remotes/origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME -- .gitlab-ci.yml || git diff HEAD~1 -- .gitlab-ci.yml
@@ -196,6 +198,7 @@ runner-debug:
     - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
       when: manual
       allow_failure: true
+    - when: never
   script:
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
@@ -226,6 +229,7 @@ skip-build:
     - if: $CI_COMMIT_MESSAGE =~ /skip-build/ && $CFS_PIPELINE_TYPE == "manual"
       when: manual
       allow_failure: true
+    - when: never
   script:
     - /commit/message/contained/skip-build
 
@@ -253,6 +257,7 @@ cpp-code-changes:
       <<: *require-rebuild-changes
       when: manual
       allow_failure: true
+    - when: never
   script:
     - /merge/request/ and /the/code/has/changed
 
