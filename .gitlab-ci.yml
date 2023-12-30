@@ -1477,7 +1477,6 @@ pages:
 
 .package-release_common: &package-release_common
   stage: deploy
-  image: curlimages/curl:latest
   variables:
     # switch off cloning any code and add common variables
     GIT_SUBMODULE_STRATEGY: none
@@ -1498,6 +1497,7 @@ pages:
 
 repack-release: # publish release packages (when a tag is pushed)
   extends: .package-release_common
+  image: alpine
   script:
     # debug
     - echo "CI_COMMIT_TAG=$CI_COMMIT_TAG"
@@ -1507,7 +1507,7 @@ repack-release: # publish release packages (when a tag is pushed)
     - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
     - tar -czvf "build/${LINUX_ARCHIVE}" CFS-$CI_COMMIT_TAG-Linux # repack
     # windows
-    - apk add zip # install zip
+    - apk add --no-cache zip # install zip
     - unzip "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract
     - mv "CFS-$CI_COMMIT_SHA-win64" "CFS-$CI_COMMIT_TAG-Windows" # rename
     - zip -r -9 "build/${WINDOWS_ARCHIVE}" CFS-$CI_COMMIT_TAG-Windows # repack
@@ -1518,6 +1518,7 @@ repack-release: # publish release packages (when a tag is pushed)
 
 package: # publish package for default branch
   extends: .package-release_common
+  image: curlimages/curl:latest
   rules:
     # if it is a tag, we repack the archives such that the top-level-directory is called CFS-<TAG>-<platform>.<ext>
     - if: $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"
@@ -1536,7 +1537,7 @@ package: # publish package for default branch
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "build/${WINDOWS_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
 
 release:
-  <<: *package-release_common
+  extends: .package-release_common
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
     - package
