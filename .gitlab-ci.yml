@@ -46,6 +46,10 @@ stages:
 workflow:
   name: "$CFS_PIPELINE_NAME"
   rules:
+  - if: $CI_COMMIT_TAG && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
+    variables:
+      CFS_PIPELINE_TYPE: "release"
+      CFS_PIPELINE_NAME: "release test $CI_COMMIT_TAG"
   # We want pipelines to 'test' for merge requests
   # set to manual if the merge request title start with Draft:
   - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/'
@@ -269,18 +273,19 @@ cpp-code-changes:
 # all jobs in the stage have no needs, and are manual (one can start them by the play-button)
 
 # Template for the platform builds
-.platform:image:
+.platform:
   stage: platform
   tags:
     - docker
   after_script: []
   rules:
-    # set variable PLATFORM to activate the job
-    - if: $PLATFORM
+    # set variable PLATFORM to activate the job for test or nightly pipelines
+    - if: $PLATFORM && ( CFS_PIPELINE_TYPE == "test" || CFS_PIPELINE_TYPE == "nightly" ) 
       when: on_success
-    - if: $CI_COMMIT_BRANCH || $CI_MERGE_REQUEST_IID # this should match always, setting the job to manual
+    - if: CFS_PIPELINE_TYPE == "test" || CFS_PIPELINE_TYPE == "manual"
       when: manual
-      allow_failure: true # maybe we need this to not stop the pipeline if the manual job is not triggered
+      allow_failure: true # we need this to not stop the pipeline if the manual job is not triggered
+    - when: never
   # disable cache
   cache: {}
   # switch off cloning the Testsuite submodule
@@ -317,7 +322,7 @@ cpp-code-changes:
 # fedora releases, see https://hub.docker.com/_/fedora
 # latest stable release
 fedora:latest:
-  extends: .platform:image
+  extends: .platform
   image:
     name: fedora:latest
     entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
@@ -327,7 +332,7 @@ fedora:latest:
 
 # latest development release
 fedora:rawhide:
-  extends: .platform:image
+  extends: .platform
   image:
     name: fedora:rawhide
     entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
@@ -338,7 +343,7 @@ fedora:rawhide:
 # ubuntu releases, see https://hub.docker.com/_/ubuntu
 # latest LTS release 
 ubuntu:latest:
-  extends: .platform:image
+  extends: .platform
   image: ubuntu:latest
   variables:
     IMAGE: "ubuntu"
@@ -346,7 +351,7 @@ ubuntu:latest:
 
 # the latest stable release, regardless of LTS status
 ubuntu:rolling:
-  extends: .platform:image
+  extends: .platform
   image:
     name: ubuntu:rolling
     entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] # workaround due to bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
@@ -356,7 +361,7 @@ ubuntu:rolling:
 
 # older LTS releases ...
 ubuntu:20.04:
-  extends: .platform:image
+  extends: .platform
   image: ubuntu:20.04
   variables:
     IMAGE: "ubuntu"
@@ -365,7 +370,7 @@ ubuntu:20.04:
 # debian releases, see https://hub.docker.com/_/debian
 # latest stable release (dynamic image name)
 debian:latest:
-  extends: .platform:image
+  extends: .platform
   image: debian:latest
   variables:
     IMAGE: "debian"
@@ -373,7 +378,7 @@ debian:latest:
 
 # older releases ...
 debian:10: # (buster)
-  extends: .platform:image
+  extends: .platform
   image: debian:10
   variables:
     IMAGE: "debian"
@@ -382,7 +387,7 @@ debian:10: # (buster)
 # RHEL derivatives
 # centos 7, see https://hub.docker.com/_/centos, probably not maintained any more
 rhel:7:
-  extends: .platform:image
+  extends: .platform
   image: centos:7
   variables:
     IMAGE: "centos"
@@ -390,7 +395,7 @@ rhel:7:
 
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
 rhel:8:
-  extends: .platform:image
+  extends: .platform
   image: rockylinux:8
   variables:
     IMAGE: "rockylinux"
@@ -398,7 +403,7 @@ rhel:8:
 
 # rockylinux 9, see https://hub.docker.com/_/rockylinux
 rhel:9:
-  extends: .platform:image
+  extends: .platform
   image: rockylinux:9
   variables:
     IMAGE: "rockylinux"
@@ -416,17 +421,49 @@ rhel:9:
 # it is stored as a zip archive and extracted before each stage - this takes time,
 # thus we combine the build and configure step
 # the key is used to define which cache is used for which job.
-.cache_cfsdeps: &cache_cfsdeps
+
+# requires disabling od seperate branches
+# see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+.cache_cfsdeps-gcc7: &cache_cfsdeps-gcc7
   cache:
-    key: ${CI_COMMIT_REF_NAME}
-    paths:
-      - build/cfsdeps/cache
+    - key: cfsdeps-precompiled-gcc7-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        - cfsdeps-precompiled-gcc7-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
+.cache_cfsdeps-gcc12: &cache_cfsdeps-gcc12
+    - key: cfsdeps-precompiled-gcc12-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        - cfsdeps-precompiled-gcc12-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
 # seperate cache for intel, since shared runners need to save space
 .cache_cfsdeps-intel: &cache_cfsdeps-intel
   cache:
-    key: ${CI_COMMIT_REF_NAME}-intel
-    paths:
-      - build/cfsdeps/cache
+    - key: cfsdeps-precompiled-intel-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        # requires disabling od seperate branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-precompiled-intel-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        # requires disabling od seperate branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
 
 .before-script-build: &before-script-build
   # make sure the Testsuite submodule is OK
@@ -454,36 +491,31 @@ rhel:9:
 
 .build_rules: &build_rules
   rules:
-    # activate builds in schedule (nightly builds)
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    # skip builds by commit message
-    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/'
-      when: manual
-      allow_failure: true
-    # set to manual if the merge request title start with Draft:
-    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/'
-      when: manual
-      allow_failure: false
-    # this job should match and ensure we build
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    # we only do builds when they are necessary
+    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE !~ /skip-build/
       <<: *require-rebuild-changes
-      when: on_success
-      allow_failure: false
-    # set build jobs to manual if we do not have changes in source files
-    - when: manual
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+      when: manual
       allow_failure: true
+    # nightly always builds
+    - if: $CFS_PIPELINE_TYPE == "nightly"
+    # otherwise no builds
+    - when: never
 
 .release_build_rules: &release_build_rules
   rules:
-    # always activate this job for the default branch
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: on_success
-      allow_failure: false
-    # always activate this job for tags on the default branch (releases)
-    - if: $CI_COMMIT_TAG # && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # remove the comment to run only for tags on master
-      when: on_success
-      allow_failure: false
+    - if: $CFS_PIPELINE_TYPE == "release"
     - !reference [.build_rules, rules]
+
+# define when cfsdeps need to be rebuilt based on changes
+.cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
+  # changes that require the cfsdeps to be re-built
+  changes:
+    paths:
+      - "cfsdeps/**/*"
+      - "cmake_modules/FindCFSDEPS.cmake"
+    compare_to: 'refs/heads/master'
 
 .cfsdeps:default: &cfsdeps_default
   stage: cfsdeps
@@ -493,6 +525,13 @@ rhel:9:
   variables:
     GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+  rules:
+    - if: CFS_PIPELINE_TYPE == "test"
+      <<: *cfsdeps-rebuild-changes
+    - if: CFS_PIPELINE_TYPE == "manual"
+      <<: *cfsdeps-rebuild-changes
+      when: manual
+    - when: never
   before_script:
     - pwd # debug
     - *before-script-build
@@ -507,7 +546,7 @@ rhel:9:
 
 cfsdeps:gcc7:
   image: opencfs/centos6-gcc7
-  <<: [*cfsdeps_default, *cache_cfsdeps, *release_build_rules]
+  <<: [*cfsdeps_default, *cache_cfsdeps-gcc7, *release_build_rules]
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_7*.zip
@@ -516,7 +555,7 @@ cfsdeps:gcc7:
 
 cfsdeps:gcc12:
   image: opencfs/fedora37
-  <<: [*cfsdeps_default, *cache_cfsdeps, *build_rules]
+  <<: [*cfsdeps_default, *cache_cfsdeps-gcc12, *build_rules]
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_12*.zip
@@ -707,7 +746,9 @@ linux:gcc7max-debug:
     BUILD_NAME: "GCC7 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
   <<: [*max_rules, *gcc_before, *cache_cfsdeps]
-  needs: ["cfsdeps:gcc7"]
+  needs: 
+    - job: cfsdeps:gcc7
+      optional: true
 
 # maximal build using as many options as possible
 linux:gcc7max:
@@ -720,7 +761,9 @@ linux:gcc7max:
     BUILD_NAME: "GCC7 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
   <<: [*max_rules, *gcc_before, *cache_cfsdeps]
-  needs: ["cfsdeps:gcc7"]
+  needs: 
+    - job: cfsdeps:gcc7
+      optional: true
 
 # this is the offcial release buils
 linux:gcc7:
@@ -732,7 +775,9 @@ linux:gcc7:
   variables:
     BUILD_NAME: "GCC7"
   <<: [*release_build_rules, *gcc_before, *cache_cfsdeps]
-  needs: ["cfsdeps:gcc7"]
+  needs: 
+    - job: cfsdeps:gcc7"
+      optional: true
 
 linux:gcc7min:
   extends: .default_build_job
@@ -744,7 +789,9 @@ linux:gcc7min:
     BUILD_NAME: "GCC7 minimal"
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
   <<: [*build_rules, *gcc_before, *cache_cfsdeps]
-  needs: ["cfsdeps:gcc7"]
+  needs:
+    - job: cfsdeps:gcc7
+      optional: true
 
 linux:gcc12:
   extends: .default_build_job
@@ -754,8 +801,10 @@ linux:gcc12:
     - docker
   variables:
     BUILD_NAME: "GCC12"
-  <<: [*build_rules, *gcc_before, *cache_cfsdeps]
-  needs: ["cfsdeps:gcc12"]
+  <<: [*build_rules, *gcc_before, *cache_cfsdeps-gcc12]
+  needs: 
+    - job: cfsdeps:gcc12
+      optional: true
 
 # intel compiler builds
 linux:intel:
@@ -772,7 +821,9 @@ linux:intel:
       allow_failure: true
     - !reference [.build_rules, rules]
   <<: [*intel_before,*cache_cfsdeps-intel]
-  needs: ["cfsdeps:intel"]
+  needs:
+    - job: cfsdeps:intel
+      optional: true
 
 # LLVM clang compiler builds
 linux:clang-debug:
@@ -795,7 +846,18 @@ linux:clang-debug:
     # general build before script
     - *before-script-build
   # artifacts are not needed long since no tests are done for this job
-  <<: [*build_artifacs_short, *cache_cfsdeps]
+  <<: [*build_artifacs_short]
+  cache:
+    - key: cfsdeps-precompiled-Clang-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled
+      fallback_keys:
+        - cfsdeps-precompiled-Clang-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
   needs: []
 
 # build with ninja
@@ -820,8 +882,10 @@ linux:gcc12:ninja:
   after_script:
     - ls -la
   when: manual
-  <<: [*build_artifacs_short, *cache_cfsdeps]
-  needs: ["cfsdeps:gcc12"]
+  <<: [*build_artifacs_short, *cache_cfsdeps-gcc12]
+  needs: 
+    - job: cfsdeps:gcc12
+      optional: true
 
 # windows build
 windows:MSVC2019-Ifort2021:
@@ -895,6 +959,11 @@ windows:MSVC2019-Ifort2021:
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" 
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+    - when: never
   before_script:
     - mkdir -p build
     - cd build # descend in build
@@ -1031,7 +1100,7 @@ stable_par:gcc7closed:linux:
     - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
       when: never
     - !reference [.build_rules, rules]
-  <<: [*gcc_before,*cache_cfsdeps]
+  <<: [*gcc_before,*cache_cfsdeps-gcc7]
   script:
     ## BUILD STAGE
     - echo "CFS_CONFIG_OPTIONS="$CFS_CONFIG_OPTIONS
@@ -1175,21 +1244,17 @@ python:linux:
     - docker
   stage: test
   rules:
-    # activate in schedule (nightly builds)
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    # set to manual if 'skip-python-tests' is found in commit message
-    - if: $CI_COMMIT_MESSAGE =~ /skip-python-tests/
-      when: manual
-      allow_failure: true
+    # activate in schedule
+    - if: $CFS_PIPELINE_TYPE == "nightly"
     # run when we have changes in python files
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CFS_PIPELINE_TYPE == "test"
       changes:
         - "**/*.py"
-      when: on_success
-      allow_failure: false
-    # set build jobs to manual if we do not have changes in relevant files
-    - when: manual
-      allow_failure: true
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      changes:
+        - "**/*.py"
+      when: manual
+    - when: never
   variables:
     TEST_NAME: "stable"
     EXCLUDE: ""
