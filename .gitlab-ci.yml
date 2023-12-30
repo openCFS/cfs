@@ -19,6 +19,7 @@ variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
   GIT_SUBMODULE_STRATEGY: recursive # by default clone the testsuite, switch to 'none' to save time if not required
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
+  CTEST_PROGRESS_OUTPUT: "ON" # makes the ctest output shorter, see https://cmake.org/cmake/help/latest/envvar/CTEST_PROGRESS_OUTPUT.html#envvar:CTEST_PROGRESS_OUTPUT
   # build options for the maximal config
   MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON"
 
