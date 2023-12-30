@@ -1450,26 +1450,46 @@ pages:
   after_script: []
   before_script: []
 
-package:
-  <<: *package-release_common
-  image: curlimages/curl:latest
-  needs:
-    - linux:gcc7
-    - windows:MSVC2019-Ifort2021
-  script:
+repack-release: # publish release packages (when a tag is pushed)
+  extends: .package-release_common
+  before_script:
     # linux
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
-    - tar -czvf "${LINUX_ARCHIVE}" CFS-$CI_COMMIT_TAG-Linux # repack
-    - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${LINUX_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
+    - tar -czvf "build/${LINUX_ARCHIVE}" CFS-$CI_COMMIT_TAG-Linux # repack
     # windows
     - apk add zip # install zip
     - unzip "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract
     - mv "CFS-$CI_COMMIT_SHA-win64" "CFS-$CI_COMMIT_TAG-Windows" # rename
-    - zip -r -9 "${WINDOWS_ARCHIVE}" CFS-$CI_COMMIT_TAG-Windows # repack
+    - zip -r -9 "build/${WINDOWS_ARCHIVE}" CFS-$CI_COMMIT_TAG-Windows # repack
+  artifacts:
+    paths:
+      - build/$LINUX_ARCHIVE
+      - build/$WINDOWS_ARCHIVE
+
+package: # publish package for default branch
+  extends: .package-release_common
+  image: curlimages/curl:latest
+  rules:
+    # it it is a tag, we repack such that the directory is called CFS-<TAG>-<platform>.<ext>
+    - if: $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"
+      needs: ['repack-release']
+    # otherwise we publish build artifacts directly
+    - if: '($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH) || ($CI_COMMIT_BRANCH == "pipeline-cosmetics")' # remove or and 
+      variables:
+        LINUX_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz"
+        WINDOWS_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
+        PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/openCFS/${CI_COMMIT_REF_SLUG}"
+  script:
+    - echo "publishing ${LINUX_ARCHIVE} and ${WINDOWS_ARCHIVE} to ${PACKAGE_REGISTRY_URL}"
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${WINDOWS_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "build/${LINUX_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "build/${WINDOWS_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
+  needs:
+    - linux:gcc7
+    - windows:MSVC2019-Ifort2021
+
 release:
   <<: *package-release_common
   image: registry.gitlab.com/gitlab-org/release-cli:latest
