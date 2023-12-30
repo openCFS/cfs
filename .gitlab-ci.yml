@@ -280,9 +280,9 @@ cpp-code-changes:
   after_script: []
   rules:
     # set variable PLATFORM to activate the job for test or nightly pipelines
-    - if: $PLATFORM && ( CFS_PIPELINE_TYPE == "test" || CFS_PIPELINE_TYPE == "nightly" ) 
+    - if: $PLATFORM  && ( $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" ) 
       when: on_success
-    - if: CFS_PIPELINE_TYPE == "test" || CFS_PIPELINE_TYPE == "manual"
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       when: manual
       allow_failure: true # we need this to not stop the pipeline if the manual job is not triggered
     - when: never
@@ -517,7 +517,7 @@ rhel:9:
       - "cmake_modules/FindCFSDEPS.cmake"
     compare_to: 'refs/heads/master'
 
-.cfsdeps:default: &cfsdeps_default
+.cfsdeps: &cfsdeps
   stage: cfsdeps
   tags:
     - docker
@@ -526,9 +526,9 @@ rhel:9:
     GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
   rules:
-    - if: CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "test"
       <<: *cfsdeps-rebuild-changes
-    - if: CFS_PIPELINE_TYPE == "manual"
+    - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes
       when: manual
     - when: never
@@ -545,8 +545,9 @@ rhel:9:
   needs: []
 
 cfsdeps:gcc7:
+  extends: .cfsdeps
   image: opencfs/centos6-gcc7
-  <<: [*cfsdeps_default, *cache_cfsdeps-gcc7, *release_build_rules]
+  <<: *cache_cfsdeps-gcc7
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_7*.zip
@@ -554,8 +555,9 @@ cfsdeps:gcc7:
     expire_in: 6 hours
 
 cfsdeps:gcc12:
+  extends: .cfsdeps
   image: opencfs/fedora37
-  <<: [*cfsdeps_default, *cache_cfsdeps-gcc12, *build_rules]
+  <<: *cache_cfsdeps-gcc7
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_12*.zip
@@ -564,8 +566,9 @@ cfsdeps:gcc12:
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
+  extends: .cfsdeps
   image: opencfs/centos7-intel
-  <<: [*cfsdeps_default, *cache_cfsdeps-intel, *build_rules]
+  <<: *cache_cfsdeps-intel
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*Intel*.zip
@@ -862,6 +865,7 @@ linux:clang-debug:
 
 # build with ninja
 linux:gcc12:ninja:
+  extends: .default_build_job
   stage: build
   image: opencfs/fedora37
   tags:
@@ -882,7 +886,7 @@ linux:gcc12:ninja:
   after_script:
     - ls -la
   when: manual
-  <<: [*build_artifacs_short, *cache_cfsdeps-gcc12]
+  #<<: *cache_cfsdeps-gcc12
   needs: 
     - job: cfsdeps:gcc12
       optional: true
