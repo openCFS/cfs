@@ -3958,6 +3958,10 @@ namespace CoupledField {
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
 
+    //we set here the parameter for heatPDE with non conforming interface condition
+    Double alphaHeat = iface.heatTransferCoefficient;
+    WARN("Non conforming interface: alpha=" << alphaHeat);
+
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
     if ( solType == HEAT_TEMPERATURE ) {
