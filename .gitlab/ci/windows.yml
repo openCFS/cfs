@@ -40,6 +40,7 @@
 
 .windwos_output_cdash_links:
   script:
+    # assumes one is in the build directory
     - cat "Testing/*/Done.xml" # debug
     # get the build ID from the Done.xml file
     - $BUILD_ID=(Select-Xml -Path "Testing/*/Done.xml" -XPath "//buildId" | Select-Object -ExpandProperty Node)."#text"
@@ -54,7 +55,7 @@
     # output URLs in job log
     - echo "Build on CDash - $CDASH_BUILD_URL"
     - echo "Tests on CDash - $CDASH_TEST_URL"
- 
+
 # headers for collapsible sections https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
 # for Powershell see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
 .powershell-debug-start_collapsed:
@@ -63,6 +64,24 @@
 .powershell-debug-end:
   script: &powershell-debug-end
     - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output$([char]13)$([char]27)[0K"
+
+.powershell_debug_dir_listing:
+  script:
+    - *powershell-debug-start_collapsed
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\cache" -ErrorAction SilentlyContinue
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build" -ErrorAction SilentlyContinue
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\precompiled" -ErrorAction SilentlyContinue
+    - *powershell-debug-end
+
+.windwos_cdash:
+  after_script:
+    - cd build
+    # submit
+    - ctest -D ExperimentalSubmit --track $CDASH_TRACK
+    # output cdash info
+    - !reference [.windwos_output_cdash_links, script]
+    # debug listing goes last
+    - !reference [.powershell_debug_dir_listing, script]
 
 .windows-shared-build:
   <<: *windows-shared_tags
@@ -110,7 +129,7 @@
     # set git path for tools like patch and diff
     - $env:Path += ";${pwd}/cache/git/usr/bin"
     # info about free space (debug)
-    - Get-Volume
+    - Get-Volume -ErrorAction SilentlyContinue
   script:
     # Create a build directory (might be there already due to cache)
     - New-Item -ItemType Directory -Force -Path build -ErrorAction SilentlyContinue
@@ -126,16 +145,7 @@
         exit $LastExitCode
       }
   after_script:
-    # debug
-    - *powershell-debug-start_collapsed
-    - Get-Volume # info about free space
-    - if((Test-Path cache)) { ls cache }
-    - if((Test-Path build)) { ls build }
-    - if((Test-Path build/cfsdeps/cache/precompiled )) { ls build/cfsdeps/cache/precompiled }
-    - *powershell-debug-end
-    # save build-id and output CDash links - will fail if no dashboard has been started, therefore put it last
-    - cd build
-    - !reference [.windwos_output_cdash_links, script]
+    - !reference [.windwos_cdash,after_script]
 
 ### TESTS ###
 
@@ -151,7 +161,7 @@
   # This is done by https://gitlab.com/mmzakhar/oneapi-ci/ where most of the scripts come from.
   before_script:
     # info about free space (debug)
-    - Get-Volume
+    - Get-Volume -ErrorAction SilentlyContinue
     - ls Testsuite # check if Testsuite has been properly cloned (debug)
     # Create a build directory (might be there already due to cache)
     - New-Item -ItemType Directory -Force -Path build -ErrorAction SilentlyContinue
@@ -167,16 +177,7 @@
     - ./bin/cfs --dependencies config.cmake
   # the script section is defined below: unding variables as command arguments is not working well
   after_script:
-    - *powershell-debug-start_collapsed
-    - Get-Volume
-    - if((Test-Path cache)) { ls cache }
-    - if((Test-Path build)) { ls build }
-    - *powershell-debug-end
-    - cd build
-    # submit the result (also on fail)
-    - ctest -D ExperimentalSubmit --track $CDASH_TRACK
-    # save build-id and output CDash links, shold be easily visible (put it last)
-    - !reference [.windwos_output_cdash_links, script]
+    - !reference [.windwos_cdash,after_script]
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
   # artifacts for debugging
   artifacts:

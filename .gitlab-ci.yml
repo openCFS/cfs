@@ -503,7 +503,7 @@ cfsdeps:MSVC2019-Ifort2021:
   after_script:
     # just debug
     - !reference [.powershell-debug-start_collapsed,script]
-    - ls build/cfsdeps/cache/precompiled
+    - Get-ChildItem -Path build/cfsdeps/cache/precompiled -ErrorAction SilentlyContinue
     - !reference [.powershell-debug-end,script]
   artifacts:
     when: on_success
