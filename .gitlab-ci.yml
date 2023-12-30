@@ -1416,7 +1416,7 @@ pages:
     - cp -r "CFS-$CI_COMMIT_SHA-Linux/share/xml" "public/." # publish XML scheme
     # publish the builds
     - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
-    - mv "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" "public/."
+    # - mv "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" "public/." # windows is too large
     # publish doxygen
     - mkdir -p public/doxygen
     - tar -xzf doxygen-html.tgz -C public/doxygen
@@ -1452,7 +1452,7 @@ pages:
 
 repack-release: # publish release packages (when a tag is pushed)
   extends: .package-release_common
-  before_script:
+  script:
     # linux
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
