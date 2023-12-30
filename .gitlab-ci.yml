@@ -1437,6 +1437,7 @@ pages:
 
 .package-release_common: &package-release_common
   stage: deploy
+  image: curlimages/curl:latest
   variables:
     # switch off cloning any code and add common variables
     GIT_SUBMODULE_STRATEGY: none
@@ -1458,6 +1459,9 @@ pages:
 repack-release: # publish release packages (when a tag is pushed)
   extends: .package-release_common
   script:
+    # debug
+    - echo "CI_COMMIT_TAG=$CI_COMMIT_TAG"
+    - echo "CI_COMMIT_REF_SLUG=$CI_COMMIT_REF_SLUG"
     # linux
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
@@ -1474,13 +1478,12 @@ repack-release: # publish release packages (when a tag is pushed)
 
 package: # publish package for default branch
   extends: .package-release_common
-  image: curlimages/curl:latest
   rules:
-    # it it is a tag, we repack such that the directory is called CFS-<TAG>-<platform>.<ext>
+    # if it is a tag, we repack the archives such that the top-level-directory is called CFS-<TAG>-<platform>.<ext>
     - if: $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"
       needs: ['repack-release']
-    # otherwise we publish build artifacts directly
-    - if: '($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH) || ($CI_COMMIT_BRANCH == "pipeline-cosmetics")' # remove or and 
+    # otherwise we publish build artifacts directly (we edit the variable names to accept default artifacts)
+    - if: ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH) || ($CI_COMMIT_BRANCH == "pipeline-cosmetics") # debug remove or 
       variables:
         LINUX_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz"
         WINDOWS_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
