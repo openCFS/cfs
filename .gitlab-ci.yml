@@ -1449,6 +1449,9 @@ pages:
   cache: {}
   after_script: []
   before_script: []
+  needs:
+    - linux:gcc7
+    - windows:MSVC2019-Ifort2021
 
 repack-release: # publish release packages (when a tag is pushed)
   extends: .package-release_common
@@ -1486,9 +1489,6 @@ package: # publish package for default branch
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "build/${LINUX_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "build/${WINDOWS_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
-  needs:
-    - linux:gcc7
-    - windows:MSVC2019-Ifort2021
 
 release:
   <<: *package-release_common
