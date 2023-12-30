@@ -253,6 +253,7 @@ namespace CoupledField {
       LagrangeMultType  lagrangeMultType;
       Double            nitscheFactor;
       Double            nitscheFactorDamp;
+      Double            heatTransferCoefficient; // parameter for heatPDE with non conforming interface condition
       bool              crossPointHandling;
       bool              movingMortarForm;
     };

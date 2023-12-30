@@ -3497,6 +3497,8 @@ namespace CoupledField {
                           ParamNode::INSERT );
       nciNode->GetValue( "crossPointHandling", newIface.crossPointHandling,
                          ParamNode::INSERT );
+      nciNode->GetValue( "heatTransferCoefficient", newIface.heatTransferCoefficient,
+                         ParamNode::INSERT ); // parameter for heatPDE with non conforming interface condition
 
       if (newIface.crossPointHandling) {
         WARN("Cross-point handling is not implemented yet");
