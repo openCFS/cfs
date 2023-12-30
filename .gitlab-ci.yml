@@ -49,6 +49,8 @@ workflow:
     when: never
   # automatically run if branch name starts with test
   - if: '$CI_COMMIT_BRANCH =~ /^test.*$/'
+  # run if a commit comes to the default branch
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   # run for 'run pipeline' button on web-ui
   - if: '$CI_PIPELINE_SOURCE == "web"'
   # run for schedules
@@ -433,7 +435,7 @@ rhel:9:
       when: on_success
       allow_failure: false
     # always activate this job for tags on the default branch (releases)
-    - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_TAG # && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH # remove the comment to run only for tags on master
       when: on_success
       allow_failure: false
     - !reference [.build_rules, rules]
