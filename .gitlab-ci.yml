@@ -51,7 +51,7 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "release"
       CFS_PIPELINE_NAME: "release test $CI_COMMIT_TAG"
-  - if: $CI_COMMIT_TAG && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
+  - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/  && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
     variables:
       CFS_PIPELINE_TYPE: "release"
       CFS_PIPELINE_NAME: "release test for tag $CI_COMMIT_TAG on branch $CI_COMMIT_BRANCH"
