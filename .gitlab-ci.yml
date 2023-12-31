@@ -55,7 +55,7 @@ workflow:
   # We need pipelines to deploy stuff -> set the 'release' type
   # for tags on the default branch we create releases
   # this will run for accepted merge requests
-  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE !~= /schedule/
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE !~ /schedule/
     variables:
       CFS_PIPELINE_TYPE: "release"
       CFS_PIPELINE_NAME: "Release Pipeline for new commit on $CI_DEFAULT_BRANCH"
