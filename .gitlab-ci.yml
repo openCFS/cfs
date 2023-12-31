@@ -437,6 +437,7 @@ rhel:9:
       fallback_keys:
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
 .cache_cfsdeps-gcc12: &cache_cfsdeps-gcc12
+  cache:
     - key: cfsdeps-precompiled-gcc12-${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/precompiled/
@@ -1182,10 +1183,6 @@ stable_par:intel:linux:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   needs:
     - linux:intel
 
@@ -1199,10 +1196,6 @@ unstable_ser:intel:linux:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
   needs:
     - linux:intel
 
@@ -1401,10 +1394,6 @@ unstable_par:intel:linux:
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
   allow_failure: true
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   needs:
     - linux:intel
 
@@ -1419,10 +1408,6 @@ broken_ser:intel:linux:
     CTEST_OPTIONS: "-L broken"
   <<: *test_generic
   allow_failure: true
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
   needs:
     - linux:intel
 
