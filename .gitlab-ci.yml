@@ -51,7 +51,7 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "release"
       CFS_PIPELINE_NAME: "release test $CI_COMMIT_TAG"
-  - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/  && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
+  - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/  && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" ) # this never triggers
     variables:
       CFS_PIPELINE_TYPE: "release"
       CFS_PIPELINE_NAME: "release test for tag $CI_COMMIT_TAG with format on $CI_COMMIT_BRANCH"
@@ -149,7 +149,6 @@ testsuite-revision:
       <<: *Testsuite_changes
       when: manual
       allow_failure: true
-    - when: never
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
     - echo "The Testsuite in $CI_COMMIT_REF_NAME has changes compared to master!"
@@ -176,7 +175,6 @@ markdown-link-check:
     - if: $CFS_PIPELINE_TYPE == "manual"
       when: manual
       allow_failure: true # do not prevent merge
-    - when: never
   script:
     - markdown-link-check README.md
     - markdown-link-check CONTRIBUTING.md
@@ -208,7 +206,6 @@ pipeline-changes:
       <<: *pipeline_changes
       when: manual
       allow_failure: true
-    - when: never
   before_script:
     - echo $CI_MERGE_REQUEST_TARGET_BRANCH_NAME 
     - git diff remotes/origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME -- .gitlab-ci.yml || git diff HEAD~1 -- .gitlab-ci.yml
@@ -223,7 +220,6 @@ runner-debug:
     - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
       when: manual
       allow_failure: true
-    - when: never
   script:
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
@@ -254,7 +250,6 @@ skip-build:
     - if: $CI_COMMIT_MESSAGE =~ /skip-build/ && $CFS_PIPELINE_TYPE == "manual"
       when: manual
       allow_failure: true
-    - when: never
   script:
     - /commit/message/contained/skip-build
 
@@ -282,7 +277,6 @@ cpp-code-changes:
       <<: *require-rebuild-changes
       when: manual
       allow_failure: true
-    - when: never
   script:
     - /merge/request/ and /the/code/has/changed
 
@@ -306,7 +300,6 @@ cpp-code-changes:
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       when: manual
       allow_failure: true # we need this to not stop the pipeline if the manual job is not triggered
-    - when: never
   # disable cache
   cache: {}
   # switch off cloning the Testsuite submodule
@@ -529,7 +522,6 @@ rhel:9:
     # nightly always builds
     - if: $CFS_PIPELINE_TYPE == "nightly"
     # otherwise no builds
-    - when: never
 
 .release_build_rules: &release_build_rules
   rules:
@@ -559,7 +551,6 @@ rhel:9:
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes
       when: manual
-    - when: never
   before_script:
     - pwd # debug
     - *before-script-build
@@ -609,7 +600,6 @@ cfsdeps:MSVC2019-Ifort2021:
   rules:
     - !reference [.cfsdeps_rebuild_rules,rules]
     # disable the build job because it is optional (subsequent standard build jobs can build cfsdeps too)
-    - when: never
   variables:
     # set the cache policy to pull-push to update the cache
     INSTALL_POLICY: pull-push
@@ -898,6 +888,10 @@ linux:gcc12:ninja:
   image: opencfs/fedora37
   tags:
     - docker
+  rules:
+    # this job is always manual (just for info)
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      when: manual 
   before_script:
      # general build before script
     - *before-script-build
@@ -913,8 +907,6 @@ linux:gcc12:ninja:
     - cpack -G TGZ
   after_script:
     - ls -la
-  when: manual
-  #<<: *cache_cfsdeps-gcc12
   needs: 
     - job: cfsdeps:gcc12
       optional: true
@@ -1275,7 +1267,6 @@ python:linux:
       changes:
         - "**/*.py"
       when: manual
-    - when: never
   variables:
     TEST_NAME: "stable"
     EXCLUDE: ""
@@ -1291,13 +1282,28 @@ python:linux:
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
+  # no needs, just run when build stage is complete
 
 
 #######################################################################
 # TEST_EXTRA STAGE - similar to before, but here we collect everything that is currently not working as intended (everything that is allowed to fail)
 #######################################################################
 
+# the extra stage is irrelevant for the merge request (alloed to fail)
+# therefore we set it to manual by default
+# it should auto-run for nightly tests
+.test_extra:
+  <<: *test_generic
+  # then overwrite rules
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "nightly"
+      allow_failure: true
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true
+
 broken_ser:gcc7min:linux:
+  extends: .test_extra
   tags:
     - linux
   image: opencfs/ubuntu22.04
@@ -1307,25 +1313,25 @@ broken_ser:gcc7min:linux:
     BUILD_NAME: "GCC7 minimal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
-  <<: *test_generic
   allow_failure: true
   needs:
     - linux:gcc7min
 
 # this test has the speciality that it shall run at an unspecified image 
 all_par:gcc7:any-linux:
+  extends: .test_extra
   tags:
     - linux
   stage: test_extra 
   variables:
     BUILD_NAME: "GCC7 default / all parallel any-linux"
     # no special options - we take all default (should be all tests & in parallel if NCPU>1)
-  <<: *test_generic
   allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   needs:
     - linux:gcc7
 
 unstable_par:gcc7max:linux:
+  extends: .test_extra
   tags:
     - docker
   stage: test_extra
@@ -1338,11 +1344,11 @@ unstable_par:gcc7max:linux:
     BUILD_NAME: "GCC7 maximal / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"      
-  <<: *test_generic
   needs:
     - linux:gcc7max
 
 broken_ser:gcc7max:linux:
+  extends: .test_extra
   tags:
     - docker
   stage: test_extra
@@ -1354,14 +1360,14 @@ broken_ser:gcc7max:linux:
   variables:
     BUILD_NAME: "GCC7 maximal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-L broken"      
-  <<: *test_generic
+    CTEST_OPTIONS: "-L broken"
   allow_failure: true
   needs:
     - linux:gcc7max
 
 # debug is compiled without openmp
 no-slow_ser:gcc7max-debug:linux:
+  extends: .test_extra
   tags:
     - docker
   stage: test_extra
@@ -1380,6 +1386,7 @@ no-slow_ser:gcc7max-debug:linux:
     - linux:gcc7max-debug
 
 unstable_par:gcc12:linux:
+  extends: .test_extra
   image: opencfs/fedora37
   tags:
     - docker
@@ -1388,12 +1395,12 @@ unstable_par:gcc12:linux:
     BUILD_NAME: "GCC12 default / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
   allow_failure: true
   needs:
     - linux:gcc12
 
 broken_ser:gcc12:linux:
+  extends: .test_extra
   image: opencfs/fedora37
   tags:
     - docker
@@ -1402,12 +1409,12 @@ broken_ser:gcc12:linux:
     BUILD_NAME: "GCC12 default / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
-  <<: *test_generic
   allow_failure: true
   needs:
     - linux:gcc12
 
 unstable_par:intel:linux:
+  extends: .test_extra
   tags:
     - linux
   image: opencfs/ubuntu22.04
@@ -1416,12 +1423,12 @@ unstable_par:intel:linux:
     BUILD_NAME: Intel2021 default / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
   allow_failure: true
   needs:
     - linux:intel
 
 broken_ser:intel:linux:
+  extends: .test_extra
   tags:
     - linux
   image: opencfs/ubuntu22.04
@@ -1430,20 +1437,19 @@ broken_ser:intel:linux:
     BUILD_NAME: Intel2021 default / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
-  <<: *test_generic
-  allow_failure: true
   needs:
     - linux:intel
 
 broken_ser:MSVC2019-Ifort2021:windows:
   extends: .windows-shared-test
   stage: test_extra
+  rules:
+    - !reference [.test_extra, rules]
   variables:
     BUILD_NAME: MSVC2019-Ifort2021 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_broken, script]
-  allow_failure: true
   needs:
     - windows:MSVC2019-Ifort2021
 
@@ -1461,10 +1467,9 @@ doxygen:
     GIT_SUBMODULE_STRATEGY: none
   rules:
     - if: $CFS_PIPELINE_TYPE == "test"
-    - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CFS_PIPELINE_TYPE == "release" && ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
     - if: $CFS_PIPELINE_TYPE == "manual"
       when: manual
-    - when: never
   before_script:
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
@@ -1502,7 +1507,6 @@ cdash:report:
     - if: $CFS_PIPELINE_TYPE == "manual"
       when: manual # only for info
       allow_failure: true
-    - when: never
   cache: {}
   after_script: []
   before_script: []
