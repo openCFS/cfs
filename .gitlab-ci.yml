@@ -46,10 +46,19 @@ stages:
 workflow:
   name: "$CFS_PIPELINE_NAME"
   rules:
+  #### just for testing
   - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /^.*test$/'
     variables:
       CFS_PIPELINE_TYPE: "release"
       CFS_PIPELINE_NAME: "release test $CI_COMMIT_TAG"
+  - if: $CI_COMMIT_TAG && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
+    variables:
+      CFS_PIPELINE_TYPE: "release"
+      CFS_PIPELINE_NAME: "release test for tag $CI_COMMIT_TAG on branch $CI_COMMIT_BRANCH"
+  - if: $CI_COMMIT_BRANCH == "pipeline-cosmetics"
+    variables:
+      CFS_PIPELINE_TYPE: "release"
+      CFS_PIPELINE_NAME: "master test for commit on branch $CI_COMMIT_BRANCH"
   # We want pipelines to 'test' for merge requests
   # set to manual if the merge request title start with Draft:
   - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/'
