@@ -1296,9 +1296,12 @@ python:linux:
   <<: *test_generic
   # then overwrite rules
   rules:
+    # there should be changes but a user has skipped the build
     - if: $CFS_PIPELINE_TYPE == "nightly"
       allow_failure: true
+    # oly ceate the test is there are changes
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
       when: manual
       allow_failure: true
 
@@ -1338,8 +1341,7 @@ unstable_par:gcc7max:linux:
   image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
-    - when: on_success
-      allow_failure: true
+    - !reference [.test_extra, rules]
   variables:
     BUILD_NAME: "GCC7 maximal / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
@@ -1355,8 +1357,7 @@ broken_ser:gcc7max:linux:
   image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
-    - when: on_success
-      allow_failure: true
+    - !reference [.test_extra, rules]
   variables:
     BUILD_NAME: "GCC7 maximal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1374,8 +1375,7 @@ no-slow_ser:gcc7max-debug:linux:
   image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
-    - when: on_success
-      allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
+    - !reference [.test_extra, rules]
   variables:
     BUILD_NAME: "GCC7 maximal debug / no-slow serial"
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
