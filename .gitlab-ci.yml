@@ -46,39 +46,22 @@ stages:
 workflow:
   name: "$CFS_PIPELINE_NAME"
   rules:
-  #### just for testing
-  - if: $CI_COMMIT_TAG && ( $CI_COMMIT_TAG =~ /^.*test$/ )
-    variables:
-      CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "release test $CI_COMMIT_TAG"
-  - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/  && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" ) # this never triggers
-    variables:
-      CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "release test for tag $CI_COMMIT_TAG with format on $CI_COMMIT_BRANCH"
-  - if: $CI_COMMIT_TAG && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
-    variables:
-      CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "release test for tag $CI_COMMIT_TAG on branch $CI_COMMIT_BRANCH"
-  - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
-    variables:
-      CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "release test for tag $CI_COMMIT_TAG with format"
-  - if: $CI_COMMIT_TAG
-    variables:
-      CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "release test for tag $CI_COMMIT_TAG"
-  - if: $CI_COMMIT_BRANCH == "pipeline-cosmetics"
-    variables:
-      CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "master test for commit on branch $CI_COMMIT_BRANCH"
   # put the most specific rules first - we have a release tag (in the correct format)
+  # tags with 20* should be protected in the GitLab repo settings
   - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
     variables:
       CFS_PIPELINE_TYPE: "release"
       CFS_PIPELINE_NAME: "Release Pipeline for tag $CI_COMMIT_TAG"
+  # We need pipelines to deploy stuff -> set the 'release' type
+  # for tags on the default branch we create releases
+  # this will run for accepted merge requests
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE !~= /schedule/
+    variables:
+      CFS_PIPELINE_TYPE: "release"
+      CFS_PIPELINE_NAME: "Release Pipeline for new commit on $CI_DEFAULT_BRANCH"
   # We want pipelines to 'test' for merge requests
   # set to manual if the merge request title start with Draft:
-  - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/'
+  - if: $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/
     variables:
       CFS_PIPELINE_TYPE: "manual"
       CFS_PIPELINE_NAME: "Manual pipeline for draft merge request $CI_MERGE_REQUEST_IID"    
@@ -88,17 +71,10 @@ workflow:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test Pipeline for merge request $CI_MERGE_REQUEST_IID"
   # do not run branch pipelines if a merge request is open (avoid duplicates)
-  - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+  - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/
     when: never
-  # We need pipelines to deploy stuff -> set the 'release' type
-  # for tags on the default branch we create releases
-  # this will run for accepted merge requests
-  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-    variables:
-      CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "Release Pipeline for new commit on $CI_DEFAULT_BRANCH"
-  # run for schedules
-  - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  # run for schedules - this emulates a commit on a branch
+  - if: $CI_PIPELINE_SOURCE == "schedule"
     variables:
       CFS_PIPELINE_TYPE: "nightly"
       CFS_PIPELINE_NAME: "Scheduled Pipeline for branch $CI_COMMIT_BRANCH"
@@ -889,8 +865,10 @@ linux:gcc12:ninja:
     - docker
   rules:
     # this job is always manual (just for info)
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      when: manual 
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *require-rebuild-changes
+      when: manual
+    - !reference [.build_rules, rules]
   before_script:
      # general build before script
     - *before-script-build
@@ -1465,7 +1443,7 @@ doxygen:
     GIT_SUBMODULE_STRATEGY: none
   rules:
     - if: $CFS_PIPELINE_TYPE == "test"
-    - if: $CFS_PIPELINE_TYPE == "release" && ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH || $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
+    - if: $CFS_PIPELINE_TYPE == "release" && ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH )
     - if: $CFS_PIPELINE_TYPE == "manual"
       when: manual
   before_script:
@@ -1621,7 +1599,7 @@ package: # publish package for default branch
     - if: ( $CFS_PIPELINE_TYPE == "release" ) && $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"
       needs: ['repack-release']
     # otherwise we publish build artifacts directly (we edit the variable names to accept default artifacts)
-    - if: ( $CFS_PIPELINE_TYPE == "release" ) && ( ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH) || ($CI_COMMIT_BRANCH == "pipeline-cosmetics") ) # debug remove or 
+    - if: ( $CFS_PIPELINE_TYPE == "release" ) && ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH )  
       variables:
         LINUX_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz"
         WINDOWS_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
