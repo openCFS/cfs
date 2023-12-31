@@ -46,7 +46,7 @@ stages:
 workflow:
   name: "$CFS_PIPELINE_NAME"
   rules:
-  - if: $CI_COMMIT_TAG && ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" )
+  - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /^.*test$/'
     variables:
       CFS_PIPELINE_TYPE: "release"
       CFS_PIPELINE_NAME: "release test $CI_COMMIT_TAG"
@@ -1438,6 +1438,12 @@ doxygen:
     - docker
   variables:
     GIT_SUBMODULE_STRATEGY: none
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+    - when: never
   before_script:
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
@@ -1469,6 +1475,13 @@ cdash:report:
   variables:
     GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test"
+      allow_failure: true # only for info
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual # only for info
+      allow_failure: true
+    - when: never
   cache: {}
   after_script: []
   before_script: []
@@ -1479,7 +1492,6 @@ cdash:report:
     url: http://movm.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
     auto_stop_in: 1 week
   dependencies: []
-  allow_failure: true # this is an infrmational job and should not stop us from merging
 
 .deploy_rules: &deploy_rules
   only:
@@ -1509,9 +1521,11 @@ pages:
   variables:
     GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
+  rules:
+    # only for release pipelines in our namespace
+    - if: $CFS_PIPELINE_TYPE = "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAMESPACE == "openCFS"
   dependencies:
     - linux:gcc7
-    - windows:MSVC2019-Ifort2021
     - doxygen
   script:
     - mkdir -p public # create public dir
@@ -1527,12 +1541,6 @@ pages:
   artifacts:
     paths:
       - public
-  only:
-    refs:
-      - master # only for refs pushed to master
-    variables:
-      # only deploy on gitlab.com
-      - $CI_PROJECT_NAMESPACE == "openCFS"
   cache: {}
   after_script: []
   before_script: []
@@ -1549,7 +1557,8 @@ pages:
     LINUX_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Linux.tar.gz"
     WINDOWS_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Windows.zip"
   rules:
-    - if: $CI_COMMIT_TAG && ( $CI_PROJECT_NAMESPACE == "openCFS" ) # Run this job when a tag is created
+    # Run this job when a tag is created
+    - if: ( $CFS_PIPELINE_TYPE == "release" ) && $CI_COMMIT_TAG && ( $CI_PROJECT_NAMESPACE == "openCFS" )
   cache: {}
   after_script: []
   before_script: []
@@ -1560,6 +1569,9 @@ pages:
 repack-release: # publish release packages (when a tag is pushed)
   extends: .package-release_common
   image: alpine
+  #rules:
+  #  # repack only for tags
+  #  - $CI_COMMIT_TAG && $CFS_PIPELINE_TYPE == "release" && $CI_PROJECT_NAMESPACE == "openCFS"
   script:
     # debug
     - echo "CI_COMMIT_TAG=$CI_COMMIT_TAG"
@@ -1582,11 +1594,11 @@ package: # publish package for default branch
   extends: .package-release_common
   image: curlimages/curl:latest
   rules:
-    # if it is a tag, we repack the archives such that the top-level-directory is called CFS-<TAG>-<platform>.<ext>
-    - if: $CI_COMMIT_TAG && ( $CI_PROJECT_NAMESPACE == "openCFS" )
+    # if it is a tag, we repack the archives such that the top-level-directory is called CFS-<TAG>-<platform>.<ext> 
+    - if: ( $CFS_PIPELINE_TYPE == "release" ) && $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"
       needs: ['repack-release']
     # otherwise we publish build artifacts directly (we edit the variable names to accept default artifacts)
-    - if: ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH ) || ( $CI_COMMIT_BRANCH == "pipeline-cosmetics" ) # debug remove or 
+    - if: ( $CFS_PIPELINE_TYPE == "release" ) && ( ($CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH) || ($CI_COMMIT_BRANCH == "pipeline-cosmetics") ) # debug remove or 
       variables:
         LINUX_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz"
         WINDOWS_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
