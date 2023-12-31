@@ -1132,7 +1132,9 @@ stable_par:gcc7closed:linux:
     # save buildid
     - *save_cdash_buildid
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/' # regular expression that searches through the job output and extracts the matching line. (\s = whitespace, \d = digit, ? = match 0 or 1 of the preceeding character, % = % sign; see https://docs.gitlab.com/ee/ci/yaml/#coverage for coverage infos)
-  needs: ["cfsdeps:gcc7"]
+  needs:
+    - job: "cfsdeps:gcc7"
+      optional: true
   artifacts:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
