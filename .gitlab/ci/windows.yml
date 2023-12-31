@@ -148,7 +148,9 @@
   # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
   # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
   # setvars.bat scripts might not work. The remedy is to install to the default location.
-  # This is done by https://gitlab.com/mmzakhar/oneapi-ci/ where most of the scripts come from.
+  # This is done by https://gitlab.com/mmzakhar/oneapi-ci/ where most of the scripts come from
+  rules:
+    - !reference [.ctest_default, rules]
   before_script:
     # info about free space (debug)
     - Get-Volume

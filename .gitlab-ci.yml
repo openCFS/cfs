@@ -972,7 +972,6 @@ windows:MSVC2019-Ifort2021:
 .ctest_default: &ctest_default
   rules:
     - !reference [.build_rules, rules]
-    - when: never
   before_script:
     - mkdir -p build
     - cd build # descend in build
