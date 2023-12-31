@@ -518,7 +518,6 @@ rhel:9:
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
       when: manual
-      allow_failure: true
     # nightly always builds
     - if: $CFS_PIPELINE_TYPE == "nightly"
     # otherwise no builds
