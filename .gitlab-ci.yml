@@ -492,9 +492,15 @@ rhel:9:
 
 .build_rules: &build_rules
   rules:
-    # we only do builds when they are necessary
-    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE !~ /skip-build/
+    # there should be changes but a user has skipped the build
+    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
       <<: *require-rebuild-changes
+      when: manual
+      allow_failure: false
+    # builds & tests are required
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *require-rebuild-changes
+    # all manual
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
       when: manual
@@ -749,7 +755,7 @@ linux:gcc7max-debug:
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
-  <<: [*max_rules, *gcc_before, *cache_cfsdeps-gcc7]
+  <<: [ *max_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
   needs: 
     - job: cfsdeps:gcc7
       optional: true
@@ -764,7 +770,7 @@ linux:gcc7max:
   variables:
     BUILD_NAME: "GCC7 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
-  <<: [*max_rules, *gcc_before, *cache_cfsdeps-gcc7]
+  <<: [ *max_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
   needs: 
     - job: cfsdeps:gcc7
       optional: true
@@ -778,7 +784,7 @@ linux:gcc7:
     - docker
   variables:
     BUILD_NAME: "GCC7"
-  <<: [*release_build_rules, *gcc_before, *cache_cfsdeps-gcc7]
+  <<: [ *release_build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
   needs: 
     - job: cfsdeps:gcc7"
       optional: true
@@ -792,7 +798,7 @@ linux:gcc7min:
   variables:
     BUILD_NAME: "GCC7 minimal"
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
-  <<: [*build_rules, *gcc_before, *cache_cfsdeps-gcc7]
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
   needs:
     - job: cfsdeps:gcc7
       optional: true
@@ -805,7 +811,7 @@ linux:gcc12:
     - docker
   variables:
     BUILD_NAME: "GCC12"
-  <<: [*build_rules, *gcc_before, *cache_cfsdeps-gcc12]
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc12 ]
   needs: 
     - job: cfsdeps:gcc12
       optional: true
@@ -824,7 +830,7 @@ linux:intel:
       when: manual
       allow_failure: true
     - !reference [.build_rules, rules]
-  <<: [*intel_before,*cache_cfsdeps-intel]
+  <<: [ *intel_before,*cache_cfsdeps-intel ]
   needs:
     - job: cfsdeps:intel
       optional: true
@@ -850,7 +856,7 @@ linux:clang-debug:
     # general build before script
     - *before-script-build
   # artifacts are not needed long since no tests are done for this job
-  <<: [*build_artifacs_short]
+  <<: [ *build_artifacs_short ]
   cache:
     - key: cfsdeps-precompiled-Clang-${CI_COMMIT_REF_NAME}
       paths:
@@ -965,9 +971,7 @@ windows:MSVC2019-Ifort2021:
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
   rules:
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" 
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      when: manual
+    - !reference [.build_rules, rules]
     - when: never
   before_script:
     - mkdir -p build
