@@ -1,5 +1,10 @@
 # templates for windows jobs
 
+# we used the shared runners on GitLab.com
+# https://docs.gitlab.com/ee/ci/runners/saas/windows_saas_runner.html
+# they are currently in beta state and expected as "Generally Available" sometime in 2025
+# it there are annoying/breaking changes, we can just set all windwos jobs with 'allow_failure: true'
+# preinstalled software: https://gitlab.com/gitlab-org/ci-cd/shared-runners/images/gcp/windows-containers/blob/main/cookbooks/preinstalled-software/README.md
 .windows-shared_tags: &windows-shared_tags
   tags:
   - shared-windows
@@ -35,19 +40,48 @@
 
 .windwos_output_cdash_links:
   script:
+    # assumes one is in the build directory
     - cat "Testing/*/Done.xml" # debug
+    # get the build ID from the Done.xml file
     - $BUILD_ID=(Select-Xml -Path "Testing/*/Done.xml" -XPath "//buildId" | Select-Object -ExpandProperty Node)."#text"
+    - $CDASH_BUILD_URL="http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}"
+    - $CDASH_TEST_URL="http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}"
     - echo "$BUILD_ID" # debug
-    - echo "Build on CDash - http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=$BUILD_ID"
-    - echo "Tests on CDash - http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=$BUILD_ID"
- 
- # headers for collapsible sections, see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
+    # build up annotations JSON file, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
+    - $Tlink=@{}; $Tlink.Add( "label", "CDash Tests" ); $Tlink.Add( "url", $CDASH_TEST_URL )
+    - $Blink=@{}; $Blink.Add( "label", "CDash Build" ); $Blink.Add( "url", $CDASH_BUILD_URL )
+    - $annotations = @{ CDash = @( @{ external_link=$Tlink },@{ external_link=$Blink } ) }
+    - $annotations | ConvertTo-Json -Depth 5 | Out-File -FilePath annotations.json
+    # output URLs in job log
+    - echo "Build on CDash - $CDASH_BUILD_URL"
+    - echo "Tests on CDash - $CDASH_TEST_URL"
+
+# headers for collapsible sections https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
+# for Powershell see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
 .powershell-debug-start_collapsed:
   script: &powershell-debug-start_collapsed
     - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output[collapsed=true]$([char]13)$([char]27)[0KDebug Information (klick to expand)"
 .powershell-debug-end:
   script: &powershell-debug-end
     - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output$([char]13)$([char]27)[0K"
+
+.powershell_debug_dir_listing:
+  script:
+    - *powershell-debug-start_collapsed
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\cache" -ErrorAction SilentlyContinue
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build" -ErrorAction SilentlyContinue
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\precompiled" -ErrorAction SilentlyContinue
+    - *powershell-debug-end
+
+.windwos_cdash:
+  after_script:
+    - cd build
+    # submit
+    - ctest -D ExperimentalSubmit --track $CDASH_TRACK
+    # output cdash info
+    - !reference [.windwos_output_cdash_links, script]
+    # debug listing goes last
+    - !reference [.powershell_debug_dir_listing, script]
 
 .windows-shared-build:
   <<: *windows-shared_tags
@@ -95,7 +129,7 @@
     # set git path for tools like patch and diff
     - $env:Path += ";${pwd}/cache/git/usr/bin"
     # info about free space (debug)
-    - Get-Volume
+    - Get-Volume -ErrorAction SilentlyContinue
   script:
     # Create a build directory (might be there already due to cache)
     - New-Item -ItemType Directory -Force -Path build -ErrorAction SilentlyContinue
@@ -111,16 +145,7 @@
         exit $LastExitCode
       }
   after_script:
-    # debug
-    - *powershell-debug-start_collapsed
-    - Get-Volume # info about free space
-    - if((Test-Path cache)) { ls cache }
-    - if((Test-Path build)) { ls build }
-    - if((Test-Path build/cfsdeps/cache/precompiled )) { ls build/cfsdeps/cache/precompiled }
-    - *powershell-debug-end
-    # save build-id and output CDash links - will fail if no dashboard has been started, therefore put it last
-    - cd build
-    - !reference [.windwos_output_cdash_links, script]
+    - !reference [.windwos_cdash,after_script]
 
 ### TESTS ###
 
@@ -133,10 +158,12 @@
   # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
   # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
   # setvars.bat scripts might not work. The remedy is to install to the default location.
-  # This is done by https://gitlab.com/mmzakhar/oneapi-ci/ where most of the scripts come from.
+  # This is done by https://gitlab.com/mmzakhar/oneapi-ci/ where most of the scripts come from
+  rules:
+    - !reference [.ctest_default, rules]
   before_script:
     # info about free space (debug)
-    - Get-Volume
+    - Get-Volume -ErrorAction SilentlyContinue
     - ls Testsuite # check if Testsuite has been properly cloned (debug)
     # Create a build directory (might be there already due to cache)
     - New-Item -ItemType Directory -Force -Path build -ErrorAction SilentlyContinue
@@ -152,22 +179,14 @@
     - ./bin/cfs --dependencies config.cmake
   # the script section is defined below: unding variables as command arguments is not working well
   after_script:
-    - *powershell-debug-start_collapsed
-    - Get-Volume
-    - if((Test-Path cache)) { ls cache }
-    - if((Test-Path build)) { ls build }
-    - *powershell-debug-end
-    - cd build
-    # submit the result (also on fail)
-    - ctest -D ExperimentalSubmit --track $CDASH_TRACK
-    # save build-id and output CDash links, shold be easily visible (put it last)
-    - !reference [.windwos_output_cdash_links, script]
+    - !reference [.windwos_cdash,after_script]
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/'
   # artifacts for debugging
   artifacts:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
       junit: build/ctest-junit.xml
+      annotations: build/annotations.json
     when: always
 
 .script_windows-test_config-dashboard: &script_windows-test_config-dashboard
