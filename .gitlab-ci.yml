@@ -1154,7 +1154,7 @@ stable_par:gcc12:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: "GCC12 default / stable parallel"
+    BUILD_NAME: "GCC12 / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1167,7 +1167,7 @@ unstable_ser:gcc12:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: "GCC12 default / unstable serial"
+    BUILD_NAME: "GCC12 / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1180,7 +1180,7 @@ stable_par:intel:linux:
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 default / stable parallel
+    BUILD_NAME: Intel2021 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1193,7 +1193,7 @@ unstable_ser:intel:linux:
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 default / unstable serial
+    BUILD_NAME: Intel2021 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1316,7 +1316,7 @@ all_par:gcc7:any-linux:
   tags:
     - linux
   variables:
-    BUILD_NAME: "GCC7 default / all parallel any-linux"
+    BUILD_NAME: "GCC7 / all parallel any-linux"
     # no special options - we take all default (should be all tests & in parallel if NCPU>1)
   needs:
     - linux:gcc7
@@ -1376,7 +1376,7 @@ unstable_par:gcc12:linux:
   tags:
     - docker
   variables:
-    BUILD_NAME: "GCC12 default / unstable parallel"
+    BUILD_NAME: "GCC12 / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1388,7 +1388,7 @@ broken_ser:gcc12:linux:
   tags:
     - docker
   variables:
-    BUILD_NAME: "GCC12 default / broken serial"
+    BUILD_NAME: "GCC12 / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1400,7 +1400,7 @@ unstable_par:intel:linux:
     - linux
   image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: Intel2021 default / unstable parallel
+    BUILD_NAME: Intel2021 / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1412,7 +1412,7 @@ broken_ser:intel:linux:
     - linux
   image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: Intel2021 default / broken serial
+    BUILD_NAME: Intel2021 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
