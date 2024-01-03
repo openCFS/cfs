@@ -314,6 +314,9 @@ set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib CACHE INTERNAL "Single output dire
 # this ensures dynamically linked libraries are found
 # check the set value with `chrpath -l bin/cfs` (Linux) or 'otool -l bin/cfs' (macOS) 
 set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+set(CMAKE_BUILD_RPATH "$ORIGIN/../lib") # this is needed such that origin is first
+set(CMAKE_INSTALL_REMOVE_ENVIRONMENT_RPATH TRUE) # should remove oneapi stuff, but does not seem to work
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib") # for some reason this seems to be ignored because rpath remains the same after install
 
 # Set path where executables should go
 set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")
@@ -559,6 +562,8 @@ install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISS
   PATTERN "*.la" EXCLUDE
   PATTERN "*.pc" EXCLUDE
   PATTERN "*.lib" EXCLUDE
+  PATTERN "*.cmake" EXCLUDE
+  PATTERN "*.in" EXCLUDE
   PATTERN "pkgconfig" EXCLUDE )
 # license install
 file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
