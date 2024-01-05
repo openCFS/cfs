@@ -3960,14 +3960,14 @@ namespace CoupledField {
 
     //we set here the parameter for heatPDE with non conforming interface condition
     Double alphaHeat = iface.heatTransferCoefficient;
-    if (solType == HEAT_TEMPERATURE && alphaHeat > 0. ){
+    if (solType == HEAT_TEMPERATURE && alphaHeat > 0.0 ){
       WARN("Non conforming interface with jump condition defined: alpha=" << alphaHeat);
     }
     
 
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
-    if ( solType == HEAT_TEMPERATURE ) {
+    if ( solType == HEAT_TEMPERATURE && alphaHeat == 0.0) {
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
     }
     else if ( solType == ELEC_POTENTIAL && pdename_  != "elecQuasistatic") {
