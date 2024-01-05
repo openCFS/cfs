@@ -3960,7 +3960,10 @@ namespace CoupledField {
 
     //we set here the parameter for heatPDE with non conforming interface condition
     Double alphaHeat = iface.heatTransferCoefficient;
-    WARN("Non conforming interface: alpha=" << alphaHeat);
+    if (solType == HEAT_TEMPERATURE && alphaHeat > 0. ){
+      WARN("Non conforming interface with jump condition defined: alpha=" << alphaHeat);
+    }
+    
 
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
@@ -4159,10 +4162,18 @@ namespace CoupledField {
                 factor, beta, curcpl, updatedGeo_, true, true);
         }
       }else{
-        penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              factor, beta, curcpl, updatedGeo_, true, true);
+        if( solType == HEAT_TEMPERATURE && alphaHeat > 0. ){ // heat conduction coupling with temp. jump condition
+          penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double> // Nitsche term
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, alphaHeat * -1.0, curcpl, updatedGeo_, true, true);
+        }
+        else{
+          penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+            (new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeHCurl,DIM,D_DOF>(),
+                factor, beta, curcpl, updatedGeo_, true, true);
+        }
       }
 
     }
@@ -4197,10 +4208,18 @@ namespace CoupledField {
     	    }
 
           }else{
-            flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
-                 ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                   new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                   factor, -1.0, curcpl, updatedGeo_, true);
+            if( solType == HEAT_TEMPERATURE && alphaHeat > 0. ){ // heat conduction coupling with temp. jump condition
+              flux_du1_v1 = new SurfaceNitscheABInt<Double,Double> // flux term
+                  ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    factor, 0.0, curcpl, updatedGeo_, true);
+            }
+            else{
+              flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
+                  ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    factor, -1.0, curcpl, updatedGeo_, true);
+            }
           }
     	}
     }
@@ -4235,10 +4254,18 @@ namespace CoupledField {
           }
 
           }else{
-            flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
-                (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                   new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                   factor, -1.0, curcpl, updatedGeo_, true);
+            if( solType == HEAT_TEMPERATURE && alphaHeat > 0. ){ // heat conduction coupling with temp. jump condition
+              flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double> // flux term
+                  (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                    factor, 0.0, curcpl, updatedGeo_, true);
+            }
+            else{
+              flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
+                  (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                    factor, -1.0, curcpl, updatedGeo_, true);
+            }
           }
     	}
     }
@@ -4268,10 +4295,18 @@ namespace CoupledField {
           }
 
         }else{
-          penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-                ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                  factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+          if( solType == HEAT_TEMPERATURE && alphaHeat > 0. ){ // heat conduction coupling with temp. jump condition
+            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double> // coupling term
+                  ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    factor, alphaHeat, curcpl, updatedGeo_, true, true);
+          }
+          else{
+            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+                  ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                    factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+          }
         }
 
     }
@@ -4307,10 +4342,18 @@ namespace CoupledField {
           }
 
         }else{
-          flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
-             (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              factor, 1.0, curcpl, updatedGeo_, true);
+          if( solType == HEAT_TEMPERATURE && alphaHeat > 0. ){ // heat conduction coupling with temp. jump condition
+            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double> // flux term
+              (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, 0.0, curcpl, updatedGeo_, true);
+          }
+          else{
+            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+              (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, 1.0, curcpl, updatedGeo_, true);
+          }
         }
     	}
     }
@@ -4340,10 +4383,18 @@ namespace CoupledField {
         }
 
       }else{
-        penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-                ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                  factor, beta, curcpl, updatedGeo_, true, true);
+        if( solType == HEAT_TEMPERATURE && alphaHeat > 0. ){ // heat conduction coupling with temp. jump condition
+          penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double> // Nitsche term
+              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, alphaHeat * -1.0, curcpl, updatedGeo_, true, true);
+        }
+        else{
+          penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+                factor, beta, curcpl, updatedGeo_, true, true);
+        }
       }
 
     }
