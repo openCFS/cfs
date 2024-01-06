@@ -842,7 +842,7 @@
             default="Mortar"/>
           <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100"/>
           <xsd:attribute name="nitscheFactorDamping" type="xsd:double" use="optional" default="1e-2"/>
-          <xsd:attribute name="heatTransferCoefficient" type="xsd:double" use="optional" default="0"/>
+          <xsd:attribute name="heatTransferCoefficient" type="xsd:double" use="optional" default="0.0"/>
           <xsd:attribute name="lagrangeMultType" use="optional" default="standard">          
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
