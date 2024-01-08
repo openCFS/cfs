@@ -58,18 +58,18 @@ workflow:
   - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE !~ /schedule/
     variables:
       CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "Release for new commit on $CI_DEFAULT_BRANCH"
+      CFS_PIPELINE_NAME: "Release for ${CI_DEFAULT_BRANCH}: $CI_COMMIT_TITLE"
   # We want pipelines to 'test' for merge requests
   # set to manual if the merge request title start with Draft:
   - if: $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/
     variables:
       CFS_PIPELINE_TYPE: "manual"
-      CFS_PIPELINE_NAME: "Manual for draft merge request $CI_MERGE_REQUEST_IID"    
+      CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
   # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
     variables:
       CFS_PIPELINE_TYPE: "test"
-      CFS_PIPELINE_NAME: "Test for merge request $CI_MERGE_REQUEST_IID"
+      CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
@@ -77,12 +77,12 @@ workflow:
   - if: $CI_PIPELINE_SOURCE == "schedule"
     variables:
       CFS_PIPELINE_TYPE: "nightly"
-      CFS_PIPELINE_NAME: "Scheduled for branch $CI_COMMIT_BRANCH"
+      CFS_PIPELINE_NAME: "Scheduled for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
   # automatically run if branch name starts or ends with test or is scheduled
   - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
     variables:
       CFS_PIPELINE_TYPE: "test"
-      CFS_PIPELINE_NAME: "Test for branch $CI_COMMIT_BRANCH"
+      CFS_PIPELINE_NAME: "Test for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
   # when no rule triggers, no pipeline is created
 
 #################################################
