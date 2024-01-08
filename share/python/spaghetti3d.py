@@ -946,7 +946,7 @@ class Spaghetti:
   def setup_fe_list(self):
     self.fe_list_intermediate = []
     self.fe_list_full = []
-    if self.alpha < 1e-10:
+    if self.alpha < 1e-15:
       return
     bbox_min, bbox_max = self.get_bounding_box()
     fe_min = np.maximum(np.array(np.floor((bbox_min-glob.box_lower)/glob.dx)-1,dtype=int),0)

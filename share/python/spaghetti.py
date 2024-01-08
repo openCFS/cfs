@@ -1947,7 +1947,13 @@ def eval_l2(var_all, arg): # args = [density_track, save_figures]
   des = cfs_map_to_design()
   if arg[1]:
     ot.write_density_file('giffiles/dens' + str(glob.iter).zfill(4) + '.density.xml', np.reshape(des, (glob.n[0],glob.n[1]), 'F'))
-  return np.sum((des - arg[0].reshape(np.prod(glob.n), order='F'))**2)
+  dens_track = arg[0]
+  if len(glob.design) > 1:
+    angle = des[0]
+    des = des[1]
+    angletrack = np.sum(des*(1-(angle*args[0][1])**2))
+    dens_track = arg[0][0]
+  denstrack = np.sum((des - dens_track.reshape(np.prod(glob.n), order='F'))**2)
 
 # gradient for L2 tracking optimization
 def grad_l2(var_all, arg): # args = [density_track, save_figures]
