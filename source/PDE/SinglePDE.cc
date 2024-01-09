@@ -442,6 +442,16 @@ namespace CoupledField {
         fncIt++;
       }
     }
+    //! Define step solution driver
+    if ( isDirectCoupled_ == false ) {
+      LOG_TRACE(singlepde) << pdename_ << ": Defining solveStep class";
+      DefineSolveStep();
+
+      // check if solve step was defined
+      if(! solveStep_) {
+        EXCEPTION("No solveStep object defined for PDE '" << pdename_ << "'");
+      }
+    }
 
     // =====================================================================
     // define which solution types have to be saved
@@ -456,16 +466,6 @@ namespace CoupledField {
       ReadSensorArrayResults();
     }
 
-    //! Define step solution driver
-    if ( isDirectCoupled_ == false ) {
-      LOG_TRACE(singlepde) << pdename_ << ": Defining solveStep class";
-      DefineSolveStep();
-
-      // check if solve step was defined
-      if(! solveStep_) {
-        EXCEPTION("No solveStep object defined for PDE '" << pdename_ << "'");
-      }
-    }
 
     // =====================================================================
     // Set the initial conditions

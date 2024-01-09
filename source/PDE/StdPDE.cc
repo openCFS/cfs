@@ -344,6 +344,7 @@ namespace CoupledField {
 
   BaseSolveStep * StdPDE::GetSolveStep()
   {
+    assert(solveStep_!=nullptr);
     return solveStep_;
   }
 
