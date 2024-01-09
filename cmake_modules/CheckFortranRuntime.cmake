@@ -179,17 +179,27 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel") # ifort and ifx
     if(DEBUG)
       list(APPEND INTEL_DLLS libifcoremdd.dll libmmdd.dll)
     endif()
+
+    set(IFORT_DLL_PATHS
+      "$ENV{ONEAPI_ROOT}/compiler/latest/bin"
+      "${INTEL_COMPILER_DIR}"
+      "${INTEL_BASE}/redist/intel64_win/compiler"
+    )
   
-    if(INTEL_COMPILER_DIR MATCHES "2024.0" OR CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 2024) # new oneAPI Unified Directory Layout (even with old ifort 2021)
-      set(INTEL_REDIST_DIR "${INTEL_COMPILER_DIR}")
-    else() # probalby old directory structure
-      set(INTEL_REDIST_DIR "${INTEL_BASE}/redist/intel64_win/compiler")
-    endif()
+    message(STATUS "searching in IFORT_DLL_PATHS=${IFORT_DLL_PATHS}")
+   
     
     # Windows requires the libs in bin
-    message(STATUS "Copying Intel redistributable files from ${INTEL_REDIST_DIR} to ${CFS_BINARY_DIR}/bin")
-    foreach(LIB IN LISTS INTEL_DLLS)
-      file(INSTALL ${INTEL_REDIST_DIR}/${LIB} DESTINATION ${CFS_BINARY_DIR}/bin)
+    # message(STATUS "Copying Intel redistributable files from ${INTEL_REDIST_DIR} to ${CFS_BINARY_DIR}/bin")
+    foreach(lib IN LISTS INTEL_DLLS)
+      find_file(${lib}_path NAMES "${lib}" PATHS ${IFORT_DLL_PATHS} NO_CACHE)
+      if(NOT "${${lib}_path}" MATCHES "NOTFOUND")
+        install(PROGRAMS ${${lib}_path} DESTINATION "bin")
+        message(STATUS "  ${lib} will be installed from ${${lib}_path} via cpack")
+      else()
+        message(WARNING "  ${lib} not found!")
+      endif()
+      #file(INSTALL ${INTEL_REDIST_DIR}/${LIB} DESTINATION ${CFS_BINARY_DIR}/bin)
     endforeach()
   endif() # WIN32
 endif() # Intel Fortran compilers ifort and ifx
