@@ -2132,6 +2132,7 @@ namespace CoupledField{
     // ==============================================
     
     // === DENSITY ===
+    // Density \rho_{\mathrm{a}} = {\frac{p_{\mathrm{a}}} {c^{2}}}
     shared_ptr<ResultInfo> density ( new ResultInfo );
     density->resultType = ELEM_DENSITY;
     density->dofNames = "";
@@ -2144,6 +2145,7 @@ namespace CoupledField{
     DefineFieldResult(densFct, density);
     
     // === SPEED OF SOUND ===
+    // Speed of sound c = \sqrt{\kappa \frac{p_0} {\rho_0}} = \sqrt{\kappa R T_{0}}
     shared_ptr<ResultInfo> sos ( new ResultInfo );
     sos->resultType = ACOU_ELEM_SPEED_OF_SOUND;
     sos->dofNames = "";
@@ -2208,6 +2210,10 @@ namespace CoupledField{
     }
 
     // === PRESSURE / POTENTIAL - 1.DERIVATIVE ===
+    // first time derivative of potential 
+    // \frac{\partial \psi_mathrm{a}} {\partial t} or j \omega \psi_mathrm{a}
+    // or of pressure 
+    // \frac{\partial p_{\mathrm{a}}} {\partial t} or j \omega p_{\mathrm{a}}
     shared_ptr<ResultInfo> deriv1(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
       deriv1->resultType = ACOU_POTENTIAL_DERIV_1;
@@ -2224,6 +2230,10 @@ namespace CoupledField{
     DefineTimeDerivResult( deriv1->resultType, 1, formulation_ );
 
     // === PRESSURE / POTENTIAL - 2.DERIVATIVE ===
+    // second time derivative of potential 
+    // \frac{\partial^{2} \psi_mathrm{a}} {\partial t^{2}} \mathrm or -\omega^{2} \psi_mathrm{a}
+    // or of pressure 
+    // \frac{\partial^{2} p_{\mathrm{a}}} {\partial t^{2}} or -\omega^{2} p_{\mathrm{a}}
     shared_ptr<ResultInfo> deriv2(new ResultInfo);
     if( formulation_ == ACOU_POTENTIAL ) {
       deriv2->resultType = ACOU_POTENTIAL_DERIV_2;
@@ -2291,6 +2301,7 @@ namespace CoupledField{
     // harmonic simulation
     if( formulation_ == ACOU_POTENTIAL || isComplex_ ){
       // === ACOU_PRESSURE ===
+      // Pressure p_{\mathrm{a}} = \rho_{0} {\frac{\partial \psi_mathrm{a}} {\partial t}}
       pres.reset(new ResultInfo);
       pres->resultType = ACOU_PRESSURE;
       pres->dofNames = "";
@@ -2299,6 +2310,7 @@ namespace CoupledField{
       pres->definedOn = ResultInfo::ELEMENT;
       
       // === ACOU_VELOCITY ===
+      // Velocity \bm{v_{\mathrm{a}}} = -\nabla \psi_mathrm{a}
       vel.reset(new ResultInfo);
       vel->resultType = ACOU_VELOCITY;
       vel->dofNames = vecDofNames;
@@ -2315,6 +2327,7 @@ namespace CoupledField{
       pos->definedOn = ResultInfo::ELEMENT;
 
       // === ACOU_NORMAL_VELOCITY ===
+      // Normal velocity v_{\mathrm{a,n}} = - \nabla \psi_mathrm{a} \cdot \bm{n}
       velNormal.reset(new ResultInfo);
       velNormal->resultType = ACOU_NORMAL_VELOCITY;
       velNormal->dofNames = "";
@@ -2323,6 +2336,7 @@ namespace CoupledField{
       velNormal->definedOn = ResultInfo::SURF_ELEM;
       
       // === ACOU_INTENSITY ===
+      // Intensity \bm{\mathrm{I}}_{\mathrm{a}} = p_{\mathrm{a}} \bm{v}_{\mathrm{a}}
       intensity.reset(new ResultInfo);
       intensity->resultType = ACOU_INTENSITY;
       intensity->dofNames = vecDofNames;
@@ -2331,6 +2345,7 @@ namespace CoupledField{
       intensity->definedOn = ResultInfo::ELEMENT;
       
       // === ACOU_SURFINTENSITY ===
+      // Surface intensity \bm{I}_{\mathrm{a,surf}} =  p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
       surfIntensity.reset(new ResultInfo);
       surfIntensity->resultType = ACOU_SURFINTENSITY;
       surfIntensity->dofNames = vecDofNames;
@@ -2339,6 +2354,7 @@ namespace CoupledField{
       surfIntensity->definedOn = ResultInfo::SURF_ELEM;
 
       // === ACOU_NORMAL_INTENSITY ===
+      // Normal intensity I_{\mathrm{a}} = p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
       intensNormal.reset(new ResultInfo);
       intensNormal->resultType = ACOU_NORMAL_INTENSITY;
       intensNormal->dofNames = "";
@@ -2347,6 +2363,7 @@ namespace CoupledField{
       intensNormal->definedOn = ResultInfo::SURF_ELEM;  
       
       // === ACOU_POWER ===
+      // Power P_{\mathrm{a}} = \int_{\Gamma} I_{\mathrm{a}} \ \mathrm{d} \Gamma
       power.reset(new ResultInfo);
       power->resultType = ACOU_POWER;
       power->dofNames = "";
@@ -2361,7 +2378,7 @@ namespace CoupledField{
       //  POTENTENTIAL FORMULATION
       // --------------------------
       // === ACOU_VELOCITY ===
-      // Velocity v = - grad Psi
+      // Velocity \bm{v}_{\mathrm{a}} = -\nabla \psi_mathrm{a}
       if( isComplex_ ) {
         velFctPot.reset(new CoefFunctionBOp<Complex>(feFct, vel, -1.0));
       } else {
@@ -2372,12 +2389,13 @@ namespace CoupledField{
       DefineFieldResult( velFct, vel );
       
       // === ACOU_NORMAL_VELOCITY ===
+      // Normal velocity v_{\mathrm{a,n}} = - \nabla \psi_mathrm{a} \cdot \bm{n}
       velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFctPot;
 
       // === ACOU_INTENSITY ===
-      // Intensity I = p * conj(v)
+      // Intensity \bm{\mathrm{I}}_{\mathrm{a}} = p_{\mathrm{a}} \overline{\bm{v}_{\mathrm{a}}}
       intensFct = 
           CoefFunction::Generate( mp_, part,
                                  CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
@@ -2388,12 +2406,13 @@ namespace CoupledField{
       surfCoefFcts_[sIntens] = intensFct;
       
       // === ACOU_NORMAL_INTENSITY ===
+      // Normal intensity I_{\mathrm{a}} =  p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
       sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
 
       // === ACOU_POWER ===
-      // Power p = \int_Gamma I *n dGamma
+      // Power P_{\mathrm{a}} = \int_{\Gamma} I_{\mathrm{a}} \ \mathrm{d} \Gamma
       // Integrate normal intensity
       if( isComplex_ ) {
         powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
@@ -2412,8 +2431,7 @@ namespace CoupledField{
       // --------------------------------
       
       // === ACOU_VELOCITY ===
-      
-      // Velocity v = j* 1/(omega*rho) * grad(p)
+      // Velocity \bm{v}_\mathrm{a} = j \frac{1} {\omega* \rho} \nabla p_\mathrm{a}
       // a) define gradient of pressure
       if( isComplex_ ) {
         presGradFct.reset(new CoefFunctionBOp<Complex>(feFct, vel, 1.0));  
@@ -2435,7 +2453,7 @@ namespace CoupledField{
       DefineFieldResult( velFct, vel );
 
       // === ACOU Particle Position ===
-      // u = 1/(rho*omega^2) * grad(p)
+      // Particle Position u_\mathrm{a} = \frac{1} {\rho* \omega^2} \nabla p_\mathrm{a}
       PtrCoefFct oneOverOmega2rho = CoefFunction::Generate( mp_, part,
           CoefXprBinOp( mp_, one,
             CoefXprBinOp(mp_,CoefFunction::Generate( mp_, Global::REAL, "4*pi*pi*f*f"), densFct, CoefXpr::OP_MULT ),
@@ -2444,12 +2462,13 @@ namespace CoupledField{
       DefineFieldResult( posFct, pos );
 
       // === ACOU_NORMAL_VELOCITY ===
+      // Normal velocity v_{\mathrm{a,n}} = -\nabla \psi_mathrm{a} \cdot \bm{n}
       velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
       DefineFieldResult(velFctNormal, velNormal);
       surfCoefFcts_[velFctNormal] = velFct;
       
       // === ACOU_INTENSITY ===
-      // Intensity I = p * v
+      // Intensity \bm{\mathrm{I}}_{\mathrm{a}} = p_{\mathrm{a}} \overline{\bm{v}_{\mathrm{a}}}
       intensFct = 
           CoefFunction::Generate( mp_, part,
                                  CoefXprBinOp(mp_, presFct, velFct, CoefXpr::OP_MULT_CONJ ) );
@@ -2461,12 +2480,13 @@ namespace CoupledField{
       surfCoefFcts_[sIntens] = intensFct;
 
       // === ACOU_NORMAL_INTENSITY ===
+      // Normal intensity I_{\mathrm{a}} =  p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
       sNormIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
       DefineFieldResult( sNormIntens, intensNormal );
       surfCoefFcts_[sNormIntens] = intensFct;
       
       // === ACOU_POWER ===
-      // Power p = \int_Gamma I *n dGamma
+      // Power P_{\mathrm{a}} = \int_{\Gamma} I_{\mathrm{a}} \ \mathrm{d} \Gamma
       //  Integrate normal intensity
       powerFct.reset(new ResultFunctorIntegrate<Complex>(sNormIntens, 
                                                          feFct, power ) );
@@ -2474,8 +2494,7 @@ namespace CoupledField{
       availResults_.insert(power);
 
       // === ACOU_POWER WITH PLANE WAVE ASSUMPTION: p/vn = \rho c ===
-      // Power P = \int_Gamma (p^2)/(2*rho*c) dGamma
-      // === ACOU_POWER ===
+      // Power P = \int_{\Gamma} \frac{p_{\mathrm{a}}^2} {2 \rho c} \ \mathrm{d} \Gamma
       shared_ptr<ResultInfo> powerPW;
       powerPW.reset(new ResultInfo);
       powerPW->resultType = ACOU_POWER_PLANEWAVE;
@@ -2485,6 +2504,7 @@ namespace CoupledField{
       powerPW->definedOn = ResultInfo::SURF_REGION;
 
       // === ACOU_NORMAL_INTENSITY ===
+      // Normal intensity I_{\mathrm{a}} = p_{\mathrm{a}} \bm{v_{\mathrm{a}}} \cdot \bm{n}
       shared_ptr<ResultInfo> intensNormalPW;
       intensNormalPW.reset(new ResultInfo);
       intensNormalPW->resultType = ACOU_NORMAL_INTENSITY_PLANEWAVE;
@@ -2529,6 +2549,7 @@ namespace CoupledField{
     }
     
     // === ACOUSTIC KINETIC ENERGY ===
+    // kinetic Energy w_{\mathrm{a}}^{\mathrm{kin}} = \frac{1} {2}\rho_{0} \bm{v}_{\mathrm{a}} \cdot \bm{v}_{\mathrm{a}}
     shared_ptr<ResultFunctor> keFunc;
     shared_ptr<ResultInfo> kinEnergy(new ResultInfo);
     kinEnergy->resultType = ACOU_KIN_ENERGY;
@@ -2553,6 +2574,7 @@ namespace CoupledField{
     massFormFunctors_.insert(keFunc);
 
     // === ACOUSTIC POTENTIAL ENERGY ===
+    // potential Energy w_{\mathrm{a}}^{\mathrm{pot}} = \frac{p_{\mathrm{a}}^{2}} {2 \rho_{0} c^{2}}
     shared_ptr<ResultFunctor> keFuncPot;
     shared_ptr<ResultInfo> potEnergy(new ResultInfo);
     potEnergy->resultType = ACOU_POT_ENERGY;

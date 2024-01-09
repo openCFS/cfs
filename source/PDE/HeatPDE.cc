@@ -1374,6 +1374,8 @@ void HeatPDE::DefinePostProcResults() {
 
   if ( analysistype_ != STATIC ) {
     // === TEMPERATURE D1===
+    // first time derivative of Temperature 
+    // ${\frac{\partial T} {\partial t}}$ or $j \omega T$
     shared_ptr<ResultInfo> heatD1( new ResultInfo);
     heatD1->resultType = HEAT_TEMPERATURE_D1;
 
@@ -1396,6 +1398,7 @@ void HeatPDE::DefinePostProcResults() {
   DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
 
   // === HEAT FLUX DENSITY ===
+  // Heat Flux Density $\bm{q}  = -k \nabla T$
   shared_ptr<ResultInfo> fluxDens ( new ResultInfo );
   fluxDens->resultType = HEAT_FLUX_DENSITY;
   fluxDens->SetVectorDOFs(dim_, isaxi_);
@@ -1412,6 +1415,7 @@ void HeatPDE::DefinePostProcResults() {
   stiffFormCoefs_.insert(fluxDensFunc);
 
   // === HEAT FLUX INTENSITY ===
+  // Heat Flux Density $q_n = \bm{q} \cdot \bm{n}$
   shared_ptr<ResultInfo> fluxNormal ( new ResultInfo );
   fluxNormal->resultType = HEAT_FLUX_INTENSITY;
   fluxNormal->unit = MapSolTypeToUnit(HEAT_FLUX_INTENSITY);
@@ -1424,6 +1428,7 @@ void HeatPDE::DefinePostProcResults() {
   surfCoefFcts_[fluxNormalFunc] = fluxDensFunc;
 
   // === HEAT FLUX ===
+  // Heat Flux $\dot{Q} = \int_{\Gamma} \bm{q} \cdot \bm{n} \mathrm{d} \Gamma$
   shared_ptr<ResultInfo> flux ( new ResultInfo );
   flux->resultType = HEAT_FLUX;
   flux->unit = MapSolTypeToUnit(HEAT_FLUX);

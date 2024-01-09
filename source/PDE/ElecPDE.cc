@@ -1601,6 +1601,7 @@ namespace CoupledField {
     bool is2p5 = (subType_ == "2.5d");
     
     // === ELECTRIC FIELD INTENSITY ===
+    // Electric field intensity \bm{E} = -\nabla \bm{\Phi}
     shared_ptr<ResultInfo> ef ( new ResultInfo );
     ef->resultType = ELEC_FIELD_INTENSITY;
     ef->SetVectorDOFs(dim_, isaxi_, is2p5);
@@ -1716,6 +1717,7 @@ namespace CoupledField {
     }
     
     // === ELECTRIC SURFACE CHARGE DENSITY ===
+    // Electric surface charge density q_{s} = -\varepsilon \nabla \bm{\Phi} \cdot \bm{n}
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
     chargeD->resultType = ELEC_SURFACE_CHARGE_DENSITY;
     chargeD->dofNames = "";
@@ -1735,6 +1737,7 @@ namespace CoupledField {
     }
     
     // === TOTAL ELECTRIC CHARGE ===
+    // Total electric charge Q = \int_{\Gamma} q_{s} \mathrm{d} \Gamma
     shared_ptr<ResultInfo> charge(new ResultInfo);
     charge->resultType = ELEC_CHARGE;
     charge->dofNames = "";
@@ -1752,6 +1755,7 @@ namespace CoupledField {
     resultFunctors_[ELEC_CHARGE] = chargeFunc;
     
     // === ELECTRIC ENERGY DENSITY ===
+    // Electric energy density for scalar permitiitvity e = \frac{1} {2} \varepsilon \bm{E} \cdo \bm{E}
     shared_ptr<ResultInfo> ed ( new ResultInfo );
     ed->resultType = ELEC_ENERGY_DENSITY;
     ed->dofNames = "";
@@ -1777,6 +1781,7 @@ namespace CoupledField {
     stiffFormCoefs_.insert(edFunc);
 
     // Electric energy
+    // Electric energy E = \frac{1} {2} \varepsilon \int_{\Omega} \bm{E} \cdot \bm{E} \mathrm{d} \Omega
     shared_ptr<ResultInfo> energy( new ResultInfo );
     energy->resultType = ELEC_ENERGY;
     energy->definedOn = ResultInfo::REGION;

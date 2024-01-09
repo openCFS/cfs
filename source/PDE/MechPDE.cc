@@ -2554,6 +2554,7 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> aFct;
     if ( analysistype_ != STATIC && analysistype_ != BUCKLING) {
       // === MECHANIC VELOCITY ===
+      // Velocity \bm{v} = \frac{\partial \bm{u}} {\partial t}
       shared_ptr<ResultInfo> vel(new ResultInfo);
       vel->resultType = MECH_VELOCITY;
       vel->dofNames = dispDofNames;
@@ -2580,6 +2581,7 @@ namespace CoupledField {
       DefineFieldResult(velFctCoef, velElem);
 
       // === MECHANIC ACCELERATION ===
+      // Acceleration \bm{a} = \frac{\partial^{2} \bm{u}} {\partial t^{2}}
       shared_ptr<ResultInfo> acc(new ResultInfo);
       acc->resultType = MECH_ACCELERATION;
       acc->dofNames = dispDofNames;
@@ -2603,6 +2605,7 @@ namespace CoupledField {
     DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
     
     // === MECHANIC STRESS ===
+    // Stress \bm{\sigma} = \left[ \bm{C} \right] : {\bm{s}}
     shared_ptr<ResultInfo> stress(new ResultInfo);
     stress->resultType = MECH_STRESS;
     stress->dofNames = stressComponents;
@@ -2794,6 +2797,9 @@ namespace CoupledField {
     }
     
     // === VON_MISES_STRESS  ===
+    // Von Mises Stress \sigma_{\mathrm{v}} = {\sqrt{{\frac{1} {2}}((\sigma_{11} - \sigma_{22})^{2} +
+    //                      (\sigma_{22} - \sigma_{33})^{2} + (\sigma_{33} - \sigma_{11})^{2} +
+    //                      3(\sigma_{12}^{2}  + \sigma_{23}^{2} + \sigma_{31}^{2})}}    
     shared_ptr<ResultInfo> misesStress(new ResultInfo);
     misesStress->resultType = VON_MISES_STRESS;
     misesStress->dofNames = "";
@@ -2832,6 +2838,7 @@ namespace CoupledField {
     }
     
     // === MECHANIC STRAIN ===
+    // Strain \bm{s}  = \frac{1} {2}(\nabla \bm{u} + \nabla \bm{u}^{{\mathrm{T}}})
     shared_ptr<ResultInfo> strain(new ResultInfo);
     strain->resultType = MECH_STRAIN;
     strain->dofNames = stressComponents;
@@ -3019,6 +3026,7 @@ namespace CoupledField {
       
       
       // === MECHANIC KINETIC ENERGY DENSITY ===
+      // kinetic Energy Density e_{\mathrm{kin}} = {\frac{1} {2}} \rho \bm{v} \cdot \bm{v}
       shared_ptr<ResultInfo> kinEnergyDens(new ResultInfo);
       kinEnergyDens->resultType = MECH_KIN_ENERGY_DENS;
       kinEnergyDens->dofNames = "";
@@ -3034,6 +3042,7 @@ namespace CoupledField {
       massFormCoefs_.insert(kedFunc);
       
       // === MECHANIC KINETIC ENERGY ===
+      // kinetic Energy E_{\mathrm{kin}} = \int_{\Omega} e_{\mathrm{kin}} \mathrm{d} \Omega
       shared_ptr<ResultInfo> kinEnergy(new ResultInfo);
       kinEnergy->resultType = MECH_KIN_ENERGY;
       kinEnergy->dofNames = "";
@@ -3153,7 +3162,7 @@ namespace CoupledField {
     stiffFormCoefs_.insert(dedFunc);
     
     // === MECHANIC DEFORMATION ENERGY ===
-    // 1/2 <u,Ku>
+    // deformation Energy E_{\mathrm{def}} = {\frac{1} {2}} <\bm{u},\bm{K u}>
     shared_ptr<ResultInfo> defEnergy(new ResultInfo);
     defEnergy->resultType = MECH_DEFORM_ENERGY;
     defEnergy->dofNames = "";
