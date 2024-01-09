@@ -80,7 +80,7 @@ namespace CoupledField
     // LUCA ON
 
     // not elegant but from here I suppose to find the current directory
-    callNiHu(/* paramNode */);
+    callNiHu(/* <const char*>"output" */);
 
     // LUCA OFF
 
@@ -2684,28 +2684,81 @@ namespace CoupledField
   }
 
   // What if (...) ???
-  void AcousticPDE_BEM::callNiHu(/* PtrParamNode paramNode */)
+  void AcousticPDE_BEM::callNiHu(/* const char* output */)
   {
     // just call a CMakeLists.txt
-    const char* cmakeCommand = "cmake ./NiHu";  // unused - What did I intend with that?
+    // const char* cmakeCommand = "cmake ./NiHu";  // unused - What did I intend with that?
+    const char* prefix_nihu = "-- NIHU >> ";
+    const char* error_nihu = "-- NIHU_ERROR >> ";
+    const char* output = "output";
 
     // Debug Log
-    std::cout << "Current Working Directory: " << std::endl;
-    std::cout << "In callNiHu()" << std::endl;
-    // std::cout << "Looking for " << cmakeCommand << std::endl;
-    // std::cout << "Currently in " << std::endl;
+    // std::cout << "Current Working Directory: " << std::endl;
+    // std::cout << "In callNiHu()" << std::endl;
 
-    // std::system("pwd");
-    std::system("cd NiHu");
-    // std::system("pwd");
-    // std::system("rm ./NiHu/CMakeCache.txt");
-    // std::system("rm CMakeCache.txt");  // possibly expensive
+    std::cout << prefix_nihu << "opening directory NiHu" << std::endl;
+    // if ( std::system("cd NiHu") )
+    if (chdir("NiHu") != 0)
+    {
+      std::cerr << error_nihu << "no directory NiHu" << std::endl;
+      return;
+    }
+
+    std::cout << prefix_nihu << "generate directory build" << std::endl;
+    // if ( std::system("mkdir NiHu/build") )
+    if (std::system("mkdir -p build") != 0)
+    {
+      std::cerr << error_nihu << "cannot generate directory build" << std::endl;
+      return;
+    }
+
+    std::cout << prefix_nihu << "opening directory build" << std::endl;
+    // if ( std::system("cd NiHu/build") )
+    if (chdir("build") != 0)
+    {
+      std::cerr << error_nihu << "no directory build" << std::endl;
+      return;
+    }
+
+    std::cout << prefix_nihu << "calling cmake" << std::endl;
+    // if ( std::system("cmake .") )
+    if (std::system("cmake ..") != 0)
+    {
+      std::cerr << error_nihu << "cannot call cmake properly" << std::endl;
+      return;
+    }
+
+    std::cout << prefix_nihu << "building testcase" << std::endl;
+    // if ( std::system("make") )
+    if (std::system("make") != 0)
+    {
+      std::cerr << error_nihu << "cannot execute make properly" << std::endl;
+      return;
+    }
+
+    std::cout << prefix_nihu << "open result(executable)" << std::endl;
+    // if ( std::system("make") )
+    if (std::system("./hello_world") != 0)  // make that a function variable: (const char*)output
+    {
+      std::cerr << error_nihu << "no executable found" << std::endl;
+      return;
+    }
+
+    std::cout << prefix_nihu << "leaving directory NiHu/build" << std::endl;
+    // if ( std::system("cd ../..") )
+    if (chdir("../..") != 0)
+    {
+      std::cerr << error_nihu << "possible segmentation fault" << std::endl;
+      return;
+    }
 
     // call command line (stdio)
     // int system_return_cmake = std::system("cmake .");
 
-    std::system("g++ NiHu/hello_world.cc -std=c++14 -o hello_world_OIDA");  // build NiHu-Simulation
-    std::system("./hello_world_OIDA");                                      // execute NiHu-Simulation
+    // std::system("g++ NiHu/hello_world.cc -std=c++14 -o hello_world_OIDA");  // build NiHu-Simulation
+    // std::system("./hello_world_OIDA");                                      // execute NiHu-Simulation
+
+    // CHANGE TO CMAKE/MAKE-BUILD CALL
 
     // system_return = 0 : success
     // if ( system_return_cmake == 0 )

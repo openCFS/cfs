@@ -271,7 +271,6 @@ if(USE_NIHU)
   include(cfsdeps/nihu/External_NiHu.cmake)
   # include("${CFSDEPS_DIR}/nihu/External_NIHU.cmake")
   # include(External_NiHu.cmake)
-
 endif()
 
 #-----------------------------------------------------------------------------

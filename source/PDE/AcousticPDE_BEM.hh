@@ -80,7 +80,7 @@ namespace CoupledField{
     void InitTimeStepping();
 
     // define callNiHu()
-    void callNiHu();
+    void callNiHu(/* const char output */);
 
     //! create feFunction for meanFluidMech velocity
     void CreateMeanFlowFunction(StdVector<std::string> dofNames);

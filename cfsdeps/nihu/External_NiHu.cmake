@@ -39,4 +39,5 @@ ExternalProject_Add(
             #  -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
              -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-install
              -DNIHU_EIGEN_INSTALL=1
+            #  -DNIHU_EIGEN_PATH=${CMAKE_BINARY_DIR}/cfsdeps/nihu
 )
