@@ -84,6 +84,7 @@ else()
     if(CMAKE_C_COMPILER_ID MATCHES "Intel")
       list(APPEND WIN_CONFIGURE --enable-intelc) # for IntelLLVM we need to patch Makefile.in icl -> icx
     endif()
+    find_program(lis_make_program nmake)
     ExternalProject_Add("${PACKAGE_NAME}"
       PREFIX "${DEPS_PREFIX}"
       # Windows needs to have condigure.bat and successive nmake exececuted in <source>/win
@@ -95,6 +96,8 @@ else()
       DOWNLOAD_NO_PROGRESS ON 
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
       CONFIGURE_COMMAND ${DEPS_SOURCE}/win/configure.bat ${WIN_CONFIGURE}
+      BUILD_COMMAND ${lis_make_program}
+      INSTALL_COMMAND ""
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
   else()
     # standard configure works for macOS and Linux
