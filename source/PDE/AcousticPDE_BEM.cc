@@ -81,7 +81,7 @@ namespace CoupledField
     // LUCA ON
 
     // not elegant but from here I suppose to find the current directory
-    callNiHu(/* paramNode */);
+    callNiHu(/* <const char*>"output" */);
 
     // LUCA OFF
 
@@ -2685,7 +2685,7 @@ namespace CoupledField
   }
 
   // What if (...) ???
-  void AcousticPDE_BEM::callNiHu(/* PtrParamNode paramNode */)
+  void AcousticPDE_BEM::callNiHu(/* const char* output */)
   {
     // output pre
     const char* prefix_nihu = "++ NIHU >> ";
