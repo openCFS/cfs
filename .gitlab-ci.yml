@@ -586,9 +586,7 @@ cfsdeps:MSVC2019-Ifort2021:
     BUILD_COMMAND: "cmake --build . --target cfsdeps"
   after_script:
     # just debug
-    - !reference [.powershell-debug-start_collapsed,script]
-    - Get-ChildItem -Path build/cfsdeps/cache/precompiled -ErrorAction SilentlyContinue
-    - !reference [.powershell-debug-end,script]
+    - !reference [.powershell_debug_dir_listing, script]
   artifacts:
     when: on_success
     paths:

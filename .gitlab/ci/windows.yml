@@ -125,9 +125,9 @@
     # install the tools to cache
     - if(!(Test-Path cache)) { .gitlab/ci/windows-shared-runner_install-build-tools.ps1 } else { ls cache }
     # debug
-    - if((Test-Path build)) { ls build }
+    - !reference [.powershell_debug_dir_listing, script]
     # set git path for tools like patch and diff
-    - $env:Path += ";${pwd}/cache/git/usr/bin"
+    - $env:Path += ";${CI_PROJECT_DIR}/cache/git/usr/bin"
     # info about free space (debug)
     - Get-Volume -ErrorAction SilentlyContinue
   script:
