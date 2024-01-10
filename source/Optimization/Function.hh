@@ -112,6 +112,7 @@ class Function
       LOCAL_BUCKLING_LOAD_FACTOR,/*!< microscopic load factor/ eigenvalue for two scale optimization*/
       GLOBAL_BUCKLING_LOAD_FACTOR,/*!< globalized microscopic load factor/ eigenvalue for two scale optimization*/
       ARC_OVERLAP,               /*!< prevents overlapping arc segments for spaghetti optimization */
+      PYTHON_VOLUME,             /*!< computes penalized volume constraint in python */
       PYTHON_FUNCTION,           /*!< python global function */
       LOCAL_PYTHON_FUNCTION,     /*!< python local function */
 

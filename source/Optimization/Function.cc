@@ -479,6 +479,7 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case PYTHON_FUNCTION:
   case LOCAL_PYTHON_FUNCTION:
   case ARC_OVERLAP:
+  case PYTHON_VOLUME:
     return PLAIN;
 
   // filtered stuff different for sensitivity filtering
@@ -626,6 +627,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case PYTHON_FUNCTION: // check in case!
   case LOCAL_PYTHON_FUNCTION:
   case ARC_OVERLAP:
+  case PYTHON_VOLUME:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;

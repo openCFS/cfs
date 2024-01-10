@@ -60,7 +60,7 @@ class Global:
     self.rhomax = 1
     self.boundary = 'poly'   # up to now only 'poly' and 'linear'
     self.p = 10              # penalty parameter for smooth maximum
-    self.penalty = 3           # penalty parameter for
+    self.penalty = 3           # penalty parameter for 'poly-simp'
     self.transition = 0.05   # parameter for boundary: 2*h
     self.h = 0.5*self.transition
     self.n = np.array([40,40,40],dtype=int)       # [nx, ny, nz]
@@ -72,6 +72,7 @@ class Global:
     self.silent = False
     self.vtk_lists = False
     self.num_threads = int(os.environ.get('OMP_NUM_THREADS'))
+    self.design = ['density']
     self.anisotropic = False
     self.base_tensor = np.zeros((3,6,6))
     # transversely isotropic default base tensor
@@ -133,6 +134,7 @@ def cfs_init(settings, design, dict):
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax'])-glob.rhomin
   glob.design = design
+  glob.num_designs = len(glob.design)
   glob.order = int(settings['order'])
   if 'mech_11' in design:
     glob.anisotropic = True
@@ -217,12 +219,11 @@ def cfs_map_to_design():
   glob.tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6))
   glob.grad_tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6,glob.num_total))
   for idx, fe_num in enumerate(glob.integrate):
-    if not glob.anisotropic:
-      glob.rho[np.unravel_index(fe_num,glob.n)] = rho[idx][0]
-      glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[idx][1]
-    else:
-      glob.tensor[np.unravel_index(fe_num,glob.n)] = rho[idx][0]
-      glob.grad_tensor[np.unravel_index(fe_num,glob.n)] = rho[idx][1]
+    glob.rho[np.unravel_index(fe_num,glob.n)] = rho[idx][0]
+    glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[idx][1]
+    if glob.anisotropic:
+      glob.tensor[np.unravel_index(fe_num,glob.n)] = rho[idx][2]
+      glob.grad_tensor[np.unravel_index(fe_num,glob.n)] = rho[idx][3]
   if not glob.silent:
     print('time for unraveling:', ti.time()-start)
   if glob.vtk_lists:
@@ -253,7 +254,7 @@ def cfs_info_field_keys():
 # as we cannot create a numpy array in C (it should work but fails in reality) we get it here.
 # it shall have the size of rho as a 1D array  
 def cfs_get_drho_vector():
-  size = len(glob.design) * np.prod(glob.n)
+  size = glob.num_designs*np.prod(glob.n)
   assert size >= 1
     
   if not glob.silent:  
@@ -1371,7 +1372,7 @@ def integrate_fe(fe_num):
         grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm))
   else:
     tensors_sm = np.zeros((6,6))
-  return (rho_sm, grad_rho) if not glob.anisotropic else (tensors_sm, grad_tensor)
+  return (rho_sm, grad_rho) if not glob.anisotropic else (rho_sm, grad_rho, tensors_sm, grad_tensor)
 
 # get constraint sparsity pattern
 # did not implement exact sparsity pattern yet, just adding all variables of spaghetti
@@ -1401,6 +1402,22 @@ def cfs_get_gradient_arc_overlap(constraint_num):
   gradient_full = shape.get_gradient_arc_overlap(a_num)
   return gradient_full[cfs_jac-shape.base]
 
+# get penalized volume in python for anisotropic SpaghettiParamMat
+def cfs_get_python_volume(constraint_num):
+  cfs_map_to_design() # should already be precomputed
+  vol = np.sum(glob.rho)/np.prod(glob.n)
+  return vol
+
+# get volume gradient in python for anisotropic SpaghettiParamMat
+def cfs_get_gradient_python_volume(constraint_num):
+  cfs_map_to_design() # should already be precomputed
+  grad = 1.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(glob.grad_rho, axis=0),axis=0),axis=0)
+  return grad
+
+# get constraint sparsity pattern (full in volume case)
+def cfs_get_sparsity_python_volume(opt):
+  cfs_jac = [np.arange(glob.num_total)]
+  return cfs_jac
 
 def get_vector_arc_overlap(var_all):
   const = []

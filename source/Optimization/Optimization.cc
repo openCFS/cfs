@@ -449,6 +449,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
   Function::type.Add(Function::MAG_COUPLING,"magCoupling");
   Function::type.Add(Function::ARC_OVERLAP,"arc_overlap");
+  Function::type.Add(Function::PYTHON_VOLUME, "python_volume");
   Function::type.Add(Function::PYTHON_FUNCTION,"python");
   Function::type.Add(Function::LOCAL_PYTHON_FUNCTION,"localPython");
 
