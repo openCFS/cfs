@@ -2687,6 +2687,12 @@
       </xsd:annotation>
     </xsd:attribute>
 
+    <xsd:attribute name="penalty" use="optional" type="xsd:float" default="3">
+      <xsd:annotation>
+        <xsd:documentation>Exponent for "poly-simp" boundary function </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+
     <xsd:attribute name="order" use="optional" type="xsd:unsignedInt" default="2">
       <xsd:annotation>
         <xsd:documentation>Integration order (given as 1D)</xsd:documentation>

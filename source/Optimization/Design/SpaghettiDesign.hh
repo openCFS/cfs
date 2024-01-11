@@ -186,6 +186,11 @@ private:
   /** for boundary functions linear and poly this is the full transition zone 2*h -> move to FeaturedDesign */
   double transition = -1;
 
+  // penalty for smoothmax
+  double pen = -1;
+  // penalty for 'poly-simp' boundary
+  double penalty = -1;
+
   /** the rhomin we use, extracted from the first density variable. */
   double rhomin = -1;
   double rhomax = -1;

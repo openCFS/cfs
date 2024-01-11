@@ -60,7 +60,7 @@ class Global:
     self.rhomax = 1
     self.boundary = 'poly'   # up to now only 'poly' and 'linear'
     self.p = 10              # penalty parameter for smooth maximum
-    self.penalty = 3           # penalty parameter for 'poly-simp'
+    self.penalty = 3         # penalty parameter for 'poly-simp'
     self.transition = 0.05   # parameter for boundary: 2*h
     self.h = 0.5*self.transition
     self.n = np.array([40,40,40],dtype=int)       # [nx, ny, nz]
@@ -158,8 +158,10 @@ def cfs_init(settings, design, dict):
   glob.dx = (glob.box_upper[0]-glob.box_lower[0])/glob.n[0]
   glob.mid_lower = glob.box_lower + 0.5*glob.dx*np.ones((3))
 
-  if 'p' in dict:
-    glob.p = dict['p']
+  if 'p' in settings:
+    glob.p = float(settings['p'])
+  if 'penalty' in settings:
+    glob.penalty = float(settings['penalty'])
   if 'vtk_lists' in dict:
     glob.vtk_lists = dict['vtk_lists']
   if 'silent' in dict:
@@ -1090,18 +1092,25 @@ def boundary(dist, derivative=False, alpha=None):
     rho = rmx
   elif glob.boundary == 'linear':
     rho = .5*((rmx-rm)*phi/h+rmx+rm)
-  elif glob.boundary == 'poly':
+  elif glob.boundary.startswith('poly'):
     rho = 3.0/4.0*(rmx - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (rmx+rm)
-  elif glob.boundary == 'poly-simp':
-    rho = (3.0/4.0*(rmx - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (rmx+rm))**glob.penalty
   else:
     print("Error: boundary type '" + glob.boundary + "' not implemented!")
     os.sys.exit()
   grad = dist[1]
-  if alpha is not None:
-    rho_orig = rho
-    rho = alpha*rho
-    grad = alpha*dist[1]
+  if glob.boundary == 'poly-simp':
+    if alpha is not None:
+      rho_diff_alpha = glob.penalty*rho*((alpha*rho)**(glob.penalty-1))
+      rho = (alpha*rho)**glob.penalty
+      grad = glob.penalty*alpha*((alpha*rho)**(glob.penalty-1))*dist[1]
+    else:
+      rho = rho**glob.penalty
+      grad = glob.penalty*(rho**(glob.penalty-1))*dist[1]
+  else:
+    if alpha is not None:
+      rho_diff_alpha = rho
+      rho = alpha*rho
+      grad = alpha*dist[1]
   if derivative != True:
     return rho
   else:
@@ -1113,22 +1122,17 @@ def boundary(dist, derivative=False, alpha=None):
         return (rho, np.zeros(dist[1].shape), idx)
       else:
         grad = np.zeros(dist[1].shape)
-        grad[-1] = rho_orig
+        grad[-1] = rho_diff_alpha
         return (rho, grad, idx)
     elif glob.boundary == 'linear':
-      grad *= .5*((rmx-rm)/h)
+      grad *= -.5*((rmx-rm)/h)
       if alpha:
-        grad[-1] = rho_orig
+        grad[-1] = rho_diff_alpha
       return (rho, grad, idx)
-    elif glob.boundary == 'poly':
+    elif glob.boundary.startswith('poly'):
       grad *= -3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3))
       if alpha:
-        grad[-1] = rho_orig
-      return (rho, grad, idx)
-    elif glob.boundary == 'poly-simp':
-      grad *= glob.penalty*(-3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3)))**(glob.penalty-1)
-      if alpha:
-        grad[-1] = rho_orig
+        grad[-1] = rho_diff_alpha
       return (rho, grad, idx)
 
 
