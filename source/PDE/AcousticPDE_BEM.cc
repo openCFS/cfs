@@ -38,6 +38,7 @@
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 
 #include <boost/lexical_cast.hpp>
+#include <boost/filesystem.hpp>
 #include <cmath>
 
 
@@ -80,7 +81,7 @@ namespace CoupledField
     // LUCA ON
 
     // not elegant but from here I suppose to find the current directory
-    callNiHu(/* <const char*>"output" */);
+    callNiHu();
 
     // LUCA OFF
 
@@ -2684,28 +2685,30 @@ namespace CoupledField
   }
 
   // What if (...) ???
-  void AcousticPDE_BEM::callNiHu(/* const char* output */)
+  void AcousticPDE_BEM::callNiHu()
   {
-    // just call a CMakeLists.txt
-    // const char* cmakeCommand = "cmake ./NiHu";  // unused - What did I intend with that?
-    const char* prefix_nihu = "-- NIHU >> ";
-    const char* error_nihu = "-- NIHU_ERROR >> ";
-    const char* output = "output";
+    // output pre
+    const char* prefix_nihu = "++ NIHU >> ";
+    const char* error_nihu = "++ NIHU_ERROR >> ";
 
-    // Debug Log
-    // std::cout << "Current Working Directory: " << std::endl;
-    // std::cout << "In callNiHu()" << std::endl;
+    // Get the current working directory
+    boost::filesystem::path current_directory = boost::filesystem::current_path();
 
-    std::cout << prefix_nihu << "opening directory NiHu" << std::endl;
-    // if ( std::system("cd NiHu") )
-    if (chdir("NiHu") != 0)
+    // Get the name of the current directory
+    std::string directory = current_directory.stem().string();
+
+    // Set the output directory based on the current directory name
+    std::string output = directory + "_NiHu_output";
+
+    
+    if (chdir((directory + "_NiHu").c_str()) != 0)
     {
-      std::cerr << error_nihu << "no directory NiHu" << std::endl;
+      std::cerr << error_nihu << "no directory " + directory + "_NiHu" << std::endl;
       return;
     }
 
     std::cout << prefix_nihu << "generate directory build" << std::endl;
-    // if ( std::system("mkdir NiHu/build") )
+    
     if (std::system("mkdir -p build") != 0)
     {
       std::cerr << error_nihu << "cannot generate directory build" << std::endl;
@@ -2713,7 +2716,7 @@ namespace CoupledField
     }
 
     std::cout << prefix_nihu << "opening directory build" << std::endl;
-    // if ( std::system("cd NiHu/build") )
+    
     if (chdir("build") != 0)
     {
       std::cerr << error_nihu << "no directory build" << std::endl;
@@ -2721,7 +2724,7 @@ namespace CoupledField
     }
 
     std::cout << prefix_nihu << "calling cmake" << std::endl;
-    // if ( std::system("cmake .") )
+    
     if (std::system("cmake ..") != 0)
     {
       std::cerr << error_nihu << "cannot call cmake properly" << std::endl;
@@ -2729,7 +2732,7 @@ namespace CoupledField
     }
 
     std::cout << prefix_nihu << "building testcase" << std::endl;
-    // if ( std::system("make") )
+    
     if (std::system("make") != 0)
     {
       std::cerr << error_nihu << "cannot execute make properly" << std::endl;
@@ -2737,47 +2740,20 @@ namespace CoupledField
     }
 
     std::cout << prefix_nihu << "open result(executable)" << std::endl;
-    // if ( std::system("make") )
-    if (std::system("./hello_world") != 0)  // make that a function variable: (const char*)output
+    
+    if (std::system(("./" + output).c_str()) != 0)
     {
       std::cerr << error_nihu << "no executable found" << std::endl;
       return;
     }
 
     std::cout << prefix_nihu << "leaving directory NiHu/build" << std::endl;
-    // if ( std::system("cd ../..") )
+    
     if (chdir("../..") != 0)
     {
       std::cerr << error_nihu << "possible segmentation fault" << std::endl;
       return;
     }
-
-    // call command line (stdio)
-    // int system_return_cmake = std::system("cmake .");
-
-    // std::system("g++ NiHu/hello_world.cc -std=c++14 -o hello_world_OIDA");  // build NiHu-Simulation
-    // std::system("./hello_world_OIDA");                                      // execute NiHu-Simulation
-
-    // CHANGE TO CMAKE/MAKE-BUILD CALL
-
-    // system_return = 0 : success
-    // if ( system_return_cmake == 0 )
-    // {
-    //   std::cout << "Success! CMakeLists was found!" << std::endl;
-
-    //   int system_return_make = std::system("make");
-
-    //   if ( system_return_make == 0 )
-    //   {
-    //     std::cout << "Success! cmake could be executed!" << std::endl;
-    //   }
-    // }
-
-    // system_return != 0 : failure
-    // else
-    // {
-    //   std::cout << "Fatal! CMakeLists not found!" << std::endl;
-    // }
   }
 }
     
