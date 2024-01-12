@@ -596,7 +596,9 @@ cfsdeps:msvc2022:
     RUNNER_SCRIPT_TIMEOUT: 100m # set a script timeout lower than the job timeout (seems 120m in hosted windows runners) to ensure there is time for artifact and cache upload
   after_script:
     # just debug
-    - !reference [.powershell_debug_dir_listing, script]
+    - !reference [.powershell-debug-start_collapsed,script]
+    - Get-ChildItem -Path build/cfsdeps/cache/precompiled; $null
+    - !reference [.powershell-debug-end,script]
   artifacts:
     when: on_success
     paths:
