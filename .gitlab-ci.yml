@@ -58,18 +58,18 @@ workflow:
   - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE !~ /schedule/
     variables:
       CFS_PIPELINE_TYPE: "release"
-      CFS_PIPELINE_NAME: "Release for new commit on $CI_DEFAULT_BRANCH"
+      CFS_PIPELINE_NAME: "Release for ${CI_DEFAULT_BRANCH}: $CI_COMMIT_TITLE"
   # We want pipelines to 'test' for merge requests
   # set to manual if the merge request title start with Draft:
   - if: $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/
     variables:
       CFS_PIPELINE_TYPE: "manual"
-      CFS_PIPELINE_NAME: "Manual for draft merge request $CI_MERGE_REQUEST_IID"    
+      CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
   # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
     variables:
       CFS_PIPELINE_TYPE: "test"
-      CFS_PIPELINE_NAME: "Test for merge request $CI_MERGE_REQUEST_IID"
+      CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
@@ -77,12 +77,12 @@ workflow:
   - if: $CI_PIPELINE_SOURCE == "schedule"
     variables:
       CFS_PIPELINE_TYPE: "nightly"
-      CFS_PIPELINE_NAME: "Scheduled for branch $CI_COMMIT_BRANCH"
+      CFS_PIPELINE_NAME: "Scheduled for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
   # automatically run if branch name starts or ends with test or is scheduled
   - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
     variables:
       CFS_PIPELINE_TYPE: "test"
-      CFS_PIPELINE_NAME: "Test for branch $CI_COMMIT_BRANCH"
+      CFS_PIPELINE_NAME: "Test for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
   # when no rule triggers, no pipeline is created
 
 #################################################
@@ -474,9 +474,11 @@ rhel:9:
   - rm -f CMakeCache.txt # clear old cache
   # show the contents of the cfsdeps cache
   - ls -l cfsdeps/cache/precompiled || ls #debug
-  # remove precompiled when we finde clear-cache in the commit message
-  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache/precompiled ) || echo "no clear-cache requested in commit message"
-  - ls -l cfsdeps/cache/sources || ls # debug
+  - ls -l cfsdeps/cache/sources || ls #debug
+  # remove precompiled when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
+  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache ) || echo "no clear-cache requested in commit message"
+  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache; else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
+  - ls -l cfsdeps || ls # debug
 
 # if testsuite_ignore is there, restore it
 .restore_Testsuite_ignore: &restore_Testsuite_ignore
@@ -575,8 +577,7 @@ cfsdeps:MSVC2019-Ifort2021:
   extends: .windows-shared-build
   stage: cfsdeps
   rules:
-    - !reference [.cfsdeps_rebuild_rules,rules]
-    # disable the build job because it is optional (subsequent standard build jobs can build cfsdeps too)
+    - !reference [.cfsdeps,rules]
   variables:
     # set the cache policy to pull-push to update the cache
     INSTALL_POLICY: pull-push
@@ -1152,7 +1153,7 @@ stable_par:gcc12:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: "GCC12 default / stable parallel"
+    BUILD_NAME: "GCC12 / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1165,7 +1166,7 @@ unstable_ser:gcc12:linux:
     - docker
   stage: test
   variables:
-    BUILD_NAME: "GCC12 default / unstable serial"
+    BUILD_NAME: "GCC12 / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1178,7 +1179,7 @@ stable_par:intel:linux:
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 default / stable parallel
+    BUILD_NAME: Intel2021 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1191,7 +1192,7 @@ unstable_ser:intel:linux:
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 default / unstable serial
+    BUILD_NAME: Intel2021 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1218,6 +1219,13 @@ stable_par:MSVC2019-Ifort2021:windows:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
   script: 
     - !reference [.windows-test_stable, script]
+  rules:
+    #make it optional since MSVC builds currently are not running in parallel
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+      when: manual
+      allow_failure: true
+    - !reference [.ctest_default, rules]
   needs:
     - windows:MSVC2019-Ifort2021
 
@@ -1307,7 +1315,7 @@ all_par:gcc7:any-linux:
   tags:
     - linux
   variables:
-    BUILD_NAME: "GCC7 default / all parallel any-linux"
+    BUILD_NAME: "GCC7 / all parallel any-linux"
     # no special options - we take all default (should be all tests & in parallel if NCPU>1)
   needs:
     - linux:gcc7
@@ -1367,7 +1375,7 @@ unstable_par:gcc12:linux:
   tags:
     - docker
   variables:
-    BUILD_NAME: "GCC12 default / unstable parallel"
+    BUILD_NAME: "GCC12 / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1379,7 +1387,7 @@ broken_ser:gcc12:linux:
   tags:
     - docker
   variables:
-    BUILD_NAME: "GCC12 default / broken serial"
+    BUILD_NAME: "GCC12 / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1391,7 +1399,7 @@ unstable_par:intel:linux:
     - linux
   image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: Intel2021 default / unstable parallel
+    BUILD_NAME: Intel2021 / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1403,7 +1411,7 @@ broken_ser:intel:linux:
     - linux
   image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: Intel2021 default / broken serial
+    BUILD_NAME: Intel2021 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1604,7 +1612,7 @@ package: # publish package for default branch
     - echo "download Linux build at ${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
     - |
       curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "build/${WINDOWS_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
-    - echo "download Windows build at ${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
+    - echo "download Windows build at ${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
 
 release:
   extends: .package-release_common
