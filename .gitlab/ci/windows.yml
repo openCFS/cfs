@@ -163,6 +163,10 @@
     - Write-Host "CLEAR_CACHE=$CLEAR_CACHE" # debug
     - if ( "$CI_COMMIT_MESSAGE" -match "clear-cache" ) { $CLEAR_CACHE = "yes" } else { Write-Host "no clear-cache requested in commit message" }
     - if ( $null -eq $CLEAR_CACHE ) { Write-Host "no CLEAR_CACHE variable set" } else { cmake -E rm -rf -- "$CI_PROJECT_DIR\build\cfsdeps\cache" }
+    # delete any cfsdeps/cache when environment variable CLEAR_CACHE is set or clear-cache is in the commit message
+    - Write-Host "CLEAR_CACHE=$CLEAR_CACHE" # debug
+    - if ( "$CI_COMMIT_MESSAGE" -match "clear-cache" ) { $CLEAR_CACHE = "yes" } else { Write-Host "no clear-cache requested in commit message" }
+    - if ( $null -eq $CLEAR_CACHE ) { Write-Host "no CLEAR_CACHE variable set" } else { cmake -E rm -rf -- "$CI_PROJECT_DIR\build\cfsdeps\cache" }
     # set git path for tools like patch and diff
     - $env:Path += ";${pwd}/cache/git/usr/bin"
     # make sure build/Testing is not present
