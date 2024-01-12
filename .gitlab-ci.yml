@@ -589,7 +589,7 @@ cfsdeps:MSVC2019-Ifort2021:
   after_script:
     # just debug
     - !reference [.powershell-debug-start_collapsed,script]
-    - Get-ChildItem -Path build/cfsdeps/cache/precompiled -ErrorAction SilentlyContinue
+    - Get-ChildItem -Path build/cfsdeps/cache/precompiled; $null
     - !reference [.powershell-debug-end,script]
   artifacts:
     when: on_success
