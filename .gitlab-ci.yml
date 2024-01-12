@@ -474,9 +474,11 @@ rhel:9:
   - rm -f CMakeCache.txt # clear old cache
   # show the contents of the cfsdeps cache
   - ls -l cfsdeps/cache/precompiled || ls #debug
-  # remove precompiled when we finde clear-cache in the commit message
-  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache/precompiled ) || echo "no clear-cache requested in commit message"
-  - ls -l cfsdeps/cache/sources || ls # debug
+  - ls -l cfsdeps/cache/sources || ls #debug
+  # remove precompiled when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
+  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache ) || echo "no clear-cache requested in commit message"
+  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache; else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
+  - ls -l cfsdeps || ls # debug
 
 # if testsuite_ignore is there, restore it
 .restore_Testsuite_ignore: &restore_Testsuite_ignore
