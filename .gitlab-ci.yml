@@ -577,8 +577,7 @@ cfsdeps:MSVC2019-Ifort2021:
   extends: .windows-shared-build
   stage: cfsdeps
   rules:
-    - !reference [.cfsdeps_rebuild_rules,rules]
-    # disable the build job because it is optional (subsequent standard build jobs can build cfsdeps too)
+    - !reference [.cfsdeps,rules]
   variables:
     # set the cache policy to pull-push to update the cache
     INSTALL_POLICY: pull-push
