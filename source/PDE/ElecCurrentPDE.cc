@@ -607,7 +607,7 @@ namespace CoupledField {
       /* for harmonic analysis, the effective value is 1/sqrt(2) \hat I \times 1/sqrt(2) \hat U */
       edFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
     } else {
-      edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 1.));
+      edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
     }
     DefineFieldResult( edFunc, ed );
     stiffFormCoefs_.insert(edFunc);
