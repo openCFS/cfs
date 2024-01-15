@@ -395,7 +395,7 @@ namespace CoupledField{
             // create some more CoefFunctionCurvilinearPMLs to store info about the PML parameters
             PtrCoefFct coeffPMLDampFactor, coeffPMLDistance;
             coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::DAMP_FACTOR));
-            coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Double>(pmlNode,c0R,actSDList,regions_,OutputType::DISTANCE));
+            coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode,c0R,actSDList,regions_,OutputType::DISTANCE));
             // assign the coefFunctions to the matCoefs_ to make them available in the DefinePostProcResults()
             matCoefs_[PML_TENSOR]->AddRegion(actRegion, coeffPMLTensor);           // whole PML tensor
             matCoefs_[PML_DETERMINANT]->AddRegion(actRegion, coeffPMLDeterminant); // determinant of the PML tensor
@@ -2614,45 +2614,48 @@ namespace CoupledField{
     pmlDampFactor->unit = "";
     pmlDampFactor->definedOn = ResultInfo::ELEMENT;
     pmlDampFactor->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionMulti> pmlDampFactorCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, true));
+    shared_ptr<CoefFunctionMulti> pmlDampFactorCoefFct(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     matCoefs_[PML_DAMP_FACTOR] = pmlDampFactorCoefFct;
     DefineFieldResult(pmlDampFactorCoefFct, pmlDampFactor);
 
-    // Tensor holding the complete the PML matrix. 
-    // only set for CURVILINEAR PML formulation
-    shared_ptr<ResultInfo> pmlTensor ( new ResultInfo );
-    pmlTensor->resultType = PML_TENSOR;
-    pmlTensor->dofNames = tensorDofNames;
-    pmlTensor->unit = "";
-    pmlTensor->definedOn = ResultInfo::ELEMENT;
-    pmlTensor->entryType = ResultInfo::TENSOR;
-    shared_ptr<CoefFunctionMulti> pmlTensorCoefFct(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, true));
-    matCoefs_[PML_TENSOR] = pmlTensorCoefFct;
-    DefineFieldResult(pmlTensorCoefFct, pmlTensor);
+    // Curvilinear PML: currently only available for harmonic simulation
+    if (this->isComplex_) {
+      // Tensor holding the complete the PML matrix. 
+      // only set for CURVILINEAR PML formulation
+      shared_ptr<ResultInfo> pmlTensor ( new ResultInfo );
+      pmlTensor->resultType = PML_TENSOR;
+      pmlTensor->dofNames = tensorDofNames;
+      pmlTensor->unit = "";
+      pmlTensor->definedOn = ResultInfo::ELEMENT;
+      pmlTensor->entryType = ResultInfo::TENSOR;
+      shared_ptr<CoefFunctionMulti> pmlTensorCoefFct(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
+      matCoefs_[PML_TENSOR] = pmlTensorCoefFct;
+      DefineFieldResult(pmlTensorCoefFct, pmlTensor);
 
-    // Scalar holding the determinant of the PML matrix. 
-    // only set for CURVILINEAR PML formulation
-    shared_ptr<ResultInfo> pmlDeterminant ( new ResultInfo );
-    pmlDeterminant->resultType = PML_DETERMINANT;
-    pmlDeterminant->dofNames = "";
-    pmlDeterminant->unit = "";
-    pmlDeterminant->definedOn = ResultInfo::ELEMENT;
-    pmlDeterminant->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> pmlDetCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, true));
-    matCoefs_[PML_DETERMINANT] = pmlDetCoefFct;
-    DefineFieldResult(pmlDetCoefFct, pmlDeterminant);
+      // Scalar holding the determinant of the PML matrix. 
+      // only set for CURVILINEAR PML formulation
+      shared_ptr<ResultInfo> pmlDeterminant ( new ResultInfo );
+      pmlDeterminant->resultType = PML_DETERMINANT;
+      pmlDeterminant->dofNames = "";
+      pmlDeterminant->unit = "";
+      pmlDeterminant->definedOn = ResultInfo::ELEMENT;
+      pmlDeterminant->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionMulti> pmlDetCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
+      matCoefs_[PML_DETERMINANT] = pmlDetCoefFct;
+      DefineFieldResult(pmlDetCoefFct, pmlDeterminant);
 
-    // Scalar holding the distance between points and the PML interface. 
-    // only set for CURVILINEAR PML formulation
-    shared_ptr<ResultInfo> pmlDistance ( new ResultInfo );
-    pmlDistance->resultType = PML_DISTANCE;
-    pmlDistance->dofNames = "";
-    pmlDistance->unit = "";
-    pmlDistance->definedOn = ResultInfo::ELEMENT;
-    pmlDistance->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> pmlDistanceCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, false));
-    matCoefs_[PML_DISTANCE] = pmlDistanceCoefFct;
-    DefineFieldResult(pmlDistanceCoefFct, pmlDistance);
+      // Scalar holding the distance between points and the PML interface. 
+      // only set for CURVILINEAR PML formulation
+      shared_ptr<ResultInfo> pmlDistance ( new ResultInfo );
+      pmlDistance->resultType = PML_DISTANCE;
+      pmlDistance->dofNames = "";
+      pmlDistance->unit = "";
+      pmlDistance->definedOn = ResultInfo::ELEMENT;
+      pmlDistance->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionMulti> pmlDistanceCoefFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+      matCoefs_[PML_DISTANCE] = pmlDistanceCoefFct;
+      DefineFieldResult(pmlDistanceCoefFct, pmlDistance);
+    }
 
     // === AUX Variables for transient PML===
     if(this->isTimeDomPML_){
