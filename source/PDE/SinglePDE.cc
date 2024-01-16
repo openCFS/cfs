@@ -4173,7 +4173,7 @@ namespace CoupledField {
           penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double> // Nitsche term
             ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                factor, alphaHeat, curcpl, updatedGeo_, true, true);
+                factor, alphaHeat, curcpl, updatedGeo_, true, false);
         }
         else{
           penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
@@ -4306,7 +4306,7 @@ namespace CoupledField {
             penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double> // coupling term
                   ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                     new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    factor, alphaHeat * -1.0, curcpl, updatedGeo_, true, true);
+                    factor, alphaHeat * -1.0, curcpl, updatedGeo_, true, false);
           }
           else{
             penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
@@ -4394,7 +4394,7 @@ namespace CoupledField {
           penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double> // Nitsche term
               ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                 new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                factor, alphaHeat, curcpl, updatedGeo_, true, true);
+                factor, alphaHeat, curcpl, updatedGeo_, true, false);
         }
         else{
           penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
