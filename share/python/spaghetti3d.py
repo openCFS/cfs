@@ -130,12 +130,13 @@ class FE:
 # @settings dict of key/string from openCFS or from command line
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
-def cfs_init(settings, design, dict):
+def cfs_init(settings, design, opt_indices, dict):
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax'])-glob.rhomin
   glob.design = design
   glob.num_designs = len(glob.design)
   glob.order = int(settings['order'])
+  glob.opt_ind = np.array(opt_indices)
   if 'mech_11' in design:
     glob.anisotropic = True
     if (glob.rhomin > 1e-15) or abs(glob.rhomax-1) > 1e-15:
@@ -1098,19 +1099,10 @@ def boundary(dist, derivative=False, alpha=None):
     print("Error: boundary type '" + glob.boundary + "' not implemented!")
     os.sys.exit()
   grad = dist[1]
-  if glob.boundary == 'poly-simp':
-    if alpha is not None:
-      rho_diff_alpha = glob.penalty*rho*((alpha*rho)**(glob.penalty-1))
-      rho = (alpha*rho)**glob.penalty
-      grad = glob.penalty*alpha*((alpha*rho)**(glob.penalty-1))*dist[1]
-    else:
-      rho = rho**glob.penalty
-      grad = glob.penalty*(rho**(glob.penalty-1))*dist[1]
-  else:
-    if alpha is not None:
-      rho_diff_alpha = rho
-      rho = alpha*rho
-      grad = alpha*dist[1]
+  if alpha is not None:
+    rho_diff_alpha = rho
+    rho = alpha*rho
+    grad = alpha*dist[1]
   if derivative != True:
     return rho
   else:
@@ -1409,18 +1401,18 @@ def cfs_get_gradient_arc_overlap(constraint_num):
 # get penalized volume in python for anisotropic SpaghettiParamMat
 def cfs_get_python_volume(constraint_num):
   cfs_map_to_design() # should already be precomputed
-  vol = np.sum(glob.rho)/np.prod(glob.n)
+  vol = np.sum((2-glob.rho)*glob.rho)/np.prod(glob.n)
   return vol
 
 # get volume gradient in python for anisotropic SpaghettiParamMat
 def cfs_get_gradient_python_volume(constraint_num):
   cfs_map_to_design() # should already be precomputed
-  grad = 1.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(glob.grad_rho, axis=0),axis=0),axis=0)
-  return grad
+  grad = -2.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims(glob.rho-1,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
+  return grad[glob.opt_ind]
 
 # get constraint sparsity pattern (full in volume case)
 def cfs_get_sparsity_python_volume(opt):
-  cfs_jac = [np.arange(glob.num_total)]
+  cfs_jac = [np.arange(len(glob.opt_ind))]
   return cfs_jac
 
 def get_vector_arc_overlap(var_all):

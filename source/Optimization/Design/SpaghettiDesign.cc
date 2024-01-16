@@ -162,7 +162,7 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   PyObject* func = PyObject_GetAttrString(module_, "cfs_init");
   PythonKernel::CheckPythonFunction(func, "cfs_init");
 
-  PyObject* arg = PyTuple_New(3);
+  PyObject* arg = PyTuple_New(4);
 
   Matrix<double> mm;
   domain->GetGrid()->CalcBoundingBoxOfRegion(GetRegionIds().First(), mm);
@@ -200,7 +200,12 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
     PyTuple_SetItem(des, i,  PyUnicode_FromString(DesignElement::type.ToString(design[i].design).c_str()));
   PyTuple_SetItem(arg, 1, des); // steals the reference, so no need to decref
 
-  PyTuple_SetItem(arg, 2, PythonKernel::CreatePythonDict(pyopts));
+  PyObject* opt_ind = PyTuple_New(opt_indices.GetSize());
+  for(unsigned int i = 0; i < opt_indices.GetSize(); i++)
+    PyTuple_SetItem(opt_ind, i,  PyLong_FromLong(opt_indices[i]));
+  PyTuple_SetItem(arg, 2, opt_ind); // steals the reference, so no need to decref
+
+  PyTuple_SetItem(arg, 3, PythonKernel::CreatePythonDict(pyopts));
 
   PyObject* ret = PyObject_CallObject(func, arg);
   PythonKernel::CheckPythonReturn(ret);
@@ -415,6 +420,7 @@ void SpaghettiDesign::AddVariable(Variable* var)
   if(!var->fixed)
   {
     assert(opt_shape_param_.HasSpace());
+    opt_indices[opt_shape_param_.GetSize()] = shape_param_.GetSize()-1;
     var->SetOptIndex(opt_shape_param_.GetSize());
     opt_shape_param_.Push_back(var);
   }
@@ -623,6 +629,7 @@ void SpaghettiDesign::SetupDesign(PtrParamNode base)
 
   shape_param_.Reserve(total);
   opt_shape_param_.Reserve(opt);
+  opt_indices.Resize(opt);
 
   // the order is by noodles: nodes, profile, [alpha|, normals/radii
   // reading shall be transparent due to shape (noodle) idx.

@@ -147,6 +147,7 @@ public:
    * Within the noodles are all Variables referenced in FeaturedDesign::shape_param_ and FeaturedDesign::opt_shape_param_
    * @See SetupDesign(), also for ordering within (opt_)shape_param_ */
   StdVector<Noodle> spaghetti;
+  StdVector<int> opt_indices;
 
 private:
 
