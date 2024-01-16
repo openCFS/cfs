@@ -1307,7 +1307,7 @@ void HeatPDE::DefinePrimaryResults() {
   shared_ptr<ResultInfo> res1( new ResultInfo);
   res1->resultType = HEAT_TEMPERATURE;
   res1->dofNames = "";
-  res1->unit = "K";
+  res1->unit = MapSolTypeToUnit(HEAT_TEMPERATURE);
   res1->definedOn = ResultInfo::NODE;
   res1->entryType = ResultInfo::SCALAR;
   feFunctions_[HEAT_TEMPERATURE]->SetResultInfo(res1);
@@ -1319,7 +1319,7 @@ void HeatPDE::DefinePrimaryResults() {
   shared_ptr<ResultInfo> res2( new ResultInfo);
   res2->resultType = HEAT_MEAN_TEMPERATURE;
   res2->dofNames = "";
-  res2->unit = "K";
+  res2->unit = MapSolTypeToUnit(HEAT_MEAN_TEMPERATURE);
   res2->definedOn = ResultInfo::NODE;
   res2->entryType = ResultInfo::SCALAR;
   results_.Push_back( res2 );
@@ -1356,7 +1356,7 @@ void HeatPDE::DefinePrimaryResults() {
   shared_ptr<ResultInfo> velocity( new ResultInfo);
   velocity->resultType = MEAN_FLUIDMECH_VELOCITY;
   velocity->dofNames = vecDofNames;
-  velocity->unit = "m/s";
+  velocity->unit = MapSolTypeToUnit(MEAN_FLUIDMECH_VELOCITY);
 
   velocity->definedOn = ResultInfo::NODE;
   velocity->entryType = ResultInfo::VECTOR;
@@ -1378,7 +1378,7 @@ void HeatPDE::DefinePostProcResults() {
     heatD1->resultType = HEAT_TEMPERATURE_D1;
 
     heatD1->dofNames = "";
-    heatD1->unit = "K/s";
+    heatD1->unit = MapSolTypeToUnit(HEAT_TEMPERATURE_D1);
     heatD1->definedOn = ResultInfo::NODE;
     heatD1->entryType = ResultInfo::SCALAR;
     availResults_.insert( heatD1 );
@@ -1399,7 +1399,7 @@ void HeatPDE::DefinePostProcResults() {
   shared_ptr<ResultInfo> fluxDens ( new ResultInfo );
   fluxDens->resultType = HEAT_FLUX_DENSITY;
   fluxDens->SetVectorDOFs(dim_, isaxi_);
-  fluxDens->unit = "W/m^2";
+  fluxDens->unit = MapSolTypeToUnit(HEAT_FLUX_DENSITY);
   fluxDens->definedOn = ResultInfo::ELEMENT;
   fluxDens->entryType = ResultInfo::VECTOR;
   shared_ptr<CoefFunctionFormBased> fluxDensFunc;
@@ -1414,7 +1414,7 @@ void HeatPDE::DefinePostProcResults() {
   // === HEAT FLUX INTENSITY ===
   shared_ptr<ResultInfo> fluxNormal ( new ResultInfo );
   fluxNormal->resultType = HEAT_FLUX_INTENSITY;
-  fluxNormal->unit = "W/m^2";
+  fluxNormal->unit = MapSolTypeToUnit(HEAT_FLUX_INTENSITY);
   fluxNormal->dofNames = "";
   fluxNormal->definedOn = ResultInfo::SURF_ELEM;
   fluxNormal->entryType = ResultInfo::SCALAR;
@@ -1426,7 +1426,7 @@ void HeatPDE::DefinePostProcResults() {
   // === HEAT FLUX ===
   shared_ptr<ResultInfo> flux ( new ResultInfo );
   flux->resultType = HEAT_FLUX;
-  flux->unit = "W";
+  flux->unit = MapSolTypeToUnit(HEAT_FLUX);
   flux->dofNames = "";
   flux->definedOn = ResultInfo::SURF_REGION;
   flux->entryType = ResultInfo::SCALAR;
@@ -1444,7 +1444,7 @@ void HeatPDE::DefinePostProcResults() {
   shared_ptr<ResultInfo> conduct_tensor(new ResultInfo);
   conduct_tensor->resultType = HEAT_CONDUCTIVITY_TENSOR_HOM;
   conduct_tensor->dofNames = "e11", "e12", "e13", "e22", "e23", "e33";
-  conduct_tensor->unit = "W/(mK)";
+  conduct_tensor->unit = MapSolTypeToUnit(HEAT_CONDUCTIVITY_TENSOR_HOM);
   conduct_tensor->entryType = ResultInfo::TENSOR;
   conduct_tensor->definedOn = ResultInfo::ELEMENT;
   shared_ptr<CoefFunctionFormBased> conduct_coef;
@@ -1459,7 +1459,7 @@ void HeatPDE::DefinePostProcResults() {
   mpd->resultType = MECH_PSEUDO_DENSITY;
   mpd->entryType = ResultInfo::SCALAR;
   mpd->definedOn = ResultInfo::ELEMENT;
-  mpd->dofNames = "";
+  mpd->dofNames = MapSolTypeToUnit(MECH_PSEUDO_DENSITY);
   mpd->fromOptimization = true;
   DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
 
@@ -1468,7 +1468,7 @@ void HeatPDE::DefinePostProcResults() {
   ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
   ppd->entryType = ResultInfo::SCALAR;
   ppd->definedOn = ResultInfo::ELEMENT;
-  ppd->dofNames = "";
+  ppd->dofNames = MapSolTypeToUnit(PHYSICAL_PSEUDO_DENSITY);
   ppd->fromOptimization = true;
   DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
 }

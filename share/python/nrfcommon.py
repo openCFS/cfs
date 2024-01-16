@@ -119,7 +119,7 @@ class NrfCommon(object):
                    ('elecPseudoPolarization', 0),
                    ('elecForceVWP', 7),
                    ('elecCharge', 8),
-                   ('elecChargeDensity',4),
+                   ('elecSurfaceChargeDensity',4),
                    ('elecFluxDensity', 4),
                    ('elecEnergy', 7),
                    ('elecEnergyDensity', 4),

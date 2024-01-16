@@ -2062,11 +2062,11 @@ namespace CoupledField{
     if ( formulation_ ==  ACOU_PRESSURE) {
       res1->resultType = ACOU_PRESSURE;
       res1->dofNames = "";
-      res1->unit = "Pa";
+      res1->unit = MapSolTypeToUnit(ACOU_PRESSURE);
     } else {
       res1->resultType = ACOU_POTENTIAL;
       res1->dofNames = "";
-      res1->unit = "m^2/s";
+      res1->unit = MapSolTypeToUnit(ACOU_POTENTIAL);
     }
     res1->definedOn = ResultInfo::NODE;
     res1->entryType = ResultInfo::SCALAR;
@@ -2119,7 +2119,7 @@ namespace CoupledField{
     shared_ptr<ResultInfo> temperature( new ResultInfo);
     temperature->resultType = HEAT_MEAN_TEMPERATURE;
     temperature->dofNames = "";
-    temperature->unit = "K";
+    temperature->unit = MapSolTypeToUnit(HEAT_MEAN_TEMPERATURE);
 
     temperature->definedOn = ResultInfo::NODE;
     temperature->entryType = ResultInfo::SCALAR;
@@ -2135,7 +2135,7 @@ namespace CoupledField{
     shared_ptr<ResultInfo> density ( new ResultInfo );
     density->resultType = ELEM_DENSITY;
     density->dofNames = "";
-    density->unit = "kg/m^3";
+    density->unit = MapSolTypeToUnit(ELEM_DENSITY);
     density->definedOn = ResultInfo::ELEMENT;
     density->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,
@@ -2147,7 +2147,7 @@ namespace CoupledField{
     shared_ptr<ResultInfo> sos ( new ResultInfo );
     sos->resultType = ACOU_ELEM_SPEED_OF_SOUND;
     sos->dofNames = "";
-    sos->unit = "m/s";
+    sos->unit = MapSolTypeToUnit(ACOU_ELEM_SPEED_OF_SOUND);
     sos->definedOn = ResultInfo::ELEMENT;
     sos->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> sosFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,
@@ -2212,11 +2212,11 @@ namespace CoupledField{
     if( formulation_ == ACOU_POTENTIAL ) {
       deriv1->resultType = ACOU_POTENTIAL_DERIV_1;
       deriv1->dofNames = "";
-      deriv1->unit = "m^2/s^2";
+      deriv1->unit = MapSolTypeToUnit(ACOU_POTENTIAL_DERIV_1);
     } else {
       deriv1->resultType = ACOU_PRESSURE_DERIV_1;
       deriv1->dofNames = "";
-      deriv1->unit = "Pa/s";
+      deriv1->unit = MapSolTypeToUnit(ACOU_PRESSURE_DERIV_1);
     }
     deriv1->entryType = res1->entryType;
     deriv1->definedOn = res1->definedOn;
@@ -2228,11 +2228,11 @@ namespace CoupledField{
     if( formulation_ == ACOU_POTENTIAL ) {
       deriv2->resultType = ACOU_POTENTIAL_DERIV_2;
       deriv2->dofNames = "";
-      deriv2->unit = "m^2/s^3";
+      deriv2->unit = MapSolTypeToUnit(ACOU_POTENTIAL_DERIV_2);
     } else {
       deriv2->resultType = ACOU_PRESSURE_DERIV_2;
       deriv2->dofNames = "";
-      deriv2->unit = "Pa/s^2";
+      deriv2->unit = MapSolTypeToUnit(ACOU_PRESSURE_DERIV_2);
     }
     deriv2->entryType = res1->entryType;
     deriv2->definedOn = res1->definedOn;
@@ -2246,7 +2246,7 @@ namespace CoupledField{
       shared_ptr<ResultInfo> pres(new ResultInfo);
       pres->resultType = ACOU_PRESSURE;
       pres->dofNames = "";
-      pres->unit = "Pa";
+      pres->unit = MapSolTypeToUnit(ACOU_PRESSURE);
       pres->entryType = ResultInfo::SCALAR;
       pres->definedOn = ResultInfo::ELEMENT;
       // Define pressure as p = rho * dPsi/dt
@@ -2294,7 +2294,7 @@ namespace CoupledField{
       pres.reset(new ResultInfo);
       pres->resultType = ACOU_PRESSURE;
       pres->dofNames = "";
-      pres->unit = "Pa";
+      pres->unit = MapSolTypeToUnit(ACOU_PRESSURE);
       pres->entryType = ResultInfo::SCALAR;
       pres->definedOn = ResultInfo::ELEMENT;
       
@@ -2302,7 +2302,7 @@ namespace CoupledField{
       vel.reset(new ResultInfo);
       vel->resultType = ACOU_VELOCITY;
       vel->dofNames = vecDofNames;
-      vel->unit = "m/s";
+      vel->unit = MapSolTypeToUnit(ACOU_VELOCITY);
       vel->entryType = ResultInfo::VECTOR;
       vel->definedOn = ResultInfo::ELEMENT;
       
@@ -2310,7 +2310,7 @@ namespace CoupledField{
       pos.reset(new ResultInfo);
       pos->resultType = ACOU_POSITION;
       pos->dofNames = vecDofNames;
-      pos->unit = "m";
+      pos->unit = MapSolTypeToUnit(ACOU_POSITION);
       pos->entryType = ResultInfo::VECTOR;
       pos->definedOn = ResultInfo::ELEMENT;
 
@@ -2318,7 +2318,7 @@ namespace CoupledField{
       velNormal.reset(new ResultInfo);
       velNormal->resultType = ACOU_NORMAL_VELOCITY;
       velNormal->dofNames = "";
-      velNormal->unit = "m/s";
+      velNormal->unit = MapSolTypeToUnit(ACOU_NORMAL_VELOCITY);
       velNormal->entryType = ResultInfo::SCALAR;
       velNormal->definedOn = ResultInfo::SURF_ELEM;
       
@@ -2326,7 +2326,7 @@ namespace CoupledField{
       intensity.reset(new ResultInfo);
       intensity->resultType = ACOU_INTENSITY;
       intensity->dofNames = vecDofNames;
-      intensity->unit = "W/m^2";
+      intensity->unit = MapSolTypeToUnit(ACOU_INTENSITY);
       intensity->entryType = ResultInfo::VECTOR;
       intensity->definedOn = ResultInfo::ELEMENT;
       
@@ -2334,7 +2334,7 @@ namespace CoupledField{
       surfIntensity.reset(new ResultInfo);
       surfIntensity->resultType = ACOU_SURFINTENSITY;
       surfIntensity->dofNames = vecDofNames;
-      surfIntensity->unit = "W/m^2";
+      surfIntensity->unit = MapSolTypeToUnit(ACOU_SURFINTENSITY);
       surfIntensity->entryType = ResultInfo::VECTOR;
       surfIntensity->definedOn = ResultInfo::SURF_ELEM;
 
@@ -2342,7 +2342,7 @@ namespace CoupledField{
       intensNormal.reset(new ResultInfo);
       intensNormal->resultType = ACOU_NORMAL_INTENSITY;
       intensNormal->dofNames = "";
-      intensNormal->unit = "W/m^2";
+      intensNormal->unit = MapSolTypeToUnit(ACOU_NORMAL_INTENSITY);
       intensNormal->entryType = ResultInfo::SCALAR;
       intensNormal->definedOn = ResultInfo::SURF_ELEM;  
       
@@ -2350,7 +2350,7 @@ namespace CoupledField{
       power.reset(new ResultInfo);
       power->resultType = ACOU_POWER;
       power->dofNames = "";
-      power->unit = "W";
+      power->unit = MapSolTypeToUnit(ACOU_POWER);
       power->entryType = ResultInfo::SCALAR;
       power->definedOn = ResultInfo::SURF_REGION;
     }
@@ -2480,7 +2480,7 @@ namespace CoupledField{
       powerPW.reset(new ResultInfo);
       powerPW->resultType = ACOU_POWER_PLANEWAVE;
       powerPW->dofNames = "";
-      powerPW->unit = "W";
+      powerPW->unit = MapSolTypeToUnit(ACOU_POWER_PLANEWAVE);
       powerPW->entryType = ResultInfo::SCALAR;
       powerPW->definedOn = ResultInfo::SURF_REGION;
 
@@ -2489,7 +2489,7 @@ namespace CoupledField{
       intensNormalPW.reset(new ResultInfo);
       intensNormalPW->resultType = ACOU_NORMAL_INTENSITY_PLANEWAVE;
       intensNormalPW->dofNames = "";
-      intensNormalPW->unit = "W/m^2";
+      intensNormalPW->unit = MapSolTypeToUnit(ACOU_NORMAL_INTENSITY_PLANEWAVE);
       intensNormalPW->entryType = ResultInfo::SCALAR;
       intensNormalPW->definedOn = ResultInfo::SURF_ELEM;
 
@@ -2533,7 +2533,7 @@ namespace CoupledField{
     shared_ptr<ResultInfo> kinEnergy(new ResultInfo);
     kinEnergy->resultType = ACOU_KIN_ENERGY;
     kinEnergy->dofNames = "";
-    kinEnergy->unit = "Ws";
+    kinEnergy->unit = MapSolTypeToUnit(ACOU_KIN_ENERGY);
     kinEnergy->entryType = ResultInfo::SCALAR;
     kinEnergy->definedOn = ResultInfo::REGION;
     availResults_.insert ( kinEnergy );
@@ -2557,7 +2557,7 @@ namespace CoupledField{
     shared_ptr<ResultInfo> potEnergy(new ResultInfo);
     potEnergy->resultType = ACOU_POT_ENERGY;
     potEnergy->dofNames = "";
-    potEnergy->unit = "Ws";
+    potEnergy->unit = MapSolTypeToUnit(ACOU_POT_ENERGY);
     potEnergy->entryType = ResultInfo::SCALAR;
     potEnergy->definedOn = ResultInfo::REGION;
     availResults_.insert ( potEnergy );
@@ -2666,7 +2666,7 @@ namespace CoupledField{
      shared_ptr<ResultInfo> flowvelocity( new ResultInfo);
      flowvelocity->resultType = MEAN_FLUIDMECH_VELOCITY;
      flowvelocity->dofNames = dofNames;
-     flowvelocity->unit = "m/s";
+     flowvelocity->unit = MapSolTypeToUnit(MEAN_FLUIDMECH_VELOCITY);
 
      flowvelocity->definedOn = ResultInfo::NODE;
      flowvelocity->entryType = ResultInfo::VECTOR;
@@ -2681,7 +2681,7 @@ namespace CoupledField{
        shared_ptr<ResultInfo> divflowvelocity( new ResultInfo);
        divflowvelocity->resultType = DIV_MEAN_FLUIDMECH_VELOCITY;
        divflowvelocity->dofNames = "";
-       divflowvelocity->unit = "1/s";
+       divflowvelocity->unit = MapSolTypeToUnit(DIV_MEAN_FLUIDMECH_VELOCITY);
 
        divflowvelocity->definedOn = ResultInfo::ELEMENT;
        divflowvelocity->entryType = ResultInfo::SCALAR;

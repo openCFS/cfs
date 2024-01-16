@@ -136,7 +136,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_FORCE, "elecForce");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
-    SolutionTypeEnum.Add(ELEC_CHARGE_DENSITY, "elecChargeDensity");
+    SolutionTypeEnum.Add(ELEC_SURFACE_CHARGE_DENSITY, "elecSurfaceChargeDensity");
     SolutionTypeEnum.Add(ELEC_FLUX_DENSITY, "elecFluxDensity");
     SolutionTypeEnum.Add(ELEC_ENERGY, "elecEnergy");
     SolutionTypeEnum.Add(ELEC_ENERGY_DENSITY, "elecEnergyDensity");
@@ -866,6 +866,7 @@ namespace CoupledField {
         return "Ws";
         break;
 
+      case ACOU_NORMAL_INTENSITY_PLANEWAVE:
       case ACOU_INTENSITY:
       case ACOU_NORMAL_INTENSITY:
       case ACOU_SURFINTENSITY:
@@ -878,6 +879,10 @@ namespace CoupledField {
       case HEAT_FLUX_DENSITY:
       case HEAT_FLUX_INTENSITY:
         return "W/m^2";
+        break;
+
+      case HEAT_CONDUCTIVITY_TENSOR_HOM:
+        return "W/(mK)";
         break;
 
       case SPLIT_POT_ENERGY:
@@ -893,6 +898,7 @@ namespace CoupledField {
         return "m";
         break;
 
+      case ACOU_NORMAL_VELOCITY:
       case ACOU_VELOCITY:
       case ACOU_ELEM_SPEED_OF_SOUND:
       case FLUIDMECH_VELOCITY:
@@ -1004,8 +1010,8 @@ namespace CoupledField {
         return "C";
         break;
 
-      case ELEC_CHARGE_DENSITY:
-        return "C/m^3";
+      case ELEC_SURFACE_CHARGE_DENSITY:
+        return "C/m^2";
         break;
 
       case ELEC_POLARIZATION:
@@ -1065,6 +1071,7 @@ namespace CoupledField {
         break;
 
       case FLUIDMECH_DENSITY:
+      case ELEM_DENSITY:
         return "kg/m^3";
         break;
 
@@ -1122,6 +1129,9 @@ namespace CoupledField {
 
       case MAG_ELEM_RELUCTIVITY:
         return "Am/Vs";
+
+      case ELEC_ELEM_PERMITTIVITY:
+        return "(As)/(Vm)";
 
       case ELEC_POTENTIAL:
       case COIL_VOLTAGE:
