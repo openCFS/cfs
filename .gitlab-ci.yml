@@ -1093,34 +1093,32 @@ unstable_ser:gcc7min:linux:
     - linux:gcc7min
 
 stable_par:gcc7max:linux:
+  extends: .test_generic
   tags:
     - docker
   stage: test
   image: opencfs/centos6-gcc7
-  rules:
-    - !reference [.max_never_auto_rule, rules]
-    - when: on_success
+  rules: # overwrite rules given via extends: .test_generic
+    - !reference [.max_rules, rules]
   variables:
     BUILD_NAME: "GCC7 maximal / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
-  <<: *test_generic
   needs:
     - linux:gcc7max
 
 unstable_ser:gcc7max:linux:
+  extends: .test_generic
   tags:
     - docker
   stage: test
   image: opencfs/centos6-gcc7
-  rules:
-    - !reference [.max_never_auto_rule, rules]
-    - when: on_success
+  rules: # overwrite rules given via extends: .test_generic
+    - !reference [.max_rules, rules]
   variables:
     BUILD_NAME: "GCC7 maximal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
   needs:
     - linux:gcc7max
 
