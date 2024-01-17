@@ -625,7 +625,7 @@ namespace CoupledField {
       /* for harmonic analysis, the effective value is 1/sqrt(2) \hat I \times 1/sqrt(2) \hat U */
       energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy,0.5));
     } else {
-      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy,1.));
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy,0.5));
     }
     resultFunctors_[ELEC_POWER] = energyFunc;
     stiffFormFunctors_.insert(energyFunc);
