@@ -1300,13 +1300,12 @@ def integrate_fe(fe_num):
     #glob.dist_field[i,j,k] = -glob.transition
     for snum in glob.fe_list[i][j][k].shapes_full:
       rho_s_full.append(glob.rhomax*glob.shapes[snum].alpha)
-      w_s_full.append(np.exp(glob.rhomax*glob.p*glob.shapes[snum].alpha))
       if glob.anisotropic:
         t, grad_t = glob.shapes[snum].get_tensor_by_idx(glob.shapes[snum].dist(Xmid, what='index'), Xmid)
         tensors_s_full.append(t)
         grad_tensors_s_full.append(grad_t)
   rho_s_full = np.array(rho_s_full)
-  w_s_full = np.array(w_s_full)
+  w_s_full = np.array(np.exp(glob.p*rho_s_full))
   sum_w_s_full = np.sum(w_s_full)
   tensors_s_full = np.array(tensors_s_full)
   num_full = len(glob.fe_list[i][j][k].shapes_full)
@@ -1401,13 +1400,18 @@ def cfs_get_gradient_arc_overlap(constraint_num):
 # get penalized volume in python for anisotropic SpaghettiParamMat
 def cfs_get_python_volume(constraint_num):
   cfs_map_to_design() # should already be precomputed
-  vol = np.sum((2-glob.rho)*glob.rho)/np.prod(glob.n)
+  #vol = np.sum((2-glob.rho)*glob.rho)/np.prod(glob.n)
+  p = glob.penalty
+  assert(p>1)
+  vol = np.sum((2*p-2+1/p)*glob.rho**3+(3*p-3-1/p)*glob.rho**2+p*glob.rho)/np.prod(glob.n)
   return vol
 
 # get volume gradient in python for anisotropic SpaghettiParamMat
 def cfs_get_gradient_python_volume(constraint_num):
   cfs_map_to_design() # should already be precomputed
-  grad = -2.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims(glob.rho-1,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
+  #grad = -2.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims(glob.rho-1,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
+  p = glob.penalty
+  grad = 1.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims((6*p-6+3/p)*glob.rho**2+(6*p-6-2/p)*glob.rho+p,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
   return grad[glob.opt_ind]
 
 # get constraint sparsity pattern (full in volume case)
