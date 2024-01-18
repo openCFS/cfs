@@ -2644,8 +2644,6 @@
         <xsd:restriction base="xsd:token">
           <!-- the polynomial is almost cos and requires transition -->
           <xsd:enumeration value="poly" />
-          <!-- like "poly", but with simp penalization in the boundary function directly -->
-          <xsd:enumeration value="poly-simp" />
           <!-- simple linear interpolation, also requires transition -->
           <xsd:enumeration value="linear" />
         </xsd:restriction>
@@ -2687,9 +2685,9 @@
       </xsd:annotation>
     </xsd:attribute>
 
-    <xsd:attribute name="penalty" use="optional" type="xsd:float" default="3">
+    <xsd:attribute name="q" use="optional" type="xsd:float" default="0">
       <xsd:annotation>
-        <xsd:documentation>Exponent for "poly-simp" boundary function </xsd:documentation>
+        <xsd:documentation>penalty for RAMP type inverse penalization of python_volume. q=0 is linear, q>0 makes intermediate values more expensive </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
 

@@ -60,7 +60,7 @@ class Global:
     self.rhomax = 1
     self.boundary = 'poly'   # up to now only 'poly' and 'linear'
     self.p = 10              # penalty parameter for smooth maximum
-    self.penalty = 3         # penalty parameter for 'poly-simp'
+    self.q = 0         # penalty parameter for python_volume (inverse RAMP type penalty)
     self.transition = 0.05   # parameter for boundary: 2*h
     self.h = 0.5*self.transition
     self.n = np.array([40,40,40],dtype=int)       # [nx, ny, nz]
@@ -161,8 +161,8 @@ def cfs_init(settings, design, opt_indices, dict):
 
   if 'p' in settings:
     glob.p = float(settings['p'])
-  if 'penalty' in settings:
-    glob.penalty = float(settings['penalty'])
+  if 'q' in settings:
+    glob.q = float(settings['q'])
   if 'vtk_lists' in dict:
     glob.vtk_lists = dict['vtk_lists']
   if 'silent' in dict:
@@ -1400,18 +1400,15 @@ def cfs_get_gradient_arc_overlap(constraint_num):
 # get penalized volume in python for anisotropic SpaghettiParamMat
 def cfs_get_python_volume(constraint_num):
   cfs_map_to_design() # should already be precomputed
-  #vol = np.sum((2-glob.rho)*glob.rho)/np.prod(glob.n)
-  p = glob.penalty
-  assert(p>1)
-  vol = np.sum((p-2+1/p)*glob.rho**3+(3-2*p-1/p)*glob.rho**2+p*glob.rho)/np.prod(glob.n)
+  q = glob.q
+  vol = np.sum((1+q)*glob.rho/(q*glob.rho+1))/np.prod(glob.n)
   return vol
 
 # get volume gradient in python for anisotropic SpaghettiParamMat
 def cfs_get_gradient_python_volume(constraint_num):
   cfs_map_to_design() # should already be precomputed
-  #grad = -2.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims(glob.rho-1,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
-  p = glob.penalty
-  grad = 1.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims((3*p-6+3/p)*glob.rho**2+(6-4*p-2/p)*glob.rho+p,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
+  q = glob.q
+  grad = np.sum(np.sum(np.sum(np.expand_dims((1+q)/(q*glob.rho+1)**2,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)/np.prod(glob.n)
   return grad[glob.opt_ind]
 
 # get constraint sparsity pattern (full in volume case)

@@ -189,8 +189,8 @@ private:
 
   // penalty for smoothmax
   double pen = -1;
-  // penalty for 'poly-simp' boundary
-  double penalty = -1;
+  // penalty for RAMP type inverse penalization of python_volume
+  double q = 0;
 
   /** the rhomin we use, extracted from the first density variable. */
   double rhomin = -1;

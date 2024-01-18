@@ -47,7 +47,6 @@ void FeaturedDesign::SetEnums()
   boundary.Add(TANH, "tanh");
   boundary.Add(LINEAR, "linear");
   boundary.Add(POLY, "poly");
-  boundary.Add(POLYSIMP, "poly-simp");
 
   orientation.Add(ROUNDED, "rounded");
   orientation.Add(STRAIGHT, "straight");

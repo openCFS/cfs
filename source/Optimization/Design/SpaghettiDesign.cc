@@ -42,8 +42,8 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   order = pn->Get("order")->As<unsigned int>();
   transition = pn->Get("transition")->As<double>(); // make optional
   radius = pn->Get("radius")->As<double>();
-  if (pn->Has("p")){
-    penalty = pn->Get("penalty")->As<double>();
+  if (pn->Has("q")){
+    q = pn->Get("q")->As<double>();
   }
   if (pn->Has("p")){
     pen = pn->Get("p")->As<double>();
@@ -183,8 +183,7 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   settings.Push_back(make_pair("boundary", boundary.ToString(boundary_)));
   if(pen > 0)
     settings.Push_back(make_pair("p", to_string(pen)));
-  if(penalty > 0)
-    settings.Push_back(make_pair("penalty", to_string(penalty)));
+  settings.Push_back(make_pair("q", to_string(q)));
   settings.Push_back(make_pair("transition", to_string(transition)));
   settings.Push_back(make_pair("combine", combine.ToString(combine_)));
   settings.Push_back(make_pair("order", to_string(order)));

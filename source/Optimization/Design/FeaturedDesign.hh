@@ -183,7 +183,7 @@ protected:
 
   /** this describes the continuation of a structure in 1D. See feature mapping review.
    * Not every class uses all boundary functions, this is handled in the schema file */
-  typedef enum { NO_BOUNDARY, TANH, LINEAR, POLY, POLYSIMP } Boundary;
+  typedef enum { NO_BOUNDARY, TANH, LINEAR, POLY } Boundary;
 
   /** gives the fiber orientation for anisotropic material in spaghettiParamMat
    * rounded: follows the spaghetti direction but at the endings uses orientations parallel to the boundary
