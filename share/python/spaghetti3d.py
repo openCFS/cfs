@@ -1403,7 +1403,7 @@ def cfs_get_python_volume(constraint_num):
   #vol = np.sum((2-glob.rho)*glob.rho)/np.prod(glob.n)
   p = glob.penalty
   assert(p>1)
-  vol = np.sum((2*p-2+1/p)*glob.rho**3+(3*p-3-1/p)*glob.rho**2+p*glob.rho)/np.prod(glob.n)
+  vol = np.sum((p-2+1/p)*glob.rho**3+(3-2*p-1/p)*glob.rho**2+p*glob.rho)/np.prod(glob.n)
   return vol
 
 # get volume gradient in python for anisotropic SpaghettiParamMat
@@ -1411,7 +1411,7 @@ def cfs_get_gradient_python_volume(constraint_num):
   cfs_map_to_design() # should already be precomputed
   #grad = -2.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims(glob.rho-1,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
   p = glob.penalty
-  grad = 1.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims((6*p-6+3/p)*glob.rho**2+(6*p-6-2/p)*glob.rho+p,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
+  grad = 1.0/(np.prod(glob.n))*np.sum(np.sum(np.sum(np.expand_dims((3*p-6+3/p)*glob.rho**2+(6-4*p-2/p)*glob.rho+p,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)
   return grad[glob.opt_ind]
 
 # get constraint sparsity pattern (full in volume case)
