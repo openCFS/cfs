@@ -131,7 +131,7 @@ option(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFA
 option(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 option(USE_METIS "Use Metis Graph partitioning." ${USE_METIS_DEFAULT})
 # NiHu - BoundaryElementMethod (TU Budapest)
-option(USE_NIHU "Use NiHu (BoundaryElementMethod) solver." ${USE_NIHU_DEFAULT})
+option(USE_NIHU "NiHu (BoundaryElementMethod) solver requires USE_EIGEN otherwhise it will install a redundant version of the Eigen library." ${USE_NIHU_DEFAULT})
 # CGNS - CFD General Notation System
 option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
 # SCPIP optimizer library.
