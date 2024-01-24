@@ -63,6 +63,7 @@ namespace CoupledField
     isAllowed_.insert( MAG_MU0_EB );
     isAllowed_.insert( MAG_NUMS_EB );
     isAllowed_.insert( MAG_CHI_FACTOR_EB );
+    isAllowed_.insert( MAG_JACOBIAN_METHOD_EB );
 
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION );
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION_X );

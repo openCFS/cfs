@@ -872,6 +872,10 @@
      <xsd:annotation>
       <xsd:documentation xml:lang="en">
         Parameters for Energy Based vectorhysteresis model;
+
+        jacobian_method:
+          1 ... Finite Differences
+          2 ... Broydens Method
       </xsd:documentation>
     </xsd:annotation>
     <xsd:all>
@@ -880,6 +884,7 @@
       <xsd:element name="mu0" type="xsd:double" minOccurs="1"/>
       <xsd:element name="numS" type="xsd:double" minOccurs="1"/>
       <xsd:element name="chi_factor" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="jacobian_method" type="xsd:double" minOccurs="1"/>
     </xsd:all>
   </xsd:complexType>  
 
