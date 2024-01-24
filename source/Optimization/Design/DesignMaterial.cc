@@ -1600,7 +1600,7 @@ inline void DesignMaterial::GetElasticFMOTensor(MaterialTensor<double>& mt, SubT
   // exception: in SGP_GRADIENTCHECK case, take the tensor as it is specified in the xml file
   // if we are called by ApplyPhysicalDesign, mt is in Voigt notation.
   // if we are called by IntegrateDesignVariable, mt is in Hill-Mandel notation.
-  if (mt.GetNotation() == VOIGT && type_ != SGP_GRADIENTCHECK)
+  if (mt.GetNotation() == VOIGT && type_ != SGP_GRADIENTCHECK && space_->GetMethod() != ErsatzMaterial::SPAGHETTI_PARAM_MAT)
   {
     // for ToHillMandel(), mt.matrix_ has to be initialized
     mt.GetMatrix(VOIGT).Resize(subTensor == FULL? 6 : 3, subTensor == FULL? 6 : 3);
@@ -1608,8 +1608,14 @@ inline void DesignMaterial::GetElasticFMOTensor(MaterialTensor<double>& mt, SubT
     mt.ToHillMandel();
   }
 
+
+  MaterialTensorNotation fmo_notation = HILL_MANDEL;
   // SGP_GRADIENTCHECK: we want the tensor entries, as they are specified in the xml file (without any further transformation!)
-  Matrix<double>& E = type_ == SGP_GRADIENTCHECK? mt.GetMatrix(VOIGT) :  mt.GetMatrix(HILL_MANDEL);
+
+  if (space_->GetMethod() == ErsatzMaterial::SPAGHETTI_PARAM_MAT || type_ == SGP_GRADIENTCHECK)
+    fmo_notation = VOIGT;
+
+  Matrix<double>& E = mt.GetMatrix(fmo_notation);
 
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
@@ -1729,7 +1735,7 @@ inline void DesignMaterial::GetElasticFMOTensor(MaterialTensor<double>& mt, SubT
     break;
   }
 
-  if (type_ != SGP_GRADIENTCHECK)
+  if (type_ != SGP_GRADIENTCHECK || fmo_notation == HILL_MANDEL)
     mt.ToVoigt();
 
   LOG_DBG2(dm) << "GEFMOT: E  =  " << mt.GetMatrix(VOIGT).ToString();

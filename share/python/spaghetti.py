@@ -85,7 +85,7 @@ glob = Global()
 # @settings dict of key/string from openCFS or from command line
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
-def cfs_init(settings, design, dict):
+def cfs_init(settings, design, opt_indices, dict):
   # non-zero value avoids divide by 0 in autograd. Seems to also work with 0 though
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax']) if 'rhomax' in settings else 1.0
@@ -94,6 +94,7 @@ def cfs_init(settings, design, dict):
   glob.boundary = settings['boundary']
   glob.transition = float(settings['transition'])
   glob.combine =  settings['combine']
+  glob.opt_ind = np.array(opt_indices)
   if 'orientation' in settings:
     glob.orientation = settings['orientation']
   glob.n = np.array(eval(settings['n']),dtype=int)
