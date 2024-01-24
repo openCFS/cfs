@@ -61,7 +61,7 @@ namespace CoupledField {
       Double mu0_;
       Double numS_;
       Double chi_factor_;
-      Double JacobianCalculationMethod_;
+      Double jacobian_method_;
 
       StdVector< StdVector<Double> > H0_;
       StdVector< StdVector<Double> > H1_;

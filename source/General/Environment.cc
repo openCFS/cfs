@@ -550,6 +550,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add(MAG_MU0_EB, "mag_mu0_EB");
     MaterialTypeEnum.Add(MAG_NUMS_EB, "mag_numS_EB");
     MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB");
+    MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_EB, "mag_jacobian_method_EB");
 
     // -- Mechanical --
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "Mechanic_Stiffness_Tensor" );

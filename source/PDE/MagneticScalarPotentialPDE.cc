@@ -144,6 +144,7 @@ namespace CoupledField
           actSDMat->GetScalar(ParameterMap["mu0"], MAG_MU0_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
+          actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_EB, Global::REAL);
           ParameterMap["isMH"] = 0;
           matModelCoef_->InitModel(ParameterMap, actSDList);
 

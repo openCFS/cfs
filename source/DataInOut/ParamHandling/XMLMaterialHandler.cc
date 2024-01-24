@@ -1095,6 +1095,7 @@ namespace CoupledField {
             material->SetScalar(model->Get("mu0")->As<Double>(), MaterialType(MAG_MU0_EB), Global::REAL);
             material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_EB), Global::REAL);
             material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL);
+            material->SetScalar(model->Get("jacobian_method")->As<Double>(), MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
           }
         }
       }

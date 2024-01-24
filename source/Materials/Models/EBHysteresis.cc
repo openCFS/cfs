@@ -19,7 +19,7 @@ DEFINE_LOG(eb, "EBHysteresis")
 
     EBHysteresis::EBHysteresis() : Model(),
     numElems_{0}, 
-    Ps_{0}, A_{0}, mu0_{0}, numS_{0},chi_factor_{0},
+    Ps_{0}, A_{0}, mu0_{0}, numS_{0},chi_factor_{0}, jacobian_method_{0},
     mp_{nullptr}, isFirstTimeFinished_{0},
     timeStep_{0}, globalIter_{0},
     isMH_{false}
@@ -51,6 +51,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       mu0_ = ParameterMap["mu0"];
       numS_ = ParameterMap["numS"];
       chi_factor_ = ParameterMap["chi_factor"];
+      jacobian_method_ = ParameterMap["jacobian_method"];
 
       isMH_ = ParameterMap["isMH"];
       if(isMH_ == 1.0){
@@ -65,6 +66,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       mu0_ = ParameterMap["mu0"];
       numS_ = ParameterMap["numS"];
       chi_factor_ = ParameterMap["chi_factor"];
+      jacobian_method_ = ParameterMap["jacobian_method"];
 
       H0_.Resize(numElems_, StdVector<Double>(dim_));
       H1_.Resize(numElems_, StdVector<Double>(dim_));
@@ -248,15 +250,19 @@ DEFINE_LOG(eb, "EBHysteresis")
       }
 
    
-      if (numS_ > 1 ){ // hysteretic case
-        //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-        //mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-        //M_dummy = Evaluate(HVec, true, idx);
+          if (numS_ > 1 ){ // hysteretic case
+        if (jacobian_method_ == 1){ // use finite differences
+          mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
+        } else if (jacobian_method_ == 2) {
+          mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+          mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
+        } else {
+          EXCEPTION("WRONG Jacobian_method!")
+        }
+        //mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
+        M_dummy = Evaluate(HVec, true, idx);
       } else { // nonlinear case (only anhysteresis)
-        //mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
-        //mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-        //mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-        mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
+        mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
       }
       mu_[idx] = mu;
       M0_[idx] = M1_[idx];
@@ -394,12 +400,12 @@ DEFINE_LOG(eb, "EBHysteresis")
           mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
 
       } 
-      if (idx == 15){
+      /* if (idx == 15){
         std::cout << "FD" << std::endl;
         std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
         std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
         std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-      }
+      } */
       return mu;
     }
 
@@ -426,7 +432,7 @@ DEFINE_LOG(eb, "EBHysteresis")
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
               Matrix<Double> e = mu_[idx];
-                mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
+                mu[i][i] = e[i][i];
             } 
         }
       if (idx == 32){
@@ -505,22 +511,15 @@ DEFINE_LOG(eb, "EBHysteresis")
         for (UInt i = 0; i < dim_; i++){
             if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
               Matrix<Double> e = mu_[idx];
-                mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
+                mu[i][i] = e[i][i]; 
             } 
         }
-      if (idx == 32){
-        printf("mu_DFPxx = %f\n",mu[0][0]);
-        printf("mu_DFPxy = %f\n",mu[0][1]);
-        printf("mu_DFPyx = %f\n",mu[1][0]);
-        printf("mu_DFPyy = %f\n",mu[1][1]);
-      }
-      }else{
+      }else{ // 3D version
         
-        // 3D version
+        
         I[0][0] = 1.0;
         I[1][1] = 1.0;
         I[2][2] = 1.0;
-
 
         dD_dyadic_dEtransposed[0][1] = dB[0] * dH[1];
         dD_dyadic_dEtransposed[1][0] = dB[1] * dH[0];
@@ -657,9 +656,7 @@ DEFINE_LOG(eb, "EBHysteresis")
                 mu[i][i] = e[i][i]; //mu_0; //e[i][i]; //mu_0;
             } 
         }
-      }else{
-        
-        // 3D version
+      }else{ // 3D version
         dD_minus_epsilon_km1_times_dE[0] = dB[0] - (mu_[idx][0][0]*dH[0] + mu_[idx][0][1]*dH[1] + mu_[idx][0][2]*dH[2]);
         dD_minus_epsilon_km1_times_dE[1] = dB[1] - (mu_[idx][1][0]*dH[0] + mu_[idx][1][1]*dH[1] + mu_[idx][1][2]*dH[2]);
         dD_minus_epsilon_km1_times_dE[2] = dB[2] - (mu_[idx][2][0]*dH[0] + mu_[idx][2][1]*dH[1] + mu_[idx][2][2]*dH[2]);
@@ -699,15 +696,14 @@ DEFINE_LOG(eb, "EBHysteresis")
         }
       }
       //################### just for checking some things #################
-        if (idx == 15){
-          std::cout << "Broyden" << std::endl;
-          std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-          std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-          std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-        }
+/*       if (idx == 15){
+        std::cout << "Broyden" << std::endl;
+        std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
+        std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
+        std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
+      } */
       //############### delete as soon as it works #######################
-      return mu;
-      
+      return mu;  
     }
 
     StdVector<Double> EBHysteresis::inv3x3(StdVector<Double> A){
@@ -850,7 +846,6 @@ DEFINE_LOG(eb, "EBHysteresis")
 
       }else{   // 3D Version (VPM)
         // volumetric weight for each pseudo particle
-        //EXCEPTION("NO 3D!!!")
         StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
         StdVector<UInt> numIter;
         error.Resize(numS_, 0.0);
@@ -934,23 +929,6 @@ DEFINE_LOG(eb, "EBHysteresis")
           MyS_n_tmp_[idx] = MyS_sol;
           MzS_n_tmp_[idx] = MzS_sol;
         }
-        /* Px = 0.0;
-        Py = 0.0;
-        Pz = 0.0;
-        Double normH;
-        normH = std::sqrt(Hn[0]*Hn[0] + Hn[1]*Hn[1] + Hn[2]*Hn[2]);
-        Px = (2.0*Ps_/M_PI)*std::atan(normH/A_) * Hn[0]/normH;
-        Py = (2.0*Ps_/M_PI)*std::atan(normH/A_) * Hn[1]/normH;
-        Pz = (2.0*Ps_/M_PI)*std::atan(normH/A_) * Hn[2]/normH;
-        if (std::isnan(Px)){
-          Px = 0;
-        }
-        if (std::isnan(Py)){
-          Py = 0;
-        }
-        if (std::isnan(Pz)){
-          Pz = 0;
-        } */
         ret.Push_back(Px);
         ret.Push_back(Py);
         ret.Push_back(Pz);

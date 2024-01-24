@@ -120,6 +120,7 @@ namespace CoupledField
         algsys_->Solve(setIDBC);
         algsys_->GetSolutionVal(solInc, setIDBC );
 
+        // apply line search
         Double etaLineSearch = 1.0;
         if ( lineSearch_ == "none"){
           stageSol.Add(etaLineSearch, solInc);
@@ -133,7 +134,6 @@ namespace CoupledField
           stageSol = stageSol_temp;
         }
 
-
         // residual
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
@@ -141,8 +141,7 @@ namespace CoupledField
         algsys_->GetRHSVal( actRHS );
         residualErr = actRHS.NormL2();
         residualErr = residualErr*residualErr;
-
-
+        
         // calculate incremental error ========================================
         solIncrL2Norm = solInc.NormL2();
         actSolL2Norm  = stageSol.NormL2();
