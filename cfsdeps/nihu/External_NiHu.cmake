@@ -27,7 +27,7 @@ ExternalProject_Add(
 
   ## path to NiHu's CMakeLists
   # CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu/src
-  CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src  // FEM_BEM20240109
+  CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src  #// FEM_BEM20240109
   # TODO: make that an alias to further use in NiHu-executable builds
 
   # Here we could utilize an alias e.g.
@@ -40,4 +40,8 @@ ExternalProject_Add(
              -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-install
              -DNIHU_EIGEN_INSTALL=1
             #  -DNIHU_EIGEN_PATH=${CMAKE_BINARY_DIR}/cfsdeps/nihu
+<<<<<<< HEAD
+=======
+             -DNIHU_EIGEN_PATH=${CMAKE_BINARY_DIR}/cfsdeps/eigen/install/include/
+>>>>>>> 8e3fc7e69 (okay, now it seams like NiHu properly finds Eigen in cfsdeps)
 )
