@@ -255,7 +255,6 @@ DEFINE_LOG(eb, "EBHysteresis")
           mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
         } else if (jacobian_method_ == 2) {
           mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-          mu = EvaluateLocalMuDFP(delta_H, delta_B, idx);
         } else {
           EXCEPTION("WRONG Jacobian_method!")
         }
