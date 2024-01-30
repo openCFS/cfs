@@ -11,7 +11,7 @@ set(PACKAGE_VER "1.78.0")
 set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
 set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
 
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
   
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://boostorg.jfrog.io/artifactory/main/release/${PACKAGE_VER}/source/${PACKAGE_FILE}")
@@ -106,6 +106,9 @@ else()
     set(DEFINE "define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX") 
   endif()    
 
+  # some patches are required
+  generate_patches_script()
+
   # we need to build the package - here in cmake style
   ExternalProject_Add(${PACKAGE_NAME}
     PREFIX ${DEPS_PREFIX}
@@ -117,7 +120,7 @@ else()
     # in case the mirrors have different file names we always store to the same
     DOWNLOAD_NAME ${PACKAGE_FILE}
     DOWNLOAD_NO_PROGRESS ON 
-    PATCH_COMMAND ""
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
     COMMAND ${CMAKE_COMMAND} -E copy "${DEPS_PREFIX}/user-config.jam" "${DEPS_SOURCE}"
     # we call bootstap without the system compiler. --with-libraries seems to have no effect (all be default)
     CONFIGURE_COMMAND ${BOOTSTRAP} 

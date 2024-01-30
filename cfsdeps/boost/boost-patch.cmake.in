@@ -33,6 +33,8 @@ IF(WIN32)
       )
     ENDIF()
   ENDIF()
+else()
+  set(patches "boost-musl-pre1.79.patch") # required by MUSL clib based system, fixed in boost 1.79: https://github.com/boostorg/interprocess/pull/162
 ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/boost")
