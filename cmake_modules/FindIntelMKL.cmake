@@ -10,9 +10,9 @@ endif()
 message(STATUS "selected ${MKL_LINK} linking for MKL")
 
 if(NOT USE_OPENMP)
-  set(MKL_THREADING "sequential")
+  set(MKL_THREADING "sequential" CACHE STRING "MKL threading layer: intel_thread (Intel OpenMP), gnu_thread (GNU OpenMP)")
 else()
-  set(MKL_THREADING "intel_thread") # the default of MKLConfig.cmake
+  set(MKL_THREADING "intel_thread" CACHE STRING "MKL threading layer: intel_thread (Intel OpenMP), gnu_thread (GNU OpenMP)")
   # this section searches for libiomp5 to save it in OMP_LIBRARY 
   # it should not be necessary at all - maybe it can be removed ...
   # TODO: check if this section is necessay on recent oneMKL installations, with/without setvars environment
@@ -67,9 +67,11 @@ message(STATUS "Found MKL version ${MKL_VERSION} via MKL_CONFIG=${MKL_CONFIG}")
 # hide advanced cache options from MKLConfig.cmake 
 mark_as_advanced(ENABLE_BLACS ENABLE_BLAS95 ENABLE_CDFT ENABLE_CPARDISO ENABLE_LAPACK95 ENABLE_OMP_OFFLOAD ENABLE_SCALAPACK)
 mark_as_advanced(MKL_DIR MKL_ARCH MKL_INCLUDE MKL_INTERFACE_FULL MKL_THREADING MKL_VERSION_H)
-mark_as_advanced(mkl_core_file mkl_gf_ilp64_file mkl_intel_thread_file mkl_gf_lp64_file mkl_blas95_lp64_file mkl_lapack95_lp64_file)
+mark_as_advanced(mkl_core_file mkl_gf_ilp64_file mkl_intel_thread_file mkl_gf_lp64_file mkl_blas95_lp64_file mkl_lapack95_lp64_file mkl_sequential_file mkl_gnu_thread_file)
 set_property(CACHE MKL_LINK PROPERTY STRINGS ${MKL_LINK_LIST})
 mark_as_advanced(MKL_LINK)
+set_property(CACHE MKL_THREADING PROPERTY STRINGS ${MKL_THREADING_LIST})
+mark_as_advanced(MKL_THREADING)
 
 # set CFS variables to the values from MKLConfig.cmake
 set(MKL_INCLUDE_DIR ${MKL_INCLUDE}) # TODO: homogenise to use original name from MKLConfig once legacy-mkl-finding code is removed
