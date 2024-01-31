@@ -22,6 +22,7 @@ variables:
   CTEST_PROGRESS_OUTPUT: "ON" # makes the ctest output shorter, see https://cmake.org/cmake/help/latest/envvar/CTEST_PROGRESS_OUTPUT.html#envvar:CTEST_PROGRESS_OUTPUT
   # build options for the maximal config
   MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON"
+  MUSL_CONFIG_OPTIONS: "-DCMAKE_EXE_LINKER_FLAGS=-static -DMKL_THREADING=gnu_thread" # link statically
 
 # stages in the pipeline run in succession
 stages:
@@ -459,6 +460,23 @@ rhel:9:
         # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
 
+.cache_cfsdeps-alpine: &cache_cfsdeps-alpine
+  cache:
+    - key: cfsdeps-precompiled-alpine-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        # requires disabling od seperate branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-precompiled-alpine-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        # requires disabling od seperate branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
+
 .before-script-build: &before-script-build
   # make sure the Testsuite submodule is OK
   - git status # debug
@@ -521,7 +539,7 @@ rhel:9:
   tags:
     - docker
   # switch off cloning the Testsuite submodule
-  variables:
+  variables: &cfsdeps-variables
     GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
   rules:
@@ -534,7 +552,7 @@ rhel:9:
     - pwd # debug
     - *before-script-build
   script:
-    - cmake ..
+    - cmake $CFS_CONFIG_OPTIONS ..
     - cmake .
     - make cfsdeps
   after_script:
@@ -572,6 +590,19 @@ cfsdeps:intel:
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*Intel*.zip
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    expire_in: 6 hours
+
+cfsdeps:gcc13-musl:
+  extends: .cfsdeps
+  image: opencfs/alpine:2024.02
+  variables:
+    <<: *cfsdeps-variables
+    CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS # add the MUSL-options
+  <<: *cache_cfsdeps-alpine
+  artifacts:
+    paths:
+      - build/cfsdeps/cache/precompiled/*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
@@ -775,7 +806,21 @@ linux:gcc7:
     BUILD_NAME: "GCC7"
   <<: [ *release_build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
   needs: 
-    - job: cfsdeps:gcc7"
+    - job: cfsdeps:gcc7
+      optional: true
+
+linux:gcc13-musl:
+  extends: .default_build_job
+  stage: build
+  image: opencfs/alpine:2024.02
+  tags:
+    - docker
+  variables:
+    BUILD_NAME: "GCC13-MUSL"
+    CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
+  <<: [ *gcc_before, *cache_cfsdeps-alpine ]
+  needs: 
+    - job: cfsdeps:gcc13-musl
       optional: true
 
 linux:gcc7min:
@@ -1149,6 +1194,32 @@ stable_par:gcc7closed:linux:
       annotations: build/annotations.json
     when: always
 
+stable_ser:gcc13-musl:linux:
+  tags:
+    - linux
+  image: opencfs/ubuntu22.04
+  stage: test
+  variables:
+    BUILD_NAME: "GCC13-MUSL / stable serial"
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-LE unstable|broken"
+  <<: *test_generic
+  needs:
+    - linux:gcc13-musl
+
+stable_par:gcc13-musl:linux:
+  tags:
+    - linux
+  image: opencfs/ubuntu22.04
+  stage: test
+  variables:
+    BUILD_NAME: "GCC13-MUSL / stable parallel"
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-LE unstable|broken"
+  <<: *test_generic
+  needs:
+    - linux:gcc13-musl
+
 stable_par:gcc12:linux:
   image: opencfs/fedora37
   tags:
@@ -1406,6 +1477,30 @@ unstable_par:intel:linux:
     CTEST_OPTIONS: "-L unstable"
   needs:
     - linux:intel
+
+unstable_par:gcc13-musl:linux:
+  extends: .test_extra
+  tags:
+    - docker
+  image: opencfs/ubuntu22.04
+  variables:
+    BUILD_NAME: GCC13-MUSL / unstable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-L unstable"
+  needs:
+    - linux:gcc13-musl
+
+broken_ser:gcc13-musl:linux:
+  extends: .test_extra
+  tags:
+    - docker
+  image: opencfs/ubuntu22.04
+  variables:
+    BUILD_NAME: GCC13-MUSL / broken serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L broken"
+  needs:
+    - linux:gcc13-musl
 
 broken_ser:intel:linux:
   extends: .test_extra
