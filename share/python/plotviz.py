@@ -18,8 +18,11 @@ if __name__ == '__main__':
   import matplotlib
   import matplotlib.pyplot as plt
   from matplotlib.ticker import MaxNLocator
-  import snopt # our snopt.py helper process
-
+  try:
+    import snopt # our snopt.py helper process
+  except ImportError:
+    print("warning: cannot load snopt, hopefully not needed")
+   
   # in case we have --dashed we use c_cms_y and c_cms_y2
   # https://stackoverflow.com/questions/7358118/matplotlib-black-white-colormap-with-dashes-dots-etc
   # probably to be combined with --black
