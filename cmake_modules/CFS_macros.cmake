@@ -294,13 +294,14 @@ MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
   IF(EXISTS "${ZIP_FILE}")
     MESSAGE("Found precompiled version ${ZIP_FILE}")
     EXECUTE_PROCESS(
-      COMMAND "${CMAKE_COMMAND}" -E tar xzf "${ZIP_FILE}"
+      COMMAND "${CMAKE_COMMAND}" -E tar xvfz "${ZIP_FILE}"
       WORKING_DIRECTORY "${TARGET_DIR}"
-      OUTPUT_QUIET
+      OUTPUT_VARIABLE ov
+      ERROR_VARIABLE ev
       RESULT_VARIABLE rv
       )
     IF(NOT "${rv}" STREQUAL "0")
-      MESSAGE(SEND_ERROR "Could not extract ${ZIP_FILE}")
+      MESSAGE(SEND_ERROR "Could not extract ${ZIP_FILE}:\nov=${out}\nev=${ev}")
     ENDIF()
   ELSE()
     MESSAGE(SEND_ERROR "Could not find precompiled ${ZIP_FILE}")
@@ -314,8 +315,9 @@ ENDMACRO()
 #-------------------------------------------------------------------------------
 MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
-  STRING(REGEX REPLACE "${ZIP_NAME}$" "" TARGET_DIR ${ZIP_FILE})
+  get_filename_component(TARGET_DIR ${ZIP_FILE} DIRECTORY)
   IF(NOT EXISTS "${TARGET_DIR}")
+    message(STATUS "creating directroy: ZIP_FILE=${ZIP_FILE} -> ZIP_NAME=${ZIP_NAME}, TARGET_DIR=${TARGET_DIR}")
     FILE(MAKE_DIRECTORY "${TARGET_DIR}")
   ENDIF()
   
