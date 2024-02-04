@@ -548,7 +548,8 @@ cfsdeps:gcc7:
   <<: *cache_cfsdeps-gcc7
   artifacts:
     paths:
-      - build/cfsdeps/cache/precompiled/*GNU_7*.zip
+      - build/cfsdeps/cache/precompiled/*GNU_7*-lib.zip # legacy
+      - build/cfsdeps/cache/precompiled/*GNU-7*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
@@ -558,7 +559,8 @@ cfsdeps:gcc12:
   <<: *cache_cfsdeps-gcc7
   artifacts:
     paths:
-      - build/cfsdeps/cache/precompiled/*GNU_12*.zip
+      - build/cfsdeps/cache/precompiled/*GNU_12*-lib.zip # legacy
+      - build/cfsdeps/cache/precompiled/*GNU-12*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
