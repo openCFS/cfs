@@ -3421,12 +3421,31 @@ namespace CoupledField {
     geometryRegionMap_[surfRegionId] = shared_ptr<NodeGeometry>(new NodeGeometry(numNodes));
     // set the node Ids to the struct
     geometryRegionMap_[surfRegionId]->nodeIds_ = nodeIds;
-    // for now, we asume the origin at (0,0,0)
-    Vector<Double> origin = Vector<Double>(this->dim_,0);
+
     // get type of geometry
     std::string geomType = layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->GetChildren()[0]->GetName();
+    ParamNodeList children = layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->Get(geomType)->GetChildren();
+
+    // set origin offset by MP expression. Default is defined in the xsd scheme at (0,0,0).
+    Vector<Double> origin(3);
+    MathParser* mp = domain->GetMathParser();
+    UInt mpHandle = mp->GetNewHandle(true);
+    std::string mpExpression;
+    layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->Get(geomType)->GetValue("origin_x", mpExpression);
+    mp->SetExpr(mpHandle, mpExpression);
+    origin[0] = mp->Eval(mpHandle);
+    mpHandle = mp->GetNewHandle(true);
+    layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->Get(geomType)->GetValue("origin_y", mpExpression);
+    mp->SetExpr(mpHandle, mpExpression);
+    origin[1] = mp->Eval(mpHandle);
+    mpHandle = mp->GetNewHandle(true);
+    layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->Get(geomType)->GetValue("origin_z", mpExpression);
+    mp->SetExpr(mpHandle, mpExpression);
+    origin[2] = mp->Eval(mpHandle);
+
     // compute geometry based on the passed type
     if (geomType == "sphere") {
+
       // curvatures can be assigned via the sphere radius
       Double r = sqrt(pow(nodeCoords[0][0]-origin[0],2) + pow(nodeCoords[0][1]-origin[1],2) + pow(nodeCoords[0][2]-origin[2],2));
       Double curv = 1 / r;
