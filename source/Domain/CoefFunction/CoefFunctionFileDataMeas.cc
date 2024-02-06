@@ -48,7 +48,7 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
 
   //get correct index
   std::list<StdVector<Double> >::iterator iterData = dataH_.begin();
-  std::list<double>::iterator iterTime = time_.begin();
+  std::list<Double>::iterator iterTime = time_.begin();
 
   for(UInt i=0; i< timeStep-1; i++) {
         ++iterData;
@@ -56,7 +56,7 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
   }
 
   StdVector<Double> dataVec = *iterData;
-  double time = *iterTime;
+  Double time = *iterTime;
 
   //check time
   if ( actTime != time )
@@ -111,7 +111,7 @@ void CoefFunctionFileDataMeas::ReadData(std::istream& input, int dim)
       // the element number
       if(iter == tokens.end())
         EXCEPTION("cannot parse number token in line " << line_cnt << " in dataFile " << filename_);
-      time_.push_back(std::stoi(*iter));
+      time_.push_back(std::stod(*iter));
       iter++;
 
       // the data elements
