@@ -10,6 +10,7 @@ import multiprocessing
 import time as ti
 import optimization_tools as ot
 import argparse
+import pandas as pd
 from multiprocessing.pool import Pool as Pool # preferably to line below
 #from multiprocessing.pool import ThreadPool as Pool # only necessary for python profiling using kernprof
 # noinspection PyUnresolvedReferences
@@ -1943,7 +1944,8 @@ if __name__ == '__main__':
   parser.add_argument('--remove_alpha', help="remove alpha variable from .density.xml file: 0=off, 1=remove, 2=scale profile with previous alpha", choices=[0,1,2], default=0, type=int)
   parser.add_argument('--saveall', help="save all sets as image with the given format. Might be png, pdf, eps, vtp", action='store_true')
   parser.add_argument('--padradii', help="pad radii with additional radii (zero-valued) so there is a total of x radii", type=int, default=0)
-  parser.add_argument('--export_hypermesh', help="export tensor data to hypermesh format", action='store_true')
+  parser.add_argument('--analyze_graph', help="print spaghetti end points with attempted match of connection setup", action='store_true')
+  parser.add_argument('--add_endpoints', help="only for --analyze_graph: add open-ended points of structure (comma separated; e.g. loads, supports)", required=False)
 
 
   args = parser.parse_args()
@@ -1957,6 +1959,36 @@ if __name__ == '__main__':
   glob.gradient_check = args.gradient_check
   glob.silent = args.silent
   glob.num_total = glob.total()
+
+  if args.analyze_graph:
+    if args.add_endpoints:
+      endpoints = np.array(args.add_endpoints.split(','),dtype=float)
+      endpoints= endpoints.reshape(round(len(endpoints)/3),3)
+      print('added endpoints:', endpoints)
+    for shape in glob.shapes:
+      P = shape.P[0]
+      Q = shape.P[-1]
+      minP = (None, -1)
+      minQ = (None, -1)
+      for shape2 in glob.shapes:
+        if not shape2.id == shape.id:
+          minP = idx_min(minP, (norm(P-shape2.P[0]), shape2.id))
+          minP = idx_min(minP, (norm(P-shape2.P[-1]), shape2.id))
+          minQ = idx_min(minQ, (norm(Q-shape2.P[0]), shape2.id))
+          minQ = idx_min(minQ, (norm(Q-shape2.P[-1]), shape2.id))
+      if args.add_endpoints:
+        for i in range(endpoints.shape[0]):
+          minP = idx_min(minP, (norm(P-endpoints[i]),-i-1))
+          minQ = idx_min(minQ, (norm(Q-endpoints[i]),-i-1))
+      if minP[1]>=0:
+        print('Nearest for shape', shape.id, 'P0=', P, ': shape', minP[1], glob.shapes[minP[1]].P, 'with dist=',minP[0])
+      else:
+        print('Nearest for shape', shape.id, 'P0=', P, ': endpoint', -minP[1]-1, endpoints[-minP[1]-1], 'with dist=',minP[0])
+      if minQ[1]>=0:
+        print('and for Pm=', Q, ': shape', minQ[1], glob.shapes[minQ[1]].P, 'with dist=',minQ[0])
+      else:
+        print('and for Pm=', Q, ': endpoint', -minQ[1]-1, endpoints[-minQ[1]-1], 'with dist=',minQ[0])
+
 
   if args.cfs_eval:
     if args.transition:
