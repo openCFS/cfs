@@ -79,6 +79,10 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "nightly"
       CFS_PIPELINE_NAME: "Scheduled for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  # create a manual pipeline via the web interface (for any branch) by setting the variable CFS_PIPELINE_TYPE=manual
+  - if: $CI_PIPELINE_SOURCE == "web" && $CFS_PIPELINE_TYPE == "manual"
+    variables:
+      CFS_PIPELINE_NAME: "Manual for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
   # automatically run if branch name starts or ends with test or is scheduled
   - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
     variables:
@@ -503,19 +507,36 @@ rhel:9:
   - (ls Testsuite_ignore && mv -T Testsuite_ignore Testsuite) || ls Testsuite
   - git status # debug
 
+# define when csdeps need to be rebuilt based on changes
+.cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
+  # changes that require the cfsdeps to be re-built
+  changes:
+    paths:
+      - "cfsdeps/**/*"
+      - "cmake_modules/FindCFSDEPS.cmake"
+    compare_to: 'refs/heads/master'
+
 .build_rules: &build_rules
   rules:
     # there should be changes but a user has skipped the build
     - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
+      <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
+      when: manual
+    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
       <<: *require-rebuild-changes
       when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
     # builds & tests are required
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
     # all manual
     - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
+      when: manual
+    - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
       when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
     # nightly always builds
     - if: $CFS_PIPELINE_TYPE == "nightly"
     # otherwise no builds
@@ -524,15 +545,6 @@ rhel:9:
   rules:
     - if: $CFS_PIPELINE_TYPE == "release"
     - !reference [.build_rules, rules]
-
-# define when cfsdeps need to be rebuilt based on changes
-.cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
-  # changes that require the cfsdeps to be re-built
-  changes:
-    paths:
-      - "cfsdeps/**/*"
-      - "cmake_modules/FindCFSDEPS.cmake"
-    compare_to: 'refs/heads/master'
 
 .cfsdeps: &cfsdeps
   stage: cfsdeps
@@ -1345,7 +1357,7 @@ python:linux:
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
-  # no needs, just run when build stage is complete
+  needs: [] # run as soon as possible
 
 
 #######################################################################
