@@ -114,6 +114,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
   endif()
 
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
+    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-int") # needed for SuperLU (and maybe others)
+  endif()
+
   # enable all warnings, then disable the ones we cannot prevent (e.g. from lib includes).
   # better is always changes to code, updateing/patching libs, guarding includes by pragmas
   set(CFS_SUPPRESSIONS "-Wall -Wuninitialized -Wno-error=unused-variable -Wno-error=maybe-uninitialized")
