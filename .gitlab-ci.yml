@@ -1337,7 +1337,7 @@ python:linux:
     - mkdir -p build
     - cd build
     - *cmake_test_or_install # optionally install cmake if not present
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_OVERRIDE=${CI_COMMIT_SHA} -DBUILD_TESTING=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK -VV --debug # SHA is visible in CDash
