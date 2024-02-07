@@ -328,6 +328,7 @@ class Spaghetti:
   def __init__(self,id,base,Px,Py,Pz,r,p,alpha):
     self.id = id
     self.base = base
+    self.match = [-1,-1]
     self.set(Px,Py,Pz,r,p,alpha)
 
   # does not only set the variables but also computes the internal helpers (C, ...) and deletes glob index fields
@@ -1558,6 +1559,99 @@ def idx_min(a,b):
     else:
       return b
 
+# find closest point to P between shape tips and added_points
+def match_point(P, shapeid=None, added_points=np.empty((0))):
+  minP = (None, -1)
+  for shape2 in glob.shapes:
+    if not shape2.id == shapeid:
+      minP = idx_min(minP, (norm(P-shape2.P[0]), [shape2.id, 0]))
+      minP = idx_min(minP, (norm(P-shape2.P[-1]), [shape2.id, -1]))
+  for i in range(added_points.shape[0]):
+      minP = idx_min(minP, (norm(P-added_points[i]),[-i-1, None]))
+  if shapeid is not None:
+    if not glob.silent:
+      print('Nearest for shape', shapeid, 'P0=' if norm(glob.shapes[shapeid].P[0]-P)<1e-13 else 'Pm=', P, ':')
+      if minP[1][0]>=0:
+        print('shape', minP[1][0], glob.shapes[minP[1][0]].P, 'with dist=',minP[0])
+      else:
+        print('endpoint', -minP[1][0]-1, added_points[-minP[1][0]-1], 'with dist=',minP[0])
+  return minP
+
+def analyze_graph(args, export=True):
+    glob.vertices = []
+    endpoints = np.empty((0))
+    if args.add_endpoints:
+      endpoints = np.array(args.add_endpoints.split(','),dtype=float)
+      endpoints= endpoints.reshape(round(len(endpoints)/3),3)
+      for i in range(endpoints.shape[0]):
+        glob.vertices.append([[endpoints[i],None]])
+      if not glob.silent:
+        print('added endpoints:', endpoints)
+    for shape in glob.shapes:
+      for i in [0,-1]:
+        if shape.match[i] < 0: # not yet matched
+          minP = match_point(shape.P[i], shapeid=shape.id, added_points=endpoints)
+          if minP[1][0] < 0: # added endpoint
+            glob.vertices[-minP[1][0]-1].append([shape.P[i], shape.id])
+          elif glob.shapes[minP[1][0]].match[minP[1][1]] >= 0: # matched to existing vertex
+            glob.vertices[glob.shapes[minP[1][0]].match[minP[1][1]]].append([shape.P[i], shape.id])
+            shape.match[i] = glob.shapes[minP[1][0]].match[minP[1][1]]
+          else:
+            shape.match[i] = len(glob.vertices)
+            glob.shapes[minP[1][0]].match[minP[1][1]] = len(glob.vertices)
+            glob.vertices.append([[shape.P[i], shape.id],[glob.shapes[minP[1][0]].P[minP[1][1]], glob.shapes[minP[1][0]].id]])
+
+    if export:
+      # set up lists of nodes and edges for export
+      nodes = []
+      edges = []
+      targets = []
+      for i, vertex in enumerate(glob.vertices):
+        if not glob.silent:
+          print('Vertex ', i, 'with shape points', glob.vertices[i])
+        # add endpoints exactly if given
+        if vertex[0][1] is None:
+          nodes.append(vertex[0][0])
+        # otherwise add average of endpoints corresponding to vertex
+        else:
+          P = np.zeros((3))
+          for node in vertex:
+            P += node[0]
+          P /= len(vertex)
+          nodes.append(P)
+          for node in vertex:
+            s = glob.shapes[node[1]]
+            if norm(s.P[0]-node[0]) < norm(s.P[-1]-node[0]):
+              s.P[0] = P
+            else:
+              s.P[-1] = P
+      # write back as .density.xml with moved nodes
+      write_xml(args.input[0:-12] + '_graph.density.xml', glob.shapes)
+
+      # add connections for shapes
+      for shape in glob.shapes:
+        edges.append(shape.match)
+        targets.append(shape.profile)
+
+      # Create xl writer
+      writer = pd.ExcelWriter(args.input[0:-12] + '_graph.xlsx')
+
+      v = pd.DataFrame()
+      v['vertex_id'] = list(range(len(nodes)))
+      v['xcoord'] = [node[1] for node in nodes]
+      v['ycoord'] = [node[2] for node in nodes]
+      v.to_excel(writer, sheet_name='vertices', index=False)
+
+      e = pd.DataFrame()
+      e['edge_id'] = list(range(len(edges)))
+      e['vertex1_id'] = [edge[0] for edge in edges]
+      e['vertex2_id'] = [edge[1] for edge in edges]
+      e['target'] = targets
+      #e['target_n'] = [e.n for e in scenery.edges]
+      e.to_excel(writer, sheet_name = "edges", index = False)
+
+      writer.close()
+
 # reads 2D and returns list of Spaghettis
 # @param radius if given overwrites the value from the xml header
 def read_xml(filename, set = None):
@@ -1961,34 +2055,7 @@ if __name__ == '__main__':
   glob.num_total = glob.total()
 
   if args.analyze_graph:
-    if args.add_endpoints:
-      endpoints = np.array(args.add_endpoints.split(','),dtype=float)
-      endpoints= endpoints.reshape(round(len(endpoints)/3),3)
-      print('added endpoints:', endpoints)
-    for shape in glob.shapes:
-      P = shape.P[0]
-      Q = shape.P[-1]
-      minP = (None, -1)
-      minQ = (None, -1)
-      for shape2 in glob.shapes:
-        if not shape2.id == shape.id:
-          minP = idx_min(minP, (norm(P-shape2.P[0]), shape2.id))
-          minP = idx_min(minP, (norm(P-shape2.P[-1]), shape2.id))
-          minQ = idx_min(minQ, (norm(Q-shape2.P[0]), shape2.id))
-          minQ = idx_min(minQ, (norm(Q-shape2.P[-1]), shape2.id))
-      if args.add_endpoints:
-        for i in range(endpoints.shape[0]):
-          minP = idx_min(minP, (norm(P-endpoints[i]),-i-1))
-          minQ = idx_min(minQ, (norm(Q-endpoints[i]),-i-1))
-      if minP[1]>=0:
-        print('Nearest for shape', shape.id, 'P0=', P, ': shape', minP[1], glob.shapes[minP[1]].P, 'with dist=',minP[0])
-      else:
-        print('Nearest for shape', shape.id, 'P0=', P, ': endpoint', -minP[1]-1, endpoints[-minP[1]-1], 'with dist=',minP[0])
-      if minQ[1]>=0:
-        print('and for Pm=', Q, ': shape', minQ[1], glob.shapes[minQ[1]].P, 'with dist=',minQ[0])
-      else:
-        print('and for Pm=', Q, ': endpoint', -minQ[1]-1, endpoints[-minQ[1]-1], 'with dist=',minQ[0])
-
+    analyze_graph(args)
 
   if args.cfs_eval:
     if args.transition:
