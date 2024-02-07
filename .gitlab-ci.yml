@@ -274,6 +274,8 @@ cpp-code-changes:
   stage: platform
   tags:
     - docker
+  image:
+    name: $IMAGE:$TAG
   after_script: []
   rules:
     # set variable PLATFORM to activate the job for test or nightly pipelines
@@ -372,13 +374,12 @@ debian:latest:
     IMAGE: "debian"
     TAG: "latest"
 
-# older releases ...
-debian:10: # (buster)
+# older releases ... https://www.debian.org/releases/
+debian:11: # (bullseye)
   extends: .platform
-  image: debian:10
   variables:
     IMAGE: "debian"
-    TAG: "10"
+    TAG: "11"
 
 # RHEL derivatives
 # centos 7, see https://hub.docker.com/_/centos, probably not maintained any more

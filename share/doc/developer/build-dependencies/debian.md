@@ -1,15 +1,15 @@
 CFS++ build dependencies for Debian
 ===================================
 
-For the typical build config we need
+For the typical build configuration, we need
 ```shell
 apt-get update
 apt-get install -y gcc g++ gfortran cmake patch m4
 ```
 
-Intel MKL can be installed via the official [intel oenAPI repository](https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux/top/installation/install-using-package-managers/apt.html).
+Intel MKL can be installed via the official [Intel oneAPI repository](https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux/top/installation/install-using-package-managers/apt.html).
 
-First make sure we have the dependencies for the instructions
+First, make sure we have the dependencies for the instructions
 ```shell
 apt-get install -y wget gnupg apt-transport-https ca-certificates
 ```
@@ -28,7 +28,7 @@ Install the latest MKL version
 apt-get install -y intel-oneapi-mkl-devel
 ```
 
-Additionally, every developer should have git installed
+Additionally, every developer should have Git installed
 ```shell
 apt-get install -y git
 ```
