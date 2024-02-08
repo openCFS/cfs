@@ -832,7 +832,7 @@ linux:gcc13-musl:
   variables:
     BUILD_NAME: "GCC13-MUSL"
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
-  <<: [ *gcc_before, *cache_cfsdeps-alpine ]
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-alpine ]
   needs: 
     - job: cfsdeps:gcc13-musl
       optional: true
