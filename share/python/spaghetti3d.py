@@ -1615,9 +1615,11 @@ def analyze_graph(args, export=True):
         # otherwise add average of endpoints corresponding to vertex
         else:
           P = np.zeros((3))
+          sum_weights = 0
           for node in vertex:
-            P += node[0]
-          P /= len(vertex)
+            P += glob.shapes[node[1]].profile*node[0]
+            sum_weights += glob.shapes[node[1]].profile
+          P /= sum_weights
           nodes.append(P)
           for node in vertex:
             s = glob.shapes[node[1]]
