@@ -79,6 +79,10 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "nightly"
       CFS_PIPELINE_NAME: "Scheduled for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  # create a manual pipeline via the web interface (for any branch) by setting the variable CFS_PIPELINE_TYPE=manual
+  - if: $CI_PIPELINE_SOURCE == "web" && $CFS_PIPELINE_TYPE == "manual"
+    variables:
+      CFS_PIPELINE_NAME: "Manual for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
   # automatically run if branch name starts or ends with test or is scheduled
   - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
     variables:
@@ -270,6 +274,8 @@ cpp-code-changes:
   stage: platform
   tags:
     - docker
+  image:
+    name: $IMAGE:$TAG
   after_script: []
   rules:
     # set variable PLATFORM to activate the job for test or nightly pipelines
@@ -315,28 +321,25 @@ cpp-code-changes:
 # latest stable release
 fedora:latest:
   extends: .platform
-  image:
-    name: fedora:latest
-    entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
   variables:
     IMAGE: "fedora"
     TAG: "latest"
+  image: # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/sh', '-c' ]
 
 # latest development release
 fedora:rawhide:
   extends: .platform
-  image:
-    name: fedora:rawhide
-    entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
   variables:
     IMAGE: "fedora"
     TAG: "rawhide"
+  image: # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/sh', '-c' ]
 
 # ubuntu releases, see https://hub.docker.com/_/ubuntu
 # latest LTS release 
 ubuntu:latest:
   extends: .platform
-  image: ubuntu:latest
   variables:
     IMAGE: "ubuntu"
     TAG: "latest"
@@ -344,17 +347,15 @@ ubuntu:latest:
 # the latest stable release, regardless of LTS status
 ubuntu:rolling:
   extends: .platform
-  image:
-    name: ubuntu:rolling
-    entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] # workaround due to bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
   variables:
     IMAGE: "ubuntu"
     TAG: "rolling"
+  image: # workaround due to bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] 
 
 # older LTS releases ...
 ubuntu:20.04:
   extends: .platform
-  image: ubuntu:20.04
   variables:
     IMAGE: "ubuntu"
     TAG: "20.04"
@@ -363,24 +364,21 @@ ubuntu:20.04:
 # latest stable release (dynamic image name)
 debian:latest:
   extends: .platform
-  image: debian:latest
   variables:
     IMAGE: "debian"
     TAG: "latest"
 
-# older releases ...
-debian:10: # (buster)
+# older releases ... https://www.debian.org/releases/
+debian:11: # (bullseye)
   extends: .platform
-  image: debian:10
   variables:
     IMAGE: "debian"
-    TAG: "10"
+    TAG: "11"
 
 # RHEL derivatives
 # centos 7, see https://hub.docker.com/_/centos, probably not maintained any more
 rhel:7:
   extends: .platform
-  image: centos:7
   variables:
     IMAGE: "centos"
     TAG: "7"
@@ -388,7 +386,6 @@ rhel:7:
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
 rhel:8:
   extends: .platform
-  image: rockylinux:8
   variables:
     IMAGE: "rockylinux"
     TAG: "8"
@@ -396,7 +393,6 @@ rhel:8:
 # rockylinux 9, see https://hub.docker.com/_/rockylinux
 rhel:9:
   extends: .platform
-  image: rockylinux:9
   variables:
     IMAGE: "rockylinux"
     TAG: "9"
@@ -478,6 +474,7 @@ rhel:9:
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
 
 .before-script-build: &before-script-build
+  - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
   # make sure the Testsuite submodule is OK
   - git status # debug
   - git diff -- Testsuite # debug
@@ -503,19 +500,36 @@ rhel:9:
   - (ls Testsuite_ignore && mv -T Testsuite_ignore Testsuite) || ls Testsuite
   - git status # debug
 
+# define when csdeps need to be rebuilt based on changes
+.cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
+  # changes that require the cfsdeps to be re-built
+  changes:
+    paths:
+      - "cfsdeps/**/*"
+      - "cmake_modules/FindCFSDEPS.cmake"
+    compare_to: 'refs/heads/master'
+
 .build_rules: &build_rules
   rules:
     # there should be changes but a user has skipped the build
     - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
+      <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
+      when: manual
+    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
       <<: *require-rebuild-changes
       when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
     # builds & tests are required
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
     # all manual
     - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
+      when: manual
+    - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
       when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
     # nightly always builds
     - if: $CFS_PIPELINE_TYPE == "nightly"
     # otherwise no builds
@@ -524,15 +538,6 @@ rhel:9:
   rules:
     - if: $CFS_PIPELINE_TYPE == "release"
     - !reference [.build_rules, rules]
-
-# define when cfsdeps need to be rebuilt based on changes
-.cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
-  # changes that require the cfsdeps to be re-built
-  changes:
-    paths:
-      - "cfsdeps/**/*"
-      - "cmake_modules/FindCFSDEPS.cmake"
-    compare_to: 'refs/heads/master'
 
 .cfsdeps: &cfsdeps
   stage: cfsdeps
@@ -653,6 +658,9 @@ cfsdeps:MSVC2019-Ifort2021:
   - echo "Tests on CDash - $CDASH_TEST_URL"
 
 .default_build_job: &default_build_job
+  stage: build
+  tags:
+    - docker
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
@@ -768,10 +776,7 @@ cfsdeps:MSVC2019-Ifort2021:
 # maximal build using as many options as possible
 linux:gcc7max-debug:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
@@ -783,10 +788,7 @@ linux:gcc7max-debug:
 # maximal build using as many options as possible
 linux:gcc7max:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
@@ -798,10 +800,7 @@ linux:gcc7max:
 # this is the offcial release buils
 linux:gcc7:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7"
   <<: [ *release_build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
@@ -811,24 +810,18 @@ linux:gcc7:
 
 linux:gcc13-musl:
   extends: .default_build_job
-  stage: build
   image: opencfs/alpine:2024.02
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC13-MUSL"
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
-  <<: [ *gcc_before, *cache_cfsdeps-alpine ]
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-alpine ]
   needs: 
     - job: cfsdeps:gcc13-musl
       optional: true
 
 linux:gcc7min:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 minimal"
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
@@ -839,10 +832,7 @@ linux:gcc7min:
 
 linux:gcc12:
   extends: .default_build_job
-  stage: build
   image: opencfs/fedora37
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC12"
   <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc12 ]
@@ -853,10 +843,7 @@ linux:gcc12:
 # intel compiler builds
 linux:intel:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos7-intel
-  tags:
-    - docker
   variables:
     BUILD_NAME: "Intel2021"
   rules:
@@ -872,10 +859,7 @@ linux:intel:
 # LLVM clang compiler builds
 linux:clang-debug:
   extends: .default_build_job
-  stage: build
   image: opencfs/fedora37-clang
-  tags:
-    - docker
   variables:
     BUILD_NAME: "Clang debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
@@ -907,10 +891,7 @@ linux:clang-debug:
 # build with ninja
 linux:gcc12:ninja:
   extends: .default_build_job
-  stage: build
   image: opencfs/fedora37
-  tags:
-    - docker
   rules:
     # this job is always manual (just for info)
     - if: $CFS_PIPELINE_TYPE == "test"
@@ -1334,18 +1315,19 @@ python:linux:
     TEST_NAME: "stable"
     EXCLUDE: ""
   before_script:
+    - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
     - mkdir -p build
     - cd build
     - *cmake_test_or_install # optionally install cmake if not present
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_OVERRIDE=${CI_COMMIT_SHA} -DBUILD_TESTING=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK -VV --debug # SHA is visible in CDash
+    - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
-  # no needs, just run when build stage is complete
+  needs: [] # run as soon as possible
 
 
 #######################################################################

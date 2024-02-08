@@ -105,10 +105,17 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
 
   # some compilers ignore -w, others ignore -Wno-everything - both have the same purpose to disable all warning
   set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} ${CFS_OPT_FLAGS} -w -Wno-everything")
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
+    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
+  endif()
   set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} ${CFS_OPT_FLAGS} -w -Wno-everything")
   if(USE_CGAL) # see comment about -frounding-math for gcc 12+13 above
     set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
+  endif()
+
+  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
+    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-int") # needed for SuperLU (and maybe others)
   endif()
 
   # enable all warnings, then disable the ones we cannot prevent (e.g. from lib includes).
