@@ -321,28 +321,25 @@ cpp-code-changes:
 # latest stable release
 fedora:latest:
   extends: .platform
-  image:
-    name: fedora:latest
-    entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
   variables:
     IMAGE: "fedora"
     TAG: "latest"
+  image: # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/sh', '-c' ]
 
 # latest development release
 fedora:rawhide:
   extends: .platform
-  image:
-    name: fedora:rawhide
-    entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
   variables:
     IMAGE: "fedora"
     TAG: "rawhide"
+  image: # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/sh', '-c' ]
 
 # ubuntu releases, see https://hub.docker.com/_/ubuntu
 # latest LTS release 
 ubuntu:latest:
   extends: .platform
-  image: ubuntu:latest
   variables:
     IMAGE: "ubuntu"
     TAG: "latest"
@@ -350,17 +347,15 @@ ubuntu:latest:
 # the latest stable release, regardless of LTS status
 ubuntu:rolling:
   extends: .platform
-  image:
-    name: ubuntu:rolling
-    entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] # workaround due to bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
   variables:
     IMAGE: "ubuntu"
     TAG: "rolling"
+  image: # workaround due to bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] 
 
 # older LTS releases ...
 ubuntu:20.04:
   extends: .platform
-  image: ubuntu:20.04
   variables:
     IMAGE: "ubuntu"
     TAG: "20.04"
@@ -369,7 +364,6 @@ ubuntu:20.04:
 # latest stable release (dynamic image name)
 debian:latest:
   extends: .platform
-  image: debian:latest
   variables:
     IMAGE: "debian"
     TAG: "latest"
@@ -385,7 +379,6 @@ debian:11: # (bullseye)
 # centos 7, see https://hub.docker.com/_/centos, probably not maintained any more
 rhel:7:
   extends: .platform
-  image: centos:7
   variables:
     IMAGE: "centos"
     TAG: "7"
@@ -393,7 +386,6 @@ rhel:7:
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
 rhel:8:
   extends: .platform
-  image: rockylinux:8
   variables:
     IMAGE: "rockylinux"
     TAG: "8"
@@ -401,7 +393,6 @@ rhel:8:
 # rockylinux 9, see https://hub.docker.com/_/rockylinux
 rhel:9:
   extends: .platform
-  image: rockylinux:9
   variables:
     IMAGE: "rockylinux"
     TAG: "9"
