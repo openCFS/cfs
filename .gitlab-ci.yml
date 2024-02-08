@@ -667,6 +667,9 @@ cfsdeps:MSVC2019-Ifort2021:
   - echo "Tests on CDash - $CDASH_TEST_URL"
 
 .default_build_job: &default_build_job
+  stage: build
+  tags:
+    - docker
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
@@ -782,10 +785,7 @@ cfsdeps:MSVC2019-Ifort2021:
 # maximal build using as many options as possible
 linux:gcc7max-debug:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
@@ -797,10 +797,7 @@ linux:gcc7max-debug:
 # maximal build using as many options as possible
 linux:gcc7max:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
@@ -812,10 +809,7 @@ linux:gcc7max:
 # this is the offcial release buils
 linux:gcc7:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7"
   <<: [ *release_build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
@@ -825,10 +819,7 @@ linux:gcc7:
 
 linux:gcc13-musl:
   extends: .default_build_job
-  stage: build
   image: opencfs/alpine:2024.02
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC13-MUSL"
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
@@ -839,10 +830,7 @@ linux:gcc13-musl:
 
 linux:gcc7min:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 minimal"
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
@@ -853,10 +841,7 @@ linux:gcc7min:
 
 linux:gcc12:
   extends: .default_build_job
-  stage: build
   image: opencfs/fedora37
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC12"
   <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc12 ]
@@ -867,10 +852,7 @@ linux:gcc12:
 # intel compiler builds
 linux:intel:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos7-intel
-  tags:
-    - docker
   variables:
     BUILD_NAME: "Intel2021"
   rules:
@@ -886,10 +868,7 @@ linux:intel:
 # LLVM clang compiler builds
 linux:clang-debug:
   extends: .default_build_job
-  stage: build
   image: opencfs/fedora37-clang
-  tags:
-    - docker
   variables:
     BUILD_NAME: "Clang debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
@@ -921,10 +900,7 @@ linux:clang-debug:
 # build with ninja
 linux:gcc12:ninja:
   extends: .default_build_job
-  stage: build
   image: opencfs/fedora37
-  tags:
-    - docker
   rules:
     # this job is always manual (just for info)
     - if: $CFS_PIPELINE_TYPE == "test"
