@@ -147,7 +147,7 @@ testsuite-revision:
 markdown-link-check:
   extends: .check
   image: 
-    name: ghcr.io/tcort/markdown-link-check # working label :3.9.2
+    name: ghcr.io/tcort/markdown-link-check # working label :3.12.2
     entrypoint: ["/bin/sh","-c"]
   variables:
     GIT_STRATEGY: fetch
