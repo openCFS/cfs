@@ -530,6 +530,11 @@ rhel:9:
       <<: *require-rebuild-changes
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
+    # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
+      when: manual
+      allow_failure: true
+      needs: [] # allow to be triggered manually without cfsdeps
     # nightly always builds
     - if: $CFS_PIPELINE_TYPE == "nightly"
     # otherwise no builds
@@ -1342,12 +1347,11 @@ python:linux:
   stage: test_extra
   # then overwrite rules
   rules:
-    # there should be changes but a user has skipped the build
+    # Scheduled pipelines run all tests
     - if: $CFS_PIPELINE_TYPE == "nightly"
       allow_failure: true
-    # oly ceate the test is there are changes
+    # Set the tests to manual for test-pipelines
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      <<: *require-rebuild-changes
       when: manual
       allow_failure: true
 
