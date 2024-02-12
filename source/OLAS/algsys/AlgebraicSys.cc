@@ -3612,15 +3612,14 @@ namespace CoupledField {
         // get the current sub matrix
         LOG_DBG(algSys) << "\tEditing SBM sub matrix (" << row << "," << col << ")";
         StdMatrix * stdMat = actMat->GetPointer(row,col);
-        
-        UInt* RowVec;
-        UInt* ColVec;
-        UInt size;
-        UInt NumRows;
-        UInt newNnz = 0;
 
         // switch between complex and double
         if( stdMat->GetEntryType()==BaseMatrix::DOUBLE ){
+          UInt* RowVec;
+          UInt* ColVec;
+          UInt size;
+          UInt NumRows;
+          UInt newNnz = 0;
           Double* DataVec;
 
           // check for SCRS/CRS
