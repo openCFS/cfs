@@ -617,6 +617,9 @@ void Domain::CreatePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
   // Create iterative coupled pde
   CreateIterCoupledPDE(sequenceStep, infoNode);
+
+  // Create boundary element method (NiHu) pde
+  // CreateBemPDE()
 }
 
 void Domain::RestorePDEs(StdVector<SinglePDE*>& single)
@@ -756,6 +759,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
     else if (actPdeName == "acoustic_BEM") {
         ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
+        CreateBemPDE();
     }
     else if (actPdeName == "split") {
       ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
@@ -843,6 +847,21 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     //ptSinglePde_[i]->Init();
   }
 }
+
+// LUCA ON
+
+void Domain::CreateBemPDE()
+{
+    if( isParentDomain_)
+    {
+      std::cout << "++ Creating BEM" << std::endl;
+      // ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
+    }
+
+    
+}
+
+// LUCA OFF
 
 void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
 {

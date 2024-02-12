@@ -273,6 +273,9 @@ namespace CoupledField
     //! \param infoNode infoNode for adding information
     void CreateIterCoupledPDE( UInt sequenceStep, PtrParamNode infoNode );
 
+    // LUCA ON
+    void CreateBemPDE();
+    // LUCA OFF
 
     //! Initialize local coordinate systems as read in from the parameter file
     void CreateCoordinateSystems();

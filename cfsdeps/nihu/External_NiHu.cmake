@@ -40,8 +40,4 @@ ExternalProject_Add(
              -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-install
              -DNIHU_EIGEN_INSTALL=1
             #  -DNIHU_EIGEN_PATH=${CMAKE_BINARY_DIR}/cfsdeps/nihu
-<<<<<<< HEAD
-=======
-             -DNIHU_EIGEN_PATH=${CMAKE_BINARY_DIR}/cfsdeps/eigen/install/include/
->>>>>>> 8e3fc7e69 (okay, now it seams like NiHu properly finds Eigen in cfsdeps)
 )
