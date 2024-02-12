@@ -1610,7 +1610,11 @@ namespace CoupledField {
           if(myParam_->Get("useLambda2Version")->As<bool>()) {
             // nothing to do here, the first part is already set in line 1445
           } else {
-            surfVelocityConstraintMaxwellContextLV->SetCounterPart(true);
+            if(myParam_->Get("skipCounterpart")->As<bool>()) {
+              surfVelocityConstraintMaxwellContextLV->SetCounterPart(false);
+            } else {
+              surfVelocityConstraintMaxwellContextLV->SetCounterPart(true);
+            }
           } 
           assemble_->AddBiLinearForm( surfVelocityConstraintMaxwellContextLV );
         }
@@ -2624,6 +2628,10 @@ namespace CoupledField {
       setP2 = myParam_->Get("enableSurfaceIntegratorP2")->As<bool>();
       setP3 = myParam_->Get("enableSurfaceIntegratorP3")->As<bool>();
     }
+
+    std::cout << "\t" << "setP1: " << setP1 << std::endl;
+    std::cout << "\t" << "setP2: " << setP2 << std::endl;
+    std::cout << "\t" << "setP3: " << setP3 << std::endl;
     
     if( setP1 == true ) {
       presFct->AddEntityList( actSDList );

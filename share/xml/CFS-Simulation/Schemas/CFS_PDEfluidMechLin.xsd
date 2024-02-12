@@ -352,6 +352,7 @@
         <xsd:attribute name="enableSurfaceIntegratorP2" type="xsd:boolean" default="true"/>
         <xsd:attribute name="enableSurfaceIntegratorP3" type="xsd:boolean" default="true"/>
         <xsd:attribute name="useLambda2Version" type="xsd:boolean" default="false"/>
+        <xsd:attribute name="skipCounterpart" type="xsd:boolean" default="false"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
