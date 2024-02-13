@@ -1592,6 +1592,7 @@ def analyze_graph(args, export=True):
         if shape.match[i] < 0: # not yet matched
           minP = match_point(shape.P[i], shapeid=shape.id, added_points=endpoints)
           if minP[1][0] < 0: # added endpoint
+            shape.match[i] = len(glob.vertices)
             glob.vertices[-minP[1][0]-1].append([shape.P[i], shape.id])
           elif glob.shapes[minP[1][0]].match[minP[1][1]] >= 0: # matched to existing vertex
             glob.vertices[glob.shapes[minP[1][0]].match[minP[1][1]]].append([shape.P[i], shape.id])
