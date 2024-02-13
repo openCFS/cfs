@@ -64,6 +64,7 @@
 #include "PDE/ElecQuasiStaticPDE.hh"
 #include "PDE/WaterWavePDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
+#include "PDE/BEM_PDE.hh"
 
 // Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -758,7 +759,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "acoustic_BEM") {
-        ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
+        // ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
+        // new Bem_PDE();
         CreateBemPDE();
     }
     else if (actPdeName == "split") {
@@ -850,11 +852,12 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
 // LUCA ON
 
-void Domain::CreateBemPDE()
+void Domain::CreateBemPDE(/*PtrParamNode infoNode*/)
 {
     if( isParentDomain_)
     {
       std::cout << "++ Creating BEM" << std::endl;
+      new Bem_PDE();
       // ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
 
