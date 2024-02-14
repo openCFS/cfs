@@ -30,6 +30,7 @@ SET(PDE_SRCS
   LinFlowPDE.cc
   TestPDE.cc
   LatticeBoltzmannPDE.cc
+  BEM_PDE.cc
 )
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})

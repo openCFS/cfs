@@ -469,6 +469,13 @@ Domain::~Domain()
     designSpace_ = NULL;
   }
 
+  // LUCA ON
+  // if (bemInstance != NULL)
+  // {
+  //   delete bemInstance;
+  //   bemInstance = NULL;
+  // }
+  // LUCA OFF
 }
 
 void Domain::SolveProblem()
@@ -854,14 +861,25 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
 void Domain::CreateBemPDE(/*PtrParamNode infoNode*/)
 {
-    if( isParentDomain_)
-    {
-      std::cout << "++ Creating BEM" << std::endl;
-      new Bem_PDE();
-      // ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
-    }
+  if( isParentDomain_)
+  {
+    std::cout << "++ Creating BEM" << std::endl;
+    // Bem_PDE();
+    // ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
+    // Bem_PDE* bemInstance = new Bem_PDE();
+    // bemInstance->callNiHu_1();
 
-    
+    // if (bemInstance != nullptr)
+    // {
+    //     delete bemInstance;
+    //     bemInstance = nullptr;
+    // }
+
+    // Bem_PDE bem;
+    // bem.callNiHu_1();
+
+    Bem_PDE::callNiHu_1();
+  }
 }
 
 // LUCA OFF

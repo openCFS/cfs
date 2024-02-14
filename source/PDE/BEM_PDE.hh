@@ -6,13 +6,13 @@ class Bem_PDE
   
   public:
     // constructor
-    Bem_PDE() {
-      std::cout << "Bem_PDE::Bem_PDE()\n";
-    };
-    void callNiHu_1(/* const char output */);
+    // Bem_PDE() {
+    //   std::cout << "Bem_PDE::Bem_PDE()\n";
+    // };
+    static void callNiHu_1(/* const char output */);
 
   // destructor
-  virtual ~Bem_PDE() {};
+  // virtual ~Bem_PDE() {};
 
   // protected:
 
