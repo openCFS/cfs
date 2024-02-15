@@ -468,14 +468,6 @@ Domain::~Domain()
     delete designSpace_;
     designSpace_ = NULL;
   }
-
-  // LUCA ON
-  // if (bemInstance != NULL)
-  // {
-  //   delete bemInstance;
-  //   bemInstance = NULL;
-  // }
-  // LUCA OFF
 }
 
 void Domain::SolveProblem()
@@ -625,9 +617,6 @@ void Domain::CreatePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
   // Create iterative coupled pde
   CreateIterCoupledPDE(sequenceStep, infoNode);
-
-  // Create boundary element method (NiHu) pde
-  // CreateBemPDE()
 }
 
 void Domain::RestorePDEs(StdVector<SinglePDE*>& single)
@@ -767,7 +756,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
     else if (actPdeName == "acoustic_BEM") {
         // ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
-        // new Bem_PDE();
+        // ptSingleDriver_
+        // ptSinglePde_[i].
         CreateBemPDE();
     }
     else if (actPdeName == "split") {
@@ -866,6 +856,7 @@ void Domain::CreateBemPDE(/*PtrParamNode infoNode*/)
     std::cout << "++ Creating BEM" << std::endl;
 
     Bem_PDE::callNiHu_1();
+    
   }
 }
 
