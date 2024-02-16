@@ -941,7 +941,7 @@ namespace CoupledField {
         BiLinFormContext *BlDampInt1Context = new BiLinFormContext(BlDampInt1, DAMPING );
         BlDampInt1Context->SetEntities(actSDList, actSDList);
         BlDampInt1Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
-        feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
+        //feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
         assemble_->AddBiLinearForm(BlDampInt1Context);
 
 
@@ -950,7 +950,7 @@ namespace CoupledField {
         BiLinFormContext *BlDampInt2Context = new BiLinFormContext(BlDampInt2, DAMPING );
         BlDampInt2Context->SetEntities(actSDList, actSDList);
         BlDampInt2Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
-        feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
+        //feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
         assemble_->AddBiLinearForm(BlDampInt2Context);
 
 
@@ -958,7 +958,7 @@ namespace CoupledField {
         BiLinFormContext *BlDampInt3Context = new BiLinFormContext(BlDampInt3, DAMPING );
         BlDampInt3Context->SetEntities(actSDList, actSDList);
         BlDampInt3Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
-        feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
+        //feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
         assemble_->AddBiLinearForm(BlDampInt3Context);
         
       }
