@@ -880,29 +880,15 @@ namespace CoupledField {
         std::string volRegName = blNodes[i]->Get("volumeRegion")->As<std::string>();
         RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
 
-
         PtrCoefFct dynamicViscosity = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("dynamicViscosity")->As<std::string>() );
-
         PtrCoefFct fluidDensity=  CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("fluidDensity")->As<std::string>() );
-
-
         PtrCoefFct omegaHalv = CoefFunction::Generate( mp_,  Global::REAL, "pi*f");
-        
-        // Kinematic viscosity
-        PtrCoefFct nu = CoefFunction::Generate(mp_,Global::REAL,CoefXprBinOp(mp_, dynamicViscosity, fluidDensity, CoefXpr::OP_DIV ));
-        
-        // deltaV = sqrt( 2*nu/omega )
-        PtrCoefFct deltaV = CoefFunction::Generate(mp_,Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, nu, omegaHalv, CoefXpr::OP_DIV ) , CoefXpr::OP_SQRT));
-   
-
-        //    1+i ... common factor for both terms
+        // factor 1+i
         PtrCoefFct onePlusI =  CoefFunction::Generate( mp_,  Global::COMPLEX, "1","1");
-
-        // Coefficients for integrators
+        // Compute mu/delta_v = mu/sqrt(2*nu/w) as sqrt( rho*mu*w/2 ) since the former is 0/0 for small nu!
+        PtrCoefFct sqrtRhoMuOmegaHalv = CoefFunction::Generate(mp_,Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, CoefXprBinOp(mp_, dynamicViscosity, fluidDensity, CoefXpr::OP_MULT),omegaHalv,CoefXpr::OP_MULT) , CoefXpr::OP_SQRT));
+        PtrCoefFct coefDampBL1 =  CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,sqrtRhoMuOmegaHalv, onePlusI, CoefXpr::OP_MULT));
         
-        PtrCoefFct coefDampBL1 =  CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,CoefXprBinOp(mp_, dynamicViscosity, deltaV, CoefXpr::OP_DIV), onePlusI, CoefXpr::OP_MULT));
-
-
         BiLinearForm * BlDampInt1 = NULL;
         BiLinearForm * BlDampInt2 = NULL;
         BiLinearForm * BlDampInt3 = NULL;
