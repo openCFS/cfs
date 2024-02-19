@@ -904,48 +904,12 @@ namespace CoupledField {
           BlDampInt1 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,3,3>(), new SurfaceTangentialIdentityOperator<FeH1,3,3>(), coefDampBL1, 1.0, volRegions);
         }
 
-
-
-
-         if( dim_ == 2 ) {
-          BlDampInt2 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,2,2>(), new SurfaceNormalDerOfTangentialVector<FeH1,2,2>(), dynamicViscosity, -1.0, volRegions);
-         } else {
-          BlDampInt2 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,3,3>(), new SurfaceNormalDerOfTangentialVector<FeH1,3,3>(), dynamicViscosity, -1.0, volRegions);
-         } 
-
-
-
-
-         if( dim_ == 2 ) {
-          BlDampInt3 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,2,2>(), new SurfaceTangentialGradientOfNormalVector<FeH1,2,2>(), dynamicViscosity, -1.0, volRegions);
-         }else {
-          BlDampInt3 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,3,3>(), new SurfaceTangentialGradientOfNormalVector<FeH1,3,3>(), dynamicViscosity, -1.0, volRegions);
-         }
-
-
         BlDampInt1->SetName("BLDampIntegrator1");
         BiLinFormContext *BlDampInt1Context = new BiLinFormContext(BlDampInt1, DAMPING );
         BlDampInt1Context->SetEntities(actSDList, actSDList);
         BlDampInt1Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
         //feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
         assemble_->AddBiLinearForm(BlDampInt1Context);
-
-
-
-        BlDampInt2->SetName("BLDampIntegrator2");
-        BiLinFormContext *BlDampInt2Context = new BiLinFormContext(BlDampInt2, DAMPING );
-        BlDampInt2Context->SetEntities(actSDList, actSDList);
-        BlDampInt2Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
-        //feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
-        assemble_->AddBiLinearForm(BlDampInt2Context);
-
-
-        BlDampInt3->SetName("BLDampIntegrator3");
-        BiLinFormContext *BlDampInt3Context = new BiLinFormContext(BlDampInt3, DAMPING );
-        BlDampInt3Context->SetEntities(actSDList, actSDList);
-        BlDampInt3Context->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT],feFunctions_[MECH_DISPLACEMENT]);
-        //feFunctions_[MECH_DISPLACEMENT]->AddEntityList(actSDList);
-        assemble_->AddBiLinearForm(BlDampInt3Context);
         
       }
 
