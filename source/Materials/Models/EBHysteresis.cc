@@ -742,6 +742,31 @@ DEFINE_LOG(eb, "EBHysteresis")
         chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
       }
 
+      // JUST FOR TEAM PROBLEM 32
+      /* chi[0] = 0.000000;chi[1] = 7.750524;chi[2] = 21.306080;chi[3] = 34.129100;chi[4] = 44.937074;
+      chi[5] = 54.462908;chi[6] = 64.273429;chi[7] = 73.256517;chi[8] = 84.869904;chi[9] = 90.501796;
+      chi[10] = 103.236253;chi[11] = 119.299176;chi[12] = 125.333933;chi[13] = 129.952983;chi[14] = 141.074562;
+      chi[15] = 153.685939;chi[16] = 167.787113;chi[17] = 183.378084;chi[18] = 198.785153;chi[19] = 172.621885;
+      chi[20] = 175.350775;chi[21] = 180.011291;chi[22] = 186.603432;chi[23] = 195.127198;chi[24] = 205.582589;
+      chi[25] = 217.969606;chi[26] = 232.288248;chi[27] = 248.538516;chi[28] = 266.720409;chi[29] = 286.833927;
+      chi[30] = 308.879071;chi[31] = 331.145629;chi[32] = -51.216141;chi[33] = -9.240983;chi[34] = 32.136606;
+      chi[35] = 72.916625;chi[36] = 113.099073;chi[37] = 152.683953;chi[38] = 191.671262;chi[39] = 230.061002;
+      chi[40] = 267.853171;chi[41] = 305.047772;chi[42] = 341.644802;chi[43] = 377.644262;chi[44] = 413.046153;
+      chi[45] = 447.850474;chi[46] = 482.057225;chi[47] = 515.666406;chi[48] = 548.678018;chi[49] = 581.092060;
+      chi[50] = 709.494098;
+      weight[0] = 0.028704;weight[1] = 0.026403;weight[2] = 0.054303;weight[3] = 0.120493;weight[4] = 0.193634;
+      weight[5] = 0.189505;weight[6] = 0.136229;weight[7] = 0.070348;weight[8] = 0.054056;weight[9] = 0.020644;
+      weight[10] = 0.020644;weight[11] = 0.020644;weight[12] = 0.008521;weight[13] = 0.005696;weight[14] = 0.005696;
+      weight[15] = 0.005696;weight[16] = 0.005696;weight[17] = 0.005696;weight[18] = 0.005266;weight[19] = 0.001438;
+      weight[20] = 0.001438;weight[21] = 0.001438;weight[22] = 0.001438;weight[23] = 0.001438;weight[24] = 0.001438;
+      weight[25] = 0.001438;weight[26] = 0.001438;weight[27] = 0.001438;weight[28] = 0.001438;weight[29] = 0.001438;
+      weight[30] = 0.001438;weight[31] = 0.001388;weight[32] = 0.000111;weight[33] = 0.000111;weight[34] = 0.000111;
+      weight[35] = 0.000111;weight[36] = 0.000111;weight[37] = 0.000111;weight[38] = 0.000111;weight[39] = 0.000111;
+      weight[40] = 0.000111;weight[41] = 0.000111;weight[42] = 0.000111;weight[43] = 0.000111;weight[44] = 0.000111;
+      weight[45] = 0.000111;weight[46] = 0.000111;weight[47] = 0.000111;weight[48] = 0.000111;weight[49] = 0.000111;
+      weight[50] = 0.001487; */
+      // TP 32 END
+
       if(dim_ == 2){
         StdVector<Double> error, dir, HrxS_sol, HryS_sol, MxS_sol, MyS_sol;
         StdVector<UInt> numIter;
@@ -861,7 +886,10 @@ DEFINE_LOG(eb, "EBHysteresis")
 
         Double HrxS_prev, HryS_prev, HrzS_prev, MxSprev, MySprev, MzSprev, phi, err, ux, uy,
               uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py, Pz,
-              condition1, theta, i_correct_x,i_correct_y,i_correct_z,Hirr_x,Hirr_y,Hirr_z,coth_La,coth_Lb,J_an;
+              condition1, theta, i_correct_x,i_correct_y,i_correct_z,Hirr_x,Hirr_y,Hirr_z;
+
+        Double aa, MSa, ab, MSb,coth_La,coth_Lb,J_an,M_an;
+
         UInt iter;
         StdVector<Double>& HxS_prev = HxS_n_[idx];
         StdVector<Double>& HyS_prev = HyS_n_[idx];
@@ -901,6 +929,16 @@ DEFINE_LOG(eb, "EBHysteresis")
           }  
           HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
           if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
+            // JUST FOR TEAM PROBLEM 32
+            /* aa = 9.082; MSa = 0.792; ab = 137.121; MSb = 0.791;
+            coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
+            coth_Lb = std::cosh(HrS/ab)/std::sinh(HrS/ab);
+            J_an = MSa*(coth_La - aa/HrS) + MSb*(coth_Lb - ab/HrS);
+            M_an = J_an/(4*M_PI*1e-7); 
+            MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
+            MyS_sol[k] = M_an * HryS_sol[k]/HrS;
+            MzS_sol[k] = M_an * HrzS_sol[k]/HrS;*/
+            // TP32 END
             MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
             MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
             MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS;
