@@ -68,10 +68,13 @@ elseif(APPLE)
   include("cmake_modules/platform_defaults_mac.cmake")
 endif()
 
-# set in user home, works also on WIN32
-set(CMAKE_HOST_DEFAULTS_INC_HOME "$ENV{HOME}/.cfs_platform_defaults.cmake")
+# check if a personal configuration file is in the user's home
+if(WIN32)
+  set(CMAKE_HOST_DEFAULTS_INC_HOME "$ENV{HOMEDRIVE}/$ENV{HOMEPATH}/.cfs_platform_defaults.cmake") 
+else()
+  set(CMAKE_HOST_DEFAULTS_INC_HOME "$ENV{HOME}/.cfs_platform_defaults.cmake") 
+endif()
 
-# message(DEBUG "local file is ${CMAKE_HOST_DEFAULTS_INC_HOME}") # VERBOSE-TRACE are only supported from cmake 3.15
 if(EXISTS "${CMAKE_HOST_DEFAULTS_INC_HOME}")
   message(STATUS "including ${CMAKE_HOST_DEFAULTS_INC_HOME}")
   include("${CMAKE_HOST_DEFAULTS_INC_HOME}")
