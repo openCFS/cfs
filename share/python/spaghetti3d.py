@@ -23,6 +23,7 @@ from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
 from vtkmodules.vtkRenderingAnnotation import vtkAxesActor
 from vtkmodules.vtkCommonCore import vtkPoints
 from vtkmodules.vtkIOXML import vtkXMLPolyDataWriter
+from vtkmodules.vtkIOImage import vtkPNGWriter
 from vtkmodules.vtkCommonDataModel import (
     vtkCellArray,
     vtkPolyData
@@ -40,7 +41,8 @@ from vtkmodules.vtkRenderingCore import (
     vtkPolyDataMapper,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
-    vtkRenderer
+    vtkRenderer,
+    vtkWindowToImageFilter
 )
 from vtk import (
   vtkOBJExporter,
@@ -220,8 +222,9 @@ def cfs_map_to_design():
   start = ti.time()
   glob.rho = np.zeros(glob.n)
   glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.num_total))
-  glob.tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6))
-  glob.grad_tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6,glob.num_total))
+  if glob.anisotropic:
+    glob.tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6))
+    glob.grad_tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6,glob.num_total))
   for idx, fe_num in enumerate(glob.integrate):
     glob.rho[np.unravel_index(fe_num,glob.n)] = rho[idx][0]
     glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[idx][1]
@@ -1743,10 +1746,10 @@ def visualize(shapes, filename):
   mycolors = ['Red', 'LawnGreen', 'SteelBlue', 'MediumTurquoise', 'Coral', 'Pink', 'Lavender', 'Ivory']
   bkg = map(lambda x: x / 255.0, [26, 51, 102, 255])
   colors.SetColor("BkgColor", *bkg)
+  rgb = [0,0,0]
   for s in shapes:
     if s.alpha < 0.05:
       continue
-    rgb = [0,0,0]
     colors.GetColorRGB(mycolors[s.id % len(mycolors)], rgb)
 
   # create cylinders
@@ -1901,7 +1904,7 @@ def visualize(shapes, filename):
   colors.GetColorRGB("White", rgb)
   ren.SetBackground(rgb)
   renWin.SetSize(1600, 1200)
-  renWin.SetWindowName('CylinderExample')
+  renWin.SetWindowName('spaghetti visualization')
 
   axes = vtkAxesActor()
   axes.AxisLabelsOff()
@@ -1911,7 +1914,6 @@ def visualize(shapes, filename):
 
   #  The axes are positioned with a user transform
   axes.SetUserTransform(transform)
-
   widget = vtkOrientationMarkerWidget()
   rgba = [0] * 4
   colors.GetColor('Carrot', rgba)
@@ -1922,6 +1924,20 @@ def visualize(shapes, filename):
   widget.SetEnabled(1)
   widget.InteractiveOn()
 
+  # # screenshot code:
+  # w2if = vtkWindowToImageFilter()
+  # w2if.SetInput(renWin)
+  # w2if.SetInputBufferTypeToRGB()
+  # w2if.ReadFrontBufferOff()
+  # w2if.Update()
+  # print(3)
+  #
+  # writer = vtkPNGWriter()
+  # writer.SetFileName('TestScreenshot.png')
+  # writer.SetInputConnection(w2if.GetOutputPort())
+  # writer.Write()
+  # print(4)
+
   # This allows the interactor to initalize itself. It has to be
   # called before an event loop.
   iren.Initialize()
@@ -1929,7 +1945,9 @@ def visualize(shapes, filename):
   # We'll zoom in a little by accessing the camera and invoking a "Zoom"
   # method on it.
   ren.ResetCamera()
-  ren.GetActiveCamera().Zoom(.8)
+  ren.GetActiveCamera().Zoom(1.4)
+  ren.GetActiveCamera().SetPosition([-4432,798,1052])
+  ren.GetActiveCamera().SetFocalPoint([14,798,1052])
   renWin.Render()
 
   exporter = vtkOBJExporter()
