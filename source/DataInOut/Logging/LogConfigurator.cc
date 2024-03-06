@@ -29,8 +29,8 @@ typedef sinks::synchronous_sink<sinks::text_ostream_backend> text_sink;
 const std::map<std::string, int> logLevelMap = {
     {"disable_all", logging::level_disable_all},
     {"default_"   , logging::level_default_},
-    {"enable_all"   , logging::level_enable_all},
-    {"all"   , logging::level_enable_all},
+    {"enable_all" , logging::level_enable_all},
+    {"all"        , logging::level_enable_all},
     {"fatal"      , logging::level_fatal},
     {"err"        , logging::level_err},
     {"trace"      , logging::level_trace},
@@ -86,8 +86,14 @@ void LogConfigurator::ParseLogConfFile(const std::string& confFile) {
     ParamNodeList appenderNodes = classNode->GetChildren();
 
     boost::shared_ptr<text_sink> sink = boost::make_shared<text_sink>();
-    sink->set_filter(expr::attr<int>("Severity") >= logLevel && expressions::attr<std::string>("bAttrClassName") == className);
-
+    
+    //Check for wildcard 
+    if(className == "*") {
+      //Logging all registert loggers
+      sink->set_filter(expr::attr<int>("Severity") >= logLevel);
+    } else {
+      sink->set_filter(expr::attr<int>("Severity") >= logLevel && expressions::attr<std::string>("bAttrClassName") == className);
+    }
     // line number and "]" added in header file
     sink->set_formatter(expr::stream << " [" << bAttrClassName << ":" << expr::smessage);
 
@@ -103,7 +109,6 @@ void LogConfigurator::ParseLogConfFile(const std::string& confFile) {
 
       } else if (appNode->GetName() == "file") {
         std::string fileName = appNode->Get("name")->As<std::string>();
-
         sink->locked_backend()->add_stream(boost::make_shared< std::ofstream >(fileName));
       }
     }
