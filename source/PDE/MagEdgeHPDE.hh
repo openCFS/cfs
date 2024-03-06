@@ -108,7 +108,7 @@ namespace CoupledField
 
     //! Coefficient function, containing the overall permeability
     shared_ptr<CoefFunctionMulti> perm_;
-
+    shared_ptr<CoefFunctionMulti> resistivity_;
 
     //! \copydoc SinglePDE::CreateFeSpace
     std::map<SolutionType, shared_ptr<FeSpace> > 

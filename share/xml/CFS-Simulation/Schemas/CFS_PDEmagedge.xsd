@@ -64,6 +64,17 @@
             </xsd:annotation>
           </xsd:element>
 
+          <!-- set penalty factor for static / non-conductive regimes in the h-formulation -->
+          <xsd:element name="isPseudoTimeStepping" type="xsd:float" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Sets the flag if pseudo or real time stepping should be applied
+                pseudo (1): simulate more time steps, but NO time derivatives are involved (static case)
+                real (0): simulate more time steps, but time derivatives are involved (transient case)
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <xsd:element name="thinElements" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:attribute name="maxAspectRatio" type="xsd:float" default="10"/>

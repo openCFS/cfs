@@ -979,7 +979,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     if( analysistype_ != STATIC ) {
       // === EDDY CURRENT DENSITY ===
       shared_ptr<BaseFeFunction> aDotFct =
-          timeDerivFeFunctions_[MAG_POTENTIAL_DERIV1];
+      timeDerivFeFunctions_[MAG_POTENTIAL_DERIV1];
       shared_ptr<ResultInfo> eddy(new ResultInfo);
       eddy->resultType = MAG_EDDY_CURRENT_DENSITY;
       eddy->dofNames = vecComponents;
@@ -1408,7 +1408,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // loop over all regions and assemble total current density:
     //  - if region is coil -> take coil current
     //  - if region is no coil and analyis is transient/harmonic -> eddy
-
     StdVector<RegionIdType>::iterator regIt = regions_.Begin();
     for( ; regIt != regions_.End(); ++regIt ) {
       RegionIdType actRegion = *regIt;
