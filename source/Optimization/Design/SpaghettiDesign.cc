@@ -332,9 +332,10 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
 
   // we create a temporary vector for the gradient values such that we can use Export() - just for convenience.
   // With Python we expect no hpc performance anyway
-  Vector<double> drho(data.GetSize());
-  for(const DesignElement& de : data)
-    drho[de.GetIndex()] = de.GetPlainGradient(f);
+  //Vector<double> drho(nx_*ny_*nz_);
+  Vector<double> drho = Vector<double>(nx_*ny_*nz_*design.GetSize(), 0);
+  for(auto& item : map_)
+    drho[item.lexicographic_pos] = item.elemval->GetPlainGradient(f);
 
   // copy data to numpy array - does extensive range checks with good error message
   drho.Export(np_rho);
