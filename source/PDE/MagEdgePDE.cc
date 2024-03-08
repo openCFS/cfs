@@ -765,7 +765,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
       myFct->AddEntityList(ent[i]);
-
       bRHSRegions_[ent[i]->GetRegion()] = coef[i];
     } // for
 

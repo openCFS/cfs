@@ -536,41 +536,50 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     // defined in DefineCoilIntegrators()! For this reason an "if" is
     // wrapped around all statements, such that this method is empty {}
     // in the linear case.
+    //
+    // ADDITION: The formulation now also supports permanent magnets,
+    //           wich are of course also considered in the linear case
+    //           It is a linear form on the RHS
+    //                   (b_r,N)
+    //           where b_r is a remanence flux density that describes 
+    //           the flux density of a perfect permanent magnet region.
     // ============= IMPORTANT (END) ==================================
-    if(nonLin_ && (modelName_ == "EBHysteresisModel"))
-    {
-      // get FEFunctions and space
-      shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY];
-      shared_ptr<FeSpace> feSpace_reduced = feFunc->GetFeSpace();
+    
+    // get FEFunctions and space
+    shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY];
+    shared_ptr<FeSpace> feSpace_reduced = feFunc->GetFeSpace();
 
-      LinearForm * lin1 = NULL; // (rho_art curlh,curlN), only in the nonlinear case necessary
-      LinearForm * lin2 = NULL; // (b(h),N), only in the nonlinear case necessary
-      RegionIdType actRegion;
+    StdVector<shared_ptr<EntityList> > ent;
+    StdVector<PtrCoefFct > coef;
+    StdVector<std::string> vecDofNames = feFunc->GetResultInfo()->dofNames;
+    LinearForm * lin1 = NULL; // (rho_art curlh,curlN), only in the nonlinear case necessary
+    LinearForm * lin2 = NULL; // (b(h),N), only in the nonlinear case necessary
+    LinearForm * lin3 = NULL; // (b_r,N), describes permanent magnets
+    RegionIdType actRegion;
 
-      bool coefUpdateGeo = true;
-      bool isHystereticMat = false;
+    bool coefUpdateGeo = true;
+    bool isHystereticMat = false;
 
-      Double penaltyParameter = 1e-6;
-      myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
+    Double penaltyParameter = 1e-6;
+    myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
 
-      // iterate over the region (or materials)
-      for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++)
-      {
-        // set current region and material
-        actRegion = regions_[iRegion];
-        StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
-        std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
+    // iterate over the region (or materials)
+    for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
+      // set current region and material
+      actRegion = regions_[iRegion];
+      StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+      std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
 
-        // Get current region name
-        std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+      // Get current region name
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
-        // create new entity list
-        shared_ptr<ElemList> actSDList(new ElemList(ptGrid_));
-        actSDList->SetRegion(actRegion);
+      // create new entity list
+      shared_ptr<ElemList> actSDList(new ElemList(ptGrid_));
+      actSDList->SetRegion(actRegion);
 
+      if(nonLin_ && (modelName_ == "EBHysteresisModel")) {
         PtrCoefFct fluxDensityNL = NULL;
         fluxDensityNL = matModelCoef_;
-
         // ===============================================================================================
         // lin1: (rho_art curlh,curlN) [START]
         // curlh:   is obtained by the mag. field intensity h from the last Newton iteration.
@@ -636,8 +645,48 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // ===============================================================================================
         // lin2: (b(h),N) [END]
         // ===============================================================================================
-      }// end loop over entities
-    } 
+      }
+    }// end loop over entities
+
+    // ===============================================================================================
+    // lin3: (b_r,N) [START]
+    // The b_r has to be defined in the input .xml file for the simulation of permanent magnets
+    // ===============================================================================================
+    ReadRhsExcitation( "fluxDensity", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+    PtrCoefFct br;
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST ||
+          ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
+        EXCEPTION("Prescribed magnetic flux density can only be specified in a volume!")
+      }
+
+      double remanence_scale = 0;
+      myParam_->GetValue("remanenceScale", remanence_scale, ParamNode::PASS);
+      PtrCoefFct remanence_scale_coef_fct = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(remanence_scale));
+      if (remanence_scale != 0) {
+        PtrCoefFct Br_norm = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, coef[i], CoefXpr::OP_NORM));
+        PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL,CoefXprBinOp(mp_,Br_norm,remanence_scale_coef_fct,CoefXpr::OP_DIV));
+        CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, coef[i], factor, CoefXpr::OP_DIV);
+        br = CoefFunction::Generate(mp_, Global::REAL, temp); 
+      } else {
+        br = coef[i];
+      }
+
+      Brmap_[ent[i]->GetRegion()] = br; // Here we store the flux density remanence field for every region to have it ready for postprocessing
+      lin3 = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(), -1.0, br, coefUpdateGeo);
+
+      lin3->SetName("fluxIntegrator: (b_r,N)");
+      LinearFormContext *ctx = new LinearFormContext( lin3 );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(feFunc);
+      assemble_->AddLinearForm(ctx);
+      feFunc->AddEntityList(ent[i]);
+      bRHSRegions_[ent[i]->GetRegion()] = br;
+    }
+    // ===============================================================================================
+    // lin3: (b_r,N) [END]
+    // ===============================================================================================
   }
 
 
@@ -750,16 +799,31 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     for (; regIt != regions_.End(); ++regIt){
       // =====================================================
       // MAG_FLUX_DENSTIY (START)
+      // b = mu*h + b_r (linear case)
+      // b = b(h) + b_r (nonlinear case, with hysteresis this is not true)
       // =====================================================
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[*regIt];  // Just to find out which linear/nonlinear type is defined in this region
-      if( nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve" ){
-        // hysteretic/nonlinear case
-        bCoef->AddRegion(*regIt, nlFluxCoef_);
-      }
-      else{
-        // classical nonlinear case and linear case
-        PtrCoefFct b = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY ), perm_, CoefXpr::OP_MULT));
+      PtrCoefFct b;
+      if( nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve" ){ // hysteretic/nonlinear case
+        if(Brmap_.find(*regIt) != Brmap_.end()){ // There is a remancence flux density in the region prescribed
+          PtrCoefFct br = Brmap_[*regIt];
+          PtrCoefFct b_temp = nlFluxCoef_;
+          b = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, br, b_temp, CoefXpr::OP_ADD));
+        } else { // There is NO remancence flux density in the region prescribed
+          b = nlFluxCoef_;
+        }
         bCoef->AddRegion(*regIt, b);
+      }
+      else{ // classical nonlinear case and linear case
+        if(Brmap_.find(*regIt) != Brmap_.end()){ // There is a remancence flux density in the region prescribed
+          PtrCoefFct br;
+          br = Brmap_[*regIt];
+          PtrCoefFct b_temp = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY ), perm_, CoefXpr::OP_MULT));
+          b = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, br, b_temp, CoefXpr::OP_ADD));
+        } else { // There is NO remancence flux density in the region prescribed
+          b = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY ), perm_, CoefXpr::OP_MULT));
+        }
+        bCoef->AddRegion(*regIt, b);      
       }
       // =====================================================
       // MAG_FLUX_DENSTIY (END)

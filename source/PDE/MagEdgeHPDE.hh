@@ -106,6 +106,9 @@ namespace CoupledField
     //! Init the time stepping:
     void InitTimeStepping();
 
+    //! map containing the flux density remanence field, e.g., from a previous sequence step or from .xml input file
+    std::map<RegionIdType, PtrCoefFct> Brmap_;
+
     //! Coefficient function, containing the overall permeability
     shared_ptr<CoefFunctionMulti> perm_;
     shared_ptr<CoefFunctionMulti> resistivity_;
@@ -114,6 +117,9 @@ namespace CoupledField
     std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string& formulation, 
                     PtrParamNode infoNode );
+
+    //! Map containing the remanence (B excitation on RHS)
+    std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
     
 
     //! Set containing all regions with regularized conductivity
