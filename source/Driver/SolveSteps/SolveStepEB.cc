@@ -50,6 +50,9 @@ namespace CoupledField
     mParser_->SetExpr(MathParser::GLOB_HANDLER,"iterationCounter");
     mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", 0);
 
+    /* Double is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
+    myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS); */
+
     bool performOneMoreStep;
     bool isNewton = false;
     
@@ -81,89 +84,174 @@ namespace CoupledField
       //solVec_  = stageSol;
 
       // set iteration counter
-      UInt iterationCounter=0;
+      UInt iterationCounter = 0;
+      UInt pseudo_time_stepping = 1;
       
-      // ===================================================================================
-      // =================== START NONLINEAR ITERATION =====================================
-      // ===================================================================================
-      std::cout << "iteration" << "     " << "residual 2-norm" << "     " <<"step 2-norm" << "           " <<"    eta    " << std::endl;
-      std::cout << "---------" << "     " << "---------------" << "     " <<"-----------" << "           " <<"-----------" << std::endl;
-      while (true){
-        iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
-        stageSol_temp = stageSol;
+      if (pseudo_time_stepping == 1) {
+        // ===================================================================================
+        // =================== START NONLINEAR ITERATION =====================================
+        // ===================================================================================
+        std::cout << "iteration" << "     " << "residual 2-norm" << "     " <<"step 2-norm" << "           " <<"    eta    " << std::endl;
+        std::cout << "---------" << "     " << "---------------" << "     " <<"-----------" << "           " <<"-----------" << std::endl;
+        while (true){
+          iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
+          stageSol_temp = stageSol;
 
-        // set up RHS
-        algsys_->InitRHS();
-        assemble_->AssembleLinRHS();
-        assemble_->AssembleNonLinRHS();
-        algsys_->GetRHSVal( actRHS );
+          // set up RHS
+          algsys_->InitRHS();
+          assemble_->AssembleLinRHS();
+          assemble_->AssembleNonLinRHS();
+          algsys_->GetRHSVal( actRHS );
 
-        // set up matrix
-        assemble_->AssembleMatrices(isNewton);
-        matrix_factor_.clear();
-        algsys_->InitMatrix(SYSTEM);
-        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
-          FeFctIdType fctId = fncIt->second->GetFctId();
-          fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_[fctId]);
-          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+          // set up matrix
+          assemble_->AssembleMatrices(isNewton);
+          matrix_factor_.clear();
+          algsys_->InitMatrix(SYSTEM);
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+            fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+            algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+          }
+
+          // solve system
+          PDE_.SetBCs();
+          algsys_->BuildInDirichlet();
+          algsys_->SetupPrecond();
+          algsys_->SetupSolver();
+          bool setIDBC = true;
+          algsys_->Solve(setIDBC);
+          algsys_->GetSolutionVal(solInc, setIDBC );
+
+          // apply line search
+          Double etaLineSearch = 1.0;
+          if ( lineSearch_ == "none"){
+            stageSol.Add(etaLineSearch, solInc);
+          }else if ( lineSearch_ == "minEnergy"){
+            etaLineSearch = ExactLineSearch(solInc, stageSol);
+            stageSol_temp.Add(etaLineSearch, solInc);
+            stageSol = stageSol_temp;
+          }
+
+          // residual
+          algsys_->InitRHS();
+          assemble_->AssembleLinRHS();
+          assemble_->AssembleNonLinRHS();
+          algsys_->GetRHSVal( actRHS );
+          // calculation of residual error =======================================
+          Double residualL2Norm = 0.0;
+          residualL2Norm = actRHS.NormL2()*actRHS.NormL2();
+          Double residualErr = residualL2Norm;
+          // calculate incremental error ========================================
+          Double incrementalErr = 0.0;
+          Double solIncrL2Norm = solInc.NormL2();
+          Double actSolL2Norm  = stageSol.NormL2();
+          if ( actSolL2Norm )
+            incrementalErr = solIncrL2Norm/actSolL2Norm;
+          else {
+            incrementalErr = solIncrL2Norm;
+          }
+          std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr << "       " << etaLineSearch <<"\n" << std::scientific;
+          OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+
+          // boolean variable, holds condition if another iteration step is necessary
+          performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+          if ( performOneMoreStep == 0){
+            break;
+          }
+          
+          if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+            EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                    << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                    << "' at iteration '" << iterationCounter 
+                    << "'.\n ==> incremental error: " << incrementalErr
+                    << "\n ==> residual error: " << residualErr);
+          }
         }
+      }
 
-        // solve system
-        PDE_.SetBCs();
-        algsys_->BuildInDirichlet();
-        algsys_->SetupPrecond();
-        algsys_->SetupSolver();
-        bool setIDBC = true;
-        algsys_->Solve(setIDBC);
-        algsys_->GetSolutionVal(solInc, setIDBC );
+      if (pseudo_time_stepping == 0) {
+        // ===================================================================================
+        // =================== START NONLINEAR ITERATION =====================================
+        // ===================================================================================
+        std::cout << "iteration" << "     " << "residual 2-norm" << "     " <<"step 2-norm" << "           " <<"    eta    " << std::endl;
+        std::cout << "---------" << "     " << "---------------" << "     " <<"-----------" << "           " <<"-----------" << std::endl;
+        while (true){
+          iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
+          stageSol_temp = stageSol;
 
-        Double etaLineSearch = 1.0;
-        if ( lineSearch_ == "none"){
-          stageSol.Add(etaLineSearch, solInc);
-        }else if ( lineSearch_ == "minEnergy"){
-          etaLineSearch = ExactLineSearch(solInc, stageSol);
-          stageSol_temp.Add(etaLineSearch, solInc);
-          stageSol = stageSol_temp;
+          // set up RHS in two steps:
+          // 1) if Newton iteration counter is 1, then assemble the linear forms having quantities from the last time step (declared LINEAR)
+          // 2) assemble all linear forms that only contain values from the last NEWTON iteration (declared NONLINEAR)
+          if (iterationCounter == 1) {
+            algsys_->InitRHS();
+            assemble_->AssembleLinRHS();
+          }
+          assemble_->AssembleNonLinRHS();
+          algsys_->GetRHSVal( actRHS );
+
+          // set up matrix
+          assemble_->AssembleMatrices(isNewton);
+          matrix_factor_.clear();
+          algsys_->InitMatrix(SYSTEM);
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+            fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+            algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+          }
+
+          // solve system
+          PDE_.SetBCs();
+          algsys_->BuildInDirichlet();
+          algsys_->SetupPrecond();
+          algsys_->SetupSolver();
+          bool setIDBC = true;
+          algsys_->Solve(setIDBC);
+          algsys_->GetSolutionVal(solInc, setIDBC );
+
+          // apply line search
+          Double etaLineSearch = 1.0;
+          if ( lineSearch_ == "none"){
+            stageSol.Add(etaLineSearch, solInc);
+          }else if ( lineSearch_ == "minEnergy"){
+            etaLineSearch = ExactLineSearch(solInc, stageSol);
+            stageSol_temp.Add(etaLineSearch, solInc);
+            stageSol = stageSol_temp;
+          }
+
+          // residual
+          assemble_->AssembleNonLinRHS();
+          algsys_->GetRHSVal( actRHS );
+          // calculation of residual error =======================================
+          Double residualL2Norm = 0.0;
+          residualL2Norm = actRHS.NormL2()*actRHS.NormL2();
+          Double residualErr = residualL2Norm;
+          // calculate incremental error ========================================
+          Double incrementalErr = 0.0;
+          Double solIncrL2Norm = solInc.NormL2();
+          Double actSolL2Norm  = stageSol.NormL2();
+          if ( actSolL2Norm )
+            incrementalErr = solIncrL2Norm/actSolL2Norm;
+          else {
+            incrementalErr = solIncrL2Norm;
+          }
+          std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr << "       " << etaLineSearch <<"\n" << std::scientific;
+          OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+
+          // boolean variable, holds condition if another iteration step is necessary
+          performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+          if ( performOneMoreStep == 0){
+            break;
+          }
+          
+          if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+            EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                    << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                    << "' at iteration '" << iterationCounter 
+                    << "'.\n ==> incremental error: " << incrementalErr
+                    << "\n ==> residual error: " << residualErr);
+          }
         }
-
-
-        double eta = 0;
-        double print_var = 0;
-        // residual
-        algsys_->InitRHS();
-        assemble_->AssembleLinRHS();
-        assemble_->AssembleNonLinRHS();
-        algsys_->GetRHSVal( actRHS );
-        // calculation of residual error =======================================
-        Double residualL2Norm = 0.0;
-        residualL2Norm = actRHS.NormL2()*actRHS.NormL2();
-        Double residualErr = residualL2Norm;
-        // calculate incremental error ========================================
-        Double incrementalErr = 0.0;
-        Double solIncrL2Norm = solInc.NormL2();
-        Double actSolL2Norm  = stageSol.NormL2();
-        if ( actSolL2Norm )
-          incrementalErr = solIncrL2Norm/actSolL2Norm;
-        else {
-          incrementalErr = solIncrL2Norm;
-        }
-        std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr << "       " << etaLineSearch <<"\n" << std::scientific;
-        OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
-
-        // boolean variable, holds condition if another iteration step is necessary
-        performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-        if ( performOneMoreStep == 0){
-          break;
-        }
-        
-        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
-          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
-                  << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
-                  << "' at iteration '" << iterationCounter 
-                  << "'.\n ==> incremental error: " << incrementalErr
-                  << "\n ==> residual error: " << residualErr);
-        }
-      }    
+      }
     } //stages
     
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;

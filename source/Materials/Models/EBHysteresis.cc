@@ -106,31 +106,14 @@ DEFINE_LOG(eb, "EBHysteresis")
 
       hasElemSolution_.Resize(numElems_, false);
     }
-
+    //-----------------------------------------------------------------------------------------
+    // computes the largest singular value of the Jacobian matrix db/dh.
+    //-----------------------------------------------------------------------------------------
     Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum) {
-      // This method gives the rho_art for the h-form.
 
-      Double penaltyParameter = 1e-6; // default value for n
-
-      /* Matrix<Double> mu = ComputeTensorialMaterialParameter(HVec, ElemNum);
-      Double num1 = mu[0][0]; Double num2 = mu[1][1]; Double num3 = mu[2][2];
-      if (num1 >= num2 && num1 >= num3) {
-        return num1*std::pow(10,penaltyParameter/2);
-      } else if (num2 >= num1 && num2 >= num3) {
-        return num2*std::pow(10,penaltyParameter/2);
-      } else {
-        return num3*std::pow(10,penaltyParameter/2);
-      } */
-
-      /* Double normH; normH = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2]);
-      Double mu0;Double material_scalar; Double chi;
-      mu0 = 1.256637061e-06;;
-      chi = (2*A_*Ps_)/(M_PI*(normH*normH+A_*A_));
-      material_scalar = mu0*(1+chi); 
-      return material_scalar*std::pow(10,penaltyParameter/2); */
-
+      Double penaltyParameter = 5; // default value for n
       // SVD approach
-      Matrix<Double> A = ComputeTensorialMaterialParameter(HVec, ElemNum);
+      Matrix<Double> A = ComputeTensorialMaterialParameter(HVec, ElemNum); // get current material tensor
       Matrix<Double> AtA(dim_,dim_);
       for(UInt idx=0;idx<3;idx++){
         for(UInt jdx=0;jdx<3;jdx++){
@@ -150,12 +133,12 @@ DEFINE_LOG(eb, "EBHysteresis")
           A[0][1] * A[1][0] * A[2][2] -
           A[1][2] * A[2][1] * A[0][0] -
           A[2][0] * A[0][2] * A[1][1];
-
+      // solve characteristic polynomial
       Double discriminant = b * b - 4 * a * c;
       Double lambda1 = (-b + std::sqrt(discriminant)) / (2 * a);
       Double lambda2 = (-b - std::sqrt(discriminant)) / (2 * a);
       Double lambda3 = (A[0][0] + A[1][1] + A[2][2]) - lambda1 - lambda2;
-
+      // compute svd value for each root
       Double svd1 = std::sqrt(std::abs(lambda1)); Double svd2 = std::sqrt(std::abs(lambda2)); Double svd3 = std::sqrt(std::abs(lambda3));
 
       if (svd1 >= svd2 && svd1 >= svd3) {
@@ -165,6 +148,14 @@ DEFINE_LOG(eb, "EBHysteresis")
       } else {
           return svd3*std::pow(10,penaltyParameter/2);
       }
+
+      /* if (svd1 >= svd2 && svd1 >= svd3) {
+          return svd1;
+      } else if (svd2 >= svd1 && svd2 >= svd3) {
+          return svd2;
+      } else {
+          return svd3;
+      } */
     }
 
     Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum) {
