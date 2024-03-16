@@ -3517,9 +3517,6 @@ namespace CoupledField {
                           ParamNode::INSERT );
       nciNode->GetValue( "crossPointHandling", newIface.crossPointHandling,
                          ParamNode::INSERT );
-      nciNode->GetValue( "heatTransferCoefficient", newIface.heatTransferCoefficient,
-                         ParamNode::INSERT ); // parameter for heatPDE with non conforming interface condition
-
       if (newIface.crossPointHandling) {
         WARN("Cross-point handling is not implemented yet");
       }
@@ -4432,8 +4429,6 @@ namespace CoupledField {
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
       }
-
-    }
 
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
