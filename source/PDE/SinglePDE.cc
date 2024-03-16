@@ -4001,11 +4001,11 @@ namespace CoupledField {
       }
     }
 
+
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
     if ( solType == HEAT_TEMPERATURE && !isThinLayer) {
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
-      WARN("Non conforming interface without jump condition defined: factor = kappa");
     }
     else if ( solType == ELEC_POTENTIAL && pdename_  != "elecQuasistatic") {
     	if(additionalCoef){
@@ -4212,8 +4212,8 @@ namespace CoupledField {
           (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+        }
       }
-
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
@@ -4338,6 +4338,15 @@ namespace CoupledField {
           penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
               new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+        }
+    }
+    
+    if ( solType == MECH_DISPLACEMENT ) {
+      flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
+          (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
+           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+           factor, 1.0, curcpl, updatedGeo_, true);
+      flux_du1_v2->SetBCoefFunctionOpA(coefMech);
     }
     else {
     	if ( isMaterialComplex_) {
@@ -4404,6 +4413,15 @@ namespace CoupledField {
         if( solType == HEAT_TEMPERATURE && isThinLayer){ // Nitsche term
           assignedFactor = alphaHeat; // heat conduction coupling with thin layer formulation
           isPenalty = false;
+        }
+        else{
+          assignedFactor = beta; // heat conduction with Nitsche coupling (without jump condition)
+          isPenalty = true;
+        }
+        penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         }
         else{
           assignedFactor = beta; // heat conduction with Nitsche coupling (without jump condition)
