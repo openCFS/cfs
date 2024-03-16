@@ -3960,6 +3960,8 @@ namespace CoupledField {
 
     //we set here the parameter for heatPDE with non conforming interface condition
     Double alphaHeat = iface.heatTransferCoefficient;
+    Double assignedFactor = 0.0; // used to set beta / alphaHeat within integrator definition below
+    bool isPenalty = true;
 
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
@@ -4159,18 +4161,18 @@ namespace CoupledField {
                 factor, beta, curcpl, updatedGeo_, true, true);
         }
       }else{
-        if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
-          penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double> // Nitsche term
-            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                factor, alphaHeat, curcpl, updatedGeo_, true, false);
+        if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // Nitsche term
+          assignedFactor = alphaHeat; // heat conduction coupling with temp. jump condition
+          isPenalty = false;
         }
-        else{
-          penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
-            (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                factor, beta, curcpl, updatedGeo_, true, true);
+        else{ // heat conduction with Nitsche coupling (without jump condition)
+          assignedFactor = beta;
+          isPenalty = true;
         }
+        penalty_u1_v1 = new SurfaceNitscheABInt<Double,Double>
+          (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
       }
 
     }
@@ -4211,7 +4213,7 @@ namespace CoupledField {
                     new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                     factor, 0.0, curcpl, updatedGeo_, true);
             }
-            else{
+            else{ // heat conduction with Nitsche coupling (without jump condition)
               flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
                   ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
                     new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -4257,7 +4259,7 @@ namespace CoupledField {
                     new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
                     factor, 0.0, curcpl, updatedGeo_, true);
             }
-            else{
+            else{ // heat conduction with Nitsche coupling (without jump condition)
               flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
                   (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                     new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
@@ -4292,18 +4294,18 @@ namespace CoupledField {
           }
 
         }else{
-          if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
-            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double> // coupling term
-                  ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    factor, alphaHeat * -1.0, curcpl, updatedGeo_, true, false);
+          if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // coupling term
+            assignedFactor = alphaHeat * -1.0; // heat conduction coupling with temp. jump condition
+            isPenalty = false;
           }
-          else{
-            penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
-                  ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    factor, beta * -1.0, curcpl, updatedGeo_, true, true);
+          else{ // heat conduction with Nitsche coupling (without jump condition)
+            assignedFactor = beta * -1.0;
+            isPenalty = true;
           }
+          penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         }
 
     }
@@ -4345,7 +4347,7 @@ namespace CoupledField {
                 new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                 factor, 0.0, curcpl, updatedGeo_, true);
           }
-          else{
+          else{ // heat conduction with Nitsche coupling (without jump condition)
             flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
               (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
                 new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
@@ -4380,18 +4382,18 @@ namespace CoupledField {
         }
 
       }else{
-        if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
-          penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double> // Nitsche term
-              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                factor, alphaHeat, curcpl, updatedGeo_, true, false);
+        if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // Nitsche term
+          assignedFactor = alphaHeat; // heat conduction coupling with temp. jump condition
+          isPenalty = false;
         }
         else{
-          penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-              ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                factor, beta, curcpl, updatedGeo_, true, true);
+          assignedFactor = beta; // heat conduction with Nitsche coupling (without jump condition)
+          isPenalty = true;
         }
+        penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
+          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+            factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
       }
 
     }
