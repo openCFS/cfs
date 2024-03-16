@@ -4208,10 +4208,7 @@ namespace CoupledField {
 
           }else{
             if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
-              flux_du1_v1 = new SurfaceNitscheABInt<Double,Double> // flux term
-                  ( new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    factor, 0.0, curcpl, updatedGeo_, true);
+              // flux_du1_v1 = NULL // flux term
             }
             else{ // heat conduction with Nitsche coupling (without jump condition)
               flux_du1_v1 = new SurfaceNitscheABInt<Double,Double>
@@ -4254,10 +4251,7 @@ namespace CoupledField {
 
           }else{
             if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
-              flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double> // flux term
-                  (  new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                    factor, 0.0, curcpl, updatedGeo_, true);
+              // flux_u1_dv1 = NULL; // flux term
             }
             else{ // heat conduction with Nitsche coupling (without jump condition)
               flux_u1_dv1 = new SurfaceNitscheABInt<Double,Double>
@@ -4342,10 +4336,7 @@ namespace CoupledField {
 
         }else{
           if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
-            flux_du1_v2 = new SurfaceNitscheABInt<Double,Double> // flux term
-              (new SurfaceNormalDerivOperator<FeH1,DIM,D_DOF>(),
-                new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                factor, 0.0, curcpl, updatedGeo_, true);
+            // flux_du1_v2 = NULL; // flux term
           }
           else{ // heat conduction with Nitsche coupling (without jump condition)
             flux_du1_v2 = new SurfaceNitscheABInt<Double,Double>
@@ -4412,13 +4403,13 @@ namespace CoupledField {
 
     curcpl = BiLinearForm::MASTER_MASTER;
     penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, targetMatrix, curcpl);
-    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , targetMatrix, curcpl);
-    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , targetMatrix, curcpl);
+    if (flux_du1_v1){ flux_du1_v1_Context = new SurfaceBiLinFormContext(flux_du1_v1  , targetMatrix, curcpl);}
+    if (flux_u1_dv1){ flux_u1_dv1_Context = new SurfaceBiLinFormContext(flux_u1_dv1  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SLAVE_SLAVE;
     penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, targetMatrix, curcpl);
     curcpl = BiLinearForm::MASTER_SLAVE;
     penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, targetMatrix, curcpl);
-    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , targetMatrix, curcpl);
+    if (flux_du1_v2){ flux_du1_v2_Context = new SurfaceBiLinFormContext(flux_du1_v2  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SLAVE_MASTER;
 
     if (isMoving) {
@@ -4528,48 +4519,49 @@ namespace CoupledField {
       penalty_u1_v1_Context->SetMotion(true);
       penalty_u2_v2_Context->SetMotion(true);
       penalty_u1_v2_Context->SetMotion(true);
-      flux_du1_v1_Context->SetMotion(true);
-      flux_u1_dv1_Context->SetMotion(true);
-      flux_du1_v2_Context->SetMotion(true);
+      if (flux_du1_v1_Context){ flux_du1_v1_Context->SetMotion(true);}
+      if (flux_u1_dv1_Context){ flux_u1_dv1_Context->SetMotion(true);}
+      if (flux_du1_v2_Context){ flux_du1_v2_Context->SetMotion(true);}
     }
 
     penalty_u2_v2->SetName("penalty_u2_v2");
     penalty_u1_v2->SetName("penalty_u1_v2");
     penalty_u1_v1->SetName("penalty_u1_v1");
-    flux_du1_v1->SetName("flux_du1_v1");
-    flux_u1_dv1->SetName("flux_u1_dv1");
-    flux_du1_v2->SetName("flux_du1_v2");
+    if (flux_du1_v1){ flux_du1_v1->SetName("flux_du1_v1");}
+    if (flux_u1_dv1){ flux_u1_dv1->SetName("flux_u1_dv1");}
+    if (flux_du1_v2){ flux_du1_v2->SetName("flux_du1_v2");}
+    
 
     penalty_u1_v1_Context->SetEntities(actSDList,actSDList);
     penalty_u2_v2_Context->SetEntities(actSDList,actSDList);
     penalty_u1_v2_Context->SetEntities(actSDList,actSDList);
-    flux_du1_v1_Context->SetEntities(actSDList,actSDList);
-    flux_u1_dv1_Context->SetEntities(actSDList,actSDList);
-    flux_du1_v2_Context->SetEntities(actSDList,actSDList);
+    if (flux_du1_v1_Context){ flux_du1_v1_Context->SetEntities(actSDList,actSDList);}
+    if (flux_u1_dv1_Context){ flux_u1_dv1_Context->SetEntities(actSDList,actSDList);}
+    if (flux_du1_v2_Context){ flux_du1_v2_Context->SetEntities(actSDList,actSDList);}    
 
     penalty_u1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_u2_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_u1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
-    flux_du1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
-    flux_u1_dv1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
-    flux_du1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+    if (flux_du1_v1_Context){ flux_du1_v1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (flux_u1_dv1_Context){ flux_u1_dv1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (flux_du1_v2_Context){ flux_du1_v2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
 
     penalty_u1_v2_Context->SetCounterPart(true);
-    flux_du1_v2_Context->SetCounterPart(true);
+    if (flux_du1_v2_Context){ flux_du1_v2_Context->SetCounterPart(true);}
 
     assemble_->AddBiLinearForm( penalty_u1_v1_Context );
     assemble_->AddBiLinearForm( penalty_u2_v2_Context );
     assemble_->AddBiLinearForm( penalty_u1_v2_Context );
-    assemble_->AddBiLinearForm( flux_du1_v1_Context );
-    assemble_->AddBiLinearForm( flux_u1_dv1_Context );
-    assemble_->AddBiLinearForm( flux_du1_v2_Context );
+    if (flux_du1_v1_Context){ assemble_->AddBiLinearForm( flux_du1_v1_Context );}
+    if (flux_u1_dv1_Context){ assemble_->AddBiLinearForm( flux_u1_dv1_Context );}
+    if (flux_du1_v2_Context){ assemble_->AddBiLinearForm( flux_du1_v2_Context );}
 
     ncIf->RegisterIntegrator( penalty_u1_v1_Context );
     ncIf->RegisterIntegrator( penalty_u2_v2_Context );
     ncIf->RegisterIntegrator( penalty_u1_v2_Context );
-    ncIf->RegisterIntegrator( flux_du1_v1_Context );
-    ncIf->RegisterIntegrator( flux_u1_dv1_Context );
-    ncIf->RegisterIntegrator( flux_du1_v2_Context );
+    if (flux_du1_v1_Context){ ncIf->RegisterIntegrator( flux_du1_v1_Context );}
+    if (flux_u1_dv1_Context){ ncIf->RegisterIntegrator( flux_u1_dv1_Context );}
+    if (flux_du1_v2_Context){ ncIf->RegisterIntegrator( flux_du1_v2_Context );}
   }
 
   template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Double>&, std::string);
