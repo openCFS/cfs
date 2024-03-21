@@ -47,8 +47,8 @@ void KNNIndexSearch::AddPoint(Double x, Double y, Double z, UInt idx) {
   
 void KNNIndexSearch::BuildTree() {
 #ifdef USE_CGAL 
-  tree_ = new Tree(boost::make_zip_iterator(boost::make_tuple( points_.Begin(),indices_.Begin() )),
-                   boost::make_zip_iterator(boost::make_tuple( points_.End(),indices_.End() ) )
+  tree_ = new Tree(boost::make_zip_iterator(std::make_tuple( points_.Begin(),indices_.Begin() )),
+                   boost::make_zip_iterator(std::make_tuple( points_.End(),indices_.End() ) )
   );
   builtTree_ = true;
 #else
@@ -68,7 +68,7 @@ void KNNIndexSearch::QueryPoint(Double x, Double y, Double z, StdVector<UInt>& n
   Distance tr_dist;
   K_neighbor_search search(*tree_, query, numNeighbours);
   for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++) {
-    nearestIndices.Push_back(boost::get<1>(it->first));
+    nearestIndices.Push_back(std::get<1>(it->first));
     distances.Push_back(tr_dist.inverse_of_transformed_distance(it->second));
   }
 #else

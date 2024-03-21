@@ -122,7 +122,7 @@ namespace CoupledField
        // int GetFMOPosDefMinor() const { return fmo_pos_def_minor_; }
 
        /** creates an xml attribute name compatible string representation for coords */
-       static std::string ToString(const StdVector<boost::tuple<int, int, double> >&);
+       static std::string ToString(const StdVector<std::tuple<int, int, double> >&);
 
        /** The scaling is evaluated for external optimizers, not in OC!
         * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
@@ -145,7 +145,7 @@ namespace CoupledField
         * E11-E12-2E33 = E11-E12-E33-E33 = 0 = (E11,1) + (E12,-1) + (E33,-2) are generated. Then coord is 2 or 3 entries.
         * Note, that the entries are 1-based!!!
         * the factor for ErsatzMaterial::CalcHomogenizedTensorEntry() */
-       StdVector<boost::tuple<int, int, double> > coords;
+       StdVector<std::tuple<int, int, double> > coords;
 
        /** For design tracking, this are the elements we have to track. Function::elements is resized accordingly!
         * The vector is empty when we do not do design tracking */

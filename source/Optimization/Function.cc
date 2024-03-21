@@ -343,11 +343,11 @@ bool Function::ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matr
 }
 
 
-void Function::ParseCoord(PtrParamNode pn, boost::tuple<int, int, double>& coord) {
+void Function::ParseCoord(PtrParamNode pn, std::tuple<int, int, double>& coord) {
   string val = pn->Get("coord")->As<string>();
-  boost::get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
-  boost::get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
-  boost::get<2>(coord) = 1.0; // default
+  std::get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
+  std::get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
+  std::get<2>(coord) = 1.0; // default
 }
 
 void Function::ToInfo(PtrParamNode info) {

@@ -52,7 +52,7 @@ class Objective : public Function
     void ResetValue() { value_ = 0.0; }
 
     /** is a homogenization tensor coord set */
-    bool HasHomogenizationEntry() const { return boost::get<0>(coord) != -1; }
+    bool HasHomogenizationEntry() const { return std::get<0>(coord) != -1; }
 
     double GetPenalty() const { return penalty_; }
 
@@ -61,7 +61,7 @@ class Objective : public Function
 
     /** This defines the optional coord pair for HOM_TRACKING, HOM_FROBENIUS_PRODUCT.
      *  e.g. (1,1) for tensor entry (0,0). For Condition this is a list! The double shall be by default 1.0 */
-    boost::tuple<int, int, double> coord;
+    std::tuple<int, int, double> coord;
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
