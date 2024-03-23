@@ -650,10 +650,17 @@ namespace CoupledField
 
     ParamNodeList nciList = nciListNode->GetList("ncInterface");
     UInt numNCIs = nciList.GetSize();
-    ncInterfaces_.Reserve(numNCIs);
+    ParamNodeList tlList = nciListNode->GetList("thinLayer");
+    UInt numTLIs = tlList.GetSize();
+    ncInterfaces_.Reserve(numNCIs + numTLIs);
+
+    // loop to add thinLayer interfaces
+    for ( UInt i=numNCIs; i< (numNCIs + numTLIs); ++i ) {
+      AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, tlList[i])));
+    }
 
     //loop twice to ensure that moving interfaces get added last
-    for ( UInt i=0; i<numNCIs; ++i ) {
+    for ( UInt i=0; i< numNCIs; ++i ) {
       if(!nciList[i]->Has("rotation") &&
          !nciList[i]->Has("generalMotion")){
         AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));

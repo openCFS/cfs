@@ -3475,6 +3475,26 @@ namespace CoupledField {
     if ( !nciListNode ) return;
     
     ParamNodeList nciNodes = nciListNode->GetList("ncInterface");
+    ParamNodeList tlNodes = nciListNode->GetList("thinLayer");
+
+    ParamNodeList::iterator tlIt = tlNodes.Begin(),
+                            tlendIt = tlNodes.End();
+    for ( ; tlIt != tlendIt; ++tlIt ) {
+      PtrParamNode tlNode = (*tlIt);
+      //WARN(tlNode->Get("name")->As<std::string>() );
+      NcInterfaceInfo newIface;
+      
+      newIface.interfaceId = ptGrid_->GetNcInterfaceId( tlNode->Get("name")
+                                                        ->As<std::string>() );
+      newIface.type = ncCouplingType_.Parse( tlNode->Get("formulation",
+          ParamNode::INSERT)->As<std::string>() ); // formulation for thin layer formulation --> currently only nitsche type implemented
+      tlNode->GetValue( "layerThickness", newIface.layerThickness,
+                         ParamNode::INSERT ); // parameter for thin layer formulation non conforming interface condition
+      tlNode->GetValue( "layerMaterial", newIface.layerMaterial,
+                         ParamNode::INSERT ); // parameter for thin layer formulation non conforming interface condition
+      newIface.thinLayer = true;
+      ncInterfaces_.Push_back(newIface);
+    }
     
     ParamNodeList::iterator nciIt = nciNodes.Begin(),
                             endIt = nciNodes.End();
@@ -3497,8 +3517,6 @@ namespace CoupledField {
                           ParamNode::INSERT );
       nciNode->GetValue( "crossPointHandling", newIface.crossPointHandling,
                          ParamNode::INSERT );
-      nciNode->GetValue( "heatTransferCoefficient", newIface.heatTransferCoefficient,
-                         ParamNode::INSERT ); // parameter for heatPDE with non conforming interface condition
 
       if (newIface.crossPointHandling) {
         WARN("Cross-point handling is not implemented yet");
@@ -3508,6 +3526,7 @@ namespace CoupledField {
       if (newIface.movingMortarForm && newIface.type != NC_MORTAR) {
         WARN("Moving formulation is only available with Mortar coupling");
       }
+      newIface.thinLayer = false;
       ncInterfaces_.Push_back(newIface);
     }
   }
@@ -3958,14 +3977,24 @@ namespace CoupledField {
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
 
-    //we set here the parameter for heatPDE with non conforming interface condition
-    Double alphaHeat = iface.heatTransferCoefficient;
-    Double assignedFactor = 0.0; // used to set beta / alphaHeat within integrator definition below
+    Double assignedFactor = 0.0; // used to set beta / factors within integrator definition below
+    Double alphaHeat = 0.0;
     bool isPenalty = true;
+
+    // check if thin layer formulation is set, read and calculate parameters
+    bool isThinLayer = false;
+    if (iface.thinLayer){
+      isThinLayer = true;
+      //Double layerThickness = iface.layerThickness; // not yet used
+      //string layerMaterial = iface.layerMaterial; // not yet used
+      if (solType == HEAT_TEMPERATURE){
+        alphaHeat = 10000.; // hard coded alphaHeat --> need to read material data and calculate depending on solType
+      }
+    }
 
     //possible material parameter and adaption of penalty term
     PtrCoefFct factor;
-    if ( solType == HEAT_TEMPERATURE && alphaHeat == 0.0) {
+    if ( solType == HEAT_TEMPERATURE && !isThinLayer) {
       factor = materials_[nitscheIf->GetMasterVolRegion()]->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
     }
     else if ( solType == ELEC_POTENTIAL && pdename_  != "elecQuasistatic") {
@@ -4161,8 +4190,8 @@ namespace CoupledField {
                 factor, beta, curcpl, updatedGeo_, true, true);
         }
       }else{
-        if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // Nitsche term
-          assignedFactor = alphaHeat; // heat conduction coupling with temp. jump condition
+        if( solType == HEAT_TEMPERATURE && isThinLayer){ // Nitsche term
+          assignedFactor = alphaHeat; // heat conduction coupling with thin layer formulation
           isPenalty = false;
         }
         else{ // heat conduction with Nitsche coupling (without jump condition)
@@ -4207,7 +4236,7 @@ namespace CoupledField {
     	    }
 
           }else{
-            if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+            if( solType == HEAT_TEMPERATURE && isThinLayer){ // heat conduction coupling with thin layer formulation
               // flux_du1_v1 = NULL // flux term
             }
             else{ // heat conduction with Nitsche coupling (without jump condition)
@@ -4250,7 +4279,7 @@ namespace CoupledField {
           }
 
           }else{
-            if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+            if( solType == HEAT_TEMPERATURE && isThinLayer){ // heat conduction coupling with thin layer formulation
               // flux_u1_dv1 = NULL; // flux term
             }
             else{ // heat conduction with Nitsche coupling (without jump condition)
@@ -4288,8 +4317,8 @@ namespace CoupledField {
           }
 
         }else{
-          if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // coupling term
-            assignedFactor = alphaHeat * -1.0; // heat conduction coupling with temp. jump condition
+          if( solType == HEAT_TEMPERATURE && isThinLayer){ // coupling term
+            assignedFactor = alphaHeat * -1.0; // heat conduction coupling with thin layer formulation
             isPenalty = false;
           }
           else{ // heat conduction with Nitsche coupling (without jump condition)
@@ -4335,7 +4364,7 @@ namespace CoupledField {
           }
 
         }else{
-          if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // heat conduction coupling with temp. jump condition
+          if( solType == HEAT_TEMPERATURE && isThinLayer){ // heat conduction coupling with thin layer formulation
             // flux_du1_v2 = NULL; // flux term
           }
           else{ // heat conduction with Nitsche coupling (without jump condition)
@@ -4373,8 +4402,8 @@ namespace CoupledField {
         }
 
       }else{
-        if( solType == HEAT_TEMPERATURE && alphaHeat != 0. ){ // Nitsche term
-          assignedFactor = alphaHeat; // heat conduction coupling with temp. jump condition
+        if( solType == HEAT_TEMPERATURE && isThinLayer){ // Nitsche term
+          assignedFactor = alphaHeat; // heat conduction coupling with thin layer formulation
           isPenalty = false;
         }
         else{
