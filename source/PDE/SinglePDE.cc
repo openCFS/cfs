@@ -3985,10 +3985,17 @@ namespace CoupledField {
     bool isThinLayer = false;
     if (iface.thinLayer){
       isThinLayer = true;
-      //Double layerThickness = iface.layerThickness; // not yet used
-      //string layerMaterial = iface.layerMaterial; // not yet used
+      Double layerThickness = iface.layerThickness; // not yet used
+      string layerMaterial = iface.layerMaterial; // not yet used
       if (solType == HEAT_TEMPERATURE){
-        alphaHeat = 10000.; // hard coded alphaHeat --> need to read material data and calculate depending on solType
+        // Read material data
+        MaterialHandler* matLoader = domain->GetMaterialHandler();
+        BaseMaterial* mat = matLoader->LoadMaterial(layerMaterial, THERMIC);
+        std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > tl_materials;
+        tl_materials[THERMIC][HEAT_CONDUCTIVITY_SCALAR] = mat->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
+        double tl_heatConductivity = std::stod(tl_materials[THERMIC][HEAT_CONDUCTIVITY_SCALAR]->ToString());
+        alphaHeat = tl_heatConductivity / layerThickness; // calculated value for heat transfer coefficient
+        //WARN("Thin layer formulation used with alphaHeat = " << alphaHeat);
       }
     }
 
