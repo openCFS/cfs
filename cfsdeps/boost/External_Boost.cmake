@@ -7,12 +7,11 @@ clear_depencency_variables()
 set(PACKAGE_NAME "boost")
 # note that any newer version than 1.78.0 causes > 30 wrong test results, e.g. ExpressionHeatSource
 # probably in conjunction with muparser 2.2.6
-set(PACKAGE_VER "1.84.0")  
-set(PACKAGE_FILE "boost_1_84_0.tar.bz2") # does not reflect PACKAGE_VER style
-#set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
-set(PACKAGE_MD5 "9dcd632441e4da04a461082ebbafd337") # 1.84.0
+set(PACKAGE_VER "1.78.0")  
+set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
+set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
 
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-b") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
   
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://boostorg.jfrog.io/artifactory/main/release/${PACKAGE_VER}/source/${PACKAGE_FILE}")
@@ -27,6 +26,8 @@ add_standard_mirrors_or_set_local()
 # see https://www.intel.com/content/www/us/en/developer/articles/technical/building-boost-with-oneapi.html
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang") # matches also AppleClang
   set(TOOLSET toolset=clang)
+  # macOS Sonoma 14.4 fails to build without flags 
+  set(B2_ARGS "cxxflags=-std=c++14 -Wno-enum-constexpr-conversion")
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
   set(TOOLSET toolset=gcc)
   # for APPLE and gcc we would need set(TOOLSET_NAME gcc) but the have the version in zlib-toolset-config.jam.in   
@@ -34,7 +35,10 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") # Linux and Windows
   # https://www.boost.org/doc/libs/1_81_0/tools/build/doc/html/index.html
   set(TOOLSET_NAME clang) # this triggers to use zlib-toolset-config.jam.in instead of zlib-config.jam.in
   set(TOOLSET toolset=clang-cfs) # check zlib-toolset-config.jam.in, the cfs is hard coded there
-  set(B2_ARGS "cxxflags=-Wno-enum-constexpr-conversion") # disable compiler error on warning
+  set(B2_ARGS "cxxflags=-std=c++14 -Wno-enum-constexpr-conversion") # disable compiler error on warning
+  if(WIN32)
+    set(B2_ARGS "${B2_ARGS} /EHsc") # enable exception handling for Windows - otherwise building boost fails 			
+	endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel") # no more IntelLLVM but Linux and Windows
   set(TOOLSET toolset=intel) # seems to first check for icpx (oneAPI LLVM based), then icpcp (classic)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
