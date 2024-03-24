@@ -188,6 +188,10 @@ endif()
 if (NOT USE_CGAL AND USE_EIGEN)
   message(WARNING "\nYour configuration USE_EIGEN=ON and USE_CGAL=OFF has no effect. \nEigen is currently only used by CGAL, for surface-geometry approximation in the automatic layer generation and curvilinear PML.")
 endif()
+
+if(USE_CGAL AND NOT USE_EIGEN)
+  message(WARNING "\nUsing USE_CGAL=ON and USE_EIGEN=OFF will likely fail since CGAL needs Eigen.")
+endif()
   
 if(USE_CGAL AND USE_LIBFBI)
   message(FATAL_ERROR "Either USE_CGAL or USE_LIBFBI can be actived, but not both!")
