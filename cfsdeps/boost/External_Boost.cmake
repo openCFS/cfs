@@ -7,11 +7,14 @@ clear_depencency_variables()
 set(PACKAGE_NAME "boost")
 # note that any newer version than 1.78.0 causes > 30 wrong test results, e.g. ExpressionHeatSource
 # probably in conjunction with muparser 2.2.6
-set(PACKAGE_VER "1.78.0")  
-set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
-set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
+# set(PACKAGE_VER "1.78.0")  
+set(PACKAGE_VER "1.84.0")
+# set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
+set(PACKAGE_FILE "boost_1_84_0.tar.bz2")
+# set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
+set(PACKAGE_MD5 "9dcd632441e4da04a461082ebbafd337") # 1.84
 
-set(DEPS_VER "-b") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
   
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://boostorg.jfrog.io/artifactory/main/release/${PACKAGE_VER}/source/${PACKAGE_FILE}")
@@ -35,10 +38,12 @@ elseif(CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") # Linux and Windows
   # https://www.boost.org/doc/libs/1_81_0/tools/build/doc/html/index.html
   set(TOOLSET_NAME clang) # this triggers to use zlib-toolset-config.jam.in instead of zlib-config.jam.in
   set(TOOLSET toolset=clang-cfs) # check zlib-toolset-config.jam.in, the cfs is hard coded there
-  set(B2_ARGS "cxxflags=-std=c++14 -Wno-enum-constexpr-conversion") # disable compiler error on warning
   if(WIN32)
-    set(B2_ARGS "${B2_ARGS} /EHsc") # enable exception handling for Windows - otherwise building boost fails 			
-	endif()
+  #set(B2_ARGS "cxxflags=-Qstd=c++14 -Wno-enum-constexpr-conversion /EHsc") # enable exception handling for Windows - otherwise building boost fails 			
+  set(B2_ARGS "cxxflags=-Wno-enum-constexpr-conversion /EHsc")
+else()
+    set(B2_ARGS "cxxflags=-std=c++14 -Wno-enum-constexpr-conversion") # disable compiler error on warning	    
+  endif()
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "Intel") # no more IntelLLVM but Linux and Windows
   set(TOOLSET toolset=intel) # seems to first check for icpx (oneAPI LLVM based), then icpcp (classic)
 elseif(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
@@ -47,14 +52,17 @@ else()
   message(STATUS "no specific boost toolset for ${CMAKE_CXX_COMPILER_ID} implemented, could work anyway ...")
 endif()
 
- # we'll disable fortran for lis by not using saamg which is fast, but very sensitive to system condition
+cmake_print_variables(CMAKE_CXX_COMPILER_ID)
+cmake_print_variables(B2_ARGS)
+
+# we'll disable fortran for lis by not using saamg which is fast, but very sensitive to system condition
 use_c_and_fortran(ON OFF)
 
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
 # generate BOOST_LIBRARY=PACKAGE_LIBARAY with os specific list of static libs. 
-set_package_library_list_lib_prefix("boost_atomic;boost_iostreams;boost_program_options;boost_thread;boost_chrono;boost_log;boost_regex;boost_unit_test_framework;boost_date_time;boost_log_setup;boost_serialization;boost_filesystem") 
+set_package_library_list_lib_prefix("boost_atomic;boost_iostreams;boost_program_options;boost_chrono;boost_log;boost_regex;boost_unit_test_framework;boost_date_time;boost_log_setup;boost_serialization;boost_filesystem") 
 
 # to not always need to have all libs from BOOST_LIBRARY - no need for cache variables
 set(BOOST_SERIALIZATION_LIB ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libboost_serialization${CMAKE_STATIC_LIBRARY_SUFFIX})
