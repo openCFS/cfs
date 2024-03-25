@@ -92,10 +92,15 @@
       paths:
         - build/cfsdeps/cache/sources
       policy: $CFSDEPS_SOURCES_POLICY
-    - key: cfsdeps-precombiled-windows
+      # cache for precompiled
+    - key: cfsdeps-precompiled-windows-${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/precompiled
       policy: $CFSDEPS_PRECOMPILED_POLICY
+      fallback_keys:
+        # requires disabling of cache separation between protected and non-protected branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-precompiled-windows-$CI_DEFAULT_BRANCH
   before_script:
     # install the tools to cache
     - if(!(Test-Path cache)) { .gitlab/ci/windows-shared-runner_install-build-tools.ps1 } else { ls cache }
