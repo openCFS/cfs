@@ -10,6 +10,7 @@ set(PACKAGE_VER ${LIS_VER})
 set(PACKAGE_FILE "lis-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "5a666ee5bd8af29d3d171771ead78a36")
 set(DEPS_VER "-a") # the -a fixes our 2.0.34 configuration (must not enable complex). Remove for newer lis version!
+# no version change, just a comment to trigger re-buildinig of cfsdeps
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -84,7 +85,6 @@ else()
     if(CMAKE_C_COMPILER_ID MATCHES "Intel")
       list(APPEND WIN_CONFIGURE --enable-intelc) # for IntelLLVM we need to patch Makefile.in icl -> icx
     endif()
-    find_program(lis_make_program nmake)
     ExternalProject_Add("${PACKAGE_NAME}"
       PREFIX "${DEPS_PREFIX}"
       # Windows needs to have condigure.bat and successive nmake exececuted in <source>/win
@@ -96,8 +96,6 @@ else()
       DOWNLOAD_NO_PROGRESS ON 
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
       CONFIGURE_COMMAND ${DEPS_SOURCE}/win/configure.bat ${WIN_CONFIGURE}
-      BUILD_COMMAND ${lis_make_program}
-      INSTALL_COMMAND ""
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
   else()
     # standard configure works for macOS and Linux
