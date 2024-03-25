@@ -88,14 +88,25 @@
       paths:
         - cache
       policy: $INSTALL_POLICY
-    - key: cfsdeps-sources
+    # sources and precompiled
+    # * the primary key (specialized with CI_COMMIT_REF_NAME) is used for pull & push (i.e. can be overwritten)
+    # * a list of fallback keys can be used for pull (download only) if no primary key is found
+    # * we do not share sources between Windows and Linux (in case different versions are used)
+    # We fallback to the "master" branch, this way new merge requests have a cache (fallback) but write their own
+    # This requires disabling the cache separation between protected and non-protected branches (GitLab setting),
+    # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches.
+    - key: cfsdeps-sources-windows-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/sources
       policy: $CFSDEPS_SOURCES_POLICY
-    - key: cfsdeps-precombiled-windows
+      fallback_keys:
+        - cfsdeps-sources-windows-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-precompiled-windows-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/precompiled
       policy: $CFSDEPS_PRECOMPILED_POLICY
+      fallback_keys:
+        - cfsdeps-precompiled-windows-$CI_DEFAULT_BRANCH
   before_script:
     # install the tools to cache
     - if(!(Test-Path cache)) { .gitlab/ci/windows-shared-runner_install-build-tools.ps1 } else { ls cache }

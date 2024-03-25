@@ -243,7 +243,6 @@ IF(USE_CGAL)
   SET(MSG "${MSG} It is configure-based and therefore requires a shell")
   SET(MSG "${MSG} interpreter like bash from MSYS. If you need CGAL, you need")
   SET(MSG "${MSG} to use an MSYS environment or cross compile from Linux.")     
-
   IF(WIN32)
     MESSAGE(FATAL_ERROR "${MSG}")
    ENDIF()
