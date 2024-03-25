@@ -9,7 +9,7 @@ set(LIS_VER "2.0.34") # for Dependencies.cc which cannot easily inlcude lis.h (f
 set(PACKAGE_VER ${LIS_VER})
 set(PACKAGE_FILE "lis-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "5a666ee5bd8af29d3d171771ead78a36")
-set(DEPS_VER "-a") # the -a fixes our 2.0.34 configuration (must not enable complex). Remove for newer lis version!
+set(DEPS_VER "-b") # the -a fixes our 2.0.34 configuration (must not enable complex). Remove for newer lis version!
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -97,7 +97,6 @@ else()
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
       CONFIGURE_COMMAND ${DEPS_SOURCE}/win/configure.bat ${WIN_CONFIGURE}
       BUILD_COMMAND ${lis_make_program}
-      INSTALL_COMMAND ""
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
   else()
     # standard configure works for macOS and Linux
