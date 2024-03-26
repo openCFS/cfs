@@ -227,6 +227,7 @@ namespace CoupledField
     /** has any of the single pdes perdiodic boundary conditions set? */
     bool HasPerdiodicBC() const;
 
+<<<<<<< HEAD
     //! Get the generic result index (used in PostProc.cc) to keep track of
     //! generic result definitions
     int GetGenericResultIndex() {
@@ -239,6 +240,8 @@ namespace CoupledField
     }
 
 
+=======
+>>>>>>> 31b1c3fad (up-date)
   protected:
 
   private:
@@ -275,6 +278,7 @@ namespace CoupledField
 
     // LUCA ON
     void CreateBemPDE();
+    // bool use_nihu_;
     // LUCA OFF
 
     //! Initialize local coordinate systems as read in from the parameter file

@@ -81,7 +81,7 @@ namespace CoupledField
     // LUCA ON
 
     // not elegant but from here I suppose to find the current directory
-    callNiHu();
+    // callNiHu();
 
     // LUCA OFF
 

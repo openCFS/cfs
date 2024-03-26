@@ -479,6 +479,9 @@ void Domain::SolveProblem()
   // PostInit needs to be called in advance!
   if(optimization_ != NULL)
     optimization_->SolveProblem(); // will call multiple driver->SolveProblem
+  // else if (use_nihu)
+    // do nothing
+    // use_nihu = false;
   else
     driver->SolveProblem();
 }
@@ -755,10 +758,15 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "acoustic_BEM") {
+      // use_nihu = true;
         // ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
         // ptSingleDriver_
-        // ptSinglePde_[i].
+        // std::cout << " -- NiHu: " + ptSinglePde_[i] << std::endl;
         CreateBemPDE();
+        // numSinglePde_ = 0;  // results in "No PDEs were created." below
+        // Domain::~Domain();  // too dirty
+       ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      //  ptSinglePde_[i] = new TestPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "split") {
       ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
@@ -856,7 +864,6 @@ void Domain::CreateBemPDE(/*PtrParamNode infoNode*/)
     std::cout << "++ Creating BEM" << std::endl;
 
     Bem_PDE::callNiHu_1();
-    
   }
 }
 
