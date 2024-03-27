@@ -553,6 +553,11 @@ rhel:9:
     GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
   rules:
+    # include the cfsdeps stage even if there are no changes by setting this variable
+    - if: $BUILD_CFSDEPS == "manual" || ( $BUILD_CFSDEPS && $CFS_PIPELINE_TYPE == "manual" )
+      when: manual
+    - if: $BUILD_CFSDEPS
+    # only add cfsdeps jobs if there are changes
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *cfsdeps-rebuild-changes
     - if: $CFS_PIPELINE_TYPE == "manual"
