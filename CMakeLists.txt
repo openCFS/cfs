@@ -131,7 +131,7 @@ option(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFA
 option(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 option(USE_METIS "Use Metis Graph partitioning." ${USE_METIS_DEFAULT})
 # NiHu - BoundaryElementMethod (TU Budapest)
-option(USE_NIHU "NiHu (BoundaryElementMethod) solver requires USE_EIGEN otherwhise it will install a redundant version of the Eigen library." ${USE_NIHU_DEFAULT})
+option(USE_NIHU "NiHu (BoundaryElementMethod) solver - automatically enables USE_EIGEN since NiHu requires the Eigen library." ${USE_NIHU_DEFAULT})
 # CGNS - CFD General Notation System
 option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
 # SCPIP optimizer library.
@@ -268,6 +268,12 @@ endif()
 
 # NiHu conditional
 if(USE_NIHU)
+  # automatically install Eigen with NiHu
+  if(NOT USE_EIGEN)
+    set(USE_EIGEN ON CACHE BOOL "Install Eigen as a required dependency of NiHu." FORCE)
+    message(STATUS "Automatically enabling USE_EIGEN because NiHu requires the Eigen library.")
+  endif()
+
   include(cfsdeps/nihu/External_NiHu.cmake)
   # include("${CFSDEPS_DIR}/nihu/External_NIHU.cmake")
   # include(External_NiHu.cmake)
