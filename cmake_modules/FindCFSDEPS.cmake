@@ -104,13 +104,9 @@ include("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 #-------------------------------------------------------------------------------
 # Search for CGNS library
 #-------------------------------------------------------------------------------
-IF(USE_CGNS)
-  SET(CGNS_VER "4.3.0")
-  SET(CGNS_GZ "v${CGNS_VER}.zip")
-  SET(CGNS_MD5 "37512acaac66c368b454658dc8a806ff")
-
-  INCLUDE("${CFSDEPS_DIR}/cgns/External_CGNS.cmake")
-ENDIF(USE_CGNS)
+if(USE_CGNS)
+  include("${CFSDEPS_DIR}/cgns/External_CGNS.cmake")
+endif(USE_CGNS)
 
 if(USE_METIS)
   include("${CFSDEPS_DIR}/metis/External_METIS.cmake")

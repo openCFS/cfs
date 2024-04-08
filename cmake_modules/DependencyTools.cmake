@@ -253,7 +253,7 @@ macro(generate_postinstall_script)
 endmacro()
 
 # generate ${PACKAGE_NAME}-patch.cmake script. Don't call when you don't want to patch
-#
+
 # sets PATCHES_SCRIPT
 macro(generate_patches_script)
  
@@ -351,6 +351,7 @@ macro(create_external_unpack_precompiled)
 
   assert_set(PACKAGE_NAME)
   assert_set(PRECOMPILED_PCKG_FILE)
+  assert_set(DEPS_PREFIX)
 
   ExternalProject_Add(${PACKAGE_NAME}
     PREFIX ${DEPS_PREFIX}

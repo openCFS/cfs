@@ -8,23 +8,45 @@
 # http://www.cgns.org
 #-------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------
-# Set prefix path and path to CGNS sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(cgns_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cgns")
-set(cgns_install  "${CMAKE_CURRENT_BINARY_DIR}")
-set(cgns_source  "${cgns_prefix}/src/cgns")
+# make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
+clear_depencency_variables()
 
-#-------------------------------------------------------------------------------
-# Set common CMake arguments
-#-------------------------------------------------------------------------------
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${cgns_install}
-  # CMAKE_INSTALL_LIBDIR is ignored (4.3.0), hence we need to patch
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(CFS_VERSION_MONTH "04")
+set(PACKAGE_NAME "cgns")
+set(PACKAGE_VER "4.4.0")
+set(CGNS_VER ${PACKAGE_VER}) # for Dependencies.cc
+set(PACKAGE_FILE "v${PACKAGE_VER}.zip")
+set(PACKAGE_MD5 "9779e1478c4be7c89f096a22bc0c0bef")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+
+# the mirrors can point to arbitrary file names. 
+set(PACKAGE_MIRRORS "https://github.com/CGNS/CGNS/archive/refs/tags/${PACKAGE_FILE}")
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
+
+# we only have a c++ compiler
+use_c_and_fortran(ON OFF)
+
+ # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
+
+# determine paths of libraries and make it visible (and editable) via ccmake
+set_package_library_default()
+
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_standard_variables()
+
+# this is the standard target for cmake projects. The files to package come from the install_manifest.txt
+set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
+
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default(ON) # set compiler flags
+
+# add the specific settings for the packge which comes in cmake style...
+# CMAKE_INSTALL_LIBDIR is ignored (4.3.0), hence we need to patch
+set(DEPS_ARGS ${DEPS_ARGS}
   -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
-  -DCMAKE_BUILD_TYPE:STRING=Release
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCGNS_BUILD_CGNSTOOLS:BOOL=OFF # handles only cgnstools, we remove tools by patch
   -DCGNS_BUILD_SHARED:BOOL=OFF
   -DCGNS_BUILD_TESTING:BOOL=OFF
@@ -36,138 +58,43 @@ SET(CMAKE_ARGS
   -DCGNS_USE_SHARED:BOOL=OFF
   # we have no hdf5 lib and include dir but need hdf5-config.cmake
   -DHDF5_DIR:FILEPATH=${CMAKE_CURRENT_BINARY_DIR}/share/cmake # for hdf5-config.cmake
-  # We do not want to see warning messages from external projects
-  -DCMAKE_C_FLAGS:STRING=${CFLAGS}
 )
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
-#intel compiler has problems with emty rpath commands
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  SET(CMAKE_ARGS ${CMAKE_ARGS} -DCMAKE_SKIP_RPATH:BOOL=TRUE)
-ENDIF()
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  # Explicitly set build architectures and  system SDK root dir to match
-  # those given in CMake.
-  
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-  )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
+generate_patches_script() # sets PATCHES_SCRIPT
 
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgns/cgns-patch.cmake.in")
-SET(PFN "${cgns_prefix}/cgns-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+# generate package creation script. We get the files from an install_manifest.txt
+generate_packing_script_manifest()
 
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "https://github.com/CGNS/CGNS/archive/refs/tags/${CGNS_GZ}"
-  "${CFS_DS_SOURCES_DIR}/cgns/${CGNS_GZ}"
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}")
-SET(MD5_SUM ${CGNS_MD5})
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
 
-SET(DLFN "${cgns_prefix}/cgns-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
+# dump_depencency_variables()
 
-#copy license
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/cgns/license/" DESTINATION "${CFS_BINARY_DIR}/license/cgns" )
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
 
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "cgns" "${CGNS_VER}")  
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${cgns_prefix}")
+# if not, build newly and possibly pack the stuff
+else()
+  # add external project step actually building an cmake package including a patch 
+  # also genearate the patch script via generate_patches_script()
+  create_external_cmake_patched()  
 
-SET(ZIPFROMCACHE "${cgns_prefix}/cgns-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  endif()  
+endif()
 
-SET(ZIPTOCACHE "${cgns_prefix}/cgns-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+# cgns depends on hdf5
+add_dependencies(cgns hdf5)
 
-#-------------------------------------------------------------------------------
-# Determine paths of CGNS libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-SET(CGNS_LIBRARY
-  "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_STATIC_LIBRARY_SUFFIX}"
-  CACHE FILEPATH "CGNS library.")
-
-SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CGNS include directory")
-
-MARK_AS_ADVANCED(CGNS_INCLUDE_DIR)
-MARK_AS_ADVANCED(CGNS_LIBRARY)
-
-#-------------------------------------------------------------------------------
-# The CGNS external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(cgns
-    PREFIX "${cgns_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${CGNS_LIBRARY}
-  )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(cgns
-    DEPENDS hdf5 zlib
-    PREFIX ${cgns_prefix}
-    SOURCE_DIR ${cgns_source}
-    URL ${LOCAL_FILE}
-    URL_MD5 ${CGNS_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    LIST_SEPARATOR ,
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-    BUILD_BYPRODUCTS ${CGNS_LIBRARY}
-  )
-
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(cgns cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-     DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${cgns_prefix}
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(cgns cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-set(CFSDEPS ${CFSDEPS} cgns)
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
