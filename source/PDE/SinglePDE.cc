@@ -4210,7 +4210,6 @@ namespace CoupledField {
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         }
-      }
     }
 
     if ( solType == MECH_DISPLACEMENT ) {
@@ -4333,6 +4332,7 @@ namespace CoupledField {
             isPenalty = true;
           }
           penalty_u1_v2 = new SurfaceNitscheABInt<Double,Double>
+              (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
               factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         }
@@ -4419,16 +4419,8 @@ namespace CoupledField {
           ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
             factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
-        }
-        else{
-          assignedFactor = beta; // heat conduction with Nitsche coupling (without jump condition)
-          isPenalty = true;
-        }
-        penalty_u2_v2 = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
       }
+    }
 
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
