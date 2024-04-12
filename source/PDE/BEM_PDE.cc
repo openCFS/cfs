@@ -58,7 +58,7 @@ void Bem_PDE::callNiHu_1()
     return;
   }
 
-  std::cout << prefix_nihu << "building testcase" << std::endl;
+  std::cout << prefix_nihu << "building simulation" << std::endl;
   
   if (std::system("make") != 0)
   {
