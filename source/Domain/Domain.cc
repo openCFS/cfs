@@ -762,7 +762,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         // ptSinglePde_[i] = new AcousticPDE_BEM(defaultGrid, actPdeNode, infoNode, simState_, this);
         // ptSingleDriver_
         // std::cout << " -- NiHu: " + ptSinglePde_[i] << std::endl;
-        CreateBemPDE();
+        CreateAcousticBemPDE();
         // numSinglePde_ = 0;  // results in "No PDEs were created." below
         // Domain::~Domain();  // too dirty
        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
@@ -855,19 +855,14 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
   }
 }
 
-// LUCA ON
-
-void Domain::CreateBemPDE(/*PtrParamNode infoNode*/)
+void Domain::CreateAcousticBemPDE()
 {
   if( isParentDomain_)
   {
     std::cout << "++ Creating BEM" << std::endl;
-
-    Bem_PDE::callNiHu_1();
+    AcousticPDE_BEM::callNiHu();
   }
 }
-
-// LUCA OFF
 
 void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
 {

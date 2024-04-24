@@ -6,12 +6,6 @@
 
 #include "General/defs.hh"
 
-// Bem_PDE::Bem_PDE()
-// {
-//   std::cout << "Bem_PDE::Bem_PDE()\n";
-//   callNiHu_1();
-// }
-
 void Bem_PDE::callNiHu_1()
 {
   // output pre

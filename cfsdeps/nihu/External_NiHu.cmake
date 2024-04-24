@@ -26,17 +26,8 @@ ExternalProject_Add(
   PATCH_COMMAND ""  # specify if needed
 
   ## path to NiHu's CMakeLists
-  # CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu/src
-  CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src  #// FEM_BEM20240109
-  # TODO: make that an alias to further use in NiHu-executable builds
-
-  # Here we could utilize an alias e.g.
-  # CMAKE_ARGS -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
-  # CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu/src
-  #            -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
-  #            -DNIHU_EIGEN_INSTALL=1
+  CMAKE_ARGS -H${CMAKE_BINARY_DIR}/cfsdeps/nihu/src
   CMAKE_ARGS -H${NIHU_SRC_DIR}
-            #  -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-build/install_dir
              -DNIHU_INSTALL_DIR=${CMAKE_BINARY_DIR}/cfsdeps/nihu/src/NiHu-install
             #  -DNIHU_EIGEN_INSTALL=1
              -DNIHU_EIGEN_PATH=${CMAKE_BINARY_DIR}/cfsdeps/eigen/install/include/Eigen
