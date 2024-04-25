@@ -10,6 +10,8 @@ namespace CoupledField {
 
   Enum<BasePDE::AnalysisType> BasePDE::analysisType;
 
+  Enum<BasePDE::StabilisationType> BasePDE::stabilisationType;
+
   // ***********************
   //   Default Constructor
   // ***********************
@@ -62,6 +64,11 @@ namespace CoupledField {
     MechPDE::testStrain.Add(MechPDE::YZ, "yz");
     MechPDE::testStrain.Add(MechPDE::XZ, "xz");
     MechPDE::testStrain.Add(MechPDE::XY, "xy");
+
+    stabilisationType.SetName("BasePDE::StabilisationType");
+    stabilisationType.Add(NO_STABILISATION, "none");
+    stabilisationType.Add(SUPG, "SUPG");
+    stabilisationType.Add(ARTIFICIAL_DIFFUSION, "ArtificialDiffusion");
 
   }
   

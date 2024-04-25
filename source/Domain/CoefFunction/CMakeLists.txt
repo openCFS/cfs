@@ -34,6 +34,8 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionDiagTensorFromScalar.cc
   CoefFunctionMaterialModel.cc
   CoefFunctionConversion.hh
+  CoefFunctionSUPG.cc
+  CoefFunctionSUPG.hh
 )
 
 if(USE_EMBEDDED_PYTHON)
