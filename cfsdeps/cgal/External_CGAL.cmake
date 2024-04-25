@@ -1,9 +1,137 @@
 #-------------------------------------------------------------------------------
-# Computational Geometry Algorithms Library
+# Computational Geometry Algorithms Library (CGAL)
+# As of April 2024, CGAL is used in CFS to enable enhanced element intersection  
+# computations for non-conforming interfaces and grid interpolation techniques. 
+#
+# CGAL is only used as a supplementary build option in CFS. It is not part of the 
+# default/distributed build, due to its GPL3 licence.
 #
 # Project Homepage
 # http://www.cgal.org/
+#
+# Description copied from the CGAL project homepage:
+# "CGAL is an open source software project that provides easy access to efficient 
+# and reliable geometric algorithms in the form of a C++ library. CGAL is used in
+# various areas needing geometric computation, such as geographic information systems, 
+# computer aided design, molecular biology, medical imaging, computer graphics, and robotics.
+# The library offers data structures and algorithms like triangulations, Voronoi diagrams, 
+# Boolean operations on polygons and polyhedra, point set processing, arrangements of curves, 
+# surface and volume mesh generation, geometry processing, alpha shapes, convex hull algorithms,
+# shape reconstruction, AABB and KD trees... Explore the complete list of features and 
+# capabilities by visiting the CGAL Package Overview.
+# The CGAL data structures and algorithms are distributed under a dual license, namely under 
+# the GPL v3+ and, alternatively, under a commercial license by GeometryFactory."
 #-------------------------------------------------------------------------------
+
+# make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
+clear_depencency_variables()
+
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(CFS_VERSION_MONTH "04")
+set(PACKAGE_NAME "cgal")
+set(PACKAGE_VER "5.6.1")
+set(CGAL_VER ${PACKAGE_VER}) # for Dependencies.cc
+set(PACKAGE_FILE "v${PACKAGE_VER}.zip")
+set(PACKAGE_MD5 "TODO: Insert MD5Sum")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+
+# Set paths to cgal sources according to ExternalProject.cmake 
+set(cgal_prefix  "${CMAKE_BINARY_DIR}/cfsdeps/cgal")
+set(cgal_source  "${cgal_prefix}/src/cgal")
+set(cgal_install  "${CMAKE_BINARY_DIR}")
+
+# the mirrors can point to arbitrary file names. 
+set(PACKAGE_MIRRORS "TODO: Insert download link")
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
+
+ # we only have a fortran compiler
+use_c_and_fortran(ON OFF)
+
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
+
+# determine paths of libraries and make it visible (and editable) via ccmake
+set_package_library_default()
+
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_standard_variables()
+
+# this is the standard target for cmake projects. The files to package come from the install_manifest.txt
+set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
+
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default(ON) # set compiler flags 
+# add the specific settings for the packge which comes in cmake style
+
+# set the build option string for release/debug builds as CGAL needs uppercase first letter
+string(TOLOWER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
+if(BUILD_TYPE STREQUAL "debug")
+set(BUILD_TYPE "Debug")
+else(BUILD_TYPE STREQUAL "debug")
+set(BUILD_TYPE "Release")
+endif(BUILD_TYPE STREQUAL "debug")
+
+set(DEPS_ARGS
+  ${DEPS_ARGS}
+  -DCMAKE_BUILD_TYPE:STRING=${BUILD_TYPE}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_INSTALL_PREFIX:PATH=${cgal_install}
+  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
+  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
+  -DCMAKE_CXX_FLAGS:STRING=${CGAL_CXX_FLAGS}
+  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+)
+
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
+
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
+
+# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
+generate_patches_script() # sets PATCHES_SCRIPT
+
+# generate package creation script. We get the files from an install_manifest.txt
+generate_packing_script_manifest()
+
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
+
+#dump_depencency_variables()
+
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
+
+# if not, build newly and possibly pack the stuff
+else()
+  # add external project step actually building an cmake package including a patch 
+  # also genearate the patch script via generate_patches_script()
+  create_external_cmake_patched()  
+
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  endif()  
+endif()
+
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
+
+
+
+
+
+
+
+#-Old code below this line---------------------------------------------------------------
+#----------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------
+#----------------------------------------------------------------------------------------
+
 
 #-------------------------------------------------------------------------------
 # Set paths to cgal sources according to ExternalProject.cmake 
