@@ -2,6 +2,8 @@
 # Computational Geometry Algorithms Library (CGAL)
 # As of April 2024, CGAL is used in CFS to enable enhanced element intersection  
 # computations for non-conforming interfaces and grid interpolation techniques. 
+# It is also used for 3D geometry approximations on surface nodes in the 
+# layerGeneration feature and the curvilinear PML formulation.
 #
 # CGAL is only used as a supplementary build option in CFS. It is not part of the 
 # default/distributed build, due to its GPL3 licence.
@@ -89,7 +91,7 @@ set(DEPS_ARGS
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
 # Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
-generate_patches_script() # sets PATCHES_SCRIPT
+#generate_patches_script() # sets PATCHES_SCRIPT // try without patching
 
 # generate package creation script. We get the files from an install_manifest.txt
 generate_packing_script_manifest()
@@ -107,8 +109,7 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 # if not, build newly and possibly pack the stuff
 else()
   # add external project step actually building an cmake package including a patch 
-  # also genearate the patch script via generate_patches_script()
-  create_external_cmake_patched()  
+  create_external_cmake()  
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})

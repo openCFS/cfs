@@ -162,7 +162,7 @@ option(USE_SNOPT "Use the external commercial SNOPT optimizer." ${USE_SNOPT_DEFA
 option(USE_IPOPT "Use the external open source IPOPT optimizer." ${USE_IPOPT_DEFAULT})
 # open source SGP optimizer library.
 option(USE_SGP "Use the external open source SGP optimizer." ${USE_SGP_DEFAULT})
-option(USE_CGAL "Activate fast element mapping using CGAL library." ${USE_CGAL_DEFAULT})
+option(USE_CGAL "Improved geometry operations using the CGAL library." ${USE_CGAL_DEFAULT})
 option(USE_EIGEN "Eigen is a C++ template library for linear algebra: matrices, vectors, numerical solvers, and related algorithms." ${USE_EIGEN_DEFAULT})
 # Use libfbi toggles the inclusion of the Fast Box Intersection library.
 # Please note, that either CGAL or libfbi can be used at a time, but not both!
@@ -190,7 +190,7 @@ if (NOT USE_CGAL AND USE_EIGEN)
 endif()
 
 if(USE_CGAL AND NOT USE_EIGEN)
-  message(WARNING "\nUsing USE_CGAL=ON and USE_EIGEN=OFF will likely fail since CGAL needs Eigen.")
+  message(WARNING "\nUsing USE_CGAL=ON and USE_EIGEN=OFF could cause issues as some CGAL modules use Eigen.")
 endif()
   
 if(USE_CGAL AND USE_LIBFBI)
