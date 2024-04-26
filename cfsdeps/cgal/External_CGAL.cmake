@@ -37,34 +37,33 @@ set(PACKAGE_FILE "v${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "1f2de883a4942ab4efac62797e2ad081")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-# Set paths to cgal sources according to ExternalProject.cmake 
-set(cgal_prefix  "${CMAKE_BINARY_DIR}/cfsdeps/cgal")
-set(cgal_source  "${cgal_prefix}/src/cgal")
-set(cgal_install  "${CMAKE_BINARY_DIR}")
-
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://github.com/CGAL/cgal/archive/refs/tags/${PACKAGE_FILE}") 
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
- # we do not need to compile as CGAL is now header only
+# we do not need to compile as CGAL is now header only
 use_c_and_fortran(OFF OFF)
 
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
-# determine paths of libraries and make it visible (and editable) via ccmake
-set_package_library_default()
-
-# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
-set_standard_variables()
-
+# cmake package building directly to cfs build. precompiled package via manifest
+set(DEPS_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}")
+set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 # this is the standard target for cmake projects. The files to package come from the install_manifest.txt
-set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
+
+# set the CGAL_DIR to tell CGAL where the source code directory is
+set(CGAL_DIR DEPS_SOURCE)
+
+# the clean-<package> target deletes everything to allow a clean make <package>
+add_custom_target(clean-${PACKAGE_NAME} cmake -E remove_directory ${DEPS_PREFIX}
+COMMAND cmake -E remove ${PRECOMPILED_PCKG_FILE}
+COMMENT "delete cfsdeps/${PACKAGE_NAME} and precompiled")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default(ON) # set compiler flags 
-# add the specific settings for the packge which comes in cmake style
+set_deps_args_default(ON)
 
 # set the build option string for release/debug builds as CGAL needs uppercase first letter
 string(TOLOWER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
@@ -83,23 +82,24 @@ set(DEPS_ARGS
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   -DCMAKE_CXX_FLAGS:STRING=${CGAL_CXX_FLAGS}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
+  -DCGAL_DIR:STRING=${DEPS_SOURCE}
 )
 
-# --- it follows generic final block for cmake packages with a patch and no postinstall ---
+# --- it follows generic final block for cmake packages with no patch and no postinstall ---
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
-#generate_patches_script() # sets PATCHES_SCRIPT // try without patching
+assert_unset(PATCHES_SCRIPT)
 
-# generate package creation script. We get the files from an install_manifest.txt
-generate_packing_script_manifest()
+# filter from DEPS_INSTALL, zip and copy to binary dir 
+generate_packing_script_install_dir()
 
 # we have no postinstall, so don't call generate_postinstall_script()
 assert_unset(POSTINSTALL_SCRIPT)
 
-#dump_depencency_variables()
+# for debugging purposes, dump all dependency variables
+dump_depencency_variables()
 
 # do we want to use precompiled and do we already have the package?
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -108,13 +108,15 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # if not, build newly and possibly pack the stuff
 else()
-  # add external project step actually building an cmake package including a patch 
   create_external_cmake()  
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
     # add custom step to zip a precompiled package to the cache.
     add_external_storage_step()
+  else()
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()  
   endif()  
 endif()
 
@@ -123,6 +125,8 @@ set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
 
 
 
+# "The most important CMake variable is the variable CGAL_DIR, which will serve to configure CGAL as you configure your program"
+## how to set CGAL_DIR ??
 
 
 
