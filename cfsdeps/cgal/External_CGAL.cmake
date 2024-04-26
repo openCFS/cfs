@@ -39,6 +39,7 @@ set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_
 
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://github.com/CGAL/cgal/archive/refs/tags/${PACKAGE_FILE}") 
+
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
@@ -48,19 +49,12 @@ use_c_and_fortran(OFF OFF)
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
-# cmake package building directly to cfs build. precompiled package via manifest
-set(DEPS_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}")
-set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_header_only_standard_variables()
+
 # this is the standard target for cmake projects. The files to package come from the install_manifest.txt
-set(DEPS_INSTALL "${DEPS_PREFIX}/install")
-
-# set the CGAL_DIR to tell CGAL where the source code directory is
-set(CGAL_DIR DEPS_SOURCE)
-
-# the clean-<package> target deletes everything to allow a clean make <package>
-add_custom_target(clean-${PACKAGE_NAME} cmake -E remove_directory ${DEPS_PREFIX}
-COMMAND cmake -E remove ${PRECOMPILED_PCKG_FILE}
-COMMENT "delete cfsdeps/${PACKAGE_NAME} and precompiled")
+set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
+set(CGAL_DIR "${DEPS_INSTALL}")
 
 # set DEPS_ARG with defaults for a cmake project
 set_deps_args_default(ON)
@@ -73,17 +67,8 @@ else(BUILD_TYPE STREQUAL "debug")
 set(BUILD_TYPE "Release")
 endif(BUILD_TYPE STREQUAL "debug")
 
-set(DEPS_ARGS
-  ${DEPS_ARGS}
-  -DCMAKE_BUILD_TYPE:STRING=${BUILD_TYPE}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_INSTALL_PREFIX:PATH=${cgal_install}
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-  -DCMAKE_CXX_FLAGS:STRING=${CGAL_CXX_FLAGS}
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DCGAL_DIR:STRING=${DEPS_SOURCE}
-)
+# set custom build arguments
+set(DEPS_ARGS ${DEPS_ARGS} -DCMAKE_BUILD_TYPE:STRING=${BUILD_TYPE})
 
 # --- it follows generic final block for cmake packages with no patch and no postinstall ---
 
@@ -92,8 +77,8 @@ file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${
 
 assert_unset(PATCHES_SCRIPT)
 
-# filter from DEPS_INSTALL, zip and copy to binary dir 
-generate_packing_script_install_dir()
+# generate package creation script. We get the files from an install_manifest.txt
+generate_packing_script_manifest()
 
 # we have no postinstall, so don't call generate_postinstall_script()
 assert_unset(POSTINSTALL_SCRIPT)
@@ -108,7 +93,7 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # if not, build newly and possibly pack the stuff
 else()
-  create_external_cmake()  
+  create_external_cmake()
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
@@ -119,6 +104,9 @@ else()
     add_install_dir_to_binary_step()  
   endif()  
 endif()
+
+# add dependencies for cgal
+add_dependencies(cgal boost zlib gmp mpfr)
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
