@@ -54,7 +54,6 @@ set_header_only_standard_variables()
 
 # this is the standard target for cmake projects. The files to package come from the install_manifest.txt
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
-set(CGAL_DIR "${DEPS_INSTALL}")
 
 # set DEPS_ARG with defaults for a cmake project
 set_deps_args_default(ON)
@@ -68,7 +67,16 @@ set(BUILD_TYPE "Release")
 endif(BUILD_TYPE STREQUAL "debug")
 
 # set custom build arguments
-set(DEPS_ARGS ${DEPS_ARGS} -DCMAKE_BUILD_TYPE:STRING=${BUILD_TYPE})
+set(DEPS_ARGS 
+  ${DEPS_ARGS} 
+  -DCMAKE_BUILD_TYPE:STRING=${BUILD_TYPE}
+  -DWITH_EXAMPLES:BOOL=OFF
+  -DWITH_DEMOS:BOOL=OFF
+  -DWITH_CGAL_Core:BOOL=ON
+  -DWITH_CGAL_Qt5:BOOL=OFF
+  -DWITH_CGAL_ImageIO:BOOL=OFF
+  -DCGAL_DIR:STRING="${DEPS_PREFIX}/lib/cmake/CGAL"
+  )
 
 # --- it follows generic final block for cmake packages with no patch and no postinstall ---
 
@@ -106,7 +114,7 @@ else()
 endif()
 
 # add dependencies for cgal
-add_dependencies(cgal boost zlib gmp mpfr)
+add_dependencies(cgal boost gmp mpfr)
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
