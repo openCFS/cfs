@@ -75,7 +75,7 @@ set(DEPS_ARGS
   -DWITH_CGAL_Core:BOOL=ON
   -DWITH_CGAL_Qt5:BOOL=OFF
   -DWITH_CGAL_ImageIO:BOOL=OFF
-  -DCGAL_DIR:STRING="${DEPS_PREFIX}/lib/cmake/CGAL"
+  -DCGAL_DIR:STRING="${CMAKE_BUILD_TYPE}/include/CGAL" # debug: how to set this path?? is it even required??
   )
 
 # --- it follows generic final block for cmake packages with no patch and no postinstall ---
@@ -120,10 +120,7 @@ add_dependencies(cgal boost gmp mpfr)
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
 
 
-
-# "The most important CMake variable is the variable CGAL_DIR, which will serve to configure CGAL as you configure your program"
-## how to set CGAL_DIR ??
-
+#set(CGAL_LIBRARY "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libCGAL.a" CACHE FILEPATH "CGAL library.")
 
 
 

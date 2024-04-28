@@ -182,7 +182,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
     # error: cannot use 'throw' with exceptions disabled
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /EHsc")
   endif() 
-  if(USE_CGAL) # remove when we use header only CGAL
+  if(USE_CGAL) # remove when we use header only CGAL # debug: still in use??
     set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
   endif()
