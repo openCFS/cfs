@@ -210,6 +210,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # issue: https://discourse.cmake.org/t/linking-on-windows-requires-versioned-boost-libraries/7119/3
   set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /DBOOST_ALL_NO_LIB")
 
+  # debug: according to  https://doc.cgal.org/latest/Manual/devman_create_and_use_a_cmakelist.html 
+  # do we even need this?
+  if(USE_CGAL)
+    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} /fp:strict /fp:except- ")
+    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /fp:strict /fp:except-")
+  endif()
   # Disable some warnings. For details google for 'MSDN C/C++ Build Errors'.
 
   # For details google for 'MSDN Checked Iterators', '_SCL_SECURE_NO_WARNINGS'
