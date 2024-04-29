@@ -33,12 +33,12 @@ set(CFS_VERSION_MONTH "04")
 set(PACKAGE_NAME "cgal")
 set(PACKAGE_VER "5.6.1")
 set(CGAL_VER ${PACKAGE_VER}) # for Dependencies.cc
-set(PACKAGE_FILE "v${PACKAGE_VER}.zip")
-set(PACKAGE_MD5 "1f2de883a4942ab4efac62797e2ad081")
+set(PACKAGE_FILE "CGAL-${PACKAGE_VER}.tar.xz")
+set(PACKAGE_MD5 "90ccd8f68894ab2f89933163afd66535")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names. 
-set(PACKAGE_MIRRORS "https://github.com/CGAL/cgal/archive/refs/tags/${PACKAGE_FILE}") 
+set(PACKAGE_MIRRORS "https://github.com/CGAL/cgal/releases/download/v${PACKAGE_VER}/${PACKAGE_FILE}") 
 
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
