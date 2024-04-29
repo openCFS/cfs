@@ -2288,6 +2288,15 @@ namespace CoupledField{
       presFct = this->GetCoefFct(ACOU_PRESSURE);
     }
     
+    // === ACOU_SURFACE_PRESSURE ===
+    shared_ptr<ResultInfo> surfPres(new ResultInfo);
+    surfPres->resultType = ACOU_SURFPRESSURE;
+    surfPres->dofNames = "";
+    surfPres->unit = MapSolTypeToUnit(ACOU_SURFPRESSURE);
+    surfPres->entryType = ResultInfo::SCALAR;
+    surfPres->definedOn = ResultInfo::SURF_ELEM;
+    DefineFieldResult(presFct, surfPres);
+  
     shared_ptr<CoefFunctionFormBased> presGradFct;
     
     // some results are only available in potential formulation (both transient and harmonic) or

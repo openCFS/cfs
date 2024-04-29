@@ -187,6 +187,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY, "acouNormalIntensity");
     SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY_PLANEWAVE, "acouNormalIntensityPlaneWave");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
+    SolutionTypeEnum.Add(ACOU_SURFPRESSURE, "acouSurfPressure");
     SolutionTypeEnum.Add(ACOU_POT_ENERGY, "acouPotEnergy");
     SolutionTypeEnum.Add(ACOU_KIN_ENERGY, "acouKinEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
@@ -945,6 +946,7 @@ namespace CoupledField {
         break;
 
       case ACOU_PRESSURE:
+      case ACOU_SURFPRESSURE:
       case FLUIDMECH_STRESS:
       case FLUIDMECH_PRESSURE:
       case FLUIDMECH_COMP_STRESS:
