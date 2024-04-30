@@ -57,19 +57,6 @@ class BiLinearForm;
                       const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
                       const std::set< RegionIdType >& acouRegions) ;
 
-
-    //! Create a particular bilinear form integrator
-    void DefBLCouplInt( const std::string& name,
-                      bool assembleTransposed,
-                      Double factor,
-                      FEMatrixType matType,
-                      shared_ptr<BaseFeFunction>& fnc1,
-                      shared_ptr<BaseFeFunction>& fnc2,
-                      shared_ptr<SurfElemList>& actSDList,
-                      const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
-                      const std::set< RegionIdType >& acouRegions) ;
-
-
     //! Create a particular non-conforming bilinear form
     void DefCouplIntNC( const std::string& name,
                       bool assembleTransposed,

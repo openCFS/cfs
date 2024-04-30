@@ -193,14 +193,6 @@ namespace CoupledField {
           DefCouplInt( "AcouMechPresMassCouplingInt", false, 1.0, MASS, acouFct, 
                        dispFct, actSDList, coefFuncs, acouRegions );
 
-          DefBLCouplInt( "AcouMechPresStiffBLCouplingInt", false, 1.0, STIFFNESS, dispFct, 
-                       acouFct, actSDList, coefFuncs, acouRegions );
-
-          DefBLCouplInt( "AcouMechPresMassBLCouplingInt", false, 1.0, MASS, acouFct, 
-                       dispFct, actSDList, coefFuncs, acouRegions );
-
-
-         
           break;
 
         default:
@@ -261,6 +253,97 @@ namespace CoupledField {
           break;
       }
     }
+
+        //========================================================================================
+    // Boundary Layer Coulping including viscous effects
+    //========================================================================================
+    // will be activated if a "dynamicViscosity" is defined for a "surfRegion"
+    // two bilinear forms will be added to the standard voupling integrator handled above already
+    PtrParamNode bcNode = myParam_->Get("surfRegionList", ParamNode::PASS);
+    ParamNodeList blNodes = bcNode->GetList("surfRegion");
+    for (UInt i = 0; i < blNodes.GetSize(); ++i)
+    {
+      if (blNodes[i]->Has("dynamicViscosity"))
+      {
+        std::string regionName = blNodes[i]->Get("name")->As<std::string>();
+        std::cout << "Defining BL coulping for " << blNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList(EntityList::SURF_ELEM_LIST, regionName);
+        switch (acouFormulation)
+        {
+        case ACOU_PRESSURE:
+        {
+          // fluid dynamic viscosity mu as defined by the XML tag
+          PtrCoefFct dynamicViscosity = CoefFunction::Generate( mp,  Global::REAL, blNodes[i]->Get("dynamicViscosity")->As<std::string>() );
+          // 2*omega ...
+          PtrCoefFct omegaDouble = CoefFunction::Generate( mp,  Global::REAL, "4*pi*f");
+          // 1+i ... 
+          PtrCoefFct onePlusI =  CoefFunction::Generate( mp,  Global::COMPLEX, "1", "1");
+          // -1 + i = i - 1 ... 
+          PtrCoefFct iMinusOne =  CoefFunction::Generate( mp,  Global::COMPLEX, "-1", "1");
+
+          std::map< RegionIdType, PtrCoefFct > kCoefFuncs;
+          std::map< RegionIdType, PtrCoefFct > mCoefFuncs;
+          // iterate over all acoustic materials to get all possible density values
+          for (auto const& x : acouMaterials)
+          {
+            RegionIdType volRegId = x.first;
+            PtrCoefFct fluidDensity = x.second->GetScalCoefFnc(DENSITY,Global::REAL);
+            // Compute mu/(delta_v*rho_f*w) as sqrt( mu/(2*rho_f*w) ) since the former is 0/0 for small nu!
+            PtrCoefFct sqrtMuOverRhoOmegaDouble = CoefFunction::Generate(mp,Global::REAL, CoefXprUnaryOp(mp, CoefXprBinOp(mp, dynamicViscosity,CoefXprBinOp(mp, fluidDensity, omegaDouble, CoefXpr::OP_MULT),CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
+            // compute rho_f*delta_v/2 as sqrt(mu*rho_f/2w) = sqrt(mu*rho_f/(2*w))
+            PtrCoefFct rhoDeltaVhalv = CoefFunction::Generate(mp,Global::REAL, CoefXprUnaryOp(mp, CoefXprBinOp(mp, CoefXprBinOp(mp, dynamicViscosity, fluidDensity, CoefXpr::OP_MULT),omegaDouble,CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
+            // Coefficient for the mech-acou stiffness and mass coupling integral
+            kCoefFuncs[volRegId] = CoefFunction::Generate(mp,Global::COMPLEX,CoefXprBinOp(mp, iMinusOne, sqrtMuOverRhoOmegaDouble, CoefXpr::OP_MULT));
+            mCoefFuncs[volRegId] = CoefFunction::Generate(mp,Global::COMPLEX,CoefXprBinOp(mp, iMinusOne, rhoDeltaVhalv, CoefXpr::OP_MULT) );
+          }
+          BiLinearForm * blCplIntK = NULL;
+          BiLinearForm * blCplIntM = NULL;
+          if (dim_ == 2)
+          {
+            blCplIntK = new SurfaceABInt<Complex>(new IdentityOperator<FeH1, 2, 2>(),
+                                                  new SurfaceTangentialGradientOperator<FeH1, 2>(),
+                                                  kCoefFuncs, 1.0, acouRegions);
+            blCplIntM = new SurfaceABInt<Complex>(new IdentityOperator<FeH1, 2>(),
+                                                  new SurfaceTangentialDivergenceOfTangentialVector<FeH1, 2, 2>(),
+                                                  mCoefFuncs, -1.0, acouRegions);
+          }
+          else if (dim_ == 3)
+          {
+            blCplIntK = new SurfaceABInt<Complex>(new IdentityOperator<FeH1, 3, 3>(),
+                                                  new SurfaceTangentialGradientOperator<FeH1, 3>(),
+                                                  kCoefFuncs, 1.0, acouRegions);
+            blCplIntM = new SurfaceABInt<Complex>(new IdentityOperator<FeH1,3>(),
+                                                  new SurfaceTangentialDivergenceOfTangentialVector<FeH1,3,3>(),
+                                                  mCoefFuncs,-1.0,acouRegions);
+          }
+          else
+          {
+            EXCEPTION("Coupling only for two and three dimensions defined");
+          }
+          blCplIntK->SetName("mechBLcouplingIntegrator_K");
+          blCplIntM->SetName("acouBLcouplingIntegrator_M");
+    
+          BiLinFormContext * blCplContextK = new BiLinFormContext(blCplIntK, STIFFNESS );
+          blCplContextK->SetEntities( actSDList, actSDList );
+          blCplContextK->SetFeFunctions( dispFct, acouFct );
+          blCplContextK->SetCounterPart(false);
+          assemble_->AddBiLinearForm( blCplContextK );
+
+          BiLinFormContext * blCplContextM = new BiLinFormContext(blCplIntM, MASS );
+          blCplContextM->SetEntities( actSDList, actSDList );
+          blCplContextM->SetFeFunctions( acouFct, dispFct );
+          blCplContextM->SetCounterPart(false);
+          assemble_->AddBiLinearForm( blCplContextM );
+
+        }
+        break;
+
+        default:
+          EXCEPTION("Boundary layer coupling only implemented for acoustic pressure formulation.");
+        }
+      }
+    } // end BL coupling
+
   }
 
   void AcouMechCoupling::DefCouplInt( const std::string& name,
@@ -309,129 +392,6 @@ namespace CoupledField {
     context->SetCounterPart(assembleTransposed);
     assemble_->AddBiLinearForm( context );
   }
-
-
-  // Bilinear terms for Acou-Mech boundary layer coupling
-
-  void AcouMechCoupling::DefBLCouplInt( const std::string& name,
-                                      bool assembleTransposed,
-                                      Double factor,
-                                      FEMatrixType matType,
-                                      shared_ptr<BaseFeFunction>& fnc1,
-                                      shared_ptr<BaseFeFunction>& fnc2,
-                                      shared_ptr<SurfElemList>& actSDList,
-                                      const std::map< RegionIdType, PtrCoefFct >& coefFuncs,
-                                      const std::set< RegionIdType >& acouRegions ) {
-
-
-    // check for position of integrator
-    SolutionType rowType = fnc1->GetResultInfo()->resultType;
-    BiLinearForm * BL_cplInt = NULL;
-
-    
-      //========================================================================================
-      // boundary Layers
-      //========================================================================================
-
-      PtrParamNode bcNode = myParam_->Get( "surfRegionList", ParamNode::PASS );
-
-      ParamNodeList blNodes = bcNode->GetList( "surfRegion" );
-
-      for( UInt i = 0; i < blNodes.GetSize(); ++i ) {
-        
-        MathParser * mp = domain_->GetMathParser();
-
-        std::string regionName = blNodes[i]->Get("name")->As<std::string>();
-        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
-        std::string volRegName = blNodes[i]->Get("volumeRegion")->As<std::string>();
-        RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
-
-        // PtrCoefFct rho0 = materials_[volRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
-        PtrCoefFct rho0 = CoefFunction::Generate( mp,  Global::REAL, blNodes[i]->Get("rho0")->As<std::string>() );
-        // PtrCoefFct rho0 = CoefFunction::Generate( mp,  Global::REAL,  "2e-4");
-        PtrCoefFct dynamicViscosity = CoefFunction::Generate( mp,  Global::REAL, blNodes[i]->Get("dynamicViscosity")->As<std::string>() );
-        PtrCoefFct omegaHalv = CoefFunction::Generate( mp,  Global::REAL, "pi*f");
-        PtrCoefFct omega = CoefFunction::Generate( mp,  Global::REAL, "2*pi*f");
-
-        // Kinematic viscosity dynamicViscosity/rho0
-        PtrCoefFct nu = CoefFunction::Generate(mp, Global::REAL,CoefXprBinOp(mp, dynamicViscosity, rho0, CoefXpr::OP_DIV ));
-
-        // deltaV = sqrt( 2*nu/omega )
-        PtrCoefFct deltaV = CoefFunction::Generate(mp,Global::REAL, CoefXprUnaryOp(mp, CoefXprBinOp(mp, nu, omegaHalv, CoefXpr::OP_DIV ) , CoefXpr::OP_SQRT));
-   
-        // 1+i ... 
-        PtrCoefFct onePlusI =  CoefFunction::Generate( mp,  Global::COMPLEX, "1", "1");
-
-        // 1-i ... 
-        PtrCoefFct iMinusOne =  CoefFunction::Generate( mp,  Global::COMPLEX, "-1", "1");
-
-
-        // Coefficient for the mech-acou stiffness coupling integral
-        PtrCoefFct coefK =  CoefFunction::Generate(
-         mp,Global::COMPLEX,CoefXprBinOp(mp,CoefXprBinOp(mp, CoefXprBinOp( mp, CoefXprBinOp(mp, dynamicViscosity, iMinusOne, CoefXpr::OP_MULT), deltaV, CoefXpr::OP_DIV ),rho0, CoefXpr::OP_DIV ),omega, CoefXpr::OP_DIV )  );
-
-
-        PtrCoefFct coefM =  CoefFunction::Generate(mp,Global::COMPLEX,CoefXprBinOp(mp, deltaV, onePlusI, CoefXpr::OP_MULT) );
-
-        std::set<RegionIdType> volRegions;
-        volRegions.insert(volRegion);
-
-        if( dim_ == 2  ) {
-        
-        if(rowType == MECH_DISPLACEMENT) {
-
-          BL_cplInt = new SurfaceABInt<Complex>(new IdentityOperator<FeH1,2,2>(),
-                                      new SurfaceTangentialGradientOperator<FeH1,2>(),
-                                      coefK, -1.0, volRegions);
-
-        } 
-        else {
-
-
-          BL_cplInt = new SurfaceABInt<Complex>(new IdentityOperator<FeH1,2>(),
-                                      new SurfaceTangentialDivergenceOfTangentialVector<FeH1,2,2>(),
-                                       coefM, 0.5, volRegions);
-        }
-
-      } 
-      else if( dim_ == 3) {
-        if(rowType == MECH_DISPLACEMENT) {
-
-          BL_cplInt = new SurfaceABInt<Complex>(new IdentityOperator<FeH1,3,3>(),
-                                      new SurfaceTangentialGradientOperator<FeH1,3>(),
-                                      coefK, -1.0, volRegions);
-        } 
-        else {
-
-          BL_cplInt = new SurfaceABInt<Complex>(new IdentityOperator<FeH1,3>(),
-                                       new SurfaceTangentialDivergenceOfTangentialVector<FeH1,3,3>(),
-                                      coefM, 0.5, volRegions);
-        }    
-
-      } 
-      else {
-        EXCEPTION( "Coupling only for two and three dimensions defined" );
-      }       
-        
-      }          
-
-
-    BL_cplInt->SetName(name);
-    
-    BiLinFormContext * BL_context =
-        new BiLinFormContext(BL_cplInt, matType );
-
-
-    BL_context->SetEntities( actSDList, actSDList );
-    BL_context->SetFeFunctions( fnc1, fnc2 );
-    BL_context->SetCounterPart(assembleTransposed);
-    assemble_->AddBiLinearForm( BL_context );
-  
-  }
-
-
-
-
   
   void AcouMechCoupling::DefCouplIntNC( const std::string& name,
                                       bool assembleTransposed,

@@ -294,12 +294,15 @@
                   <xsd:element name="surfRegion" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
-                      <xsd:attribute name="volumeRegion" type="xsd:token" use="optional"/>
-                      <xsd:attribute name="dynamicViscosity" type="xsd:token" use="optional"/>
-                      <xsd:attribute name="rho0" type="xsd:token" use="optional"/>
+                      <xsd:attribute name="dynamicViscosity" type="xsd:token" use="optional">
+                        <xsd:annotation>
+                          <xsd:documentation>
+                            defining a dynamic viscosity for the fluid will activate the boundary layer coupling taking into account viscous effects in the fluid.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                      </xsd:attribute>
                     </xsd:complexType>
                   </xsd:element>
-                  <!-- <xsd:element name="boundaryLayer" type="DT_AcouMechBoundaryLayer" />                -->
                 </xsd:sequence>
               </xsd:complexType>
             </xsd:element>
