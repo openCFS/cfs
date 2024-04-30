@@ -275,7 +275,10 @@ namespace CoupledField
     bool IsNonLin();
 
     //! Set type_of_linear_form
-    void SetTypeLinearForm( double type_of_linear_form ){
+    //  0 ... default value, automatic decision if linear/nonlinear
+    //  1 ... set to linear type
+    //  2 ... set to nonlinear type
+    void SetTypeLinearForm( UInt type_of_linear_form ){
       typeLinearForm_ = type_of_linear_form;
     }
 

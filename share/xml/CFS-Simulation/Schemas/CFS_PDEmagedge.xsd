@@ -75,6 +75,15 @@
             </xsd:annotation>
           </xsd:element>
 
+          <!-- set penalty factor for static / non-conductive regimes in the h-formulation -->
+          <xsd:element name="delta_t" type="xsd:float" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                sets time discretization value
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <!-- sets the a scaling for a remanence if the direction of the remanence is taken from a prior sequence step and has to be a 
                 certain value -->
           <xsd:element name="remanenceScale" type="xsd:float" minOccurs="0" maxOccurs="1">

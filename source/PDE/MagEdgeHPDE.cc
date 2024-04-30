@@ -113,8 +113,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
   // linear:               StdSolveStep
   // **********************************************************
   void MagEdgeHPDE::DefineSolveStep(){
+
+    UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
+    myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
-      solveStep_ = new SolveStepEB(*this);
+      solveStep_ = new SolveStepEB(*this, is_pseudo_time_stepping);
     } 
     else{
       solveStep_ = new StdSolveStep(*this);
@@ -213,7 +216,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           // Get the flag for pseudo time stepping
           // 1 ... pseudo time stepping ( simulate more time steps, but no time derivatives are involved )
           // 0 ... real time stepping (time derivatives are involved) 
-          Double is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
+          UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
           myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
           // ===================================================================
           // PSEUDO TIME-STEPPING [START]
@@ -253,6 +256,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             LinearFormContext * coilContext = new LinearFormContext( curInt );
             coilContext->SetEntities( actSDList );
             coilContext->SetFeFunction( feFunc );
+            coilContext->SetTypeLinearForm(2); // declared as nonlinear
             assemble_->AddLinearForm( coilContext );
           }
         } // loop: parts
@@ -282,8 +286,13 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     // Get the flag for pseudo time stepping
     // 1 ... pseudo time stepping ( simulate more time steps, but no time derivatives are involved )
     // 0 ... real time stepping (time derivatives are involved) 
-    Double is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
+    UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
     myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
+
+    // Get dt
+    Double dt = 0.1e-3;
+    myParam_->GetValue("delta_t", dt, ParamNode::PASS);
+    std::cout << dt << std::endl;
 
     // get FEFunction and space
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY];
@@ -459,10 +468,10 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // ~ linear:     use just the value of the permeability of this region.
         // ~ nonlinear:  use the derivative scaled by the current delta_t
         //               (1/delta_t)*(db/dh) for the coefficient c.
-        //               AND the matrix is a STIFFNESS MATRIX then.
+        //               AND the matrix is in openCFS a STIFFNESS MATRIX then.
         // ====================================================================
         PtrCoefFct mu = NULL;
-        PtrCoefFct mu_times_one_over_dt = NULL;
+        double dt = 0.5e-3;
         BaseBDBInt *massInt = NULL;
 
         if (nonLinTypes.Find(PERMEABILITY) != -1){ // NONLINEAR/HYSTERESIS CASE
@@ -479,9 +488,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             mu = matModelCoef_;
             nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
             nlScalCoef_->AddRegion(actRegion, matModelCoef_);
-            PtrCoefFct dt = CoefFunction::Generate( mp_, Global::REAL, "1/20");
-            mu_times_one_over_dt = CoefFunction::Generate( mp_, Global::REAL, CoefXprTensScalOp(mp_, matModelCoef_, dt, CoefXpr::OP_DIV));
-            massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
+            massInt = new BDBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,(1/dt),updatedGeo_);
             massInt->SetName("((1/dt)*(db/dh) N,N): IdentityIntegrator, nonlinear time stepping");
             BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
             // save defined integrator
@@ -497,9 +504,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           mu = actMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
           perm_->AddRegion(actRegion, mu);
           // define linear integrator
-          massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
+          massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0/dt,updatedGeo_);
           massInt->SetName("d/dt(mu N,N): IdentityIntegrator, linear time stepping");
-          BiLinFormContext * massContext = new BiLinFormContext(massInt, DAMPING );
+          BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
           // save defined integrator
           massContext->SetEntities( actSDList, actSDList );
           massContext->SetFeFunctions( feFunc, feFunc );
@@ -539,9 +546,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
 
         // ====================================================================
         // AUXILIARY CURL-CURL INTEGRATOR [START]
+        // just define, but never assembled into global matrices
         // ====================================================================
         BaseBDBInt* AUX_curlcurl = NULL;
-        constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
         AUX_curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constOne,1.0, updatedGeo_);
         AUX_curlcurl->SetName("(curlN,CurlN): Auxiliary,CurlCurlIntegrator (just for postprocessing: get curlh from h)");
         BiLinFormContext * AUX_stiffContext = new BiLinFormContext(AUX_curlcurl, STIFFNESS );
@@ -605,12 +612,14 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     myParam_->GetValue("penaltyFunctionParameter", penaltyParameter, ParamNode::PASS);
 
     // Get dt
-    PtrCoefFct dt = CoefFunction::Generate( mp_, Global::REAL, "1/20");
+    Double dt = 0.5e-3;
+    myParam_->GetValue("delta_t", dt, ParamNode::PASS);
+    std::cout << dt << std::endl;
 
     // Get the flag for pseudo time stepping
     // 1 ... pseudo time stepping ( simulate more time steps, but no time derivatives are involved )
     // 0 ... real time stepping (time derivatives are involved) 
-    Double is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
+    UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
     myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
 
     // iterate over the region (or materials)
@@ -714,8 +723,6 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         if(nonLin_ && (modelName_ == "EBHysteresisModel")) {
           PtrCoefFct fluxDensityNL = NULL;
           fluxDensityNL = matModelCoef_;
-          PtrCoefFct Bnl_times_one_over_dt = NULL;
-          PtrCoefFct Blin_times_one_over_dt = NULL;
           // ===============================================================================================
           // lin1_rts: (rho curlh,curlN) [START]
           // curlh:   is obtained by the mag. field intensity h from the last Newton iteration.
@@ -730,11 +737,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
           sigma = actMat->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR, Global::REAL);
           rho = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, sigma, CoefXpr::OP_DIV ) );
-          resistivity_->AddRegion(actRegion, rho);
 
-          CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), nlScalCoef_, CoefXpr::OP_MULT);
-          PtrCoefFct rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
-          lin1_rts = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, rho_times_curlh, volRegions, coefUpdateGeo);
+          PtrCoefFct rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), rho, CoefXpr::OP_MULT));
+          lin1_rts = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, GetCoefFct( ELEC_FIELD_INTENSITY ), volRegions, coefUpdateGeo);
           lin1_rts->SetName("(rho curlh,curlN): residual");
 
           LinearFormContext *ctx = new LinearFormContext(lin1_rts);
@@ -759,10 +764,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             else if (modelName_ == "EBHysteresisModel") // NONLINEAR CASE, AND NONLINEAR SUBREGION
             {
               isHystereticMat = true;
-              Bnl_times_one_over_dt = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, fluxDensityNL, dt, CoefXpr::OP_DIV));
-              lin2_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(-1.0), Bnl_times_one_over_dt, coefUpdateGeo, false);
+              lin2_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(-1/dt), fluxDensityNL, coefUpdateGeo, false);
             }
-            lin2_rts->SetName("((1/delta_t)*b(h)_n,N): residual");
+            lin2_rts->SetName("((1/delta_t)*b(h)_nonlin_n,N): residual");
             lin2_rts->SetSolDependent();
             LinearFormContext *ctx = new LinearFormContext( lin2_rts );
             ctx->SetEntities( actSDList );
@@ -770,9 +774,8 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             ctx->SetTypeLinearForm(2); // declared as nonlinear
             assemble_->AddLinearForm(ctx);
           } else { // NONLINEAR CASE, BUT LINEAR SUBREGION
-            Blin_times_one_over_dt = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FLUX_DENSITY ), dt, CoefXpr::OP_DIV));
-            lin2_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(-1.0), Blin_times_one_over_dt, volRegions, coefUpdateGeo);
-            lin2_rts->SetName("((1/delta_t)*b(h)_linear,N): residual");
+            lin2_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(-1/dt), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+            lin2_rts->SetName("((1/delta_t)*b(h)_linear_n,N): residual");
             LinearFormContext *ctx = new LinearFormContext(lin2_rts);
             ctx->SetEntities(actSDList);
             ctx->SetFeFunction(feFunc);
@@ -796,10 +799,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             else if (modelName_ == "EBHysteresisModel") // NONLINEAR CASE, AND NONLINEAR SUBREGION
             {
               isHystereticMat = true;
-              Bnl_times_one_over_dt = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, fluxDensityNL, dt, CoefXpr::OP_DIV));
-              lin3_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(1.0), Bnl_times_one_over_dt, coefUpdateGeo, false);
+              lin3_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(1/dt), fluxDensityNL, coefUpdateGeo, false);
             }
-            lin3_rts->SetName("((1/delta_t)*b(h)_{n-1},N): residual");
+            lin3_rts->SetName("((1/delta_t)*b(h)_nonlin_{n-1},N): residual");
             lin3_rts->SetSolDependent();
             LinearFormContext *ctx = new LinearFormContext( lin3_rts );
             ctx->SetEntities( actSDList );
@@ -807,9 +809,8 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             ctx->SetTypeLinearForm(1); // declared as linear
             assemble_->AddLinearForm(ctx);
           } else { // NONLINEAR CASE, BUT LINEAR SUBREGION
-            Blin_times_one_over_dt = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FLUX_DENSITY ), dt, CoefXpr::OP_DIV));
-            lin3_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(1.0), Blin_times_one_over_dt, volRegions, coefUpdateGeo);
-            lin3_rts->SetName("((1/delta_t)*b(h)_{n-1},N): residual");
+            lin3_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(1/dt), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+            lin3_rts->SetName("((1/delta_t)*b(h)_linear_{n-1},N): residual");
             LinearFormContext *ctx = new LinearFormContext(lin3_rts);
             ctx->SetEntities(actSDList);
             ctx->SetFeFunction(feFunc);
@@ -857,7 +858,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
       LinearFormContext *ctx = new LinearFormContext( lin_br );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(feFunc);
-      assemble_->AddLinearForm(ctx);
+      /* assemble_->AddLinearForm(ctx); */
       feFunc->AddEntityList(ent[i]);
       bRHSRegions_[ent[i]->GetRegion()] = br;
     }

@@ -20,9 +20,12 @@ namespace CoupledField
 
   DEFINE_LOG(solvestepeb, "solvestepeb")
 
-  SolveStepEB::SolveStepEB(StdPDE &apde) : StdSolveStep(apde)
+  SolveStepEB::SolveStepEB(StdPDE &apde, UInt is_pseudo_time_stepping) : StdSolveStep(apde)
   {
     matModelCoef_ = apde.GetModelCoef();
+
+    pseudo_time_stepping_ = is_pseudo_time_stepping;
+
   }
 
   SolveStepEB::~SolveStepEB()
@@ -61,6 +64,8 @@ namespace CoupledField
     SBM_Vector stageSol_temp(BaseMatrix::DOUBLE);
     SBM_Vector actRHS(BaseMatrix::DOUBLE);
     SBM_Vector actSol(BaseMatrix::DOUBLE);
+    SBM_Vector Linform_nm1(BaseMatrix::DOUBLE);
+
     
     //obtain the number of stages
     UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
@@ -80,14 +85,15 @@ namespace CoupledField
         fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
-      stageSol.Init();
-      //solVec_  = stageSol;
+      //stageSol.Init();
+
+      
 
       // set iteration counter
       UInt iterationCounter = 0;
-      UInt pseudo_time_stepping = 1;
-      
-      if (pseudo_time_stepping == 1) {
+      //UInt pseudo_time_stepping = 1;
+
+      if (pseudo_time_stepping_ == 1) {
         // ===================================================================================
         // =================== START NONLINEAR ITERATION =====================================
         // ===================================================================================
@@ -169,7 +175,7 @@ namespace CoupledField
         }
       }
 
-      if (pseudo_time_stepping == 0) {
+      if (pseudo_time_stepping_ == 0) {
         // ===================================================================================
         // =================== START NONLINEAR ITERATION =====================================
         // ===================================================================================
@@ -185,9 +191,13 @@ namespace CoupledField
           if (iterationCounter == 1) {
             algsys_->InitRHS();
             assemble_->AssembleLinRHS();
+            algsys_->GetRHSVal(Linform_nm1);
+            assemble_->AssembleNonLinRHS();
+          } else {
+            algsys_->InitRHS(Linform_nm1);
+            assemble_->AssembleNonLinRHS();
           }
-          assemble_->AssembleNonLinRHS();
-          algsys_->GetRHSVal( actRHS );
+          
 
           // set up matrix
           assemble_->AssembleMatrices(isNewton);
@@ -208,7 +218,7 @@ namespace CoupledField
           algsys_->Solve(setIDBC);
           algsys_->GetSolutionVal(solInc, setIDBC );
 
-          // apply line search
+          // apply line search method
           Double etaLineSearch = 1.0;
           if ( lineSearch_ == "none"){
             stageSol.Add(etaLineSearch, solInc);
@@ -219,8 +229,9 @@ namespace CoupledField
           }
 
           // residual
+          algsys_->InitRHS(Linform_nm1);
           assemble_->AssembleNonLinRHS();
-          algsys_->GetRHSVal( actRHS );
+          algsys_->GetRHSVal(actRHS);
           // calculation of residual error =======================================
           Double residualL2Norm = 0.0;
           residualL2Norm = actRHS.NormL2()*actRHS.NormL2();
@@ -234,6 +245,7 @@ namespace CoupledField
           else {
             incrementalErr = solIncrL2Norm;
           }
+
           std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr << "       " << etaLineSearch <<"\n" << std::scientific;
           OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
 
@@ -242,7 +254,7 @@ namespace CoupledField
           if ( performOneMoreStep == 0){
             break;
           }
-          
+
           if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
             EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
                     << "' in step no '" << PDE_.GetSolveStep()->GetActStep()

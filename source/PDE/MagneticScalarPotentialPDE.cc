@@ -324,7 +324,7 @@ namespace CoupledField
   void MagneticScalarPotentialPDE::DefineSolveStep()
   {
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
-      solveStep_ = new SolveStepEB(*this);
+      solveStep_ = new SolveStepEB(*this,0);
     }else{
       solveStep_ = new StdSolveStep(*this);
     }
