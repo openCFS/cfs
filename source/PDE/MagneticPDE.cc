@@ -1200,28 +1200,27 @@ namespace CoupledField {
     rhsFeFunctions_[MAG_POTENTIAL]->SetResultInfo(rhs);
     DefineFieldResult( rhsFeFunctions_[MAG_POTENTIAL], rhs );
 
+    // === MAGNETIC FLUX DENSITY ===
     if(!fluxDensityDefined_){
       DefineMagFluxDensity();
     }
 //    shared_ptr<CoefFunctionFormBased>
     PtrCoefFct bFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
 
-//    // === MAGNETIC FLUX DENSITY ===
-//    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
-//    fluxDens->resultType = MAG_FLUX_DENSITY;
-//    fluxDens->dofNames = vecComponents;
-//    fluxDens->unit = "Vs/m^2";
-//    fluxDens->definedOn = ResultInfo::ELEMENT;
-//    fluxDens->entryType = ResultInfo::VECTOR;
-//    availResults_.insert( fluxDens );
-//    shared_ptr<CoefFunctionFormBased> bFunc;
-//    if( isComplex_ ) {
-//      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
-//    } else {
-//      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
-//    }
-//    DefineFieldResult( bFunc, fluxDens );
-//    stiffFormCoefs_.insert(bFunc);
+    // === MAGNETIC FLUX DENSITY on  SURFACE ===
+    shared_ptr<ResultInfo> fluxDensSurf(new ResultInfo);
+    fluxDensSurf->resultType = MAG_FLUX_DENSITY_SURF;
+    fluxDensSurf->dofNames = vecComponents;
+    fluxDensSurf->unit = "Vs/m^2";
+    fluxDensSurf->definedOn = ResultInfo::SURF_ELEM;
+    fluxDensSurf->entryType = ResultInfo::VECTOR;
+    availResults_.insert( fluxDensSurf );
+
+    shared_ptr<CoefFunctionSurf> bFuncSurf;
+    bFuncSurf.reset(new CoefFunctionSurf(false, 1.0, fluxDensSurf));
+    DefineFieldResult( bFuncSurf, fluxDensSurf );
+    surfCoefFcts_[bFuncSurf] = bFunc;
+
 
     // === MAGNETIC NORMAL FLUX DENSITY ===
     shared_ptr<ResultInfo> normFlux(new ResultInfo);
