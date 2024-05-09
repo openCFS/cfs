@@ -7,9 +7,7 @@
 # preinstalled software: https://gitlab.com/gitlab-org/ci-cd/shared-runners/images/gcp/windows-containers/blob/main/cookbooks/preinstalled-software/README.md
 .windows-shared_tags: &windows-shared_tags
   tags:
-  - shared-windows
-  - windows
-  - windows-1809
+  - saas-windows-medium-amd64
 
 .windwos_output_cdash_links:
   script:
@@ -122,6 +120,10 @@
     - cmake -E rm -rf -- "$CI_PROJECT_DIR\build\Testing"
     # debug
     - !reference [.powershell_debug_dir_listing, script]
+    # try to locate visual studio installation (only info)
+    - *powershell-debug-start_collapsed
+    - Get-Childitem -Path "C:\Program Files (x86)\Microsoft Visual Studio" -Include *vars*.bat -Recurse -ErrorAction SilentlyContinue; $null
+    - *powershell-debug-end
     # info about free space (debug)
     - Get-Volume; $null
   script:

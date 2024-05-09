@@ -5,7 +5,7 @@ echo "Configuring and building CFS in CMD since setting the environment does not
 :: first do MSVC and choose correct architecture (x86-32 does not work for ifort)
 :: see https://learn.microsoft.com/en-us/cpp/build/building-on-the-command-line
 echo "Initialize Visual Studio for x64 (has to be done before oneAPI)"
-@call "C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" amd64
+@call "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" amd64
 
 :: then do oneAPI which adapts to MSVC environment automatically
 echo "Set oneAPI environment"

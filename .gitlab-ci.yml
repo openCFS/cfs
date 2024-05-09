@@ -100,7 +100,7 @@ workflow:
 .check:
   stage: check
   tags:
-    - docker
+    - saas-linux-small-amd64
   # switch off cloning any code
   variables:
     GIT_SUBMODULE_STRATEGY: none
@@ -197,7 +197,7 @@ pipeline-changes:
 runner-debug:
   extends: .check
   tags:
-    - linux
+    - saas-linux-small-amd64
   rules:
     - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
       when: manual
@@ -226,7 +226,7 @@ runner-debug:
 skip-build:
   extends: .check
   tags:
-    - linux
+    - saas-linux-small-amd64
   rules:
     - if: $CI_COMMIT_MESSAGE =~ /skip-build/ && $CFS_PIPELINE_TYPE == "test"
       allow_failure: true # only for info, do not prevent merge
@@ -250,7 +250,7 @@ skip-build:
 cpp-code-changes:
   extends: .check
   tags:
-    - linux
+    - saas-linux-small-amd64
   rules:
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
@@ -273,7 +273,7 @@ cpp-code-changes:
 .platform:
   stage: platform
   tags:
-    - docker
+    - saas-linux-small-amd64
   image:
     name: $IMAGE:$TAG
   after_script: []
@@ -547,7 +547,7 @@ rhel:9:
 .cfsdeps: &cfsdeps
   stage: cfsdeps
   tags:
-    - docker
+    - saas-linux-small-amd64
   # switch off cloning the Testsuite submodule
   variables: &cfsdeps-variables
     GIT_SUBMODULE_STRATEGY: none
@@ -670,7 +670,7 @@ cfsdeps:MSVC2019-Ifort2021:
 .default_build_job: &default_build_job
   stage: build
   tags:
-    - docker
+    - saas-linux-small-amd64
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
@@ -1067,7 +1067,7 @@ windows:MSVC2019-Ifort2021:
 # Naming scheme for BUILD_NAME: build config / test-set parallelism
 stable_ser:gcc7min:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
@@ -1080,7 +1080,7 @@ stable_ser:gcc7min:linux:
 
 unstable_ser:gcc7min:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
@@ -1095,7 +1095,7 @@ unstable_ser:gcc7min:linux:
 stable_par:gcc7max:linux:
   extends: .test_generic
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   image: opencfs/centos6-gcc7
   rules: # overwrite rules given via extends: .test_generic
@@ -1110,7 +1110,7 @@ stable_par:gcc7max:linux:
 unstable_ser:gcc7max:linux:
   extends: .test_generic
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   image: opencfs/centos6-gcc7
   rules: # overwrite rules given via extends: .test_generic
@@ -1127,7 +1127,7 @@ stable_par:gcc7closed:linux:
   stage: test
   image: opencfs/centos6-gcc7
   tags:
-    - docker
+    - saas-linux-small-amd64
   variables:
     BUILD_NAME: "GCC7 closed / stable opt parallel"
     # embedded_python is not closed but technically not that easy deployable
@@ -1185,7 +1185,7 @@ stable_par:gcc7closed:linux:
 
 stable_ser:gcc13-musl:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
@@ -1198,7 +1198,7 @@ stable_ser:gcc13-musl:linux:
 
 stable_par:gcc13-musl:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
@@ -1212,7 +1212,7 @@ stable_par:gcc13-musl:linux:
 stable_par:gcc12:linux:
   image: opencfs/fedora37
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   variables:
     BUILD_NAME: "GCC12 / stable parallel"
@@ -1225,7 +1225,7 @@ stable_par:gcc12:linux:
 unstable_ser:gcc12:linux:
   image: opencfs/fedora37
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   variables:
     BUILD_NAME: "GCC12 / unstable serial"
@@ -1237,7 +1237,7 @@ unstable_ser:gcc12:linux:
 
 stable_par:intel:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
@@ -1250,7 +1250,7 @@ stable_par:intel:linux:
 
 unstable_ser:intel:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
@@ -1306,7 +1306,7 @@ python:linux:
   image: opencfs/ubuntu22.04
   extends: .ctest_default
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   rules:
     # activate in schedule
@@ -1361,7 +1361,7 @@ python:linux:
 broken_ser:gcc7min:linux:
   extends: .test_extra
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   variables:
     # is built without opnemp  
@@ -1375,7 +1375,7 @@ broken_ser:gcc7min:linux:
 all_par:gcc7:any-linux:
   extends: .test_extra
   tags:
-    - linux
+    - saas-linux-small-amd64
   variables:
     BUILD_NAME: "GCC7 / all parallel any-linux"
     # no special options - we take all default (should be all tests & in parallel if NCPU>1)
@@ -1385,7 +1385,7 @@ all_par:gcc7:any-linux:
 unstable_par:gcc7max:linux:
   extends: .test_extra
   tags:
-    - docker
+    - saas-linux-small-amd64
   image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
@@ -1400,7 +1400,7 @@ unstable_par:gcc7max:linux:
 broken_ser:gcc7max:linux:
   extends: .test_extra
   tags:
-    - docker
+    - saas-linux-small-amd64
   image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
@@ -1417,7 +1417,7 @@ no-slow_ser:gcc7max-debug:linux:
   extends: .test_extra
   <<: *test_no_slow
   tags:
-    - docker
+    - saas-linux-small-amd64
   image: opencfs/centos6-gcc7
   # overwrite rules & variables
   rules:
@@ -1435,7 +1435,7 @@ unstable_par:gcc12:linux:
   extends: .test_extra
   image: opencfs/fedora37
   tags:
-    - docker
+    - saas-linux-small-amd64
   variables:
     BUILD_NAME: "GCC12 / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
@@ -1447,7 +1447,7 @@ broken_ser:gcc12:linux:
   extends: .test_extra
   image: opencfs/fedora37
   tags:
-    - docker
+    - saas-linux-small-amd64
   variables:
     BUILD_NAME: "GCC12 / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1458,7 +1458,7 @@ broken_ser:gcc12:linux:
 unstable_par:intel:linux:
   extends: .test_extra
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   variables:
     BUILD_NAME: Intel2021 / unstable parallel
@@ -1470,7 +1470,7 @@ unstable_par:intel:linux:
 unstable_par:gcc13-musl:linux:
   extends: .test_extra
   tags:
-    - docker
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   variables:
     BUILD_NAME: GCC13-MUSL / unstable parallel
@@ -1482,7 +1482,7 @@ unstable_par:gcc13-musl:linux:
 broken_ser:gcc13-musl:linux:
   extends: .test_extra
   tags:
-    - docker
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   variables:
     BUILD_NAME: GCC13-MUSL / broken serial
@@ -1494,7 +1494,7 @@ broken_ser:gcc13-musl:linux:
 broken_ser:intel:linux:
   extends: .test_extra
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   variables:
     BUILD_NAME: Intel2021 / broken serial
@@ -1525,7 +1525,7 @@ doxygen:
   stage: docs
   image: opencfs/fedora32
   tags:
-    - docker
+    - saas-linux-small-amd64
   variables:
     GIT_SUBMODULE_STRATEGY: none
   rules:
@@ -1559,7 +1559,7 @@ doxygen:
 cdash:report:
   stage: deploy
   tags: # add a tag since some runners refuse to run un-tagged jobsgit add .gi  
-    - linux
+    - saas-linux-small-amd64
   # switch off cloning any code
   variables:
     GIT_SUBMODULE_STRATEGY: none
@@ -1604,7 +1604,7 @@ cdash:report:
 pages:
   stage: deploy
   tags:
-    - linux
+    - saas-linux-small-amd64
   # switch off cloning any code
   variables:
     GIT_SUBMODULE_STRATEGY: none
