@@ -877,9 +877,17 @@ namespace CoupledField {
         std::string regionName = blNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
 
-        std::string volRegName = blNodes[i]->Get("volumeRegion")->As<std::string>();
-        RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
-
+        // define regions for normal direction
+        std::set<RegionIdType> volRegions;
+        if ( blNodes[i]->Has("volumeRegion") ){ // take the specified region
+            std::string volRegName = blNodes[i]->Get("volumeRegion")->As<std::string>();
+            RegionIdType volRegion = ptGrid_->GetRegion().Parse(volRegName);
+            volRegions.insert(volRegion);
+        } else { // use all mechanical regions
+          for(UInt k = 0; k<regions_.GetSize(); k++ ){
+            volRegions.insert(regions_[k]);
+          } 
+        }
         PtrCoefFct dynamicViscosity = CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("dynamicViscosity")->As<std::string>() );
         PtrCoefFct fluidDensity=  CoefFunction::Generate( mp_,  Global::REAL, blNodes[i]->Get("fluidDensity")->As<std::string>() );
         PtrCoefFct omegaHalv = CoefFunction::Generate( mp_,  Global::REAL, "pi*f");
@@ -890,20 +898,11 @@ namespace CoupledField {
         PtrCoefFct coefDampBL1 =  CoefFunction::Generate(mp_,Global::COMPLEX,CoefXprBinOp(mp_,sqrtRhoMuOmegaHalv, onePlusI, CoefXpr::OP_MULT));
         
         BiLinearForm * BlDampInt1 = NULL;
-        BiLinearForm * BlDampInt2 = NULL;
-        BiLinearForm * BlDampInt3 = NULL;
-
-
-        std::set<RegionIdType> volRegions;
-        volRegions.insert(volRegion);
-        
-
-         if( dim_ == 2 ) {
+        if( dim_ == 2 ) {
           BlDampInt1 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,2,2>(), new SurfaceTangentialIdentityOperator<FeH1,2,2>(), coefDampBL1, 1.0, volRegions);
-         } else {
+        } else {
           BlDampInt1 = new SurfaceABInt<Complex,Double>(new IdentityOperator<FeH1,3,3>(), new SurfaceTangentialIdentityOperator<FeH1,3,3>(), coefDampBL1, 1.0, volRegions);
         }
-
         BlDampInt1->SetName("BLDampIntegrator1");
         BiLinFormContext *BlDampInt1Context = new BiLinFormContext(BlDampInt1, DAMPING );
         BlDampInt1Context->SetEntities(actSDList, actSDList);

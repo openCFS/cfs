@@ -254,7 +254,7 @@ namespace CoupledField {
       }
     }
 
-        //========================================================================================
+    //========================================================================================
     // Boundary Layer Coulping including viscous effects
     //========================================================================================
     // will be activated if a "dynamicViscosity" is defined for a "surfRegion"
@@ -288,9 +288,9 @@ namespace CoupledField {
           {
             RegionIdType volRegId = x.first;
             PtrCoefFct fluidDensity = x.second->GetScalCoefFnc(DENSITY,Global::REAL);
-            // Compute mu/(delta_v*rho_f*w) as sqrt( mu/(2*rho_f*w) ) since the former is 0/0 for small nu!
+            // K: Compute mu/(delta_v*rho_f*w) as sqrt( mu/(2*rho_f*w) ) since the former is 0/0 for small nu!
             PtrCoefFct sqrtMuOverRhoOmegaDouble = CoefFunction::Generate(mp,Global::REAL, CoefXprUnaryOp(mp, CoefXprBinOp(mp, dynamicViscosity,CoefXprBinOp(mp, fluidDensity, omegaDouble, CoefXpr::OP_MULT),CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
-            // compute rho_f*delta_v/2 as sqrt(mu*rho_f/2w) = sqrt(mu*rho_f/(2*w))
+            // M: Compute rho_f*delta_v/2 as sqrt(mu*rho_f/2w) = sqrt(mu*rho_f/(2*w))
             PtrCoefFct rhoDeltaVhalv = CoefFunction::Generate(mp,Global::REAL, CoefXprUnaryOp(mp, CoefXprBinOp(mp, CoefXprBinOp(mp, dynamicViscosity, fluidDensity, CoefXpr::OP_MULT),omegaDouble,CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
             // Coefficient for the mech-acou stiffness and mass coupling integral
             kCoefFuncs[volRegId] = CoefFunction::Generate(mp,Global::COMPLEX,CoefXprBinOp(mp, iMinusOne, sqrtMuOverRhoOmegaDouble, CoefXpr::OP_MULT));
@@ -302,7 +302,7 @@ namespace CoupledField {
           {
             blCplIntK = new SurfaceABInt<Complex>(new IdentityOperator<FeH1, 2, 2>(),
                                                   new SurfaceTangentialGradientOperator<FeH1, 2>(),
-                                                  kCoefFuncs, 1.0, acouRegions);
+                                                  kCoefFuncs, -1.0, acouRegions);
             blCplIntM = new SurfaceABInt<Complex>(new IdentityOperator<FeH1, 2>(),
                                                   new SurfaceTangentialDivergenceOfTangentialVector<FeH1, 2, 2>(),
                                                   mCoefFuncs, -1.0, acouRegions);
@@ -311,7 +311,7 @@ namespace CoupledField {
           {
             blCplIntK = new SurfaceABInt<Complex>(new IdentityOperator<FeH1, 3, 3>(),
                                                   new SurfaceTangentialGradientOperator<FeH1, 3>(),
-                                                  kCoefFuncs, 1.0, acouRegions);
+                                                  kCoefFuncs, -1.0, acouRegions);
             blCplIntM = new SurfaceABInt<Complex>(new IdentityOperator<FeH1,3>(),
                                                   new SurfaceTangentialDivergenceOfTangentialVector<FeH1,3,3>(),
                                                   mCoefFuncs,-1.0,acouRegions);

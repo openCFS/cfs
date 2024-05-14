@@ -456,19 +456,19 @@
 
   <xsd:complexType name="DT_MechBoundaryLayer">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
-    <xsd:attribute name="volumeRegion" type="xsd:token" use="required">
+    <xsd:attribute name="volumeRegion" type="xsd:token" use="optional">
       <xsd:annotation>
-        <xsd:documentation>Specify the dynamic viscosity and density of the fluid on the mechanical surface where viscous boundary layer effects of a fluid needs to be simulated</xsd:documentation>
+        <xsd:documentation>Specify volumeRegion if the BC shall be applied within (not at the boundary) of the mechanical domains. This enures consistent normal directions pointing outwards of the specified volumeRegion</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="fluidDensity" type="xsd:token" use="required">
       <xsd:annotation>
-        <xsd:documentation>Thermal conductivity</xsd:documentation>
+        <xsd:documentation>density of the fluid</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="dynamicViscosity" type="xsd:token" use="required">
       <xsd:annotation>
-        <xsd:documentation>Dynamic Viscosity</xsd:documentation>
+        <xsd:documentation>dynamic viscosity of the fluid</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
