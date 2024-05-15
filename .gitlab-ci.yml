@@ -621,7 +621,7 @@ cfsdeps:gcc13-musl:
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
-cfsdeps:MSVC2019-Ifort2021:
+cfsdeps:MSVC2022-Ifort2021:
   extends: .windows-shared-build
   stage: cfsdeps
   rules:
@@ -932,12 +932,12 @@ linux:gcc12:ninja:
       optional: true
 
 # windows build
-windows:MSVC2019-Ifort2021:
+windows:MSVC2022-Ifort2021:
   extends: .windows-shared-build
   stage: build
   <<: *release_build_rules
   variables:
-    BUILD_NAME: "MSVC2019-Ifort2021"
+    BUILD_NAME: "MSVC2022-Ifort2021"
     # see https://yaml-multiline.info/ for multiline info
     BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
@@ -958,7 +958,7 @@ windows:MSVC2019-Ifort2021:
     expire_in: 1 days
   needs:
     # set the needs to 'optional' since the cfsdeps job might not be present
-    - job: cfsdeps:MSVC2019-Ifort2021
+    - job: cfsdeps:MSVC2022-Ifort2021
       optional: true
 
 
@@ -1262,22 +1262,22 @@ unstable_ser:intel:linux:
     - linux:intel
 
 # windows tests
-stable_ser:MSVC2019-Ifort2021:windows:
+stable_ser:MSVC2022-Ifort2021:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2019-Ifort2021 / stable serial
+    BUILD_NAME: MSVC2022-Ifort2021 / stable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script: 
     - !reference [.windows-test_stable, script]
   needs:
-    - windows:MSVC2019-Ifort2021
+    - windows:MSVC2022-Ifort2021
 
-stable_par:MSVC2019-Ifort2021:windows:
+stable_par:MSVC2022-Ifort2021:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2019-Ifort2021 / stable parallel
+    BUILD_NAME: MSVC2022-Ifort2021 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
   script: 
     - !reference [.windows-test_stable, script]
@@ -1289,18 +1289,18 @@ stable_par:MSVC2019-Ifort2021:windows:
       allow_failure: true
     - !reference [.ctest_default, rules]
   needs:
-    - windows:MSVC2019-Ifort2021
+    - windows:MSVC2022-Ifort2021
 
-unstable_ser:MSVC2019-Ifort2021:windows:
+unstable_ser:MSVC2022-Ifort2021:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2019-Ifort2021 / unstable serial
+    BUILD_NAME: MSVC2022-Ifort2021 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_unstable, script]
   needs:
-    - windows:MSVC2019-Ifort2021
+    - windows:MSVC2022-Ifort2021
 
 python:linux:
   image: opencfs/ubuntu22.04
@@ -1503,18 +1503,18 @@ broken_ser:intel:linux:
   needs:
     - linux:intel
 
-broken_ser:MSVC2019-Ifort2021:windows:
+broken_ser:MSVC2022-Ifort2021:windows:
   extends: .windows-shared-test
   stage: test_extra
   rules:
     - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: MSVC2019-Ifort2021 / broken serial
+    BUILD_NAME: MSVC2022-Ifort2021 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_broken, script]
   needs:
-    - windows:MSVC2019-Ifort2021
+    - windows:MSVC2022-Ifort2021
 
 #######################################################################
 # DOCS STAGE - Documentation jobs
@@ -1652,7 +1652,7 @@ pages:
   before_script: []
   needs:
     - linux:gcc7
-    - windows:MSVC2019-Ifort2021
+    - windows:MSVC2022-Ifort2021
 
 repack-release: # publish release packages (when a tag is pushed)
   extends: .package-release_common
