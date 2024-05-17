@@ -246,6 +246,13 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:enumeration>
+          <xsd:enumeration value="Inexact">
+          <xsd:annotation>
+              <xsd:documentation>
+                An array of line search parameters gamma is used to evaluate the energy.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
           <xsd:enumeration value="Armijo">
           <xsd:annotation>
               <xsd:documentation>

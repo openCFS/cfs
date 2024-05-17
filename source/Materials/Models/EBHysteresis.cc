@@ -749,7 +749,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       chi[15] = 153.685939;chi[16] = 167.787113;chi[17] = 183.378084;chi[18] = 198.785153;chi[19] = 172.621885;
       chi[20] = 175.350775;chi[21] = 180.011291;chi[22] = 186.603432;chi[23] = 195.127198;chi[24] = 205.582589;
       chi[25] = 217.969606;chi[26] = 232.288248;chi[27] = 248.538516;chi[28] = 266.720409;chi[29] = 286.833927;
-      chi[30] = 308.879071;chi[31] = 331.145629;chi[32] = -51.216141;chi[33] = -9.240983;chi[34] = 32.136606;
+      chi[30] = 308.879071;chi[31] = 331.145629;chi[32] = 51.216141;chi[33] = 9.240983;chi[34] = 32.136606;
       chi[35] = 72.916625;chi[36] = 113.099073;chi[37] = 152.683953;chi[38] = 191.671262;chi[39] = 230.061002;
       chi[40] = 267.853171;chi[41] = 305.047772;chi[42] = 341.644802;chi[43] = 377.644262;chi[44] = 413.046153;
       chi[45] = 447.850474;chi[46] = 482.057225;chi[47] = 515.666406;chi[48] = 548.678018;chi[49] = 581.092060;
@@ -937,11 +937,13 @@ DEFINE_LOG(eb, "EBHysteresis")
             M_an = J_an/(4*M_PI*1e-7); 
             MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
             MyS_sol[k] = M_an * HryS_sol[k]/HrS;
-            MzS_sol[k] = M_an * HrzS_sol[k]/HrS;*/
+            MzS_sol[k] = M_an * HrzS_sol[k]/HrS; */
             // TP32 END
+            // FOR REGULAR USE
             MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
             MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
             MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS;
+            // FOR REGULAR USE END
           }else{
             MxS_sol[k] = 0.0;
             MyS_sol[k] = 0.0;

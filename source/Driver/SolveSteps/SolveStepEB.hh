@@ -38,6 +38,8 @@ namespace CoupledField
 
     Double ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol);
 
+    Double InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol);
+
     Double LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol);
 
     double GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta);
