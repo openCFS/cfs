@@ -132,6 +132,10 @@ namespace CoupledField
           etaLineSearch = LineSearchArmijo(solInc, stageSol);
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
+        }else if ( lineSearch_ == "Inexact"){
+          etaLineSearch = InexactLineSearch(solInc, stageSol);
+          stageSol_temp.Add(etaLineSearch, solInc);
+          stageSol = stageSol_temp;
         }
 
         // residual
@@ -228,7 +232,7 @@ namespace CoupledField
 
 
 
-double SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol)   {
+  double SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol)   {
 
     SBM_Vector actSol_temp(BaseMatrix::DOUBLE); actSol_temp = actSol;
     SBM_Vector refRHS(BaseMatrix::DOUBLE);
@@ -276,6 +280,33 @@ double SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSo
     }
     actSol = actSol_temp;
     return etaOpt;
+  }
+
+  double SolveStepEB::InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol)   {
+
+    Double nr_gammas = 5;
+    double gamma = 1.0;
+    std::vector<Double> gamma_trial = {1,0.5,0.25,0.125,0.1}; 
+    std::vector<Double> Energy;
+
+    for( UInt idx=0; idx<nr_gammas; idx++) {
+      Energy.push_back(GetLineSearchDerivativeFunctionValue(solIncrement, actSol, gamma_trial[idx]));
+    }
+
+    int closest_index = 0;
+    Double closest_to_zero = Energy[0]; // Initialize with the first element
+    Double min_distance = std::abs(Energy[0]);
+
+    for (int idx = 1; idx < Energy.size(); ++idx) {
+      Double distance = std::abs(Energy[idx]);
+      if (distance < min_distance) {
+        min_distance = distance;
+        closest_index = idx;
+      }
+    }
+    gamma = gamma_trial[closest_index];
+
+    return gamma;
   }
 
 
