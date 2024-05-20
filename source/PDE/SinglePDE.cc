@@ -3475,9 +3475,9 @@ namespace CoupledField {
     if ( !nciListNode ) return;
     
     ParamNodeList nciNodes = nciListNode->GetList("ncInterface");
-    ParamNodeList tlNodes = nciListNode->GetList("thinLayer");
+    //ParamNodeList tlNodes = nciListNode->GetList("thinLayer");
 
-    ParamNodeList::iterator tlIt = tlNodes.Begin(),
+    /*ParamNodeList::iterator tlIt = tlNodes.Begin(),
                             tlendIt = tlNodes.End();
     for ( ; tlIt != tlendIt; ++tlIt ) {
       PtrParamNode tlNode = (*tlIt);
@@ -3495,6 +3495,7 @@ namespace CoupledField {
       newIface.thinLayer = true;
       ncInterfaces_.Push_back(newIface);
     }
+    */
     
     ParamNodeList::iterator nciIt = nciNodes.Begin(),
                             endIt = nciNodes.End();
@@ -3525,7 +3526,19 @@ namespace CoupledField {
       if (newIface.movingMortarForm && newIface.type != NC_MORTAR) {
         WARN("Moving formulation is only available with Mortar coupling");
       }
-      newIface.thinLayer = false;
+      nciNode->GetValue( "thinLayer/layerThickness", newIface.layerThickness,
+                         ParamNode::INSERT ); // parameter for thin layer formulation non conforming interface condition
+      nciNode->GetValue( "thinLayer/layerMaterial", newIface.layerMaterial,
+                         ParamNode::INSERT ); // parameter for thin layer formulation non conforming interface condition
+      if (newIface.layerThickness > 0.0){
+        newIface.thinLayer = true;
+        if(newIface.type != NC_NITSCHE){
+          WARN("Thin layer formulation is only available with Nitsche type coupling");
+        }
+      }
+      else {
+        newIface.thinLayer = false;
+      }
       ncInterfaces_.Push_back(newIface);
     }
   }

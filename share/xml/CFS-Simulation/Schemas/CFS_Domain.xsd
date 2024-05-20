@@ -732,15 +732,6 @@
                 </xsd:documentation>
               </xsd:annotation>              
             </xsd:element>
-            <xsd:element name="thinLayer" type="DT_DomainNCIface"
-            minOccurs="0" maxOccurs="unbounded">
-            <xsd:annotation>
-              <xsd:documentation xml:lang="en">
-                A non-conforming thin layer interface is defined by references to two
-                neighboring surfaces or co-planar volumes regions.
-              </xsd:documentation>
-            </xsd:annotation>              
-          </xsd:element>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
