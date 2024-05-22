@@ -27,7 +27,7 @@ SET(TARGET_LL
   integration
   )
 
-IF(USE_CGAL) # debug: still in use???
+IF(USE_CGAL) # CHECKOUT: still in use???
   SET(TARGET_LL
     ${TARGET_LL}
     ${MPFR_LIBRARY}

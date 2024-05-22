@@ -67,16 +67,21 @@ set(BUILD_TYPE "Release")
 endif(BUILD_TYPE STREQUAL "debug")
 
 # set custom build arguments
+set(CGAL_CXX_FLAGS "${CFS_CXX_FLAGS} 
+  -DWITH_EXAMPLES:BOOL=OFF 
+  -DWITH_DEMOS:BOOL=OFF 
+  -DWITH_CGAL_Core:BOOL=ON 
+  -DWITH_CGAL_Qt5:BOOL=OFF 
+  -DWITH_CGAL_ImageIO:BOOL=OFF
+  -DCGAL_DIR:STRING="${CMAKE_BUILD_TYPE}/include/
+) # CHECKOUT: how to set this path??
+
+# set custom build arguments
 set(DEPS_ARGS 
   ${DEPS_ARGS} 
   -DCMAKE_BUILD_TYPE:STRING=${BUILD_TYPE}
-  -DWITH_EXAMPLES:BOOL=OFF
-  -DWITH_DEMOS:BOOL=OFF
-  -DWITH_CGAL_Core:BOOL=ON
-  -DWITH_CGAL_Qt5:BOOL=OFF
-  -DWITH_CGAL_ImageIO:BOOL=OFF
-  -DCGAL_DIR:STRING="${CMAKE_BUILD_TYPE}/include/CGAL" # debug: how to set this path?? is it even required??
-  )
+  -DCMAKE_CXX_FLAGS:STRING=${CGAL_CXX_FLAGS}
+)
 
 # --- it follows generic final block for cmake packages with no patch and no postinstall ---
 

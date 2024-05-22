@@ -248,7 +248,7 @@ if(USE_CGAL)
   set(GMP_MD5 "8ddbb26dc3bd4e2302984debba1406a5")
   include("${CFSDEPS_DIR}/gmp/External_gmp.cmake")
   
-  set(MPFR_VER "3.1.5") # debug: maybe upgrade required??
+  set(MPFR_VER "3.1.5") # CHECKOUT: maybe upgrade required??
   set(MPFR_BZ2 "mpfr-${MPFR_VER}.tar.bz2")
   set(MPFR_MD5 "b1d23a55588e3b2a13e3be66bc69fd8d")
   include("${CFSDEPS_DIR}/mpfr/External_mpfr.cmake")
