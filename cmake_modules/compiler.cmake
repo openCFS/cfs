@@ -110,7 +110,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
   set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} ${CFS_OPT_FLAGS} -w -Wno-everything")
   if(USE_CGAL) # see comment about -frounding-math for gcc 12+13 above
-    set(CFS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
     set(CFS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
   endif()
 
@@ -183,7 +182,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /EHsc")
   endif() 
   if(USE_CGAL) # set -frounding-math when using CGAL
-    set(CFS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
     set(CFS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
   endif()
 
@@ -213,7 +211,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # according to  https://doc.cgal.org/latest/Manual/devman_create_and_use_a_cmakelist.html 
   # basically the same as the -frounding-math for gcc
   if(USE_CGAL)
-    set(CFS_C_FLAGS "${CFSDEPS_C_FLAGS} /fp:strict /fp:except- ")
     set(CFS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /fp:strict /fp:except-")
   endif()
   # Disable some warnings. For details google for 'MSDN C/C++ Build Errors'.
