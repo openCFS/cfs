@@ -101,7 +101,7 @@ struct Distance {
   typedef CGAL::Point Query_item;
   typedef CGAL::Point Point_d;
   typedef double FT;
-  typedef CGAL::Dimension_tag<3> D;
+
   double transformed_distance(const CGAL::Point& p1, const CGAL::Point& p2) const {
     double distx= p1.x()-p2.x();
     double disty= p1.y()-p2.y();

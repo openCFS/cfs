@@ -27,16 +27,16 @@ SET(TARGET_LL
   integration
   )
 
-IF(USE_CGAL) # CHECKOUT: still in use???
-  SET(TARGET_LL
+# Add library directions for CGAL dependencies
+if(USE_CGAL)
+  set(TARGET_LL
     ${TARGET_LL}
     ${MPFR_LIBRARY}
     ${GMP_LIBRARY}
     ${GMPXX_LIBRARY}
-    ${CGAL_LIBRARY}
     ${BOOST_THREAD_LIB}
   )
-ENDIF(USE_CGAL)
+endif(USE_CGAL)
 
 IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel" AND USE_OPENMP)
   SET(TARGET_LL
