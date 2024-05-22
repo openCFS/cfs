@@ -58,30 +58,15 @@ set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 # set DEPS_ARG with defaults for a cmake project
 set_deps_args_default(ON)
 
-# set the build option string for release/debug builds as CGAL needs uppercase first letter
-string(TOLOWER "${CMAKE_BUILD_TYPE}" BUILD_TYPE)
-if(BUILD_TYPE STREQUAL "debug")
-set(BUILD_TYPE "Debug")
-else(BUILD_TYPE STREQUAL "debug")
-set(BUILD_TYPE "Release")
-endif(BUILD_TYPE STREQUAL "debug")
-
 # set custom build arguments
-set(CGAL_CXX_FLAGS
-  ${CFS_CXX_FLAGS}
+set(DEPS_ARGS 
+  ${DEPS_ARGS}
   -DWITH_EXAMPLES:BOOL=OFF
   -DWITH_DEMOS:BOOL=OFF
   -DWITH_CGAL_Core:BOOL=ON
   -DWITH_CGAL_Qt5:BOOL=OFF
   -DWITH_CGAL_ImageIO:BOOL=OFF
   -DCGAL_DIR:STRING="${CMAKE_BUILD_TYPE}/include/"
-) # CHECKOUT: how to set this path??
-
-# set custom build arguments
-set(DEPS_ARGS 
-  ${DEPS_ARGS} 
-  -DCMAKE_BUILD_TYPE:STRING=${BUILD_TYPE}
-  -DCMAKE_CXX_FLAGS:STRING=${CGAL_CXX_FLAGS}
 )
 
 # --- it follows generic final block for cmake packages with no patch and no postinstall ---
