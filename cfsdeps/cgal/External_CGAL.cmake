@@ -66,7 +66,7 @@ set(DEPS_ARGS
   -DWITH_CGAL_Core:BOOL=ON
   -DWITH_CGAL_Qt5:BOOL=OFF
   -DWITH_CGAL_ImageIO:BOOL=OFF
-  -DCGAL_DIR:STRING="${CMAKE_BUILD_TYPE}/include/"
+  -DCGAL_DIR:STRING="${CMAKE_BINARY_DIR}/include/"
 )
 
 # --- it follows generic final block for cmake packages with no patch and no postinstall ---
