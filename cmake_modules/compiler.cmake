@@ -110,8 +110,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   endif()
   set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} ${CFS_OPT_FLAGS} -w -Wno-everything")
   if(USE_CGAL) # see comment about -frounding-math for gcc 12+13 above
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
+    set(CFS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
+    set(CFS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
   endif()
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
@@ -182,9 +182,9 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
     # error: cannot use 'throw' with exceptions disabled
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /EHsc")
   endif() 
-  if(USE_CGAL) # remove when we use header only CGAL # debug: still in use??
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
+  if(USE_CGAL) # set -frounding-math when using CGAL
+    set(CFS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
+    set(CFS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
   endif()
 
   # also icx on Windows with MSVC command line interface seems to understand gcc style
@@ -210,11 +210,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # issue: https://discourse.cmake.org/t/linking-on-windows-requires-versioned-boost-libraries/7119/3
   set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /DBOOST_ALL_NO_LIB")
 
-  # debug: according to  https://doc.cgal.org/latest/Manual/devman_create_and_use_a_cmakelist.html 
-  # do we even need this?
+  # according to  https://doc.cgal.org/latest/Manual/devman_create_and_use_a_cmakelist.html 
+  # basically the same as the -frounding-math for gcc
   if(USE_CGAL)
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} /fp:strict /fp:except- ")
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /fp:strict /fp:except-")
+    set(CFS_C_FLAGS "${CFSDEPS_C_FLAGS} /fp:strict /fp:except- ")
+    set(CFS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /fp:strict /fp:except-")
   endif()
   # Disable some warnings. For details google for 'MSDN C/C++ Build Errors'.
 
