@@ -10,7 +10,11 @@ import multiprocessing
 import time as ti
 import optimization_tools as ot
 import argparse
-import pandas as pd
+try:
+  import pandas as pd
+except ImportError:
+  print('Warning: cannot load pandas, some export might fail')
+
 from multiprocessing.pool import Pool as Pool # preferably to line below
 #from multiprocessing.pool import ThreadPool as Pool # only necessary for python profiling using kernprof
 # noinspection PyUnresolvedReferences
@@ -51,8 +55,11 @@ from vtk import (
 import sys
 
 # for gradient check
-import scipy.optimize as sciopt
-import scipy.sparse as scispr
+try:
+  import scipy.optimize as sciopt
+  import scipy.sparse as scispr
+except ImportError:
+  print('Warning: cannot load scipy, gradientcheck will fail')
 
 # to conveniently access global values
 class Global:
