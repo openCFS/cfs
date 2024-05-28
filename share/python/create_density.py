@@ -168,6 +168,18 @@ def cross(dim, vol, res, lower):
     
   return data
 
+# extend to 3d on need
+def checkerboard(res, lower ):
+  data = numpy.ones((res, res)) * lower
+  
+  for i in range(res):
+    for j in range(res):
+      if i % 2:
+        data[i,j] = 1 if j % 2 else lower
+      else:
+        data[i,j] = lower if j % 2 else 1
+  
+  return data
 
 def rectangle(dim, vol, res, lower):
   assert(dim == 2)
@@ -327,6 +339,7 @@ parser.add_argument('--order', help="order of generated shperes. Lower numbers a
 parser.add_argument('--invert', help="invert to solid inside", action='store_true')
 parser.add_argument('--cross', help="make a simple binary cross", action='store_true')
 parser.add_argument('--rect', help="make a simple binary rectangle inclusion", action='store_true')
+parser.add_argument('--checkerboard', help="create a one element checkerboard", action='store_true')
 parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)
 parser.add_argument('--channel', help="rectangular channel from one side of the domain to the other one", action='store_true')
 parser.add_argument('--three_cylinders', help="three intersecting cylinders (90 deg) from one side of the domain to the other one", action='store_true')
@@ -362,6 +375,9 @@ setname = "standard"
 if args.cross:
   data = cross(args.dim, vol, args.res, args.lower)
   filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + "_" + str(args.res) + ".density.xml"
+elif args.checkerboard:
+  data = checkerboard(args.res, args.lower)
+  filename = "checkerboard_" + str(args.res) + ".density.xml"
 elif args.hashtag is not None:  # also capture 0.0
   data = hashtag(args.dim, args.res, args.hashtag, args.thickness, args.hashtag_speed, args.lower)
   filename = "hashtag_" + str(args.dim) + "d-amp_" + str(args.hashtag) + "-th_" + str(args.thickness) + "-sp_" + str(args.hashtag_speed) + "_" + str(args.res) + ".density.xml"

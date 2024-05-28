@@ -4,61 +4,73 @@ import numpy as np
 from numpy.linalg import norm
 import os
 import cfs_utils as ut
+import matviz_rot as mvrot
 from itertools import product
-from multiprocessing import Pool
+import multiprocessing
 import time as ti
+import optimization_tools as ot
+import argparse
+try:
+  import pandas as pd
+except ImportError:
+  print('Warning: cannot load pandas, some export might fail')
+
+from multiprocessing.pool import Pool as Pool # preferably to line below
+#from multiprocessing.pool import ThreadPool as Pool # only necessary for python profiling using kernprof
+# noinspection PyUnresolvedReferences
+import vtkmodules.vtkInteractionStyle
+# noinspection PyUnresolvedReferences
+import vtkmodules.vtkRenderingOpenGL2
+from vtkmodules.vtkCommonColor import vtkNamedColors
+from vtkmodules.vtkCommonTransforms import vtkTransform
+from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
+from vtkmodules.vtkRenderingAnnotation import vtkAxesActor
+from vtkmodules.vtkCommonCore import vtkPoints
+from vtkmodules.vtkIOXML import vtkXMLPolyDataWriter
+from vtkmodules.vtkIOImage import vtkPNGWriter
+from vtkmodules.vtkCommonDataModel import (
+    vtkCellArray,
+    vtkPolyData
+)
+from vtkmodules.vtkFiltersCore import vtkGlyph3D
+from vtkmodules.vtkFiltersSources import (
+  vtkCylinderSource,
+  vtkSphereSource,
+  vtkParametricFunctionSource,
+  vtkArrowSource
+)
+from vtkmodules.vtkCommonComputationalGeometry import vtkParametricTorus
+from vtkmodules.vtkRenderingCore import (
+    vtkActor,
+    vtkPolyDataMapper,
+    vtkRenderWindow,
+    vtkRenderWindowInteractor,
+    vtkRenderer,
+    vtkWindowToImageFilter
+)
+from vtk import (
+  vtkOBJExporter,
+  vtkX3DExporter
+)
+import sys
 
 # for gradient check
-import scipy.optimize as sciopt
-import scipy.sparse as scispr
-
-
-# interactive
-if __name__ == '__main__':
-  import optimization_tools as ot
-  import argparse
-  # noinspection PyUnresolvedReferences
-  import vtkmodules.vtkInteractionStyle
-  # noinspection PyUnresolvedReferences
-  import vtkmodules.vtkRenderingOpenGL2
-  from vtkmodules.vtkCommonColor import vtkNamedColors
-  from vtkmodules.vtkCommonTransforms import vtkTransform
-  from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
-  from vtkmodules.vtkRenderingAnnotation import vtkAxesActor
-  from vtkmodules.vtkCommonCore import vtkPoints
-  from vtkmodules.vtkIOXML import vtkXMLPolyDataWriter
-  from vtkmodules.vtkCommonDataModel import (
-      vtkCellArray,
-      vtkPolyData
-  )
-  from vtkmodules.vtkFiltersCore import vtkGlyph3D
-  from vtkmodules.vtkFiltersSources import (
-    vtkCylinderSource,
-    vtkSphereSource,
-    vtkParametricFunctionSource,
-    vtkArrowSource
-  )
-  from vtkmodules.vtkCommonComputationalGeometry import vtkParametricTorus
-  from vtkmodules.vtkRenderingCore import (
-      vtkActor,
-      vtkPolyDataMapper,
-      vtkRenderWindow,
-      vtkRenderWindowInteractor,
-      vtkRenderer
-  )
-  from vtk import (
-    vtkOBJExporter,
-    vtkX3DExporter
-  )
+try:
+  import scipy.optimize as sciopt
+  import scipy.sparse as scispr
+except ImportError:
+  print('Warning: cannot load scipy, gradientcheck will fail')
 
 # to conveniently access global values
 class Global:
   # the default value are for easy debugging via import spaghetti
   def __init__(self):
     self.shapes = []         # array of Spaghetti
-    self.rhomin = 1e-4      # void
+    self.rhomin = 0      # void
+    self.rhomax = 1
     self.boundary = 'poly'   # up to now only 'poly' and 'linear'
-    self.p = 10              # penalty parameter
+    self.p = 10              # penalty parameter for smooth maximum
+    self.q = 0         # penalty parameter for python_volume (inverse RAMP type penalty)
     self.transition = 0.05   # parameter for boundary: 2*h
     self.h = 0.5*self.transition
     self.n = np.array([40,40,40],dtype=int)       # [nx, ny, nz]
@@ -70,6 +82,37 @@ class Global:
     self.silent = False
     self.vtk_lists = False
     self.num_threads = int(os.environ.get('OMP_NUM_THREADS'))
+    self.design = ['density']
+    self.anisotropic = False
+    self.base_tensor = np.zeros((3,6,6))
+    # transversely isotropic default base tensor
+    # CFRP with fibers in 2-direction
+    self.base_tensor[2,0,0] = 6050.80614923135
+    self.base_tensor[2,1,1] = 6050.80614923135
+    self.base_tensor[2,2,2] = 66535.43307086615
+    self.base_tensor[2,3,3] = 2200.0
+    self.base_tensor[2,4,4] = 2200.0
+    self.base_tensor[2,5,5] = 1785.71428571429
+    self.base_tensor[2,0,1] = 2479.37757780277
+    self.base_tensor[2,1,0] = 2479.37757780277
+    self.base_tensor[2,0,2] = 2559.05511811024
+    self.base_tensor[2,2,0] = 2559.05511811024
+    self.base_tensor[2,1,2] = 2559.05511811024
+    self.base_tensor[2,2,1] = 2559.05511811024
+    self.base_tensor[0,0,0] = 66535.43307086615
+    self.base_tensor[0,1,1] = 6050.80614923135
+    self.base_tensor[0,2,2] = 6050.80614923135
+    self.base_tensor[0,3,3] = 1785.71428571429
+    self.base_tensor[0,4,4] = 2200.0
+    self.base_tensor[0,5,5] = 2200.0
+    self.base_tensor[0,0,1] = 2559.05511811024
+    self.base_tensor[0,1,0] = 2559.05511811024
+    self.base_tensor[0,0,2] = 2559.05511811024
+    self.base_tensor[0,2,0] = 2559.05511811024
+    self.base_tensor[0,1,2] = 2479.37757780277
+    self.base_tensor[0,2,1] = 2479.37757780277
+    #print('base_tensor_x:\n', self.base_tensor[0])
+    #print('base_tensor_z:\n', self.base_tensor[2])
 
   # total number of variables (not cached)
   def total(self):
@@ -97,10 +140,22 @@ class FE:
 # @settings dict of key/string from openCFS or from command line
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
-def cfs_init(settings, design, dict):
-
+def cfs_init(settings, design, opt_indices, dict):
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax'])-glob.rhomin
+  glob.design = design
+  glob.num_designs = len(glob.design)
+  glob.order = int(settings['order'])
+  glob.opt_ind = np.array(opt_indices)
+  if 'mech_11' in design:
+    glob.anisotropic = True
+    if (glob.rhomin > 1e-15) or abs(glob.rhomax-1) > 1e-15:
+      print('WARNING!!! for anisotropic spaghetti, rhomin needs to be 0 and rhomax 1')
+    glob.rhomin = 0
+    glob.rhomax = 1
+    if glob.order > 1:
+      print('WARNING!!! order > 1 may give wrong results for anisotropic material!')
+
   glob.boundary = settings['boundary']
   glob.transition = float(settings['transition'])
   glob.h = .5*float(glob.transition)
@@ -114,14 +169,15 @@ def cfs_init(settings, design, dict):
   glob.dx = (glob.box_upper[0]-glob.box_lower[0])/glob.n[0]
   glob.mid_lower = glob.box_lower + 0.5*glob.dx*np.ones((3))
 
-  if 'p' in dict:
-    glob.p = dict['p']
+  if 'p' in settings:
+    glob.p = float(settings['p'])
+  if 'q' in settings:
+    glob.q = float(settings['q'])
   if 'vtk_lists' in dict:
     glob.vtk_lists = dict['vtk_lists']
   if 'silent' in dict:
     glob.silent = int(dict['silent'])
 
-  glob.design = design
   glob.opts = dict
 
 
@@ -138,11 +194,15 @@ def cfs_set_spaghetti(id, points, r, p, alpha):
   px = [v[0] for v in points]
   py = [v[1] for v in points]
   pz = [v[2] for v in points]
+  for i in range(len(px)-1):
+    if ((px[i]-px[i+1])**2+(py[i]-py[i+1])**2+(pz[i]-pz[i+1])**2)<1e-15:
+      px[i+1] = px[i+1]+1e-15 # slight modification to prevent division by zero
 
   if id >= len(glob.shapes):
     base = sum([len(s.optvar()) for s in glob.shapes])
     # def __init__(self,id,base,radius,P,Q,a,p):
     glob.shapes.append(Spaghetti(id, base, px,py,pz,r,p,alpha))
+    glob.num_total = glob.total()
     print('cfs_set_spaghetti: create ', glob.shapes[-1], 'id=',id,'points=',points,'r=',r,'p=',p,'alpha=',alpha)
   else:
     glob.shapes[id].set(px,py,pz,r,p,alpha)
@@ -150,11 +210,17 @@ def cfs_set_spaghetti(id, points, r, p, alpha):
       print('cfs_set_spaghetti: update ', glob.shapes[id])
 
 ## return 1D-array with mapped design
+
 def cfs_map_to_design():
+  if glob.rho is not None:
+    if not glob.anisotropic:
+      return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin
+    else:
+      return glob.tensor_cfs_fmo
   assemble_fe_field()
   start = ti.time()
   with Pool(glob.num_threads) as pool:
-    rho = pool.map(integrate_fe, range(np.prod(glob.n)))
+    rho = pool.map(integrate_fe, glob.integrate)
     pool.close()
     pool.join()
   #integrate_fe_field()
@@ -162,15 +228,37 @@ def cfs_map_to_design():
     print('time for integration:', ti.time()-start)
   start = ti.time()
   glob.rho = np.zeros(glob.n)
-  glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.total()))
-  for fe_num in range(np.prod(glob.n)):
-    glob.rho[np.unravel_index(fe_num,glob.n)] = rho[fe_num][0]
-    glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[fe_num][1]
+  glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.num_total))
+  if glob.anisotropic:
+    glob.tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6))
+    glob.grad_tensor = np.zeros((glob.n[0],glob.n[1],glob.n[2],6,6,glob.num_total))
+  for idx, fe_num in enumerate(glob.integrate):
+    glob.rho[np.unravel_index(fe_num,glob.n)] = rho[idx][0]
+    glob.grad_rho[np.unravel_index(fe_num,glob.n)] = rho[idx][1]
+    if glob.anisotropic:
+      glob.tensor[np.unravel_index(fe_num,glob.n)] = rho[idx][2]
+      glob.grad_tensor[np.unravel_index(fe_num,glob.n)] = rho[idx][3]
   if not glob.silent:
     print('time for unraveling:', ti.time()-start)
   if glob.vtk_lists:
     write_vtk_lists(glob.vtk_lists)
-  return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin
+  if not glob.anisotropic:
+    return np.reshape(glob.rho, np.prod(glob.n), order='F')+glob.rhomin
+  else:
+    ds2 = glob.tensor.reshape((np.prod(glob.n),6,6), order='F')
+    # cfs tensor optimization (type="fmo") only uses upper right diagonal as optimization variables
+    # extract relevant tensor variables for cfs
+    glob.tensor_cfs_fmo = np.zeros((np.prod(glob.n)*21))
+    mask = np.array([[0,1,2,3,4,5,0,0,1,0,0,0,1,1,1,2,2,2,3,3,4],[0,1,2,3,4,5,1,2,2,3,4,5,3,4,5,3,4,5,4,5,5]])
+    for i in range(21):
+      glob.tensor_cfs_fmo[i*np.prod(glob.n):(i+1)*np.prod(glob.n)] = ds2[:,mask[0,i],mask[1,i]]
+    glob.grad_tensor_cfs_fmo = np.zeros(((np.prod(glob.n)*21),glob.num_total))
+    for v in range(glob.num_total):
+      ds2 = glob.grad_tensor[:,:,:,:,:,v].reshape((np.prod(glob.n),6,6), order='F') # the shape sensitivity as vector
+      ds = np.zeros((np.prod(glob.n)*21))
+      for i in range(21):
+        glob.grad_tensor_cfs_fmo[i*np.prod(glob.n):(i+1)*np.prod(glob.n),v] = ds2[:,mask[0,i],mask[1,i]]
+    return glob.tensor_cfs_fmo
 
 def cfs_info_field_keys():
   if not glob.silent:
@@ -180,7 +268,7 @@ def cfs_info_field_keys():
 # as we cannot create a numpy array in C (it should work but fails in reality) we get it here.
 # it shall have the size of rho as a 1D array  
 def cfs_get_drho_vector():
-  size = len(glob.design) * np.prod(glob.n)
+  size = glob.num_designs*np.prod(glob.n)
   assert size >= 1
     
   if not glob.silent:  
@@ -194,21 +282,55 @@ def cfs_get_drho_vector():
 # @param drho is a 1D np.array with d func/d rho - this is to be handled via chainrule.
 # @param label the name of the current drho_vec's function to allow for cfs_get_field_info  
 # @return d func/ d shape  
+
 def cfs_get_gradient(ddes_vec, label):
   if glob.grad_rho is None:
     cfs_map_to_design()
 
-  var_total = glob.total()
-  sens = np.zeros(var_total)   # return vector 
+  sens = np.zeros(glob.num_total)   # return vector
   # drho_vec represents a 2D matrix, glob.grad_field is three dimensional with the last dimension the variable 
-  for v in range(var_total):
-    ds = glob.grad_rho[:,:,:,v].reshape(np.prod(glob.n), order='F') # the shape sensitivity as vector
+  for v in range(glob.num_total):
     # sens_field = element wise the sensitivity of the function times the shape variables.
+    if glob.anisotropic:
+      ds = glob.grad_tensor_cfs_fmo[:,v]
+    else:
+      ds = glob.grad_rho[:,:,:,v].reshape(np.prod(glob.n), order='F') # the shape sensitivity as vector
     sens_field = ddes_vec*ds
     sens[v] = sens_field.sum() # equals for i in range(nx): for j in range(ny): for k in range(nz): sens +=  drho[i,j,k] * glob.grad_field[i,j,k][v]
   #sens = np.sum(np.expand_dims(ddes_vec,1)*glob.grad_rho[:,:,:,v].reshape((np.prod(glob.n),var_total), order='F'),0)
   return sens 
 
+def grad_check_tensor():
+  var = glob.shapes[0].optvar()
+  points, radii, prof, alpha = glob.shapes[0].varopt(var)
+  cfs_set_spaghetti(glob.shapes[0].id, points, radii, prof, alpha)
+  cfs_map_to_design()
+  tensor_ref = np.array(glob.tensor)
+  tensor_grad_ref = np.array(glob.grad_tensor)
+  eps = np.sqrt(np.finfo(float).eps)
+  print('Checking element material tensor derivatives...')
+  count = 0
+  for vvv in range(glob.shapes[0].num_optvar):
+    var_fd = np.array(var)
+    var_fd[vvv] = var[vvv]+eps
+    points, radii, prof, alpha = glob.shapes[0].varopt(var_fd)
+    cfs_set_spaghetti(glob.shapes[0].id, points, radii, prof, alpha)
+    cfs_map_to_design()
+    tensor_fd = np.array(glob.tensor)
+    for ifd in range(glob.n[0]):
+      for jfd in range(glob.n[0]):
+        for kfd in range(glob.n[0]):
+          for ti in range(6):
+            for tj in range(6):
+              fd = (tensor_fd[ifd,jfd,kfd,ti,tj]-tensor_ref[ifd,jfd,kfd,ti,tj])/eps
+              err = abs(fd-tensor_grad_ref[ifd,jfd,kfd,ti,tj][vvv])/max(max(abs(fd),abs(tensor_grad_ref[ifd,jfd,kfd,ti,tj][vvv])),1)
+              if err > 5e-2:
+                count += 1
+                print('FD error at element', ifd,jfd,kfd, 'for variable', vvv, 'and tensor entry', ti,tj, 'is', err, 'with gradients', fd, tensor_grad_ref[ifd,jfd,kfd,ti,tj,vvv], fd/(tensor_grad_ref[ifd,jfd,kfd,ti,tj,vvv]+0.00000000001), 'and values', tensor_fd[ifd,jfd,kfd,ti,tj], tensor_ref[ifd,jfd,kfd,ti,tj])
+                #for shape_idx_list in glob.fe_list[ifd][jfd][kfd].shapes_idx_list:
+                #  print('shape_idx_list:', shape_idx_list, 'with dist', glob.shapes[shape_idx_list[0]].dist(Xmid))
+                print('rho=',glob.rho[ifd,jfd,kfd],'Number of full material shapes:', len(glob.fe_list[ifd][jfd][kfd].shapes_full), '\b. Intermediate shapes:', glob.fe_list[ifd][jfd][kfd].shapes_idx_list)
+  print('Total number of false gradients:',count)
 
 class Spaghetti:
   # @param id starting from 0
@@ -216,6 +338,7 @@ class Spaghetti:
   def __init__(self,id,base,Px,Py,Pz,r,p,alpha):
     self.id = id
     self.base = base
+    self.match = [-1,-1]
     self.set(Px,Py,Pz,r,p,alpha)
 
   # does not only set the variables but also computes the internal helpers (C, ...) and deletes glob index fields
@@ -356,6 +479,17 @@ class Spaghetti:
       self.n0_arc[i] = normal_arc/norm(normal_arc)
       grad_normal_arc = np.cross(-self.sens['grad_t'][i-1],self.t[i])+np.cross(-self.t[i-1],self.sens['grad_t'][i])
       self.sens['grad_n0_arc'][i] = grad_normal_arc/norm(normal_arc) - normal_arc/norm(normal_arc)**3*np.dot(grad_normal_arc, np.expand_dims(normal_arc, axis=1))
+
+    if glob.anisotropic:
+      self.mat_tensors = np.empty((self.m,6,6))
+      self.grad_mat_tensors = np.empty((self.m,6,6,self.num_optvar))
+      self.R = np.empty((self.m,3,3))
+      self.dR = np.empty((self.m,3,3,self.num_optvar))
+      self.QT = np.empty((self.m,6,6))
+      self.dQT = np.empty((self.m,6,6,self.num_optvar))
+      for i in range(self.m):
+        self.mat_tensors[i], self.grad_mat_tensors[i] = self.get_tensor_init(i)
+        #print(self.mat_tensors[i], self.grad_mat_tensors[i])
 
   # give optimzation variables as defined array such that we can easily differentiate
   # @return profile,P^0_x,P^0_y,P^0_z,P^1_x,P^1_y,P^1_z,...,P^m_x,P^m_y,P^m_z,r_1,...r_m-1
@@ -526,7 +660,7 @@ class Spaghetti:
         print('Distance is None at point', X, 'with indices', indexlist, '. Actual distance is', d)
       return (glob.transition, np.zeros(self.num_optvar))
 
-    if what == 'gradient' or what == 'didxgrad':
+    if what == 'gradient' or what == 'distgradidx':
       idx = minimal[1]
       grad = np.zeros(self.num_optvar)
       if idx == 2*m-1: # starting point
@@ -552,8 +686,8 @@ class Spaghetti:
           grad[varidx] = 0.5/np.sqrt((r-norm(C-X_projected))**2+norm(X-X_projected)**2)*(2*(r-norm(C-X_projected))*(grad_r - 1/norm(C-X_projected)*(np.matmul(C-X_projected,self.sens['grad_C'][i][varidx,:] - grad_X_projected))) - 2*np.matmul(X-X_projected, grad_X_projected))
 
       grad[-2] = -1
-      if what == 'didxgrad':
-        return (minimal, grad)
+      if what == 'distgradidx':
+        return (minimal[0], grad, minimal[1])
       return (minimal[0], grad)
     elif what == 'all':
       return minimal
@@ -564,12 +698,198 @@ class Spaghetti:
     else:
       assert(False)
 
+  ## This returns the vector rotation matrix between [0,0,1]-direction and spaghetti direction
+  def get_rotation_matrix_by_idx(self, idx, X=None, derivative=False):
+    m = self.m # number of segments, one arc less
+
+    if idx == 2*m-1: # circular cap around P^0 -> orientation of 0-th segment
+      idx = 0
+    elif idx == 2*m: # circular cap around P^m -> orientation of last segment
+      idx = m-1
+    # straight segments
+    if idx < m:
+      v = self.t[idx]
+      dv = self.sens['grad_t'][idx]
+    # arcs
+    elif idx < 2*m-1:
+      i = idx - m + 1
+      nXCi = norm(X-self.C[i])
+      v = np.cross(X-self.C[i]/nXCi, self.n0_arc[i])
+      dv = np.cross(X-self.C[i]/nXCi, self.sens['grad_n0_arc'][i]) - np.cross(self.sens['grad_C'][i]/nXCi-(X-self.C[i])*np.dot(X-self.C[i],self.sens['grad_C'][i])/nXCi**3, self.n0_arc[i])
+      nv = norm(v)
+      dv = dv/nv - v*np.dot(v,dv)/nv**3
+      v /= nv
+
+    #axis = 2 if abs(v[2]) < abs(v[0]) else 0
+    axis = 0 if abs(np.dot(v,np.array([1,0,0])))<0.8 else 2
+    if axis == 2:
+      R = np.array([[(v[1]*v[1])/(v[2]+1)+v[2], -v[0]*v[1]/(v[2]+1), v[0]], \
+                    [-v[0]*v[1]/(v[2]+1), (v[0]*v[0])/(v[2]+1)+v[2], v[1]], \
+                    [-v[0], -v[1], v[2]]])
+      if derivative:
+        dR = np.array([[(2*v[1]*dv[:,1])/(v[2]+1)-(v[1]*v[1]*dv[:,2])/((v[2]+1)**2)+dv[:,2], -(dv[:,0]*v[1]+v[0]*dv[:,1])/(v[2]+1)+v[0]*v[1]*dv[:,2]/((v[2]+1)**2), dv[:,0]], \
+                    [-(dv[:,0]*v[1]+v[0]*dv[:,1])/(v[2]+1)+v[0]*v[1]*dv[:,2]/((v[2]+1)**2), (2*v[0]*dv[:,0])/(v[2]+1)-(v[0]*v[0]*dv[:,2])/((v[2]+1)**2)+dv[:,2], dv[:,1]], \
+                    [-dv[:,0], -dv[:,1], dv[:,2]]])
+    elif axis == 0:
+      R = np.array([[v[0], -v[1], -v[2]], \
+                    [v[1], (v[2]*v[2])/(v[0]+1)+v[0], -v[1]*v[2]/(v[0]+1)], \
+                    [v[2], -v[1]*v[2]/(v[0]+1), (v[1]*v[1])/(v[0]+1)+v[0]]])
+      if derivative:
+        dR = np.array([[dv[:,0], -dv[:,1], -dv[:,2]], \
+                    [dv[:,1], (2*v[2]*dv[:,2])/(v[0]+1)-(v[2]*v[2]*dv[:,0])/((v[0]+1)**2)+dv[:,0], -(dv[:,1]*v[2]+v[1]*dv[:,2])/(v[0]+1)+v[1]*v[2]*dv[:,0]/((v[0]+1)**2)], \
+                    [dv[:,2], -(dv[:,1]*v[2]+v[1]*dv[:,2])/(v[0]+1)+v[1]*v[2]*dv[:,0]/((v[0]+1)**2), (2*v[1]*dv[:,1])/(v[0]+1)-(v[1]*v[1]*dv[:,0])/((v[0]+1)**2)+dv[:,0]]])
+#       s = np.sqrt(1-v[0]*v[0])
+#       R = np.array([[v[0], -v[1]*s, -v[2]*s], \
+#                     [v[1]*s, v[0]-(v[2]*v[2])*(v[0]-1), v[1]*v[2]*(v[0]-1)], \
+#                     [v[2]*s, v[1]*v[2]*(v[0]-1), v[0]-(v[1]*v[1])*(v[0]-1)]])
+#       if derivative:
+#         dR = np.array([[dv[:,0], ((v[0]*v[0] - 1)*dv[:,1] + v[0]*v[1]*dv[:,0])/(1 - v[0]*v[0])**(1/2),((v[0]*v[0] - 1)*dv[:,2] + v[0]*v[2]*dv[:,0])/(1 - v[0]*v[0])**(1/2)], \
+# [ -((v[0]*v[0] - 1)*dv[:,1] + v[0]*v[1]*dv[:,0])/(1 - v[0]*v[0])**(1/2),                     dv[:,0] - v[2]*v[2]*dv[:,0] - 2*v[2]*(v[0] - 1)*dv[:,2], v[1]*(v[0] - 1)*dv[:,2] + v[2]*(v[0] - 1)*dv[:,1] + v[1]*v[2]*dv[:,0]], \
+# [  -(((v[0]*v[0] - 1)*dv[:,2] + v[0]*v[2]*dv[:,0])/(1 - v[0]*v[0])**(1/2)), v[1]*(v[0] - 1)*dv[:,2] + v[2]*(v[0] - 1)*dv[:,1] + v[1]*v[2]*dv[:,0],                     dv[:,0] - v[1]*v[1]*dv[:,0] - 2*v[1]*(v[0] - 1)*dv[:,1]]])
+
+    assert(derivative or norm(np.eye(3)-np.dot(np.transpose(R),R))<1e-8) # is R rotation matrix?
+    if derivative:
+      return R, dR, axis
+    return R, axis
+
+
+
+  ## This takes a vector rotation matrix and computes the corresponding
+  # 6x6 rotation matrix for a 3D elasticity tensor
+  def get_rot_6x6(self, R, derivative=False, dR=None):
+
+    Q = np.zeros((6,6))
+
+    Q[0][0] = R[0][0]*R[0][0]
+    Q[0][1] = R[0][1]*R[0][1]
+    Q[0][2] = R[0][2]*R[0][2]
+    Q[0][3] = 2.0*R[0][1]*R[0][2]
+    Q[0][4] = 2.0*R[0][0]*R[0][2]
+    Q[0][5] = 2.0*R[0][0]*R[0][1]
+
+    Q[1][0] = R[1][0]*R[1][0]
+    Q[1][1] = R[1][1]*R[1][1]
+    Q[1][2] = R[1][2]*R[1][2]
+    Q[1][3] = 2.0*R[1][1]*R[1][2]
+    Q[1][4] = 2.0*R[1][0]*R[1][2]
+    Q[1][5] = 2.0*R[1][0]*R[1][1]
+
+    Q[2][0] = R[2][0]*R[2][0]
+    Q[2][1] = R[2][1]*R[2][1]
+    Q[2][2] = R[2][2]*R[2][2]
+    Q[2][3] = 2.0*R[2][1]*R[2][2]
+    Q[2][4] = 2.0*R[2][0]*R[2][2]
+    Q[2][5] = 2.0*R[2][0]*R[2][1]
+
+    Q[3][0] = R[1][0]*R[2][0]
+    Q[3][1] = R[1][1]*R[2][1]
+    Q[3][2] = R[1][2]*R[2][2]
+    Q[3][3] = R[1][1]*R[2][2] + R[1][2]*R[2][1]
+    Q[3][4] = R[1][0]*R[2][2] + R[1][2]*R[2][0]
+    Q[3][5] = R[1][0]*R[2][1] + R[1][1]*R[2][0]
+
+    Q[4][0] = R[0][0]*R[2][0]
+    Q[4][1] = R[0][1]*R[2][1]
+    Q[4][2] = R[0][2]*R[2][2]
+    Q[4][3] = R[0][1]*R[2][2] + R[0][2]*R[2][1]
+    Q[4][4] = R[0][0]*R[2][2] + R[0][2]*R[2][0]
+    Q[4][5] = R[0][0]*R[2][1] + R[0][1]*R[2][0]
+
+    Q[5][0] = R[0][0]*R[1][0]
+    Q[5][1] = R[0][1]*R[1][1]
+    Q[5][2] = R[0][2]*R[1][2]
+    Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1]
+    Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0]
+    Q[5][5] = R[0][0]*R[1][1] + R[0][1]*R[1][0]
+
+    if not derivative:
+      return Q
+    else:
+      # we assemble dQ directly transposed as dQT to spare subsequent transpose
+      dQT = np.zeros((6,6,self.num_optvar))
+
+      dQT[0][0] = (dR[0][0]*R[0][0]+R[0][0]*dR[0][0])
+      dQT[1][0] = (dR[0][1]*R[0][1]+R[0][1]*dR[0][1])
+      dQT[5][0] = 2.0*(dR[0][0]*R[0][1]+R[0][0]*dR[0][1])
+      dQT[0][1] = (dR[1][0]*R[1][0]+R[1][0]*dR[1][0])
+      dQT[1][1] = (dR[1][1]*R[1][1]+R[1][1]*dR[1][1])
+      dQT[5][1] = 2.0*(dR[1][0]*R[1][1]+R[1][0]*dR[1][1])
+      dQT[0][5] = (dR[0][0]*R[1][0]+R[0][0]*dR[1][0])
+      dQT[1][5] = (dR[0][1]*R[1][1]+R[0][1]*dR[1][1])
+      dQT[5][5] = (dR[0][0]*R[1][1]+R[0][0]*dR[1][1]) + (dR[0][1]*R[1][0]+R[0][1]*dR[1][0])
+
+      dQT[2][0] = (dR[0][2]*R[0][2]+R[0][2]*dR[0][2])
+      dQT[3][0] = 2.0*(dR[0][1]*R[0][2]+R[0][1]*dR[0][2])
+      dQT[4][0] = 2.0*(dR[0][0]*R[0][2]+R[0][0]*dR[0][2])
+      dQT[2][1] = (dR[1][2]*R[1][2]+R[1][2]*dR[1][2])
+      dQT[3][1] = 2.0*(dR[1][1]*R[1][2]+R[1][1]*dR[1][2])
+      dQT[4][1] = 2.0*(dR[1][0]*R[1][2]+R[1][0]*dR[1][2])
+      dQT[0][2] = (dR[2][0]*R[2][0]+R[2][0]*dR[2][0])
+      dQT[1][2] = (dR[2][1]*R[2][1]+R[2][1]*dR[2][1])
+      dQT[2][2] = (dR[2][2]*R[2][2]+R[2][2]*dR[2][2])
+      dQT[3][2] = 2.0*(dR[2][1]*R[2][2]+R[2][1]*dR[2][2])
+      dQT[4][2] = 2.0*(dR[2][0]*R[2][2]+R[2][0]*dR[2][2])
+      dQT[5][2] = 2.0*(dR[2][0]*R[2][1]+R[2][0]*dR[2][1])
+      dQT[0][3] = (dR[1][0]*R[2][0]+R[1][0]*dR[2][0])
+      dQT[1][3] = (dR[1][1]*R[2][1]+R[1][1]*dR[2][1])
+      dQT[2][3] = (dR[1][2]*R[2][2]+R[1][2]*dR[2][2])
+      dQT[3][3] = (dR[1][1]*R[2][2]+R[1][1]*dR[2][2]) + (dR[1][2]*R[2][1]+R[1][2]*dR[2][1])
+      dQT[4][3] = (dR[1][0]*R[2][2]+R[1][0]*dR[2][2]) + (dR[1][2]*R[2][0]+R[1][2]*dR[2][0])
+      dQT[5][3] = (dR[1][0]*R[2][1]+R[1][0]*dR[2][1]) + (dR[1][1]*R[2][0]+R[1][1]*dR[2][0])
+      dQT[0][4] = (dR[0][0]*R[2][0]+R[0][0]*dR[2][0])
+      dQT[1][4] = (dR[0][1]*R[2][1]+R[0][1]*dR[2][1])
+      dQT[2][4] = (dR[0][2]*R[2][2]+R[0][2]*dR[2][2])
+      dQT[3][4] = (dR[0][1]*R[2][2]+R[0][1]*dR[2][2]) + (dR[0][2]*R[2][1]+R[0][2]*dR[2][1])
+      dQT[4][4] = (dR[0][0]*R[2][2]+R[0][0]*dR[2][2]) + (dR[0][2]*R[2][0]+R[0][2]*dR[2][0])
+      dQT[5][4] = (dR[0][0]*R[2][1]+R[0][0]*dR[2][1]) + (dR[0][1]*R[2][0]+R[0][1]*dR[2][0])
+      dQT[2][5] = (dR[0][2]*R[1][2]+R[0][2]*dR[1][2])
+      dQT[3][5] = (dR[0][1]*R[1][2]+R[0][1]*dR[1][2]) + (dR[0][2]*R[1][1]+R[0][2]*dR[1][1])
+      dQT[4][5] = (dR[0][0]*R[1][2]+R[0][0]*dR[1][2]) + (dR[0][2]*R[1][0]+R[0][2]*dR[1][0])
+
+    return Q, dQT
+
+  # This returns the base material tensor rotated to spaghetti direction
+  def get_tensor_by_idx(self, idx, X=None, derivative=True):
+    m = self.m # number of segments, one arc less
+
+    if idx == 2*m-1: # circular cap around P^0 -> orientation of 0-th segment
+      idx = 0
+    elif idx == 2*m: # circular cap around P^m -> orientation of last segment
+      idx = m-1
+    # straight segments
+    if idx < m:
+      return (self.mat_tensors[idx], self.grad_mat_tensors[idx])
+    # arcs
+    elif idx < 2*m-1:
+      assert(False) # not implemented yet
+      R, axis = self.get_rotation_matrix_by_idx(idx, X)
+      Q = self.get_rot_6x6(R)
+      return np.dot(Q, np.dot(glob.base_tensor[axis], Q.transpose()))
+    else:
+      assert(False)
+
+  # This returns the base material tensor rotated to spaghetti direction to cache for straight segments
+  def get_tensor_init(self, idx):
+    R, dR, axis = self.get_rotation_matrix_by_idx(idx, derivative=True)
+    self.R[idx] = R
+    self.dR[idx] = dR
+    Q, dQT = self.get_rot_6x6(R, derivative=True, dR=dR)
+    self.QT[idx] = np.transpose(Q)
+    self.dQT[idx] = dQT
+    E = np.matmul(Q, np.matmul(glob.base_tensor[axis], self.QT[idx]))
+
+    dE = np.zeros(dQT.shape)
+    for k in range(dE.shape[2]):
+      help = np.matmul(Q,np.matmul(glob.base_tensor[axis], dQT[:,:,k]))#+np.matmul(np.transpose(dQT[:,:,k]),np.matmul(glob.base_tensor[axis], self.QT[idx]))
+      dE[:,:,k] = help + np.transpose(help)
+
+    return E, dE
 
   # return indices of potential segments cutting element and whether element is full material
   def fe_get_indices(self, X, dx, tr_half):
     idx_intermediate = [self.id]
 
-    lax = 0.51*dx if glob.order == 2 else 0.01*dx # relax index search to distance to integration points
+    lax = 0.51*dx if glob.order == 2 else 0.0001*dx # relax index search to distance to integration points
     profile = self.profile # profile, we are negative inside and 0 at the boundary
     m = self.m # number of segments, one arc less
 
@@ -642,7 +962,7 @@ class Spaghetti:
   def setup_fe_list(self):
     self.fe_list_intermediate = []
     self.fe_list_full = []
-    if self.alpha < 1e-10:
+    if self.alpha < 1e-15:
       return
     bbox_min, bbox_max = self.get_bounding_box()
     fe_min = np.maximum(np.array(np.floor((bbox_min-glob.box_lower)/glob.dx)-1,dtype=int),0)
@@ -715,6 +1035,15 @@ class Spaghetti:
       return self.C[int(args[-1][-1])][args[0]]
     elif str(args[-1]).startswith('n0_arc'):
       return self.n0_arc[int(args[-1][-1])][args[0]]
+    elif str(args[-1]).startswith('Rmat'):
+      i,j = np.unravel_index(args[0], (3,3))
+      return self.R[int(args[-1][-1]),i,j]
+    elif str(args[-1]).startswith('QTmat'):
+      i,j = np.unravel_index(args[0], (6,6))
+      return self.QT[int(args[-1][-1]),i,j]
+    elif str(args[-1]).startswith('mat_tensor'):
+      i,j = np.unravel_index(args[0], (6,6))
+      return self.mat_tensors[int(args[-1][-1]),i,j]
     elif str(args[-1]) == 'distance':
       dist = self.dist(args[0], what='distance')
     elif str(args[-1]) == 'boundary':
@@ -738,6 +1067,15 @@ class Spaghetti:
       return self.sens['grad_C'][int(args[-1][-1])][:,args[0]]
     elif str(args[-1]).startswith('n0_arc'):
       return self.sens['grad_n0_arc'][int(args[-1][-1])][:,args[0]]
+    elif str(args[-1]).startswith('Rmat'):
+      i,j = np.unravel_index(args[0], (3,3))
+      return self.dR[int(args[-1][-1]),i,j]
+    elif str(args[-1]).startswith('QTmat'):
+      i,j = np.unravel_index(args[0], (6,6))
+      return self.dQT[int(args[-1][-1]),i,j]
+    elif str(args[-1]).startswith('mat_tensor'):
+      i,j = np.unravel_index(args[0], (6,6))
+      return self.grad_mat_tensors[int(args[-1][-1]),i,j]
     elif str(args[-1]) == 'distance':
       dist = self.dist(args[0], what='gradient')
     elif str(args[-1]) == 'boundary':
@@ -767,38 +1105,39 @@ def boundary(dist, derivative=False, alpha=None):
     rho = rmx
   elif glob.boundary == 'linear':
     rho = .5*((rmx-rm)*phi/h+rmx+rm)
-  elif glob.boundary == 'poly':
+  elif glob.boundary.startswith('poly'):
     rho = 3.0/4.0*(rmx - rm) * (phi/h - phi**3/(3*h**3)) + .5 * (rmx+rm)
   else:
     print("Error: boundary type '" + glob.boundary + "' not implemented!")
     os.sys.exit()
   grad = dist[1]
   if alpha is not None:
-    rho_orig = rho
+    rho_diff_alpha = rho
     rho = alpha*rho
     grad = alpha*dist[1]
   if derivative != True:
     return rho
   else:
+    idx = dist[2] if len(dist)>2 else None
     if phi <= -h:
-      return (rho, np.zeros(dist[1].shape))
+      return (rho, np.zeros(dist[1].shape), idx)
     elif phi >= h:
-      if not alpha:
-        return (rho, np.zeros(dist[1].shape))
+      if alpha is None:
+        return (rho, np.zeros(dist[1].shape), idx)
       else:
         grad = np.zeros(dist[1].shape)
-        grad[-1] = rho_orig
-        return (rho, grad)
+        grad[-1] = rho_diff_alpha
+        return (rho, grad, idx)
     elif glob.boundary == 'linear':
-      grad *= .5*((rmx-rm)/h)
+      grad *= -.5*((rmx-rm)/h)
       if alpha:
-        grad[-1] = rho_orig
-      return (rho, grad)
-    elif glob.boundary == 'poly':
+        grad[-1] = rho_diff_alpha
+      return (rho, grad, idx)
+    elif glob.boundary.startswith('poly'):
       grad *= -3.0/4.0*(rmx - rm)*(1/h - phi**2/(h**3))
       if alpha:
-        grad[-1] = rho_orig
-      return (rho, grad)
+        grad[-1] = rho_diff_alpha
+      return (rho, grad, idx)
 
 
 # create a idx field for fast access where >= 0 for closest part, -1 for inside and -2 for too far outside
@@ -821,7 +1160,7 @@ def create_idx_field(discretization = None):
 
   idx = np.ones((Nx,Ny,Nz,len(shapes)),dtype=int)
   idx_shapes_only = np.ones((Nx,Ny,Nz,len(shapes)),dtype=int)
-  grad_field = np.zeros((Nx,Ny,Nz,len(shapes),glob.total()))
+  grad_field = np.zeros((Nx,Ny,Nz,len(shapes),glob.num_total))
   dist  = np.ones((Nx,Ny,Nz,len(shapes)))
 
   for i, x in enumerate(x_ls):
@@ -840,6 +1179,7 @@ def create_idx_field(discretization = None):
   return idx, dist, idx_shapes_only
 
 # setup fe lists in shapes
+
 def create_fe_lists():
   with Pool(glob.num_threads) as pool:
     res = pool.map(setup_fe_list_glob, glob.shapes)
@@ -857,6 +1197,7 @@ def create_fe_lists_serial():
     s.setup_fe_list()
 
 # assemble fe field list from shapes
+
 def assemble_fe_field(discretization = None):
   start = ti.time()
   create_fe_lists()
@@ -867,13 +1208,25 @@ def assemble_fe_field(discretization = None):
   #print('setting up FE lists serially:', ti.time()-start, 'seconds')
   start = ti.time()
   glob.fe_list = [[[FE(i,j,k) for i in range(glob.n[2])] for j in range(glob.n[1])] for k in range(glob.n[0])]
+  integratei = []
+  integratej = []
+  integratek = []
   if not glob.silent:
     print(len(glob.fe_list),len(glob.fe_list[0]),len(glob.fe_list[0][0]))
   for snum, s in enumerate(glob.shapes):
     for idx in s.fe_list_full:
       glob.fe_list[idx[0]][idx[1]][idx[2]].shapes_full.append(snum)
+      integratei.append(idx[0])
+      integratej.append(idx[1])
+      integratek.append(idx[2])
     for idx in s.fe_list_intermediate:
       glob.fe_list[idx[0]][idx[1]][idx[2]].shapes_idx_list.append(idx[3])
+      integratei.append(idx[0])
+      integratej.append(idx[1])
+      integratek.append(idx[2])
+  arr = np.array([integratei, integratej, integratek], dtype=int)
+  #save which elements to actually integrate later
+  glob.integrate = np.unique(np.ravel_multi_index(arr, glob.n))
   if not glob.silent:
     print('assembling global FE field:', ti.time()-start, 'seconds')
 
@@ -883,7 +1236,7 @@ def integrate_fe_field():
   order = glob.order
   #glob.dist_field = np.ones(glob.n)
   glob.rho = np.zeros(glob.n)
-  glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.total()))
+  glob.grad_rho = np.zeros((glob.n[0],glob.n[1],glob.n[2],glob.num_total))
   dx = glob.dx
   eta = .5*dx/np.sqrt(3) # distance for Gauss-points
   total_fe = 0
@@ -891,7 +1244,7 @@ def integrate_fe_field():
     for j in range(glob.n[1]):
       for k in range(glob.n[2]):
         rho_sm = 0
-        grad_rho = np.zeros(glob.total())
+        grad_rho = np.zeros(glob.num_total)
         w_s_full = []
         rho_s_full = []
         if glob.fe_list[i][j][k].shapes_full: # at least one shape full
@@ -918,7 +1271,7 @@ def integrate_fe_field():
             #  glob.dist_field[i,j,k] = d
             #  d_min = d
             #rho = boundary([d, gradd], derivative=True)
-            rho, grad_ip = zip(*[boundary(glob.shapes[shape_idx_list[0]].dist_by_idx(X, shape_idx_list[1:]),derivative=True,alpha=glob.shapes[shape_idx_list[0]].alpha) for X in XX])
+            rho, grad_ip, idx_ip = zip(*[boundary(glob.shapes[shape_idx_list[0]].dist_by_idx(X, shape_idx_list[1:]),derivative=True,alpha=glob.shapes[shape_idx_list[0]].alpha) for X in XX])
             rho_s.append(rho)
             grad_rho_s.append(grad_ip)
           rho = np.array(rho_s)
@@ -946,25 +1299,35 @@ def integrate_fe(fe_num):
   order = glob.order
   dx = glob.dx
   eta = .5*dx/np.sqrt(3) # distance for Gauss-points
+  Xmid = glob.mid_lower + np.array([i,j,k],dtype=int)*dx
 
   rho_sm = 0
-  grad_rho = np.zeros(glob.total())
+  grad_rho = np.zeros(glob.num_total)
+  grad_tensor = np.zeros((6,6,glob.num_total))
   w_s_full = []
   rho_s_full = []
+  tensors_s_full = []
+  grad_tensors_s_full = []
   if glob.fe_list[i][j][k].shapes_full: # at least one shape full
     #glob.dist_field[i,j,k] = -glob.transition
     for snum in glob.fe_list[i][j][k].shapes_full:
       rho_s_full.append(glob.rhomax*glob.shapes[snum].alpha)
-      w_s_full.append(np.exp(glob.rhomax*glob.p*glob.shapes[snum].alpha))
+      if glob.anisotropic:
+        t, grad_t = glob.shapes[snum].get_tensor_by_idx(glob.shapes[snum].dist(Xmid, what='index'), Xmid)
+        tensors_s_full.append(t)
+        grad_tensors_s_full.append(grad_t)
   rho_s_full = np.array(rho_s_full)
-  w_s_full = np.array(w_s_full)
+  w_s_full = np.array(np.exp(glob.p*rho_s_full))
   sum_w_s_full = np.sum(w_s_full)
+  tensors_s_full = np.array(tensors_s_full)
   num_full = len(glob.fe_list[i][j][k].shapes_full)
+
   if glob.fe_list[i][j][k].shapes_idx_list: # list not empty, have to integrate
-    Xmid = glob.mid_lower + np.array([i,j,k],dtype=int)*dx
     XX = [[Xmid[0]+it[0], Xmid[1]+it[1], Xmid[2]+it[2]] for it in product([-eta, eta],repeat=3)] if order == 2 else [Xmid]
     rho_s = []
     grad_rho_s = []
+    tensors_s = []
+    grad_tensors_s = []
     s_idx_intermediate = []
     #d_min = 100*glob.transition
     for shape_idx_list in glob.fe_list[i][j][k].shapes_idx_list:
@@ -974,24 +1337,49 @@ def integrate_fe(fe_num):
       #  glob.dist_field[i,j,k] = d
       #  d_min = d
       #rho = boundary([d, gradd], derivative=True)
-      rho, grad_ip = zip(*[boundary(glob.shapes[shape_idx_list[0]].dist_by_idx(X, shape_idx_list[1:]),derivative=True,alpha=glob.shapes[shape_idx_list[0]].alpha) for X in XX])
+      rho, grad_ip, idx_ip = zip(*[boundary(glob.shapes[shape_idx_list[0]].dist_by_idx(X, shape_idx_list[1:],what='distgradidx'),derivative=True,alpha=glob.shapes[shape_idx_list[0]].alpha) for X in XX])
       rho_s.append(rho)
       grad_rho_s.append(grad_ip)
+      if glob.anisotropic:
+        t_s, grad_t_s = zip(*[glob.shapes[shape_idx_list[0]].get_tensor_by_idx(idx_ip[ip], XX[ip]) for ip in range(len(XX))])
+        tensors_s.append(t_s)
+        grad_tensors_s.append(grad_t_s)
     rho = np.array(rho_s)
     w_s = np.exp(glob.p*rho)
     sum_w_s = np.sum(w_s,axis=0)+sum_w_s_full+len(glob.shapes)-len(w_s)-num_full
     rho_sm = (np.sum(w_s*rho,axis=0)+np.sum(rho_s_full*w_s_full))/sum_w_s
     rho_sm = np.sum(rho_sm)/order**3
+    if glob.anisotropic:
+      tensors_s = np.array(tensors_s)
+      tensors_sm = np.sum(np.expand_dims(np.expand_dims(w_s*rho,axis=2),axis=3)*tensors_s,axis=0)
+      if len(rho_s_full)>0:
+        tensors_sm += np.sum(np.expand_dims(np.expand_dims(w_s_full*rho_s_full,axis=1),axis=2)*tensors_s_full,axis=0)
+      tensors_sm /= np.expand_dims(np.expand_dims(sum_w_s,axis=1),axis=2)
+      tensors_sm = np.sum(tensors_sm,axis=0)/(order**3)
     for num, sidx in enumerate(s_idx_intermediate):
-      grad_rho[glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = np.sum(np.expand_dims(w_s[num]/sum_w_s*(1+glob.p*(rho_s[num] - rho_sm)),axis=1)*grad_rho_s[num],axis=0)/order**3
+      grad_rho_ip = np.expand_dims(w_s[num]/sum_w_s*(1+glob.p*(rho_s[num] - rho_sm)),axis=1)*grad_rho_s[num]
+      grad_rho[glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = np.sum(grad_rho_ip,axis=0)/order**3
+      if glob.anisotropic:
+        grad_tensor_ip = np.expand_dims(np.expand_dims(np.expand_dims(w_s[num]/sum_w_s,axis=1),axis=2)*(tensors_s[num]+glob.p*(np.expand_dims(np.expand_dims(rho_s[num],axis=1),axis=2)*tensors_s[num] - tensors_sm)),axis=3)*np.expand_dims(np.expand_dims(grad_rho_s[num],axis=1),axis=2)
+        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = (np.sum(grad_tensor_ip,axis=0)+np.sum(w_s[num]*rho_s[num]*grad_tensors_s[num]/sum_w_s,axis=0))/(order**3)
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = np.sum(w_s_full[num]/sum_w_s)/order**3*(1+glob.p*(rho_s_full[num]-rho_sm))
+      if glob.anisotropic:
+        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = w_s_full[num]*rho_s_full[num]*grad_tensors_s_full[num]/sum_w_s
+        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] += w_s_full[num]/np.sum(sum_w_s)*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm))
     #rho_sm = boundary(d_min)
-  else:
+  elif len(rho_s_full)>0:
     rho_sm = np.sum(rho_s_full*w_s_full)/(sum_w_s_full+len(glob.shapes)-num_full)
+    if glob.anisotropic:
+      tensors_sm = np.sum(np.expand_dims(np.expand_dims(rho_s_full*w_s_full,axis=1),axis=2)*tensors_s_full,axis=0)/(sum_w_s_full+len(glob.shapes)-num_full)
     for num, sidx in enumerate(glob.fe_list[i][j][k].shapes_full):
       grad_rho[glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(1+glob.p*(rho_s_full[num]-rho_sm))
-  return (rho_sm, grad_rho)
+      if glob.anisotropic:
+        grad_tensor[:,:,glob.shapes[sidx].base:glob.shapes[sidx].base+glob.shapes[sidx].num_optvar] = rho_s_full[num]*w_s_full[num]*grad_tensors_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)
+        grad_tensor[:,:,glob.shapes[sidx].base+glob.shapes[sidx].num_optvar-1] = w_s_full[num]/(sum_w_s_full+len(glob.shapes)-num_full)*(tensors_s_full[num]+glob.p*(rho_s_full[num]*tensors_s_full[num]-tensors_sm))
+  else:
+    tensors_sm = np.zeros((6,6))
+  return (rho_sm, grad_rho) if not glob.anisotropic else (rho_sm, grad_rho, tensors_sm, grad_tensor)
 
 # get constraint sparsity pattern
 # did not implement exact sparsity pattern yet, just adding all variables of spaghetti
@@ -1021,6 +1409,24 @@ def cfs_get_gradient_arc_overlap(constraint_num):
   gradient_full = shape.get_gradient_arc_overlap(a_num)
   return gradient_full[cfs_jac-shape.base]
 
+# get penalized volume in python for anisotropic SpaghettiParamMat
+def cfs_get_python_volume(constraint_num):
+  cfs_map_to_design() # should already be precomputed
+  q = glob.q
+  vol = np.sum((1+q)*glob.rho/(q*glob.rho+1))/np.prod(glob.n)
+  return vol
+
+# get volume gradient in python for anisotropic SpaghettiParamMat
+def cfs_get_gradient_python_volume(constraint_num):
+  cfs_map_to_design() # should already be precomputed
+  q = glob.q
+  grad = np.sum(np.sum(np.sum(np.expand_dims((1+q)/(q*glob.rho+1)**2,axis=3)*glob.grad_rho, axis=0),axis=0),axis=0)/np.prod(glob.n)
+  return grad[glob.opt_ind]
+
+# get constraint sparsity pattern (full in volume case)
+def cfs_get_sparsity_python_volume(opt):
+  cfs_jac = [np.arange(len(glob.opt_ind))]
+  return cfs_jac
 
 def get_vector_arc_overlap(var_all):
   const = []
@@ -1163,6 +1569,102 @@ def idx_min(a,b):
     else:
       return b
 
+# find closest point to P between shape tips and added_points
+def match_point(P, shapeid=None, added_points=np.empty((0))):
+  minP = (None, -1)
+  for shape2 in glob.shapes:
+    if not shape2.id == shapeid:
+      minP = idx_min(minP, (norm(P-shape2.P[0]), [shape2.id, 0]))
+      minP = idx_min(minP, (norm(P-shape2.P[-1]), [shape2.id, -1]))
+  for i in range(added_points.shape[0]):
+      minP = idx_min(minP, (norm(P-added_points[i]),[-i-1, None]))
+  if shapeid is not None:
+    if not glob.silent:
+      print('Nearest for shape', shapeid, 'P0=' if norm(glob.shapes[shapeid].P[0]-P)<1e-13 else 'Pm=', P, ':')
+      if minP[1][0]>=0:
+        print('shape', minP[1][0], glob.shapes[minP[1][0]].P, 'with dist=',minP[0])
+      else:
+        print('endpoint', -minP[1][0]-1, added_points[-minP[1][0]-1], 'with dist=',minP[0])
+  return minP
+
+def analyze_graph(args, export=True):
+    glob.vertices = []
+    endpoints = np.empty((0))
+    if args.add_endpoints:
+      endpoints = np.array(args.add_endpoints.split(','),dtype=float)
+      endpoints= endpoints.reshape(round(len(endpoints)/3),3)
+      for i in range(endpoints.shape[0]):
+        glob.vertices.append([[endpoints[i],None]])
+      if not glob.silent:
+        print('added endpoints:', endpoints)
+    for shape in glob.shapes:
+      for i in [0,-1]:
+        if shape.match[i] < 0: # not yet matched
+          minP = match_point(shape.P[i], shapeid=shape.id, added_points=endpoints)
+          if minP[1][0] < 0: # added endpoint
+            shape.match[i] = len(glob.vertices)
+            glob.vertices[-minP[1][0]-1].append([shape.P[i], shape.id])
+          elif glob.shapes[minP[1][0]].match[minP[1][1]] >= 0: # matched to existing vertex
+            glob.vertices[glob.shapes[minP[1][0]].match[minP[1][1]]].append([shape.P[i], shape.id])
+            shape.match[i] = glob.shapes[minP[1][0]].match[minP[1][1]]
+          else:
+            shape.match[i] = len(glob.vertices)
+            glob.shapes[minP[1][0]].match[minP[1][1]] = len(glob.vertices)
+            glob.vertices.append([[shape.P[i], shape.id],[glob.shapes[minP[1][0]].P[minP[1][1]], glob.shapes[minP[1][0]].id]])
+
+    if export:
+      # set up lists of nodes and edges for export
+      nodes = []
+      edges = []
+      targets = []
+      for i, vertex in enumerate(glob.vertices):
+        if not glob.silent:
+          print('Vertex ', i, 'with shape points', glob.vertices[i])
+        # add endpoints exactly if given
+        if vertex[0][1] is None:
+          nodes.append(vertex[0][0])
+        # otherwise add average of endpoints corresponding to vertex
+        else:
+          P = np.zeros((3))
+          sum_weights = 0
+          for node in vertex:
+            P += glob.shapes[node[1]].profile*node[0]
+            sum_weights += glob.shapes[node[1]].profile
+          P /= sum_weights
+          nodes.append(P)
+          for node in vertex:
+            s = glob.shapes[node[1]]
+            if norm(s.P[0]-node[0]) < norm(s.P[-1]-node[0]):
+              s.P[0] = P
+            else:
+              s.P[-1] = P
+      # write back as .density.xml with moved nodes
+      write_xml(args.input[0:-12] + '_graph.density.xml', glob.shapes)
+
+      # add connections for shapes
+      for shape in glob.shapes:
+        edges.append(shape.match)
+        targets.append(shape.profile)
+
+      # Create xl writer
+      writer = pd.ExcelWriter(args.input[0:-12] + '_graph.xlsx')
+
+      v = pd.DataFrame()
+      v['vertex_id'] = list(range(len(nodes)))
+      v['xcoord'] = [node[1] for node in nodes]
+      v['ycoord'] = [node[2] for node in nodes]
+      v.to_excel(writer, sheet_name='vertices', index=False)
+
+      e = pd.DataFrame()
+      e['edge_id'] = list(range(len(edges)))
+      e['vertex1_id'] = [edge[0] for edge in edges]
+      e['vertex2_id'] = [edge[1] for edge in edges]
+      e['target'] = targets
+      #e['target_n'] = [e.n for e in scenery.edges]
+      e.to_excel(writer, sheet_name = "edges", index = False)
+
+      writer.close()
+
 # reads 2D and returns list of Spaghettis
 # @param radius if given overwrites the value from the xml header
 def read_xml(filename, set = None):
@@ -1196,9 +1698,21 @@ def read_xml(filename, set = None):
     # width of noodle is 2*w -> don't confuse with P
     p  = float(ot.xpath(xml, base + '[@type="profile"]/@design'))
 
-    Px = read_xml_list(xml, base, '[@dof="x"]')
-    Py = read_xml_list(xml, base, '[@dof="y"]')
-    Pz = read_xml_list(xml, base, '[@dof="z"]')
+    Pxl = read_xml_list(xml, base, '[@dof="x"]')
+    Pyl = read_xml_list(xml, base, '[@dof="y"]')
+    Pzl = read_xml_list(xml, base, '[@dof="z"]')
+    Px = np.empty(len(Pxl))
+    Px[0] = Pxl[0]
+    Px[1:-1] = Pxl[2:]
+    Px[-1] = Pxl[1]
+    Py = np.empty(len(Pyl))
+    Py[0] = Pyl[0]
+    Py[1:-1] = Pyl[2:]
+    Py[-1] = Pyl[1]
+    Pz = np.empty(len(Pzl))
+    Pz[0] = Pzl[0]
+    Pz[1:-1] = Pzl[2:]
+    Pz[-1] = Pzl[1]
     r = read_xml_list(xml, base, '[@type="radius"]')
     alpha = float(ot.xpath(xml, base + '[@type="alpha"]/@design'))
 
@@ -1239,10 +1753,10 @@ def visualize(shapes, filename):
   mycolors = ['Red', 'LawnGreen', 'SteelBlue', 'MediumTurquoise', 'Coral', 'Pink', 'Lavender', 'Ivory']
   bkg = map(lambda x: x / 255.0, [26, 51, 102, 255])
   colors.SetColor("BkgColor", *bkg)
+  rgb = [0,0,0]
   for s in shapes:
     if s.alpha < 0.05:
       continue
-    rgb = [0,0,0]
     colors.GetColorRGB(mycolors[s.id % len(mycolors)], rgb)
 
   # create cylinders
@@ -1257,6 +1771,8 @@ def visualize(shapes, filename):
       cylinder.SetCapping(False)
       vec = L2-L1
       height = norm(vec)
+      if height < 1e-15:
+        print("Warning: segment of zero length for shape", s.id, s.P)
       vec = vec/height
       cylinder.SetHeight(height)
       rot = np.cross(vec,np.array((0,1,0)))
@@ -1392,10 +1908,10 @@ def visualize(shapes, filename):
 
 
     ren.AddActor(sphereActor)
-  colors.GetColorRGB("BkgColor", rgb)
+  colors.GetColorRGB("White", rgb)
   ren.SetBackground(rgb)
   renWin.SetSize(1600, 1200)
-  renWin.SetWindowName('CylinderExample')
+  renWin.SetWindowName('spaghetti visualization')
 
   axes = vtkAxesActor()
   axes.AxisLabelsOff()
@@ -1405,7 +1921,6 @@ def visualize(shapes, filename):
 
   #  The axes are positioned with a user transform
   axes.SetUserTransform(transform)
-
   widget = vtkOrientationMarkerWidget()
   rgba = [0] * 4
   colors.GetColor('Carrot', rgba)
@@ -1416,6 +1931,20 @@ def visualize(shapes, filename):
   widget.SetEnabled(1)
   widget.InteractiveOn()
 
+  # # screenshot code:
+  # w2if = vtkWindowToImageFilter()
+  # w2if.SetInput(renWin)
+  # w2if.SetInputBufferTypeToRGB()
+  # w2if.ReadFrontBufferOff()
+  # w2if.Update()
+  # print(3)
+  #
+  # writer = vtkPNGWriter()
+  # writer.SetFileName('TestScreenshot.png')
+  # writer.SetInputConnection(w2if.GetOutputPort())
+  # writer.Write()
+  # print(4)
+
   # This allows the interactor to initalize itself. It has to be
   # called before an event loop.
   iren.Initialize()
@@ -1423,7 +1952,9 @@ def visualize(shapes, filename):
   # We'll zoom in a little by accessing the camera and invoking a "Zoom"
   # method on it.
   ren.ResetCamera()
-  ren.GetActiveCamera().Zoom(.8)
+  ren.GetActiveCamera().Zoom(1.4)
+  ren.GetActiveCamera().SetPosition([-4432,798,1052])
+  ren.GetActiveCamera().SetFocalPoint([14,798,1052])
   renWin.Render()
 
   exporter = vtkOBJExporter()
@@ -1504,11 +2035,26 @@ def write_xml(filename, shapes, remove_ghosts=-1, remove_alpha=0, padnormals=0):
 
 # __name__ is 'spaghetti' if imported or '__main__' if run as commandline tool
 if __name__ == '__main__':
+  import cProfile
+  # if check avoids hackery when not profiling
+  # Optional; hackery *seems* to work fine even when not profiling, it's just wasteful
+  if sys.modules['__main__'].__file__ == cProfile.__file__:
+      import spaghetti3d  # Imports you again (does *not* use cache or execute as __main__)
+      globals().update(vars(spaghetti3d))  # Replaces current contents with newly imported stuff
+      sys.modules['__main__'] = spaghetti3d  # Ensures pickle lookups on __main__ find matching version
+
+  # fails with default 'spawn' on macOS
+  # https://stackoverflow.com/questions/69493104/multiprocessing-example-giving-attributeerror-on-mac
+  multiprocessing.set_start_method('fork',force=True)
+
   parser = argparse.ArgumentParser()
   parser.add_argument("input", help="a .density.xml")
   parser.add_argument("--set", help="set within a .density.file", type=int)
-  parser.add_argument("--order", help="number of integration points per dimension and element", choices=[1, 2], default=1, type=int)  
+  parser.add_argument("--order", help="number of integration points per dimension and element", choices=[1, 2], default=1, type=int)
+  parser.add_argument("--anisotropic", help="use anisotropic carbon fiber material oriented along spaghetti", action='store_true')
   parser.add_argument("--silent", help="verbosity of print output", action='store_true')
+  parser.add_argument('--cfs_eval', help="evaluate design and gradients as from cfs", action='store_true')
+  parser.add_argument('--transition', help="transition size for cfs_eval", type=float)
   parser.add_argument('--vtk', help="write vtk file for given name (w/o extenstion)")
   parser.add_argument('--vtk_res', help="resolution for vtk export", type=int, default=200)
   parser.add_argument('--vtk_lists', help="write vtk file for given name (w/o extention)")
@@ -1520,17 +2066,30 @@ if __name__ == '__main__':
   parser.add_argument('--remove_alpha', help="remove alpha variable from .density.xml file: 0=off, 1=remove, 2=scale profile with previous alpha", choices=[0,1,2], default=0, type=int)
   parser.add_argument('--saveall', help="save all sets as image with the given format. Might be png, pdf, eps, vtp", action='store_true')
   parser.add_argument('--padradii', help="pad radii with additional radii (zero-valued) so there is a total of x radii", type=int, default=0)
+  parser.add_argument('--analyze_graph', help="print spaghetti end points with attempted match of connection setup", action='store_true')
+  parser.add_argument('--add_endpoints', help="only for --analyze_graph: add open-ended points of structure (comma separated; e.g. loads, supports)", required=False)
 
 
   args = parser.parse_args()
 
+  glob.anisotropic = args.anisotropic
+  if glob.anisotropic:
+    glob.rhomax = 1
+    glob.rhomin = 0
   glob.shapes = read_xml(args.input, args.set)
   glob.order = args.order
-  glob.rhomax = 1
-  glob.rhomin = 0
   glob.gradient_check = args.gradient_check
   glob.silent = args.silent
+  glob.num_total = glob.total()
 
+  if args.analyze_graph:
+    analyze_graph(args)
+
+  if args.cfs_eval:
+    if args.transition:
+      glob.transition = args.transition
+    cfs_map_to_design()
+    cfs_get_gradient(np.ones((np.prod(glob.n)*21)), 'eval')
   if args.vtk_lists:
     cfs_map_to_design()
     write_vtk_lists(args.vtk_lists)
@@ -1543,24 +2102,32 @@ if __name__ == '__main__':
     for shape in glob.shapes:
       optvar = shape.optvar()
       which =  []
-      for st in ['P', 't', 'gamma', 'C', 'n0_arc']:
+      for st in ['P', 't', 'gamma', 'C', 'n0_arc', 'Rmat', 'QTmat', 'mat_tensor'] if glob.anisotropic else ['P', 't', 'gamma', 'C', 'n0_arc']:
         for ii in range(len(shape.t)+1):
-          if (st == 't' and ii == len(shape.t)) or (st == 'gamma' and (ii == 0 or ii == len(shape.radii)-1)) or (st == 'n0_arc' and (ii == 0 or ii == shape.m)):
+          if ((st == 't' or st == 'mat_tensor' or st == 'Rmat' or st == 'QTmat') and ii == len(shape.t)) or (st == 'gamma' and (ii == 0 or ii == len(shape.radii)-1)) or (st == 'n0_arc' and (ii == 0 or ii == shape.m)):
             #print('skip ' + st + str(ii))
             continue
           which.append(st+str(ii))
       for qname in which:
-        for xyz in [0,1,2]:
+        for xyz in range(36):
           if qname.startswith('gamma'):
-            if xyz == 1 or xyz == 2:
+            if xyz > 0:
+              continue
+          elif qname.startswith('P') or qname.startswith('t') or qname.startswith('C') or qname.startswith('n0_arc'):
+            if xyz > 2:
+              continue
+          elif qname.startswith('Rmat'):
+            if xyz > 8:
               continue
           fd_grad = sciopt.approx_fprime(optvar, shape.func, eps, [xyz, qname])
           grad = shape.grad(optvar, [xyz, qname])
-          if norm(fd_grad-grad) > 1e-6:
-            print(qname + ',variable:' + str(xyz))
+          if (not qname.startswith('mat_tensor') and norm(fd_grad-grad) > 1e-4) or norm(fd_grad-grad) > 5e-2:
+            print('\n' + qname + ',variable:' + (str(np.unravel_index(xyz, (6,6))) if (qname.startswith('mat_tensor') or qname.startswith('QTmat')) else str(np.unravel_index(xyz, (3,3)))))
             print("FD approximation:" + str(fd_grad))
             print("Analytic gradient:" + str(grad))
-            print("L2 error:" + str(norm(fd_grad-grad)))
+          else:
+            #print("L2 error:" + str(norm(fd_grad-grad)) + '\n')
+            print(qname, np.unravel_index(xyz, (6,6)) if (qname.startswith('mat_tensor') or qname.startswith('QTmat')) else xyz)
     print('\n\n')
 
 #    n  = glob.n
@@ -1587,11 +2154,15 @@ if __name__ == '__main__':
 #              print("L2 error:" + str(norm(fd_grad-grad)))
 #    print('\n\n')
 
+    if glob.anisotropic:
+      cfs_map_to_design()
+      grad_check_tensor()
+
     assemble_fe_field()
     integrate_fe_field()
     n = glob.n
     count = 0
-    opt = np.zeros(glob.total())
+    opt = np.zeros(glob.num_total)
     for s in glob.shapes:
       opt[s.base:s.base+s.num_optvar] = s.optvar()
     with Pool(glob.num_threads) as pool:
@@ -1620,8 +2191,8 @@ if __name__ == '__main__':
             rho_ref = np.sum(w_s*rho_ref_s)/np.sum(w_s)
             if rho_ref < 1e-16:
               continue
-            for optvar in range(glob.total()):
-              delta = np.zeros(glob.total())
+            for optvar in range(glob.num_total):
+              delta = np.zeros(glob.num_total)
               delta[optvar] = eps
               #rho_sm = boundary(s.func(s.optvar()+delta, [Xmid, 'distance']))
               rho_s = np.array([s.func(opt[s.base:s.base+s.num_optvar]+delta[s.base:s.base+s.num_optvar], [Xmid, 'boundary']) for s in glob.shapes])

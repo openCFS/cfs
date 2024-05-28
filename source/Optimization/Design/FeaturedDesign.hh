@@ -207,6 +207,8 @@ protected:
 
   Boundary boundary_ = NO_BOUNDARY;
 
+  unsigned int order = 1;
+
   Orientation orientation_ = ROUNDED;
 
   /** shortcut to the dimension (2|3) */

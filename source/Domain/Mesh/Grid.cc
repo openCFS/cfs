@@ -935,7 +935,7 @@ namespace CoupledField
     StdVector<double> max(3);
     UInt dim = this->GetDim();
     min.Init(1e10);
-    max.Init(1e-10);
+    max.Init(-1e10);
 
     StdVector <Elem*> elems;
     this->GetElems(elems,region);

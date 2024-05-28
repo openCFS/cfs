@@ -164,7 +164,7 @@ ErsatzMaterial::ErsatzMaterial() :
     if((   dt == DesignElement::MECH_TRACE || dt == DesignElement::MECH_ALL
         || dt == DesignElement::DIELEC_TRACE || dt == DesignElement::DIELEC_ALL
         || dt == DesignElement::PIEZO_ALL || dt == DesignElement::ALL_DESIGNS)
-       && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
+       && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT || method_ == SPAGHETTI_PARAM_MAT))
       continue;
 
     if(dt != DesignElement::DEFAULT && design->FindDesign(g->GetDesignType(), false) == -1)
@@ -1375,6 +1375,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::SHAPE_INF:
     case Function::LOCAL_PYTHON_FUNCTION:
     case Function::ARC_OVERLAP:
+    case Function::PYTHON_VOLUME:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;
