@@ -11,7 +11,6 @@
 #include <def_use_gidpost.hh>
 #include <def_use_hwloc.hh>
 #include <def_use_ipopt.hh>
-#include <def_use_knitro.hh>
 #include <def_use_libfbi.hh>
 #include <def_use_libxml2.hh>
 #include <def_use_lis.hh>
@@ -413,14 +412,6 @@ void Dependencies::ReadSetting()
   ipopt.SetVersion(IPOPT_VERSION);
 #endif
   data.Push_back(ipopt);
-
-  // knitro is a commercial optimizer which failed to be effective for topology optimization
-  // To use knitro organize it yourself, provide the lib and set USE_KNITRO
-  Dependency knitro("KNITRO", "USE_KNITRO", COMMERCIAL);
-#ifdef USE_KNITRO
-  knitro.active(true)
-#endif
-  data.Push_back(knitro);
 
   // requires simply python on the system set by PYTHON_INCLUDE_DIR and PYTHON_LIBRARY
   Dependency python("Python", "USE_EMBEDDED_PYTHON", EASY);

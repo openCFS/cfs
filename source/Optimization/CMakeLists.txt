@@ -22,6 +22,7 @@ SET(OPTIMIZATION_SRCS
   Objective.cc
   Context.cc
   ParamMat.cc
+  Tune.cc
  )
 
 ADD_DEFINITIONS(-DUSE_4_CFS)

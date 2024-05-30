@@ -54,7 +54,7 @@ extern PythonKernel* python;
 class PythonKernel
 {
 public:
-  typedef enum { POST_GRID = 0, POST_DOMAIN_INIT, POST_SOLVE_PROBLEM, OPT_EVAL_FUNC, OPT_EVAL_GRAD, ASSEMBLE_RHS} Hook;
+  typedef enum { ASSEMBLE_RHS = 0, OPT_EVAL_FUNC, OPT_EVAL_GRAD, OPT_POST_INIT, OPT_POST_ITER, POST_DOMAIN_INIT, POST_GRID, POST_SOLVE_PROBLEM} Hook;
 
   static Enum<Hook> hook;
 
@@ -65,6 +65,9 @@ public:
   {
 #ifdef USE_EMBEDDED_PYTHON
     Init(pn,info);
+#else
+    if(pn != nullptr)
+      throw Exception("'python' element given but compiled w/o USE_EMBEDDED_PYTHON: " + pn->GetLocation());
 #endif
   }
 

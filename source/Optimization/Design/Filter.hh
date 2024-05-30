@@ -2,6 +2,7 @@
 #define FILTER_HH_
 
 #include "General/Enum.hh"
+#include "Optimization/Tune.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/Design/BaseDesignElement.hh"
 
@@ -10,6 +11,7 @@ namespace CoupledField
 
 class DesignSpace;
 class DesignElement;
+class MathParser;
 struct GlobalFilter;
 
 /** This is an information container for the Filter which is stored in the DesignElemen!.
@@ -39,9 +41,10 @@ public:
    * Standard: the plain filter
    * modified heaviside, Sigmund (29), postproc stanard to 1 or max
    * tanh: Variant of the Xu-Filter as in Wang,Lazarow,Sigmund; On projection methods, ...;2010 but simpler implementation!
+   * expression: math parser exression with child element 'exression'
    * material: from Lukas: rho_material(x)=mp(rho(x)) * ms(density_filter(mf(x))) with material filter transfer functions phase, scale, and filter
    * material_part: for computational use only: only density_filter(mf(x)) without transfer functions phase and scale */
-  typedef enum { STANDARD, SOLID_HEAVISIDE, VOID_HEAVISIDE, TANH, MATERIAL, MATERIAL_PART } Density;
+  typedef enum { STANDARD, SOLID_HEAVISIDE, VOID_HEAVISIDE, TANH, EXPRESSION, MATERIAL, MATERIAL_PART } Density;
 
   /** the way of the weighting in the filter. CONSTANT e.g. for MAX filter */
   typedef enum { NO_CONTRIBUTION, LINEAR, CONSTANT } Contribution;
@@ -126,6 +129,20 @@ public:
 struct GlobalFilter
 {
 public:
+  /** the copy constructor cannot handle the math parser and Tune properly.
+   * ReInitParser() creates a new math parser handle and does not release the old.
+   * We need to call this every time we create GF instance! */
+  void PostCopy(bool register_tune);
+
+  /** math parser expression */
+  void InitParser(const string& func_expr, const string& deriv_expr);
+
+  /** the default copy constructor kills the math parser, it is registered with
+   * the double reference of the original class.
+   * This overwrites the parser but does not release the handles as the id's are from
+   * the original class */
+  void ReInitParser();
+
   bool Enabled() const { return type != Filter::NO_FILTERING; }
 
   /** Convenience function. Gives a lower bound. The explicit filter bound if given, otherwise
@@ -140,6 +157,10 @@ public:
 
   Filter::Type GetType() const { return type; }
 
+  /** evaluate the math parser expression with optional applying nonlinear scaling and offset */
+  double EvalExpressionFunction(double x, bool scale) const;
+  double EvalExpressionDerivative(double x, bool scale) const;
+
   /** some debug information */
   std::string ToString() const;
 
@@ -148,7 +169,8 @@ public:
 
   Filter::Type type = Filter::NO_FILTERING;
 
-  /** this is the beta parameter for the heaviside filters or tanh design filter. */
+  /** this is the beta parameter for the heaviside filters or tanh design filter.
+   * the mathparser uses it as reference variable to allow it updated */
   double beta = -1.0;
 
   /** switching parameter for tanh */
@@ -179,7 +201,7 @@ public:
   /** average radius */
   double avg_radius = 0.0;
 
-  /** average neigbor size */
+  /** average neighbor size */
   double avg_neigbor = 0.0;
 
   /** to have F(rho_max) = rho_max and F(rho_min) = rho_min we need a scaling and a offset.
@@ -197,6 +219,20 @@ public:
 
   /** transfer function as function of plain rho be multiplied with scaled filter */
   TransferFunction mat_phase;
+
+  /** optional automatic beta setter. Has Init() and a late post init Register() because of the GlobalFilter copy constructor issue */
+  Tune tune;
+
+  /** for expression */
+  MathParser* parser_ = nullptr;
+
+  /** math parser handle */
+  unsigned int function_handle_ = 0;
+  unsigned int derivative_handle_ = 0;
+private:
+  /** the math parser input (density filtered value) - requires ReInitiParser() */
+  mutable double expression_x_ = -1.2;
+
 };
 
 /** needs to be here due to forward declaration :( */

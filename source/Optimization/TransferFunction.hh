@@ -7,6 +7,7 @@
 #include "General/Enum.hh"
 #include "Optimization/Design/BaseDesignElement.hh"
 #include "Optimization/Context.hh"
+#include "Optimization/Tune.hh"
 
 namespace CoupledField
 {
@@ -75,7 +76,6 @@ namespace CoupledField
       App::Type GetApplication() { return application_; }
       
       BaseDesignElement::Type GetDesign() { return design_; }
-
       
       Type GetType() const { return type_; }
       
@@ -91,6 +91,9 @@ namespace CoupledField
 
       void SetOffset(double val) { offset_ = val; }
 
+      /** check if tune is set, and if so, register */
+      void RegisterTune(Optimization* opt);
+
       /** gives debug information */
       std::string ToString();
 
@@ -101,11 +104,12 @@ namespace CoupledField
       static Enum<Type> type;
 
       TransferFunction& operator=(const TransferFunction& other);
+
     private:
       /** for constructor and copy constructor */
       void InitParser(const std::string& func_expr, const std::string& deriv_expr);
 
-      /** common for copy constructor and asignment operstor */
+      /** common for copy constructor and assignment operator */
       void Copy(const TransferFunction& other);
 
       static void SetEnums();
@@ -121,7 +125,7 @@ namespace CoupledField
       /** type of application */
       App::Type application_ = App::NO_APP;
        
-      /** e.g. the exponent for SIMP, not used in IDENTIY */
+      /** e.g. the exponent for SIMP, not used in IDENTIY. Can be tuned! */
       double param_ = 0.0;
 
       /** heaviside and tanh have also beta */
@@ -134,15 +138,19 @@ namespace CoupledField
       /** @see scaling_ */
       double offset_ = 0.0;
 
+      /** Init() if we tune the panalty param and Register() that objection which is actually used (copy constructor hell!) */
+      Tune tune_;
+
       /** for expression */
-      MathParser* parser_ = NULL;
+      MathParser* parser_ = nullptr;
 
       /** math parser handle */
       unsigned int function_handle_ = 0;
       unsigned int derivative_handle_ = 0;
 
       /** the expression uses this value via reference.
-       * We use this value "temporarily", hence setting it in Transfer() and Derivative() allows these function still to be const */
+       * We use this value "temporarily", hence setting it in Transfer() and Derivative() allows these function still to be const
+       * We need Copy() to have this reference for each instance! */
       mutable double expression_rho_ = 0.0;
   };
 

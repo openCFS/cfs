@@ -526,7 +526,7 @@ double SIMPElement::CalcHeaviside(double input_value, const GlobalFilter* f)
 
     // no LOG_DBG possible due to inline
   }
-  else // if(f.density_ == Filter::MOD_HEAVISIDE)
+  else // if(f.density_ == Filter::VOID_HEAVISIDE)
   {
 
     double first    = std::exp(-1.0 * b * (1.0 - input_value));
@@ -557,7 +557,7 @@ double SIMPElement::CalcTanh(double input_value, const GlobalFilter* f)
   double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
   double result = f->non_lin_scale * (func) + f->non_lin_offset;
 
-  // std::cout << "CT: de=" << ToString() << " fix=" << filter_idx << " s=" << f.non_lin_scale << " o=" << f.non_lin_offset << " iv=" << input_value << " func=" << func << " -> " << result << std::endl;
+  //std::cout << "CT: b=" << b << " e=" << e << " s=" << f->non_lin_scale << " o=" << f->non_lin_offset << " iv=" << input_value << " func=" << func << " -> " << result << std::endl;
   return result;
 }
 

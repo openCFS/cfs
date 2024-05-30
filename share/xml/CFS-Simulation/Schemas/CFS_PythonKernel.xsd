@@ -29,12 +29,44 @@
           <xsd:attribute name="hook" use="required" >
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="post_grid" />
-                <xsd:enumeration value="post_solve_problem" />
-                <xsd:enumeration value="post_domain_init" />
                 <xsd:enumeration value="assemble_rhs">
                   <xsd:annotation>
                     <xsd:documentation>Called before a new (non) linear rhs is assembled</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="opt_eval_func">
+                  <xsd:annotation>
+                    <xsd:documentation>Called before in optimization a function (objective/constraint) is evaluated</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="opt_eval_grad">
+                  <xsd:annotation>
+                    <xsd:documentation>Called before in optimization a function gradient (objective/constraint) is evaluated</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="opt_post_init">
+                  <xsd:annotation>
+                    <xsd:documentation>Called when optimization is finished with initialization</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="opt_post_iter">
+                  <xsd:annotation>
+                    <xsd:documentation>Called when in optimization an iteration is finished</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="post_domain_init">
+                  <xsd:annotation>
+                    <xsd:documentation>Called when the simulation domain is set up</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="post_grid">
+                  <xsd:annotation>
+                    <xsd:documentation>Called when the mesh is set up</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="post_solve_problem">
+                  <xsd:annotation>
+                    <xsd:documentation>Called after simulation/optimization</xsd:documentation>
                   </xsd:annotation>
                 </xsd:enumeration>
               </xsd:restriction>

@@ -28,16 +28,22 @@ namespace CoupledField
       /** This destructor does nothing but Optimizer has a virtual destructor */
       ~OptimalityCondition() { } 
       
-      virtual void LogFileHeader(Optimization::Log& log);
+      void LogFileHeader(Optimization::Log& log) override;
 
-      virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
+      void LogFileLine(std::ofstream* out, PtrParamNode iteration) override;
+
+      void ToInfo(PtrParamNode info) override;
+
+      void DescribeProperties(StdVector<std::pair<std::string, std::string> >& map) const override;
+
+      void PythonSetProperty(PyObject* args) override;
 
     protected:
 
       /** Solves the problem. All stuff, including evaluations of the state problem is done
        * within this method. 
        * @throws exception when not ok! */ 
-      void SolveProblem();
+      void SolveProblem() override;
       
     private:
       /** This are our both bisection types. Framed is what Sigmund did, Trajectory is own breed but
@@ -60,7 +66,6 @@ namespace CoupledField
       /** Do a bisection iteration with a free moving lambda */
       void CalcNextTrajectoryIteration();
       
-      
       /** For simple plate problems with mixed signed gradiens w/o constraints. Follows the
        * gradient by move_limit w/o any sorting! */
       void CalcNextExtremizeIteration();
@@ -75,62 +80,75 @@ namespace CoupledField
        * @return the error assuming a single volume constraint */
       double Evaluate(double lambda);
 
+      /** helper which checks, if values are within design bounds. To be used in assert  */
+      bool IsWithinBounds(const Vector<double>& data);
+
       /** What type of bisection do we do? It becomes more subtle when not doing compliance! */
-      Type type_;
+      Type type_ = FRAMED;
       
       /** reads the type from xml */
       Enum<Type> type;
       
       /** this is the damping factor of the objective gradient for the optimality condtion.
        * The power is taken - default is 0.5 which is the square root */
-      double oc_damping_;
+      double oc_damping_ = .5;
       
-      /** minimal densitiy variation (see book (1.12)) = move limit for optimality condition */
-      double move_limit_;       
+      /** minimal density variation (see book (1.12)) = move limit for optimality condition.
+       * Can be adjusted dynamically for automatic continuation. E.g. from outside via python */
+      double move_limit_ = .2;
       
+      /** this is the original move_limit_ on start, in case move_limit_ is adaptively set */
+      double initial_move_limit_ = -1;
+
       /** This lambda is optimized in CalcNextDensity() and serves as a starting value */
-      double lambda_; 
+      double lambda_ = -1;
 
       /** The maximum number of lambda iterations */
-      int max_lambda_iters_;
+      int max_lambda_iters_ = 100 ;
       
       /** The number of lambda_iterations for this iteration only */
-      int lambda_iters_;
+      int lambda_iters_ = -1;
       
       /** lambda_min from xml. Might not become smaller than this value. in trajectory we
        * switch sign then. */
-      double lambda_min_;
+      double lambda_min_ = 1e-8;
       
+      /** use the constraint gradient for B_e? Switch off, if projection might make it zero */
+      bool constr_grad_ = true;
+
       /** err_eps for bisection iteration is fine. This is actually the feasibility tolerance */
-      double feasibility_;
+      double feasibility_ = 1e-6;
       
       /** for the framed mode the starting lower border */
-      double start_lower_;
-      double start_upper_;
+      double start_lower_ = 0;
+      double start_upper_ = 1e5;
       
       /** for the framed mode the enlargement when we start iteration or exceeded max_iters. 
        * This are factors (lambda_ * enlarge_x_)*/
-      double enlarge_lower_;
-      double enlarge_upper_;
+      double enlarge_lower_ = .25;
+      double enlarge_upper_ = 4.0;
 
       /** For the framed type this means if we enlarge the borders in every iteration */
-      bool always_enlarge_;
+      bool always_enlarge_ = true;
 
       /** this are the borders for the framed bisection */
-      double lower_;
-      double upper_;
+      double lower_ = 0.0;
+      double upper_ = 0.0;
 
       /** triggers framed check for stalled errors */
       bool check_stalled_err_ = true;
       
+      /** try to overcome an stalled_err */
+      bool overcome_deadlock_ = true;
+
       /** For fumble this is the current step */
-      double step_;
+      double step_ = 10;
       
       /** @see CalcNextFumbleIteration() */
-      double contract_;
+      double contract_ = 0.49;
       
       /** @see CalcNextFumbleIteration() */
-      double expand_;
+      double expand_ = 1.99;
       
       /** Here we save a design space such that we can play with different lambdas  */
       Vector<double> vault_;
@@ -138,6 +156,9 @@ namespace CoupledField
       /** This is a temporay design space such that it can be used in evalue */
       Vector<double> evaluate_tmp_;
 
+      /** set here the number of nan fixes via Evaluate by outer iteration.
+       * Evaluate() always overwrites the last entry */
+      Vector<int> nan_fixes;
 
       /** multi objective is defined as a combination of the objective given in the XML
        * and all but one constraints. The remaining constraint is the "real" constraint.
@@ -152,10 +173,10 @@ namespace CoupledField
       StdVector<double> agglomerated_grad_;
 
       /** multi objective weight */
-      double weight_;
+      double weight_ = .5;
 
       /** parameter for the smooth minimum */
-      double beta_;
+      double beta_ = 10;
   };
 
 

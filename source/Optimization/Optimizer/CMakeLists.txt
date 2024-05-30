@@ -26,15 +26,7 @@ set(DEPENDS
   "${BLAS_LIBRARY}"
   "${CFS_FORTRAN_LIBS}"
   )
-  
-if(USE_KNITRO)
-   #set(TARGET_LL ${TARGET_LL} ${KNITRO_LIBRARY})
-   set(TARGET_LL ${TARGET_LL} knitro700)
-   
-   include_directories(${KNITRO_INCLUDE_DIR})
-   
-   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} KNITRO.cc)
-endif()
+
 
 if(USE_SCPIP)
    set(TARGET_LL ${TARGET_LL} ${SCPIP_LIBRARY} ${DEPENDS})

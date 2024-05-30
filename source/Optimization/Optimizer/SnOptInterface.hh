@@ -9,118 +9,112 @@
 
 #include <def_cfs_fortran_interface.hh>
 
-typedef intptr_t ftnlen;
-typedef int32_t integer;
-typedef double doublereal;
-
-
 extern "C" {
 
-  typedef int (*U_fp)(...);
-  typedef int (*My_fp)( integer *Status, integer *n,
-       double x[],     integer *needF, integer *neF,  double F[],
-       integer    *needG,  integer *neG,  double G[],
-       char       *cu,     integer *lencu,
-       integer    iu[],    integer *leniu,
-       double ru[],    integer *lenru );
+  // callback for snopt to request function and gradient evaluation
+  typedef int (*My_fp)( int32_t *Status, int32_t *n,
+       double x[],     int32_t *needF, int32_t *neF,  double F[],
+       int32_t    *needG,  int32_t *neG,  double G[],
+       char       *cu,     int32_t *lencu,
+       int32_t    iu[],    int32_t *leniu,
+       double ru[],    int32_t *lenru);
+
+  // patched callback for snopt to inform about increase of the major iteration
+  typedef int (*My_usrmjr)(int32_t* nMajor );
 
   void snopta
-     ( integer *start, integer *nf, integer *n,
-       integer *nxname, integer *nfname, double *objadd, const integer *objrow,
-       char *prob, My_fp usrfun, integer *iafun, integer *javar,
-       integer *lena, integer *nea, double *a, integer *igfun,
-       integer *jgvar, integer *leng, integer *neg, double *xlow,
+     ( int32_t *start, int32_t *nf, int32_t *n,
+       int32_t *nxname, int32_t *nfname, double *objadd, const int32_t *objrow,
+       char *prob, My_fp usrfun, My_usrmjr usrmjr, int32_t *iafun, int32_t *javar,
+       int32_t *lena, int32_t *nea, double *a, int32_t *igfun,
+       int32_t *jgvar, int32_t *leng, int32_t *neg, double *xlow,
        double *xupp, char *xnames, double *flow, double *fupp,
-       char *fnames, double *x, integer *xstate, double *xmul,
-       double *f, integer *fstate, double *fmul, integer *inform__,
-       integer *mincw, integer *miniw, integer *minrw, integer *ns,
-       integer *ninf, double *sinf, char *cu, integer *lencu, integer *iu,
-       integer *leniu, double *ru, integer *lenru, char *cw, integer *lencw,
-       integer *iw, integer *leniw, double *rw, integer *lenrw,
-       ftnlen prob_len, ftnlen xnames_len, ftnlen fnames_len, ftnlen cu_len,
-       ftnlen cw_len);
+       char *fnames, double *x, int32_t *xstate, double *xmul,
+       double *f, int32_t *fstate, double *fmul, int32_t *inform__,
+       int32_t *mincw, int32_t *miniw, int32_t *minrw, int32_t *ns,
+       int32_t *ninf, double *sinf, char *cu, int32_t *lencu, int32_t *iu,
+       int32_t *leniu, double *ru, int32_t *lenru, char *cw, int32_t *lencw,
+       int32_t *iw, int32_t *leniw, double *rw, int32_t *lenrw,
+       intptr_t prob_len, intptr_t xnames_len, intptr_t fnames_len, intptr_t cu_len,
+       intptr_t cw_len);
 
   void sninit
-     ( integer *iPrint, integer *iSumm, char *cw,
-       integer *lencw, integer *iw, integer *leniw,
-       double *rw, integer *lenrw, ftnlen cw_len );
+     ( int32_t *iPrint, int32_t *iSumm, char *cw,
+       int32_t *lencw, int32_t *iw, int32_t *leniw,
+       double *rw, int32_t *lenrw, intptr_t cw_len );
 
   void sngeti
-     ( char *buffer, integer *ivalue, integer *inform__,
-       char *cw, integer *lencw, integer *iw,
-       integer *leniw, double *rw, integer *lenrw,
-       ftnlen buffer_len, ftnlen cw_len);
+     ( char *buffer, int32_t *ivalue, int32_t *inform__,
+       char *cw, int32_t *lencw, int32_t *iw,
+       int32_t *leniw, double *rw, int32_t *lenrw,
+       intptr_t buffer_len, intptr_t cw_len);
 
 
   void sngetr
-     ( char *buffer, double *ivalue, integer *inform__,
-       char *cw, integer *lencw, integer *iw,
-       integer *leniw, double *rw, integer *lenrw,
-       ftnlen buffer_len, ftnlen cw_len);
+     ( char *buffer, double *ivalue, int32_t *inform__,
+       char *cw, int32_t *lencw, int32_t *iw,
+       int32_t *leniw, double *rw, int32_t *lenrw,
+       intptr_t buffer_len, intptr_t cw_len);
 
   void snset
-     ( const char *buffer, integer *iprint, integer *isumm,
-       integer *inform__, char *cw, integer *lencw,
-       integer *iw, integer *leniw,
-       double *rw, integer *lenrw,
-       ftnlen buffer_len, ftnlen cw_len);
+     ( const char *buffer, int32_t *iprint, int32_t *isumm,
+       int32_t *inform__, char *cw, int32_t *lencw,
+       int32_t *iw, int32_t *leniw,
+       double *rw, int32_t *lenrw,
+       intptr_t buffer_len, intptr_t cw_len);
 
   void sngetc
-     ( char *buffer, char *ivalue, integer *inform__,
-       char *cw, integer *lencw, integer *iw,
-       integer *leniw, double *rw, integer *lenrw,
-       ftnlen buffer_len, ftnlen ivalue_len, ftnlen cw_len);
+     ( char *buffer, char *ivalue, int32_t *inform__,
+       char *cw, int32_t *lencw, int32_t *iw,
+       int32_t *leniw, double *rw, int32_t *lenrw,
+       intptr_t buffer_len, intptr_t ivalue_len, intptr_t cw_len);
 
   void snseti
-     ( const char *buffer, integer *ivalue, integer *iprint,
-       integer *isumm, integer *inform__, char *cw,
-       integer *lencw, integer *iw, integer *leniw,
-       double *rw, integer *lenrw, ftnlen buffer_len,
-       ftnlen cw_len);
+     ( const char *buffer, int32_t *ivalue, int32_t *iprint,
+       int32_t *isumm, int32_t *inform__, char *cw,
+       int32_t *lencw, int32_t *iw, int32_t *leniw,
+       double *rw, int32_t *lenrw, intptr_t buffer_len,
+       intptr_t cw_len);
 
   void snsetr
-     ( const char *buffer, double *rvalue, integer * iprint,
-       integer *isumm, integer *inform__, char *cw,
-       integer *lencw, integer *iw, integer *leniw,
-       double *rw, integer *lenrw, ftnlen buffer_len,
-       ftnlen cw_len);
+     ( const char *buffer, double *rvalue, int32_t * iprint,
+       int32_t *isumm, int32_t *inform__, char *cw,
+       int32_t *lencw, int32_t *iw, int32_t *leniw,
+       double *rw, int32_t *lenrw, intptr_t buffer_len,
+       intptr_t cw_len);
 
   void snspec
-     ( integer *ispecs, integer *inform__, char *cw,
-       integer *lencw, integer *iw, integer *leniw,
-       double *rw, integer *lenrw, ftnlen cw_len);
+     ( int32_t *ispecs, int32_t *inform__, char *cw,
+       int32_t *lencw, int32_t *iw, int32_t *leniw,
+       double *rw, int32_t *lenrw, intptr_t cw_len);
 
   void snmema
-     ( integer *iexit, integer *nf, integer *n, integer *nxname,
-       integer *nfname, integer *nea, integer *neg,
-       integer *mincw, integer *miniw,
-       integer *minrw, char *cw, integer *lencw, integer *iw,
-       integer *leniw, double *rw, integer *lenrw,
-       ftnlen cw_len);
+     ( int32_t *iexit, int32_t *nf, int32_t *n, int32_t *nxname,
+       int32_t *nfname, int32_t *nea, int32_t *neg,
+       int32_t *mincw, int32_t *miniw,
+       int32_t *minrw, char *cw, int32_t *lencw, int32_t *iw,
+       int32_t *leniw, double *rw, int32_t *lenrw,
+       intptr_t cw_len);
 
 
   void snjac
-     ( integer *inform__, integer *nf, integer *n, My_fp userfg,
-       integer *iafun, integer *javar, integer *lena,
-       integer *nea, double *a, integer *igfun,
-       integer *jgvar, integer *leng, integer *neg,
+     ( int32_t *inform__, int32_t *nf, int32_t *n, My_fp userfg,
+       int32_t *iafun, int32_t *javar, int32_t *lena,
+       int32_t *nea, double *a, int32_t *igfun,
+       int32_t *jgvar, int32_t *leng, int32_t *neg,
        double *x, double *xlow, double *xupp,
-       integer *mincw, integer *miniw,
-       integer *minrw, char *cu, integer *lencu,
-       integer *iu, integer *leniu, double *ru,
-       integer *lenru, char *cw, integer *lencw, integer *iw,
-       integer *leniw, double *rw, integer *lenrw,
-       ftnlen cu_len, ftnlen cw_len );
+       int32_t *mincw, int32_t *miniw,
+       int32_t *minrw, char *cu, int32_t *lencu,
+       int32_t *iu, int32_t *leniu, double *ru,
+       int32_t *lenru, char *cw, int32_t *lencw, int32_t *iw,
+       int32_t *leniw, double *rw, int32_t *lenrw,
+       intptr_t cu_len, intptr_t cw_len );
 
   // from filewrapper.h
   // function for opening snopt output files
-  int snopenappend 
-  (integer *iunit, char *name, integer *inform, ftnlen name_len);
+  int snopenappend (int32_t *iunit, char *name, int32_t *inform, intptr_t name_len);
 
-  int snclose
-  (integer *iunit);
-
-#undef real
+  int snclose (int32_t *iunit);
 } // extern "C"
 
 #endif

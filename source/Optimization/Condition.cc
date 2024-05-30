@@ -886,6 +886,15 @@ void Condition::ToInfo(PtrParamNode in)
     throw Exception("overhang constraints for vertical structures restrict the left boundary for left overhangs and vice versa. -> 'upper_bound'");
 }
 
+void Condition::DescribeProperties(StdVector<std::pair<string,string> >& map) const
+{
+  Function::DescribeProperties(map);
+  map.Push_back(std::make_pair("constraint", observation_ ? "observation" : "applied"));
+  map.Push_back(std::make_pair("bound", bound.ToString(bound_)));
+  map.Push_back(std::make_pair("bound_value", std::to_string(boundValue_)));
+}
+
+
 bool Condition::IsForRegion(RegionIdType regionId)
 {
   return(region == ALL_REGIONS || region == regionId);
@@ -1363,6 +1372,18 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
   return NULL;
 }
 
+Condition* ConditionContainer::Get(const std::string name, bool throw_exception)
+{
+  for(Condition* g : all)
+    if(g->ToString() == name)
+      return g;
+
+  if(throw_exception)
+    throw Exception("condition '" + name + "' not known within our " + std::to_string(all.GetSize()) + " constraints/observes");
+  else
+    return nullptr;
+}
+
 StdVector<Condition*> ConditionContainer::GetList(Condition::Type type, DesignElement::Type design, bool only_active, Function::Access access)
 {
   StdVector<Condition*> result;
@@ -1464,6 +1485,13 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
 
   return list[0];
 }
+
+void ConditionContainer::PushBackHistory()
+{
+  for(Condition* g : all)
+    g->history.Push_back(g->IsLocal() ? 0.0 : g->value_);
+}
+
 
 ConditionContainer::VirtualView::VirtualView(ConditionContainer* constraints)
 {

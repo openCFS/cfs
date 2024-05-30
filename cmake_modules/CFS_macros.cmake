@@ -447,19 +447,19 @@ macro(set_from_env VAR)
   endif()
 endmacro()    
 
-#------------------------------------------------------
-# Display all available variables
-#------------------------------------------------------
+# display all available variables. 
+# You can add optionally add a match key. E.g. dump_variables("OpenMP")
 # from  https://stackoverflow.com/questions/9298278/cmake-print-out-all-accessible-variables-in-a-script
 function(dump_variables)
-    get_cmake_property(_variableNames VARIABLES)
-    list (SORT _variableNames)
-    foreach (_variableName ${_variableNames})
-        if ((NOT DEFINED ARGV0) OR _variableName MATCHES ${ARGV0})
-            message(STATUS "${_variableName}=${${_variableName}}")
-        endif()
-    endforeach()
+  get_cmake_property(_variableNames VARIABLES)
+  list (SORT _variableNames)
+  foreach (_variableName ${_variableNames})
+    if ((NOT DEFINED ARGV0) OR _variableName MATCHES ${ARGV0})
+      message(STATUS "${_variableName}=${${_variableName}}")
+    endif()
+  endforeach()
 endfunction()
+
 
 # dump the content of the given directory
 macro(DUMP_DIR DIR)

@@ -91,9 +91,6 @@ configure_file("${CFS_SOURCE_DIR}/include/def_use_embedded_python.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_snopt.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_snopt.hh")
 
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_knitro.hh.in"
-  "${CFS_BINARY_DIR}/include/def_use_knitro.hh")
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgal.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_cgal.hh")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_flann.hh.in"

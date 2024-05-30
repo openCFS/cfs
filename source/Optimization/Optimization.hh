@@ -29,6 +29,7 @@ namespace CoupledField
    class LinearFormContext;
    class MultipleExcitation;
    class StdPDE;
+   class Tune;
 
    // FIXME: this is originally from timestepping.hh and has to be replaced
    typedef enum {NO_DERIVTYPE = 0, FIRST_DERIV = 1, SECOND_DERIV = 2} TimeDeriv;
@@ -85,7 +86,7 @@ namespace CoupledField
          void SolveProblem();
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER, PYTHON_SOLVER,
+         typedef enum { OCM_SOLVER, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, PYTHON_SOLVER,
                         FEAS_PP_SOLVER, MMA_SOLVER, SGP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
 
          /** to convert string/enum for this type */
@@ -182,6 +183,24 @@ namespace CoupledField
          * user_stop_reason_ contains the reason if true is returned */
         bool DoStopOptimization();
 
+        /** for python get_opt_stopping_rules() */
+        StdVector<std::pair<string,string> > GetStoppingRules() const;
+
+        /** allow Python to cancel the current optimization.
+         * After the call, the next DoStopOptimization() will return true.
+         * Uses user_break_message and user_break_converged.
+         * @param args tuple with boolean if converged and message  */
+        void PythonStopOptimization(PyObject* args);
+
+        /** set the break status
+         * @param reason if reason is not set, also converged is ignored */
+        PtrParamNode DoStopOptimizationHelper(bool converged = false, const string& reason = "");
+
+        /** allow Python to query the current optimizer and some of its properties
+         * @return string/string dict with 'optimizer' and general/specific properties. Only few can be set
+         * @see BaseOptimizer::PythonSetProperty() */
+        PyObject* PythonGetOptimizerProperties() const;
+
         /** are we in transient optimization?
          * FIXE -> Context */
         static bool IsTransient();
@@ -199,10 +218,21 @@ namespace CoupledField
         /** set the (static) enums - if they are used outside optimization, make this method public */
         static void SetEnums();
 
+        /** implement the PythonKernelFunction::get_opt_function_values()
+         * Returns a tuple of string/string dicts with function name (as in .info.xml) and value for objectives and constraints */
+        PyObject* PythonFunctionValues() const;
+
+        /** implement PythonKernelFunction::get_opt_function_properties()
+         * @param args name as in .info.xml for objective/constraint/observe */
+        PyObject* PythonFunctionProperties(PyObject* args);
+
         /** Returns all functions. Does not blow up local constraints. Combines objective and constraints.
          * Always creates the list, so use only rarely.
          * @param only_active use only active constraints */
         StdVector<Function*> GetFunctions(bool only_active) const;
+
+        /** return a function (objective and constraint/observe) by name */
+        Function* GetFunction(const std::string& name, bool throw_exception = true);
 
         /** Our base ParamNode pointer, pointing to input <optimization> */
         PtrParamNode optParamNode;
@@ -227,6 +257,9 @@ namespace CoupledField
         /** Manages the context. Enables to deal with multi sequence optimization, e.g. for different pdes */
         static ContextManager manager;
 
+        /** this is the list of Tune objects, they are updated after CommitIteration() */
+        StdVector<Tune*> tunes;
+
         /** is called from transientDriver after each time step is finished, to store the solution */
 //        virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
 
@@ -243,12 +276,31 @@ namespace CoupledField
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }
 
+        BaseOptimizer* GetOptimizerInstance() { return baseOptimizer_; }
+
         /** Get the combination of functions in multi objective case and write beta */
         Objective::MultiObjType GetMOType(double& beta) const { beta = this->multiObjectiveBeta_; return multiObjectiveType_; }
 
         bool CalcObjectiveCalled() { return calcObjIteration_ == this->GetCurrentIteration(); }
 
-        /** Encapsulates Logging information */
+        /** This tells the driver to store the last solved problem (gid, ...). Called in
+         * CommitIteration(). For PiezoSIMP we can save more often and there this method
+         * is overwritten and might do nothing.
+         * @param step_val the "label" of the "transient" step. -1 is the integer counter */
+        virtual void StoreResults(double step_val = -1.0);
+
+        /** call not later than PostInit2(). Add the property to file and info.xml iteration log.
+         * python name: opt_register_log_property() */
+        void RegisterAuxLogValue(const std::string& name, const std::string& initial);
+        void RegisterAuxLogValue(const std::string& name, double initial) { RegisterAuxLogValue(name, std::to_string(initial)); }
+
+        /** update the value to be used by next CommitIteration(). The name should be already set by RegisterAuxLogValue()
+         * python name: opt_set_log_property() */
+        void SetAuxLogValue(const std::string& name, const std::string& value);
+        void SetAuxLogValue(const std::string& name, double value) { SetAuxLogValue(name, std::to_string(value)); }
+
+
+        /** Encapsulates file Logging information - independent to info.xml logging */
         class Log
         {
         public:
@@ -297,15 +349,8 @@ namespace CoupledField
            int columns_;
         };
 
-        /** Keeps all logging relevant stuff */
+        /** Keeps all file logging relevant stuff */
         Log log;
-
-        /** This tells the driver to store the last solved problem (gid, ...). Called in
-         * CommitIteration(). For PiezoSIMP we can save more often and there this method
-         * is overwritten and might do nothing.
-         * @param step_val the "label" of the "transient" step. -1 is the integer counter */
-        virtual void StoreResults(double step_val = -1.0);
-
 
         /** Our MultipleExcitation object - by default disabled. Even if we have potentially more than one
          * "multipleExcitation" element in the xml problem file in the case of multi sequence optimization we have
@@ -313,8 +358,10 @@ namespace CoupledField
          * @see Optimization::contextManager */
         MultipleExcitation* me = NULL;
 
-        /** the reason we did a user break in DoStopIteration() */
+        /** the reason we did a user break in DoStopIteration(). Set e.g. by PythonStopOptimization(). If set, then we stop. */
         std::string user_break_reason;
+        /** did user break converge? E.g. for PythonStopOptimization() */
+        bool user_break_converged = false;
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
@@ -425,6 +472,12 @@ namespace CoupledField
 
         /** In DesignElement::GetPlainCostGradient we need to know, if the objective values have been set */
         int calcObjIteration_ = -1;
+
+        /** Auxiliary logging information, e.g. from Python for file logging and info.xml
+         * first is name, second value. The current value is used when writing the current log line
+         * @see RegisterAuxLogValue()
+         * @see SetAuxLogValue() */
+        StdVector<std::pair<std::string, std::string> > aux_log;
   };
 
 } // namespace

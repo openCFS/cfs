@@ -1,17 +1,105 @@
-/** this file contains the embedded python specific implementations for Function and ErsatzMaterial */
+/** this file contains the embedded python specific implementations for Function, ErsatzMaterial, ... */
 
 #include "General/Exception.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Optimizer/OptimalityCondition.hh"
+#include "Optimization/Optimizer/MMA.hh"
 #include "Utils/PythonKernel.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 EXTERN_LOG(func)
 EXTERN_LOG(em)
+EXTERN_LOG(designSpace)
 
 namespace CoupledField
 {
+
+void Optimization::PythonStopOptimization(PyObject* args)
+{
+  int ok = -1;
+  char* msg = nullptr;
+
+  PyArg_ParseTuple(args, "ps", &ok, &msg);
+
+  this->user_break_converged = ok;
+  this->user_break_reason = std::string(msg);
+}
+
+PyObject* Optimization::PythonFunctionValues() const
+{
+  // from Optimization::LogFileLine()
+  StdVector<std::pair<std::string, std::string> > objs;
+  for(Function* f : objectives.data)
+    objs.Push_back(std::make_pair(f->ToString(), std::to_string(f->GetValue())));
+
+  StdVector<std::pair<std::string, std::string> > cnstrs;
+  for(Function* g : constraints.all)
+    cnstrs.Push_back(std::make_pair(g->ToString(), std::to_string(g->GetValue())));
+
+  PyObject* ret = PyTuple_New(2);
+  PyTuple_SetItem(ret, 0, PythonKernel::CreatePythonDict(objs));
+  PyTuple_SetItem(ret, 1, PythonKernel::CreatePythonDict(cnstrs));
+  return ret;
+}
+
+PyObject* Optimization::PythonFunctionProperties(PyObject* args)
+{
+  char* ns = nullptr;
+  PyArg_ParseTuple(args, "s", &ns);
+  Function* f = GetFunction(string(ns));
+  StdVector<std::pair<string, string> > map;
+  f->DescribeProperties(map);
+  return PythonKernel::CreatePythonDict(map);
+}
+
+
+PyObject* Optimization::PythonGetOptimizerProperties() const
+{
+  StdVector<std::pair<std::string, std::string> > map;
+
+  map.Push_back(std::make_pair("optimizer", optimizer.ToString(optimizer_)));
+  map.Push_back(std::make_pair("max_iter", std::to_string(maxIterations)));
+  baseOptimizer_->DescribeProperties(map);
+  return PythonKernel::CreatePythonDict(map);
+}
+
+std::pair<string, string> ParseStringString(PyObject* args)
+{
+  char* fc = nullptr;
+  char* sc = nullptr;
+
+  PyArg_ParseTuple(args, "ss", &fc, &sc);
+
+  return std::make_pair(string(fc),string(sc));
+}
+
+
+void OptimalityCondition::PythonSetProperty(PyObject* args)
+{
+  auto ss = ParseStringString(args);
+
+  if(ss.first == "damping")
+    oc_damping_ = std::stod(ss.second);
+  else if(ss.first == "move_limit")
+    move_limit_ = std::stod(ss.second);
+  else
+    throw "Unknown property " + ss.first + " for 'ocm'";
+}
+
+
+void MMA::PythonSetProperty(PyObject* args)
+{
+  auto ss = ParseStringString(args);
+
+  if(ss.first == "move_limit")
+    move_limit = std::stod(ss.second);
+  else
+    throw "Unknown property " + ss.first + " for 'MMA'";
+}
+
+
 
 void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
 {
@@ -159,7 +247,6 @@ PyObject* CallLocalPythonFunction(const Function* func, PyObject* py_func)
   return call;
 }
 
-
 /** implemented in PythonFunction.cc */
 double Function::Local::Identifier::CalcLocalPythonFunc(const Function::Local* local) const
 {
@@ -169,11 +256,88 @@ double Function::Local::Identifier::CalcLocalPythonFunc(const Function::Local* l
   Py_XDECREF(call);
   return ret;
 }
+
 /** we return the "full" local python function gradient at once. Implemented in PythonFunction.cc */
 void Function::Local::Identifier::CalcLocalPythonGrad(Vector<double>& grad, const Function::Local* local) const
 {
   PyObject* call = CallLocalPythonFunction(local->func_, local->func_->py_grad_);
   grad.Fill(call, true); // decref
+}
+
+PyObject* DesignSpace::PythonGetFilterProperties(PyObject* args) const
+{
+  if(filter.GetSize() == 0)
+    throw("it seams no filter is set for optimization");
+
+  if(PyTuple_Size(args) > 2)
+    throw("max one optional argument for get_opt_filter_values() / DesignSpace::PythonGetFilterProperties()");
+
+  unsigned int idx = PyTuple_Size(args) == 1 ? PyLong_AsLong(PyTuple_GetItem(args,0)) : 0;
+
+  if(idx >= filter.GetSize())
+    throw("largest argument for get_opt_filter_values(idx) is " + std::to_string(filter.GetSize()-1) + " given is " + std::to_string(idx));
+
+  const GlobalFilter& gf = filter[idx];
+
+  StdVector<std::pair<std::string, std::string> > map;
+  // values which can be set
+  map.Push_back(std::make_pair("value", std::to_string(gf.value)));
+  map.Push_back(std::make_pair("beta", std::to_string(gf.beta)));
+  map.Push_back(std::make_pair("eta", std::to_string(gf.eta)));
+  map.Push_back(std::make_pair("non_lin_scale", std::to_string(gf.non_lin_scale)));
+  map.Push_back(std::make_pair("non_lin_offset", std::to_string(gf.non_lin_offset)));
+  // types info
+  map.Push_back(std::make_pair("type", Filter::type.ToString(gf.type)));
+  map.Push_back(std::make_pair("filterSpace", Filter::filterSpace.ToString(gf.filterspace)));
+  map.Push_back(std::make_pair("sensitivity", Filter::sensitivity.ToString(gf.sensitivity)));
+  map.Push_back(std::make_pair("density", Filter::density.ToString(gf.density)));
+  // design and statistics
+  map.Push_back(std::make_pair("design", BaseDesignElement::type.ToString(gf.design)));
+  map.Push_back(std::make_pair("region", domain->GetGrid()->regionData[gf.region].name));
+  map.Push_back(std::make_pair("elements", std::to_string(gf.elements)));
+  map.Push_back(std::make_pair("avg_radius", std::to_string(gf.avg_radius)));
+  map.Push_back(std::make_pair("avg_neigbor", std::to_string(gf.avg_neigbor)));
+  // little dirty helper :)
+  map.Push_back(std::make_pair("total_filters", std::to_string(filter.GetSize())));
+
+  return PythonKernel::CreatePythonDict(map);
+}
+
+void DesignSpace::PythonSetFilterProperties(PyObject* args)
+{
+  int idx = -1;
+  double beta = -1.0;
+  double eta = -1.0;
+  double scale = -1.0;
+  double offset = -1e42;
+
+  LOG_DBG(designSpace) << "PSFP args=" << PyTuple_Size(args);
+  if(PyTuple_Size(args) < 2 || PyTuple_Size(args) > 5)
+      throw("set_opt_filter_values(idx, beta, [eta, [scale, [offset]]]) has 2 ... 5 arguments, keywords are not allowed");
+  int ok = PyArg_ParseTuple(args,"id|ddd",&idx, &beta, &eta, &scale, &offset);
+  LOG_DBG(designSpace) << "PSFP args=" << PyTuple_Size(args) << " ok=" << ok << " beta=" << beta << " eta=" << eta << " scale=" << scale << " offset=" << offset;
+  PythonKernel::CheckPythonReturn(ok, "set_opt_filter_values");
+
+  if(idx >= (int) filter.GetSize())
+    throw("largest idx for set_opt_filter_values() is " + std::to_string(filter.GetSize()-1) + " given is " + std::to_string(idx));
+
+  GlobalFilter& gf = filter[idx];
+
+  gf.beta = beta;
+  if(eta != -1.0)
+    gf.eta = eta;
+  if(scale != -1.0 && offset != -1e42)
+  {
+    gf.non_lin_scale = scale;
+    gf.non_lin_offset = offset;
+  }
+  else
+  {
+    // from DesignStructure::SetFilter()
+    DesignRegion* dr = GetRegion(gf.region, gf.design);
+    gf.SetNonLinCorrection(&data[dr->base]);
+    LOG_DBG(designSpace) << "PSFP ref=" << dr->base << " SetNonLinCorrection -> scale=" << gf.non_lin_scale << " offset=" << gf.non_lin_offset;
+  }
 }
 
 

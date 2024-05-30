@@ -3815,10 +3815,11 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
         counter++;
       }
     }
-    LOG_DBG3(conditions) << Condition::type.ToString(g->GetType())
+    LOG_DBG3(conditions) << Condition::type.ToString(g->GetType()) << " a=" << g->access.ToString(g->GetAccess())
     << " derive=" << derivative << " relevant=" << relevant
-    << " elem " << de->elem->elemNum << " des_value: " << de->GetDesign(DesignElement::PLAIN)
-    << " value = " << org_value
+    << " elem=" << de->elem->elemNum << " pv=" << de->GetDesign(DesignElement::PLAIN)
+    << " sv=" << de->GetDesign(DesignElement::SMART)
+    << " ov= " << org_value << " lb=" << " ub=" << ub
     << " -> " << value << " grad=" << grad << " eval=" << eval
     << " fraction=" << fraction << " counter=" << counter;
 

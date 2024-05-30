@@ -21,6 +21,7 @@
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Optimizer/BaseOptimizer.hh"
+#include "Optimization/Tune.hh"
 #include "PDE/BasePDE.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/Timer.hh"
@@ -31,6 +32,8 @@ using namespace CoupledField;
 using std::abs;
 
 DEFINE_LOG(optimizer, "optimizer")
+
+const string BaseOptimizer::Tuned::MOVE_LIMIT = "move_limit";
 
 BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double manual_scale, bool no_autoscale)
  : target(0.0),
@@ -192,10 +195,52 @@ std::string BaseOptimizer::Scale::ToString()
   return os.str();
 }
 
+
+BaseOptimizer::Tuned::Tuned(PtrParamNode pn, double* value, double max, double divider, BaseOptimizer* base)
+{
+  assert(value != nullptr);
+  this->value = value;
+  this->max = max; // has a default
+  this->divider = divider;
+  if(pn)
+  {
+    pn->GetValue("max", this->max, ParamNode::PASS);
+    pn->GetValue("min", this->min, ParamNode::PASS);
+    pn->GetValue("transition_divider", this->divider, ParamNode::PASS);
+  }
+  for(Tune* tune : base->optimization->tunes)
+    if(tune->GetUsage() == tune->BETA)
+      this->tune = tune;
+  if(this->tune == nullptr)
+    throw Exception("'tuned' move_limit required 'tune' for the density projection beta value.");
+
+  this->base = base;
+  base->tuned = this; // to have Update called within CommitIteration
+  base->optimization->RegisterAuxLogValue("move_limit", 0);
+}
+
+void BaseOptimizer::Tuned::ToInfo(PtrParamNode in)
+{
+  in->Get("tune")->SetValue(tune->usage.ToString(tune->BETA));
+  in->Get("max")->SetValue(max);
+  in->Get("min")->SetValue(min);
+  in->Get("divider")->SetValue(divider);
+}
+
+void BaseOptimizer::Tuned::Update()
+{
+  double start = this->tune->CalcTransistionZone(.1);
+  double end = this->tune->CalcTransistionZone(1-.1);
+  double tz = end-start;
+  *value = std::min(tz/divider, max);
+  base->optimization->Optimization::SetAuxLogValue("move_limit", *value);
+}
+
+
 BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::Optimizer type) :
   optimization(opt),
   type_(type),
-  info_(opt->optInfoNode->Get("optimizer")),
+  info_(opt->optInfoNode->Get("optimizer")->Get(Optimization::optimizer.ToString(type))),
   objective(NULL),
   restart_requested(false),
   design_(DesignMemory(-1, 0.0))
@@ -222,14 +267,20 @@ BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::O
   eval_grad_const_timer_ = optimization->optInfoNode->Get(ParamNode::SUMMARY)->Get("eval_grad_constraints/timer")->AsTimer();
 
   assert(!GetRunningEvalTimer());
-  assert(GetRunningEvalTimer() == NULL);
+  assert(GetRunningEvalTimer() == nullptr);
 }
 
 BaseOptimizer::~BaseOptimizer()
 { 
-  if(objective != NULL) { delete objective; objective = NULL; }
+  if(objective) { delete objective; objective = nullptr; }
+  if(tuned) { delete tuned; tuned = nullptr; }
 }
 
+void BaseOptimizer::PostInit()
+{
+  if(tuned)
+    tuned->Update(); // log initial value
+}
 
 boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
 {
@@ -271,6 +322,8 @@ void  BaseOptimizer::CommitIteration()
   optimization->CommitIteration();
   if(restart)
     optimizer_timer_->Start();
+  if(tuned)
+    tuned->Update(); // read beta and write move_limit
 }
 
 void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)

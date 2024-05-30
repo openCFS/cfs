@@ -21,7 +21,6 @@
 // declare class specific logging stream
 DEFINE_LOG(snopt, "snopt")
 
-
 namespace CoupledField
 {
 
@@ -29,23 +28,30 @@ using std::endl;
 using std::cout;
 using std::string;
 
+Enum<SnOpt::Iteration> SnOpt::iteration;
+
 /** global pointer to the snopt class to be used by the callback function */
 SnOpt* static_snopt = NULL;
 
 /** this is a global function that can be called in the snopt-interface
  *  it simply forwards the call to the SnOpt->Callback function which has access to the class members */
-int SnOpt_C_Callback(integer* Status, integer* n,
-    doublereal* x, integer* needF, integer* nF, doublereal* F,
-    integer* needG, integer* nG, doublereal* G,
-    char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
+int SnOpt_C_Callback(int32_t* Status, int32_t* n,
+    double* x, int32_t* needF, int32_t* nF, double* F,
+    int32_t* needG, int32_t* nG, double* G,
+    char* cu, int32_t* lencu, int32_t* iu, int32_t* leniu, double* ru, int32_t* lenru)
 {
   return static_snopt->Callback(Status, *n, x, needF, nF, F, needG, nG, G, cu, lencu, iu, leniu, ru, lenru);
 }
 
+/** called by the patch just before snopt increments its own nMajor variable. Therefore the final iteration is not called */
+int SnOpt_C_CallbackUsrmjr(int32_t* nMajor)
+{
+  static_snopt->SetMajor(*nMajor);
+  return 0;
+}
+
 SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   BaseOptimizer(opt, pn, Optimization::SNOPT_SOLVER),
-  f_evals(0),       // number of function evaluations
-  g_evals(0),       // number of gradient evaluations
   nxname(1),
   nFname(1),
   iSumm(6),         // variable for file output, 6 == stdout
@@ -79,9 +85,15 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   outfilename("")
 {
   LOG_DBG(snopt) << "Initialize SnOpt";
-  
+
   static_snopt = this;
-  
+
+  iteration.SetName("SnOpt::Iteration");
+  iteration.Add(NCON, "nCon");
+  iteration.Add(MAJOR, "major");
+
+  iteration_ = this_opt_pn_ != nullptr ? iteration.Parse(this_opt_pn_->Get("iteration")->As<std::string>()) : MAJOR;
+
   BaseOptimizer::PostInitScale(1.0);
   
   Init();
@@ -192,7 +204,7 @@ void SnOpt::SolveProblem()
   AdjustWorkArrayMemory();
 
   // this is needed for the call to snopt, but has no effect in our case
-  integer npname(5);
+  int32_t npname(5);
   char xnames[8] = "unused ";
   char Fnames[8] = "unused ";
   
@@ -213,7 +225,7 @@ void SnOpt::SolveProblem()
   
   snopta(
       &Start, &nF, &n, &nxname, &nFname,
-      &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback,
+      &ObjAdd, &ObjRow, Prob, SnOpt_C_Callback, SnOpt_C_CallbackUsrmjr,
       iAfun.GetPointer(), jAvar.GetPointer(), &lenA, &nA, A.GetPointer(),
       &iGfun[0], &jGvar[0], &lenG, &nG,
       &xlow[0], &xupp[0], xnames,  &Flow[0], &Fupp[0], Fnames,
@@ -225,9 +237,30 @@ void SnOpt::SolveProblem()
   );
   
   InfoXMLOutput();
-  
+
+  major++; // out patched callback is not called for the final iterations
   CommitIteration();
 }
+
+void SnOpt::LogFileHeader(Optimization::Log& log)
+{
+  // ither nCon or major is iter, but we log nObj as this is more illustrative than nCon
+  log.AddToHeader(iteration_ == NCON ? "major" : "nObj");
+}
+
+
+void SnOpt::LogFileLine(std::ofstream* out, PtrParamNode iteration)
+{
+  // one is iter, we log the other
+  if(out)
+    *out << " \t" << (iteration_ == NCON ? major : f_evals);
+
+  if(iteration_ == NCON)
+    iteration->Get("major")->SetValue(major); // the cfs iteration is nCon, not nObj!
+  else
+    iteration->Get("nObj")->SetValue(f_evals); // nCon would be g_evals, but nObj makes more sense.
+}
+
 
 void SnOpt::InfoXMLOutput()
 {
@@ -236,14 +269,14 @@ void SnOpt::InfoXMLOutput()
   info_->Get(ParamNode::SUMMARY)->Get("snopt_exit/info")->SetValue(INFO);
   info_->Get(ParamNode::SUMMARY)->Get("evaluations/f_evals")->SetValue(f_evals);
   info_->Get(ParamNode::SUMMARY)->Get("evaluations/g_evals")->SetValue(g_evals);
+  info_->Get(ParamNode::SUMMARY)->Get("evaluations/majors")->SetValue(major);
   info_->Get(ParamNode::SUMMARY)->Get("snopt_outputfile")->SetValue(outfilename);
 
-  
   std::string exitstring;
   switch(INFO)
   {
   case 1:
-    exitstring = "finished successfully - optimality conditions satisfied";
+    exitstring = "finished successfullyv - optimality conditions satisfied";
     break;
   case 3:
     exitstring = "finished successfully - requested accuracy could not be achieved";
@@ -299,11 +332,13 @@ void SnOpt::InfoXMLOutput()
   summary->Get("snopt_exit")->SetValue(INFO);
 }
 
-int SnOpt::Callback(integer* Status, const integer n,
-    doublereal* x_snopt, integer* needF, integer* nF, doublereal* F,
-    integer* needG, integer* nG, doublereal* G,
-    char* cu, integer* lencu, integer* iu, integer* leniu, doublereal* ru, integer* lenru)
+int SnOpt::Callback(int32_t* Status, const int32_t n,
+    double* x_snopt, int32_t* needF, int32_t* nF, double* F,
+    int32_t* needG, int32_t* nG, double* G,
+    char* cu, int32_t* lencu, int32_t* iu, int32_t* leniu, double* ru, int32_t* lenru)
 {
+  //if(optimization->GetCurrentIteration() > 1)
+  //  throw Exception("intention");
   // reorder design
   Vector<double> x(n, x_snopt, false);
 
@@ -314,7 +349,7 @@ int SnOpt::Callback(integer* Status, const integer n,
   // when the last call was a gradient eval we interpret this as major and do a commit
   // with the OLD design and it's function evaluations. But only if there was really a change between the last commit.
   // the special cases are the first iteration if setupLinearConstraints() had a feasible design or on the last commit.
-  if(perform_commit_iteration_ && !optimization->GetDesign()->CompareDesign(x.GetPointer()))
+  if(iteration_ == NCON && perform_commit_iteration_ && !optimization->GetDesign()->CompareDesign(x.GetPointer()))
   {
     CommitIteration();
     perform_commit_iteration_ = false; // to be reset when enough functions evaluations have been done
@@ -377,6 +412,14 @@ int SnOpt::Callback(integer* Status, const integer n,
   
   // everything went okay
   return 0;
+}
+
+void SnOpt::SetMajor(int major)
+{
+  assert(major <= this->major +1);
+  this->major = major;
+  if(iteration_ == MAJOR)
+    CommitIteration();
 }
 
 bool SnOpt::get_nlp_info()
@@ -496,9 +539,9 @@ void SnOpt::AdjustWorkArrayMemory()
   LOG_DBG(snopt) << "old values: lencw = " << lencw << ", leniw = " << leniw << ", lenrw = " << lenrw;
   
   // remember old values
-  integer tmpcw(lencw);
-  integer tmpiw(leniw);
-  integer tmprw(lenrw);
+  int32_t tmpcw(lencw);
+  int32_t tmpiw(leniw);
+  int32_t tmprw(lenrw);
   
   // try to determine minimal amount of memory needed for this problem
   snmema(&INFO, &nF, &n, &nxname, &nFname, &nA, &nG, &mincw, &miniw, &minrw,
@@ -513,8 +556,8 @@ void SnOpt::AdjustWorkArrayMemory()
   // might not be enough
   const double factor(1.0);
   
-  integer iPrt = 0;
-  integer iSum = 0;
+  int32_t iPrt = 0;
+  int32_t iSum = 0;
   // update lengths according to values obtained from snmema_
   if(lencw < mincw)
   {
@@ -710,7 +753,7 @@ void SnOpt::SetupLinearConstraints()
   //assert(count == lin_constraints);
 }
 
-void SnOpt::SetIntegerValue(const std::string& key, integer value)
+void SnOpt::SetIntegerValue(const std::string& key, int32_t value)
 {
   string option;
   
@@ -769,7 +812,7 @@ void SnOpt::SetIntegerValue(const std::string& key, integer value)
   else if(key == "total_real_workspace")
     option = "Total real workspace";
   else if(key == "user_integer_workspace")
-    option = "User integer workspace";
+    option = "User integeger workspace";
   else if(key == "user_real_workspace")
     option = "User real workspace";
   

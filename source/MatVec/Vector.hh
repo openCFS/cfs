@@ -17,8 +17,6 @@
 #include "promote.hh"
 #endif
 
-
-
 #ifdef USE_EMBEDDED_PYTHON
   #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
   #include <Python.h>
@@ -603,6 +601,8 @@ template<typename T> class ElemStoreSol;
 
     //! This method sets val to the value of vector entry i
     void GetEntry( UInt i, T &val ) const;
+
+    T Last() const;
 
     //! Get entries at specified indices from in
     const Vector<T> GetEntries( const StdVector<UInt>& in) const;

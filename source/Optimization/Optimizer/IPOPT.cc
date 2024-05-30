@@ -21,7 +21,7 @@ DEFINE_LOG(ipopt, "ipopt")
 IPOPT::IPOPT(Optimization* optimization, BaseOptimizer* base, PtrParamNode pn)
 {
   LOG_TRACE(ipopt) << "Initialize IPOPT";
-  this->optimization_ = optimization;
+  this->opt_ = optimization;
   this->base_ = base;
   this->optimizer_pn_ = pn->Get(Optimization::optimizer.ToString(Optimization::IPOPT_SOLVER), ParamNode::PASS);
   
@@ -40,9 +40,9 @@ void IPOPT::Init()
   // Initialize the IpoptApplication and process the options
   app->Initialize();
 
-  app->Options()->SetIntegerValue("max_iter", optimization_->GetMaxIterations() - optimization_->GetCurrentIteration());
-  LOG_TRACE2(ipopt) << "set max_iter to " << optimization_->GetMaxIterations() << " - " 
-                    << optimization_->GetCurrentIteration();
+  app->Options()->SetIntegerValue("max_iter", opt_->GetMaxIterations() - opt_->GetCurrentIteration());
+  LOG_TRACE2(ipopt) << "set max_iter to " << opt_->GetMaxIterations() << " - " 
+                    << opt_->GetCurrentIteration();
   
   // up to now we don't have hessian  
   app->Options()->SetStringValue("hessian_approximation", "limited-memory");
@@ -57,8 +57,8 @@ void IPOPT::Init()
   // do scaling via get_scaling_parameters() only if we do constraint scaling 
   // otherwise IPOPT is strange
   bool g_scale = false;
-  for(int i = 0; i < optimization_->constraints.view->GetNumberOfActiveConstraints(); i++)
-    if(optimization_->constraints.view->Get(i)->manual_scaling_value != 1.0) g_scale = true;
+  for(int i = 0; i < opt_->constraints.view->GetNumberOfActiveConstraints(); i++)
+    if(opt_->constraints.view->Get(i)->manual_scaling_value != 1.0) g_scale = true;
 
   if(g_scale)
   {
@@ -103,56 +103,49 @@ void IPOPT::SolveProblem()
 {
   ApplicationReturnStatus status = app->OptimizeTNLP(this);
 
-  PtrParamNode in = base_->info_->Get(ParamNode::SUMMARY, ParamNode::PASS)->Get("break");
-  
-  if (status == Solve_Succeeded) {
+  if(status == Invalid_Number_Detected && base_->restart_requested)
+  {
+    string msg = "Invalid_Number_Detected in major " + std::to_string(base_->optimization->GetCurrentIteration()) + " do restart";
+    base_->info_->Get(ParamNode::SUMMARY, ParamNode::APPEND)->SetValue(msg);
+    return;
+  }
+
+  PtrParamNode in = opt_->DoStopOptimizationHelper(status >= 0 , "IPOPT status code " + std::to_string(status));
+
+  if (status == Solve_Succeeded)
+  {
     // Retrieve some statistics about the solve
     Index iter_count = app->Statistics()->IterationCount();
     Number final_obj = app->Statistics()->FinalObjective();
     
     std::cout << std::endl << "Problem solved in " << iter_count 
               << " iterations, final objective value is " << final_obj << std::endl; 
-    
-    in->Get("converged")->SetValue("yes");
     return;
   }
 
   switch(status)
   {
     case NonIpopt_Exception_Thrown:
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("non IPOPT exception occured");
+      opt_->DoStopOptimizationHelper(false,"non IPOPT exception occurred.");
       throw Exception("IPOPT stopped due to non-IPOPT exception. Try again with '-f'.");
          
     case Restoration_Failed:
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("IPOPT: 'Restoration failed'");
+      opt_->DoStopOptimizationHelper(false,"IPOPT: 'Restoration failed'");
       throw Exception("IPOPT stopped with 'Restoration failed'");
          
     case Insufficient_Memory:
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("IPOPT: insufficient memory");
-     throw Exception("IPOPT reports insufficient memory.");
+      opt_->DoStopOptimizationHelper(false,"IPOPT: insufficient memory");
+      throw Exception("IPOPT reports insufficient memory.");
          
     case Maximum_Iterations_Exceeded:
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("Maximum iterations exceeded");
+      opt_->DoStopOptimizationHelper(false,"Maximum iterations exceeded");
       break;
-
-    case Invalid_Number_Detected:
-         if(base_->restart_requested) return;
       
     default:
-      // positive is warning
-      // Maximum_Iterations_Exceeded == -1
-      if(status < Maximum_Iterations_Exceeded) {
-        in->Get("converged")->SetValue("no");
-        in->Get("reason/msg")->SetValue("IPOPT: error");
-        in->Get("reason/error")->SetValue(status);
-        EXCEPTION("IPOPT reported error " << status);
-      }
+      if(status < 0)
+        std::cout << std::endl << "Optimization likely failed: " << in->Get("reason/msg")->As<string>() << std::endl;
+      // converged and status already set
       break;
-      // else is no bad error and exits this void method :)  
   }
 }
 
@@ -160,10 +153,10 @@ void IPOPT::SolveProblem()
 bool IPOPT::get_nlp_info(Index& n, Index& m, Index& nnz_jac_g,
                          Index& nnz_h_lag, IndexStyleEnum& index_style)
 {
-  n = optimization_->GetDesign()->GetNumberOfVariables();
+  n = opt_->GetDesign()->GetNumberOfVariables();
 
   // arbitrary constraints ,
-  m = optimization_->constraints.view->GetNumberOfActiveConstraints();
+  m = opt_->constraints.view->GetNumberOfActiveConstraints();
 
   // up to now we have only dense constraint gradients. 
   // In practice one could make the non-matching part spare or
@@ -207,7 +200,7 @@ bool IPOPT::get_starting_point(Index n, bool init_x, Number* x,
   assert(init_lambda == false);
 
   // we initialize x in bounds, in the upper right quadrant
-  optimization_->GetDesign()->WriteDesignToExtern(x);
+  opt_->GetDesign()->WriteDesignToExtern(x);
 
   return true;
 }
@@ -215,7 +208,8 @@ bool IPOPT::get_starting_point(Index n, bool init_x, Number* x,
 bool IPOPT::eval_f(Index n, const Number* x, bool new_x, Number& obj_value)
 {
   int old_design = base_->objective->scaling.design_id;
-  
+  nObj++;
+
   // return the value of the objective function.
   try
   {
@@ -258,7 +252,7 @@ bool IPOPT::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
   LOG_TRACE2(ipopt) << "eval_g: n = " << n << "; new_x = " << new_x << "; m = " << m;
 
   // we overwrite the design space, but we do this all the time - especially before eval_f
-  optimization_->GetDesign()->ReadDesignFromExtern(x);
+  opt_->GetDesign()->ReadDesignFromExtern(x);
   
   base_->EvalConstraints(n, x, m, false, g, false);
 
@@ -336,7 +330,7 @@ bool IPOPT::intermediate_callback(AlgorithmMode mode,Index iter, Number obj_valu
 
   base_->CommitIteration();
   // break the ipopt calculations - e.g. if our relative change is smaller than given in xml
-  return optimization_->DoStopOptimization() ? false : true;
+  return opt_->DoStopOptimization() ? false : true;
 }     
 
 bool IPOPT::get_scaling_parameters(Number& obj_scaling, bool& use_x_scaling, 
@@ -354,13 +348,13 @@ bool IPOPT::get_scaling_parameters(Number& obj_scaling, bool& use_x_scaling,
 
   for(int i = 0; i < m; i++)
   {
-    Condition* g = optimization_->constraints.view->Get(i);
+    Condition* g = opt_->constraints.view->Get(i);
     g_scaling[i] = g->DoObjectiveScaling() ? obj_scaling : g->manual_scaling_value;
     if(g_scaling[i] != 1.0) use_g_scaling = true;
 
     LOG_TRACE(ipopt) << "get_scaling_parameters: g=" << g->type.ToString(g->GetType()) << " scaling=" << g_scaling[i];
   }
-  optimization_->constraints.view->Done();
+  opt_->constraints.view->Done();
 
   // note, that when use_g_scaling = false we have a different IPOPT behavior than with
   // not calling get_scaling_parameters().

@@ -124,6 +124,8 @@ namespace CoupledField
        /** creates an xml attribute name compatible string representation for coords */
        static std::string ToString(const StdVector<boost::tuple<int, int, double> >&);
 
+       void DescribeProperties(StdVector<std::pair<string,string> >& map) const;
+
        /** The scaling is evaluated for external optimizers, not in OC!
         * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
        double manual_scaling_value;
@@ -429,6 +431,9 @@ namespace CoupledField
      }
      Condition* Get(Condition::Type type, DesignElement::Type design, Condition::Bound bound, bool throw_exception = true);
 
+     /** Search for the condition by name */
+     Condition* Get(const std::string name, bool throw_exception = true);
+
      StdVector<Condition*> GetList(Condition::Type type, DesignElement::Type design = DesignElement::NO_TYPE, bool only_active = true, Function::Access access = Function::NO_ACCESS);
 
      /** query before Get() throws an exception */
@@ -443,6 +448,8 @@ namespace CoupledField
      /** are the active constraints feasible */
      bool IsFeasible() const;
 
+     void PushBackHistory();
+
      /** All external optimizers should only work with this view.
       * It make the special handling for the slope constraints */
      VirtualView* view;
@@ -451,7 +458,7 @@ namespace CoupledField
      StdVector<Condition*> all;
 
      /** The real constraints which are evaluated by the optimizer. Has nothing to do with
-      * "active" in the sense of active sets but means !observe.
+      * "active" in the sense of active sets but means not observe.
       * Be sure that you should not use the VirtualView!! (external optimizers!) */
      StdVector<Condition*> active;
 

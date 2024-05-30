@@ -76,6 +76,8 @@ public:
    * Based on the projected steepest descent solver from Kelley */
   int FallbackHessianSolver();
 
+  void WriteHessianMinorHeader();
+
   // Lagrange multipliers
   Vector<double> lambda, mu; // vector size m
 
@@ -104,7 +106,8 @@ protected:
 
 private:
 
-  void LogHessianMinor(int minor, double pgc, const Vector<double>& lmbda, double delta_lmbda, const Vector<double>& old_dir, bool do_hess, int ls_steps, double step);
+
+  void WriteHessianMinorLog(int minor, double pgc, const Vector<double>& lmbda, double delta_lmbda, const Vector<double>& old_dir, bool do_hess, int ls_steps, double step);
 
   Vector<double> y0; // to ignore the y-part
 
@@ -157,6 +160,8 @@ class MMA : public BaseOptimizer
 public:
   MMA(Optimization* optimization, PtrParamNode pn);
 
+  ~MMA();
+
   void PostInit() override;
 
   /** @see BaseOptimizer::ToInfo() */
@@ -167,6 +172,10 @@ public:
 
   /** see BaseOptimizer::LogFileLine() */
   void LogFileLine(std::ofstream* out, PtrParamNode iteration) override;
+
+  void DescribeProperties(StdVector<std::pair<std::string, std::string> >& map) const override;
+
+  void PythonSetProperty(PyObject* args) override;
 
   /** inefficiently evaluations dual function, as the primal variables are generated and thrown away */
   double EvalDualFunction(Vector<double> &xin);
@@ -218,10 +227,20 @@ public:
   /** when the subproblem fails, the error message set */
   std::string mma_error;
 
+  /** optional write textual .mma log file */
+  std::ofstream* log = nullptr;
+
 private:
 
-  /** @see BaseOptimier */
+  /** @see BaseOptimier - different from our own .mma log */
   void LogFileHeader(Optimization::Log& log) override;
+
+  /** header for textual .mma log */
+  void WriteMMALogHeader();
+
+  /** we have different data than in the .plot.dat and we cannot be plotted.
+   * Call immediately after CommitIteration()! */
+  void WriteMMALogMajor();
 
   bool SolveSubProblem();
 
@@ -302,6 +321,8 @@ private:
   double asyminit = 0.9;
   double asymdec = 0.7;
   double asyminc = 1.43;
+  double ml_asym = 0.1; // for alpha/beta update, called ALBEFA in MMA and GCMMA – Fortran versions March 2013
+  double move_limit = 0.5; // for alpha/beta update, called XXMOVE in MMA and GCMMA – Fortran versions March 2013, not given in the 87 paper
 
   /** for fixed asymptotes only
   * according to K.Svanberg's paper section 3. equation 10.
@@ -376,14 +397,13 @@ private:
   int sub_prob_iter = 0;
 
   /** shortcut to either &dual_solver (default for bfgs case) or &primal_dual_solver */
-  DualSolver* dual = NULL;
+  DualSolver* dual = nullptr;
 
   /** generate sub problem */
-  Timer* gsp_timer_ = NULL;
+  Timer* gsp_timer_ = nullptr;
 
   /** generate sub problem */
-  Timer* sps_timer_ = NULL;
-
+  Timer* sps_timer_ = nullptr;
 };
 
 

@@ -5,6 +5,7 @@
 #include "MatVec/Vector.hh"
 #include "Utils/Timer.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "Domain/Domain.hh"
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string.hpp>
@@ -77,13 +78,15 @@ PtrParamNode ParamNode::GenerateWriteNode(const string& root, const string& file
 void ParamNode::SetValue(const boost::any& value, bool cerr_warning)
 {
   //std::cout << "ParamNode::SetValue(const boost::any&)" << std::endl;
-
   this->value_ = value;
 
   // note that we may not check for valid strings here, as e.g. < or > are valid inputs for attribute values for expressions
-
   if(this->name_ == WARNING && cerr_warning)
-    std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
+  {
+    if(progOpts == nullptr || !progOpts->IsQuiet())
+      std::cerr  << std::endl;
+    std::cerr  << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
+  }
 }
 void ParamNode::SetValue(const char* value)
 {
@@ -329,6 +332,20 @@ PtrParamNode ParamNode::GetRoot() {
     return shared_from_this();
   }
 }
+
+
+string ParamNode::GetLocation() const
+{
+  string loc;
+  const ParamNode* pn = this;
+  while(pn != nullptr)
+  {
+    loc = "/" + pn->name_ + loc;
+    pn = pn->parent_.get();
+  }
+  return loc;
+}
+
 
 template<typename TYPE>
 PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_raw,

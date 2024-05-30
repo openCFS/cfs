@@ -67,36 +67,60 @@ PyObject* PythonKernel::mesher_add_named_elements(PyObject *self, PyObject *args
 /** cfs.bound(xl,xu,gl,gu) sets bounds for design and constraints in properly sized 1d numpy arrays */
 PyObject* opt_getDims(PyObject *self, PyObject *args)
 {
-  if(!PythonKernel::CheckOpt())
-    return NULL;
-
-  return PythonOptimizer::GetDims(args);
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetDims(args) : NULL;
 }
 
 PyObject* get_opt_design_size(PyObject *self, PyObject *args)
 {
-  if(!PythonKernel::CheckOpt())
-    return NULL;
-
-  return PythonOptimizer::GetNumDesign(args);
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetNumDesign(args) : NULL;
 }
 
 PyObject* get_opt_design_value(PyObject *self, PyObject *args)
 {
-  if(!PythonKernel::CheckOpt())
-    return NULL;
-
-  return PythonOptimizer::GetDesignValue(args);
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValue(args) : NULL;
 }
 
 PyObject* get_opt_design_values(PyObject *self, PyObject *args)
 {
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValues(args) : NULL;
+}
+
+PyObject* get_opt_iteraton(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PyLong_FromLong(domain->GetOptimization()->GetCurrentIteration()) : NULL;
+}
+
+PyObject* get_opt_stopping_rules(PyObject *self, PyObject *args)
+{
+  if(!python->CheckOpt())
+    return NULL;
+
+  return PythonKernel::CreatePythonDict(domain->GetOptimization()->GetStoppingRules());
+}
+
+PyObject* get_opt_function_values(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? domain->GetOptimization()->PythonFunctionValues() : NULL;
+}
+
+PyObject* get_opt_function_properties(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? domain->GetOptimization()->PythonFunctionProperties(args) : NULL;
+}
+
+PyObject* get_opt_filter_values(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? domain->GetOptimization()->GetDesign()->PythonGetFilterProperties(args) : NULL;
+}
+
+PyObject* set_opt_filter_values(PyObject *self, PyObject *args)
+{
   if(!PythonKernel::CheckOpt())
     return NULL;
 
-  return PythonOptimizer::GetDesignValues(args);
+  domain->GetOptimization()->GetDesign()->PythonSetFilterProperties(args);
+  Py_RETURN_NONE;
 }
-
 
 /** cfs.bound(xl,xu,gl,gu) sets bounds for design and constraints in properly sized 1d numpy arrays */
 PyObject* opt_bounds(PyObject *self, PyObject *args)
@@ -122,10 +146,7 @@ PyObject* opt_initialdesign(PyObject *self, PyObject *args)
 /** cfs.evalobj(x) returns a float) */
 PyObject* opt_evalobj(PyObject *self, PyObject *args)
 {
-  if(!python->CheckPyOpt())
-    return NULL;
-
-  return PyFloat_FromDouble(python->GetPyOpt()->EvalObjective(args));
+  return python->CheckPyOpt() ? PyFloat_FromDouble(python->GetPyOpt()->EvalObjective(args)) : NULL;
 }
 
 /** cfs.cfs_commitIteration() commits iteration to cfs */
@@ -135,7 +156,6 @@ PyObject* opt_commitIteration(PyObject *self, PyObject *args)
     return NULL;
 
   python->GetPyOpt()->CommitIteration(); // return paramnode ignored;
-
   Py_RETURN_NONE;
 }
 
@@ -171,10 +191,7 @@ PyObject* opt_evalgradconstrs(PyObject *self, PyObject *args)
 
 PyObject* opt_getSimpExponent(PyObject *self, PyObject *args)
 {
-  if(!python->CheckPyOpt())
-    return NULL;
-
-  return PyFloat_FromDouble(python->GetPyOpt()->GetSimpExponent());
+  return python->CheckPyOpt() ? PyFloat_FromDouble(python->GetPyOpt()->GetSimpExponent()) : NULL;
 }
 
 /** returns derivative of compliance w.r.t stiffness tensor entries of original (core) material */
@@ -197,10 +214,21 @@ PyObject* opt_getOrgStiffness(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
+/** make optimization stop in the next iteration.
+ * param args tuple of bool and string with info if converged and the message */
+PyObject* opt_stop(PyObject *self, PyObject *args)
+{
+  if(!python->CheckOpt())
+    return NULL;
+
+  domain->GetOptimization()->PythonStopOptimization(args);
+  Py_RETURN_NONE;
+}
+
 /** return true if cfs's stopping criteria is met, including finding the file HALTOPT */
 PyObject* opt_dostop(PyObject *self, PyObject *args)
 {
-  if(!python->CheckPyOpt())
+  if(!python->CheckOpt())
     return NULL;
 
   bool stop = domain->GetOptimization()->DoStopOptimization();
@@ -209,6 +237,46 @@ PyObject* opt_dostop(PyObject *self, PyObject *args)
     Py_RETURN_TRUE;
   else
     Py_RETURN_FALSE;
+}
+
+PyObject* opt_register_log_property(PyObject *self, PyObject *args)
+{
+  if(!python->CheckOpt())
+    return NULL;
+
+  char* ns = nullptr;
+  char* vs = nullptr;
+
+  PyArg_ParseTuple(args, "ss", &ns, &vs);
+  domain->GetOptimization()->RegisterAuxLogValue(std::string(ns), std::string(vs));
+  Py_RETURN_NONE;
+}
+
+PyObject* opt_set_log_property(PyObject *self, PyObject *args)
+{
+  if(!python->CheckOpt())
+    return NULL;
+
+  char* ns = nullptr;
+  char* vs = nullptr;
+
+  PyArg_ParseTuple(args, "ss", &ns, &vs);
+  domain->GetOptimization()->SetAuxLogValue(std::string(ns), std::string(vs));
+  Py_RETURN_NONE;
+}
+
+PyObject* optimizer_get_properties(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? domain->GetOptimization()->PythonGetOptimizerProperties() : NULL;
+}
+
+PyObject* optimizer_set_property(PyObject *self, PyObject *args)
+{
+  if(!python->CheckOpt())
+    return NULL;
+
+  domain->GetOptimization()->GetOptimizerInstance()->PythonSetProperty(args);
+  Py_RETURN_NONE;
 }
 
 /** feature mapping stuff */
@@ -507,9 +575,20 @@ PyMethodDef PythonKernel::cfs_methods[] =
 
   /* general optimization */
   {"getDims", opt_getDims, METH_VARARGS, "Returns info on optimization design domain dimensions: dim, nx, ny, nz."},
+  {"opt_stop", opt_stop, METH_VARARGS, "make optimization to stop after current iteration give bool if converged and string with message"},
+  {"opt_register_log_property", opt_register_log_property, METH_VARARGS, "register a property for file and info.xml iteration log. Give name:string and initial:string. Update via opt_set_log_property()"},
+  {"opt_set_log_property", opt_set_log_property, METH_VARARGS, "update file and info.xml iteration propery via name:string and value:string. register first!"},
+  {"optimizer_get_properties", optimizer_get_properties, METH_VARARGS, "get properties / infos about the actual optimizer used in optimization as string/string dict"},
+  {"optimizer_set_property", optimizer_set_property, METH_VARARGS, "set name:string and value:string for the current optimizer, only a few implement this."},
   {"get_opt_design_size", get_opt_design_size, METH_VARARGS, "Returns number of design variables"},
   {"get_opt_design_value", get_opt_design_value, METH_VARARGS, "Give single DesignSpace::GetDesignValue() for 0-based index with optional access (default plain)"},
   {"get_opt_design_values", get_opt_design_values, METH_VARARGS, "Call DesignElement::GetValues() with attributes numpy array and optional access"},
+  {"get_opt_stopping_rules", get_opt_stopping_rules, METH_VARARGS, "return the stoppping rules"},
+  {"get_opt_iteraton", get_opt_iteraton, METH_VARARGS, "Return Optimization->GetCurrentIteration()"},
+  {"get_opt_function_values", get_opt_function_values, METH_VARARGS, "return two string/string maps with name an value for objective functions and constraints as in .info.xml"},
+  {"get_opt_function_properties", get_opt_function_properties, METH_VARARGS, "return string/string maps with with property of objective/constraint/observation"},
+  {"get_opt_filter_values", get_opt_filter_values, METH_VARARGS, "return string/string map for given filter index with filter properties. Check total_filter property!"},
+  {"set_opt_filter_values", set_opt_filter_values, METH_VARARGS, "set optimization filter idx, beta, eta, scale, offset where idx and beta is required. No keywords allowed!"},
 
   /* feature mapping optimization design */
   {"feature_mapping_num_parameters", feature_mapping_num_parameters, METH_VARARGS, "Return the number of feature mapping parameters including fixed variables"},

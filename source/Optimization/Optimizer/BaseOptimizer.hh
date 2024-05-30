@@ -33,7 +33,6 @@ namespace CoupledField
      * all other optimizers always need everything */
     typedef enum { ALL, LINEAR, NONLINEAR } GradientType;
 
-
     /** call PostInit() afterwards!
      * Child classes shall optimizer_timer_  either in the constructor or after PostInit().
      * @param optimization this is the actual optimization problem
@@ -43,7 +42,7 @@ namespace CoupledField
     virtual ~BaseOptimizer();
 
     /** call this after the constructor. Make sure optimizer_timer_ is stopped here and if you don't implement it, stop it in the constructor */
-    virtual void PostInit() {};
+    virtual void PostInit();
 
     /** This solves the complete Optimization problem by using
      * the CalcObjective, CalcConstraint(), ... from the Optimization problem
@@ -58,7 +57,7 @@ namespace CoupledField
      * specific data. Shall match LogFileHeader().Don't add a new-line here!! */
     virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
     
-    /** optionally adds some general information after initialization. */
+    /** optionally adds some general information after initialization and after solution */
     virtual void ToInfo(PtrParamNode pn) { };
 
     /** Evaluates the objective. In the autoscale case checks for old value.
@@ -117,6 +116,18 @@ namespace CoupledField
     /** this is a helper to call Optimization::CommitIteration() which switches of the optimizer_timer and does timer validation.
      * This shall be protected but we need it for IPOPT */
     void CommitIteration();
+
+    /** add some descriptive properties for python. Default is nothing added */
+    virtual void DescribeProperties(StdVector<std::pair<std::string, std::string> >& map) const { }
+
+    /** allow Python to set a parameter for the current optimizer.
+     * Only very few Optimizers will implement the feature (e.g. OCM)
+     * @param tuple of two strings: parameter, value
+     * @see Optimization::PythoGetOptimizerProperties() */
+    virtual void PythonSetProperty(PyObject* args)
+    {
+      throw "optimizer_set_property() not implement by " + Optimization::optimizer.ToString(type_);
+    }
 
   protected:
 
@@ -209,6 +220,34 @@ namespace CoupledField
       bool autoscale_;
 
       BaseOptimizer* base_;
+    }; // end Scale
+
+    /** Tuned is meant for the projection filter (Heaviside, tanh) with tune beta.
+     * It takes the value to update move_limit. See Dunning & Wein, Achieving near
+     * binary topology optimization solutions via automatic projection parameter increase */
+    struct Tuned
+    {
+    public:
+      /** Will search for a Tune with beta. Throw error, if not found.
+       * @param pn is 'tuned' element
+       * @param max and divider are default values to be overwritten by pn */
+      Tuned(PtrParamNode pn, double* value, double max, double divider, BaseOptimizer* base);
+
+      void ToInfo(PtrParamNode info);
+
+      static const std::string MOVE_LIMIT; // initialized with "move_limit"
+
+      /** query beta and calculate move limit. Call right after Tune::Update()  */
+      void Update();
+
+      double max = -1;
+      double min = 1e-4;
+      double divider = -1;
+
+    private:
+      double *value = nullptr;
+      Tune* tune = nullptr;
+      BaseOptimizer* base = nullptr;
     };
 
     /** out type */
@@ -216,6 +255,9 @@ namespace CoupledField
 
     /** Info Node base  for Optimizer */
     PtrParamNode info_;
+
+    /** when set, ocm and mma calculate beta driven move limits */
+    Tuned* tuned = nullptr;
     
     Scale* objective;
     

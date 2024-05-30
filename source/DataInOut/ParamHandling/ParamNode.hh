@@ -162,6 +162,9 @@ namespace CoupledField
     /** @return the name of the attribute or XML element */
     const std::string& GetName() const { return name_;} 
 
+    /** return the path up to the current element */
+    std::string GetLocation() const;
+
     /** Add child parameter nod*/
     void AddChildNode( PtrParamNode child);
     
@@ -278,14 +281,18 @@ namespace CoupledField
     TYPE MathParse() const;
 
     /** Directly access the value of the current node as a given type.
+     *
+     * The most prominent practical usage is GetValue("hans", value_, ParamNode::PASS).
+     * If "hans" is given in xml, the value is read and written to value_. If "hans" is not
+     * present, value_ is not touched (and the C++ default remains). Makes only sense,
+     * if there is no schema default. For a schema default you can use
+     * value_ = Get("hans")->As<TYPE>();
+     *
      *  In case the node does not exist the following action is taken:
-     *  PASS: Method returns wiithou warning / error
+     *  PASS: Method returns without warning/error if the element is not contained and does not touch reg
      *  EX: An exception is generated
-     *  INSERT: A new node is generated with the value of the ret variable
-     *           as new value
-     *  APPEND: A new node is generated anyway and the value of the ret variable
-     *          is set as new value
-     */
+     *  INSERT: A new node is generated with the value of the ret variable as new value
+     *  APPEND: A new node is generated anyway and the value of the ret variable  is set as new value */
     template<typename TYPE>
     void GetValue(const std::string& name, TYPE& ret, ActionType = EX );        
         

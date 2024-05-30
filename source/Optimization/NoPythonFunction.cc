@@ -3,15 +3,44 @@
 #include "Optimization/Function.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Optimizer/OptimalityCondition.hh"
+#include "Optimization/Optimizer/MMA.hh"
 
 namespace CoupledField
 {
+
+PyObject* Optimization::PythonFunctionValues() const
+{
+  assert(false);
+  return nullptr;
+}
+
+void Optimization::PythonStopOptimization(PyObject* args)
+{
+  assert(false);
+}
+
+
+PyObject* Optimization::PythonGetOptimizerProperties() const
+{
+  assert(false);
+  return nullptr;
+}
+
+void OptimalityCondition::PythonSetProperty(PyObject* args)
+{
+  assert(false);
+}
+
+void MMA::PythonSetProperty(PyObject* args)
+{
+  assert(false);
+}
 
 void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
 {
   assert(false);
 }
-
 
 void Function::DeletePythonFunction()
 {
@@ -48,6 +77,19 @@ void Function::Local::Identifier::CalcLocalPythonGrad(Vector<double>& grad, cons
 {
   assert(false);
 }
+
+PyObject* DesignSpace::PythonGetFilterProperties(PyObject* args) const
+{
+  assert(false);
+  return nullptr;
+}
+
+void DesignSpace::PythonSetFilterProperties(PyObject* args)
+{
+  assert(false);
+}
+
+
 
 
 } // end of namespace

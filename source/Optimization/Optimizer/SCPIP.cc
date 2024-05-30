@@ -61,14 +61,13 @@ SCPIP::~SCPIP()
 
 void SCPIP::PostInit()
 {
+  BaseOptimizer::PostInit();
   Initialize();
   optimizer_timer_->Stop();
 }
 
 void SCPIP::ToInfo(PtrParamNode pn)
 {
-  BaseOptimizer::ToInfo(pn);
-
   PtrParamNode pn_ = pn->Get("icntl");
   for(int i = 0; i < 13; i++)
     pn_->Get("i" + lexical_cast<std::string>(i + 1))->SetValue(icntl[i]);
@@ -135,13 +134,11 @@ void SCPIP::SolveProblem()
     case Maximum_Iterations_Exceeded:
     case Infeasible:
     case Gradients_Return_False:
-      in->Get("converged")->SetValue("no"); 
-      in->Get("reason/msg")->SetValue("SCPIP: " + ToString(status));
+      optimization->DoStopOptimizationHelper(false, "SCPIP: " + ToString(status));
       break;
       
     default:
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("SCPIP: " + ToString(status));
+      optimization->DoStopOptimizationHelper(false, "SCPIP: " + ToString(status));
       throw Exception(ToString(status));
     }
     
