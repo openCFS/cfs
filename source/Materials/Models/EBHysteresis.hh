@@ -9,6 +9,7 @@
 #include "MatVec/Vector.hh"
 #include "Domain/Domain.hh"
 #include "Model.hh"
+#include "SMSM.hh"
 
 
 namespace CoupledField {
@@ -50,6 +51,8 @@ namespace CoupledField {
 
     private:
       //==============
+      SMSM SMSM_model_;
+
       UInt dim_; 
 
       std::map<UInt,UInt> ElemNum2Idx_;

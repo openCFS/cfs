@@ -13,6 +13,9 @@
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
 
+
+
+
 namespace CoupledField {
 
 DEFINE_LOG(eb, "EBHysteresis")
@@ -30,7 +33,7 @@ DEFINE_LOG(eb, "EBHysteresis")
     }
 
     void EBHysteresis::Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim) {
-
+      
       dim_ = dim;
 
       EntityIterator it = entityList->GetIterator();
@@ -918,8 +921,103 @@ DEFINE_LOG(eb, "EBHysteresis")
         ret.Push_back(Px);
         ret.Push_back(Py);
 
-      }else{   // 3D Version (VPM)
-        // volumetric weight for each pseudo particle
+      }else{
+        /*
+        ================================================================================
+        Klaus' MSMS+VPM version
+        ================================================================================
+        */
+        // StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
+        // StdVector<UInt> numIter;
+        // error.Resize(numS_, 0.0);
+        // dir.Resize(numS_, 0.0);
+        // numIter.Resize(numS_, 0);
+        // HrxS_sol.Resize(numS_, 0.0);
+        // HryS_sol.Resize(numS_, 0.0);
+        // HrzS_sol.Resize(numS_, 0.0);
+        // MxS_sol.Resize(numS_, 0.0);
+        // MyS_sol.Resize(numS_, 0.0);
+        // MzS_sol.Resize(numS_, 0.0);
+
+        // Double Hex_x = Hn[0];
+        // Double Hex_y = Hn[1];
+        // Double Hex_z = Hn[2];
+
+        // Double HrxS_prev, HryS_prev, HrzS_prev, HrS, Px, Py, Pz, condition1,Hirr_x,Hirr_y,Hirr_z;
+
+
+        // StdVector<Double>& HxS_prev = HxS_n_[idx];
+        // StdVector<Double>& HyS_prev = HyS_n_[idx];
+        // StdVector<Double>& HzS_prev = HzS_n_[idx];
+
+
+
+        // for(int k = 0; k < numS_; k++){
+        //   HrxS_prev = HxS_prev[k];
+        //   HryS_prev = HyS_prev[k];
+        //   HrzS_prev = HzS_prev[k];
+        //   condition1 = ( std::pow((Hex_x - HrxS_prev)/chi[k], 2) + std::pow((Hex_y - HryS_prev)/chi[k], 2) + std::pow((Hex_z - HrzS_prev)/chi[k], 2) );
+        //   if( condition1 <= 1.0){
+        //     HrxS_sol[k] = HrxS_prev;
+        //     HryS_sol[k] = HryS_prev;
+        //     HrzS_sol[k] = HrzS_prev;
+        //   }else{
+        //     // dissipation now reached (just arrived at the border of the sphere)
+        //     if(k == 0){
+        //       HrxS_sol[k] = Hex_x;
+        //       HryS_sol[k] = Hex_y;
+        //       HrzS_sol[k] = Hex_z;
+        //     }else{
+        //       //
+        //       Hirr_x = chi[k]* (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
+        //       Hirr_y = chi[k]* (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
+        //       Hirr_z = chi[k]* (Hex_z - HrzS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
+        //       HrxS_sol[k] = Hex_x - Hirr_x;
+        //       HryS_sol[k] = Hex_y - Hirr_y;
+        //       HrzS_sol[k] = Hex_z - Hirr_z;
+        //     }
+        //   }  
+        //   HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
+        //   if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
+        //     // Use the MSMS for calculation of the new stage magnetization vector
+        //     StdVector<Double> dirH(3);
+        //     dirH[0] = HrxS_sol[k]/HrS; dirH[1] = HryS_sol[k]/HrS; dirH[2] = HrzS_sol[k]/HrS;
+        //     LOG_DBG3(eb)<< "\n\t INPUT (H) OF SMSM: "<<HrS;
+        //     SMSM_model_.Eval(HrS, dirH);
+        //     Vector<Double> M = SMSM_model_.GetM();
+        //     LOG_DBG3(eb)<< "\n\t OUTPUT (M) OF SMSM: "<<M.ToString();
+
+        //     // MSM version
+        //     MxS_sol[k] = M[0];
+        //     MyS_sol[k] = M[1];
+        //     MzS_sol[k] = M[2];
+
+        //     // pure VPM with atan anhysteresis curve
+        //     // MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
+        //     // MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
+        //     // MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS;
+        //   }else{
+        //     MxS_sol[k] = 0.0;
+        //     MyS_sol[k] = 0.0;
+        //     MzS_sol[k] = 0.0;
+        //   }
+        // }
+        // Px = 0.0;
+        // Py = 0.0;
+        // Pz = 0.0;
+        // for(int k = 0; k < numS_; k++){
+        //   Px += weight[k] * MxS_sol[k];
+        //   Py += weight[k] * MyS_sol[k];
+        //   Pz += weight[k] * MzS_sol[k];
+        // }
+        // ret.Push_back(Px);
+        // ret.Push_back(Py);
+        // ret.Push_back(Pz);
+
+
+        /*3D Version (EBM)
+          volumetric weight for each pseudo particle
+        */
         StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
         StdVector<UInt> numIter;
         error.Resize(numS_, 0.0);

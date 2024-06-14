@@ -144,7 +144,6 @@ namespace CoupledField
         assemble_->AssembleNonLinRHS();
         algsys_->GetRHSVal( actRHS );
         residualErr = actRHS.NormL2();
-        residualErr = residualErr*residualErr;
         
         // calculate incremental error ========================================
         solIncrL2Norm = solInc.NormL2();
