@@ -147,7 +147,13 @@ template<class T> void CoefFunctionMaterialModel<T>::GetVector(
   for(UInt i = 0 ; i < spaceDim_; ++i){
     RealDependentVec[i] = std::real(DependentVec[i]); 
   }
-  coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  if(stressCoef_){
+    // multiscale version, which requires mechanical stress input
+    coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum, lpm, stressCoef_);
+  }else{
+    coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  }
+
   
   LOG_DBG(cfjc)
   << "NrElem = :" << lpm.ptEl->elemNum << std::endl;

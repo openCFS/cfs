@@ -831,6 +831,10 @@ public:
     EXCEPTION("CoefFuncion::InitModel not overwritten by " << GetName());
   }
 
+  virtual void RegisterStressDependence(PtrCoefFct stressCoef){
+    EXCEPTION("CoefFuncion::RegisterStressDependence not overwritten by " << GetName());
+  }
+  
   //! return volume regionId being the correct neighbor of a surface region id
   virtual RegionIdType GetVolNeighborRegionId(RegionIdType surfId) {
 	  return neighborRegionId_[surfId];

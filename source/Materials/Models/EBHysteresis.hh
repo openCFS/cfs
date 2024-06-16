@@ -33,6 +33,9 @@ namespace CoupledField {
       // just for the computation of the residual, we do not store anything here
       Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum);
 
+      Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum,
+                                    LocPointMapped lpm, PtrCoefFct stressCoef);
+
       Matrix<Double> EvaluateLocalMu(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
       Matrix<Double> EvaluateLocalMuDFP(StdVector<Double> E, StdVector<Double> D, UInt idx);

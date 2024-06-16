@@ -11,6 +11,7 @@
 
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
 
 namespace CoupledField
 {
@@ -146,7 +147,7 @@ namespace CoupledField
       for (UInt jdx = 0; jdx < 3; jdx++)
       {
         // Compute the (i, j)-th entry of AtA
-        for (int kdx = 0; kdx < 3; ++kdx)
+        for (UInt kdx = 0; kdx < 3; ++kdx)
         {
           AtA[idx][jdx] += A[kdx][idx] * A[kdx][jdx];
         }
@@ -194,6 +195,33 @@ namespace CoupledField
     LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
     Vector<Double> M;
     M = Evaluate(HVec, false, idx);
+    LOG_DBG3(eb) << "\n\t M = " << M.ToString();
+
+    for (UInt i = 0; i < dim_; ++i)
+    {
+      B[i] = mu0_ * (HVec[i] + M[i]);
+    }
+
+    LOG_DBG3(eb) << "\n\t B = " << B.ToString();
+    return B;
+  }
+
+  Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum,
+                                              LocPointMapped lpm, PtrCoefFct stressCoef)
+  {
+    Vector<Double> B(dim_);
+    UInt idx = ElemNum2Idx_[ElemNum];
+
+    Vector<Double> sigma;
+    stressCoef->GetVector(sigma, lpm);
+    SMSM_model_->Register_stress(sigma);
+
+    LOG_DBG3(eb) << "\n\t sigma = " << sigma.ToString();
+    LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
+
+    Vector<Double> M;
+    M = Evaluate(HVec, false, idx);
+    
     LOG_DBG3(eb) << "\n\t M = " << M.ToString();
 
     for (UInt i = 0; i < dim_; ++i)
@@ -833,7 +861,6 @@ namespace CoupledField
       {
         // full energy based + atan anhysteresis
         ret = Eval_2D_EB_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
-        return ret;
       }
     }
     else if (dim_ == 3)
@@ -859,7 +886,9 @@ namespace CoupledField
         ret = Eval_3D_EBM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
       }
     }
+    return ret;
   }
+
 
   Vector<Double> EBHysteresis::Eval_3D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
@@ -886,7 +915,7 @@ namespace CoupledField
     StdVector<Double> &HyS_prev = HyS_n_[idx];
     StdVector<Double> &HzS_prev = HzS_n_[idx];
 
-    for (int k = 0; k < numS_; k++)
+    for (UInt k = 0; k < numS_; k++)
     {
       HrxS_prev = HxS_prev[k];
       HryS_prev = HyS_prev[k];
@@ -935,7 +964,7 @@ namespace CoupledField
     Px = 0.0;
     Py = 0.0;
     Pz = 0.0;
-    for (int k = 0; k < numS_; k++)
+    for (UInt k = 0; k < numS_; k++)
     {
       Px += weight[k] * MxS_sol[k];
       Py += weight[k] * MyS_sol[k];
@@ -944,6 +973,7 @@ namespace CoupledField
     ret.Push_back(Px);
     ret.Push_back(Py);
     ret.Push_back(Pz);
+    return ret;
   }
 
   Vector<Double> EBHysteresis::Eval_3D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
@@ -979,7 +1009,7 @@ namespace CoupledField
     StdVector<Double> &MyS_prev = MyS_n_[idx];
     StdVector<Double> &MzS_prev = MzS_n_[idx];
 
-    for (int k = 0; k < numS_; k++)
+    for (UInt k = 0; k < numS_; k++)
     {
       HrxS_prev = HxS_prev[k];
       HryS_prev = HyS_prev[k];
@@ -1043,7 +1073,7 @@ namespace CoupledField
     Px = 0.0;
     Py = 0.0;
     Pz = 0.0;
-    for (int k = 0; k < numS_; k++)
+    for (UInt k = 0; k < numS_; k++)
     {
       Px += weight[k] * MxS_sol[k];
       Py += weight[k] * MyS_sol[k];
@@ -1090,7 +1120,7 @@ namespace CoupledField
     StdVector<Double> &HyS_prev = HyS_n_[idx];
     StdVector<Double> &HzS_prev = HzS_n_[idx];
 
-    for (int k = 0; k < numS_; k++)
+    for (UInt k = 0; k < numS_; k++)
     {
       HrxS_prev = HxS_prev[k];
       HryS_prev = HyS_prev[k];
@@ -1150,7 +1180,7 @@ namespace CoupledField
     Px = 0.0;
     Py = 0.0;
     Pz = 0.0;
-    for (int k = 0; k < numS_; k++)
+    for (UInt k = 0; k < numS_; k++)
     {
       Px += weight[k] * MxS_sol[k];
       Py += weight[k] * MyS_sol[k];
@@ -1262,7 +1292,7 @@ namespace CoupledField
     }
     Px = 0.0;
     Py = 0.0;
-    for (int k = 0; k < numS_; k++)
+    for (UInt k = 0; k < numS_; k++)
     {
       Px += weight[k] * MxS_sol[k];
       Py += weight[k] * MyS_sol[k];

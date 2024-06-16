@@ -62,12 +62,6 @@ DEFINE_LOG(smsm, "SMSM")
     
     SIGMAloc_.Resize(3, 3);
     SIGMAloc_.Init();
-    SIGMAloc_[0][0] = 1.0; SIGMAloc_[0][1] = 0.0; SIGMAloc_[0][2] = 0.0;
-    SIGMAloc_[1][0] = 0.0; SIGMAloc_[1][1] = 0.0; SIGMAloc_[1][2] = 0.0; 
-    SIGMAloc_[2][0] = 0.0; SIGMAloc_[2][1] = 0.0; SIGMAloc_[2][2] = 0.0;
-    SIGMAloc_.Mult(1.0e6); // in Pascals
-    Double TABvalsig = 0.0;
-    SIGMAloc_.Mult(TABvalsig);
 
     epsmu11_.Resize(numRows_);
     epsmu12_.Resize(numRows_);
@@ -179,6 +173,17 @@ DEFINE_LOG(smsm, "SMSM")
   epsmumoy_[2][0] = eps_13;
   epsmumoy_[2][1] = eps_23;
   epsmumoy_[2][2] = eps_33;
+  }
+
+  void SMSM::Register_stress(Vector<Double> sigma)
+  {
+    SIGMAloc_[0][0] = sigma[0]; SIGMAloc_[0][1] = sigma[5]; SIGMAloc_[0][2] = sigma[4];
+    SIGMAloc_[1][0] = sigma[5]; SIGMAloc_[1][1] = sigma[1]; SIGMAloc_[1][2] = sigma[3]; 
+    SIGMAloc_[2][0] = sigma[4]; SIGMAloc_[2][1] = sigma[3]; SIGMAloc_[2][2] = sigma[2];
+    SIGMAloc_.Mult(1.0e6); // in Pascals
+    //Double TABvalsig = 0.0;
+    //SIGMAloc_.Mult(TABvalsig);
+
   }
 
 } // Namespace end
