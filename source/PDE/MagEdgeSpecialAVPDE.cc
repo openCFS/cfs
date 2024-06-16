@@ -771,7 +771,8 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     // === EDDY CURRENT (JOULE) LOSS DENSITY INTEGRATED===
     /*  The Joule loss power averaved over
      *  one period T of the time history
-     *    P_mean = 1/T \int_0^T E(t)*J(t) dt = J*E'+J'*E = 2*(Jr*Er + Ji*Ei)
+     *  the following notation is used A(t) = Re(A exp(jwt)) , A = Ar + j Ai , and ' stands for complex conjugate
+     *    P_mean = 1/T \int_0^T E(t)*J(t) dt = 1/2 Re(J E') = 1/2 Re(E J') = 1/4(J*E'+J'*E) = 1/2(Jr*Er + Ji*Ei)
      *  with the electric field E(t) and the total current density J(t).
      */
     if( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC){
@@ -788,12 +789,13 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
         PtrCoefFct conjJinE = CoefFunction::Generate( mp_, part,
                     CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY),
                                        GetCoefFct(MAG_EDDY_CURRENT_DENSITY), CoefXpr::OP_MULT_CONJ) );
+
         // to make the power consistent between harmonic and multiharmonic
         PtrCoefFct halfCoef;
         if ( analysistype_ == MULTIHARMONIC){
-            halfCoef = CoefFunction::Generate( mp_, part, "1.0");
-        } else {
             halfCoef = CoefFunction::Generate( mp_, part, "0.5");
+        } else {
+            halfCoef = CoefFunction::Generate( mp_, part, "0.25");
         }
         PtrCoefFct tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, conjEinJ, conjJinE, CoefXpr::OP_ADD) );
 

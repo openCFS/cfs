@@ -143,6 +143,9 @@ namespace CoupledField
           moreThan1HystRegion = true;
           
           std::map<std::string, double> ParameterMap;
+          if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
+            EXCEPTION("Multiscale model in MagneticScalarPotentialAdjPDE not yet implemented");
+          }
           actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["mu0"], MAG_MU0_EB, Global::REAL);

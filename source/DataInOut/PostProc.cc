@@ -12,6 +12,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "PDE/SinglePDE.hh"
+#include "ResultHandler.hh"
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 
@@ -198,9 +199,13 @@ namespace CoupledField {
         std::string mode;
         procNodes[i]->GetValue( "mode", mode );
 
+        // get computeSolutionSteps
+        std::string computeSolutionSteps;
+        procNodes[i]->GetValue( "computeSolutionSteps", computeSolutionSteps );
+
         // get dof-nodes
-        ParamNodeList dofNodes = procNodes[i]->GetList("dof");;
-        
+        ParamNodeList dofNodes = procNodes[i]->GetList("dof");
+
         // get dofnames, real functions and imaginary functions for each dof
         StdVector<std::string> dofNames, rFunctions, iFunctions;
         for( UInt iDof = 0; iDof < dofNodes.GetSize(); iDof++ ) {
@@ -208,7 +213,7 @@ namespace CoupledField {
           rFunctions.Push_back( dofNodes[iDof]->Get("realFunc")->As<std::string>() );
           iFunctions.Push_back( dofNodes[iDof]->Get("imagFunc")->As<std::string>() );
         }
-        normProc->Initialize( resultName, integrationOrder, mode, dofNames, rFunctions, iFunctions );
+        normProc->Initialize( resultName, integrationOrder, mode, computeSolutionSteps, dofNames, rFunctions, iFunctions );
         actProc = normProc;
       }
 
@@ -898,6 +903,7 @@ namespace CoupledField {
   void PostProcL2Norm::Initialize( const std::string& resultName,
                                  const UInt& integrationOrder,
                                  const std::string& mode,
+                                 const std::string& computeSolutionSteps,
                                  const StdVector<std::string>& dofNames,
                                  const StdVector<std::string>& rFunctions,
                                  const StdVector<std::string>& iFunctions ) {
@@ -910,6 +916,7 @@ namespace CoupledField {
     resultName_ = resultName;
     integrationOrder_ = integrationOrder;
     mode_ = mode;
+    computeSolutionSteps_ = computeSolutionSteps;
     dofNames_ = dofNames;
     rFuncs_ = rFunctions;
     iFuncs_ = iFunctions;
@@ -929,86 +936,97 @@ namespace CoupledField {
   
   template<class TYPE> 
   void PostProcL2Norm::CalcNorm() {
-
     // Cast output into correct type
     Result<TYPE> & out = dynamic_cast<Result<TYPE>&>(*output_);
     Vector<TYPE> & outVec = out.GetVector();
-
 
     shared_ptr<EntityList> outList = out.GetEntityList();
     EntityIterator outIt = outList->GetIterator();
     ResultInfo & outResInfo = *(out.GetResultInfo() );
     outVec.Resize( outResInfo.dofNames.GetSize() );
     outVec.Init();
-    //outIt.Begin();
 
     shared_ptr<BaseFeFunction> baseFeFct = output_->GetResultInfo()->GetFeFunction().lock();
     shared_ptr<FeFunction<TYPE> > feFct = dynamic_pointer_cast<FeFunction<TYPE> >(baseFeFct);
-    
-    Vector<TYPE> elemSol, temp, fac, refFac;
-    
-    
+
+    // determine if we want to compute a solution for this specific time/frequency step
+    ResultHandler* handler = feFct->GetPDE()->GetDomain()->GetResultHandler();
+    bool solveThisStep = false;
+    if (computeSolutionSteps_ == "all")
+      solveThisStep = true;
+    else if (computeSolutionSteps_ == "last" && handler->GetCurrStepNum() == handler->GetNumSteps())
+      solveThisStep = true;
+
     // get lpm for higher integration order and loop over all lpms
-
+    Vector<TYPE> elemSol, temp, fac, refFac;
     // Loop over regions
-    for( outIt.Begin(); !outIt.IsEnd(); outIt++ ) {
-      shared_ptr<EntityList> actSDList = 
-          outIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, outIt.GetGrid()->GetRegionName(outIt.GetRegion()) );
-      EntityIterator elemIt = actSDList->GetIterator();
+    for(outIt.Begin(); !outIt.IsEnd(); outIt++ ) {
+      // if specified in the xml tag, only compute for desired time/frequency steps
+      if (solveThisStep == true) {
+        shared_ptr<EntityList> actSDList = outIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, outIt.GetGrid()->GetRegionName(outIt.GetRegion()) );
 
-      Double tempNorm = 0.0;
-      Double refSum = 0.0;
-      // loop over elements
-      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-        const Elem * el = elemIt.GetElem();
-        
-        // we calcualte the individual contributions by coef^2*J*w
-        // the feFunction is needed in order to get the grid and integration stuff
-        feFct->GetElemSolution( elemSol, el);
+        // summation variables
+        Double tempNorm = 0.0;
+        Double refSum = 0.0;
 
-        // Obtain FE element from feSpace and integration scheme
-        IntegOrder order;
-        // Use higher order integration in order to get accurate results
-        order.SetIsoOrder(integrationOrder_);
-        shared_ptr<FeSpace> feSpace = feFct->GetFeSpace();
-        shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
-        // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm =
-            elemIt.GetGrid()->GetElemShapeMap( el, true );
+        // we need to do conventional for loop as somehow openMp can not deal with the iterator
+        int numElems =  actSDList->GetIterator().GetSize();
+        int iElems;
+        // loop over elements
+        #pragma omp parallel for num_threads(CFS_NUM_THREADS) private(elemSol, temp, fac, refFac)
+        for(iElems = 0; iElems < numElems; ++iElems) {
+          // define element iterator
+          EntityIterator elemIt = actSDList->GetIterator();
+          // increment iterator to current position
+          elemIt += iElems;
+          // get the respective element
+          const Elem * el = elemIt.GetElem();
 
-        // Get integration points
-        StdVector<LocPoint> intPoints;
-        StdVector<Double> weights;
-        intScheme->GetIntPoints( Elem::GetShapeType(el->type), IntScheme::GAUSS, order, 
-                                  intPoints, weights );
-        // Loop over all integration points
-        LocPointMapped lpm;
-        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
-          //std::cerr << "i = " << i << ", point = " << intPoints[i] << ", weight = " << weights[i] << std::endl;
-          // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm, weights[i] );
-          
-          this->diffCoef_->GetVector(fac, lpm);
+          // we calcualte the individual contributions by coef^2*J*w
+          // the feFunction is needed in order to get the grid and integration stuff
+          feFct->GetElemSolution( elemSol, el);
 
-          tempNorm += fac.NormL2_squared()*lpm.jacDet * weights[i];
-          if( mode_ == "relative" ) {
-            // for the relative norm we also need to evaluate the reference result and divide by it afterwards
-            this->coef_->GetVector(refFac, lpm);
-            refSum += refFac.NormL2_squared()*lpm.jacDet * weights[i];
-          }
-          
+          // Obtain FE element from feSpace and integration scheme
+          IntegOrder order;
+          // Use higher order integration in order to get accurate results
+          order.SetIsoOrder(integrationOrder_);
+          shared_ptr<FeSpace> feSpace = feFct->GetFeSpace();
+          shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
+          // Get shape map from grid
+          shared_ptr<ElemShapeMap> esm = elemIt.GetGrid()->GetElemShapeMap( el, true );
 
-        } // loop integration points
+          // Get integration points
+          StdVector<LocPoint> intPoints;
+          StdVector<Double> weights;
+          intScheme->GetIntPoints( Elem::GetShapeType(el->type), IntScheme::GAUSS, order, intPoints, weights );
+          // Loop over all integration points
+          LocPointMapped lpm;
+          for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+            //std::cerr << "i = " << i << ", point = " << intPoints[i] << ", weight = " << weights[i] << std::endl;
+            // Calculate for each integration point the LocPointMapped
+            lpm.Set( intPoints[i], esm, weights[i] );
+            this->diffCoef_->GetVector(fac, lpm);
 
-      } // loop elements
-
-      if( mode_ == "relative" ) {
-        outVec[outIt.GetPos()] = sqrt(tempNorm/refSum);
+            #pragma omp critical(tempNorm)
+            tempNorm += fac.NormL2_squared()*lpm.jacDet * weights[i];
+            if( mode_ == "relative" ) {
+              // for the relative norm we also need to evaluate the reference result and divide by it afterwards
+              this->coef_->GetVector(refFac, lpm);
+              #pragma omp critical(refSum)
+              refSum += refFac.NormL2_squared()*lpm.jacDet * weights[i];
+            }
+          } // loop integration points
+        } // loop elements
+        if( mode_ == "relative" ) {
+          outVec[outIt.GetPos()] = sqrt(tempNorm/refSum);
+        } else {
+          outVec[outIt.GetPos()] = sqrt(tempNorm);
+        }
       } else {
-        outVec[outIt.GetPos()] = sqrt(tempNorm);
+          // if the solution for this time/frequency step should not be computed, replace by nan
+          outVec[outIt.GetPos()] = NAN;
       }
-    }
-
+    } // loop regions
   }
 
   void PostProcL2Norm::Finalize( ) {

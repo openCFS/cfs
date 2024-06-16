@@ -14,15 +14,32 @@ set(superlu_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/superlu")
 set(superlu_source  "${superlu_prefix}/src/superlu")
 set(superlu_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
-SET(SUPERLU_BLAS_LIBRARY "${BLAS_LIBRARY}")
-
 IF(USE_BLAS_LAPACK STREQUAL "NETLIB")
-  LIST(APPEND SUPERLU_BLAS_LIBRARY "${CFS_FORTRAN_LIBS}")
+  SET(SUPERLU_BLAS_LIBRARY "${BLAS_LIBRARY};${CFS_FORTRAN_LIBS}")
 ELSEIF(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
-  LIST(APPEND SUPERLU_BLAS_LIBRARY "-lm")
-ENDIF()
+  SET(SUPERLU_BLAS_LIBRARY "${BLAS_LIBRARY};-lm")
+elseif(USE_BLAS_LAPACK STREQUAL "MKL")
+  # construct from the MKL link line provided by the module
+  if(USE_OPENMP)
+    set(SUPERLU_BLAS_LIBRARY "${MKL_LINK_LINE};${MKL_THREAD_LIB};${MKL_SUPP_LINK}")
+  else()
+    set(SUPERLU_BLAS_LIBRARY "${MKL_LINK_LINE};${MKL_SUPP_LINK}")
+  endif()
+  message(STATUS "starting with SUPERLU_BLAS_LIBRARY=${SUPERLU_BLAS_LIBRARY} from MKLConfig, replacing targets")
+  # now replace all targets with the paths
+  foreach(lib ${MKL_LIBRARIES})
+    get_target_property(loc MKL::${lib} IMPORTED_LOCATION)
+    message(STATUS "  MKL::${lib} -> ${loc}")
+    string(REPLACE "MKL::${lib}" "${loc}" SUPERLU_BLAS_LIBRARY "${SUPERLU_BLAS_LIBRARY}")
+  endforeach()
+  if(NOT MKL_FOUND) # legacy behaviour TODO: remove once legacy behaviour is removed from FindIntelMKL
+    message(WARNING "using old MKL finding - this is not actively supported any more ...")
+    set(SUPERLU_BLAS_LIBRARY "${BLAS_LIBRARY}")
+  endif()
+endif()
 
 STRING(REPLACE ";" "^" SUPERLU_BLAS_LIBRARY "${SUPERLU_BLAS_LIBRARY}")
+message(STATUS "we pass SUPERLU_BLAS_LIBRARY=${SUPERLU_BLAS_LIBRARY}")
 
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${superlu_install}

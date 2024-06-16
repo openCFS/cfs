@@ -24,7 +24,7 @@ namespace CoupledField {
 
     public:
       //! Constructor
-      SMSM();
+      SMSM(Double Ms, Double AS, Double K1, Double K2, Double lambda100, Double lambda111);
 
       //! Destructor
       virtual ~SMSM();

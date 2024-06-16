@@ -1,6 +1,7 @@
 # IPOPT is a general purpose open source optimizer 
 # https://coin-or.github.io/Ipopt/
 # https://github.com/coin-or/Ipopt
+# w/o MKL we need HSL, for Windows we use precompiled code (External_IPOPT_Win.cmake)
 
 # make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
 clear_depencency_variables()
@@ -11,10 +12,10 @@ endif()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "ipopt")
-set(PACKAGE_VER "3.14.10")
+set(PACKAGE_VER "3.14.12")  # it makes sense to have this in sync with External_IPOPT_Win.cmake
 set(PACKAGE_FILE "${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "f22da4b75d9c936e607febe1f7e63815")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(PACKAGE_MD5 "b2bcb362be4c10eccde02829d3025faa")
+set(DEPS_VER "-b") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://github.com/coin-or/Ipopt/archive/refs/tags/releases/${PACKAGE_FILE}")
@@ -44,7 +45,24 @@ if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
   string(CONCAT LAPACK_STR "-L${CMAKE_BINARY_DIR}/lib -lopenblas")
 elseif(USE_BLAS_LAPACK STREQUAL "MKL")
   # see https://coin-or.github.io/Ipopt/INSTALL.html howecver --with-lapack seems also to work instead of --with-lapack-lflags
-  string(CONCAT LAPACK_STR "-L${MKL_LIB_DIR} -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lm")
+  if(${DIST} STREQUAL "ALPINE")
+    message(STATUS "on Alpine Linux we need static linking of MKL - take link line from CFS")
+    # use the MKL-link-line as used in CFS - for static linking this will issue a warning about static linking of a shared library
+    string(CONCAT LAPACK_STR "${MKL_LINK_LINE} ${MKL_THREAD_LIB} ${MKL_SUPP_LINK}")
+    message(STATUS "${LAPACK_STR}")
+    # now replace all targets with the paths
+    foreach(lib ${MKL_LIBRARIES})
+      get_target_property(loc MKL::${lib} IMPORTED_LOCATION)
+      message(STATUS "  MKL::${lib} -> ${loc}")
+      string(REPLACE "MKL::${lib}" "${loc}" LAPACK_STR "${LAPACK_STR}")
+    endforeach()
+    # replace ; by space
+    string(REPLACE ";" " " LAPACK_STR "${LAPACK_STR}")
+  else()
+    # it should not matter what IPOPT does as long as we pass configure
+    # this is known to work in most cases
+    string(CONCAT LAPACK_STR "-L${MKL_LIB_DIR} -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lm")
+  endif()
 endif()
 
 # for blas and Accelerate hope for the best, it is just to get over configure
@@ -60,7 +78,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
 
 assert_unset(PATCHES_SCRIPT)
 
-# generate package ceation script. We get the files from an install_manifest.txt
+# generate package creation script. We do not get the files from an install_manifest.txt
 generate_packing_script_install_dir()
 
 # we have no postinstall, so don't call generate_postinstall_script()

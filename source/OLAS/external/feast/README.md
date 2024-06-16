@@ -1,11 +1,11 @@
 FEAST Eigensolver
 =================
 
-[MKL](https://www.intel.com/content/www/us/en/developer/tools/oneapi/onemkl.html)
+Intel oneAPI Math Kernel Library (oneMKL)
 implements [FEAST](http://www.feast-solver.org/) in version 2.
 We use the community version of FEAST with considerably more features.
 
-There is a method to estimate the search interval for feast:
+There is a method to estimate the search interval for FEAST:
 https://arxiv.org/abs/1308.4275
 
 ToDo

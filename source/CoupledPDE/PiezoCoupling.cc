@@ -616,9 +616,9 @@ namespace CoupledField {
 
     // === Electric Charge Density (surface) ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
-    chargeD->resultType = ELEC_CHARGE_DENSITY;
+    chargeD->resultType = ELEC_SURFACE_CHARGE_DENSITY;
     chargeD->dofNames = "";
-    chargeD->unit = "C/m^2";
+    chargeD->unit = MapSolTypeToUnit(ELEC_SURFACE_CHARGE_DENSITY);
     chargeD->definedOn = ResultInfo::SURF_ELEM;
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );

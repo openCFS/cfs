@@ -266,6 +266,7 @@ namespace CoupledField {
     void Initialize( const std::string& resultName,
                      const UInt& integrationOrder,
                      const std::string& mode,
+                     const std::string& computeSolutionSteps,
                      const StdVector<std::string>& dofNames,
                      const StdVector<std::string>& rFunctions,
                      const StdVector<std::string>& iFunctions ); 
@@ -276,7 +277,6 @@ namespace CoupledField {
     //! Finalize
     void Finalize( );
 
-    
   private:
 
     //! Templatized sub-routine
@@ -291,6 +291,10 @@ namespace CoupledField {
 
     //! mode how the L2 norm function shall operate (absolute/relative)
     std::string mode_;
+
+    //! defines which time/frequency steps should be considered for computing the postProc result
+    //! currently, this is only used in the L2Norm and can be "all" or "last"
+    std::string computeSolutionSteps_;
     
     //! dof names of new result
     StdVector<std::string> dofNames_;

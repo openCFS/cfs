@@ -18,8 +18,11 @@ if __name__ == '__main__':
   import matplotlib
   import matplotlib.pyplot as plt
   from matplotlib.ticker import MaxNLocator
-  import snopt # our snopt.py helper fticklabel_formator process
-
+  try:
+    import snopt # our snopt.py helper process
+  except ImportError:
+    print("warning: cannot load snopt, hopefully not needed")
+   
   # in case we have --dashed we use c_cms_y and c_cms_y2
   # https://stackoverflow.com/questions/7358118/matplotlib-black-white-colormap-with-dashes-dots-etc
   # probably to be combined with --black
@@ -133,7 +136,6 @@ def header(data, comments):
 # print header in a nice way
 def print_header(meta,data,inputs):
   assert len(meta) == len(data) == len(inputs)
-  
   ml = max([len(max(m, key = len)) for m in meta]) # find largest meta key
   
   print('key: ' + 'label'.ljust(ml) + ' : first value         : file')
@@ -228,7 +230,8 @@ def check(format, test):
   try:
     time = datetime.datetime.strptime(test, format)
     #  8.9819 -> 9819-08-01 00:00:00 9819
-    if time.year == 0 or (time.year >= 2010 and time.year <= 2030):
+    # allow for checks with time only, then the year is 0 or default
+    if time.year in [0,1900] or (time.year >= 2010 and time.year <= 2030):
       return True
     else:
       return False
@@ -417,14 +420,15 @@ def process(input):
   comments = []
   body = [] 
  
-  # we assume first comments (and assume the last comment to be the header descriotion)
+  # we assume first comments (and assume the last comment to be the header description)
   # then the body. For comment/body/comment we ignore comments after body
   for l in lines:
     h = l.strip()
     # it seems excel creates utf-8 bom at file start, simply skip it
     if ord(h[0]) == 0xfeff:
       h = h[1:]
-    if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---'):
+    #if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---') or (:
+    if h.startswith('---') or (len(h) > 0 and not h[0].isnumeric()): # take also text headers without prefix like DATE,PM2.5,...
       if len(body) == 0: # ignore comments after body 
         comments.append(h)
     else:
@@ -591,8 +595,10 @@ if __name__ == '__main__':
   parser.add_argument("--xscale", help="scaling type from choice, google matplotlib xscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--yscale", help="scaling type from choice, google matplotlib yscale", choices=["linear", "log", "symlog", "logit", "logrel", "percentage"],default='linear')
   parser.add_argument("--y2scale", help="like --yscale but for y2 axis", choices=["linear", "log", "symlog", "logit", "logrel", "percentage"],default='linear')
+  parser.add_argument("--zscale", help="scaling type from choice, google matplotlib xscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--bar", nargs='*', help="indices from y or y2 which are to displayed as bars instead of plots")
   parser.add_argument("--barwidth", help="barplots for datetime need manual adjustment", type=float, default=.8)
+  parser.add_argument("--ignore_day", help="overwrite any date with current day but keep time",action='store_true')
   parser.add_argument("--smooth", nargs='*', help="create new smoothed data for given fields")
   parser.add_argument("--smooth_window", help="window size of Savitzky–Golay filter", type=int, default = 7)
   parser.add_argument("--smooth_poly", help="polynomial order of Savitzky–Golay filter", type=int, default = 3)
@@ -615,10 +621,13 @@ if __name__ == '__main__':
   meta = [] 
   # matrix of data per file
   data = []
-  
   # handle Windows and macOS debugging
   if len(args.input) == 1:
+    org = args.input
     args.input = glob.glob(args.input[0]) # replace with more content in case there are Wildcards
+  if len(args.input) == 0: # in case of a wrong filename we clob nothing, no args.input is not allowed
+    print('Error: cannot open', org[0])
+    sys.exit()
   for input in args.input:
     if not os.path.exists(input):
       print('Error: no valid .dat or .snopt file given', input)
@@ -635,7 +644,6 @@ if __name__ == '__main__':
       m, d = process(input)
     meta.append(m)
     data.append(d)  
-  
   # insert artificial index for linspace x-axis as 0th file
   #meta.insert(0,['index']) # for each file a list of header names
   # the index 'file' are row column lists
@@ -689,7 +697,13 @@ if __name__ == '__main__':
       sys.exit()      
   
   has_dt = type(x[0][0]) == datetime.datetime # we validated common type for all x before
-  
+
+  if args.ignore_day:
+    today = datetime.datetime.today()
+    for file_col in x:
+      for i in range(len(file_col)):
+        file_col[i] = file_col[i].replace(year=today.year, month=today.month, day=today.day)
+
   # now do restrictions
   # for restrictions, this is the start index and end index for the x array of columns
   # currently multiple input needs to be datetime
@@ -755,10 +769,13 @@ if __name__ == '__main__':
     x[i] = x[i][start_idx[i]:end_idx[i]]
     
   for i in range(len(y)):
-    yfactor = 100/(y[i][0])
+    yfactor = 100/(y[i][0]) if y[i][0] !=0 else np.nan
     idx = abs(fiy[i])-1 # 1-based and +/- to encode bar
     y[i] = y[i][start_idx[idx]:end_idx[idx]]
     if args.yscale == 'percentage':
+      if yfactor == np.nan:
+        print("0 in data range, cannot scale by 'percentage'")
+        sys.exit()
       for j in range(len(y[i])):
         y[i][j] *= yfactor
     # adjust to value above final value for relative logarithmic scale 'logrel'
@@ -771,16 +788,19 @@ if __name__ == '__main__':
     args.yscale = 'log'
 
   for i in range(len(y2)):
-    yfactor = 100/(y2[i][0])
+    yfactor = 100/(y2[i][0]) if y2[i][0] !=0 else np.nan
     idx = abs(fiy2[i])-1
     y2[i] = y2[i][start_idx[idx]:end_idx[idx]]
     if args.yscale == 'percentage':
-      for j in range(len(y[i])):
-        y[i][j] *= yfactor
+      if yfactor == np.nan:
+        print("0 in data range, cannot scale by 'percentage'")
+        sys.exit()
+      for j in range(len(y2[i])):
+        y2[i][j] *= yfactor
     # adjust to value above final value for relative logarithmic scale 'logrel'
-    if args.y2scale == 'logrel':
-      for j in range(len(y[i])):
-        y[i][j] = y[i][j] - y[i][-1]
+    if args.y2scale == 'logrel': 
+      for j in range(len(y2[i])):
+        y2[i][j] = y2[i][j] - y2[i][-1]
   if args.yscale == 'percentage':
     args.yscale = 'linear'
   if args.y2scale == 'logrel':
@@ -886,7 +906,8 @@ if __name__ == '__main__':
     
     
   # common stuff for 2D and 3D
-  ax.set_xscale(args.xscale)  
+  if not has_dt:
+    ax.set_xscale(args.xscale) # would brake datetime with dates 
   ax.set_yscale(args.yscale)
   # ax.ticklabel_format(useOffset=False)  causes AttributeError: This method only works with the ScalarFormatter
   if args.y2:

@@ -45,7 +45,14 @@ for test in cdash_json['tests']:
     write('  <testcase id="%i" name="%s" classname="%s" file="%s" time="%.3f">\n'%(test['id'],test['name'],buildname,test['name'],test['execTimeFull']))
     if test['status']=='Failed':
         write('    <failure>'+cdash_url+test['detailsLink'].replace('&','&#38;')+'</failure>\n')
-    write('    <system-out>console ... </system-out>')
+        test_url = cdash_url + "api/v1/testDetails.php?test=%i&build=%i"%(test['id'],buildid)
+        print("  getting failed test details JSON from CDash url:",test_url)
+        test_response = urlopen( test_url )
+        test_json = json.loads(test_response.read())
+        output = test_json['test']['command']+'\n\n'+test_json['test']['output'].strip()
+    else:
+        output = 'gitlab only displays output for failed tests, so we do not need to query in other cases'
+    write('    <system-out>%s</system-out>\n'%(output))
     write('  </testcase>\n')
 write('</testsuite>')
 f.close()

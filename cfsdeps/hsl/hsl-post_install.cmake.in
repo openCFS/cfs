@@ -1,0 +1,8 @@
+include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+
+# we follow the README.md of ThirdParty-HSL.
+# macOS. libcoinhsl.dylib -> libcoinhsl.2.dylib to become libhsl.dylib
+# first remove libcoinhsl.dylib link, after renaming the target it would point to void
+file(REMOVE "@DEPS_INSTALL@/lib/libcoinhsl@CMAKE_SHARED_LIBRARY_SUFFIX@")
+file(RENAME "@DEPS_INSTALL@/lib/libcoinhsl.2@CMAKE_SHARED_LIBRARY_SUFFIX@" "@DEPS_INSTALL@/lib/libhsl@CMAKE_SHARED_LIBRARY_SUFFIX@")
+

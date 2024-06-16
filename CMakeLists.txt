@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.6.0 FATAL_ERROR)
-
 message(STATUS "Using CMake ${CMAKE_VERSION} with generator ${CMAKE_GENERATOR}")
 
 # Include global definitions for openCFS development server (host name, etc.)
@@ -34,7 +33,22 @@ endif()
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
 # as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
+if("$ENV{CI_JOB_STAGE}" MATCHES "test(_extra)?")
+  message(STATUS "detected running in CI pipeline 'test' or 'test_extra' stage via environment variable CI_JOB_STAGE=$ENV{CI_JOB_STAGE}")
+  # just some debug/info output
+  if(DEFINED PIPELINE_TEST_STAGE_CONFIG) # check if the variable is already set
+    message(WARNING "PIPELINE_TEST_STAGE_CONFIG does not need to be set any more, we use environment variables to do it automatically")
+    if(PIPELINE_TEST_STAGE_CONFIG)
+      message(STATUS "variable PIPELINE_TEST_STAGE_CONFIG set to ON in the test-stage")
+    else()
+      message(WARNING "why is PIPELINE_TEST_STAGE_CONFIG=OFF in the test stage? maybe the closed build")
+    endif()
+  else() # set the variable to get easy if statements
+    set(PIPELINE_TEST_STAGE_CONFIG ON)  
+  endif()  
+endif()
 if(PIPELINE_TEST_STAGE_CONFIG)
+  message(STATUS "No compiler check due to PIPELINE_TEST_STAGE_CONFIG variable (=${PIPELINE_TEST_STAGE_CONFIG})")
   if(NOT DEFINED ENV{CI_SERVER}) # only issue a warning if we're not on a CI server
     message(WARNING "No compiler check - this should only occur in the testing stage of the gitlab pipeline")
   endif()
@@ -66,14 +80,14 @@ include(CMakeDependentOption)
 include("cmake_modules/CFS_macros.cmake")
 
 # CFS version number.  Simply the last modification date. 
-# It is good practice to keep this up to date (CFS_NAME can stay)
-set(CFS_VERSION_YEAR "23")
-set(CFS_VERSION_MONTH "10")
+# It is good practice to keep this up to date, independent on the significance of the change (CFS_NAME can stay)
+set(CFS_VERSION_YEAR "24")
+set(CFS_VERSION_MONTH "03")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
 # shall be updated less frequently than VERSION
-set(CFS_NAME "Heavy Headache")
+set(CFS_NAME "Ideal Implementation")
 
 colormsg(HIBLUE "Configuration for openCFS ${CFS_VERSION}: ${CFS_NAME} starting")
 
@@ -173,6 +187,10 @@ endif()
 # currently, we use eigen only in CGAL for geometry approximation.
 if (NOT USE_CGAL AND USE_EIGEN)
   message(WARNING "\nYour configuration USE_EIGEN=ON and USE_CGAL=OFF has no effect. \nEigen is currently only used by CGAL, for surface-geometry approximation in the automatic layer generation and curvilinear PML.")
+endif()
+
+if(USE_CGAL AND NOT USE_EIGEN)
+  message(WARNING "\nUsing USE_CGAL=ON and USE_EIGEN=OFF will likely fail since CGAL needs Eigen.")
 endif()
   
 if(USE_CGAL AND USE_LIBFBI)
@@ -300,6 +318,9 @@ set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib CACHE INTERNAL "Single output dire
 # this ensures dynamically linked libraries are found
 # check the set value with `chrpath -l bin/cfs` (Linux) or 'otool -l bin/cfs' (macOS) 
 set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+set(CMAKE_BUILD_RPATH "$ORIGIN/../lib") # this is needed such that origin is first
+set(CMAKE_INSTALL_REMOVE_ENVIRONMENT_RPATH TRUE) # should remove oneapi stuff, but does not seem to work
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib") # for some reason this seems to be ignored because rpath remains the same after install
 
 # Set path where executables should go
 set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")
@@ -351,33 +372,21 @@ if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
   # set a build name
   set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" CACHE STRING "Name of build on the dashboard")
   mark_as_advanced(BUILDNAME)
-  if(GITLAB_TEST_TAG) # configure with -DGITLAB_TEST_TAG:STRING=`date +%Y%m%d-%H%M` to activate
-    # get the build host
-    execute_process(COMMAND ${CFS_BINARY_DIR}/bin/cfs --version --noColor
-                    COMMAND grep CFS_BUILD_HOST
-                    COMMAND awk "{print $2}"
-                    RESULT_VARIABLE var
-                    OUTPUT_VARIABLE ORIGINAL_BUILD_HOST)
-    string(STRIP "${ORIGINAL_BUILD_HOST}" ORIGINAL_BUILD_HOST) # important for comparison !
-    #message("CFS_BUILD_HOST='${CFS_BUILD_HOST}' ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
-    if(NOT (CFS_BUILD_HOST STREQUAL "${ORIGINAL_BUILD_HOST}") )
-      # extract the short name (first 2 domain name components)
-      string(REGEX MATCH "[^.]+([.][^.]+)?" ORIGINAL_BUILD_HOST "${ORIGINAL_BUILD_HOST}")
-      message("current build host CFS_BUILD_HOST='${CFS_BUILD_HOST}'")
-      message("build host where the binary is from ORIGINAL_BUILD_HOST='${ORIGINAL_BUILD_HOST}'")
-    endif()
-  endif(GITLAB_TEST_TAG)
   enable_testing()
 endif(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
 if(NOT PIPELINE_TEST_STAGE_CONFIG)
 
 # add packing and build test
-#  - probably won't work for WIN or Mac
 #  - only used in CI pipeline
-if(DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
+if(DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS} OR "$ENV{CI_JOB_STAGE}" MATCHES "build")
+  message(STATUS "running in CI pipeline 'build' stage detected -> creating build and pack tests")
   include(CTest)
   # Create distributable binary via cpack running ctest, alternatively use create_binary_archive.py
-  add_test(Pipeline_Build_cpack-Linux-TGZ cpack -G TGZ --verbose)
+  if(UNIX) # pack to a tar.gz archive
+    add_test(Pipeline_Build_cpack-TGZ cpack -G TGZ --verbose)
+  else() # probably windows, we do zip
+    add_test(Pipeline_Build_cpack-ZIP cpack -G ZIP --verbose)
+  endif()
   # Use an additional test during the build stage to grep the compiler errors
   add_test(Pipeline_Build_check-compiler-errors grep "0 Compiler errors" build.log)
   enable_testing()
@@ -545,12 +554,20 @@ set(CPACK_CMAKE_GENERATOR "Ninja") # this disables a rebuild i.e. "CPack: - Run 
 
 # tailing / in source leads to rename to destionation
 #install(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
-install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERMISSIONS)
+install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERMISSIONS
+  PATTERN "*.lib" EXCLUDE
+  PATTERN "*.cmake" EXCLUDE
+  PATTERN "*.in" EXCLUDE
+  PATTERN "*.exp" EXCLUDE
+  PATTERN "*.manifest" EXCLUDE
+  )
 install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISSIONS
   PATTERN "*.a" EXCLUDE
   PATTERN "*.la" EXCLUDE
   PATTERN "*.pc" EXCLUDE
   PATTERN "*.lib" EXCLUDE
+  PATTERN "*.cmake" EXCLUDE
+  PATTERN "*.in" EXCLUDE
   PATTERN "pkgconfig" EXCLUDE )
 # license install
 file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")

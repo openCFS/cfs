@@ -1,0 +1,11 @@
+--- "src\\xercesc\\util\\XMLDateTime.cpp.org"	2023-12-21 11:32:38.288520000 -0800
++++ "src\\xercesc\\util\\XMLDateTime.cpp"	2023-12-21 11:32:53.899492800 -0800
+@@ -580,7 +580,7 @@
+         return mktime(&t) - _timezone;
+ #else
+         // Hopefully most others...?
+-        return mktime(&t) - timezone;
++        return mktime(&t) - _timezone;
+ #endif
+     }
+ }

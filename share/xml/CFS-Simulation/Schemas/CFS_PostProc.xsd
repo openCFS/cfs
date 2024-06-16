@@ -177,6 +177,21 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+        <xsd:attribute name="computeSolutionSteps" use="optional" default="all">
+          <xsd:annotation>
+            <xsd:documentation>
+              Define custom steps in which the L2 norm is computed.
+              "all" (default) ... the L2 norm is computed in every step
+              "last"          ... the L2 norm is computed only in the last step
+            </xsd:documentation>
+          </xsd:annotation>
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="all"/>
+              <xsd:enumeration value="last"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

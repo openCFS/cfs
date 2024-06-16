@@ -118,7 +118,7 @@ namespace CoupledField {
   template<typename T>
   ExternalSolver<T>::~ExternalSolver() {
     // Deleting the matrix file of the last step
-    if(deleteFiles_)
+    if(deleteFiles_ && exportMatrix_)
       DeleteFile(matrixFileName_);
   }
 

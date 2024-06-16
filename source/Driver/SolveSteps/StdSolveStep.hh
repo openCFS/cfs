@@ -95,10 +95,10 @@ namespace CoupledField
 
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
-    void StepTransNonLinMaterial();
+    void StepTransNonLinMaterial() {REFACTOR;};
     
     //! routine for actions after the SolveStep-method
-    virtual void PostStepTrans();
+    virtual void PostStepTrans() {};
 
     //----------------------- HARMONIC AND MULTIHARMONIC -------------------------
     //! routine for initilizations befor execution the SolveStep-method

@@ -47,9 +47,17 @@ namespace CoupledField {
 
       Vector<Double> Evaluate(Vector<Double> E, bool saveTmpStageVecs, UInt idx);
 
+      Vector<Double> Eval_2D_EB_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      Vector<Double> Eval_3D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      Vector<Double> Eval_3D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      Vector<Double> Eval_3D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
     private:
       //==============
-      SMSM SMSM_model_;
+      std::unique_ptr<SMSM> SMSM_model_;
 
       UInt dim_; 
 
@@ -62,9 +70,11 @@ namespace CoupledField {
       Double Ps_;
       Double A_;
       Double mu0_;
-      Double numS_;
+      UInt numS_;
       Double chi_factor_;
-      Double jacobian_method_;
+      UInt jacobian_method_;
+      UInt anhyst_type_;
+      std::string approx_type_;
 
       StdVector< StdVector<Double> > H0_;
       StdVector< StdVector<Double> > H1_;

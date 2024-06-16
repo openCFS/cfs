@@ -33,16 +33,9 @@ set_standard_variables()
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default(OFF) # don't set compiler flags, we need to add own flags
+set_deps_args_default(ON) # set compiler flags
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "IntelLLVM") 
-  # Linux clang version 15.0.4 and IntelLLVM need -Wno-int-conversion for hdf5-1.8.20
-  # IntelLLVM needs -Wno-implicit-function-declaration 
-  list(APPEND DEPS_ARGS "-DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
-   
-  list(APPEND DEPS_ARGS "-DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
-  # almost all of hdf5 is C, so probably not necessary for CFSDEPS_CXX_FLAGS
-endif()
+# dump_depencency_variables()
 
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
@@ -61,7 +54,6 @@ set(DEPS_ARGS
   -DHDF5_BUILD_TOOLS:BOOL=OFF # no binaries wanted, use system hdf5 tools
   -DH5_HAVE_STRDUP:BOOL=OFF ) # On macOS X we can get problems with the system strdup function.
 
-
 if(POLICY CMP0075)
   list(APPEND DEPS_ARGS -DCMAKE_POLICY_DEFAULT_CMP0075=NEW)# prevent Policy CMP0075 is not set: Include file check macros honor
 endif()  
@@ -74,13 +66,11 @@ file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
 
 assert_unset(PATCHES_SCRIPT)
 
-# generate package ceation script. 
+# generate package creation script. 
 generate_packing_script_manifest()
 
 # we have no postinstall, so don't call generate_postinstall_script()
 assert_unset(POSTINSTALL_SCRIPT)
-
-# dump_depencency_variables()
 
 # do we want to use precompiled and do we already have the package?
 if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
@@ -100,3 +90,6 @@ endif()
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
+
+# hdf5 depends on zlib
+add_dependencies(hdf5 zlib)

@@ -88,7 +88,9 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef, bool al
       break;
     }
     if( isComplex_ != coef->IsComplex() ) {
-      EXCEPTION( "All coefficient functions must have the same complexType");
+      EXCEPTION("Developer info: You specified a coefficient function of complexType: " << coef->IsComplex() <<
+                " for a CoefFunctionMulti of complexType: " << isComplex_ << "." << std::endl <<
+                "Make sure all coefficient have the same complexType!");
     }
   }
 
@@ -96,8 +98,7 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef, bool al
   // for this region
   if( regionCoefs_.find( region ) != regionCoefs_.end() ) {
     if(allowReplacement == false){
-      EXCEPTION( "There was already a coefficient function defined for "
-          << "the region with id " << region );
+      EXCEPTION( "Multiple definition of region with id " << region << "in a CoefFunctionMulti.");
     }
   }
 

@@ -615,7 +615,7 @@
   <!-- Definition of surface element result types of piezoelectric coupling -->
   <xsd:simpleType name="DT_PiezoSurfElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="elecChargeDensity"/>
+      <xsd:enumeration value="elecSurfaceChargeDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
   

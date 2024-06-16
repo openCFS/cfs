@@ -5,14 +5,11 @@ include(CMakePrintHelpers)
 
 include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
 assert_not_empty(@DEPS_INSTALL@)
-assert_not_empty(@LIB_SUFFIX@)
 
 set(CMAKE_BINARY_DIR @CMAKE_BINARY_DIR@)
 set(DEPS_INSTALL @DEPS_INSTALL@)
-set(LIB_SUFFIX @LIB_SUFFIX@) # shall be "lib"
 
 assert_set(DEPS_INSTALL)
-assert_set(LIB_SUFFIX)
 
 # we copy only include and the lib dir
 
@@ -37,13 +34,14 @@ elseif(IS_DIRECTORY ${DEPS_INSTALL}/lib)
 else()
   message(FATAL_ERROR "neither ${DEPS_INSTALL}/lib64 nor ${DEPS_INSTALL}/lib is a directory")
 endif()
+cmake_print_variables(_SOURCE)
 
 # cmake file() with subdirectories is a pain :( use cmake -E
-execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${_SOURCE} ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}
+execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${_SOURCE} ${CMAKE_BINARY_DIR}/lib
   RESULT_VARIABLE rv
   OUTPUT_VARIABLE ov
   ERROR_VARIABLE ev )
 
 if(NOT "${rv}" STREQUAL "0")
-  message(FATAL_ERROR "could not copy ${_SOURCE} to ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}: out=${ov} err=${ev}")
+  message(FATAL_ERROR "could not copy ${_SOURCE} to ${CMAKE_BINARY_DIR}/lib: out=${ov} err=${ev}")
 endif()

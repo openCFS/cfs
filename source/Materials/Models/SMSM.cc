@@ -14,7 +14,7 @@ namespace CoupledField
 
 DEFINE_LOG(smsm, "SMSM")
 
-  SMSM::SMSM()
+  SMSM::SMSM(Double Ms, Double AS, Double K1, Double K2, Double lambda100, Double lambda111)
   {
     // Define the file path
     std::string filePath = "/home/kroppert/Devel/CFS_SRC/latest_trunkGit/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
@@ -52,13 +52,13 @@ DEFINE_LOG(smsm, "SMSM")
 
 
 
-    l100_ = 0.0;
-    l111_ = 0.0;
-    AS_ = 1.0e-3;
-    K1_ = 0.0;
-    K2_ = 0.0;
-    Ms_ = 1.23e6;
-    mu0_ = 1.256637061e-06;
+    l100_ = lambda100;
+    l111_ = lambda111;
+    AS_ = AS;
+    K1_ = K1;
+    K2_ = K2;
+    Ms_ = Ms;
+    mu0_ = 4*M_PI*1e-7;
     
     SIGMAloc_.Resize(3, 3);
     SIGMAloc_.Init();
