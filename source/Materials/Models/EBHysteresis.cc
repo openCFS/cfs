@@ -970,6 +970,15 @@ namespace CoupledField
       Py += weight[k] * MyS_sol[k];
       Pz += weight[k] * MzS_sol[k];
     }
+    if (saveTmpStageVecs)
+    {
+      HxS_n_tmp_[idx] = HrxS_sol;
+      HyS_n_tmp_[idx] = HryS_sol;
+      HzS_n_tmp_[idx] = HrzS_sol;
+      MxS_n_tmp_[idx] = MxS_sol;
+      MyS_n_tmp_[idx] = MyS_sol;
+      MzS_n_tmp_[idx] = MzS_sol;
+    }
     ret.Push_back(Px);
     ret.Push_back(Py);
     ret.Push_back(Pz);
@@ -1185,6 +1194,15 @@ namespace CoupledField
       Px += weight[k] * MxS_sol[k];
       Py += weight[k] * MyS_sol[k];
       Pz += weight[k] * MzS_sol[k];
+    }
+    if (saveTmpStageVecs)
+    {
+      HxS_n_tmp_[idx] = HrxS_sol;
+      HyS_n_tmp_[idx] = HryS_sol;
+      HzS_n_tmp_[idx] = HrzS_sol;
+      MxS_n_tmp_[idx] = MxS_sol;
+      MyS_n_tmp_[idx] = MyS_sol;
+      MzS_n_tmp_[idx] = MzS_sol;
     }
     ret.Push_back(Px);
     ret.Push_back(Py);
