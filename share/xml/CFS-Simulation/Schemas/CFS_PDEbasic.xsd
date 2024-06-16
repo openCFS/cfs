@@ -209,6 +209,7 @@
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+              <xsd:attribute name="dofs" type="xsd:token" use="optional" default="all"/>
             </xsd:complexType>
           </xsd:element>
 

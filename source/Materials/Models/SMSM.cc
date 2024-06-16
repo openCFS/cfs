@@ -126,7 +126,9 @@ DEFINE_LOG(smsm, "SMSM")
   for (UInt i = 0; i < numRows_; ++i) {
     As_times_Wtot_exp += std::exp(-AS_*Wtot[i] - Wtot_max*AS_);
   } 
-  LOG_DBG3(smsm) << "\n\t max(Wtot) after precompute step = " << Wtot.Max() 
+
+  LOG_DBG3(smsm) << "\n\t SIGMAloc_ " << SIGMAloc_.ToString()
+                 << "\n\t max(Wtot) after precompute step = " << Wtot.Max() 
                  << "\n\t min(Wtot) after precompute step = " << Wtot.Min();
   LOG_DBG3(smsm) << "\n\t Sum(exp(As*Wtot) = " << As_times_Wtot_exp;
   if(std::isinf(As_times_Wtot_exp)){
