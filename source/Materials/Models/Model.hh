@@ -49,6 +49,10 @@ public:
     EXCEPTION( "Not implemented in base class");
   };
  
+  virtual Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum,
+                                        LocPointMapped lpm, PtrCoefFct stressCoef){
+    EXCEPTION( "Not implemented in base class");
+  };
 };
 
 }

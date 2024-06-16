@@ -31,6 +31,8 @@ namespace CoupledField {
 
       void Eval(Double valH, StdVector<Double> dirHloc);
 
+      void Register_stress(Vector<Double> sigma);
+
       Vector<Double> GetM(){return MMoy_;};
       Matrix<Double> GetEps(){return epsmumoy_;};
       

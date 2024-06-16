@@ -147,6 +147,16 @@ namespace CoupledField
           actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_EB, Global::REAL);
           ParameterMap["isMH"] = 0;
           matModelCoef_->InitModel(ParameterMap, actSDList);
+          if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
+            // check if we have a dependency of the anhysteretic curve with mechanical stress
+            PtrCoefFct stresscoef;
+            //get coeff-Fnc to evaluate the temperature
+            StdVector<std::string> dispDofNames = feFunc_reduced->GetResultInfo()->dofNames;
+            shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+            ReadMaterialDependency( "permeability", dispDofNames, ResultInfo::VECTOR, false,
+                                    ent, stresscoef, updatedGeo_ );
+            matModelCoef_->RegisterStressDependence(stresscoef);
+          }
 
           muNL = matModelCoef_;
           nlFluxCoef_->AddRegion(actRegion, matModelCoef_);

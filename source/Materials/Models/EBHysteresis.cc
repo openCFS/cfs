@@ -12,6 +12,7 @@
 
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
 
 
 
@@ -21,129 +22,115 @@ namespace CoupledField {
 DEFINE_LOG(eb, "EBHysteresis")
 
 
-    EBHysteresis::EBHysteresis() : Model(),
-    numElems_{0}, 
-    Ps_{0}, A_{0}, mu0_{0}, numS_{0},chi_factor_{0}, jacobian_method_{0},
-    mp_{nullptr}, isFirstTimeFinished_{0},
-    timeStep_{0}, globalIter_{0},
-    isMH_{false}
-    {}
+  EBHysteresis::EBHysteresis() : Model(),
+  numElems_{0}, 
+  Ps_{0}, A_{0}, mu0_{0}, numS_{0},chi_factor_{0}, jacobian_method_{0},
+  mp_{nullptr}, isFirstTimeFinished_{0},
+  timeStep_{0}, globalIter_{0},
+  isMH_{false}
+  {}
 
-    EBHysteresis::~EBHysteresis() {
+  EBHysteresis::~EBHysteresis() {
+  }
+
+  void EBHysteresis::Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim) {
+    
+    dim_ = dim;
+
+    EntityIterator it = entityList->GetIterator();
+    numElems_ = entityList->GetSize();
+    ElemNum2Idx_.clear();
+    UInt num = 0;
+    for (it.Begin(); !it.IsEnd(); it++) {
+      UInt eNum = it.GetElem()->elemNum;
+      ElemNum2Idx_[eNum] = num;
+      num++;
     }
 
-    void EBHysteresis::Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim) {
-      
-      dim_ = dim;
 
-      EntityIterator it = entityList->GetIterator();
-      numElems_ = entityList->GetSize();
-      ElemNum2Idx_.clear();
-      UInt num = 0;
-      for (it.Begin(); !it.IsEnd(); it++) {
-        UInt eNum = it.GetElem()->elemNum;
-        ElemNum2Idx_[eNum] = num;
-        num++;
-      }
-
-
-      if (ParameterMap.size() < 5) {
-        EXCEPTION("The model needs 5 parameters!");
-      }
-      Ps_ = ParameterMap["Ps"];
-      A_ = ParameterMap["A"];
-      mu0_ = ParameterMap["mu0"];
-      numS_ = ParameterMap["numS"];
-      chi_factor_ = ParameterMap["chi_factor"];
-      jacobian_method_ = ParameterMap["jacobian_method"];
-
-      isMH_ = ParameterMap["isMH"];
-      if(isMH_ == 1.0){
-        varHandle_="cacheResult";
-      } else {
-        varHandle_="step";
-      }
-      mu_0 = 1.256637061e-06;
-
-      Ps_ = ParameterMap["Ps"];
-      A_ = ParameterMap["A"];
-      mu0_ = ParameterMap["mu0"];
-      numS_ = ParameterMap["numS"];
-      chi_factor_ = ParameterMap["chi_factor"];
-      jacobian_method_ = ParameterMap["jacobian_method"];
-
-      H0_.Resize(numElems_, StdVector<Double>(dim_));
-      H1_.Resize(numElems_, StdVector<Double>(dim_));
-      M0_.Resize(numElems_, StdVector<Double>(dim_));
-      M1_.Resize(numElems_, StdVector<Double>(dim_));
-
-      HxS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-      HyS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-      HzS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-      MxS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-      MyS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-      MzS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-
-      HxS_n_.Resize(numElems_, StdVector<Double>(numS_));
-      HyS_n_.Resize(numElems_, StdVector<Double>(numS_));
-      HzS_n_.Resize(numElems_, StdVector<Double>(numS_));
-      MxS_n_.Resize(numElems_, StdVector<Double>(numS_));
-      MyS_n_.Resize(numElems_, StdVector<Double>(numS_));
-      MzS_n_.Resize(numElems_, StdVector<Double>(numS_));
-
-      HxS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
-      HyS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
-      HzS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
-      MxS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
-      MyS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
-      MzS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
-
-      mu_.Resize(numElems_, Matrix<Double>(dim_,dim_));
-
-      isFirstTime_.Resize(numElems_);
-      isFirstTime_.Init(1);
-
-      isFirstTimeFinished_ = false;
-
-      timeStep_ = 1;
-
-      mp_ = domain->GetMathParser();
-      globalIter_ = 0;
-
-      hasElemSolution_.Resize(numElems_, false);
+    if (ParameterMap.size() < 5) {
+      EXCEPTION("The model needs 5 parameters!");
     }
+    Ps_ = ParameterMap["Ps"];
+    A_ = ParameterMap["A"];
+    mu0_ = ParameterMap["mu0"];
+    numS_ = ParameterMap["numS"];
+    chi_factor_ = ParameterMap["chi_factor"];
+    jacobian_method_ = ParameterMap["jacobian_method"];
 
-    Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum) {
-      // This method gives the rho_art for the h-form.
+    isMH_ = ParameterMap["isMH"];
+    if(isMH_ == 1.0){
+      varHandle_="cacheResult";
+    } else {
+      varHandle_="step";
+    }
+    mu_0 = 1.256637061e-06;
 
-      Double penaltyParameter = 1e-6; // default value for n
+    Ps_ = ParameterMap["Ps"];
+    A_ = ParameterMap["A"];
+    mu0_ = ParameterMap["mu0"];
+    numS_ = ParameterMap["numS"];
+    chi_factor_ = ParameterMap["chi_factor"];
+    jacobian_method_ = ParameterMap["jacobian_method"];
 
-      /* Matrix<Double> mu = ComputeTensorialMaterialParameter(HVec, ElemNum);
-      Double num1 = mu[0][0]; Double num2 = mu[1][1]; Double num3 = mu[2][2];
-      if (num1 >= num2 && num1 >= num3) {
-        return num1*std::pow(10,penaltyParameter/2);
-      } else if (num2 >= num1 && num2 >= num3) {
-        return num2*std::pow(10,penaltyParameter/2);
-      } else {
-        return num3*std::pow(10,penaltyParameter/2);
-      } */
+    H0_.Resize(numElems_, StdVector<Double>(dim_));
+    H1_.Resize(numElems_, StdVector<Double>(dim_));
+    M0_.Resize(numElems_, StdVector<Double>(dim_));
+    M1_.Resize(numElems_, StdVector<Double>(dim_));
 
-      /* Double normH; normH = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2]);
-      Double mu0;Double material_scalar; Double chi;
-      mu0 = 1.256637061e-06;;
-      chi = (2*A_*Ps_)/(M_PI*(normH*normH+A_*A_));
-      material_scalar = mu0*(1+chi); 
-      return material_scalar*std::pow(10,penaltyParameter/2); */
+    HxS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    HyS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    HzS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    MxS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    MyS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    MzS_prev_.Resize(numElems_, StdVector<Double>(numS_));
 
-      // SVD approach
-      Matrix<Double> A = ComputeTensorialMaterialParameter(HVec, ElemNum);
-      Matrix<Double> AtA(dim_,dim_);
-      for(UInt idx=0;idx<3;idx++){
-        for(UInt jdx=0;jdx<3;jdx++){
-            // Compute the (i, j)-th entry of AtA
-            for (int kdx = 0; kdx < 3; ++kdx) {
-              AtA[idx][jdx] += A[kdx][idx]*A[kdx][jdx];
-            }
+    HxS_n_.Resize(numElems_, StdVector<Double>(numS_));
+    HyS_n_.Resize(numElems_, StdVector<Double>(numS_));
+    HzS_n_.Resize(numElems_, StdVector<Double>(numS_));
+    MxS_n_.Resize(numElems_, StdVector<Double>(numS_));
+    MyS_n_.Resize(numElems_, StdVector<Double>(numS_));
+    MzS_n_.Resize(numElems_, StdVector<Double>(numS_));
+
+    HxS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+    HyS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+    HzS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+    MxS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+    MyS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+    MzS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+
+    mu_.Resize(numElems_, Matrix<Double>(dim_,dim_));
+
+    isFirstTime_.Resize(numElems_);
+    isFirstTime_.Init(1);
+
+    isFirstTimeFinished_ = false;
+
+    timeStep_ = 1;
+
+    mp_ = domain->GetMathParser();
+    globalIter_ = 0;
+
+    hasElemSolution_.Resize(numElems_, false);
+  }
+
+  Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
+  {
+    // This method gives the rho_art for the h-form.
+
+    Double penaltyParameter = 1e-6; // default value for n
+
+    // SVD approach
+    Matrix<Double> A = ComputeTensorialMaterialParameter(HVec, ElemNum);
+    Matrix<Double> AtA(dim_, dim_);
+    for (UInt idx = 0; idx < 3; idx++)
+    {
+      for (UInt jdx = 0; jdx < 3; jdx++)
+      {
+        // Compute the (i, j)-th entry of AtA
+        for (UInt kdx = 0; kdx < 3; ++kdx)
+        {
+          AtA[idx][jdx] += A[kdx][idx] * A[kdx][jdx];
         }
       }
       Double a,b,c;
@@ -190,936 +177,1110 @@ DEFINE_LOG(eb, "EBHysteresis")
       return B;
     }
 
-    Matrix<Double> EBHysteresis::ComputeTensorialMaterialParameter(Vector<Double> HVec, const Integer ElemNum) {
+    LOG_DBG3(eb) << "\n\t B = " << B.ToString();
+    return B;
+  }
+
+  Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum,
+                                              LocPointMapped lpm, PtrCoefFct stressCoef)
+  {
+    Vector<Double> B(dim_);
+    UInt idx = ElemNum2Idx_[ElemNum];
+
+    Vector<Double> sigma;
+    stressCoef->GetVector(sigma, lpm);
+    SMSM_model_->Register_stress(sigma);
+
+    LOG_DBG3(eb) << "\n\t sigma = " << sigma.ToString();
+    LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
+
+    Vector<Double> M;
+    M = Evaluate(HVec, false, idx);
+    
+    LOG_DBG3(eb) << "\n\t M = " << M.ToString();
+
+    for (UInt i = 0; i < dim_; ++i)
+    {
+      B[i] = mu0_ * (HVec[i] + M[i]);
+    }
+
+    LOG_DBG3(eb) << "\n\t B = " << B.ToString();
+    return B;
+  }
+
+  Matrix<Double> EBHysteresis::ComputeTensorialMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
+  {
 #pragma omp critical
 {
-      if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-        globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-        //if there is a new iteration, save the values from the previous iteration
-        LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
-        hasElemSolution_.Init(false);
-      }
-      if( (timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_))){
-        hasElemSolution_.Init(false);
-        HxS_n_ = HxS_n_tmp_;
-        HyS_n_ = HyS_n_tmp_;
-        HzS_n_ = HzS_n_tmp_;
-        MxS_n_ = MxS_n_tmp_;
-        MyS_n_ = MyS_n_tmp_;
-        MzS_n_ = MzS_n_tmp_;
-        timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
-      }
+    if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
+      globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+      //if there is a new iteration, save the values from the previous iteration
+      LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
+      hasElemSolution_.Init(false);
+    }
+    if( (timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_))){
+      hasElemSolution_.Init(false);
+      HxS_n_ = HxS_n_tmp_;
+      HyS_n_ = HyS_n_tmp_;
+      HzS_n_ = HzS_n_tmp_;
+      MxS_n_ = MxS_n_tmp_;
+      MyS_n_ = MyS_n_tmp_;
+      MzS_n_ = MzS_n_tmp_;
+      timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+    }
 }
-      UInt idx = ElemNum2Idx_[ElemNum];
-      if(hasElemSolution_[idx] == true){
-        return mu_[idx];
-      }
+    UInt idx = ElemNum2Idx_[ElemNum];
+    if(hasElemSolution_[idx] == true){
+      return mu_[idx];
+    }
+    Vector<Double> M;
+    Vector<Double> M_dummy;
+    Matrix<Double> mu(dim_,dim_); mu.InitValue(0.0);
+
+    // To obtain a good starting point for the quasi-Newton method in the first time step
+    // and first Newton iteration the Jacobian is approximated by forward finite differences
+    //if(timeStep_== 1 && globalIter_ == 1){
+    if(globalIter_ == 1){
       Vector<Double> M;
-      Vector<Double> M_dummy;
-      Matrix<Double> mu(dim_,dim_); mu.InitValue(0.0);
-
-      // To obtain a good starting point for the quasi-Newton method in the first time step
-      // and first Newton iteration the Jacobian is approximated by forward finite differences
-      //if(timeStep_== 1 && globalIter_ == 1){
-      if(globalIter_ == 1){
-        Vector<Double> M;
-        M = Evaluate(HVec, false, idx);
-        StdVector<Double> B_k(dim_);
-        for(UInt i = 0; i < dim_; i++){
-            B_k[i] = mu_0 * (HVec[i] + M[i]);
-        }
-        mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-        mu_[idx] = mu;
-        hasElemSolution_[idx] = true;
-        return mu;
-      }
-
-
       M = Evaluate(HVec, false, idx);
-
-      // get the values for H and M from the last timestep and get deltaH and deltaB
-      StdVector<Double>& H0 = H0_[idx];
-      StdVector<Double>& M0 = M0_[idx];
       StdVector<Double> B_k(dim_);
-      StdVector<Double> B_k_0(dim_);
-      StdVector<Double> delta_H(dim_);
-      StdVector<Double> delta_B(dim_);
       for(UInt i = 0; i < dim_; i++){
-        B_k[i] = mu_0 * (HVec[i] + M[i]);
-        B_k_0[i] = mu_0 * (H0[i] + M0[i]);
-        delta_H[i] = HVec[i] - H0[i];
-        delta_B[i] = B_k[i] - B_k_0[i];
-        H1_[idx][i] = HVec[i];
-        M1_[idx][i] = M[i];
+          B_k[i] = mu_0 * (HVec[i] + M[i]);
       }
-
-   
-          if (numS_ > 1 ){ // hysteretic case
-        if (jacobian_method_ == 1){ // use finite differences
-          mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-        } else if (jacobian_method_ == 2) { // use Broyden method
-          mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-        } else if (jacobian_method_ == 3) { // use simple finite differences
-          mu = EvaluateLocalMuBFGS(delta_H, delta_B, idx);
-        } else if (jacobian_method_ == 4) { // use BFGS method
-          mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-        } else {
-          EXCEPTION("WRONG Jacobian_method!")
-        }
-        M_dummy = Evaluate(HVec, true, idx);
-      } else { // nonlinear case (only anhysteresis)
-        mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
-      }
+      mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
       mu_[idx] = mu;
-      M0_[idx] = M1_[idx];
-      H0_[idx] = H1_[idx];
-      // mark this element as computed
       hasElemSolution_[idx] = true;
       return mu;
     }
 
-    Matrix<Double> EBHysteresis::EvaluateLocalMuAnhystersisOnly(Vector<Double> HVec, UInt idx){
-      Matrix<Double> mu; mu.Resize(dim_,dim_);
-      Matrix<Double> chi; chi.Resize(dim_,dim_);
-      Matrix<Double> T2; T2.Resize(dim_,dim_);
-      Matrix<Double> identity; identity.Resize(dim_,dim_); 
 
-      Double t0, t1, t3, factor1,factor2,factor3;
-      Double mu0 = 1.256637061e-06;;
+    M = Evaluate(HVec, false, idx);
 
-      // 2D case (x,y)
-      if (dim_ == 2){
-        t0 = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1]);
-        t1 = t0/A_;
-        t3 = std::atan(t1);
-        factor1 = (2*Ps_/(t1*t1+1))/(M_PI*t0*t0*A_);
-        factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
-        factor3 = (2*Ps_*t3)/(M_PI*t0);
-
-        for (int i = 0; i < dim_; ++i){
-          for (int j = 0; j < dim_; ++j){
-              identity[i][j] = (i == j) ? 1 : 0;
-              T2[i][j] = HVec[i]*HVec[j];
-              chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
-              if (std::isnan(chi[i][j])){
-                chi[i][j] = 0;
-              }
-              mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
-          }
-        }
-      }else{ // 3D case (x,y,z)
-        HVec[0] = (HVec[0] == 0) ? 1e-12 : HVec[0];
-        HVec[1] = (HVec[1] == 0) ? 1e-12 : HVec[1];
-        HVec[2] = (HVec[2] == 0) ? 1e-12 : HVec[2];
-        t0 = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2]);
-        t1 = t0/A_;
-        t3 = std::atan(t1);
-        factor1 = (2*Ps_/(t1*t1+1))/(M_PI*t0*t0*A_);
-        factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
-        factor3 = (2*Ps_*t3)/(M_PI*t0);
-
-        for (int i = 0; i < dim_; ++i){
-          for (int j = 0; j < dim_; ++j){
-              identity[i][j] = (i == j) ? 1 : 0;
-              T2[i][j] = HVec[i]*HVec[j];
-              chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
-              if (std::isnan(chi[i][j])){
-                chi[i][j] = 0;
-              }
-              mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
-          }
-        }
-      } 
-        /* if (idx == 1){
-          std::cout << "Hx: " << HVec[0] << ", Hy: " << HVec[1] << ", Hz: " << HVec[2] << std::endl;
-          std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-          std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-          std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-        } */
-      return mu;
+    // get the values for H and M from the last timestep and get deltaH and deltaB
+    StdVector<Double>& H0 = H0_[idx];
+    StdVector<Double>& M0 = M0_[idx];
+    StdVector<Double> B_k(dim_);
+    StdVector<Double> B_k_0(dim_);
+    StdVector<Double> delta_H(dim_);
+    StdVector<Double> delta_B(dim_);
+    for(UInt i = 0; i < dim_; i++){
+      B_k[i] = mu_0 * (HVec[i] + M[i]);
+      B_k_0[i] = mu_0 * (H0[i] + M0[i]);
+      delta_H[i] = HVec[i] - H0[i];
+      delta_B[i] = B_k[i] - B_k_0[i];
+      H1_[idx][i] = HVec[i];
+      M1_[idx][i] = M[i];
     }
 
-    Matrix<Double> EBHysteresis::EvaluateLocalMuFiniteDifferences(Vector<Double> HVec, StdVector<Double> B_k, UInt idx){
-      Matrix<Double> mu;
-      mu.Resize(dim_,dim_);
-
-      Double h = 1*10^(-7);
-      Vector<Double> eh_x(dim_);
-      Vector<Double> eh_y(dim_);
-      Vector<Double> eh_z(dim_);
-      Vector<Double> H_incx(dim_);
-      Vector<Double> H_incy(dim_);
-      Vector<Double> H_incz(dim_);
-
-      Vector<Double> M_incx(dim_);
-      Vector<Double> M_incy(dim_);
-      Vector<Double> M_incz(dim_);
-      Vector<Double> B_incx(dim_);
-      Vector<Double> B_incy(dim_);
-      Vector<Double> B_incz(dim_);
-
-      // 2D case (x,y)
-      if (dim_ == 2){
-
-        eh_x[0] = h; eh_x[1] = 0;
-        eh_y[0] = 0; eh_y[1] = h;
-        for(UInt i = 0; i < dim_; i++){
-          H_incx[i] = HVec[i] + eh_x[i];
-          H_incy[i] = HVec[i] + eh_y[i];
-        }
-        // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
-        M_incx = Evaluate(H_incx, false, idx);
-        M_incy = Evaluate(H_incy, false, idx);
-        for(UInt i = 0; i < dim_; i++){
-          B_incx[i] = mu_0 * (H_incx[i] + M_incx[i]);
-          B_incy[i] = mu_0 * (H_incy[i] + M_incy[i]);
-        }
-        // calculate the mu tesnor (dB/dH) for every entry
-        mu[0][0] = (B_incx[0] - B_k[0]) / h; mu[0][1] = 0;
-        mu[1][0] = 0; mu[1][1] = (B_incy[1] - B_k[1]) / h;
-
-      }else{ // 3D case (x,y,z)
-
-          eh_x[0] = h; eh_x[1] = 0; eh_x[2] = 0;
-          eh_y[0] = 0; eh_y[1] = h; eh_y[2] = 0;
-          eh_z[0] = 0; eh_z[1] = 0; eh_z[2] = h;
-          for(UInt i = 0; i < dim_; i++){
-            H_incx[i] = HVec[i] + eh_x[i];
-            H_incy[i] = HVec[i] + eh_y[i];
-            H_incz[i] = HVec[i] + eh_z[i];
-          }
-          // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
-          M_incx = Evaluate(H_incx, false, idx);
-          M_incy = Evaluate(H_incy, false, idx);
-          M_incz = Evaluate(H_incz, false, idx);
-          for(UInt i = 0; i < dim_; i++){
-            B_incx[i] = mu_0 * (H_incx[i] + M_incx[i]);
-            B_incy[i] = mu_0 * (H_incy[i] + M_incy[i]);
-            B_incz[i] = mu_0 * (H_incz[i] + M_incz[i]);
-          }
-          // calculate the mu tensor (dB/dH) for every entry
-          mu[0][0] = (B_incx[0] - B_k[0]) / h; mu[0][1] = 0;                        mu[0][2] = 0;
-          mu[1][0] = 0;                        mu[1][1] = (B_incy[1] - B_k[1]) / h; mu[1][2] = 0;
-          mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
-
-      } 
-      /* if (idx == 15){
-        std::cout << "FD" << std::endl;
-        std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-        std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-        std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-      } */
-      return mu;
-    }
-
-    Matrix<Double> EBHysteresis::EvaluateLocalMu(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
-      Matrix<Double> mu;
-      mu.Resize(dim_,dim_);
-      double offset = 1e-2;
-
-      /* if(dim_ == 2){
-        dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
-        dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
-      } */
-      mu[0][1] = 0.0; //dB[0]/dH[1];
-      mu[1][1] = std::abs(dB[1])/std::abs(dH[1]);
-      mu[1][0] = 0.0; //dB[1]/dH[0];
-      mu[0][0] = std::abs(dB[0])/std::abs(dH[0]);
-      if(dim_ == 3){
-        mu[2][0] = 0.0;
-        mu[2][1] = 0.0;
-        mu[0][2] = 0.0;
-        mu[1][2] = 0.0;
-        mu[2][2] = std::abs(dB[2])/std::abs(dH[2]);
+  
+    if (numS_ > 1 ){ // hysteretic case
+      if (jacobian_method_ == 1){ // use finite differences
+        mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
+      } else if (jacobian_method_ == 2) { // use Broyden method
+        mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+      } else if (jacobian_method_ == 3) { // use simple finite differences
+        mu = EvaluateLocalMuBFGS(delta_H, delta_B, idx);
+      } else if (jacobian_method_ == 4) { // use BFGS method
+        mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
+      } else {
+        EXCEPTION("WRONG Jacobian_method!")
       }
-        for (UInt i = 0; i < dim_; i++){
-            if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
-                mu[i][i] = e[i][i];
-            } 
-        }
-      if (idx == 32){
-        printf("mu_simpleFD = %f\n",mu[0][0]);
-      }
-      return mu;
+      M_dummy = Evaluate(HVec, true, idx);
+    } else { // nonlinear case (only anhysteresis)
+      mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
     }
-
-    Matrix<Double> EBHysteresis::EvaluateLocalMuDFP(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
-      Matrix<Double> mu;
-      mu.Resize(dim_,dim_);
-
-      Matrix<Double> dD_dyadic_dEtransposed(dim_, dim_);
-      Matrix<Double> dE_dyadic_dDtransposed(dim_, dim_);
-      Matrix<Double> dD_dyadic_dDtransposed(dim_, dim_);
-      Matrix<Double> I(dim_, dim_);
-      Matrix<Double> leftM(dim_, dim_);
-      Matrix<Double> rightM(dim_, dim_);
-      Matrix<Double> A(dim_,dim_);
-      
-      if(dim_ == 2){
-        I[0][0] = 1.0;
-        I[1][1] = 1.0;
-
-        dD_dyadic_dEtransposed[0][0] = dB[0] * dH[0];
-        dD_dyadic_dEtransposed[1][0] = dB[1] * dH[0];
-        dD_dyadic_dEtransposed[0][1] = dB[0] * dH[1];
-        dD_dyadic_dEtransposed[1][1] = dB[1] * dH[1];
-
-        dE_dyadic_dDtransposed[0][0] = dH[0] * dB[0];
-        dE_dyadic_dDtransposed[1][0] = dH[1] * dB[0];
-        dE_dyadic_dDtransposed[0][1] = dH[0] * dB[1];
-        dE_dyadic_dDtransposed[1][1] = dH[1] * dB[1];
-
-        dD_dyadic_dDtransposed[0][0] = dB[0] * dB[0];
-        dD_dyadic_dDtransposed[1][0] = dB[1] * dB[0];
-        dD_dyadic_dDtransposed[0][1] = dB[0] * dB[1];
-        dD_dyadic_dDtransposed[1][1] = dB[1] * dB[1];
-
-        Double dDtransposed_in_dE = dH[0]*dB[0] + dH[1]*dB[1];
-        
-
-        leftM[0][0] = 1.0 - dD_dyadic_dEtransposed[0][0] / dDtransposed_in_dE;
-        leftM[1][0] = dD_dyadic_dEtransposed[1][0] / dDtransposed_in_dE;
-        leftM[0][1] = dD_dyadic_dEtransposed[0][1] / dDtransposed_in_dE;
-        leftM[1][1] = 1.0 - dD_dyadic_dEtransposed[1][1] / dDtransposed_in_dE;
-        
-        Matrix<Double> leftM_times_epsilon_km1(leftM);
-        leftM.MultT(mu_[idx], leftM_times_epsilon_km1);
-        
-        rightM[0][0] = 1.0 - dE_dyadic_dDtransposed[0][0] / dDtransposed_in_dE;
-        rightM[1][0] = dE_dyadic_dDtransposed[1][0] / dDtransposed_in_dE;
-        rightM[0][1] = dE_dyadic_dDtransposed[0][1] / dDtransposed_in_dE;
-        rightM[1][1] = 1.0 - dE_dyadic_dDtransposed[1][1] / dDtransposed_in_dE;
-      
-        leftM_times_epsilon_km1.MultT(rightM, A);
-
-        mu[0][0] = A[0][0] + dD_dyadic_dDtransposed[0][0]/dDtransposed_in_dE;
-        mu[1][0] = A[1][0] + dD_dyadic_dDtransposed[1][0]/dDtransposed_in_dE;
-        mu[0][1] = A[0][1] + dD_dyadic_dDtransposed[0][1]/dDtransposed_in_dE;
-        mu[1][1] = A[1][1] + dD_dyadic_dDtransposed[1][1]/dDtransposed_in_dE;
-
-
-        LOG_DBG3(eb)<< "\n\t dD_dyadic_dEtransposed = " << dD_dyadic_dEtransposed.ToString()
-                    << "\n\t dE_dyadic_dDtransposed = " << dE_dyadic_dDtransposed.ToString()
-                    << "\n\t dD_dyadic_dDtransposed = " << dD_dyadic_dDtransposed.ToString()
-                    << "\n\t dDtransposed_in_dE = " << dDtransposed_in_dE
-                    << "\n\t leftM = " << leftM.ToString()
-                    << "\n\t leftM_times_epsilon_km1 = " << leftM_times_epsilon_km1.ToString()
-                    << "\n\t rightM = " << rightM.ToString()
-                    << "\n\t epsilon_km1 = " << mu_[idx].ToString()
-                    << "\n\t A = " << A.ToString();
-
-        mu[0][1] = 0.0;
-        mu[1][0] = 0.0;
-        for (UInt i = 0; i < dim_; i++){
-            if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
-                mu[i][i] = e[i][i]; 
-            } 
-        }
-      }else{ // 3D version
-        
-        
-        I[0][0] = 1.0;
-        I[1][1] = 1.0;
-        I[2][2] = 1.0;
-
-        dD_dyadic_dEtransposed[0][1] = dB[0] * dH[1];
-        dD_dyadic_dEtransposed[1][0] = dB[1] * dH[0];
-        dD_dyadic_dEtransposed[0][2] = dB[0] * dH[2];
-        dD_dyadic_dEtransposed[2][0] = dB[2] * dH[0];
-        dD_dyadic_dEtransposed[1][2] = dB[1] * dH[2];
-        dD_dyadic_dEtransposed[2][1] = dB[2] * dH[1];
-        dD_dyadic_dEtransposed[0][0] = dB[0] * dH[0];        
-        dD_dyadic_dEtransposed[1][1] = dB[1] * dH[1];
-        dD_dyadic_dEtransposed[2][2] = dB[2] * dH[2];
-
-        dE_dyadic_dDtransposed[1][0] = dH[1] * dB[0];
-        dE_dyadic_dDtransposed[0][1] = dH[0] * dB[1];
-        dE_dyadic_dDtransposed[0][2] = dH[0] * dB[2];
-        dE_dyadic_dDtransposed[2][0] = dH[2] * dB[0];
-        dE_dyadic_dDtransposed[1][2] = dH[1] * dB[2];
-        dE_dyadic_dDtransposed[2][1] = dH[2] * dB[1];
-        dE_dyadic_dDtransposed[0][0] = dH[0] * dB[0];
-        dE_dyadic_dDtransposed[1][1] = dH[1] * dB[1];
-        dE_dyadic_dDtransposed[2][2] = dH[2] * dB[2];
-
-        dD_dyadic_dDtransposed[1][0] = dB[1] * dB[0];
-        dD_dyadic_dDtransposed[0][1] = dB[0] * dB[1];        
-        dD_dyadic_dDtransposed[0][2] = dB[0] * dB[2];
-        dD_dyadic_dDtransposed[2][0] = dB[2] * dB[0];
-        dD_dyadic_dDtransposed[1][2] = dB[1] * dB[2];
-        dD_dyadic_dDtransposed[2][1] = dB[2] * dB[1];
-        dD_dyadic_dDtransposed[0][0] = dB[0] * dB[0];
-        dD_dyadic_dDtransposed[1][1] = dB[1] * dB[1];
-        dD_dyadic_dDtransposed[2][2] = dB[2] * dB[2];
-
-
-        Double dDtransposed_in_dE = dH[0]*dB[0] + dH[1]*dB[1] + dH[2]*dB[2];
-
-        leftM[1][0] = dD_dyadic_dEtransposed[1][0] / dDtransposed_in_dE;
-        leftM[0][1] = dD_dyadic_dEtransposed[0][1] / dDtransposed_in_dE;
-        leftM[0][2] = dD_dyadic_dEtransposed[0][2] / dDtransposed_in_dE;
-        leftM[2][0] = dD_dyadic_dEtransposed[2][0] / dDtransposed_in_dE;
-        leftM[1][2] = dD_dyadic_dEtransposed[1][2] / dDtransposed_in_dE;
-        leftM[2][1] = dD_dyadic_dEtransposed[2][1] / dDtransposed_in_dE;
-        leftM[0][0] = 1.0 - dD_dyadic_dEtransposed[0][0] / dDtransposed_in_dE;
-        leftM[1][1] = 1.0 - dD_dyadic_dEtransposed[1][1] / dDtransposed_in_dE;
-        leftM[2][2] = 1.0 - dD_dyadic_dEtransposed[2][2] / dDtransposed_in_dE;
-
-        Matrix<Double> leftM_times_epsilon_km1(leftM);
-        leftM.MultT(mu_[idx], leftM_times_epsilon_km1);
-
-        rightM[1][0] = dE_dyadic_dDtransposed[1][0] / dDtransposed_in_dE;
-        rightM[0][1] = dE_dyadic_dDtransposed[0][1] / dDtransposed_in_dE;
-        rightM[0][2] = dE_dyadic_dDtransposed[0][2] / dDtransposed_in_dE;
-        rightM[2][0] = dE_dyadic_dDtransposed[2][0] / dDtransposed_in_dE;
-        rightM[1][2] = dE_dyadic_dDtransposed[1][2] / dDtransposed_in_dE;
-        rightM[2][1] = dE_dyadic_dDtransposed[2][1] / dDtransposed_in_dE;
-        rightM[0][0] = 1.0 - dE_dyadic_dDtransposed[0][0] / dDtransposed_in_dE;
-        rightM[1][1] = 1.0 - dE_dyadic_dDtransposed[1][1] / dDtransposed_in_dE;
-        rightM[2][2] = 1.0 - dE_dyadic_dDtransposed[2][2] / dDtransposed_in_dE;
-
-        leftM_times_epsilon_km1.MultT(rightM, A);
-
-        mu[1][0] = A[1][0] + dD_dyadic_dDtransposed[1][0]/dDtransposed_in_dE;
-        mu[0][1] = A[0][1] + dD_dyadic_dDtransposed[0][1]/dDtransposed_in_dE;
-        mu[0][2] = A[0][2] + dD_dyadic_dDtransposed[0][2]/dDtransposed_in_dE;
-        mu[2][0] = A[2][0] + dD_dyadic_dDtransposed[2][0]/dDtransposed_in_dE;
-        mu[1][2] = A[1][2] + dD_dyadic_dDtransposed[1][2]/dDtransposed_in_dE;
-        mu[2][1] = A[2][1] + dD_dyadic_dDtransposed[2][1]/dDtransposed_in_dE;
-        mu[0][0] = A[0][0] + dD_dyadic_dDtransposed[0][0]/dDtransposed_in_dE;
-        mu[1][1] = A[1][1] + dD_dyadic_dDtransposed[1][1]/dDtransposed_in_dE;
-        mu[2][2] = A[2][2] + dD_dyadic_dDtransposed[2][2]/dDtransposed_in_dE;
-
-        LOG_DBG3(eb)<< "\n\t dD_dyadic_dEtransposed = " << dD_dyadic_dEtransposed.ToString()
-                    << "\n\t dE_dyadic_dDtransposed = " << dE_dyadic_dDtransposed.ToString()
-                    << "\n\t dD_dyadic_dDtransposed = " << dD_dyadic_dDtransposed.ToString()
-                    << "\n\t dDtransposed_in_dE = " << dDtransposed_in_dE
-                    << "\n\t leftM = " << leftM.ToString()
-                    << "\n\t leftM_times_epsilon_km1 = " << leftM_times_epsilon_km1.ToString()
-                    << "\n\t rightM = " << rightM.ToString()
-                    << "\n\t epsilon_km1 = " << mu_[idx].ToString()
-                    << "\n\t A = " << A.ToString();
-
-        mu[0][1] = 0.0;
-        mu[1][0] = 0.0;
-        mu[2][0] = 0.0;
-        mu[0][2] = 0.0;
-        mu[1][2] = 0.0;
-        mu[2][1] = 0.0;
-        for (UInt i = 0; i < dim_; i++){
-            if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
-                mu[i][i] = e[i][i];//mu_0; //e[i][i]; //mu_0;
-            } 
-        }
-      }
-      if (idx == 32){
-        printf("mu_DFP = %f\n",mu[0][0]);
-      }
-      return mu;
-    }
-
-    Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
-
-      Matrix<Double> yyT(dim_, dim_);
-      Matrix<Double> BxBxT(dim_, dim_);
-      Matrix<Double> B_k1(dim_, dim_);
-      Matrix<Double> B = mu_[idx];
-      Double yTx;
-      Double xTBx;
-      StdVector<Double> y = dB;
-      StdVector<Double> x = dH;
-      StdVector<Double> Bx;
-
-      // yyT (outer product)
-      yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; yyT[0][2] = y[0]*y[2];
-      yyT[1][0] = y[1]*y[0]; yyT[1][1] = y[1]*y[1]; yyT[1][2] = y[1]*y[2];
-      yyT[2][0] = y[2]*y[0]; yyT[2][1] = y[2]*y[1]; yyT[2][2] = y[2]*y[2];
-
-      // yTx (inner product)
-      yTx = (y[0]*x[0]) + (y[1]*x[1]) + (y[2]*x[2]);
-
-      // xTBx (inner product)
-      Bx[0] = B[0][0]*x[0] + B[0][1]*x[1] + B[0][2]*x[2];
-      Bx[1] = B[1][0]*x[0] + B[1][1]*x[1] + B[1][2]*x[2];
-      Bx[2] = B[2][0]*x[0] + B[2][1]*x[1] + B[2][2]*x[2];
-      xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]) + (x[2]*Bx[2]);
-
-      // BxBxT (outer product)
-      BxBxT[0][0] = Bx[0]*Bx[0]; BxBxT[0][1] = Bx[0]*Bx[1]; BxBxT[0][2] = Bx[0]*Bx[2];
-      BxBxT[1][0] = Bx[1]*Bx[0]; BxBxT[1][1] = Bx[1]*Bx[1]; BxBxT[1][2] = Bx[1]*Bx[2];
-      BxBxT[2][0] = Bx[2]*Bx[0]; BxBxT[2][1] = Bx[2]*Bx[1]; BxBxT[2][2] = Bx[2]*Bx[2];
-
-      // construct everything
-      B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
-      B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
-      B_k1[0][2] = B[0][2] + yyT[0][2]/yTx - BxBxT[0][2]/xTBx;
-
-      B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
-      B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
-      B_k1[1][2] = B[1][2] + yyT[1][2]/yTx - BxBxT[1][2]/xTBx;
-
-      B_k1[2][0] = B[2][0] + yyT[2][0]/yTx - BxBxT[2][0]/xTBx; 
-      B_k1[2][1] = B[2][1] + yyT[2][1]/yTx - BxBxT[2][1]/xTBx;
-      B_k1[2][2] = B[2][2] + yyT[2][2]/yTx - BxBxT[2][2]/xTBx;
-
-      return B_k1;
-
-
-    }
-
-    Matrix<Double> EBHysteresis::EvaluateLocalMuGBM(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
-      Matrix<Double> mu;
-      mu.Resize(dim_,dim_);
-
-      Vector<Double> dD_minus_epsilon_km1_times_dE(dim_);
-      Vector<Double> dHvec(dim_);
-      Matrix<Double> rightM(dim_,dim_);
-      double offset = 1e-13;
-
-      if(dim_ == 2){
-        dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
-        dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
-        dD_minus_epsilon_km1_times_dE[0] = dB[0] - (mu_[idx][0][0]*dH[0] + mu_[idx][0][1]*dH[1]);
-        dD_minus_epsilon_km1_times_dE[1] = dB[1] - (mu_[idx][1][0]*dH[0] + mu_[idx][1][1]*dH[1]);
-
-        dHvec[0] = dH[0];
-        dHvec[1] = dH[1];
-        dD_minus_epsilon_km1_times_dE.ScalarDiv(dHvec.NormL2_squared());
-        
-        rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dHvec);
-        
-        mu[0][0] = mu_[idx][0][0] + rightM[0][0];
-        mu[1][0] = mu_[idx][1][0] + rightM[1][0];
-        mu[0][1] = mu_[idx][0][1] + rightM[0][1];
-        mu[1][1] = mu_[idx][1][1] + rightM[1][1];
-                
-        LOG_DBG3(eb)<< "\n\t dD_minus_epsilon_km1_times_dE = " << dD_minus_epsilon_km1_times_dE.ToString()
-                    << "\n\t dHvec = " << dHvec.ToString()
-                    << "\n\t rightM = " << rightM.ToString();
-
-        /* mu[0][1] = 0.0;
-        mu[1][0] = 0.0; */
-        for (UInt i = 0; i < dim_; i++){
-            if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
-                mu[i][i] = e[i][i]; //mu_0; //e[i][i]; //mu_0;
-            } 
-        }
-      }else{ // 3D version
-        dD_minus_epsilon_km1_times_dE[0] = dB[0] - (mu_[idx][0][0]*dH[0] + mu_[idx][0][1]*dH[1] + mu_[idx][0][2]*dH[2]);
-        dD_minus_epsilon_km1_times_dE[1] = dB[1] - (mu_[idx][1][0]*dH[0] + mu_[idx][1][1]*dH[1] + mu_[idx][1][2]*dH[2]);
-        dD_minus_epsilon_km1_times_dE[2] = dB[2] - (mu_[idx][2][0]*dH[0] + mu_[idx][2][1]*dH[1] + mu_[idx][2][2]*dH[2]);
-
-        dHvec[0] = dH[0];
-        dHvec[1] = dH[1];
-        dHvec[2] = dH[2];
-        dD_minus_epsilon_km1_times_dE.ScalarDiv(dHvec.NormL2_squared());
-        
-        rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dHvec);
-        
-        mu[1][0] = mu_[idx][1][0] + rightM[1][0];
-        mu[0][1] = mu_[idx][0][1] + rightM[0][1];
-        mu[0][2] = mu_[idx][0][2] + rightM[0][2];
-        mu[2][0] = mu_[idx][2][0] + rightM[2][0];
-        mu[1][2] = mu_[idx][1][2] + rightM[1][2];
-        mu[2][1] = mu_[idx][2][1] + rightM[2][1];
-        mu[0][0] = mu_[idx][0][0] + rightM[0][0];
-        mu[1][1] = mu_[idx][1][1] + rightM[1][1];
-        mu[2][2] = mu_[idx][2][2] + rightM[2][2];
-
-        LOG_DBG3(eb)<< "\n\t dD_minus_epsilon_km1_times_dE = " << dD_minus_epsilon_km1_times_dE.ToString()
-                    << "\n\t dHvec = " << dHvec.ToString()
-                    << "\n\t rightM = " << rightM.ToString();
-
-        mu[0][1] = 0.0;
-        mu[1][0] = 0.0;
-        mu[2][0] = 0.0;
-        mu[0][2] = 0.0;
-        mu[1][2] = 0.0;
-        mu[2][1] = 0.0;
-        for (UInt i = 0; i < dim_; i++){
-            if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-              Matrix<Double> e = mu_[idx];
-                mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
-            } 
-        }
-      }
-      //################### just for checking some things #################
-/*       if (idx == 15){
-        std::cout << "Broyden" << std::endl;
-        std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-        std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-        std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-      } */
-      //############### delete as soon as it works #######################
-      return mu;  
-    }
-
-    StdVector<Double> EBHysteresis::inv3x3(StdVector<Double> A){
-      double detA = 0;
-      StdVector<Double> adjA(9); adjA.Init(0.0);
-      StdVector<Double> invA(9); invA.Init(0.0);
-      detA = A[0]*(A[8]*A[4]-A[5]*A[7]) - (A[1]*(A[8]*A[3]-A[5]*A[6])) + A[2]*(A[7]*A[3]-A[4]*A[6]);
-      adjA[0] = A[8]*A[4] - A[5]*A[7];
-      adjA[1] = -(A[8]*A[3]-A[5]*A[6]);
-      adjA[2] = A[7]*A[3]-A[4]*A[6];
-      adjA[3] = -(A[8]*A[1]-A[2]*A[7]);
-      adjA[4] = A[8]*A[0]-A[2]*A[6];
-      adjA[5] = -(A[7]*A[0]-A[1]*A[6]);
-      adjA[6] = A[5]*A[1]-A[2]*A[4];
-      adjA[7] = -(A[5]*A[0]-A[2]*A[3]);
-      adjA[8] = A[4]*A[0]-A[1]*A[3];
-      invA[0] = (1/detA)*adjA[0];
-      invA[1] = (1/detA)*adjA[1];
-      invA[2] = (1/detA)*adjA[2];
-      invA[3] = (1/detA)*adjA[3];
-      invA[4] = (1/detA)*adjA[4];
-      invA[5] = (1/detA)*adjA[5];
-      invA[6] = (1/detA)*adjA[6];
-      invA[7] = (1/detA)*adjA[7];
-      invA[8] = (1/detA)*adjA[8];
-      return invA;
-    }
-
-    Vector<Double> EBHysteresis::Evaluate(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx) {
-
-      StdVector<Double> weight(numS_);
-      weight.Init(1.0/numS_);
-      Vector<Double> ret;
-
-      StdVector<Double> chi(numS_);
-      for(UInt i = 0; i < numS_; i++){
-        //chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
-        //chi[i] = chi_factor_ * i / (numS_ - 1) + 0.001;
-        chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
-      }
-
-      // JUST FOR TEAM PROBLEM 32
-      /* chi[0] = 0.000000;chi[1] = 7.750524;chi[2] = 21.306080;chi[3] = 34.129100;chi[4] = 44.937074;
-      chi[5] = 54.462908;chi[6] = 64.273429;chi[7] = 73.256517;chi[8] = 84.869904;chi[9] = 90.501796;
-      chi[10] = 103.236253;chi[11] = 119.299176;chi[12] = 125.333933;chi[13] = 129.952983;chi[14] = 141.074562;
-      chi[15] = 153.685939;chi[16] = 167.787113;chi[17] = 183.378084;chi[18] = 198.785153;chi[19] = 172.621885;
-      chi[20] = 175.350775;chi[21] = 180.011291;chi[22] = 186.603432;chi[23] = 195.127198;chi[24] = 205.582589;
-      chi[25] = 217.969606;chi[26] = 232.288248;chi[27] = 248.538516;chi[28] = 266.720409;chi[29] = 286.833927;
-      chi[30] = 308.879071;chi[31] = 331.145629;chi[32] = 51.216141;chi[33] = 9.240983;chi[34] = 32.136606;
-      chi[35] = 72.916625;chi[36] = 113.099073;chi[37] = 152.683953;chi[38] = 191.671262;chi[39] = 230.061002;
-      chi[40] = 267.853171;chi[41] = 305.047772;chi[42] = 341.644802;chi[43] = 377.644262;chi[44] = 413.046153;
-      chi[45] = 447.850474;chi[46] = 482.057225;chi[47] = 515.666406;chi[48] = 548.678018;chi[49] = 581.092060;
-      chi[50] = 709.494098;
-      weight[0] = 0.028704;weight[1] = 0.026403;weight[2] = 0.054303;weight[3] = 0.120493;weight[4] = 0.193634;
-      weight[5] = 0.189505;weight[6] = 0.136229;weight[7] = 0.070348;weight[8] = 0.054056;weight[9] = 0.020644;
-      weight[10] = 0.020644;weight[11] = 0.020644;weight[12] = 0.008521;weight[13] = 0.005696;weight[14] = 0.005696;
-      weight[15] = 0.005696;weight[16] = 0.005696;weight[17] = 0.005696;weight[18] = 0.005266;weight[19] = 0.001438;
-      weight[20] = 0.001438;weight[21] = 0.001438;weight[22] = 0.001438;weight[23] = 0.001438;weight[24] = 0.001438;
-      weight[25] = 0.001438;weight[26] = 0.001438;weight[27] = 0.001438;weight[28] = 0.001438;weight[29] = 0.001438;
-      weight[30] = 0.001438;weight[31] = 0.001388;weight[32] = 0.000111;weight[33] = 0.000111;weight[34] = 0.000111;
-      weight[35] = 0.000111;weight[36] = 0.000111;weight[37] = 0.000111;weight[38] = 0.000111;weight[39] = 0.000111;
-      weight[40] = 0.000111;weight[41] = 0.000111;weight[42] = 0.000111;weight[43] = 0.000111;weight[44] = 0.000111;
-      weight[45] = 0.000111;weight[46] = 0.000111;weight[47] = 0.000111;weight[48] = 0.000111;weight[49] = 0.000111;
-      weight[50] = 0.001487; */
-      // TP 32 END
-
-      if(dim_ == 2){
-        StdVector<Double> error, dir, HrxS_sol, HryS_sol, MxS_sol, MyS_sol;
-        StdVector<UInt> numIter;
-        error.Resize(numS_, 0.0);
-        dir.Resize(numS_, 0.0);
-        numIter.Resize(numS_, 0);
-        HrxS_sol.Resize(numS_, 0.0);
-        HryS_sol.Resize(numS_, 0.0);
-        MxS_sol.Resize(numS_, 0.0);
-        MyS_sol.Resize(numS_, 0.0);
-
-        Double Hex_x = Hn[0];
-        Double Hex_y = Hn[1];
-
-        Double HrxS_prev, HryS_prev, MxSprev, MySprev, phi, err, ux, uy,
-              uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py;
-        UInt iter;
-        StdVector<Double>& HxS_prev = HxS_n_[idx];
-        StdVector<Double>& HyS_prev = HyS_n_[idx];
-        StdVector<Double>& MxS_prev = MxS_n_[idx];
-        StdVector<Double>& MyS_prev = MyS_n_[idx];
-
-
-        for(int k = 0; k < numS_; k++){
-          HrxS_prev = HxS_prev[k];
-          HryS_prev = HyS_prev[k];
-          MxSprev = MxS_prev[k];
-          MySprev = MyS_prev[k];
-          //if(std::sqrt( std::pow(Hex_x - HrxS_prev, 2) + std::pow(Hex_y - HryS_prev, 2) ) <= chi[k]){
-          if(( std::pow((Hex_x - HrxS_prev)/chi[k], 2) + std::pow((Hex_y - HryS_prev)/chi[k], 2) ) <= 1.0){
-            HrxS_sol[k] = HrxS_prev;
-            HryS_sol[k] = HryS_prev;
-          }else{
-            StdVector<Double> i_phi_initial(2);
-            i_phi_initial.Init(0.0);
-            // dissipation now reached (just arrived at the border of the sphere)
-            if(k == 0){
-              i_phi_initial[0] = 0.0;
-              i_phi_initial[1] = 0.0;
-            }else{
-              // use the direction of the vector play model as initial direction
-              i_phi_initial[0] = (1.0/chi[k] * (HrxS_prev - Hex_x)) / (std::pow((Hex_x - HrxS_prev)/chi[k],2) + std::pow((Hex_y - HryS_prev)/chi[k],2));
-              i_phi_initial[1] = (1.0/chi[k] * (HryS_prev - Hex_y)) / (std::pow((Hex_x - HrxS_prev)/chi[k],2) + std::pow((Hex_y - HryS_prev)/chi[k],2));
-            }
-            phi = std::atan2( i_phi_initial[1], i_phi_initial[0] ); // already in rad
-            err = 1.0;
-            iter = 0;
-            while(err > 1.0e-3 && iter < 10){
-              ux = Hex_x + chi[k] * std::cos(phi);
-              uy = Hex_y + chi[k] * std::sin(phi);
-              uabs = std::sqrt( std::pow(ux, 2) + std::pow(uy, 2));
-              ux1 = -chi[k] * std::sin(phi);
-              uy1 = chi[k] * std::cos(phi);
-              ux2 = -chi[k] * std::cos(phi);
-              uy2 = -chi[k] * std::sin(phi);
-              Man = 2*Ps_ / M_PI * std::atan(uabs/A_);
-              Man1 = 2*Ps_ / (A_ * M_PI) * (1.0/(1.0+std::pow(uabs/A_, 2)));
-              g1 = (Man/uabs) * (ux * ux1 + uy * uy1) - MxSprev*ux1 - MySprev*uy1;
-              g2 = (uabs*Man1 - Man)/(std::pow(uabs,3)) * std::pow(ux*ux1 + uy*uy1, 2) + Man/uabs *
-                  (std::pow(ux1, 2) + std::pow(uy1, 2)) + Man/uabs * (ux*ux2 + uy*uy2) - MxSprev*ux2 - MySprev*uy2;
-              if(std::sqrt(std::pow(g2,2)) < 1e-8){
-                phiNew = 0;
-              }else{
-                phiNew = phi - g1/g2;
-              }
-              err = std::sqrt(std::pow(phiNew-phi,2));
-              phi = phiNew;
-              iter++;
-            }
-            error[k] = err;
-            dir[k] = phi;
-            numIter[k] = iter;
-            HrxS_sol[k] = Hex_x +  chi[k]*std::cos(phi);
-            HryS_sol[k] = Hex_y +  chi[k]*std::sin(phi);
-          }
-          HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2));
-          if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
-            MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
-            MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
-          }else{
-            MxS_sol[k] = 0.0;
-            MyS_sol[k] = 0.0;
-          }
-        }
-        Px = 0.0;
-        Py = 0.0;
-        for(int k = 0; k < numS_; k++){
-          Px += weight[k] * MxS_sol[k];
-          Py += weight[k] * MyS_sol[k];
-        }
-        if(saveTmpStageVecs){
-          HxS_n_tmp_[idx] = HrxS_sol;
-          HyS_n_tmp_[idx] = HryS_sol;
-          MxS_n_tmp_[idx] = MxS_sol;
-          MyS_n_tmp_[idx] = MyS_sol;
-        }
-        ret.Push_back(Px);
-        ret.Push_back(Py);
-
-      }else{
-        /*
-        ================================================================================
-        Klaus' MSMS+VPM version
-        ================================================================================
-        */
-        StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
-        StdVector<UInt> numIter;
-        error.Resize(numS_, 0.0);
-        dir.Resize(numS_, 0.0);
-        numIter.Resize(numS_, 0);
-        HrxS_sol.Resize(numS_, 0.0);
-        HryS_sol.Resize(numS_, 0.0);
-        HrzS_sol.Resize(numS_, 0.0);
-        MxS_sol.Resize(numS_, 0.0);
-        MyS_sol.Resize(numS_, 0.0);
-        MzS_sol.Resize(numS_, 0.0);
-
-        Double Hex_x = Hn[0];
-        Double Hex_y = Hn[1];
-        Double Hex_z = Hn[2];
-
-        Double HrxS_prev, HryS_prev, HrzS_prev, HrS, Px, Py, Pz, condition1,Hirr_x,Hirr_y,Hirr_z;
-
-
-        StdVector<Double>& HxS_prev = HxS_n_[idx];
-        StdVector<Double>& HyS_prev = HyS_n_[idx];
-        StdVector<Double>& HzS_prev = HzS_n_[idx];
-
-
-
-        for(int k = 0; k < numS_; k++){
-          HrxS_prev = HxS_prev[k];
-          HryS_prev = HyS_prev[k];
-          HrzS_prev = HzS_prev[k];
-          condition1 = ( std::pow((Hex_x - HrxS_prev)/chi[k], 2) + std::pow((Hex_y - HryS_prev)/chi[k], 2) + std::pow((Hex_z - HrzS_prev)/chi[k], 2) );
-          if( condition1 <= 1.0){
-            HrxS_sol[k] = HrxS_prev;
-            HryS_sol[k] = HryS_prev;
-            HrzS_sol[k] = HrzS_prev;
-          }else{
-            // dissipation now reached (just arrived at the border of the sphere)
-            if(k == 0){
-              HrxS_sol[k] = Hex_x;
-              HryS_sol[k] = Hex_y;
-              HrzS_sol[k] = Hex_z;
-            }else{
-              //
-              Hirr_x = chi[k]* (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
-              Hirr_y = chi[k]* (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
-              Hirr_z = chi[k]* (Hex_z - HrzS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
-              HrxS_sol[k] = Hex_x - Hirr_x;
-              HryS_sol[k] = Hex_y - Hirr_y;
-              HrzS_sol[k] = Hex_z - Hirr_z;
-            }
-          }  
-          HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
-          if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
-            // Use the MSMS for calculation of the new stage magnetization vector
-            StdVector<Double> dirH(3);
-            dirH[0] = HrxS_sol[k]/HrS; dirH[1] = HryS_sol[k]/HrS; dirH[2] = HrzS_sol[k]/HrS;
-            LOG_DBG3(eb)<< "\n\t INPUT (H) OF SMSM: ["<<HrxS_sol[k]<<","<<HryS_sol[k]<<", "<<HrzS_sol[k]<<"]";
-            SMSM_model_.Eval(HrS, dirH);
-            Vector<Double> M = SMSM_model_.GetM();
-            LOG_DBG3(eb)<< "\n\t OUTPUT (M) OF SMSM: "<<M.ToString();
-
-            // MSM version
-            MxS_sol[k] = M[0];
-            MyS_sol[k] = M[1];
-            MzS_sol[k] = M[2];
-
-            // pure VPM with atan anhysteresis curve
-            // MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
-            // MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
-            // MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS;
-          }else{
-            MxS_sol[k] = 0.0;
-            MyS_sol[k] = 0.0;
-            MzS_sol[k] = 0.0;
-          }
-        }
-        Px = 0.0;
-        Py = 0.0;
-        Pz = 0.0;
-        for(int k = 0; k < numS_; k++){
-          Px += weight[k] * MxS_sol[k];
-          Py += weight[k] * MyS_sol[k];
-          Pz += weight[k] * MzS_sol[k];
-        }
-        ret.Push_back(Px);
-        ret.Push_back(Py);
-        ret.Push_back(Pz);
-
-
-        // /*3D Version (EBM)
-        //   volumetric weight for each pseudo particle
-        // */
-        // StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
-        // StdVector<UInt> numIter;
-        // error.Resize(numS_, 0.0);
-        // dir.Resize(numS_, 0.0);
-        // numIter.Resize(numS_, 0);
-        // HrxS_sol.Resize(numS_, 0.0);
-        // HryS_sol.Resize(numS_, 0.0);
-        // HrzS_sol.Resize(numS_, 0.0);
-        // MxS_sol.Resize(numS_, 0.0);
-        // MyS_sol.Resize(numS_, 0.0);
-        // MzS_sol.Resize(numS_, 0.0);
-
-        // Double Hex_x = Hn[0];
-        // Double Hex_y = Hn[1];
-        // Double Hex_z = Hn[2];
-
-        // Double HrxS_prev, HryS_prev, HrzS_prev, MxSprev, MySprev, MzSprev, phi, err, ux, uy,
-        //       uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py, Pz,
-        //       condition1, theta, i_correct_x,i_correct_y,i_correct_z,Hirr_x,Hirr_y,Hirr_z;
-
-        // Double aa, MSa, ab, MSb,coth_La,coth_Lb,J_an,M_an;
-
-        // UInt iter;
-        // StdVector<Double>& HxS_prev = HxS_n_[idx];
-        // StdVector<Double>& HyS_prev = HyS_n_[idx];
-        // StdVector<Double>& HzS_prev = HzS_n_[idx];
-        // StdVector<Double>& MxS_prev = MxS_n_[idx];
-        // StdVector<Double>& MyS_prev = MyS_n_[idx];
-        // StdVector<Double>& MzS_prev = MzS_n_[idx];
-
-
-        // for(int k = 0; k < numS_; k++){
-        //   HrxS_prev = HxS_prev[k];
-        //   HryS_prev = HyS_prev[k];
-        //   HrzS_prev = HzS_prev[k];
-        //   MxSprev = MxS_prev[k];
-        //   MySprev = MyS_prev[k];
-        //   MzSprev = MzS_prev[k];
-        //   condition1 = ( std::pow((Hex_x - HrxS_prev)/chi[k], 2) + std::pow((Hex_y - HryS_prev)/chi[k], 2) + std::pow((Hex_z - HrzS_prev)/chi[k], 2) );
-        //   if( condition1 <= 1.0){
-        //     HrxS_sol[k] = HrxS_prev;
-        //     HryS_sol[k] = HryS_prev;
-        //     HrzS_sol[k] = HrzS_prev;
-        //   }else{
-        //     // dissipation now reached (just arrived at the border of the sphere)
-        //     if(k == 0){
-        //       HrxS_sol[k] = Hex_x;
-        //       HryS_sol[k] = Hex_y;
-        //       HrzS_sol[k] = Hex_z;
-        //     }else{
-        //       // use the direction of the vector play model as initial direction
-        //       Hirr_x = chi[k]* (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
-        //       Hirr_y = chi[k]* (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
-        //       Hirr_z = chi[k]* (Hex_z - HrzS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev),2) + std::pow((Hex_y - HryS_prev),2)) + std::pow((Hex_z - HrzS_prev),2));
-        //       HrxS_sol[k] = Hex_x - Hirr_x;
-        //       HryS_sol[k] = Hex_y - Hirr_y;
-        //       HrzS_sol[k] = Hex_z - Hirr_z;
-        //     }
-        //   }  
-        //   HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
-        //   if( std::sqrt(std::pow(HrS,2)) > 1.0e-12){
-        //     // JUST FOR TEAM PROBLEM 32
-        //     /* aa = 9.082; MSa = 0.792; ab = 137.121; MSb = 0.791;
-        //     coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
-        //     coth_Lb = std::cosh(HrS/ab)/std::sinh(HrS/ab);
-        //     J_an = MSa*(coth_La - aa/HrS) + MSb*(coth_Lb - ab/HrS);
-        //     M_an = J_an/(4*M_PI*1e-7); 
-        //     MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
-        //     MyS_sol[k] = M_an * HryS_sol[k]/HrS;
-        //     MzS_sol[k] = M_an * HrzS_sol[k]/HrS; */
-        //     // TP32 END
-        //     // FOR REGULAR USE
-        //     MxS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrxS_sol[k]/HrS;
-        //     MyS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HryS_sol[k]/HrS;
-        //     MzS_sol[k] = (2.0 * Ps_/M_PI) * std::atan(HrS/A_) * HrzS_sol[k]/HrS;
-        //     // FOR REGULAR USE END
-        //   }else{
-        //     MxS_sol[k] = 0.0;
-        //     MyS_sol[k] = 0.0;
-        //     MzS_sol[k] = 0.0;
-        //   }
-        // }
-        // Px = 0.0;
-        // Py = 0.0;
-        // Pz = 0.0;
-        // for(int k = 0; k < numS_; k++){
-        //   Px += weight[k] * MxS_sol[k];
-        //   Py += weight[k] * MyS_sol[k];
-        //   Pz += weight[k] * MzS_sol[k];
-        // }
-        // if(saveTmpStageVecs){
-        //   HxS_n_tmp_[idx] = HrxS_sol;
-        //   HyS_n_tmp_[idx] = HryS_sol;
-        //   HzS_n_tmp_[idx] = HrzS_sol;
-        //   MxS_n_tmp_[idx] = MxS_sol;
-        //   MyS_n_tmp_[idx] = MyS_sol;
-        //   MzS_n_tmp_[idx] = MzS_sol;
-        // }
-        // ret.Push_back(Px);
-        // ret.Push_back(Py);
-        // ret.Push_back(Pz);
-      }
-    return ret; 
-    }
+    mu_[idx] = mu;
+    M0_[idx] = M1_[idx];
+    H0_[idx] = H1_[idx];
+    // mark this element as computed
+    hasElemSolution_[idx] = true;
+    return mu;
   }
+
+  Matrix<Double> EBHysteresis::EvaluateLocalMuAnhystersisOnly(Vector<Double> HVec, UInt idx){
+    Matrix<Double> mu; 
+    mu.Resize(dim_,dim_);
+    Matrix<Double> chi; 
+    chi.Resize(dim_,dim_);
+    Matrix<Double> T2; 
+    T2.Resize(dim_,dim_);
+    Matrix<Double> identity; 
+    identity.Resize(dim_,dim_); 
+
+    Double t0, t1, t3, factor1,factor2,factor3;
+    Double mu0 = 1.256637061e-06;;
+
+    // 2D case (x,y)
+    if (dim_ == 2){
+      t0 = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1]);
+      t1 = t0/A_;
+      t3 = std::atan(t1);
+      factor1 = (2*Ps_/(t1*t1+1))/(M_PI*t0*t0*A_);
+      factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
+      factor3 = (2*Ps_*t3)/(M_PI*t0);
+
+      for (int i = 0; i < dim_; ++i){
+        for (int j = 0; j < dim_; ++j){
+            identity[i][j] = (i == j) ? 1 : 0;
+            T2[i][j] = HVec[i]*HVec[j];
+            chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
+            if (std::isnan(chi[i][j])){
+              chi[i][j] = 0;
+            }
+            mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
+        }
+      }
+    }else{ // 3D case (x,y,z)
+      HVec[0] = (HVec[0] == 0) ? 1e-12 : HVec[0];
+      HVec[1] = (HVec[1] == 0) ? 1e-12 : HVec[1];
+      HVec[2] = (HVec[2] == 0) ? 1e-12 : HVec[2];
+      t0 = std::sqrt(HVec[0]*HVec[0] + HVec[1]*HVec[1] + HVec[2]*HVec[2]);
+      t1 = t0/A_;
+      t3 = std::atan(t1);
+      factor1 = (2*Ps_/(t1*t1+1))/(M_PI*t0*t0*A_);
+      factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
+      factor3 = (2*Ps_*t3)/(M_PI*t0);
+
+      for (int i = 0; i < dim_; ++i){
+        for (int j = 0; j < dim_; ++j){
+            identity[i][j] = (i == j) ? 1 : 0;
+            T2[i][j] = HVec[i]*HVec[j];
+            chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
+            if (std::isnan(chi[i][j])){
+              chi[i][j] = 0;
+            }
+            mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
+        }
+      }
+    } 
+      /* if (idx == 1){
+        std::cout << "Hx: " << HVec[0] << ", Hy: " << HVec[1] << ", Hz: " << HVec[2] << std::endl;
+        std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
+        std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
+        std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
+      } */
+    return mu;
+  }
+
+  Matrix<Double> EBHysteresis::EvaluateLocalMuFiniteDifferences(Vector<Double> HVec, StdVector<Double> B_k, UInt idx){
+    Matrix<Double> mu;
+    mu.Resize(dim_,dim_);
+
+    Double h = 1*10^(-7);
+    Vector<Double> eh_x(dim_);
+    Vector<Double> eh_y(dim_);
+    Vector<Double> eh_z(dim_);
+    Vector<Double> H_incx(dim_);
+    Vector<Double> H_incy(dim_);
+    Vector<Double> H_incz(dim_);
+
+    Vector<Double> M_incx(dim_);
+    Vector<Double> M_incy(dim_);
+    Vector<Double> M_incz(dim_);
+    Vector<Double> B_incx(dim_);
+    Vector<Double> B_incy(dim_);
+    Vector<Double> B_incz(dim_);
+
+    // 2D case (x,y)
+    if (dim_ == 2){
+
+      eh_x[0] = h; eh_x[1] = 0;
+      eh_y[0] = 0; eh_y[1] = h;
+      for(UInt i = 0; i < dim_; i++){
+        H_incx[i] = HVec[i] + eh_x[i];
+        H_incy[i] = HVec[i] + eh_y[i];
+      }
+      // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
+      M_incx = Evaluate(H_incx, false, idx);
+      M_incy = Evaluate(H_incy, false, idx);
+      for(UInt i = 0; i < dim_; i++){
+        B_incx[i] = mu_0 * (H_incx[i] + M_incx[i]);
+        B_incy[i] = mu_0 * (H_incy[i] + M_incy[i]);
+      }
+      // calculate the mu tesnor (dB/dH) for every entry
+      mu[0][0] = (B_incx[0] - B_k[0]) / h; mu[0][1] = 0;
+      mu[1][0] = 0; mu[1][1] = (B_incy[1] - B_k[1]) / h;
+
+    }else{ // 3D case (x,y,z)
+
+      eh_x[0] = h; eh_x[1] = 0; eh_x[2] = 0;
+      eh_y[0] = 0; eh_y[1] = h; eh_y[2] = 0;
+      eh_z[0] = 0; eh_z[1] = 0; eh_z[2] = h;
+      for(UInt i = 0; i < dim_; i++){
+        H_incx[i] = HVec[i] + eh_x[i];
+        H_incy[i] = HVec[i] + eh_y[i];
+        H_incz[i] = HVec[i] + eh_z[i];
+      }
+      // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
+      M_incx = Evaluate(H_incx, false, idx);
+      M_incy = Evaluate(H_incy, false, idx);
+      M_incz = Evaluate(H_incz, false, idx);
+      for(UInt i = 0; i < dim_; i++){
+        B_incx[i] = mu_0 * (H_incx[i] + M_incx[i]);
+        B_incy[i] = mu_0 * (H_incy[i] + M_incy[i]);
+        B_incz[i] = mu_0 * (H_incz[i] + M_incz[i]);
+      }
+      // calculate the mu tensor (dB/dH) for every entry
+      mu[0][0] = (B_incx[0] - B_k[0]) / h; mu[0][1] = 0;                        mu[0][2] = 0;
+      mu[1][0] = 0;                        mu[1][1] = (B_incy[1] - B_k[1]) / h; mu[1][2] = 0;
+      mu[2][0] = 0;                        mu[2][1] = 0;                        mu[2][2] = (B_incz[2] - B_k[2]) / h;
+
+    } 
+    /* if (idx == 15){
+      std::cout << "FD" << std::endl;
+      std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
+      std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
+      std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
+    } */
+    return mu;
+  }
+
+  Matrix<Double> EBHysteresis::EvaluateLocalMu(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+    Matrix<Double> mu;
+    mu.Resize(dim_,dim_);
+    double offset = 1e-2;
+
+    /* if(dim_ == 2){
+      dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
+      dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
+    } */
+    mu[0][1] = 0.0; //dB[0]/dH[1];
+    mu[1][1] = std::abs(dB[1])/std::abs(dH[1]);
+    mu[1][0] = 0.0; //dB[1]/dH[0];
+    mu[0][0] = std::abs(dB[0])/std::abs(dH[0]);
+    if(dim_ == 3){
+      mu[2][0] = 0.0;
+      mu[2][1] = 0.0;
+      mu[0][2] = 0.0;
+      mu[1][2] = 0.0;
+      mu[2][2] = std::abs(dB[2])/std::abs(dH[2]);
+    }
+      for (UInt i = 0; i < dim_; i++){
+          if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
+            Matrix<Double> e = mu_[idx];
+              mu[i][i] = e[i][i];
+          } 
+      }
+    if (idx == 32){
+      printf("mu_simpleFD = %f\n",mu[0][0]);
+    }
+    return mu;
+  }
+
+  Matrix<Double> EBHysteresis::EvaluateLocalMuDFP(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+    Matrix<Double> mu;
+    mu.Resize(dim_,dim_);
+
+    Matrix<Double> dD_dyadic_dEtransposed(dim_, dim_);
+    Matrix<Double> dE_dyadic_dDtransposed(dim_, dim_);
+    Matrix<Double> dD_dyadic_dDtransposed(dim_, dim_);
+    Matrix<Double> I(dim_, dim_);
+    Matrix<Double> leftM(dim_, dim_);
+    Matrix<Double> rightM(dim_, dim_);
+    Matrix<Double> A(dim_,dim_);
+    
+    if(dim_ == 2){
+      I[0][0] = 1.0;
+      I[1][1] = 1.0;
+
+      dD_dyadic_dEtransposed[0][0] = dB[0] * dH[0];
+      dD_dyadic_dEtransposed[1][0] = dB[1] * dH[0];
+      dD_dyadic_dEtransposed[0][1] = dB[0] * dH[1];
+      dD_dyadic_dEtransposed[1][1] = dB[1] * dH[1];
+
+      dE_dyadic_dDtransposed[0][0] = dH[0] * dB[0];
+      dE_dyadic_dDtransposed[1][0] = dH[1] * dB[0];
+      dE_dyadic_dDtransposed[0][1] = dH[0] * dB[1];
+      dE_dyadic_dDtransposed[1][1] = dH[1] * dB[1];
+
+      dD_dyadic_dDtransposed[0][0] = dB[0] * dB[0];
+      dD_dyadic_dDtransposed[1][0] = dB[1] * dB[0];
+      dD_dyadic_dDtransposed[0][1] = dB[0] * dB[1];
+      dD_dyadic_dDtransposed[1][1] = dB[1] * dB[1];
+
+      Double dDtransposed_in_dE = dH[0]*dB[0] + dH[1]*dB[1];
+      
+
+      leftM[0][0] = 1.0 - dD_dyadic_dEtransposed[0][0] / dDtransposed_in_dE;
+      leftM[1][0] = dD_dyadic_dEtransposed[1][0] / dDtransposed_in_dE;
+      leftM[0][1] = dD_dyadic_dEtransposed[0][1] / dDtransposed_in_dE;
+      leftM[1][1] = 1.0 - dD_dyadic_dEtransposed[1][1] / dDtransposed_in_dE;
+      
+      Matrix<Double> leftM_times_epsilon_km1(leftM);
+      leftM.MultT(mu_[idx], leftM_times_epsilon_km1);
+      
+      rightM[0][0] = 1.0 - dE_dyadic_dDtransposed[0][0] / dDtransposed_in_dE;
+      rightM[1][0] = dE_dyadic_dDtransposed[1][0] / dDtransposed_in_dE;
+      rightM[0][1] = dE_dyadic_dDtransposed[0][1] / dDtransposed_in_dE;
+      rightM[1][1] = 1.0 - dE_dyadic_dDtransposed[1][1] / dDtransposed_in_dE;
+    
+      leftM_times_epsilon_km1.MultT(rightM, A);
+
+      mu[0][0] = A[0][0] + dD_dyadic_dDtransposed[0][0]/dDtransposed_in_dE;
+      mu[1][0] = A[1][0] + dD_dyadic_dDtransposed[1][0]/dDtransposed_in_dE;
+      mu[0][1] = A[0][1] + dD_dyadic_dDtransposed[0][1]/dDtransposed_in_dE;
+      mu[1][1] = A[1][1] + dD_dyadic_dDtransposed[1][1]/dDtransposed_in_dE;
+
+
+      LOG_DBG3(eb)<< "\n\t dD_dyadic_dEtransposed = " << dD_dyadic_dEtransposed.ToString()
+                  << "\n\t dE_dyadic_dDtransposed = " << dE_dyadic_dDtransposed.ToString()
+                  << "\n\t dD_dyadic_dDtransposed = " << dD_dyadic_dDtransposed.ToString()
+                  << "\n\t dDtransposed_in_dE = " << dDtransposed_in_dE
+                  << "\n\t leftM = " << leftM.ToString()
+                  << "\n\t leftM_times_epsilon_km1 = " << leftM_times_epsilon_km1.ToString()
+                  << "\n\t rightM = " << rightM.ToString()
+                  << "\n\t epsilon_km1 = " << mu_[idx].ToString()
+                  << "\n\t A = " << A.ToString();
+
+      mu[0][1] = 0.0;
+      mu[1][0] = 0.0;
+      for (UInt i = 0; i < dim_; i++){
+          if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
+            Matrix<Double> e = mu_[idx];
+              mu[i][i] = e[i][i]; 
+          } 
+      }
+    }else{ // 3D version
+      
+      
+      I[0][0] = 1.0;
+      I[1][1] = 1.0;
+      I[2][2] = 1.0;
+
+      dD_dyadic_dEtransposed[0][1] = dB[0] * dH[1];
+      dD_dyadic_dEtransposed[1][0] = dB[1] * dH[0];
+      dD_dyadic_dEtransposed[0][2] = dB[0] * dH[2];
+      dD_dyadic_dEtransposed[2][0] = dB[2] * dH[0];
+      dD_dyadic_dEtransposed[1][2] = dB[1] * dH[2];
+      dD_dyadic_dEtransposed[2][1] = dB[2] * dH[1];
+      dD_dyadic_dEtransposed[0][0] = dB[0] * dH[0];        
+      dD_dyadic_dEtransposed[1][1] = dB[1] * dH[1];
+      dD_dyadic_dEtransposed[2][2] = dB[2] * dH[2];
+
+      dE_dyadic_dDtransposed[1][0] = dH[1] * dB[0];
+      dE_dyadic_dDtransposed[0][1] = dH[0] * dB[1];
+      dE_dyadic_dDtransposed[0][2] = dH[0] * dB[2];
+      dE_dyadic_dDtransposed[2][0] = dH[2] * dB[0];
+      dE_dyadic_dDtransposed[1][2] = dH[1] * dB[2];
+      dE_dyadic_dDtransposed[2][1] = dH[2] * dB[1];
+      dE_dyadic_dDtransposed[0][0] = dH[0] * dB[0];
+      dE_dyadic_dDtransposed[1][1] = dH[1] * dB[1];
+      dE_dyadic_dDtransposed[2][2] = dH[2] * dB[2];
+
+      dD_dyadic_dDtransposed[1][0] = dB[1] * dB[0];
+      dD_dyadic_dDtransposed[0][1] = dB[0] * dB[1];        
+      dD_dyadic_dDtransposed[0][2] = dB[0] * dB[2];
+      dD_dyadic_dDtransposed[2][0] = dB[2] * dB[0];
+      dD_dyadic_dDtransposed[1][2] = dB[1] * dB[2];
+      dD_dyadic_dDtransposed[2][1] = dB[2] * dB[1];
+      dD_dyadic_dDtransposed[0][0] = dB[0] * dB[0];
+      dD_dyadic_dDtransposed[1][1] = dB[1] * dB[1];
+      dD_dyadic_dDtransposed[2][2] = dB[2] * dB[2];
+
+
+      Double dDtransposed_in_dE = dH[0]*dB[0] + dH[1]*dB[1] + dH[2]*dB[2];
+
+      leftM[1][0] = dD_dyadic_dEtransposed[1][0] / dDtransposed_in_dE;
+      leftM[0][1] = dD_dyadic_dEtransposed[0][1] / dDtransposed_in_dE;
+      leftM[0][2] = dD_dyadic_dEtransposed[0][2] / dDtransposed_in_dE;
+      leftM[2][0] = dD_dyadic_dEtransposed[2][0] / dDtransposed_in_dE;
+      leftM[1][2] = dD_dyadic_dEtransposed[1][2] / dDtransposed_in_dE;
+      leftM[2][1] = dD_dyadic_dEtransposed[2][1] / dDtransposed_in_dE;
+      leftM[0][0] = 1.0 - dD_dyadic_dEtransposed[0][0] / dDtransposed_in_dE;
+      leftM[1][1] = 1.0 - dD_dyadic_dEtransposed[1][1] / dDtransposed_in_dE;
+      leftM[2][2] = 1.0 - dD_dyadic_dEtransposed[2][2] / dDtransposed_in_dE;
+
+      Matrix<Double> leftM_times_epsilon_km1(leftM);
+      leftM.MultT(mu_[idx], leftM_times_epsilon_km1);
+
+      rightM[1][0] = dE_dyadic_dDtransposed[1][0] / dDtransposed_in_dE;
+      rightM[0][1] = dE_dyadic_dDtransposed[0][1] / dDtransposed_in_dE;
+      rightM[0][2] = dE_dyadic_dDtransposed[0][2] / dDtransposed_in_dE;
+      rightM[2][0] = dE_dyadic_dDtransposed[2][0] / dDtransposed_in_dE;
+      rightM[1][2] = dE_dyadic_dDtransposed[1][2] / dDtransposed_in_dE;
+      rightM[2][1] = dE_dyadic_dDtransposed[2][1] / dDtransposed_in_dE;
+      rightM[0][0] = 1.0 - dE_dyadic_dDtransposed[0][0] / dDtransposed_in_dE;
+      rightM[1][1] = 1.0 - dE_dyadic_dDtransposed[1][1] / dDtransposed_in_dE;
+      rightM[2][2] = 1.0 - dE_dyadic_dDtransposed[2][2] / dDtransposed_in_dE;
+
+      leftM_times_epsilon_km1.MultT(rightM, A);
+
+      mu[1][0] = A[1][0] + dD_dyadic_dDtransposed[1][0]/dDtransposed_in_dE;
+      mu[0][1] = A[0][1] + dD_dyadic_dDtransposed[0][1]/dDtransposed_in_dE;
+      mu[0][2] = A[0][2] + dD_dyadic_dDtransposed[0][2]/dDtransposed_in_dE;
+      mu[2][0] = A[2][0] + dD_dyadic_dDtransposed[2][0]/dDtransposed_in_dE;
+      mu[1][2] = A[1][2] + dD_dyadic_dDtransposed[1][2]/dDtransposed_in_dE;
+      mu[2][1] = A[2][1] + dD_dyadic_dDtransposed[2][1]/dDtransposed_in_dE;
+      mu[0][0] = A[0][0] + dD_dyadic_dDtransposed[0][0]/dDtransposed_in_dE;
+      mu[1][1] = A[1][1] + dD_dyadic_dDtransposed[1][1]/dDtransposed_in_dE;
+      mu[2][2] = A[2][2] + dD_dyadic_dDtransposed[2][2]/dDtransposed_in_dE;
+
+      LOG_DBG3(eb)<< "\n\t dD_dyadic_dEtransposed = " << dD_dyadic_dEtransposed.ToString()
+                  << "\n\t dE_dyadic_dDtransposed = " << dE_dyadic_dDtransposed.ToString()
+                  << "\n\t dD_dyadic_dDtransposed = " << dD_dyadic_dDtransposed.ToString()
+                  << "\n\t dDtransposed_in_dE = " << dDtransposed_in_dE
+                  << "\n\t leftM = " << leftM.ToString()
+                  << "\n\t leftM_times_epsilon_km1 = " << leftM_times_epsilon_km1.ToString()
+                  << "\n\t rightM = " << rightM.ToString()
+                  << "\n\t epsilon_km1 = " << mu_[idx].ToString()
+                  << "\n\t A = " << A.ToString();
+
+      mu[0][1] = 0.0;
+      mu[1][0] = 0.0;
+      mu[2][0] = 0.0;
+      mu[0][2] = 0.0;
+      mu[1][2] = 0.0;
+      mu[2][1] = 0.0;
+      for (UInt i = 0; i < dim_; i++){
+          if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
+            Matrix<Double> e = mu_[idx];
+              mu[i][i] = e[i][i];//mu_0; //e[i][i]; //mu_0;
+          } 
+      }
+    }
+    if (idx == 32){
+      printf("mu_DFP = %f\n",mu[0][0]);
+    }
+    return mu;
+  }
+
+  Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+
+    Matrix<Double> yyT(dim_, dim_);
+    Matrix<Double> BxBxT(dim_, dim_);
+    Matrix<Double> B_k1(dim_, dim_);
+    Matrix<Double> B = mu_[idx];
+    Double yTx;
+    Double xTBx;
+    StdVector<Double> y = dB;
+    StdVector<Double> x = dH;
+    StdVector<Double> Bx;
+
+    // yyT (outer product)
+    yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; yyT[0][2] = y[0]*y[2];
+    yyT[1][0] = y[1]*y[0]; yyT[1][1] = y[1]*y[1]; yyT[1][2] = y[1]*y[2];
+    yyT[2][0] = y[2]*y[0]; yyT[2][1] = y[2]*y[1]; yyT[2][2] = y[2]*y[2];
+
+    // yTx (inner product)
+    yTx = (y[0]*x[0]) + (y[1]*x[1]) + (y[2]*x[2]);
+
+    // xTBx (inner product)
+    Bx[0] = B[0][0]*x[0] + B[0][1]*x[1] + B[0][2]*x[2];
+    Bx[1] = B[1][0]*x[0] + B[1][1]*x[1] + B[1][2]*x[2];
+    Bx[2] = B[2][0]*x[0] + B[2][1]*x[1] + B[2][2]*x[2];
+    xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]) + (x[2]*Bx[2]);
+
+    // BxBxT (outer product)
+    BxBxT[0][0] = Bx[0]*Bx[0]; BxBxT[0][1] = Bx[0]*Bx[1]; BxBxT[0][2] = Bx[0]*Bx[2];
+    BxBxT[1][0] = Bx[1]*Bx[0]; BxBxT[1][1] = Bx[1]*Bx[1]; BxBxT[1][2] = Bx[1]*Bx[2];
+    BxBxT[2][0] = Bx[2]*Bx[0]; BxBxT[2][1] = Bx[2]*Bx[1]; BxBxT[2][2] = Bx[2]*Bx[2];
+
+    // construct everything
+    B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
+    B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
+    B_k1[0][2] = B[0][2] + yyT[0][2]/yTx - BxBxT[0][2]/xTBx;
+
+    B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
+    B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
+    B_k1[1][2] = B[1][2] + yyT[1][2]/yTx - BxBxT[1][2]/xTBx;
+
+    B_k1[2][0] = B[2][0] + yyT[2][0]/yTx - BxBxT[2][0]/xTBx; 
+    B_k1[2][1] = B[2][1] + yyT[2][1]/yTx - BxBxT[2][1]/xTBx;
+    B_k1[2][2] = B[2][2] + yyT[2][2]/yTx - BxBxT[2][2]/xTBx;
+
+    return B_k1;
+  }
+
+  Matrix<Double> EBHysteresis::EvaluateLocalMuGBM(StdVector<Double> dH, StdVector<Double> dB, UInt idx)
+  {
+    Matrix<Double> mu;
+    mu.Resize(dim_,dim_);
+
+    Vector<Double> dD_minus_epsilon_km1_times_dE(dim_);
+    Vector<Double> dHvec(dim_);
+    Matrix<Double> rightM(dim_,dim_);
+    double offset = 1e-13;
+
+    if(dim_ == 2){
+      dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
+      dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
+      dD_minus_epsilon_km1_times_dE[0] = dB[0] - (mu_[idx][0][0]*dH[0] + mu_[idx][0][1]*dH[1]);
+      dD_minus_epsilon_km1_times_dE[1] = dB[1] - (mu_[idx][1][0]*dH[0] + mu_[idx][1][1]*dH[1]);
+
+      dHvec[0] = dH[0];
+      dHvec[1] = dH[1];
+      dD_minus_epsilon_km1_times_dE.ScalarDiv(dHvec.NormL2_squared());
+      
+      rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dHvec);
+      
+      mu[0][0] = mu_[idx][0][0] + rightM[0][0];
+      mu[1][0] = mu_[idx][1][0] + rightM[1][0];
+      mu[0][1] = mu_[idx][0][1] + rightM[0][1];
+      mu[1][1] = mu_[idx][1][1] + rightM[1][1];
+              
+      LOG_DBG3(eb)<< "\n\t dD_minus_epsilon_km1_times_dE = " << dD_minus_epsilon_km1_times_dE.ToString()
+                  << "\n\t dHvec = " << dHvec.ToString()
+                  << "\n\t rightM = " << rightM.ToString();
+
+      /* mu[0][1] = 0.0;
+      mu[1][0] = 0.0; */
+      for (UInt i = 0; i < dim_; i++){
+          if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
+            Matrix<Double> e = mu_[idx];
+              mu[i][i] = e[i][i]; //mu_0; //e[i][i]; //mu_0;
+          } 
+      }
+    }else{ // 3D version
+      dD_minus_epsilon_km1_times_dE[0] = dB[0] - (mu_[idx][0][0]*dH[0] + mu_[idx][0][1]*dH[1] + mu_[idx][0][2]*dH[2]);
+      dD_minus_epsilon_km1_times_dE[1] = dB[1] - (mu_[idx][1][0]*dH[0] + mu_[idx][1][1]*dH[1] + mu_[idx][1][2]*dH[2]);
+      dD_minus_epsilon_km1_times_dE[2] = dB[2] - (mu_[idx][2][0]*dH[0] + mu_[idx][2][1]*dH[1] + mu_[idx][2][2]*dH[2]);
+
+      dHvec[0] = dH[0];
+      dHvec[1] = dH[1];
+      dHvec[2] = dH[2];
+      dD_minus_epsilon_km1_times_dE.ScalarDiv(dHvec.NormL2_squared());
+      
+      rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dHvec);
+      
+      mu[1][0] = mu_[idx][1][0] + rightM[1][0];
+      mu[0][1] = mu_[idx][0][1] + rightM[0][1];
+      mu[0][2] = mu_[idx][0][2] + rightM[0][2];
+      mu[2][0] = mu_[idx][2][0] + rightM[2][0];
+      mu[1][2] = mu_[idx][1][2] + rightM[1][2];
+      mu[2][1] = mu_[idx][2][1] + rightM[2][1];
+      mu[0][0] = mu_[idx][0][0] + rightM[0][0];
+      mu[1][1] = mu_[idx][1][1] + rightM[1][1];
+      mu[2][2] = mu_[idx][2][2] + rightM[2][2];
+
+      LOG_DBG3(eb)<< "\n\t dD_minus_epsilon_km1_times_dE = " << dD_minus_epsilon_km1_times_dE.ToString()
+                  << "\n\t dHvec = " << dHvec.ToString()
+                  << "\n\t rightM = " << rightM.ToString();
+
+      mu[0][1] = 0.0;
+      mu[1][0] = 0.0;
+      mu[2][0] = 0.0;
+      mu[0][2] = 0.0;
+      mu[1][2] = 0.0;
+      mu[2][1] = 0.0;
+      for (UInt i = 0; i < dim_; i++)
+      {
+        if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
+          Matrix<Double> e = mu_[idx];
+            mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
+        } 
+      }
+    }
+    return mu;
+  }
+
+
+  StdVector<Double> EBHysteresis::inv3x3(StdVector<Double> A){
+    double detA = 0;
+    StdVector<Double> adjA(9); adjA.Init(0.0);
+    StdVector<Double> invA(9); invA.Init(0.0);
+    detA = A[0]*(A[8]*A[4]-A[5]*A[7]) - (A[1]*(A[8]*A[3]-A[5]*A[6])) + A[2]*(A[7]*A[3]-A[4]*A[6]);
+    adjA[0] = A[8]*A[4] - A[5]*A[7];
+    adjA[1] = -(A[8]*A[3]-A[5]*A[6]);
+    adjA[2] = A[7]*A[3]-A[4]*A[6];
+    adjA[3] = -(A[8]*A[1]-A[2]*A[7]);
+    adjA[4] = A[8]*A[0]-A[2]*A[6];
+    adjA[5] = -(A[7]*A[0]-A[1]*A[6]);
+    adjA[6] = A[5]*A[1]-A[2]*A[4];
+    adjA[7] = -(A[5]*A[0]-A[2]*A[3]);
+    adjA[8] = A[4]*A[0]-A[1]*A[3];
+    invA[0] = (1/detA)*adjA[0];
+    invA[1] = (1/detA)*adjA[1];
+    invA[2] = (1/detA)*adjA[2];
+    invA[3] = (1/detA)*adjA[3];
+    invA[4] = (1/detA)*adjA[4];
+    invA[5] = (1/detA)*adjA[5];
+    invA[6] = (1/detA)*adjA[6];
+    invA[7] = (1/detA)*adjA[7];
+    invA[8] = (1/detA)*adjA[8];
+    return invA;
+  }
+
+
+
+  /*
+  =========================================================================================
+      Different versions of Evaluate function, depending on which models are used
+  =========================================================================================
+  */
+  Vector<Double> EBHysteresis::Evaluate(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx)
+  {
+    Vector<Double> ret;
+    StdVector<Double> weight(numS_);
+    weight.Init(1.0 / numS_);
+    StdVector<Double> chi(numS_);
+    for (UInt i = 0; i < numS_; i++)
+    {
+      chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
+    }
+
+    if (dim_ == 2)
+    {
+      if (approx_type_ != "fullEB")
+      {
+        // VPM approximation
+        EXCEPTION("Currently there is only the fullEB model implemented for the 2D case");
+      }
+      else if (anhyst_type_ == 2)
+      {
+        // Multiscale model
+        EXCEPTION("Multiscale model currently only implemented for 3D setups!");
+      }
+      else
+      {
+        // full energy based + atan anhysteresis
+        ret = Eval_2D_EB_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
+      }
+    }
+    else if (dim_ == 3)
+    {
+      if ((approx_type_ == "fullEB") && (anhyst_type_ == 2))
+      {
+        // fullEB + Multiscale model
+        EXCEPTION("Multiscale model currently only implemented for VPM!");
+      }
+      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
+      {
+        // VPM + Multiscale model
+        ret = Eval_3D_VPM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
+      }
+      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 1))
+      {
+        // VPM + atan anhysteresis
+        ret = Eval_3D_VPM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
+      }
+      else if ((approx_type_ == "fullEB") && (anhyst_type_ == 1))
+      {
+        // fullEB + atan anhysteresis
+        ret = Eval_3D_EBM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
+      }
+    }
+    return ret;
+  }
+
+
+  Vector<Double> EBHysteresis::Eval_3D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  {
+    Vector<Double> ret;
+    StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
+    StdVector<UInt> numIter;
+    error.Resize(numS_, 0.0);
+    dir.Resize(numS_, 0.0);
+    numIter.Resize(numS_, 0);
+    HrxS_sol.Resize(numS_, 0.0);
+    HryS_sol.Resize(numS_, 0.0);
+    HrzS_sol.Resize(numS_, 0.0);
+    MxS_sol.Resize(numS_, 0.0);
+    MyS_sol.Resize(numS_, 0.0);
+    MzS_sol.Resize(numS_, 0.0);
+
+    Double Hex_x = Hn[0];
+    Double Hex_y = Hn[1];
+    Double Hex_z = Hn[2];
+
+    Double HrxS_prev, HryS_prev, HrzS_prev, HrS, Px, Py, Pz, condition1, Hirr_x, Hirr_y, Hirr_z;
+
+    StdVector<Double> &HxS_prev = HxS_n_[idx];
+    StdVector<Double> &HyS_prev = HyS_n_[idx];
+    StdVector<Double> &HzS_prev = HzS_n_[idx];
+
+    for (UInt k = 0; k < numS_; k++)
+    {
+      HrxS_prev = HxS_prev[k];
+      HryS_prev = HyS_prev[k];
+      HrzS_prev = HzS_prev[k];
+      condition1 = (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2) + std::pow((Hex_z - HrzS_prev) / chi[k], 2));
+      if (condition1 <= 1.0)
+      {
+        HrxS_sol[k] = HrxS_prev;
+        HryS_sol[k] = HryS_prev;
+        HrzS_sol[k] = HrzS_prev;
+      }
+      else
+      {
+        // dissipation now reached (just arrived at the border of the sphere)
+        if (k == 0)
+        {
+          HrxS_sol[k] = Hex_x;
+          HryS_sol[k] = Hex_y;
+          HrzS_sol[k] = Hex_z;
+        }
+        else
+        {
+          //
+          Hirr_x = chi[k] * (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          Hirr_y = chi[k] * (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          Hirr_z = chi[k] * (Hex_z - HrzS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          HrxS_sol[k] = Hex_x - Hirr_x;
+          HryS_sol[k] = Hex_y - Hirr_y;
+          HrzS_sol[k] = Hex_z - Hirr_z;
+        }
+      }
+      HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
+      if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
+      { // pure VPM with atan anhysteresis curve
+        MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
+        MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
+        MzS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrzS_sol[k] / HrS;
+      }
+      else
+      {
+        MxS_sol[k] = 0.0;
+        MyS_sol[k] = 0.0;
+        MzS_sol[k] = 0.0;
+      }
+    }
+    Px = 0.0;
+    Py = 0.0;
+    Pz = 0.0;
+    for (UInt k = 0; k < numS_; k++)
+    {
+      Px += weight[k] * MxS_sol[k];
+      Py += weight[k] * MyS_sol[k];
+      Pz += weight[k] * MzS_sol[k];
+    }
+    ret.Push_back(Px);
+    ret.Push_back(Py);
+    ret.Push_back(Pz);
+    return ret;
+  }
+
+  Vector<Double> EBHysteresis::Eval_3D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  {
+    Vector<Double> ret;
+    StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
+    StdVector<UInt> numIter;
+    error.Resize(numS_, 0.0);
+    dir.Resize(numS_, 0.0);
+    numIter.Resize(numS_, 0);
+    HrxS_sol.Resize(numS_, 0.0);
+    HryS_sol.Resize(numS_, 0.0);
+    HrzS_sol.Resize(numS_, 0.0);
+    MxS_sol.Resize(numS_, 0.0);
+    MyS_sol.Resize(numS_, 0.0);
+    MzS_sol.Resize(numS_, 0.0);
+
+    Double Hex_x = Hn[0];
+    Double Hex_y = Hn[1];
+    Double Hex_z = Hn[2];
+
+    Double HrxS_prev, HryS_prev, HrzS_prev, MxSprev, MySprev, MzSprev, phi, err, ux, uy,
+        uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py, Pz,
+        condition1, theta, i_correct_x, i_correct_y, i_correct_z, Hirr_x, Hirr_y, Hirr_z;
+
+    Double aa, MSa, ab, MSb, coth_La, coth_Lb, J_an, M_an;
+
+    UInt iter;
+    StdVector<Double> &HxS_prev = HxS_n_[idx];
+    StdVector<Double> &HyS_prev = HyS_n_[idx];
+    StdVector<Double> &HzS_prev = HzS_n_[idx];
+    StdVector<Double> &MxS_prev = MxS_n_[idx];
+    StdVector<Double> &MyS_prev = MyS_n_[idx];
+    StdVector<Double> &MzS_prev = MzS_n_[idx];
+
+    for (UInt k = 0; k < numS_; k++)
+    {
+      HrxS_prev = HxS_prev[k];
+      HryS_prev = HyS_prev[k];
+      HrzS_prev = HzS_prev[k];
+      MxSprev = MxS_prev[k];
+      MySprev = MyS_prev[k];
+      MzSprev = MzS_prev[k];
+      condition1 = (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2) + std::pow((Hex_z - HrzS_prev) / chi[k], 2));
+      if (condition1 <= 1.0)
+      {
+        HrxS_sol[k] = HrxS_prev;
+        HryS_sol[k] = HryS_prev;
+        HrzS_sol[k] = HrzS_prev;
+      }
+      else
+      {
+        // dissipation now reached (just arrived at the border of the sphere)
+        if (k == 0)
+        {
+          HrxS_sol[k] = Hex_x;
+          HryS_sol[k] = Hex_y;
+          HrzS_sol[k] = Hex_z;
+        }
+        else
+        {
+          // use the direction of the vector play model as initial direction
+          Hirr_x = chi[k] * (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          Hirr_y = chi[k] * (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          Hirr_z = chi[k] * (Hex_z - HrzS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          HrxS_sol[k] = Hex_x - Hirr_x;
+          HryS_sol[k] = Hex_y - Hirr_y;
+          HrzS_sol[k] = Hex_z - Hirr_z;
+        }
+      }
+      HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
+      if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
+      {
+        // JUST FOR TEAM PROBLEM 32
+        /* aa = 9.082; MSa = 0.792; ab = 137.121; MSb = 0.791;
+        coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
+        coth_Lb = std::cosh(HrS/ab)/std::sinh(HrS/ab);
+        J_an = MSa*(coth_La - aa/HrS) + MSb*(coth_Lb - ab/HrS);
+        M_an = J_an/(4*M_PI*1e-7);
+        MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
+        MyS_sol[k] = M_an * HryS_sol[k]/HrS;
+        MzS_sol[k] = M_an * HrzS_sol[k]/HrS; */
+        // TP32 END
+        // FOR REGULAR USE
+        MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
+        MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
+        MzS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrzS_sol[k] / HrS;
+        // FOR REGULAR USE END
+      }
+      else
+      {
+        MxS_sol[k] = 0.0;
+        MyS_sol[k] = 0.0;
+        MzS_sol[k] = 0.0;
+      }
+    }
+    Px = 0.0;
+    Py = 0.0;
+    Pz = 0.0;
+    for (UInt k = 0; k < numS_; k++)
+    {
+      Px += weight[k] * MxS_sol[k];
+      Py += weight[k] * MyS_sol[k];
+      Pz += weight[k] * MzS_sol[k];
+    }
+    if (saveTmpStageVecs)
+    {
+      HxS_n_tmp_[idx] = HrxS_sol;
+      HyS_n_tmp_[idx] = HryS_sol;
+      HzS_n_tmp_[idx] = HrzS_sol;
+      MxS_n_tmp_[idx] = MxS_sol;
+      MyS_n_tmp_[idx] = MyS_sol;
+      MzS_n_tmp_[idx] = MzS_sol;
+    }
+    ret.Push_back(Px);
+    ret.Push_back(Py);
+    ret.Push_back(Pz);
+
+    return ret;
+  }
+
+  
+
+  Vector<Double> EBHysteresis::Eval_3D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  {
+    Vector<Double> ret;
+    StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
+    StdVector<UInt> numIter;
+    error.Resize(numS_, 0.0);
+    dir.Resize(numS_, 0.0);
+    numIter.Resize(numS_, 0);
+    HrxS_sol.Resize(numS_, 0.0);
+    HryS_sol.Resize(numS_, 0.0);
+    HrzS_sol.Resize(numS_, 0.0);
+    MxS_sol.Resize(numS_, 0.0);
+    MyS_sol.Resize(numS_, 0.0);
+    MzS_sol.Resize(numS_, 0.0);
+
+    Double Hex_x = Hn[0];
+    Double Hex_y = Hn[1];
+    Double Hex_z = Hn[2];
+
+    Double HrxS_prev, HryS_prev, HrzS_prev, HrS, Px, Py, Pz, condition1, Hirr_x, Hirr_y, Hirr_z;
+
+    StdVector<Double> &HxS_prev = HxS_n_[idx];
+    StdVector<Double> &HyS_prev = HyS_n_[idx];
+    StdVector<Double> &HzS_prev = HzS_n_[idx];
+
+    for (UInt k = 0; k < numS_; k++)
+    {
+      HrxS_prev = HxS_prev[k];
+      HryS_prev = HyS_prev[k];
+      HrzS_prev = HzS_prev[k];
+      condition1 = (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2) + std::pow((Hex_z - HrzS_prev) / chi[k], 2));
+      if (condition1 <= 1.0)
+      {
+        HrxS_sol[k] = HrxS_prev;
+        HryS_sol[k] = HryS_prev;
+        HrzS_sol[k] = HrzS_prev;
+      }
+      else
+      {
+        // dissipation now reached (just arrived at the border of the sphere)
+        if (k == 0)
+        {
+          HrxS_sol[k] = Hex_x;
+          HryS_sol[k] = Hex_y;
+          HrzS_sol[k] = Hex_z;
+        }
+        else
+        {
+          //
+          Hirr_x = chi[k] * (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          Hirr_y = chi[k] * (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          Hirr_z = chi[k] * (Hex_z - HrzS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
+          HrxS_sol[k] = Hex_x - Hirr_x;
+          HryS_sol[k] = Hex_y - Hirr_y;
+          HrzS_sol[k] = Hex_z - Hirr_z;
+        }
+      }
+      HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
+      if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
+      {
+        // Use the MSMS for calculation of the new stage magnetization vector
+        StdVector<Double> dirH(3);
+        dirH[0] = HrxS_sol[k] / HrS;
+        dirH[1] = HryS_sol[k] / HrS;
+        dirH[2] = HrzS_sol[k] / HrS;
+        LOG_DBG3(eb) << "\n\t INPUT (H) OF SMSM: [" << HrxS_sol[k] << "," << HryS_sol[k] << ", " << HrzS_sol[k] << "]";
+        SMSM_model_->Eval(HrS, dirH);
+        Vector<Double> M = SMSM_model_->GetM();
+        LOG_DBG3(eb) << "\n\t OUTPUT (M) OF SMSM: " << M.ToString();
+
+        // MSM version
+        MxS_sol[k] = M[0];
+        MyS_sol[k] = M[1];
+        MzS_sol[k] = M[2];
+      }
+      else
+      {
+        MxS_sol[k] = 0.0;
+        MyS_sol[k] = 0.0;
+        MzS_sol[k] = 0.0;
+      }
+    }
+    Px = 0.0;
+    Py = 0.0;
+    Pz = 0.0;
+    for (UInt k = 0; k < numS_; k++)
+    {
+      Px += weight[k] * MxS_sol[k];
+      Py += weight[k] * MyS_sol[k];
+      Pz += weight[k] * MzS_sol[k];
+    }
+    ret.Push_back(Px);
+    ret.Push_back(Py);
+    ret.Push_back(Pz);
+    return ret;
+  }
+
+  Vector<Double> EBHysteresis::Eval_2D_EB_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  {
+    Vector<Double> ret;
+    StdVector<Double> error, dir, HrxS_sol, HryS_sol, MxS_sol, MyS_sol;
+    StdVector<UInt> numIter;
+    error.Resize(numS_, 0.0);
+    dir.Resize(numS_, 0.0);
+    numIter.Resize(numS_, 0);
+    HrxS_sol.Resize(numS_, 0.0);
+    HryS_sol.Resize(numS_, 0.0);
+    MxS_sol.Resize(numS_, 0.0);
+    MyS_sol.Resize(numS_, 0.0);
+
+    Double Hex_x = Hn[0];
+    Double Hex_y = Hn[1];
+
+    Double HrxS_prev, HryS_prev, MxSprev, MySprev, phi, err, ux, uy,
+        uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py;
+    UInt iter;
+    StdVector<Double> &HxS_prev = HxS_n_[idx];
+    StdVector<Double> &HyS_prev = HyS_n_[idx];
+    StdVector<Double> &MxS_prev = MxS_n_[idx];
+    StdVector<Double> &MyS_prev = MyS_n_[idx];
+
+    for (UInt k = 0; k < numS_; k++)
+    {
+      HrxS_prev = HxS_prev[k];
+      HryS_prev = HyS_prev[k];
+      MxSprev = MxS_prev[k];
+      MySprev = MyS_prev[k];
+      // if(std::sqrt( std::pow(Hex_x - HrxS_prev, 2) + std::pow(Hex_y - HryS_prev, 2) ) <= chi[k]){
+      if ((std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2)) <= 1.0)
+      {
+        HrxS_sol[k] = HrxS_prev;
+        HryS_sol[k] = HryS_prev;
+      }
+      else
+      {
+        StdVector<Double> i_phi_initial(2);
+        i_phi_initial.Init(0.0);
+        // dissipation now reached (just arrived at the border of the sphere)
+        if (k == 0)
+        {
+          i_phi_initial[0] = 0.0;
+          i_phi_initial[1] = 0.0;
+        }
+        else
+        {
+          // use the direction of the vector play model as initial direction
+          i_phi_initial[0] = (1.0 / chi[k] * (HrxS_prev - Hex_x)) / (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2));
+          i_phi_initial[1] = (1.0 / chi[k] * (HryS_prev - Hex_y)) / (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2));
+        }
+        phi = std::atan2(i_phi_initial[1], i_phi_initial[0]); // already in rad
+        err = 1.0;
+        iter = 0;
+        while (err > 1.0e-3 && iter < 10)
+        {
+          ux = Hex_x + chi[k] * std::cos(phi);
+          uy = Hex_y + chi[k] * std::sin(phi);
+          uabs = std::sqrt(std::pow(ux, 2) + std::pow(uy, 2));
+          ux1 = -chi[k] * std::sin(phi);
+          uy1 = chi[k] * std::cos(phi);
+          ux2 = -chi[k] * std::cos(phi);
+          uy2 = -chi[k] * std::sin(phi);
+          Man = 2 * Ps_ / M_PI * std::atan(uabs / A_);
+          Man1 = 2 * Ps_ / (A_ * M_PI) * (1.0 / (1.0 + std::pow(uabs / A_, 2)));
+          g1 = (Man / uabs) * (ux * ux1 + uy * uy1) - MxSprev * ux1 - MySprev * uy1;
+          g2 = (uabs * Man1 - Man) / (std::pow(uabs, 3)) * std::pow(ux * ux1 + uy * uy1, 2) + Man / uabs * (std::pow(ux1, 2) + std::pow(uy1, 2)) + Man / uabs * (ux * ux2 + uy * uy2) - MxSprev * ux2 - MySprev * uy2;
+          if (std::sqrt(std::pow(g2, 2)) < 1e-8)
+          {
+            phiNew = 0;
+          }
+          else
+          {
+            phiNew = phi - g1 / g2;
+          }
+          err = std::sqrt(std::pow(phiNew - phi, 2));
+          phi = phiNew;
+          iter++;
+        }
+        error[k] = err;
+        dir[k] = phi;
+        numIter[k] = iter;
+        HrxS_sol[k] = Hex_x + chi[k] * std::cos(phi);
+        HryS_sol[k] = Hex_y + chi[k] * std::sin(phi);
+      }
+      HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2));
+      if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
+      {
+        MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
+        MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
+      }
+      else
+      {
+        MxS_sol[k] = 0.0;
+        MyS_sol[k] = 0.0;
+      }
+    }
+    Px = 0.0;
+    Py = 0.0;
+    for (UInt k = 0; k < numS_; k++)
+    {
+      Px += weight[k] * MxS_sol[k];
+      Py += weight[k] * MyS_sol[k];
+    }
+    if (saveTmpStageVecs)
+    {
+      HxS_n_tmp_[idx] = HrxS_sol;
+      HyS_n_tmp_[idx] = HryS_sol;
+      MxS_n_tmp_[idx] = MxS_sol;
+      MyS_n_tmp_[idx] = MyS_sol;
+    }
+    ret.Push_back(Px);
+    ret.Push_back(Py);
+    return ret;
+  }
+}
