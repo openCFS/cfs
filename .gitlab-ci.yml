@@ -952,9 +952,10 @@ windows:MSVC2022-Ifort2021:
     # rename packaged file to branch-based name
     - mv "CFS-$CI_COMMIT_SHA-win64.zip" "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
   artifacts:
-    when: on_success
+    when: always
     paths:
       - build/CFS-*-Windows.zip
+      - build/logs.zip
     expire_in: 1 days
   needs:
     # set the needs to 'optional' since the cfsdeps job might not be present
