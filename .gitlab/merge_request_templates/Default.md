@@ -20,5 +20,5 @@ __Testsuite merge request__: ( no Testsuite changes | paste a link to the Testsu
   * [ ] Testsuite-submodule SHA of last CFS commit points to HEAD of corresponding Testsuite branch
 * [ ] Pipeline passes for every commit
   * [ ] all tests of the stage *test* pass
-  * [ ] tests in the stage *test_extra* run
+  * [ ] tests in the stage *test_extra* are created
   * [ ] new tests are actually running (e.g. check if they appear on CDash)
