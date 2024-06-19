@@ -36,6 +36,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionImpedanceModel.hh"
+#include "Domain/CoefFunction/CoefFunctionLimitRamp.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 
 #include <boost/lexical_cast.hpp>
@@ -1126,20 +1127,20 @@ namespace CoupledField{
 
 
         // the following part was missing which is why abc did not function for acouPotential + mechanic
-	  // if pde couples with mechanic, we have to multiply the density by -1
-	  PtrCoefFct factor;
-	  if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
-	    // Important: In case of a general / quadratic EV problem, we must
-	    // ensure to have a "positive definite" matrix, i.e. we are not allowed
-	    // to multiply all matrices by -1!
-	    std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
+        // if pde couples with mechanic, we have to multiply the density by -1
+        PtrCoefFct factor;
+        if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
+          // Important: In case of a general / quadratic EV problem, we must
+          // ensure to have a "positive definite" matrix, i.e. we are not allowed
+          // to multiply all matrices by -1!
+          std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
 
-	    factor = CoefFunction::Generate( mp_, Global::REAL,
-	 					    CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT ) );
-	  } else {
-	    factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-	  }
-	  LOG_DBG(acousticpde) << "Def Surface Integrator: factor =" << factor->ToString() << "\n";
+          factor = CoefFunction::Generate( mp_, Global::REAL,
+                    CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT ) );
+        } else {
+          factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        }
+        LOG_DBG(acousticpde) << "Def Surface Integrator: factor =" << factor->ToString() << "\n";
 
         PtrCoefFct coeffDamp;
         if ( sosAtLaplace_ ) {
@@ -1186,6 +1187,127 @@ namespace CoupledField{
         feFunctions_[formulation_]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( abcContext );
       }
+
+
+      //========================================================================================
+      // PABC boundaries
+      //========================================================================================
+      ParamNodeList pabcNodes = bcNode->GetList( "partiallyAbsorbingBCs" );
+      LOG_DBG(acousticpde) << "PABCs count :  " << pabcNodes.GetSize() <<  "\n" ;
+
+      for( UInt i = 0; i < pabcNodes.GetSize(); i++ ) {
+        if ( !(this->analysistype_ == TRANSIENT) ) EXCEPTION("PABCs are only implemented for the transient case!");
+        std::string regionName = pabcNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+        std::string volRegName = pabcNodes[i]->Get("volumeRegion")->As<std::string>();
+        LOG_DBG(acousticpde) << "PABCs volRegName :  " << volRegName <<  "\n" ;
+
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+
+        //check, if region has complex fluid
+        PtrParamNode curRegNode =
+            myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+
+        // c0 = sqrt(bulk_modulus / density)
+        PtrCoefFct dens;
+        PtrCoefFct blk;
+        if( complexFluidFormulation_) {
+          dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::COMPLEX );
+          blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::COMPLEX );
+        }
+        else {
+          dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+          blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        }
+
+        LOG_DBG(acousticpde) << "ABC: dens = " << dens->ToString() << "\n";
+        LOG_DBG(acousticpde) << "ABC: blk  = " << blk->ToString() << "\n";
+
+        PtrCoefFct c0;
+        
+        //check for temperature dependency
+        curRegNode = myParam_->Get("regionList")->GetByVal("region","name",volRegName.c_str());
+        std::string tempId = curRegNode->Get("temperatureId")->As<std::string>();
+        if (tempId != "" || complexFluidFormulation_ ) {
+          EXCEPTION("PABC not implemented for temperature dependency or complexFluidFormulation!")
+        } else {
+          c0 =  CoefFunction::Generate( mp_,Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,CoefXpr::OP_DIV), CoefXpr::OP_SQRT) );
+        }
+        LOG_DBG(acousticpde) << "Def Surface Integrator:  c0 =" << c0->ToString() << "\n";
+
+
+        // the following part was missing which is why abc did not function for acouPotential + mechanic
+        // if pde couples with mechanic, we have to multiply the density by -1
+        PtrCoefFct factor;
+        if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
+          // Important: In case of a general / quadratic EV problem, we must
+          // ensure to have a "positive definite" matrix, i.e. we are not allowed
+          // to multiply all matrices by -1!
+          std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
+
+          factor = CoefFunction::Generate( mp_, Global::REAL,
+                    CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT ) );
+        } else {
+          factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        }
+        LOG_DBG(acousticpde) << "Def Surface Integrator: factor =" << factor->ToString() << "\n";
+
+        PtrCoefFct coeffDamp;
+        if ( sosAtLaplace_ ) {
+          // factor for damping matrix: factor * c0
+          coeffDamp = CoefFunction::Generate( mp_, Global::REAL,
+                         			CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_MULT ) );
+        }
+        else {
+          // factor for damping matrix: factor / c0
+         if (complexFluidFormulation_ )
+           coeffDamp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+         else
+           coeffDamp = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+
+        }
+        LOG_DBG(acousticpde) << "Define Surface Integrator: coeffDamp =" << coeffDamp->ToString() << "\n";
+
+        bool updatedGeo = true;
+        PtrCoefFct coefDampSolDep;
+
+        shared_ptr<BaseFeFunction> feFct = feFunctions_[formulation_];
+        StdVector<std::string> surfList;
+        StdVector<Double> primaryOffset;
+        StdVector<Double> primaryPeakVal;
+        StdVector<Double> coefFuncPeakVal;
+        StdVector<bool> useMeanPres;
+
+        shared_ptr<CoefFunctionLimitRamp> presRampFunc;
+        presRampFunc.reset(new CoefFunctionLimitRamp(feFct, surfList, primaryOffset, primaryPeakVal, coefFuncPeakVal, useMeanPres));
+
+        coefDampSolDep = CoefFunction::Generate( mp_, Global::REAL,
+                    CoefXprBinOp(mp_, coeffDamp, presRampFunc, CoefXpr::OP_MULT ) );
+        
+        BiLinearForm * pabcInt = NULL;
+        if (complexFluidFormulation_) {
+          EXCEPTION("PABC not implemented for complexFluidFormulation!");
+        } else {
+          if( dim_ == 2 )
+            pabcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coefDampSolDep, 1.0, updatedGeo );
+          else
+        	pabcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coefDampSolDep, 1.0, updatedGeo );
+
+        }
+
+        // since this ABC is solution dependent, we have to make sure that everything gets reassemblend in each timestep
+        FEMatrixType targetMatrix = DAMPING_UPDATE;
+        pabcInt->SetSolDependent(true); 
+
+        pabcInt->SetName("abcIntegrator");
+        BiLinFormContext *pabcContext = new BiLinFormContext(pabcInt, targetMatrix );
+
+        pabcContext->SetEntities( actSDList, actSDList );
+        pabcContext->SetFeFunctions( feFunctions_[formulation_] , feFunctions_[formulation_]);
+        feFunctions_[formulation_]->AddEntityList( actSDList );
+        assemble_->AddBiLinearForm( pabcContext );
+      }
+
 
       //========================================================================================
       // Impedance boundaries
@@ -2630,6 +2752,25 @@ namespace CoupledField{
       pmlVec->SetFeFunction(feFunctions_[ACOU_PMLAUXVEC]);
       DefineFieldResult( feFunctions_[ACOU_PMLAUXVEC], pmlVec );
     }
+
+    // === PARTIALLY ABSORBING BOUNDARY CONDITION AUX RESULT ===
+    /* if( !isComplex_ ) {
+      ReadPABC(surfList,primaryOffset,primaryPeakVal,coefFuncPeakVal,useMeanPres);
+
+      shared_ptr<CoefFunctionLimitRamp> presRampFunc;
+      presRampFunc.reset(new CoefFunctionLimitRamp(feFct, primaryOffset, primaryPeakVal, coefFuncPeakVal));
+      
+      shared_ptr<ResultInfo> pabcAux(new ResultInfo);
+      pabcAux->resultType = ACOU_PABCAUX;
+      pabcAux->dofNames= "";
+      pabcAux->unit = MapSolTypeToUnit(ACOU_PABCAUX);
+      pabcAux->definedOn = ResultInfo::SURF_ELEM;
+      pabcAux->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionLimitRamp> presRampFunc;
+      presRampFunc.reset(new CoefFunctionLimitRamp(feFct, primaryOffset, primaryPeakVal, coefFuncPeakVal));
+
+      DefineFieldResult(presRampFunc, pabcAux);
+    } */
   }
 
 
