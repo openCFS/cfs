@@ -2574,6 +2574,92 @@ namespace CoupledField {
     
   }
 
+  void SinglePDE::ReadPrimaryMapFromXML(std::string readMode,
+                                          StdVector<std::string>& surfList,
+                                          StdVector<Double>& primaryOffset, 
+                                          StdVector<Double>& primaryPeakVal, 
+                                          StdVector<Double>& coefFuncPeakVal, 
+                                          StdVector<bool>& useMeanPres,
+                                          StdVector<UInt>& dofInd) {
+
+    if( !myParam_->Has("primaryMappingList") )
+      return;
+
+    std::string elemName;
+    ParamNodeList elems;
+
+    if( readMode=="scalarScalarLimitRamp" ){
+      elemName = "surfScalarScalarLimitRamp";
+      elems = myParam_->Get("primaryMappingList")->GetList(elemName);
+      
+    } else if(readMode=="scalarVectorLimitRamp") {
+      elemName = "surfScalarScalarLimitRamp";
+      elems = myParam_->Get("primaryMappingList")->GetList(elemName);
+    } else {
+      EXCEPTION("ReadPrimaryMapFromXML not defined for mode " << readMode);
+    }
+
+    // allocate
+    StdVector<shared_ptr<EntityList>>entities;
+    entities.Resize(elems.GetSize());
+    surfList.Resize(elems.GetSize());
+    primaryOffset.Resize(elems.GetSize());
+    primaryPeakVal.Resize(elems.GetSize());
+    coefFuncPeakVal.Resize(elems.GetSize());
+    useMeanPres.Resize(elems.GetSize());
+    dofInd.Resize(elems.GetSize());
+    
+    // loop over elements
+    for( UInt i = 0; i < elems.GetSize(); ++i ) {
+      PtrParamNode xml = elems[i];
+
+      std::string entName;
+      // get entity list, depending on type
+      entName = xml->Get("name")->As<std::string>();
+      try {
+        // determine list type: Currently we only allow surface elements
+        if( ptGrid_->GetEntityDim( entName ) != ptGrid_->GetDim() - 1) {
+          EXCEPTION("ReadPrimaryMapFromXML currently only allows surfaces to be read");
+        }
+      } catch (Exception& e) {
+        RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
+                          << "' on entities '" << entName <<"'");
+      }
+
+      // read everything and return it
+      surfList[i] = entName;
+      elems[i]->GetValue("primaryOffset", primaryOffset[i]);
+      elems[i]->GetValue("primaryPeakVal", primaryPeakVal[i]);
+      elems[i]->GetValue("coefFuncPeakVal", coefFuncPeakVal[i]);
+      elems[i]->GetValue("useMeanPres", useMeanPres[i]);
+      std::string dofName;
+      dofName = elems[i]->Get("DoF")->As<std::string>();
+      if( dofName!="" ) {
+        if( ptGrid_->GetDim()==2 ){
+          if( dofName=="x" || dofName=="r" ) {
+            dofInd[i] = 0;
+          } else if( dofName=="y" || dofName=="z" ) {
+            dofInd[i] = 1;
+          } else {
+            EXCEPTION("Unknown coordiante defined for SinglePDE::ReadPrimaryMapFromXML");
+          }
+        } else if( ptGrid_->GetDim()==3 ) {
+          if( dofName=="x" ) {
+            dofInd[i] = 0;
+          } else if( dofName=="y" ) {
+            dofInd[i] = 1;
+          } else if ( dofName=="z" ) {
+            dofInd[i] = 2;
+          } else {
+            EXCEPTION("Unknown coordiante defined for SinglePDE::ReadPrimaryMapFromXML");
+          }
+        } else {
+          EXCEPTION("SinglePDE::ReadPrimaryMapFromXML: Unknown grid dimension!");
+        }
+      }
+    } // loop: elements
+  } // end ReadPrimaryMapFromXML
+
   void SinglePDE::ReadMaterialDependency( const std::string& elemName,
                                      const StdVector<std::string>& compNames,
                                      ResultInfo::EntryType type,

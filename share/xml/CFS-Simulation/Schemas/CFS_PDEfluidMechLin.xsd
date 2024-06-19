@@ -101,6 +101,87 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- List defining the mapping of primary functions -->
+          <xsd:element name="primaryMappingList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Defines the mapping behaviour of a primary function</xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:choice>
+                  <!-- scalar-scalar surface mapping -->
+                  <xsd:element name="surfScalarScalarLimitRamp" minOccurs="0" maxOccurs="1">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Maps a scalar quantity to a scalar quantity on a surface with a limited ramp function. 
+                        Based on a coefficient function for calculating a ramp based on a (primary) feFunction.
+                        The ramp is defined by the values primaryOffset (offset of the primary function from 
+                        zero), primaryPeakVal (peak value for the primary which is used to flatten the ramp 
+                        again) and coefFuncPeakVal (peak value of the coefFunction for the value given by 
+                        primaryPeakVal), where the function interpolates linearly between zero and 
+                        coefFuncPeakVal value. 
+                        If primaryPeakVal is larger than primaryOffset, all values of the primary 
+                        below the offset lead to a zero interpolation value, whereas values above 
+                        the defined peak value lead to the value defined by coefFuncPeakVal. If the 
+                        peak value primaryPeakVal is lower than primaryOffset, everything is inversed.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                      <xsd:attribute name="primaryOffset" type="xsd:double" use="required"/>
+                      <xsd:attribute name="primaryPeakVal" type="xsd:double" use="required"/>
+                      <xsd:attribute name="coefFuncPeakVal" type="xsd:double" use="required"/>
+                      <xsd:attribute name="DoF" use="optional" default="">
+                        <xsd:simpleType>
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value=""/>
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                      <xsd:attribute name="useMeanPres" type="xsd:boolean" use="optional" default="false"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                  <!-- scalar-vector surface mapping -->
+                  <xsd:element name="surfScalarVectorLimitRamp" minOccurs="0" maxOccurs="1">
+                    <xsd:annotation>
+                      <xsd:documentation>
+                        Maps a scalar quantity to a vectorial quantity on a surface with a limited ramp function. 
+                        The value for DoF decides in which element of the vector the scalar gets mapped to.
+                        Based on a coefficient function for calculating a ramp based on a (primary) feFunction.
+                        The ramp is defined by the values primaryOffset (offset of the primary function from 
+                        zero), primaryPeakVal (peak value for the primary which is used to flatten the ramp 
+                        again) and coefFuncPeakVal (peak value of the coefFunction for the value given by 
+                        primaryPeakVal), where the function interpolates linearly between zero and 
+                        coefFuncPeakVal value. 
+                        If primaryPeakVal is larger than primaryOffset, all values of the primary 
+                        below the offset lead to a zero interpolation value, whereas values above 
+                        the defined peak value lead to the value defined by coefFuncPeakVal. If the 
+                        peak value primaryPeakVal is lower than primaryOffset, everything is inversed.
+                      </xsd:documentation>
+                    </xsd:annotation>
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>
+                      <xsd:attribute name="primaryOffset" type="xsd:double" use="required"/>
+                      <xsd:attribute name="primaryPeakVal" type="xsd:double" use="required"/>
+                      <xsd:attribute name="coefFuncPeakVal" type="xsd:double" use="required"/>
+                      <xsd:attribute name="DoF" use="required">
+                        <xsd:simpleType>
+                          <xsd:restriction base="xsd:token">
+                            <xsd:enumeration value="x"/>
+                            <xsd:enumeration value="y"/>
+                            <xsd:enumeration value="z"/>
+                            <xsd:enumeration value="r"/>
+                          </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                      <xsd:attribute name="useMeanPres" type="xsd:boolean" use="optional" default="false"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:choice>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -529,6 +610,20 @@
         <xsd:annotation>
           <xsd:documentation>
             Normal intensity I_n = (p  conj(v)) \cdot n
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="scalarScalarPrimaryMap">
+        <xsd:annotation>
+          <xsd:documentation>
+            Maps a scalar primary to a scalar value with the help of a primaryMappingList
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="scalarVectorPrimaryMap">
+        <xsd:annotation>
+          <xsd:documentation>
+            Maps a scalar primary to a vectorial quantity with the help of a primaryMappingList
           </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>

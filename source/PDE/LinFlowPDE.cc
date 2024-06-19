@@ -58,6 +58,8 @@
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionLimitRamp.hh"
+#include "Domain/CoefFunction/CoefFunctionVectorFromScalar.hh"
 
 
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
@@ -2348,6 +2350,60 @@ namespace CoupledField {
       }
       resultFunctors_[FLUIDMECH_POWER] = powerFct;
       availResults_.insert(power);
+
+      // === FLUID-MECHANIC SCALAR SCALAR PRIMARY MAP (SURFACE) ===
+      StdVector<bool> useMeanPres;
+      StdVector<std::string> surfList;
+      StdVector<Double> primaryOffset;
+      StdVector<Double> primaryPeakVal;
+      StdVector<Double> coefFuncPeakVal;
+      StdVector<UInt> dofInd;
+      ReadPrimaryMapFromXML("scalarScalarLimitRamp", surfList, primaryOffset, primaryPeakVal, coefFuncPeakVal, useMeanPres, dofInd);
+      
+      shared_ptr<ResultInfo> linFlowScalScalSurfPrimaryMap(new ResultInfo);
+      linFlowScalScalSurfPrimaryMap->resultType = SCAL_SCAL_PRIMARY_MAP;
+      linFlowScalScalSurfPrimaryMap->dofNames= "";
+      linFlowScalScalSurfPrimaryMap->unit = MapSolTypeToUnit(SCAL_SCAL_PRIMARY_MAP);
+      linFlowScalScalSurfPrimaryMap->definedOn = ResultInfo::SURF_ELEM;
+      linFlowScalScalSurfPrimaryMap->entryType = ResultInfo::SCALAR;
+      shared_ptr<CoefFunctionLimitRamp> presRampFunc;
+      presRampFunc.reset(new CoefFunctionLimitRamp(feFct, surfList, primaryOffset, primaryPeakVal, coefFuncPeakVal, useMeanPres));
+
+      DefineFieldResult(presRampFunc, linFlowScalScalSurfPrimaryMap);
+      
+
+      // === FLUID-MECHANIC SCALAR VECTOR PRIMARY MAP (SURFACE) ===
+      StdVector<bool> useMeanPresVec;
+      StdVector<std::string> surfListVec;
+      StdVector<Double> primaryOffsetVec;
+      StdVector<Double> primaryPeakValVec;
+      StdVector<Double> coefFuncPeakValVec;
+      StdVector<UInt> dofIndVec;
+      ReadPrimaryMapFromXML("scalarVectorLimitRamp", surfListVec, primaryOffsetVec, primaryPeakValVec, coefFuncPeakValVec, useMeanPresVec, dofIndVec);
+      
+      shared_ptr<ResultInfo> linFlowScalVecSurfPrimaryMap(new ResultInfo);
+      linFlowScalVecSurfPrimaryMap->resultType = SCAL_VEC_PRIMARY_MAP;
+      linFlowScalVecSurfPrimaryMap->dofNames= dispDofNames;
+      linFlowScalVecSurfPrimaryMap->unit = MapSolTypeToUnit(SCAL_VEC_PRIMARY_MAP);
+      linFlowScalVecSurfPrimaryMap->definedOn = ResultInfo::SURF_ELEM;
+      linFlowScalVecSurfPrimaryMap->entryType = ResultInfo::VECTOR;
+      shared_ptr<CoefFunctionLimitRamp> presRampFuncScal;
+      presRampFuncScal.reset(new CoefFunctionLimitRamp(feFct, surfListVec, primaryOffsetVec, primaryPeakValVec, coefFuncPeakValVec, useMeanPresVec));
+      StdVector<PtrCoefFct> presRampFuncScalVec;
+      // We fill up a vector with the same coefFunction - this might seem weird, but makes it more versatile.
+      // The currently used coefFunction evaluates depending on the surface list and therefore already has all the informaiton,
+      // hence, a single coefFunction would be enough. But if we want to use e.g. just a value stored as a coefFunction,
+      // we would need to be able to store one for each surface. Hence, CoefFunctionVectorFromScalar is designed to get
+      // consistent input in the form of vectors for all input parameters (except the dimension and the feFunction).
+      presRampFuncScalVec.Resize(surfListVec.size());
+      for( UInt i = 0; i < surfListVec.size(); ++i ) {
+        presRampFuncScalVec[i] = presRampFuncScal;
+      }
+      
+      shared_ptr<CoefFunctionVectorFromScalar> presRampFuncVec;
+      presRampFuncVec.reset(new CoefFunctionVectorFromScalar(feFct,surfListVec,presRampFuncScalVec,dofIndVec,ptGrid_->GetDim()));
+
+      DefineFieldResult(presRampFuncVec, linFlowScalVecSurfPrimaryMap);
     }
   
   void LinFlowPDE::FinalizePostProcResults() {
@@ -2691,5 +2747,5 @@ namespace CoupledField {
         assemble_->AddBiLinearForm( stiffContVP3 );
       }
     }
-  }
+  } // end LinFlowPDE::AddSurfaceIntegratorFromPartialIntegration
 }

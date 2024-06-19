@@ -26,11 +26,13 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionCurvilinearPML.cc
   CoefFunctionMapping.cc
   CoefFunctionScatteredData.cc
+  CoefFunctionLimitRamp.cc
   CoefFunctionStabParams.cc
   CoefFunctionHyst.cc
   CoefFunctionHarmBalance.cc
   CoefFunctionComplexToReal.cc
   CoefFunctionDiagTensorFromScalar.cc
+  CoefFunctionVectorFromScalar.cc
   CoefFunctionMaterialModel.cc
   CoefFunctionConversion.hh
 )

@@ -363,6 +363,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_1, "lagrangeMultiplierD1");
     SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_2, "lagrangeMultiplierD2");
     SolutionTypeEnum.Add(LAGRANGE_MULT_1, "lagrangeMultiplier1");
+    SolutionTypeEnum.Add(SCAL_SCAL_PRIMARY_MAP, "scalarScalarPrimaryMap");
+    SolutionTypeEnum.Add(SCAL_VEC_PRIMARY_MAP, "scalarVectorPrimaryMap");
+
     // evaluates the spacial gradient of the solution at the nodes.
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
@@ -1197,6 +1200,8 @@ namespace CoupledField {
         break;
 
       case HEAT_RHS_LOAD:
+      case SCAL_SCAL_PRIMARY_MAP: // we can't tell since it can be used arbitrarly
+      case SCAL_VEC_PRIMARY_MAP: // we can't tell since it can be used arbitrarly
         return "?";
         break;
 

@@ -398,6 +398,15 @@ namespace CoupledField
     //! overloaded version of ReadBCs for special
     //! boundary conditions in derived classes
     virtual void ReadSpecialBCs(){}
+
+    //! Read mapping data from the XML to now how the primary shall be mapped via e.g. a ramp function to be used as a non-linear (solution dependent) input in another PDE
+    void ReadPrimaryMapFromXML(std::string readMode,
+                                StdVector<std::string>& surfList,
+                                StdVector<Double>& primaryOffset, 
+                                StdVector<Double>& primaryPeakVal, 
+                                StdVector<Double>& coefFuncPeakVal, 
+                                StdVector<bool>& useMeanPres,
+                                StdVector<UInt>& dofInd);
     
     //! write results in file
     void WriteResultsInFile( const UInt kstep, 
