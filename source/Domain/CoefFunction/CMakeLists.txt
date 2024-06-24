@@ -9,6 +9,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionConst.cc
   CoefFunctionContactForceDensity.cc
   CoefFunctionDistance.cc
+  CoefFunctionDummy.cc
   CoefFunctionExpression.cc
   CoefFunctionGrid.cc
   CoefFunctionGridNodal.cc

@@ -105,6 +105,13 @@ namespace CoupledField {
 
   void SetEnvironmentEnums();
 
+  /** Adds a generic solution after the initial initialization and returns the SolutioType
+   * This can be used when dealing with generic post-processing results which might get defined at a later stage. */
+  void AddGenericSolution(std::string name, Domain* domain);
+
+  /** Function that returns the solution as string */
+  std::string GetSolAsString(std::string name);
+
   /** sets the global CFS_NUM_THREADS variable.
    * CFS_NUM_THREADS controls e.g. parallel FEM assembly and it is important
    * to no call some cfs functions like coef functions with more threads than this!
@@ -124,7 +131,6 @@ namespace CoupledField {
   /** true for mkl and accelerate (MKL_NUM_THREADS and VECLIB_MAXIMUM_THREADS),
    * false for openblas and netlib as we have here no environment variable to set (for simplicity DUMMY_NUM_THREADS is used) */
   bool HasBlasThreadsEnvVariable();
-
 
 
 } // end of namespace

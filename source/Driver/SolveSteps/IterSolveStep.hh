@@ -87,7 +87,7 @@ namespace CoupledField
     //! Constructor for convergence criterion
     //! \param type Type of norm to be applied (none, absolute, relative)
     //! \param value Final value of norm to be reached
-    ConvCriterionAccu(NormType type, Double value );
+    ConvCriterionAccu(NormType type, Double value, bool overrideNumInt = false );
     
     //! Destructor
     ~ConvCriterionAccu();
@@ -124,6 +124,9 @@ namespace CoupledField
     
     //! Old norm value for quantity
     Double oldNorm_;
+
+    //! Bool to override numerical integration if necessary (e.g. when lpm is not fully defined)
+    bool overrideNumInt_;
   };
   
   //! Special convergence criterion for displacement based values
@@ -232,6 +235,12 @@ namespace CoupledField
                                    shared_ptr<EntityList>  list,
                                    const std::string& pdeName,
                                    bool& updatedGeo );
+
+    //! Function similar to GetCouplingCoefFct but only returns updatedGeo
+    void GetUpdateGeoForPDE( SolutionType type,
+                             shared_ptr<EntityList>  list,
+                             const std::string& pdeName,
+                             bool& updatedGeo );
 
     //----------------------- STATIC---------------------------------------
 

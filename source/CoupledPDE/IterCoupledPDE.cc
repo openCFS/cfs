@@ -62,6 +62,16 @@ namespace CoupledField
     
   }
 
+  void IterCoupledPDE::GetUpdateGeoForPDE( SolutionType type,
+                                           shared_ptr<EntityList>  list,
+                                           const std::string& pdeName,
+                                           bool& updateGeo ) {
+    
+    // directly pass the query to the IterSolveStep instance
+    return solveStep_->GetUpdateGeoForPDE( type, list, pdeName, updateGeo );
+    
+  }
+
 
   void IterCoupledPDE::WriteResultsInFile(const UInt kstep,
                                           const Double asteptime ) {

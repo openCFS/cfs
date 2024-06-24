@@ -118,17 +118,49 @@
   <xsd:complexType name="DT_PostProcFunc">
     <xsd:complexContent>
       <xsd:extension base="DT_PostProcBasic">
-        <xsd:choice>
-          <xsd:sequence>
-            <xsd:element name="dof" minOccurs="1" maxOccurs="unbounded">
+        <xsd:sequence>
+          <xsd:element name="inputResult" minOccurs="1" maxOccurs="1"> <!-- Currently only one input is allowed, but this could be extended-->
+            <xsd:complexType>
+              <xsd:attribute name="inputId" type="xsd:token" use="prohibited"/>  <!-- This is a placeholder for later usage when multiple inputs can be used in one postProc result -->
+              <xsd:attribute name="variableName" type="xsd:token" use="required">  
+                <xsd:annotation>
+                  <xsd:documentation>
+                    Variable name to access the DoFs of the result to be processed.
+                    The variables have to be unique for one result and can't coincide
+                    with global names like "t", "f", etc. as well as defined variables
+                    in the variableList.
+                    Example using "u" as variableName:
+                    For harmonic computations, access the real and imaginary part with
+                    "u_real" and "u_imag", respectively.
+                    For transient computations, access scalar values with "u" and
+                    vectorial ones with "ux", "uy" and "uz", respectively.
+                  </xsd:documentation>
+                </xsd:annotation>
+              </xsd:attribute>                  
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:choice>
+            <xsd:element name="scalar" minOccurs="1" maxOccurs="1">
               <xsd:complexType>
-                <xsd:attribute name="name" type="xsd:token" use="required"/>
                 <xsd:attribute name="realFunc" type="xsd:token" default=""/>
                 <xsd:attribute name="imagFunc" type="xsd:token" default=""/>
               </xsd:complexType>
             </xsd:element>
-          </xsd:sequence>
-        </xsd:choice>
+            <xsd:element name="vector" minOccurs="1" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                      <xsd:attribute name="realFunc" type="xsd:token" default=""/>
+                      <xsd:attribute name="imagFunc" type="xsd:token" default=""/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:choice>
+        </xsd:sequence>
         <xsd:attribute name="resultName" type="xsd:token" use="required"/>
         <xsd:attribute name="unit" type="xsd:token"
         use="optional" default=""/>

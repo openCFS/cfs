@@ -227,6 +227,17 @@ namespace CoupledField
     /** has any of the single pdes perdiodic boundary conditions set? */
     bool HasPerdiodicBC() const;
 
+    //! Get the generic result index (used in PostProc.cc) to keep track of
+    //! generic result definitions
+    int GetGenericResultIndex() {
+      return genResId_;
+    }
+
+    //! Increment the generic result index
+    void IncrementGenericResultIndex() {
+      genResId_ += 1;
+    }
+
 
   protected:
 
@@ -363,6 +374,14 @@ namespace CoupledField
     
     //! flag if object is main domain and output can be logged to console
     bool isParentDomain_;
+
+    //! Generic result index
+    //! For iteratively coupled PDEs we can define arbitrary generic results
+    //! Since each PDE can define such results, we have to keep track of
+    //! those using actual coefFunctions since they require a valid Enum
+    //! Since these Enums can not be created on the fly, we have to keep
+    //! track of them here and assign them individually to avoid redefinition */
+    int genResId_ = 0;
   };
 
 }

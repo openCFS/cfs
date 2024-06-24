@@ -73,6 +73,7 @@ using std::string;
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionDummy.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -463,6 +464,13 @@ namespace CoupledField {
     // Read result only if a free simulation is performed
     if( !simState_->HasInput()) {
       ReadStoreResults();
+
+      // We might have defined some generic results which depend on the feFunction.
+      // Since they get initialized in stage 2, we had to pass the feFunction without
+      // knowing the actual coefFunction. We collected these BCs and update their
+      // coefFunction know accordingly
+      UpdateCoefFuncsForPostProcResults();
+
       ReadSensorArrayResults();
     }
 
@@ -479,6 +487,24 @@ namespace CoupledField {
 //    LOG_DBG(singlepde) << "IS3: has MECH_DISPLACEMENT fefunciton? " << (feFunctions_.find(MECH_DISPLACEMENT) != feFunctions_.end());
     LOG_TRACE(singlepde) << pdename_ << ": Finished initializaton";
 
+  }
+
+
+  void SinglePDE::UpdateCoefFuncsForPostProcResults() {
+    // loop over a list of dummy coefFunctions and set the true coefFunction
+    for (UInt i=0; i<coefsToUpdate_.GetSize(); i++) {
+      // init the info to retrieve the coefFunction
+      SolutionType solType;
+      shared_ptr<EntityList> list;
+      std::string pdeName;
+
+      coefsToUpdate_[i]->GetCoefInfo(solType, list, pdeName);
+
+      bool updateGeo;
+      PtrCoefFct coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName, updateGeo);
+
+      coefsToUpdate_[i]->SetCoef(coef);
+    }
   }
 
 
@@ -3066,15 +3092,86 @@ namespace CoupledField {
       cplNode->GetValue("pdeName", pdeName);
       cplNode->Get("quantity")->GetValue("name", quantity);
       
-      SolutionType solType = SolutionTypeEnum.Parse(quantity);
-      
       // try to access SinglePDE and acquire result from there
-      if( !iterCplPde_) {
+      if( !iterCplPde_ ) {
         EXCEPTION( "Can not get quantity '" << quantity << "' from physic '"
                    << pdeName << "', as no coupling object is defined.");
       }
+
+      // check if we can parse the quantity (by passing the false flag, we just get an
+      // invalid solution type but not an error)
+      // we do this before checking for generic postProcessing results (although they might not be defined already)
+      // since they COULD be defined already be a PDE read before this one
+      SolutionType solType = SolutionTypeEnum.TryParse(quantity, INVALID_SOLUTION_TYPE);
+      if( solType == INVALID_SOLUTION_TYPE ) {
+        // direct conversion was not successful, check if we can add the result based on postProcessing results
+
+        // get the postProcList and access all names of type function
+        PtrParamNode ppListNode = myParam_->GetParent()->GetParent()->Get("postProcList",ParamNode::PASS);
+        std::string funcName;
+
+        if( ppListNode ) {
+          ParamNodeList ppListNodeChildren = ppListNode->GetChildren();
+
+          // loop over all postProc definitions and check, if a function is defined
+          for( UInt i = 0; i < ppListNodeChildren.GetSize(); i++ ) {
+
+            // get all children of one postProc definition
+            ParamNodeList ppNodeChildren = ppListNodeChildren[i]->GetChildren();
+            
+            // we only consider the function type postProcResults
+            ParamNodeList postProcFuncs = ParamNode::GetListByChild(ppNodeChildren, "function");
+
+            // loop over all function-type children and check their name
+            for( UInt u = 0; u < postProcFuncs.GetSize(); u++ ) {
+              postProcFuncs[u]->GetValue("resultName",funcName);
+
+              if( funcName==quantity ) {
+                // the quantity we need is defined as a postProcResult but not yet parseable
+                // add it to the environment and get a usable solution type
+                AddGenericSolution(quantity, domain_);
+              }
+            }
+          }
+        }
+        // finally, try to parse the quantity again
+        // if it does not work, the quantity is not defined (neither pre-defined nor via the postProcList)
+        solType = SolutionTypeEnum.Parse(quantity);  
+      } 
+
+      // now we know that we have a quantity for sure (not an invalid one)
+      // in the next step, we have to check if they are generic, because then we
+      // still need to define a dummy coefFunction since the real one will not be
+      // available yet
+      if( solType == GENERIC_RESULT_0 || solType == GENERIC_RESULT_1 ||
+          solType == GENERIC_RESULT_2 || solType == GENERIC_RESULT_3 ||
+          solType == GENERIC_RESULT_4 || solType == GENERIC_RESULT_5 ||
+          solType == GENERIC_RESULT_6 || solType == GENERIC_RESULT_7 ||
+          solType == GENERIC_RESULT_8 || solType == GENERIC_RESULT_9 ) {
+
+        // For generic results, we temporarely define a coefFunctionDummy
+        // where the feFunction is temporarly set during initialization.
+        // Afterwards, we replace it with the actual coefFunction when 
+        // the postProc result is actually defined.
+        // We have to do this since the initialization procedure calls 
+        // this in stage 2, while we get the postproc stuff in stage 3
+
+        coef.reset(new CoefFunctionDummy(solType, list, pdeName));
+        // we have to set the coordsys to pass the check below
+        std::string coordSysId = "default";
+        coef->SetCoordinateSystem( domain_->GetCoordSystem(coordSysId) );
+
+        // set the geometry update acoording to the feFunction
+        iterCplPde_->GetUpdateGeoForPDE(solType, list, pdeName, updateGeo);
+
+        // append to the vector of coefs which will get updated later on
+        coefsToUpdate_.push_back(coef);
       
-      coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName, updateGeo);
+      } else {
+        // the result is already known (non-generic)
+        // --> define the coefFunction
+        coef = iterCplPde_->GetCouplingCoefFct(solType, list, pdeName, updateGeo);
+      }
       
       // add the defined components
       for( UInt i = 0; i < numComp; ++i ) {
@@ -3594,6 +3691,11 @@ namespace CoupledField {
     ri->dofNames = dofNames;
     ri->fromOptimization = fromOptimization;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ri);
+  }
+
+  void SinglePDE::SetFieldCoef( PtrCoefFct coef, SolutionType resultType)
+  {
+    fieldCoefs_[resultType] = coef;
   }
 
   void SinglePDE::DefineTimeDerivResult( SolutionType derivSolType,

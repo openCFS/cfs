@@ -66,6 +66,12 @@ namespace CoupledField
                                    shared_ptr<EntityList>  list,
                                    const std::string& pdeName,
                                    bool& updatedGeo );
+
+    //! Function similar to GetCouplingCoefFct but only returns updatedGeo
+    void GetUpdateGeoForPDE( SolutionType type,
+                             shared_ptr<EntityList>  list,
+                             const std::string& pdeName,
+                             bool& updateGeo );
     
     //! Update PDE due to updated step in multistep solution strategy
     virtual void UpdateToSolStrategy();
@@ -109,6 +115,7 @@ namespace CoupledField
     
     //! Info node for logging 
     PtrParamNode infoNode_; 
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

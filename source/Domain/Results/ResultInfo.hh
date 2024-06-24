@@ -51,6 +51,11 @@ namespace CoupledField {
     //! \param dof (in) index of the dof component
     //! \return name of the coordinate component
     std::string GetDofName( const UInt dof ) const;
+
+    //! Returns the size of the DoF vector
+    UInt GetDimDof() {
+      return dofNames.GetSize();
+    }
    
     //! Copy operator
     ResultInfo& operator=( const ResultInfo& data );

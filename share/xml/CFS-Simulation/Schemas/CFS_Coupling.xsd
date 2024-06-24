@@ -108,6 +108,15 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="name" use="required">
+          <xsd:annotation>
+            <xsd:documentation>
+              List of results which can be used to track the convergence of iterative back-coupling.
+              For generic results which can be defined via a postProcList, 10 names (genericResult_0 
+              to genericResult_9) are reserved. Other names could be used (should work out of the box),
+              but this is not tested yet and your XML scheme will not be able to validate it. Hence,
+              it is highly recommended to use the specified placeholder names.
+            </xsd:documentation>
+          </xsd:annotation>
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
 		          <xsd:enumeration value="magPotential"/>
@@ -130,6 +139,18 @@
               <xsd:enumeration value="fluidMechVelocity"/>
               <xsd:enumeration value="fluidMechPressure"/>
               <xsd:enumeration value="fluidMechNormalSurfaceStress"/>
+              <xsd:enumeration value="acouPotential"/>
+              <xsd:enumeration value="acouPressure"/>
+              <xsd:enumeration value="genericResult_0"/>
+              <xsd:enumeration value="genericResult_1"/>
+              <xsd:enumeration value="genericResult_2"/>
+              <xsd:enumeration value="genericResult_3"/>
+              <xsd:enumeration value="genericResult_4"/>
+              <xsd:enumeration value="genericResult_5"/>
+              <xsd:enumeration value="genericResult_6"/>
+              <xsd:enumeration value="genericResult_7"/>
+              <xsd:enumeration value="genericResult_8"/>
+              <xsd:enumeration value="genericResult_9"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -142,6 +163,17 @@
               <xsd:enumeration value="rel"/>
             </xsd:restriction>
           </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="avoidIntegratedNorm" type="DT_CFSBool" use="optional" default="no">
+          <xsd:annotation>
+            <xsd:documentation>
+              Enforces the calculation of a non-integrated norm (no numerical integration). This can be
+              helpful when dealing with arbitrary coupling quantities, where not all information is 
+              fully set internally, leading to for example to zero-weights for the numerical integration.
+              By using the non-integrated version, the convergence criterion can still be used.
+              This flag is not supported by the mechanical- and smooth displacement!!
+            </xsd:documentation>
+          </xsd:annotation>
         </xsd:attribute>
       </xsd:restriction>
     </xsd:complexContent>

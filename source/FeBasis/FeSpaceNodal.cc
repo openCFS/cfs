@@ -156,9 +156,19 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
 
       // Only search for coordinates in elements belonging to the
       // regions where the current FeSpace is defined.
-      //LOG_DBG2(feSpaceNodal) << "Requesting values at globalCoords\n" << globalCoords.ToString();
-      coefFct->GetVectorValuesAtCoords(globalCoords,valuesAtCoords,
-                                       ptGrid_, lists, realUpdatedGeo);
+      LOG_DBG2(feSpaceNodal) << "Requesting values at globalCoords\n" << globalCoords.ToString();
+      if( coefFct->GetDimType() == CoefFunction::SCALAR ) {
+        StdVector<T> tmpVals;
+        coefFct->GetScalarValuesAtCoords(globalCoords, tmpVals,
+                                         ptGrid_, lists);
+        valuesAtCoords.Resize(tmpVals.GetSize(), Vector<T>(1));
+        for(UInt i=0;i<tmpVals.GetSize();i++){
+          valuesAtCoords[i][0] = tmpVals[i];
+        }
+      } else {
+        coefFct->GetVectorValuesAtCoords(globalCoords,valuesAtCoords,
+                                         ptGrid_, lists, realUpdatedGeo);
+      }
       //LOG_DBG2(feSpaceNodal) << "GetVectorValuesAtCoords for updatedGeo = " << updateGeo << ":\n" << valuesAtCoords.ToString();
 
       for( UInt aNode = 0; aNode < idxMap.GetSize(); ++aNode ) {
