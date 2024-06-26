@@ -2704,6 +2704,12 @@ namespace CoupledField{
       }
     }
   }
+
+  // TODO: turn into template too!
+  AcousticPDE::DefinePMLIntegrators()
+  {
+    // 
+  }
 }
 
 template void AcousticPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string,
