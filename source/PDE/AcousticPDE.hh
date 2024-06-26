@@ -165,7 +165,12 @@ namespace CoupledField{
     //! Definition of PML integrators
     //! TODO: \param
     // TODO: turn into template too!
-    void DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, std::string pmlFormul, std::string pmlDampId, PtrCoefFct c0, PtrCoefFct coeffK, PtrCoefFct coeffM, bool complexFluidFormulation_);
+    void DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, 
+                              std::string pmlFormul, std::string pmlDampId, PtrCoefFct c0, PtrCoefFct coeffK, 
+                              PtrCoefFct coeffM, bool complexFluidFormulation_, bool& harmonicPML,
+                              shared_ptr<CoefFunction>& coeffPMLVector, shared_ptr<CoefFunction>& coeffPMLDeterminant,
+                              shared_ptr<CoefFunction>& coeffPMLStiff, shared_ptr<CoefFunction>& coeffPMLMass,
+                              shared_ptr<CoefFunction>& coeffPMLTensor);
   };
 }
 

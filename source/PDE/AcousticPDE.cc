@@ -355,7 +355,9 @@ namespace CoupledField{
         //check if harmonic or inverse-source analysis is performed
         if (analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE) 
         {
-          DefinePMLIntegrators(actRegion, curRegNode, actSDList, pmlFormul, pmlDampId, c0, coeffK, coeffM, complexFluidFormulation_);
+          DefinePMLIntegrators(actRegion, curRegNode, actSDList, pmlFormul, pmlDampId, c0, coeffK, 
+                                coeffM, complexFluidFormulation_, harmonicPML, coeffPMLVector, 
+                                coeffPMLDeterminant, coeffPMLStiff, coeffPMLMass, coeffPMLTensor);
         }
         
         else
@@ -2653,7 +2655,14 @@ namespace CoupledField{
   }
 
   // TODO: turn into template too!
-  void AcousticPDE::DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, std::string pmlFormul, std::string pmlDampId, PtrCoefFct c0, PtrCoefFct coeffK, PtrCoefFct coeffM, bool complexFluidFormulation_) {
+  void AcousticPDE::DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, 
+                                          std::string pmlFormul, std::string pmlDampId, PtrCoefFct c0, PtrCoefFct coeffK, 
+                                          PtrCoefFct coeffM, bool complexFluidFormulation_, bool& harmonicPML,
+                                          shared_ptr<CoefFunction>& coeffPMLVector, shared_ptr<CoefFunction>& coeffPMLDeterminant,
+                                          shared_ptr<CoefFunction>& coeffPMLStiff, shared_ptr<CoefFunction>& coeffPMLMass,
+                                          shared_ptr<CoefFunction>& coeffPMLTensor)
+  {
+
     harmonicPML = true;
     shared_ptr<CoefFunction> densR, blkR, c0R;
 
@@ -2669,8 +2678,8 @@ namespace CoupledField{
 
     if (pmlFormul == "classic") {
         // here we only have a diagonal Jacobi matrix, so we store values as vector
-        coeffPMLVector.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, true));
-        coeffPMLDeterminant.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, false));
+        coeffPMLVector.reset(new CoefFunctionPML<Complex>(curRegNode, c0R, actSDList, regions_, true));
+        coeffPMLDeterminant.reset(new CoefFunctionPML<Complex>(curRegNode, c0R, actSDList, regions_, false));
         // store pml factor for the postprocessing result
         matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVector);
         // compute factors for the integrators
@@ -2688,12 +2697,12 @@ namespace CoupledField{
         }
         // pointer to object that handles the computation of the curvilinear PML damping tensor
         // here we need the full Jacobi matrix
-        coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::TENSOR));
-        coeffPMLDeterminant.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DETERMINANT));
+        coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(curRegNode, c0R, actSDList, regions_, OutputType::TENSOR));
+        coeffPMLDeterminant.reset(new CoefFunctionCurvilinearPML<Complex>(curRegNode, c0R, actSDList, regions_, OutputType::DETERMINANT));
         // create some more CoefFunctionCurvilinearPMLs to store info about the PML parameters
         PtrCoefFct coeffPMLDampFactor, coeffPMLDistance;
-        coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DAMP_FACTOR));
-        coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DISTANCE));
+        coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(curRegNode, c0R, actSDList, regions_, OutputType::DAMP_FACTOR));
+        coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(curRegNode, c0R, actSDList, regions_, OutputType::DISTANCE));
         // assign the coefFunctions to the matCoefs_ to make them available in the DefinePostProcResults()
         matCoefs_[PML_TENSOR]->AddRegion(actRegion, coeffPMLTensor);           // whole PML tensor
         matCoefs_[PML_DETERMINANT]->AddRegion(actRegion, coeffPMLDeterminant); // determinant of the PML tensor
@@ -2710,6 +2719,7 @@ namespace CoupledField{
                                               << "Possible formulations are: 'classic' (default), 'curvilinear';");
     }
   }
+
 
 }
 
