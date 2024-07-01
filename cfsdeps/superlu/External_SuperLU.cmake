@@ -27,7 +27,7 @@ elseif(USE_BLAS_LAPACK STREQUAL "MKL")
   endif()
   message(STATUS "starting with SUPERLU_BLAS_LIBRARY=${SUPERLU_BLAS_LIBRARY} from MKLConfig, replacing targets")
   # now replace all targets with the paths
-  foreach(lib ${MKL_LIBRARIES})
+  foreach(lib ${MKL_LIBRARIES} ${MKL_REQUESTED_LIBRARIES}) # from oenAPI 2024.2 the variable is called MKL_REQUESTED_LIBRARIES
     get_target_property(loc MKL::${lib} IMPORTED_LOCATION)
     message(STATUS "  MKL::${lib} -> ${loc}")
     string(REPLACE "MKL::${lib}" "${loc}" SUPERLU_BLAS_LIBRARY "${SUPERLU_BLAS_LIBRARY}")
