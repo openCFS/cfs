@@ -2623,6 +2623,9 @@ namespace CoupledField {
       } else if ( myParam->Has("optimization") ) {
         useGetRidOfZeros_ = false;
         useCase = "optimization";
+      } else if (this->PDE_.IsNonLin()) {
+        useGetRidOfZeros_ = false;
+        useCase = "nonLinear";
       }
 
       if( !useGetRidOfZeros_ ){
