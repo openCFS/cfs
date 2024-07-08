@@ -2602,9 +2602,6 @@ namespace CoupledField {
       } else if ( !supportedBySolver || algsys_->HasPrecond() ) {
         useGetRidOfZeros_ = false;
         useCase = "solver setup";
-      } else if ( analysisName == "harmonic" ) {
-        useGetRidOfZeros_ = false;
-        useCase = "harmonic";
       } else if ( analysisName == "multiharmonic" ) {
         useGetRidOfZeros_ = false;
         useCase = "multiharmonic";
