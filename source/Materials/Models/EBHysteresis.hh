@@ -52,6 +52,25 @@ namespace CoupledField {
 
       Vector<Double> Evaluate(Vector<Double> E, bool saveTmpStageVecs, UInt idx);
 
+      Vector<Double> Eval_2D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+      Vector<Double> Eval_3D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      Vector<Double> Eval_2D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+      Vector<Double> Eval_3D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+      Vector<Double> Eval_2D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+      Vector<Double> Eval_3D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+
+
+      void Calc_derivs(Double &F_prime, Double &F_prime_prime, Matrix<Double> &dM_dHrev,
+                      Double MxS_prev, Double MyS_prev,
+                      Double Hex_x, Double Hex_y,
+                      Double HrxS_prev, Double HryS_prev,
+                      Double phi, Double chi);
+
+      Double Energy_linesearch(Double Hx, Double Hy, Double Hprev_x, Double Hprev_y, Double Mprev_x, Double Mprev_y,
+                               Double phi, Double chi, Double &F_prime_orig, Double &F_prime_prime_orig);
+
     private:
       //==============
       SMSM SMSM_model_;

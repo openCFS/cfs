@@ -818,22 +818,29 @@ DEFINE_LOG(eb, "EBHysteresis")
       chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
     }
 
+
     if (dim_ == 2)
     {
-      if (approx_type_ != "fullEB")
+      if ((approx_type_ == "fullEB") && (anhyst_type_ == 2))
       {
-        // VPM approximation
+        // fullEB + Multiscale model
+        ret = Eval_2D_EBM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
+      }
+      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
+      {
+        // VPM + Multiscale model
+        #pragma omp critical
+        ret = Eval_2D_VPM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
+      }
+      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 1))
+      {
+        // VPM + atan anhysteresis
         EXCEPTION("Currently there is only the fullEB model implemented for the 2D case");
       }
-      else if (anhyst_type_ == 2)
+      else if ((approx_type_ == "fullEB") && (anhyst_type_ == 1))
       {
-        // Multiscale model
-        EXCEPTION("Multiscale model currently only implemented for 3D setups!");
-      }
-      else
-      {
-        // full energy based + atan anhysteresis
-        ret = Eval_2D_EB_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
+        // fullEB + atan anhysteresis
+        ret = Eval_2D_EBM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
       }
     }
     else if (dim_ == 3)
@@ -841,11 +848,12 @@ DEFINE_LOG(eb, "EBHysteresis")
       if ((approx_type_ == "fullEB") && (anhyst_type_ == 2))
       {
         // fullEB + Multiscale model
-        EXCEPTION("Multiscale model currently only implemented for VPM!");
+        ret = Eval_3D_EBM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
       }
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
       {
         // VPM + Multiscale model
+        #pragma omp critical
         ret = Eval_3D_VPM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
       }
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 1))
@@ -856,7 +864,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       else if ((approx_type_ == "fullEB") && (anhyst_type_ == 1))
       {
         // fullEB + atan anhysteresis
-        ret = Eval_3D_EBM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
+        EXCEPTION("EBM+ATAN currently only implemented for 2D!");
       }
     }
     return ret;
@@ -958,126 +966,19 @@ DEFINE_LOG(eb, "EBHysteresis")
     return ret;
   }
 
-  Vector<Double> EBHysteresis::Eval_3D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+
+  Vector<Double> EBHysteresis::Eval_2D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
-    Vector<Double> ret;
-    StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
-    StdVector<UInt> numIter;
-    error.Resize(numS_, 0.0);
-    dir.Resize(numS_, 0.0);
-    numIter.Resize(numS_, 0);
-    HrxS_sol.Resize(numS_, 0.0);
-    HryS_sol.Resize(numS_, 0.0);
-    HrzS_sol.Resize(numS_, 0.0);
-    MxS_sol.Resize(numS_, 0.0);
-    MyS_sol.Resize(numS_, 0.0);
-    MzS_sol.Resize(numS_, 0.0);
-
-    Double Hex_x = Hn[0];
-    Double Hex_y = Hn[1];
-    Double Hex_z = Hn[2];
-
-    Double HrxS_prev, HryS_prev, HrzS_prev, MxSprev, MySprev, MzSprev, phi, err, ux, uy,
-        uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py, Pz,
-        condition1, theta, i_correct_x, i_correct_y, i_correct_z, Hirr_x, Hirr_y, Hirr_z;
-
-    Double aa, MSa, ab, MSb, coth_La, coth_Lb, J_an, M_an;
-
-    UInt iter;
-    StdVector<Double> &HxS_prev = HxS_n_[idx];
-    StdVector<Double> &HyS_prev = HyS_n_[idx];
-    StdVector<Double> &HzS_prev = HzS_n_[idx];
-    StdVector<Double> &MxS_prev = MxS_n_[idx];
-    StdVector<Double> &MyS_prev = MyS_n_[idx];
-    StdVector<Double> &MzS_prev = MzS_n_[idx];
-
-    for (UInt k = 0; k < numS_; k++)
-    {
-      HrxS_prev = HxS_prev[k];
-      HryS_prev = HyS_prev[k];
-      HrzS_prev = HzS_prev[k];
-      MxSprev = MxS_prev[k];
-      MySprev = MyS_prev[k];
-      MzSprev = MzS_prev[k];
-      condition1 = (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2) + std::pow((Hex_z - HrzS_prev) / chi[k], 2));
-      if (condition1 <= 1.0)
-      {
-        HrxS_sol[k] = HrxS_prev;
-        HryS_sol[k] = HryS_prev;
-        HrzS_sol[k] = HrzS_prev;
-      }
-      else
-      {
-        // dissipation now reached (just arrived at the border of the sphere)
-        if (k == 0)
-        {
-          HrxS_sol[k] = Hex_x;
-          HryS_sol[k] = Hex_y;
-          HrzS_sol[k] = Hex_z;
-        }
-        else
-        {
-          // use the direction of the vector play model as initial direction
-          Hirr_x = chi[k] * (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
-          Hirr_y = chi[k] * (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
-          Hirr_z = chi[k] * (Hex_z - HrzS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)) + std::pow((Hex_z - HrzS_prev), 2));
-          HrxS_sol[k] = Hex_x - Hirr_x;
-          HryS_sol[k] = Hex_y - Hirr_y;
-          HrzS_sol[k] = Hex_z - Hirr_z;
-        }
-      }
-      HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
-      if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
-      {
-        // JUST FOR TEAM PROBLEM 32
-        /* aa = 9.082; MSa = 0.792; ab = 137.121; MSb = 0.791;
-        coth_La = std::cosh(HrS/aa)/std::sinh(HrS/aa);
-        coth_Lb = std::cosh(HrS/ab)/std::sinh(HrS/ab);
-        J_an = MSa*(coth_La - aa/HrS) + MSb*(coth_Lb - ab/HrS);
-        M_an = J_an/(4*M_PI*1e-7);
-        MxS_sol[k] = M_an * HrxS_sol[k]/HrS;
-        MyS_sol[k] = M_an * HryS_sol[k]/HrS;
-        MzS_sol[k] = M_an * HrzS_sol[k]/HrS; */
-        // TP32 END
-        // FOR REGULAR USE
-        MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
-        MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
-        MzS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrzS_sol[k] / HrS;
-        // FOR REGULAR USE END
-      }
-      else
-      {
-        MxS_sol[k] = 0.0;
-        MyS_sol[k] = 0.0;
-        MzS_sol[k] = 0.0;
-      }
-    }
-    Px = 0.0;
-    Py = 0.0;
-    Pz = 0.0;
-    for (UInt k = 0; k < numS_; k++)
-    {
-      Px += weight[k] * MxS_sol[k];
-      Py += weight[k] * MyS_sol[k];
-      Pz += weight[k] * MzS_sol[k];
-    }
-    if (saveTmpStageVecs)
-    {
-      HxS_n_tmp_[idx] = HrxS_sol;
-      HyS_n_tmp_[idx] = HryS_sol;
-      HzS_n_tmp_[idx] = HrzS_sol;
-      MxS_n_tmp_[idx] = MxS_sol;
-      MyS_n_tmp_[idx] = MyS_sol;
-      MzS_n_tmp_[idx] = MzS_sol;
-    }
-    ret.Push_back(Px);
-    ret.Push_back(Py);
-    ret.Push_back(Pz);
-
-    return ret;
+    Vector<Double> Hn3d(3);
+    Hn3d[0] = Hn[0];
+    Hn3d[1] = Hn[1];
+    Hn3d[2] = 0.0;
+    Vector<Double> M3d = Eval_3D_VPM_MSM(Hn3d, saveTmpStageVecs, idx, weight, chi);
+    Vector<Double> M(2);
+    M[0] = M3d[0];
+    M[2] = M3d[2];
+    return M;
   }
-
-  
 
   Vector<Double> EBHysteresis::Eval_3D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
@@ -1185,7 +1086,9 @@ DEFINE_LOG(eb, "EBHysteresis")
     return ret;
   }
 
-  Vector<Double> EBHysteresis::Eval_2D_EB_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  
+
+  Vector<Double> EBHysteresis::Eval_2D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
     Vector<Double> ret;
     StdVector<Double> error, dir, HrxS_sol, HryS_sol, MxS_sol, MyS_sol;
@@ -1301,4 +1204,221 @@ DEFINE_LOG(eb, "EBHysteresis")
     ret.Push_back(Py);
     return ret;
   }
+
+
+
+  Vector<Double> EBHysteresis::Eval_3D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  {
+    Vector<Double> Hn2d(2);
+    Hn2d[0] = Hn[0];
+    Hn2d[1] = Hn[1];
+    Vector<Double> M2d = Eval_2D_EBM_MSM(Hn2d, saveTmpStageVecs, idx, weight, chi);
+    Vector<Double> M(3);
+    M[0] = M2d[0];
+    M[1] = M2d[1];
+    M[2] = 0.0;
+    return M;
+  }
+
+  Vector<Double> EBHysteresis::Eval_2D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  {
+    Vector<Double> ret;
+    StdVector<Double> error, dir, HrxS_sol, HryS_sol, MxS_sol, MyS_sol;
+    StdVector<UInt> numIter;
+    error.Resize(numS_, 0.0);
+    dir.Resize(numS_, 0.0);
+    numIter.Resize(numS_, 0);
+    HrxS_sol.Resize(numS_, 0.0);
+    HryS_sol.Resize(numS_, 0.0);
+    MxS_sol.Resize(numS_, 0.0);
+    MyS_sol.Resize(numS_, 0.0);
+
+    Double Hex_x = Hn[0];
+    Double Hex_y = Hn[1];
+
+    Double HrxS_prev, HryS_prev, MxSprev, MySprev, phi, err, F_prime, F_prime_prime,
+           ux, uy, uabs, ux1, uy1, ux2, uy2, Man, Man1, g1, g2, phiNew, HrS, Px, Py;
+    Matrix<Double> dM_dHrev(2,2);
+    
+    
+    UInt iter;
+    StdVector<Double> &HxS_prev = HxS_n_[idx];
+    StdVector<Double> &HyS_prev = HyS_n_[idx];
+    StdVector<Double> &MxS_prev = MxS_n_[idx];
+    StdVector<Double> &MyS_prev = MyS_n_[idx];
+
+    for (UInt k = 0; k < numS_; k++)
+    {
+      HrxS_prev = HxS_prev[k];
+      HryS_prev = HyS_prev[k];
+      MxSprev = MxS_prev[k];
+      MySprev = MyS_prev[k];
+      // if(std::sqrt( std::pow(Hex_x - HrxS_prev, 2) + std::pow(Hex_y - HryS_prev, 2) ) <= chi[k]){
+      if ((std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2)) <= 1.0)
+      {
+        HrxS_sol[k] = HrxS_prev;
+        HryS_sol[k] = HryS_prev;
+      }
+      else
+      {
+        StdVector<Double> i_phi_initial(2);
+        i_phi_initial.Init(0.0);
+        // dissipation now reached (just arrived at the border of the sphere)
+        if (k == 0)
+        {
+          i_phi_initial[0] = 0.0;
+          i_phi_initial[1] = 0.0;
+        }
+        else
+        {
+          // use the direction of the vector play model as initial direction
+          i_phi_initial[0] = -(1.0 / chi[k] * (HrxS_prev - Hex_x)) / (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2));
+          i_phi_initial[1] = -(1.0 / chi[k] * (HryS_prev - Hex_y)) / (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2));
+        }
+        phi = std::atan2(i_phi_initial[1], i_phi_initial[0]); // already in rad
+        err = 1.0;
+        iter = 0;
+        F_prime = 1.0;
+
+        while ( (err > 1.0e-10) && (F_prime > 1.0e-5) && (iter < 10))
+        {
+          Calc_derivs(F_prime, F_prime_prime, dM_dHrev, MxSprev, MySprev,
+                      Hex_x, Hex_y, HrxS_prev, HryS_prev, phi, chi[k]);
+          if (F_prime_prime < 1e-6)
+          {
+            phiNew = phi;
+          }
+          else
+          {
+            Double eta = Energy_linesearch(Hex_x, Hex_y,
+                                       HrxS_prev, HryS_prev,
+                                       MxSprev, MySprev, phi, chi[k],
+                                       F_prime, F_prime_prime);
+            phiNew = phi - (F_prime / F_prime_prime)*eta;
+          }
+          err = std::sqrt(std::pow(phiNew - phi, 2))/std::abs(phi);
+          phi = phiNew;
+          iter++;
+        }
+        /////////////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////
+        /////////////////////////////////////////////////////////////////////
+
+
+        error[k] = err;
+        dir[k] = phi;
+        numIter[k] = iter;
+        HrxS_sol[k] = Hex_x + chi[k] * std::cos(phi);
+        HryS_sol[k] = Hex_y + chi[k] * std::sin(phi);
+      }
+      HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2));
+      if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
+      {
+
+
+        // Use the MSMS for calculation of the new stage magnetization vector
+        StdVector<Double> dirH(3);
+        dirH[0] = HrxS_sol[k] / HrS;
+        dirH[1] = HryS_sol[k] / HrS;
+        dirH[2] = 0.0;
+        LOG_DBG3(eb) << "\n\t INPUT (H) OF SMSM: [" << HrxS_sol[k] << "," << HryS_sol[k] << ", " << 0.0 << "]";
+        SMSM_model_->Eval(HrS, dirH);
+        Vector<Double> M = SMSM_model_->GetM();
+        LOG_DBG3(eb) << "\n\t OUTPUT (M) OF SMSM: " << M.ToString();
+
+        // MSM version
+        MxS_sol[k] = M[0];
+        MyS_sol[k] = M[1];
+      }
+      else
+      {
+        MxS_sol[k] = 0.0;
+        MyS_sol[k] = 0.0;
+      }
+    }
+    Px = 0.0;
+    Py = 0.0;
+    for (UInt k = 0; k < numS_; k++)
+    {
+      Px += weight[k] * MxS_sol[k];
+      Py += weight[k] * MyS_sol[k];
+    }
+    if (saveTmpStageVecs)
+    {
+      HxS_n_tmp_[idx] = HrxS_sol;
+      HyS_n_tmp_[idx] = HryS_sol;
+      MxS_n_tmp_[idx] = MxS_sol;
+      MyS_n_tmp_[idx] = MyS_sol;
+    }
+    ret.Push_back(Px);
+    ret.Push_back(Py);
+    return ret;
+  }
+
+  void EBHysteresis::Calc_derivs(Double &F_prime, Double &F_prime_prime, Matrix<Double> &dM_dHrev,
+                                Double MxSprev, Double MySprev,
+                                Double Hex_x, Double Hex_y,
+                                Double HrxS_prev, Double HryS_prev,
+                                Double phi, Double chi)
+  {
+    Double ux = Hex_x - chi * std::cos(phi);
+    Double uy = Hex_y - chi * std::sin(phi);
+    Double uabs = std::sqrt(ux*ux + uy*uy);
+
+    StdVector<Double> dirH(3);
+    dirH[0] = ux / uabs;
+    dirH[1] = uy / uabs;
+    dirH[2] = 0.0;
+
+    StdVector<Double> de_dphi(2);
+    StdVector<Double> d2e_dphi2(2);
+    de_dphi[0] = -std::sin(phi);   de_dphi[1] = std::cos(phi);
+    d2e_dphi2[0] = -std::cos(phi); d2e_dphi2[1] = -std::sin(phi);
+    SMSM_model_->Eval(uabs, dirH);
+    Vector<Double> M = SMSM_model_->GetM();
+    
+    Double M_Mprev_x = M[0] - MxSprev;
+    Double M_Mprev_y = M[1] - MySprev;
+
+    F_prime =  chi*(M_Mprev_x*de_dphi[0] + M_Mprev_y*de_dphi[1]);
+
+    Double dMdHrev_dedphi_x = dM_dHrev[0][0]*de_dphi[0] + dM_dHrev[0][1]*de_dphi[1];
+    Double dMdHrev_dedphi_y = dM_dHrev[1][0]*de_dphi[0] + dM_dHrev[1][1]*de_dphi[1];
+    Double dedephi_dMdHrev_dedphi = dMdHrev_dedphi_x*de_dphi[0] + dMdHrev_dedphi_y*de_dphi[1];
+    Double d2edphi2_M = d2e_dphi2[0] * M_Mprev_x + d2e_dphi2[1] * M_Mprev_y;
+    F_prime_prime = -chi*chi * dedephi_dMdHrev_dedphi + chi*d2edphi2_M;
+  }
+
+
+  Double EBHysteresis::Energy_linesearch(Double Hx, Double Hy,
+                                       Double Hprev_x, Double Hprev_y,
+                                       Double Mprev_x, Double Mprev_y, Double phi_orig, Double chi,
+                                       Double& F_prime_orig, Double& F_prime_prime_orig)
+  {
+
+    Double G_prev = 1.0e12;
+    Double eta_opt = 0.0;
+    Double s = 1.0e-5;
+    Double e = 1.0;
+    UInt num = 5;
+    Double etaopt, eta;
+    Double F_prime, F_prime_prime, phi_tmp;
+    Matrix<Double> dM_dHrev;
+    for (UInt eta_iter = 1 ; eta_iter < num+1; eta_iter++)
+    {
+      eta = eta_iter*(s-e)/num;
+      Double phi_k = phi_orig - eta * F_prime_orig/F_prime_prime_orig;
+
+      Calc_derivs(F_prime, F_prime_prime, dM_dHrev, Mprev_x, Mprev_y,
+                      Hx, Hx, Hprev_x, Hprev_y, phi_tmp, chi);
+      Double G = F_prime * F_prime_orig/F_prime_prime_orig;
+      if(std::abs(G) <= G_prev)
+      {
+         G_prev = std::abs(G);
+         etaopt = eta;
+      }
+    }
+    return etaopt;
+  }
 }
+
