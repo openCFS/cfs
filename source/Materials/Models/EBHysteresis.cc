@@ -189,6 +189,15 @@ DEFINE_LOG(eb, "EBHysteresis")
 
     Vector<Double> sigma;
     stressCoef->GetVector(sigma, lpm);
+
+    // dirty hack for 2d setups: add zero z-component to the stress tensor
+    if(dim_ == 2){
+      sigma.Push_back(0.0);
+      sigma.Push_back(0.0);
+      sigma.Push_back(0.0);
+      sigma[5] = sigma[2];
+      sigma[2] = 0.0;
+    }
     SMSM_model_->Register_stress(sigma);
 
     LOG_DBG3(eb) << "\n\t sigma = " << sigma.ToString();
@@ -823,7 +832,8 @@ DEFINE_LOG(eb, "EBHysteresis")
     {
       if ((approx_type_ == "fullEB") && (anhyst_type_ == 2))
       {
-        // fullEB + Multiscale model
+        // fullEB + Multiscale mode
+        #pragma omp critical
         ret = Eval_2D_EBM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
       }
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
@@ -848,6 +858,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       if ((approx_type_ == "fullEB") && (anhyst_type_ == 2))
       {
         // fullEB + Multiscale model
+        #pragma omp critical
         ret = Eval_3D_EBM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
       }
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
@@ -976,7 +987,7 @@ DEFINE_LOG(eb, "EBHysteresis")
     Vector<Double> M3d = Eval_3D_VPM_MSM(Hn3d, saveTmpStageVecs, idx, weight, chi);
     Vector<Double> M(2);
     M[0] = M3d[0];
-    M[2] = M3d[2];
+    M[1] = M3d[1];
     return M;
   }
 
@@ -1246,21 +1257,27 @@ DEFINE_LOG(eb, "EBHysteresis")
     StdVector<Double> &HyS_prev = HyS_n_[idx];
     StdVector<Double> &MxS_prev = MxS_n_[idx];
     StdVector<Double> &MyS_prev = MyS_n_[idx];
+    LOG_DBG3(eb) << "\n\t##################### STARTING EVAL OF EB2D MODEL #####################";
+    LOG_DBG3(eb) << "\n\t Stress tensor = "<<SMSM_model_->GetSigma().ToString();    
+    LOG_DBG3(eb) << "\n\t chi = "<< chi.ToString();
 
     for (UInt k = 0; k < numS_; k++)
     {
+      LOG_DBG3(eb) << "\n\t Starting with k = "<<k;
       HrxS_prev = HxS_prev[k];
       HryS_prev = HyS_prev[k];
       MxSprev = MxS_prev[k];
       MySprev = MyS_prev[k];
       // if(std::sqrt( std::pow(Hex_x - HrxS_prev, 2) + std::pow(Hex_y - HryS_prev, 2) ) <= chi[k]){
-      if ((std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2)) <= 1.0)
+      if ((k > 0) && ((std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2)) <= 1.0))
       {
+        LOG_DBG3(eb) << "\n\t\t Inside of sphere, keep Hrev";
         HrxS_sol[k] = HrxS_prev;
         HryS_sol[k] = HryS_prev;
       }
-      else
+      else if ((k > 0) && ((std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2)) > 1.0))
       {
+        LOG_DBG3(eb) << "\n\t\t Touching sphere -> perform optimization";
         StdVector<Double> i_phi_initial(2);
         i_phi_initial.Init(0.0);
         // dissipation now reached (just arrived at the border of the sphere)
@@ -1274,17 +1291,24 @@ DEFINE_LOG(eb, "EBHysteresis")
           // use the direction of the vector play model as initial direction
           i_phi_initial[0] = -(1.0 / chi[k] * (HrxS_prev - Hex_x)) / (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2));
           i_phi_initial[1] = -(1.0 / chi[k] * (HryS_prev - Hex_y)) / (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2));
+          LOG_DBG3(eb) << "\n\t\t Initial VPM solution: i_phi = "<< i_phi_initial.ToString();
         }
         phi = std::atan2(i_phi_initial[1], i_phi_initial[0]); // already in rad
+        LOG_DBG3(eb) << "\n\t\t Initial VPM solution: phi = "<< phi;
+
         err = 1.0;
         iter = 0;
         F_prime = 1.0;
 
-        while ( (err > 1.0e-10) && (F_prime > 1.0e-5) && (iter < 10))
+        LOG_DBG3(eb) << "\n\t\t Start optimization";
+        while ( (err > 1.0e-5) && (std::abs(F_prime) > 1.0e-5) && (iter < 10))
         {
           Calc_derivs(F_prime, F_prime_prime, dM_dHrev, MxSprev, MySprev,
                       Hex_x, Hex_y, HrxS_prev, HryS_prev, phi, chi[k]);
-          if (F_prime_prime < 1e-6)
+          LOG_DBG3(eb) << "\n\t\t\t dM_dHrev = "<< dM_dHrev.ToString();
+          LOG_DBG3(eb) << "\n\t\t\t F_prime = "<< F_prime;
+          LOG_DBG3(eb) << "\n\t\t\t F_prime_prime = "<< F_prime_prime;
+          if (std::abs(F_prime_prime) < 1e-6)
           {
             phiNew = phi;
           }
@@ -1294,23 +1318,29 @@ DEFINE_LOG(eb, "EBHysteresis")
                                        HrxS_prev, HryS_prev,
                                        MxSprev, MySprev, phi, chi[k],
                                        F_prime, F_prime_prime);
+            LOG_DBG3(eb) << "\n\t\t\t Linesearch eta = "<< eta;
             phiNew = phi - (F_prime / F_prime_prime)*eta;
           }
-          err = std::sqrt(std::pow(phiNew - phi, 2))/std::abs(phi);
+          err = std::sqrt(std::pow(phiNew - phi, 2));
           phi = phiNew;
           iter++;
+          LOG_DBG3(eb) << "\n\t\t\t New phi = "<< phi;
+          LOG_DBG3(eb) << "\n\t\t\t error = "<< err;
         }
-        /////////////////////////////////////////////////////////////////////
-        /////////////////////////////////////////////////////////////////////
-        /////////////////////////////////////////////////////////////////////
 
 
         error[k] = err;
         dir[k] = phi;
         numIter[k] = iter;
-        HrxS_sol[k] = Hex_x + chi[k] * std::cos(phi);
-        HryS_sol[k] = Hex_y + chi[k] * std::sin(phi);
+        HrxS_sol[k] = Hex_x - chi[k] * std::cos(phi);
+        HryS_sol[k] = Hex_y - chi[k] * std::sin(phi);
       }
+      else
+      {
+        HrxS_sol[k] = Hex_x;
+        HryS_sol[k] = Hex_y;
+      }
+
       HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2));
       if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
       {
@@ -1375,11 +1405,17 @@ DEFINE_LOG(eb, "EBHysteresis")
     de_dphi[0] = -std::sin(phi);   de_dphi[1] = std::cos(phi);
     d2e_dphi2[0] = -std::cos(phi); d2e_dphi2[1] = -std::sin(phi);
     SMSM_model_->Eval(uabs, dirH);
+    dM_dHrev = SMSM_model_->GetdMdH();
     Vector<Double> M = SMSM_model_->GetM();
     
     Double M_Mprev_x = M[0] - MxSprev;
     Double M_Mprev_y = M[1] - MySprev;
 
+    LOG_DBG3(eb) << "\n\t phi: " << phi;
+    LOG_DBG3(eb) << "\n\t M[0] - MxSprev: " << M_Mprev_x;
+    LOG_DBG3(eb) << "\n\t M[1] - MySprev: " << M_Mprev_y;
+    LOG_DBG3(eb) << "\n\t de_dphi: " << de_dphi.ToString();
+    LOG_DBG3(eb) << "\n\t d2e_dphi2: " << d2e_dphi2.ToString();
     F_prime =  chi*(M_Mprev_x*de_dphi[0] + M_Mprev_y*de_dphi[1]);
 
     Double dMdHrev_dedphi_x = dM_dHrev[0][0]*de_dphi[0] + dM_dHrev[0][1]*de_dphi[1];
@@ -1397,21 +1433,34 @@ DEFINE_LOG(eb, "EBHysteresis")
   {
 
     Double G_prev = 1.0e12;
-    Double eta_opt = 0.0;
     Double s = 1.0e-5;
     Double e = 1.0;
-    UInt num = 5;
-    Double etaopt, eta;
-    Double F_prime, F_prime_prime, phi_tmp;
+    UInt num = 3;
+    Double etaopt = 0.0;
+    Double F_prime, F_prime_prime, phi_k, G, eta;
     Matrix<Double> dM_dHrev;
-    for (UInt eta_iter = 1 ; eta_iter < num+1; eta_iter++)
+
+
+    for (UInt eta_iter = 0 ; eta_iter < num+1; eta_iter++)
     {
-      eta = eta_iter*(s-e)/num;
-      Double phi_k = phi_orig - eta * F_prime_orig/F_prime_prime_orig;
+      eta = s+eta_iter*(e-s)/num;
+      phi_k = phi_orig - eta * F_prime_orig/F_prime_prime_orig;
+      
+      
+      LOG_DBG3(eb) << "\n\t phi_orig: " << phi_orig;
+      LOG_DBG3(eb) << "\n\t F_prime_orig: " << F_prime_orig;
+      LOG_DBG3(eb) << "\n\t F_prime_prime_orig: " << F_prime_prime_orig;
+      LOG_DBG3(eb) << "\n\t eta: " << eta;
+      LOG_DBG3(eb) << "\n\t phi_k: " << phi_k;
+
 
       Calc_derivs(F_prime, F_prime_prime, dM_dHrev, Mprev_x, Mprev_y,
-                      Hx, Hx, Hprev_x, Hprev_y, phi_tmp, chi);
-      Double G = F_prime * F_prime_orig/F_prime_prime_orig;
+                      Hx, Hy, Hprev_x, Hprev_y, phi_k, chi);
+      LOG_DBG3(eb) << "\n\t F_prime: " << F_prime;
+                      
+      G = F_prime * F_prime_orig/F_prime_prime_orig;
+      LOG_DBG3(eb) << "\n\t G: " << G;
+
       if(std::abs(G) <= G_prev)
       {
          G_prev = std::abs(G);
