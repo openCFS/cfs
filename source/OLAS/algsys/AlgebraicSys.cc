@@ -3617,7 +3617,6 @@ namespace CoupledField {
         if( stdMat->GetEntryType()==BaseMatrix::DOUBLE ){
           UInt* RowVec;
           UInt* ColVec;
-          UInt size;
           UInt NumRows;
           UInt newNnz = 0;
           Double* DataVec;
@@ -3631,7 +3630,6 @@ namespace CoupledField {
             RowVec = tmpDoubleSym.GetRowPointer();
             ColVec = tmpDoubleSym.GetColPointer();
             DataVec = tmpDoubleSym.GetDataPointer();
-            size = tmpDoubleSym.GetNnz();
             NumRows = tmpDoubleSym.GetNumRows();
           }
             break;
@@ -3641,13 +3639,12 @@ namespace CoupledField {
             RowVec = tmpDoubleNonSym.GetRowPointer();
             ColVec = tmpDoubleNonSym.GetColPointer();
             DataVec = tmpDoubleNonSym.GetDataPointer();
-            size = tmpDoubleNonSym.GetNnz();
             NumRows = tmpDoubleNonSym.GetNumRows();
           }
             break;
           
           default:
-            WARN("AlgebraicSys::GetRidOfZeros: Could not find suitable matrix conversion to get rid of zeros, skipping this matrix");
+            EXCEPTION("AlgebraicSys::GetRidOfZeros: Could not find suitable matrix conversion to get rid of zeros, skipping this matrix");
             break;
           }
 
@@ -3791,7 +3788,6 @@ namespace CoupledField {
         } else if ( stdMat->GetEntryType()==BaseMatrix::COMPLEX ) {
           UInt* RowVec;
           UInt* ColVec;
-          UInt size;
           UInt NumRows;
           UInt newNnz = 0;
           Complex* DataVec;
@@ -3805,7 +3801,6 @@ namespace CoupledField {
             RowVec = tmpDoubleSym.GetRowPointer();
             ColVec = tmpDoubleSym.GetColPointer();
             DataVec = tmpDoubleSym.GetDataPointer();
-            size = tmpDoubleSym.GetNnz();
             NumRows = tmpDoubleSym.GetNumRows();
           }
             break;
@@ -3815,13 +3810,12 @@ namespace CoupledField {
             RowVec = tmpDoubleNonSym.GetRowPointer();
             ColVec = tmpDoubleNonSym.GetColPointer();
             DataVec = tmpDoubleNonSym.GetDataPointer();
-            size = tmpDoubleNonSym.GetNnz();
             NumRows = tmpDoubleNonSym.GetNumRows();
           }
             break;
           
           default:
-            WARN("AlgebraicSys::GetRidOfZeros: Could not find suitable matrix conversion to get rid of zeros, skipping this matrix");
+            EXCEPTION("AlgebraicSys::GetRidOfZeros: Could not find suitable matrix conversion to get rid of zeros, skipping this matrix");
             break;
           }
 
