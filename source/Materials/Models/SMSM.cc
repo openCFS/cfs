@@ -98,9 +98,9 @@ DEFINE_LOG(smsm, "SMSM")
   void SMSM::Eval(Double valH, StdVector<Double> dirHloc)
   {
 
-  Vector<Double> Wtot;
-  Wtot.Resize(numRows_);
+  Vector<Double> Wtot(numRows_);
   Double As_times_Wtot_exp = 0.0; 
+  #pragma omp parallel for reduction(+:As_times_Wtot_exp)
   for (UInt i = 0; i < numRows_; ++i) {
     Wtot[i] =   // mechanic part
                 -(epsmu11_[i] * SIGMAloc_[0][0]
@@ -123,6 +123,7 @@ DEFINE_LOG(smsm, "SMSM")
   // to the argument in both the nominator and denominator, which cancells out but prevents overflows
   // Get the maximum value of Wtot and then compute the denominator:
   Double Wtot_max = Wtot.Max();
+  #pragma omp parallel for reduction(+:As_times_Wtot_exp)
   for (UInt i = 0; i < numRows_; ++i) {
     As_times_Wtot_exp += std::exp(-AS_*Wtot[i] - Wtot_max*AS_);
   } 
@@ -137,7 +138,9 @@ DEFINE_LOG(smsm, "SMSM")
 
   Vector<Double> falpha;
   falpha.Resize(numRows_);
-  
+  dMdH_.Resize(3,3);
+  dMdH_.Init();
+
   MMoy_.Resize(3);
   MMoy_.Init(0.0);
   Double eps_11 = 0.0;
@@ -160,8 +163,43 @@ DEFINE_LOG(smsm, "SMSM")
     eps_23 += Ms_*falpha[i] * epsmu23_[i];
     eps_33 += Ms_*falpha[i] * epsmu33_[i];
   }
-  LOG_DBG3(smsm) << "\n\t max(falpha) after precompute step = " << falpha.Max() 
-                 << "\n\t min(falpha) after precompute step = " << falpha.Min();
+
+  Vector<Double> Malpha(3);
+  Vector<Double> falpha_Malpha(3);
+  for (UInt i = 0; i < numRows_; ++i) {
+    Malpha[0] = TABgamma_[i][0]*Ms_;
+    Malpha[1] = TABgamma_[i][1]*Ms_;
+    Malpha[2] = TABgamma_[i][2]*Ms_;
+    falpha_Malpha[0] = Malpha[0] * falpha[i];
+    falpha_Malpha[1] = Malpha[1] * falpha[i];
+    falpha_Malpha[2] = Malpha[2] * falpha[i];
+    dMdH_[0][0] += falpha_Malpha[0]*Malpha[0];
+    dMdH_[1][1] += falpha_Malpha[1]*Malpha[1];
+    dMdH_[2][2] += falpha_Malpha[2]*Malpha[2];
+    dMdH_[0][1] += falpha_Malpha[0]*Malpha[1];
+    dMdH_[0][2] += falpha_Malpha[0]*Malpha[2];
+    dMdH_[1][0] += falpha_Malpha[1]*Malpha[0];
+    dMdH_[2][0] += falpha_Malpha[2]*Malpha[0];
+    dMdH_[2][1] += falpha_Malpha[2]*Malpha[1];
+    dMdH_[1][2] += falpha_Malpha[1]*Malpha[2];
+    
+  }
+
+  dMdH_[0][0] = mu0_*AS_*(dMdH_[0][0] - MMoy_[0]*MMoy_[0]);
+  dMdH_[1][1] = mu0_*AS_*(dMdH_[1][1] - MMoy_[1]*MMoy_[1]);
+  dMdH_[2][2] = mu0_*AS_*(dMdH_[2][2] - MMoy_[2]*MMoy_[2]);
+
+  dMdH_[0][1] = mu0_*AS_*(dMdH_[0][1] - MMoy_[0]*MMoy_[1]);
+  dMdH_[0][2] = mu0_*AS_*(dMdH_[0][2] - MMoy_[0]*MMoy_[2]);
+  dMdH_[1][0] = mu0_*AS_*(dMdH_[1][0] - MMoy_[1]*MMoy_[0]);
+  dMdH_[2][0] = mu0_*AS_*(dMdH_[2][0] - MMoy_[2]*MMoy_[0]);
+  dMdH_[2][1] = mu0_*AS_*(dMdH_[2][1] - MMoy_[2]*MMoy_[1]);
+  dMdH_[1][2] = mu0_*AS_*(dMdH_[1][2] - MMoy_[1]*MMoy_[2]);
+
+  LOG_DBG3(smsm) << "\n\t dMdH_ = " << dMdH_.ToString();
+
+  // LOG_DBG3(smsm) << "\n\t max(falpha) after precompute step = " << falpha.Max() 
+  //                << "\n\t min(falpha) after precompute step = " << falpha.Min();
 
   // Synthesis of results
   
@@ -175,6 +213,7 @@ DEFINE_LOG(smsm, "SMSM")
   epsmumoy_[2][0] = eps_13;
   epsmumoy_[2][1] = eps_23;
   epsmumoy_[2][2] = eps_33;
+
   }
 
   void SMSM::Register_stress(Vector<Double> sigma)

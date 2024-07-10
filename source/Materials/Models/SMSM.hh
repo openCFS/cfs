@@ -35,7 +35,8 @@ namespace CoupledField {
 
       Vector<Double> GetM(){return MMoy_;};
       Matrix<Double> GetEps(){return epsmumoy_;};
-      
+      Matrix<Double> GetdMdH(){return dMdH_;};
+      Matrix<Double> GetSigma(){return SIGMAloc_;};
 
     private:
 
@@ -46,5 +47,6 @@ namespace CoupledField {
       UInt numRows_;
       Vector<Double> MMoy_;
       Matrix<Double> epsmumoy_;
+      Matrix<Double> dMdH_;
     };
 } //end of namespace
