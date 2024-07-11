@@ -387,33 +387,35 @@ namespace CoupledField{
 
         // Handle curvilinear PML formulation
         } else if (pmlFormul == "curvilinear") {
-            if (complexFluidFormulation_) {
-                WARN("Curvilinear PML with complex fluid is not tested. Check results and consider adding a testcase.");
-            }
-            if (dim_ == 2) {
-                EXCEPTION("Curvilinear PML currently only implemented in 3D!");
-            }
+            // if (complexFluidFormulation_) {
+            //     WARN("Curvilinear PML with complex fluid is not tested. Check results and consider adding a testcase.");
+            // }
+            // if (dim_ == 2) {
+            //     EXCEPTION("Curvilinear PML currently only implemented in 3D!");
+            // }
 
-            // Full Jacobi matrix needed for curvilinear PML
-            coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::TENSOR));
-            coeffPMLDeterminant.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DETERMINANT));
+            // // Full Jacobi matrix needed for curvilinear PML
+            // coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::TENSOR));
+            // coeffPMLDeterminant.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DETERMINANT));
 
-            // Store PML parameters
-            PtrCoefFct coeffPMLDampFactor, coeffPMLDistance;
-            coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DAMP_FACTOR));
-            coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DISTANCE));
+            // // Store PML parameters
+            // PtrCoefFct coeffPMLDampFactor, coeffPMLDistance;
+            // coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DAMP_FACTOR));
+            // coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DISTANCE));
 
-            // Assign coefficient functions for postprocessing
-            matCoefs_[PML_TENSOR]->AddRegion(actRegion, coeffPMLTensor);
-            matCoefs_[PML_DETERMINANT]->AddRegion(actRegion, coeffPMLDeterminant);
-            matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLDampFactor);
-            matCoefs_[PML_DISTANCE]->AddRegion(actRegion, coeffPMLDistance);
+            // // Assign coefficient functions for postprocessing
+            // matCoefs_[PML_TENSOR]->AddRegion(actRegion, coeffPMLTensor);
+            // matCoefs_[PML_DETERMINANT]->AddRegion(actRegion, coeffPMLDeterminant);
+            // matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLDampFactor);
+            // matCoefs_[PML_DISTANCE]->AddRegion(actRegion, coeffPMLDistance);
 
-            // Use Jacobi determinant for scaling in BBIntegrators
-            coeffPMLStiff = CoefFunction::Generate(mp_, Global::COMPLEX,
-                CoefXprBinOp(mp_, coeffPMLDeterminant, coeffK, CoefXpr::OP_MULT));
-            coeffPMLMass = CoefFunction::Generate(mp_, Global::COMPLEX,
-                CoefXprBinOp(mp_, coeffPMLDeterminant, coeffM, CoefXpr::OP_MULT));
+            // // Use Jacobi determinant for scaling in BBIntegrators
+            // coeffPMLStiff = CoefFunction::Generate(mp_, Global::COMPLEX,
+            //     CoefXprBinOp(mp_, coeffPMLDeterminant, coeffK, CoefXpr::OP_MULT));
+            // coeffPMLMass = CoefFunction::Generate(mp_, Global::COMPLEX,
+            //     CoefXprBinOp(mp_, coeffPMLDeterminant, coeffM, CoefXpr::OP_MULT));
+
+            HandlePMLCurvilinearFormulation(pmlNode, c0R, actSDList, actRegion, coeffK, coeffM, coeffPMLStiff, coeffPMLMass, coeffPMLTensor, coeffPMLDeterminant);
         } else {
             EXCEPTION("Unknown PML formulation '" << pmlFormul << "' for AcousticPDE. Possible formulations: 'classic', 'curvilinear'.")
         }
@@ -593,15 +595,11 @@ namespace CoupledField{
     }
   }
 
-  void AcousticPDE::HandlePMLClassicFormulation(
-    PtrParamNode& pmlNode, 
-    shared_ptr<CoefFunction>& c0R, 
-    shared_ptr<ElemList>& actSDList, 
-    RegionIdType actRegion, 
-    PtrCoefFct& coeffK, 
-    PtrCoefFct& coeffM, 
-    PtrCoefFct& coeffPMLStiff, 
-    PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLDeterminant) 
+  void AcousticPDE::HandlePMLClassicFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, 
+                                                shared_ptr<ElemList>& actSDList, RegionIdType actRegion, 
+                                                PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
+                                                PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLVector, 
+                                                PtrCoefFct& coeffPMLDeterminant) 
   {
       // Here we only have a diagonal Jacobi matrix, so we store values as vector
       coeffPMLVector.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, true));
@@ -617,7 +615,40 @@ namespace CoupledField{
           CoefXprBinOp(mp_, coeffPMLDeterminant, coeffM, CoefXpr::OP_MULT));
   }
 
+  void AcousticPDE::HandlePMLCurvilinearFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, 
+                                                    shared_ptr<ElemList>& actSDList, RegionIdType actRegion, 
+                                                    PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
+                                                    PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLTensor, 
+                                                    PtrCoefFct& coeffPMLDeterminant) 
+  {
+    if (complexFluidFormulation_) {
+        WARN("Curvilinear PML with complex fluid is not tested. Check results and consider adding a testcase.");
+    }
+    if (dim_ == 2) {
+        EXCEPTION("Curvilinear PML currently only implemented in 3D!");
+    }
 
+    // Full Jacobi matrix needed for curvilinear PML
+    coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::TENSOR));
+    coeffPMLDeterminant.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DETERMINANT));
+
+    // Store PML parameters
+    PtrCoefFct coeffPMLDampFactor, coeffPMLDistance;
+    coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DAMP_FACTOR));
+    coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DISTANCE));
+
+    // Assign coefficient functions for postprocessing
+    matCoefs_[PML_TENSOR]->AddRegion(actRegion, coeffPMLTensor);
+    matCoefs_[PML_DETERMINANT]->AddRegion(actRegion, coeffPMLDeterminant);
+    matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLDampFactor);
+    matCoefs_[PML_DISTANCE]->AddRegion(actRegion, coeffPMLDistance);
+
+    // Use Jacobi determinant for scaling in BBIntegrators
+    coeffPMLStiff = CoefFunction::Generate(mp_, Global::COMPLEX,
+        CoefXprBinOp(mp_, coeffPMLDeterminant, coeffK, CoefXpr::OP_MULT));
+    coeffPMLMass = CoefFunction::Generate(mp_, Global::COMPLEX,
+        CoefXprBinOp(mp_, coeffPMLDeterminant, coeffM, CoefXpr::OP_MULT));
+  }
 
   template<UInt DIM>
   void AcousticPDE::DefineTransientPMLInts(shared_ptr<ElemList> eList, std::string id,

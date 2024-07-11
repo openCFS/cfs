@@ -175,6 +175,10 @@ namespace CoupledField{
     void HandlePMLClassicFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, shared_ptr<ElemList>& actSDList, 
                                       RegionIdType actRegion, PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
                                       PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLDeterminant);
+
+    void HandlePMLCurvilinearFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, shared_ptr<ElemList>& actSDList, 
+                                          RegionIdType actRegion, PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
+                                          PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLTensor, PtrCoefFct& coeffPMLDeterminant);
   };
 }
 
