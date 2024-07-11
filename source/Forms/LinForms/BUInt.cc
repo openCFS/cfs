@@ -131,7 +131,7 @@ BUIntegrator(BaseBOperator * bOp,
 
        // Calculate for each integration point the LocPointMapped
        if (SURFACE) {
-         lp.Set( intPoints[i], esm, volRegions_, weights[i] );
+         lp.SetWithSurface( intPoints[i], esm, volRegions_, weights[i] );
        } else {
          lp.Set( intPoints[i], esm, weights[i] );
        }

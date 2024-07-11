@@ -6,12 +6,14 @@
 #include "Domain/Mesh/Grid.hh"
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
 
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 #ifdef OPENMP
 #include <omp.h>
 #endif
 
 namespace CoupledField {
-
+DEFINE_LOG(locPointMapped, "ElemShapeMap.LocPointMapped");
 // ===========================================================================
 //  C L A S S  LocPoint
 // ===========================================================================
@@ -154,21 +156,94 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
 }
 
 
-void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-    const std::set<RegionIdType>& myRegions, Double weight) {
-
+void LocPointMapped::SetWithSurface(const LocPoint& lp, shared_ptr<ElemShapeMap> esm, const std::set<RegionIdType>& myRegions, Double weight) {
   // ------------------------------------------------------
   //  1) Set "normal" element information (Jacobian, etc.)
   // ------------------------------------------------------
-
   // first, call "normal" set method, also valid for volume elements
   this->Set(lp, esm, weight);
-
   // ------------------------------------------------------
   //  2) Perform surface-element specific tasks
   // ------------------------------------------------------
-  SetSurfInfo(myRegions);
+  this->SetSurfInfo(myRegions);
 }
+
+
+void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions, const RegionIdType volRegId) {
+  // if we have not previously selected the correct volume neighbor, we have to do it now
+  // check, if previously set element is the same as this one. Only assign for the first time.
+  bool isSameElem = (shapeMap->GetElem() == this->ptEl && isSurface == true);
+  // set flag for surface mapped element
+  this->isSurface = true;
+  // get surface element
+  const SurfElem& surfElem = *(shapeMap->GetSurfElem());
+  // shape map for assigned volume element
+  shared_ptr<ElemShapeMap> esmVol;
+  // pointer to volume element that gets assigned
+  const Elem * ptVolElem = nullptr;
+  if (!isSameElem) {
+    // loop over volume element neighbors of the surface element and check,
+    // if the regionId of the element is in the map "myRegions"
+    for (auto it = surfElem.ptVolElems.begin(); it != surfElem.ptVolElems.end(); it++) {
+      // check if element is set at all
+      if (*it) {
+        // check if regionId is in the "allowed" list
+        if (myRegions.find((*it)->regionId) != myRegions.end()) {
+          if ( volRegId == NO_REGION_ID ) {
+            // assign the first vol elem if no region is specified
+            ptVolElem = *it;
+            break;
+          }
+          // assign vol elem of the specific region if specified
+          else if ( (*it)->regionId == volRegId ) {
+              ptVolElem = *it;
+              break;
+          }
+        }
+      }
+    } // loop over volume element neighbors
+    // check, if element could be found
+    if (ptVolElem == nullptr)
+      EXCEPTION("Could not find a suitable volume neighbor for surface element #" << surfElem.elemNum << ". ");
+
+    // create new local point for volume element
+    lpmVol.reset(new LocPointMapped());
+    esmVol = shapeMap->GetGrid()->GetElemShapeMap(ptVolElem, shapeMap->IsUpdated());
+  } else {
+    esmVol = lpmVol->shapeMap;
+  } // !isSameElem
+
+  LocPoint lpVol;
+  Vector<Double> locNormal;
+  // assign the mapped integration point to the volume lpm for computing the global normal vector
+  esmVol->GetLocalIntPoints4Surface(ptEl->connect, lp, lpVol, locNormal);
+  // assign integration points to the (new) volume element
+  lpmVol->Set(lpVol, esmVol, weight);
+  // calculate global normal pointing out of new volume element
+  normal = Transpose(lpmVol->jacInv) * locNormal;
+  normal /= normal.NormL2();
+#ifdef NDEBUG
+#else
+  // sanity check if the surf->vol mapping is correct
+  Vector<Double> globSurfIntPoint;
+  Vector<Double> globVolIntPoint;
+  this->shapeMap->Local2Global(globSurfIntPoint, lp);
+  esmVol->Local2Global(globVolIntPoint, lpVol);
+  LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
+  LOG_DBG2(locPointMapped) "globCoordSurf: " << globSurfIntPoint << std::endl;
+  LOG_DBG2(locPointMapped) "globCoordVol: " << globVolIntPoint << std::endl;
+  LOG_DBG2(locPointMapped) "locCoordSurf: " << lp.coord << std::endl;
+  LOG_DBG2(locPointMapped) "locCoordVol: " << lpVol.coord << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) "surfElemNum---:" << surfElem.elemNum << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) "normal loc-----------:" << locNormal << std::endl;
+  LOG_DBG2(locPointMapped) "normal glob-------------------:" << normal << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
+  for (UInt iDim = 0; iDim < globSurfIntPoint.GetSize(); ++iDim)
+    assert(abs(globSurfIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
+  assert(esmVol->CoordIsInsideElem(lpVol.coord, EPS));
+#endif
+}
+
 
 void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     Double weight, bool useMaster) {
@@ -252,67 +327,6 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   normal /= normal.NormL2();
   if (!useMaster)
     normal *= -1.0;
-}
-
-void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions,
-		                         const RegionIdType volRegId ) {
-  // check, if previously set element is the same as this one
-  bool isSameElem = (shapeMap->GetElem() == this->ptEl && isSurface == true);
-
-  // set flag for surface mapped element
-  this->isSurface = true;
-
-  // get surface element
-  const SurfElem& surfElem = *(shapeMap->GetSurfElem());
-
-  // if we have not previously selected the correct volume neighbor, we
-  // have to do it now
-  shared_ptr<ElemShapeMap> esmVol;
-  if (!isSameElem) {
-    const Elem * ptVolElem = NULL;
-
-    // loop over volume element neighbors of the surface element and check,
-    // if the regionId of the element is in the map "myRegions"
-    boost::array<Elem*, 2>::const_iterator it = surfElem.ptVolElems.begin();
-    for (; it != surfElem.ptVolElems.end(); it++) {
-      // check if element is set at all
-      if (*it) {
-          // check if regionId is in the "allowed" list
-          if (myRegions.find((*it)->regionId) != myRegions.end()) {
-        	  if ( volRegId == NO_REGION_ID ) {
-        		  ptVolElem = *it;
-        		  break;
-        	  }
-        	  else if ( (*it)->regionId == volRegId ) {
-            	  ptVolElem = *it;
-            	  break;
-          	}
-          }
-      }
-    } // loop over volume element neighbors
-
-    // check, if element could be found
-    if (!ptVolElem) {
-      EXCEPTION(
-          "Could not find a suitable volume neighbor for surface element #" << surfElem.elemNum << ". ");
-    }
-
-    // create new local point for volume element
-    lpmVol.reset(new LocPointMapped());
-    esmVol = shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
-        shapeMap->IsUpdated(),true);
-  } else {
-    esmVol = lpmVol->shapeMap;
-  } // elemIsSame
-
-  LocPoint lpVol;
-  Vector<Double> locNormal;
-  esmVol->GetLocalIntPoints4Surface(ptEl->connect, lp, lpVol, locNormal);
-  lpmVol->Set(lpVol, esmVol, weight);
-
-  // calculate global normal pointing out of current volume element
-  normal = Transpose(lpmVol->jacInv) * locNormal;
-  normal /= normal.NormL2();
 }
 
 Vector<double>& LocPointMapped::GetGlobal(Vector<double>& coord, const LocPoint* loc, bool fallback, bool update) const

@@ -160,8 +160,250 @@ namespace CoupledField {
     }
   }
 
-  
-  
+  void FeH1LagrangeExpl::MapQuadSurfOrientation(const std::map<UInt, UInt>& commonIndexMap, 
+                                               const StdVector<UInt>& commonIndex, 
+                                               const LocPoint& surfIntPoint, 
+                                               StdVector<Double>& volIntPoint) {
+    // consider orientation of the surface
+    switch (commonIndexMap.at(commonIndex[0])) {
+      // first index is 1
+      case 1: {
+        switch (commonIndexMap.at(commonIndex[1])) {
+          case 2: {
+            // Orientation [1,2,3,4]:
+            volIntPoint[0] = surfIntPoint[0];
+            volIntPoint[1] = surfIntPoint[1];
+            break;
+          }
+          case 4: {
+            // Orientation [1,4,3,2]:
+            // here the surface needs to be flipped along the 1-3 line
+            volIntPoint[0] = surfIntPoint[1];
+            volIntPoint[1] = surfIntPoint[0];
+            break;
+          }
+          default:
+            EXCEPTION("FeH1LagrangeExpl::MapQuadSurfOrientation: Unexpected orientation of surface element!");
+        }
+        break;
+      }
+      // first index is 2
+      case 2: {
+        switch (commonIndexMap.at(commonIndex[1])) {
+          case 3: {
+            // Orientation [2,3,4,1]:
+            // here the surface needs to be rotated by 90° counter-clockwise
+            volIntPoint[0] = -surfIntPoint[1];
+            volIntPoint[1] = surfIntPoint[0];
+            break;
+          }
+          case 1: {
+            // Orientation [2,1,4,3]:
+            // here the surface needs to be flipped left-to-right
+            volIntPoint[0] = -surfIntPoint[0];
+            volIntPoint[1] = surfIntPoint[1];
+            break;
+          }
+          default:
+            EXCEPTION("FeH1LagrangeExpl::MapQuadSurfOrientation: Unexpected orientation of surface element!");
+        }
+        break;
+      }
+      // first index is 3
+      case 3: {
+        switch (commonIndexMap.at(commonIndex[1])) {
+          case 4: {
+            // Orientation [3,4,1,2]:
+            // here the surface needs to be rotated by 180°
+            volIntPoint[0] = -surfIntPoint[0];
+            volIntPoint[1] = -surfIntPoint[1];
+            break;
+          }
+          case 2: {
+            // Orientation [3,2,1,4]:
+            // here the surface needs to be flipped along the 2-4 line
+            volIntPoint[0] = -surfIntPoint[1];
+            volIntPoint[1] = -surfIntPoint[0];
+            break;
+          }
+          default:
+            EXCEPTION("FeH1LagrangeExpl::MapQuadSurfOrientation: Unexpected orientation of surface element!");
+        }
+        break;
+      }
+      // first index is 4
+      case 4: {
+        switch (commonIndexMap.at(commonIndex[1])) {
+          case 1: {
+            // Orientation [4,1,2,3]:
+            // here the surface needs to be rotated by 90° clockwise
+            volIntPoint[0] = surfIntPoint[1];
+            volIntPoint[1] = -surfIntPoint[0];
+            break;
+          }
+          case 3: {
+            // Orientation [4,3,2,1]:
+            // here the surface needs to be flipped up-to-down
+            volIntPoint[0] = surfIntPoint[0];
+            volIntPoint[1] = -surfIntPoint[1];
+            break;
+          }
+          default:
+            EXCEPTION("FeH1LagrangeExpl::MapQuadSurfOrientation: Unexpected orientation of surface element!");
+        }
+        break;
+      }
+      default:
+        EXCEPTION("FeH1LagrangeExpl::MapQuadSurfOrientation: Unexpected orientation of surface element!");
+    }
+  }
+
+  void FeH1LagrangeExpl::MapTriaSurfOrientation(const std::map<UInt, UInt>& commonIndexMap, 
+                                                const StdVector<UInt>& commonIndex, 
+                                                const LocPoint& surfIntPoint, 
+                                                StdVector<Double>& volIntPoint,
+                                                bool isEquilateral) {
+    if (!isEquilateral) {
+      // consider orientation of the rectangular triangles
+      switch (commonIndexMap.at(commonIndex[0])) {
+        // first index is 1
+        case 1: {
+          switch (commonIndexMap.at(commonIndex[1])) {
+            case 2: {
+              // Orientation [1,2,3]:
+              volIntPoint[0] = surfIntPoint[0];
+              volIntPoint[1] = surfIntPoint[1];
+              break;
+            }
+            case 3: {
+              // Orientation [1,3,2]:
+              // here 2 and 3 are flipped
+              volIntPoint[0] = surfIntPoint[1];
+              volIntPoint[1] = surfIntPoint[0];
+              break;
+            }
+            default:
+              EXCEPTION("FeH1LagrangeExpl::MapTriaSurfOrientation: Unexpected orientation of surface element!");
+          }
+          break;
+        }
+        // first index is 2
+        case 2: {
+          switch (commonIndexMap.at(commonIndex[1])) {
+            case 1: {
+              // Orientation [2,1,3]:
+              // here we flip left and right and shear by (-eta', 1) afterwards
+              volIntPoint[0] = 1 - surfIntPoint[0] - surfIntPoint[1];
+              volIntPoint[1] = surfIntPoint[1];
+              break;
+            }
+            case 3: {
+              // Orientation [2,3,1]:
+              // here we shear +(1,xi), rotate 90° counter-clockwise, and add (0,1)
+              volIntPoint[0] = - surfIntPoint[0] - surfIntPoint[1] + 1.0;
+              volIntPoint[1] = surfIntPoint[0];
+              break;
+            }
+            default:
+              EXCEPTION("FeH1LagrangeExpl::MapTriaSurfOrientation: Unexpected orientation of surface element!");
+          }
+          break;
+        }
+        // first index is 3
+        case 3: {
+          switch (commonIndexMap.at(commonIndex[1])) {
+            case 1: {
+              // Orientation [3,1,2]:
+              // here we rotate by -90°, add (0,1), and shear by (1, -xi') afterwards
+              volIntPoint[0] = surfIntPoint[1];
+              volIntPoint[1] = 1 - surfIntPoint[0] - surfIntPoint[1];
+              break;
+            }
+            case 2: {
+              // Orientation [3,2,1]:
+              // here we flip up-down and shear by (1, -xi') afterwards
+              volIntPoint[0] = surfIntPoint[0];
+              volIntPoint[1] = 1 - surfIntPoint[0] - surfIntPoint[1];
+              break;
+            }
+            default:
+              EXCEPTION("FeH1LagrangeExpl::MapTriaSurfOrientation: Unexpected orientation of surface element!");
+          }
+          break;
+        }
+        default:
+          EXCEPTION("FeH1LagrangeExpl::MapTriaSurfOrientation: Unexpected orientation of surface element!");
+      }
+    } else { //!isEquilateral
+      // here we need to map the standard triangle to the equilateral triangle with coords 1: (-1,0), 2: (1,0), 3: (0,sqrt(3))
+      // consider orientation of the equilateral triangles
+      switch (commonIndexMap.at(commonIndex[0])) {
+        // first index is 1
+        case 1: {
+          switch (commonIndexMap.at(commonIndex[1])) {
+            case 2: {
+              // Orientation [1,2,3]:
+              volIntPoint[0] = 2.0 * surfIntPoint[0] + surfIntPoint[1] - 1.0;
+              volIntPoint[1] = sqrt(3.0) * surfIntPoint[1];
+              break;
+            }
+            case 3: {
+              // Orientation [1,3,2]:
+              volIntPoint[0] = 2.0 * surfIntPoint[1] + surfIntPoint[0] - 1.0;
+              volIntPoint[1] = sqrt(3.0) * surfIntPoint[0];
+              break;
+            }
+            default:
+              EXCEPTION("FeH1LagrangeExpl::MapTriaSurfOrientation: Unexpected orientation of surface element!");
+          }
+          break;
+        }
+        // first index is 2
+        case 2: {
+          switch (commonIndexMap.at(commonIndex[1])) {
+            case 1: {
+              // Orientation [2,1,3]:
+              volIntPoint[0] = -2.0 * surfIntPoint[0] - surfIntPoint[1] + 1.0;
+              volIntPoint[1] = sqrt(3.0) * surfIntPoint[1];
+              break;
+            }
+            case 3: {
+              // Orientation [2,3,1]:
+              volIntPoint[0] = -2.0 * surfIntPoint[1] - surfIntPoint[0] + 1.0;
+              volIntPoint[1] = sqrt(3.0) * surfIntPoint[0];
+              break;
+            }
+            default:
+              EXCEPTION("FeH1LagrangeExpl::MapTriaSurfOrientation: Unexpected orientation of surface element!");
+          }
+          break;
+        }
+        // first index is 3
+        case 3: {
+          switch (commonIndexMap.at(commonIndex[1])) {
+            case 1: {
+              // Orientation [3,1,2]:
+              volIntPoint[0] = surfIntPoint[1] - surfIntPoint[0];
+              volIntPoint[1] = sqrt(3.0) * (1.0 - surfIntPoint[0] - surfIntPoint[1]);
+              break;
+            }
+            case 2: {
+              // Orientation [3,2,1]:
+              volIntPoint[0] = surfIntPoint[0] - surfIntPoint[1];
+              volIntPoint[1] = sqrt(3.0) * (1.0 - surfIntPoint[0] - surfIntPoint[1]);
+              break;
+            }
+            default:
+              EXCEPTION("FeH1LagrangeExpl::MapTriaSurfOrientation: Unexpected orientation of surface element!");
+          }
+          break;
+        }
+        default:
+          EXCEPTION("FeH1LagrangeExpl::MapTriaSurfOrientation: Unexpected orientation of surface element!");
+      } //switch (commonIndexMap.at(commonIndex[0]))
+    } //if(!isEquilateral)
+  }
+
   // ========================================================================
   //  Lagrangian Elements of 1st order
   // ========================================================================
@@ -285,8 +527,7 @@ namespace CoupledField {
     //   |  \      | 
     // 1 +---+ 2   +--> xi
 
-
-
+    // Node coords: 1: (0,0), 2: (1,0), 3: (0,1)
     // NOTE: Since the line element is defined in the range [-1;+1]
     // we have to calculate (1+surfCoord)/2 in order to get the right
     // position on the triangular element
@@ -294,26 +535,29 @@ namespace CoupledField {
     StdVector<UInt> commonIndex(2);
     UInt found = 0;
     UInt indexProduct = 0;
-    std::string errMsg;
 
     volIntPoint.coord.Resize(2);
     locNormal.Resize(2);
 
     // loop over surface connect
-    for (UInt iSurf=0; iSurf<2; iSurf++)
+    for (UInt iSurf=0; iSurf<2; iSurf++) {
       // loop over volume connect
-      for (UInt iVol=0; iVol<3; iVol++)
+      for (UInt iVol=0; iVol<3; iVol++) {
         if (surfConnect[iSurf] == volConnect[iVol])
-        {
           commonIndex[found++] = iVol+1;
-        }
+      }
+    }
 
     indexProduct= commonIndex[0] * commonIndex[1];
     switch(indexProduct)
     {
       case 2:
         // Edge[1,2] is common
-        volIntPoint[0] = 0.5 + (surfIntPoint[0] / 2.0);
+        if (commonIndex[0] == 1) {
+          volIntPoint[0] = 0.5 + (surfIntPoint[0] / 2.0);
+        } else {
+          volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
+        }
         volIntPoint[1] = 0.0;
         locNormal[0] = 0;
         locNormal[1] = -1.0;
@@ -322,15 +566,24 @@ namespace CoupledField {
       case 3:
         // Edge[1,3] is common
         volIntPoint[0] = 0.0;
-        volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+        if (commonIndex[0] == 1) {
+          volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+        } else {
+          volIntPoint[1] = 0.5 - (surfIntPoint[0] / 2.0);
+        }
         locNormal[0] = -1.0;
         locNormal[1] =  0.0;
         break;
 
       case 6:
         // Edge[2,3] is common
-        volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
-        volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+        if (commonIndex[0] == 2) {
+          volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
+          volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
+        } else {
+          volIntPoint[0] = 0.5 + (surfIntPoint[0] / 2.0);
+          volIntPoint[1] = 0.5 - (surfIntPoint[0] / 2.0);
+        }
         locNormal[0] = sqrt(.5);
         locNormal[1] = sqrt(.5);
         break;
@@ -462,97 +715,91 @@ namespace CoupledField {
   }
   
   void FeH1LagrangeQuad::
-  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                            const StdVector<UInt> & volConnect,
-                            const LocPoint & surfIntPoint,
-                            LocPoint & volIntPoint,
-                            Vector<Double>& locNormal ) {
+    GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                              const StdVector<UInt> & volConnect,
+                              const LocPoint & surfIntPoint,
+                              LocPoint & volIntPoint,
+                              Vector<Double>& locNormal ) {
     // Try to find out, which vertices are in common with
-      // the surface element. Then calculate the product of both
-      // and compare them
-      //
-      //      eta
-      //       ^
-      // 4 +---|---+ 3    
-      //   |   |   |      
-      //   |   0---|-> xi     REFERENCE VOLUME ELEMENT
-      //   |       |
-      // 1 +-------+ 2
+    // the surface element. Then calculate the product of both
+    // and compare them
+    //
+    //      eta
+    //       ^
+    // 4 +---|---+ 3    
+    //   |   |   |      
+    //   |   0---|-> xi     REFERENCE VOLUME ELEMENT
+    //   |       |
+    // 1 +-------+ 2
+    //
+    // Node coords: 1: (-1,-1), 2: (1,-1), 3: (1,1), 4: (-1,1)
 
+    StdVector<UInt> commonIndex(2);
+    UInt found = 0;
+    UInt indexProduct = 0;
+  
+    volIntPoint.coord.Resize(2);
+    locNormal.Resize(2);
+  
+    // loop over surface connect
+    for (UInt iSurf=0; iSurf<2; iSurf++) {
+      // loop over volume connect
+      for (UInt iVol=0; iVol<4; iVol++) {
+        if (surfConnect[iSurf] == volConnect[iVol])
+          commonIndex[found++] = iVol+1;
+      }
+    }
 
-
-      StdVector<UInt> commonIndex(2);
-      UInt found = 0;
-      UInt indexProduct = 0;
-      std::string errMsg;
-    
-      volIntPoint.coord.Resize(2);
-      locNormal.Resize(2);
-    
-      // loop over surface connect
-      for (UInt iSurf=0; iSurf<2; iSurf++)
-        // loop over volume connect
-        for (UInt iVol=0; iVol<4; iVol++)
-          if (surfConnect[iSurf] == volConnect[iVol])
-            {
-              commonIndex[found++] = iVol+1;
-            }
-
-      indexProduct= commonIndex[0] * commonIndex[1];
-      switch(indexProduct)
-        {
-        case 2:
-          // Edge[1,2] is common
-          if(commonIndex[0] == 2){
-            volIntPoint[0] = surfIntPoint[0]*-1.0;
-          }else{
-            volIntPoint[0] = surfIntPoint[0];
-          }
-          volIntPoint[1] = -1.0;
-          locNormal[0] =  0.0;
-          locNormal[1] = -1.0;
-          break;
-
-        case 12:
-          // Edge[4,3] is common
-          if(commonIndex[0] == 3){
-            volIntPoint[0] = surfIntPoint[0]*-1.0;
-          }else{
-            volIntPoint[0] = surfIntPoint[0];
-          }
-          volIntPoint[1] = 1.0;
-          locNormal[0] =  0.0;
-          locNormal[1] =  1.0;
-          break;
-
-        case 4:
-          // Edge[1,4] is common
-          if(commonIndex[0] == 4){
-            volIntPoint[1] = surfIntPoint[0]*-1.0;
-          }else{
-            volIntPoint[1] = surfIntPoint[0];
-          }
-          volIntPoint[0] = -1.0;
-          locNormal[0] = -1.0;
-          locNormal[1] =  0.0;
-          break;
-
-        case 6:
-          // Edge[2,3] is common
-          if(commonIndex[0] == 3){
-            volIntPoint[1] = surfIntPoint[0]*-1.0;
-          }else{
-            volIntPoint[1] = surfIntPoint[0];
-          }
-          volIntPoint[0] = 1.0;
-          locNormal[0] =  1.0;
-          locNormal[1] =  0.0;
-          break;
-
-        default:
-          EXCEPTION( "RectangleFE::GetLocalIntPoints4Surface: surface and volume element "
-                     <<  "have not two nodes in common. Check your .mesh-file.");
-        }
+    indexProduct= commonIndex[0] * commonIndex[1];
+    switch(indexProduct) {
+      case 2: {
+        // Edge[1,2] is common
+        if(commonIndex[0] == 2)
+          volIntPoint[0] = -surfIntPoint[0];
+        else
+          volIntPoint[0] = surfIntPoint[0];
+        volIntPoint[1] = -1.0;
+        locNormal[0] =  0.0;
+        locNormal[1] = -1.0;
+        break;
+      }
+      case 12: {
+        // Edge[4,3] is common
+        if(commonIndex[0] == 3)
+          volIntPoint[0] = -surfIntPoint[0];
+        else
+          volIntPoint[0] = surfIntPoint[0];
+        volIntPoint[1] = 1.0;
+        locNormal[0] =  0.0;
+        locNormal[1] =  1.0;
+        break;
+      }
+      case 4: {
+        // Edge[1,4] is common
+        if(commonIndex[0] == 4)
+          volIntPoint[1] = -surfIntPoint[0];
+        else
+          volIntPoint[1] = surfIntPoint[0];
+        volIntPoint[0] = -1.0;
+        locNormal[0] = -1.0;
+        locNormal[1] =  0.0;
+        break;
+      }
+      case 6: {
+        // Edge[2,3] is common
+        if(commonIndex[0] == 3)
+          volIntPoint[1] = -surfIntPoint[0];
+        else
+          volIntPoint[1] = surfIntPoint[0];
+        volIntPoint[0] = 1.0;
+        locNormal[0] =  1.0;
+        locNormal[1] =  0.0;
+        break;
+      }
+      default:
+        EXCEPTION( "RectangleFE::GetLocalIntPoints4Surface: surface and volume element "
+                    <<  "have not two nodes in common. Check your mesh-file.");
+    }
   }
   
   void FeH1LagrangeQuad1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
@@ -704,13 +951,13 @@ namespace CoupledField {
            ( eta <= (1.0 + tolerance)) &&
            (zeta <= (1.0 + tolerance));  
   }
-  
+
   void FeH1LagrangeHex::
-  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-                            const StdVector<UInt> & volConnect,
-                            const LocPoint & surfIntPoint,
-                            LocPoint & volIntPoint,
-                            Vector<Double>& locNormal ) {
+    GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                              const StdVector<UInt> & volConnect,
+                              const LocPoint & surfIntPoint,
+                              LocPoint & volIntPoint,
+                              Vector<Double>& locNormal ) {
 
     // Try to find out, which vertices are in common with
     // the surface element. Then calculate the product of all four
@@ -720,106 +967,120 @@ namespace CoupledField {
     //                     ^ eta 
     //    8 +-------+ 7    |/
     //     /|      /|      0--> xi 
-   //    / |     / |
+    //    / |     / |
     // 5 +--+----+6 |   
     //   |  +-- -|- + 3    
     //   | / 4   | /    REFERENCE VOLUME ELEMENT
     //   |/      |/
     // 1 +-------+ 2
-
-
+    //
+    // Node coords: 1: (-1,-1,-1), 2: (1,-1,-1), 3: (1,1,-1), 4: (-1,1,-1),
+    //              5: (-1,-1,1), 6: (1,-1,1), 7: (1,1,1), 8: (-1,1,1)
 
     StdVector<UInt> commonIndex(4);
     UInt found = 0;
     UInt indexProduct = 0;
-    std::string errMsg;
-  
+
     volIntPoint.coord.Resize(3);
     locNormal.Resize(3);
-  
-    // loop over surface connect
-    for (UInt iSurf=0; iSurf<4; iSurf++)
-      // loop over volume connect
-      for (UInt iVol=0; iVol<8; iVol++)
-        if (surfConnect[iSurf] == volConnect[iVol])
-          {
-            commonIndex[found++] = iVol+1;
-          }
 
-    // std::cerr << std::endl << std::endl;
-    //std::cerr << "commonIndex = " << std::endl << commonIndex << std::endl << std::endl;
+    // loop over surface connect
+    for (UInt iSurf=0; iSurf<4; iSurf++) {
+      // loop over volume connect
+      for (UInt iVol=0; iVol<8; iVol++) {
+        if (surfConnect[iSurf] == volConnect[iVol])
+          commonIndex[found++] = iVol+1;
+      }
+    }
+
     indexProduct =  commonIndex[0] * commonIndex[1];
     indexProduct *= commonIndex[2] * commonIndex[3];
 
-    //std::cerr << "indexProduct = " << indexProduct << std::endl;
-    switch(indexProduct)
-      {
-      case 24:
-        // Surface[1,2,3,4] is common
-        volIntPoint[0] = surfIntPoint[0];
-        volIntPoint[1] = surfIntPoint[1];
+    switch (indexProduct) {
+      // Surface [1,2,3,4] is common: downside surface, normal in -zeta direction
+      case 24: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {3, 3}, {4, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = tmpVolIntPoint[1];
         volIntPoint[2] = -1.0;
         locNormal[0] =  0.0;
         locNormal[1] =  0.0;
         locNormal[2] = -1.0;
         break;
-
-      case 1680:
-        // Surface[5,6,7,8] is common
-        volIntPoint[0] = surfIntPoint[0];
-        volIntPoint[1] = surfIntPoint[1];
+      }
+      // Surface [5,6,7,8] is common: upside surface normal in +zeta direction
+      case 1680: {
+        const std::map<UInt, UInt> commonIndexMap{{5, 1}, {6, 2}, {7, 3}, {8, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = tmpVolIntPoint[1];
         volIntPoint[2] = 1.0;
         locNormal[0] =  0.0;
         locNormal[1] =  0.0;
         locNormal[2] =  1.0;
         break;
-
-      case 252:
-        // Surface[2,3,7,6] is common
+      }
+      // Surface [2,3,7,6] is common: right-side surface, normal in +xi direction
+      case 252: {
+        const std::map<UInt, UInt> commonIndexMap{{2, 1}, {3, 2}, {7, 3}, {6, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = 1.0;
-        volIntPoint[1] = surfIntPoint[0];
-        volIntPoint[2] = surfIntPoint[1];
+        volIntPoint[1] = tmpVolIntPoint[0];
+        volIntPoint[2] = tmpVolIntPoint[1];
         locNormal[0] =  1.0;
         locNormal[1] =  0.0;
         locNormal[2] =  0.0;
         break;
-      
-      case 160:
-        // Surface[1,5,8,4] is common
+      }
+      // Surface [1,4,8,5] is common: left-side surface, normal in -xi direction
+      case 160: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {4, 2}, {8, 3}, {5, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
         volIntPoint[0] = -1.0;
-        volIntPoint[1] = surfIntPoint[0];
-        volIntPoint[2] = surfIntPoint[1];
+        volIntPoint[1] = tmpVolIntPoint[0];
+        volIntPoint[2] = tmpVolIntPoint[1];
         locNormal[0] = -1.0;
         locNormal[1] =  0.0;
         locNormal[2] =  0.0;
         break;
-      
-      case 672:
-        // Surface[4,3,7,8] is common
-        volIntPoint[0] = surfIntPoint[0];
+      }
+      // Surface[4,3,7,8] is common: back-side surface, normal in +eta direction
+      case 672: {
+        const std::map<UInt, UInt> commonIndexMap{{4, 1}, {3, 2}, {7, 3}, {8, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = 1.0;
-        volIntPoint[2] = surfIntPoint[1];
+        volIntPoint[2] = tmpVolIntPoint[1];
         locNormal[0] =  0.0;
         locNormal[1] =  1.0;
         locNormal[2] =  0.0;
         break;
-      
-      case 60:
-        // Surface[1,2,6,5] is common
-        volIntPoint[0] = surfIntPoint[0];
+      }
+      // Surface[1,2,6,5] is common: front-side surface, normal in -eta direction
+      case 60: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {6, 3}, {5, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
         volIntPoint[1] = -1.0;
-        volIntPoint[2] = surfIntPoint[1];
+        volIntPoint[2] = tmpVolIntPoint[1];
         locNormal[0] =  0.0;
         locNormal[1] = -1.0;
         locNormal[2] =  0.0;
         break;
-      
+      }
       default:
         EXCEPTION("HexaFE::GetLocalIntPoints4Surface: surface and volume element "
                   << "have not four nodes in common. Check your .mesh-file.");
-      }
-   }
-  
+    }
+  }
+
   void FeH1LagrangeHex1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
     //TODO: check orientation!
     triConnect.Resize(6);
@@ -938,7 +1199,7 @@ namespace CoupledField {
                             Vector<Double>& locNormal ) {
 
     // Try to find out, which vertices are in common with
-    // the surface element. Then calculate the product of all four
+    // the surface element. Then calculate the sum of all four
     // and compare them
     //      + 6    
     //     /|\
@@ -948,125 +1209,104 @@ namespace CoupledField {
     //   | / \  |           0--> xi
     //   |/    \|   
     // 1 +------+ 2
+    //
+    // Node coords: 1: (0,0,-1), 2: (1,0,-1), 3: (0,1,-1), 4: (0,0,1), 5: (1,0,1), 6: (0,1,1)
 
-    // Check if surface element is triangle 
-    // or quadrilateral
-    if (surfConnect.GetSize() == 3 ||
-        surfConnect.GetSize() == 6) 
-    {
-      // ---- Triangle Surface ---
-      StdVector<Integer> commonIndex(3);
-      Integer found = 0;
-      Integer indexSum = 0;
-      std::string errMsg;
+    // Check if surface element is triangle or quadrilateral
+    UInt numNodes;
+    if (surfConnect.GetSize() == 3 || surfConnect.GetSize() == 6)
+      numNodes = 3;
+    else
+      numNodes = 4;
 
-      volIntPoint.coord.Resize(3);
-      locNormal.Resize(3);
+    StdVector<UInt> commonIndex(numNodes);
+    UInt found = 0;
+    UInt indexSum = 0;
+    volIntPoint.coord.Resize(3);
+    locNormal.Resize(3);
 
-      // loop over surface connect
-      for (Integer iSurf=0; iSurf<3; iSurf++)
-        // loop over volume connect
-        for (Integer iVol=0; iVol<6; iVol++)
-          if (surfConnect[iSurf] == volConnect[iVol])
-          {
-            commonIndex[found++] = iVol+1;
-          }
-
-
-      indexSum =  commonIndex[0] + commonIndex[1] + commonIndex[2];
-
-      switch(indexSum)
-      {
-        case 6:
-          // Surface[1,2,3] is common
-          volIntPoint[0] = surfIntPoint[0];
-          volIntPoint[1] = surfIntPoint[1];
-          volIntPoint[2] = -1.0;
-          locNormal[0] =  0.0;
-          locNormal[1] =  0.0;
-          locNormal[2] = -1.0;
-          break;
-
-        case 15:
-          // Surface[4,5,6] is common
-          volIntPoint[0] = surfIntPoint[0];
-          volIntPoint[1] = surfIntPoint[1];
-          volIntPoint[2] = 1.0;
-          locNormal[0] =  0.0;
-          locNormal[1] =  0.0;
-          locNormal[2] =  1.0;
-          break;
-
-        default:
-          EXCEPTION( "WedgeFE::GetLocalIntPoints4Surface: surface and volume element "
-              << "have not three nodes in common. Check your .mesh-file.");
+    // loop over surface connect
+    for (UInt iSurf=0; iSurf<numNodes; iSurf++) {
+      // loop over volume connect
+      for (UInt iVol=0; iVol<6; iVol++) {
+        if (surfConnect[iSurf] == volConnect[iVol]) {
+          commonIndex[found] = iVol+1;
+          indexSum +=  commonIndex[found++];
+        }
       }
+    }
 
-    } else {
-      // ---- Quadrilateral Surface ---
-      StdVector<Integer> commonIndex(4);
-      Integer found = 0;
-      Integer indexSum = 0;
-      std::string errMsg;
-
-      volIntPoint.coord.Resize(3);
-      locNormal.Resize(3);
-
-      // loop over surface connect
-      for (Integer iSurf=0; iSurf<4; iSurf++)
-        // loop over volume connect
-        for (Integer iVol=0; iVol<6; iVol++)
-          if (surfConnect[iSurf] == volConnect[iVol])
-          {
-            commonIndex[found++] = iVol+1;
-          }
-
-
-      indexSum = 
-          commonIndex[0] + commonIndex[1] 
-          + commonIndex[2] + commonIndex[3];
-
-      // NOTE: Since the line quad-element is defined in the range [-1;+1]
-      // we have to calculate (1+surfCoord)/2 in order to get the right
-      // position on the wedge element
-
-      switch(indexSum)
-      {
-        case 16:
-          // Surface[2,3,5,6] is common
-          volIntPoint[0] = 0.5 - (surfIntPoint[0] / 2.0);
-          volIntPoint[1] = 0.5 + (surfIntPoint[0] / 2.0);
-          volIntPoint[2] = surfIntPoint[1];
-          locNormal[0] = sqrt(.5);
-          locNormal[1] = sqrt(.5);
-          locNormal[2] = 0.0;
-          break;
-
-        case 14:
-          // Surface[1,3,4,6] is common
-          volIntPoint[0] = 0.0;
-          volIntPoint[1] = 0.5 * (1 + surfIntPoint[0]);
-          volIntPoint[2] = 0.5 * (1 + surfIntPoint[1]);
-          locNormal[0] = -1.0;
-          locNormal[1] =  0.0;
-          locNormal[2] =  0.0;
-          break;
-
-        case 12:
-          // Surface[1,2,4,5] is common
-          volIntPoint[0] = 0.5 * (1 + surfIntPoint[1]);
-          volIntPoint[1] = 0.0;
-          volIntPoint[2] = 0.5 * (1 + surfIntPoint[0]);
-          locNormal[0] =  0.0;
-          locNormal[1] = -1.0;
-          locNormal[2] =  0.0;
-          break;
-
-        default:
-          EXCEPTION("WedgeFE::GetLocalIntPoints4Surface: surface and volume element "
-              << "have not four nodes in common. Check your .mesh-file.");
-      } // switch
-    } // if
+    switch(indexSum) {
+      // Surface[1,2,3] is common: downside triangular surface, normal in -zeta direction
+      case 6: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {3, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = tmpVolIntPoint[1];
+        volIntPoint[2] = -1.0;
+        locNormal[0] = 0.0;
+        locNormal[1] = 0.0;
+        locNormal[2] = -1.0;
+        break;
+      }
+      // Surface[4,5,6] is common: upside triangular surfa, normal in +zeta direction
+      case 15: {
+        const std::map<UInt, UInt> commonIndexMap{{4, 1}, {5, 2}, {6, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = tmpVolIntPoint[1];
+        volIntPoint[2] = 1.0;
+        locNormal[0] = 0.0;
+        locNormal[1] = 0.0;
+        locNormal[2] = 1.0;
+        break;
+      }
+      // Surface[2,3,5,6] is common: right-side quadrilateral surface, normal in +xi+eta direction
+      case 16: {
+        const std::map<UInt, UInt> commonIndexMap{{3, 1}, {2, 2}, {5, 3}, {6, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = 0.5 + tmpVolIntPoint[0] / 2.0;
+        volIntPoint[1] = 0.5 - tmpVolIntPoint[0] / 2.0;
+        volIntPoint[2] = tmpVolIntPoint[1];
+        locNormal[0] = sqrt(0.5);
+        locNormal[1] = sqrt(0.5);
+        locNormal[2] = 0.0;
+        break;
+      }
+      // Surface[1,3,6,4] is common: left-side quadrilateral surface, normal in -xi direction
+      case 14: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {3, 2}, {6, 3}, {4, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = 0.0;
+        volIntPoint[1] = 0.5 + tmpVolIntPoint[0] / 2.0;
+        volIntPoint[2] = tmpVolIntPoint[1];
+        locNormal[0] = -1.0;
+        locNormal[1] = 0.0;
+        locNormal[2] = 0.0;
+        break;
+      }
+      // Surface[1,2,5,4] is common: back-side quadrilateral surface, normal in -eta direction
+      case 12: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {5, 3}, {4, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = 0.5 + tmpVolIntPoint[0] / 2.0;
+        volIntPoint[1] = 0.0;
+        volIntPoint[2] = tmpVolIntPoint[1];
+        locNormal[0] = 0.0;
+        locNormal[1] = -1.0;
+        locNormal[2] = 0.0;
+        break;
+      }
+      default:
+        EXCEPTION("FeH1LagrangeWedge::GetLocalIntPoints4Surface: surface "
+            << "and volume element have not the expected nodes in common. "
+            << "Check your mesh file.");
+    }
   }
   
   void FeH1LagrangeWedge1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
@@ -2168,100 +2408,108 @@ namespace CoupledField {
       return isInside;
     }
 
-    void FeH1LagrangeTet::
-    GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-    		const StdVector<UInt> & volConnect,
-    		const LocPoint & surfIntPoint,
-    		LocPoint & volIntPoint,
-    		Vector<Double>& locNormal ) {
+  void FeH1LagrangeTet::
+  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                            const StdVector<UInt> & volConnect,
+                            const LocPoint & surfIntPoint,
+                            LocPoint & volIntPoint,
+                            Vector<Double>& locNormal ) {
 
-    	// Try to find out, which vertices are in common with
-    	// the surface element. Then calculate the product of all four
-    	// and compare them
-    	//
-    	//
-    	// 4+\
-    	//  |\ \           zeta
-    	//  | \  \ 	      ^ eta
-    	//  |  \  +3	      |/
-    	//  |   \ |	      0--> xi
-    	//  |    \ \
-    	//  |     \|     REFERENCE TETRAHEDRAL ELEMENT
-    	//  +------+
-    	//  1      2
+    // Try to find out, which vertices are in common with
+    // the surface element. Then calculate the product of all four
+    // and compare them
+    //
+    //
+    // 4+\
+    //  |\\         zeta
+    //  | \ \       ^ eta
+    //  |  \ +3     |/
+    //  |   \ |     0--> xi
+    //  |    \ \
+    //  |     \|     REFERENCE TETRAHEDRAL ELEMENT
+    //  +------+
+    //  1      2
+    //
+    // Node coords: 1:(0,0,0), 2:(1,0,0), 3:(0,1,0), 4:(0,0,1)
 
-    	volIntPoint.coord.Resize(3);
-    	locNormal.Resize(3);
+    StdVector<UInt> commonIndex(3);
+    UInt found = 0;
+    UInt indexProduct = 0;
+    volIntPoint.coord.Resize(3);
+    locNormal.Resize(3);
 
-    	StdVector<UInt> commonIndex(3);
-    	UInt found = 0;
-    	UInt indexProduct = 0;
-    	std::string errMsg;
-
-    	// loop over surface connect
-    	for (UInt iSurf=0; iSurf<3; iSurf++)
-    		// loop over volume connect
-    		for (UInt iVol=0; iVol<4; iVol++)
-    			if (surfConnect[iSurf] == volConnect[iVol])
-    			{
-    				commonIndex[found++] = iVol+1;
-    			}
-
-    	indexProduct =  commonIndex[0] * commonIndex[1] * commonIndex[2];
-
-    	//std::cerr << "indexProduct = " << indexProduct << std::endl;
-    	switch(indexProduct)
-    	{
-    	case 8:
-    		// Surface[1,2,4] is common
-    		volIntPoint[0] = surfIntPoint[0];
-    		volIntPoint[1] = 0.0;
-    		volIntPoint[2] = surfIntPoint[1];
-
-    		locNormal[0] =  0.0;
-    		locNormal[1] = -1.0;
-    		locNormal[2] =  0.0;
-    		break;
-
-    	case 24:
-    		// Surface[2,3,4] is common
-    		volIntPoint[0] = surfIntPoint[0];
-    		volIntPoint[1] = surfIntPoint[1];
-    		volIntPoint[2] = 1.0 - surfIntPoint[0] - surfIntPoint[1];
-
-    		locNormal[0] =  1.0;
-    		locNormal[1] =  1.0;
-    		locNormal[2] =  1.0;
-    		break;
-
-    	case 12:
-    		// Surface[1,3,4] is common
-    		volIntPoint[0] = 0.0;
-    		volIntPoint[1] = surfIntPoint[0];
-    		volIntPoint[2] = surfIntPoint[1];
-
-    		locNormal[0] = -1.0;
-    		locNormal[1] =  0.0;
-    		locNormal[2] =  0.0;
-    		break;
-
-    	case 6:
-    		// Surface[1,2,3] is common
-    		volIntPoint[0] = surfIntPoint[0];
-    		volIntPoint[1] = surfIntPoint[1];
-    		volIntPoint[2] = 0.0;
-
-    		locNormal[0] =  0.0;
-    		locNormal[1] =  0.0;
-    		locNormal[2] = -1.0;
-    		break;
-    	default:
-    		EXCEPTION("FeH1LagrangeTet::GetLocalIntPoints4Surface: surface "
-    				<< "and volume element have not three nodes in common. "
-    				<< "Check your .mesh-file.");
-    		break;
-    	}
+    // loop over surface connect
+    for (UInt iSurf=0; iSurf<3; iSurf++) {
+      // loop over volume connect
+      for (UInt iVol=0; iVol<4; iVol++) {
+        if (surfConnect[iSurf] == volConnect[iVol])
+          commonIndex[found++] = iVol+1;
+      }
     }
+
+    indexProduct =  commonIndex[0] * commonIndex[1] * commonIndex[2];
+
+    switch(indexProduct) {
+      // Surface [1,2,4] is common: front surface, normal in -eta direction
+      case 8: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {4, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = 0.0;
+        volIntPoint[2] = tmpVolIntPoint[1];
+        locNormal[0] =  0.0;
+        locNormal[1] = -1.0;
+        locNormal[2] =  0.0;
+        break;
+      }
+      // Surface [4,2,3] is common: upper-right surface, normal in +xi+eta+zeta direction
+      case 24: {
+        // use mapping algorithm of the standard tria element onto a 2D equilateral triangle with coords 1:(-1,0), 2:(1,0), 3:(0,sqrt(3))
+        const std::map<UInt, UInt> commonIndexMap{{4, 1}, {2, 2}, {3, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
+        // map back to 3D space
+        volIntPoint[0] = (1 + tmpVolIntPoint[0]) / 2.0 - tmpVolIntPoint[1] / sqrt(12.0);
+        volIntPoint[1] = tmpVolIntPoint[1] / sqrt(3.0);
+        volIntPoint[2] = (1 - tmpVolIntPoint[0]) / 2.0 - tmpVolIntPoint[1] / sqrt(12.0);
+        locNormal[0] =  1.0/sqrt(3.0);
+        locNormal[1] =  1.0/sqrt(3.0);
+        locNormal[2] =  1.0/sqrt(3.0);
+        break;
+      }
+      // Surface[1,3,4] is common: upper-left surface, normal in -xi direction
+      case 12: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {3, 2}, {4, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = 0.0;
+        volIntPoint[1] = tmpVolIntPoint[0];
+        volIntPoint[2] = tmpVolIntPoint[1];
+        locNormal[0] = -1.0;
+        locNormal[1] =  0.0;
+        locNormal[2] =  0.0;
+        break;
+      }
+      // Surface[1,2,3] is common: bottom surface, normal in -zeta direction
+      case 6: {
+        const std::map<UInt, UInt> commonIndexMap{{1, 1}, {2, 2}, {3, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = tmpVolIntPoint[1];
+        volIntPoint[2] = 0.0;
+        locNormal[0] =  0.0;
+        locNormal[1] =  0.0;
+        locNormal[2] = -1.0;
+        break;
+      }
+      default:
+        EXCEPTION("FeH1LagrangeTet::GetLocalIntPoints4Surface: surface "
+            << "and volume element have not three nodes in common. "
+            << "Check your .mesh-file.");
+    }
+  }
 
     void FeH1LagrangeTet1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
 
@@ -3164,141 +3412,124 @@ namespace CoupledField {
          return isInside;
      }
 
-     void FeH1LagrangePyra::
-     GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
-     		const StdVector<UInt> & volConnect,
-     		const LocPoint & surfIntPoint,
-     		LocPoint & volIntPoint,
-     		Vector<Double>& locNormal ) {
-    	 // Try to find out, which vertices are in common with
-    	 // the surface element. Then calculate the product of all four
-    	 // and compare them
-    	 //                                   zeta
-    	 //             5                     ^  eta
-    	 //             +                     |/
-    	 //           // \                    0--> xi
-    	 //          // \ \
-    	 //         / / \  \
-    	 //        / /   \  \
-    	 //     2 +-/----\ ---+ 1
-    	 //      / /     \   /
-    	 //     / /      \  /     REFERENCE VOLUME ELEMENT
-    	 //    //        \ /
-    	 //  3+-----------+ 4
-    	 //
+  void FeH1LagrangePyra::
+    GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                              const StdVector<UInt> & volConnect,
+                              const LocPoint & surfIntPoint,
+                              LocPoint & volIntPoint,
+                              Vector<Double>& locNormal ) {
+    // Try to find out, which vertices are in common with
+    // the surface element. Then calculate the product of all four
+    // and compare them
+    //                                   zeta
+    //             5                     ^  eta
+    //             +                     |/
+    //           // \                    0--> xi
+    //          // \ \
+    //         / / \  \
+    //        / /   \  \
+    //     2 +-/----\ ---+ 1
+    //      / /     \   /
+    //     / /      \  /     REFERENCE VOLUME ELEMENT
+    //    //        \ /
+    //  3+-----------+ 4
+    //
+    // Node coords: 1: (1,1,0), 2: (-1,1,0), 3: (-1,-1,0), 4: (1,-1,0), 5: (0,0,1)
 
-         volIntPoint.coord.Resize(3);
-	     locNormal.Resize(3);
+    // Check if surface element is triangle or quadrilateral
+    UInt numNodes;
+    if (surfConnect.GetSize() == 3 || surfConnect.GetSize() == 6)
+      numNodes = 3;
+    else
+      numNodes = 4;
 
-    	 // Check if surface element is triangle
-    	 // or quadrilateral
-    	 if (surfConnect.GetSize() == 3 ||
-    			 surfConnect.GetSize() == 6)
-    	 {
-    		 // ---- Triangle Surface ---
-    		 StdVector<Integer> commonIndex(3);
-    		 Integer found = 0;
-    		 Integer indexProduct = 0;
-    		 std::string errMsg;
+    StdVector<UInt> commonIndex(numNodes);
+    UInt found = 0;
+    UInt indexProduct = 1;
+    volIntPoint.coord.Resize(3);
+    locNormal.Resize(3);
 
-    		 // loop over surface connect
-    		 for (Integer iSurf=0; iSurf<3; iSurf++)
-    			 // loop over volume connect
-    			 for (Integer iVol=0; iVol<5; iVol++)
-    				 if (surfConnect[iSurf] == volConnect[iVol]) {
-    					 commonIndex[found++] = iVol+1;
-    				 }
-    		 indexProduct =  commonIndex[0] * commonIndex[1] * commonIndex[2];
+    // loop over surface connect
+    for (UInt iSurf=0; iSurf<numNodes; iSurf++) {
+      // loop over volume connect
+      for (UInt iVol=0; iVol<5; iVol++) {
+        if (surfConnect[iSurf] == volConnect[iVol]) {
+          commonIndex[found] = iVol+1;
+          indexProduct *=  commonIndex[found++];
+        }
+      }
+    }
 
-    		 // Now we have to consider the following:
-    		 // - The extension of the triangular element is from [0..1] in both
-    		 //   local directions xi and eta
-    		 // - The side length of the base-rectangular side is in each direction
-    		 //   [-1..+1], so we need a mapping in
-    		 // - The
-
-    		 // General rule:
-
-
-    		 switch( indexProduct ) {
-    		 case 10:
-    			 // Surface[1,2,5] is common
-    			 volIntPoint[0] = - 2.0 * (surfIntPoint[0] - 0.5);
-    			 volIntPoint[1] =   1.0 - surfIntPoint[1];
-    			 volIntPoint[2] =   surfIntPoint[1];
-
-			 locNormal[0] =  0;
-                         locNormal[1] = -1;
-                         locNormal[2] =  1;
-    			 break;
-    		 case 30:
-    			 // Surface[2,3,5] is common
-    			 volIntPoint[0] =   surfIntPoint[1] - 1.0;
-    			 volIntPoint[1] = - 2.0 * (surfIntPoint[0] - 0.5);
-    			 volIntPoint[2] =   surfIntPoint[1];
-			 
-			 locNormal[0] =  1;
-                         locNormal[1] =  0;
-                         locNormal[2] =  1;
-			 break;
-    		 case 60:
-    			 // Surface[3,4,5] is common
-    			 volIntPoint[0] =   2.0 * (surfIntPoint[0] - 0.5);
-    			 volIntPoint[1] =   surfIntPoint[1] - 1.0;
-    			 volIntPoint[2] =   surfIntPoint[1];
-			 
-			 locNormal[0] =  0;
-                         locNormal[1] =  1;
-                         locNormal[2] =  1;
-
-    			 break;
-    		 case 20:
-    			 // Surface[4,1,5] is common
-    			 volIntPoint[0] =  1.0 - surfIntPoint[1];
-    			 volIntPoint[1] =  2.0 * (surfIntPoint[0] - 0.5);
-    			 volIntPoint[2] =  surfIntPoint[1];
-			 
-			 locNormal[0] = -1;
-                         locNormal[1] =  0;
-                         locNormal[2] =  1;
-    			 break;
-    		 default:
-    			 EXCEPTION("FeH1LagrangePyra::GetLocalIntPoints4Surface: surface and volume element "
-    					 << "have not three nodes in common. Check your mesh.");
-    			 break;
-    		 }
-    	 } else {
-    		 // ---- Quadrilateral Surface ---
-    		 StdVector<Integer> commonIndex(4);
-    		 Integer found = 0;
-    		 Integer indexSum = 0;
-    		 std::string errMsg;
-
-    		 // loop over surface connect
-    		 for (Integer iSurf=0; iSurf<4; iSurf++)
-    			 // loop over volume connect
-    			 for (Integer iVol=0; iVol<5; iVol++)
-    				 if (surfConnect[iSurf] == volConnect[iVol])
-    				 {
-    					 commonIndex[found++] = iVol+1;
-    				 }
-    		 indexSum =  commonIndex[0] + commonIndex[1]
-    		                                          + commonIndex[2] + commonIndex[3];
-
-    		 // Safety check: Check, that the surface element is
-    		 // really located on the bottom of the pyramid.
-    		 if( indexSum != 10 ) {
-    			 EXCEPTION("FeH1LagrangePyra::GetLocalIntPoints4Surface: surface and volume element "
-    					 << "have not four nodes in common. Check your mesh.");
-    		 }
-
-    		 volIntPoint[0] = surfIntPoint[0];
-    		 volIntPoint[1] = surfIntPoint[1];
-    		 volIntPoint[2] = 0.0; // always on bottom
-
-                 locNormal[0] =  0;
-                 locNormal[1] =  0;
-                 locNormal[2] = -1;
-    	 }
-     }
+    switch(indexProduct) {
+      // Surface[2,1,5] is common: rear triangular surface, normal in +eta+zeta direction
+      case 10: {
+        const std::map<UInt, UInt> commonIndexMap{{2, 1}, {1, 2}, {5, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = 1.0 - tmpVolIntPoint[1] / sqrt(3.0);
+        volIntPoint[2] = tmpVolIntPoint[1] / sqrt(3.0);
+        locNormal[0] =  0;
+        locNormal[1] = sqrt(0.5);
+        locNormal[2] = sqrt(0.5);
+        break;
+      }
+      // Surface[2,3,5] is common: left triangular surface , normal in -xi+zeta direction
+      case 30: {
+        const std::map<UInt, UInt> commonIndexMap{{2, 1}, {3, 2}, {5, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
+        volIntPoint[0] = -1.0 + tmpVolIntPoint[1] / sqrt(3.0);
+        volIntPoint[1] = -tmpVolIntPoint[0];
+        volIntPoint[2] = tmpVolIntPoint[1] / sqrt(3.0);
+        locNormal[0] = -sqrt(0.5);
+        locNormal[1] = 0.0;
+        locNormal[2] = sqrt(0.5);
+        break;
+      }
+      // Surface[3,4,5] is common: front triangular surface, normal in -eta+zeta direction
+      case 60: {
+        const std::map<UInt, UInt> commonIndexMap{{3, 1}, {4, 2}, {5, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = -1.0 + tmpVolIntPoint[1] / sqrt(3.0);
+        volIntPoint[2] = tmpVolIntPoint[1] / sqrt(3.0);
+        locNormal[0] = 0.0;
+        locNormal[1] = -sqrt(0.5);
+        locNormal[2] = sqrt(0.5);
+        break;
+      }
+      // Surface[4,1,5] is common: right triangular surface, normal in +xi+zeta direction
+      case 20: {
+        const std::map<UInt, UInt> commonIndexMap{{4, 1}, {1, 2}, {5, 3}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapTriaSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint, true);
+        volIntPoint[0] = 1.0 - tmpVolIntPoint[1] / sqrt(3.0);
+        volIntPoint[1] = tmpVolIntPoint[0];
+        volIntPoint[2] = tmpVolIntPoint[1] / sqrt(3.0);
+        locNormal[0] = sqrt(0.5);
+        locNormal[1] =  0;
+        locNormal[2] = sqrt(0.5);
+        break;
+      }
+      // Surface[3,4,1,2] is common: bottom quadrilateral surface, normal in zeta direction
+      case 24: {
+        const std::map<UInt, UInt> commonIndexMap{{3, 1}, {4, 2}, {1, 3}, {2, 4}};
+        StdVector<Double> tmpVolIntPoint(2);
+        MapQuadSurfOrientation(commonIndexMap, commonIndex, surfIntPoint, tmpVolIntPoint);
+        volIntPoint[0] = tmpVolIntPoint[0];
+        volIntPoint[1] = tmpVolIntPoint[1];
+        volIntPoint[2] = 0.0;
+        locNormal[0] =  0;
+        locNormal[1] =  0;
+        locNormal[2] = -1;
+        break;
+      }
+      default:
+        EXCEPTION("FeH1LagrangePyra::GetLocalIntPoints4Surface: surface "
+            << "and volume element have not the expected nodes in common. "
+            << "Check your mesh file.");
+    }
+  }
 } // namespace CoupledField

@@ -153,14 +153,16 @@ namespace CoupledField {
     void Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
                  Double weight, Matrix<Double>& cornerCoord);
 
-
-    //! Set method for a local point of a surface element
-    
+    //! This method allows to set information specific to a surface
+    //! element, in case it was initialized with only the volume information;
     //! This constructor initializes the struct for a local point in a
     //! surface element. To determine the "correct" volume neighbor, a set of
     //! regionIds of neighboring volume regions is passed. The normal
     //! direction will then be calculated to point out of those volume
     //! elements.
+    //! \note The search for the correct volume neighbor is just performed,
+    //!       if a new element is set. If only the local point within one
+    //!       element is set, the neighbor information is re-used. 
     //! \param lp Local point to bet set
     //! \param esm ElemShapeMap, representing the mapping from reference to
     //!            physical domain    
@@ -168,20 +170,13 @@ namespace CoupledField {
     //!                   volume regions.
     //! \param weight Integration weight (should be set to 0.0 if not used 
     //!               within an integration loop)
-    //! 
-    //! \note The search for the correct volume neighbor is just performed,
-    //!       if a new element is set. If only the local point within one
-    //!       element is set, the neighbor information is re-used. 
-    void Set( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-              const std::set<RegionIdType>& volRegions,
-              Double weight ); 
-    
-    //! Set surface information
-    
+    void SetWithSurface( const LocPoint& lp, shared_ptr<ElemShapeMap> esm, const std::set<RegionIdType>& volRegions, Double weight );
+
     //! This method allows to set information specific to a surface
     //! element, in case it was initialized with only the volume information;
-    void SetSurfInfo( const std::set<RegionIdType>& volRegions,
-    		          const RegionIdType volRegid = NO_REGION_ID );
+    //! \param volRegions (in) Set containing the regionIds of the neighboring volume regions.
+    //! \param volRegid (in) Allows to explicitly specify a volume region in case of the surface being an interface
+    void SetSurfInfo( const std::set<RegionIdType>& volRegions, const RegionIdType volRegid = NO_REGION_ID );
 
     //! set, if jacobi determinat should be checked; standard is YES
     void SetCheckJacobi(bool check) {
