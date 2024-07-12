@@ -100,23 +100,32 @@ DEFINE_LOG(smsm, "SMSM")
 
   Vector<Double> Wtot(numRows_);
   Double As_times_Wtot_exp = 0.0; 
-  #pragma omp parallel for reduction(+:As_times_Wtot_exp)
+  Double gamma0, gamma1, gamma2, e11, e12, e13, e23, e33, e22, f;
   for (UInt i = 0; i < numRows_; ++i) {
+    gamma0 = TABgamma_[i][0];
+    gamma1 = TABgamma_[i][1];
+    gamma2 = TABgamma_[i][2];
+    e11 = epsmu11_[i];
+    e12 = epsmu12_[i];
+    e13 = epsmu13_[i];
+    e23 = epsmu23_[i];
+    e33 = epsmu33_[i];
+    e22 = epsmu22_[i];
+
     Wtot[i] =   // mechanic part
-                -(epsmu11_[i] * SIGMAloc_[0][0]
-                + epsmu22_[i] * SIGMAloc_[1][1]
-                + epsmu33_[i] * SIGMAloc_[2][2]
-                + 2.0 * epsmu12_[i] * SIGMAloc_[0][1]
-                + 2.0 * epsmu13_[i] * SIGMAloc_[0][2]
-                + 2.0 * epsmu23_[i] * SIGMAloc_[1][2])
+                -(e11 * SIGMAloc_[0][0]
+                + e22 * SIGMAloc_[1][1]
+                + e33 * SIGMAloc_[2][2]
+                + 2.0 * e12 * SIGMAloc_[0][1]
+                + 2.0 * e13 * SIGMAloc_[0][2]
+                + 2.0 * e23 * SIGMAloc_[1][2])
                 + // magnetic part
                 -mu0_*Ms_*valH *  (
-                        TABgamma_[i][0] *dirHloc[0]
-                       +TABgamma_[i][1] *dirHloc[1]
-                       +TABgamma_[i][2] *dirHloc[2])
+                        gamma0 *dirHloc[0]
+                       +gamma1 *dirHloc[1]
+                       +gamma2 *dirHloc[2])
                 + // anisotropic part
                 Wan_[i];
-    //As_times_Wtot_exp += std::exp(-AS_*Wtot[i]);
   }
   // the problem is that the argument of the exp function is too large (also occurs sometimes in machine learning,
   // where a similar distribution called softmax is employed). The trick is to add a constant, in our case a negative value,
@@ -136,73 +145,105 @@ DEFINE_LOG(smsm, "SMSM")
     EXCEPTION("Sum(exp(As*Wtot) = "<<As_times_Wtot_exp);
   }
 
-  Vector<Double> falpha;
-  falpha.Resize(numRows_);
-  dMdH_.Resize(3,3);
-  dMdH_.Init();
 
-  MMoy_.Resize(3);
-  MMoy_.Init(0.0);
+
   Double eps_11 = 0.0;
   Double eps_12 = 0.0;
   Double eps_13 = 0.0;
   Double eps_22 = 0.0;
   Double eps_23 = 0.0;
   Double eps_33 = 0.0;
-  for (UInt i = 0; i < numRows_; ++i) {
-    // here we must also use the scaling-trick described above for the nominator
-    falpha[i] = std::exp(-AS_*Wtot[i] - Wtot_max*AS_) / As_times_Wtot_exp;
-    MMoy_[0] += Ms_*falpha[i]*TABgamma_[i][0];
-    MMoy_[1] += Ms_*falpha[i]*TABgamma_[i][1];
-    MMoy_[2] += Ms_*falpha[i]*TABgamma_[i][2];
-
-    eps_11 += Ms_*falpha[i] * epsmu11_[i];
-    eps_12 += Ms_*falpha[i] * epsmu12_[i];
-    eps_13 += Ms_*falpha[i] * epsmu13_[i];
-    eps_22 += Ms_*falpha[i] * epsmu22_[i];
-    eps_23 += Ms_*falpha[i] * epsmu23_[i];
-    eps_33 += Ms_*falpha[i] * epsmu33_[i];
-  }
-
+  Double dMdH_00 = 0.0;
+  Double dMdH_11 = 0.0;
+  Double dMdH_22 = 0.0;
+  Double dMdH_01 = 0.0;
+  Double dMdH_02 = 0.0;
+  Double dMdH_10 = 0.0;
+  Double dMdH_20 = 0.0;
+  Double dMdH_21 = 0.0;
+  Double dMdH_12 = 0.0;
+  Double MMoy0 = 0.0;
+  Double MMoy1 = 0.0;
+  Double MMoy2 = 0.0;
+  Double falpha_Malpha_0, falpha_Malpha_1, falpha_Malpha_2;
   Vector<Double> Malpha(3);
   Vector<Double> falpha_Malpha(3);
   for (UInt i = 0; i < numRows_; ++i) {
-    Malpha[0] = TABgamma_[i][0]*Ms_;
-    Malpha[1] = TABgamma_[i][1]*Ms_;
-    Malpha[2] = TABgamma_[i][2]*Ms_;
-    falpha_Malpha[0] = Malpha[0] * falpha[i];
-    falpha_Malpha[1] = Malpha[1] * falpha[i];
-    falpha_Malpha[2] = Malpha[2] * falpha[i];
-    dMdH_[0][0] += falpha_Malpha[0]*Malpha[0];
-    dMdH_[1][1] += falpha_Malpha[1]*Malpha[1];
-    dMdH_[2][2] += falpha_Malpha[2]*Malpha[2];
-    dMdH_[0][1] += falpha_Malpha[0]*Malpha[1];
-    dMdH_[0][2] += falpha_Malpha[0]*Malpha[2];
-    dMdH_[1][0] += falpha_Malpha[1]*Malpha[0];
-    dMdH_[2][0] += falpha_Malpha[2]*Malpha[0];
-    dMdH_[2][1] += falpha_Malpha[2]*Malpha[1];
-    dMdH_[1][2] += falpha_Malpha[1]*Malpha[2];
+    gamma0 = TABgamma_[i][0];
+    gamma1 = TABgamma_[i][1];
+    gamma2 = TABgamma_[i][2];
+    e11 = epsmu11_[i];
+    e12 = epsmu12_[i];
+    e13 = epsmu13_[i];
+    e23 = epsmu23_[i];
+    e33 = epsmu33_[i];
+    e22 = epsmu22_[i];
+
+
+    // here we must also use the scaling-trick described above for the nominator
+    f = std::exp(-AS_*Wtot[i] - Wtot_max*AS_) / As_times_Wtot_exp;
     
+    MMoy0 += Ms_*f*gamma0;
+    MMoy1 += Ms_*f*gamma1;
+    MMoy2 += Ms_*f*gamma2;
+
+    eps_11 += Ms_*f * e11;
+    eps_12 += Ms_*f * e12;
+    eps_13 += Ms_*f * e13;
+    eps_22 += Ms_*f * e22;
+    eps_23 += Ms_*f * e23;
+    eps_33 += Ms_*f * e33;
+
+    falpha_Malpha_0 = gamma0*Ms_ * f;
+    falpha_Malpha_1 = gamma1*Ms_ * f;
+    falpha_Malpha_2 = gamma2*Ms_ * f;
+      
+    dMdH_00 += falpha_Malpha_0*gamma0*Ms_;
+    dMdH_11 += falpha_Malpha_1*gamma1*Ms_;
+    dMdH_22 += falpha_Malpha_2*gamma2*Ms_;
+    dMdH_01 += falpha_Malpha_0*gamma1*Ms_;
+    dMdH_02 += falpha_Malpha_0*gamma2*Ms_;
+    dMdH_10 += falpha_Malpha_1*gamma0*Ms_;
+    dMdH_20 += falpha_Malpha_2*gamma0*Ms_;
+    dMdH_21 += falpha_Malpha_2*gamma1*Ms_;
+    dMdH_12 += falpha_Malpha_1*gamma2*Ms_;
   }
 
-  dMdH_[0][0] = mu0_*AS_*(dMdH_[0][0] - MMoy_[0]*MMoy_[0]);
-  dMdH_[1][1] = mu0_*AS_*(dMdH_[1][1] - MMoy_[1]*MMoy_[1]);
-  dMdH_[2][2] = mu0_*AS_*(dMdH_[2][2] - MMoy_[2]*MMoy_[2]);
+ 
 
-  dMdH_[0][1] = mu0_*AS_*(dMdH_[0][1] - MMoy_[0]*MMoy_[1]);
-  dMdH_[0][2] = mu0_*AS_*(dMdH_[0][2] - MMoy_[0]*MMoy_[2]);
-  dMdH_[1][0] = mu0_*AS_*(dMdH_[1][0] - MMoy_[1]*MMoy_[0]);
-  dMdH_[2][0] = mu0_*AS_*(dMdH_[2][0] - MMoy_[2]*MMoy_[0]);
-  dMdH_[2][1] = mu0_*AS_*(dMdH_[2][1] - MMoy_[2]*MMoy_[1]);
-  dMdH_[1][2] = mu0_*AS_*(dMdH_[1][2] - MMoy_[1]*MMoy_[2]);
+
+  dMdH_00 = mu0_*AS_*(dMdH_00 - MMoy0*MMoy0);
+  dMdH_11 = mu0_*AS_*(dMdH_11 - MMoy1*MMoy1);
+  dMdH_22 = mu0_*AS_*(dMdH_22 - MMoy2*MMoy2);
+  dMdH_01 = mu0_*AS_*(dMdH_01 - MMoy0*MMoy1);
+  dMdH_02 = mu0_*AS_*(dMdH_02 - MMoy0*MMoy2);
+  dMdH_10 = mu0_*AS_*(dMdH_10 - MMoy1*MMoy0);
+  dMdH_20 = mu0_*AS_*(dMdH_20 - MMoy2*MMoy0);
+  dMdH_21 = mu0_*AS_*(dMdH_21 - MMoy2*MMoy1);
+  dMdH_12 = mu0_*AS_*(dMdH_12 - MMoy1*MMoy2);
+
+
+  dMdH_.Resize(3,3);
+  dMdH_.Init();
+  dMdH_[0][0] = dMdH_00;
+  dMdH_[1][1] = dMdH_11;
+  dMdH_[2][2] = dMdH_22;
+  dMdH_[0][1] = dMdH_01;
+  dMdH_[0][2] = dMdH_02;
+  dMdH_[1][0] = dMdH_10;
+  dMdH_[2][0] = dMdH_20;
+  dMdH_[2][1] = dMdH_21;
+  dMdH_[1][2] = dMdH_12;
+
+  MMoy_.Resize(3);
+  MMoy_.Init(0.0);
+  MMoy_[0] = MMoy0;
+  MMoy_[1] = MMoy1;
+  MMoy_[2] = MMoy2;
 
   LOG_DBG3(smsm) << "\n\t dMdH_ = " << dMdH_.ToString();
 
-  // LOG_DBG3(smsm) << "\n\t max(falpha) after precompute step = " << falpha.Max() 
-  //                << "\n\t min(falpha) after precompute step = " << falpha.Min();
-
-  // Synthesis of results
-  
+ 
   epsmumoy_.Resize(3,3);
   epsmumoy_[0][0] = eps_11;
   epsmumoy_[0][1] = eps_12;
