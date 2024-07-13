@@ -43,7 +43,7 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
     //velocity (for HeatPDE |u|/k)
     Vector<double> v;
     // material parameter
-    double m;
+    double m = 0.0;
     // length of the element
     double lElem;
 
@@ -95,23 +95,22 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
       }
       case VECTOR:
       {
-        Exception("The material property is VECTOR. It is not implemented for SUPG and Artificial diffusion");
+        EXCEPTION("The material property is VECTOR. It is not implemented for SUPG and Artificial diffusion");
         break;
       }
       default:
       {
-        Exception("The material property is an unknown type. It is not implemented for SUPG and Artificial diffusion");
+        EXCEPTION("The material property is an unknown type. It is not implemented for SUPG and Artificial diffusion");
         break;
       }
     }
     
     //compute Peclet-Number
     double peclet = (velNorm * lElem) / (2 * m);
-
     
     // check if peclet == 0.0 with the tolerance epsilon
-    bool epsilon = 1e-13; 
-    if (std::fabs(peclet) <= epsilon)
+    double epsilon = 1e-13; 
+    if (abs(peclet) <= epsilon)
       scal = 0.0;
     //compute the stabilization factor
     else 
