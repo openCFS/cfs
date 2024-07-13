@@ -43,7 +43,7 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
     //velocity (for HeatPDE |u|/k)
     Vector<double> v;
     // material parameter
-    double m;
+    double m = 0.0;
     // length of the element
     double lElem;
 
@@ -110,7 +110,7 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
 
     
     // check if peclet == 0.0 with the tolerance epsilon
-    bool epsilon = 1e-13; 
+    double epsilon = 1e-13; 
     if (std::fabs(peclet) <= epsilon)
       scal = 0.0;
     //compute the stabilization factor
