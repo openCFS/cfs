@@ -185,14 +185,13 @@ MACRO (APPLY_PATCHES PATCHES INPUTDIR)
     MESSAGE(STATUS "Applying patch ${patch}")
 #    EXECUTE_PROCESS(
 #      COMMAND pwd
-#      OUTPUT_QUIET
-#      RESULT_VARIABLE RES
-#      )
+#      RESULT_VARIABLE RES)
+
     EXECUTE_PROCESS(
       COMMAND patch -p0 --binary -i "${INPUTDIR}/${patch}"
 #      OUTPUT_QUIET
-      RESULT_VARIABLE RES
-      )
+      RESULT_VARIABLE RES)
+
 
     IF(NOT RES EQUAL 0)
       MESSAGE("A problem occurred while trying to apply patch '${patch}'.")

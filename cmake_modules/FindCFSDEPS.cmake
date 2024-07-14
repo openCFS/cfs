@@ -187,18 +187,11 @@ endif()
 # Find Library of Iterative Solvers
 if(USE_LIS)
   include("${CFSDEPS_DIR}/lis/External_LIS.cmake")
-endif(USE_LIS)
+endif()
 
-#-------------------------------------------------------------------------------
-# Find SuperLU
-#-------------------------------------------------------------------------------
-IF(USE_SUPERLU)
-  SET(SUPERLU_VER "4.3")
-  SET(SUPERLU_GZ "superlu_${SUPERLU_VER}.tar.gz")
-  SET(SUPERLU_MD5 "b72c6309f25e9660133007b82621ba7c")
-  
-  INCLUDE("${CFSDEPS_DIR}/superlu/External_SuperLU.cmake")
-ENDIF(USE_SUPERLU)
+if(USE_SUPERLU)
+  include("${CFSDEPS_DIR}/superlu/External_SuperLU.cmake")
+endif()
 
 #-------------------------------------------------------------------------------
 # Find Boost

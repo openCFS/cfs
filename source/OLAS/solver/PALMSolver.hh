@@ -147,6 +147,7 @@ private:
   int  order;  // Ordering parameters, default = 1, natural order.
   int  *permc, *permr; // Array of row and column permutation
   SuperMatrix L, U;  // L, U factors
+  GlobalLU_t     Glu; // facilitate multiple factorizations with SamePattern_SameRowPerm
   SuperLUStat_t stat;  // Variables.
   bool  isfactor; // Indicates whether LU factorization is done.
 

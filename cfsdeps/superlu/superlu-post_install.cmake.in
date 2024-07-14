@@ -1,0 +1,8 @@
+include("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+
+# in slu_zdefs.h, the blas functions zgemm and zgemv have a wired interface conflicting
+# with BLASLAPACKInterface.hh. Remove it the interface in slu_zdefs.h - it is not needed
+set(patches "superlu_remove_zgem_m_v.patch")
+
+# the patch is exectued in the build directory
+apply_patches("${patches}" "@CFS_SOURCE_DIR@/cfsdeps/superlu")

@@ -104,8 +104,7 @@ namespace CoupledField {
     sNode = xml_->Get("superlu", ParamNode::INSERT);
     
     // Determine, whether we are expected to be verbose
-    LOG_TRACE(superluSolver) << " -----------------------------------------"
-                             << "-------------------------------------";
+    LOG_TRACE(superluSolver) << "SuperLUSolver<T>::Setup firstCall=" << firstCall_;
 
     int *colind = NULL;
     int *rowptr = NULL;
@@ -348,7 +347,7 @@ namespace CoupledField {
         B.ncol = 0;  /* Indicate not to solve the system */
         dgssvx(&options, &A, perm_c, perm_r, etree, equed, R, C,
                &L, &U, work, lwork, &B, &X, &rpg, &rcond, ferr, berr,
-               &mem_usage, &stat, &info);
+               &Glu, &mem_usage, &stat, &info);
         
         printf("LU factorization: dgssvx() returns info %d\n", info);
         
@@ -442,13 +441,15 @@ namespace CoupledField {
     }    
     else
     {
+      assert(rhsb != nullptr);
+      assert(theRHS != nullptr);
       for(Integer idx=0; idx<probDim_; idx++) {
         rhsb[idx] = theRHS[idx];
       }
 
       dgssvx(&options, &A, perm_c, perm_r, etree, equed, R, C,
              &L, &U, work, lwork, &B, &X, &rpg, &rcond, ferr, berr,
-             &mem_usage, &stat, &info);
+             &Glu, &mem_usage, &stat, &info);
 
       printf("Triangular solve: dgssvx() returns info %d\n", info);
 
