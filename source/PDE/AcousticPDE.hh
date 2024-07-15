@@ -165,18 +165,6 @@ namespace CoupledField{
     //! Definition of PML integrators
     //! TODO: \param
     // TODO: later turn into template too!
-    // void DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, 
-    //                           std::string pmlFormul, std::string pmlDampId, PtrCoefFct c0, PtrCoefFct coeffK, 
-    //                           PtrCoefFct coeffM, bool complexFluidFormulation_, bool& harmonicPML,
-    //                           shared_ptr<CoefFunction>& coeffPMLVector, shared_ptr<CoefFunction>& coeffPMLDeterminant,
-    //                           shared_ptr<CoefFunction>& coeffPMLStiff, shared_ptr<CoefFunction>& coeffPMLMass,
-    //                           shared_ptr<CoefFunction>& coeffPMLTensor);
-
-    // void DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode& curRegNode, PtrCoefFct& coeffK, 
-    //                           PtrCoefFct& coeffM, shared_ptr<ElemList>& actSDList, PtrCoefFct& c0, 
-    //                           bool& harmonicPML, std::string& pmlDampId, std::string& pmlFormul,
-    //                           PtrCoefFct& coeffPMLStiff, PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLTensor, PtrCoefFct& coeffPMLDeterminant, std::string tempId);
-
     void DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode& pmlNode, PtrCoefFct& c0, 
                               PtrCoefFct& coeffK, PtrCoefFct& coeffM, shared_ptr<ElemList>& actSDList, 
                               std::string& pmlDampId, std::string& pmlFormul, std::string tempId, 
@@ -184,10 +172,14 @@ namespace CoupledField{
                               PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLTensor, 
                               PtrCoefFct& coeffPMLDeterminant, bool& harmonicPML);
 
+    //! Definition of classic PML formulation
+    //! TODO: \param
     void DefinePMLClassicFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, shared_ptr<ElemList>& actSDList, 
                                       RegionIdType actRegion, PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
                                       PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLDeterminant);
 
+    //! Definition of curvilinear PML formulation
+    //! TODO: \param
     void DefinePMLCurvilinearFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, shared_ptr<ElemList>& actSDList, 
                                           RegionIdType actRegion, PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
                                           PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLTensor, PtrCoefFct& coeffPMLDeterminant);
