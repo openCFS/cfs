@@ -2602,21 +2602,9 @@ namespace CoupledField {
       } else if ( !supportedBySolver || algsys_->HasPrecond() ) {
         useGetRidOfZeros_ = false;
         useCase = "solver setup";
-      } else if ( analysisName == "multiharmonic" ) {
-        useGetRidOfZeros_ = false;
-        useCase = "multiharmonic";
-      } else if ( analysisName == "eigenFrequency" ) {
-        useGetRidOfZeros_ = false;
-        useCase = "eigenFrequency";
       } else if ( analysisName == "inverseSource" ) {
         useGetRidOfZeros_ = false;
         useCase = "inverseSource";
-      } else if ( analysisName == "buckling" ) {
-        useGetRidOfZeros_ = false;
-        useCase = "buckling";
-      } else if ( analysisName == "eigenValue" ) {
-        useGetRidOfZeros_ = false;
-        useCase = "eigenValue";
       } else if ( myParam->Has("optimization") ) {
         useGetRidOfZeros_ = false;
         useCase = "optimization";
