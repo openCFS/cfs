@@ -172,6 +172,18 @@ namespace CoupledField{
     //                           shared_ptr<CoefFunction>& coeffPMLStiff, shared_ptr<CoefFunction>& coeffPMLMass,
     //                           shared_ptr<CoefFunction>& coeffPMLTensor);
 
+    // void DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode& curRegNode, PtrCoefFct& coeffK, 
+    //                           PtrCoefFct& coeffM, shared_ptr<ElemList>& actSDList, PtrCoefFct& c0, 
+    //                           bool& harmonicPML, std::string& pmlDampId, std::string& pmlFormul,
+    //                           PtrCoefFct& coeffPMLStiff, PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLTensor, PtrCoefFct& coeffPMLDeterminant, std::string tempId);
+
+    void DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode& pmlNode, PtrCoefFct& c0, 
+                              PtrCoefFct& coeffK, PtrCoefFct& coeffM, shared_ptr<ElemList>& actSDList, 
+                              std::string& pmlDampId, std::string& pmlFormul, std::string tempId, 
+                              PtrCoefFct& coeffPMLStiff, PtrCoefFct& coeffPMLMass, 
+                              PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLTensor, 
+                              PtrCoefFct& coeffPMLDeterminant, bool& harmonicPML);
+
     void DefinePMLClassicFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, shared_ptr<ElemList>& actSDList, 
                                       RegionIdType actRegion, PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
                                       PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLDeterminant);

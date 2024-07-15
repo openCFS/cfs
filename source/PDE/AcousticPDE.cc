@@ -355,44 +355,48 @@ namespace CoupledField{
         pmlFormul = pmlNode->Get("formulation")->As<std::string>();
 
         // Check if the analysis type is harmonic or inverse-source
-        if (analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE)
-        {
-          harmonicPML = true;
+        // if (analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE)
+        // {
+        //   harmonicPML = true;
 
-          // For complex fluids, compute a real-valued speed of sound for PML definition
-          shared_ptr<CoefFunction> densR, blkR, c0R;
-          if (complexFluidFormulation_)
-          {
-            densR = materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
-            blkR = materials_[actRegion]->GetScalCoefFnc(ACOU_BULK_MODULUS, Global::REAL);
-            c0R = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blkR, densR, CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
-          }
+        //   // For complex fluids, compute a real-valued speed of sound for PML definition
+        //   shared_ptr<CoefFunction> densR, blkR, c0R;
+        //   if (complexFluidFormulation_)
+        //   {
+        //     densR = materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
+        //     blkR = materials_[actRegion]->GetScalCoefFnc(ACOU_BULK_MODULUS, Global::REAL);
+        //     c0R = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blkR, densR, CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
+        //   }
           
-          else
-            c0R = c0;
+        //   else
+        //     c0R = c0;
 
-          if (pmlFormul == "classic")
-            DefinePMLClassicFormulation(pmlNode, c0R, actSDList, actRegion, coeffK, coeffM, coeffPMLStiff, coeffPMLMass, coeffPMLVector, coeffPMLDeterminant);
-          else if (pmlFormul == "curvilinear")
-            DefinePMLCurvilinearFormulation(pmlNode, c0R, actSDList, actRegion, coeffK, coeffM, coeffPMLStiff, coeffPMLMass, coeffPMLTensor, coeffPMLDeterminant);
-          else // when pmlFormul is invalid...
-            EXCEPTION("Unknown PML formulation '" << pmlFormul << "' for AcousticPDE. Possible formulations: 'classic', 'curvilinear'.")
-        }
+        //   if (pmlFormul == "classic")
+        //     DefinePMLClassicFormulation(pmlNode, c0R, actSDList, actRegion, coeffK, coeffM, coeffPMLStiff, coeffPMLMass, coeffPMLVector, coeffPMLDeterminant);
+        //   else if (pmlFormul == "curvilinear")
+        //     DefinePMLCurvilinearFormulation(pmlNode, c0R, actSDList, actRegion, coeffK, coeffM, coeffPMLStiff, coeffPMLMass, coeffPMLTensor, coeffPMLDeterminant);
+        //   else // when pmlFormul is invalid...
+        //     EXCEPTION("Unknown PML formulation '" << pmlFormul << "' for AcousticPDE. Possible formulations: 'classic', 'curvilinear'.")
+        // }
     
-        else
-        {
-          harmonicPML = false;
-          if (pmlFormul == "classic")
-          {
-            if (dim_ == 2)
-              DefineTransientPMLInts<2>(actSDList, pmlDampId, actRegion, tempId);
-            else
-              DefineTransientPMLInts<3>(actSDList, pmlDampId, actRegion, tempId);
-          }
+        // else
+        // {
+        //   harmonicPML = false;
+        //   if (pmlFormul == "classic")
+        //   {
+        //     if (dim_ == 2)
+        //       DefineTransientPMLInts<2>(actSDList, pmlDampId, actRegion, tempId);
+        //     else
+        //       DefineTransientPMLInts<3>(actSDList, pmlDampId, actRegion, tempId);
+        //   }
 
-          else
-            EXCEPTION("Transient PML is currently only implemented in 'classic' formulation.")
-        }
+        //   else
+        //     EXCEPTION("Transient PML is currently only implemented in 'classic' formulation.")
+        // }
+
+        DefinePMLIntegrators(actRegion, pmlNode, c0, coeffK, coeffM, actSDList, pmlDampId, pmlFormul, 
+                              tempId, coeffPMLStiff, coeffPMLMass, coeffPMLVector, coeffPMLTensor, 
+                              coeffPMLDeterminant, harmonicPML);
       } // end: == PML
     
       else
@@ -606,6 +610,54 @@ namespace CoupledField{
       CoefXprBinOp(mp_, coeffPMLDeterminant, coeffK, CoefXpr::OP_MULT));
     coeffPMLMass = CoefFunction::Generate(mp_, Global::COMPLEX,
       CoefXprBinOp(mp_, coeffPMLDeterminant, coeffM, CoefXpr::OP_MULT));
+  }
+
+  void AcousticPDE::DefinePMLIntegrators(RegionIdType actRegion, PtrParamNode& pmlNode, PtrCoefFct& c0, 
+                                          PtrCoefFct& coeffK, PtrCoefFct& coeffM, shared_ptr<ElemList>& actSDList, 
+                                          std::string& pmlDampId, std::string& pmlFormul, std::string tempId, 
+                                          PtrCoefFct& coeffPMLStiff, PtrCoefFct& coeffPMLMass, 
+                                          PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLTensor, 
+                                          PtrCoefFct& coeffPMLDeterminant, bool& harmonicPML)
+  {
+    // Check if the analysis type is harmonic or inverse-source
+    if (analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE)
+    {
+      harmonicPML = true;
+
+      // For complex fluids, compute a real-valued speed of sound for PML definition
+      shared_ptr<CoefFunction> densR, blkR, c0R;
+      if (complexFluidFormulation_)
+      {
+        densR = materials_[actRegion]->GetScalCoefFnc(DENSITY, Global::REAL);
+        blkR = materials_[actRegion]->GetScalCoefFnc(ACOU_BULK_MODULUS, Global::REAL);
+        c0R = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blkR, densR, CoefXpr::OP_DIV), CoefXpr::OP_SQRT));
+      }
+      
+      else
+        c0R = c0;
+
+      if (pmlFormul == "classic")
+        DefinePMLClassicFormulation(pmlNode, c0R, actSDList, actRegion, coeffK, coeffM, coeffPMLStiff, coeffPMLMass, coeffPMLVector, coeffPMLDeterminant);
+      else if (pmlFormul == "curvilinear")
+        DefinePMLCurvilinearFormulation(pmlNode, c0R, actSDList, actRegion, coeffK, coeffM, coeffPMLStiff, coeffPMLMass, coeffPMLTensor, coeffPMLDeterminant);
+      else // when pmlFormul is invalid...
+        EXCEPTION("Unknown PML formulation '" << pmlFormul << "' for AcousticPDE. Possible formulations: 'classic', 'curvilinear'.")
+    }
+
+    else
+    {
+      harmonicPML = false;
+      if (pmlFormul == "classic")
+      {
+        if (dim_ == 2)
+          DefineTransientPMLInts<2>(actSDList, pmlDampId, actRegion, tempId);
+        else
+          DefineTransientPMLInts<3>(actSDList, pmlDampId, actRegion, tempId);
+      }
+
+      else
+        EXCEPTION("Transient PML is currently only implemented in 'classic' formulation.")
+    }
   }
 
   template<UInt DIM>
