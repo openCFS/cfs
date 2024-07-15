@@ -3733,6 +3733,7 @@ namespace CoupledField {
             // generate new empty SBM-Matrix
             actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
                                   stdMat->GetNumRows(), stdMat->GetNumCols(), nnzMatCount, true, true);
+            stdMat = actMat->GetPointer(row,col);
             
             // now set the sparsity pattern data for the newly created submatrix
             switch(stdMat->GetStorageType())
