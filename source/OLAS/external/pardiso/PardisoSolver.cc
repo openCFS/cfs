@@ -526,6 +526,15 @@ extern "C" {
       iparm_[12] = 1;
     }
 
+    // Solve transpose (^T) or conjugate-transpose (^H) problem
+    // A^T x = b or A^H x = b
+    std::string adjoint = "no"; // Adjoint usually refers to conjugate-transpose, we also use it for transpose
+    xml_->GetValue("adjoint", adjoint, ParamNode::INSERT);
+    if ( adjoint == "transpose" ) { iparm_[11] = 2; }
+    else if ( adjoint == "conjugate-transpose" ) { iparm_[11] = 1; }
+    else if ( adjoint == "no" ) { iparm_[11] = 0; }
+    else { EXCEPTION("Please select 'no', 'transpose' or 'conjugate-transpose' for the tag 'adjoint'!") }
+
     // Pardiso keeps one factorisation in memory (and that is used for
     // the solution phase)
     maxfct_ = 1;

@@ -303,6 +303,15 @@
           <xsd:element name="symStruct" type="DT_CFSBool" minOccurs="0"/>
           <xsd:element name="ordering" type="DT_PardisoOrdering" minOccurs="0"/>
 
+          <xsd:element name="adjoint" type="DT_PardisoAdjointProblem" minOccurs="0" default="no">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Switch between solving A x = b ('no'), transpose solving A^T x = b ('transpose'), or 
+                conjugate-transpose solving A^H x = b ('conjugate-transpose').
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
           <xsd:element name="outOfCore" type="xsd:int" minOccurs="0" default="0">
             <xsd:annotation>
               <xsd:documentation xml:lang="en"> Switch on out-of-core (OOC) mode of Pardiso. With
@@ -446,6 +455,14 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="direct"/>
       <xsd:enumeration value="iterative"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <xsd:simpleType name="DT_PardisoAdjointProblem">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="no"/>
+      <xsd:enumeration value="transpose"/>
+      <xsd:enumeration value="conjugate-transpose"/>
     </xsd:restriction>
   </xsd:simpleType>
 
