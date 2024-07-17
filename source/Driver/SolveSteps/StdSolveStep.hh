@@ -288,8 +288,7 @@ namespace CoupledField
     MathParser* mParser_;
 
     //! Bool to check if getRidOfZeros should be used
-    // we assume that we should perform GetRidOfZeros(), if this is not the case, this will be set afterwards
-    bool useGetRidOfZeros_ = true;
+    bool useGetRidOfZeros_ = false;
 
     //! Tolerance used to determine if an entry is zero or not in getRidOfZeros
     double getRidOfZerosTol_ = 1e-20;

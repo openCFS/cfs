@@ -2568,15 +2568,26 @@ namespace CoupledField {
     if( firstTime_ ) {
       // we assume this is ok, if not, the we will set it to false down below
       bool supportedBySolver = true;
+      string getRidOfZerosXML = "auto";
+      bool haveNCI = false;
       
 
       PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
       
       PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
                             this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
+
+      PtrParamNode nciListNode = PDE_.GetParamNode()->Get("ncInterfaceList", ParamNode::PASS);
+      // get info if we have NCI or not
+      if (nciListNode) {
+        if (nciListNode->GetList("ncInterface").GetSize() > 0) {
+          haveNCI = true;
+        }
+      }
+      
       if(seqStepParamNode->Has("linearSystems")) {
         if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) {
-          useGetRidOfZeros_ = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<bool>();
+          getRidOfZerosXML = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<string>();
           if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance")) {
             getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
           }
@@ -2594,29 +2605,38 @@ namespace CoupledField {
       // now adapt the switch if any of the untested / not working stuff is present
       std::string useCase = "";
       if( algsys_->UseAMG() ) {
-        useGetRidOfZeros_ = false;
         useCase = "AMG";
       } else if ( algsys_->UseStaticCondensation() ) {
-        useGetRidOfZeros_ = false;
         useCase = "static condensation";
       } else if ( !supportedBySolver || algsys_->HasPrecond() ) {
-        useGetRidOfZeros_ = false;
         useCase = "solver setup";
       } else if ( analysisName == "inverseSource" ) {
-        useGetRidOfZeros_ = false;
         useCase = "inverseSource";
       } else if ( myParam->Has("optimization") ) {
-        useGetRidOfZeros_ = false;
         useCase = "optimization";
       } else if (this->PDE_.IsNonLin()) {
-        useGetRidOfZeros_ = false;
         useCase = "nonLinear";
       }
 
-      if( !useGetRidOfZeros_ ){
-        WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")");
-      } else {
-        WARN("The SBM_Matrix will be overwritten in each step/iteration to reduce the effort for the solver - please use carefully!");
+      if (useCase != ""  && getRidOfZerosXML=="yes") {
+        Exception("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case or solver");
+      }
+      else if (useCase != "" && getRidOfZerosXML=="auto")
+      {
+        useGetRidOfZeros_ = false;
+        WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")"); 
+      }
+      else if (getRidOfZerosXML=="no")
+      {
+        useGetRidOfZeros_ = false;
+      }
+      else if (useCase == "" && haveNCI && getRidOfZerosXML=="auto") {
+        useGetRidOfZeros_ = true;
+        WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.");
+      }
+      else if (useCase == "" && getRidOfZerosXML=="yes") {
+        useGetRidOfZeros_ = true;
+        WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort - use carefully!");
       }
     }
     // now that everything is setup, we can skip this setup from now on
