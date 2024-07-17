@@ -390,7 +390,7 @@ namespace CoupledField {
 
         convectivevV->SetName("FlowStiffIntConvectiveNewtonVv");
         //! mark the bi-linear form to be a Newton part
-        convectivevV->SetNewtonBilinearForm();
+        convectivevV->SetNewtonBiLinearForm();
 
         BiLinFormContext *convectiveContextvV = NULL;
         convectiveContextvV = new BiLinFormContext(convectivevV, STIFFNESS );
@@ -415,7 +415,7 @@ namespace CoupledField {
               coeffKPPstab,1.0);
         }
         stiffIntPPstab->SetName("FlowStiffIntPPstab");
-        //stiffIntPPstab->SetNewtonBilinearForm();
+        //stiffIntPPstab->SetNewtonBiLinearForm();
 
         BiLinFormContext *stiffContPPstab = NULL;
         stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );

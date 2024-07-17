@@ -31,15 +31,15 @@
           <region name="mech" />
         </regionList>
         <bcsAndLoads>
-          <periodic master="bottom" slave="top" quantity="mechDisplacement" dof="x" />
-          <periodic master="bottom" slave="top" quantity="mechDisplacement" dof="y" />
-          <periodic master="bottom" slave="top" quantity="mechDisplacement" dof="z" />
-          <periodic master="left" slave="right" quantity="mechDisplacement" dof="x" />
-          <periodic master="left" slave="right" quantity="mechDisplacement" dof="y" />
-          <periodic master="left" slave="right" quantity="mechDisplacement" dof="z" />
-          <periodic master="back" slave="front" quantity="mechDisplacement" dof="x" />
-          <periodic master="back" slave="front" quantity="mechDisplacement" dof="y" />
-          <periodic master="back" slave="front" quantity="mechDisplacement" dof="z" />
+          <periodic primary="bottom" secondary="top" quantity="mechDisplacement" dof="x" />
+          <periodic primary="bottom" secondary="top" quantity="mechDisplacement" dof="y" />
+          <periodic primary="bottom" secondary="top" quantity="mechDisplacement" dof="z" />
+          <periodic primary="left" secondary="right" quantity="mechDisplacement" dof="x" />
+          <periodic primary="left" secondary="right" quantity="mechDisplacement" dof="y" />
+          <periodic primary="left" secondary="right" quantity="mechDisplacement" dof="z" />
+          <periodic primary="back" secondary="front" quantity="mechDisplacement" dof="x" />
+          <periodic primary="back" secondary="front" quantity="mechDisplacement" dof="y" />
+          <periodic primary="back" secondary="front" quantity="mechDisplacement" dof="z" />
         </bcsAndLoads>
         <storeResults>
           <nodeResult type="mechDisplacement">
@@ -76,4 +76,3 @@
   </optimization>
 
 </cfsSimulation>
-

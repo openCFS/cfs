@@ -243,7 +243,7 @@ namespace CoupledField {
     //}
 
     // get coordinate system
-    CoordSystem * cosy = NULL;
+    CoordSystem * cosy = nullptr;
     try {
       cosy = domain->GetCoordSystem(coordSysId);
     } catch( Exception &e ) {
@@ -1779,12 +1779,6 @@ namespace CoupledField {
     
   }
 
-
-  UInt GridCFS::GetDim() const {
-    return dim_;
-  }
-
-
   UInt GridCFS::GetNumNodes(RegionIdType reg_id) const
   {
     if(reg_id == ALL_REGIONS)
@@ -1962,11 +1956,11 @@ namespace CoupledField {
       SurfElem * ptSurfElem;
       for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
         ptSurfElem = dynamic_cast<SurfElem*>(surfElems_[index][iElem]);
-        if (ptSurfElem->ptVolElems[0] != NULL) {
+        if (ptSurfElem->ptVolElems[0] != nullptr) {
 	  if (ptSurfElem->ptVolElems[0]->elemNum == volElemNum)
 	    surfEl.Push_back( (Elem *) surfElems_[index][iElem]);
         }
-        if (ptSurfElem->ptVolElems[1] != NULL) {
+        if (ptSurfElem->ptVolElems[1] != nullptr) {
 	  if (ptSurfElem->ptVolElems[1]->elemNum == volElemNum)
 	    surfEl.Push_back( (Elem *) surfElems_[index][iElem]);
         }
@@ -1999,12 +1993,12 @@ namespace CoupledField {
 	Integer iFound;
         for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
           ptSurfElem = dynamic_cast<SurfElem*>(surfElems_[index][iElem]);
-	  if (ptSurfElem->ptVolElems[0] != NULL) {
+	  if (ptSurfElem->ptVolElems[0] != nullptr) {
 	    iFound = volRegIds.Find(ptSurfElem->ptVolElems[0]->regionId);
 	    if (iFound == -1) // not found
 	      volRegIds.Push_back(ptSurfElem->ptVolElems[0]->regionId);
 
-	  } else if(ptSurfElem->ptVolElems[1] != NULL) {
+	  } else if(ptSurfElem->ptVolElems[1] != nullptr) {
 	    WARN("not implemented");
 	  } else {
             EXCEPTION( "GridCFS: The surface region with id '" << reg_id
@@ -2149,8 +2143,8 @@ namespace CoupledField {
   }
   
 
-  void GridCFS::GetNodeCoordinates( StdVector< Vector<Double> > & nodeCoords,
-                                   StdVector<UInt> & nodeList,
+  void GridCFS::GetNodeCoordinates(StdVector<Vector<Double>>& nodeCoords,
+                                   const StdVector<UInt>& nodeList,
                                    bool updated ) const {
 
     nodeCoords.Resize(nodeList.GetSize());
@@ -2316,7 +2310,7 @@ namespace CoupledField {
                  << " elements in the grid! You requested element number "
                  << ielem << ". Go check your mesh file!" );
     }
-    if ( orderedElems_[ielem-1] == NULL ) {
+    if ( orderedElems_[ielem-1] == nullptr ) {
       EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
     }
  #endif
@@ -2338,7 +2332,7 @@ namespace CoupledField {
                  << " elements in the grid! You requested element number "
                  << ielem << ". Go check your mesh file!" );
     }
-    if ( orderedElems_[ielem-1] == NULL ) {
+    if ( orderedElems_[ielem-1] == nullptr ) {
       EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
 
     }
@@ -2355,7 +2349,7 @@ namespace CoupledField {
                   << " elements in the grid! You requested element number "
                   << ielem << ". Go check your mesh file!" );
      }
-     if ( orderedElems_[ielem-1] == NULL ) {
+     if ( orderedElems_[ielem-1] == nullptr ) {
        EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
 
      }
@@ -2372,7 +2366,7 @@ namespace CoupledField {
                   << " elements in the grid! You requested element number "
                   << ielem << ". Go check your mesh file!" );
      }
-     if ( orderedElems_[ielem-1] == NULL ) {
+     if ( orderedElems_[ielem-1] == nullptr ) {
        EXCEPTION( "Element with Nr. " << ielem << " is not contained in mesh!" );
 
      }
@@ -2406,7 +2400,7 @@ namespace CoupledField {
     // this is a temporary neighborhood, copied to the elements when the size is known.
     StdVector<std::pair<Elem*, int> > neighborhood;
     // this is the temporary pair, as we cannot construct it within StdVector::Push_back()
-    std::pair<Elem*, int> pair(NULL, 0);
+    std::pair<Elem*, int> pair(nullptr, 0);
 
     // now add to all elements the neighborhood
     for(unsigned int e = 0; e < numElems_; e++)
@@ -2671,7 +2665,7 @@ namespace CoupledField {
     }
 
  #ifndef NDEBUG
-    if ( orderedElems_[iElem-1] == NULL ) {
+    if ( orderedElems_[iElem-1] == nullptr ) {
       EXCEPTION( "Element with Nr. " << iElem << " is not contained in mesh!" );
     }
  #endif
@@ -3806,7 +3800,7 @@ namespace CoupledField {
     // 1.) Create vector of vector of elems
     StdVector<StdVector<UInt> > elemNrPerNode;
     UInt nrNodes, iRegion, iElem;
-    Elem * ptVolElem = NULL;
+    Elem * ptVolElem = nullptr;
     elemNrPerNode.Resize(numNodes_);
     elemNrPerNode.Init();
 
@@ -4549,7 +4543,7 @@ namespace CoupledField {
 
       for(i=0; i<n; i++)
       {
-        orderedElems_[volElems_[index][i]->elemNum-1] = NULL;
+        orderedElems_[volElems_[index][i]->elemNum-1] = nullptr;
         delete volElems_[index][i];
       }
 
@@ -4563,7 +4557,7 @@ namespace CoupledField {
 
         for(i=0; i<n; i++)
         {
-          orderedElems_[surfElems_[index][i]->elemNum-1] = NULL;
+          orderedElems_[surfElems_[index][i]->elemNum-1] = nullptr;
           delete surfElems_[index][i];
         }
 
@@ -4579,7 +4573,7 @@ namespace CoupledField {
     numElems = 0;
     for(i=0; i<numElems_; i++)
     {
-      if(orderedElems_[i] != NULL)
+      if(orderedElems_[i] != nullptr)
       {
         newOrderedElems.Push_back(orderedElems_[i]);
         //        std::cout << "Clear Region: " << orderedElems_[i]->elemNum << " -> " << numElems << std::endl;
@@ -4592,18 +4586,17 @@ namespace CoupledField {
   }
 
   void GridCFS::DeleteNamedNodes(const std::string &name) {
-    
+    // check if the entry in the nameTypeMap is set
     if (nameTypeMap_.find(name) == nameTypeMap_.end()) {
       EXCEPTION("Node list '" << name << "' does not exist.");
     }
-    
+    // check if the specified node list exists
     Integer idx = namedNodeNames_.Find(name);
     if (idx != -1) {
       std::set<UInt> sortedNodes;
-      
       // put the nodes into a std::set to get an ordered list
       sortedNodes.insert(namedNodes_[idx].Begin(), namedNodes_[idx].End());
-      
+
       if (*sortedNodes.begin() == coords_.GetSize()-sortedNodes.size()+1) {
         // is a block at the end of the vector, so just resize
         numNodes_ = coords_.GetSize() - sortedNodes.size();
@@ -4613,15 +4606,10 @@ namespace CoupledField {
         // Please implement the general case if you need it. But beware!
         // It's complicated, because you need to renumber all nodes and
         // therefore change the connectivity as well!
-        numNodes_ = coords_.GetSize() - sortedNodes.size();
-        coords_.Resize(numNodes_);
-        deltCoords_.Resize(numNodes_);
-
-        WARN("Deleting named nodes which are not a continuous block at the end \n" <<
-              "of the node array. In case of rotating AND static NcInterfaces \n" <<
-              "this may lead to wrong results. Only proceed if you know what you are doing.")
+        EXCEPTION("You try to delete named nodes which are not a continuous block at the end of the node array." << std::endl <<
+                  "This is not allowed as it would change the mesh connectivity!" << std::endl <<
+                  "Check the declaration of your ncInterfaces! ()");
       }
-      
       namedNodeNames_.Erase( (UInt) idx );
       namedNodes_.Erase( (UInt) idx );
       nameTypeMap_.erase(name);

@@ -186,8 +186,8 @@ void LinFlowMechCoupling::DefineIntegrators() {
         //in case of Nitsche coupling edge/face information is required
         this->ptGrid_->MapEdges();
         this->ptGrid_->MapFaces();
-        RegionIdType volMasterId = nitscheIf->GetMasterVolRegion();
-        RegionIdType volSlaveId = nitscheIf->GetSlaveVolRegion();
+        RegionIdType volMasterId = nitscheIf->GetPrimaryVolRegion();
+        RegionIdType volSlaveId = nitscheIf->GetSecondaryVolRegion();
 
         //we set here the penalty factor
         Double beta = ncList[i]->Get("nitscheFactor")->As<Double>();
@@ -343,7 +343,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp1->SetCoefFunction(coefMech);
           int_PhiM_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              sNSOp1, coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+              sNSOp1, coefMinusOne, 1.0, BiLinearForm::PRIM_PRIM, false, true, false);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
@@ -351,7 +351,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp1->SetCoefFunction(coefMech);
           int_PhiM_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              sNSOp1, coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+              sNSOp1, coefMinusOne, 1.0, BiLinearForm::PRIM_PRIM, false, true, false);
         }
         else
         {
@@ -359,7 +359,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp1->SetCoefFunction(coefMech);
           int_PhiM_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              sNSOp1, coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+              sNSOp1, coefMinusOne, 1.0, BiLinearForm::PRIM_PRIM, false, true, false);
         }
         // ====================================================================
         //  PART TWO
@@ -372,14 +372,14 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PhiM_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              beta_scalingCoef, beta, BiLinearForm::MASTER_MASTER , false, true, true);
+              beta_scalingCoef, beta, BiLinearForm::PRIM_PRIM , false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PhiM_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              beta_scalingCoef, beta, BiLinearForm::MASTER_MASTER, false, true, true);
+              beta_scalingCoef, beta, BiLinearForm::PRIM_PRIM, false, true, true);
         }
         else
         {
@@ -387,7 +387,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PhiM_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              beta_scalingCoef, beta, BiLinearForm::MASTER_MASTER, false, true, true);
+              beta_scalingCoef, beta, BiLinearForm::PRIM_PRIM, false, true, true);
         }
         // --------------------------
         // Term 3 : -beta*phi*v
@@ -397,21 +397,21 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PhiM_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              beta_scalingCoef, -beta,BiLinearForm::MASTER_SLAVE , false, true, true);
+              beta_scalingCoef, -beta,BiLinearForm::PRIM_SEC , false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PhiM_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              beta_scalingCoef, -beta, BiLinearForm::MASTER_SLAVE , false, true, true);
+              beta_scalingCoef, -beta, BiLinearForm::PRIM_SEC , false, true, true);
         }
         else
         {
           penalty_PhiM_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              beta_scalingCoef, -beta, BiLinearForm::MASTER_SLAVE , false, true, true);
+              beta_scalingCoef, -beta, BiLinearForm::PRIM_SEC , false, true, true);
         }
         // ====================================================================
         //  PART THREE
@@ -425,7 +425,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),sNSOp2,
-              coefOne, linFlowBalanceOfMomentumSign, BiLinearForm::SLAVE_MASTER, false, true, false);
+              coefOne, linFlowBalanceOfMomentumSign, BiLinearForm::SEC_PRIM, false, true, false);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
@@ -433,7 +433,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),sNSOp2,
-              coefOne, linFlowBalanceOfMomentumSign, BiLinearForm::SLAVE_MASTER, false, true, false);
+              coefOne, linFlowBalanceOfMomentumSign, BiLinearForm::SEC_PRIM, false, true, false);
         }
         else
         {
@@ -441,7 +441,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
           sNSOp2->SetCoefFunction(coefMech);
           int_PsiS_duM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),sNSOp2,
-              coefOne, linFlowBalanceOfMomentumSign, BiLinearForm::SLAVE_MASTER, false, false, false);
+              coefOne, linFlowBalanceOfMomentumSign, BiLinearForm::SEC_PRIM, false, false, false);
         }
         // ====================================================================
         //  PART FOUR
@@ -454,21 +454,21 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
+              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SEC_SEC, false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, true, true);
+              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SEC_SEC, false, true, true);
         }
         else
         {
           penalty_PsiS_vS = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_SLAVE, false, false, true);
+              beta_scalingCoef, linFlowBalanceOfMomentumSign*beta, BiLinearForm::SEC_SEC, false, false, true);
         }
         // --------------------------
         // Term 6 : -beta*Psi.du/dt
@@ -479,21 +479,21 @@ void LinFlowMechCoupling::DefineIntegrators() {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 3, 3>(),
               new SurfaceIdentityOperator<FeH1, 3, 3>(),
-              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, true, true);
+              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SEC_PRIM, false, true, true);
         }
         else if (dim_ == 2 && subType_ == "2.5d")
         {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 3>(),
               new SurfaceIdentityOperator<FeH1, 2, 3>(),
-              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, true, true);
+              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SEC_PRIM, false, true, true);
         }
         else
         {
           penalty_PsiS_uM = new SurfaceNitscheABInt<Double,Double>
           (new SurfaceIdentityOperator<FeH1, 2, 2>(),
               new SurfaceIdentityOperator<FeH1, 2, 2>(),
-              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SLAVE_MASTER, false, false, true);
+              beta_scalingCoef, -linFlowBalanceOfMomentumSign*beta, BiLinearForm::SEC_PRIM, false, false, true);
         }
 
         int_PhiM_duM->SetName("int_PhiM_duM");
@@ -505,12 +505,12 @@ void LinFlowMechCoupling::DefineIntegrators() {
 
 
         // define contexts for bilinear forms
-        SurfaceBiLinFormContext* descr_PhiM_duM = new SurfaceBiLinFormContext(int_PhiM_duM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-        SurfaceBiLinFormContext* descr_PhiM_uM = new SurfaceBiLinFormContext(penalty_PhiM_uM, DAMPING , BiLinearForm::MASTER_MASTER);
-        SurfaceBiLinFormContext* descr_PhiM_vS = new SurfaceBiLinFormContext(penalty_PhiM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-        SurfaceBiLinFormContext* descr_PsiS_duM = new SurfaceBiLinFormContext(int_PsiS_duM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-        SurfaceBiLinFormContext* descr_PsiS_vS = new SurfaceBiLinFormContext(penalty_PsiS_vS, STIFFNESS, BiLinearForm::SLAVE_SLAVE);
-        SurfaceBiLinFormContext* descr_PsiS_uM = new SurfaceBiLinFormContext(penalty_PsiS_uM, DAMPING, BiLinearForm::SLAVE_MASTER);
+        SurfaceBiLinFormContext* descr_PhiM_duM = new SurfaceBiLinFormContext(int_PhiM_duM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+        SurfaceBiLinFormContext* descr_PhiM_uM = new SurfaceBiLinFormContext(penalty_PhiM_uM, DAMPING , BiLinearForm::PRIM_PRIM);
+        SurfaceBiLinFormContext* descr_PhiM_vS = new SurfaceBiLinFormContext(penalty_PhiM_vS, STIFFNESS, BiLinearForm::PRIM_SEC);
+        SurfaceBiLinFormContext* descr_PsiS_duM = new SurfaceBiLinFormContext(int_PsiS_duM, STIFFNESS, BiLinearForm::SEC_PRIM);
+        SurfaceBiLinFormContext* descr_PsiS_vS = new SurfaceBiLinFormContext(penalty_PsiS_vS, STIFFNESS, BiLinearForm::SEC_SEC);
+        SurfaceBiLinFormContext* descr_PsiS_uM = new SurfaceBiLinFormContext(penalty_PsiS_uM, DAMPING, BiLinearForm::SEC_PRIM);
 
         descr_PhiM_duM->SetEntities(actNCSDList, actNCSDList);
         descr_PhiM_uM->SetEntities(actNCSDList, actNCSDList);
@@ -548,7 +548,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
             sNSOp3->SetCoefFunction(coefMech);
             int_dPhiM_vS = new SurfaceNitscheABInt<Double,Double>
             (sNSOp3, new SurfaceIdentityOperator<FeH1, 3, 3>(),
-                coefOne, 1.0, BiLinearForm::MASTER_SLAVE, false, true, false);
+                coefOne, 1.0, BiLinearForm::PRIM_SEC, false, true, false);
           }
           else if (dim_ == 2 && subType_ == "2.5d")
           {
@@ -556,7 +556,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
             sNSOp3->SetCoefFunction(coefMech);
             int_dPhiM_vS = new SurfaceNitscheABInt<Double,Double>
             (sNSOp3, new SurfaceIdentityOperator<FeH1, 2, 3>(),
-                coefOne, 1.0, BiLinearForm::MASTER_SLAVE, false, true, false);
+                coefOne, 1.0, BiLinearForm::PRIM_SEC, false, true, false);
           }
           else
           {
@@ -564,7 +564,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
             sNSOp3->SetCoefFunction(coefMech);
             int_dPhiM_vS = new SurfaceNitscheABInt<Double,Double>
             (sNSOp3, new SurfaceIdentityOperator<FeH1, 2, 2>(),
-                coefOne, 1.0, BiLinearForm::MASTER_SLAVE, false, true, false);
+                coefOne, 1.0, BiLinearForm::PRIM_SEC, false, true, false);
           }
 
           // --------------------------
@@ -576,7 +576,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
             sNSOp4->SetCoefFunction(coefMech);
             int_dPhiM_uM = new SurfaceNitscheABInt<Double,Double>
             (sNSOp4, new SurfaceIdentityOperator<FeH1, 3, 3>(),
-                coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+                coefMinusOne, 1.0, BiLinearForm::PRIM_PRIM, false, true, false);
           }
           else if (dim_ == 2 && subType_ == "2.5d")
           {
@@ -584,7 +584,7 @@ void LinFlowMechCoupling::DefineIntegrators() {
             sNSOp4->SetCoefFunction(coefMech);
             int_dPhiM_uM = new SurfaceNitscheABInt<Double,Double>
             (sNSOp4, new SurfaceIdentityOperator<FeH1, 2, 3>(),
-                coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+                coefMinusOne, 1.0, BiLinearForm::PRIM_PRIM, false, true, false);
           }
           else
           {
@@ -592,15 +592,15 @@ void LinFlowMechCoupling::DefineIntegrators() {
             sNSOp4->SetCoefFunction(coefMech);
             int_dPhiM_uM = new SurfaceNitscheABInt<Double,Double>
             (sNSOp4, new SurfaceIdentityOperator<FeH1, 2, 2>(),
-                coefMinusOne, 1.0, BiLinearForm::MASTER_MASTER, false, true, false);
+                coefMinusOne, 1.0, BiLinearForm::PRIM_PRIM, false, true, false);
           }
 
 
           int_dPhiM_vS->SetName("int_dPhiM_vS");
           int_dPhiM_uM->SetName("int_dPhiM_uM");
 
-          SurfaceBiLinFormContext* descr_dPhiM_vS = new SurfaceBiLinFormContext(int_dPhiM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-          SurfaceBiLinFormContext* descr_dPhiM_uM = new SurfaceBiLinFormContext(int_dPhiM_uM, DAMPING, BiLinearForm::MASTER_MASTER);
+          SurfaceBiLinFormContext* descr_dPhiM_vS = new SurfaceBiLinFormContext(int_dPhiM_vS, STIFFNESS, BiLinearForm::PRIM_SEC);
+          SurfaceBiLinFormContext* descr_dPhiM_uM = new SurfaceBiLinFormContext(int_dPhiM_uM, DAMPING, BiLinearForm::PRIM_PRIM);
 
           descr_dPhiM_vS->SetEntities(actNCSDList, actNCSDList);
           descr_dPhiM_uM->SetEntities(actNCSDList, actNCSDList);
@@ -646,9 +646,9 @@ void LinFlowMechCoupling::DefineIntegrators() {
 
         // Coupling across NC interface -> SurfaceMortarABInt
         DefineMortarIntNC("LinFlowMechDampingLMDispCouplingIntNC", lagrangeMultFct, dispFct,
-                          mortarIf, 1.0, coefOne, DAMPING, BiLinearForm::SLAVE_MASTER);
+                          mortarIf, 1.0, coefOne, DAMPING, BiLinearForm::SEC_PRIM);
         DefineMortarIntNC("LinFlowMechStiffDispLMCouplingIntNC", dispFct, lagrangeMultFct,
-                          mortarIf, 1.0, coefOne, STIFFNESS, BiLinearForm::MASTER_SLAVE);
+                          mortarIf, 1.0, coefOne, STIFFNESS, BiLinearForm::PRIM_SEC);
         // Coupling on secondary (slave) side -> BBInt
         DefineMortarIntNCSecondary("LinFlowMechStiffLMVelCouplingIntNC", lagrangeMultFct, velFct,
                           elSlave, -1.0, coefOne, STIFFNESS);
@@ -824,9 +824,9 @@ void LinFlowMechCoupling::DefineMortarIntNC(const std::string& name,
 
   shared_ptr<ElemList> actSDList = mortarIf->GetElemList();
 
-  RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
-  RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
-  bool coplanar = mortarIf->IsPlanar();
+  RegionIdType volMasterId = mortarIf->GetPrimaryVolRegion();
+  RegionIdType volSlaveId = mortarIf->GetSecondaryVolRegion();
+  bool coplanar = mortarIf->IsCoplanar();
 
   BiLinearForm * cplInt = NULL;
 
@@ -929,7 +929,7 @@ void LinFlowMechCoupling::CreateFeSpaces( const std::string&  type,
   if (IsLagrangeMultiplierMethod_ || hasMortarIface_) {
     formulation_ = LAGRANGE_MULT;
     PtrParamNode spaceNode;
-    // for the Mortar method, the LM space must be on the "slave" side (LinFlow)
+    // for the Mortar method, the LM space must be on the "secondary" side (LinFlow)
     PtrParamNode ParamNodeLM = IsLagrangeMultiplierMethod_ ? myParam_ : pde1_->GetParamNode();
 
     if(lmOrderSameAsVel_) {

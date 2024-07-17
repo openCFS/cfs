@@ -143,16 +143,14 @@ namespace CoupledField
     void DefineFeFunctions();
 
     //! Create FeSpaces according to formulation
-    virtual void CreateFeSpaces( const std::string&  formulation,
-                                 PtrParamNode infoNode,
+    //! needs to be implemented in the child classes if a lagrange multiplyer is needed
+    virtual void CreateFeSpaces( const std::string&  formulation, PtrParamNode infoNode,
                                  std::map<SolutionType, shared_ptr<FeSpace> >& crSpace ) {};
 
-    //! define primary results (new unknowns, just living
-    //! on the coupling!)
+    //! define primary results (new unknowns, just living on the coupling!)
     virtual void DefinePrimaryResults() {};
 
     //! Define post-processing results
-
     //! This method defines the post-processing results, which are computed
     //! mostly using the bilienarform of the main problem.
     //! Thus, this method gets called after the integrators are defined
@@ -276,7 +274,7 @@ namespace CoupledField
     StdVector<shared_ptr<EntityList> > entityLists_;
 
     //! ncInterface regions of coupling object
-    StdVector<RegionIdType> ncIfaces_;
+    StdVector<RegionIdType> ncInterfaceIds_;
 
     //! ncInterface information
     StdVector< StdPDE::NcInterfaceInfo > ncInterfaces_;

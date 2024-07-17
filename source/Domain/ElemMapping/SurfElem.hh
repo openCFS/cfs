@@ -56,8 +56,8 @@ namespace CoupledField
     
     //! Default Constructor
     SurfElem() {
-      ptVolElems[0] = NULL;
-      ptVolElems[1] = NULL;
+      ptVolElems[0] = nullptr;
+      ptVolElems[1] = nullptr;
     }
     
     // ======================================================
@@ -100,11 +100,13 @@ namespace CoupledField
    *  non-matching grid are working again.
    */
   struct MortarNcSurfElem : public NcSurfElem {
-    MortarNcSurfElem() : NcSurfElem(), ptMaster(NULL), ptSlave(NULL) {}
-
-    SurfElem *ptMaster;
-    SurfElem *ptSlave;
-    shared_ptr<SurfElem> projectedMaster;
+    MortarNcSurfElem() : NcSurfElem() {transVect.Resize(0);}
+    //! pointers to primary/secondary elements
+    SurfElem *ptPrimary = nullptr;
+    SurfElem *ptSecondary = nullptr;
+    //! in case of non-coplanar interfaces we need projections to compute element intersections and to 
+    //! transport the integration points of intersection elements back into the original elements.
+    shared_ptr<SurfElem> projectedPrimary = nullptr;
 
     // the plainest, but, obviously, not the most effective way to store the information
     // about the parallel projection between the master and the slave in case of translational p.b.c.

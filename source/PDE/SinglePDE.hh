@@ -638,21 +638,25 @@ namespace CoupledField
     //! Defines integrators for Mortar coupling of an unknown on one specific
     //! interface.
     template<UInt DIM, UInt D_DOF>
-    void DefineMortarCoupling( SolutionType solType,
-                                       NcInterfaceInfo &iface);
-    
+    void DefineMortarCoupling(SolutionType solType, NcInterfaceInfo &iface);
+
     //! Defines integrators for Nitsche coupling of an unknown on one specific
     //! interface.
     template<UInt DIM, UInt D_DOF>
-    void DefineNitscheCoupling( SolutionType solType,
-                                NcInterfaceInfo &iface,
+    void DefineNitscheCoupling(SolutionType solType, NcInterfaceInfo &iface,
                                 shared_ptr<CoefFunctionMulti> additionalCoef = NULL);
-    
+
+    //! When the mortarInterface (Nitsche or Mortar) has ALESystem enabled, we assemble additional convective terms
+    //! that counter-rotate the field against the grid motion, resulting in a stationary material behavior.
+    //! The system is defined similar to the convective terms in the AcouPDE, which is based on 
+    //! "Kaltenbacher, Hüppe, 2018: Advanced Finite Element Formulation for the Convective Wave Equation"
+    template<UInt DIM, UInt D_DOF>
+    void DefineEulerianSystem(SolutionType solType, NcInterfaceInfo &iface);
+
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;
     
     //@}
-
   private:
   };
 

@@ -845,15 +845,15 @@ void HeatPDE::DefineIntegrators() {
 
   //       // get regionId of Lagrangian surface
   //       StdVector<std::string> keyVec, attrVec, valVec;
-  //       std::string slaveSide;
+  //       std::string secondarySide;
   //       std::string ncIfaceName = ptGrid_->GetRegion().ToString(ncIFaces_[i]);
 
   //       PtrParamNode ncIfaceListNode;
   //       ncIfaceListNode = domain_->GetParamRoot()->Get("domain")->Get("ncInterfaceList");
 
-  //       slaveSide = ncIfaceListNode->
+  //       secondarySide = ncIfaceListNode->
   //           GetByVal("ncInterface", "name",
-  //                    ncIfaceName)->Get("slaveSide")->As<std::string>();
+  //                    ncIfaceName)->Get("secondarySide")->As<std::string>();
 
   //       // Part 1: Define integrator M(Psi, Lambda) on
   //       //         non-conforming interface
@@ -885,7 +885,7 @@ void HeatPDE::DefineIntegrators() {
   //                         << " for D on interface '"
   //                         << ptGrid_->GetRegion().ToString(ncIFaces_[i]) << "'.";
   //       shared_ptr<SurfElemList> actSDList( new SurfElemList(ptGrid_ ) );
-  //       actSDList->SetRegion( ptGrid_->GetRegion().Parse(slaveSide));
+  //       actSDList->SetRegion( ptGrid_->GetRegion().Parse(secondarySide));
 
   //       // D(Psi, Lambda) has the form of a standard mass
   //       // integrator with factor 1.0

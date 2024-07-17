@@ -545,7 +545,7 @@ namespace CoupledField {
           }
           
           //very important: ist the tangent stiffness matrix
-          piolaInt->SetNewtonBilinearForm();
+          piolaInt->SetNewtonBiLinearForm();
           
           piolaInt->SetSolDependent(true);
           piolaInt->SetFeSpace(mySpace);
@@ -951,8 +951,8 @@ namespace CoupledField {
           assert(mortarIf);
           
           PtrCoefFct matDataTensorMas, matDataTensorSla, matData;
-          RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
-          RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
+          RegionIdType volMasterId = mortarIf->GetPrimaryVolRegion();
+          RegionIdType volSlaveId = mortarIf->GetSecondaryVolRegion();
           
           matDataTensorMas = regionStiffness_[volMasterId];
           matDataTensorSla = regionStiffness_[volSlaveId];
@@ -1062,24 +1062,24 @@ namespace CoupledField {
             
             // define bilinear forms for Nitsche coupling
             // penalty integrators
-            pnlt_uM_vM = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::MASTER_MASTER);
-            pnlt_uM_vS = GetPenaltyIntegrator<Complex>(factorSqr, -beta, BiLinearForm::MASTER_SLAVE);
-            pnlt_uS_vM = GetPenaltyIntegrator<Double>(one, -beta, BiLinearForm::SLAVE_MASTER);
-            pnlt_uS_vS = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::SLAVE_SLAVE);
+            pnlt_uM_vM = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::PRIM_PRIM);
+            pnlt_uM_vS = GetPenaltyIntegrator<Complex>(factorSqr, -beta, BiLinearForm::PRIM_SEC);
+            pnlt_uS_vM = GetPenaltyIntegrator<Double>(one, -beta, BiLinearForm::SEC_PRIM);
+            pnlt_uS_vS = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::SEC_SEC);
             // flux integrators
             if (matData->IsComplex())
             {
-              flux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes);
-              flux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes);
-              flux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes);
-              flux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes);
+              flux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true, icModes);
+              flux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false, icModes);
+              flux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true, icModes);
+              flux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false, icModes);
             }
             else
             {
-              flux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes);
-              flux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes);
-              flux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes);
-              flux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes);
+              flux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true, icModes);
+              flux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false, icModes);
+              flux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true, icModes);
+              flux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false, icModes);
             }
             
             // pass material data to the flux operators
@@ -1101,18 +1101,18 @@ namespace CoupledField {
             //slave-slave
             pnlt_uS_vS->SetName("pnlt_uS_vS");
             
-            // BiLinearForm::MASTER_MASTER;
-            SurfaceBiLinFormContext *pnlt_uM_vM_cont = new SurfaceBiLinFormContext(pnlt_uM_vM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-            SurfaceBiLinFormContext *flux_DuM_vM_cont = new SurfaceBiLinFormContext(flux_DuM_vM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-            SurfaceBiLinFormContext *flux_uM_DvM_cont = new SurfaceBiLinFormContext(flux_uM_DvM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-            // BiLinearForm::MASTER_SLAVE;
-            SurfaceBiLinFormContext *pnlt_uM_vS_cont = new SurfaceBiLinFormContext(pnlt_uM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-            SurfaceBiLinFormContext *flux_DuM_vS_cont = new SurfaceBiLinFormContext(flux_DuM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-            // BiLinearForm::SLAVE_MASTER;
-            SurfaceBiLinFormContext *pnlt_uS_vM_cont = new SurfaceBiLinFormContext(pnlt_uS_vM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-            SurfaceBiLinFormContext *flux_uS_DvM_cont = new SurfaceBiLinFormContext(flux_uS_DvM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-            // BiLinearForm::SLAVE_SLAVE;
-            SurfaceBiLinFormContext *pnlt_uS_vS_cont = new SurfaceBiLinFormContext(pnlt_uS_vS, STIFFNESS, BiLinearForm::SLAVE_SLAVE);
+            // BiLinearForm::PRIM_PRIM;
+            SurfaceBiLinFormContext *pnlt_uM_vM_cont = new SurfaceBiLinFormContext(pnlt_uM_vM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+            SurfaceBiLinFormContext *flux_DuM_vM_cont = new SurfaceBiLinFormContext(flux_DuM_vM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+            SurfaceBiLinFormContext *flux_uM_DvM_cont = new SurfaceBiLinFormContext(flux_uM_DvM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+            // BiLinearForm::PRIM_SEC;
+            SurfaceBiLinFormContext *pnlt_uM_vS_cont = new SurfaceBiLinFormContext(pnlt_uM_vS, STIFFNESS, BiLinearForm::PRIM_SEC);
+            SurfaceBiLinFormContext *flux_DuM_vS_cont = new SurfaceBiLinFormContext(flux_DuM_vS, STIFFNESS, BiLinearForm::PRIM_SEC);
+            // BiLinearForm::SEC_PRIM;
+            SurfaceBiLinFormContext *pnlt_uS_vM_cont = new SurfaceBiLinFormContext(pnlt_uS_vM, STIFFNESS, BiLinearForm::SEC_PRIM);
+            SurfaceBiLinFormContext *flux_uS_DvM_cont = new SurfaceBiLinFormContext(flux_uS_DvM, STIFFNESS, BiLinearForm::SEC_PRIM);
+            // BiLinearForm::SEC_SEC;
+            SurfaceBiLinFormContext *pnlt_uS_vS_cont = new SurfaceBiLinFormContext(pnlt_uS_vS, STIFFNESS, BiLinearForm::SEC_SEC);
             
             pnlt_uM_vM_cont->SetEntities(actSDList, actSDList);
             flux_DuM_vM_cont->SetEntities(actSDList, actSDList);
@@ -1164,17 +1164,17 @@ namespace CoupledField {
               // define bilinear forms for Nitsche coupling
               if (preStressFct->IsComplex())
               {
-                preStrFlux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes, true);
-                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes, true);
-                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes, true);
-                preStrFlux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes, true);
+                preStrFlux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true, icModes, true);
+                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false, icModes, true);
+                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true, icModes, true);
+                preStrFlux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false, icModes, true);
               }
               else
               {
-                preStrFlux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes, true);
-                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes, true);
-                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes, true);
-                preStrFlux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes, true);
+                preStrFlux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true, icModes, true);
+                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false, icModes, true);
+                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true, icModes, true);
+                preStrFlux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false, icModes, true);
               }
               
               preStrFlux_DuM_vM->SetBCoefFunctionOpA(preStressFct);
@@ -1190,10 +1190,10 @@ namespace CoupledField {
               // slave-master
               preStrFlux_uS_DvM->SetName("preStrFlux_uS_DvM");
               
-              SurfaceBiLinFormContext *preStrFlux_DuM_vM_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-              SurfaceBiLinFormContext *preStrFlux_uM_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uM_DvM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-              SurfaceBiLinFormContext *preStrFlux_DuM_vS_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-              SurfaceBiLinFormContext *preStrFlux_uS_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uS_DvM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
+              SurfaceBiLinFormContext *preStrFlux_DuM_vM_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+              SurfaceBiLinFormContext *preStrFlux_uM_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uM_DvM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+              SurfaceBiLinFormContext *preStrFlux_DuM_vS_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vS, STIFFNESS, BiLinearForm::PRIM_SEC);
+              SurfaceBiLinFormContext *preStrFlux_uS_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uS_DvM, STIFFNESS, BiLinearForm::SEC_PRIM);
               
               preStrFlux_DuM_vM_cont->SetEntities(actSDList, actSDList);
               preStrFlux_uM_DvM_cont->SetEntities(actSDList, actSDList);

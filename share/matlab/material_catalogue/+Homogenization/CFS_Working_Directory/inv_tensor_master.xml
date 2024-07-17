@@ -23,10 +23,10 @@
         <regionList> <region name="mech"/> </regionList>
         
         <bcsAndLoads>
-          <periodic master="nodes3" slave="nodes4" dof="x" />
-          <periodic master="nodes3" slave="nodes4" dof="y" />
-          <periodic master="nodes5" slave="nodes6" dof="x" />
-          <periodic master="nodes5" slave="nodes6" dof="y" />
+          <periodic primary="nodes3" secondary="nodes4" dof="x" />
+          <periodic primary="nodes3" secondary="nodes4" dof="y" />
+          <periodic primary="nodes5" secondary="nodes6" dof="x" />
+          <periodic primary="nodes5" secondary="nodes6" dof="y" />
         </bcsAndLoads>
         
         </mechanic>
@@ -56,4 +56,3 @@
   </optimization> 	  
 
 </cfsSimulation>
-

@@ -42,9 +42,8 @@ class BiLinearForm;
     virtual ~AcouMechCoupling();
 
   protected:
-
     //! Definition of the (bi)linear forms
-    void DefineIntegrators();
+    void DefineIntegrators() override;
 
     //! Create a particular bilinear form integrator
     void DefCouplInt( const std::string& name,
@@ -59,22 +58,19 @@ class BiLinearForm;
 
     //! Create a particular non-conforming bilinear form
     void DefCouplIntNC( const std::string& name,
-                      bool assembleTransposed,
-                      Double factor,
-                      FEMatrixType matType,
-                      shared_ptr<BaseFeFunction>& fnc1,
-                      shared_ptr<BaseFeFunction>& fnc2,
-					  shared_ptr<BaseNcInterface> ncIf,
-					  const std::map< RegionIdType, PtrCoefFct >& coefFuncs);
+                        bool assembleTransposed,
+                        Double factor,
+                        FEMatrixType matType,
+                        shared_ptr<BaseFeFunction>& fnc1,
+                        shared_ptr<BaseFeFunction>& fnc2,
+                        shared_ptr<BaseNcInterface> ncIf,
+                        const std::map< RegionIdType, PtrCoefFct >& coefFuncs);
 
     //! Subtype of related mechanical PDE
     std::string subType_;
-    
   private:
 
   };
-
-
 } // end of namespace
 
 #endif

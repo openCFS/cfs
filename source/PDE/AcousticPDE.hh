@@ -89,6 +89,15 @@ namespace CoupledField{
 //    virtual void SetRhsValues();
 
   private:
+    //! Defines integrators for Nitsche coupling of an unknown on one specific
+    //! interface.
+    //! \param iface Interface for which the coupling is defined.
+    template<UInt DIM, bool IS_COMPLEX>
+    void DefineNitscheCoupling(NcInterfaceInfo &iface);
+
+    // //! Compute a global factor for coupling to other PDEs. Currently only used for
+    // //! the mechAcou coupling to get a symmetric matrix when in acouPotential formulation.
+    // PtrCoefFct SetGlobalCouplingFactor();
 
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
@@ -98,7 +107,6 @@ namespace CoupledField{
 
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
-    
 
     //! acoustic source density
     shared_ptr<CoefFunctionMulti> acousticSourceDensityCoef_;

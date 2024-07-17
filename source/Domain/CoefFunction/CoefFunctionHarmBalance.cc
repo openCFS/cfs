@@ -450,7 +450,7 @@ template<class T>
       for(auto reg : hbRegion_){
         if ( lpm.isSurface ){
           const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
-          if( reg.region == e->ptSlave->ptVolElems[0]->regionId ){
+          if( reg.region == e->ptSecondary->ptVolElems[0]->regionId ){
             reg.linNuCoefMap->GetScalar(coefScalReal, lpm);
             coefScal = (Complex)coefScalReal;
             break;
@@ -467,8 +467,8 @@ template<class T>
       const Vector<Complex>& fR = freqTimeRes_.GetFreqResult( N_ + harmonic);
       if ( lpm.isSurface ){
         const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
-        coefScal = fR[ positionOfElem_[e->ptSlave->ptVolElems[0]->elemNum] ];
-        elemReg = e->ptSlave->ptVolElems[0]->regionId;
+        coefScal = fR[ positionOfElem_[e->ptSecondary->ptVolElems[0]->elemNum] ];
+        elemReg = e->ptSecondary->ptVolElems[0]->regionId;
         LOG_DBG(coeffctharmbalance) <<"nu for Nitsche interface with volume region " << ptGrid_->GetRegionName( elemReg )<<
                                     " in harmonic "<< harmonic <<" = " <<coefScal;
       }else{

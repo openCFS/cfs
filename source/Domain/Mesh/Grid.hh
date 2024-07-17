@@ -116,7 +116,7 @@ namespace CoupledField
 
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    virtual UInt GetDim() const = 0;
+    UInt GetDim() const {return dim_;}
 
     //! Return if grid uses quadratic elements
     virtual bool IsQuadratic() const = 0;
@@ -179,9 +179,9 @@ namespace CoupledField
     //! \param nodeCoords (out) coordinates of points
     //! \param inode (in) node numbers
     //! \param updated (in) flag indicating if updated geometry should be used
-    virtual void GetNodeCoordinates( StdVector<Vector<Double> >& nodeCoords,
-                                       StdVector<UInt>& nodeList,
-                                       bool updated ) const = 0;
+    virtual void GetNodeCoordinates(StdVector<Vector<Double> >& nodeCoords,
+                                    const StdVector<UInt>& nodeList,
+                                    const bool updated ) const = 0;
     
     //! Get coordinates of node (dimension: 3D)
 
@@ -297,17 +297,7 @@ namespace CoupledField
     //!
     //! \param ptElem Pointer to the geometrical element
     //! \param updated Flag for updated Lagrangian geometry
-    //! \param secondary Flag, if secondary-cached instance should be used
-    //!                  (Currently only needed for surface-mapped elements)
-    //!
-    //! \note Currently we assume that only one instance of the ElemShapeMap is
-    //! used in the program, as only one instance is generated. However, in
-    //! the case of surface-mapped elements, we need a "secondary" instance
-    //! for the neighboring volume element, in which case two instances
-    //! are used.
-    virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
-                                                      bool updated = false,
-                                                      bool secondary = false);
+    virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem, bool updated = false);
     
     virtual void AddElems(UInt nElems) = 0;
 
@@ -1029,6 +1019,7 @@ namespace CoupledField
     NcInterfaceId GetNcInterfaceId(const std::string& name) const;
     
     //! Initialize non-conforming interfaces from XML files
+    //! Static interfaces are initialized first, followed by moving ones.
     virtual void InitNcInterfacesFromXML();
     
     //! Adds a new NcInterface to the grid and returns its ID
@@ -1038,6 +1029,8 @@ namespace CoupledField
     bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems) const;
 
     //! Triggers calculation of node offsets for moving interfaces
+    //! First, interfaces are triggered to be reset from last to first
+    //! and then updated from first to last.
     void MoveNcInterfaces();
 
     bool HasNCI();
@@ -1081,7 +1074,11 @@ namespace CoupledField
     virtual void ClearRegion( const RegionIdType regionid)
     { EXCEPTION( "Not implemented" ); }
   
-    //! Delete all nodes in a node list
+    //! Delete all nodes in a node list. 
+    //! Checks if the nodelist is a block at the end, because in this
+    //! case it will likely lead to no trouble. 
+    //! If the nodes are not at the end, passes an exception because it 
+    //! would change connectivity. 
     virtual void DeleteNamedNodes( const std::string& name ) {
       EXCEPTION("Not implemented here.");
     }
@@ -1091,8 +1088,6 @@ namespace CoupledField
 
     //! mapping from ncInterface name to ID
     std::map< std::string, NcInterfaceId > nciNameMap_;
-    
-    
 
 
     // =======================================================================
@@ -1269,9 +1264,6 @@ namespace CoupledField
 
     };
 
-    //! Simple typedef for element element intersection bounding box searches
-    typedef std::pair<UInt,UInt>  ElemElemMatch;
-
     //! Map a list of global points to element local points
     
     //! This method maps each global coordinate (contained in the PointElemMatch
@@ -1300,12 +1292,10 @@ namespace CoupledField
     typedef CGAL::Bbox_3 BBox3D;
 
     //! Define box handler, which additionally stores an index
-    typedef CGAL::Box_intersection_d
-        ::Box_with_handle_d<double,3,const UInt*> HandleBox;
+    typedef CGAL::Box_intersection_d::Box_with_handle_d<double,3,const UInt*> HandleBox;
 
     //! Define box handler just with an ID
-    typedef CGAL::Box_intersection_d
-        ::Box_d<double,3> IdBox;
+    typedef CGAL::Box_intersection_d::Box_d<double,3> IdBox;
 
   protected:
     //! Return list of potential elements containing global points

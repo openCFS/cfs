@@ -37,6 +37,7 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionImpedanceModel.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
 #include <boost/lexical_cast.hpp>
 #include <cmath>
@@ -60,7 +61,6 @@ namespace CoupledField{
     pdematerialclass_  = ACOUSTIC;
     nonLin_            = false;
     isMechCoupled_     = false;
-    formulation_ = ACOU_PRESSURE;
 
     //! Always use total Lagrangian formulation 
     updatedGeo_        = false;
@@ -68,12 +68,20 @@ namespace CoupledField{
     isAPML_            = false;
     complexFluidFormulation_ = false;
 
+    //! set the PDE formulation
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
-    //check for pressure or potential formulation
-    sosAtLaplace_ = (pdeFormulation == "acouPressureSOSatLaplace")? true : false;
-
-    if(pdeFormulation != "default" && pdeFormulation != "acouPressureSOSatLaplace"){
-      formulation_ = SolutionTypeEnum.Parse(pdeFormulation);
+    if (pdeFormulation == "acouPressureSOSatLaplace") {
+      sosAtLaplace_ = true;
+      formulation_ = ACOU_PRESSURE;
+    } else if (pdeFormulation == "acouPressure") {
+      sosAtLaplace_ = false;
+      formulation_ = ACOU_PRESSURE;
+    } else if (pdeFormulation == "acouPotential") {
+      sosAtLaplace_ = false;
+      formulation_ = ACOU_POTENTIAL;
+    } else {
+      EXCEPTION("Unknown PDE formulation '" << pdeFormulation << "' for AcousticPDE. " 
+                << "Possible formulations are: 'acouPressure', 'acouPotential', 'acouPressureSOSatLaplace'.")
     }
   }
 
@@ -861,24 +869,29 @@ namespace CoupledField{
   }
 
   void AcousticPDE::DefineNcIntegrators() {
-//	if ( complexFluidFormulation_ )
-//		EXCEPTION("Complex fluid and NC-interfaces currently not allowed");
-
     StdVector< NcInterfaceInfo >::iterator ncIt = ncInterfaces_.Begin(),
                                            endIt = ncInterfaces_.End();
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
-        if (dim_ == 2)
+        if (dim_ == 2) {
           DefineMortarCoupling<2,1>(formulation_, *ncIt);
-        else
+        } else {
           DefineMortarCoupling<3,1>(formulation_, *ncIt);
+        }
         break;
       case NC_NITSCHE:
-        if (dim_ == 2)
-          DefineNitscheCoupling<2,1>(formulation_, *ncIt );
-        else
-          DefineNitscheCoupling<3,1>(formulation_, *ncIt );
+        if (dim_ == 2) {
+          if (isComplex_)
+            DefineNitscheCoupling<2, true>(*ncIt);
+          else
+            DefineNitscheCoupling<2, false>(*ncIt);
+        } else { /* if (dim_ == 3) */
+          if (isComplex_)
+            DefineNitscheCoupling<3, true>(*ncIt);
+          else
+            DefineNitscheCoupling<3, false>(*ncIt);
+        }
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");
@@ -886,7 +899,174 @@ namespace CoupledField{
       }
     }
   }
-  
+
+  template<UInt DIM, bool IS_COMPLEX>
+    void AcousticPDE::DefineNitscheCoupling(NcInterfaceInfo &iface) {
+
+    // Define aliases depending on IS_COMPLEX (template parameter)
+    auto complType = IS_COMPLEX ? Global::COMPLEX : Global::REAL;
+    using ScalarType = typename std::conditional<IS_COMPLEX, Complex, Double>::type;
+
+    shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(iface.interfaceId);
+    MortarInterface* nitscheIf = dynamic_cast<MortarInterface*>(ncIf.get());
+    assert(nitscheIf);
+
+    //in case of Nitsche coupling edge/face information is required
+    this->ptGrid_->MapEdges();
+    this->ptGrid_->MapFaces();
+
+    // currently we have a moving formulation only for acoustics
+    updatedGeo_ = updatedGeo_ || ncIf->IsMoving();
+
+    // create new entity list
+    shared_ptr<ElemList> actSDList = ncIf->GetElemList();
+
+    // we set here the penalty factor
+    Double beta = iface.nitscheFactor;
+
+    // get material density
+    PtrCoefFct dens = materials_[nitscheIf->GetPrimaryVolRegion()]->GetScalCoefFnc(DENSITY, complType);
+
+    // here we consider the case of mechAcou coupling in the potential formulation
+    PtrCoefFct factor = CoefFunction::Generate( mp_, complType, "1.0"); // *1, default
+    if ( isMechCoupled_ == true && formulation_ == ACOU_POTENTIAL) { // *rho or *-rho
+      // Important: In case of a general / quadratic EV problem, we must
+      // ensure to have a "positive definite" matrix, i.e. we are not allowed
+      // to multiply all matrices by -1! (but still multiply by density)
+      std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
+      factor =  CoefFunction::Generate(mp_, complType, CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT));
+    } else {
+      if (IS_COMPLEX) // *1/rho
+        factor = CoefFunction::Generate( mp_, complType, CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV ) );
+    }
+
+    //notation> assume the test function is called v
+    BiLinearForm* penalty_v1_u1 = nullptr;
+    BiLinearForm* penalty_v1_u2 = nullptr; // penalty_v2_u1 is covered by SetCounterPart(true)
+    BiLinearForm* penalty_v2_u2 = nullptr;
+    //now bilinear forms related to the normal derivatives
+    //du1 refers to the normal derivative directing from 1 to 2
+    BiLinearForm* flux_dv1_u1 = nullptr;
+    BiLinearForm* flux_dv1_u2 = nullptr;
+    BiLinearForm* flux_v1_du1 = nullptr;
+
+    // NOTE: the algebraic system sets the system matrix to
+    // nonSym  if any bilinear form with the same fctID1 and fctID2 is nonSym.
+    // We set here the symmetric flag to true in the constructor
+    // of the SurfaceNitscheABInt even though the bilinear form itself is
+    // not symmetric. Nitsche formulation is basically sym due to the
+    // set counterpart directive for the context.
+
+    // first, assign BOperators that include solution u1 and and test funciton v1 of the primary side...
+    // primary part of penalty BOperator (u1*v1)
+    penalty_v1_u1 = new SurfaceNitscheABInt<ScalarType,ScalarType>
+                   (new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                    factor, beta, BiLinearForm::PRIM_PRIM, 
+                    updatedGeo_, true, true);
+
+    // primary part of flux BOperator
+    flux_dv1_u1 = new SurfaceNitscheABInt<ScalarType,ScalarType>
+                 (new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+                  new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                  factor, -1.0, BiLinearForm::PRIM_PRIM, 
+                  updatedGeo_, true, false);
+
+    // symmetrization term
+    flux_v1_du1 = new SurfaceNitscheABInt<ScalarType,ScalarType>
+                 (new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                  new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+                  factor, -1.0, BiLinearForm::PRIM_PRIM, 
+                  updatedGeo_, true, false);
+
+    // now, assign BOperators that include solution u1 of the primary and and test funciton v2 of the secondary side...
+    // mixed part of penalty term (-u1*v2)
+    penalty_v1_u2 = new SurfaceNitscheABInt<ScalarType,ScalarType>
+                   (new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                    factor, beta * -1.0, BiLinearForm::PRIM_SEC, 
+                    updatedGeo_, true, true);
+
+    // mixed part of flux term
+    flux_dv1_u2 = new SurfaceNitscheABInt<ScalarType,ScalarType>
+                 (new SurfaceNormalDerivOperator<FeH1,DIM,1>(),
+                  new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                  factor, 1.0, BiLinearForm::PRIM_SEC, 
+                  updatedGeo_, true, false);
+
+    // finally, the terms living purely on the secondary domain...
+    // here we need to define only the penalty term as for the flux we enforce that (du1 = du2), so only the mixed flux term is required
+    penalty_v2_u2 = new SurfaceNitscheABInt<ScalarType,ScalarType>
+                   (new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                    new SurfaceIdentityOperator<FeH1,DIM,1>(),
+                    factor, beta, BiLinearForm::SEC_SEC, 
+                    updatedGeo_, true, true);
+
+    // Nitsche coupling matrix is a type of stiffness matrix
+    FEMatrixType targetMatrix;
+    if(updatedGeo_){
+      targetMatrix = STIFFNESS_UPDATE;
+    } else {
+      targetMatrix = STIFFNESS;
+    }
+
+    // now the BOperators are set, so define the contexts...
+    SurfaceBiLinFormContext* penalty_v1_u1_Context = new SurfaceBiLinFormContext(penalty_v1_u1, targetMatrix, BiLinearForm::PRIM_PRIM);
+    SurfaceBiLinFormContext* penalty_v2_u2_Context = new SurfaceBiLinFormContext(penalty_v2_u2, targetMatrix, BiLinearForm::SEC_SEC);
+    SurfaceBiLinFormContext* penalty_v1_u2_Context = new SurfaceBiLinFormContext(penalty_v1_u2, targetMatrix, BiLinearForm::PRIM_SEC);
+    SurfaceBiLinFormContext* flux_dv1_u1_Context   = new SurfaceBiLinFormContext(flux_dv1_u1  , targetMatrix, BiLinearForm::PRIM_PRIM);
+    SurfaceBiLinFormContext* flux_v1_du1_Context   = new SurfaceBiLinFormContext(flux_v1_du1  , targetMatrix, BiLinearForm::PRIM_PRIM);
+    SurfaceBiLinFormContext* flux_dv1_u2_Context   = new SurfaceBiLinFormContext(flux_dv1_u2  , targetMatrix, BiLinearForm::PRIM_SEC);
+    // assign motion to the contexts
+    penalty_v1_u1_Context->SetMotion(updatedGeo_);
+    penalty_v2_u2_Context->SetMotion(updatedGeo_);
+    penalty_v1_u2_Context->SetMotion(updatedGeo_);
+    flux_dv1_u1_Context->SetMotion(updatedGeo_);
+    flux_v1_du1_Context->SetMotion(updatedGeo_);
+    flux_dv1_u2_Context->SetMotion(updatedGeo_);
+    // assign names to the operators
+    penalty_v1_u1->SetName("penalty_v1_u1");
+    penalty_v2_u2->SetName("penalty_v2_u2");
+    penalty_v1_u2->SetName("penalty_v1_u2");
+    flux_dv1_u1->SetName("flux_dv1_u1");
+    flux_v1_du1->SetName("flux_v1_du1");
+    flux_dv1_u2->SetName("flux_dv1_u2");
+    // assign the entity list to the operators
+    penalty_v1_u1_Context->SetEntities(actSDList,actSDList);
+    penalty_v2_u2_Context->SetEntities(actSDList,actSDList);
+    penalty_v1_u2_Context->SetEntities(actSDList,actSDList);
+    flux_dv1_u1_Context->SetEntities(actSDList,actSDList);
+    flux_v1_du1_Context->SetEntities(actSDList,actSDList);
+    flux_dv1_u2_Context->SetEntities(actSDList,actSDList);
+    // assign fe functions to the operators
+    penalty_v1_u1_Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+    penalty_v2_u2_Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+    penalty_v1_u2_Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+    flux_dv1_u1_Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+    flux_v1_du1_Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+    flux_dv1_u2_Context->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+    // assign symmetry
+    penalty_v1_u2_Context->SetCounterPart(true);
+    flux_dv1_u2_Context->SetCounterPart(true);
+    // passt the contexts to the assembler
+    assemble_->AddBiLinearForm( penalty_v1_u1_Context );
+    assemble_->AddBiLinearForm( penalty_v2_u2_Context );
+    assemble_->AddBiLinearForm( penalty_v1_u2_Context );
+    assemble_->AddBiLinearForm( flux_dv1_u1_Context );
+    assemble_->AddBiLinearForm( flux_v1_du1_Context );
+    assemble_->AddBiLinearForm( flux_dv1_u2_Context );
+    // register integrators
+    ncIf->RegisterIntegrator( penalty_v1_u1_Context );
+    ncIf->RegisterIntegrator( penalty_v2_u2_Context );
+    ncIf->RegisterIntegrator( penalty_v1_u2_Context );
+    ncIf->RegisterIntegrator( flux_dv1_u1_Context );
+    ncIf->RegisterIntegrator( flux_v1_du1_Context );
+    ncIf->RegisterIntegrator( flux_dv1_u2_Context );
+
+    // check for eulerian formulation of moving grid
+    DefineEulerianSystem<DIM, 1>(formulation_, iface);
+  }
+
   void AcousticPDE::DefineSurfaceIntegrators( ){
     //========================================================================================
     // ABC boundaries
@@ -1414,9 +1594,8 @@ namespace CoupledField{
       }
       scalFactor = 1.0;
       PtrCoefFct exValue;
-      if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
-    	  EXCEPTION( "Normal acceleration can only be prescribed for pressure"
-    	              << "formulation" );
+      if (isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE) {
+        EXCEPTION("Normal acceleration can only be prescribed for pressure formulation");
       } else {
         exValue = coef[i];
       }

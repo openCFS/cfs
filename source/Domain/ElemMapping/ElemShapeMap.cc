@@ -13,7 +13,11 @@
 #endif
 
 namespace CoupledField {
+DEFINE_LOG(locPoint, "ElemShapeMap.LocPoint");
 DEFINE_LOG(locPointMapped, "ElemShapeMap.LocPointMapped");
+DEFINE_LOG(elemShapeMap, "ElemShapeMap.ElemShapeMap");
+DEFINE_LOG(lagrangeElemShapeMap, "ElemShapeMap.LagrangeElemShapeMap");
+
 // ===========================================================================
 //  C L A S S  LocPoint
 // ===========================================================================
@@ -32,7 +36,7 @@ std::ostream& operator <<(std::ostream& out, const LocPoint& lp) {
 //  C L A S S   LocPointMapped
 // ===========================================================================
 LocPointMapped::LocPointMapped() :
-    ptEl(NULL), weight(0.0), jacDet(0.0), isSurface(false), checkJacobi_(true) {
+    ptEl(nullptr), weight(0.0), jacDet(0.0), isSurface(false), checkJacobi_(true) {
 
 }
 
@@ -240,93 +244,89 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions, const 
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
   for (UInt iDim = 0; iDim < globSurfIntPoint.GetSize(); ++iDim)
     assert(abs(globSurfIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
-  assert(esmVol->CoordIsInsideElem(lpVol.coord, EPS));
+  assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS));
 #endif
 }
 
-
-void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-    Double weight, bool useMaster) {
-
+void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemShapeMap> esm, const bool usePrimary, Double weight) {
   // ------------------------------------------------------
   //  1) Set "normal" element information (Jacobian, etc.)
   // ------------------------------------------------------
-
   // first, call "normal" set method, also valid for volume elements
   this->Set(lp, esm, weight);
-
-  //here we do basically the same thing as in SetSurf info but slightly different
-  //TODO: make this more GENERAL
-  // set flag for surface mapped element
+  // ------------------------------------------------------
+  //  2) Perform surface-element specific tasks
+  // ------------------------------------------------------
+  // set flag for surface mapped element (Set() sets it to false before)
   this->isSurface = true;
+  // get surface element and cast down to mortar element
+  const MortarNcSurfElem* mortarElem = dynamic_cast<const MortarNcSurfElem*>(this->shapeMap->GetSurfElem());
+  // get correct surface element
+  const SurfElem* surfElem = (usePrimary) ? mortarElem->ptPrimary : mortarElem->ptSecondary;
+  // get correct volume element
+  const Elem* volElem = surfElem->ptVolElems[0];
+  // shape map for assigned volume element
+  const shared_ptr<ElemShapeMap> esmVol =  this->shapeMap->GetGrid()->GetElemShapeMap(volElem, this->shapeMap->IsUpdated());
+  // get shape map of the corresponding surface element
+  const shared_ptr<ElemShapeMap> esmSurf = this->shapeMap->GetGrid()->GetElemShapeMap(surfElem, this->shapeMap->IsUpdated());
 
-  // get surface element
-  const SurfElem* surfElem = (shapeMap->GetSurfElem());
-  // cast down to mortar element
-  const MortarNcSurfElem * mortarElem =
-        dynamic_cast<const MortarNcSurfElem*>(surfElem);
-  // if we have not previously selected the correct volume neighbor, we
-  // have to do it now
-  shared_ptr<ElemShapeMap> esmVol;
-
-  const Elem * ptVolElem = NULL;
-  const SurfElem * ptSurfElem = NULL;
-  if(mortarElem){
-      if (useMaster){
-         ptVolElem = mortarElem->ptMaster->ptVolElems[0];
-         ptSurfElem = mortarElem->ptMaster;
-      }else{
-        ptVolElem = mortarElem->ptSlave->ptVolElems[0];
-        ptSurfElem = mortarElem->ptSlave;
-      }
-  }else{
-     ptVolElem = surfElem->ptVolElems[0];
-     ptSurfElem = surfElem;
-
-     if(!ptVolElem || !ptSurfElem){
-       Exception("Determination of volume element failed for not-mortar Case.");
-     }
-  }
-
-  // kirill:
-  // For periodic boundary conditions, the intersection element may not coincide with the master/slave element.
-  // Therefore, the corresponding volume element will not lie adjacent to it. For this reason
-  // we must do the calculations with respect to the chosen 'ptSurfElem' which is either master or slave
-  // and definitely connected with 'ptVolElem'.
-  shared_ptr<ElemShapeMap> esmSurfElem = shapeMap->GetGrid()->GetElemShapeMap(ptSurfElem, shapeMap->IsUpdated());
-
-  lpmVol.reset(new LocPointMapped());
-  esmVol =  shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
-      shapeMap->IsUpdated(),true);
-
-  LocPoint lpVol;
-  Vector<Double> locNormal;
   //in this special case, we need to transform local2Global wrt mortarelem
-  //then global2local wrt volume elem
-  Vector<Double> globalPoint;
-  Vector<Double> localPoint;
-  esm->Local2Global(globalPoint, lp);
+  //then global2local wrt volume elem...
+  // global integration point, which is the lp transformed via th intersection element
+  Vector<Double> globIntPoint;
+  // local integration point determined by mapping the global point via the surfElem
+  // stored in a LocPoint object for lpmVol that is used to determine the normal vector
+  LocPoint lpVol, lpSurf;
+  // local normal vector of lpmVol that points out of the volElem in direction of the surfElem
+  Vector<Double> locNormal;
+  // Calculate global coordinates of integration point
+  this->shapeMap->Local2Global(globIntPoint, lp);
 
-  // kirill:
+  // -------kirill (periodic boundary conditions)-------------------------------------------------------------------------------------
+  // For periodic boundary conditions, the intersection element may not coincide with the primary/secondary element.
+  // Therefore, the corresponding volume element will not lie adjacent to it. For this reason
+  // we must do the calculations with respect to the chosen 'surfElem' which is either primary or secondary
+  // and definitely connected with 'volElem'.
   // We cannot simply map the global point lying on our surface element to the volume element: in case of mortar element
   // for p.b.c., the global point can lie out of the volume element. That's why we first map the global point form the NC-element to
-  // the master (or slave) surface element in order to calculate the corresponding local point in the adjacent volume element.
-  // The mapping is performed in accordance with the transformation between the master and the slave surfaces.
-  if (mortarElem->transVect.GetSize())
-    esmSurfElem->TranslatePointOntoSurface(mortarElem->transVect, globalPoint);
+  // the primary (or secondary) surface element in order to calculate the corresponding local point in the adjacent volume element.
+  // The mapping is performed in accordance with the transformation between the primary and the secondary surfaces.
+  if (mortarElem->transVect.GetSize() != 0)
+    esmSurf->TranslatePointOntoSurface(mortarElem->transVect, globIntPoint);
+  // -------kirill (periodic boundary conditions)-------------------------------------------------------------------------------------
 
-  esmVol->Global2Local(localPoint, globalPoint);
-  lpVol.coord = localPoint;
-  lpVol.number = -1;
-  esmVol->CalcNormalOutOfVolume(locNormal,lpVol,ptVolElem,ptSurfElem);
-  //esmVol->GetLocalIntPoints4Surface(ptEl->connect, lp, lpVol, locNormal);
-  lpmVol->Set(lpVol, esmVol, weight);
+  // ATTENTION! Global2Local on the volume element will cause integration points outside the element when the interface is not coplanar!
+  esmVol->Global2Local(lpVol.coord, globIntPoint);
+  // create new local point mapped for volume element
+  this->lpmVol.reset(new LocPointMapped());
+  esmVol->CalcNormalOutOfVolume(locNormal,lpVol,volElem,surfElem);
+  // assign integration points to the (new) volume element
+  this->lpmVol->Set(lpVol, esmVol, this->weight);
+  // calculate global normal pointing out of new volume element
+  this->normal = Transpose(this->lpmVol->jacInv) * locNormal;
+  this->normal /= this->normal.NormL2();
+  if (!usePrimary)
+    this->normal *= -1.0;
 
-  // calculate global normal pointing into current volume element
-  normal = Transpose(lpmVol->jacInv) * locNormal;
-  normal /= normal.NormL2();
-  if (!useMaster)
-    normal *= -1.0;
+#ifndef NDEBUG
+  // sanity check if the surf->vol mapping is correct
+  Vector<Double> globVolIntPoint;
+  esmVol->Local2Global(globVolIntPoint, lpVol);
+  LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
+  LOG_DBG2(locPointMapped) "globCoordVol: " << globVolIntPoint << std::endl;
+  LOG_DBG2(locPointMapped) "locCoordVol: " << lpVol.coord << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) "globCoordMortarElem: " << globIntPoint << std::endl;
+  LOG_DBG2(locPointMapped) "locCoordMortarElem: " << this->lp.coord << std::endl;
+  LOG_DBG2(locPointMapped) "usePrimary:" << usePrimary << std::endl;
+  LOG_DBG2(locPointMapped) "surfElemNums---:" << mortarElem->ptPrimary->elemNum << ", " << mortarElem->ptSecondary->elemNum << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) "volElemNums---:" << mortarElem->ptPrimary->ptVolElems[0]->elemNum << ", " << mortarElem->ptSecondary->ptVolElems[0]->elemNum << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) "normal loc-----------:" << locNormal << std::endl;
+  LOG_DBG2(locPointMapped) "normal glob-------------------:" << this->normal << std::endl << std::endl;
+  LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
+  for (UInt iDim = 0; iDim < globIntPoint.GetSize(); ++iDim)
+    assert(abs(globIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
+  assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS));
+#endif
 }
 
 Vector<double>& LocPointMapped::GetGlobal(Vector<double>& coord, const LocPoint* loc, bool fallback, bool update) const
@@ -388,7 +388,7 @@ void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
       EXCEPTION("Could not convert element #" << ptElem->elemNum << " to a surface element");
     }
   } else {
-    ptSurfElem_ = NULL;
+    ptSurfElem_ = nullptr;
   }
 }
 
@@ -452,7 +452,7 @@ LagrangeElemShapeMap::LagrangeElemShapeMap(Grid* ptGrid) :
     ElemShapeMap(ptGrid), elems_(LagrangeMapSingleton::getInstance()) {
   type_ = LAGRANGE;
   intScheme_ = ptGrid_->GetIntegrationScheme();
-  ptFe_ = NULL;
+  ptFe_ = nullptr;
   shape_ = NULL;
 }
 
@@ -470,7 +470,7 @@ void LagrangeElemShapeMap::Local2Global(Vector<Double>& globPoint,
     const LocPoint& lp) {
 
   //step 1: evaluate shape fncs. at local coordinate
-  ptFe_->GetShFnc(shFnc_, lp, NULL, 0);
+  ptFe_->GetShFnc(shFnc_, lp, nullptr, 0);
 
   // step2: multiply shape fncs for each dimension with according matrix entries
   globPoint = coords_ * shFnc_;
@@ -952,33 +952,42 @@ Double LagrangeElemShapeMap::GetLocDirJac( Vector<Double>& delta_xi,
       // Find new local search direction for 2D -> 3D mapping.
       // Project 3D difference vector onto 2D basis given by
       // the Jacobian to find the new 2D search direction.
-
+      // we use the cross product to add a third orthogonal base vector for 
+      // the Jacobi matrix: e3  = J1 x J2
+      // this should mimic a 3D element of unit depth in the 3rd dimension
       // Jacobian Matrix:
       //
-      //      ( J_00  J_01  1 )
-      //  J = ( J_10  J_11  1 )
-      //      ( J_20  J_21  1 )
+      //      ( J_00  J_01  e3_1 )
+      //  J = ( J_10  J_11  e3_2 )
+      //      ( J_20  J_21  e3_2 )
+      Vector<Double> e3(3);
+      e3[0] = J[1][0] * J[2][1] - J[2][0] * J[1][1];
+      e3[1] = J[2][0] * J[0][1] - J[0][0] * J[2][1];
+      e3[2] = J[0][0] * J[1][1] - J[1][0] * J[0][1];
+      Double e3norm;
+      e3norm = e3.NormL2();
+      e3 /= e3norm;
 
-      jacDet = + J[1][0] * J[2][1] - J[2][0] * J[1][1] - J[0][0] * J[2][1]
-               + J[2][0] * J[0][1] + J[0][0] * J[1][1] - J[1][0] * J[0][1];
+      // determinant
+      jacDet = +J[0][0] * J[1][1] * e3[2] - J[0][0] * J[2][1] * e3[1]
+               -J[1][0] * J[0][1] * e3[2] + J[2][1] * J[1][0] * e3[0]
+               -J[1][1] * J[2][0] * e3[0] + J[2][0] * J[0][1] * e3[1];
 
-      // Calculate negative Jacobian determinants of the following matrices
-      // to find the local search direction which has to point in the opposite
-      // direction of the backprojected global error vector f.
-      //
-      //  ( f_0  J_01  1 )
-      //  ( f_1  J_11  1 )
-      //  ( f_2  J_21  1 )
+      // first local offset
+      //  ( f_0  J_01  J_02 )
+      //  ( f_1  J_11  J_12 )
+      //  ( f_2  J_21  J_22 )
+      delta_xi[0] = -J[1][1] * e3[2] * f[0] + J[2][1] * e3[1] * f[0]
+                    -J[2][1] * e3[0] * f[1] + J[0][1] * e3[2] * f[1]
+                    -J[0][1] * e3[1] * f[2] + J[1][1] * e3[0] * f[2];
 
-      delta_xi[0] = -f[0] * J[1][1] - f[1] * J[2][1] - f[2] * J[0][1]
-                    + f[2] * J[1][1] + f[1] * J[0][1] + f[0] * J[2][1];
-
-      //  ( J_00  f_0  1 )
-      //  ( J_10  f_1  1 )
-      //  ( J_20  f_2  1 )
-
-      delta_xi[1] = -f[0] * J[2][0] - f[1] * J[0][0] - f[2] * J[1][0]
-                    + f[2] * J[0][0] + f[1] * J[2][0] + f[0] * J[1][0];
+      // second local offset
+      //  ( J_00  f_0  J_02 )
+      //  ( J_10  f_1  J_12 )
+      //  ( J_20  f_2  J_22 )
+      delta_xi[1] = -e3[1]   * J[2][0] * f[0] + J[1][0] * e3[2]   * f[0]
+                    -J[0][0] * e3[2]   * f[1] + J[2][0] * e3[0]   * f[1]
+                    -J[1][0] * e3[0]   * f[2] + e3[1]   * J[0][0] * f[2];
 
     } else {
       // Find new local search direction for 1D -> 3D mapping.
@@ -988,69 +997,56 @@ Double LagrangeElemShapeMap::GetLocDirJac( Vector<Double>& delta_xi,
   }
   
   // Normalize the local search direction
-  delta_xi /= jacDet;
-  
+  delta_xi /= jacDet;  
   return jacDet;
 }
 
-void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
-    const Vector<Double>& globalPoint) {
-//Version 0 algorithm from duester script
-  Vector<Double> delta_xi; // update for Newton-Raphson method
-  Vector<Double> xi_start; // local start point for Newton-Raphson method
-  Vector<Double> xi_k; // local point at iteration k
-  Vector<Double> f; //current right hand side
-  Vector<Double> f_start; //current right hand side
-  Double f_old; //storing the absolute value of search direction
-  Double f_test; //storing the absolute value of search direction
-  UInt k = 0; //iteration counter
-  Integer l = 0; //stepping value
-  //Double jacDet = 0;
-  Matrix<Double> J; // Jacobian at local point xi_k
-  UInt elemDim = shape_->dim;
-  //UInt globDim = globalPoint.GetSize();
-  //Double j11, j12, j13, j21, j22, j23, j31, j32, j33;
+void LagrangeElemShapeMap::Global2LocalDuester(
+    Vector<Double> &locPoint, const Vector<Double> &globalPoint) {
+  // Perform Newton-Raphson method on the list of global points to find local
+  // coordinates within this element. Version 0 algorithm from Düster script
+  Vector<Double> delta_xi;     // update for Newton-Raphson method
+  Vector<Double> xi_start;     // local start point for Newton-Raphson method
+  Vector<Double> f;            // current right hand side
+  Vector<Double> f_start;      // current right hand side
+  Double f_old = 0;            // storing the absolute value of search direction
+  Double f_test = 0;           // storing the absolute value of search direction
+  UInt k = 0;                  // iteration counter (outer loop)
+  Integer l = 0;               // exponent for step size (inner loop)
+  Double tolerance = EPS;      // tolerance for convergence
+  Matrix<Double> J;            // Jacobian at local point xi_k
+  UInt elemDim = shape_->dim;  // dimension of the element
 
-  locPoint.Resize(elemDim);
+  locPoint.Resize(elemDim); // we use locPoint directly to iteratively find the
+                            // local coordinates (xi_k)
   locPoint.Init();
-
-  Double tolerance = 1e-8;
-
-  //initialize everything
-
   xi_start.Resize(elemDim);
-  delta_xi.Resize(elemDim);
-  xi_k.Resize(elemDim);
-  J.Resize(elemDim, elemDim);
-
-  //first initial guess is zero
-  f.Resize(elemDim);
-
-  // Perform Newton-Raphson method on the list of global points
-  // to find local coordinates within this element.
-
-  f.Init();
-  J.Init();
   xi_start.Init();
-  xi_k.Init();
-  k = 0;
-  f_old = 222e20;
-  f_test = 0;
+  delta_xi.Resize(elemDim);
+  J.Resize(elemDim, elemDim);
+  J.Init();
+  f.Resize(elemDim);
+  f.Init();
 
-  Local2Global(f, xi_k);
-
+  // get global coordinates to initialize f
+  Local2Global(f, locPoint);
   f = f - globalPoint;
   f_old = f.NormL2();
-  f_start = f;
+  f_start = f; // store the initial value of f
+  // try to find better initial f values
+  // loop through possible starting positions: [-0.5, 0.5, -1.0, 1.0] and keep
+  // the best one
   if (elemDim == 1) {
     for (Double w = 0.5; w <= 1.0; w += 0.5) {
       for (UInt j = 1; j < 3; j++) {
-        xi_k[0] = pow(-1, j) * w;
-        Local2Global(f, xi_k);
+        locPoint[0] = pow(-1, j) * w;
+        Local2Global(f, locPoint);
         f = f - globalPoint;
         f_test = f.NormL2();
+        // if the new f value is smaller than the old one, keep the new one and
+        // set the new start positions
         if (f_old > f_test) {
-          xi_start = xi_k;
+          xi_start = locPoint;
           f_start = f;
           f_old = f_test;
         }
@@ -1060,13 +1056,13 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
     for (Double w = 0.5; w <= 1.0; w += 0.5) {
       for (UInt j = 1; j < 3; j++) {
         for (UInt m = 1; m < 3; m++) {
-          xi_k[0] = pow(-1, j) * w;
-          xi_k[1] = pow(-1, m) * w;
-          Local2Global(f, xi_k);
+          locPoint[0] = pow(-1, j) * w;
+          locPoint[1] = pow(-1, m) * w;
+          Local2Global(f, locPoint);
           f = f - globalPoint;
           f_test = f.NormL2();
           if (f_old > f_test) {
-            xi_start = xi_k;
+            xi_start = locPoint;
             f_start = f;
             f_old = f_test;
           }
@@ -1078,14 +1074,14 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
       for (UInt j = 1; j < 3; j++) {
         for (UInt m = 1; m < 3; m++) {
           for (UInt n = 1; n < 3; n++) {
-            xi_k[0] = pow(-1, j) * w;
-            xi_k[1] = pow(-1, m) * w;
-            xi_k[2] = pow(-1, n) * w;
-            Local2Global(f, xi_k);
+            locPoint[0] = pow(-1, j) * w;
+            locPoint[1] = pow(-1, m) * w;
+            locPoint[2] = pow(-1, n) * w;
+            Local2Global(f, locPoint);
             f = f - globalPoint;
             f_test = f.NormL2();
             if (f_old > f_test) {
-              xi_start = xi_k;
+              xi_start = locPoint;
               f_start = f;
               f_old = f_test;
             }
@@ -1094,59 +1090,38 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
       }
     }
   }
-  xi_k = xi_start;
+  // assnign the determined start values
+  locPoint = xi_start;
   f = f_start;
-  while (f_test > tolerance && k < 30) {
+  while (f_test > tolerance && k < 60) {
     delta_xi.Init();
     xi_start.Init();
-    // Calculate Jacobian at iteration point xi_k
-    this->CalcJ(J, xi_k);
-    
-    // Calculate local search direction
+    // Calculate Jacobian (J) at iteration point xi_k (locPoint)
+    this->CalcJ(J, locPoint);
+    // Calculate local search direction delta_xi
     GetLocDirJac(delta_xi, f, J);
-    
+
     l = 0;
-    //perform damping
-    while (l < 40 && f_test >= f_old) {
-      Double dampFac = 1.0 / std::pow(2.0, (Double) l);
-      xi_start = xi_k + (delta_xi * dampFac);
+    // perform damping to obtain coordinate iteratively
+    while (l < 60 && f_test >= f_old) {
+      Double dampFac = 1.0 / std::pow(2.0, (Double)l);
+      xi_start = locPoint + (delta_xi * dampFac);
       Local2Global(f, xi_start);
       f = f - globalPoint;
       f_test = f.NormL2();
       l++;
     }
     f_old = f_test;
-    // if(l >= 30){
-    //   std::cout << "Damn iteration has not convergend!!! Whtas wrong this time???" << std::endl;
-    // }
-    xi_k = xi_start;
+    locPoint = xi_start;
     k++;
+    // raise exception if the algorithm does not converge
+    if (k == 60) {
+      WARN("Newton-Raphson algorithm did not converge for global to local "
+           "conversion in point"
+           << globalPoint << ". The determined local coordinates are "
+           << locPoint << ". The remaining f_test is " << f_test << ".");
+    }
   }
-//  if( f_test > tolerance){
-//    std::cout << "performed " << k << " iterations to reach the point" << std::endl<< xi_k << std::endl;
-//    //ONLY for DEBUGGING
-//    Local2Global(f, xi_k);
-//    std::cout << "Calculated global point :" << std::endl << f << std::endl;
-//    std::cout << "Original global coord " << std::endl << globalPoint << std::endl;
-//    std::cout << "The error was: " << f_test << std::endl<< std::endl;
-//    std::cout << "connectivity: " << ptElem_->connect.ToString() << std::endl;
-//    std::cout << "coordinates: " << coords_.ToString() << std::endl;
-//    WARN("G2L did not converge for element " << ptElem_->elemNum << " of type " << ptElem_->type);
-//    //xi_k.Init(99);
-//    //std::cout << std::endl;
-//  }
-
-  // Put local coordinate of point into matrix.
-  if (xi_k.GetSize() == 0) {
-    std::cerr << "local2global messed up setting everything to 99" << std::endl;
-    std::cerr << globalPoint << std::endl;
-    xi_k.Resize(elemDim);
-    xi_k.Init(99);
-  }
-  for (UInt j = 0; j < elemDim; j++) {
-    locPoint[j] = xi_k[j];
-  }
-
 }
 
 void LagrangeElemShapeMap::Global2LocalLine2(Vector<Double>& locPoint,
@@ -1685,7 +1660,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
       }
     }
     if(!edgeFaceFound){
-      Exception("cannot determine corresponding edge to volume element for normal computation");
+      WARN("cannot determine corresponding edge to volume element for normal computation");
     }
     //now we have the local edge number, lets get the connectivity and compute the normal
     //get Vertices of current edge
@@ -1713,7 +1688,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
       }
     }
     if(!edgeFaceFound){
-      Exception("cannot determine corresponding face to volume element for normal computation");
+      WARN("cannot determine corresponding face to volume element for normal computation");
     }
     StdVector<UInt> fVert = shape.faceVertices[locFaceNum];
     //take the first three vertices to span our surface (we will always have at least three vertices

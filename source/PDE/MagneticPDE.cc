@@ -299,7 +299,7 @@ namespace CoupledField {
 
 				  stiff2->SetName("CurlCurlIntegrator-NL-Newton");
 				  //! mark the bi-linear form to be a Newton part
-				  stiff2->SetNewtonBilinearForm();
+				  stiff2->SetNewtonBiLinearForm();
 
 				  BiLinFormContext * stiffContext2 =
                   new BiLinFormContext(stiff2, STIFFNESS );

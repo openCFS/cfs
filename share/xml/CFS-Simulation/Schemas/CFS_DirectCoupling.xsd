@@ -286,9 +286,14 @@
       <xsd:complexContent>
         <xsd:extension base="DT_BasicDirectCoupling">
           <xsd:sequence>
-            
             <!-- (surface) region list -->
             <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  The surfRegionList is used to define the conformal surface regions between the acoustic and mechanical domains.
+                  The name of the surface region needs to be specified.
+                </xsd:documentation>
+              </xsd:annotation>
               <xsd:complexType>
                 <xsd:sequence>
                   <xsd:element name="surfRegion" minOccurs="0" maxOccurs="unbounded">
@@ -299,22 +304,25 @@
                 </xsd:sequence>
               </xsd:complexType>
             </xsd:element>
-	    
-	    <!-- NC interface list -->
-	    <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
-	      <xsd:complexType>
-		<xsd:sequence>
-		  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
-		    <xsd:complexType>
-		      <xsd:attribute name="name" type="xsd:token" use="required" />
-          <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
-          <xsd:attribute name="nitscheFactor" type="xsd:token" use="optional" default="50"/>
-		    </xsd:complexType>
-		  </xsd:element>
-		</xsd:sequence>
-	      </xsd:complexType>
-	    </xsd:element>
-	    
+            <!-- NC interface list -->
+            <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  The ncInterfaceList is used to define the non-conforming interface between the acoustic and mechanical domains.
+                  AcouMech direct coupling does not need a Nitsche/Mortar method, as the interface conditions are given directly.
+                  Thus, only the name needs to be specified for an interface.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="ncInterface" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="name" type="xsd:token" use="required" />
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
           </xsd:sequence>
         </xsd:extension>
       </xsd:complexContent>
@@ -351,7 +359,7 @@
             <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:element name="ncInterface" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required" />
                     </xsd:complexType>
@@ -402,7 +410,7 @@
             <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:element name="ncInterface" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required" />
                     </xsd:complexType>
@@ -448,7 +456,7 @@
 	    <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
 	      <xsd:complexType>
 		<xsd:sequence>
-		  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+		  <xsd:element name="ncInterface" minOccurs="0" maxOccurs="unbounded">
 		    <xsd:complexType>
 		      <xsd:attribute name="name" type="xsd:token" use="required" />
           <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
@@ -517,7 +525,7 @@
             <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:element name="ncInterface" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required" />
                     </xsd:complexType>
@@ -563,7 +571,7 @@
             <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:element name="ncInterface" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" type="xsd:token" use="required" />
                       <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional"/>

@@ -972,7 +972,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   
   const Elem* FeSpace::GetVolElem( const Elem* ptElem ) const {
 
-    const Elem * ret = NULL;
+    const Elem * ret = nullptr;
     
     // check dimension
     UInt elemDim = Elem::shapes[ptElem->type].dim;

@@ -229,10 +229,10 @@ namespace CoupledField {
     
     surfElemList_.Clear();
     
-    SurfElem * actElem = NULL;
+    SurfElem * actElem = nullptr;
     for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
       actElem = dynamic_cast<SurfElem*>(elems[i]);
-      if( actElem == NULL ) {
+      if( actElem == nullptr) {
         EXCEPTION( "Element #" << elems[i]->elemNum 
                    << " in element list '" << name 
                    << "' is no surface element!" );
@@ -519,10 +519,10 @@ namespace CoupledField {
     
     ncElems_.Clear();
     
-    NcSurfElem * actElem = NULL;
+    NcSurfElem * actElem = nullptr;
     for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
       actElem = dynamic_cast<NcSurfElem*>(elems[i]);
-      if( actElem == NULL ) {
+      if( actElem == nullptr ) {
         EXCEPTION( "Element #" << elems[i]->elemNum 
                    << " in element list '" << name 
                    << "' is no NcSurfElem!" );
@@ -543,7 +543,7 @@ namespace CoupledField {
     name_ = grid_->GetRegion().ToString( region );
     ncElems_.Clear();
     
-    NcSurfElem * curElem = NULL;
+    NcSurfElem * curElem = nullptr;
     for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
       curElem = dynamic_cast<NcSurfElem*>(elems[i]);
       if ( ! curElem ) {
@@ -678,7 +678,7 @@ namespace CoupledField {
       EXCEPTION("type " << type_ << " not implemented");
       break;
     }
-    return NULL;
+    return nullptr;
   }
   
 
@@ -710,7 +710,7 @@ namespace CoupledField {
       break;
     default:
       EXCEPTION("type " << type_ << " not implemented for GetSurfElem");
-      return NULL;
+      return nullptr;
     }
 
   }
@@ -720,7 +720,7 @@ namespace CoupledField {
       return ncElemList_->GetNcSurfElem( pos_ );
     } else {
       EXCEPTION("Type " << type_ << " not implemented for GetNcSurfElem");
-      return NULL;
+      return nullptr;
     }
   }
   

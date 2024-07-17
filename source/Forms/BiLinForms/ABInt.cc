@@ -21,12 +21,10 @@
 namespace CoupledField{
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::ABInt(BaseBOperator * aOp, BaseBOperator * bOp, 
-        PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-        bool coordUpdate )
-  : BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, scalCoef, factor, coordUpdate )
-{
+  ABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    ABInt(BaseBOperator * aOp, BaseBOperator * bOp, 
+          PtrCoefFct scalCoef, MAT_DATA_TYPE factor, bool coordUpdate ): 
+      BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(bOp, scalCoef, factor, coordUpdate ) {
   this->type_ = BiLinearForm::AB_INT;
   this->name_ = "ABInt"; // no idea, why this doesn't compile: type.ToString(type_); do
   this->aOperator_ = aOp;
@@ -37,12 +35,12 @@ ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   this->isSymmetric_ = false;
 }
 
+
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                     EntityIterator& ent1,
-                     EntityIterator& ent2 )
-{
+  void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                       EntityIterator& ent1,
+                       EntityIterator& ent2 ) {
   // Extract physical element
   const Elem* ptElem = ent1.GetElem();
 
@@ -70,22 +68,22 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   elemMat.Init();
 
   // Loop over all integration points
-  LocPointMapped lp;
+  LocPointMapped lpm;
   const UInt numIntPts = intPoints.GetSize();
-  for( UInt i = 0; i < numIntPts; ++i  ) {
+  for( UInt iIntPts = 0; iIntPts < numIntPts; ++iIntPts  ) {
 
     // Calculate for each integration point the LocPointMapped
-    lp.Set( intPoints[i], esm, weights[i] );
+    lpm.Set( intPoints[iIntPts], esm, weights[iIntPts] );
 
     // Calculate A-matrix (first differential operator)
-    this->aOperator_->CalcOpMat( aMat_, lp, ptFeA );
+    this->aOperator_->CalcOpMat( aMat_, lpm, ptFeA );
 
     // Calculate B-matrix (second differential operator)
-    this->bOperator_->CalcOpMat( this->bMat_, lp, ptFeB );
+    this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeB );
 
     // Calculate scalar factor
-    this->coefScalar_->GetScalar(fac, lp);
-    fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
+    this->coefScalar_->GetScalar(fac, lpm);
+    fac *= MAT_DATA_TYPE(lpm.jacDet * weights[iIntPts]); 
 
 #ifdef NDEBUG
     aMat_.Mult_Blas(this->bMat_,elemMat,true,false,this->factor_*fac,1.0);
@@ -96,27 +94,23 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 }
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+  SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
                 PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                 const std::set<RegionIdType>& volRegions,
-                bool coordUpdate )
-  : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate)
-{
+                bool coordUpdate ): 
+      ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate) {
   this->name_ = "SurfaceABInt";
   volRegions_ = volRegions;
   this->isSymmetric_ = false;
 }
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
-                const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
-                MAT_DATA_TYPE factor,
-                const std::set<RegionIdType>& volRegions,
-                bool coordUpdate)
-  : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp,regionCoefs.begin()->second, 
-                                      factor, coordUpdate )
+  SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
+                  const std::map< RegionIdType, PtrCoefFct >& regionCoefs, MAT_DATA_TYPE factor,
+                  const std::set<RegionIdType>& volRegions, bool coordUpdate): 
+      ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp,regionCoefs.begin()->second, factor, coordUpdate )
 {
   this->name_ = "SurfaceABInt";
   volRegions_ = volRegions;
@@ -124,12 +118,12 @@ SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   regionCoefs_ = regionCoefs;
 }
 
+
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                     EntityIterator& ent1,
-                     EntityIterator& ent2 )
-{
+  void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                       EntityIterator& ent1,
+                       EntityIterator& ent2 ) {
   // Extract physical element
   const Elem* ptElem1 = ent1.GetElem();
   const Elem* ptElem2 = ent2.GetElem();
@@ -138,13 +132,13 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
   // Obtain FE element from feSpace and integration scheme
 
-  const SurfElem *sElem1 = NULL;
-  const SurfElem *sElem2 = NULL;
-  const Elem *ptVolElem1 = NULL;
-  const Elem *ptVolElem2 = NULL;
+  const SurfElem *sElem1 = nullptr;
+  const SurfElem *sElem2 = nullptr;
+  const Elem *ptVolElem1 = nullptr;
+  const Elem *ptVolElem2 = nullptr;
 
-  BaseFE *ptFeA = NULL;
-  BaseFE *ptFeB = NULL;
+  BaseFE *ptFeA = nullptr;
+  BaseFE *ptFeB = nullptr;
   IntegOrder order1, order2;
   IntScheme::IntegMethod method1, method2;
 
@@ -199,28 +193,28 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   elemMat.Init();
 
   // Loop over all integration points
-  LocPointMapped lp1,lp2;
+  LocPointMapped lpm1,lpm2;
   const UInt numIntPts = intPoints.GetSize();
-  for( UInt i = 0; i < numIntPts; ++i ) {
+  for( UInt iIntPts = 0; iIntPts < numIntPts; ++iIntPts ) {
 
     // Calculate for each integration point the LocPointMapped
-    lp1.SetWithSurface( intPoints[i], esm1, volRegions_, weights[i] );
-    lp2.SetWithSurface( intPoints[i], esm2, volRegions_, weights[i] );
+    lpm1.SetWithSurface( intPoints[iIntPts], esm1, this->volRegions_, weights[iIntPts] );
+    lpm2.SetWithSurface( intPoints[iIntPts], esm2, this->volRegions_, weights[iIntPts] );
 
     // Calculate A-matrix (first differential operator)
-    this->aOperator_->CalcOpMat( this->aMat_, lp1, ptFeA );
+    this->aOperator_->CalcOpMat( this->aMat_, lpm1, ptFeA );
 
     // Calculate B-matrix (second differential operator)
-    this->bOperator_->CalcOpMat( this->bMat_, lp2, ptFeB );
+    this->bOperator_->CalcOpMat( this->bMat_, lpm2, ptFeB );
 
     // Calculate scalar factor
     if(!regionCoefs_.empty()) {
-      regionCoefs_[lp1.lpmVol->ptEl->regionId]->GetScalar(fac, lp1);
+      regionCoefs_[lpm1.lpmVol->ptEl->regionId]->GetScalar(fac, lpm1);
     } else {
-      this->coefScalar_->GetScalar(fac, lp1);
+      this->coefScalar_->GetScalar(fac, lpm1);
     }
 
-    fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
+    fac *= MAT_DATA_TYPE(lpm1.jacDet * weights[iIntPts]);
 
 #ifdef NDEBUG
     this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
@@ -232,379 +226,385 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   }
 }
 
+
 DEFINE_LOG(nitscheInt, "Forms.NitscheInt")
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::SurfaceNitscheABInt( BaseBOperator * aOp, BaseBOperator * bOp,
-                       PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-                       BiLinearForm::CouplingDirection cplDir,
-                       bool coordUpdate, bool isSym, bool isPenalty )
-  : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate)
-{
+  SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SurfaceNitscheABInt(BaseBOperator * aOp, BaseBOperator * bOp,
+                        PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                        BiLinearForm::CouplingDirection cplDir,
+                        bool coordUpdate, bool isSym, bool isPenalty ): 
+      ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate) {
+  
   this->name_ = "SurfaceNitscheABInt";
-
-  this->myDirection_ = cplDir;
-
+  this->cplDirection_ = cplDir;
   this->isSymmetric_ = isSym;
   this->isPenalty_ = isPenalty;
 }
 
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                     EntityIterator& ent1,
-                     EntityIterator& ent2 )
-{
-  //do now the following>
-  //1. Perform some security checks
-  //2. fill a volregion set according to the coupling direction
-  //   in order to determine a consistent normal direction
-  //3. obtain pointers to associated volume elements
-  //4. loop over int points of surface element and do a standard integration
-  //5. Hamideh: ptFeSpace1_ and ptFeSpace2_ points to Master and Slave unknowns.
-  // The true feSpace for test function and  unknow will be taken from coupling direction
-  // For example in the case of LinFlowMechNitsche coupling:
-  // Master --> Fespace1_(mechanics displacement)
-  // Slave --> FeSpace2_(LinFlow Velocity)
-
-  const SurfElem* sElem1 = ent1.GetSurfElem();
-  const SurfElem* sElem2 = ent2.GetSurfElem();
-  //just to be sure, this context requires it1 and it2 to be identical
-  if(sElem1->elemNum != sElem2->elemNum){
-    EXCEPTION("SurfaceBiLinFormContext requires identical iterators")
-  }
-
-  //now lets try to downcast to MortarNcSurfElem
-  const MortarNcSurfElem * mSe = dynamic_cast<const MortarNcSurfElem*>(sElem1);
-
-  //this is more or less a switch case statement which terms to consider and
-  // where to acquire the equation numbers
-  bool useMaster1 = false,useMaster2 = false;
-  this->GetVolFromSurfElem(useMaster1,useMaster2);
-  const Elem* ptVolElem1 = (useMaster1) ? mSe->ptMaster->ptVolElems[0] : mSe->ptSlave->ptVolElems[0] ; // take pointer volume element of test function
-  const Elem* ptVolElem2 = (useMaster2) ? mSe->ptMaster->ptVolElems[0] : mSe->ptSlave->ptVolElems[0] ; // take pointer volume element of unknown
-
-  Matrix<MAT_DATA_TYPE> aMat, bMat;
-  MAT_DATA_TYPE fac(0.0);
-
-  // Integration order must be the same for all Nitsche integrators,
-  // regardless of coupling direction.
-  IntegOrder order1, order2;
-  IntScheme::IntegMethod method1, method2;
-  BaseFE* ptFeMaster = this->ptFeSpace1_->GetFe(mSe->ptMaster->ptVolElems[0]->elemNum);
-  BaseFE* ptFeSlave =  this->ptFeSpace2_->GetFe(mSe->ptSlave->ptVolElems[0]->elemNum);
-  this->ptFeSpace1_->GetIntegration(ptFeMaster, mSe->ptMaster->ptVolElems[0]->regionId, method1, order1);
-  this->ptFeSpace2_->GetIntegration(ptFeSlave, mSe->ptSlave->ptVolElems[0]->regionId, method2, order2);
-
-  // Obtain FE element from FeSpace for operators according to the coupling direction
-  BaseFE* ptFeA = NULL;
-  BaseFE* ptFeB = NULL;
-  if (useMaster1 && useMaster2){
-    ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
-    ptFeB = this->ptFeSpace1_->GetFe(ptVolElem2->elemNum); // unknown
-  }else if(useMaster1 && !useMaster2){
-    ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum); // test function
-    ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
-  } else if(!useMaster1 && useMaster2){
-    ptFeA = this->ptFeSpace2_->GetFe(ptVolElem1->elemNum); // test function
-    ptFeB = this->ptFeSpace1_->GetFe(ptVolElem2->elemNum); // unknown
-  }else{
-    ptFeA = this->ptFeSpace2_->GetFe(ptVolElem1->elemNum); // test function
-    ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum); // unknown
-  }
-
-  const UInt nrFncsA = ptFeA->GetNumFncs();
-  const UInt nrFncsB = ptFeB->GetNumFncs();
-
-  // Get shape map from grid
-  shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( mSe, this->coordUpdate_ );
-
-  // Get integration points
-  StdVector<LocPoint> intPoints;
-  StdVector<Double> weights;
-  this->intScheme_->GetIntPoints( Elem::GetShapeType(mSe->type),
-                                  method1, order1, method2, order2,
-                                  intPoints, weights );
-
-  elemMat.Resize( nrFncsA * this->aOperator_->GetDimDof(), nrFncsB * this->bOperator_->GetDimDof() );
-  elemMat.Init();
-
-  MAT_DATA_TYPE myFactor = this->factor_;
-  if (this->isPenalty_) {
-    shared_ptr<ElemShapeMap> esm1T = ent1.GetGrid()->GetElemShapeMap( mSe->ptMaster, this->coordUpdate_ );
-    shared_ptr<ElemShapeMap> esm2T = ent1.GetGrid()->GetElemShapeMap( mSe->ptSlave, this->coordUpdate_ );
-
-    //obtain pointer to basis functions
-    BaseFE* SFe1 = this->ptFeSpace1_->GetFe(mSe->ptMaster->elemNum);
-    BaseFE* SFe2 = this->ptFeSpace2_->GetFe(mSe->ptSlave->elemNum);
-
-    MAT_DATA_TYPE tmp(2.0);
-    Double min,max;
-    esm1T->GetMaxMinEdgeLength(min,max);
-    UInt order1 = SFe1->GetIsoOrder();
-
-    if(order1 == 0){
-      StdVector<UInt> aIsoOrder;
-      SFe1->GetAnisoOrder(aIsoOrder);
-      for(UInt i=0;i<aIsoOrder.GetSize();i++)
-        order1 = (aIsoOrder[i]>order1)? aIsoOrder[i] : order1;
-
-      if(order1 == 0 && this->ptFeSpace1_->GetSpaceType() == this->ptFeSpace1_->HCURL){
-        // that's a bit dirty because zero order Nedelec elements are neither zero nor first order...
-        // but here we set it to first, otherwise we divide by zero
-        order1 = 1;
-      }
-    }
-    MAT_DATA_TYPE surface1(min/(Double)order1);
-
-    esm2T->GetMaxMinEdgeLength(min,max);
-    UInt order2 = SFe2->GetIsoOrder();
-
-    if(order2 == 0){
-      StdVector<UInt> aIsoOrder;
-      SFe2->GetAnisoOrder(aIsoOrder);
-      for(UInt i=0;i<aIsoOrder.GetSize();i++)
-        order2 = (aIsoOrder[i]>order2)? aIsoOrder[i] : order2;
-
-      if(order2 == 0 && this->ptFeSpace1_->GetSpaceType() == this->ptFeSpace1_->HCURL){
-        // that's a bit dirty because zero order Nedelec elements are neither zero nor first order...
-        // but here we set it to first, otherwise we divide by zero
-        order2 = 1;
-      }
-    }
-    MAT_DATA_TYPE surface2(min/(Double)order2);
-
-    myFactor *= tmp/(surface1+surface2);
-  }
-
-  // Loop over all integration points
-  LocPointMapped lp1, lp2;
-  const UInt numIntPts = intPoints.GetSize();
-  for( UInt i = 0; i < numIntPts; ++i ) {
-
-    // Calculate for each integration point the LocPointMapped
-    lp1.SetMortar( intPoints[i], esm, weights[i],useMaster1 );
-    lp2.SetMortar( intPoints[i], esm, weights[i],useMaster2 );
-
-    // Calculate A-matrix (first differential operator)
-    this->aOperator_->CalcOpMat( this->aMat_, lp1, ptFeA );
-
-    // Calculate B-matrix (second differential operator)
-    this->bOperator_->CalcOpMat( this->bMat_, lp2, ptFeB );
-
-    // Calculate scalar factor
-    this->coefScalar_->GetScalar(fac, lp1);
-
-    LOG_DBG(nitscheInt) << "fac in region with ID " << lp1.ptEl->regionId <<" = "<<fac;
-    LOG_DBG(nitscheInt) << "myFactor without weights = "<<myFactor;
-
-    fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
-
-
-#ifdef NDEBUG
-    this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
-        myFactor*fac, 1.0);
-#else
-    elemMat += Transpose(this->aMat_) * this->bMat_ * myFactor *fac;
-#endif
-  }
-
-}
-
-template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::GetVolFromSurfElem(bool & uMaster1, bool & uMaster2)
-{
-  switch(this->myDirection_){
-  case BiLinearForm::MASTER_MASTER:
-    uMaster1 = true;
-    uMaster2 = true;
-    break;
-  case BiLinearForm::SLAVE_SLAVE:
-    uMaster1 = false;
-    uMaster2 = false;
-    break;
-  case BiLinearForm::MASTER_SLAVE:
-    uMaster1 = true;
-    uMaster2 = false;
-    break;
-  case BiLinearForm::SLAVE_MASTER:
-    uMaster1 = false;
-    uMaster2 = true;
-    break;
-  default:
-    EXCEPTION("Undefined coupling direction");
-    break;
-  }
-}
-
-DEFINE_LOG(mortarInt, "Forms.MortarInt")
-
-template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::SurfaceMortarABInt( BaseBOperator * aOp, BaseBOperator * bOp,
-                      PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-                      RegionIdType masterVolRegion,
-                      RegionIdType slaveVolRegion,
-                      bool coplanar,
-                      bool coordUpdate,
-                      BiLinearForm::CouplingDirection cplDirection)
-: ABInt<COEF_DATA_TYPE, B_DATA_TYPE>( aOp, bOp, scalCoef, factor, coordUpdate),
-  isCoplanar_(coplanar), cplDirection_(cplDirection)
-{
-  this->name_ = "SurfaceMortarABInt";
-  this->isSymmetric_ = true;
-  
-  this->masterVolRegion_ = masterVolRegion;
-  this->slaveVolRegion_ = slaveVolRegion;
-  
-  // create set of volume regions
-  volRegions_.insert(masterVolRegion_);
-  volRegions_.insert(slaveVolRegion_);
-}
-
-template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                     EntityIterator& ent1,
-                     EntityIterator& ent2 )
-{
-  assert( ent1.GetElem() == ent2.GetElem() );
+  void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                       EntityIterator& ent1,
+                       EntityIterator& ent2 ) {
+  /*do now the following>
+    1. Perform some security checks
+    2. fill a volregion set according to the coupling direction
+       in order to determine a consistent normal direction
+    3. obtain pointers to associated volume elements
+    4. loop over int points of surface element and do a standard integration
+    5. FE spaces are set according to which pdes are coupled. E.g., in the SinglePDE, 
+       ptFeSpace1_ and ptFeSpace2_ are set to points to the same type of feSpace (of the unknown).
+       For inter-PDE coupling, it is a bit different. 
+       Hamideh: ptFeSpace1_ and ptFeSpace2_ points to Primary and Secondary unknowns.
+                The true feSpace for test function and  unknow will be taken from coupling direction
+                For example in the case of LinFlowMechNitsche coupling:
+                Primary --> Fespace1_(mechanics displacement)
+                Secondary --> FeSpace2_(LinFlow Velocity)*/
 
   // Extract MortarNcSurfElem element
   const NcSurfElem* ptNcElem = ent1.GetNcSurfElem();
-  const MortarNcSurfElem * ptMortarElem =
-      dynamic_cast<const MortarNcSurfElem*>(ptNcElem);
-  assert( ptMortarElem );
-
-  const SurfElem *ptSurfMaster = ptMortarElem->ptMaster;
-  const SurfElem *ptSurfSlave = ptMortarElem->ptSlave;
-  assert(ptSurfMaster);
-  assert(ptSurfSlave);
-
-  LOG_DBG(mortarInt) << "NcSurfElem #" << ptMortarElem->elemNum
-                     << ", type " << Elem::feType.ToString(ptMortarElem->type)
-                     << "\n\tmaster parent #" << ptSurfMaster->elemNum
-                     << "\n\tslave parent #" << ptSurfSlave->elemNum;
-  LOG_DBG2(mortarInt) << "\tconnectivity: " << ptMortarElem->connect.ToString();
+  const MortarNcSurfElem * ptMortarElem = dynamic_cast<const MortarNcSurfElem*>(ptNcElem);
   
-  MAT_DATA_TYPE fac(0.0);
-
+  // Primary-side and secondary-side surface elements
+  const SurfElem* ptSurfPrimary = ptMortarElem->ptPrimary;
+  const SurfElem* ptSurfSecondary = ptMortarElem->ptSecondary;
+  
   // Obtain FE element from feSpace and integration scheme
-  BaseFE* ptFeMaster = this->ptFeSpaceField_->GetFe(ptSurfMaster->elemNum);
-  BaseFE* ptFeSlave = this->ptFeSpaceLM_->GetFe(ptSurfSlave->elemNum);
-  assert(ptFeMaster);
-  assert(ptFeSlave);
+  BaseFE* ptFePrimary = this->ptFeSpace1_->GetFe(ptSurfPrimary->elemNum);
+  BaseFE* ptFeSecondary =  this->ptFeSpace2_->GetFe(ptSurfSecondary->elemNum);
 
-  IntegOrder orderMaster, orderSlave;
-  IntScheme::IntegMethod methodMaster, methodSlave;
-  this->ptFeSpaceField_->GetIntegration( ptFeMaster, masterVolRegion_, methodMaster, orderMaster );
-  this->ptFeSpaceField_->GetIntegration( ptFeSlave, slaveVolRegion_, methodSlave, orderSlave );
+  // get integration context of primary and secondary element (method and order)
+  // Integration order must be the same for all Nitsche integrators, regardless of coupling direction.
+  IntegOrder orderPrimary, orderSecondary;
+  IntScheme::IntegMethod methodPrimary, methodSecondary;
+  this->ptFeSpace1_->GetIntegration(ptFePrimary, ptSurfPrimary->ptVolElems[0]->regionId, methodPrimary, orderPrimary);
+  this->ptFeSpace2_->GetIntegration(ptFeSecondary, ptSurfSecondary->ptVolElems[0]->regionId, methodSecondary, orderSecondary);
 
-  const UInt nrFncsMaster = ptFeMaster->GetNumFncs();
-  const UInt nrFncsSlave = ptFeSlave->GetNumFncs();
+  // assign vol elems and fe functions according to which term is constructed (PrimPrim, PrimSec, SecPrim, SecSec)
+  // this is more or less a switch case statement which terms to consider and where to acquire the equation numbers
+  bool usePrimary1, usePrimary2;
+  Elem* ptVolElem1 = nullptr;
+  Elem* ptVolElem2 = nullptr;
+  BaseFE* ptFe1 = nullptr;
+  BaseFE* ptFe2 = nullptr;
+  this->SetCouplingDirection(ptSurfPrimary, ptSurfSecondary, ptVolElem1, ptVolElem2, ptFe1, ptFe2, usePrimary1, usePrimary2);
 
-  // Get shape map from grid
-  shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
-  shared_ptr<ElemShapeMap> esmMaster = ent1.GetGrid()->GetElemShapeMap( ptSurfMaster, this->coordUpdate_ );
-  shared_ptr<ElemShapeMap> esmSlave = ent1.GetGrid()->GetElemShapeMap( ptSurfSlave, this->coordUpdate_ );
-
-  // Get integration points
-  StdVector<LocPoint> intPoints;
-  StdVector<Double> weights;
-  this->intScheme_->GetIntPoints( Elem::GetShapeType(ptMortarElem->type), 
-      methodMaster, orderMaster, methodSlave, orderSlave, intPoints, weights );
+  // when assembling the penalty terms, we need the penaltyFactor=+-beta/h. Otherwise, it is normally +-1.
+  // the +-beta or +-1 needs to be passed correctly via the constructor and is stored in the factor_ member.
+  // this is done, e.g., in the SinglePDE class, where the Nitsche integrators are created.
+  MAT_DATA_TYPE penaltyFactor = this->factor_; // -1.0
+  if (this->isPenalty_)
+    ComputePenalty(ptSurfPrimary, ptSurfSecondary, ent1, penaltyFactor); // beta/h
 
   // initialize element matrix
-  elemMat.Resize( nrFncsMaster * this->aOperator_->GetDimDof(), nrFncsSlave * this->bOperator_->GetDimDof() );
+  const UInt nrFncs1 = ptFe1->GetNumFncs();
+  const UInt nrFncs2 = ptFe2->GetNumFncs();
+  elemMat.Resize( nrFncs1*this->aOperator_->GetDimDof(), nrFncs2*this->bOperator_->GetDimDof());
   elemMat.Init();
 
-  // Loop over all integration points
+  // Get shape map of the mortar element from grid
+  shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap(ptMortarElem, this->coordUpdate_);
+
+  // Get local integration points and weights
+  StdVector<LocPoint> intPoints;
+  StdVector<Double> weights;
+  this->intScheme_->GetIntPoints(Elem::GetShapeType(ptMortarElem->type), methodPrimary, orderPrimary, methodSecondary, orderSecondary, intPoints, weights);
+
+#ifndef NDEBUG
+  assert(ent1.GetSurfElem() == ent2.GetSurfElem());
+  assert(ptMortarElem != nullptr);
+  assert(ptSurfPrimary != nullptr);
+  assert(ptSurfSecondary != nullptr);
+  assert(ptFePrimary != nullptr);
+  assert(ptFeSecondary != nullptr);
+  LOG_DBG2(nitscheInt) << "Region primary: " << ptMortarElem->ptPrimary->ptVolElems[0]->regionId;
+  LOG_DBG2(nitscheInt) << "Region secondary: " << ptMortarElem->ptSecondary->ptVolElems[0]->regionId;
+  LOG_DBG2(nitscheInt) << "elemNum primary: " << ptMortarElem->ptPrimary->ptVolElems[0]->elemNum;
+  LOG_DBG2(nitscheInt) << "elemNum secondary: " << ptMortarElem->ptSecondary->ptVolElems[0]->elemNum;
+  LOG_DBG2(nitscheInt) << "NcSurfElem #" << ptMortarElem->elemNum
+                       << ", type " << Elem::feType.ToString(ptMortarElem->type)
+                       << "\n\tprimary parent #" << ptSurfPrimary->elemNum
+                       << "\n\tsecondary parent #" << ptSurfSecondary->elemNum;
+  LOG_DBG2(nitscheInt) << "\tconnectivity: " << ptMortarElem->connect.ToString();
+#endif
+
+  MAT_DATA_TYPE fac(0.0);
   Vector<Double> globIntPoint;
-  LocPoint ipMaster, ipSlave;
-  LocPointMapped lpmNc, lpmMaster, lpmSlave;
+  LocPointMapped lpm1, lpm2;
+  // Loop over all integration points
+  for( UInt iIntPts = 0; iIntPts < intPoints.GetSize(); ++iIntPts ) {
+    // Calculate for each integration point the LocPointMapped
+    lpm1.SetWithNitscheSurface( intPoints[iIntPts], esmNc, usePrimary1, weights[iIntPts] );
+    lpm2.SetWithNitscheSurface( intPoints[iIntPts], esmNc, usePrimary2, weights[iIntPts] );
+    // Calculate A-matrix (first differential operator)
+    this->aOperator_->CalcOpMat( this->aMat_, lpm1, ptFe1);
+    // Calculate B-matrix (second differential operator)
+    this->bOperator_->CalcOpMat( this->bMat_, lpm2, ptFe2);
 
-  const UInt numIntPts = intPoints.GetSize();
-  for( UInt i = 0; i < numIntPts; ++i ) {
+    // Calculate scalar factor. Should not matter if we use lpm1 or lpm2 here.
+    this->coefScalar_->GetScalar(fac, lpm1);
+
+    fac *= MAT_DATA_TYPE(lpm1.jacDet * weights[iIntPts]);
+#ifdef NDEBUG
+    this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false, penaltyFactor*fac, 1.0);
+#else
+    elemMat += Transpose(this->aMat_) * this->bMat_ * penaltyFactor *fac;
+    LOG_DBG3(nitscheInt) << "Element matrix: \n" << elemMat;
+    LOG_DBG3(nitscheInt) << "penaltyFactor: "<< penaltyFactor;
+    LOG_DBG3(nitscheInt) << "fac: " << fac << std::endl << std::endl;
+#endif
+  }
+}
+
+template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    ComputePenalty(const SurfElem* ptSurfPrimary, const SurfElem* ptSurfSecondary, 
+                   EntityIterator& ent1, MAT_DATA_TYPE& penaltyFactor) { 
+  // get shape maps of surface elements
+  shared_ptr<ElemShapeMap> esm1T = ent1.GetGrid()->GetElemShapeMap(ptSurfPrimary, this->coordUpdate_);
+  shared_ptr<ElemShapeMap> esm2T = ent1.GetGrid()->GetElemShapeMap(ptSurfSecondary, this->coordUpdate_);
+  //obtain pointer to basis functions of the surface elements
+  BaseFE* SFe1 = this->ptFeSpace1_->GetFe(ptSurfPrimary->elemNum);
+  BaseFE* SFe2 = this->ptFeSpace2_->GetFe(ptSurfSecondary->elemNum);
+
+  // get the minimum length of the primary element
+  Double min,max;
+  esm1T->GetMaxMinEdgeLength(min,max);
+  // scale by iso order...
+  UInt isoOrder1 = SFe1->GetIsoOrder();
+  if(isoOrder1 == 0){
+    StdVector<UInt> aIsoOrder;
+    SFe1->GetAnisoOrder(aIsoOrder);
+    // set maximum occurring order
+    for(UInt iOrder = 0; iOrder < aIsoOrder.GetSize(); ++iOrder)
+      isoOrder1 = (aIsoOrder[iOrder]>isoOrder1)? aIsoOrder[iOrder] : isoOrder1;
+    // that's a bit dirty because zero order Nedelec elements are neither zero nor first order...
+    // but here we set it to first, otherwise we divide by zero
+    if(isoOrder1 == 0 && this->ptFeSpace1_->GetSpaceType() == this->ptFeSpace1_->HCURL)
+      isoOrder1 = 1;
+  }
+  // scale minumum edge length by iso order
+  MAT_DATA_TYPE surface1(min/(Double)isoOrder1);
+
+  // same for secondary element...
+  esm2T->GetMaxMinEdgeLength(min,max);
+  UInt isoOrder2 = SFe2->GetIsoOrder();
+  if(isoOrder2 == 0){
+    StdVector<UInt> aIsoOrder;
+    SFe2->GetAnisoOrder(aIsoOrder);
+    // set maximum occurring order
+    for(UInt iOrder = 0; iOrder < aIsoOrder.GetSize(); ++iOrder)
+      isoOrder2 = (aIsoOrder[iOrder]>isoOrder2)? aIsoOrder[iOrder] : isoOrder2;
+    // that's a bit dirty because zero order Nedelec elements are neither zero nor first order...
+    // but here we set it to first, otherwise we divide by zero
+    if(isoOrder2 == 0 && this->ptFeSpace1_->GetSpaceType() == this->ptFeSpace1_->HCURL)
+      isoOrder2 = 1;
+  }
+  // scale minumum edge length by iso order
+  MAT_DATA_TYPE surface2(min/(Double)isoOrder2);
+  // scale Nitsche factor by mean of shortest edge lengths
+  MAT_DATA_TYPE tmp(2.0);
+  // compute 1/h
+  penaltyFactor = this->factor_ * (tmp/(surface1+surface2));
+}
+
+template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SetCouplingDirection(const SurfElem* ptSurfPrimary, const SurfElem* ptSurfSecondary, Elem*& ptVolElem1, Elem*& ptVolElem2, 
+                         BaseFE*& ptFe1, BaseFE*& ptFe2, bool& usePrimary1, bool& usePrimary2) {
+  switch(this->cplDirection_) {
+    case BiLinearForm::PRIM_PRIM:
+      usePrimary1 = true;
+      usePrimary2 = true;
+      break;
+    case BiLinearForm::SEC_SEC:
+      usePrimary1 = false;
+      usePrimary2 = false;
+      break;
+    case BiLinearForm::PRIM_SEC:
+      usePrimary1 = true;
+      usePrimary2 = false;
+      break;
+    case BiLinearForm::SEC_PRIM:
+      usePrimary1 = false;
+      usePrimary2 = true;
+      break;
+    default:
+      EXCEPTION("Undefined coupling direction");
+      break;
+  }
+  // set the volume elements according to the current coupling term
+  ptVolElem1 = (usePrimary1) ? ptSurfPrimary->ptVolElems[0] : ptSurfSecondary->ptVolElems[0]; // take pointer volume element of test function
+  ptVolElem2 = (usePrimary2) ? ptSurfPrimary->ptVolElems[0] : ptSurfSecondary->ptVolElems[0]; // take pointer volume element of unknown
+  // Obtain FE element from FeSpace for operators according to the current coupling term (different FeSpaces are only used for inter-PDE coupling)
+  ptFe1 = (usePrimary1) ? this->ptFeSpace1_->GetFe(ptVolElem1->elemNum) : this->ptFeSpace2_->GetFe(ptVolElem1->elemNum);
+  ptFe2 = (usePrimary2) ? this->ptFeSpace1_->GetFe(ptVolElem2->elemNum) : this->ptFeSpace2_->GetFe(ptVolElem2->elemNum);
+}
+
+
+DEFINE_LOG(mortarInt, "Forms.MortarInt")
+template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SurfaceMortarABInt(BaseBOperator * aOp, BaseBOperator * bOp,
+                       PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                       RegionIdType primaryVolRegion, RegionIdType secondaryVolRegion,
+                       bool coplanar, bool coordUpdate,
+                       BiLinearForm::CouplingDirection cplDirection): 
+      ABInt<COEF_DATA_TYPE, B_DATA_TYPE>( aOp, bOp, scalCoef, factor, coordUpdate),
+      isCoplanar_(coplanar), cplDirection_(cplDirection) {
+  this->name_ = "SurfaceMortarABInt";
+  this->isSymmetric_ = true;
+  
+  this->primaryVolRegion_ = primaryVolRegion;
+  this->secondaryVolRegion_ = secondaryVolRegion;
+  
+  // create set of volume regions
+  volRegions_.insert(primaryVolRegion_);
+  volRegions_.insert(secondaryVolRegion_);
+}
+
+
+template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                       EntityIterator& ent1,
+                       EntityIterator& ent2 ) {
+
+  // Extract MortarNcSurfElem element
+  const NcSurfElem* ptNcElem = ent1.GetNcSurfElem();
+  const MortarNcSurfElem* ptMortarElem = dynamic_cast<const MortarNcSurfElem*>(ptNcElem);
+  
+  // Primary-side and secondary-side surface elements
+  const SurfElem* ptSurfPrimary = ptMortarElem->ptPrimary;
+  const SurfElem* ptSurfSecondary = ptMortarElem->ptSecondary;
+  
+  // Obtain FE element from feSpace and integration scheme
+  BaseFE* ptFePrimary = this->ptFeSpaceField_->GetFe(ptSurfPrimary->elemNum);
+  BaseFE* ptFeSecondary = this->ptFeSpaceLM_->GetFe(ptSurfSecondary->elemNum);
+  
+  // get integration context of primary and secondary element (method and order)
+  IntegOrder orderPrimary, orderSecondary;
+  IntScheme::IntegMethod methodPrimary, methodSecondary;
+  this->ptFeSpaceField_->GetIntegration(ptFePrimary, ptSurfPrimary->ptVolElems[0]->regionId, methodPrimary, orderPrimary);
+  this->ptFeSpaceField_->GetIntegration(ptFeSecondary, ptSurfSecondary->ptVolElems[0]->regionId, methodSecondary, orderSecondary);
+
+  // initialize element matrix
+  const UInt nrFncsPrimary = ptFePrimary->GetNumFncs();
+  const UInt nrFncsSecondary = ptFeSecondary->GetNumFncs();
+  elemMat.Resize( nrFncsPrimary * this->aOperator_->GetDimDof(), nrFncsSecondary * this->bOperator_->GetDimDof() );
+  elemMat.Init();
+
+  // Get shape maps from grid
+  shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
+  shared_ptr<ElemShapeMap> esmPrimary = ent1.GetGrid()->GetElemShapeMap( ptSurfPrimary, this->coordUpdate_ );
+  shared_ptr<ElemShapeMap> esmSecondary = ent1.GetGrid()->GetElemShapeMap( ptSurfSecondary, this->coordUpdate_ );
+
+  // Get local integration points and weights
+  StdVector<LocPoint> intPoints;
+  StdVector<Double> weights;
+  this->intScheme_->GetIntPoints(Elem::GetShapeType(ptMortarElem->type), methodPrimary, orderPrimary, methodSecondary, orderSecondary, intPoints, weights);
+
+#ifndef NDEBUG
+  assert(ent1.GetSurfElem() == ent2.GetSurfElem());
+  assert(ptMortarElem != nullptr);
+  assert(ptSurfPrimary != nullptr);
+  assert(ptSurfSecondary != nullptr);
+  assert(ptFePrimary != nullptr);
+  assert(ptFeSecondary != nullptr);
+  LOG_DBG2(mortarInt) << "Region primary: " << ptMortarElem->ptPrimary->ptVolElems[0]->regionId;
+  LOG_DBG2(mortarInt) << "Region secondary: " << ptMortarElem->ptSecondary->ptVolElems[0]->regionId;
+  LOG_DBG2(mortarInt) << "elemNum primary: " << ptMortarElem->ptPrimary->ptVolElems[0]->elemNum;
+  LOG_DBG2(mortarInt) << "elemNum secondary: " << ptMortarElem->ptSecondary->ptVolElems[0]->elemNum;
+  LOG_DBG2(mortarInt) << "NcSurfElem #" << ptMortarElem->elemNum
+                       << ", type " << Elem::feType.ToString(ptMortarElem->type)
+                       << "\n\tprimary parent #" << ptSurfPrimary->elemNum
+                       << "\n\tsecondary parent #" << ptSurfSecondary->elemNum;
+  LOG_DBG2(mortarInt) << "\tconnectivity: " << ptMortarElem->connect.ToString();
+#endif
+
+  MAT_DATA_TYPE fac(0.0);
+  Vector<Double> globIntPoint;
+  LocPoint ipPrimary, ipSecondary;
+  LocPointMapped lpmNc, lpmPrimary, lpmSecondary;
+  // Loop over all integration points
+  for( UInt iIntPts = 0; iIntPts < intPoints.GetSize(); ++iIntPts ) {
+    // perform back projection of integration points...
     // Calculate global coordinates of integration point
-    esmNc->Local2Global(globIntPoint, intPoints[i]);
+    esmNc->Local2Global(globIntPoint, intPoints[iIntPts]);
 
-    // Calculate local coordinates of integration point in slave element
-    esmSlave->Global2Local(ipSlave.coord, globIntPoint);
-    assert( esmSlave->CoordIsInsideElem(ipSlave.coord) );
+    // Calculate local coordinates of integration point in secondary element
+    esmSecondary->Global2Local(ipSecondary.coord, globIntPoint);
 
     // Projection for curved interfaces
     if ( !isCoplanar_ ) {
-      /* Instead of projecting the integration point back into the master
+      /* Instead of projecting the integration point back into the primary
        * element, we use a better approach: Orthogonal projection is a linear
-       * operation, so any point in the projected master element has the same
-       * local coordinates as its orthogonal projection in the original master
+       * operation, so any point in the projected primary element has the same
+       * local coordinates as its orthogonal projection in the original primary
        * element. So we perform the Global2Local mapping in the projected
        * element, which has been computed already by the intersection
-       * algorithm. Sometimes the intersection is the projected master element
+       * algorithm. Sometimes the intersection is the projected primary element
        * itself, in which case we need no coordinate mapping at all.  
        */ 
-      if ( ptMortarElem->projectedMaster ) {
-        shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()->GetElemShapeMap(
-            ptMortarElem->projectedMaster.get(), this->coordUpdate_ );
-        esmProj->Global2Local(ipMaster.coord, globIntPoint);
-      } else { // projectedMaster == NULL means it is the MortarElem itself
-        ipMaster.coord = intPoints[i].coord;
+      if ( ptMortarElem->projectedPrimary != nullptr) {
+        shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()->GetElemShapeMap(ptMortarElem->projectedPrimary.get(), this->coordUpdate_);
+        esmProj->Global2Local(ipPrimary.coord, globIntPoint);
+      } else { // projectedPrimary == nullptr means it is the MortarElem itself
+        ipPrimary.coord = intPoints[iIntPts].coord;
       }
     } else {
-      // Calculate local coordinates of integration point in master element
-      esmMaster->Global2Local(ipMaster.coord, globIntPoint);
+      // Calculate local coordinates of integration point in primary element
+      esmPrimary->Global2Local(ipPrimary.coord, globIntPoint); 
     }
-    assert( esmMaster->CoordIsInsideElem(ipMaster.coord) );
 
-    LOG_DBG3(mortarInt) << "Integration point #" << i+1
-        << "\n\tglobal coordinates: " << globIntPoint.ToString()
-        << "\n\tlocal coordinates in master: " << ipMaster.coord.ToString()
-        << "\n\tlocal coordinares in slave: " << ipSlave.coord.ToString();
+#ifndef NDEBUG
+    LOG_DBG3(mortarInt) << "Integration point #" << iIntPts+1
+      << "\n\tglobal coordinates: " << globIntPoint.ToString()
+      << "\n\tlocal coordinates: " << intPoints[iIntPts].coord.ToString()
+      << "\n\tlocal coordinates in primary: " << ipPrimary.coord.ToString()
+      << "\n\tlocal coordinares in secondary: " << ipSecondary.coord.ToString();
+#endif
 
     // Calculate for each integration point the LocPointMapped
-    lpmNc.Set( intPoints[i], esmNc, weights[i] );
-    lpmMaster.SetWithSurface( ipMaster, esmMaster, this->volRegions_, weights[i] );
-    lpmSlave.SetWithSurface( ipSlave, esmSlave, this->volRegions_, weights[i] );
+    lpmNc.Set( intPoints[iIntPts], esmNc, weights[iIntPts] );
+    lpmPrimary.SetWithSurface( ipPrimary, esmPrimary, this->volRegions_, weights[iIntPts] );
+    lpmSecondary.SetWithSurface( ipSecondary, esmSecondary, this->volRegions_, weights[iIntPts] );
 
     // Calculate A-matrix (first differential operator)
     // Calculate B-matrix (second differential operator)
-    if (cplDirection_ == BiLinearForm::MASTER_SLAVE)
-    {
-      this->aOperator_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );
-      this->bOperator_->CalcOpMat( this->bMat_, lpmSlave, ptFeSlave );
+    if (cplDirection_ == BiLinearForm::PRIM_SEC) {
+      this->aOperator_->CalcOpMat( this->aMat_, lpmPrimary, ptFePrimary );
+      this->bOperator_->CalcOpMat( this->bMat_, lpmSecondary, ptFeSecondary );
     }
-    else if (cplDirection_ == BiLinearForm::SLAVE_MASTER)
-    {
-      this->aOperator_->CalcOpMat( this->aMat_, lpmSlave, ptFeSlave );
-      this->bOperator_->CalcOpMat( this->bMat_, lpmMaster, ptFeMaster );
-    }
-    else
-    {
+    else if (cplDirection_ == BiLinearForm::SEC_PRIM) {
+      this->aOperator_->CalcOpMat( this->aMat_, lpmSecondary, ptFeSecondary );
+      this->bOperator_->CalcOpMat( this->bMat_, lpmPrimary, ptFePrimary );
+    } else {
       EXCEPTION("Cannot calculate operator matrices for the current coupling direction: " + boost::lexical_cast<std::string>(cplDirection_));
     }
 
     // Calculate scalar factor
-    this->coefScalar_->GetScalar(fac, lpmSlave);
-
-    fac *= MAT_DATA_TYPE(lpmNc.jacDet * weights[i]);
+    this->coefScalar_->GetScalar(fac, lpmSecondary);
+    fac *= MAT_DATA_TYPE(lpmNc.jacDet * weights[iIntPts]);
 
 #ifdef NDEBUG
-    this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false,
-        this->factor_*fac, 1.0);
+    this->aMat_.Mult_Blas(this->bMat_, elemMat, true, false, this->factor_*fac, 1.0);
 #else
+    assert(esmPrimary->CoordIsInsideElem(ipPrimary.coord, EPS));
+    assert(esmSecondary->CoordIsInsideElem(ipSecondary.coord, EPS));
     elemMat += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
+    LOG_DBG3(mortarInt) << "Element matrix: \n" << elemMat;
 #endif
   }
-  
-  LOG_DBG2(mortarInt) << "Element matrix of NcSurfElem #"
-                      << ptMortarElem->elemNum << ":\n" << elemMat;
 }
 
+
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
-::SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2 ) {
+  void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2 ) {
+  
   shared_ptr<BaseFeFunction> feFunc1 = feSpace1->GetFeFunction().lock(),
                              feFunc2 = feSpace2->GetFeFunction().lock();
   // IsLagrSurfSpace check is included to be able to work with other kinds of Lagrange multipliers
@@ -624,219 +624,184 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   }
   
   this->intScheme_ = ptFeSpaceLM_->GetIntScheme();
+  assert(ptFeSpaceLM_ != nullptr);
+  assert(ptFeSpaceField_ != nullptr);
 }
 
-template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
-::SurfaceMortarABIntMA( BaseBOperator * aOp, BaseBOperator * bOp,
-                      PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-					  bool coplanar,
-                      bool coordUpdate)
-: SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>( aOp, bOp, scalCoef, factor,
-		                                     std::set<RegionIdType>(), coordUpdate)
-//  isCoplanar_(coplanar), cplDirection_(cplDirection)
-{
+DEFINE_LOG(mortarIntMA, "Forms.MortarIntMA")
+template<class COEF_DATA_TYPE, class B_DATA_TYPE>
+  SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SurfaceMortarABIntMA(BaseBOperator * aOp, BaseBOperator * bOp,
+                         PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                         bool coplanar, bool coordUpdate): 
+      SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>(aOp, bOp, scalCoef, factor,
+                                                std::set<RegionIdType>(), coordUpdate) {
+  //  isCoplanar_(coplanar), cplDirection_(cplDirection)
   this->isSymmetric_ = false;
   this->isCoplanar_ = coplanar;
-  this->ptMasterOp_ = NULL;
-  this->ptSlaveOp_ = NULL;
-  doTranspose_ = false;
 }
 
 //mechanical-acoustic coupling on non-conforming grids!
 template<class COEF_DATA_TYPE, class B_DATA_TYPE>
-SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
-::SurfaceMortarABIntMA( BaseBOperator * aOp, BaseBOperator * bOp,
-                      const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
-                      MAT_DATA_TYPE factor,
-                      bool coplanar,
-                      bool coordUpdate)
-: SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>(aOp, bOp, regionCoefs, factor,
-                                     std::set<RegionIdType>(), coordUpdate)
-{
+  SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SurfaceMortarABIntMA(BaseBOperator * aOp, BaseBOperator * bOp,
+                         const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
+                         MAT_DATA_TYPE factor, bool coplanar, bool coordUpdate): 
+      SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>(aOp, bOp, regionCoefs, factor,
+                                                std::set<RegionIdType>(), coordUpdate) {
   this->name_ = "SurfaceMortarABIntMA";
-  this->isSymmetric_ = false;
   this->regionCoefs_ = regionCoefs;
+  this->isSymmetric_ = false;
   this->isCoplanar_  = coplanar;
-  this->ptMasterOp_  = NULL;
-  this->ptSlaveOp_   = NULL;
-  doTranspose_ = false;
 }
 
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
-::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                     EntityIterator& ent1,
-                     EntityIterator& ent2 ) {
-
-  // Make sure both entities are the same
-  assert( ent1.GetElem() == ent2.GetElem() );
-
-  // Make sure both master and slave FeSpaces have been assigned
-  assert(ptFeSpaceMaster_);
-  assert(ptFeSpaceSlave_);
-
-  // Make sure both master and slave operators have been assigned
-  assert(ptMasterOp_);
-  assert(ptSlaveOp_);
+  void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>::
+    CalcElementMatrix(Matrix<MAT_DATA_TYPE>& elemMat,
+                      EntityIterator& ent1,
+                      EntityIterator& ent2) {
 
   // Extract MortarNcSurfElem element
   const NcSurfElem* ptNcElem = ent1.GetNcSurfElem();
-  const MortarNcSurfElem * ptMortarElem = dynamic_cast<const MortarNcSurfElem*>(ptNcElem);
-  assert( ptMortarElem );
+  const MortarNcSurfElem* ptMortarElem = dynamic_cast<const MortarNcSurfElem*>(ptNcElem);
 
-
-  // Obtain master and slave parents of Mortar element
-  const SurfElem *ptSurfMaster = ptMortarElem->ptMaster;
-  const SurfElem *ptSurfSlave = ptMortarElem->ptSlave;
-  assert(ptSurfMaster);
-  assert(ptSurfSlave);
-
-  assert(ptSurfMaster->ptVolElems[0]);
-  assert(ptSurfSlave->ptVolElems[0]);
-  RegionIdType masterVolRegion = ptSurfMaster->ptVolElems[0]->regionId;
-  RegionIdType slaveVolRegion = ptSurfSlave->ptVolElems[0]->regionId;
-  this->volRegions_.insert(masterVolRegion);
-  this->volRegions_.insert(slaveVolRegion);
-
-  LOG_DBG(mortarInt) << "NcSurfElem #" << ptMortarElem->elemNum
-                     << ", type " << Elem::feType.ToString(ptMortarElem->type)
-                     << "\n\tmaster parent #" << ptSurfMaster->elemNum
-                     << "\n\tslave parent #" << ptSurfSlave->elemNum;
-  LOG_DBG2(mortarInt) << "\tconnectivity: " << ptMortarElem->connect.ToString();
-
-  MAT_DATA_TYPE fac(0.0);
+  // Primary-side and secondary-side surface elements
+  const SurfElem* ptSurfPrimary = ptMortarElem->ptPrimary;
+  const SurfElem* ptSurfSecondary = ptMortarElem->ptSecondary;
 
   // Obtain FE element from feSpace and integration scheme
-  BaseFE *ptFeMaster, *ptFeSlave;
-  ptFeMaster = this->ptFeSpaceMaster_->GetFe(ptSurfMaster->elemNum);
-  ptFeSlave = this->ptFeSpaceSlave_->GetFe(ptSurfSlave->elemNum);
+  BaseFE* ptFePrimary = this->ptFeSpacePrimary_->GetFe(ptSurfPrimary->elemNum);
+  BaseFE* ptFeSecondary = this->ptFeSpaceSecondary_->GetFe(ptSurfSecondary->elemNum);
 
-  assert(ptFeMaster);
-  assert(ptFeSlave);
-
-  // Obtain integration schemes
-  IntegOrder orderMaster, orderSlave;
-  IntScheme::IntegMethod methodMaster, methodSlave;
-  this->ptFeSpaceMaster_->GetIntegration( ptFeMaster, masterVolRegion, methodMaster, orderMaster );
-  this->ptFeSpaceSlave_->GetIntegration( ptFeSlave, slaveVolRegion, methodSlave, orderSlave );
-
-  const UInt nrFncsMaster = ptFeMaster->GetNumFncs();
-  const UInt nrFncsSlave = ptFeSlave->GetNumFncs();
-
-  // Get shape map from grid
-  shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_);
-  shared_ptr<ElemShapeMap> esmMaster = ent1.GetGrid()->GetElemShapeMap( ptSurfMaster, this->coordUpdate_);
-  shared_ptr<ElemShapeMap> esmSlave = ent1.GetGrid()->GetElemShapeMap( ptSurfSlave, this->coordUpdate_ );
-
-  // Get integration points
-  StdVector<LocPoint> intPoints;
-  StdVector<Double> weights;
-
-  this->intScheme_->GetIntPoints( Elem::GetShapeType(ptMortarElem->type),
-      methodMaster, orderMaster, methodSlave, orderSlave, intPoints, weights );
+  // get integration context of primary and secondary element (method and order)
+  IntegOrder orderPrimary, orderSecondary;
+  IntScheme::IntegMethod methodPrimary, methodSecondary;
+  this->ptFeSpacePrimary_->GetIntegration(ptFePrimary, ptSurfPrimary->ptVolElems[0]->regionId, methodPrimary, orderPrimary);
+  this->ptFeSpaceSecondary_->GetIntegration(ptFeSecondary, ptSurfSecondary->ptVolElems[0]->regionId, methodSecondary, orderSecondary);
 
   // initialize element matrix
-  Matrix<MAT_DATA_TYPE> result;
-  result.Resize( nrFncsMaster * this->ptMasterOp_->GetDimDof(), nrFncsSlave * this->ptSlaveOp_->GetDimDof() );
+  const UInt nrFncsPrimary = ptFePrimary->GetNumFncs();
+  const UInt nrFncsSecondary = ptFeSecondary->GetNumFncs();
+  Matrix<MAT_DATA_TYPE> result; // store separately so we can transpose later in case of doTranspose_ == true
+  result.Resize( nrFncsPrimary * this->ptPrimaryOp_->GetDimDof(), nrFncsSecondary * this->ptSecondaryOp_->GetDimDof() );
   result.Init();
 
-  // Loop over all integration points
+  // Get shape maps from grid
+  shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
+  shared_ptr<ElemShapeMap> esmPrimary = ent1.GetGrid()->GetElemShapeMap( ptSurfPrimary, this->coordUpdate_ );
+  shared_ptr<ElemShapeMap> esmSecondary = ent1.GetGrid()->GetElemShapeMap( ptSurfSecondary, this->coordUpdate_ );
+
+  // Get local integration points and weights
+  StdVector<LocPoint> intPoints;
+  StdVector<Double> weights;
+  this->intScheme_->GetIntPoints(Elem::GetShapeType(ptMortarElem->type), methodPrimary, orderPrimary, methodSecondary, orderSecondary, intPoints, weights);
+
+  // assign or update volRegions_ so that they can get assigned to the Set functions later on
+  // it should actually not be necessary to set the volRegions_ every time the matrix gets reassembled but that's how it is
+  this->volRegions_.insert(ptSurfPrimary->ptVolElems[0]->regionId);
+  this->volRegions_.insert(ptSurfSecondary->ptVolElems[0]->regionId);
+
+#ifndef NDEBUG
+  assert(ent1.GetSurfElem() == ent2.GetSurfElem());
+  assert(ptMortarElem != nullptr);
+  assert(ptSurfPrimary != nullptr);
+  assert(ptSurfSecondary != nullptr);
+  assert(ptFePrimary != nullptr);
+  assert(ptFeSecondary != nullptr);
+  LOG_DBG2(mortarIntMA) << "Region primary: " << ptMortarElem->ptPrimary->ptVolElems[0]->regionId;
+  LOG_DBG2(mortarIntMA) << "Region secondary: " << ptMortarElem->ptSecondary->ptVolElems[0]->regionId;
+  LOG_DBG2(mortarIntMA) << "elemNum primary: " << ptMortarElem->ptPrimary->ptVolElems[0]->elemNum;
+  LOG_DBG2(mortarIntMA) << "elemNum secondary: " << ptMortarElem->ptSecondary->ptVolElems[0]->elemNum;
+  LOG_DBG2(mortarIntMA) << "NcSurfElem #" << ptMortarElem->elemNum
+                       << ", type " << Elem::feType.ToString(ptMortarElem->type)
+                       << "\n\tprimary parent #" << ptSurfPrimary->elemNum
+                       << "\n\tsecondary parent #" << ptSurfSecondary->elemNum;
+  LOG_DBG2(mortarIntMA) << "\tconnectivity: " << ptMortarElem->connect.ToString();
+#endif
+
+  MAT_DATA_TYPE fac(0.0);
   Vector<Double> globIntPoint;
-  LocPoint ipMaster, ipSlave;
-  LocPointMapped lpmNc, lpmMaster, lpmSlave;
-
+  LocPoint ipPrimary, ipSecondary;
+  LocPointMapped lpmNc, lpmPrimary, lpmSecondary;
   const UInt numIntPts = intPoints.GetSize();
-  for( UInt i = 0; i < numIntPts; ++i ) {
+  // Loop over all integration points
+  for( UInt iIntPts = 0; iIntPts < numIntPts; ++iIntPts ) {
     // Calculate global coordinates of integration point
-    esmNc->Local2Global(globIntPoint, intPoints[i]);
+    esmNc->Local2Global(globIntPoint, intPoints[iIntPts]);
 
-    // Calculate local coordinates of integration point in slave element
-    esmSlave->Global2Local(ipSlave.coord, globIntPoint);
-    assert( esmSlave->CoordIsInsideElem(ipSlave.coord) );
+    // Calculate local coordinates of integration point in secondary element
+    esmSecondary->Global2Local(ipSecondary.coord, globIntPoint);
 
     // Projection for curved interfaces
     if ( !isCoplanar_ ) {
-      /* Instead of projecting the integration point back into the master
+      /* Instead of projecting the integration point back into the primary
        * element, we use a better approach: Orthogonal projection is a linear
-       * operation, so any point in the projected master element has the same
-       * local coordinates as its orthogonal projection in the original master
+       * operation, so any point in the projected primary element has the same
+       * local coordinates as its orthogonal projection in the original primary
        * element. So we perform the Global2Local mapping in the projected
        * element, which has been computed already by the intersection
-       * algorithm. Sometimes the intersection is the projected master element
+       * algorithm. Sometimes the intersection is the projected primary element
        * itself, in which case we need no coordinate mapping at all.
        */
-      if ( ptMortarElem->projectedMaster ) {
-        shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()->GetElemShapeMap(
-            ptMortarElem->projectedMaster.get(), this->coordUpdate_ );
-        esmProj->Global2Local(ipMaster.coord, globIntPoint);
-      } else { // projectedMaster == NULL means it is the MortarElem itself
-        ipMaster.coord = intPoints[i].coord;
+      if ( ptMortarElem->projectedPrimary != nullptr) {
+        shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()->GetElemShapeMap(ptMortarElem->projectedPrimary.get(), this->coordUpdate_);
+        esmProj->Global2Local(ipPrimary.coord, globIntPoint);
+      } else { // projectedPrimary == nullptr means it is the MortarElem itself
+        ipPrimary.coord = intPoints[iIntPts].coord;
       }
     } else {
-      // Calculate local coordinates of integration point in master element
-      esmMaster->Global2Local(ipMaster.coord, globIntPoint);
+      // Calculate local coordinates of integration point in primary element
+      esmPrimary->Global2Local(ipPrimary.coord, globIntPoint);
     }
-    assert( esmMaster->CoordIsInsideElem(ipMaster.coord) );
-
-    LOG_DBG3(mortarInt) << "Integration point #" << i+1
-        << "\n\tglobal coordinates: " << globIntPoint.ToString()
-        << "\n\tlocal coordinates in master: " << ipMaster.coord.ToString()
-        << "\n\tlocal coordinares in slave: " << ipSlave.coord.ToString();
 
     // Calculate for each integration point the LocPointMapped
-    lpmNc.Set( intPoints[i], esmNc, weights[i] );
-    lpmMaster.SetWithSurface( ipMaster, esmMaster, this->volRegions_, weights[i] );
-    lpmSlave.SetWithSurface( ipSlave, esmSlave, this->volRegions_, weights[i] );
+    lpmNc.Set( intPoints[iIntPts], esmNc, weights[iIntPts] );
+    lpmPrimary.SetWithSurface( ipPrimary, esmPrimary, this->volRegions_, weights[iIntPts] );
+    lpmSecondary.SetWithSurface( ipSecondary, esmSecondary, this->volRegions_, weights[iIntPts] );
 
+    // compute operator matrices directly as the lpms were set correctly beforehand
     // Calculate A-matrix (first differential operator)
-    this->ptMasterOp_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );
-
+    this->ptPrimaryOp_->CalcOpMat( this->aMat_, lpmPrimary, ptFePrimary );
     // Calculate B-matrix (second differential operator)
-    this->ptSlaveOp_->CalcOpMat( this->bMat_, lpmSlave, ptFeSlave );
-
-    // Calculate scalar factor
+    this->ptSecondaryOp_->CalcOpMat( this->bMat_, lpmSecondary, ptFeSecondary );
+    // Calculate scalar factor...
+    // if the object has been constructed passing the regionCoefs_ try to set the factors accordingly
     if (!this->regionCoefs_.empty()) {
-      if (this->regionCoefs_.find(slaveVolRegion) != this->regionCoefs_.end()) {
-        this->regionCoefs_[slaveVolRegion]->GetScalar(fac, lpmSlave);
+      if (this->regionCoefs_.find(ptSurfSecondary->ptVolElems[0]->regionId) != this->regionCoefs_.end()) {
+        this->regionCoefs_[ptSurfSecondary->ptVolElems[0]->regionId]->GetScalar(fac, lpmSecondary);
       } else if (this->regionCoefs_.find(ALL_REGIONS) != this->regionCoefs_.end()) {
-        this->regionCoefs_[ALL_REGIONS]->GetScalar(fac, lpmSlave);
+        this->regionCoefs_[ALL_REGIONS]->GetScalar(fac, lpmSecondary);
       } else {
-        EXCEPTION("Could not find coefficient function for region "
-                  << ent1.GetGrid()->GetRegion().ToString(slaveVolRegion));
+        EXCEPTION("Could not find coefficient function for region " << ent1.GetGrid()->GetRegion().ToString(ptSurfSecondary->ptVolElems[0]->regionId));
       }
     } else {
-      this->coefScalar_->GetScalar(fac, lpmSlave);
+      this->coefScalar_->GetScalar(fac, lpmSecondary);
     }
-
-    fac *= MAT_DATA_TYPE(lpmNc.jacDet * weights[i]);
-
+    fac *= MAT_DATA_TYPE(lpmNc.jacDet * weights[iIntPts]);
 #ifdef NDEBUG
-    this->aMat_.Mult_Blas(this->bMat_, result, true, false,
-        this->factor_*fac, 1.0);
+    this->aMat_.Mult_Blas(this->bMat_, result, true, false, this->factor_*fac, 1.0);
 #else
+    LOG_DBG3(mortarIntMA) << "Integration point #" << iIntPts+1
+        << "\n\tglobal coordinates: " << globIntPoint.ToString()
+        << "\n\tlocal coordinates in primary: " << ipPrimary.coord.ToString()
+        << "\n\tlocal coordinares in secondary: " << ipSecondary.coord.ToString();
+    assert(esmPrimary->CoordIsInsideElem(ipPrimary.coord, EPS));
+    assert(esmSecondary->CoordIsInsideElem(ipSecondary.coord, EPS));
     result += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
+    LOG_DBG3(mortarIntMA) << "Element matrix (not transposed): \n" << result;
 #endif
   }
-  if ( doTranspose_ ) {
-	  result.Transpose(elemMat);
+  if (doTranspose_) {
+    result.Transpose(elemMat);
+  } else {
+    elemMat = result;
   }
-  else {
-	  elemMat = result;
-//  if ( ptMasterOp_ != this->bOperator_) {
-//	  elemMat = result;
-//  } else {
-//	  result.Transpose(elemMat);
-  }
-
-  LOG_DBG2(mortarInt) << "Element matrix of NcSurfElem #"
-                      << ptMortarElem->elemNum << ":\n" << elemMat;
 }
 
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
-void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
-::SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2 ) {
+  void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>::
+    SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2 ) {
 
   BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::SetFeSpace(feSpace1, feSpace2);
 
@@ -844,27 +809,29 @@ void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
   SolutionType resType2 = feSpace2->GetFeFunction().lock()->GetResultInfo()->resultType;
 
   if (resType1 == MECH_DISPLACEMENT || resType1 ==  FLUIDMECH_VELOCITY) {
-	  ptFeSpaceMaster_ = feSpace1;
-	  ptMasterOp_ = this->aOperator_;
+    ptFeSpacePrimary_ = feSpace1;
+    ptPrimaryOp_ = this->aOperator_;
   } else if (resType2 == MECH_DISPLACEMENT || resType2 ==  FLUIDMECH_VELOCITY) {
-	  ptFeSpaceMaster_ = feSpace2;
-	  ptMasterOp_ = this->bOperator_;
-	  this->name_ = "SurfaceMortarABIntMAtrans";
-	  doTranspose_ = true;
+    ptFeSpacePrimary_ = feSpace2;
+    ptPrimaryOp_ = this->bOperator_;
+    this->name_ = "SurfaceMortarABIntMAtrans";
+    doTranspose_ = true;
   } else {
-	  EXCEPTION("Could not find FeSpace of mechanic region.");
+    EXCEPTION("Could not find FeSpace of mechanic region.");
   }
   if (resType1 == ACOU_POTENTIAL || resType1 == ACOU_PRESSURE) {
-	  ptFeSpaceSlave_ = feSpace1;
-	  ptSlaveOp_ = this->aOperator_;
+    ptFeSpaceSecondary_ = feSpace1;
+    ptSecondaryOp_ = this->aOperator_;
   } else if (resType2 == ACOU_POTENTIAL || resType2 == ACOU_PRESSURE) {
-	  ptFeSpaceSlave_ = feSpace2;
-	  ptSlaveOp_ = this->bOperator_;
+    ptFeSpaceSecondary_ = feSpace2;
+    ptSecondaryOp_ = this->bOperator_;
   } else {
-	  EXCEPTION("Could not find FeSpace of slave region.");
+    EXCEPTION("Could not find FeSpace of secondary region.");
   }
-  assert(ptFeSpaceMaster_);
-  assert(ptFeSpaceSlave_);
+  assert(ptFeSpacePrimary_ != nullptr);
+  assert(ptFeSpaceSecondary_ != nullptr);
+  assert(ptPrimaryOp_ != nullptr);
+  assert(ptSecondaryOp_ != nullptr);
 }
 
 // Explicit template instantiation

@@ -178,6 +178,13 @@ namespace CoupledField {
     //! \param volRegid (in) Allows to explicitly specify a volume region in case of the surface being an interface
     void SetSurfInfo( const std::set<RegionIdType>& volRegions, const RegionIdType volRegid = NO_REGION_ID );
 
+    //! Compute and assign integration points for Nitsche-Type non-matching interfaces
+    //! \param lp (in) Local point to bet set
+    //! \param esm (in,out) ElemShapeMap, representing the mapping from reference to physical domain
+    //! \param weight (in,out) Integration weight
+    //! \param usePrimary (in) Flag indicating, if the primary or secondary side of the interface is assigned
+    void SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemShapeMap> esm, const bool usePrimary, Double weight);
+
     //! set, if jacobi determinat should be checked; standard is YES
     void SetCheckJacobi(bool check) {
     		checkJacobi_ = check;
@@ -500,7 +507,7 @@ namespace CoupledField {
     ShapeMapType type_ = NO_TYPE;
 
     //! Pointer to grid
-    Grid *ptGrid_ = NULL;
+    Grid *ptGrid_ = nullptr;
 
     //! Flag for axisymmetry
     bool isAxi_ = false;
@@ -512,10 +519,10 @@ namespace CoupledField {
     Double depth_ = 1.0;
 
     //! Pointer to current element
-    const Elem* ptElem_ = NULL;
+    const Elem* ptElem_ = nullptr;
     
     //! Pointer to current surface element (if valid)
-    const SurfElem* ptSurfElem_ = NULL;
+    const SurfElem* ptSurfElem_ = nullptr;
 
   };
   
@@ -642,7 +649,7 @@ namespace CoupledField {
     //! Return local search directions and Jacobian determinant
     
     //! This method calculates for the given, full Jacobian matrix
-    //! the determinant and returns the local search direction. 
+    //! the determinant and returns the (negative) local search direction. 
     //! It takes into account the possible combinations (globDir,elemDir).
     //! \param delta_xi (out) Local search direction
     //! \param delta_x (in) Global search direction
@@ -662,7 +669,10 @@ namespace CoupledField {
     void Global2LocalQuad4( Vector<Double>& locPoint,
                             const Vector<Double>& glob );
 
-    //! Orignial version from duester skript
+    //! Orignial version from Düster's lecture script.
+    //! Performs the Newton-Raphson method to find local coordinates within this element iteratively.
+    //! \param locPoint (out) determined local point od the element
+    //! \param glob (in) global point to be mapped
     void Global2LocalDuester(Vector<Double>& locPoint,
                              const Vector<Double>& globalPoint);
 
