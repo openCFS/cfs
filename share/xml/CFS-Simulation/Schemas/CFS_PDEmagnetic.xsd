@@ -142,6 +142,11 @@
                     <xsd:documentation>Exciting magnetic field intensity precomupted by curl-curl formulation</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Bloch periodic boundary conditions for magnetic potential</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <!-- for iterative coupling to magnetostrictive material -->
                 <xsd:element name="mechStrain"      type="DT_BcInhomVector"    />
               </xsd:choice>
