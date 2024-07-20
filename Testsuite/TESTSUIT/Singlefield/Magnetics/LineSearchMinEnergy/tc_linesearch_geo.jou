@@ -1,0 +1,53 @@
+reset
+
+
+
+
+
+create surface circle radius 0.5 zplane 
+create surface circle radius 1 zplane 
+subtract surface 1  from surface 2  keep_tool 
+
+imprint all
+merge all
+
+
+surface all scheme trimesh size 0.25
+mesh surface all
+
+
+
+nodeset 1 add curve 2  
+nodeset 1 name "L_outer"
+
+block 1 add surface 3 
+block 1 name "S_outer"
+block 2 add surface 1
+block 2 name "S_inner"
+
+
+
+export ansys cdb "/home/lukas/01_Arbeit/projects/Motor_Andritz_Hydro/CFS_LineSearch/tc_linesearch/tc_linesearch_geo.cdb"  overwrite 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

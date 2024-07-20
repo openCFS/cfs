@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/material file:/home/lukas/Devel/CFS_SRC/cfs/share/xml/CFS-Material/CFS_Material.xsd">
+    
+  <material name="air">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.204 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.41855E+05 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.256637061E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+
+  <material name="iron_linear">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>9.17431e5</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1000*1.256637061E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  
+  <material name="iron_nonlinear">
+    <magnetic>
+
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>1.6949153E+006</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+
+
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1000*1.256637061E-06</real>
+          </isotropic>
+        </linear>
+        <nonlinear>
+          <isotropic>
+          <dependency></dependency>
+          <approxType>smoothSplines</approxType>
+          <measAccuracy>0.01</measAccuracy>
+          <maxApproxVal>4.0</maxApproxVal>
+          <dataName>Stator.fnc</dataName>
+          </isotropic>
+        </nonlinear>
+      </permeability>
+                 
+
+    </magnetic>
+  </material>
+  
+</cfsMaterialDataBase>

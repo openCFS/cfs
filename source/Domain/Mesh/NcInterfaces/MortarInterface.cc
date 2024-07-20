@@ -130,6 +130,8 @@ namespace CoupledField {
     nciNode->GetValue("storeIntegrationGrid", exportToGrid_, ParamNode::PASS);
     // check for warning outputs. Print warning if small elements are rejected
     nciNode->GetValue("geometryWarnings", geoWarn_, ParamNode::PASS);
+    // set tolerances dependent on intersection method
+    SetTolerances(nciNode);
     // check for mutual projection method
     SetMutualProjection(nciNode);
     // check for general motion
@@ -138,8 +140,6 @@ namespace CoupledField {
     SetCoplanar(nciNode);
     // assign intersection type
     SetIntersectionType(nciNode);
-    // set tolerances dependent on intersection method
-    SetTolerances(nciNode);
     // check if we have valid meshes on both interface sides
     if (geoWarn_==true)
       CheckMeshValidity();
@@ -169,7 +169,6 @@ namespace CoupledField {
                                << "Updated geometry movement (mesh smoothing): " << useMeshSmoothing_ << std::endl;
     }
   }
-
 
   MortarInterface::~MortarInterface() {
   #ifdef USE_OPENMP
@@ -290,9 +289,14 @@ namespace CoupledField {
     }
   }
 
-
-  void MortarInterface::SetMutualProjection(const PtrParamNode nciNode) {
+  void MortarInterface::SetMutualProjection(const PtrParamNode nciNode)
+  {
     nciNode->GetValue("mutualProjection", mutualProjection_, ParamNode::PASS);
+    nciNode->GetValue("cakePieceProjection", cakePieceProjection_, ParamNode::PASS);
+    if (mutualProjection_ && cakePieceProjection_) {
+      EXCEPTION("Both mutual and cake-piece projection methods are specified. Only one of them can be used at a time.");
+    }
+
     if (mutualProjection_) {
       translationVector_.Resize(ptGrid_->GetDim());
       Matrix<Double> bboxPrim, bboxSec;
@@ -303,11 +307,153 @@ namespace CoupledField {
       for (UInt iDim = 0; iDim < ptGrid_->GetDim(); ++iDim)
         translationVector_[iDim] = bboxPrim[iDim][0] + bboxPrim[iDim][1] - bboxSec[iDim][0] - bboxSec[iDim][1];
       translationVector_ *= 0.5;
-    } else {
+    }
+    else if (cakePieceProjection_) {
+      // consider 2D-rotated mutual projection (cake-piece projection)
+      if (cakePieceProjection_) {
+        if (ptGrid_->GetDim() != 2) {
+          EXCEPTION("Rotated mutual projection is only supported for 2D grids");
+        }
+        else {
+          Matrix<Double> bboxPrim, bboxSec;
+          // get bounding boxes of lines [min(x),max(x);min(y),max(y)]
+          ptGrid_->CalcBoundingBoxOfRegion(primarySurfRegion_, bboxPrim);
+          ptGrid_->CalcBoundingBoxOfRegion(secondarySurfRegion_, bboxSec);
+          // normalize tolerances
+          Double tol = fmax(fmax(fabs(bboxPrim[0][0] - bboxPrim[0][1]),
+                                 fabs(bboxPrim[1][0] - bboxPrim[1][1])),
+                            fmax(fabs(bboxSec[0][0] - bboxSec[0][1]),
+                                 fabs(bboxSec[1][0] - bboxSec[1][1]))) *
+                       relativeTolerance_;
+
+          // find intersection point of the bounding boxes
+          if (bboxPrim[0][0] > bboxSec[0][1] + tol || bboxPrim[1][1] < bboxSec[1][0] - tol)
+            EXCEPTION("No intersecting bounding boxes found for cake-piece projection!");
+          if (fabs(bboxPrim[0][0] - bboxSec[0][0]) < tol &&
+              fabs(bboxPrim[0][1] - bboxSec[0][1]) < tol &&
+              fabs(bboxPrim[1][0] - bboxSec[1][0]) < tol &&
+              fabs(bboxPrim[1][1] - bboxSec[1][1]) < tol)
+            EXCEPTION("Bounding boxes for cake-piece projection entirely overlap. Intersection is not unique!");
+          // check if both vectors have equal lengths
+          Double lenPrim, lenSec;
+          lenPrim = sqrt(pow(bboxPrim[0][1] - bboxPrim[0][0], 2) + pow(bboxPrim[1][1] - bboxPrim[1][0], 2));
+          lenSec = sqrt(pow(bboxSec[0][1] - bboxSec[0][0], 2) + pow(bboxSec[1][1] - bboxSec[1][0], 2));
+          if (fabs(lenPrim - lenSec) > tol)
+            EXCEPTION("Rotated mutual projection is only supported for lines of equal lengths");
+
+          // get two nodes of each line..
+          StdVector<UInt> nodesPrim, nodesSec;
+          StdVector<Vector<Double>> coordsPrim(2), coordsSec(2);
+          ptGrid_->GetNodesByRegion(nodesPrim, primarySurfRegion_);
+          ptGrid_->GetNodesByRegion(nodesSec, secondarySurfRegion_);
+          for (UInt iNode = 0; iNode < 2; ++iNode) {
+            ptGrid_->GetNodeCoordinate(coordsPrim[iNode], nodesPrim[iNode], false);
+            ptGrid_->GetNodeCoordinate(coordsSec[iNode], nodesSec[iNode], false);
+          }
+
+          // get line parameters and find intersections
+          Vector<Double> intersectionPoint(2);
+          if (fabs(coordsPrim[1][0] - coordsPrim[0][0]) > tol &&
+              fabs(coordsSec[1][0] - coordsSec[0][0])) {
+            // if both lines can be parametrized as y = k*x + d, find the params
+            Double kPrim, kSec, dPrim, dSec;
+            kPrim = (coordsPrim[1][1] - coordsPrim[0][1]) / (coordsPrim[1][0] - coordsPrim[0][0]);
+            kSec = (coordsSec[1][1] - coordsSec[0][1]) / (coordsSec[1][0] - coordsSec[0][0]);
+            dPrim = coordsPrim[0][1] - kPrim * coordsPrim[0][0];
+            dSec = coordsSec[0][1] - kSec * coordsSec[0][0];
+            intersectionPoint[0] = (dSec - dPrim) / (kPrim - kSec);
+            intersectionPoint[1] = kPrim * intersectionPoint[0] + dPrim;
+          }
+          else if (fabs(coordsPrim[1][0] - coordsPrim[0][0]) <= tol) {
+            // if the primary line is vertical (would lead to infinite kPrim)
+            // find the params of secondary side
+            Double kSec, dSec;
+            kSec = (coordsSec[1][1] - coordsSec[0][1]) / (coordsSec[1][0] - coordsSec[0][0]);
+            dSec = coordsSec[0][1] - kSec * coordsSec[0][0];
+            intersectionPoint[0] = (coordsPrim[1][0] + coordsPrim[0][0]) / 2;
+            intersectionPoint[1] = kSec * intersectionPoint[0] + dSec;
+          }
+          else if (fabs(coordsSec[1][0] - coordsSec[0][0]) <= tol) {
+            // if the secondary line is vertical (would lead to infinite kSec)
+            // find the params of primary side
+            Double kPrim, dPrim;
+            kPrim = (coordsPrim[1][1] - coordsPrim[0][1]) / (coordsPrim[1][0] - coordsPrim[0][0]);
+            dPrim = coordsPrim[0][1] - kPrim * coordsPrim[0][0];
+            intersectionPoint[0] = (coordsSec[1][0] + coordsSec[0][0]) / 2;
+            intersectionPoint[1] = kPrim * intersectionPoint[0] + dPrim;
+          }
+          else {
+            EXCEPTION("Unexpected case.");
+          }
+
+          // check if intersection point is in bounding box. We need to extend the bounding box to include the intersection point
+          if (intersectionPoint[0] < bboxPrim[0][0] - tol || intersectionPoint[0] > bboxPrim[0][1] + tol ||
+              intersectionPoint[1] < bboxPrim[1][0] - tol || intersectionPoint[1] > bboxPrim[1][1] + tol) {
+            WARN("Intersection point :" << intersectionPoint << "\nfor cake-piece projection is not in bounding box of primary surface:\n"
+                                        << bboxPrim << "\nThe bounding box will be extended to include the intersection point.");
+            bboxPrim[0][0] = fmin(bboxPrim[0][0], intersectionPoint[0]);
+            bboxPrim[0][1] = fmax(bboxPrim[0][1], intersectionPoint[0]);
+            bboxPrim[1][0] = fmin(bboxPrim[1][0], intersectionPoint[1]);
+            bboxPrim[1][1] = fmax(bboxPrim[1][1], intersectionPoint[1]);
+          }
+          if (intersectionPoint[0] < bboxSec[0][0] - tol || intersectionPoint[0] > bboxSec[0][1] + tol ||
+              intersectionPoint[1] < bboxSec[1][0] - tol || intersectionPoint[1] > bboxSec[1][1] + tol) {
+            WARN("Intersection point :" << intersectionPoint << "\nfor cake-piece projection is not in bounding box of secondary surface:\n"
+                                        << bboxSec << "\nThe bounding box will be extended to include the intersection point.");
+            bboxSec[0][0] = fmin(bboxSec[0][0], intersectionPoint[0]);
+            bboxSec[0][1] = fmax(bboxSec[0][1], intersectionPoint[0]);
+            bboxSec[1][0] = fmin(bboxSec[1][0], intersectionPoint[1]);
+            bboxSec[1][1] = fmax(bboxSec[1][1], intersectionPoint[1]);
+          }
+
+          // extract line vectors from bounding boxes, knowing the intersection point.
+          Vector<Double> linePrim(2), lineSec(2);
+          linePrim[0] = (fabs(bboxPrim[0][0] - intersectionPoint[0]) < tol) ? bboxPrim[0][1] - intersectionPoint[0] : bboxPrim[0][0] - intersectionPoint[0];
+          linePrim[1] = (fabs(bboxPrim[1][0] - intersectionPoint[1]) < tol) ? bboxPrim[1][1] - intersectionPoint[1] : bboxPrim[1][0] - intersectionPoint[1];
+          lineSec[0] = (fabs(bboxSec[0][0] - intersectionPoint[0]) < tol) ? bboxSec[0][1] - intersectionPoint[0] : bboxSec[0][0] - intersectionPoint[0];
+          lineSec[1] = (fabs(bboxSec[1][0] - intersectionPoint[1]) < tol) ? bboxSec[1][1] - intersectionPoint[1] : bboxSec[1][0] - intersectionPoint[1];
+
+          // calculate the angle between the lines
+          cakePieceRotationAngle_ = acos((linePrim * lineSec) / (linePrim.NormL2() * lineSec.NormL2()));
+          // get the direction of rotation via cross product
+          Double crossProd;
+          crossProd = linePrim[0] * lineSec[1] - linePrim[1] * lineSec[0];
+          if (crossProd < 0)
+            cakePieceRotationAngle_ = -cakePieceRotationAngle_;
+
+          // store the center of the secondary bounding box as the center of rotation
+          cakePieceRotationCenter_.Resize(ptGrid_->GetDim());
+          for (UInt iDim = 0; iDim < ptGrid_->GetDim(); ++iDim)
+            cakePieceRotationCenter_[iDim] = (bboxPrim[iDim][0] + bboxPrim[iDim][1]) / 2;
+
+          // calculate the vector along which the master side was translated from the slave side
+          // as the difference between the centres of master's and slave's bounding boxes
+          translationVector_.Resize(ptGrid_->GetDim());
+          for (UInt iDim = 0; iDim < ptGrid_->GetDim(); ++iDim)
+            translationVector_[iDim] = bboxPrim[iDim][0] + bboxPrim[iDim][1] - bboxSec[iDim][0] - bboxSec[iDim][1];
+          translationVector_ *= 0.5;
+          // debug messages (convert to debug logs before merge)
+          // std::cout << "bboxPrim: \n" << bboxPrim << std::endl;
+          // std::cout << "bboxSec: \n" << bboxSec << std::endl;
+          // std::cout << "lenPrim: \n" << lenPrim << std::endl;
+          // std::cout << "lenSec: \n" << lenSec << std::endl;
+          // std::cout << "coordsPrim: \n" << coordsPrim << std::endl;
+          // std::cout << "coordsSec: \n" << coordsSec << std::endl;
+          // std::cout << "Intersection point: \n" << intersectionPoint << std::endl;
+          // std::cout << "linePrim: \n" << linePrim << std::endl;
+          // std::cout << "lineSec: \n" << lineSec << std::endl;
+          // std::cout << "crossProd" << crossProd << std::endl;
+          // Double rotDeg = cakePieceRotationAngle_ * 180.0 / M_PI;
+          // std::cout << "cakePieceRotationAngle: " << rotDeg << std::endl;
+          // std::cout << "cakePieceRotationCenter_: \n" << cakePieceRotationCenter_ << std::endl;
+          // std::cout << "translationVector: \n" << translationVector_ << std::endl;
+        }
+      }
+    }
+    else {
       translationVector_.Resize(0);
     }
   }
-
 
   void MortarInterface::SetMotion(const PtrParamNode nciNode) {
     bool isRotating = false;
@@ -910,60 +1056,76 @@ namespace CoupledField {
     }
   }
 
-
-  #ifdef USE_CGAL
-  void MortarInterface::ComputeIntersectionCandidates() {
-    // clear intersection candidates
-    intersectionCandiatesIdx_.clear();
-    // (Re)compute bounding boxes if not done yet or if the region has moved...
-    // primary region
-    if(primarySurfElemBoxes_.size() != primarySurfElems_.GetSize() || movingVolRegion_ == primaryVolRegion_ ){
-      primarySurfElemBoxes_.resize(primarySurfElems_.GetSize());
-      primaryBoxIndexes_.Resize(primarySurfElems_.GetSize());
-      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-      for(Integer iBox = 0; iBox < (Integer)primarySurfElems_.GetSize(); ++iBox) {
-        // create the box
-        boost::array<Double,6> bbox;
-        ptGrid_->CreateBBoxFromElement(primarySurfElems_[iBox], boundingBoxTolerance_, &bbox[0], isMoving_);
-        // assign the box index
-        primaryBoxIndexes_[iBox] = iBox;
-        // kirill: translational p.b.c.
-        // a transformation must be applied to the bounding box
-        if (mutualProjection_) {
-          // translation
-          for (UInt iDim = 0; iDim < ptGrid_->GetDim(); ++iDim) {
-            bbox[iDim] -= translationVector_[iDim];
-            bbox[iDim + 3] -= translationVector_[iDim];
-          }
+#ifdef USE_CGAL
+  void MortarInterface::ComputeIntersectionCandidates()
+  {
+    if (cakePieceProjection_) {
+      // in the case caePieceProjection The intersection simply check all possible permutations
+      intersectionCandiatesIdx_.resize(primarySurfElems_.GetSize() * secondarySurfElems_.GetSize());
+      UInt position = 0;
+      for (UInt iPrimElems = 0; iPrimElems < primarySurfElems_.GetSize(); ++iPrimElems) {
+        for (UInt iSecElems = 0; iSecElems < secondarySurfElems_.GetSize(); ++iSecElems) {
+          intersectionCandiatesIdx_[position].first = iPrimElems;
+          intersectionCandiatesIdx_[position].second = iSecElems;
+          position++;
         }
-        // get a handle to the bounding box
-        Grid::HandleBox boxHandle(Grid::BBox3D(bbox[0], bbox[1], bbox[2],
-                                               bbox[3], bbox[4], bbox[5]), &primaryBoxIndexes_[iBox]);
-        // assign the handle
-        primarySurfElemBoxes_[iBox] = boxHandle;
       }
     }
-    // secondary region
-    if(secondarySurfElemBoxes_.size() != secondarySurfElems_.GetSize() || movingVolRegion_ == secondaryVolRegion_) {
-      secondarySurfElemBoxes_.resize(secondarySurfElems_.GetSize());
-      secondaryBoxIndexes_.Resize(secondarySurfElems_.GetSize());
-      #pragma omp parallel for num_threads(CFS_NUM_THREADS)
-      for(Integer iBox = 0; iBox < (Integer)secondarySurfElems_.GetSize(); ++iBox) {
-        // create the box
-        boost::array<Double,6> bbox;
-        ptGrid_->CreateBBoxFromElement(secondarySurfElems_[iBox], boundingBoxTolerance_, &bbox[0],isMoving_);
-        // assign the box index
-        secondaryBoxIndexes_[iBox] = iBox;
-        // get a handle to the bounding box
-        Grid::HandleBox boxHandle(Grid::BBox3D(bbox[0], bbox[1], bbox[2],
-                                               bbox[3], bbox[4], bbox[5]), &secondaryBoxIndexes_[iBox]);
-        // assign the handle
-        secondarySurfElemBoxes_[iBox] = boxHandle;
+    else {
+      // clear intersection candidates
+      intersectionCandiatesIdx_.clear();
+      // (Re)compute bounding boxes if not done yet or if the region has moved...
+      // primary region
+      if (primarySurfElemBoxes_.size() != primarySurfElems_.GetSize() || movingVolRegion_ == primaryVolRegion_) {
+        primarySurfElemBoxes_.resize(primarySurfElems_.GetSize());
+        primaryBoxIndexes_.Resize(primarySurfElems_.GetSize());
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
+        for (Integer iBox = 0; iBox < (Integer)primarySurfElems_.GetSize(); ++iBox) {
+          // create the box
+          boost::array<Double, 6> bbox;
+          ptGrid_->CreateBBoxFromElement(primarySurfElems_[iBox], boundingBoxTolerance_, &bbox[0], isMoving_);
+          // assign the box index
+          primaryBoxIndexes_[iBox] = iBox;
+          // kirill: translational p.b.c.
+          // a transformation must be applied to the bounding box
+          if (mutualProjection_) {
+            // translation
+            for (UInt iDim = 0; iDim < ptGrid_->GetDim(); ++iDim) {
+              bbox[iDim] -= translationVector_[iDim];
+              bbox[iDim + 3] -= translationVector_[iDim];
+            }
+          } 
+          // get a handle to the bounding box
+          Grid::HandleBox boxHandle(Grid::BBox3D(bbox[0], bbox[1], bbox[2],
+                                                 bbox[3], bbox[4], bbox[5]),
+                                    &primaryBoxIndexes_[iBox]);
+          // assign the handle
+          primarySurfElemBoxes_[iBox] = boxHandle;
+        }
       }
+      // secondary region
+      if (secondarySurfElemBoxes_.size() != secondarySurfElems_.GetSize() || movingVolRegion_ == secondaryVolRegion_) {
+        secondarySurfElemBoxes_.resize(secondarySurfElems_.GetSize());
+        secondaryBoxIndexes_.Resize(secondarySurfElems_.GetSize());
+#pragma omp parallel for num_threads(CFS_NUM_THREADS)
+        for (Integer iBox = 0; iBox < (Integer)secondarySurfElems_.GetSize(); ++iBox) {
+          // create the box
+          boost::array<Double, 6> bbox;
+          ptGrid_->CreateBBoxFromElement(secondarySurfElems_[iBox], boundingBoxTolerance_, &bbox[0], isMoving_);
+          // assign the box index
+          secondaryBoxIndexes_[iBox] = iBox;
+          // get a handle to the bounding box
+          Grid::HandleBox boxHandle(Grid::BBox3D(bbox[0], bbox[1], bbox[2],
+                                                 bbox[3], bbox[4], bbox[5]),
+                                    &secondaryBoxIndexes_[iBox]);
+          // assign the handle
+          secondarySurfElemBoxes_[iBox] = boxHandle;
+        }
+      }
+      CGAL::box_intersection_d(primarySurfElemBoxes_.begin(), primarySurfElemBoxes_.end(),
+                               secondarySurfElemBoxes_.begin(), secondarySurfElemBoxes_.end(),
+                               elemElemIdReporter(std::back_inserter(intersectionCandiatesIdx_)));
     }
-    CGAL::box_intersection_d(primarySurfElemBoxes_.begin(), primarySurfElemBoxes_.end(),
-                             secondarySurfElemBoxes_.begin(), secondarySurfElemBoxes_.end(),
-                             elemElemIdReporter(std::back_inserter(intersectionCandiatesIdx_)));
   }
 #else
   void MortarInterface::ComputeIntersectionCandidates() {
@@ -999,6 +1161,7 @@ namespace CoupledField {
   **                     back to this vector
   **
   */
+
 
   bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
                                         SurfElem *ifaceElem2,
@@ -1050,6 +1213,45 @@ namespace CoupledField {
       c1 -= translationVector_;
       wasProjected0 = true;
       wasProjected1 = true;
+    }
+
+    // for cake-piece projection, perform translation and rotation of coordinates
+    if (cakePieceProjection_) {
+      // debug messages. Remove or make as debug logs before merge
+      // std::cout << "c0: " << c0 << std::endl;
+      // std::cout << "c1: " << c1 << std::endl;
+      // subtract rotation center
+      c0 -= cakePieceRotationCenter_;
+      c1 -= cakePieceRotationCenter_;
+      // rotate around z axis
+      Vector<Double> tmp(2);
+      tmp[0] = c0[0]*cos(cakePieceRotationAngle_) - c0[1]*sin(cakePieceRotationAngle_);
+      tmp[1] = c0[0]*sin(cakePieceRotationAngle_) + c0[1]*cos(cakePieceRotationAngle_);
+      c0 = tmp;
+      tmp[0] = c1[0]*cos(cakePieceRotationAngle_) - c1[1]*sin(cakePieceRotationAngle_);
+      tmp[1] = c1[0]*sin(cakePieceRotationAngle_) + c1[1]*cos(cakePieceRotationAngle_);
+      c1 = tmp;
+      // translate back to original position
+      c0 += cakePieceRotationCenter_;
+      c1 += cakePieceRotationCenter_;
+      // translate to primary interface position
+      c0 -= translationVector_;
+      c1 -= translationVector_;
+      // set projection bools to true since we already projected a line and we do not need
+      // to wait for the check below
+      wasProjected0 = true;
+      wasProjected1 = true;
+      // debug messages. Remove or make as debug logs before merge
+      // std::cout << "c0: " << c0 << std::endl;
+      // std::cout << "c1: " << c1 << std::endl;
+      // std::cout << "c0-center: " << c0 << std::endl;
+      // std::cout << "c1-center: " << c1 << std::endl;
+      // std::cout << "c0-center+rot: " << c0 << std::endl;
+      // std::cout << "c1-center+rot: " << c1 << std::endl;
+      // std::cout << "c0-center+rot+center: " << c0 << std::endl;
+      // std::cout << "c1-center+rot+center: " << c1 << std::endl;
+      // std::cout << "c0-final: " << c0 << std::endl;
+      // std::cout << "c1-final: " << c1 << std::endl;
     }
 
     // Project primary nodes onto secondary element, if interface is not coplanar
@@ -1124,6 +1326,93 @@ namespace CoupledField {
     shared_ptr<MortarNcSurfElem> ncElem(new MortarNcSurfElem());
     ncElem->connect.Resize(2);
 
+    // Here we already know that an intersection exists, but we must distinguish 4 different cases.
+    tmp.Resize(3); // use tmp for assigning the new node
+    if(intersectionCoords[0] <= 0) {
+      // connect2[0] x--------|------------...
+      //                   c0 x--------------------x c1
+      if (wasProjected0) {
+        // create a new node for the projection of c0 onto d
+        Vector<Double> new_node;
+        new_node.Resize(3);
+        new_node[0] = c0[0];
+        new_node[1] = c0[1];
+        if (this->ptGrid_->GetDim() == 2)
+          new_node[2] = 0.0;
+        else
+          new_node[2] = c0[2];
+        ptGrid_->AddNode(new_node, nodenum_c0);
+        newNodes.Push_back(nodenum_c0);
+        ncElem->connect[0] = nodenum_c0;
+      } else {
+        ncElem->connect[0] = nodenum_c0;
+      }
+
+      if(intersectionCoords[1] >= 1) {
+        // connect2[0] x--------|--------------------|-----x connect2[1]
+        //                   c0 x--------------------x c1
+        if (wasProjected1) {
+          // create a new node for the projection of c1 onto d
+          Vector<Double> new_node;
+          new_node.Resize(3);
+          new_node[0] = c1[0];
+          new_node[1] = c1[1];
+          if (this->ptGrid_->GetDim() == 2)
+            new_node[2] = 0.0;
+          else
+            new_node[2] = c1[2];
+          ptGrid_->AddNode(new_node, nodenum_c1);
+          newNodes.Push_back(nodenum_c1);
+          ncElem->connect[1] = nodenum_c1;
+        } else {
+          ncElem->connect[1] = nodenum_c1;
+        }
+        relativeElemVol = 1;
+      } else {
+        // connect2[0] x-----|-------x connect2[1]
+        //                c0 x-------|------x c1
+        relativeElemVol = intersectionCoords[1];
+        ncElem->connect[1] = connect2[1];
+      }
+    } else { // if(intersectionCoords[0] <= 0)
+      //   connect2[0] x---------...
+      //      c0 x-----|----------------x c1
+      ncElem->connect[0] = connect2[0];
+
+      if(intersectionCoords[1] >= 1) {
+        // connect2[0] x----------------|------x connect2[1]
+        //    c0 x-----|----------------x c1
+        if (wasProjected1) {
+          // create a new node for the projection of c1 onto d
+          Vector<Double> new_node;
+          new_node.Resize(3);
+          new_node[0] = c1[0];
+          new_node[1] = c1[1];
+          if (this->ptGrid_->GetDim() == 2)
+            new_node[2] = 0.0;
+          else
+            new_node[2] = c1[2];
+          ptGrid_->AddNode(new_node, nodenum_c1);
+          newNodes.Push_back(nodenum_c1);
+          ncElem->connect[1] = nodenum_c1;
+        } else {
+          ncElem->connect[1] = nodenum_c1;
+        }
+        relativeElemVol = 1.0 - intersectionCoords[0];
+      } else {
+        // connect2[0] x------------x connect2[1]
+        //      c0 x---|------------|---x c1
+        ncElem->connect[1] = connect2[1];
+        relativeElemVol = intersectionCoords[1] - intersectionCoords[0];
+      }
+    }
+    // reject very small line elements.
+    if (relativeElemVol < minRelativeSideLength_) {
+      LOG_DBG3(mortarInterface) << "Rejecting line intersection element due to a relative size of " << relativeElemVol << std::endl
+            << "  for intersection of elements " << ifaceElem1->elemNum << " and " << ifaceElem2->elemNum;
+      return false;
+    }
+
     // In case of a curved interface store the projected primary element.
     // This is needed for coordinate transform of integration points.
     shared_ptr<SurfElem> projElem = nullptr;
@@ -1160,69 +1449,18 @@ namespace CoupledField {
       }
     }
 
-    // Here we already know that an intersection exists, but we must distinguish 4 different cases.
-    tmp.Resize(3); // use tmp for assigning the new node
-    if(intersectionCoords[0] <= 0) {
-      // connect2[0] x--------|------------...
-      //                   c0 x--------------------x c1
-      if (wasProjected0) {
-        ncElem->connect[0] = projElem->connect[0];
-      } else {
-        ncElem->connect[0] = nodenum_c0;
-      }
-
-      if(intersectionCoords[1] >= 1) {
-        // connect2[0] x--------|--------------------|-----x connect2[1]
-        //                   c0 x--------------------x c1
-        if (wasProjected1) {
-          ncElem->connect[1] = projElem->connect[1];
-        } else {
-          ncElem->connect[1] = nodenum_c1;
-        }
-        relativeElemVol = 1;
-      } else {
-        // connect2[0] x-----|-------x connect2[1]
-        //                c0 x-------|------x c1
-        relativeElemVol = intersectionCoords[1];
-        ncElem->connect[1] = connect2[1];
-      }
-    } else { // if(intersectionCoords[0] <= 0)
-      //   connect2[0] x---------...
-      //      c0 x-----|----------------x c1
-      ncElem->connect[0] = connect2[0];
-
-      if(intersectionCoords[1] >= 1) {
-        // connect2[0] x----------------|------x connect2[1]
-        //    c0 x-----|----------------x c1
-        if (wasProjected1) {
-          ncElem->connect[1] = projElem->connect[1];
-        } else {
-          ncElem->connect[1] = nodenum_c1;
-        }
-        relativeElemVol = 1.0 - intersectionCoords[0];
-      } else {
-        // connect2[0] x------------x connect2[1]
-        //      c0 x---|------------|---x c1
-        ncElem->connect[1] = connect2[1];
-        relativeElemVol = intersectionCoords[1] - intersectionCoords[0];
-      }
-    }
-    // reject very small line elements.
-    if (relativeElemVol < minRelativeSideLength_) {
-      LOG_DBG3(mortarInterface) << "Rejecting line intersection element due to a relative size of " << relativeElemVol << std::endl
-            << "  for intersection of elements " << ifaceElem1->elemNum << " and " << ifaceElem2->elemNum;
-      return false;
-    }
-
     // Finally assign intersection element
     ncElem->type = Elem::ET_LINE2;
     ncElem->ptPrimary = ifaceElem1;
     ncElem->ptSecondary = ifaceElem2;
     ncElem->transVect = translationVector_;
+    ncElem->rotationAngle = cakePieceRotationAngle_;
+    ncElem->rotationCenter = cakePieceRotationCenter_;
     ncElem->projectedPrimary = projElem;
     elemList_->AddElement(ncElem);
     return true;
   }
+
 
   bool MortarInterface::IntersectRects( SurfElem *ifaceElem1, SurfElem *ifaceElem2, StdVector<UInt> &newNodes ) {
     Vector<Double> c0, c1, c2, d0, d1, d2;

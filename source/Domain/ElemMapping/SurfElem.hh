@@ -107,11 +107,14 @@ namespace CoupledField
     //! in case of non-coplanar interfaces we need projections to compute element intersections and to 
     //! transport the integration points of intersection elements back into the original elements.
     shared_ptr<SurfElem> projectedPrimary = nullptr;
-
+    
     // the plainest, but, obviously, not the most effective way to store the information
     // about the parallel projection between the master and the slave in case of translational p.b.c.
     Vector<Double> transVect;
+    // in case cake-piece projection (non-parallel surfaces, but aligned in a wedge or cake-piece shape)
+    // also store the rotation vector and the center of rotation
+    Vector<Double> rotationCenter;
+    Double rotationAngle;
   };
-
 } // end of namespace
 #endif

@@ -21,6 +21,10 @@
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
+#include "Forms/Operators/SurfaceNormalFluxDensityOperator.hh"
+#include "Forms/Operators/IdentityOperatorNormal.hh"
+#include "Forms/Operators/SurfaceOperators.hh"
+#include "Forms/Operators/BaseBOperator.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Materials/Models/Hysteresis.hh"
@@ -30,6 +34,7 @@
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Domain/CoefFunction/CoefFunctionDiagTensorFromScalar.hh"
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -170,8 +175,11 @@ namespace CoupledField {
       }
     }
 
-    shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
-    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+    bool isPermFrozen = false;
+
+	  shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
+	  shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+
 
     double factor = 1.0;
     if ( isMagnetoStrictCoupled_ == true ){
@@ -338,12 +346,40 @@ namespace CoupledField {
 				  // ====================================================================
 				  //  Standard Linear CASE (2D AND 3D)
 				  // ====================================================================
-				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR, tensorType, Global::REAL );
 
-				  // for postprocessing
-          if (materials_[actRegion]->GetSymmetryType(MAG_PERMEABILITY_TENSOR) == BaseMaterial::ISOTROPIC) {
-            PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, Global::REAL);
-            matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+          //check for frozen permeability
+          isPermFrozen = false;
+          StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
+          if ( matDepenTypes.Find(PERMEABILITY_FROZEN) != -1 ) {
+            // Here, the magnetic permeability is not used from the material file but rather from a previous simulation.
+            // Hence, we freeze the permeability from this last simulation step and use it for further computations, much
+            // like freezing the permeability for an operating point.
+
+            // we read the computed permeability from file
+            shared_ptr<ResultInfo> resultInfo = GetResultInfo(MAG_ELEM_PERMEABILITY); 
+            std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+            shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+
+            PtrCoefFct permeability;
+            // get coeff-Fnc for the magnetic permeability
+            ReadMaterialDependency( "permeabilityFrozen", resultInfo->dofNames, resultInfo->entryType, false,
+                                    entity, permeability, updatedGeo_ );
+            // compute the reluctivity
+            PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+            curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeability,
+                                             CoefXpr::OP_DIV));      
+            // For postprocessing                        
+            matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);    
+            isPermFrozen = true;                    
+          } 
+          else {
+				    curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR, tensorType, Global::REAL );
+
+				    // for postprocessing
+            if (materials_[actRegion]->GetSymmetryType(MAG_PERMEABILITY_TENSOR) == BaseMaterial::ISOTROPIC) {
+              PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, Global::REAL);
+              matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+            }
           }
 
 			    if(domain->HasDesign())
@@ -355,14 +391,29 @@ namespace CoupledField {
           if( dim_ == 2) {
             if( isaxi_ ) {
               // axisymmetric case
+              if ( isPermFrozen ) {
+                stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), curCoef, factor, updatedGeo_);
+              }
+              else {
               stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, factor, updatedGeo_);
+              }
             } else {
               // plane 2D case
-              stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
+              if ( isPermFrozen ) {
+                stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
+              }
+              else {
+                stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
+              }
             }
           } else {
             // 3D case
-            stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
+            if ( isPermFrozen ) {
+              stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
+            }
+            else {
+              stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
+            }
           }
           
           // shifted to DefineRHSLoadIntegrator!
@@ -424,7 +475,8 @@ namespace CoupledField {
         //			     * but coefFunctionHyst has to be a vector coefFnc
         //			     */
         //			  } else {
-			  relucTensor_->AddRegion(actRegion, curCoef);
+			  if ( isPermFrozen == false ) 
+          relucTensor_->AddRegion(actRegion, curCoef);
         //			  }
 
 			  // ====================================================================
@@ -618,6 +670,213 @@ namespace CoupledField {
 	  // ============================
     DefineCoilIntegrators(factor);
   }
+
+
+  void MagneticPDE::DefineSurfaceIntegrators() {
+    PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
+    this->ptGrid_->MapEdges();
+    this->ptGrid_->MapFaces();
+    if (!bcNode)
+      return;
+  
+    ParamNodeList blochNodesList = bcNode->GetList("blochPeriodic");
+    for (UInt i = 0; i < blochNodesList.GetSize(); i++) {
+      std::string str_value = blochNodesList[i]->Get("factor_value")->As<std::string>();
+      std::string formulation = blochNodesList[i]->Get("formulation")->As<std::string>();
+      
+      PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL, str_value);
+      PtrCoefFct factorSqr = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, 
+                                                    factor, CoefXpr::OP_MULT));      
+      PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+
+      ParamNodeList regionsList = blochNodesList[i]->GetList("region");
+      for (UInt j = 0; j < regionsList.GetSize(); j++) {
+        std::string ncRegionName = regionsList[j]->Get("name")->As<std::string>();
+        shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ptGrid_->GetNcInterfaceId(ncRegionName));
+        if (!ncIf) {
+          EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
+        }
+        shared_ptr<MortarInterface> mortarIf = boost::dynamic_pointer_cast<MortarInterface>(ncIf);
+        assert(mortarIf);
+        
+        if (formulation == "Nitsche") {          
+          // obtain a proper scaling for the penalty terms
+          std::string nitFac = blochNodesList[i]->Get("nitscheFactor")->As<std::string>();
+          Double nitscheFactor = lexical_cast<Double>(nitFac);
+
+          RegionIdType volPrimaryId = mortarIf->GetPrimaryVolRegion();
+          RegionIdType volSecondaryId = mortarIf->GetSecondaryVolRegion();
+          
+          PtrCoefFct permeabilityS, permeabilityP;
+          permeabilityS = materials_[volSecondaryId]->GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, 
+                                                                                      Global::REAL );                                                                                        
+          permeabilityP = materials_[volPrimaryId]->GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, 
+                                                                                       Global::REAL ); 
+          StdVector<Vector<Double> > points(1);
+          Vector<Double> p1(dim_);
+          p1.Init();
+          points[0]= p1;
+
+          StdVector<Double> valsM, valsS;
+          permeabilityS->GetScalarValuesAtCoords(points, valsS, this->ptGrid_);
+          permeabilityP->GetScalarValuesAtCoords(points, valsM, this->ptGrid_);
+          Double beta = 0.5*( 1.0/valsS[0] + 1.0/valsM[0]) * nitscheFactor;
+
+          // primary & secondary penalty integrals
+          BiLinearForm *pnlt_PhiP_PsiP = NULL;
+          BiLinearForm *pnlt_PhiP_PsiS = NULL;
+          BiLinearForm *pnlt_PhiS_PsiP = NULL;
+          BiLinearForm *pnlt_PhiS_PsiS = NULL;
+          // primary & secondary integrals with normal derivatives
+          BiLinearForm *flux_DPhiP_PsiP = NULL;
+          BiLinearForm *flux_DPhiP_PsiS = NULL;
+          BiLinearForm *flux_PhiP_DPsiP = NULL;
+          BiLinearForm *flux_PhiS_DPsiP = NULL;
+          
+          shared_ptr<ElemList> actSDList = ncIf->GetElemList();          
+          // define bilinear forms for Nitsche coupling
+          // penalty integrators   
+          if (dim_ == 2) {
+            pnlt_PhiP_PsiP = new SurfaceNitscheABInt<Double, Double>(new SurfaceIdentityOperator<FeH1, 2, 1>(),
+              new SurfaceIdentityOperator<FeH1, 2, 1>(),
+              factor, beta, BiLinearForm::PRIM_PRIM, updatedGeo_, false, true);
+            pnlt_PhiP_PsiS = new SurfaceNitscheABInt<Double, Double>(new SurfaceIdentityOperator<FeH1, 2, 1>(),
+              new SurfaceIdentityOperator<FeH1, 2, 1>(),
+              factorSqr, -beta, BiLinearForm::PRIM_SEC, updatedGeo_, false, true); 
+            pnlt_PhiS_PsiP = new SurfaceNitscheABInt<Double, Double>(new SurfaceIdentityOperator<FeH1, 2, 1>(),
+              new SurfaceIdentityOperator<FeH1, 2, 1>(),
+              constOne, -beta, BiLinearForm::SEC_PRIM, updatedGeo_, false, true);   
+            pnlt_PhiS_PsiS = new SurfaceNitscheABInt<Double, Double>(new SurfaceIdentityOperator<FeH1, 2, 1>(),
+              new SurfaceIdentityOperator<FeH1, 2, 1>(),
+              factor, beta, BiLinearForm::SEC_SEC, updatedGeo_, false, true);   
+          }
+          else {
+            pnlt_PhiP_PsiP = new SurfaceNitscheABInt<Double, Double>(new SurfaceIdentityOperator<FeH1, 3, 1>(),
+              new SurfaceIdentityOperator<FeH1, 3, 1>(),
+              factor, beta, BiLinearForm::PRIM_PRIM, updatedGeo_, false, true);
+            pnlt_PhiP_PsiS = new SurfaceNitscheABInt<Double, Double>(new SurfaceIdentityOperator<FeH1, 3, 1>(),
+              new SurfaceIdentityOperator<FeH1, 3, 1>(),
+              factorSqr, -beta, BiLinearForm::PRIM_SEC, updatedGeo_, false, true); 
+            pnlt_PhiS_PsiP = new SurfaceNitscheABInt<Double, Double>(new SurfaceIdentityOperator<FeH1, 3, 1>(),
+              new SurfaceIdentityOperator<FeH1, 3, 1>(),
+              constOne, -beta, BiLinearForm::SEC_PRIM, updatedGeo_, false, true);   
+            pnlt_PhiS_PsiS = new SurfaceNitscheABInt<Double, Double>(new SurfaceIdentityOperator<FeH1, 3, 1>(),
+              new SurfaceIdentityOperator<FeH1, 3, 1>(),
+              factor, beta, BiLinearForm::SEC_SEC, updatedGeo_, false, true);     
+          }   
+
+          //flux integrators
+          PtrCoefFct reluctivityS;
+          reluctivityS = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeabilityS, 
+                                                 CoefXpr::OP_DIV));                                                          
+          
+          if (dim_ == 2) {
+            flux_DPhiP_PsiP = new SurfaceNitscheABInt<Double, Double>(
+                                   new SurfaceNormalDerivOperator<FeH1,2,1>(),
+                                   new SurfaceIdentityOperator<FeH1,2,1>(),
+                                   constOne, -1.0, BiLinearForm::PRIM_PRIM, updatedGeo_);
+            
+            flux_PhiP_DPsiP = new SurfaceNitscheABInt<Double, Double>(
+                                   new SurfaceIdentityOperator<FeH1,2,1>(),
+                                   new SurfaceNormalDerivOperator<FeH1,2,1>(),                                   
+                                   factor, -1.0, BiLinearForm::PRIM_PRIM, updatedGeo_);
+
+            flux_DPhiP_PsiS = new SurfaceNitscheABInt<Double, Double>(
+                                   new SurfaceNormalDerivOperator<FeH1,2,1>(),
+                                   new SurfaceIdentityOperator<FeH1,2,1>(),
+                                   factor, 1.0, BiLinearForm::PRIM_SEC, updatedGeo_);
+
+            flux_PhiS_DPsiP = new SurfaceNitscheABInt<Double, Double>(
+                                   new SurfaceIdentityOperator<FeH1,2,1>(),
+                                   new SurfaceNormalDerivOperator<FeH1,2,1>(),
+                                   constOne, 1.0, BiLinearForm::SEC_PRIM, updatedGeo_);                        
+          } else {
+            flux_DPhiP_PsiP = new SurfaceNitscheABInt<Double, Double>(
+                                   new SurfaceNormalDerivOperator<FeH1,3,1>(),
+                                   new SurfaceIdentityOperator<FeH1,3,1>(),
+                                   constOne, -1.0, BiLinearForm::PRIM_PRIM, updatedGeo_);
+            
+            flux_PhiP_DPsiP = new SurfaceNitscheABInt<Double, Double>(
+                                   new SurfaceIdentityOperator<FeH1,3,1>(),
+                                   new SurfaceNormalDerivOperator<FeH1,3,1>(),                                   
+                                   factor, -1.0, BiLinearForm::PRIM_PRIM, updatedGeo_);
+
+            flux_DPhiP_PsiS = new SurfaceNitscheABInt<Double, Double>(
+                                   new SurfaceNormalDerivOperator<FeH1,3,1>(),
+                                   new SurfaceIdentityOperator<FeH1,3,1>(),
+                                   factor, 1.0, BiLinearForm::PRIM_SEC, updatedGeo_);
+
+            flux_PhiS_DPsiP = new SurfaceNitscheABInt<Double, Double>(
+                                   new SurfaceIdentityOperator<FeH1,3,1>(),
+                                   new SurfaceNormalDerivOperator<FeH1,3,1>(),
+                                   constOne, 1.0, BiLinearForm::SEC_PRIM, updatedGeo_);  
+          }
+         
+          // pass material data to the flux operators
+          flux_DPhiP_PsiP->SetBCoefFunctionOpA(reluctivityS);
+          flux_PhiP_DPsiP->SetBCoefFunctionOpB(reluctivityS);
+          flux_DPhiP_PsiS->SetBCoefFunctionOpA(reluctivityS);
+          flux_PhiS_DPsiP->SetBCoefFunctionOpB(reluctivityS);
+          
+          // primary-primary
+          pnlt_PhiP_PsiP->SetName("pnlt_PhiP_PsiP");
+          flux_DPhiP_PsiP->SetName("flux_DPhiP_PsiP");
+          flux_PhiP_DPsiP->SetName("flux_PhiP_DPsiP");
+          //primary-secondary
+          pnlt_PhiP_PsiS->SetName("pnlt_PhiP_PsiS");
+          flux_DPhiP_PsiS->SetName("flux_DPhiP_PsiS");
+          //secondary-primary
+          pnlt_PhiS_PsiP->SetName("pnlt_PhiS_PsiP");
+          flux_PhiS_DPsiP->SetName("flux_PhiS_DPsiP");
+          //secondary-secondary
+          pnlt_PhiS_PsiS->SetName("pnlt_PhiS_PsiS");
+          
+          // BiLinearForm::PRIM_PRIM
+          SurfaceBiLinFormContext *pnlt_PhiP_PsiP_cont = new SurfaceBiLinFormContext(pnlt_PhiP_PsiP, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          SurfaceBiLinFormContext *flux_DPhiP_PsiP_cont = new SurfaceBiLinFormContext(flux_DPhiP_PsiP, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          SurfaceBiLinFormContext *flux_PhiP_DPsiP_cont = new SurfaceBiLinFormContext(flux_PhiP_DPsiP, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          // BiLinearForm::PRIM_SEC
+          SurfaceBiLinFormContext *pnlt_PhiP_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiP_PsiS, STIFFNESS, BiLinearForm::PRIM_SEC);
+          SurfaceBiLinFormContext *flux_DPhiP_PsiS_cont = new SurfaceBiLinFormContext(flux_DPhiP_PsiS, STIFFNESS, BiLinearForm::PRIM_SEC);
+          //BiLinearForm::SEC_PRIM
+          SurfaceBiLinFormContext *pnlt_PhiS_PsiP_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiP, STIFFNESS, BiLinearForm::SEC_PRIM);
+          SurfaceBiLinFormContext *flux_PhiS_DPsiP_cont = new SurfaceBiLinFormContext(flux_PhiS_DPsiP, STIFFNESS, BiLinearForm::SEC_PRIM);
+          // BiLinearForm::SEC_SEC
+          SurfaceBiLinFormContext *pnlt_PhiS_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiS, STIFFNESS, BiLinearForm::SEC_SEC);
+          
+          pnlt_PhiP_PsiP_cont->SetEntities(actSDList, actSDList);
+          flux_DPhiP_PsiP_cont->SetEntities(actSDList, actSDList);
+          flux_PhiP_DPsiP_cont->SetEntities(actSDList, actSDList);
+          pnlt_PhiP_PsiS_cont->SetEntities(actSDList, actSDList);
+          flux_DPhiP_PsiS_cont->SetEntities(actSDList, actSDList);
+          pnlt_PhiS_PsiP_cont->SetEntities(actSDList, actSDList);
+          flux_PhiS_DPsiP_cont->SetEntities(actSDList, actSDList);
+          pnlt_PhiS_PsiS_cont->SetEntities(actSDList, actSDList);
+          
+          pnlt_PhiP_PsiP_cont->SetFeFunctions(feFunctions_[MAG_POTENTIAL], feFunctions_[MAG_POTENTIAL]);
+          flux_DPhiP_PsiP_cont->SetFeFunctions(feFunctions_[MAG_POTENTIAL], feFunctions_[MAG_POTENTIAL]);
+          flux_PhiP_DPsiP_cont->SetFeFunctions(feFunctions_[MAG_POTENTIAL], feFunctions_[MAG_POTENTIAL]);
+          pnlt_PhiP_PsiS_cont->SetFeFunctions(feFunctions_[MAG_POTENTIAL], feFunctions_[MAG_POTENTIAL]);
+          flux_DPhiP_PsiS_cont->SetFeFunctions(feFunctions_[MAG_POTENTIAL], feFunctions_[MAG_POTENTIAL]);
+          pnlt_PhiS_PsiP_cont->SetFeFunctions(feFunctions_[MAG_POTENTIAL], feFunctions_[MAG_POTENTIAL]);
+          flux_PhiS_DPsiP_cont->SetFeFunctions(feFunctions_[MAG_POTENTIAL], feFunctions_[MAG_POTENTIAL]);
+          pnlt_PhiS_PsiS_cont->SetFeFunctions(feFunctions_[MAG_POTENTIAL], feFunctions_[MAG_POTENTIAL]);
+          
+          assemble_->AddBiLinearForm(pnlt_PhiP_PsiP_cont);
+          assemble_->AddBiLinearForm(flux_DPhiP_PsiP_cont);
+          assemble_->AddBiLinearForm(flux_PhiP_DPsiP_cont);
+          assemble_->AddBiLinearForm(pnlt_PhiP_PsiS_cont);
+          assemble_->AddBiLinearForm(flux_DPhiP_PsiS_cont);
+          assemble_->AddBiLinearForm(pnlt_PhiS_PsiP_cont);
+          assemble_->AddBiLinearForm(flux_PhiS_DPsiP_cont);
+          assemble_->AddBiLinearForm(pnlt_PhiS_PsiS_cont);
+        } // end Nitsche
+        else 
+          EXCEPTION("Periodic boundary condition: just Nitsche formulation possoible");
+      }
+    }  
+  }
+
 
   LinearForm* MagneticPDE::GetCurrentDensityInt( Double factor,
                                                 PtrCoefFct coef, std::string coilId) {
@@ -1108,7 +1367,9 @@ namespace CoupledField {
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
     DefineFieldResult(permFct, permeability);
-	//creates the velocity
+    availResults_.insert(permeability);
+
+	  //creates the velocity
     StdVector<std::string> vecDofNames;
     if( ptGrid_->GetDim() == 3 ) {
       vecDofNames = "x", "y", "z";

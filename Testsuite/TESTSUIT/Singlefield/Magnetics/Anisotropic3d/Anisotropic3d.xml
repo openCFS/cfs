@@ -30,7 +30,6 @@
 
    <fileFormats>
     <output>
-      <gid/>
       <hdf5/>
     </output>
     <materialData file="matAniso.xml" format="xml"/>

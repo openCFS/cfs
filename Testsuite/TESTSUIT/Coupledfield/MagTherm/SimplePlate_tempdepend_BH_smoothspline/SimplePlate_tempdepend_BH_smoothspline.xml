@@ -165,7 +165,7 @@
             <solutionStrategy>
                 <standard>
                     <nonLinear logging="yes" method="fixPoint">
-                        <lineSearch/>
+                        <lineSearch type="minEnergy"/>
                         <incStopCrit> 1e-5</incStopCrit>
                         <resStopCrit> 1e-5</resStopCrit>
                         <maxNumIters> 20  </maxNumIters>

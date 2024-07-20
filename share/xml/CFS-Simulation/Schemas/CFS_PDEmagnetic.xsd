@@ -50,6 +50,7 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="matDependIds" type="xsd:token" use="optional" default=""/>                    
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
@@ -62,6 +63,23 @@
             <xsd:annotation>
               <xsd:documentation>Definnes the non-matching interfaces</xsd:documentation>
             </xsd:annotation>
+          </xsd:element>
+
+          <!-- List defining nonlinear types -->
+          <xsd:element name="matDependencyList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="permeabilityFrozen" type="DT_matDependency">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Frozen magnetic permeability (read from file). Here, the magnetic permeability is not used from a material 
+                      file but stems from a precomputation. This can be used when a working point is known and the material state
+                      of this working point shall be used for different computations.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
           </xsd:element>
 
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
@@ -140,6 +158,11 @@
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector">
                   <xsd:annotation>
                     <xsd:documentation>Exciting magnetic field intensity precomupted by curl-curl formulation</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Bloch periodic boundary conditions for magnetic potential (only tested for 2D with nodal elements)</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <!-- for iterative coupling to magnetostrictive material -->

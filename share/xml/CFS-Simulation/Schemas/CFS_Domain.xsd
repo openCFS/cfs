@@ -557,6 +557,15 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="cakePieceProjection" type="DT_CFSBool" use="optional" default="no">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Used for creating an intersection grid handling non-parallel periodic boundary conditions on a wedge (like a cake piece).
+          In this case, the primary and the secondary surfaces don't lie on the same interface, but need to be translated and rotated.
+          This feature is currently working only in 2D.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->

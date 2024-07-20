@@ -10,7 +10,6 @@ namespace CoupledField
   SmoothSpline::SmoothSpline( std::string nlFileName,  MaterialType matType )
     : ApproxData( nlFileName, matType )
   {
-
     delta_ = 0.01;
     mu_    = 1e-8;;
     node_  = numMeas_-2;       // nummeas = number of measurements
@@ -32,7 +31,7 @@ namespace CoupledField
     nuMax_     = 1.0;
     if ( matType_ == MAG_PERMEABILITY_SCALAR ) {
       //define maximal reluctivity
-      nuMax_ = 7.9577e5;
+      nuMax_ = 7.9577e5;      
     }
   }
 
@@ -43,7 +42,6 @@ namespace CoupledField
 
   void SmoothSpline::CalcApproximation( bool start )
   {
-
     Integer i;
 
     xStart_ = x_[0];
@@ -82,7 +80,6 @@ namespace CoupledField
 
   void SmoothSpline::CalcBestParameter()
   {
-
     Integer i, j;
     bool monotone = true;
 
@@ -156,14 +153,12 @@ namespace CoupledField
       }
 
     }
-    //    std::cout << "muEnd = " << mu_ << std::endl;
   }
 
 
 
   void SmoothSpline::ConstructMatrix()
   {
-
     Integer i,j,k;
     double x1,x2,x3,x4,x5,x6,x7,x8;
 
@@ -241,7 +236,6 @@ namespace CoupledField
 
   void SmoothSpline::ConstructRHS(const Vector<double>& y)
   {
-
     Integer i,j;
 
     for (i=1; i<size_; i += 2) {
@@ -278,7 +272,6 @@ namespace CoupledField
 
   void SmoothSpline::CalcCoef()
   {
-
     Vector<double> y(size_+1);
     Vector<double> c(size_*size_+1);
       
@@ -344,42 +337,49 @@ namespace CoupledField
     double f0,f1,f2,f3,p0,p1,p2,p3;
     double z, val, p;
 
-    i = GetInterval(t);
+    if ( t <= xEnd_ ) {
+      i = GetInterval(t);
 
-    if (i == -1) {
-      i = ind_;
+      if (i == -1) {
+        i = ind_;
+     }
+
+      j = 2*i;
+
+      f0 = coef_[j];
+      f1 = coef_[j+2];
+      f2 = coef_[j+1];
+      f3 = coef_[j+3];
+
+      p = xStart_;
+      for (k=0; k<i; k++) {
+        p += h_[k];
+     }
+
+      z = ( t - p ) / h_[i];
+              
+      // function value  
+      p0 = HermiteFunc(z,0);
+      p1 = HermiteFunc(z,1);
+      p2 = HermiteFunc(z,2)*h_[i];
+      p3 = HermiteFunc(z,3)*h_[i];
+  
+      val= f0*p0+f1*p1+f2*p2+f3*p3;
+    }
+    else {
+      // linear extrapolation to compute (in case of magnetics) magnetic flux density B
+      Double k = (y_[numMeas_-1] - y_[numMeas_-2])/(x_[numMeas_-1] - x_[numMeas_-2]);
+      Double d = y_[numMeas_-1] - k*x_[numMeas_-1];
+      Double Bval = k*t + d;
+      val = t / ( nuMax_ + extrapolBeta_*std::exp(-extrapolAlpha_*Bval) );
     }
 
-    j = 2*i;
-
-    f0 = coef_[j];
-    f1 = coef_[j+2];
-    f2 = coef_[j+1];
-    f3 = coef_[j+3];
-
-    p = xStart_;
-    for (k=0; k<i; k++) {
-      p += h_[k];
-    }
-
-    z = ( t - p ) / h_[i];
-              
-    // function value
-  
-    p0 = HermiteFunc(z,0);
-    p1 = HermiteFunc(z,1);
-    p2 = HermiteFunc(z,2)*h_[i];
-    p3 = HermiteFunc(z,3)*h_[i];
-  
-    val= f0*p0+f1*p1+f2*p2+f3*p3;
-              
     return val;
   }
 
 
   double SmoothSpline::EvaluateDeriv(double t) const
   {
-
     Integer i,j,k;
     double f0,f1,f2,f3,p0,p1,p2,p3;
     double z, val, p;
@@ -419,7 +419,6 @@ namespace CoupledField
 
   double SmoothSpline::EvaluateFuncInv( double f ) const
   {
-
     double z,k,d;
     Integer i;
 
@@ -428,6 +427,7 @@ namespace CoupledField
       z = Newton(f,g_[i]);
     }
     else {
+      // linear extrapolation to compute (in case of magnetics) magnetic flux density B
       k = (y_[numMeas_-1] - y_[numMeas_-2])/(x_[numMeas_-1] - x_[numMeas_-2]);
       d = y_[numMeas_-1] - k*x_[numMeas_-1];
       z = (f - d)/k;
@@ -439,7 +439,6 @@ namespace CoupledField
 
   double SmoothSpline::EvaluatePrimeInv( double f ) const
   {
-
     double z,p;
     Integer i;
 
@@ -451,20 +450,8 @@ namespace CoupledField
   }
 
 
-  void SmoothSpline::EvaluateInv( double v, double& f, double& p ) const
-  {
-
-    Integer i;
-  
-    i = Integer ( v / theta_ );
-    f = Newton( v, g_[i] );
-    p = 1.0 / EvaluateDeriv( f );
-  }
-
-
   double SmoothSpline::HermiteFunc( double t, Integer i ) const
   {
-
     double x = 0.0;
 
     if ( i == 0 ) {
@@ -508,14 +495,16 @@ namespace CoupledField
 
   Integer SmoothSpline::GetInterval( double t ) const
   {
-
     Integer i;
     double theta;
 
-    if (t < xStart_ || t > xEnd_) {
-      std::cerr << "x-Value is too small -> no convergence!\n" << t;
-      //return -1;
+    if (t < xStart_ ) { 
+      //x-Value is smaller than smallest measured H-value!
       return 0;
+    }
+    if ( t > xEnd_ ) {
+      //x-value is larger than karges measured H-value!
+      return -1;
     }
 
     theta = xStart_;
@@ -538,7 +527,7 @@ namespace CoupledField
   {
     double za  = start; // start value
     double zn  = xEnd_;
-    double eps = 1e-1;
+    double eps = 1e-2;
 
     double rel = za == 0 ? 1 : za;
 
@@ -647,13 +636,35 @@ namespace CoupledField
   }
 
 
+  void SmoothSpline::Print( ) const
+  {
+    //write result of approximation to ascii file
+    std::ofstream out_B;
+    out_B.open(std::string(nlFileName_+std::string(".approxBH.dat")).c_str());
+    out_B << "#H      B       nu       dnu/dB " << std::endl;
+
+    UInt numPoints = 100000;
+    double maxH = xEnd_* 1.0; //extend the range of provided max. H-value by factor of 2
+    double dH = maxH / ( (double)numPoints );
+    double actH, actB;
+
+    // output of the data
+    actH = 0.1;
+    for ( UInt i=0; i<numPoints; i++) {
+      actB = EvaluateFunc(actH) ;
+      out_B << actH << "  " << actB << "  " << EvaluateFuncNu(actB) << "  " << EvaluatePrimeNu(actB) << std::endl;
+      actH += dH;
+    }    
+    
+    out_B.close(); 
+  }
+
 
   //================================================ just for testing =================================
   //
 
   void SmoothSpline::Read()
   {
-
     UInt i;
 
     delta_ = 0.01;
@@ -681,163 +692,5 @@ namespace CoupledField
   }
 
 
-  void SmoothSpline::Print( ) const
-  {
 
-    MakeOutput( x_, y_ );
-    MakeOutputInv( x_, y_ );
-    MakeOutputNu();
-  }
-
-  /////////////////////// private functions /////////////////////////////////////////
-
-  void SmoothSpline::MakeOutput( const Vector<double>& x, const Vector<double>& y ) const
-  {
-
-    Integer i,j;
-    double t,z,delta,val;
-    double f0,f1,f2,f3,p0,p1,p2,p3;
-
-    std::ofstream out_orig;
-    std::ofstream out_func;
-    std::ofstream out_prime;
-
-    out_orig.open(std::string(nlFileName_+std::string(".orig.dat")).c_str());
-    out_func.open(std::string(nlFileName_+std::string(".func.dat")).c_str());
-    out_prime.open(std::string(nlFileName_+std::string(".prime.dat")).c_str());
-
-    // output of the data
-    for (i=0; i<node_+2; i++) {
-      out_orig << x[i] << " " << y[i] << std::endl;
-    }
-    
-
-    // output function 
-    j = 0;
-    for (i=0; i<node_+1; i++) {
-      f0 = coef_[j];
-      f1 = coef_[j+2];
-      f2 = coef_[j+1];
-      f3 = coef_[j+3];
-      
-      delta = h_[i]/100.;
-      t      = x_[i];
-
-      while (t <= x_[i+1]-delta) {
-        z = (t-x_[i])/h_[i];
-          
-        // function value
-        p0 = HermiteFunc(z,0);
-        p1 = HermiteFunc(z,1);
-        p2 = HermiteFunc(z,2)*h_[i];
-        p3 = HermiteFunc(z,3)*h_[i];
-          
-        val= f0*p0+f1*p1+f2*p2+f3*p3;
-        
-        out_func << t << " " << val << std::endl;
-        
-        // prime value
-        p0 = HermitePrime(z,0)/h_[i];
-        p1 = HermitePrime(z,1)/h_[i];
-        p2 = HermitePrime(z,2);
-        p3 = HermitePrime(z,3);
-        
-        val= f0*p0+f1*p1+f2*p2+f3*p3;
-        
-        out_prime << t << " " << val << std::endl;
-        
-        t += delta;
-      }
-      
-      j += 2;
-    }
-    
-    j -= 2;
-    t  = xEnd_;
-
-    z  = 1;
-    
-    f0 = coef_[j];
-    f1 = coef_[j+2];
-    f2 = coef_[j+1];
-    f3 = coef_[j+3];
-    
-    val= yEnd_;
-    
-    out_func << t << " " << val << std::endl;
-    
-    p0 = HermitePrime(z,0)/h_[node_];
-    p1 = HermitePrime(z,1)/h_[node_];
-    p2 = HermitePrime(z,2);
-    p3 = HermitePrime(z,3);
-    
-    val = f0*p0+f1*p1+f2*p2+f3*p3;
-    out_prime << t << " " << val << std::endl;
-    
-    out_orig.close();
-    out_func.close();
-    out_prime.close();
-  }
-
-
-  void SmoothSpline::MakeOutputInv(const Vector<double>& x, const Vector<double>& y) const
-  {
-
-    Integer i;
-    double t,delta;
-    
-    delta = ( yEnd_ - y_[0] ) / 500.;
-    t     = y_[0];
-    
-    std::ofstream out_orig;
-    std::ofstream out_func;
-    std::ofstream out_prime;
-
-    out_orig.open(std::string(nlFileName_+std::string(".originv.dat")).c_str());
-    out_func.open(std::string(nlFileName_+std::string(".funcinv.dat")).c_str());
-    out_prime.open(std::string(nlFileName_+std::string(".primeinv.dat")).c_str());
-
-    // output of the data
-
-    for (i=0; i<node_+2; i++) {
-      out_orig << y_[i] << " " << x_[i] << std::endl;
-    }
-        
-    double f,p;
-    while (t <= yEnd_ + delta) {
-      EvaluateInv(t,f,p);
-      
-      out_func << t << " " << f << std::endl;
-      out_prime << t << " " << p << std::endl;
-      
-      t += delta;
-    }
-    
-    out_orig.close();
-    out_func.close();
-    out_prime.close();
-  }
-
-
-
-  void SmoothSpline::MakeOutputNu() const
-  {
-
-    std::ofstream out_nu;
-    out_nu.open(std::string(nlFileName_+std::string(".nu_B.dat")).c_str());
-
-    UInt numPoints = 500;
-    double maxB = yEnd_ * 1.5;
-    double dB = maxB / ( (double)numPoints );
-
-    double actB = 0;
-    // output of the data
-    for ( UInt i=0; i<numPoints; i++) {
-      out_nu << actB << "  " << EvaluateFuncNu(actB) << "  " << EvaluatePrimeNu(actB) << std::endl;
-      actB += dB;
-    }
-
-    out_nu.close();
-  
-  }
 }

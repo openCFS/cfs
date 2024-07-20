@@ -83,10 +83,7 @@ namespace CoupledField {
 
     //! computes the magnetic reluctivity
     double EvaluateFuncNu(double t) const override {
-      if (t > yMax_ ) {
-        t = yMax_;
-      }
-      if ( t < yEnd_ ) {
+      if ( t <= yEnd_ ) {
         return ( EvaluateFuncInv(t)/t );
       }
       else {
@@ -96,9 +93,7 @@ namespace CoupledField {
 
     //! computes the derivative of magnetic reluctivity
     double EvaluatePrimeNu(double t) const override {
-      if (t > yMax_ ) 
-        t = yMax_;
-      if ( t < yEnd_ ) {
+      if ( t <= yEnd_ ) {
         return ( (EvaluatePrimeInv(t)*t - EvaluateFuncInv(t))/(t*t) ); 
       }
       else {
@@ -129,9 +124,6 @@ namespace CoupledField {
 
     //! computes the coefficients of approximation polynom
     void CalcCoef();
-
-    //! computes the invers of the approximated function
-    void EvaluateInv( double v, double& f, double& p ) const ;
 
     //! evalutes the Hermit functions
     double HermiteFunc( double t, Integer i ) const;
@@ -183,15 +175,6 @@ namespace CoupledField {
 
     //! own method, for reading in sampled data from file
     void Read();
-
-    //! prints out original and approximated functions 
-    void MakeOutput(const Vector<double>& x, const Vector<double>& y) const;
-
-    //! prints out the inverse of the approximated function
-    void MakeOutputInv(const Vector<double>& x, const Vector<double>& y) const;
-
-    //! prints out the reluctivity-flux curve
-    void MakeOutputNu() const;
 
   };
 

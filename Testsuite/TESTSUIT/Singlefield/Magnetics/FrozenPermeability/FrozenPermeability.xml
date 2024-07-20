@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>FrozenPermeability</title>
+    <authors>
+      <author>mkaltenbacher,dmayrhof</author>
+    </authors>
+    <date>2025-08-13</date>
+    <keywords>
+      <keyword>magneticNodal</keyword>
+      <keyword>input</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Static analysis of a 2D circular iron region with a air hole in the middle. The simulation uses a precomputed
+      permeability field which is used for the computation of the magnetic field. This approach is called "frozen permeability".
+    </description>
+  </documentation>
+              
+  <!-- define which files are needed for simulation input & output-->
+  <fileFormats>
+    <input>
+      <hdf5 fileName="tc_fp_sim_nonlinear_precalculation.h5" />
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="material_fp.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <variableList>
+      <var name="J_coil" value="1e8" />
+    </variableList>
+
+    <regionList>
+      <region name="S_inner" material="air"/>
+      <region name="S_outer" material="iron_nonlinear" />
+    </regionList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="Hcurl">
+      <isoOrder> 1 </isoOrder>
+    </Legendre>
+    <Lagrange id="H1">
+      <isoOrder>1</isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static>
+        <allowPostProc>yes</allowPostProc>
+      </static>
+    </analysis>
+
+    <pdeList>
+      <magnetic formulation="A">
+        <regionList>
+          <region name="S_inner" polyId="Hcurl" />
+          <region name="S_outer" polyId="Hcurl" matDependIds="fp_mat"/>
+        </regionList>
+
+        <matDependencyList>
+          <permeabilityFrozen id="fp_mat">
+            <grid> 
+              <defaultGrid  quantity="magElemPermeability" definedOn="element"  dependtype="CONST" snapToCFSTimeStep="true" sequenceStep="1" />
+            </grid>
+          </permeabilityFrozen>
+        </matDependencyList>
+
+        <bcsAndLoads>
+          <fluxParallel name="L_outer">
+            <comp dof="z"/>
+          </fluxParallel>          
+        </bcsAndLoads>
+
+        <coilList>
+          <coil id="coil1">
+            <source type="current" value="J_coil"/>
+            <part id="1">
+              <regionList>
+                <region name="S_inner"/>
+              </regionList>
+              <direction>
+                <analytic>
+                  <comp dof="z" value="1" />
+                </analytic>
+              </direction>
+              <wireCrossSection area="1"/>
+            </part>
+          </coil>
+        </coilList>
+          
+        <storeResults>
+          <elemResult type="magFieldIntensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+          <elemResult type="magFluxDensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+          <nodeResult type="magPotential">
+            <allRegions outputIds="hdf5"/>
+          </nodeResult>
+          <elemResult type="magElemPermeability">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+        </storeResults>	
+      </magnetic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

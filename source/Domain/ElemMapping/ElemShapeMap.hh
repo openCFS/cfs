@@ -387,6 +387,17 @@ namespace CoupledField {
     //! \param point point to be projected
     virtual void TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point) = 0;
 
+    //! Similar to TranslatePointOntoSurface(), but perform translation and rotation in the case of 
+    //! cake-piece projection. Only implemented for 2D so far.
+    //! \param translationVec (in) vector describing the translational motion
+    //! \param rotationCenter (in) vector describing the center of rotation
+    //! \param rotationAngle (in) double describing the angle of rotation around the z axis
+    //! \param point point to be projected
+    //! \param isPrimary (in) bool describing whether the surface is primary or secondary
+    virtual void TransferPointOntoSurface(const Vector<Double>& translationVec, 
+                                          const Vector<Double>& rotationCenter, 
+                                          const Double& rotationAngle,
+                                          Vector<Double>& point) = 0;
 
     //! Calculates corresponding volume point of neighboring surfaces
 
@@ -578,6 +589,12 @@ namespace CoupledField {
 
     //! @copydoc ElemShapeMap::TranslatePointOntoSurface
     void TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point);
+
+    //! @copydoc ElemShapeMap::TransferPointOntoSurface
+    void TransferPointOntoSurface(const Vector<Double>& translationVec, 
+                                  const Vector<Double>& rotationCenter, 
+                                  const Double& rotationAngle,
+                                  Vector<Double>& point);
 
     //! @copydoc ElemShapeMap::GetLocalIntPoints4Surface
     void GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,

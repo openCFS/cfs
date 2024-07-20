@@ -352,7 +352,12 @@ class MortarInterface : public BaseNcInterface {
     //! Is 1/2 of the difference vector between centers of bounding boxes of both sides,
     //! i.e., the centers of the two coplanar surfaces
     Vector<Double> translationVector_;
-    //! caching for Line intersection
+    // rotation angle for bloch periodic BC of a circle in radians
+    Double cakePieceRotationAngle_;
+    // center of rotation
+    Vector<Double> cakePieceRotationCenter_;
+
+    //!caching for Line intersection
     Vector<Double> c0_Line_, c1_Line_, d0_Line_, d1_Line_, tmp_Line_;
     Vector<Double> diff0_Line_, diff1_Line_;
     Vector<Double> s_Line_, t_Line_;
@@ -378,6 +383,8 @@ class MortarInterface : public BaseNcInterface {
     //! In this case, the primary and the secondary surfaces don't lie on the same interface. Therefore,
     //! there will be no intersection grid found unless they are projected on a common interface."
     bool mutualProjection_;
+    //! 2D projection of a wedge (cake piece)
+    bool cakePieceProjection_; 
     //! If true, nc interface will be updated, but no mesh update will be done
     //! the mesh update will be done by iterative geometry updates (and there it will also be triggered)
     //! cannot be used in combination with a moving or rotating interface

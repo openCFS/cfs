@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>LineSearchMinEnergy</title>
+    <authors>
+      <author>ldomenig,dmayrhof</author>
+    </authors>
+    <date>2025-08-13</date>
+    <keywords>
+      <keyword>magneticNodal</keyword>
+      <keyword>linesearch</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Static analysis of a 2D circular iron region with a air hole in the middle. The air coil is used for the excitation.
+      In this test, the min energy line search is tested by driving the iron part in saturation.
+    </description>
+  </documentation>    
+
+  <!-- define which files are needed for simulation input & output-->
+  <fileFormats>
+    <input>
+      <!--<cdb fileName="tc_linesearch_geo.cdb"/>-->
+      <hdf5 fileName="LineSearchMinEnergy.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="material_linesearch.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <variableList>
+      <var name="J_coil" value="1e8" />
+    </variableList>
+
+    <regionList>
+      <region name="S_inner" material="iron_nonlinear" />
+      <region name="S_outer" material="air" />
+    </regionList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="Hcurl">
+      <isoOrder> 1 </isoOrder>
+    </Legendre>
+    <Lagrange id="H1">
+      <isoOrder>1</isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static>
+        <allowPostProc>yes</allowPostProc>
+      </static>
+    </analysis>
+
+    <pdeList>
+      <magnetic formulation="A">
+        <regionList>
+          <region name="S_inner" polyId="Hcurl" nonLinIds="Stator_nonlin_id"/>
+          <region name="S_outer" polyId="Hcurl" />
+        </regionList>
+
+        <nonLinList>
+          <permeability id="Stator_nonlin_id"/>
+        </nonLinList>
+
+        <bcsAndLoads>
+          <fluxParallel name="L_outer">
+            <comp dof="z"/>
+          </fluxParallel>          
+        </bcsAndLoads>
+
+        <coilList>
+          <coil id="coil1">
+            <source type="current" value="J_coil"/>
+            <part id="1">
+              <regionList>
+                <region name="S_inner"/>
+              </regionList>
+              <direction>
+                <analytic>
+                  <comp dof="z" value="1" />
+                </analytic>
+              </direction>
+              <wireCrossSection area="1"/>
+            </part>
+          </coil>
+        </coilList>
+        
+        <storeResults>
+          <elemResult type="magFieldIntensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+          <elemResult type="magFluxDensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+          <nodeResult type="magPotential">
+            <allRegions outputIds="hdf5"/>
+          </nodeResult>
+        </storeResults>	
+      </magnetic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <nonLinear logging="no" method="newton">
+              <lineSearch type="minEnergy"/>
+              <incStopCrit>1e-4</incStopCrit>
+              <resStopCrit>1e-4</resStopCrit>
+              <maxNumIters>100</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

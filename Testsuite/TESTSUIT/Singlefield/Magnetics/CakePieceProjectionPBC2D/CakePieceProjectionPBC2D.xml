@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>CakePieceProjectionPBC2D</title>
+    <authors>
+      <author>pheidegger,dmayrhof</author>
+    </authors>
+    <date>2025-08-13</date>
+    <keywords>
+      <keyword>magneticNodal</keyword>
+      <keyword>nonmatching grids</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Static analysis of a cake-piece of a iron domain including a coil. The coil induced a magnetic field that is 
+      is contained in radial direction with a flux parallel BC. In circumferential direction a periodic BC
+      is used  to model the cutout. Since the two sides do not align, the cake-piece projection is used.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <cdb fileName="circSec1Mesh.cdb"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_coil"  material="AIR"/>
+      <region name="S_iron"  material="iron"/>
+    </regionList>
+    <ncInterfaceList>
+      <ncInterface name="pbcMag1" primarySide="L_p1" secondarySide="L_p2" cakePieceProjection="yes"/>
+    </ncInterfaceList>
+    <nodeList>
+      <nodes name="L_fix"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="S_coil"/>
+          <region name="S_iron"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <fluxParallel name="L_fix">
+            <comp dof="z"/>
+          </fluxParallel>  
+          <blochPeriodic factor_value="1.0" formulation="Nitsche" nitscheFactor="100">
+            <region name="pbcMag1"/>
+          </blochPeriodic> 
+        </bcsAndLoads>       
+        
+        <coilList>
+          <coil id="myCoil1">
+            <source type="current" value="1e3"/>
+            <part>
+              <regionList>
+                <region name="S_coil"/>
+              </regionList>
+              <direction>
+                <analytic>
+                  <comp dof="z" value="1" />
+                </analytic>
+              </direction>
+              <wireCrossSection area="1"/>
+              <resistance value="0"/> 
+            </part>
+          </coil>
+        </coilList>
+   
+        <storeResults>
+          <nodeResult type="magPotential">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </magnetic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

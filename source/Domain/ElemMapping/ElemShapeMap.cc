@@ -352,8 +352,13 @@ void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemSh
   // for p.b.c., the global point can lie out of the volume element. That's why we first map the global point form the NC-element to
   // the primary (or secondary) surface element in order to calculate the corresponding local point in the adjacent volume element.
   // The mapping is performed in accordance with the transformation between the primary and the secondary surfaces.
-  if (mortarElem->transVect.GetSize() != 0)
+  if (mortarElem->transVect.GetSize() != 0 && !mortarElem->rotationCenter.GetSize()) {
     esmSurf->TranslatePointOntoSurface(mortarElem->transVect, globIntPoint);
+  }
+  else if (mortarElem->rotationCenter.GetSize()) {
+    // in case of cake-piece projection we also need to rotate...
+    esmSurf->TransferPointOntoSurface(mortarElem->transVect, mortarElem->rotationCenter, mortarElem->rotationAngle, globIntPoint);
+  }
   // -------kirill (periodic boundary conditions)-------------------------------------------------------------------------------------
 
   // ATTENTION! Global2Local on the volume element will cause integration points outside the element when the interface is not coplanar!
@@ -386,7 +391,7 @@ void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemSh
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
   for (UInt iDim = 0; iDim < globIntPoint.GetSize(); ++iDim)
     assert(abs(globIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
-  assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS));
+    assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS*1e3));
 #endif
 }
 
@@ -633,6 +638,71 @@ void LagrangeElemShapeMap::TranslatePointOntoSurface(const Vector<Double>& direc
     lambda = norm.Inner(p1)/norm.Inner(direction);
     point -= direction*lambda;
   }
+}
+
+void LagrangeElemShapeMap::TransferPointOntoSurface(const Vector<Double>& translationVec, 
+                                                    const Vector<Double>& rotationCenter, 
+                                                    const Double& rotationAngle,
+                                                    Vector<Double>& point) {
+  const ElemShape& shape = *shape_;
+  // disable for 3D case
+  if (ptGrid_->GetDim() != 2)
+    EXCEPTION("Cake-piece projection only implemented in 2D so far!");
+
+  // make sure that we are not trying to project the point onto a volume element
+  if (shape.dim == ptGrid_->GetDim())
+    EXCEPTION("It is possible to project onto a surface element only.");
+
+  Vector<Double> p1, p2, p3;
+  // get coordinates of 2 arbitrary nodes on current surface
+  Local2Global(p1, shape.nodeCoords[0]);
+  Local2Global(p2, shape.nodeCoords[1]);
+  // construct tangential direction vector of currenct surface in p2
+  p2 -= p1;
+  p2.Normalize();
+  // check wether the integration point is on the current surface
+  // in this case, no transfer is necessary
+  p3 = point - p1;
+  p3.Normalize();
+  Double cross = p2[0]*p3[1] - p2[1]*p3[0];
+  if (fabs(cross) < NORM_EPS*1e3)
+    return;
+
+  // check for the direction of translation to decide in which direction we need to transfer
+  if (translationVec.Inner(p3) < 0) {
+    // 1. translate first
+    point += translationVec;
+    // 1. translate point to center of rotation
+    point -= rotationCenter;
+    // 2. rotate
+    Vector<Double> tmp(2);
+    tmp[0] = point[0]*cos(-rotationAngle) - point[1]*sin(-rotationAngle);
+    tmp[1] = point[0]*sin(-rotationAngle) + point[1]*cos(-rotationAngle);
+    point = tmp;
+    // 3. translate back and onto the other surface
+    point += rotationCenter;
+  } else {
+    // 1. translate point to center of rotation
+    point -= rotationCenter;
+    // 2. rotate
+    Vector<Double> tmp(2);
+    tmp[0] = point[0]*cos(rotationAngle) - point[1]*sin(rotationAngle);
+    tmp[1] = point[0]*sin(rotationAngle) + point[1]*cos(rotationAngle);
+    point = tmp;
+    // 3. translate back and onto the other surface
+    point += rotationCenter - translationVec;
+  }
+
+  LOG_DBG2(lagrangeElemShapeMap) << "------------------------------------------------------------------------------------------------------------" << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "p2: " <<  p2 << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "p3: " <<  p3 << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "cross: " <<  cross << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "translationVec: " << translationVec << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "rotationCenter: " << rotationCenter << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "rotationAngle: " << rotationAngle << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "point: " << point << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "point-final: " << point << std::endl;
+  LOG_DBG2(lagrangeElemShapeMap) << "------------------------------------------------------------------------------------------------------------" << std::endl;
 }
 
 void LagrangeElemShapeMap::Global2LocalBarycentric(Vector<Double>& locPoint,

@@ -1,0 +1,55 @@
+reset
+#{ h = 1 }
+#{ wc = 1 }
+
+# create points (vertex)
+create vertex 0 0 0 
+create vertex 0 1 0 
+create vertex {cos(45)} {sin(45)} 0 
+create vertex 0 2 0 
+create vertex {2*cos(45)} {2*sin(45)} 0 
+
+create curve vertex 1 2 
+create curve vertex 1 3 
+create curve arc vertex 3  2  radius 1 normal 0 0 1  
+
+create curve vertex 2 4 
+create curve vertex 3 5 
+create curve arc vertex 5  4  radius 2 normal 0 0 1  
+
+create surface curve 2 3 1 
+create surface curve 5 6 4 3 
+
+imprint all
+merge all
+
+# regions
+block 1 add surface 1 
+block 1 name "S_coil"
+block 2 add surface 2 
+block 2 name "S_iron"
+
+nodeset 1 add curve 6
+nodeset 1 name "L_fix"
+
+nodeset 2 add curve 2 5
+nodeset 2 name "L_p1"
+
+nodeset 3 add curve 1 4
+nodeset 3 name "L_p2"
+ 
+
+# mesh
+surface all  scheme trimesh geometry approximation angle 15  
+surface all  size 0.1
+mesh surface all
+surface all smooth scheme laplacian 
+smooth surface all
+
+# export
+export ansys cdb "circSec1Mesh.cdb"  overwrite 
+
+
+
+
+ 
