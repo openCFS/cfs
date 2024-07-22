@@ -61,7 +61,7 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
     Matrix<Double> xiDx;
     fe->GetGlobDerivShFnc(xiDx, lpm, lpm.shapeMap->GetElem(),1);
     double denom = 0;
-    for (int i=0; i < xiDx.GetNumRows(); ++i){
+    for (UInt i=0; i < xiDx.GetNumRows(); ++i){
       double scalar_product = 0;
       for (int j=0; j< nDim; ++j){
         std::cout << std::fixed;
