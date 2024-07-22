@@ -664,7 +664,7 @@ void HeatPDE::DefineIntegrators() {
   StdVector<shared_ptr<EntityList> > ent;
   StdVector<PtrCoefFct > coef;
   LinearForm * lin = NULL;
-  LinearForm * linSUPG = NULL;
+  //LinearForm * linSUPG = NULL;
   StdVector<std::string> volumeRegions;
 
   ReadRhsExcitation( "elecPowerDensity", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
