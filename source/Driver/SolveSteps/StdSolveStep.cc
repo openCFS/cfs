@@ -2566,25 +2566,22 @@ namespace CoupledField {
     // Note: Currently we do not support multi-grid or static condensation with this approach
 
     if( firstTime_ ) {
-      // we assume this is ok, if not, the we will set it to false down below
+      // default parameters to set useGetRidOfZeros_ (false by default)
       bool supportedBySolver = true;
       string getRidOfZerosXML = "auto";
-      bool haveNCI = false;
+      bool hasNCI = false;
       
-
+      
       PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
-      
       PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
                             this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
 
-      PtrParamNode nciListNode = PDE_.GetParamNode()->Get("ncInterfaceList", ParamNode::PASS);
       // get info if we have NCI or not
-      if (nciListNode) {
-        if (nciListNode->GetList("ncInterface").GetSize() > 0) {
-          haveNCI = true;
-        }
+      if (this->ptgrid_->HasNCI()) {
+          hasNCI = true;
       }
       
+      // get XML input
       if(seqStepParamNode->Has("linearSystems")) {
         if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) {
           getRidOfZerosXML = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<string>();
@@ -2592,17 +2589,17 @@ namespace CoupledField {
             getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
           }
         }
+      }
 
-        // now check the solver list if we use a solver that is supported
-        if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {
-          supportedBySolver = false;
-        }
+      // now check the solver list if we use a solver that is supported
+      if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {
+        supportedBySolver = false;
       }
       
       ParamNodeList analysisNode = seqStepParamNode->Get("analysis")->GetChildren();
       std::string analysisName = analysisNode[0]->GetName();
 
-      // now adapt the switch if any of the untested / not working stuff is present
+      // now adapt the switch if any of the untested / not working cases
       std::string useCase = "";
       if( algsys_->UseAMG() ) {
         useCase = "AMG";
@@ -2618,6 +2615,7 @@ namespace CoupledField {
         useCase = "nonLinear";
       }
 
+      // we select the scanario based on gatherd data (useGetRidOfZeros_ is false by default)
       if (useCase != ""  && getRidOfZerosXML=="yes") {
         Exception("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case or solver");
       }
@@ -2630,7 +2628,7 @@ namespace CoupledField {
       {
         useGetRidOfZeros_ = false;
       }
-      else if (useCase == "" && haveNCI && getRidOfZerosXML=="auto") {
+      else if (useCase == "" && hasNCI && getRidOfZerosXML=="auto") {
         useGetRidOfZeros_ = true;
         WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.");
       }
@@ -2642,6 +2640,5 @@ namespace CoupledField {
     // now that everything is setup, we can skip this setup from now on
     firstTime_ = false;
   }
-
   
 } // end of namespace

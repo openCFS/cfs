@@ -712,6 +712,13 @@ namespace CoupledField
     }
   }
 
+  bool Grid::HasNCI() {
+    if (!ncInterfaces_.IsEmpty())
+      return true;
+    else 
+      return false;
+  }
+
 
   bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
   {

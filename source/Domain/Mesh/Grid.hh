@@ -1040,6 +1040,8 @@ namespace CoupledField
     //! Triggers calculation of node offsets for moving interfaces
     void MoveNcInterfaces();
 
+    bool HasNCI();
+
 
   protected:
     
