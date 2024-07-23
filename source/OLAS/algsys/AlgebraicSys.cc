@@ -3744,7 +3744,6 @@ namespace CoupledField {
               tmpDoubleSym.SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
               // here we also have to correct the wrongly initialized numEntries variable
               tmpDoubleSym.SetNumEntries(nnzMatCount);
-              stdMat->Export("stdMat", BaseMatrix::OutputFormat::MATRIX_MARKET, "stdMat");
             }
               break;
             case BaseMatrix::SPARSE_NONSYM:
@@ -3916,7 +3915,6 @@ namespace CoupledField {
               tmpDoubleSym.SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
               // here we also have to correct the wrongly initialized numEntries variable
               tmpDoubleSym.SetNumEntries(nnzMatCount);
-              stdMat->Export("stdMat", BaseMatrix::OutputFormat::MATRIX_MARKET, "stdMat");
             }
               break;
             case BaseMatrix::SPARSE_NONSYM:
