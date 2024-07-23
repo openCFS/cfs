@@ -95,12 +95,12 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
       }
       case VECTOR:
       {
-        EXCEPTION("The material property is VECTOR. It is not implemented for SUPG and Artificial diffusion");
+        Exception("The material property is VECTOR. It is not implemented for SUPG and Artificial diffusion");
         break;
       }
       default:
       {
-        EXCEPTION("The material property is an unknown type. It is not implemented for SUPG and Artificial diffusion");
+        Exception("The material property is an unknown type. It is not implemented for SUPG and Artificial diffusion");
         break;
       }
     }
