@@ -2615,26 +2615,27 @@ namespace CoupledField {
         useCase = "nonLinear";
       }
 
-      // we select the scanario based on gatherd data (useGetRidOfZeros_ is false by default)
-      if (useCase != ""  && getRidOfZerosXML=="yes") {
-        Exception("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case or solver");
-      }
-      else if (useCase != "" && getRidOfZerosXML=="auto")
+      // we select the scenario based on gatherd data (useGetRidOfZeros_ is false by default) 
+      // (some of following "else if"s only to improve code readability and throw WARNs)
+      if (useCase != "" && hasNCI && getRidOfZerosXML=="auto")
       {
         useGetRidOfZeros_ = false;
         WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")"); 
-      }
-      else if (getRidOfZerosXML=="no")
-      {
-        useGetRidOfZeros_ = false;
       }
       else if (useCase == "" && hasNCI && getRidOfZerosXML=="auto") {
         useGetRidOfZeros_ = true;
         WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.");
       }
+      else if (useCase != ""  && getRidOfZerosXML=="yes") {
+        Exception("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" + useCase + ")");
+      }
       else if (useCase == "" && getRidOfZerosXML=="yes") {
         useGetRidOfZeros_ = true;
-        WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort - use carefully!");
+        WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort (mainly useful for NCIs)");
+      }
+      else if (getRidOfZerosXML=="no")
+      {
+        useGetRidOfZeros_ = false;
       }
     }
     // now that everything is setup, we can skip this setup from now on
