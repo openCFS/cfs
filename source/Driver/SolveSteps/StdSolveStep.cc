@@ -2617,8 +2617,7 @@ namespace CoupledField {
 
       // we select the scenario based on gatherd data (useGetRidOfZeros_ is false by default) 
       // (some of following "else if"s only to improve code readability and throw WARNs)
-      if (useCase != "" && hasNCI && getRidOfZerosXML=="auto")
-      {
+      if (useCase != "" && hasNCI && getRidOfZerosXML=="auto") {
         useGetRidOfZeros_ = false;
         WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")"); 
       }
@@ -2633,8 +2632,7 @@ namespace CoupledField {
         useGetRidOfZeros_ = true;
         WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort (mainly useful for NCIs)");
       }
-      else if (getRidOfZerosXML=="no")
-      {
+      else if (getRidOfZerosXML=="no") {
         useGetRidOfZeros_ = false;
       }
     }
