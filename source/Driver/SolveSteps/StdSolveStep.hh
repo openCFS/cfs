@@ -291,7 +291,7 @@ namespace CoupledField
     bool useGetRidOfZeros_ = false;
 
     //! Tolerance used to determine if an entry is zero or not in getRidOfZeros
-    double getRidOfZerosTol_ = 1e-20;
+    double getRidOfZerosTol_;
 
     //! Bool to check the setup of the evaluation of GetRidOfZeros() only once
     bool firstTime_ = true;

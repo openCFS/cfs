@@ -2568,7 +2568,7 @@ namespace CoupledField {
     if( firstTime_ ) {
       // default parameters to set useGetRidOfZeros_ (false by default)
       bool supportedBySolver = true;
-      string getRidOfZerosXML = "auto";
+      string getRidOfZerosXML;
       bool hasNCI = false;
       
       
@@ -2581,15 +2581,9 @@ namespace CoupledField {
           hasNCI = true;
       }
       
-      // get XML input
-      if(seqStepParamNode->Has("linearSystems")) {
-        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros")) {
-          getRidOfZerosXML = seqStepParamNode->Get("linearSystems")->Get("getRidOfZeros")->As<string>();
-          if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance")) {
-            getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
-          }
-        }
-      }
+      // get XML input ("auto" and 1e-20 are defaluts from XML)
+      getRidOfZerosXML = seqStepParamNode->Get("linearSystems/getRidOfZeros")->As<string>();
+      getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
 
       // now check the solver list if we use a solver that is supported
       if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {
@@ -2619,18 +2613,17 @@ namespace CoupledField {
       // (some of following "else if"s only to improve code readability and throw WARNs)
       if (useCase != "" && hasNCI && getRidOfZerosXML=="auto") {
         useGetRidOfZeros_ = false;
-        WARN("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")"); 
+        std::cout << "StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")"; 
       }
       else if (useCase == "" && hasNCI && getRidOfZerosXML=="auto") {
         useGetRidOfZeros_ = true;
-        WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.");
+        std::cout << "Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.";
       }
       else if (useCase != ""  && getRidOfZerosXML=="yes") {
         Exception("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" + useCase + ")");
       }
       else if (useCase == "" && getRidOfZerosXML=="yes") {
         useGetRidOfZeros_ = true;
-        WARN("Zero entities will be removed from the system matrix in each iteration to reduce solver effort (mainly useful for NCIs)");
       }
       else if (getRidOfZerosXML=="no") {
         useGetRidOfZeros_ = false;
