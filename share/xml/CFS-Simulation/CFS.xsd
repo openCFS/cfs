@@ -189,7 +189,7 @@
 									<xsd:attribute name="getRidOfZerosTolerance" type="xsd:double" default="1e-20">
 										<xsd:annotation>
 											<xsd:documentation>
-												The tolerance used to decide if an entry is considered zero or non-zero.
+												The tolerance used to decide if an entry is considered zero or non-zero by GetRidOfZeros.
 											</xsd:documentation>
 										</xsd:annotation>
 									</xsd:attribute> 
