@@ -86,7 +86,7 @@ namespace CoupledField
    void Setup(BaseMatrix &sysmat);
 
     //! Dummy method: Notify the solver that a new matrix pattern has been set
-    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented for LIS. GetRidOfZeros for NCIs will not work.");};
 
    /** To satisfy the compiler
     * @param sysmat shall be the one Setup() is called with */
