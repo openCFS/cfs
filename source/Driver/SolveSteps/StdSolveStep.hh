@@ -177,7 +177,7 @@ namespace CoupledField
                               bool trans=false);
 
     //! checks if getRidOfZeros should be actually used and if yes, defines everything accordingly and warns the user about it
-    void SetupGetRidOfZeros();
+    bool GetRidOfZerosActive();
     
     void SetSolveVecZero(){
       solVec_.Init();
@@ -287,14 +287,8 @@ namespace CoupledField
     unsigned int mHandle_;
     MathParser* mParser_;
 
-    //! Bool to check if getRidOfZeros should be used
-    bool useGetRidOfZeros_ = false;
-
     //! Tolerance used to determine if an entry is zero or not in getRidOfZeros
     double getRidOfZerosTol_;
-
-    //! Bool to check the setup of the evaluation of GetRidOfZeros() only once
-    bool firstTime_ = true;
 
 private:
   void AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks = false);

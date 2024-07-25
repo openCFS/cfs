@@ -284,7 +284,7 @@ namespace CoupledField
 
 
     //----------------------- GetRidOfZeros-----------------------------------
-    void SetupGetRidOfZeros() override;
+    bool GetRidOfZerosActive() override;
 
     //----------------------- SET/GET METHODS--------------------------------
     
