@@ -2549,9 +2549,9 @@ namespace CoupledField {
   bool StdSolveStep::GetRidOfZerosActive(){
     // Note: Currently we do not support multi-grid or static condensation with this approach
 
-    // default parameters  (false by default)
+    // default parameters (false by default)
     bool supportedBySolver = true;
-    string getRidOfZerosXML;
+    string getRidOfZerosXML = "auto";
     bool hasNCI = false;
     
     PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
@@ -2563,9 +2563,13 @@ namespace CoupledField {
         hasNCI = true;
     }
 
-    // get XML input ("auto" and 1e-20 are defaluts from XML)
-    getRidOfZerosXML = seqStepParamNode->Get("linearSystems/getRidOfZeros")->As<string>();
-    getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems/getRidOfZerosTolerance")->As<Double>();
+    // get XML input (otherwise the defaults "auto" and 1e-20 will be used (defined independently in C++ and XML schema))
+    if(seqStepParamNode->Has("linearSystems")) {
+      if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros"))
+        getRidOfZerosXML = seqStepParamNode->Get("linearSystems/getRidOfZeros")->As<string>();
+      if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance"))
+        getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems/getRidOfZerosTolerance")->As<Double>();
+    }
 
     // now check the solver list if we use a solver that is supported
     if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {

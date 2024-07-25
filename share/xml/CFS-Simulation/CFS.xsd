@@ -187,6 +187,7 @@
 										</xsd:simpleType>
 									</xsd:attribute> 
 									<xsd:attribute name="getRidOfZerosTolerance" type="xsd:double" default="1e-20">
+										<!-- If change default value here, also do it in C++ code - StdSolveStep::GetRidOfZerosActive()-->
 										<xsd:annotation>
 											<xsd:documentation>
 												The tolerance used to decide if an entry is considered zero or non-zero by GetRidOfZeros.
