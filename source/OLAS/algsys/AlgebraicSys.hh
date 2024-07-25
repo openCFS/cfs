@@ -805,7 +805,8 @@ namespace CoupledField {
     //! the solver have to be set up again.
     void BuildInDirichlet();
     
-    void GetRidOfZeros(double tol);
+    template <typename T>
+    void GetRidOfZeros(Double tol);
 
     void SetSysMatCopy( SBM_Matrix* actMat );
 
@@ -1472,6 +1473,8 @@ namespace CoupledField {
     //@}
   
   };
+
+  //extern template void AlgebraicSys::GetRidOfZeros<double>(double tol);
 
 } // namespace
 

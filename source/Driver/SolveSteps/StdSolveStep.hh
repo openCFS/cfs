@@ -288,7 +288,7 @@ namespace CoupledField
     MathParser* mParser_;
 
     //! Tolerance used to determine if an entry is zero or not in getRidOfZeros
-    double getRidOfZerosTol_;
+    Double getRidOfZerosTol_;
 
 private:
   void AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks = false);

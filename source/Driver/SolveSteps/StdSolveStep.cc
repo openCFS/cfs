@@ -193,7 +193,7 @@ namespace CoupledField {
     if( assemble_->IsMatrixUpdated() ) {
       // get rid of unnecessary zeros (if applicable)
       if ( GetRidOfZerosActive() ) {
-        algsys_->GetRidOfZeros(getRidOfZerosTol_);
+        algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
       }
 
 
@@ -316,7 +316,7 @@ namespace CoupledField {
 
         // get rid of unnecessary zeros (if applicable)
         if ( GetRidOfZerosActive() ) {
-          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
         algsys_->SetupPrecond();
@@ -478,7 +478,7 @@ namespace CoupledField {
       if(assemble_->IsMatrixUpdated()) {
         // get rid of unnecessary zeros (if applicable)
         if ( GetRidOfZerosActive() ) {
-          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
         algsys_->SetupPrecond();
@@ -691,7 +691,7 @@ namespace CoupledField {
 
         // get rid of unnecessary zeros (if applicable)
         if ( GetRidOfZerosActive() ) {
-          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
         algsys_->SetupPrecond();
@@ -945,7 +945,7 @@ namespace CoupledField {
 
         // get rid of unnecessary zeros (if applicable)
         if ( GetRidOfZerosActive() ) {
-          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
         algsys_->SetupPrecond();
@@ -1201,7 +1201,7 @@ namespace CoupledField {
 
         // get rid of unnecessary zeros (if applicable)
         if ( GetRidOfZerosActive() ) {
-          algsys_->GetRidOfZeros(getRidOfZerosTol_);
+          algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
         algsys_->SetupPrecond();
@@ -1408,7 +1408,7 @@ namespace CoupledField {
     if( assemble_->IsMatrixUpdated() ) {
       // get rid of unnecessary zeros (if applicable)
       if ( GetRidOfZerosActive() ) {
-        algsys_->GetRidOfZeros(getRidOfZerosTol_);
+        algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
       }
 
       algsys_->SetupPrecond();
@@ -1509,7 +1509,7 @@ namespace CoupledField {
 
     // get rid of unnecessary zeros (if applicable)
     if ( GetRidOfZerosActive() ) {
-      algsys_->GetRidOfZeros(getRidOfZerosTol_);
+      algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
     }
 
     algsys_->SetupPrecond();
@@ -1641,7 +1641,7 @@ namespace CoupledField {
 
       // get rid of unnecessary zeros (if applicable)
       if ( GetRidOfZerosActive() ) {
-        algsys_->GetRidOfZeros(getRidOfZerosTol_);
+        algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
       }
 
       algsys_->SetupPrecond();
@@ -2562,10 +2562,10 @@ namespace CoupledField {
     if (this->ptgrid_->HasNCI()) {
         hasNCI = true;
     }
-    
+
     // get XML input ("auto" and 1e-20 are defaluts from XML)
     getRidOfZerosXML = seqStepParamNode->Get("linearSystems/getRidOfZeros")->As<string>();
-    getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems")->Get("getRidOfZerosTolerance")->As<Double>();
+    getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems/getRidOfZerosTolerance")->As<Double>();
 
     // now check the solver list if we use a solver that is supported
     if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {

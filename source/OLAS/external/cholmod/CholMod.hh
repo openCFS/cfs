@@ -27,8 +27,7 @@ namespace CoupledField
     void Setup(BaseMatrix &sysmat);
 
     //! Dummy method: Notify the solver that a new matrix pattern has been set
-    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented for Cholmod solver.
-     GetRidOfZeros for NCIs will not work.");};
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented for Cholmod solver. GetRidOfZeros for NCIs will not work.");};
      
     /** solve using a pre computed factorization 
      * @param sysmat shall be the one Setup() is called with */

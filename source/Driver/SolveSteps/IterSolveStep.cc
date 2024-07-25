@@ -1376,8 +1376,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   }
 
   bool IterSolveStep::GetRidOfZerosActive() {
-    for(auto pde : rPDE_.PDEs_)
-      return pde->GetSolveStep()->GetRidOfZerosActive();
+    int check = 0;
+    for(auto pde : rPDE_.PDEs_) {
+      check += pde->GetSolveStep()->GetRidOfZerosActive();
+    }
+    return check;
   }
     
 } // end of namespace
