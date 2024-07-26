@@ -3590,9 +3590,9 @@ namespace CoupledField {
   template <typename T>
   void AlgebraicSys::GetRidOfZeros(Double tol)
   { 
-    //Timer timeGetRid
-    //PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT); // write information for every pardiso call
-    //node->Get("number")->SetValue(tNumfact_.GetCalls());
+    PtrParamNode infoGetRidOfZeros = myInfo_->Get("GetRidOfZeros", ParamNode::APPEND);
+    Timer timeGetRidOfZeros;
+    timeGetRidOfZeros.Start();
     
     // TODO
     // This routine works as it is, but it might be better to introduce to combine it with the function setting IDBCs.
@@ -3767,12 +3767,18 @@ namespace CoupledField {
           }
           LOG_DBG(algSys) << "\tRebuilt effMat_";
           LOG_DBG(algSys) << "\tSuccessfully reduced complexity of the system by eliminating unnecessary zeros";
+          infoGetRidOfZeros->Get("zeros_removed", ParamNode::APPEND)->SetValue(newNnz);
         } else {
           // no zeros found, we skip everything
+          WARN("AlgebraicSys::GetRidOfZeros: No zeros to remove with defined tolerance were found")
+          infoGetRidOfZeros->Get("zeros_removed", ParamNode::APPEND)->SetValue(0);
           LOG_DBG(algSys) << "No zero entries found, skipping this matrix";
         }
       }
     }
+    timeGetRidOfZeros.Stop();
+    infoGetRidOfZeros->Get("cpu", ParamNode::APPEND)->SetValue(timeGetRidOfZeros.GetCPUTime());
+    infoGetRidOfZeros->Get("wall", ParamNode::APPEND)->SetValue(timeGetRidOfZeros.GetWallTime());
   }
 
   template void AlgebraicSys::GetRidOfZeros<Double>(Double tol);
