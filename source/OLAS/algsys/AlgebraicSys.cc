@@ -3590,6 +3590,10 @@ namespace CoupledField {
   template <typename T>
   void AlgebraicSys::GetRidOfZeros(Double tol)
   { 
+    //Timer timeGetRid
+    //PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT); // write information for every pardiso call
+    //node->Get("number")->SetValue(tNumfact_.GetCalls());
+    
     // TODO
     // This routine works as it is, but it might be better to introduce to combine it with the function setting IDBCs.
     // Since assembling IDBCs might change some entries, we should check beforehand which entries should not be touched.
@@ -3605,7 +3609,7 @@ namespace CoupledField {
     UInt nCols = actMat->GetNumCols();
 
     // store the old sysMat so that we can access it later on
-    SetSysMatCopy(actMat);
+    SetSysMatBackup(actMat);
 
     LOG_DBG(algSys) << "\tGet rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << nRows << " Number of Coloumns: " << nCols;
     for ( UInt row = 0; row < nRows; row++ ){
@@ -3774,12 +3778,12 @@ namespace CoupledField {
   template void AlgebraicSys::GetRidOfZeros<Double>(Double tol);
   template void AlgebraicSys::GetRidOfZeros<Complex>(Double tol);
 
-  void AlgebraicSys::SetSysMatCopy( SBM_Matrix* actMat ){
+  void AlgebraicSys::SetSysMatBackup( SBM_Matrix* actMat ){
     delete sysMat_[BACKUP];
     sysMat_[BACKUP] = new SBM_Matrix(*actMat);
   }
 
-  void AlgebraicSys::RestoreSysMat(){
+  void AlgebraicSys::RestoreSystemMatrixFromBackup(){
     delete effMat_;
     delete sysMat_[SYSTEM];
     sysMat_[SYSTEM] = new SBM_Matrix(*sysMat_[BACKUP]);

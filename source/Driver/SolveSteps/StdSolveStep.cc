@@ -208,7 +208,7 @@ namespace CoupledField {
     // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
     // afterwards, we notify the solver that the matrix pattern might change again in the next step
     if (GetRidOfZerosActive()) {
-      algsys_->RestoreSysMat();
+      algsys_->RestoreSystemMatrixFromBackup();
       algsys_->GetSolver()->SetNewMatrixPattern();
     }
     
@@ -331,7 +331,7 @@ namespace CoupledField {
         // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
         // afterwards, we notify the solver that the matrix pattern might change again in the next step
         if (GetRidOfZerosActive()) {
-          algsys_->RestoreSysMat();
+          algsys_->RestoreSystemMatrixFromBackup();
           algsys_->GetSolver()->SetNewMatrixPattern();
         }
 
@@ -490,7 +490,7 @@ namespace CoupledField {
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
       if (GetRidOfZerosActive()) {
-        algsys_->RestoreSysMat();
+        algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
 
@@ -731,7 +731,7 @@ namespace CoupledField {
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
       if (GetRidOfZerosActive()) {
-        algsys_->RestoreSysMat();
+        algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
       
@@ -961,7 +961,7 @@ namespace CoupledField {
         // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
         // afterwards, we notify the solver that the matrix pattern might change again in the next step
         if (GetRidOfZerosActive()) {
-          algsys_->RestoreSysMat();
+          algsys_->RestoreSystemMatrixFromBackup();
           algsys_->GetSolver()->SetNewMatrixPattern();
         }
 
@@ -1215,7 +1215,7 @@ namespace CoupledField {
         // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
         // afterwards, we notify the solver that the matrix pattern might change again in the next step
         if (GetRidOfZerosActive()) {
-          algsys_->RestoreSysMat();
+          algsys_->RestoreSystemMatrixFromBackup();
           algsys_->GetSolver()->SetNewMatrixPattern();
         }
 
@@ -1420,7 +1420,7 @@ namespace CoupledField {
     // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
     // afterwards, we notify the solver that the matrix pattern might change again in the next step
     if (GetRidOfZerosActive()) {
-      algsys_->RestoreSysMat();
+      algsys_->RestoreSystemMatrixFromBackup();
       algsys_->GetSolver()->SetNewMatrixPattern();
     }
 
@@ -1521,7 +1521,7 @@ namespace CoupledField {
     // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
     // afterwards, we notify the solver that the matrix pattern might change again in the next step
     if (GetRidOfZerosActive()) {
-      algsys_->RestoreSysMat();
+      algsys_->RestoreSystemMatrixFromBackup();
       algsys_->GetSolver()->SetNewMatrixPattern();
     }
 
@@ -1656,7 +1656,7 @@ namespace CoupledField {
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
       if (GetRidOfZerosActive()) {
-        algsys_->RestoreSysMat();
+        algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
 

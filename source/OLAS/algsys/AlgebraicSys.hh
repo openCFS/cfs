@@ -808,11 +808,11 @@ namespace CoupledField {
     template <typename T>
     void GetRidOfZeros(Double tol);
 
-    void SetSysMatCopy( SBM_Matrix* actMat );
+    void SetSysMatBackup( SBM_Matrix* actMat );
 
     SBM_Matrix* GetSysMatCopy(){return sysMat_[BACKUP];};
 
-    void RestoreSysMat();
+    void RestoreSystemMatrixFromBackup();
 
     //! correct RHS according to inhomogeneous Dirichlet bcs
     void AddIDBCToRHS(bool deltaIDBC = false);
