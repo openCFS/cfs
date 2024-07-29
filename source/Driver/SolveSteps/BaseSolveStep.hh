@@ -134,7 +134,7 @@ namespace CoupledField
 
 
     //----------------------- GetRidOfZeros-----------------------------------
-    virtual bool GetRidOfZerosActive()
+    virtual void SetupGetRidOfZerosActive()
     {EXCEPTION("PostStepTransHarmonic not implemented!");};
 
     //----------------------- SET/ GET METHODS--------------------------------

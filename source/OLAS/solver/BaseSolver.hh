@@ -58,6 +58,10 @@ namespace CoupledField {
     }
     
     //! Notify the solver that a new matrix pattern has been set
+    // If we use the GetRidOfZeros functionality, the solver will be set up before we can check 
+    // the actual matrix for zero entries. In this case (and if we actually find zeros that 
+    // shall be removed), we have to notify the solver that the matrix and therefore the pattern 
+    // has changed, which re-triggers e.g. symbolic factorization.
     virtual void SetNewMatrixPattern() = 0;
     
     //! \see BasePrecond::Setup

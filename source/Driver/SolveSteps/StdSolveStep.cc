@@ -191,11 +191,12 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
     
     if( assemble_->IsMatrixUpdated() ) {
+      // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+      SetupGetRidOfZerosActive();
       // get rid of unnecessary zeros (if applicable)
-      if ( GetRidOfZerosActive() ) {
+      if( useGetRidOfZeros_ ) {
         algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
       }
-
 
       algsys_->SetupPrecond();
       
@@ -207,7 +208,7 @@ namespace CoupledField {
 
     // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
     // afterwards, we notify the solver that the matrix pattern might change again in the next step
-    if (GetRidOfZerosActive()) {
+    if( useGetRidOfZeros_ ) {
       algsys_->RestoreSystemMatrixFromBackup();
       algsys_->GetSolver()->SetNewMatrixPattern();
     }
@@ -315,7 +316,7 @@ namespace CoupledField {
         algsys_->BuildInDirichlet();
 
         // get rid of unnecessary zeros (if applicable)
-        if ( GetRidOfZerosActive() ) {
+        if( useGetRidOfZeros_ ) {
           algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
@@ -330,7 +331,7 @@ namespace CoupledField {
 
         // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
         // afterwards, we notify the solver that the matrix pattern might change again in the next step
-        if (GetRidOfZerosActive()) {
+        if( useGetRidOfZeros_ ) {
           algsys_->RestoreSystemMatrixFromBackup();
           algsys_->GetSolver()->SetNewMatrixPattern();
         }
@@ -475,9 +476,11 @@ namespace CoupledField {
       // recalc the preconditioner eventually
       algsys_->BuildInDirichlet();
 
-      if(assemble_->IsMatrixUpdated()) {
+      if( assemble_->IsMatrixUpdated() ) {
+        // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+        SetupGetRidOfZerosActive();
         // get rid of unnecessary zeros (if applicable)
-        if ( GetRidOfZerosActive() ) {
+        if( useGetRidOfZeros_ ) {
           algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
@@ -489,7 +492,7 @@ namespace CoupledField {
 
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
-      if (GetRidOfZerosActive()) {
+      if( useGetRidOfZeros_ ) {
         algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
@@ -687,10 +690,12 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       // prepare the solver and preconditioner for the updated system matrix
-      if(assemble_->IsMatrixUpdated() || GetRidOfZerosActive()){
+      if( assemble_->IsMatrixUpdated() || useGetRidOfZeros_ ) {
 
+        // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+        SetupGetRidOfZerosActive();
         // get rid of unnecessary zeros (if applicable)
-        if ( GetRidOfZerosActive() ) {
+        if( useGetRidOfZeros_ ) {
           algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
@@ -730,7 +735,7 @@ namespace CoupledField {
 
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
-      if (GetRidOfZerosActive()) {
+      if( useGetRidOfZeros_ ) {
         algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
@@ -943,8 +948,10 @@ namespace CoupledField {
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
 
+        // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+        SetupGetRidOfZerosActive();
         // get rid of unnecessary zeros (if applicable)
-        if ( GetRidOfZerosActive() ) {
+        if( useGetRidOfZeros_ ) {
           algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
@@ -960,7 +967,7 @@ namespace CoupledField {
 
         // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
         // afterwards, we notify the solver that the matrix pattern might change again in the next step
-        if (GetRidOfZerosActive()) {
+        if( useGetRidOfZeros_ ) {
           algsys_->RestoreSystemMatrixFromBackup();
           algsys_->GetSolver()->SetNewMatrixPattern();
         }
@@ -1199,8 +1206,10 @@ namespace CoupledField {
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
 
+        // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+        SetupGetRidOfZerosActive();
         // get rid of unnecessary zeros (if applicable)
-        if ( GetRidOfZerosActive() ) {
+        if( useGetRidOfZeros_ ) {
           algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
@@ -1214,7 +1223,7 @@ namespace CoupledField {
 
         // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
         // afterwards, we notify the solver that the matrix pattern might change again in the next step
-        if (GetRidOfZerosActive()) {
+        if( useGetRidOfZeros_ ) {
           algsys_->RestoreSystemMatrixFromBackup();
           algsys_->GetSolver()->SetNewMatrixPattern();
         }
@@ -1406,9 +1415,11 @@ namespace CoupledField {
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
+      // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+      SetupGetRidOfZerosActive();
       // get rid of unnecessary zeros (if applicable)
-      if ( GetRidOfZerosActive() ) {
-        algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
+      if( useGetRidOfZeros_ ) {
+        algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
       }
 
       algsys_->SetupPrecond();
@@ -1419,7 +1430,7 @@ namespace CoupledField {
 
     // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
     // afterwards, we notify the solver that the matrix pattern might change again in the next step
-    if (GetRidOfZerosActive()) {
+    if( useGetRidOfZeros_ ) {
       algsys_->RestoreSystemMatrixFromBackup();
       algsys_->GetSolver()->SetNewMatrixPattern();
     }
@@ -1507,9 +1518,11 @@ namespace CoupledField {
     // recalculate the preconditioner eventually
     algsys_->BuildInDirichlet();
 
+    // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+    SetupGetRidOfZerosActive();
     // get rid of unnecessary zeros (if applicable)
-    if ( GetRidOfZerosActive() ) {
-      algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
+    if( useGetRidOfZeros_ ) {
+      algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
     }
 
     algsys_->SetupPrecond();
@@ -1520,7 +1533,7 @@ namespace CoupledField {
 
     // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
     // afterwards, we notify the solver that the matrix pattern might change again in the next step
-    if (GetRidOfZerosActive()) {
+    if( useGetRidOfZeros_ ) {
       algsys_->RestoreSystemMatrixFromBackup();
       algsys_->GetSolver()->SetNewMatrixPattern();
     }
@@ -1639,9 +1652,11 @@ namespace CoupledField {
       // Incorporate Boundary conditions and recalc the preconditioner and solver
       algsys_->BuildInDirichlet();
 
+      // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+      SetupGetRidOfZerosActive();
       // get rid of unnecessary zeros (if applicable)
-      if ( GetRidOfZerosActive() ) {
-        algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
+      if( useGetRidOfZeros_ ) {
+        algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
       }
 
       algsys_->SetupPrecond();
@@ -1655,7 +1670,7 @@ namespace CoupledField {
 
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
-      if (GetRidOfZerosActive()) {
+      if( getRidOfZerosTol_ ) {
         algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
@@ -2546,77 +2561,80 @@ namespace CoupledField {
 
   }
 
-  bool StdSolveStep::GetRidOfZerosActive(){
+  void StdSolveStep::SetupGetRidOfZerosActive(){
     // Note: Currently we do not support multi-grid or static condensation with this approach
 
-    // default parameters (false by default)
-    bool supportedBySolver = true;
-    string getRidOfZerosXML = "auto";
-    bool hasNCI = false;
-    
-    PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
-    PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
-                          this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
+    if( firstTime_ ) {
+      // default parameters (false by default)
+      bool supportedBySolver = true;
+      string getRidOfZerosXML = "auto";
+      bool hasNCI = false;
+      
+      PtrParamNode myParam = this->PDE_.GetDomain()->GetParamRoot();
+      PtrParamNode seqStepParamNode = myParam->GetByVal("sequenceStep", std::string("index"),
+                            this->PDE_.GetDomain()->GetDriver()->GetActSequenceStep());
 
-    // get info if we have NCI or not
-    if (this->ptgrid_->HasNCI()) {
-        hasNCI = true;
-    }
+      // get info if we have NCI or not
+      if (this->ptgrid_->HasNCI()) {
+          hasNCI = true;
+      }
 
-    // get XML input (otherwise the defaults "auto" and 1e-20 will be used (defined independently in C++ and XML schema))
-    if(seqStepParamNode->Has("linearSystems")) {
-      if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros"))
-        getRidOfZerosXML = seqStepParamNode->Get("linearSystems/getRidOfZeros")->As<string>();
-      if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance"))
-        getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems/getRidOfZerosTolerance")->As<Double>();
-    }
+      // get XML input (otherwise the defaults "auto" and 1e-20 will be used (defined independently in C++ and XML schema))
+      if(seqStepParamNode->Has("linearSystems")) {
+        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZeros"))
+          getRidOfZerosXML = seqStepParamNode->Get("linearSystems/getRidOfZeros")->As<string>();
+        if(seqStepParamNode->Get("linearSystems")->Has("getRidOfZerosTolerance"))
+          getRidOfZerosTol_ = seqStepParamNode->Get("linearSystems/getRidOfZerosTolerance")->As<Double>();
+      }
 
-    // now check the solver list if we use a solver that is supported
-    if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {
-      supportedBySolver = false;
-    }
-    
-    ParamNodeList analysisNode = seqStepParamNode->Get("analysis")->GetChildren();
-    std::string analysisName = analysisNode[0]->GetName();
+      // now check the solver list if we use a solver that is supported
+      if ( algsys_->GetSolver()->GetSolverType() != BaseSolver::PARDISO_SOLVER ) {
+        supportedBySolver = false;
+      }
+      
+      ParamNodeList analysisNode = seqStepParamNode->Get("analysis")->GetChildren();
+      std::string analysisName = analysisNode[0]->GetName();
 
-    // now adapt the switch if any of the untested / not working cases
-    std::string useCase = "";
-    if( algsys_->UseAMG() )
-      useCase = "AMG";
-    else if ( algsys_->UseStaticCondensation() )
-      useCase = "static condensation";
-    else if ( !supportedBySolver || algsys_->HasPrecond() )
-      useCase = "solver setup";
-    else if ( analysisName == "inverseSource" )
-      useCase = "inverseSource";
-    else if ( myParam->Has("optimization") )
-      useCase = "optimization";
-    else if (this->PDE_.IsNonLin())
-      useCase = "nonLinear";
+      // now adapt the switch if any of the untested / not working cases
+      std::string useCase = "";
+      if( algsys_->UseAMG() )
+        useCase = "AMG";
+      else if ( algsys_->UseStaticCondensation() )
+        useCase = "static condensation";
+      else if ( !supportedBySolver || algsys_->HasPrecond() )
+        useCase = "solver setup";
+      else if ( analysisName == "inverseSource" )
+        useCase = "inverseSource";
+      else if ( myParam->Has("optimization") )
+        useCase = "optimization";
+      else if (this->PDE_.IsNonLin())
+        useCase = "nonLinear";
 
-    // we select the scenario based on gatherd data
-    if (useCase != "" && hasNCI && getRidOfZerosXML=="auto") {
-      std::cout << "StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")"; 
-      return false;
+      // we select the scenario based on gatherd data
+      if (useCase != "" && hasNCI && getRidOfZerosXML=="auto") {
+        std::cout << "StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" << useCase << ")"; 
+        useGetRidOfZeros_ = false;
+      }
+      else if (useCase == "" && hasNCI && getRidOfZerosXML=="auto") {
+        std::cout << "Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.";
+        useGetRidOfZeros_ = true;
+      }
+      else if (useCase != ""  && getRidOfZerosXML=="yes") {
+        Exception("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" + useCase + ")");
+        useGetRidOfZeros_ = false;
+      }
+      else if (useCase == "" && getRidOfZerosXML=="yes") {
+        useGetRidOfZeros_ = true;
+      }
+      else if (getRidOfZerosXML=="no") {
+        useGetRidOfZeros_ = false;
+      }
+      else {
+        useGetRidOfZeros_ = false;
+      }
     }
-    else if (useCase == "" && hasNCI && getRidOfZerosXML=="auto") {
-      std::cout << "Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.";
-      return true;
-    }
-    else if (useCase != ""  && getRidOfZerosXML=="yes") {
-      Exception("StdSOlveStep::GetRidOfZeros: This feature is not available for the current use case (" + useCase + ")");
-      return false;
-    }
-    else if (useCase == "" && getRidOfZerosXML=="yes") {
-      return true;
-    }
-    else if (getRidOfZerosXML=="no") {
-      return false;
-    }
-    else {
-      return false;
-    }
-    
+    // now that everything is setup, we can skip this setup from now on
+    firstTime_ = false;
   }
   
 } // end of namespace
