@@ -3767,7 +3767,7 @@ namespace CoupledField {
           }
           LOG_DBG(algSys) << "\tRebuilt effMat_";
           LOG_DBG(algSys) << "\tSuccessfully reduced complexity of the system by eliminating unnecessary zeros";
-          infoGetRidOfZeros->Get("zeros_removed", ParamNode::APPEND)->SetValue(newNnz);
+          infoGetRidOfZeros->Get("zeros_removed", ParamNode::APPEND)->SetValue(oldNnz - newNnz);
         } else {
           // no zeros found, we skip everything
           WARN("AlgebraicSys::GetRidOfZeros: No zeros to remove with defined tolerance were found")
