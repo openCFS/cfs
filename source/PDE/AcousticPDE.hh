@@ -165,30 +165,9 @@ namespace CoupledField{
     //! Definition of PML integrators
     //! TODO: \param
     // TODO: later turn into template too!
-    void DefinePMLIntegrators(RegionIdType actRegion, /*PtrParamNode& pmlNode,*/ PtrCoefFct& c0, 
-                              PtrCoefFct& coeffK, PtrCoefFct& coeffM, shared_ptr<ElemList>& actSDList, 
-                              std::string& pmlDampId, std::string pmlFormul, std::string tempId, 
-                              /*PtrCoefFct& coeffPMLStiff, PtrCoefFct& coeffPMLMass, 
-                              PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLTensor,
-                              PtrCoefFct& coeffPMLDeterminant,*/ bool& harmonicPML,
-                              PtrParamNode& curRegNode, BaseBDBInt*& stiffInt, BaseBDBInt*& massInt);
-
-    //! Definition of classic PML formulation
-    //! TODO: \param
-    void DefinePMLClassicFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, shared_ptr<ElemList>& actSDList, 
-                                      RegionIdType actRegion, PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
-                                      PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLVector, PtrCoefFct& coeffPMLDeterminant);
-
-    //! Definition of curvilinear PML formulation
-    //! TODO: \param
-    void DefinePMLCurvilinearFormulation(PtrParamNode& pmlNode, shared_ptr<CoefFunction>& c0R, shared_ptr<ElemList>& actSDList, 
-                                          RegionIdType actRegion, PtrCoefFct& coeffK, PtrCoefFct& coeffM, PtrCoefFct& coeffPMLStiff, 
-                                          PtrCoefFct& coeffPMLMass, PtrCoefFct& coeffPMLTensor, PtrCoefFct& coeffPMLDeterminant);
-
-    // stiffness without PML
-    void DefineStdStiffnessIntegrator(RegionIdType actRegion, bool harmonicPML, std::string& pmlFormul, 
-                                      PtrCoefFct& coeffK, PtrCoefFct& coeffPMLStiff, PtrCoefFct& coeffPMLVector, 
-                                      PtrCoefFct& coeffPMLTensor, shared_ptr<ElemList>& actSDList);
+    void DefinePMLIntegrators(RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrParamNode& curRegNode,
+                              PtrCoefFct& c0, PtrCoefFct& coeffK, PtrCoefFct& coeffM, std::string& tempId,
+                              BaseBDBInt*& stiffInt,  BaseBDBInt*& massInt);
   };
 }
 
