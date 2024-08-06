@@ -335,7 +335,7 @@ namespace CoupledField{
 
       BaseBDBInt *stiffInt = NULL;
       BaseBDBInt *massInt = NULL;
-        // ====================================================================
+      // ====================================================================
       // PML integrators
       // ====================================================================
       if (dampingList_[actRegion] == PML)
@@ -350,7 +350,7 @@ namespace CoupledField{
           } else {
             stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), coeffK, 1.0, updatedGeo_ );
          }
-        } else { //dim_ == 3
+        } else { // dim_ == 3
           if ( complexFluidFormulation_ ) {
             stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(), coeffK, 1.0, updatedGeo_ );
           } else {
@@ -358,15 +358,15 @@ namespace CoupledField{
           }
       }
 
-      // ====================================================================
-      // standard mass integrator
-      // ====================================================================
-        if(dim_==2) {
+        // ====================================================================
+        // standard mass integrator
+        // ====================================================================
+        if( dim_ == 2 ) {
           if ( complexFluidFormulation_ )
             massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
           else
             massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
-        } else { // dim_==3
+        } else { // dim_== 3
           if  ( complexFluidFormulation_ )
             massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
           else
@@ -384,6 +384,7 @@ namespace CoupledField{
       if ( dampingList_[actRegion] == RAYLEIGH ) {
         if ( complexFluidFormulation_ )
           EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
+
         RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
         stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
       }
@@ -460,7 +461,7 @@ namespace CoupledField{
     std::string pmlFormul = "";  // formulation of the PML region ("classic", "shifted" or "curvilinear")
     PtrCoefFct coeffPMLDeterminant, coeffPMLTensor, coeffPMLVector, coeffPMLStiff, coeffPMLMass;
 
-    // retrieve the dampingId of the current PML region
+    // get the dampingId of the current PML region
     curRegNode->GetValue("dampingId", pmlDampId);
 
     // check for PML formulation of current region: classic(=Cartesian) or curvilinear
@@ -544,7 +545,7 @@ namespace CoupledField{
       } else { // when pmlFormul is invalid...
         EXCEPTION("Unknown PML formulation '" << pmlFormul << "' for AcousticPDE. Possible formulations: 'classic', 'curvilinear'.")
       }
-    } else { // if(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE)
+    } else { // if( !(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE) )
       if (pmlFormul == "classic") {
         if (dim_ == 2) {
           DefineTransientPMLInts<2>(actSDList, pmlDampId, actRegion, tempId); // add here
