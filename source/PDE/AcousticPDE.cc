@@ -356,21 +356,23 @@ namespace CoupledField{
           } else {
             stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), coeffK, 1.0, updatedGeo_ );
           }
-      }
+        }
 
         // ====================================================================
         // standard mass integrator
         // ====================================================================
         if( dim_ == 2 ) {
-          if ( complexFluidFormulation_ )
+          if ( complexFluidFormulation_ ) {
             massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
-          else
+          } else {
             massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
+          }
         } else { // dim_== 3
-          if  ( complexFluidFormulation_ )
+          if  ( complexFluidFormulation_ ) {
             massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
-          else
+          } else {
             massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
+          }
         }
       }
 
@@ -406,6 +408,7 @@ namespace CoupledField{
       massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
 
       BiLinFormContext *massContext =  new BiLinFormContext(massInt, MASS );
+      
       // Check for damping (mass part)
       if ( dampingList_[actRegion] == RAYLEIGH ) {
         if ( complexFluidFormulation_ )
@@ -424,28 +427,18 @@ namespace CoupledField{
       // ====================================================================
       // flow integrators
       // ====================================================================
-      if (dim_ == 2) 
-      {
-        if (isComplex_) 
-        {
+      if (dim_ == 2) {
+        if (isComplex_) {
           DefineConvectiveIntegrators<2, true>(actRegion, curRegNode, actSDList, coeffM);
-        }
-
-        else 
-        {
+        } else {
           DefineConvectiveIntegrators<2, false>(actRegion, curRegNode, actSDList, coeffM);
         }
       } 
       
-      else
-      { /* if (dim_ == 3) */
-        if (isComplex_)
-        {
+      else { /* if (dim_ == 3) */
+        if (isComplex_) {
           DefineConvectiveIntegrators<3, true>(actRegion, curRegNode, actSDList, coeffM);
-        } 
-
-        else 
-        {
+        } else {
           DefineConvectiveIntegrators<3, false>(actRegion, curRegNode, actSDList, coeffM);
         }
       }
@@ -494,14 +487,14 @@ namespace CoupledField{
                                         coeffPMLStiff, 1.0, updatedGeo_ );
           massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Complex>(), 
                                        coeffPMLMass, 1.0, updatedGeo_ );
-        } else { // 3D
+        } else { // dim == 3
           stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
                                         coeffPMLStiff, 1.0, updatedGeo_ );
           massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Complex>(), 
                                        coeffPMLMass, 1.0, updatedGeo_ );
         }
         // set coordinate stretching coefFunction
-        stiffInt->SetBCoefFunctionOpB(coeffPMLVector);
+        stiffInt->SetBCoefFunctionOpB(coeffPMLVector);  // maybe this is at the wrong spot
       }
       else if (pmlFormul == "curvilinear") {
         if (complexFluidFormulation_)
@@ -541,20 +534,20 @@ namespace CoupledField{
                                        coeffPMLMass, 1.0, updatedGeo_ );
         }
         // set coordinate stretching coefFunction
-        stiffInt->SetBCoefFunctionOpB(coeffPMLTensor);
+        stiffInt->SetBCoefFunctionOpB(coeffPMLTensor);  // maybe this is at the wrong spot
       } else { // when pmlFormul is invalid...
         EXCEPTION("Unknown PML formulation '" << pmlFormul << "' for AcousticPDE. Possible formulations: 'classic', 'curvilinear'.")
       }
-    } else { // if( !(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE) )
+    } else { // if not harmonic, define the transient integrators
       if (pmlFormul == "classic") {
         if (dim_ == 2) {
-          DefineTransientPMLInts<2>(actSDList, pmlDampId, actRegion, tempId); // add here
+          DefineTransientPMLInts<2>(actSDList, pmlDampId, actRegion, tempId);
           // + standard stiff + mass ints
           stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), coeffK,
                                         1.0, updatedGeo_ );
           massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 
                                         1.0, updatedGeo_ );
-        } else {
+        } else { // dim == 3
           DefineTransientPMLInts<3>(actSDList, pmlDampId, actRegion, tempId);
           // + standard stiff + mass ints
           stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), coeffK,
