@@ -310,6 +310,8 @@ namespace CoupledField {
         isNewton = true;
         assemble_->AssembleMatrices(isNewton);
         
+        // get rid of zeros for all matrices! M C K and update verions
+
         //compute effective matrix
         algsys_->ConstructEffectiveMatrix(NO_FCT_ID, matrix_factor_[NO_FCT_ID]);
 
@@ -332,6 +334,8 @@ namespace CoupledField {
         // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
         // afterwards, we notify the solver that the matrix pattern might change again in the next step
         if( useGetRidOfZeros_ ) {
+          // maybe we don't have to do that if we redefine the auxMat in the
+          // IDBChandler: auxMat_[*it] = sbmMat; - TODO
           algsys_->RestoreSystemMatrixFromBackup();
           algsys_->GetSolver()->SetNewMatrixPattern();
         }
@@ -649,6 +653,20 @@ namespace CoupledField {
         }
       } else {
         assemble_->AssembleMatrices();
+        // For future reference on how to improve getRidOfZeros functionality
+        // Now we have M, C, K and their updated versions
+        // Get rid of zeros and store new sparsity pattern here instead of
+        // acting only on the system matrix - this is especially useful for
+        // harmonic simulations, where unfortunate combinations of M, omega and
+        // K can lead to zeros for certain frequencies. Hence, we would have to
+        // redo the getRidOfZeros step for each frequency, which is not
+        // efficient. Doing it for M and K alone, it is enough to do it once in
+        // the beginning. Additionally, the need to restore the system matrix
+        // might vanish, but this has to be tested. This can only be done after
+        // the changes in https://gitlab.com/openCFS/cfs/-/merge_requests/185
+        // are introduced, since right now only the system matrix is considered
+        // for harmonic computations (no splitting in M and K).
+
         if(assemble_->IsMatrixUpdated()){
           //if AMG is used, rebuild auxiliary matrix
           auxSet_ = false;
@@ -690,7 +708,7 @@ namespace CoupledField {
       algsys_->BuildInDirichlet();
 
       // prepare the solver and preconditioner for the updated system matrix
-      if( assemble_->IsMatrixUpdated() || useGetRidOfZeros_ ) {
+      if( assemble_->IsMatrixUpdated() ) {
 
         // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
         SetupGetRidOfZerosActive();
@@ -699,6 +717,14 @@ namespace CoupledField {
           algsys_->GetRidOfZeros<Double>(getRidOfZerosTol_);
         }
 
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
+      } else if( useGetRidOfZeros_ ) {
+        // here we call the function again, but if it is already set by a matrix
+        // update, we skip the set process internally we have to call it twice
+        // since we need it before the solver setup to get correct solutions,
+        // but also after the IsMatrixUpdated part for non-moving transient
+        // computations
         algsys_->SetupPrecond();
         algsys_->SetupSolver();
       }
@@ -735,7 +761,7 @@ namespace CoupledField {
 
       // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
       // afterwards, we notify the solver that the matrix pattern might change again in the next step
-      if( useGetRidOfZeros_ ) {
+      if( useGetRidOfZeros_ && assemble_->IsMatrixUpdated() ) {
         algsys_->RestoreSystemMatrixFromBackup();
         algsys_->GetSolver()->SetNewMatrixPattern();
       }
