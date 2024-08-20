@@ -333,8 +333,8 @@ namespace CoupledField{
       LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffK = " << coeffK->ToString() << "\n";
       LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffM = " << coeffM->ToString() << "\n";
 
-      BaseBDBInt *stiffInt = NULL;
-      BaseBDBInt *massInt = NULL;
+      BaseBDBInt *stiffInt = nullptr;     // NULL;
+      BaseBDBInt *massInt =  nullptr;     // NULL;
       // ====================================================================
       // PML integrators
       // ====================================================================
@@ -427,19 +427,19 @@ namespace CoupledField{
       // ====================================================================
       // flow integrators
       // ====================================================================
-      if (dim_ == 2) {
-        if (isComplex_) {
-          DefineConvectiveIntegrators<2, true>(actRegion, curRegNode, actSDList, coeffM);
-        } else {
-          DefineConvectiveIntegrators<2, false>(actRegion, curRegNode, actSDList, coeffM);
-        }
-      } 
-      
-      else { /* if (dim_ == 3) */
+      if (dim_ == 3) /* turned this around since it stepped into 2D with dim_ = 3*/ {
         if (isComplex_) {
           DefineConvectiveIntegrators<3, true>(actRegion, curRegNode, actSDList, coeffM);
         } else {
           DefineConvectiveIntegrators<3, false>(actRegion, curRegNode, actSDList, coeffM);
+        }
+      } 
+      
+      else { /* if (dim_ == 2) */
+        if (isComplex_) {
+          DefineConvectiveIntegrators<2, true>(actRegion, curRegNode, actSDList, coeffM);
+        } else {
+          DefineConvectiveIntegrators<2, false>(actRegion, curRegNode, actSDList, coeffM);
         }
       }
     }
@@ -462,7 +462,7 @@ namespace CoupledField{
     pmlFormul = pmlNode->Get("formulation")->As<std::string>();
 
     // Check if the analysis type is harmonic or inverse-source
-    if (analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE) {
+    if (analysistype_ == HARMONIC || analysistype_ == /*BasePDE::*/INVERSESOURCE) {
       // For complex fluids, compute a real-valued speed of sound for PML definition
       shared_ptr<CoefFunction> densR, blkR, c0R;
       if (complexFluidFormulation_) {
