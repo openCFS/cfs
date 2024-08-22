@@ -3149,6 +3149,9 @@ namespace CoupledField {
         definedDofs.insert(i);
       }
 
+      //read in the defined dofs
+      dofString = cplNode->Get("quantity")->Get("dofs")->As<std::string>();
+
     }
     else if(valueNode->Has("scatteredData"))
     {

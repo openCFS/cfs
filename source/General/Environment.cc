@@ -250,6 +250,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_TOTAL_POTENTIAL, "magTotalPotential");
     SolutionTypeEnum.Add(MAG_REDUCED_POTENTIAL, "magReducedPotential");
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
+        SolutionTypeEnum.Add(MAG_RHS_ADJ_LOAD, "magRhsAdjLoad");
     SolutionTypeEnum.Add(FLUX_INDUCED_STRAIN, "fluxIndStrain");
 
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
