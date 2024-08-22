@@ -380,7 +380,7 @@ namespace CoupledField{
       // stiffness integrator context
       // ====================================================================
       stiffInt->SetName("LaplaceIntegrator");
-      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
+      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );  // information of stiffInt gets passed to stiffIntDescr
 
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH ) {
