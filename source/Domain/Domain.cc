@@ -801,9 +801,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         formulation = actPdeNode->Get("formulation")->As<std::string>();     
       }
       if (formulation == "A") {        
-        ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-      } else if (formulation == "A-Adj") {
-        ptSinglePde_[i] = new MagEdgeAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);     
+        ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);   
       } else if (formulation == "A-V"){        
         ptSinglePde_[i] = new MagEdgeMixedAVPDE(defaultGrid, actPdeNode, infoNode, simState_, this);  
       } else if(formulation == "specialA-V"){        
@@ -816,6 +814,9 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         EXCEPTION("Formulation of MagEdgePDE not known!");
       }
     }
+    else if (actPdeName == "magneticEdgeAdj") {
+      ptSinglePde_[i] = new MagEdgeAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);  
+    } 
     else if (actPdeName == "heatConduction")
       ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 

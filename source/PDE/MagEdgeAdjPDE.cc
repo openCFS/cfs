@@ -366,14 +366,15 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       bRHSRegions_[ent[i]->GetRegion()] = coef[i];      
     }
 
-
     // ==================
     //  FLUX DENSITY
     // ==================
     LOG_DBG(magEdgeAdjPde) << "Reading magnetic flux density from forward computation";
 
     //read magnetic field intensity from forward computation 
-    ReadRhsExcitation( "fluxDensity", dofNames, ResultInfo::VECTOR, isComplex_,
+    //get coeff-Fnc for magnetic flux density
+    StdVector<std::string> nameOfDofs;
+    ReadRhsExcitation( "fluxDensity", nameOfDofs, ResultInfo::VECTOR, isComplex_,
                        ent, coef, coefUpdateGeo );
 
     //Please note: we have do adapt the vector B and set all components to zero., which 
@@ -392,6 +393,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       do {
         std::string sub;
         iss >> sub;
+        //sub = "all";
         if( sub == "all" ) {
           // add all dofs to the definedDofs
           for( UInt k = 0; k<dim_; k++ ) {
@@ -408,6 +410,11 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
               scalVec[2] = 1.0;
         }
       } while (iss);
+
+      //read magnetic field intensity from forward computation 
+      //get coeff-Fnc for magnetic flux density
+      //ReadMaterialDependency( "fluxDensity", dofNames, ResultInfo::VECTOR, isComplex_,
+      //                        ent[i], coef[i], updatedGeo_ );
 
       // Here we store the B-field of the previous (forward) simulation
       Bmap_[ent[i]->GetRegion()] = coef[i];
@@ -538,7 +545,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     shared_ptr<CoefFunctionMulti> averagedBfnc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     DefineFieldResult(averagedBfnc, averagedB);  
 
-    //functor for averaged b-field
+    //functor for averaged b-field of forward simulation
     shared_ptr<ResultInfo> resB1(new ResultInfo());
     resB1->resultType = MAG_AVERAGED_FLUX_DENSITY;
     resB1->dofNames = vecComponents;
@@ -563,7 +570,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL_ADJ];
 
-      if (nuDerivParam_ == false) {
+    if (nuDerivParam_ == false) {
       // === Pure helper result ===
       shared_ptr<ResultInfo> ef(new ResultInfo);
       ef->resultType = OPT_RESULT_1; //RHS_PSEUDO_DENSITY;
@@ -587,7 +594,8 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       shared_ptr<ResultFunctor> gradRegion;
       gradRegion.reset(new ResultFunctorIntegrate<Double>(mult, feFct, gradAdjParam));
       resultFunctors_[MAG_GRAD_ADJ_PARAM] = gradRegion;
-    } else {
+    } 
+    else {
       //the reluctivity depends on parameters
       
       //for parameter 1
@@ -810,7 +818,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     //and standard Gauss integration
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if(formulation == "default" || formulation == "H_CURL"){
-      PtrParamNode potSpaceNode = infoNode->Get("magPotential");
+      PtrParamNode potSpaceNode = infoNode->Get("magPotentialAdj");
       crSpaces[MAG_POTENTIAL_ADJ] =
           FeSpace::CreateInstance(myParam_, potSpaceNode, FeSpace::HCURL, ptGrid_ );
       crSpaces[MAG_POTENTIAL_ADJ]->Init(solStrat_);

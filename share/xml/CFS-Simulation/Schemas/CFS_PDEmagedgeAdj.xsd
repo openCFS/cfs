@@ -8,7 +8,7 @@
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
       Coupled Field Solver project CFS++
-      Schema for PDE description for a magnetic PDE with edge degrees of freedoms
+      Schema for PDE description for a magnetic adjoint PDE with edge degrees of freedoms
     </xsd:documentation>
   </xsd:annotation>
 
@@ -16,16 +16,11 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for magnetics PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="magneticEdge" type="DT_PDEMagneticEdge" substitutionGroup="PDEBasic">
+  <xsd:element name="magneticEdgeAdj" type="DT_PDEMagneticEdgeAdj" substitutionGroup="PDEBasic">
     <xsd:annotation>
-      <xsd:documentation>Magnetic PDE solved by edge elements (just for 3D computations); primary dof is the magnetic vector potential
+      <xsd:documentation>Magnetic adjoint PDE solved by edge elements (just for 3D computations); primary dof is the magnetic vector potential
         There are the following formulations available:
-        -) A: formulation with reduced magnetic vector potential, sometimes called A* formulation (B-based)
         -) A-Adj: adjoint of "A" formulation
-        -) A-V: formulation with magnetic vector potential and electric scalar potential (B-based formulation)
-        -) specialAV: formulation specialized for total current excitation where the scalar potential V is precomputed with a Laplace problem (e.g. elecConductionPDE)
-        -) Darwin: Formulation with magnetic vector potential A and electric scalar potential V, neglecting only wave propagation in Maxwell's equations, capacitive-resistive-inductive are included
-        -) Darwin_doubleLagrange: Darwin formulation with an additional Lagrange multiplier used for stabilization
         
         if useGradientFields=true, we are using Nedelec edge elements of 2nd kind (not to be mistaken with higher order)
 
@@ -36,7 +31,7 @@
         MagneticScalarPotentialPDE are using the same material-tag in the material xml file.
       </xsd:documentation>
     </xsd:annotation>
-    <xsd:unique name="CS_MagneticEdgeRegion">
+    <xsd:unique name="CS_MagneticEdgeAdjRegion">
       <xsd:selector xpath="cfs:region"/>
       <xsd:field xpath="@name"/>
     </xsd:unique>
@@ -46,7 +41,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of data type for magnetics PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_PDEMagneticEdge">
+  <xsd:complexType name="DT_PDEMagneticEdgeAdj">
     <xsd:complexContent>
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
@@ -103,7 +98,7 @@
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="permeability" type="DT_MagneticEdgeNonLinPerm">
+                <xsd:element name="permeability" type="DT_MagneticEdgeAdjNonLinPerm">
                   <xsd:annotation>
                     <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
                   </xsd:annotation>
@@ -259,7 +254,7 @@
   <!-- ******************************************************************* -->
 
   <!-- Definition of permeability nonlinearity type -->
-  <xsd:complexType name="DT_MagneticEdgeNonLinPerm">
+  <xsd:complexType name="DT_MagneticEdgeAdjNonLinPerm">
     <xsd:complexContent>
       <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
@@ -268,9 +263,9 @@
   <!-- ******************************************************************* -->
   <!--   Definition of the magnetic unknown types -->
   <!-- ******************************************************************* -->
-  <xsd:simpleType name="DT_MagneticEdgeUnknownType">
+  <xsd:simpleType name="DT_MagneticEdgeAdjUnknownType">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="magPotential"/>
+      <xsd:enumeration value="magPotentialAdj"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -278,7 +273,7 @@
   <!--   Definition of enumeration type describing the degrees of freedom  -->
   <!-- ******************************************************************* -->
 
-  <xsd:simpleType name="DT_MagneticEdgeDOF">
+  <xsd:simpleType name="DT_MagneticEdgeAdjDOF">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="x"/>
       <xsd:enumeration value="y"/>
@@ -293,19 +288,19 @@
 
   <!-- Element type for homogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MagneticEdgeHD">
+  <xsd:complexType name="DT_MagneticEdgeAdjHD">
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="dof" type="DT_MagneticDOF" use="optional" default=""/>
-        <xsd:attribute name="quantity" default="magPotential" type="DT_MagneticEdgeUnknownType"/>
+        <xsd:attribute name="quantity" default="magPotentialAdj" type="DT_MagneticEdgeAdjUnknownType"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
   <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
   <!-- We derive it by extending the homogeneous case -->
-  <xsd:complexType name="DT_MagneticEdgeID">
+  <xsd:complexType name="DT_MagneticEdgeAdjID">
     <xsd:complexContent>
       <xsd:extension base="DT_MagneticHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
@@ -316,7 +311,7 @@
 
   <!-- Element type for specifying inhomogeneous neumann conditions -->
   <!-- Identical to that of inhomogeneous Dirichlet case -->
-  <xsd:complexType name="DT_MagneticEdgeIN">
+  <xsd:complexType name="DT_MagneticEdgeAdjIN">
     <xsd:complexContent>
       <xsd:extension base="DT_MagneticID"/>
     </xsd:complexContent>
@@ -325,7 +320,7 @@
 
   <!-- Element type for constraint condition -->
   <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MagneticEdgeCS">
+  <xsd:complexType name="DT_MagneticAdjEdgeCS">
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
@@ -340,7 +335,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of data type for non-linearity in mechanic PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:simpleType name="DT_MagneticEdgeNonLin">
+  <xsd:simpleType name="DT_MagneticEdgeAdjNonLin">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="no"/>
       <xsd:enumeration value="geo"/>
@@ -355,82 +350,38 @@
   <!-- ******************************************************************* -->
 
   <!-- Definition of edge result types of magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticEdgeEdgeResult">
+  <xsd:simpleType name="DT_MagneticEdgeEdgeAdjResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="magPotential"/>
-
+      <xsd:enumeration value="magPotentialAdj"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Definition of nodal result types of magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticEdgeNodeResult">
+  <xsd:simpleType name="DT_MagneticEdgeAdjNodeResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="magJouleLossPowerDensityOnNodes"/>
-      <xsd:enumeration value="elecPotential"/>
-      <xsd:enumeration value="lagrangeMultiplier"/>
-      <xsd:enumeration value="lagrangeMultiplier1"/>
     </xsd:restriction>
   </xsd:simpleType>
   
 
   <!-- Definition of elem result types of magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticEdgeElemResult">
+  <xsd:simpleType name="DT_MagneticEdgeAdjElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="magFluxDensity"/>
-      <xsd:enumeration value="magPotentialD1"/>
-      <xsd:enumeration value="magFieldIntensity"/>      
-      <xsd:enumeration value="elecFieldIntensity"/>
-      <xsd:enumeration value="elecFieldIntensityTransversal"/>
-      <xsd:enumeration value="elecFieldIntensityLongitudinal"/>
-      <xsd:enumeration value="displacementCurrentDensity"/>
-      <xsd:enumeration value="gradElecPotential"/>
-      <xsd:enumeration value="magPotentialDiv"/>
-      <xsd:enumeration value="magEddyCurrentDensity"/>
-      <xsd:enumeration value="magCoilCurrentDensity"/>
-      <xsd:enumeration value="magTotalCurrentDensity"/>
-      <xsd:enumeration value="magForceLorentzDensity"/>
-      <xsd:enumeration value="magPotential"/>
+      <xsd:enumeration value="magPotentialAdj"/>
       <xsd:enumeration value="magCurlAdj"/>
-      <xsd:enumeration value="magElemPermeability"/>
-      <xsd:enumeration value="magElemReluctivity"/>
-      <xsd:enumeration value="magRhsLoad"/>
-      <xsd:enumeration value="magCoreLossDensity"/>
-      <xsd:enumeration value="magJouleLossPowerDensity"/>
-      <!-- non-physical design variable for simp topology optimization of magnetic material (standard case) -->
-      <xsd:enumeration value="pseudoDensity" />
-      <!-- physical application of design variable in the simulation -->
-      <xsd:enumeration value="physicalPseudoDensity" />
-      <!-- further element results from optimization, specifically configured in optimization --> 
-      <xsd:enumeration value="optResult_1"/>
-      <xsd:enumeration value="optResult_2"/>
-      <xsd:enumeration value="optResult_3"/>
-      <xsd:enumeration value="optResult_4"/>
-      <xsd:enumeration value="optResult_5"/>
-      <xsd:enumeration value="optResult_6"/>
-      <xsd:enumeration value="optResult_7"/>
-      <xsd:enumeration value="optResult_8"/>
-      <xsd:enumeration value="optResult_9"/>
-      <xsd:enumeration value="magMagnetization"/>
-      <xsd:enumeration value="magPolarization"/>
+      <xsd:enumeration value="magRhsLoadAdj"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Definition of surface element result types of magneticedge PDE -->
-  <xsd:simpleType name="DT_MagneticEdgeSurfElemResult">
+  <xsd:simpleType name="DT_MagneticEdgeAdjSurfElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="magForceMaxwellDensity"/>
+      <!--xsd:enumeration value="magForceMaxwellDensity"/-->
     </xsd:restriction>
   </xsd:simpleType>
   
   <!-- Definition of region result types of magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticEdgeRegionResult">
+  <xsd:simpleType name="DT_MagneticEdgeAdjRegionResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="magEnergy"/>
-      <xsd:enumeration value="magEddyPower"/>
-      <xsd:enumeration value="magForceLorentz"/>
-      <xsd:enumeration value="magCoreLoss"/>
-      <xsd:enumeration value="magJouleLossPower"/>
-      <xsd:enumeration value="magAveragedFluxDensity"/>
       <xsd:enumeration value="volume"/>
       <xsd:enumeration value="magGradAdjParam"/>
       <xsd:enumeration value="magGradAdjParam1"/>
@@ -441,30 +392,19 @@
   </xsd:simpleType>
 
   <!-- Definition of surf region result types of magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticEdgeSurfRegionResult">
+  <xsd:simpleType name="DT_MagneticEdgeAdjSurfRegionResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="magEddyCurrent"/>
-      <xsd:enumeration value="magEddyCurrent1"/>
-      <xsd:enumeration value="magEddyCurrent2"/>
-      <xsd:enumeration value="displacementCurrent"/>
-      <xsd:enumeration value="magFlux"/>
-      <xsd:enumeration value="magForceVWP"/>
-      <xsd:enumeration value="magForceMaxwell"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Definition of coil result types of magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticEdgeCoilResult">
+  <xsd:simpleType name="DT_MagneticEdgeAdjCoilResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="coilVoltage"/>
-      <xsd:enumeration value="coilCurrent"/>
-      <xsd:enumeration value="coilInducedVoltage"/>
-      <xsd:enumeration value="coilLinkedFlux"/>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Global type for specifying desired electrostatic output quantities -->
-  <xsd:complexType name="DT_MagneticEdgeStoreResults">
+  <xsd:complexType name="DT_MagneticEdgeAdjStoreResults">
     <xsd:sequence>
       <xsd:choice maxOccurs="unbounded">
 
