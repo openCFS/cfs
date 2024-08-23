@@ -14,7 +14,7 @@
 
 
   <!-- ******************************************************************* -->
-  <!--   Definition of element for magnetics PDEs -->
+  <!--   Definition of element for magnetics adjoint PDEs -->
   <!-- ******************************************************************* -->
   <xsd:element name="magneticEdgeAdj" type="DT_PDEMagneticEdgeAdj" substitutionGroup="PDEBasic">
     <xsd:annotation>
@@ -223,7 +223,7 @@
           </xsd:element>
 
           <!-- Desired solution values (optional) -->
-          <xsd:element name="storeResults" type="DT_MagneticEdgeStoreResults" minOccurs="0"
+          <xsd:element name="storeResults" type="DT_MagneticEdgeAdjStoreResults" minOccurs="0"
             maxOccurs="1"/>
 
         </xsd:sequence>
@@ -350,7 +350,7 @@
   <!-- ******************************************************************* -->
 
   <!-- Definition of edge result types of magnetic PDE -->
-  <xsd:simpleType name="DT_MagneticEdgeEdgeAdjResult">
+  <xsd:simpleType name="DT_MagneticEdgeAdjResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotentialAdj"/>
     </xsd:restriction>
@@ -383,6 +383,7 @@
   <xsd:simpleType name="DT_MagneticEdgeAdjRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="volume"/>
+      <xsd:enumeration value="magAveragedFluxDensity"/>
       <xsd:enumeration value="magGradAdjParam"/>
       <xsd:enumeration value="magGradAdjParam1"/>
       <xsd:enumeration value="magGradAdjParam2"/>
@@ -413,7 +414,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_MagneticEdgeNodeResult"/>
+                <xsd:attribute name="type" type="DT_MagneticEdgeAdjNodeResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -424,7 +425,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_MagneticEdgeElemResult"/>
+                <xsd:attribute name="type" type="DT_MagneticEdgeAdjElemResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -435,7 +436,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
-                <xsd:attribute name="type" type="DT_MagneticEdgeRegionResult"/>
+                <xsd:attribute name="type" type="DT_MagneticEdgeAdjRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -446,7 +447,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
-                <xsd:attribute name="type" type="DT_MagneticEdgeSurfRegionResult" use="required"/>
+                <xsd:attribute name="type" type="DT_MagneticEdgeAdjSurfRegionResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -457,7 +458,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_CoilResult">
-                <xsd:attribute name="type" type="DT_MagneticEdgeCoilResult" use="required"/>
+                <xsd:attribute name="type" type="DT_MagneticEdgeAdjCoilResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -468,7 +469,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SensorArrayResult">
-                <xsd:attribute name="type" type="DT_MagneticEdgeElemResult"/>
+                <xsd:attribute name="type" type="DT_MagneticEdgeAdjElemResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
@@ -479,7 +480,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfElemResult">
-                <xsd:attribute name="type" type="DT_MagneticEdgeSurfElemResult" use="required"/>
+                <xsd:attribute name="type" type="DT_MagneticEdgeAdjSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
