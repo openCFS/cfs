@@ -13,7 +13,7 @@ namespace CoupledField
   class CurlCurlEdgeInt;
   class nLinCurlCurlEdgeInt;
 
-  //! Class for 3D magnetics using edge elements
+  //! Class for 3D adjoint magnetics using edge elements
   class MagEdgeAdjPDE : public MagBasePDE
   {
   public:
@@ -158,7 +158,7 @@ namespace CoupledField
   //! 
   //! \unused 
   //! 
-  //! \improve Encapsulate the defintiion of magnets within an own struct
+  //! \improve Encapsulate the defintion of magnets within an own struct
   //! 
 
 #endif

@@ -371,7 +371,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     // ==================
     LOG_DBG(magEdgeAdjPde) << "Reading magnetic flux density from forward computation";
 
-    //read magnetic field intensity from forward computation 
+    //read magnetic field intensity from forward computation; computed via magEdgePDE
     //get coeff-Fnc for magnetic flux density
     StdVector<std::string> nameOfDofs;
     ReadRhsExcitation( "fluxDensity", nameOfDofs, ResultInfo::VECTOR, isComplex_,
@@ -411,12 +411,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
         }
       } while (iss);
 
-      //read magnetic field intensity from forward computation 
-      //get coeff-Fnc for magnetic flux density
-      //ReadMaterialDependency( "fluxDensity", dofNames, ResultInfo::VECTOR, isComplex_,
-      //                        ent[i], coef[i], updatedGeo_ );
-
-      // Here we store the B-field of the previous (forward) simulation
+      // Here we store the B-field of the forward) simulation (magEdgePDE)
       Bmap_[ent[i]->GetRegion()] = coef[i];
 
       if(isComplex_) {
@@ -450,7 +445,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     StdVector<std::string> vecComponents;
     vecComponents = "x", "y", "z";
 
-    // === MAGNETIC VECTOR POTENTIAL ===
+    // === ADJOINT MAGNETIC VECTOR POTENTIAL ===
     shared_ptr<ResultInfo> potInfo(new ResultInfo);
     potInfo->resultType = MAG_POTENTIAL_ADJ;
     potInfo->dofNames = vecComponents;
@@ -476,11 +471,8 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     permeability->entryType = ResultInfo::SCALAR;
 
     if(analysistype_ == MULTIHARMONIC){
-      shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, true));
-      matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
-      DefineFieldResult(permFct, permeability);
+       EXCEPTION("MagEdgeAdjPDE is not working with MULTIHARMONIC analysis!");
     }else{
-      //In multiharmonic analysis we have complex permeability
       shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
       matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
       DefineFieldResult(permFct, permeability);
@@ -494,9 +486,9 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL_ADJ];
 
-    // === MAGNETIC RHS ===
+    // === Adjoint MAGNETIC RHS ===
     shared_ptr<ResultInfo> rhs(new ResultInfo);
-    rhs->resultType = MAG_RHS_LOAD;
+    rhs->resultType = MAG_RHS_LOAD_ADJ;
     rhs->dofNames = vecComponents;
     rhs->unit = "-";
     rhs->entryType = ResultInfo::VECTOR;
@@ -557,8 +549,6 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     averagedBfield.reset(new ResultFunctorIntegrate<Double>(averagedBfnc, feFct, resB1));
     dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(averagedBfield)->SetAveraged(true);
     resultFunctors_[MAG_AVERAGED_FLUX_DENSITY] = averagedBfield;   
-
-
   }
 
   void MagEdgeAdjPDE::FinalizePostProcResults() {
