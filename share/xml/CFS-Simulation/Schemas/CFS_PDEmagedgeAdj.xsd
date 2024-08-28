@@ -114,27 +114,27 @@
 
           <!-- List defining nonlinear material dependency types -->
           <xsd:element name="matDependencyList" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="electricConductivity" type="DT_matDependency">
-                  <xsd:annotation>
-                    <xsd:documentation>Electric conductivity as function of temperature</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
-                <xsd:element name="permeability" type="DT_matDependency">
-                  <xsd:annotation>
-                    <xsd:documentation>Magnetic permeability as function of temperature</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
-                <xsd:element name="reluctivity" type="DT_matDependency">
-                  <xsd:annotation>
-                    <xsd:documentation>Magnetic reluctivity as function of magnetic flux density</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
-              </xsd:choice>
-            </xsd:complexType>
+              <xsd:complexType>
+                  <xsd:choice maxOccurs="unbounded">
+                     <xsd:element name="electricConductivity" type="DT_matDependency">
+                       <xsd:annotation>
+                          <xsd:documentation>Electric conductivity as function of temperature</xsd:documentation>
+                       </xsd:annotation>
+                     </xsd:element>
+                  <xsd:element name="permeability" type="DT_matDependency">
+                      <xsd:annotation>
+                         <xsd:documentation>Magnetic permeability as function of temperature</xsd:documentation>
+                      </xsd:annotation>
+                  </xsd:element>
+                  <xsd:element name="reluctivity" type="DT_matDependency">
+                        <xsd:annotation>
+                           <xsd:documentation>Magnetic reluctivity as function of magnetic flux density</xsd:documentation>
+                         </xsd:annotation>
+                      </xsd:element>
+                    </xsd:choice>
+                  </xsd:complexType>
           </xsd:element>
-
+          
           <!-- Type of velocity (optional) -->
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -234,9 +234,6 @@
               <xsd:enumeration value="A"/> 
               <xsd:enumeration value="A-V"/>
               <xsd:enumeration value="specialA-V"/> 
-              <xsd:enumeration value="Darwin"/> 
-              <xsd:enumeration value="Darwin_doubleLagrange"/>
-              <xsd:enumeration value="mixedSFG"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 

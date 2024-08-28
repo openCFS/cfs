@@ -744,8 +744,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
   for (UInt i = 0; i < pdeNodes.GetSize(); i++)
   {
 
-    std::string actPdeName = pdeNodes[i]->GetName();
-    bool isAdjoint = pdeNodes[i]->Get("isAdjoint")->As<bool>();
+    std::string actPdeName = pdeNodes[i]->GetName();    
     PtrParamNode actPdeNode = pdeNodes[i];
     if( isParentDomain_) {
       //check for formulation
@@ -785,16 +784,15 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       if (formulation == "A") {
         ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }else if(formulation == "Psi") {
-        if ( isAdjoint )
-          ptSinglePde_[i] = new MagneticScalarPotentialAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-        else
-          ptSinglePde_[i] = new MagneticScalarPotentialPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+        ptSinglePde_[i] = new MagneticScalarPotentialPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }
       else{
         EXCEPTION("Formulation of MagEdgePDE not known!");
       }
     }
-
+    else if (actPdeName == "magneticScalarPotentialAdj"){
+      ptSinglePde_[i] = new MagneticScalarPotentialAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+    }
     else if (actPdeName == "magneticEdge"){
       std::string formulation = "No Special Formuation";
       if ( actPdeNode->Has("formulation") ) {
@@ -905,7 +903,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
-    // std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
+    //std::cout << "CreateIterCoupledPDE, PDE: " << ptSinglePde_[i]->GetName() << std::endl;
     ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
   

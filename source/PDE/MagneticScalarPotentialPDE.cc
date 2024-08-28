@@ -429,7 +429,6 @@ namespace CoupledField
     shared_ptr<CoefFunctionMulti> hIntensFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     DefineFieldResult(hIntensFunc, ef);
 
-
     // === PERMEABILITY  ===
     shared_ptr<ResultInfo> perm(new ResultInfo);
     perm->resultType = MAG_ELEM_PERMEABILITY;
@@ -455,7 +454,6 @@ namespace CoupledField
       perm->entryType = ResultInfo::SCALAR;
       DefineFieldResult( perm_, perm );
     }
-
 
     // =====================================================
     // MAG_FLUX_DENSTIY (START)

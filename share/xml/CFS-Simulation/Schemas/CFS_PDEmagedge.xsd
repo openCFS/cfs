@@ -392,7 +392,6 @@
       <xsd:enumeration value="magForceLorentzDensityStatic"/>
       <xsd:enumeration value="magForceLorentzDensityHarmonic"/>
       <xsd:enumeration value="magPotential"/>
-      <xsd:enumeration value="magCurlAdj"/>
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magElemReluctivity"/>
       <xsd:enumeration value="magRhsLoad"/>
@@ -434,11 +433,6 @@
       <xsd:enumeration value="magJouleLossPower"/>
       <xsd:enumeration value="magAveragedFluxDensity"/>
       <xsd:enumeration value="volume"/>
-      <xsd:enumeration value="magGradAdjParam"/>
-      <xsd:enumeration value="magGradAdjParam1"/>
-      <xsd:enumeration value="magGradAdjParam2"/>
-      <xsd:enumeration value="magGradAdjParam3"/>
-      <xsd:enumeration value="magGradAdjParam4"/>
     </xsd:restriction>
   </xsd:simpleType>
 
