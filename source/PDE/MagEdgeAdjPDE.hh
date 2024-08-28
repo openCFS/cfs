@@ -133,8 +133,11 @@ namespace CoupledField
     std::map<RegionIdType, PtrCoefFct> nuDerivParamM3_;
     std::map<RegionIdType, PtrCoefFct> nuDerivParamM4_;
 
-    //! map containing the magnetic flux density for postprocessing to computae gradient
+    //! map containing the magnetic flux density of forward simulation
     std::map<RegionIdType, PtrCoefFct> bPostproc_;
+
+    //! map containing the magnetic flux density of forward simulation, in case of design parameters
+    std::map<RegionIdType, PtrCoefFct> bPostprocParam_;
 
     //yes, when reluctivity depends on parameters
     bool nuDerivParam_;

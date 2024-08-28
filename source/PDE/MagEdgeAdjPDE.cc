@@ -20,7 +20,7 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
-
+#include "CoupledPDE/IterCoupledPDE.hh"
 
 
 // forms
@@ -67,7 +67,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     formulation_ = MagBasePDE::EDGE;
 
     //! Always use updated Lagrangian formulation
-    updatedGeo_        = true; //true;
+    updatedGeo_        = false; //true;
 
     // default is false
     useGradFields_ = paramNode->Get("useGradientFields")->As<bool>();
@@ -149,6 +149,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
 
       //get reluctivity as coef-function
       if ( matDepenTypes.Find(RELUCTIVITY) != -1 ) {
+        //std::cout << "Region name: " << regionName << "  is matDepent" << std::endl;
         PtrCoefFct coef; 
         //dependency of magnetic reluctivity of magnetic flux density (computed by forward problem)            
         StdVector<std::string> dispDofNames;  
@@ -175,9 +176,16 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
         nuDerivParamM2_[actRegion] = derivParam2;
         nuDerivParamM3_[actRegion] = derivParam3;
         nuDerivParamM4_[actRegion] = derivParam4;
-        bPostproc_[actRegion] = coef;
+        bPostprocParam_[actRegion] = coef;
       } 
       else {
+        //std::cout << "Region name: " << regionName << "  is NOT matDepent" << std::endl;
+        //get coeFunction for magnetic flux density computed by solving the forward PDE
+        PtrCoefFct coef; 
+        std::string pdeName = "magneticEdge";
+        bPostproc_[actRegion] = iterCplPde_->GetCouplingCoefFct(MAG_FLUX_DENSITY, actSDList, pdeName, updatedGeo_);
+
+        //get the reluctivity
         curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL ); 
       }
 
@@ -364,6 +372,9 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       myFct->AddEntityList(ent[i]);
 
       bRHSRegions_[ent[i]->GetRegion()] = coef[i];      
+
+      // Here we store the B-field of the forward) simulation (magEdgePDE)
+      Bmap_[ent[i]->GetRegion()] = coef[i];
     }
 
     // ==================
@@ -377,8 +388,8 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     ReadRhsExcitation( "fluxDensity", nameOfDofs, ResultInfo::VECTOR, isComplex_,
                        ent, coef, coefUpdateGeo );
 
-    //Please note: we have do adapt the vector B and set all components to zero., which 
-    //where not measured by the sensors; e.g., when the sensor just measures the x-component 
+    //Please note: we have do adapt the vector B and set all components to zero,  
+    //where no field is measured by the sensors; e.g., when the sensor just measures the x-component 
     //then we have to set the y- and z-component to zero, which we do by the scalVec!
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
@@ -414,12 +425,14 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       // Here we store the B-field of the forward) simulation (magEdgePDE)
       Bmap_[ent[i]->GetRegion()] = coef[i];
 
+      PtrCoefFct coefB = bPostproc_[ent[i]->GetRegion()]; 
+
       if(isComplex_) {
         lin2 = new BUIntegrator<Complex>( new CurlOperator<FeHCurl,3, Complex>(),
-                                         Complex(-1.0), coef[i], coefUpdateGeo);
+                                         Complex(-1.0), coefB, coefUpdateGeo);
       } else {
         lin2 = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3, Double>(),
-                                        -1.0, coef[i], coefUpdateGeo);
+                                        -1.0, coefB, coefUpdateGeo);
       }
       lin2->SetName("MagFlux4ForwardIntegrator");
       lin2->SetScalVec(scalVec);
@@ -549,12 +562,14 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     averagedBfield.reset(new ResultFunctorIntegrate<Double>(averagedBfnc, feFct, resB1));
     dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(averagedBfield)->SetAveraged(true);
     resultFunctors_[MAG_AVERAGED_FLUX_DENSITY] = averagedBfield;   
+
   }
 
   void MagEdgeAdjPDE::FinalizePostProcResults() {
 
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
+
     StdVector<std::string> vecComponents;
     vecComponents = "x", "y", "z";
 
@@ -563,12 +578,11 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
     if (nuDerivParam_ == false) {
       // === Pure helper result ===
       shared_ptr<ResultInfo> ef(new ResultInfo);
-      ef->resultType = OPT_RESULT_1; //RHS_PSEUDO_DENSITY;
+      ef->resultType = OPT_RESULT_1; 
       ef->dofNames = "";
       ef->unit = "";
       ef->definedOn = ResultInfo::ELEMENT;
-      ef->entryType = ResultInfo::SCALAR;
-      // The computation of the gradient of the design parameters is defined in FinalizePostProcResults()
+      ef->entryType = ResultInfo::SCALAR;      
       shared_ptr<CoefFunctionMulti> mult(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
       DefineFieldResult(mult, ef);
 
@@ -596,7 +610,6 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       ef1->unit = "";
       ef1->definedOn = ResultInfo::ELEMENT;
       ef1->entryType = ResultInfo::SCALAR;
-      // The computation of the gradient of the design parameters is defined in FinalizePostProcResults()
       shared_ptr<CoefFunctionMulti> mult1(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
       DefineFieldResult(mult1, ef1);
 
@@ -621,7 +634,6 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       ef2->unit = "";
       ef2->definedOn = ResultInfo::ELEMENT;
       ef2->entryType = ResultInfo::SCALAR;
-      // The computation of the gradient of the design parameters is defined in FinalizePostProcResults()
       shared_ptr<CoefFunctionMulti> mult2(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
       DefineFieldResult(mult2, ef2);
 
@@ -646,7 +658,6 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
       ef3->unit = "";
       ef3->definedOn = ResultInfo::ELEMENT;
       ef3->entryType = ResultInfo::SCALAR;
-      // The computation of the gradient of the design parameters is defined in FinalizePostProcResults()
       shared_ptr<CoefFunctionMulti> mult3(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
       DefineFieldResult(mult3, ef3);
 
@@ -703,9 +714,9 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
         PtrCoefFct Bforward = NULL;
         PtrCoefFct mult = NULL;
         RegionIdType actRegion = *regIt;
-        if(Bmap_.find(*regIt) != Bmap_.end()){
+        if(bPostproc_.find(*regIt) != bPostproc_.end()){
           // B from previous (forward) simulation
-          Bforward = Bmap_[*regIt];
+          Bforward = bPostproc_[*regIt];
           // result MAG_CURL_ADJ is curl(p), where p is the adjoint solution!
           PtrCoefFct curlAdj = this->GetCoefFct(MAG_CURL_ADJ);
           mult = CoefFunction::Generate( mp_, Global::REAL,
@@ -749,9 +760,9 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
           bField->AddRegion(*regIt, Bforward);
         }
 
-        if (bPostproc_.find(*regIt) != bPostproc_.end()) {
+        if (bPostprocParam_.find(*regIt) != bPostprocParam_.end()) {
           // B from previous (forward) simulation
-          Bforward = bPostproc_[*regIt];
+          Bforward = bPostprocParam_[*regIt];
           bField->AddRegion(*regIt, Bforward);
 
           // result MAG_CURL_ADJ is curl(p), where p is the adjoint solution!

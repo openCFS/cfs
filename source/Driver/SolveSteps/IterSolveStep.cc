@@ -738,11 +738,14 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
     
     // In the end print final ordering:
+    std::cout << "++ Final ordering of PDEs: ";
     LOG_DBG(itersolvestep) << "Final ordering of PDEs:";
     for( UInt i = 0; i < rPDE_.numPDEs_; ++i ) {
       LOG_DBG(itersolvestep) << "\t" << i+1 << ": " 
           <<  rPDE_.PDEs_[i]->GetName();
+          std::cout << " " << i+1 << ": " <<  rPDE_.PDEs_[i]->GetName();
     }
+    std::cout << std::endl;
   }
   
   PtrCoefFct IterSolveStep::GetCouplingCoefFct( SolutionType type,
@@ -765,7 +768,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
      // Initial implementation: Directly access CoefFct of PDE
      // Later we use the interface, which keeps track of the norm of the coupling quantity
      for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
-	 
+	     std::string name = rPDE_.singlePDEs_[i]->GetName();
        if( rPDE_.singlePDEs_[i]->GetName() == pdeName ) {
 
          coef = rPDE_.singlePDEs_[i]->GetCoefFct(type);

@@ -223,6 +223,7 @@ namespace CoupledField {
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
     SolutionTypeEnum.Add(MAG_POTENTIAL_ADJ, "magPotentialAdj");
+    SolutionTypeEnum.Add(MAG_POTENTIAL_GRAD_ADJ, "magPotentialGradAdj");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DERIV1, "magPotentialD1");
     SolutionTypeEnum.Add(MAG_POTENTIAL_ADJ_DERIV1, "magPotentialAdjD1");
     SolutionTypeEnum.Add(MAG_TOTAL_POTENTIAL, "magTotalPotential");
@@ -1171,6 +1172,10 @@ namespace CoupledField {
 
       case MAG_POTENTIAL_ADJ:
         return "Vs/m";
+        break;
+
+      case MAG_POTENTIAL_GRAD_ADJ:
+        return "Vs/m^2";
         break;
 
       case MAG_FLUX_DENSITY:
