@@ -339,7 +339,7 @@ namespace CoupledField{
       // PML integrators
       // ====================================================================
       if (dampingList_[actRegion] == PML)
-        DefinePMLIntegrators(actRegion, actSDList, curRegNode, c0, coeffK, coeffM, tempId, massInt, stiffInt);
+        DefinePMLIntegrators(actRegion, actSDList, curRegNode, c0, coeffK, coeffM, tempId, stiffInt, massInt);
       else {
         // ====================================================================
         // standard stiffness integrator
