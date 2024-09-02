@@ -525,7 +525,7 @@ namespace CoupledField{
           CoefXprBinOp(mp_, coeffPMLDeterminant, coeffM, CoefXpr::OP_MULT));
         // + cuvilinear PML ints (stiff + mass)
         if (dim_ == 2) {
-          // add 2D implementation here =)
+          // TODO: 2D implementation here
         } else { // 3D
           // define integrators for curvilinear PML in 3D
           stiffInt = new BBInt<Complex>(new TensorScaledGradientOperator<FeH1,3,Complex>(),
