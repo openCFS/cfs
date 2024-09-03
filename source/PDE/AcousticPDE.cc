@@ -341,39 +341,48 @@ namespace CoupledField{
       if (dampingList_[actRegion] == PML)
         DefinePMLIntegrators(actRegion, actSDList, curRegNode, c0, coeffK, coeffM, tempId, stiffInt, massInt);
       else {
+        if (dim_ == 2) {
+          DefineStiffIntegrators<2>(stiffInt, coeffK, complexFluidFormulation_, updatedGeo_);
+          DefineMassIntegrator<2>(massInt, coeffM, complexFluidFormulation_, updatedGeo_);
+        } else if (dim_ == 3) {
+          DefineStiffIntegrators<3>(stiffInt, coeffK, complexFluidFormulation_, updatedGeo_);
+          DefineMassIntegrator<3>(massInt, coeffM, complexFluidFormulation_, updatedGeo_);
+        } else {
+          EXCEPTION("Unsupported dimension for PDE");
+        }
         // ====================================================================
         // standard stiffness integrator
         // ====================================================================
-        if( dim_ == 2 ) {
-          if ( complexFluidFormulation_ ) {
-            stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,2>(), coeffK, 1.0, updatedGeo_ );
-          } else {
-            stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), coeffK, 1.0, updatedGeo_ );
-         }
-        } else { // dim_ == 3
-          if ( complexFluidFormulation_ ) {
-            stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(), coeffK, 1.0, updatedGeo_ );
-          } else {
-            stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), coeffK, 1.0, updatedGeo_ );
-          }
-        }
+        // if( dim_ == 2 ) {
+        //   if ( complexFluidFormulation_ ) {
+        //     stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,2>(), coeffK, 1.0, updatedGeo_ );
+        //   } else {
+        //     stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), coeffK, 1.0, updatedGeo_ );
+        //  }
+        // } else { // dim_ == 3
+        //   if ( complexFluidFormulation_ ) {
+        //     stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(), coeffK, 1.0, updatedGeo_ );
+        //   } else {
+        //     stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), coeffK, 1.0, updatedGeo_ );
+        //   }
+        // }
 
         // ====================================================================
         // standard mass integrator
         // ====================================================================
-        if( dim_ == 2 ) {
-          if ( complexFluidFormulation_ ) {
-            massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
-          } else {
-            massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
-          }
-        } else { // dim_== 3
-          if  ( complexFluidFormulation_ ) {
-            massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
-          } else {
-            massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
-          }
-        }
+        // if( dim_ == 2 ) {
+        //   if ( complexFluidFormulation_ ) {
+        //     massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
+        //   } else {
+        //     massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
+        //   }
+        // } else { // dim_== 3
+        //   if  ( complexFluidFormulation_ ) {
+        //     massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
+        //   } else {
+        //     massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
+        //   }
+        // }
       }
 
       // ====================================================================
@@ -444,7 +453,6 @@ namespace CoupledField{
       }
     }
   }
-
 
   void AcousticPDE::DefinePMLIntegrators(RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrParamNode& curRegNode,
                                          PtrCoefFct& c0, PtrCoefFct& coeffK, PtrCoefFct& coeffM, std::string& tempId,
@@ -2673,6 +2681,46 @@ namespace CoupledField{
         assemble_->AddBiLinearForm(convectiveContextDampDivU);
         assemble_->AddBiLinearForm(convectiveContextStiffDivU);
       }
+    }
+  }
+
+  template <UInt DIM>
+  void AcousticPDE::DefineStiffIntegrators(BaseBDBInt*& stiffInt, PtrCoefFct coeffK, bool complexFluidFormulation, bool updatedGeo) {
+    if (DIM == 2) {
+      if (complexFluidFormulation) {
+        stiffInt = new BBInt<Complex>(new GradientOperator<FeH1, 2>(), coeffK, 1.0, updatedGeo);
+      } else {
+        stiffInt = new BBInt<Double>(new GradientOperator<FeH1, 2>(), coeffK, 1.0, updatedGeo);
+      }
+    } else if (DIM == 3) {
+      if (complexFluidFormulation) {
+        stiffInt = new BBInt<Complex>(new GradientOperator<FeH1, 3>(), coeffK, 1.0, updatedGeo);
+      } else {
+        stiffInt = new BBInt<Double>(new GradientOperator<FeH1, 3>(), coeffK, 1.0, updatedGeo);
+      }
+    } else {
+      // just for the sake of completeness - delete if too clean
+      EXCEPTION("<SANITY CHECK> Unsupported dimension for MassIntegrator");
+    }
+  }
+
+  template <UInt DIM>
+  void AcousticPDE::DefineMassIntegrator(BaseBDBInt*& massInt, PtrCoefFct coeffM, bool complexFluidFormulation, bool updatedGeo) {
+    if (DIM == 2) {
+      if (complexFluidFormulation) {
+        massInt = new BBInt<Complex>(new IdentityOperator<FeH1, 2, 1, Double>, coeffM, 1.0, updatedGeo);
+      } else {
+        massInt = new BBInt<Double>(new IdentityOperator<FeH1, 2, 1, Double>, coeffM, 1.0, updatedGeo);
+      }
+    } else if (DIM == 3) {
+      if (complexFluidFormulation) {
+        massInt = new BBInt<Complex>(new IdentityOperator<FeH1, 3, 1, Double>, coeffM, 1.0, updatedGeo);
+      } else {
+        massInt = new BBInt<Double>(new IdentityOperator<FeH1, 3, 1, Double>, coeffM, 1.0, updatedGeo);
+      }
+    } else {
+      // just for the sake of completeness - delete if too clean
+      EXCEPTION("<SANITY CHECK> Unsupported dimension for MassIntegrator");
     }
   }
 }

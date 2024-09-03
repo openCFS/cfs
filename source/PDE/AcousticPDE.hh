@@ -163,11 +163,18 @@ namespace CoupledField{
     void DefineConvectiveIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, PtrCoefFct coeffM);
 
     //! Definition of PML integrators
-    //! TODO: \param
-    // TODO: later turn into template too!
+    //! = refactored workflow in DefineIntegrators()
     void DefinePMLIntegrators(RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrParamNode& curRegNode,
                               PtrCoefFct& c0, PtrCoefFct& coeffK, PtrCoefFct& coeffM, std::string& tempId,
                               BaseBDBInt*& stiffInt,  BaseBDBInt*& massInt);
+
+    //! Define stiffness integrators
+    template <UInt DIM>
+    void DefineStiffIntegrators(BaseBDBInt*& stiffInt, PtrCoefFct coeffK, bool complexFluidFormulation, bool updatedGeo);
+
+    //! Define mass integrators
+    template <UInt DIM>
+    void DefineMassIntegrator(BaseBDBInt*& massInt, PtrCoefFct coeffM, bool complexFluidFormulation, bool updatedGeo);
   };
 }
 
