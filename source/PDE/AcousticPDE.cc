@@ -333,8 +333,8 @@ namespace CoupledField{
       LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffK = " << coeffK->ToString() << "\n";
       LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffM = " << coeffM->ToString() << "\n";
 
-      BaseBDBInt *stiffInt = nullptr;     // NULL;
-      BaseBDBInt *massInt =  nullptr;     // NULL;
+      BaseBDBInt *stiffInt = nullptr;
+      BaseBDBInt *massInt =  nullptr;
       // ====================================================================
       // PML integrators
       // ====================================================================
@@ -350,39 +350,6 @@ namespace CoupledField{
         } else {
           EXCEPTION("Unsupported dimension for PDE");
         }
-        // ====================================================================
-        // standard stiffness integrator
-        // ====================================================================
-        // if( dim_ == 2 ) {
-        //   if ( complexFluidFormulation_ ) {
-        //     stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,2>(), coeffK, 1.0, updatedGeo_ );
-        //   } else {
-        //     stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), coeffK, 1.0, updatedGeo_ );
-        //  }
-        // } else { // dim_ == 3
-        //   if ( complexFluidFormulation_ ) {
-        //     stiffInt = new BBInt<Complex>(new GradientOperator<FeH1,3>(), coeffK, 1.0, updatedGeo_ );
-        //   } else {
-        //     stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), coeffK, 1.0, updatedGeo_ );
-        //   }
-        // }
-
-        // ====================================================================
-        // standard mass integrator
-        // ====================================================================
-        // if( dim_ == 2 ) {
-        //   if ( complexFluidFormulation_ ) {
-        //     massInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
-        //   } else {
-        //     massInt = new BBInt<Double>(new IdentityOperator<FeH1,2,1,Double>,coeffM, 1.0, updatedGeo_ );
-        //   }
-        // } else { // dim_== 3
-        //   if  ( complexFluidFormulation_ ) {
-        //     massInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
-        //   } else {
-        //     massInt = new BBInt<Double>(new IdentityOperator<FeH1,3,1,Double>, coeffM, 1.0, updatedGeo_ );
-        //   }
-        // }
       }
 
       // ====================================================================
@@ -418,7 +385,7 @@ namespace CoupledField{
 
       BiLinFormContext *massContext =  new BiLinFormContext(massInt, MASS );
       
-      // Check for damping (mass part)
+      // Check for damping
       if ( dampingList_[actRegion] == RAYLEIGH ) {
         if ( complexFluidFormulation_ )
           EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
@@ -436,19 +403,19 @@ namespace CoupledField{
       // ====================================================================
       // flow integrators
       // ====================================================================
-      if (dim_ == 3) /* turned this around since it stepped into 2D with dim_ = 3*/ {
-        if (isComplex_) {
-          DefineConvectiveIntegrators<3, true>(actRegion, curRegNode, actSDList, coeffM);
-        } else {
-          DefineConvectiveIntegrators<3, false>(actRegion, curRegNode, actSDList, coeffM);
-        }
-      } 
-      
-      else { /* if (dim_ == 2) */
+      if (dim_ == 2) {
         if (isComplex_) {
           DefineConvectiveIntegrators<2, true>(actRegion, curRegNode, actSDList, coeffM);
         } else {
           DefineConvectiveIntegrators<2, false>(actRegion, curRegNode, actSDList, coeffM);
+        }
+      } 
+      
+      else { /* if (dim_ == 3) */
+        if (isComplex_) {
+          DefineConvectiveIntegrators<3, true>(actRegion, curRegNode, actSDList, coeffM);
+        } else {
+          DefineConvectiveIntegrators<3, false>(actRegion, curRegNode, actSDList, coeffM);
         }
       }
     }
@@ -457,7 +424,6 @@ namespace CoupledField{
   void AcousticPDE::DefinePMLIntegrators(RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrParamNode& curRegNode,
                                          PtrCoefFct& c0, PtrCoefFct& coeffK, PtrCoefFct& coeffM, std::string& tempId,
                                          BaseBDBInt*& stiffInt,  BaseBDBInt*& massInt) {
-    //variables used for PML .. mit nach PML
     std::string pmlDampId = "";  // dampId of a PML region
     std::string pmlFormul = "";  // formulation of the PML region ("classic", "shifted" or "curvilinear")
     PtrCoefFct coeffPMLDeterminant, coeffPMLTensor, coeffPMLVector, coeffPMLStiff, coeffPMLMass;
@@ -502,7 +468,7 @@ namespace CoupledField{
                                        coeffPMLMass, 1.0, updatedGeo_ );
         }
         // set coordinate stretching coefFunction
-        stiffInt->SetBCoefFunctionOpB(coeffPMLVector);  // maybe this is at the wrong spot
+        stiffInt->SetBCoefFunctionOpB(coeffPMLVector);
       }
       else if (pmlFormul == "curvilinear") {
         if (complexFluidFormulation_)
@@ -534,7 +500,7 @@ namespace CoupledField{
         // + cuvilinear PML ints (stiff + mass)
         if (dim_ == 2) {
           // TODO: 2D implementation here
-        } else { // 3D
+        } else { // dim == 3
           // define integrators for curvilinear PML in 3D
           stiffInt = new BBInt<Complex>(new TensorScaledGradientOperator<FeH1,3,Complex>(),
                                         coeffPMLStiff, 1.0, updatedGeo_ );
@@ -542,8 +508,8 @@ namespace CoupledField{
                                        coeffPMLMass, 1.0, updatedGeo_ );
         }
         // set coordinate stretching coefFunction
-        stiffInt->SetBCoefFunctionOpB(coeffPMLTensor);  // maybe this is at the wrong spot
-      } else { // when pmlFormul is invalid...
+        stiffInt->SetBCoefFunctionOpB(coeffPMLTensor);
+      } else { // case: pmlFormul is invalid...
         EXCEPTION("Unknown PML formulation '" << pmlFormul << "' for AcousticPDE. Possible formulations: 'classic', 'curvilinear'.")
       }
     } else { // if not harmonic, define the transient integrators

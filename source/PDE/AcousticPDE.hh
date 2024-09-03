@@ -169,10 +169,12 @@ namespace CoupledField{
                               BaseBDBInt*& stiffInt,  BaseBDBInt*& massInt);
 
     //! Define stiffness integrators
+    //! = refactored workflow
     template <UInt DIM>
     void DefineStiffIntegrators(BaseBDBInt*& stiffInt, PtrCoefFct coeffK, bool complexFluidFormulation, bool updatedGeo);
 
     //! Define mass integrators
+    //! = refactored workflow
     template <UInt DIM>
     void DefineMassIntegrator(BaseBDBInt*& massInt, PtrCoefFct coeffM, bool complexFluidFormulation, bool updatedGeo);
   };
