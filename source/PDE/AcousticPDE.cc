@@ -2611,42 +2611,18 @@ namespace CoupledField{
 
   template <UInt DIM>
   void AcousticPDE::DefineStiffIntegrators(BaseBDBInt*& stiffInt, PtrCoefFct coeffK, bool complexFluidFormulation, bool updatedGeo) {
-    if (DIM == 2) {
-      if (complexFluidFormulation) {
-        stiffInt = new BBInt<Complex>(new GradientOperator<FeH1, 2>(), coeffK, 1.0, updatedGeo);
-      } else {
-        stiffInt = new BBInt<Double>(new GradientOperator<FeH1, 2>(), coeffK, 1.0, updatedGeo);
-      }
-    } else if (DIM == 3) {
-      if (complexFluidFormulation) {
-        stiffInt = new BBInt<Complex>(new GradientOperator<FeH1, 3>(), coeffK, 1.0, updatedGeo);
-      } else {
-        stiffInt = new BBInt<Double>(new GradientOperator<FeH1, 3>(), coeffK, 1.0, updatedGeo);
-      }
-    } else {
-      // just for the sake of completeness - delete if too clean
-      EXCEPTION("<SANITY CHECK> Unsupported dimension for MassIntegrator");
-    }
+    if (complexFluidFormulation)
+      stiffInt = new BBInt<Complex>(new GradientOperator<FeH1, DIM>(), coeffK, 1.0, updatedGeo);
+    else
+      stiffInt = new BBInt<Double>(new GradientOperator<FeH1, DIM>(), coeffK, 1.0, updatedGeo);
   }
 
   template <UInt DIM>
   void AcousticPDE::DefineMassIntegrator(BaseBDBInt*& massInt, PtrCoefFct coeffM, bool complexFluidFormulation, bool updatedGeo) {
-    if (DIM == 2) {
-      if (complexFluidFormulation) {
-        massInt = new BBInt<Complex>(new IdentityOperator<FeH1, 2, 1, Double>, coeffM, 1.0, updatedGeo);
-      } else {
-        massInt = new BBInt<Double>(new IdentityOperator<FeH1, 2, 1, Double>, coeffM, 1.0, updatedGeo);
-      }
-    } else if (DIM == 3) {
-      if (complexFluidFormulation) {
-        massInt = new BBInt<Complex>(new IdentityOperator<FeH1, 3, 1, Double>, coeffM, 1.0, updatedGeo);
-      } else {
-        massInt = new BBInt<Double>(new IdentityOperator<FeH1, 3, 1, Double>, coeffM, 1.0, updatedGeo);
-      }
-    } else {
-      // just for the sake of completeness - delete if too clean
-      EXCEPTION("<SANITY CHECK> Unsupported dimension for MassIntegrator");
-    }
+    if (complexFluidFormulation)
+      massInt = new BBInt<Complex>(new IdentityOperator<FeH1, DIM, 1, Double>, coeffM, 1.0, updatedGeo);
+    else
+      massInt = new BBInt<Double>(new IdentityOperator<FeH1, DIM, 1, Double>, coeffM, 1.0, updatedGeo);
   }
 
   void AcousticPDE::SetStiffContext(BaseBDBInt*& stiffInt, RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrCoefFct& coeffK) {
@@ -2705,3 +2681,7 @@ template void AcousticPDE::DefineConvectiveIntegrators<3, true>(RegionIdType act
     shared_ptr<ElemList> actSDList, PtrCoefFct coeffM);
 template void AcousticPDE::DefineConvectiveIntegrators<3, false>(RegionIdType actRegion, PtrParamNode curRegNode, 
     shared_ptr<ElemList> actSDList, PtrCoefFct coeffM);
+// template void AcousticPDE::DefineStiffIntegrators<2>(BaseBDBInt*&, PtrCoefFct, bool, bool);
+// template void AcousticPDE::DefineStiffIntegrators<3>(BaseBDBInt*&, PtrCoefFct, bool, bool);
+// template void AcousticPDE::DefineMassIntegrator<2>(BaseBDBInt*&, PtrCoefFct, bool, bool);
+// template void AcousticPDE::DefineMassIntegrator<3>(BaseBDBInt*&, PtrCoefFct, bool, bool);
