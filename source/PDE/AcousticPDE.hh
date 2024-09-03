@@ -169,6 +169,16 @@ namespace CoupledField{
     //! \param coeffM     material coefficient of mass integrators
     template <UInt DIM, bool IS_COMPLEX>
     void DefineConvectiveIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, PtrCoefFct coeffM);
+
+    //! Definition of PML integrators
+    //! = refactored workflow in DefineIntegrators()
+    template <UInt DIM>
+    void DefinePMLIntegrators(RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrParamNode& curRegNode,
+                              PtrCoefFct& c0, PtrCoefFct& coeffK, PtrCoefFct& coeffM, std::string& tempId,
+                              BaseBDBInt*& stiffInt,  BaseBDBInt*& massInt);
+
+    //! Set mass context and stiffness context
+    void SetIntegratorContext(BaseBDBInt*& stiffInt, BaseBDBInt*& massInt, RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrCoefFct& coeffK, PtrCoefFct& coeffM);
   };
 }
 
