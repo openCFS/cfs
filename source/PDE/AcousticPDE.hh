@@ -164,6 +164,7 @@ namespace CoupledField{
 
     //! Definition of PML integrators
     //! = refactored workflow in DefineIntegrators()
+    template <UInt DIM>
     void DefinePMLIntegrators(RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrParamNode& curRegNode,
                               PtrCoefFct& c0, PtrCoefFct& coeffK, PtrCoefFct& coeffM, std::string& tempId,
                               BaseBDBInt*& stiffInt,  BaseBDBInt*& massInt);
