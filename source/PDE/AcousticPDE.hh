@@ -177,6 +177,12 @@ namespace CoupledField{
     //! = refactored workflow
     template <UInt DIM>
     void DefineMassIntegrator(BaseBDBInt*& massInt, PtrCoefFct coeffM, bool complexFluidFormulation, bool updatedGeo);
+
+    //! Set stiffness context
+    void SetStiffContext(BaseBDBInt*& stiffInt, RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrCoefFct& coeffK);
+
+    //! Set mass context
+    void SetMassContext(BaseBDBInt*& massInt, RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrCoefFct& coeffM);
   };
 }
 

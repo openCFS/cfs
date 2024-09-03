@@ -335,6 +335,7 @@ namespace CoupledField{
 
       BaseBDBInt *stiffInt = nullptr;
       BaseBDBInt *massInt =  nullptr;
+      
       // ====================================================================
       // PML integrators
       // ====================================================================
@@ -352,53 +353,11 @@ namespace CoupledField{
         }
       }
 
-      // ====================================================================
       // stiffness integrator context
-      // ====================================================================
-      stiffInt->SetName("LaplaceIntegrator");
-      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );  // information of stiffInt gets passed to stiffIntDescr
+      SetStiffContext(stiffInt, actRegion, actSDList, coeffK);
 
-      //check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH ) {
-        if ( complexFluidFormulation_ )
-          EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
-
-        RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
-        stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
-      }
-
-      feFunctions_[formulation_]->AddEntityList( actSDList );
-      stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
-      stiffInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace());
-
-      assemble_->AddBiLinearForm( stiffIntDescr );
-      // Important: Add bdb-integrator to global list, as we need them later
-      // for calculation of postprocessing results
-      bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
-
-      // ====================================================================
       // mass integrator context
-      // ====================================================================
-      massInt->SetName("MassIntegrator");
-      massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace() );
-
-      BiLinFormContext *massContext =  new BiLinFormContext(massInt, MASS );
-      
-      // Check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH ) {
-        if ( complexFluidFormulation_ )
-          EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
-        RaylDampingData & actDamp = regionRaylDamping_[actRegion];
-        massContext->SetSecDestMat( DAMPING, actDamp.alpha );
-      }
-
-      massContext->SetEntities( actSDList, actSDList );
-      massContext->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-      assemble_->AddBiLinearForm( massContext );
-      // Important: Add mass-integrator to global list, as we need them later
-      // for calculation of postprocessing results
-      massInts_[actRegion] = massInt;
+      SetMassContext(massInt, actRegion, actSDList, coeffM);
 
       // ====================================================================
       // flow integrators
@@ -2688,6 +2647,49 @@ namespace CoupledField{
       // just for the sake of completeness - delete if too clean
       EXCEPTION("<SANITY CHECK> Unsupported dimension for MassIntegrator");
     }
+  }
+
+  void AcousticPDE::SetStiffContext(BaseBDBInt*& stiffInt, RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrCoefFct& coeffK) {
+    stiffInt->SetName("LaplaceIntegrator");
+    BiLinFormContext* stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS);
+
+    // Check for damping
+    if (dampingList_[actRegion] == RAYLEIGH) {
+      if (complexFluidFormulation_)
+        EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
+
+      RaylDampingData& actDamp = regionRaylDamping_[actRegion];
+      stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
+    }
+
+    feFunctions_[formulation_]->AddEntityList(actSDList);
+    stiffIntDescr->SetEntities(actSDList, actSDList);
+    stiffIntDescr->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+    stiffInt->SetFeSpace(feFunctions_[formulation_]->GetFeSpace());
+
+    assemble_->AddBiLinearForm(stiffIntDescr);
+    bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt*>(actRegion, stiffInt));
+  }
+
+  void AcousticPDE::SetMassContext(BaseBDBInt*& massInt, RegionIdType actRegion, shared_ptr<ElemList>& actSDList, PtrCoefFct& coeffM) {
+    massInt->SetName("MassIntegrator");
+    massInt->SetFeSpace(feFunctions_[formulation_]->GetFeSpace());
+
+    BiLinFormContext* massContext = new BiLinFormContext(massInt, MASS);
+
+    // Check for damping
+    if (dampingList_[actRegion] == RAYLEIGH) {
+      if (complexFluidFormulation_)
+        EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
+
+      RaylDampingData& actDamp = regionRaylDamping_[actRegion];
+      massContext->SetSecDestMat(DAMPING, actDamp.alpha);
+    }
+
+    massContext->SetEntities(actSDList, actSDList);
+    massContext->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
+    assemble_->AddBiLinearForm(massContext);
+    massInts_[actRegion] = massInt;
   }
 }
 
