@@ -589,7 +589,7 @@ cfsdeps:gcc7:
 cfsdeps:gcc12:
   extends: .cfsdeps
   image: opencfs/fedora37
-  <<: *cache_cfsdeps-gcc7
+  <<: *cache_cfsdeps-gcc12
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_12*-lib.zip # legacy
