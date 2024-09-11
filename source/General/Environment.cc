@@ -1656,6 +1656,8 @@ namespace CoupledField {
       out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
       out = PERMEABILITY;
+    } else if( in == "permeabilityFrozen" ) {
+      out = PERMEABILITY_FROZEN;
     } else if( in == "reluctivity_magstrict"){
       out = RELUCTIVITY_MAGSTRICT;
     } else if( in == "heatConductivity") {
@@ -1738,7 +1740,10 @@ namespace CoupledField {
         break;
       case PERMEABILITY:
         out = "permeability";
-        break;
+        break;        
+      case PERMEABILITY_FROZEN:
+        out = "permeabilityFrozen";
+        break;        
       case RELUCTIVITY_MAGSTRICT:
       out = "reluctivity_magstrict";
       break;

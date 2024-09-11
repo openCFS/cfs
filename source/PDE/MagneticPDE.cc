@@ -175,6 +175,8 @@ namespace CoupledField {
 		  }
 	  }
 
+    bool isPermFrozen = false;
+
 	  shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
 	  shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
@@ -345,12 +347,35 @@ namespace CoupledField {
 				  // ====================================================================
 				  //  Standard Linear CASE (2D AND 3D)
 				  // ====================================================================
-				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR, tensorType, Global::REAL );
 
-				  // for postprocessing
-          if (materials_[actRegion]->GetSymmetryType(MAG_PERMEABILITY_TENSOR) == BaseMaterial::ISOTROPIC) {
-            PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, Global::REAL);
-            matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+          //check for frozen permeability
+          isPermFrozen = false;
+          StdVector<NonLinType> matDepenTypes = regionMatDepTypes_[actRegion]; // material dependency
+          if ( matDepenTypes.Find(PERMEABILITY_FROZEN) != -1 ) {
+            //we read the computed permeability from file
+            shared_ptr<ResultInfo> resultInfo = GetResultInfo(MAG_ELEM_PERMEABILITY); 
+            std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+            shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+            //PtrCoefFct permeability;
+            //get coeff-Fnc for the magnetic permeability
+            ReadMaterialDependency( "permeabilityFrozen", resultInfo->dofNames, resultInfo->entryType, false,
+                                    entity, curCoef, updatedGeo_ );
+            // //compute the reluctivity
+            // PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+            // curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeability,
+            //                                  CoefXpr::OP_DIV));      
+            //For postprocessing                        
+            matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, curCoef);    
+            isPermFrozen = true;                    
+          } 
+          else {
+				    curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR, tensorType, Global::REAL );
+
+				    // for postprocessing
+            if (materials_[actRegion]->GetSymmetryType(MAG_PERMEABILITY_TENSOR) == BaseMaterial::ISOTROPIC) {
+              PtrCoefFct permeability = materials_[actRegion]->GetScalCoefFnc( MAG_PERMEABILITY_SCALAR, Global::REAL);
+              matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+            }
           }
 
 			    if(domain->HasDesign())
@@ -362,14 +387,29 @@ namespace CoupledField {
           if( dim_ == 2) {
             if( isaxi_ ) {
               // axisymmetric case
+              if ( isPermFrozen ) {
+                stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), curCoef, factor, updatedGeo_);
+              }
+              else {
               stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, factor, updatedGeo_);
+              }
             } else {
               // plane 2D case
-              stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
+              if ( isPermFrozen ) {
+                stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
+              }
+              else {
+                stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
+              }
             }
           } else {
             // 3D case
-            stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
+            if ( isPermFrozen ) {
+              stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
+            }
+            else {
+              stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
+            }
           }
           
           // shifted to DefineRHSLoadIntegrator!
@@ -431,7 +471,8 @@ namespace CoupledField {
         //			     * but coefFunctionHyst has to be a vector coefFnc
         //			     */
         //			  } else {
-			  relucTensor_->AddRegion(actRegion, curCoef);
+			  if ( isPermFrozen == false ) 
+          relucTensor_->AddRegion(actRegion, curCoef);
         //			  }
 
 			  // ====================================================================
@@ -1333,7 +1374,9 @@ namespace CoupledField {
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
     DefineFieldResult(permFct, permeability);
-	//creates the velocity
+    availResults_.insert(permeability);
+
+	  //creates the velocity
     StdVector<std::string> vecDofNames;
     if( ptGrid_->GetDim() == 3 ) {
       vecDofNames = "x", "y", "z";
