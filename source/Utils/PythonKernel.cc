@@ -1,5 +1,5 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/core/include/numpy/arrayobject.h>
+#include <numpy/arrayobject.h>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/replace.hpp>
 

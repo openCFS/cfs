@@ -413,7 +413,7 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(ipopt);
 
-  // requires simply python on the system set by PYTHON_INCLUDE_DIR and PYTHON_LIBRARY
+  // requires a system python to be linked to
   Dependency python("Python", "USE_EMBEDDED_PYTHON", EASY);
 #ifdef USE_EMBEDDED_PYTHON
   python.SetVersion(PY_VERSION);

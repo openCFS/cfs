@@ -29,10 +29,8 @@ set(TARGET_LL
 # Currently SpaggettiDesign.cc works only with Python. 
 # The Python part shall be split later as optional part
 if(USE_EMBEDDED_PYTHON)
-  # see FindPrograms.cmake on how the PYTHON_ stuff is set
-  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
-  # already in FindCFSDEPS.cmake: include_directories(${PYTHON_INCLUDE_DIR})
-  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  # see FindPrograms.cmake on how the =ython_ stuff is set
+  list(APPEND TARGET_LL ${Python_LIBRARIES})
   set(DESIGN_SRCS ${DESIGN_SRCS} SpaghettiDesign.cc)
 endif()
 
