@@ -79,11 +79,11 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
         Matrix<Double> matrixM;
         matCoeff_->GetTensor(matrixM,lpm);
 
-        // NOT TESTED! material properties only in the direction of the velocity m = v * matrixM * v / |v|^2
-        //m = dotProductVectors(dotProductVectorTensor(matrixM, v), v)/velNorm/velNorm;
+        //material properties only in the direction of the velocity m = v * matrixM * v / |v|^2
 
-        // avaraged material
-        m = matrixM.Trace() / nDim; 
+        Vector<Double> resVec = Vector<Double>(nDim);
+        matrixM.Mult(v, resVec);
+        m = (v*resVec)/(velNorm*velNorm);
         break;
       }
       case SCALAR:
