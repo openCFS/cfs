@@ -3952,7 +3952,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
       context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
 
     if(context->DoLBM()) {
-      // in autoscale case we are still in the BaseOptimizer constructor
+      // in scale case we are still in the BaseOptimizer constructor
       boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
       if(eval_timer)
         eval_timer->Stop();

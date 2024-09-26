@@ -52,7 +52,7 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
     target = autoscale->Get("target")->As<Double>();
     
     if(manual_scale != 0.0 && manual_scale != 1.0) 
-      throw Exception("Don't give explicit objective scaling with autoscale");
+      throw Exception("Don't give explicit objective scaling with scale");
 
     tol    = autoscale->Get("tolerance")->As<Double>();
 
@@ -62,7 +62,7 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
 
     // Cannot CalcAutoscale() has to be done in PostInit()
   }
-  if(target == 0.0) // there might have been an autoscale element with 0 target
+  if(target == 0.0) // there might have been an scale element with 0 target
   {
     this->scaling.value = manual_scale;
     this->scaling.value *= base_->optimization->objectives.DoMaximize() ? -1.0 : 1.0;
@@ -78,7 +78,6 @@ void BaseOptimizer::Scale::PostInit()
 
   LOG_TRACE(optimizer) << "Scale::PostInit() target=" << target << " tol=" << tol << " -> scale=" << scaling.value;
 }
-
 
 void BaseOptimizer::Scale::CalcAutoscale()
 {
@@ -112,7 +111,7 @@ void BaseOptimizer::Scale::CalcAutoscale()
     // our new scaling is the optimal scaling for now!
     scaling.design_id = opt_scaling.design_id;
     scaling.value = opt_scaling.value;
-    LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " design="
+    LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " curr=" << current.value << " design="
                          << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);
   } else {
     scaling.design_id = opt_scaling.design_id;
@@ -175,6 +174,21 @@ bool BaseOptimizer::Scale::CheckScaling(int n, StdVector<double>& grad)
 }
 
 
+void BaseOptimizer::Scale::ToInfo(ParamNode* in)
+{
+  if(scaling.value == 0.0 || target == 0.0)
+    in->Get("active")->SetValue(false);
+  else if(target != 0.0)
+  {
+    in->Get("target")->SetValue(target);
+    if(tol != 0.0)
+      in->Get("tol")->SetValue(tol);
+    in->Get("scale")->SetValue(scaling.value);
+  }
+  if(manual != 0.0 && manual != 1.0)
+    in->Get("manual")->SetValue(manual);
+}
+
 std::string BaseOptimizer::Scale::ToString()
 {
   // scaling.value = -1.0 when no target but maximization
@@ -212,7 +226,7 @@ BaseOptimizer::Tuned::Tuned(PtrParamNode pn, double* value, double max, double d
     if(tune->GetUsage() == tune->BETA)
       this->tune = tune;
   if(this->tune == nullptr)
-    throw Exception("'tuned' move_limit required 'tune' for the density projection beta value.");
+    throw Exception("'tuned' move_limit requires 'tune' for the density projection beta value.");
 
   this->base = base;
   base->tuned = this; // to have Update called within CommitIteration
@@ -282,6 +296,15 @@ void BaseOptimizer::PostInit()
     tuned->Update(); // log initial value
 }
 
+void BaseOptimizer::ToInfo(PtrParamNode pn)
+{
+  ParamNode* sc = pn->Get("scaling").get();
+  if(objective)
+    objective->ToInfo(sc);
+  else
+    sc->Get("active")->SetValue(false);
+}
+
 boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
 {
   // only one may run
@@ -305,6 +328,7 @@ boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
 
 bool BaseOptimizer::ValidateTimers()
 {
+  LOG_DBG(optimizer) << "VT ot=" << (optimizer_timer_ != nullptr) << " eot=" << (eval_obj_timer_ != nullptr);
   assert(!optimizer_timer_->IsRunning());
   assert(!eval_obj_timer_->IsRunning());
   assert(!eval_const_timer_->IsRunning());
@@ -328,14 +352,14 @@ void  BaseOptimizer::CommitIteration()
 
 void BaseOptimizer::PostInitScale(double manual_scaling, bool no_autoscale)
 {
-  PtrParamNode as = gen_opt_pn_->Get("autoscale", ParamNode::PASS);
+  PtrParamNode as = gen_opt_pn_->Get("scale", ParamNode::PASS);
   objective = new Scale(this, as, manual_scaling, no_autoscale);
   objective->PostInit();
 }
 
 void BaseOptimizer::SolveOptimizationProblem()
 {
-  optimizer_timer_->Start(); // we already might have spent time in the optimzer in Init()
+  optimizer_timer_->Start(); // we already might have spent time in the optimizer in Init()
   SolveProblem();
   if(optimizer_timer_->IsRunning())
     optimizer_timer_->Stop();
@@ -346,6 +370,7 @@ void BaseOptimizer::LogFileHeader(Optimization::Log& log)
   if(log.gradNorm)
     log.AddToHeader("max_f_grad");
 
+  LOG_DBG(optimizer) << "LFH: o->t=" << objective->target << " o->m=" << objective->manual;
   if(objective->target != 0.0) {
     log.AddToHeader("scale");
     log.AddToHeader("opt_scale");
@@ -418,9 +443,9 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 
   // set the design and see if it is a new one
   int new_design = optimization->GetDesign()->ReadDesignFromExtern(x);
-  LOG_DBG(optimizer) << " set new design: avg " <<  Average(x, n)  << " std_dev = " << StandardDeviation(x, n) << " -> " << new_design;
+  LOG_DBG(optimizer) << "EO: set new design: avg " <<  Average(x, n)  << " std_dev = " << StandardDeviation(x, n) << " -> " << new_design;
   bool need_eval;
-  
+  LOG_DBG(optimizer) << "EO: ot->R=" << optimizer_timer_->IsRunning() << " nd=" << (new_design == design_.design_id);
   if(new_design != design_.design_id)
   {
     design_.design_id = new_design;
@@ -449,7 +474,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
     need_eval = false;
   }
 
-  if(objective->logscale && design_.value <= 0.0) EXCEPTION("Cannot do logarithmic autoscale for objective value " << design_.value);
+  if(objective->logscale && design_.value <= 0.0) EXCEPTION("Cannot do logarithmic scale for objective value " << design_.value);
 
   double sov = objective->logscale ? std::log(design_.value) : design_.value;
 

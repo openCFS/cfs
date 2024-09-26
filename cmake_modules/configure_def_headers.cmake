@@ -81,7 +81,10 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ipopt.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_scpip.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_scpip.hh")
-  
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_dumas.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_dumas.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_sgp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_sgp.hh")
 

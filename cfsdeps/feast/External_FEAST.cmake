@@ -73,7 +73,7 @@ generate_patches_script()
 
 assert_unset(POSTINSTALL_SCRIPT)
 
-# generate package creation script. We do not get the files from an install_manifest.txt
+# generate package creation script. We get the files from an install_manifest.txt
 generate_packing_script_manifest()
 
 # do we want to use precompiled and do we already have the package?

@@ -226,6 +226,7 @@ namespace CoupledField
       * @return the design_id which is the old one if space_in did not change the design. */
      virtual int ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent = true);
      int ReadDesignFromExtern(const StdVector<double>& space, bool setAndWriteCurrent = true);
+     int ReadDesignFromExtern(const Vector<double>& space, bool setAndWriteCurrent = true);
 
      /** Compare the design with the present. Does not change anything!
       * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */

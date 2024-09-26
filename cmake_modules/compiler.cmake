@@ -101,7 +101,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     # linker issue with xcode 15 on mac
     # https://developer.apple.com/forums/thread/735426
     if(CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")
-      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -ld_classic")
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -ld64") # was -ld_classic and for >= 16 -ld64 is preferred and shall also work with clang 15 
     endif()
 
     # warning! don't do -Wl,-nowarn_compact_unwind to prevent unwind warnings! This kills exception catching!

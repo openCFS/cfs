@@ -155,7 +155,7 @@ void OptimalityCondition::SolveProblem()
 
   LOG_DBG(ocm) << "SP: #active constraints=" << optimization->constraints.view->GetNumberOfActiveConstraints();
 
-  // run at least once such that we have observes and constraints for the stopping criteria evaluatd
+  // run at least once such that we have observes and constraints for the stopping criteria evaluated
   do
   {
     // calc gradients to store the results in data[element]...
@@ -735,17 +735,20 @@ void OptimalityCondition::ToInfo(PtrParamNode info)
 
 void OptimalityCondition::LogFileHeader(Optimization::Log& log)
 {
+  BaseOptimizer::LogFileHeader(log);
+
   log.AddToHeader("lambda");
   log.AddToHeader("lambda_iters");
 
   if(type_ == FUMBLE)
     log.AddToHeader("step");
-
 }
 
 
 void OptimalityCondition::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
+  BaseOptimizer::LogFileLine(out, iteration);
+
   if(out)
     *out << " \t" << lambda_ << " \t" << lambda_iters_;
 

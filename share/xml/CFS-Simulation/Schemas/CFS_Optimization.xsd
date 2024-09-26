@@ -449,17 +449,33 @@
         <xsd:complexType>
           <!-- It is optional to define the optimizer in more detail. -->
           <xsd:choice minOccurs="0" maxOccurs="unbounded">
-            <!-- This describes the optional autoscale setting <autoscale target="10" tolerance="0.5" manual="1.0"/> -->
-            <xsd:element name="autoscale" minOccurs="0" maxOccurs="1">
+            <!-- This describes the optional scale setting <scale target="10" tolerance="0.5" manual="1.0"/> -->
+            <xsd:element name="scale" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>scale the objective/gradient for the optimizer. The user sees always the original value.</xsd:documentation>
+              </xsd:annotation>
               <xsd:complexType>
                 <!-- 0.0 means no target, but eventually logscaling -->
-                <xsd:attribute name="target" use="optional" type="xsd:float" default="0.0" />
-                <!-- restart optimizer of target is too far. 0.0 is disabled -->
-                <xsd:attribute name="tolerance" use="optional" default="0.0" type="xsd:float" />
-                <!-- additional, only or not at all: logarithmic scaling/damping -->
-                <xsd:attribute name="logscale" use="optional" type="xsd:boolean" default="false" />
-                <!-- scale by a manually given factor -->
-                <xsd:attribute name="manual" use="optional" type="xsd:float" default="0.0" />
+                <xsd:attribute name="target" use="optional" type="xsd:float" default="0.0">
+                  <xsd:annotation>
+                    <xsd:documentation>(initially) compute scaling to have the objective the target value</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="tolerance" use="optional" default="0.0" type="xsd:float" >
+                  <xsd:annotation>
+                    <xsd:documentation>correct scaling over iterations when out of target tolerance. 0.0 Disabes correction. Better don't do with snopt and dumas_gcmma</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="manual" use="optional" type="xsd:float" default="0.0" >
+                  <xsd:annotation>
+                    <xsd:documentation>assign fixed objective scaling value.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="logscale" use="optional" type="xsd:boolean" default="false" >
+                  <xsd:annotation>
+                    <xsd:documentation>make the objective subject to a logarithimic damping</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
 
@@ -471,9 +487,6 @@
             
             <!-- we made sgp the look like ipopt -->
             <xsd:element name="sgp" minOccurs="0" type="DT_SGP" />
-
-            <!-- Sonja Lehmann's feasible scp solver with ipopt subproblem parameters -->
-            <xsd:element name="feasSCP" minOccurs="0" type="DT_FEAS_SCP" />
 
             <!-- Own MMA implementio using IPOPT as subsolver with the feature for strictly feasible optimization -->
             <xsd:element name="feasPP" minOccurs="0">
@@ -668,6 +681,12 @@
               
             </xsd:complexType>
            </xsd:element>
+
+           <!-- MMA based on Jérémie Dumas' MMASolver which is based on Niels Aage's TopOpt_in_PETSc/MMA -->
+           <xsd:element name="dumas_mma" minOccurs="0" type="cfs:DT_DUMAS_MMA"/>
+
+           <!-- globally convergent GCMMA based on Jérémie Dumas' GCMMASolver -->
+           <xsd:element name="dumas_gcmma" minOccurs="0" type="cfs:DT_DUMAS_MMA"/>
 
             <!-- we made snopt the look like ipopt -->
             <xsd:element name="snopt" minOccurs="0">
@@ -932,7 +951,10 @@
                 <xsd:enumeration value="feasPP"/>
                 <!-- this is a own textbook MMA implemenation, see also mma.py -->
                 <xsd:enumeration value="mma"/>
+                <!-- based on Jérémie Dumas' MMASolver which is based on Niels Aage's PETSc MMA -->
                 <xsd:enumeration value="sgp"/>
+                <xsd:enumeration value="dumas_mma"/>
+                <xsd:enumeration value="dumas_gcmma"/>
                 <xsd:enumeration value="snopt"/>
                 <!-- this is for own implementation of BFGS optimization method presented by Tim Kelly https://ctk.math.ncsu.edu/matlab_darts.html -->
                 <!-- <xsd:enumeration value="bfgs"/> -->
@@ -2894,58 +2916,43 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-  <!-- This extens DT_SCPIP by ipopt subsolver parameters for FeasSCP -->
-  <xsd:complexType name="DT_FEAS_SCP">
-    <xsd:complexContent>
-      <xsd:extension base="DT_SCPIP">
-        <xsd:sequence>
-          <!-- We can have many option childs. Each with three attributes -->
-          <xsd:element name="ipopt_option" minOccurs="0" maxOccurs="9">
-            <xsd:complexType>
-              <xsd:attribute name="name" use="required">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="iprint" />
-                    <xsd:enumeration value="ioutput" />
-                    <xsd:enumeration value="ifile" />
-                    <xsd:enumeration value="imaxiter" />
-                    <xsd:enumeration value="dtol" />
-                    <xsd:enumeration value="iscalerr" />
-                    <xsd:enumeration value="dinfmaxtol" />
-                    <xsd:enumeration value="dcmaxtol" />
-                    <xsd:enumeration value="imaxcpusec" />
-                    <xsd:enumeration value="iscale" />
-                    <xsd:enumeration value="dscalecut" />
-                    <xsd:enumeration value="dfscale" />
-                    <xsd:enumeration value="imerit" />
-                    <xsd:enumeration value="isoc" />
-                    <xsd:enumeration value="icnrm" />
-                    <xsd:enumeration value="dbndfrac" />
-                    <xsd:enumeration value="dbndpush" />
-                    <xsd:enumeration value="dmovebounds" />
-                    <xsd:enumeration value="dmu0" />
-                    <xsd:enumeration value="imuinit" />
-                    <xsd:enumeration value="dlaminitmax" />
-                    <xsd:enumeration value="ifull" />
-                    <xsd:enumeration value="dpivtol" />
-                    <xsd:enumeration value="dpivtolmax" />
-                    <xsd:enumeration value="ddepcondiag" />
-                    <xsd:enumeration value="irefineiter" />
-                    <xsd:enumeration value="dfillinfact" />
-                    <xsd:enumeration value="iquasi" />
-                    <xsd:enumeration value="iselbas" />
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
-              <!-- the value is either double or int -->
-              <xsd:attribute name="value" use="required" type="xsd:float" />
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
+  <xsd:complexType name="DT_DUMAS_MMA">
+    <xsd:sequence>
+      <xsd:element name="tuned" minOccurs="0" maxOccurs="1" type="DT_Tuned">
+        <xsd:annotation>
+          <xsd:documentation>details for move_limit 'tuned' for density projection beta tune</xsd:documentation>
+         </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+    <!-- is not described in the original Svanberg '87 paper, see the GCMMA KTU manuscripts --> 
+    <xsd:attribute name="move_limit" default="0.5" use="optional" type="xsd:token">
+      <xsd:annotation>
+        <xsd:documentation>either a fixed move_limit or 'tuned' for density projection beta tune</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="asyminit" default="0.5" use="optional" type="xsd:token" />
+    <xsd:attribute name="asymdec"  default="0.7" use="optional" type="xsd:token" />
+    <xsd:attribute name="asyminc"  default="1.2" use="optional" type="xsd:token" />
+    <xsd:attribute name="ai_lin_aux_z" default="0.0" use="optional" type="xsd:double">
+      <xsd:annotation>
+        <xsd:documentation>scale optional auxiliary variable a_i*z for constraints. a_0 is fixed to 1.0
+        Minimize  f_0(x) + a_0*z + sum( c_i*y_i + 0.5*d_i*(y_i)^2 )
+        subject to  f_i(x) - a_i*z - y_i below 0,  i = 1,...,m
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="c_lin_aux_y" default="1000.0" use="optional" type="xsd:double">
+      <xsd:annotation>
+        <xsd:documentation>linearly scale optional auxiliary c*y</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="d_quad_aux_y" default="0.0" use="optional" type="xsd:double">
+      <xsd:annotation>
+        <xsd:documentation>quadratically scale optional auxiliary 0.5*d*(y_i)^2</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
-
+  
   <xsd:complexType name="DT_output">
     <xsd:sequence>
       <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_BcInhomVector_mod" />

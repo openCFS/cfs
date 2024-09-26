@@ -1,0 +1,4 @@
+// Define used to check if DUMAS library is used
+#cmakedefine USE_DUMAS
+
+#define DUMAS_VER "@DUMAS_VER@"

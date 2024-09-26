@@ -5,6 +5,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/MMA.hh"
+#include "Optimization/Optimizer/DumasMMA.hh"
 
 namespace CoupledField
 {
@@ -33,6 +34,11 @@ void OptimalityCondition::PythonSetProperty(PyObject* args)
 }
 
 void MMA::PythonSetProperty(PyObject* args)
+{
+  assert(false);
+}
+
+void DumasMMA::PythonSetProperty(PyObject* args)
 {
   assert(false);
 }

@@ -143,9 +143,15 @@ class Approximation:
     assert ml > 0 and mlr.all() > 0
     # alpha and beta are the bounds for the design within an iteration to make sure we do not divide by 0 when
     # the asymptotes are within the global bounds. (8) in original Svanberg
+    # but with adjustable move limit in * or MMA and GCMMA – Fortran versions March 2013, Krister Svanberg, (2.8) and (2.9) 
     # reduce allows to apply maximum to more than two arguments.
     self.alpha = np.maximum.reduce([.9 * self.L + .1 * x_k, x_k - ml, x_k - mlr, glob.xl]) # alpha = L + .1 * (x-L) 
     self.beta  = np.minimum.reduce([.9 * self.U + .1 * x_k, x_k + ml, x_k + mlr, glob.xu]) # beta  = U - .1 * (U-x)
+    #  MMA and GCMMA – Fortran versions March 2013, Krister Svanberg, (2.8) and (2.9) *
+    #alpha[ni] = max(xmin[ni], max(low[ni]+ml_asym*(xval[ni]-low[ni]), xval[ni]-move_limit*(xmax[ni]-xmin[ni])));
+    #beta[ni]  = min(xmax[ni], min(upp[ni]+ml_asym*(upp[ni]-xval[ni]), xval[ni]+move_limit*(xmax[ni]-xmin[ni])));
+
+
     
     dU = self.U-x_k
     dL = x_k-self.L

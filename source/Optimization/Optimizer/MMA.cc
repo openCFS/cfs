@@ -60,7 +60,6 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     else
       move_limit = this_opt_pn_->Get("move_limit")->As<double>();
 
-
     do_log = this_opt_pn_->Get("log")->As<bool>();
 
     if(this_opt_pn_->Has("hessian_corr"))
@@ -69,7 +68,6 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
       dual->hess_corr = subSolverType_ == IP_SOLV; // only here as default (and possible)
     if(dual->hess_corr && subSolverType_ == NEWTON_SOLV)
       throw Exception("Hessian correction not possible or pure Hessian solver - choose IP-Solver");
-
 
     /*globallyConvergent = this_opt_pn_->Get("globally_convergent")->As<bool>();*/
     globallyConvergent = this_opt_pn_->Has("globally_convergent") && this_opt_pn_->Get("globally_convergent/enable")->As<bool>();
@@ -131,8 +129,6 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
   sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_solve_sub_prob/timer")->AsTimer().get();
   sps_timer_->SetSub();
 
-  PostInitScale(1.0);
-
   WriteMMALogHeader();
 }
 
@@ -143,6 +139,8 @@ MMA::~MMA()
 
 void MMA::ToInfo(PtrParamNode pn)
 {
+  BaseOptimizer::ToInfo(pn);
+
   pn->Get("globalConvergent")->SetValue(globallyConvergent);
   pn->Get("kappa")->SetValue(kappa);
   pn->Get("move_limit")->SetValue(tuned ? "tuned" : std::to_string(move_limit));
@@ -184,6 +182,8 @@ void MMA::ToInfo(PtrParamNode pn)
 
 void MMA::PostInit()
 {
+  PostInitScale(1.0);
+
   BaseOptimizer::PostInit();
   //  assert(optimization->objectives.data.GetSize() == 1); // trivial case only
   ConditionContainer& cc = optimization->constraints;
@@ -261,12 +261,12 @@ void MMA::ComputeObjectiveConstraintsSensitivities()
   DesignSpace* space = optimization->GetDesign();
 
   // evaluate properties of initial design
-  obj_val = EvalObjective(n, xval.GetPointer(), false);
-  EvalGradObjective(n, xval.GetPointer(), false, grad_objective);
+  obj_val = EvalObjective(n, xval.GetPointer(), true);
+  EvalGradObjective(n, xval.GetPointer(), true, grad_objective);
   assert(grad_objective.GetSize() == n);
-  EvalConstraints(n, xval.GetPointer(), m, false, constraints.GetPointer(), true);
+  EvalConstraints(n, xval.GetPointer(), m, true, constraints.GetPointer(), true);
 
-  EvalGradConstraints(n, xval.GetPointer(), m, n*m, false, true, grad_constraints);
+  EvalGradConstraints(n, xval.GetPointer(), m, n*m, true, true, grad_constraints);
 
   // this is based on topopt implementation, since i have used the same parameters for a,c, asyminit as them, we have to scale similarly
   int res_idx_grad_0 = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_OBJ_GRADIANT);
@@ -594,7 +594,8 @@ void MMA::SetupSubProblem()
   for(unsigned int ni=0; ni < n; ++ni)
   {
     /** MMA and GCMMA – two methods for nonlinear optimization
-     * this is chosen to avoid division by zero in subproblem*/
+     * this is chosen to avoid division by zero in subproblem.
+     * or MMA and GCMMA – Fortran versions March 2013, Krister Svanberg, (2.8) and (2.9) */
     alpha[ni] = max(xmin[ni], max(low[ni]+ml_asym*(xval[ni]-low[ni]), xval[ni]-move_limit*(xmax[ni]-xmin[ni])));
     beta[ni]  = min(xmax[ni], min(upp[ni]+ml_asym*(upp[ni]-xval[ni]), xval[ni]+move_limit*(xmax[ni]-xmin[ni])));
 
@@ -935,6 +936,8 @@ double MMA::DualResidual(const Vector<double>& lambda_in, const Vector<double>& 
 
 void MMA::LogFileHeader(Optimization::Log& log)
 {
+  BaseOptimizer::LogFileHeader(log);
+
   log.AddToHeader("sub_prb_itr");
 
   if(asymUpdate_ != FIXED) {
@@ -956,6 +959,8 @@ void MMA::LogFileHeader(Optimization::Log& log)
 
 void MMA::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
+  BaseOptimizer::LogFileLine(out, iteration);
+
   double low_min = low.Min();
   double low_max = low.Max();
   double upp_min = upp.Min();

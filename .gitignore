@@ -11,3 +11,4 @@ build/
 *.pyc
 Testing/
 .vscode
+*.DS_Store

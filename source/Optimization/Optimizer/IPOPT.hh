@@ -36,7 +36,7 @@ public:
   
   virtual ~IPOPT();
 
-  /** This is the actual initialzation. Might be called multiple times for restart */
+  /** This is the actual initialization. Might be called multiple times for restart */
   void Init();
 
   /** Solves the problem. All stuff, including evaluations of the state problem is done

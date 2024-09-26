@@ -1656,10 +1656,17 @@ int DesignSpace::ReadDesignFromExtern(const double* space, bool setAndWriteCurre
   }
   return design_id;
 }
+
 int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space, bool setAndWriteCurrent)
 {
   return ReadDesignFromExtern(space.GetPointer(), setAndWriteCurrent);
 }
+
+int DesignSpace::ReadDesignFromExtern(const Vector<double>& space, bool setAndWriteCurrent)
+{
+  return ReadDesignFromExtern(space.GetPointer(), setAndWriteCurrent);
+}
+
 
 bool DesignSpace::CompareDesign(const double* space)
 {

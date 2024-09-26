@@ -1,0 +1,12 @@
+set(CMAKE_SOURCE_DIR  "@CMAKE_SOURCE_DIR@")
+set(DEPS_PREFIX  "@DEPS_PREFIX@")
+set(PACKAGE_NAME "@PACKAGE_NAME@")
+
+
+include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+assert_set(DEPS_PREFIX)
+assert_set(PACKAGE_NAME)
+
+# not really a patch but a complete replacement to build a lib
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/CMakeLists.txt" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}")

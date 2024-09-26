@@ -291,6 +291,13 @@ if(USE_SGP)
 endif()
 
 #-----------------------------------------------------------------------------
+# C++ implementations for the topology optimiter MMA (dumas_mma) and a glonalized variant (dumas_gcmma)
+#-----------------------------------------------------------------------------
+if(USE_DUMAS)
+  include("${CFSDEPS_DIR}/dumas/External_Dumas.cmake")
+endif()
+
+#-----------------------------------------------------------------------------
 # Find SGPP - A toolbox for sparse grid interpolation 
 #-----------------------------------------------------------------------------
 IF(USE_SGPP)

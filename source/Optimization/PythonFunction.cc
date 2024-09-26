@@ -6,6 +6,9 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/MMA.hh"
+#include "Optimization/Optimizer/DumasMMA.hh"
+#include <MMASolver.h>
+#include <GCMMASolver.h>
 #include "Utils/PythonKernel.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -99,7 +102,25 @@ void MMA::PythonSetProperty(PyObject* args)
     throw "Unknown property " + ss.first + " for 'MMA'";
 }
 
+void DumasMMA::PythonSetProperty(PyObject* args)
+{
+  auto ss = ParseStringString(args);
 
+  if(ss.first == "move_limit")
+    move_limit = std::stod(ss.second);
+  else if(ss.first == "asymdec")
+    asymdec = std::stod(ss.second);
+  else if(ss.first == "asyminc")
+    asyminc = std::stod(ss.second);
+  else
+    throw "Unknown property " + ss.first + " for 'DumasMMA'";
+
+  // no harm, when we do this also for move_limit, the functions just sets the internal variables without further action
+  if(mma)
+    mma->SetAsymptotes(asyminit, asymdec, asyminc);
+  else
+    gcmma->SetAsymptotes(asyminit, asymdec, asyminc);
+}
 
 void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
 {

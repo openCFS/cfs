@@ -19,7 +19,7 @@ Timer::Timer(const std::string& name, bool sub, bool start_immediately)
 bool Timer::Start()
 {
   if(IsRunning() && !nesting)
-    throw Exception("attempt to start already running timer with nesting off");
+    throw Exception("attempt to start already running timer " + label_ + " with nesting off");
 
   calls_++;
 

@@ -244,6 +244,7 @@ void SnOpt::SolveProblem()
 
 void SnOpt::LogFileHeader(Optimization::Log& log)
 {
+  BaseOptimizer::LogFileHeader(log);
   // ither nCon or major is iter, but we log nObj as this is more illustrative than nCon
   log.AddToHeader(iteration_ == NCON ? "major" : "nObj");
 }
@@ -251,6 +252,8 @@ void SnOpt::LogFileHeader(Optimization::Log& log)
 
 void SnOpt::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
+  BaseOptimizer::LogFileLine(out, iteration);
+
   // one is iter, we log the other
   if(out)
     *out << " \t" << (iteration_ == NCON ? major : f_evals);
@@ -471,7 +474,7 @@ bool SnOpt::get_nlp_info()
 
 bool SnOpt::eval_f(int n, const double* x, double &obj_value)
 {
-  obj_value = EvalObjective(n, x, true); // as with SCPIP we do always autoscale!
+  obj_value = EvalObjective(n, x, true); // as with SCPIP we do always scale if activated.
   LOG_DBG(snopt) << "eval_f -> " << obj_value;
   return true;
 }

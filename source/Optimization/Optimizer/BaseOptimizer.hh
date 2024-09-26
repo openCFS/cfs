@@ -58,7 +58,7 @@ namespace CoupledField
     virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
     
     /** optionally adds some general information after initialization and after solution */
-    virtual void ToInfo(PtrParamNode pn) { };
+    virtual void ToInfo(PtrParamNode pn);
 
     /** Evaluates the objective. In the autoscale case checks for old value.
      * @param cfs_scale if true use cfs scaling values, not the optimizer values.
@@ -192,6 +192,8 @@ namespace CoupledField
         return autoscale_;
       }
 
+      void ToInfo(ParamNode* in);
+
       std::string ToString();
       
       /** out target for the autoscaled gradient. Not 0.0 means we do autoscale */
@@ -256,7 +258,7 @@ namespace CoupledField
     /** Info Node base  for Optimizer */
     PtrParamNode info_;
 
-    /** when set, ocm and mma calculate beta driven move limits */
+    /** when set, ocm and (dumas_)mma calculate beta driven move limits */
     Tuned* tuned = nullptr;
     
     Scale* objective;

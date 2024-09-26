@@ -34,6 +34,7 @@
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/Optimizer/MMA.hh"
+#include "Optimization/Optimizer/DumasMMA.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/MagSIMP.hh"
@@ -57,7 +58,7 @@
 #include "def_use_snopt.hh"
 #include "def_use_embedded_python.hh"
 #include "def_use_sgp.hh"
-
+#include "def_use_dumas.hh"
 
 #ifdef USE_SGP
 // check if Intel MKL is available
@@ -273,7 +274,16 @@ void Optimization::PostInitSecond()
          break;
 
     case MMA_SOLVER:
-         baseOptimizer_ = new MMA(this, opt);
+         baseOptimizer_ = new MMA(this, opt); // our self written textbook MMA
+         break;
+
+    case DUMAS_MMA:
+    case DUMAS_GCMMA:
+         #ifdef USE_DUMAS
+           baseOptimizer_ = new DumasMMA(this, opt, optimizer_); // C++ variant of Niels Aages' PETSc MMA or a GCMMA variant
+         #else
+           throw Exception("openCFS was compiled w/o Dumas (MMA/GCMMA)");
+         #endif
          break;
 
     case SNOPT_SOLVER:
@@ -282,7 +292,7 @@ void Optimization::PostInitSecond()
          #else
            throw Exception("openCFS was compiled w/o SnOpt");
          #endif
-      break;
+         break;
 
     case PYTHON_SOLVER:
          #ifdef USE_EMBEDDED_PYTHON
@@ -514,13 +524,14 @@ void Optimization::SetEnums()
   StoppingRule::condition.Add(StoppingRule::SUFFICIENT, "sufficient");
   StoppingRule::condition.Add(StoppingRule::NECESSARY, "necessary");
 
-
   optimizer.SetName("Optimization::Optimizer");
   optimizer.Add(OCM_SOLVER, "ocm");
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(FEAS_PP_SOLVER, "feasPP");
   optimizer.Add(MMA_SOLVER, "mma");
+  optimizer.Add(DUMAS_MMA, "dumas_mma");
+  optimizer.Add(DUMAS_GCMMA, "dumas_gcmma");
   optimizer.Add(SGP_SOLVER, "sgp");
   optimizer.Add(SNOPT_SOLVER, "snopt");
   optimizer.Add(PYTHON_SOLVER, "python");
@@ -861,6 +872,7 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
+  assert(baseOptimizer_);
   assert(baseOptimizer_->ValidateTimers());
 
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py

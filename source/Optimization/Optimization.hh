@@ -80,13 +80,12 @@ namespace CoupledField
          /** This is the second phase of post initialization. It creates the Optimizer tools */
          virtual void PostInitSecond();
 
-
          /** Solves the problem by looping over driver->SolveProblem() up to
           * minimum or max iterations is reached. Overwrite on demand*/
          void SolveProblem();
 
          /** Not the optimization problem but the solver! */
-         typedef enum { OCM_SOLVER, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, PYTHON_SOLVER,
+         typedef enum { OCM_SOLVER, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, PYTHON_SOLVER, DUMAS_MMA, DUMAS_GCMMA,
                         FEAS_PP_SOLVER, MMA_SOLVER, SGP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
 
          /** to convert string/enum for this type */
@@ -363,6 +362,10 @@ namespace CoupledField
         /** did user break converge? E.g. for PythonStopOptimization() */
         bool user_break_converged = false;
 
+        /** Here we contain our design space. The domain gets a reference to it to perform
+         * the ersatz material ansatz */
+        DesignSpace* design = NULL;
+
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
          * exclusively by CreateInstance() -> don't forget to call PostInit() afterwards! */
@@ -423,10 +426,6 @@ namespace CoupledField
 
         /** The actual kind of optimizer.  */
         Optimizer optimizer_;
-
-        /** Here we contain our design space. The domain gets a reference to it to perform
-         * the ersatz material ansatz */
-        DesignSpace* design = NULL;
 
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;

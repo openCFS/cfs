@@ -3,6 +3,7 @@
 #include <def_use_blas.hh>
 #include <def_use_cgal.hh>
 #include <def_use_cgns.hh>
+#include <def_use_dumas.hh>
 #include <def_use_embedded_python.hh>
 #include <def_use_ensight.hh>
 #include <def_use_feast.hh>
@@ -393,6 +394,12 @@ void Dependencies::ReadSetting()
 
 
   // optimizers
+
+  Dependency dumas("dumas", "USE_DUMAS", MIT);
+#ifdef USE_DUMAS
+  dumas.SetVersion(DUMAS_VER);
+#endif
+  data.Push_back(dumas);
 
   Dependency scpip("SCPIP", "USE_SCPIP",CLOSED);
 #ifdef USE_SCPIP
