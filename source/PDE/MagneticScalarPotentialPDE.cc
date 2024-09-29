@@ -54,7 +54,8 @@ namespace CoupledField
     // =====================================================================
     pdename_ = "magneticScalarPotential";
     pdematerialclass_ = ELECTROMAGNETIC;
-
+  
+    std::cout << "PDE name: " << pdename_ << std::endl;
     nonLin_ = false;
     nonLinMaterial_ = false;
 
@@ -325,11 +326,14 @@ namespace CoupledField
       // ===============================================================================================
       // RHS FOR NONLINEAR CASE BUT LINEAR SUBREGION OR ENTIRELY LINEAR (end)
       // ===============================================================================================
+
+
       // ===============================================================================================
       // ADDING REMANENCE FLUX DENSITY TO RHS: lin_br: (b_r,gradN) (start)
       // The b_r has to be defined in the input .xml file for the simulation of permanent magnets
       // ===============================================================================================
-      ReadRhsExcitation("fluxDensity", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, remanent_flux_density, coefUpdateGeo );
+      ReadRhsExcitation("fluxDensity", vecDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+
       PtrCoefFct br;
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         // check type of entitylist
@@ -337,17 +341,32 @@ namespace CoupledField
             ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
           EXCEPTION("Prescribed magnetic flux density can only be specified in a volume!")
         }
-        br = remanent_flux_density[i];
-        Brmap_[ent[i]->GetRegion()] = br; // Here we store the flux density remanence field for every region to have it ready for postprocessing
 
-        lin_br = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, br,volRegions, coefUpdateGeo);
+        //save the remanent magnetic flux of the permanent magnet
+        BremMap_[ent[i]->GetRegion()] = coef[i]; 
+
+        if (isComplex_) {
+          if( dim_ == 2) {
+            lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,2,1,Complex>(), Complex(1.0),coef[i],  coefUpdateGeo, true);
+          } else {
+            // 3D case
+            lin = new BUIntegrator<Complex> ( new GradientOperator<FeH1,3,1,Complex>(), Complex(1.0),coef[i],  coefUpdateGeo, true);
+          }
+        } else {
+          if( dim_ == 2) {
+            lin = new BUIntegrator<Double>( new GradientOperator<FeH1,2>(), 1.0, coef[i],  coefUpdateGeo, true);
+          } else {
+            // 3D case
+            lin = new BUIntegrator<Double>( new GradientOperator<FeH1,3>(), 1.0, coef[i],  coefUpdateGeo, true);         
+          }
+        }
+        
         lin_br->SetName("fluxIntegrator: (b_r,gradN): linear RHS, remanent flux density");
         LinearFormContext *ctx = new LinearFormContext( lin_br );
         ctx->SetEntities( ent[i] );
         ctx->SetFeFunction(feFunc_reduced);
         assemble_->AddLinearForm(ctx);
         feFunc_reduced->AddEntityList(ent[i]);
-        bRHSRegions_[ent[i]->GetRegion()] = br;
       }
     // ===============================================================================================
     //  ADDING REMANENCE FLUX DENSITY TO RHS: lin_br: (b_r,gradN) (end)
@@ -557,8 +576,8 @@ namespace CoupledField
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[*regIt]; // Just to find out which linear/nonlinear type is defined in this region
       PtrCoefFct b; // to store flux density b
       if( nonLinTypes.Find(PERMEABILITY) != -1 ){ // hysteretic/nonlinear case
-        if(Brmap_.find(*regIt) != Brmap_.end()){ // There is a remancence flux density in the region prescribed
-          PtrCoefFct br = Brmap_[*regIt];
+        if(Bremap_.find(*regIt) != Bremap_.end()){ // There is a remancence flux density in the region prescribed
+          PtrCoefFct br = Bremap_[*regIt];
           PtrCoefFct b_temp = nlFluxCoef_;
           b = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, br, b_temp, CoefXpr::OP_ADD));   
         } else { // There is NO remancence flux density in the region prescribed
@@ -566,8 +585,8 @@ namespace CoupledField
         }
         bCoef->AddRegion(*regIt, b);
       } else { //  linear case
-        if(Brmap_.find(*regIt) != Brmap_.end()){ // There is a remancence flux density in the region prescribed
-          PtrCoefFct br = Brmap_[*regIt];
+        if(Bremap_.find(*regIt) != Bremap_.end()){ // There is a remancence flux density in the region prescribed
+          PtrCoefFct br = Bremap_[*regIt];
           PtrCoefFct b_temp = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY ), perm_, CoefXpr::OP_MULT));
           b = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, br, b_temp, CoefXpr::OP_ADD));  
         } else { // There is NO remancence flux density in the region prescribed
