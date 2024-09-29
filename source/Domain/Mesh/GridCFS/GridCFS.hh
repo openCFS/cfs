@@ -164,7 +164,13 @@ namespace CoupledField
     //! \param nodeList (out) list with 1-based node numbers, shall be sorted
     //! \param regionId (in) region identifier
     void GetNodesByRegion( StdVector<UInt> & nodeList,
-                           const RegionIdType regionId );
+                           const RegionIdType regionId ) override;
+
+    //! Returns a list of all elements, which are contained in a
+    //! volume- or surface-region.
+    //! \param elementList (out) list with element numbers
+    //! \param regionId (in) region identifier
+    void GetElementsByRegion( StdVector<UInt>& elementList, const RegionIdType regionId ) override;
     
     //! \see Grid::GetNodeCoordinate
     void GetNodeCoordinate( Vector<Double> & rfPoint,

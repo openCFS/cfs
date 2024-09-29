@@ -4,17 +4,17 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 //================================================================================================
 /*!
- *       \file     CoefFunctionGridNodal.cc 
- *       \brief    Implementation of nodal grid inteprolation 
+ *       \file     CoefFunctionGridElem.cc 
+ *       \brief    Implementation of element grid inteprolation 
  *
- *       \date     11/21/2012
- *       \author   Andreas Hueppe
+ *       \date     29/09/2024
+ *       \author   Dominik Mayrhofer
  */
 //================================================================================================
 
 
 #include "Utils/mathParser/mathParser.hh"
-#include "CoefFunctionGridNodal.hh"
+#include "CoefFunctionGridElem.hh"
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "FeBasis/FeSpace.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -26,10 +26,10 @@
 namespace CoupledField{
 
 // declare class specific logging stream
-DEFINE_LOG(coeffunctiongridnodal, "coefFunctionGridNodal")
+DEFINE_LOG(coeffunctiongridelem, "CoefFunctionGridElem")
 
 template<class DATA_TYPE>
-  CoefFunctionGridNodal<DATA_TYPE>::CoefFunctionGridNodal(Domain* ptDomain,
+  CoefFunctionGridElem<DATA_TYPE>::CoefFunctionGridElem(Domain* ptDomain,
                                                           PtrParamNode configNode,
                                                           shared_ptr<RegionList> regions)
                                    :CoefFunctionGrid(ptDomain, configNode, regions){
@@ -37,15 +37,14 @@ template<class DATA_TYPE>
     stepNumberInterpolationA_ = std::numeric_limits<unsigned int>::max();
     stepNumberInterpolationB_ = std::numeric_limits<unsigned int>::max();
     initializedSpaceFactors_ = false;
-    initializedRegionNodes_ = false;
-    initializedUsedRegionNodesForSum_ = false;
-    initializedRegionNodeCoordinates_ = false;
+    initializedRegionElements_ = false;
+    initializedRegionElementCoordinates_ = false;
     initializedConstantInput_ = false;
-    numNodes_ = 0;
+    numElements_ = 0;
     hasSpaceFactor_ = false;
     hasConstantFactor_ = false;
     hasTimeFreqFactor_ = false;
-    useAllRegionNodesForSum_ = false;
+    useAllRegionElementsForSum_ = false;
     hasFactor_ = false;
     hasGeneralFactor_ = false;
     eqnMapComplete_ = false;
@@ -98,14 +97,14 @@ template<class DATA_TYPE>
 
   //! Destructor
   template<class DATA_TYPE>
-  CoefFunctionGridNodal<DATA_TYPE>::~CoefFunctionGridNodal(){
+  CoefFunctionGridElem<DATA_TYPE>::~CoefFunctionGridElem(){
 #ifdef USE_OPENMP
     omp_destroy_lock(&updateSolutionLock_);
 #endif
   }
   
   template<class DATA_TYPE>
-  std::string CoefFunctionGridNodal<DATA_TYPE>::OneFactorStringFromMultipleFactors(StdVector<std::string>& factors) {
+  std::string CoefFunctionGridElem<DATA_TYPE>::OneFactorStringFromMultipleFactors(StdVector<std::string>& factors) {
     UInt size = factors.GetSize();
     if (size > 1) {
       std::stringstream ss;
@@ -123,7 +122,7 @@ template<class DATA_TYPE>
   }
   
   template<class DATA_TYPE>
-  shared_ptr<CoefFunction> CoefFunctionGridNodal<DATA_TYPE>::CreateFactorFunction(std::string factorString){
+  shared_ptr<CoefFunction> CoefFunctionGridElem<DATA_TYPE>::CreateFactorFunction(std::string factorString){
     shared_ptr<CoefFunction> factorFnc;
     if(isComplex_) {
       factorFnc = CoefFunction::Generate(mp_,Global::COMPLEX,factorString);
@@ -134,13 +133,13 @@ template<class DATA_TYPE>
   }
   
   template<class DATA_TYPE>
-  CoefFunction::CoefDependType CoefFunctionGridNodal<DATA_TYPE>::ReadFactorFunctionStringDependency(std::string factorString){
+  CoefFunction::CoefDependType CoefFunctionGridElem<DATA_TYPE>::ReadFactorFunctionStringDependency(std::string factorString){
     shared_ptr<CoefFunction> function = this->CreateFactorFunction(factorString);
     return function->GetDependency();
   }
   
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::WriteGlobalFactorsToXML(PtrParamNode configNode){
+  void CoefFunctionGridElem<DATA_TYPE>::WriteGlobalFactorsToXML(PtrParamNode configNode){
     ParamNodeList subNodes = configNode->GetList("globalFactor");
     UInt size = subNodes.GetSize();
     if (size > 1) {
@@ -155,7 +154,7 @@ template<class DATA_TYPE>
   }
 
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::InitGlobalFactorFunctions(PtrParamNode configNode){
+  void CoefFunctionGridElem<DATA_TYPE>::InitGlobalFactorFunctions(PtrParamNode configNode){
     // collect strings of given factors according to their type
     StdVector<std::string> constantFactors;
     StdVector<std::string> timeFreqFactors;
@@ -220,62 +219,26 @@ template<class DATA_TYPE>
   }
   
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::GetTensor(Matrix<DATA_TYPE>& CoefMat,
+  void CoefFunctionGridElem<DATA_TYPE>::GetTensor(Matrix<DATA_TYPE>& CoefMat,
                                                    const LocPointMapped& lpm ){
-    EXCEPTION("CoefFunctionGridNodal: GetTensor is not implemented here"); 
+    EXCEPTION("CoefFunctionGridElem: GetTensor is not implemented here"); 
   }
 
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMat,
+  void CoefFunctionGridElem<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMat,
                                                    const LocPointMapped& lpm ){
-    EXCEPTION("GetVector is not implemented here"); 
+    EXCEPTION("CoefFunctionGridElem: GetVector is not implemented here"); 
   }
 
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
+  void CoefFunctionGridElem<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
                                                    const LocPointMapped& lpm ){
-    EXCEPTION("GetScalar is not implemented here"); 
+    EXCEPTION("CoefFunctionGridElem: GetScalar is not implemented here"); 
   }
 
 
-  template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::CreateOperator(UInt spaceDim, UInt dofDim){
-    if(dofDim == 1){
-      if(spaceDim == 2)
-        this->myOperator_.reset(new IdentityOperator<FeH1,2,1,DATA_TYPE>());
-      else if(spaceDim == 3)
-        this->myOperator_.reset(new IdentityOperator<FeH1,3,1,DATA_TYPE>());
-    }else if(dofDim == 2){
-      if(spaceDim == 2)
-        this->myOperator_.reset(new IdentityOperator<FeH1,2,2,DATA_TYPE>());
-      else if(spaceDim == 3)
-        this->myOperator_.reset(new IdentityOperator<FeH1,3,2,DATA_TYPE>());
-    }else if(dofDim == 3){
-      if(spaceDim == 2)
-        this->myOperator_.reset(new IdentityOperator<FeH1,2,3,DATA_TYPE>());
-      else if(spaceDim == 3)
-        this->myOperator_.reset(new IdentityOperator<FeH1,3,3,DATA_TYPE>());
-    }else if (dofDim == 4 || dofDim == 9)
-      //tensor in 2D (2x2) or 3D (3x3)
-      if(spaceDim == 2)
-        this->myOperator_.reset(new IdentityOperator<FeH1,2,4,DATA_TYPE>());
-      else if(spaceDim == 3)
-        this->myOperator_.reset(new IdentityOperator<FeH1,3,9,DATA_TYPE>());    
-  }
-
-  template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::CreateDivOperator(UInt spaceDim, UInt dofDim){
-    if(spaceDim != dofDim)
-      EXCEPTION("CoefFunctionGridNodal<DATA_TYPE>: Divergence need vectorial data!");
-
-    if(spaceDim == 2)
-      this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,2,DATA_TYPE>());
-    else if(spaceDim == 3)
-      this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,3,DATA_TYPE>());
-  }
-
-  template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::MapEqns(){
+  /* template<class DATA_TYPE>
+  void CoefFunctionGridElem<DATA_TYPE>::MapEqns(){
     //Be careful we determine the current sequence step according to the
     //current simulation run. This could fail in a multisequence analysis!!!
     //the user should give an argument where to find the results!
@@ -303,78 +266,69 @@ template<class DATA_TYPE>
     }
 
     eqnMapComplete_ = true;
-  }
+  } */
 
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::InitSolVec(){
-    numNodes_ = srcGrid_->GetNumNodes();
-    numEqns_ = (numNodes_ + 1) * dimDof_;
-    solVec_.Resize(numEqns_);
+  void CoefFunctionGridElem<DATA_TYPE>::InitSolVec(){
+    numElements_ = srcGrid_->GetNumElems();
+    solVec_.Resize(numElements_*dimDof_);
     solVec_.Init(0.0);
   }
 
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::GetElemSolution(Vector<DATA_TYPE> & sol, UInt eNum){
-    StdVector<UInt> connect;
-    srcGrid_->GetElemNodes(connect,eNum);
-    sol.Resize(connect.GetSize()*dimDof_);
+  void CoefFunctionGridElem<DATA_TYPE>::GetElemSolution(Vector<DATA_TYPE> & sol, UInt eNum){
+    sol.Resize(dimDof_);
     if (dimDof_ > 1) {
-      for(UInt aNode=0;aNode < connect.GetSize();aNode++){
-        UInt node = connect[aNode];
-        for(UInt d = 0; d<dimDof_;++d){
-          sol[aNode*dimDof_+d] = solVec_[node*dimDof_+d];
-        }
+      for(UInt d = 0; d<dimDof_;++d){
+        sol[d] = solVec_[eNum*dimDof_+d];
       }
     } else {
-      for(UInt aNode=0;aNode < connect.GetSize();aNode++){
-        UInt node = connect[aNode];
-        sol[aNode] = solVec_[node];
-      }
+      sol[0] = solVec_[eNum];
     }
   }
 
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::InitRegionNodes(){
-    if (initializedRegionNodes_) {
+  void CoefFunctionGridElem<DATA_TYPE>::InitRegionElements(){
+    if (initializedRegionElements_) {
       return;
     }
-    regionNodes_.Resize(srcRegions_.size());
+    regionElements_.Resize(srcRegions_.size());
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
-      srcGrid_->GetNodesByRegion(regionNodes_[i], srcGrid_->GetRegion().Parse(*regIter));
+      srcGrid_->GetElementsByRegion(regionElements_[i], srcGrid_->GetRegion().Parse(*regIter));
     }
-    initializedRegionNodes_ = true;
+    initializedRegionElements_ = true;
   }
   
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::InitRegionNodeCoordinates(){
-    if (initializedRegionNodeCoordinates_) {
+  void CoefFunctionGridElem<DATA_TYPE>::InitRegionElementCoordinates(){
+    if (initializedRegionElementCoordinates_) {
       return;
     }
-    this->InitRegionNodes();
-    regionNodeCoordinates_.Resize(srcRegions_.size());
+    this->InitRegionElements();
+    regionElementCoordinates_.Resize(srcRegions_.size());
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
-      StdVector<UInt>& nodeNums = regionNodes_[i];
-      UInt size = nodeNums.GetSize();
-      StdVector<Vector<Double> >& CoordVec = regionNodeCoordinates_[i];
+      StdVector<UInt>& elementNums = regionElements_[i];
+      UInt size = elementNums.GetSize();
+      StdVector<Vector<Double> >& CoordVec = regionElementCoordinates_[i];
       CoordVec.Resize(size);
 #pragma omp parallel for      
       for( Integer aN=0;aN< (Integer) size;aN++){
-        srcGrid_->GetNodeCoordinate(CoordVec[aN],nodeNums[aN],true);
+        srcGrid_->GetElemCentroid(CoordVec[aN],elementNums[aN],true);
       }
     }
-    initializedRegionNodeCoordinates_ = true;
+    initializedRegionElementCoordinates_ = true;
   }
   
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::ClearRegionNodeCoordinates(){
-    initializedRegionNodeCoordinates_ = false;
-    regionNodeCoordinates_ = StdVector<StdVector<Vector<Double> > >();
+  void CoefFunctionGridElem<DATA_TYPE>::ClearRegionElementCoordinates(){
+    initializedRegionElementCoordinates_ = false;
+    regionElementCoordinates_ = StdVector<StdVector<Vector<Double> > >();
   }
   
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::InitSpaceFactor(){
+  void CoefFunctionGridElem<DATA_TYPE>::InitSpaceFactor(){
     if (initializedSpaceFactors_) {
       return;
     }
@@ -382,71 +336,71 @@ template<class DATA_TYPE>
     if (!hasSpaceFactor_) {
       return;
     }
-    this->InitRegionNodes();
-    this->InitRegionNodeCoordinates();
+    this->InitRegionElements();
+    this->InitRegionElementCoordinates();
     spaceFactor_.Resize(srcRegions_.size());
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
-      StdVector<UInt>& nodeNums = regionNodes_[i];
-      StdVector<Vector<Double> >& CoordVec = regionNodeCoordinates_[i];
+      StdVector<UInt>& elementNums = regionElements_[i];
+      StdVector<Vector<Double> >& CoordVec = regionElementCoordinates_[i];
       
       StdVector< DATA_TYPE >& factors = spaceFactor_[i];
-      factors.Resize(nodeNums.GetSize());
+      factors.Resize(elementNums.GetSize());
       spaceFactorFunction_->GetScalarValuesAtCoords(CoordVec,factors,this->domain_->GetGrid());
     }
-    this->ClearRegionNodeCoordinates();
+    this->ClearRegionElementCoordinates();
   }
-  
+
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::InitUsedRegionNodesForSum(){
-    if (this->initializedUsedRegionNodesForSum_) {
+  void CoefFunctionGridElem<DATA_TYPE>::InitUsedRegionElementsForSum(){
+    if (this->initializedUsedRegionElementsForSum_) {
       return;
     }
-    this->InitRegionNodes();
-    this->usedRegionNodesForSum_.Clear();
-    std::vector<bool> allUsedNode(numNodes_ + 1, false);
+    this->InitRegionElements();
+    this->usedRegionElementsForSum_.Clear();
+    std::vector<bool> allUsedElement(numElements_ + 1, false);
     std::set<std::string>::iterator regIter = srcRegions_.begin();
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
-      StdVector<UInt>& nodeNums = regionNodes_[i];
-      const UInt size = nodeNums.GetSize();
-      std::vector<bool> useNode(size,false);
+      StdVector<UInt>& elementNums = regionElements_[i];
+      const UInt size = elementNums.GetSize();
+      std::vector<bool> useElement(size,false);
       for (UInt iN = 0; iN < size; ++iN) {
-        UInt node = nodeNums[iN];
-        if (!allUsedNode[node]) {
-          allUsedNode[node] = true;
-          useNode[iN] = true;
+        UInt elem = elementNums[iN];
+        if (!allUsedElement[elem]) {
+          allUsedElement[elem] = true;
+          useElement[iN] = true;
         }
       }
-      this->usedRegionNodesForSum_.Push_back(useNode);
+      this->usedRegionElementsForSum_.Push_back(useElement);
     }
-    this->useAllRegionNodesForSum_ = true;
+    this->useAllRegionElementsForSum_ = true;
     regIter = srcRegions_.begin();
-    for( UInt i = 0; regIter != srcRegions_.end() && this->useAllRegionNodesForSum_; ++i,++regIter) {
-      std::vector<bool>& useNode = this->usedRegionNodesForSum_[i];
-      const UInt size = useNode.size();
-      for (UInt n = 0; n < size && this->useAllRegionNodesForSum_; ++n) {
-        this->useAllRegionNodesForSum_ = useNode[n];
+    for( UInt i = 0; regIter != srcRegions_.end() && this->useAllRegionElementsForSum_; ++i,++regIter) {
+      std::vector<bool>& useElement = this->usedRegionElementsForSum_[i];
+      const UInt size = useElement.size();
+      for (UInt n = 0; n < size && this->useAllRegionElementsForSum_; ++n) {
+        this->useAllRegionElementsForSum_ = useElement[n];
       }
     }
-    this->initializedUsedRegionNodesForSum_ = true;
+    this->initializedUsedRegionElementsForSum_ = true;
   }
   
   template<class DATA_TYPE>
   template<bool useSpaceFactorA, bool useSpaceFactorB, bool useConstFactor, 
               bool countSum, bool countAllValues, UInt dimDof>
-  void CoefFunctionGridNodal<DATA_TYPE>::CopyResult(Vector<DATA_TYPE>& sol,
+  void CoefFunctionGridElem<DATA_TYPE>::CopyResult(Vector<DATA_TYPE>& sol,
                           Vector<DATA_TYPE>& res,
-                          StdVector<UInt>& nodeNums, 
+                          StdVector<UInt>& elementNums, 
                           StdVector<DATA_TYPE>& spaceFactorA, 
                           StdVector<DATA_TYPE>& spaceFactorB,
                           const DATA_TYPE constFactor,
                           StdVector<DATA_TYPE>& sum, 
                           StdVector<DATA_TYPE>& factorSum,
-                          std::vector<bool>& countNodes) {
+                          std::vector<bool>& countElements) {
     if (dimDof < 1) {
       return;
     }
-    const UInt size = nodeNums.GetSize();
+    const UInt size = elementNums.GetSize();
     const bool useSpaceFactor = useSpaceFactorA || useSpaceFactorB;
     const bool useOnlyConstFactor = useConstFactor && !useSpaceFactor;
 #pragma omp parallel
@@ -463,7 +417,7 @@ template<class DATA_TYPE>
       DATA_TYPE tFactorSum1 = 0.0;
       DATA_TYPE value;
       DATA_TYPE factor = 1.0;
-      UInt node;
+      UInt element;
       UInt sourceIndex;
       UInt targetIndex;
 #pragma omp for
@@ -489,14 +443,14 @@ template<class DATA_TYPE>
             factor = spaceFactorB[i];
           }
         }
-        node = nodeNums[i];
+        element = elementNums[i];
         if (dimDof > 1) {
           sourceIndex = i * dimDof;
-          targetIndex = node * dimDof;
+          targetIndex = element * dimDof;
           for (UInt d = 0; d < dimDof; ++d) {
             value = res[sourceIndex + d];
             if (countSum) {
-              if (countAllValues || countNodes[i]) {
+              if (countAllValues || countElements[i]) {
                 tSum[d] += value;
               }
             }
@@ -507,7 +461,7 @@ template<class DATA_TYPE>
             }
             sol[targetIndex + d] = value;
             if (countSum && useSpaceFactor) {
-              if (countAllValues || countNodes[i]) {
+              if (countAllValues || countElements[i]) {
                 tFactorSum[d] += value;
               }
             }
@@ -517,7 +471,7 @@ template<class DATA_TYPE>
           // the optimization behaviour of the compiler
           value = res[i];
           if (countSum) {
-            if (countAllValues || countNodes[i]) {
+            if (countAllValues || countElements[i]) {
               tSum1 += value;
             }
           }
@@ -526,9 +480,9 @@ template<class DATA_TYPE>
           } else if (useSpaceFactor) {
             value *= factor;
           }
-          sol[node] = value;
+          sol[element] = value;
           if (countSum && useSpaceFactor) {
-            if (countAllValues || countNodes[i]) {
+            if (countAllValues || countElements[i]) {
               tFactorSum1 += value;
             }
           }
@@ -559,7 +513,7 @@ template<class DATA_TYPE>
   }
   
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::ReadSolution(UInt step, Double stepValue, Vector<DATA_TYPE> & sol){
+  void CoefFunctionGridElem<DATA_TYPE>::ReadSolution(UInt step, Double stepValue, Vector<DATA_TYPE> & sol){
     Double actValue = this->mp_->Eval(mHandleStep_);
     std::string varName = this->isComplex_ ? "f" : "t";
     this->mp_->SetValue(MathParser::GLOB_HANDLER, varName, stepValue);
@@ -568,7 +522,7 @@ template<class DATA_TYPE>
   }
   
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::ReadSolution(UInt step,Vector<DATA_TYPE> & sol){
+  void CoefFunctionGridElem<DATA_TYPE>::ReadSolution(UInt step,Vector<DATA_TYPE> & sol){
     if (srcRegions_.size() < 1) {
       return;
     }
@@ -620,16 +574,16 @@ template<class DATA_TYPE>
     }
     
     // get function for copying the result vector
-    typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr crf = GetCopyResultFunction(
+    typename CoefFunctionGridElem<DATA_TYPE>::CopyResultFunction::Ptr crf = GetCopyResultFunction(
       this->hasGeneralFactor_, this->hasSpaceFactor_, useConstantFactor, 
-      this->verboseSum_, this->useAllRegionNodesForSum_, this->dimDof_);
+      this->verboseSum_, this->useAllRegionElementsForSum_, this->dimDof_);
       
     std::set<std::string>::iterator regIter = srcRegions_.begin();
-    if (sol.GetSize() != numEqns_) {
-      sol.Resize(numEqns_);
+    if (sol.GetSize() != numElements_*dimDof_) {
+      sol.Resize(numElements_*dimDof_);
       sol.Init(0.0);
     }
-    this->InitRegionNodes();
+    this->InitRegionElements();
     bool loadValues = true;
     if (this->hasSpaceInputButTimeFactor_ && this->initializedConstantInput_) {
       loadValues = false;
@@ -648,37 +602,37 @@ template<class DATA_TYPE>
         }
       }
       Vector<DATA_TYPE>& resVec = loadValues ?  myResult->GetVector() : this->constantInput_[i];
-      // get node numbers
-      StdVector<UInt>& nodeNums = regionNodes_[i];
+      // get element numbers
+      StdVector<UInt>& elementNums = regionElements_[i];
       
-      const UInt size = nodeNums.GetSize();
+      const UInt size = elementNums.GetSize();
       // evaulate general factors
       StdVector< DATA_TYPE > generalFactor;
       if (hasGeneralFactor_) {
         generalFactor.Resize(size);
-        this->InitRegionNodeCoordinates();
-        StdVector<Vector<Double> >& CoordVec = regionNodeCoordinates_[i];
+        this->InitRegionElementCoordinates();
+        StdVector<Vector<Double> >& CoordVec = regionElementCoordinates_[i];
         generalFactorFunction_->GetScalarValuesAtCoords(CoordVec,generalFactor,this->domain_->GetGrid());
       }
       StdVector< DATA_TYPE >& spaceFactor = this->hasSpaceFactor_ ? this->spaceFactor_[i] : generalFactor;
       
       if (verboseSum_) {
-        this->InitUsedRegionNodesForSum();
+        this->InitUsedRegionElementsForSum();
       }
       std::vector<bool> dummy;
-      std::vector<bool>& countNodes = this->verboseSum_ ? this->usedRegionNodesForSum_[i] : dummy;
+      std::vector<bool>& countElements = this->verboseSum_ ? this->usedRegionElementsForSum_[i] : dummy;
       
       // copying the result vector
       if (this->hasSpaceInputButTimeFactor_ && !this->initializedConstantInput_) {
         this->constantInput_[i].Resize(resVec.GetSize());
-        StdVector<UInt> dummyNodeNums(size);
+        StdVector<UInt> dummyElementNums(size);
 #pragma omp parallel for
         for (Integer ii = 0; ii < (Integer) size; ii++) {
-          dummyNodeNums[ii] = ii;
+          dummyElementNums[ii] = ii;
         }
-        crf(this->constantInput_[i],resVec,dummyNodeNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countNodes);
+        crf(this->constantInput_[i],resVec,dummyElementNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countElements);
       } else {
-        crf(sol,resVec,nodeNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countNodes);
+        crf(sol,resVec,elementNums,generalFactor,spaceFactor,constantFactor,loadedSum,factorSum,countElements);
       }
     }
     
@@ -718,7 +672,7 @@ template<class DATA_TYPE>
   }
 
   template<class DATA_TYPE>
-  bool CoefFunctionGridNodal<DATA_TYPE>::UpdateSolution(){
+  bool CoefFunctionGridElem<DATA_TYPE>::UpdateSolution(){
     const UInt stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
 #ifdef USE_OPENMP
     omp_set_lock(&updateSolutionLock_);
@@ -817,7 +771,7 @@ template<class DATA_TYPE>
   }
 
 
-  template class CoefFunctionGridNodal<Double>;
-  template class CoefFunctionGridNodal<Complex>;
+  template class CoefFunctionGridElem<Double>;
+  template class CoefFunctionGridElem<Complex>;
 
 } // namespace CoupledField
