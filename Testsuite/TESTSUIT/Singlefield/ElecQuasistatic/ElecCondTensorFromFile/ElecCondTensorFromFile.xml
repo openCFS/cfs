@@ -81,7 +81,7 @@
         <matDependencyList>
           <elecConductivity id="cond">
             <grid> 
-              <defaultGrid quantity="ElectCond"  dependtype="CONST" snapToCFSTimeStep="true" sequenceStep="1"/>
+              <defaultGrid quantity="ElectCond"  dependtype="CONST" snapToCFSTimeStep="true" definedOn="node" sequenceStep="1"/>
             </grid>
           </elecConductivity>
         </matDependencyList>

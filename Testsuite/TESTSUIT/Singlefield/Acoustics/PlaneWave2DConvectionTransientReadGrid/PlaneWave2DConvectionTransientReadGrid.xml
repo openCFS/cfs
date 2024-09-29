@@ -59,7 +59,7 @@
 				<flowList>
 					<flow name="myFlow">
 						<grid>
-							<defaultGrid dependtype="SPACE" quantity="meanFluidMechVelocity" sequenceStep="1" />
+							<defaultGrid dependtype="SPACE" quantity="meanFluidMechVelocity" definedOn="node" sequenceStep="1" />
 						</grid>
 					</flow>
 				</flowList>
