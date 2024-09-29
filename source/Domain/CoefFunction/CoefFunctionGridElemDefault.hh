@@ -24,12 +24,14 @@ namespace CoupledField{
  *  \brief This class represents the specialization of interpolation functionality if the 
  *         source date is on the default grid or a topological equivalent
  *  \tparam DATA_TYPE Can be Complex or Double
- *  @author Dominik Mayrhofer
- *     @date 09/2024
+ *  @author A. Hueppe
+ *  @date 01/2013
  * 
  *  The class is completely based upon two assumptions:
  *   \li The source data is stored on the default Grid or an topological equivalent
- *   \li The results to be mapped are stored corresponding to elements
+ *   \li The results to be mapped are stored corresponding to Nodes
+ *  
+ *  NOTE: Extensions needed for Results stored by elements
  */
 
 template<class DATA_TYPE>

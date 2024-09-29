@@ -112,6 +112,10 @@ class CoefFunctionGridElem : public CoefFunctionGrid{
     
     //! Updates the solution vector
     bool UpdateSolution();
+    
+    //! Perform a simple equation mapping for nodal grids
+    //! to make solution access simpler
+    void MapEqns();
 
 #ifdef USE_OPENMP
     //! thread locking for UpdateSolution function
@@ -123,6 +127,12 @@ class CoefFunctionGridElem : public CoefFunctionGrid{
     
     //! Initialize the solution vector solVec_;
     void InitSolVec();
+
+    //! Associate node numbers to equations
+    std::map<UInt,UInt> nodeIdxMap_;
+
+    //! the equation Numbers, for each node, dimDOF equation numbers
+	  StdVector< StdVector<UInt> > eqnNumbers_;
 
     //! Stores the current solution vector
     Vector<DATA_TYPE> solVec_;
@@ -255,7 +265,7 @@ class CoefFunctionGridElem : public CoefFunctionGrid{
     StdVector< Vector< DATA_TYPE > > constantInput_;
 
     //=======================================================================================
-    // Functions and structure for copying the element-based grid result
+    // Functions and structure for copying the nodal grid result
     //=======================================================================================
     
     //! struct needed for creation of typedef to template function for copying the result vector
@@ -317,7 +327,7 @@ class CoefFunctionGridElem : public CoefFunctionGrid{
       } else if (dimDof == 27) { // 3D tesnor 3rd order 
         return GetCopyResultFunction<useSpaceFactorA,useSpaceFactorB,useConstFactor,countSum,countAllValues,27>();
       }
-      EXCEPTION("Cannot find CopyResult function for dimension " << dimDof << " in CoefFunctionGridElem::GetCopyResultFunction");
+      EXCEPTION("Cannot find CopyResult function for dimension " << dimDof << " in CoefFunctionGridNodal::GetCopyResultFunction");
       return GetCopyResultFunction<useSpaceFactorA,useSpaceFactorB,useConstFactor,countSum,countAllValues,1>();
     }
     

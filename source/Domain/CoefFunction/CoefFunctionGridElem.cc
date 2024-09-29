@@ -68,6 +68,8 @@ template<class DATA_TYPE>
     this->verboseSum_ = configNode->Get("verboseSum")->As<bool>();
     this->verboseTimeFreqFactor_ = configNode->Get("verboseTimeFreqFactor")->As<bool>();
     
+    
+
     // get the solution quantity
     solName_ = configNode->Get("quantity")->As<std::string>();
     solType_ = SolutionTypeEnum.Parse(solName_);
@@ -233,6 +235,38 @@ template<class DATA_TYPE>
                                                    const LocPointMapped& lpm ){
     EXCEPTION("CoefFunctionGridElem: GetScalar is not implemented here"); 
   }
+
+
+  /* template<class DATA_TYPE>
+  void CoefFunctionGridElem<DATA_TYPE>::MapEqns(){
+    //Be careful we determine the current sequence step according to the
+    //current simulation run. This could fail in a multisequence analysis!!!
+    //the user should give an argument where to find the results!
+
+    std::set<std::string>::iterator regIter = srcRegions_.begin();
+    UInt pos = 0;
+    for( ; regIter != srcRegions_.end(); ++regIter) {
+      StdVector<UInt> nList;
+      srcGrid_->GetNodesByName(nList,*regIter );
+      for(UInt i=0; i<nList.GetSize(); i++){
+        nodeIdxMap_[nList[i]] = pos++;
+      }
+    }
+
+    //catch the case in which the dimDof_ varable is zero
+    assert(dimDof_ != 0);
+    eqnNumbers_.Resize(pos,StdVector<UInt>(dimDof_));
+    std::map<UInt,UInt>::iterator idxIter = nodeIdxMap_.begin();
+    pos = 0;
+    UInt eqnNr = 0;
+    for(;idxIter!=nodeIdxMap_.end();++idxIter,++pos){
+    	for(UInt d = 0; d < dimDof_;d++){
+    		eqnNumbers_[pos][d] = eqnNr++;
+    	}
+    }
+
+    eqnMapComplete_ = true;
+  } */
 
   template<class DATA_TYPE>
   void CoefFunctionGridElem<DATA_TYPE>::InitSolVec(){
@@ -676,7 +710,7 @@ template<class DATA_TYPE>
       Double postStepValue = stepIter->second;
       bool notEnd = true;
       if (stepValue > postStepValue) {
-        while (stepIter != stepValueMap_.end() && stepIter->second < stepValue && notEnd){
+        while (stepIter->second < stepValue && notEnd) {
           preStepNumber = postStepNumber;
           preStepValue = postStepValue;
           ++stepIter;
