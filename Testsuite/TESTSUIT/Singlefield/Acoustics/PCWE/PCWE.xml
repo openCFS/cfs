@@ -61,7 +61,7 @@
         <flowList>
           <flow name="fluid">
             <grid dofs="all">
-              <defaultGrid quantity="meanFluidMechVelocity" dependtype="CONST" snapToCFSTimeStep="true" sequenceStep="1">
+              <defaultGrid quantity="meanFluidMechVelocity" dependtype="CONST" definedOn="node" snapToCFSTimeStep="true" sequenceStep="1">
                 <globalFactor>1</globalFactor>
               </defaultGrid>
             </grid>

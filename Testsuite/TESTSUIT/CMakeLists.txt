@@ -970,6 +970,7 @@ if(USE_CGNS)
   add_subdirectory(Technical/ShellElementConversion_CGNS)
   add_subdirectory(Technical/VolumeElementConversion_CGNS)
 endif()
+add_subdirectory(Technical/CoefFunctionGridElem)
 #-------------------------------------------------------------------------------
 # CFSdat
 #-------------------------------------------------------------------------------

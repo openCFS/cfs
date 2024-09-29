@@ -59,12 +59,12 @@
         <bcsAndLoads>
          <rhsValues name="air">
             <grid>
-             <defaultGrid quantity="acouPressure" dependtype="INVMEASURE" measureNodes="MicPos"/>
+             <defaultGrid quantity="acouPressure" dependtype="INVMEASURE" definedOn="node" measureNodes="MicPos"/>
             </grid>
           </rhsValues>
           <rhsValues name="src">
             <grid>
-              <defaultGrid quantity="acouPressure" dependtype="INVSOURCE"></defaultGrid>
+              <defaultGrid quantity="acouPressure" dependtype="INVSOURCE" definedOn="node"/>
             </grid>
          </rhsValues>
         </bcsAndLoads>

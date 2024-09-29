@@ -90,91 +90,91 @@
                 <bcsAndLoads>
                     <thermalStrain name="Vol_poly_A1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_poly_F1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_poly_C1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_bpsg_B1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_bpsg_F1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_bpsg_C1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_pm_G1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_pm_F1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_pm_C1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_sub_C1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_sub_C2">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_sub_C3">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>
                     </thermalStrain>          
                     <thermalStrain name="Vol_bond_F1">
                         <grid>
-                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="1">
                                 <globalFactor>1</globalFactor>
                             </defaultGrid>
                         </grid>

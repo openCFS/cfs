@@ -61,7 +61,7 @@
 					<velocity name="myFlow">
 						<!-- <comp dof="x" value="Vx*x"/> -->
 						<grid>
-							<defaultGrid dependtype="SPACE" quantity="meanFluidMechVelocity" sequenceStep="1" />
+							<defaultGrid dependtype="SPACE" quantity="meanFluidMechVelocity" definedOn="node" sequenceStep="1" />
 						</grid>
 					</velocity>
 				</flowList>

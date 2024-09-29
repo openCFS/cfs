@@ -63,7 +63,7 @@
                     </rhsValues>
                     <rhsValues name="inner">
                         <grid>
-                            <defaultGrid quantity="acouRhsLoad" dependtype="GENERAL"/>
+                            <defaultGrid quantity="acouRhsLoad" dependtype="GENERAL" definedOn="node"/>
                         </grid>
                     </rhsValues>
                 </bcsAndLoads>

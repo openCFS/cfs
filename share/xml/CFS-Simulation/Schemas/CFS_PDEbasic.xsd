@@ -88,6 +88,14 @@
               </xsd:sequence>
               <xsd:attribute name="quantity" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required"/>
+              <xsd:attribute name="definedOn" use="required">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="node"/>
+                    <xsd:enumeration value="element"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:attribute>
               <xsd:attribute name="measureNodes" type="xsd:string"/>
               <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1"/>
               <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional"
