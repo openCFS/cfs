@@ -54,7 +54,8 @@ namespace CoupledField
     // =====================================================================
     pdename_ = "magneticScalarPotential";
     pdematerialclass_ = ELECTROMAGNETIC;
-
+  
+    std::cout << "PDE name: " << pdename_ << std::endl;
     nonLin_ = false;
     nonLinMaterial_ = false;
 
@@ -335,6 +336,59 @@ namespace CoupledField
       // RHS FOR NONLINEAR CASE BUT LINEAR SUBREGION OR ENTIRELY LINEAR (end)
       // ===============================================================================================
     } // end loop over entities
+
+    // ==================
+    //  PRESCRIBED FLUX DENSITY: si,ple model of a linear permanent magnet
+    // ==================
+    LOG_DBG(magscalpde) << "Reading prescribed flux density";
+    StdVector<std::string> vecComponents;
+    if( dim_ == 3 ) {
+      vecComponents = "x", "y", "z";
+    }
+    else if( isaxi_ ) {
+      vecComponents = "r", "z";
+    }
+    else {
+      vecComponents = "x", "y";
+    }
+
+    ReadRhsExcitation( "fluxDensity", vecComponents, ResultInfo::VECTOR, isComplex_,
+            ent, coef, coefUpdateGeo );
+
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST ||
+              ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
+        EXCEPTION("Prescribed magnetic flux density can only be defined in a volume.")
+      }
+
+      //save the remanent magnetic flux of the permanent magnet
+      BremMap_[ent[i]->GetRegion()] = coef[i]; 
+
+      if (isComplex_) {
+        if( dim_ == 2) {
+          lin = new BUIntegrator<Complex>( new GradientOperator<FeH1,2,1,Complex>(), Complex(1.0),coef[i],  coefUpdateGeo, true);
+        } else {
+          // 3D case
+          lin = new BUIntegrator<Complex> ( new GradientOperator<FeH1,3,1,Complex>(), Complex(1.0),coef[i],  coefUpdateGeo, true);
+        }
+      } else {
+        if( dim_ == 2) {
+          lin = new BUIntegrator<Double>( new GradientOperator<FeH1,2>(), 1.0, coef[i],  coefUpdateGeo, true);
+        } else {
+          // 3D case
+          lin = new BUIntegrator<Double>( new GradientOperator<FeH1,3>(), 1.0, coef[i],  coefUpdateGeo, true);         
+        }
+      }
+
+      lin->SetName("FluxIntegrator");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(feFunc_reduced);
+      assemble_->AddLinearForm(ctx);
+      feFunc_reduced->AddEntityList(ent[i]);    
+    }
+    
   }
 
   // ****************************
@@ -521,7 +575,17 @@ namespace CoupledField
       }else{
         // classical nonlinear case and linear case
         PtrCoefFct b = CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_, hIntensCoef, perm_, CoefXpr::OP_MULT));
-        bCoef->AddRegion(*regIt, b);
+
+        //check for remanent flux density of a permanent magnet
+        PtrCoefFct btotal;
+        if(BremMap_.find(*regIt) != BremMap_.end()){          
+          PtrCoefFct br = BremMap_[*regIt];
+          btotal = b = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, b, br, CoefXpr::OP_ADD));
+        }
+        else {
+          btotal = b;          
+        }
+        bCoef->AddRegion(*regIt, btotal);
       }
     } // loop over regions
   }

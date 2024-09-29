@@ -85,6 +85,9 @@ namespace CoupledField
     //! map containing the magnetic source field, e.g., from a previous sequence step
     std::map<RegionIdType, PtrCoefFct> Hsmap_;
 
+    //! map containing remanent flux density of a permanent magnet
+    std::map<RegionIdType, PtrCoefFct> BremMap_;
+
     //! Coefficient function, containing the overall permeability
     shared_ptr<CoefFunctionMulti> perm_;
    
