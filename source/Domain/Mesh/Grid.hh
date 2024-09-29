@@ -504,6 +504,12 @@ namespace CoupledField
     //! \param regionId (in) region identifier
     virtual void GetNodesByRegion( StdVector<UInt>& nodeList, const RegionIdType regionId ) = 0;
 
+    //! Returns a list of all elements, which are contained in a
+    //! volume- or surface-region.
+    //! \param elementList (out) list with element numbers
+    //! \param regionId (in) region identifier
+    virtual void GetElementsByRegion( StdVector<UInt>& elementList, const RegionIdType regionId ) = 0;
+
     //! Returns number of element contained in one region
 
     //! Returns the number of element, which belong to a list of given
