@@ -2348,6 +2348,57 @@ namespace CoupledField {
       }
       resultFunctors_[FLUIDMECH_POWER] = powerFct;
       availResults_.insert(power);
+
+      // === FLUID-MECHAINC VELOCITY ===
+      // Normal velocity v_{\mathrm{lf,n}} = \bm{v} \cdot \bm{n}
+      shared_ptr<ResultInfo> velNormal(new ResultInfo);
+      velNormal->resultType = FLUIDMECH_NORMAL_VELOCITY;
+      velNormal->dofNames = "";
+      velNormal->unit = MapSolTypeToUnit(FLUIDMECH_NORMAL_VELOCITY);
+      velNormal->entryType = ResultInfo::SCALAR;
+      velNormal->definedOn = ResultInfo::SURF_ELEM;
+      shared_ptr<CoefFunctionSurf> velFncNormal;
+      velFncNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
+      DefineFieldResult(velFncNormal, velNormal);
+      surfCoefFcts_[velFncNormal] = velFnc;
+      
+      
+      // === FLUID-MECHAINC SURFIMPEDANCE ===
+      // Surface impedance Z_{\mathrm{lf,surf}} = v_{\mathrm{lf,n}} / p
+      shared_ptr<ResultInfo> surfImpedance(new ResultInfo);
+      surfImpedance->resultType = FLUIDMECH_SURFIMPEDANCE;
+      surfImpedance->dofNames = "";
+      surfImpedance->unit = MapSolTypeToUnit(FLUIDMECH_SURFIMPEDANCE);
+      surfImpedance->entryType = ResultInfo::SCALAR;
+      surfImpedance->definedOn = ResultInfo::SURF_ELEM;
+      PtrCoefFct surfImpFct = CoefFunction::Generate(
+          mp_, part, CoefXprBinOp(mp_, presFnc, velFncNormal, CoefXpr::OP_DIV));
+      DefineFieldResult(surfImpFct, surfImpedance);
+      
+      // === FLUID-MECHAINC IMPEDANCE ===
+      // Impedance Z_{\mathrm{lf}} = \int_{\mathrm{\Gamma}} v_{\mathrm{lf,n}} / p dGamma
+      shared_ptr<ResultInfo> impedance(new ResultInfo);
+      impedance->resultType = FLUIDMECH_IMPEDANCE;
+      impedance->dofNames = "";
+      impedance->unit = MapSolTypeToUnit(FLUIDMECH_IMPEDANCE);
+      impedance->entryType = ResultInfo::SCALAR;
+      impedance->definedOn = ResultInfo::SURF_REGION;
+      // TODO area weighted average
+      shared_ptr<ResultFunctor> impedanceFct;
+      if( isComplex_ ) {
+        impedanceFct.reset(
+            new ResultFunctorIntegrate<Complex>(surfImpFct, feFct, impedance));
+        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(impedanceFct)
+            ->SetAveraged(true);
+      } else {
+        impedanceFct.reset(
+            new ResultFunctorIntegrate<Double>(surfImpFct, feFct, impedance));
+        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)
+            ->SetAveraged(true);
+      }
+      resultFunctors_[FLUIDMECH_IMPEDANCE] = impedanceFct;
+      availResults_.insert(impedance);
+
     }
   
   void LinFlowPDE::FinalizePostProcResults() {

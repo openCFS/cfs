@@ -532,6 +532,20 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
+      <xsd:enumeration value="fluidMechNormalVelocity">
+        <xsd:annotation>
+          <xsd:documentation>
+            Normal velocity v_n = v \cdot n
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="fluidMechSurfaceImpedance">
+        <xsd:annotation>
+          <xsd:documentation>
+            Surface impedance Z_s = v / p
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -558,6 +572,13 @@
         <xsd:annotation>
           <xsd:documentation>
             Power P = \int_Gamma (p  conj(v)) \cdot n dGamma
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="fluidMechImpedance">
+        <xsd:annotation>
+          <xsd:documentation>
+            Impedance Z = \int_Gamma v / p dGamma
           </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>

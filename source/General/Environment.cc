@@ -299,6 +299,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_MESH_VELOCITY_NODE, "fluidMechMeshVelocityNode");
     SolutionTypeEnum.Add(FLUIDMECH_MESH_VELOCITY_ELEM, "fluidMechMeshVelocityElem");
     SolutionTypeEnum.Add(FLUIDMECH_TOTAL_VELOCITY_ELEM, "fluidMechTotalVelocityElem");
+    SolutionTypeEnum.Add(FLUIDMECH_NORMAL_VELOCITY, "fluidMechNormalVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_ZERO_PRESSURE, "fluidMechZeroPressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
@@ -343,6 +344,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_NORMAL_INTENSITY_PRESSURE_ONLY, "fluidMechNormalIntensityPressureOnly");
     SolutionTypeEnum.Add(FLUIDMECH_POWER, "fluidMechPower");
     SolutionTypeEnum.Add(FLUIDMECH_POWER_PRESSURE_ONLY, "fluidMechPowerPressureOnly");
+    SolutionTypeEnum.Add(FLUIDMECH_SURFIMPEDANCE, "fluidMechSurfaceImpedance");
+    SolutionTypeEnum.Add(FLUIDMECH_IMPEDANCE, "fluidMechImpedance");
 
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
 
