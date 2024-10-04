@@ -845,7 +845,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 1))
       {
         // VPM + atan anhysteresis
-        EXCEPTION("Currently there is only the fullEB model implemented for the 2D case");
+        ret = Eval_2D_VPM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
       }
       else if ((approx_type_ == "fullEB") && (anhyst_type_ == 1))
       {
@@ -974,6 +974,86 @@ DEFINE_LOG(eb, "EBHysteresis")
     ret.Push_back(Px);
     ret.Push_back(Py);
     ret.Push_back(Pz);
+    return ret;
+  }
+
+
+  Vector<Double> EBHysteresis::Eval_2D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  {
+    Vector<Double> ret;
+    StdVector<Double> error, dir, HrxS_sol, HryS_sol, MxS_sol, MyS_sol;
+    StdVector<UInt> numIter;
+    error.Resize(numS_, 0.0);
+    dir.Resize(numS_, 0.0);
+    numIter.Resize(numS_, 0);
+    HrxS_sol.Resize(numS_, 0.0);
+    HryS_sol.Resize(numS_, 0.0);
+    MxS_sol.Resize(numS_, 0.0);
+    MyS_sol.Resize(numS_, 0.0);
+
+    Double Hex_x = Hn[0];
+    Double Hex_y = Hn[1];
+
+    Double HrxS_prev, HryS_prev, HrS, Px, Py, condition1, Hirr_x, Hirr_y;
+
+    StdVector<Double> &HxS_prev = HxS_n_[idx];
+    StdVector<Double> &HyS_prev = HyS_n_[idx];
+
+    for (UInt k = 0; k < numS_; k++)
+    {
+      HrxS_prev = HxS_prev[k];
+      HryS_prev = HyS_prev[k];
+      condition1 = (std::pow((Hex_x - HrxS_prev) / chi[k], 2) + std::pow((Hex_y - HryS_prev) / chi[k], 2));
+      if (condition1 <= 1.0)
+      {
+        HrxS_sol[k] = HrxS_prev;
+        HryS_sol[k] = HryS_prev;
+      }
+      else
+      {
+        // dissipation now reached (just arrived at the border of the sphere)
+        if (k == 0)
+        {
+          HrxS_sol[k] = Hex_x;
+          HryS_sol[k] = Hex_y;
+        }
+        else
+        {
+          //
+          Hirr_x = chi[k] * (Hex_x - HrxS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)));
+          Hirr_y = chi[k] * (Hex_y - HryS_prev) / std::sqrt((std::pow((Hex_x - HrxS_prev), 2) + std::pow((Hex_y - HryS_prev), 2)));
+          HrxS_sol[k] = Hex_x - Hirr_x;
+          HryS_sol[k] = Hex_y - Hirr_y;
+        }
+      }
+      HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2));
+      if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
+      { // pure VPM with atan anhysteresis curve
+        MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
+        MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
+      }
+      else
+      {
+        MxS_sol[k] = 0.0;
+        MyS_sol[k] = 0.0;
+      }
+    }
+    Px = 0.0;
+    Py = 0.0;
+    for (UInt k = 0; k < numS_; k++)
+    {
+      Px += weight[k] * MxS_sol[k];
+      Py += weight[k] * MyS_sol[k];
+    }
+    if (saveTmpStageVecs)
+    {
+      HxS_n_tmp_[idx] = HrxS_sol;
+      HyS_n_tmp_[idx] = HryS_sol;
+      MxS_n_tmp_[idx] = MxS_sol;
+      MyS_n_tmp_[idx] = MyS_sol;
+    }
+    ret.Push_back(Px);
+    ret.Push_back(Py);
     return ret;
   }
 

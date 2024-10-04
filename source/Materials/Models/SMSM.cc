@@ -17,7 +17,8 @@ DEFINE_LOG(smsm, "SMSM")
   SMSM::SMSM()
   {
     // Define the file path
-    std::string filePath = "/home/kroppert/Devel/CFS_SRC/latest_trunkGit/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
+//    std::string filePath = "/home/klaus/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
+    std::string filePath = "/Users/kroppert/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
     std::ifstream file(filePath);
 
     // Check if the file was successfully opened
@@ -262,7 +263,7 @@ DEFINE_LOG(smsm, "SMSM")
     SIGMAloc_[0][0] = sigma[0]; SIGMAloc_[0][1] = sigma[5]; SIGMAloc_[0][2] = sigma[4];
     SIGMAloc_[1][0] = sigma[5]; SIGMAloc_[1][1] = sigma[1]; SIGMAloc_[1][2] = sigma[3]; 
     SIGMAloc_[2][0] = sigma[4]; SIGMAloc_[2][1] = sigma[3]; SIGMAloc_[2][2] = sigma[2];
-    SIGMAloc_.Mult(1.0e6); // in Pascals
+    //SIGMAloc_.Mult(1.0e6); // in Pascals
     //Double TABvalsig = 0.0;
     //SIGMAloc_.Mult(TABvalsig);
 
