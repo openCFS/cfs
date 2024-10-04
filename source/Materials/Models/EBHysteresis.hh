@@ -51,6 +51,7 @@ namespace CoupledField {
       Vector<Double> Evaluate(Vector<Double> E, bool saveTmpStageVecs, UInt idx);
 
       Vector<Double> Eval_2D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+      Vector<Double> Eval_2D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
       Vector<Double> Eval_3D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
 
       Vector<Double> Eval_2D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
