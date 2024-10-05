@@ -312,7 +312,7 @@ namespace CoupledField
       M1_[idx][i] = M[i];
     }
 
-    if (numS_ > 1)
+    if ((numS_ > 1) || (anhyst_type_ == 2))
     { // hysteretic case
       switch (jacobian_method_)
       {
