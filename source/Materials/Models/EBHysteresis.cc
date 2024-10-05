@@ -282,17 +282,22 @@ DEFINE_LOG(eb, "EBHysteresis")
     }
 
   
-    if (numS_ > 1 ){ // hysteretic case
-      if (jacobian_method_ == 1){ // use finite differences
+    if (numS_ > 1)
+    { // hysteretic case
+      switch (jacobian_method_)
+      {
+      case 1:
+        // use finite differences
         mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-      } else if (jacobian_method_ == 2) { // use Broyden method
+        break;
+      case 2:
+        // use Broyden method
         mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-      } else if (jacobian_method_ == 3) { // use simple finite differences
-        mu = EvaluateLocalMuBFGS(delta_H, delta_B, idx);
-      } else if (jacobian_method_ == 4) { // use BFGS method
-        mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
-      } else {
-        EXCEPTION("WRONG Jacobian_method!")
+        break;
+      case 3:
+        // use simple finite differences
+        mu = EvaluateLocalMu(delta_H, delta_B, idx);
+        break;
       }
       M_dummy = Evaluate(HVec, true, idx);
     } else { // nonlinear case (only anhysteresis)
