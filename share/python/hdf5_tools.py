@@ -830,6 +830,8 @@ def get_centroids(hdf5_file,region=None) :
             center[It,:] = mean(coord[nids-1,:],axis=1) # compute center as arithmetic mean
         return center
 
+
+
 if __name__ == "__main__":
 
     # for testing in the testsuite, this file is run with the TESTSUIT_DIR

@@ -141,6 +141,9 @@
         exit $LastExitCode
       }
   after_script:
+    # zip all log files in the build directory
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build" -Include *.log -Recurse -ErrorAction SilentlyContinue | Compress-Archive -DestinationPath "$env:CI_PROJECT_DIR\build\logs.zip"; $null
+    # do the CDash submission
     - !reference [.windwos_cdash,after_script]
 
 ### TESTS ###

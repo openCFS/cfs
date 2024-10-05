@@ -1,22 +1,15 @@
-cmake_minimum_required(VERSION 3.6.0 FATAL_ERROR)
+# cmake 3.16 is required for essential options of the new FindPython.cmake 
+cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 message(STATUS "Using CMake ${CMAKE_VERSION} with generator ${CMAKE_GENERATOR}")
 
 # Include global definitions for openCFS development server (host name, etc.)
 include("cmake_modules/DevelopmentServer.cmake")
 include(CMakePrintHelpers)
 
-# the newer CMake gets, the more policies it demands
-if(POLICY CMP0038)
-  cmake_policy(SET CMP0038 NEW)
-endif()
 if(POLICY CMP0135)
   #>= cmake 3.24 wants a policy for DOWNLOAD_EXTRACT_TIMESTAMP with external projects. is demanded
   # howerver, setting this to NEW makes make always build the complete source
   cmake_policy(SET CMP0135 OLD)
-endif()
-if(POLICY CMP0148)
-  # to fix this, we need minimum cmake 3.12: The FindPythonInterp and FindPythonLibs modules are removed
-  cmake_policy(SET CMP0148 OLD)
 endif()
 
 # Note: "Policy CMP0077 is not set: option() honors normal variables." 
@@ -82,7 +75,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date, independent on the significance of the change (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "24")
-set(CFS_VERSION_MONTH "03")
+set(CFS_VERSION_MONTH "10")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -156,6 +149,8 @@ option(USE_METIS "Use Metis Graph partitioning." ${USE_METIS_DEFAULT})
 option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
 # SCPIP optimizer library.
 option(USE_SCPIP "Use the external academic SCPIP optimizer." ${USE_SCPIP_DEFAULT})
+# MMA/GCMMA optimizer library.
+option(USE_DUMAS "Use the MMA/GCMMA C++ implementations by Jérémie Dumas." ${USE_DUMAS_DEFAULT})
 # commercial SNOPT optimizer library.
 option(USE_SNOPT "Use the external commercial SNOPT optimizer." ${USE_SNOPT_DEFAULT})
 # open source IPOPT optimizer library.
@@ -358,7 +353,7 @@ if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
   if(BUILD_TESTING AND NOT DEFINED ENV{CI_PIPELINE_NO_TESTSUITE})
     if(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
       add_subdirectory(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-      message(STATUS "including testsuite from ${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+      message(STATUS "including testsuite via ${CMAKE_CURRENT_BINARY_DIR}/testsuite")
     else()
       set(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
       set(MSG "${MSG}Please specify a proper location!\n")

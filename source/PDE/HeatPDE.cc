@@ -21,6 +21,7 @@
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionComplexToReal.hh"
+#include "Domain/CoefFunction/CoefFunctionSUPG.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -355,6 +356,14 @@ void HeatPDE::DefineIntegrators() {
       //      }
     }
 
+    StabilisationType stabilisation = NO_STABILISATION;
+    std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
+    if(velocityId != "") {
+      // Add the region information
+      PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+      stabilisation = BasePDE::stabilisationType.Parse(velNode->Get("stabilisation")->As<std::string>());
+    }
+
     // ====================================================================
     // mass integrator
     // ====================================================================
@@ -396,6 +405,7 @@ void HeatPDE::DefineIntegrators() {
 
       assemble_->AddBiLinearForm( massNLContext );
       //bdbInts_[actRegion] = massIntNL;
+
     }
     else {
       // ====================================================================
@@ -431,13 +441,64 @@ void HeatPDE::DefineIntegrators() {
       massContext->SetFeFunctions( feFunc,feFunc);
       assemble_->AddBiLinearForm( massContext );
 
+      switch (stabilisation) 
+      {
+        case StabilisationType::SUPG:
+        {
+          EXCEPTION("SUPG is not validated and tested for Mass matrix! Use ArtificialDiffusion or validate the implementation below ...");
+          // get material property for tau calculation (we need to get ) 
+          shared_ptr<CoefFunction > curCoef = actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType_, Global::REAL );
+          if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+            curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, refTemp, CoefXpr::OP_DIV));
+          }
+          // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
+          if(domain->HasDesign()) {
+            CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, HEAT_CONDUCTIVITY_TENSOR, this); // takes double and complex
+            curCoef.reset(tmpFnc);
+          }
+          curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, massFactor, CoefXpr::OP_DIV));
+          // Calculate the stabilisation coeffitient here
+          PtrCoefFct coeffUpwindingFactor;
+          coeffUpwindingFactor.reset(new CoefFunctionSUPG(convecVelCoef_, curCoef, feFunc));
+          // combination for material properites and tau coeffitient 
+          PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffUpwindingFactor, massFactor, CoefXpr::OP_MULT )) ;
+          // Create the integrators
+          BiLinearForm *massIntSUPG = NULL;
+          BaseBOperator *bOperator = NULL;
+          if(dim_ == 2)
+          {
+            bOperator = new ConvectiveOperator<FeH1,2,1>();
+            bOperator->SetCoefFunction(convecVelCoef_);
+            massIntSUPG = new ABInt<>(new IdentityOperator<FeH1,2,1,Double>(), bOperator, factor,1.0, updatedGeo_ );
+          }
+          else
+          {
+            bOperator = new ConvectiveOperator<FeH1,3,1>();
+            bOperator->SetCoefFunction(convecVelCoef_);
+            massIntSUPG = new ABInt<>(new IdentityOperator<FeH1,3,1,Double>(), bOperator, factor,1.0, updatedGeo_ );
+          }
+
+          massIntSUPG->SetName("MassIntegratorSUPG");
+          // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+          if(domain->HasDesign())
+            dynamic_pointer_cast<CoefFunctionOpt>(factor)->SetForm(massIntSUPG);
+          massIntSUPG->SetFeSpace( feFunc->GetFeSpace() );
+
+          BiLinFormContext *massContext =  new BiLinFormContext(massIntSUPG, DAMPING );
+          massContext->SetEntities( actSDList, actSDList );
+          massContext->SetFeFunctions( feFunc,feFunc);
+          assemble_->AddBiLinearForm( massContext );
+          break;
+        }
+        default:
+        {break;}
+      }
     }
 
 
     // ====================================================================
     // check for convective velocity (no infinite mapping allowed)
     // ====================================================================
-    std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
     if(velocityId != "") {
       if(isMapping)
         EXCEPTION("Infinite mapping, applied to a region with defined velocity is permitted!!");
@@ -447,7 +508,7 @@ void HeatPDE::DefineIntegrators() {
 
       // Add the region information
       PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
-
+     
       // Read velocity coefficient function for this region and add it to velocity functor
       PtrCoefFct regionMoving;
       std::set<UInt> definedDofs;
@@ -508,6 +569,87 @@ void HeatPDE::DefineIntegrators() {
       PtrParamNode in = infoNode_->Get("velocity");
       in->Get("id")->SetValue(velocityId);
 
+      switch (stabilisation)
+      {
+        case StabilisationType::SUPG:
+        {
+          EXCEPTION("SUPG is not implemented for all the terms of the algebraic system of equations! Use ArtificialDiffusion instead!");
+          // IMPLEMENT check if an element is linear in a region for SUPG 
+          // because if it's not linear, we would have one more term in stiffness matrix
+        }
+        case StabilisationType::ARTIFICIAL_DIFFUSION:
+        {
+          PtrCoefFct curCoef;
+          if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
+            // NON-LINEAR MATERIAL
+            // non-linear heat conductivity
+            PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
+            curCoef = actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY_SCALAR, Global::REAL, heatCoef);
+            if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+              curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, curCoef, refTemp, CoefXpr::OP_DIV));
+            }
+            // material parameter - heat conductivity devided by capacity and density 
+            curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, curCoef, velFactor, CoefXpr::OP_DIV));
+          }
+          else
+          {
+            // LINEAR MATERIAL
+            // get material property for stabilisation factor calculation
+            // heat conductivity
+            curCoef = actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType_, Global::REAL );
+            if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
+              curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, refTemp, CoefXpr::OP_DIV));
+            }
+            // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
+            if(domain->HasDesign()) {
+              CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, HEAT_CONDUCTIVITY_TENSOR, this); // takes double and complex
+              curCoef.reset(tmpFnc);
+            }
+            // material parameter - heat conductivity devided by capacity and density 
+            curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, velFactor, CoefXpr::OP_DIV));
+          }
+          
+          // calculate stabilisation parameter
+          PtrCoefFct coeffUpwindingFactor;
+          coeffUpwindingFactor.reset(new CoefFunctionSUPG(convecVelCoef_, curCoef, feFunc));
+          // combination for material properites and stabilisation coeffitient for bilinear terms
+          PtrCoefFct factor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffUpwindingFactor, velFactor, CoefXpr::OP_MULT )) ;
+          // Create the integrators
+          BaseBDBInt   *convectiveSUPG = NULL;
+          BaseBOperator *bOperator = NULL;
+          if( isComplex_ ) {
+            if(dim_ == 2)
+              bOperator = new ConvectiveOperator<FeH1,2,1,Complex>();
+            else
+              bOperator = new ConvectiveOperator<FeH1,3,1,Complex>();
+          } else{
+            if(dim_ == 2)
+              bOperator = new ConvectiveOperator<FeH1,2,1>();
+            else
+              bOperator = new ConvectiveOperator<FeH1,3,1>();
+          }
+          bOperator->SetCoefFunction(convecVelCoef_);
+          convectiveSUPG  = new BBInt<>(bOperator, factor, 1.0, coefUpdateGeo);
+          // store the stabilisation term in the STIFFNESS matrix
+          if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 || nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1) {
+            convectiveSUPG->SetName("ConvectiveStiffSUPG-NL");
+          }else{
+            convectiveSUPG->SetName("ConvectiveStiffSUPG");
+          }
+               // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+          if(domain->HasDesign())
+            dynamic_pointer_cast<CoefFunctionOpt>(velFactor)->SetForm(convectiveSUPG);
+          BiLinFormContext *convectiveContextStiffSUPG =  new BiLinFormContext(convectiveSUPG, STIFFNESS );
+          convectiveContextStiffSUPG->SetEntities( actSDList, actSDList );
+          convectiveContextStiffSUPG->SetFeFunctions( feFunctions_[HEAT_TEMPERATURE],feFunc);
+          assemble_->AddBiLinearForm( convectiveContextStiffSUPG );
+          break;
+        }
+        default:
+        {
+          break;
+        }
+      }
     } //end convective term
   } //end loop over materials_
 
@@ -522,6 +664,7 @@ void HeatPDE::DefineIntegrators() {
   StdVector<shared_ptr<EntityList> > ent;
   StdVector<PtrCoefFct > coef;
   LinearForm * lin = NULL;
+  //LinearForm * linSUPG = NULL;
   StdVector<std::string> volumeRegions;
 
   ReadRhsExcitation( "elecPowerDensity", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
@@ -556,6 +699,71 @@ void HeatPDE::DefineIntegrators() {
     ctx->SetFeFunction(myFct);
     assemble_->AddLinearForm(ctx);
     myFct->AddEntityList(ent[i]);
+
+    // implementation of SUPG stabilisation for a convective term
+    // it does not work because of the region implementation for curRegNodeID
+    // Probably, the reason is that ent[i] is not a node, but an element
+/*  
+    BaseBOperator *bOperator = NULL;
+    RegionIdType curRegNodeID = ent[i]->GetRegion();
+    PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","id",curRegNodeID);
+
+    StabilisationType stabilisation = NO_STABILISATION;
+    std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
+    if(velocityId != "") {
+      // Add the region information
+      PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+      stabilisation = BasePDE::stabilisationType.Parse(velNode->Get("stabilisation")->As<std::string>());
+    }
+
+    switch (stabilisation)
+    {
+      case StabilisationType::SUPG:
+      {
+        EXCEPTION("SUPG is not validated and tested for electric power input! Use ArtificialDiffusion");
+        // Factor = density * heatCapacity
+        PtrCoefFct velFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL ), actSDMat->GetScalCoefFnc( DENSITY, Global::REAL ), CoefXpr::OP_MULT ) );
+        // get tau
+        shared_ptr<CoefFunction > curCoef = actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType_, Global::REAL );
+        curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, velFactor, CoefXpr::OP_DIV));
+        PtrCoefFct coeffUpwindingFactor;
+        coeffUpwindingFactor.reset(new CoefFunctionSUPG(convecVelCoef_, curCoef, myFct));
+        PtrCoefFct newCoef;
+        newCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp( mp_, coeffUpwindingFactor, coef[i], CoefXpr::OP_MULT )) ;
+
+        if( isComplex_ )
+        {
+          if(dim_ == 2)
+            bOperator = new ConvectiveOperator<FeH1,2,1,Complex>();
+          else
+            bOperator = new ConvectiveOperator<FeH1,3,1,Complex>();
+
+          bOperator->SetCoefFunction(convecVelCoef_);
+          linSUPG = new BUIntegrator<Complex> (bOperator, Complex(1.0), newCoef, updatedGeo_ );
+        } else{
+          if(dim_ == 2)
+            bOperator = new ConvectiveOperator<FeH1,2,1>();
+          else
+            bOperator = new ConvectiveOperator<FeH1,3,1>();
+
+          bOperator->SetCoefFunction(convecVelCoef_);
+          linSUPG = new BUIntegrator<Double> (bOperator, 1.0, newCoef, updatedGeo_ );
+        }
+        linSUPG->SetName("ElectricPowerDensityIntSUPG");
+        LinearFormContext *ctxSUPG = new LinearFormContext( linSUPG );
+        ctxSUPG->SetEntities( ent[i] );
+        ctxSUPG->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctxSUPG);
+        myFct->AddEntityList(ent[i]);
+        break;
+      }
+      default:
+      {
+        break; 
+      }
+
+    }
+    */
   } // end loop over entities
 
 

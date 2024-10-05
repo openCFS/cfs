@@ -39,6 +39,9 @@ namespace CoupledField {
     //! the Minimum Degree Algorithm and then it will be LU-factorised.
     void Setup( BaseMatrix &sysmat);
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented for SuperLU. GetRidOfZeros for NCIs will not work.");};
+
     //! Direct solution of the linear system
 
     //! After Solve is called the matrix (which has already to be factorised
@@ -66,26 +69,26 @@ namespace CoupledField {
     SuperLUSolver();
 
     //! Stored information about the storage type and entry type of the matrix
-    BaseMatrix::StorageType stype;
-    BaseMatrix::EntryType etype;
+    BaseMatrix::StorageType stype = BaseMatrix::NOSTORAGETYPE;
+    BaseMatrix::EntryType etype = BaseMatrix::NOENTRYTYPE;
 
     //! Dimension of the linear system
-    int probDim_;
+    int probDim_ = -1;
 
     //! The number of right hand sides Pardiso should solve the system for
     //! at one pass
-    int nrhs_;
+    int nrhs_ = 0;
 
     //! Array containing entries of problem matrix
 
     //! A flag specifying if Setup is being called for the first time
-    bool firstCall_;
+    bool firstCall_ = true;
 
     //! Do we solve a system with complex or double entries?
-    bool isComplex_;
+    bool isComplex_ = false;
 
     //! number of non zero entries
-    UInt nnz_;
+    UInt nnz_ = 0;
 
     SuperMatrix    A, L, U;
     SuperMatrix    B, X;
@@ -93,9 +96,10 @@ namespace CoupledField {
     char           equed[1];
     yes_no_t       equil;
     trans_t        trans;
-    NCformat       *Astore;
+    NCformat       *Astore = nullptr;
     NCformat       *Ustore;
     SCformat       *Lstore;
+    GlobalLU_t     Glu; // facilitate multiple factorizations with SamePattern_SameRowPerm
     double         *a;
     int            *asub;
     int            *xa;
@@ -104,7 +108,7 @@ namespace CoupledField {
     int            *etree;
     void           *work;
     int            info, lwork, nrhs, ldx;
-    int            i;
+    int            i = -1;
     double         *rhsb;
     double         *rhsx;
     double         *xact;

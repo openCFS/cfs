@@ -25,14 +25,6 @@ SCPIP::SCPIP(Optimization* optimization, PtrParamNode optimizer_pn, Optimization
 {
   LOG_TRACE(scpip) << "Initialize SCPIP";
 
-  optimizer_timer_->Stop();
-  // we do NOT use the SCPIPBase scaling but the one from BaseOptimizer!
-  PostInitScale(1.0); // does autoscale
-  optimizer_timer_->Start();
-
-  if(objective->scaling.value != 0.0 && objective->target != 0.0)
-    std::cout << "objective scaling: " << objective->ToString() << std::endl;
-  
   SetIntegerValue("max_iter", optimization->GetMaxIterations());
   
   // check for optional parameters
@@ -61,8 +53,12 @@ SCPIP::~SCPIP()
 
 void SCPIP::PostInit()
 {
+
+  BaseOptimizer::PostInit();
   Initialize();
   optimizer_timer_->Stop();
+  PostInitScale(1.0); // does autoscale
+
 }
 
 void SCPIP::ToInfo(PtrParamNode pn)
@@ -80,7 +76,7 @@ void SCPIP::ToInfo(PtrParamNode pn)
 
 void SCPIP::SolveProblem()
 {
-  // if we did autoscale, we can easily commit a calculated initial (iter-0) configuration
+  // if we did scale, we can easily commit a calculated initial (iter-0) configuration
   // otherwise we also try to make this
   assert(optimizer_timer_->IsRunning());
 
@@ -135,13 +131,11 @@ void SCPIP::SolveProblem()
     case Maximum_Iterations_Exceeded:
     case Infeasible:
     case Gradients_Return_False:
-      in->Get("converged")->SetValue("no"); 
-      in->Get("reason/msg")->SetValue("SCPIP: " + ToString(status));
+      optimization->DoStopOptimizationHelper(false, "SCPIP: " + ToString(status));
       break;
       
     default:
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue("SCPIP: " + ToString(status));
+      optimization->DoStopOptimizationHelper(false, "SCPIP: " + ToString(status));
       throw Exception(ToString(status));
     }
     
@@ -287,7 +281,7 @@ bool SCPIP::eval_grad_f(int n, const double* x_org, double* grad_f)
 
   assert(optimizer_timer_->IsRunning());
 
-  // do we have to write the initial iteration in the non-autoscale case?
+  // do we have to write the initial iteration in the non-scale case?
   // SCPIP first does eval_f and then eval_grad_f
   if(optimization->GetCurrentIteration() == 0)
     CommitIteration();

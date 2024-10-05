@@ -33,6 +33,8 @@
 #include "Optimization/Optimizer/GradientCheck.hh"
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
+#include "Optimization/Optimizer/MMA.hh"
+#include "Optimization/Optimizer/DumasMMA.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/MagSIMP.hh"
@@ -45,17 +47,18 @@
 #include "Optimization/SpaghettiParamMat.hh"
 #include "Optimization/SplineBoxOpt.hh"
 #include "Optimization/Transform.hh"
+#include "Optimization/Tune.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
 #include "Utils/tools.hh"
+#include "Utils/PythonKernel.hh"
 #include "boost/filesystem.hpp"
 #include "def_use_ipopt.hh"
-#include "def_use_knitro.hh"
 #include "def_use_scpip.hh"
 #include "def_use_snopt.hh"
 #include "def_use_embedded_python.hh"
 #include "def_use_sgp.hh"
-#include "Optimization/Optimizer/MMA.hh"
+#include "def_use_dumas.hh"
 
 #ifdef USE_SGP
 // check if Intel MKL is available
@@ -74,9 +77,6 @@
 #endif
 #ifdef USE_SNOPT
   #include "Optimization/Optimizer/SnOpt.hh"
-#endif
-#ifdef USE_KNITRO
-  #include "Optimization/Optimizer/KNITRO.hh"
 #endif
 #ifdef USE_EMBEDDED_PYTHON
   #include "Optimization/Optimizer/PythonOptimizer.hh"
@@ -164,7 +164,7 @@ Optimization::Optimization()
   optInfoNode->Get("commit/mode")->SetValue(cm);
   optInfoNode->Get("commit/stride")->SetValue(commitStride);
 
-  // write the HALTOPT file, helps to memorize how to write the file
+  // write the HALTOPT filename, helps to memorize how to write it :)
   optInfoNode->Get("haltopt_file")->SetValue(fs::current_path().string() + "/HALTOPT");
 
   // remove a stop file, if found
@@ -274,7 +274,16 @@ void Optimization::PostInitSecond()
          break;
 
     case MMA_SOLVER:
-         baseOptimizer_ = new MMA(this, opt);
+         baseOptimizer_ = new MMA(this, opt); // our self written textbook MMA
+         break;
+
+    case DUMAS_MMA:
+    case DUMAS_GCMMA:
+         #ifdef USE_DUMAS
+           baseOptimizer_ = new DumasMMA(this, opt, optimizer_); // C++ variant of Niels Aages' PETSc MMA or a GCMMA variant
+         #else
+           throw Exception("openCFS was compiled w/o Dumas (MMA/GCMMA)");
+         #endif
          break;
 
     case SNOPT_SOLVER:
@@ -283,15 +292,7 @@ void Optimization::PostInitSecond()
          #else
            throw Exception("openCFS was compiled w/o SnOpt");
          #endif
-      break;
-
-    case KNITRO_SOLVER:
-         #ifdef USE_KNITRO
-           baseOptimizer_ = new KNITRO(this, opt);
-         #else
-           throw Exception("openCFS was compiled w/o KNITRO");
-         #endif
-      break;
+         break;
 
     case PYTHON_SOLVER:
          #ifdef USE_EMBEDDED_PYTHON
@@ -310,7 +311,7 @@ void Optimization::PostInitSecond()
 
          break;
 
-    case OPTIMALITY_CONDITION:
+    case OCM_SOLVER:
          baseOptimizer_ = new OptimalityCondition(this, opt);
          break;
 
@@ -356,6 +357,8 @@ void Optimization::PostInitSecond()
   design->SetOptimizer(baseOptimizer_);
   // add plot logging of the optimizer
   baseOptimizer_->LogFileHeader(log);
+
+  python->CallHook(PythonKernel::OPT_POST_INIT);
 }
 
 
@@ -508,20 +511,29 @@ void Optimization::SetEnums()
   Condition::bound.Add(Condition::LOWER_BOUND, "lowerBound");
   Condition::bound.Add(Condition::UPPER_BOUND, "upperBound");
 
+  StoppingRule::type.SetName("StoppingRule::Type");
+  StoppingRule::type.Add(StoppingRule::DESIGN_CHANGE, "designChange");
+  StoppingRule::type.Add(StoppingRule::REL_COST_CHANGE, "relativeCostChange");
+  StoppingRule::type.Add(StoppingRule::ABOVE_FUNCTION, "aboveFunction");
+  StoppingRule::type.Add(StoppingRule::BELOW_FUNCTION, "belowFunction");
+  StoppingRule::type.Add(StoppingRule::MAX_HOURS, "maxHours");
+  StoppingRule::type.Add(StoppingRule::OSCILLATIONS, "oscillations");
 
-  ObjectiveContainer::StoppingRule::type.SetName("ObjectiveContainer::StoppingRule::Type");
-  ObjectiveContainer::StoppingRule::type.Add(ObjectiveContainer::StoppingRule::DESIGN_CHANGE, "designChange");
-  ObjectiveContainer::StoppingRule::type.Add(ObjectiveContainer::StoppingRule::REL_COST_CHANGE, "relativeCostChange");
+
+  StoppingRule::condition.SetName("StoppingRule::Condition");
+  StoppingRule::condition.Add(StoppingRule::SUFFICIENT, "sufficient");
+  StoppingRule::condition.Add(StoppingRule::NECESSARY, "necessary");
 
   optimizer.SetName("Optimization::Optimizer");
-  optimizer.Add(OPTIMALITY_CONDITION, "optimalityCondition");
+  optimizer.Add(OCM_SOLVER, "ocm");
   optimizer.Add(IPOPT_SOLVER, "ipopt");
   optimizer.Add(SCPIP_SOLVER, "scpip");
   optimizer.Add(FEAS_PP_SOLVER, "feasPP");
   optimizer.Add(MMA_SOLVER, "mma");
+  optimizer.Add(DUMAS_MMA, "dumas_mma");
+  optimizer.Add(DUMAS_GCMMA, "dumas_gcmma");
   optimizer.Add(SGP_SOLVER, "sgp");
   optimizer.Add(SNOPT_SOLVER, "snopt");
-  optimizer.Add(KNITRO_SOLVER, "knitro");
   optimizer.Add(PYTHON_SOLVER, "python");
   optimizer.Add(SHAPE_SOLVER, "shapeOpt");
   optimizer.Add(EVALUATE_INITIAL_DESIGN, "evaluate");
@@ -601,75 +613,98 @@ double Optimization::GetStepWeight(unsigned int ts) const{
   }
 }
 
+
+PtrParamNode Optimization::DoStopOptimizationHelper(bool converged, const string& reason)
+{
+  PtrParamNode in = optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
+
+  if(reason != "")
+  {
+    in->Get("converged")->SetValue(converged ? "yes" : "no");
+    user_break_reason = reason;
+    in->Get("reason/msg")->SetValue(reason);
+  }
+  return in;
+}
+
 bool Optimization::DoStopOptimization()
 {
-  user_break_reason = "";
-  PtrParamNode in = optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
+  // only PythonStopOptimization() will set, we are done
+  if(user_break_reason != "")
+  {
+    DoStopOptimizationHelper();
+    return true;
+  }
+
   // check if the HALTOPT file exists
   if(fs::exists("HALTOPT"))
   {
     bool good = fs::remove("HALTOPT");
     if(!good)
       throw new Exception("Could not remove file 'HALTOPT' after detection");
-    in->Get("converged")->SetValue("no");
-    user_break_reason = "Detected file 'HALTOPT'";
-    in->Get("reason/msg")->SetValue(user_break_reason);
+    DoStopOptimizationHelper(false, "Detected file 'HALTOPT'");
     return true;
   }
 
-  ObjectiveContainer::StoppingRule& stop = objectives.stop;
+  StdVector<string> reasons;
+  reasons.Reserve(objectives.stop.GetSize());
 
-  // check for too long?!
-  if(stop.max_hours >= 0.0 && time_.GetSize() >= 3)
+  bool not_converged = false;
+  // convergence with sufficient and necessary is tricky
+  // any sufficient breaks
+  bool must_break = false; // a sufficient rule is triggered
+  // when we have necessary, all necessary need to be true
+  int n_nec = -1; // allows comparison with cnt_nec not be true for 0 necessary conditions
+  for(auto& rule : objectives.stop)
+    if(rule.GetCondition() == rule.NECESSARY)
+      n_nec = std::max(n_nec,0) + 1;
+
+  // this counts the active sufficient conditions
+  int cnt_nec = 0;
+
+  for(auto& rule : objectives.stop)
   {
-    // avg. of the last three in seconds
-    double avg = (time_.Last() - time_[time_.GetSize() - 3])/3.0;
-    // remaining time to max_hours in seconds
-    double remaining = stop.max_hours * 3600 - cfs_timer_->GetWallTime();
+    string reason = rule.DoStop(&objectives, &constraints, time_);
 
-    LOG_DBG(opt) << "DSO: wt=" << cfs_timer_->GetWallTime() << " cmp=" << time_[time_.GetSize() - 3] << " avg=" << avg << " mh=" << stop.max_hours << " re=" << remaining << " ti=" << time_.ToString();
-
-    if(remaining < 1.5 * avg)
+    if(rule.GetCondition() == rule.SUFFICIENT && reason != "")
+      must_break = true;
+    if(rule.GetCondition() == rule.NECESSARY && reason != "")
+      cnt_nec++;
+    if(reason != "")
     {
-      std::stringstream ss;
-      ss << "Not enough time left to finish within " << stop.max_hours << "h with avg iteration duration " << avg << "s and " << remaining << "s left.";
-      user_break_reason = ss.str();
-      in->Get("converged")->SetValue("no");
-      in->Get("reason/msg")->SetValue(user_break_reason);
-      return true;
+      reasons.Push_back(reason);
+      if(rule.GetType() == rule.MAX_HOURS || rule.GetType() == rule.OSCILLATIONS)
+        not_converged = true;
     }
+
+    LOG_DBG(opt) << "DSO rule=" << rule.type.ToString(rule.GetType()) << " r='" << reason << "' cond=" << rule.condition.ToString(rule.GetCondition())
+                 << " must_break=" << must_break << " n_nec=" << n_nec << " cnt_nec=" << cnt_nec;
   }
 
-
-  // we need a minimum number of iterations to be sure we are in a minimum
-  unsigned int hs = objectives.GetHistorySize();
-  if(hs <= stop.queue)
-    return false;
-
-  if(stop.GetType() == ObjectiveContainer::StoppingRule::REL_COST_CHANGE)
+  // n_nec is -1 but not 0, therefore no necessary condition does not break with cnt_nec = 0
+  if(objectives.stop.GetSize() > 0 && (must_break || (n_nec == cnt_nec)))
   {
-    for(unsigned int i = hs-1; i >= (hs - stop.queue); i--)
-    {
-      double delta = objectives.GetHistoryValue(true, i) - objectives.GetHistoryValue(true, i-1);
-      double rel = abs(delta / objectives.GetHistoryValue(true, i));
-      if(rel > stop.value)
-        return false;
-    }
-  }
-  else // ObjectiveContainer::StoppingRule::DESIGN_CHANGE
-  {
-    for(unsigned int n = objectives.design_change.GetSize() - 1, i = n; i >= max((unsigned int) 0, n - stop.queue); i--)
-      if(objectives.design_change[i] > stop.value)
-        return false;
-  }
+    PtrParamNode in = optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
 
-  // the relative values for the whole queue are smaller than the requirement -> we are done! :)
-  in->Get("converged")->SetValue("practically");
-  user_break_reason = stop.GetType() == ObjectiveContainer::StoppingRule::REL_COST_CHANGE ? "Too small relative change in objective function" : "Too small change in design";
-  in->Get("reason/msg")->SetValue(user_break_reason);
-  in->Get("reason/value")->SetValue(stop.value);
-  in->Get("reason/queue")->SetValue(stop.queue);
-  return true;
+    in->Get("converged")->SetValue(not_converged ? "no" : "yes");
+    for(string rsn : reasons)
+      in->Get("reason", ParamNode::APPEND)->Get("msg")->SetValue(rsn);
+    return true;
+  }
+  return false;
+}
+
+StdVector<std::pair<string,string> > Optimization::GetStoppingRules() const
+{
+  StdVector<std::pair<string,string> > map;
+  for(const auto& rule : objectives.stop)
+  {
+    string type = rule.type.ToString(rule.GetType());
+    if(rule.GetType() == rule.BELOW_FUNCTION || rule.GetType() == rule.ABOVE_FUNCTION)
+      type += "_" + rule.function;
+    map.Push_back(std::make_pair(type, std::to_string(rule.value)));
+  }
+  return map;
 }
 
 
@@ -778,14 +813,33 @@ void Optimization::SolveProblem()
   Exception* e = NULL;
   try
   {
-    baseOptimizer_->ToInfo(baseOptimizer_->GetInfoNode()->Get(optimizer.ToString(optimizer_)));
+    baseOptimizer_->ToInfo(baseOptimizer_->GetInfoNode());
     baseOptimizer_->SolveOptimizationProblem();
     assert(baseOptimizer_->ValidateTimers());
-    baseOptimizer_->ToInfo(baseOptimizer_->GetInfoNode()->Get(optimizer.ToString(optimizer_)));
+    baseOptimizer_->ToInfo(baseOptimizer_->GetInfoNode());
+
+    PtrParamNode fcts = optInfoNode->Get(ParamNode::SUMMARY)->Get("functions");
+    for(Function* f : GetFunctions(false)) // objectives, constraints, observes
+    {
+      if(f->IsLocal() || f->history.GetSize() == 0)
+        continue;
+      PtrParamNode fin = fcts->Get(f->ToString());
+      fin->Get("min")->SetValue(f->history.Min());
+      fin->Get("max")->SetValue(f->history.Max());
+      fin->Get("oscillations")->SetValue(f->CountOscillations());
+    }
+
+    if(optInfoNode->Get(ParamNode::SUMMARY)->Has("break"))
+    {
+      PtrParamNode in = optInfoNode->Get(ParamNode::SUMMARY)->Get("break");
+      std::cout << "converged: " << in->Get("converged")->As<string>() << std::endl;
+      for(auto rsn : in->GetList("reason"))
+        std::cout << "reason: " << rsn->Get("msg")->As<string>() << std::endl;
+    }
   }
   catch(Exception& ex)
   {
-    e = new Exception(ex);
+    e = new Exception(ex); // create new exception, don't throw now but let Bastian do his transient stuff
   }
 
   if(!IsTransient()){ // transient optimization saves results in a different way
@@ -818,6 +872,7 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
+  assert(baseOptimizer_);
   assert(baseOptimizer_->ValidateTimers());
 
   // do not add the time solving the system to eval_[grad]_obj/constr_timer -> performance.py
@@ -900,7 +955,6 @@ StdVector<Function*> Optimization::GetFunctions(bool only_active) const
   result.Reserve(cn + gn + on);
   result.Resize(0); // To allow push back
 
-
   for(unsigned int i = 0; i < cn; i++)
   {
     result.Push_back(objectives.data[i]);
@@ -919,6 +973,17 @@ StdVector<Function*> Optimization::GetFunctions(bool only_active) const
   }
 
   return result;
+}
+
+Function* Optimization::GetFunction(const std::string& name, bool throw_exception)
+{
+  Function* f = objectives.Get(name, false); // no exception
+  if(f == nullptr)
+    f = (Function*) constraints.Get(name, throw_exception); // now exception if we don't have it
+
+  if(f == nullptr && throw_exception)
+    throw Exception("unknown function name '" + name + "'");
+  return f;
 }
 
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
@@ -1204,7 +1269,7 @@ PtrParamNode Optimization::CommitIteration()
 
   assert(time_.GetSize() == currentIteration);
   time_.Push_back(cfs_timer_->GetWallTime());
-  LOG_TRACE2(opt) << "CI: ci=" << currentIteration << " wt=" << cfs_timer_->GetWallTime() << " -> " << time_.ToString();
+  LOG_DBG(opt) << "CI: ci=" << currentIteration << " wt=" << cfs_timer_->GetWallTime() << " -> " << time_.ToString();
 
   // eventually set special result
   EvaluateSpecialResults();
@@ -1213,28 +1278,44 @@ PtrParamNode Optimization::CommitIteration()
   PtrParamNode iteration = optInfoNode->Get(ParamNode::PROCESS)->Get("iteration", ParamNode::APPEND);
 
   // write the header only once - we might keep the iteration number
-  if(log.file)
-    if(objectives.GetHistorySize() == 1)
-      *log.file << log.fileHeader << endl;
+  if(log.file && objectives.GetHistorySize() == 1)
+  {
+    for(auto& prop: aux_log)
+      log.AddToHeader(prop.first);
+    *log.file << log.fileHeader << endl;
+  }
+
+  // write the current logging information
   LogFileLine(log.file, iteration); // also ParamNode is to be written
   baseOptimizer_->LogFileLine(log.file, iteration);
+  for(auto& prop: aux_log)
+  {
+    if(log.file)
+      *log.file << "\t " << prop.second;
+    iteration->Get(prop.first)->SetValue(prop.second);
+  }
   if(log.file)
     *log.file << endl;
 
+  // this late to have observations evaluated
+  constraints.PushBackHistory();
+
   // option gradplot for some FeaturedDesign, other (e.g. SIMP) ignore
   design->WriteGradientFile();
-
 
   // this writes the most current solved forward problem via the driver to gid or whatever
   // keep "commitStride == 1 || " for readability!
   bool store = currentIteration == 0 || commitStride == 1 || ((commitStride > 0) && currentIteration % commitStride == 0);
   LOG_TRACE2(opt) << "CI: " << currentIteration << " objective=" << objectives.GetHistoryValue() << " store=" << store;
-  if(store) {
+
+  if(store)
+  {
     StoreResults();
     lastStoredResult_ = currentIteration;
     // see FinalizeStoreResults() !
   }
-  else {
+  else
+  {
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
       Excitation& ex = me->excitations[e];
@@ -1254,12 +1335,19 @@ PtrParamNode Optimization::CommitIteration()
 
   // IPOPT does own logging -> otherwise show the user we are alive
   string f = GetIterationFrequency();
-  if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER && optimizer_ != KNITRO_SOLVER)
+  if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER)
   {
     cout << "iteration " << (currentIteration);
     if(f != "") cout << " f = " << f << " Hz";
     cout << " -> cost = " << objectives.GetHistoryValue() << endl;
   }
+
+  // if a python function is registered, call it.
+  python->CallHook(PythonKernel::OPT_POST_ITER);
+
+  // update possible tunes (they self register)
+  for(Tune* tune : tunes)
+    tune->Update(currentIteration);
 
   currentIteration++;
   problemWithinIteration = 0;
@@ -1267,15 +1355,37 @@ PtrParamNode Optimization::CommitIteration()
   return iteration;
 }
 
+/** call not later than PostInit2(). Add the property to file and info.xml iteration log. */
+void Optimization::RegisterAuxLogValue(const std::string& name, const std::string& initial)
+{
+  for(auto& n : aux_log)
+    if(n.first == name)
+      throw Exception("name '" + name + "' already registered in Optimization::aux_log");
+
+  aux_log.Push_back(std::make_pair(name, initial));
+}
+
+/** update the value to be used by next CommitIteration(). The name should be already set by RegisterAuxLogValue() */
+void Optimization::SetAuxLogValue(const std::string& name, const std::string& value)
+{
+  for(auto& n : aux_log)
+    if(n.first == name)
+    {
+      n.second = value;
+      return;
+    }
+
+  throw Exception("name '" + name + "' not registered in Optimization::aux_log");
+}
+
 void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 {
   double duration = time_.Last() - (time_.GetSize() > 1 ? time_[time_.GetSize() - 2] : 0.0);
 
-
   if(out)
   {
     *out << currentIteration;
-    *out << std::fixed << std::setprecision(6);
+    *out << std::defaultfloat << std::setprecision(6); // uses scientific only when needed
 
     if(isMultiObjective_)
       *out << " \t" << baseOptimizer_->GetObjectiveValue();
@@ -1401,10 +1511,11 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     }
   }
   // max output_constraint value
-  if (out && max > -1.)
-      *out << " \t output_max = " << max;
+  if (out && max > -1.0)
+    *out << " \t output_max = " << max;
 
-  if(out && log.design){
+  if(out && log.design)
+  {
     StdVector<double> d;
     d.Resize(design->GetNumberOfVariables());
     design->WriteDesignToExtern(d.GetPointer(), false);
@@ -1413,7 +1524,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     }
   }
 
-  if(out && log.designGradient){
+  if(out && log.designGradient)
+  {
     for(unsigned int i = 0; i < objectives.data.GetSize(); ++i)
     {
       Objective* f = objectives.data[i];
@@ -1445,7 +1557,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       }
     }
   }
-  if(out) out->flush();
+  if(out)
+    out->flush();
 }
 
 
@@ -1484,7 +1597,7 @@ Optimization::Log::Log()
   this->designConstraintGradients = false;
   this->gradNorm = progOpts->DoDetailedInfo();
   this->plot_ev = true;
-  this->file = NULL;
+  this->file = nullptr;
   this->fileHeader = "";
 }
 

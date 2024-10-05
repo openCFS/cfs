@@ -12,9 +12,11 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "PDE/SinglePDE.hh"
+#include "CoupledPDE/IterCoupledPDE.hh"
 #include "ResultHandler.hh"
 
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
 
 namespace CoupledField {
 
@@ -167,17 +169,44 @@ namespace CoupledField {
         std::string unit;
         procNodes[i]->GetValue( "unit", unit );
 
-        // get dof-nodes
-        ParamNodeList dofNodes = procNodes[i]->GetList("dof");;
+        // get inputResult node
+        ParamNodeList inputNodes = procNodes[i]->GetList("inputResult");
+        
+        StdVector<std::string> variableNames;
+        for( UInt u = 0; u < inputNodes.GetSize(); u++ ) {
+          variableNames.Push_back( inputNodes[u]->Get("variableName")->As<std::string>() );
+        }
+
+        // get scalar/vector node
+        PtrParamNode scalarNode = procNodes[i]->Get("scalar",ParamNode::PASS);
+        PtrParamNode vectorNode = procNodes[i]->Get("vector",ParamNode::PASS);
+
+        ParamNodeList dofNodes;
+        bool isScalar = false;
+        // we can perform this simple check since scalar and vector are exclusive in the XML scheme
+        if( scalarNode ) {
+          dofNodes = scalarNode;
+          isScalar = true;
+        } else if( vectorNode ) {
+          dofNodes = vectorNode->GetList("comp");
+        } else {
+          EXCEPTION("No definition of scalar/vectorial postprocessing found!");
+        }
+
         
         // get dofnames, real functions and imaginary functions for each dof
         StdVector<std::string> dofNames, rFunctions, iFunctions;
         for( UInt iDof = 0; iDof < dofNodes.GetSize(); iDof++ ) {
-          dofNames.Push_back( dofNodes[iDof]->Get("name")->As<std::string>() );
+          if( isScalar ) {
+            // for scalar values we don't have to (and can't) read the DoF name and just set it to "".
+            dofNames.Push_back("");
+          } else {
+            dofNames.Push_back( dofNodes[iDof]->Get("dof")->As<std::string>() );
+          }
           rFunctions.Push_back( dofNodes[iDof]->Get("realFunc")->As<std::string>() );
           iFunctions.Push_back( dofNodes[iDof]->Get("imagFunc")->As<std::string>() );
         }
-        funcProc->Initialize( resultName, unit, dofNames, rFunctions, iFunctions );
+        funcProc->Initialize( resultName, unit, dofNames, rFunctions, iFunctions, variableNames, procNodes[i] );
         actProc = funcProc;
       }
 
@@ -501,6 +530,12 @@ namespace CoupledField {
     // Set result as input
     input_ =  res;
 
+    // check if we only have one variable name (currently only one is supported, the index is hardcoded)
+    UInt i_var = 0;
+    if( variableNames_.size()!=1 ) {
+      EXCEPTION("PostProcFunc: More than one variable name specified, please only specify one variable name for your result evaluation!");
+    }
+
     // intialize rVals and mathParser handles
     // a) double
     rVals_.Resize( dofNames_.GetSize() );
@@ -527,17 +562,17 @@ namespace CoupledField {
       // a) real case
       if( input_->GetEntryType() == BaseMatrix::DOUBLE ) {
         for( UInt inDof = 0; inDof < inDofNames.GetSize(); inDof++ ) {
-          mParser_->SetValue( rHandles_[outDof], "u"+inDofNames[inDof], 0 );      
+          mParser_->SetValue( rHandles_[outDof], variableNames_[i_var]+inDofNames[inDof], 0 );      
         }
         // register dofNames with dummy variable and set expression
         mParser_->SetExpr( rHandles_[outDof], rFuncs_[outDof] );
       } else {
         // b) complex case
         for( UInt inDof = 0; inDof < inDofNames.GetSize(); inDof++ ) {
-          mParser_->SetValue( rHandles_[outDof], "u"+inDofNames[inDof]+"_real", 0 );      
-          mParser_->SetValue( iHandles_[outDof], "u"+inDofNames[inDof]+"_real", 0 );  
-          mParser_->SetValue( rHandles_[outDof], "u"+inDofNames[inDof]+"_imag", 0 );      
-          mParser_->SetValue( iHandles_[outDof], "u"+inDofNames[inDof]+"_imag", 0 );  
+          mParser_->SetValue( rHandles_[outDof], variableNames_[i_var]+inDofNames[inDof]+"_real", 0 );      
+          mParser_->SetValue( iHandles_[outDof], variableNames_[i_var]+inDofNames[inDof]+"_real", 0 );  
+          mParser_->SetValue( rHandles_[outDof], variableNames_[i_var]+inDofNames[inDof]+"_imag", 0 );      
+          mParser_->SetValue( iHandles_[outDof], variableNames_[i_var]+inDofNames[inDof]+"_imag", 0 );  
         }
         // register dofNames with dummy variable and set expression
         if(  rFuncs_[outDof] == "" ) 
@@ -549,11 +584,31 @@ namespace CoupledField {
       }
     }
 
+    // check if a coefFunction shall be defined. This will be set to true if parsing an enum is successfull
+    bool defineCoefFunc = false;
+
     // Create new result object
     // a) create new ResultInfo object for new result
     shared_ptr<ResultInfo> actInfo = 
       shared_ptr<ResultInfo>( new ResultInfo( *input_->GetResultInfo() ) );
-    actInfo->resultType = NO_SOLUTION_TYPE;
+    
+    // If we can parse the result it was already set by the initial definition of the back-coupling (done in SinglePDE::InitStage2 SetBCs())
+    // Hence, we have already checked that the result is available in the postProcList.
+    // If this is not the case, we just have a standard post-processing result and we can skip the definition of a coefFunction
+    
+    SolutionType solType;
+    try 
+    {
+      solType = SolutionTypeEnum.Parse(resultName_);
+      actInfo->resultType = solType;
+      defineCoefFunc = true;
+    }  catch ( const Exception& e)
+    {
+      // parsing was not successful, fall back to NO_SOLUTION_TYPE
+      solType = NO_SOLUTION_TYPE;
+      actInfo->resultType = solType;
+    }  
+
     actInfo->resultName = resultName_;
     actInfo->dofNames = dofNames_;
     actInfo->unit = unit_;
@@ -566,7 +621,7 @@ namespace CoupledField {
     // b) Create new result object and set it as output
     shared_ptr<BaseResult> newResult;
     if( input_->GetEntryType() == BaseMatrix::DOUBLE ) {
-      newResult = shared_ptr<BaseResult>(new Result<Double>() );
+      newResult = shared_ptr<BaseResult>( new Result<Double>() );
     } else {
       newResult = shared_ptr<BaseResult>( new Result<Complex>() );
     }
@@ -576,6 +631,163 @@ namespace CoupledField {
     
     output_ = newResult;
 
+
+    // c) if we want to use this result for backcoupling, we also need to make it available for the singlePDE in GetCoefFct() via fieldCoefs_
+    // additionally, we need to have unique identifier, so this will only be triggered when the identifier is different
+    if( defineCoefFunc ) {
+      // the complex valued case is not implemented yet
+      if( input_->GetEntryType() != BaseMatrix::DOUBLE ) {
+        EXCEPTION("PostProcFunc: CoefFunction definitions for complex valued input is not implemented yet! Only real valued functions are allowed for back-coupling!");
+      }
+
+      // get coefFunctions of primary variable
+      shared_ptr<BaseFeFunction> feFct = res->GetResultInfo()->GetFeFunction().lock();
+      PtrCoefFct coefPDE = feFct->GetPDE()->GetCoefFct( res->GetResultInfo()->resultType );
+
+      // sort Funcs
+      std::string probGeo = feFct->GetPDE()->GetDomain()->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>();
+      
+      shared_ptr<ResultInfo> resInfo = feFct->GetResultInfo();
+      StdVector<std::string> dofNamesRes = resInfo->dofNames; 
+      
+      if( dofNames_.GetSize() > 1 ) {
+        StdVector<std::string> dofNamesGrid;
+        if ( probGeo == "3d" ) {
+          dofNamesGrid = "x", "y", "z";
+        }
+        else if ( probGeo == "plane")
+        {
+          dofNamesGrid = "x", "y";
+        }
+        else if ( probGeo == "axi" ) {
+          EXCEPTION("DefineCoefFunction for postProcFunc is not implemented for axi-symmetric simulations, please implement me!");
+          dofNamesGrid = "r", "z";
+        }
+
+        // now loop over DOFs and match rFuncs and iFuncs accordingly
+        for( UInt i = 0; i < dofNamesGrid.GetSize(); i++  ) {
+          for( UInt o = 0; o < dofNames_.GetSize(); o++  ) {
+            if( dofNamesGrid[i]==dofNames_[o] ) {
+              rFuncsSorted_[i] = rFuncs_[o];
+              //iFuncsSorted_[i] = iFuncs_[o];
+            }
+          }
+        }
+      } else {
+        // scalar problem
+        rFuncsSorted_[0] = rFuncs_[0];
+        //iFuncsSorted_[0] = iFuncs_[0];
+      }
+
+      // check scalar/vector
+
+      // we use a coefFunctionCompound to replace the value of u in the function with the actual feFunction
+      // create vector expression similar to description in CoefFunctionCompound.hh
+      //! std::string vecXpr = "(a_0_R * b_R), (a_1_R * b_R);"
+      //! c.SetVector( vecXpr, vars);
+
+      // problem: we have in inconsistent naming convetion (u_0_R vs u0_real) --> parse and convert
+      // define the strings the user uses
+      StdVector<std::string> userStr;
+      StdVector<std::string> mpStr;
+      StdVector<std::string> checkStr;
+      userStr = variableNames_[i_var], variableNames_[i_var]+"x", variableNames_[i_var]+"y", variableNames_[i_var]+"z";
+      mpStr = variableNames_[i_var]+"_R", variableNames_[i_var]+"_0_R", variableNames_[i_var]+"_1_R", variableNames_[i_var]+"_2_R"; // this convention is added/used automatically by the mathParser!
+      checkStr = "x", "y", "z";
+      
+      rFuncsSortedMp_ = rFuncsSorted_; // sorted and adapted rFuncs for the mathParser/coefFunctionCompound
+      // loop over all dofs (functions associated with one DoF)
+      for( UInt i = 0; i < dofNames_.GetSize(); i++  ) {
+        // loop over all possible user strigns (feFunction)
+        for( UInt u = 0; u < userStr.GetSize(); u++ ) {
+          size_t index = 0;
+          UInt curLen = userStr[u].length();
+          // go through the string and replace every occurence of the string
+          while (true) {
+            // search for substring and replace it
+            index = rFuncsSortedMp_[i].find(userStr[u], index);
+            if (index == std::string::npos) break;
+
+            // in the first loop we will find all "u", but it could be a "u0" to "u2" instead of just an "u",
+            // which would lead to a wrong replacement. Hence, we check if the character at the next position
+            // is different from 0 to 2, ensuring we are only replacing "u".
+            if ( u==0 ) {
+              if ( rFuncsSortedMp_[i][index+1] != checkStr[0][0] &&
+                  rFuncsSortedMp_[i][index+1] != checkStr[1][0] && 
+                  rFuncsSortedMp_[i][index+1] != checkStr[2][0] ) {
+                rFuncsSortedMp_[i].replace(index, curLen, mpStr[u]);
+              }
+            } else {
+              rFuncsSortedMp_[i].replace(index, curLen, mpStr[u]);
+            }
+
+            // advance index according to the length of the replacement string
+            index += curLen;
+          }
+        }
+      } 
+
+      // now we have prepared the correct syntax, but in order to use multiple results at the same time, we have to register
+      // them in a unique manner. Hence, we add the number of the current result after each "u".
+      std::string solString = SolutionTypeEnum.ToString(solType);
+      std::vector<std::string> substrings;
+      std::stringstream ss(solString);
+      std::string token;
+      char delimiter = '_'; // it is mandatory to keep the convention of the naming for generic results as it is, otherwise this will fail
+      std::string resNr;
+
+      // Split the string by the delimiter
+      while (std::getline(ss, token, delimiter)) {
+          substrings.push_back(token);
+      }
+
+      // Return the last substring (our result number)
+      if (!substrings.empty()) {
+          resNr = substrings.back();
+      } else {
+        EXCEPTION("PostProc: Could not identify result number of generic result");
+      }
+
+      // insert the result number to have unique identifiers
+      for( UInt i = 0; i < dofNames_.GetSize(); i++  ) {
+        size_t index = 0;
+        while (true) {
+          // search for substring and replace it
+          index = rFuncsSortedMp_[i].find(userStr[0], index);
+          if (index == std::string::npos) break;
+
+          // insert the result number after each occurrence of "u"
+          rFuncsSortedMp_[i].insert(index+1, resNr);
+
+          // advance index according to the length of the replacement string
+          index += 2;
+        }
+      } 
+
+      // debug output of the functions which will be evaluated (as a string)
+      //for( UInt i = 0; i < dofNames_.GetSize(); i++  ) {
+      //  std::cout << rFuncsSortedMp_[i] << std::endl;
+      //}
+
+      // define a coefFunction which can handle the combination of a feFunction with mathParser expressions 
+      // similar to mechPDE --> e.g. MECHANIC MINIMUM PRINCIPAL STRESS - VECTOR
+      shared_ptr<CoefFunctionCompound<Double> > coefFunc(new CoefFunctionCompound<Double>(mParser_));
+      std::map<std::string,PtrCoefFct> symbolsFe;
+      std::string curSymb = userStr[0] + resNr;
+      symbolsFe[curSymb] = coefPDE;
+
+      if( dofNames_.GetSize() > 1 ) {
+        // vectorial quantity
+        coefFunc->SetVector(rFuncsSortedMp_,symbolsFe);
+      } else {
+        // scalar quantity
+        coefFunc->SetScalar(rFuncsSortedMp_[0],symbolsFe);
+      }
+      
+      // set the coefFunction to the PDE so that SinglePDE::GetCoefFct() can now access our new result
+      // fieldCoefs_ is not directly accessible, we have to use an additional set method
+      feFct->GetPDE()->SetFieldCoef( coefFunc, actInfo->resultType );
+    }
   }
   
   
@@ -583,7 +795,9 @@ namespace CoupledField {
                                  const std::string& unit,
                                  const StdVector<std::string>& dofNames,
                                  const StdVector<std::string>& rFunctions,
-                                 const StdVector<std::string>& iFunctions ) {
+                                 const StdVector<std::string>& iFunctions,
+                                 const StdVector<std::string>& variableNames,
+                                 const PtrParamNode& postProcNode ) {
     
     // ensure, that dofNames has the same size as functions
     assert( dofNames.GetSize() == rFunctions.GetSize() );
@@ -595,6 +809,10 @@ namespace CoupledField {
     dofNames_ = dofNames;
     rFuncs_ = rFunctions;
     iFuncs_ = iFunctions;
+    variableNames_ = variableNames;
+    rFuncsSorted_.Resize(rFuncs_.GetSize());
+    //iFuncsSorted_.Resize(iFuncs_.GetSize());
+    postProcNode_ = postProcNode;
   }
 
   
@@ -620,6 +838,8 @@ namespace CoupledField {
     EntityIterator outIt = out.GetEntityList()->GetIterator();
     StdVector<std::string> & inDofNames = input_->GetResultInfo()->dofNames;
     
+    // check if we only have one variable name (currently only one is supported, the index is hardcoded)
+    UInt i_var = 0;
 
     // intialize output vector
     outVec.Resize( numEnts * numOutDofs );
@@ -653,7 +873,7 @@ namespace CoupledField {
         for( UInt inDof = 0; inDof < numInDofs; inDof++ ) {
           Double actVal = inVec[outIt.GetPos()*numInDofs + inDof];
           mParser_->SetValue( rHandles_[outDof], 
-                              "u"+inDofNames[inDof], actVal );
+                              variableNames_[i_var]+inDofNames[inDof], actVal );
         }
         // Apply function
         outVec[outIt.GetPos()*numOutDofs+outDof] = 
@@ -675,6 +895,9 @@ namespace CoupledField {
     UInt numEnts = out.GetEntityList()->GetSize();
     EntityIterator outIt = out.GetEntityList()->GetIterator();
     StdVector<std::string> & inDofNames = input_->GetResultInfo()->dofNames;
+
+    // check if we only have one variable name (currently only one is supported, the index is hardcoded)
+    UInt i_var = 0;
     
     // intialize output vector
     outVec.Resize( numEnts * numOutDofs );
@@ -710,13 +933,13 @@ namespace CoupledField {
         for( UInt inDof = 0; inDof < numInDofs; inDof++ ) {
           Complex actVal = inVec[outIt.GetPos()*numInDofs + inDof];
           mParser_->SetValue( rHandles_[outDof], 
-                              "u"+inDofNames[inDof]+"_real", actVal.real() );
+                              variableNames_[i_var]+inDofNames[inDof]+"_real", actVal.real() );
           mParser_->SetValue( rHandles_[outDof], 
-                              "u"+inDofNames[inDof]+"_imag", actVal.imag() );
+                              variableNames_[i_var]+inDofNames[inDof]+"_imag", actVal.imag() );
           mParser_->SetValue( iHandles_[outDof], 
-                              "u"+inDofNames[inDof]+"_real", actVal.real() );
+                              variableNames_[i_var]+inDofNames[inDof]+"_real", actVal.real() );
           mParser_->SetValue( iHandles_[outDof], 
-                              "u"+inDofNames[inDof]+"_imag", actVal.imag() );
+                              variableNames_[i_var]+inDofNames[inDof]+"_imag", actVal.imag() );
         }
         // Apply function
         Double real, imag;

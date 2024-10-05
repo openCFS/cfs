@@ -1,5 +1,5 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/core/include/numpy/arrayobject.h>
+#include <numpy/arrayobject.h>
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string/replace.hpp>
 
@@ -37,13 +37,14 @@ void PythonKernel::Init(PtrParamNode pn, PtrParamNode info)
   python = this; // set the global pointer to this object
 
   hook.SetName("PythonKernel::Hook");
-  hook.Add(POST_GRID, "post_grid");
-  hook.Add(POST_DOMAIN_INIT, "post_domain_init");
-  hook.Add(POST_SOLVE_PROBLEM, "post_solve_problem");
+  hook.Add(ASSEMBLE_RHS, "assemble_rhs");
   hook.Add(OPT_EVAL_FUNC, "opt_eval_func");
   hook.Add(OPT_EVAL_GRAD, "opt_eval_grad");
-  hook.Add(ASSEMBLE_RHS, "assemble_rhs");
-
+  hook.Add(OPT_POST_INIT, "opt_post_init");
+  hook.Add(OPT_POST_ITER, "opt_post_iter");
+  hook.Add(POST_DOMAIN_INIT, "post_domain_init");
+  hook.Add(POST_GRID, "post_grid");
+  hook.Add(POST_SOLVE_PROBLEM, "post_solve_problem");
 
   if(pn)
   {

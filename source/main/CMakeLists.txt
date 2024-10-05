@@ -71,7 +71,7 @@ IF(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
 ENDIF()
 
 # Target link libraries for openCFS executable target.
-message(STATUS "cfs TARGET_LL=${TARGET_LL}")
+#message(STATUS "cfs TARGET_LL=${TARGET_LL}")
 TARGET_LINK_LIBRARIES(cfs ${TARGET_LL})
 if(MKL_LIBS AND CMAKE_VERSION VERSION_GREATER "3.24") # TODO: remove this once legacy finding is removed from FindIntelMKL
   message(STATUS "Setting link group")

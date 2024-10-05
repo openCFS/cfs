@@ -406,7 +406,7 @@ namespace CoupledField{
     // (using minimum degree ordering on A'*A).
     sp_preorder(&options, &A, permc, etree, &AC);
 
-    zgstrf(&options, &AC, relax, panel_size, etree, NULL, 0, permc, permr, &L, &U, &stat, &info);
+    zgstrf(&options, &AC, relax, panel_size, etree, NULL, 0, permc, permr, &L, &U, &Glu, &stat, &info);
 
     isfactor = true;
     /* Deleting AC and etree, and working space */

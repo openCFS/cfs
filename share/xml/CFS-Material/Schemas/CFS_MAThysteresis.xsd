@@ -891,6 +891,13 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
+      <xsd:enumeration value="BFGS">
+        <xsd:annotation>
+          <xsd:documentation>
+            Approximate Jacobian matrix via BFGS update formula
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 

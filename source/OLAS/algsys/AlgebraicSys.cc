@@ -543,6 +543,14 @@ namespace CoupledField {
 
   }
 
+  bool AlgebraicSys::HasPrecond() {
+    if( precond_->GetPrecondType() == BasePrecond::NOPRECOND || precond_->GetPrecondType() == BasePrecond::ID ) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
   void AlgebraicSys::SetupSolver() {
 
     LOG_DBG(algSys) << "Setup of solver";
@@ -3576,6 +3584,230 @@ namespace CoupledField {
       idbcHandler_->AdaptSystemMatrix( *(sysMat_[SYSTEM]) );
       assembleDirichletToSysMat_ = false;
     }
+  }
+
+// Remove zero non-zero elements from system matrix
+  template <typename T>
+  void AlgebraicSys::GetRidOfZeros(Double tol)
+  { 
+    PtrParamNode infoGetRidOfZeros = myInfo_->Get("GetRidOfZeros", ParamNode::APPEND);
+    Timer timeGetRidOfZeros;
+    timeGetRidOfZeros.Start();
+    
+    // TODO
+    // This routine works as it is, but it might be better to introduce to combine it with the function setting IDBCs.
+    // Since assembling IDBCs might change some entries, we should check beforehand which entries should not be touched.
+    // Otherwise, we have to reiterate over all entries which might take some time. By redefining a pattern compliant 
+    // with the IDBC handler, we could store and reuse the location of the non-zero entries. This could potentially save
+    // us the call to the solver where we have to set a new matrix pattern. This might not be restricted to IDBCs and 
+    // should be thoroughly tested.
+    // effMat_ eventually gets passed to the solver, but this is just a weak copy of sysMat_[SYSTEM], hence we modify the system matrix itself
+    
+    // create a deep copy and work with the copy
+    SBM_Matrix * actMat = new SBM_Matrix(*(sysMat_[SYSTEM]));
+    UInt nRows = actMat->GetNumRows();
+    UInt nCols = actMat->GetNumCols();
+
+    // store the old sysMat so that we can access it later on
+    SetSysMatBackup(actMat);
+
+    LOG_DBG(algSys) << "\tGet rid of Zeros in sys matrix. Number of Rows of SBMMatrix: " << nRows << " Number of Coloumns: " << nCols;
+    for ( UInt row = 0; row < nRows; row++ ){
+      for ( UInt col = 0; col < nRows; col++ ){
+        // get the current sub matrix
+        LOG_DBG(algSys) << "\tEditing SBM sub matrix (" << row << "," << col << ")";
+        StdMatrix * stdMat = actMat->GetPointer(row,col);
+
+        UInt* RowVec;
+        UInt* ColVec;
+        UInt NumRows;
+        UInt newNnz = 0;
+        T* DataVec;
+        // check for SCRS/CRS
+        switch(stdMat->GetStorageType())
+        {
+        case BaseMatrix::SPARSE_SYM:
+        {
+          SCRS_Matrix<T> &tmpSym = dynamic_cast<SCRS_Matrix<T>&>(*stdMat);
+          RowVec = tmpSym.GetRowPointer();
+          ColVec = tmpSym.GetColPointer();
+          DataVec = tmpSym.GetDataPointer();
+          NumRows = tmpSym.GetNumRows();
+        }
+          break;
+        case BaseMatrix::SPARSE_NONSYM:
+        {
+          CRS_Matrix<T> &tmpNonSym = dynamic_cast<CRS_Matrix<T>&>(*stdMat);
+          RowVec = tmpNonSym.GetRowPointer();
+          ColVec = tmpNonSym.GetColPointer();
+          DataVec = tmpNonSym.GetDataPointer();
+          NumRows = tmpNonSym.GetNumRows();
+        }
+          break;
+        
+        default:
+          EXCEPTION("AlgebraicSys::GetRidOfZeros: Could not find suitable matrix conversion to get rid of zeros, skipping this matrix");
+          break;
+        }
+        // now loop over the entries of the sub matrix and check for zero entries --> compute new NNZ
+        /* for (UInt i = 0; i < size; i++) {
+          //if (DataVec[i] != 0.0) newNnz++;
+          if (abs(DataVec[i]) >= tol) newNnz++;
+        } */
+        // above you can find the old implementation which can cause probmes because sometimes - for
+        // whatever reason - the dataVec contains quite a bit more entries than those which are
+        // actually accessed via the row- and column vector. Hence, we also use those vectors to
+        // compute our NNZ
+        for (UInt i = 0; i < NumRows; i++) {
+          for (UInt j = RowVec[i]; j < RowVec[i+1]; j++) {
+            if (abs(DataVec[j]) >= tol) newNnz++;
+          }
+        }
+        UInt oldNnz = stdMat->GetNnz();
+        // debug info
+        //std::cout << "Old NNZ:" << oldNnz << std::endl << "New NNZ: " << newNnz << std::endl;
+        // log intermediate results
+        LOG_DBG(algSys) << "\tNNZ according to initial guess "<< oldNnz;
+        LOG_DBG(algSys) << "\tNNZ actually counted in the overall vector" << newNnz;
+        // check if we would actually gain anything from this procedure
+        if ( newNnz < oldNnz ) {
+          LOG_DBG(algSys) << "\tProceeding to create new matrix";
+          // we have less non-zero entries, proceed to construct the new matrix
+          StdVector<T> DataVecNew;
+          StdVector<UInt> ColVecNew;
+          StdVector<UInt> RowVecNew;
+          StdVector<UInt> DiagVecNew;
+          UInt k{0};
+          RowVecNew.push_back(RowVec[0]);
+          UInt matCount = 0;
+          UInt nnzMatCount = 0;
+          for (UInt i = 0; i < NumRows; i++) {
+            // debug
+            //std::cout << "RowVec[i]: " << RowVec[i] << "; RowVec[i+1]: " << RowVec[i+1] << std::endl;
+            // Assume that there is no diagonal entry (and correct
+            // it below, if we find one)
+            DiagVecNew.push_back(0);
+            for (UInt j = RowVec[i]; j < RowVec[i+1]; j++) {
+              matCount++;
+              //if (DataVec[j] != 0.0) {
+              // add non-zero entries as well as diagonal entries (regardless of their actual value)
+              if (abs(DataVec[j]) >= tol || i==ColVec[j]) {
+                DataVecNew.push_back(DataVec[j]);
+                ColVecNew.push_back(ColVec[j]);
+                k++;
+                nnzMatCount++;
+              }
+              // replace zero with actual diagonal value
+              if (i==ColVec[j]) {
+                DiagVecNew[i] = j;
+              }
+            }
+            RowVecNew.push_back(k);
+          }
+          // debug
+          /* for (UInt i = 0; i < RowVecNew.size(); i++) {
+            std::cout << "RowVecNew[" << i << "] = " << RowVecNew[i] << std::endl;
+          } */
+          //std::cout << "Looped over " << matCount << " elements" << std::endl;
+          //std::cout << "Found " << nnzMatCount << " non-zero elements (including potential zeros on the diagonal)" << std::endl;
+          
+          // log
+          LOG_DBG(algSys) << "\tLooped over " << matCount << " elements";
+          LOG_DBG(algSys) << "\tNNZ actually counted in the used matrix (including potential zeros on the diagonal)" << nnzMatCount;
+          // debug
+          //stdMat->Export("oldMat.mtx", BaseMatrix::MATRIX_MARKET);
+          // delete the old effMat_ since otherwise we'll have some not so nice heap corruption
+          delete effMat_;
+          // overwrite old matrix with new (resized) empty matrix (the last bool forces an overwrite)
+          LOG_DBG(algSys) << "\tOverwriting old sub matrix";
+          // generate new empty SBM-Matrix
+          actMat->SetSubMatrix(row, col, stdMat->GetEntryType(), stdMat->GetStorageType(),
+                                stdMat->GetNumRows(), stdMat->GetNumCols(), nnzMatCount, true, true);
+          stdMat = actMat->GetPointer(row,col);
+          
+          // now set the sparsity pattern data for the newly created submatrix
+          switch(stdMat->GetStorageType())
+          {
+          case BaseMatrix::SPARSE_SYM:
+          {
+            SCRS_Matrix<T> &tmpSym = dynamic_cast<SCRS_Matrix<T>&>(*stdMat);
+            tmpSym.SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
+            // here we also have to correct the wrongly initialized numEntries variable
+            tmpSym.SetNumEntries(nnzMatCount);
+          }
+            break;
+          case BaseMatrix::SPARSE_NONSYM:
+          {
+            CRS_Matrix<T> &tmpNonSym = dynamic_cast<CRS_Matrix<T>&>(*stdMat);
+            tmpNonSym.SetSparsityPatternData(RowVecNew, ColVecNew, DataVecNew);
+          }
+            break;
+          default:
+            EXCEPTION("This should not be possible")
+            break;
+          }
+          // delete the old sysMat_[SYSTEM]
+          delete sysMat_[SYSTEM];
+          // now we have a full and cleaned copy of sysMat_[SYSTEM] (actMat), we just need to pass it back
+          sysMat_[SYSTEM] = actMat;
+          LOG_DBG(algSys) << "\tCreated new sysMat_ entry";
+          // debug
+          //actMat->Export("actMat", BaseMatrix::OutputFormat::MATRIX_MARKET, "actMat");
+          //sysMat_[SYSTEM]->Export("sysMat", BaseMatrix::OutputFormat::MATRIX_MARKET, "sysMat");
+          // rebuild effMat_
+          // TODO: we might have to do this outside of the loop, should be only important for harmonic analysis which is not working anyways at the moment
+          UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
+          for ( UInt k = 0; k < nB; k++ ) {
+            if (statCond_) {
+              effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
+                                        numBlocks_-1 );
+            } else {
+              effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], nB, nB );
+            }
+          }
+          LOG_DBG(algSys) << "\tRebuilt effMat_";
+          LOG_DBG(algSys) << "\tSuccessfully reduced complexity of the system by eliminating unnecessary zeros";
+          infoGetRidOfZeros->Get("zeros_removed", ParamNode::APPEND)->SetValue(oldNnz - newNnz);
+        } else {
+          // no zeros found, we skip everything
+          WARN("AlgebraicSys::GetRidOfZeros: No zeros to remove with defined tolerance were found")
+          UInt intZero = 0;
+          infoGetRidOfZeros->Get("zeros_removed", ParamNode::APPEND)->SetValue(intZero);
+          LOG_DBG(algSys) << "No zero entries found, skipping this matrix";
+
+          // free the matrix, otherwise the PatternPool destructor will throw an error
+          delete actMat;
+        }
+      }
+    }
+    timeGetRidOfZeros.Stop();
+    infoGetRidOfZeros->Get("cpu", ParamNode::APPEND)->SetValue(timeGetRidOfZeros.GetCPUTime());
+    infoGetRidOfZeros->Get("wall", ParamNode::APPEND)->SetValue(timeGetRidOfZeros.GetWallTime());
+  }
+
+  template void AlgebraicSys::GetRidOfZeros<Double>(Double tol);
+  template void AlgebraicSys::GetRidOfZeros<Complex>(Double tol);
+
+  void AlgebraicSys::SetSysMatBackup( SBM_Matrix* actMat ){
+    delete sysMat_[BACKUP];
+    sysMat_[BACKUP] = new SBM_Matrix(*actMat);
+  }
+
+  void AlgebraicSys::RestoreSystemMatrixFromBackup(){
+    delete effMat_;
+    delete sysMat_[SYSTEM];
+    sysMat_[SYSTEM] = new SBM_Matrix(*sysMat_[BACKUP]);
+
+    UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
+    for ( UInt k = 0; k < nB; k++ ) {
+      if (statCond_) {
+        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
+                                  numBlocks_-1 );
+      } else {
+        effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], nB, nB );
+      }
+    }
+    LOG_DBG(algSys) << "\tRestored sysMat_[SYSTEM] and effMat_";
   }
 
   void AlgebraicSys::ClearIDBCFromSolutionVal( SBM_Vector& solVec ){

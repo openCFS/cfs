@@ -1371,9 +1371,9 @@ namespace CFSTool {
               
               if( isSurf ) 
               {
-                lpm1Surf.Set( lp, esm1, volRegions, 0.0 );
+                lpm1Surf.SetWithSurface( lp, esm1, volRegions, 0.0 );
                 lpm1 = lpm1Surf.lpmVol;
-                lpm2Surf.Set( lp, esm2, volRegions, 0.0 );
+                lpm2Surf.SetWithSurface( lp, esm2, volRegions, 0.0 );
                 lpm2 = lpm2Surf.lpmVol;
                 
                 el1 = lpm1->ptEl;
@@ -1384,7 +1384,7 @@ namespace CFSTool {
 
                 if(ptGrid3) 
                 {
-                  lpm3Surf.Set( lp, esm3, volRegions, 0.0 );
+                  lpm3Surf.SetWithSurface( lp, esm3, volRegions, 0.0 );
                   lpm3 = lpm3Surf.lpmVol;
                   el3 = lpm3->ptEl;
                   ptFe3 = meanFlowFeFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );

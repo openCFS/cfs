@@ -3815,10 +3815,11 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
         counter++;
       }
     }
-    LOG_DBG3(conditions) << Condition::type.ToString(g->GetType())
+    LOG_DBG3(conditions) << Condition::type.ToString(g->GetType()) << " a=" << g->access.ToString(g->GetAccess())
     << " derive=" << derivative << " relevant=" << relevant
-    << " elem " << de->elem->elemNum << " des_value: " << de->GetDesign(DesignElement::PLAIN)
-    << " value = " << org_value
+    << " elem=" << de->elem->elemNum << " pv=" << de->GetDesign(DesignElement::PLAIN)
+    << " sv=" << de->GetDesign(DesignElement::SMART)
+    << " ov= " << org_value << " lb=" << " ub=" << ub
     << " -> " << value << " grad=" << grad << " eval=" << eval
     << " fraction=" << fraction << " counter=" << counter;
 
@@ -3951,7 +3952,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
       context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
 
     if(context->DoLBM()) {
-      // in autoscale case we are still in the BaseOptimizer constructor
+      // in scale case we are still in the BaseOptimizer constructor
       boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
       if(eval_timer)
         eval_timer->Stop();

@@ -10,14 +10,25 @@ import shutil
 def copy(source, target):
   if not os.path.exists(source):
     print("cannot find '" + source + "' -> ignore ")
-    return False
-  else:
+    return
+  if args.dry is False:    
     print("copy '" + source + "' -> '" + target + "'")
     shutil.copy(source, target)
-    return True
+  else:
+    print("would copy '" + source + "' -> '" + target + "' without --dry")  
+
+def clean(file):
+  if not os.path.exists(file):
+    return
+  if args.dry is False and args.clean:
+    print("remove local file '" + file + "'")
+    os.remove(file)    
+  else:
+    print("would remove local file '" + file + "' with --clean and without --dry")  
   
 
 parser = argparse.ArgumentParser(description = 'Within a cfs test-case the reference files are created')
+parser.add_argument('--clean', help="remove known local files not mean for submission", action='store_true')
 parser.add_argument('--dry', help="doesn't do anything but shows what would be done", action='store_true')
 args = parser.parse_args()
 
@@ -28,15 +39,19 @@ if 'TESTSUIT' not in pwd:
 
 name = os.path.basename(pwd)
 
-if not copy(os.path.join('results_hdf5', name + '.cfs'), name + '.h5ref'): 
-  copy(os.path.join('results_hdf5', name + '.h5'), name + '.h5ref') # fallback to old stuff
-
+copy(os.path.join('results_hdf5', name + '.cfs'), name + '.h5ref')
 copy(name + '.info.xml', name + '.ref.info.xml')
-
 copy(name + '.plot.dat', name + '.ref.plot.dat')
-
 copy(name + '.density.xml', name + '.ref.density.xml')
-
 copy(name + '.bloch.dat', name + '.ref.bloch.dat')
-
+copy(name + '.snopt', name + '.ref.snopt')
+copy(name + '.mma', name + '.ref.mma')
 copy('nonlin.txt', 'nonlin.ref.txt')
+
+clean(os.path.join('results_hdf5', name + '.cfs'))
+clean(name + '.info.xml')
+clean(name + '.plot.dat')
+clean(name + '.density.xml')
+clean(name + '.bloch.dat')
+clean(name + '.snopt')
+clean(name + '.mma')

@@ -651,7 +651,7 @@ namespace CoupledField
     ParamNodeList nciList = nciListNode->GetList("ncInterface");
     UInt numNCIs = nciList.GetSize();
     ncInterfaces_.Reserve(numNCIs);
-
+    
     //loop twice to ensure that moving interfaces get added last
     for ( UInt i=0; i<numNCIs; ++i ) {
       if(!nciList[i]->Has("rotation") &&
@@ -710,6 +710,13 @@ namespace CoupledField
     for ( ; it != itEnd; ++it) {
       (*it)->UpdateInterface();
     }
+  }
+
+  bool Grid::HasNCI() {
+    if (!ncInterfaces_.IsEmpty())
+      return true;
+    else 
+      return false;
   }
 
 

@@ -20,10 +20,8 @@ ENDIF(MKL_INCLUDE_DIR)
 
 if(USE_EMBEDDED_PYTHON)
   # see FindPrograms.cmake on how the PYTHON_ stuff is set
-  set(MATVEC_SRCS ${MATVEC_SRCS} VectorPython.cc)
-  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
-  # already in FindCFSDEPS.cmake: include_directories(${PYTHON_INCLUDE_DIR})
-  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  list(APPEND MATVEC_SRCS VectorPython.cc)
+  list(APPEND TARGET_LL ${Python_LIBRARIES})
 endif()
 
 ADD_LIBRARY(matvec STATIC ${MATVEC_SRCS})

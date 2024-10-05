@@ -11,34 +11,25 @@
 include(ExternalProject) # cmake external project
 include("cmake_modules/DependencyTools.cmake") # our own helper for cfsdeps handling (pseudo object oriented)
 
-SET(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
-SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
+set(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
+set(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 
 # CFSDEPS_*_FLAGS are set in compiler.cmake
 
-#-----------------------------------------------------------------------------
 # If user has set environment variables use them. If not use defaults
-#-----------------------------------------------------------------------------
-SET(CFS_DEPS_CD_DUMMY "$ENV{CFS_DEPS_CACHE_DIR}")
-IF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
-  SET(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CD_DUMMY}" CACHE PATH
-    "Directory for CFSDEPS sources and prebuilt binaries.")
-ELSE(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
-  SET(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CACHE_DIR_DEFAULT}" CACHE PATH
-    "Directory for CFSDEPS sources and prebuilt binaries.")
-ENDIF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
+set(CFS_DEPS_CD_DUMMY "$ENV{CFS_DEPS_CACHE_DIR}")
+if(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
+  set(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CD_DUMMY}" CACHE PATH "Directory for CFSDEPS sources and prebuilt binaries.")
+else()
+  set(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CACHE_DIR_DEFAULT}" CACHE PATH "Directory for CFSDEPS sources and prebuilt binaries.")
+endif()
 
-#-----------------------------------------------------------------------------
 # Check if cache directory is present
-#-----------------------------------------------------------------------------
-IF(NOT CFS_DEPS_CACHE_DIR)
-  MESSAGE(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. 
-This dirctory is used to store downloaded sources, 
-which can be reused for other openCFS builds.
-This directory may even be located on a network share.")
-ENDIF(NOT CFS_DEPS_CACHE_DIR)
+if(NOT CFS_DEPS_CACHE_DIR)
+  message(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. This dirctory is used to stor depenency source and compiles.") 
+endif()
 
-FILE(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
+file(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
 
 # for configure projectes we may not use ninja but need make
 if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
@@ -48,46 +39,24 @@ else()
 endif()
 mark_as_advanced(CONFIGURE_MAKE_PROGRAM)
 
-# The Python lib stuff is not built but found on the system when we embedd python
+# The Python lib stuff is not built but linked with the system python when we embedd python
 if(USE_EMBEDDED_PYTHON)
-  # see find_package(PythonInterp) in FindPrograms.cmake
-  
-  # sets PYTHON_LIBRARY and PYTHON_INCLUDE_DIR, which can be also set via -D
-  find_package(PythonLibs)
-
-  # it might happen, when configured first w/o USE_EMBEDDED_PYTHON, that the cachend two variables are empty
-  # and not overwritten by find_package - cmake is such a mess :( Setting via ccmake helps  
-  # message(STATUS "PYTHON_INCLUDE_DIR = ${PYTHON_INCLUDE_DIR}")
-  # message(STATUS "PYTHON_LIBRARY = ${PYTHON_LIBRARY}")
-  
-  # PYTHON_SITE_PACKAGES_DIR needs to be set to /usr/lib64/python3.8/site-packages
-  # PYTHON_LIBRARY is /usr/lib64/libpython3.8.so, so it does not help
-  # there is no uniform cmake python support. There are several FindPythonModule.cmake on the web but not in the standard distribution
-  # here we extract the core from https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git/tree/cmake/FindPythonModules.cmake
-  # you need to include like #include <numpy/core/include/numpy/arrayobject.h>
-  execute_process(
-      COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.__file__);"
-      RESULT_VARIABLE PY_NUMPY_STATUS # 0 is good, 1 is bad
-      OUTPUT_VARIABLE PY_NUMPY_PATH # shall be /usr/lib64/python3.8/site-packages/numpy/__init__.py
-      ERROR_QUIET
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  if(NOT PY_NUMPY_STATUS) # 0 is good
-    get_filename_component(PY_NUMPY_DIR ${PY_NUMPY_PATH} DIRECTORY) #  /usr/lib64/python3.8/site-packages/numpy  
-    get_filename_component(PY_SITE_DIR ${PY_NUMPY_DIR} DIRECTORY) # /usr/lib64/python3.8/site-packages
+  # we don't need the executable for embedded python - the testsuite finds it's own executale
+  # use -DPython_ROOT_DIR=... to help in case or check cmake's FindPython for other hints
+  find_package(Python COMPONENTS Development NumPy)  
+  #dump_variables("Python")
+  if(NOT Python_Development_FOUND OR NOT Python_NumPy_FOUND)
+    message(FATAL_ERROR "cannot find Python environment for USE_EMBEDDED_PYTHON, probably set Python_ROOT_DIR") 
   endif()
+  message(STATUS "will link to embedded python ${Python_VERSION} using NumPy ${Python_NumPy_VERSION}")
 
-  # ignored if already set manually  
-  set(PYTHON_SITE_PACKAGES_DIR ${PY_SITE_DIR} CACHE PATH "base for python site-packages")     
-  mark_as_advanced(PYTHON_SITE_PACKAGES_DIR)
-
-  # fun stuff: If you encounter the error message Pyhton.h not found, uncomment the message and try again :)
-  # message(STATUS "add include_directories(${PYTHON_INCLUDE_DIR})")
-  include_directories(${PYTHON_INCLUDE_DIR})
-
-  if(NOT PYTHON_SITE_PACKAGES_DIR)
-    message(FATAL_ERROR "cannot determine numpy for ${PYTHON_EXECUTABLE} required for USE_EMBEDDED_PYTHON. Possibly set advanced PYTHON_SITE_PACKAGES_DIR")
-  endif()
+  # we make use of these three variables
+  assert_set(Python_INCLUDE_DIRS)
+  assert_set(Python_NumPy_INCLUDE_DIRS)
+  assert_set(Python_LIBRARIES) # e.g. /opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib
+  #cmake_print_variables(Python_INCLUDE_DIRS Python_NumPy_INCLUDE_DIRS Python_LIBRARIES)
+  include_directories(${Python_INCLUDE_DIRS})
+  include_directories(${Python_NumPy_INCLUDE_DIRS})
 endif()
 
 #-------------------------------------------------------------------------------
@@ -187,18 +156,11 @@ endif()
 # Find Library of Iterative Solvers
 if(USE_LIS)
   include("${CFSDEPS_DIR}/lis/External_LIS.cmake")
-endif(USE_LIS)
+endif()
 
-#-------------------------------------------------------------------------------
-# Find SuperLU
-#-------------------------------------------------------------------------------
-IF(USE_SUPERLU)
-  SET(SUPERLU_VER "4.3")
-  SET(SUPERLU_GZ "superlu_${SUPERLU_VER}.tar.gz")
-  SET(SUPERLU_MD5 "b72c6309f25e9660133007b82621ba7c")
-  
-  INCLUDE("${CFSDEPS_DIR}/superlu/External_SuperLU.cmake")
-ENDIF(USE_SUPERLU)
+if(USE_SUPERLU)
+  include("${CFSDEPS_DIR}/superlu/External_SuperLU.cmake")
+endif()
 
 #-------------------------------------------------------------------------------
 # Find Boost
@@ -326,6 +288,13 @@ endif()
 #-----------------------------------------------------------------------------
 if(USE_SGP)
   include("${CFSDEPS_DIR}/sgp/External_SGP.cmake")
+endif()
+
+#-----------------------------------------------------------------------------
+# C++ implementations for the topology optimiter MMA (dumas_mma) and a glonalized variant (dumas_gcmma)
+#-----------------------------------------------------------------------------
+if(USE_DUMAS)
+  include("${CFSDEPS_DIR}/dumas/External_Dumas.cmake")
 endif()
 
 #-----------------------------------------------------------------------------

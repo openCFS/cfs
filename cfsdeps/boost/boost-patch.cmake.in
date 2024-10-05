@@ -17,7 +17,7 @@ SET(MSVC "@MSVC@")
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
-
+# cmake_print_variables(CMAKE_CXX_COMPILER_ID CMAKE_CXX_COMPILER_VERSION)
 #=============================================================================
 # Apply some patches.
 #=============================================================================
@@ -32,6 +32,11 @@ IF(WIN32)
         "boost-win-icc-oneApi.patch"
       )
     ENDIF()
+  ENDIF()
+  # Required due to MSVC versioning in boost, therefore patch must be applied
+  IF("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "19.40")
+	# message("String is equal MSVC, applying patch")
+    LIST(APPEND patches "msvc340fix.patch")
   ENDIF()
 else()
   set(patches "boost-musl-pre1.79.patch") # required by MUSL clib based system, fixed in boost 1.79: https://github.com/boostorg/interprocess/pull/162

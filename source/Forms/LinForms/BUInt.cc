@@ -129,23 +129,21 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
     }
   }
 
-  // Loop over all integration points
-  VEC_DATA_TYPE vol = 0.0;
-  for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
-    // Calculate for each integration point the LocPointMapped
-    if (SURFACE) {
-      lp.Set( intPoints[i], esm, volRegions_, weights[i] );
-    } else {
-      lp.Set( intPoints[i], esm, weights[i] );
-    }
+     // Loop over all integration points
+     for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
-    //calc factor
-    fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
-    vol += fac; //computes the volume
+       // Calculate for each integration point the LocPointMapped
+       if (SURFACE) {
+         lp.SetWithSurface( intPoints[i], esm, volRegions_, weights[i] );
+       } else {
+         lp.Set( intPoints[i], esm, weights[i] );
+       }
 
-    fac *= factor_;
-    // Call the CalcBMat()-method
-    bOperator_->CalcOpMatTransposed( bMat, lp, ptFe);
+       //calc factor
+       fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
+       fac *= factor_;
+       // Call the CalcBMat()-method
+       bOperator_->CalcOpMatTransposed( bMat, lp, ptFe);
 
     // Evaluate coefficient function in integration point
     // ( in case of full order)
@@ -177,9 +175,6 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
     }  
     elemVec += bMat * cVec * fac;    
   }  
-  if ( normalizeToVol_) {
-    elemVec /= vol;    
-  }
 }
 
 }

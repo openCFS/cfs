@@ -2,12 +2,14 @@
 #include <ostream>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Objective.hh"
+#include "Optimization/Condition.hh"
 
 namespace CoupledField {
 class DesignStructure;
@@ -15,7 +17,10 @@ class DesignStructure;
 
 using namespace CoupledField;
 
-Enum<ObjectiveContainer::StoppingRule::Type>  ObjectiveContainer::StoppingRule::type;
+DEFINE_LOG(obj, "objective")
+
+Enum<StoppingRule::Type>       StoppingRule::type;
+Enum<StoppingRule::Condition>  StoppingRule::condition;
 
 Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
  : Function(pn_type)
@@ -58,7 +63,6 @@ std::string Objective::GetName() const
     return type.ToString(type_) + "E" + lexical_cast<std::string>(get<0>(coord)) + lexical_cast<std::string>(get<1>(coord));
 }
 
-
 void Objective::ToInfo(PtrParamNode info)
 {
   Function::ToInfo(info);
@@ -66,23 +70,120 @@ void Objective::ToInfo(PtrParamNode info)
     info->Get("tensor")->SetValue(tensor_);
 }
 
-ObjectiveContainer::StoppingRule::StoppingRule()
-{
-  // sync with XSL defaults!
-  value = 1e-3;
-  queue = 5;
-  type_ = DESIGN_CHANGE;
-  max_hours = -1;
-}
-
-void ObjectiveContainer::StoppingRule::Init(PtrParamNode pn)
+void StoppingRule::Init(PtrParamNode pn)
 {
   if(pn == NULL) return;
 
   type_ = type.Parse(pn->Get("type")->As<std::string>());
+  condition_ = condition.Parse(pn->Get("condition")->As<std::string>());
   value = pn->Get("value")->As<double>();
   queue = pn->Get("queue")->As<int>();
-  max_hours = pn->Get("maxHours")->MathParse<double>();
+  if(pn->Has("function"))
+  {
+    if(type_ != ABOVE_FUNCTION && type_ != BELOW_FUNCTION)
+      throw Exception("'stopping' attribute 'function' only for 'above/belowFunction'");
+    function = pn->Get("function")->As<string>();
+
+  }
+  if((type_ == ABOVE_FUNCTION || type_ == BELOW_FUNCTION) && function == "")
+   throw Exception("attribute 'function' mandatory for 'stopping' type '" + type.ToString(type_) + "'");
+}
+
+string StoppingRule::DoStop(ObjectiveContainer* oc, ConditionContainer* cc, StdVector<double>& time)
+{
+  int hs = oc->GetHistorySize();
+  std::stringstream ss;
+  switch(type_)
+  {
+  case MAX_HOURS:
+  {
+    if(time.GetSize() < 3)
+      return "";
+
+    auto cfs_timer = domain->GetInfoRoot()->Get(ParamNode::SUMMARY)->Get("timer")->AsTimer();
+
+    // avg. of the last three in seconds
+    double avg = (time.Last() - time[time.GetSize() - 3])/3.0;
+    // remaining time to max_hours in seconds
+    double remaining = value * 3600 - cfs_timer->GetWallTime();
+
+    //LOG_DBG(opt) << "DSO: wt=" << cfs_timer->GetWallTime() << " cmp=" << time[time.GetSize() - 3] << " avg=" << avg << " mh=" << value << " re=" << remaining << " ti=" << time.ToString();
+
+    if(remaining < 1.5 * avg)
+    {
+      ss << "Not enough time left to finish within " << value << "h with avg iteration duration " << avg << "s and " << remaining << "s left.";
+      return ss.str();
+    }
+    else
+      return "";
+  }
+
+  case OSCILLATIONS:
+  {
+    int cnt = 0;
+    for(unsigned int i = 3; i < oc->GetHistorySize(); i++)
+    {
+      // is different from Function::CalcOscillations() as this combines multi-objectice
+      double pp = oc->GetHistoryValue(true, i-2);
+      double p = oc->GetHistoryValue(true, i-1);
+      double c = oc->GetHistoryValue(true, i);
+      if((pp-p)*(p-c) < 0)
+      {
+        cnt++;
+        if(cnt >= value)
+        {
+          ss << "detected " << cnt << " oscillations in objective function";
+          return ss.str();
+        }
+      }
+    }
+    return "";
+  }
+
+  case REL_COST_CHANGE:
+    if(hs <= queue)
+      return "";
+
+    for(int i = hs-1; i >= (hs - queue); i--)
+    {
+      double delta = oc->GetHistoryValue(true, i) - oc->GetHistoryValue(true, i-1);
+      double rel = abs(delta / oc->GetHistoryValue(true, i));
+      if(rel > value)
+        return "";
+    }
+    ss << "relative change in objective function below " << value << " for " << queue << " iterations";
+    return ss.str();
+
+  case DESIGN_CHANGE:
+    if(hs <= queue)
+      return "";
+
+    for(int n = (int) oc->design_change.GetSize() - 1, i = n; i >= std::max(0, n - queue); i--)
+      if(oc->design_change[i] > value)
+        return "";
+
+    ss << "design change below " << value << " for " << queue << " iterations";
+    return ss.str();
+
+  case ABOVE_FUNCTION:
+  case BELOW_FUNCTION:
+    {
+      Function* f = oc->Get(function, false); // no exception
+      if(f == nullptr)
+        f = (Function*) cc->Get(function, true); // now exception if we don't have it
+      double val = f->GetValue();
+      if(type_ == ABOVE_FUNCTION && val <= value)
+        return "";
+      if(type_ == BELOW_FUNCTION && val > value)
+        return "";
+      ss << "function " << f->ToString() << " value " << val;
+      ss << (type_ == ABOVE_FUNCTION ? " above " : " below ");
+      ss << "stopping criteria " << value;
+      return ss.str();
+    }
+  default:
+    throw Exception("unhandled stopping criteria");
+  }
 }
 
 ObjectiveContainer::ObjectiveContainer()
@@ -108,7 +209,10 @@ void ObjectiveContainer::Read(PtrParamNode obj_node)
   bool mo = Objective::type.Parse(obj_node->Get("type")->As<std::string>()) == Objective::MULTI_OBJECTIVE;
 
   // set to default if it is not set
-  stop.Init(obj_node->Get("stopping", ParamNode::PASS));
+  auto sl = obj_node->GetList("stopping");
+  stop.Resize(sl.GetSize());
+  for(unsigned int i = 0; i < sl.GetSize(); i++)
+    stop[i].Init(sl[i]);
 
   if(!mo)
   {
@@ -184,13 +288,26 @@ bool ObjectiveContainer::Has(Objective::Type type) const
 
 Objective* ObjectiveContainer::Get(Objective::Type type, bool throw_exception)
 {
-  for(unsigned int i = 0, os = data.GetSize(); i < os; i++)
-    if(data[i]->GetType() == type) return data[i];
+  for(Objective* o : data)
+    if(o->GetType() == type)
+      return o;
 
-  if(!throw_exception) return NULL;
-                  else EXCEPTION("No objective of type " << Objective::type.ToString(type) << " stored");
+  if(throw_exception)
+    Exception("No objective of type '" + Objective::type.ToString(type) + "' stored");
+  return nullptr;
 }
 
+Objective* ObjectiveContainer::Get(const std::string& name, bool throw_exception)
+{
+  for(Objective* o : data)
+    if(o->ToString() == name)
+      return o;
+
+  if(throw_exception)
+    Exception("No objective '" + name + "' stored");
+
+  return nullptr;
+}
 
 double ObjectiveContainer::GetHistoryValue(bool penalty, int index)
 {
@@ -198,9 +315,12 @@ double ObjectiveContainer::GetHistoryValue(bool penalty, int index)
 
   StdVector<double> vals(data.GetSize());
 
+  int idx = index >= 0 ? index : (int) GetHistorySize() + index; // -1 is last, ...
+  LOG_DBG(obj) << "OC:GHV p=" << penalty << " index=" << index << " size=" << data.GetSize() << " idx=" << idx;
+  assert(idx >= 0);
   for(unsigned int i = 0; i < data.GetSize(); i++)
   {
-    double val = index == -1 ? data[i]->history_.Last() : data[i]->history_[index];
+    double val = data[i]->history[idx];
     vals[i] = (penalty ? data[i]->penalty_ : 1.0) * val;
     result += vals[i];
   }
@@ -216,13 +336,13 @@ double ObjectiveContainer::GetHistoryValue(bool penalty, int index)
 
 unsigned int ObjectiveContainer::GetHistorySize()
 {
-  return data[0]->history_.GetSize();
+  return data[0]->history.GetSize();
 }
 
 void ObjectiveContainer::PushBackHistory()
 {
-  for(unsigned int i = 0; i < data.GetSize(); i++)
-    data[i]->history_.Push_back(data[i]->value_);
+  for(Objective* f : data)
+    f->history.Push_back(f->value_);
 }
 
 void ObjectiveContainer::PushBackDesign(const DesignSpace* space)

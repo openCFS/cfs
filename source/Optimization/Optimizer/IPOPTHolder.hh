@@ -21,9 +21,17 @@ namespace CoupledField
     { 
     }
     
+    void LogFileLine(std::ofstream* out, PtrParamNode iteration) override
+    {
+      if(out)
+        *out << " \t" << ipopt_->nObj;
+
+      iteration->Get("nObj")->SetValue(ipopt_->nObj);
+    }
+
   protected:
 
-    void SolveProblem()
+    void SolveProblem() override
     {
       do
       {
@@ -35,6 +43,12 @@ namespace CoupledField
     }
     
   private:
+
+    void LogFileHeader(Optimization::Log& log) override
+    {
+      log.AddToHeader("nObj");
+    }
+
     SmartPtr<IPOPT> ipopt_;
   };
 } // end of namespace

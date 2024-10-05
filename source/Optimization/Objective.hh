@@ -12,11 +12,57 @@
 namespace CoupledField {
 class DesignSpace;
 class DesignStructure;
+class ConditionContainer;
+
 }  // namespace CoupledField
 
 namespace CoupledField
 {
 class MultipleExcitation;
+class ObjectiveContainer;
+
+/** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
+class StoppingRule
+{
+public:
+
+  StoppingRule() {};
+
+  /** @param pn might be NULL */
+  void Init(PtrParamNode pn);
+
+  typedef enum { DESIGN_CHANGE, REL_COST_CHANGE, ABOVE_FUNCTION, BELOW_FUNCTION, MAX_HOURS, OSCILLATIONS } Type;
+
+  /** a single sufficient rule will break. Without sufficient, all rules need to be necessary the same time to break. */
+  typedef enum { SUFFICIENT, NECESSARY } Condition;
+
+  static Enum<Type> type;
+
+  static Enum<Condition> condition;
+
+  /** test for some criteria if we shall stop
+   * @return if empty string, no. Otherwise the string is the msg */
+  string DoStop(ObjectiveContainer* oc, ConditionContainer* cc, StdVector<double>& time);
+
+  Type GetType() const { return type_; }
+
+  Condition GetCondition() const { return condition_; }
+
+  /** stopping rules value */
+  double value = -1;
+
+  /** stopping rule queue length */
+  int queue = 1;
+
+  /** function name for ABOVE_FUNCTION/ABOVE_FUNCTION to compare with objective/constraint info.xml name */
+  std::string function;
+private:
+
+  Type type_ = DESIGN_CHANGE;
+
+  Condition condition_ = SUFFICIENT;
+};
+
 
 /** We combine the cost function in a set to handle multiple of it.
  * It contains static const elements (and  working stuff).
@@ -68,9 +114,6 @@ class Objective : public Function
 
   private:
 
-    /** This vector stores the cost functions of the iterations. Written in PushBackHistory() */
-    StdVector<double> history_;
-
     /** by default 1.0 if not multiObjective */
     double penalty_;
 };
@@ -95,11 +138,11 @@ public:
   bool Has(Objective::Type type) const;
 
   Objective* Get(Objective::Type type, bool throw_exception = true);
+  Objective* Get(const std::string& name, bool throw_exception = true);
 
   /** Sums up the history results of multiple objectives.
-   * @param costs all objecties
    * @param if true the penalty value is included
-   * @param history the index within history or -1 for the last value */
+   * @param history the positive or negative index within history. Negative in Python style (-1 last, ...)*/
   double GetHistoryValue(bool penalty = true, int history = -1);
 
   unsigned int GetHistorySize();
@@ -119,38 +162,8 @@ public:
   /** the history is calculated, the design change is simply stored! */
   StdVector<double> design_change;
 
-  /** gathered by some of the costFunction attributes in XML, the defaults are in the XML-Schema */
-  class StoppingRule
-  {
-  public:
-
-    StoppingRule();
-
-    /** @param pn might be NULL */
-    void Init(PtrParamNode pn);
-
-    typedef enum { DESIGN_CHANGE, REL_COST_CHANGE } Type;
-
-    static Enum<Type> type;
-
-    Type GetType() const { return type_; }
-
-    /** stopping rules value */
-    double value;
-
-    /** stopping rule queue length */
-    unsigned int queue;
-
-    /** max hours, set only for >= 0. This is an additional condition */
-    double max_hours;
-
-  private:
-
-    Type type_;
-  };
-
   /** This are our stopping rule parameters */
-  StoppingRule stop;
+  StdVector<StoppingRule> stop;
 
   StdVector<Objective*> data;
 

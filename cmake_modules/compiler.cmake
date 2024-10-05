@@ -34,6 +34,12 @@ if(USE_OPENMP)
 
   if(APPLE)
     # homebrew uses since Okt 2022 not the system path and we need to help cfs and lis
+    # according to cmake docu, OpenMP_<lang>_INCLUDE_DIR is input and OpenMP_<lang>_INCLUDE_DIRS is output, wherever the OpenMP_<lang>_INCLUDE_DIR is set?!
+    # sometimes the C stuff is set and is valid for C++, give it a try
+    if(NOT OpenMP_CXX_INCLUDE_DIR)
+      # dump_variables("OpenMP")
+      set(OpenMP_CXX_INCLUDE_DIR ${OpenMP_C_INCLUDE_DIR})
+    endif()
     assert_set(OpenMP_CXX_INCLUDE_DIR) # /opt/homebrew[/opt/libomp]/include
     assert_set(OpenMP_libomp_LIBRARY) # /opt/homebrew[/opt/libomp]/lib/libomp.dylib"
     get_filename_component(OpenMP_LIBDIR ${OpenMP_libomp_LIBRARY} DIRECTORY) # also use for lis
@@ -95,7 +101,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     # linker issue with xcode 15 on mac
     # https://developer.apple.com/forums/thread/735426
     if(CMAKE_CXX_COMPILER_ID MATCHES "AppleClang" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "15.0")
-      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -ld_classic")
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -ld64") # was -ld_classic and for >= 16 -ld64 is preferred and shall also work with clang 15 
     endif()
 
     # warning! don't do -Wl,-nowarn_compact_unwind to prevent unwind warnings! This kills exception catching!

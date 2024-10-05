@@ -490,6 +490,25 @@ void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Ve
   }
 }
 
+void CoefFunctionExpression<Complex>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                              StdVector<Complex >  & vals,
+                                                              Grid* ptGrid,
+                                                              const StdVector<shared_ptr<EntityList> >& srcEntities)
+{
+  assert(this->dimType_ == CoefFunction::SCALAR);
+
+  Double real, imag;
+  vals.Resize(points.GetSize());
+  vals.Init();
+  for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
+    this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), points[curPoint]);
+    real = this->mp_->Eval(mHandleReal_);
+    imag = this->mp_->Eval(mHandleImag_);
+    vals[curPoint] = Complex(real, imag);
+  }
+}
+
 void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                               StdVector<Vector<Double> >  & vals,
                                                               Grid* ptGrid,

@@ -73,7 +73,7 @@ namespace CoupledField {
 
   //! Describes all possible solution types in a CFS simulation
   typedef enum{
-    NO_SOLUTION_TYPE,
+    NO_SOLUTION_TYPE, INVALID_SOLUTION_TYPE,
     // ============
     //  MECHANICAL
     // ============
@@ -269,7 +269,16 @@ namespace CoupledField {
     LBM_PRESSURE, LBM_PHYSICAL_PSEUDO_DENSITY,
 
     // for hysteresis
-    MECH_IRR_STRESS, MECH_IRR_STRAIN
+    MECH_IRR_STRESS, MECH_IRR_STRAIN,
+
+    // ==========
+    //  GENERIC
+    // ==========
+    // these types can be used by generic postproc functions
+    // don't change the naming convention (_X has to be the last part of the name, where X is any integer number)
+    // if you need something else, adapt the code so that "resNr" is calculated correctly!!
+    GENERIC_RESULT_0, GENERIC_RESULT_1, GENERIC_RESULT_2, GENERIC_RESULT_3, GENERIC_RESULT_4,
+    GENERIC_RESULT_5, GENERIC_RESULT_6, GENERIC_RESULT_7, GENERIC_RESULT_8, GENERIC_RESULT_9,
 
   } SolutionType;
 
@@ -595,6 +604,7 @@ namespace CoupledField {
   //! - SYSTEM_DELTAMAT_JACOBIAN - as FD_JACOBIAN, but df_hyst/du is approximated using the deltaMat approach
   //!                    (i.e. no full FD_JACOBIAN but difference quotient between current and previous values)
   //! - GEOMETRIC_STIFFNESS - used in Buckling Analysis (also called stress stiffness matrix)
+  //! - BACKUP - currently unused? Will be now used to store a copy of the system matrix when we reduce the number of non-zero elements
 
   typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, DAMPING_AUX, CONVECTION, MASS, AUXILIARY, STIFFNESS_UPDATE, DAMPING_UPDATE , MASS_UPDATE,
     SYSTEM_HYSTFREE, SYSTEM_FIXPOINT, SYSTEM_FD_JACOBIAN, SYSTEM_DELTAMAT_JACOBIAN, BACKUP, GEOMETRIC_STIFFNESS}

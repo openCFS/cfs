@@ -839,6 +839,19 @@ public:
   virtual RegionIdType GetVolNeighborRegionId(RegionIdType surfId) {
 	  return neighborRegionId_[surfId];
   }
+
+  //! helper functions needed by coefFunctionDummy
+
+  //! Get all information necessary to get the coefFunction afterwards
+  virtual void GetCoefInfo(SolutionType &type, shared_ptr<EntityList> &list, std::string &pdeName) {
+    EXCEPTION("CoefFuncion::GetCoefInfo not overwritten by " << GetName());
+  }
+
+  //! Set the coefFunction used to evaluate the dummy coefFunction
+  virtual void SetCoef(PtrCoefFct coef){
+    EXCEPTION("CoefFuncion::SetCoef not overwritten by " << GetName());
+  }
+  
   //@}
 
   //@}

@@ -42,6 +42,8 @@ namespace CoupledField {
 
       Matrix<Double> EvaluateLocalMuGBM(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
+      Matrix<Double> EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector<Double> dB, UInt idx);
+      
       Matrix<Double> EvaluateLocalMuFiniteDifferences(Vector<Double> E, StdVector<Double> D, UInt idx);
 
       Matrix<Double> EvaluateLocalMuAnhystersisOnly(Vector<Double> E, UInt idx);

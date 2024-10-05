@@ -52,6 +52,7 @@ set(USE_SCPIP_DEFAULT OFF) # academic optimizer which requires permission
 set(USE_SNOPT_DEFAULT OFF) # commercial optimizer which requires a license
 set(USE_SGPP_DEFAULT OFF)  # rarely used
 set(USE_IPOPT_DEFAULT ON)  # rarely used. Uses MKL on Linux and is precompiled on Windows
+set(USE_DUMAS_DEFAULT ON)  # simple self contained C++ implementations of MMA and GCMMA (dumas_mma, dumas_gcmma)
 set(USE_CGAL_DEFAULT OFF)  # GPL and cannot compile on Mac and Windows
 
 set(USE_LIBFBI_DEFAULT OFF)

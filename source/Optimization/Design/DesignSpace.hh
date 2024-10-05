@@ -218,7 +218,6 @@ namespace CoupledField
      template <class T>
      void ExtractResults(shared_ptr<BaseResult> result);
 
-
      /** <p>Take the design space from an external optimizer and apply it on the problem.
       * Do not solve the problem, but call this method before CalcCostFunction() :)</p>
       * <p>The background is, that external optimizers might have a own design space array
@@ -227,6 +226,7 @@ namespace CoupledField
       * @return the design_id which is the old one if space_in did not change the design. */
      virtual int ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent = true);
      int ReadDesignFromExtern(const StdVector<double>& space, bool setAndWriteCurrent = true);
+     int ReadDesignFromExtern(const Vector<double>& space, bool setAndWriteCurrent = true);
 
      /** Compare the design with the present. Does not change anything!
       * @return true if the designs are equal and ReadDesignFromExtern() would give the old design id */
@@ -297,13 +297,8 @@ namespace CoupledField
       * @see double context for ShapeMapDesign::FindDesign()! */
      virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
-     /**
-      * Service wrapper for FindDesign(), doesn't throw exception if dt cannot be find
-      */
-     bool HasDesign(DesignElement::Type dt) const {
-       return (FindDesign(dt, false) != -1);
-     }
-
+     /** Service wrapper for FindDesign(), doesn't throw exception if dt cannot be find  */
+     bool HasDesign(DesignElement::Type dt) const { return FindDesign(dt, false) != -1; }
 
      /** gives a design element by idx. Handles als AuxDesign */
      virtual BaseDesignElement* GetDesignElement(unsigned int idx);
@@ -393,6 +388,16 @@ namespace CoupledField
      /** SpaghettiDesign has a own python module (script) which can be selected for python functions as script=design */
      virtual PyObject* GetPythonModule() { return NULL; }
 
+     /** implement python function get_opt_filter_values()
+      * give python all GlobalFilter properties of filter as string/string dict
+      * @param args which filter - default is 0 for the first one. Check 'total_filters' in result for range info */
+     PyObject* PythonGetFilterProperties(PyObject* args) const;
+
+     /** implement python function set_opt_filter_values()
+      * From a dict, accept "beta" and "eta" and optionally "non_lin_scale" and "non_lin_offset".
+      * If not both non_lin_ is given, it is computed automatically
+      * @param args tuple with filter idx and string/string dict */
+     void PythonSetFilterProperties(PyObject* args);
 
      /** the global LocalElementCache instance, not necessary enabled. Only a pointer for include reasons */
      LocalElementCache* elementCache = NULL;
@@ -501,31 +506,43 @@ namespace CoupledField
        /** points to the multimaterial array or is NULL */
        MultiMaterial* multimaterial = NULL;
 
-       void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
+       /** rho^3 * E_0 + (1-rho)^3 * E_bimat. Not concurrently with HasGroundMaterial()  */
+       bool HasBiMaterial() const { return has_bimat; }
 
-       bool HasBiMaterial() const;
+       /** E_ground + rho^3 * E_0. Not concurrently with HasBiMaterial() */
+       bool HasGroundMaterial() const { return has_grndmat; }
+
+       /** convenience function */
+       bool HasScndMaterial() const { return has_bimat || has_grndmat; }
 
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
         * easy to be also simple for load ersatz material. Shall be thread-save
         * @pde for some material we need the SubTensorType. If not given, the pde is obtained slightly more slowely*/
-       PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt, SinglePDE* pde = nullptr);
+       PtrCoefFct GetScndMaterial(MaterialClass mc, MaterialType mt, SinglePDE* pde = nullptr);
 
        /** returns existing data, As the other GetBiMaterial() is called, data may be created on the fly. */
-       PtrCoefFct GetBiMaterial(const string& integrator);
+       PtrCoefFct GetSncdMaterial(const string& integrator);
 
-       PtrCoefFct GetBiMaterial(BiLinearForm* form) { return GetBiMaterial(form->GetName()); }
+       PtrCoefFct GetScndMaterial(BiLinearForm* form) { return GetSncdMaterial(form->GetName()); }
 
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
 
-       /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
-       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials;
+       void SetBiMaterial(const std::string& material);
+       void SetGroundMaterial(const std::string& material);
 
+       /** Here we cache the lower end material class. Complicated because of piezo and stiffness, density */
+       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > scnd_materials;
+
+       /** the label for the info.xml. bimaterial or ground matrial. Cannot be concurrently */
+       std::string scnd_material;
      private:
+       /* bitmaterial is rho^3 * E_0 + (1-rho)^3 * E_bimat. Not concurrentl with ground material  */
+       bool has_bimat = false;
 
-       /** the label for the info.xml */
-       std::string bimaterial_;
+       /* ground material is simplified bimaterial E_ground + rho^3 * E_0 where the gradient does not change */
+       bool has_grndmat = false;
      };
 
      /** Get DesignRegion.  */

@@ -852,6 +852,19 @@ namespace CoupledField {
     NonLinMethodTypeEnum.Add( HYST_DEBUG, "HYST_debug" );
   }
 
+  void AddGenericSolution(std::string name, Domain* domain) {
+    // use the given name and assign a generic result based on the internal counter
+    // afterwards, return the new solutionType
+    SolutionTypeEnum.Add( (SolutionType) (GENERIC_RESULT_0 + domain->GetGenericResultIndex()), name);
+    // increment the counter
+    domain->IncrementGenericResultIndex();
+  }
+
+  std::string GetSolAsString(std::string name) {
+    SolutionType solType = SolutionTypeEnum.Parse(name);
+    return SolutionTypeEnum.ToString(solType);
+  }
+
   // SolutionType
   std::string MapSolTypeToUnit(SolutionType solType)
   {

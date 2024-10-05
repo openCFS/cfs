@@ -835,6 +835,7 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::VOID_HEAVISIDE, "void_heaviside");
   Filter::density.Add(Filter::TANH, "tanh");
   Filter::density.Add(Filter::MATERIAL, "material");
+  Filter::density.Add(Filter::EXPRESSION, "expression");
 
   Filter::filterSpace.SetName("Filter::FilterSpace");
   Filter::filterSpace.Add(Filter::RADIUS, "radius");
@@ -1108,15 +1109,21 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 
 double SIMPElement::CalcNonLinFilter(double filtered_value, const GlobalFilter* global, double plain_value)
 {
-  assert(global->density == Filter::TANH || global->density == Filter::SOLID_HEAVISIDE
-      || global->density == Filter::VOID_HEAVISIDE || global->density == Filter::MATERIAL);
-
-  if(global->density == Filter::TANH)
-    return CalcTanh(filtered_value, global);
-  if(global->density == Filter::MATERIAL)
-    return CalcMaterial(filtered_value, plain_value, global);
-  else
+  switch(global->density)
+  {
+  case Filter::SOLID_HEAVISIDE:
+  case Filter::VOID_HEAVISIDE:
     return CalcHeaviside(filtered_value, global);
+  case Filter::TANH:
+    return CalcTanh(filtered_value, global);
+  case Filter::MATERIAL:
+    return CalcMaterial(filtered_value, plain_value, global);
+  case Filter::EXPRESSION:
+    return global->EvalExpressionFunction(filtered_value, true);
+  default:
+    assert(false);
+    return -1.0;
+  }
 }
 
 
@@ -1175,8 +1182,6 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     p_filt = numerator / f.weight_sum; // includes the element de
   }
 
-  assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH || fd == Filter::MATERIAL || fd == Filter::MATERIAL_PART);
-
   // all the Calc*() apply scaling scaling to correct nonlinear filters
   switch(fd)
   {
@@ -1186,6 +1191,9 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   case Filter::SOLID_HEAVISIDE:
   case Filter::VOID_HEAVISIDE:
     p_filt = CalcHeaviside(p_filt, gf);
+    break;
+  case Filter::EXPRESSION:
+    p_filt = gf->EvalExpressionFunction(p_filt, true);
     break;
   case Filter::MATERIAL:
   {
@@ -1198,6 +1206,8 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   case Filter::STANDARD:
   case Filter::MATERIAL_PART: // special case where we are almost like standard
     break; // nothing to do
+  default:
+    assert(false);
   }
 
   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filter_matrix=" << space->is_matrix_filt
@@ -1208,7 +1218,7 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   {
     if(p_filt < 0.7 * this->de_->GetLowerBound()) {
       LOG_DBG(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(gf->density)
-                      << ": plain " << this->de_->GetPlainValue(DesignElement::DESIGN) << " p_filt" << p_filt << " lb=" << this->de_->GetLowerBound() << " ub=" << this->de_->GetUpperBound();
+                      << ": plain " << this->de_->GetPlainValue(DesignElement::DESIGN) << " p_filt=" << p_filt << " lb=" << this->de_->GetLowerBound() << " ub=" << this->de_->GetUpperBound();
     }
     assert(p_filt <= 1.000001 * this->de_->GetUpperBound());
     // standard is save and we might often have the case with too small loaded initial designs and enforce_bounds not set
@@ -1345,6 +1355,12 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       nlf_scale *= (1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e);
       summand = df * nlf_scale* dP;
       break;
+    }
+    case Filter::EXPRESSION:
+    {
+      double P_i = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
+      nlf_scale *= gf->EvalExpressionDerivative(P_i, false);
+      summand = df * nlf_scale * dP;
     }
     } // end of switch
 

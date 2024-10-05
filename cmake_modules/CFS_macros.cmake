@@ -185,14 +185,13 @@ MACRO (APPLY_PATCHES PATCHES INPUTDIR)
     MESSAGE(STATUS "Applying patch ${patch}")
 #    EXECUTE_PROCESS(
 #      COMMAND pwd
-#      OUTPUT_QUIET
-#      RESULT_VARIABLE RES
-#      )
+#      RESULT_VARIABLE RES)
+
     EXECUTE_PROCESS(
       COMMAND patch -p0 --binary -i "${INPUTDIR}/${patch}"
 #      OUTPUT_QUIET
-      RESULT_VARIABLE RES
-      )
+      RESULT_VARIABLE RES)
+
 
     IF(NOT RES EQUAL 0)
       MESSAGE("A problem occurred while trying to apply patch '${patch}'.")
@@ -448,19 +447,19 @@ macro(set_from_env VAR)
   endif()
 endmacro()    
 
-#------------------------------------------------------
-# Display all available variables
-#------------------------------------------------------
+# display all available variables. 
+# You can add optionally add a match key. E.g. dump_variables("OpenMP")
 # from  https://stackoverflow.com/questions/9298278/cmake-print-out-all-accessible-variables-in-a-script
 function(dump_variables)
-    get_cmake_property(_variableNames VARIABLES)
-    list (SORT _variableNames)
-    foreach (_variableName ${_variableNames})
-        if ((NOT DEFINED ARGV0) OR _variableName MATCHES ${ARGV0})
-            message(STATUS "${_variableName}=${${_variableName}}")
-        endif()
-    endforeach()
+  get_cmake_property(_variableNames VARIABLES)
+  list (SORT _variableNames)
+  foreach (_variableName ${_variableNames})
+    if ((NOT DEFINED ARGV0) OR _variableName MATCHES ${ARGV0})
+      message(STATUS "${_variableName}=${${_variableName}}")
+    endif()
+  endforeach()
 endfunction()
+
 
 # dump the content of the given directory
 macro(DUMP_DIR DIR)

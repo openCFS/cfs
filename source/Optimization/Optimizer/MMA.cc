@@ -35,6 +35,7 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
 
   dual = &dual_solver;
 
+  bool do_log = true; // default
   // defaults set in header
   if(this_opt_pn_)
   {
@@ -51,13 +52,22 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
 
     kappa = this_opt_pn_->Get("svanbergs_kappa")->As<bool>();
 
+    if(this_opt_pn_->Get("move_limit")->As<string>() == "tuned")
+    {
+      tuned = new Tuned(this_opt_pn_->Get("tuned", ParamNode::PASS), &move_limit, 5, 5, this);
+      move_limit = tuned->max; // set by Tuned
+    }
+    else
+      move_limit = this_opt_pn_->Get("move_limit")->As<double>();
+
+    do_log = this_opt_pn_->Get("log")->As<bool>();
+
     if(this_opt_pn_->Has("hessian_corr"))
       dual->hess_corr = this_opt_pn_->Get("hessian_corr")->As<bool>();
     else
       dual->hess_corr = subSolverType_ == IP_SOLV; // only here as default (and possible)
     if(dual->hess_corr && subSolverType_ == NEWTON_SOLV)
       throw Exception("Hessian correction not possible or pure Hessian solver - choose IP-Solver");
-
 
     /*globallyConvergent = this_opt_pn_->Get("globally_convergent")->As<bool>();*/
     globallyConvergent = this_opt_pn_->Has("globally_convergent") && this_opt_pn_->Get("globally_convergent/enable")->As<bool>();
@@ -78,6 +88,7 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
       asyminit = asym->Get("initial")->As<double>();
       asymdec = asym->Get("dec")->As<double>();
       asyminc = asym->Get("inc")->As<double>();
+      ml_asym = asym->Get("ml_asym")->As<double>();
 
       if(asymUpdate_ == FIXED) {
         if(!asym->Has("fixed"))
@@ -106,20 +117,35 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
     }
   } // end pn reading
 
+  if(do_log)
+  {
+    log = new std::ofstream(progOpts->GetSimName() + ".mma");
+    if(log == nullptr)
+       throw Exception("cannot open log file '" + progOpts->GetSimName()  + ".mma' for writing");
+  }
   gsp_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_generate_sub_prob/timer")->AsTimer().get();
   gsp_timer_->SetSub();
 
   sps_timer_ = info_->Get(ParamNode::SUMMARY)->Get("mma_solve_sub_prob/timer")->AsTimer().get();
   sps_timer_->SetSub();
 
-  PostInitScale(1.0);
+  WriteMMALogHeader();
+}
+
+MMA::~MMA()
+{
+  if(log) { delete log; log = nullptr; }
 }
 
 void MMA::ToInfo(PtrParamNode pn)
 {
+  BaseOptimizer::ToInfo(pn);
+
   pn->Get("globalConvergent")->SetValue(globallyConvergent);
   pn->Get("kappa")->SetValue(kappa);
-
+  pn->Get("move_limit")->SetValue(tuned ? "tuned" : std::to_string(move_limit));
+  if(tuned)
+    tuned->ToInfo(pn->Get("tuned_move_limit"));
   PtrParamNode asym = pn->Get("asymptotes");
   asym->Get("update")->SetValue(asymUpdate.ToString(asymUpdate_));
   if(asymUpdate_ == FIXED) {
@@ -156,7 +182,10 @@ void MMA::ToInfo(PtrParamNode pn)
 
 void MMA::PostInit()
 {
-//  assert(optimization->objectives.data.GetSize() == 1); // trivial case only
+  PostInitScale(1.0);
+
+  BaseOptimizer::PostInit();
+  //  assert(optimization->objectives.data.GetSize() == 1); // trivial case only
   ConditionContainer& cc = optimization->constraints;
   // Physics relted initilization
   n = optimization->GetDesign()->GetNumberOfVariables();
@@ -219,18 +248,25 @@ void MMA::PostInit()
   optimizer_timer_->Stop();
 }
 
+
+void MMA::DescribeProperties(StdVector<std::pair<std::string, std::string> >& map) const
+{
+  map.Push_back(std::make_pair("move_limit", std::to_string(move_limit)));
+}
+
+
 void MMA::ComputeObjectiveConstraintsSensitivities()
 {
   // To visualize the gradients
   DesignSpace* space = optimization->GetDesign();
 
   // evaluate properties of initial design
-  obj_val = EvalObjective(n, xval.GetPointer(), false);
-  EvalGradObjective(n, xval.GetPointer(), false, grad_objective);
+  obj_val = EvalObjective(n, xval.GetPointer(), true);
+  EvalGradObjective(n, xval.GetPointer(), true, grad_objective);
   assert(grad_objective.GetSize() == n);
-  EvalConstraints(n, xval.GetPointer(), m, false, constraints.GetPointer(), true);
+  EvalConstraints(n, xval.GetPointer(), m, true, constraints.GetPointer(), true);
 
-  EvalGradConstraints(n, xval.GetPointer(), m, n*m, false, true, grad_constraints);
+  EvalGradConstraints(n, xval.GetPointer(), m, n*m, true, true, grad_constraints);
 
   // this is based on topopt implementation, since i have used the same parameters for a,c, asyminit as them, we have to scale similarly
   int res_idx_grad_0 = space->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::MMA_OBJ_GRADIANT);
@@ -287,6 +323,7 @@ void MMA::SolveProblem()
 
   assert(optimization->GetCurrentIteration() == 0);
   CommitIteration(); // write initial configuration
+  WriteMMALogMajor();
 
   int maxit = optimization->GetMaxIterations();
 
@@ -301,14 +338,14 @@ void MMA::SolveProblem()
     {
       ComputeObjectiveConstraintsSensitivities();
       CommitIteration();
+      WriteMMALogMajor();
     }
   }
 
-  PtrParamNode summary = optimization->optInfoNode->Get(ParamNode::SUMMARY);
-  summary->Get("break/converged")->SetValue(ok);
-
+  if(optimization->GetCurrentIteration() >= maxit)
+    optimization->DoStopOptimizationHelper(false, "maximum number of iterations reached");
   if(!ok)
-    summary->SetWarning(mma_error);
+    optimization->DoStopOptimizationHelper(false, mma_error);
 }
 
 /** Based on TopOpt implementation */
@@ -556,10 +593,11 @@ void MMA::SetupSubProblem()
   const double feps = 1.0e-6;
   for(unsigned int ni=0; ni < n; ++ni)
   {
-    /** explained in K.Svanberg's paper section 3. equation 8.
-     * this is chosen to avoid division by zero in subproblem*/
-    alpha[ni] = max(xmin[ni], 0.9*low[ni]+0.1*xval[ni]);
-    beta[ni] = min(xmax[ni], 0.9*upp[ni]+0.1*xval[ni]);
+    /** MMA and GCMMA – two methods for nonlinear optimization
+     * this is chosen to avoid division by zero in subproblem.
+     * or MMA and GCMMA – Fortran versions March 2013, Krister Svanberg, (2.8) and (2.9) */
+    alpha[ni] = max(xmin[ni], max(low[ni]+ml_asym*(xval[ni]-low[ni]), xval[ni]-move_limit*(xmax[ni]-xmin[ni])));
+    beta[ni]  = min(xmax[ni], min(upp[ni]+ml_asym*(upp[ni]-xval[ni]), xval[ni]+move_limit*(xmax[ni]-xmin[ni])));
 
     double dfdx_pos = max(0.0, grad_objective[ni]);
     double dfdx_neg = max(0.0, -1.0*grad_objective[ni]);
@@ -898,6 +936,8 @@ double MMA::DualResidual(const Vector<double>& lambda_in, const Vector<double>& 
 
 void MMA::LogFileHeader(Optimization::Log& log)
 {
+  BaseOptimizer::LogFileHeader(log);
+
   log.AddToHeader("sub_prb_itr");
 
   if(asymUpdate_ != FIXED) {
@@ -919,6 +959,8 @@ void MMA::LogFileHeader(Optimization::Log& log)
 
 void MMA::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
+  BaseOptimizer::LogFileLine(out, iteration);
+
   double low_min = low.Min();
   double low_max = low.Max();
   double upp_min = upp.Min();
@@ -962,6 +1004,36 @@ void MMA::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   }
 }
+
+void MMA::WriteMMALogHeader()
+{
+  if(log)
+  {
+    *log << "sub solver: " << subSolverType.ToString(subSolverType_) << std::endl;
+    *log << "verbose dual vars: " << verbose_dual_vars << std::endl;
+  }
+}
+
+void MMA::WriteMMALogMajor()
+{
+  if(!log)
+    return;
+
+  Optimization* o = optimization;
+  // we write after CommitIteration to have observe values, so decrement!
+  assert(o->GetCurrentIteration() > 0);
+  *log << "major " << o->GetCurrentIteration()-1;
+  *log << " -> cost=" << o->objectives.GetHistoryValue();
+  if(o->constraints.active.GetSize() < 5)
+    for(auto c : o->constraints.active)
+      *log << " " << c->ToString() << "=" << c->GetValue();
+  if(o->constraints.observe.GetSize() < 5)
+    for(auto c : o->constraints.observe)
+      *log << " " << c->ToString() << "=" << c->GetValue();
+  *log << std::endl;
+
+}
+
 
 const Vector<double>& MMA::GetSubSolverLambda() const
 {
@@ -1058,21 +1130,25 @@ Vector<double> DualSolver::Project(const Vector<double>& a, double beta, const V
   return out;
 }
 
-
-
-void DualSolver::LogHessianMinor(int minor, double pgc_norm, const Vector<double>& lmbda, double delta, const Vector<double>& dir, bool do_hess, int ls_steps, double step)
+void DualSolver::WriteHessianMinorHeader()
 {
-  std::cout << "minor " << minor << " pgc " << pgc_norm << " lmbda ";
-  if(mma->verbose_dual_vars)
-    std::cout << lmbda.ToString();
-  else
-    std::cout << lmbda.NormL2();
-  std::cout << " delta " << delta << " dir ";
-  if(mma->verbose_dual_vars)
-    std::cout << dir.ToString();
-  else
-    std::cout << dir.NormL2();
-  std::cout << " hess " << do_hess << " ls_steps " << ls_steps << " step " << step << std::endl;
+  if(mma->log)
+  {
+    *(mma->log) << "#minor \t||l-P(l_t)|| \tl_t \t||l_t-l|| \tdir \t hess \tls steps \tstep" << std::endl;
+  }
+}
+
+
+void DualSolver::WriteHessianMinorLog(int minor, double pgc_norm, const Vector<double>& lmbda, double delta, const Vector<double>& dir, bool do_hess, int ls_steps, double step)
+{
+  if(mma->log)
+  {
+    *(mma->log) << minor << " \t" << pgc_norm << " \t";
+    *(mma->log) << (mma->verbose_dual_vars ? lmbda.ToString() : std::to_string(lmbda.NormL2()));
+    *(mma->log) << " \t" << delta << " \t";
+    *(mma->log) << (mma->verbose_dual_vars ? dir.ToString() : std::to_string(dir.NormL2()));
+    *(mma->log) << " \t" << (do_hess ? "true" : "false") << " \t" << ls_steps << " \t" << step << std::endl;
+  }
 }
 
 int DualSolver::FallbackHessianSolver()
@@ -1116,6 +1192,8 @@ int DualSolver::FallbackHessianSolver()
   }
 
   sub_prob_iter = 1;
+
+  WriteHessianMinorHeader();
 
   double pgc = lambda.NormL2(lt); // || lambda - lt ||
   while(pgc > mma->sub_solve_tol && sub_prob_iter <  mma->max_sub_iter)
@@ -1193,14 +1271,14 @@ int DualSolver::FallbackHessianSolver()
       pgc = lt.NormL2(tmp);
     }
 
-    LogHessianMinor(sub_prob_iter, pgc, lt, lambda.NormL2(lt), old_dir, old_do_hess, ls_steps, step);
+    WriteHessianMinorLog(sub_prob_iter, pgc, lt, lambda.NormL2(lt), old_dir, old_do_hess, ls_steps, step);
 
     lambda = lt;
     sub_prob_iter++;
   }
 
   if(sub_prob_iter <= 1)
-    LogHessianMinor(sub_prob_iter, pgc, lt, lambda.NormL2(lt), old_dir, do_hess, 0, 1);
+    WriteHessianMinorLog(sub_prob_iter, pgc, lt, lambda.NormL2(lt), old_dir, do_hess, 0, 1);
 
   mma->SetPrimalVariables(x, y);
 

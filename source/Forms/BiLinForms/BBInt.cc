@@ -342,8 +342,8 @@ namespace CoupledField{
      for( UInt i = 0; i < numIntPts; ++i  ) {
 
        // Calculate for each integration point the LocPointMapped
-       lp1.Set( intPoints[i], esm1, volRegions_, weights[i] );
-       lp2.Set( intPoints[i], esm2, volRegions_, weights[i] );
+       lp1.SetWithSurface( intPoints[i], esm1, volRegions_, weights[i] );
+       lp2.SetWithSurface( intPoints[i], esm2, volRegions_, weights[i] );
 
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMatTransposed( bMatT_, lp1, ptFe1);

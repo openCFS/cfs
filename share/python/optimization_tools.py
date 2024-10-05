@@ -1313,7 +1313,7 @@ def get_image(data, scale = None):
 
   img = Image.fromarray(ret)
   if scale:
-    img = img.resize((scale, int(y/x * scale)), Image.NEAREST) # higher quality with ANTIALIAS
+    img = img.resize((scale, int(y/x * scale)), Image.NEAREST) # higher quality with ANTIALIAS / LANCZOS
   return img
 
 

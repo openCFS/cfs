@@ -204,8 +204,8 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   for( UInt i = 0; i < numIntPts; ++i ) {
 
     // Calculate for each integration point the LocPointMapped
-    lp1.Set( intPoints[i], esm1, volRegions_, weights[i] );
-    lp2.Set( intPoints[i], esm2, volRegions_, weights[i] );
+    lp1.SetWithSurface( intPoints[i], esm1, volRegions_, weights[i] );
+    lp2.SetWithSurface( intPoints[i], esm2, volRegions_, weights[i] );
 
     // Calculate A-matrix (first differential operator)
     this->aOperator_->CalcOpMat( this->aMat_, lp1, ptFeA );
@@ -565,8 +565,8 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 
     // Calculate for each integration point the LocPointMapped
     lpmNc.Set( intPoints[i], esmNc, weights[i] );
-    lpmMaster.Set( ipMaster, esmMaster, this->volRegions_, weights[i] );
-    lpmSlave.Set( ipSlave, esmSlave, this->volRegions_, weights[i] );
+    lpmMaster.SetWithSurface( ipMaster, esmMaster, this->volRegions_, weights[i] );
+    lpmSlave.SetWithSurface( ipSlave, esmSlave, this->volRegions_, weights[i] );
 
     // Calculate A-matrix (first differential operator)
     // Calculate B-matrix (second differential operator)
@@ -787,8 +787,8 @@ void SurfaceMortarABIntMA<COEF_DATA_TYPE, B_DATA_TYPE>
 
     // Calculate for each integration point the LocPointMapped
     lpmNc.Set( intPoints[i], esmNc, weights[i] );
-    lpmMaster.Set( ipMaster, esmMaster, this->volRegions_, weights[i] );
-    lpmSlave.Set( ipSlave, esmSlave, this->volRegions_, weights[i] );
+    lpmMaster.SetWithSurface( ipMaster, esmMaster, this->volRegions_, weights[i] );
+    lpmSlave.SetWithSurface( ipSlave, esmSlave, this->volRegions_, weights[i] );
 
     // Calculate A-matrix (first differential operator)
     this->ptMasterOp_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );

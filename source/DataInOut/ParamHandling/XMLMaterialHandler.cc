@@ -985,6 +985,8 @@ namespace CoupledField {
               material->SetScalar(2, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
             }else if(model->Get("Jacobian_type")->As<std::string>() == "SimpleFD"){
               material->SetScalar(3, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
+            }else if(model->Get("Jacobian_type")->As<std::string>() == "BFGS"){
+              material->SetScalar(4, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
             }else{
               EXCEPTION("Jacobian_type of name "<<model->Get("Jacobian_type")->As<std::string>()<<" not implemented");
             }

@@ -27,10 +27,7 @@ set(TARGET_LL
 #  utils)
 
 if(USE_EMBEDDED_PYTHON)
-  # see FindPrograms.cmake on how the PYTHON_ stuff is set
-  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
-  include_directories(${PYTHON_INCLUDE_DIR})
-  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  list(APPEND TARGET_LL ${Python_LIBRARIES})
   set(UNIT_TESTS_SRC ${UNIT_TESTS_SRC} embeddedpython.cc)
 endif()
 

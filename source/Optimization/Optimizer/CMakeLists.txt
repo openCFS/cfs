@@ -24,17 +24,7 @@ set(TARGET_LL
 set(DEPENDS
   "${LAPACK_LIBRARY}"
   "${BLAS_LIBRARY}"
-  "${CFS_FORTRAN_LIBS}"
-  )
-  
-if(USE_KNITRO)
-   #set(TARGET_LL ${TARGET_LL} ${KNITRO_LIBRARY})
-   set(TARGET_LL ${TARGET_LL} knitro700)
-   
-   include_directories(${KNITRO_INCLUDE_DIR})
-   
-   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} KNITRO.cc)
-endif()
+  "${CFS_FORTRAN_LIBS}")
 
 if(USE_SCPIP)
    set(TARGET_LL ${TARGET_LL} ${SCPIP_LIBRARY} ${DEPENDS})
@@ -46,6 +36,10 @@ if(USE_SCPIP)
    set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} SCPIP.cc SCPIPBase.cc)
 endif()
 
+if(USE_DUMAS)
+  list(APPEND OPTIMIZER_SRCS DumasMMA.cc)
+  list(APPEND TARGET_LL ${DUMAS_LIBRARY})   
+endif()
 
 if(USE_SNOPT)
    set(TARGET_LL ${TARGET_LL}  ${SNOPT_LIBRARY} ${DEPENDS})
@@ -61,10 +55,7 @@ if(USE_IPOPT)
 endif()
 
 if(USE_EMBEDDED_PYTHON)
-  # see FindPrograms.cmake on how the PYTHON_ stuff is set
-  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
-  # required for numpy
-  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  list(APPEND TARGET_LL ${Python_LIBRARIES})
   set(OPTIMIZER_SRCS ${OPTIMIZER_SRCS} PythonOptimizer.cc)
 endif()
 

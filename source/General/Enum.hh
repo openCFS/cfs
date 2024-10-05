@@ -151,7 +151,7 @@ typedef std::multimap<int, std::string> EnumMap;
 
           throw Exception("There is no enum key '" + value + "' for '" + name_ + "'"); 
         }
-        
+
         /** A batch processing version of Parse.
          * @param values all names are processed here
          * @param keys_out will be resized to values.GetSize() */
@@ -180,6 +180,22 @@ typedef std::multimap<int, std::string> EnumMap;
           }
           
           return(def);
+        }
+
+        /** similar to standard parse but does not throw an error */
+        T TryParse(const std::string& value, T backup) const
+        {
+          EnumMap::const_iterator it, end;
+          it = map.begin();
+          end = map.end();
+            
+          for( ; it != end; it++)
+          {
+            // Check comments on Tupel!!
+            if(it->second == value) return static_cast<T>(it->first);
+          }
+
+          return backup;
         }
 
         // Commented out, as this introduces another dependency

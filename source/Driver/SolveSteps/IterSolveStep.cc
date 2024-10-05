@@ -106,10 +106,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
          normTypeTuples);
 
 
-  ConvCriterionAccu::ConvCriterionAccu(NormType type, Double value )
+  ConvCriterionAccu::ConvCriterionAccu(NormType type, Double value, bool overrideNumInt )
   : ConvCriterion(type, value) {
     actNorm_ = 0.0;
     oldNorm_ = 0.0;
+    overrideNumInt_ = false;
   }
   
   ConvCriterionAccu::~ConvCriterionAccu() {
@@ -119,6 +120,9 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   void ConvCriterionAccu::AddCoefFct( shared_ptr<EntityList> list,
                                       shared_ptr<CoefFunctionAccumulator> coefFct ) {
     
+   // change the integration style if necessary
+   coefFct->SetIntegrateFlag(overrideNumInt_);
+   
    coefs_[list] = coefFct;
    oldNorm_ = 0.0;
   }
@@ -448,14 +452,60 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       ParamNodeList q = convParamNode->GetList("quantity");
       for( UInt i = 0; i < q.GetSize(); ++i ) {
         std::string quantity = q[i]->Get("name")->As<std::string>();
-        SolutionType solType = SolutionTypeEnum.Parse(quantity);
+
+        // For generic result, a simple SolutionTypeEnum.Parse(quantity) might fail because
+        // they are not defined yet. Hence, we check if a postProcList is given and if we
+        // can find and define the quantity
+        // check if we can parse the quantity (by passing the false flag, we just get an
+        // invalid solution type but not an error)
+        // we do this before checking for generic postProcessing results (although they might not be defined already)
+        // since they COULD be defined already be a PDE read before this one
+        SolutionType solType = SolutionTypeEnum.TryParse(quantity, INVALID_SOLUTION_TYPE);
+        if( solType == INVALID_SOLUTION_TYPE ) {
+          // direct conversion was not successful, check if we can add the result based on postProcessing results
+
+          // get the postProcList and access all names of type function
+          PtrParamNode ppListNode = param_->GetParent()->GetParent()->Get("postProcList",ParamNode::PASS);
+          std::string funcName;
+
+          if( ppListNode ) {
+            ParamNodeList ppListNodeChildren = ppListNode->GetChildren();
+
+            // loop over all postProc definitions and check, if a function is defined
+            for( UInt i = 0; i < ppListNodeChildren.GetSize(); i++ ) {
+
+              // get all children of one postProc definition
+              ParamNodeList ppNodeChildren = ppListNodeChildren[i]->GetChildren();
+              
+              // we only consider the function type postProcResults
+              ParamNodeList postProcFuncs = ParamNode::GetListByChild(ppNodeChildren, "function");
+
+              // loop over all function-type children and check their name
+              for( UInt u = 0; u < postProcFuncs.GetSize(); u++ ) {
+                postProcFuncs[u]->GetValue("resultName",funcName);
+
+                if( funcName==quantity ) {
+                  // the quantity we need is defined as a postProcResult but not yet parseable
+                  // add it to the environment and get a usable solution type
+                  AddGenericSolution(quantity, this->rPDE_.GetDomain());
+                }
+              }
+            }
+          }
+          // finally, try to parse the quantity again
+          // if it does not work, the quantity is not defined (neither pre-defined nor via the postProcList)
+          solType = SolutionTypeEnum.Parse(quantity);
+        }
+        
         Double norm = q[i]->Get("value")->As<Double>();
         ConvCriterion::NormType type = 
             ConvCriterion::NormTypeEnum.Parse(q[i]->Get("normType")
                                               ->As<std::string>());
+        bool overrideNumInt = q[i]->Get("avoidIntegratedNorm")->As<bool>();
         LOG_DBG3(itersolvestep) << "\tQuantity: " << quantity;
         LOG_DBG3(itersolvestep) << "\tNorm:     " << norm;
         LOG_DBG3(itersolvestep) << "\tNormType: " << ConvCriterion::NormTypeEnum.ToString(type);
+        LOG_DBG3(itersolvestep) << "\tavoidIntegratedNorm: " << overrideNumInt;
         // Create new convergence criterion, depending on solution type
         shared_ptr<ConvCriterion> crit;
         // test: if no geometry update is present, calculate mech displacement as normal criterion
@@ -472,7 +522,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           crit  = accu;
         } else {
           LOG_DBG3(itersolvestep) << "\t=> Creating general accumulated convergence criterion";
-          shared_ptr<ConvCriterionAccu> accu (new ConvCriterionAccu(type, norm));
+          shared_ptr<ConvCriterionAccu> accu (new ConvCriterionAccu(type, norm, overrideNumInt));
           crit = accu;
         }
       criterions_[solType] = crit;
@@ -762,61 +812,77 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
      PtrCoefFct ret, coef;
      
      
-     // Initial implementation: Directly access CoefFct of PDE
-     // Later we use the interface, which keeps track of the norm of the coupling quantity
-     for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
-	 
-       if( rPDE_.singlePDEs_[i]->GetName() == pdeName ) {
+    // Initial implementation: Directly access CoefFct of PDE
+    // Later we use the interface, which keeps track of the norm of the coupling quantity
+    for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
+  
+      if( rPDE_.singlePDEs_[i]->GetName() == pdeName ) {
 
-         coef = rPDE_.singlePDEs_[i]->GetCoefFct(type);
+        coef = rPDE_.singlePDEs_[i]->GetCoefFct(type);
 
-         updateGeo = rPDE_.singlePDEs_[i]->IsUpdatedGeo();
-         if( coef ) {
-           LOG_DBG(itersolvestep) << "\t=> Found quantity, updateGeo: " << 
-                        (updateGeo ? "yes" : "no");
-           break;
-         }
-       }
-     }
-     if( !coef ) {
-       EXCEPTION( "Could not return coupling quantity '" 
-           << SolutionTypeEnum.ToString(type) << "' for Physic '"
-           << pdeName << "' on entityList '" << list->GetName() << "'");
-     }
-
-     // wrap the return coefficient function in a CoefFunctionAccumulator
-     shared_ptr<CoefFunctionAccumulator> acc(new CoefFunctionAccumulator(coef, true));
-     
-     // If this is a density quantity (e.g. force density), a possible convergence
-     // criterion might be defined in terms of the absolute force (e.g. force), so we initially try
-     // to find the derived value
-     SolutionType mappedType = type;
-     if( solutionMap_.find(type) != solutionMap_.end() ) {
-       mappedType = solutionMap_[type]; 
-       LOG_DBG(itersolvestep) << "\tRe-map solution type  to " <<
-           SolutionTypeEnum.ToString(mappedType);
-     }
-
-     // Check, if there was a convergence criterion defined for this quantity.
-     // In this case, we add it to the ConvergenceCriterion instance. If we use the displacement
-     // as Dirichlet BC, we have to skip it here since its already defined for the whole region
-     if ( SolutionTypeEnum.ToString(mappedType) == "mechDisplacement" ) {
-        LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (mechDisplacement)";
-     } else if ( SolutionTypeEnum.ToString(mappedType) == "smoothDisplacement" ) {
-       LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (smoothDisplacement)";
-     } else {
-        if( criterions_.find(mappedType) != criterions_.end() ) {
-
-          LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion";
-          // add accumulated coefficient function to list
-          shared_ptr<ConvCriterionAccu> c
-          = dynamic_pointer_cast<ConvCriterionAccu>(criterions_[mappedType]);
-          c->AddCoefFct( list, acc );
+        updateGeo = rPDE_.singlePDEs_[i]->IsUpdatedGeo();
+        if( coef ) {
+          LOG_DBG(itersolvestep) << "\t=> Found quantity, updateGeo: " << 
+                      (updateGeo ? "yes" : "no");
+          break;
         }
-     }
+      }
+    }
+    if( !coef ) {
+      EXCEPTION( "Could not return coupling quantity '" 
+        << SolutionTypeEnum.ToString(type) << "' for Physic '"
+        << pdeName << "' on entityList '" << list->GetName() << "'");
+    }
+
+    // wrap the return coefficient function in a CoefFunctionAccumulator
+    shared_ptr<CoefFunctionAccumulator> acc(new CoefFunctionAccumulator(coef, true));
+    
+    // If this is a density quantity (e.g. force density), a possible convergence
+    // criterion might be defined in terms of the absolute force (e.g. force), so we initially try
+    // to find the derived value
+    SolutionType mappedType = type;
+    if( solutionMap_.find(type) != solutionMap_.end() ) {
+      mappedType = solutionMap_[type]; 
+      LOG_DBG(itersolvestep) << "\tRe-map solution type  to " <<
+          SolutionTypeEnum.ToString(mappedType);
+    }
+
+    // Check, if there was a convergence criterion defined for this quantity.
+    // In this case, we add it to the ConvergenceCriterion instance. If we use the displacement
+    // as Dirichlet BC, we have to skip it here since its already defined for the whole region
+    if ( SolutionTypeEnum.ToString(mappedType) == "mechDisplacement" ) {
+      LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (mechDisplacement)";
+    } else if ( SolutionTypeEnum.ToString(mappedType) == "smoothDisplacement" ) {
+      LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion but was skipped (smoothDisplacement)";
+    } else {
+      if( criterions_.find(mappedType) != criterions_.end() ) {
+
+        LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion";
+        // add accumulated coefficient function to list
+        shared_ptr<ConvCriterionAccu> c
+        = dynamic_pointer_cast<ConvCriterionAccu>(criterions_[mappedType]);
+        c->AddCoefFct( list, acc );
+      }
+    }
+    
+    return acc;
+  }
+
+  void IterSolveStep::GetUpdateGeoForPDE( SolutionType type,
+                                                shared_ptr<EntityList>  list,
+                                                const std::string& pdeName,
+                                                bool& updateGeo ) {
+    LOG_TRACE(itersolvestep) << "Returning updateGeo "
+         << " of PDE '" << pdeName 
+        << "' on entityList '" << list->GetName() << "'";
      
-     return acc;
-   }
+    // Loop over PDEs and return the flag
+    for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
+      if( rPDE_.singlePDEs_[i]->GetName() == pdeName ) {
+        updateGeo = rPDE_.singlePDEs_[i]->IsUpdatedGeo();
+      }
+    }
+  }
   
   // ========================================================================
   //  STATIC COUPLED ITERATION
@@ -1309,5 +1375,10 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
   }
 
+  void IterSolveStep::SetupGetRidOfZerosActive() {
+    for(UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      rPDE_.PDEs_[i]->GetSolveStep()->SetupGetRidOfZerosActive();
+    }
+  }
     
 } // end of namespace

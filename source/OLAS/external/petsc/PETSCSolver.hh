@@ -76,6 +76,8 @@ virtual ~PETSCSolver();
 /** Every call sets up a new preconditionier. */
 void Setup(BaseMatrix &sysmat);
 
+//! Dummy method: Notify the solver that a new matrix pattern has been set
+void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented for PETSC. GetRidOfZeros for NCIs will not work.");};
 
 void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 

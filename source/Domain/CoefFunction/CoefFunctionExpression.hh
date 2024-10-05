@@ -206,6 +206,12 @@ class CoefFunctionExpression<Complex> : public CoefFunctionAnalytic,
 
 
     // COLLECTION ACCESS
+    virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                          StdVector< Complex >  & vals,
+                                          Grid* ptGrid,
+                                          const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                          StdVector<shared_ptr<EntityList> >() );
+
     virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                           StdVector< Complex >  & vals, 
                                           Grid* ptGrid,

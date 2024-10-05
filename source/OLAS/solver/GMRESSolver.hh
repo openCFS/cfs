@@ -222,6 +222,9 @@ namespace CoupledField {
     //! has changed, it will allocate new memory, freeing previously allocated
     //! memory if necessary.
     void Setup( BaseMatrix &sysMat );
+
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented!");};
     
     //! Set preconditioner object at solver
 
