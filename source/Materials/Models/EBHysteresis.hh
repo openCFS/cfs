@@ -30,6 +30,11 @@ namespace CoupledField {
       Double ComputeMaterialParameter(Vector<Double> E, Integer ElemNum);
       Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> E, Integer ElemNum);
 
+      // This shall act as a unified handling for updating states from one timestep to another, triggered by the SolveStepEB.
+      // Originally this was handled via flags but manually updating the states (via an explicit call in SolveStepEB) is way 
+      // safer and probably also faster since we do not need to check the states for every element at every iteration.
+      void UpdateStates();
+
       // just for the computation of the residual, we do not store anything here
       Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum);
 
@@ -72,6 +77,9 @@ namespace CoupledField {
       Double Energy_linesearch(Double Hx, Double Hy, Double Hprev_x, Double Hprev_y, Double Mprev_x, Double Mprev_y,
                                Double phi, Double chi, Double &F_prime_orig, Double &F_prime_prime_orig);
 
+      void bledsinn(){
+        std::cout<<"bledsinn?ß===================="<<std::endl;
+      }
     private:
       //==============
       std::unique_ptr<SMSM> SMSM_model_;
@@ -126,16 +134,10 @@ namespace CoupledField {
       //! Pointer to math parser instance
       MathParser* mp_;
 
-      Vector<Integer> isFirstTime_;
-      bool isFirstTimeFinished_;
-
-      UInt timeStep_;
-
       UInt globalIter_;
       double isMH_;
 
       std::string varHandle_;
 
-      StdVector<bool> hasElemSolution_;
     };
 } //end of namespace

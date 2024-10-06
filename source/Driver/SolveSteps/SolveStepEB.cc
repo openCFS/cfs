@@ -57,7 +57,6 @@ namespace CoupledField
     SBM_Vector stageSol(BaseMatrix::DOUBLE);
     SBM_Vector stageSol_temp(BaseMatrix::DOUBLE);
     SBM_Vector actRHS(BaseMatrix::DOUBLE);
-    SBM_Vector actSol(BaseMatrix::DOUBLE);
     
     //obtain the number of stages
     UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
@@ -70,6 +69,7 @@ namespace CoupledField
 
     LOG_TRACE(solvestepeb) << "STARTING SetpTransNonLin() =============================================";
     LOG_TRACE(solvestepeb) << "numStages:" << numStages;
+    LOG_TRACE(solvestepeb) << "actTime_:" << actTime_;
 
     for(UInt i=0;i<numStages;i++){
       stageSol.Resize(feFunctions_.size());
@@ -89,8 +89,7 @@ namespace CoupledField
       Double residualErr = 0.0;
       Double incrementalErr = 0.0;
       Double solIncrL2Norm = 0.0;
-      Double actSolL2Norm  = 0.0;
-      
+      Double stageSolL2Norm  = 0.0;
       // ===================================================================================
       // =================== START NONLINEAR ITERATION =====================================
       // ===================================================================================
@@ -101,12 +100,10 @@ namespace CoupledField
         stageSol_temp = stageSol;
 
         LOG_TRACE(solvestepeb) << "=============== Start iteration " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
-
+        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
         
         // set up RHS
@@ -115,13 +112,11 @@ namespace CoupledField
         assemble_->AssembleNonLinRHS();
         algsys_->GetRHSVal( actRHS );
 
-        LOG_TRACE(solvestepeb) << "\t\t =============== after setup RHS " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
-
+        LOG_TRACE(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
 
         // set up matrix
@@ -134,12 +129,11 @@ namespace CoupledField
           algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
 
-        LOG_TRACE(solvestepeb) << "\t\t =============== after setup SYS matrix " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t =============== after setup SYS matrix " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
         // solve system
         PDE_.SetBCs();
@@ -150,12 +144,11 @@ namespace CoupledField
         algsys_->Solve(setIDBC);
         algsys_->GetSolutionVal(solInc, setIDBC );
 
-        LOG_TRACE(solvestepeb) << "\t\t =============== after SOLVE " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t =============== after SOLVE " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
 
         // apply line search
@@ -171,17 +164,42 @@ namespace CoupledField
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
         }else if ( lineSearch_ == "Inexact"){
+          LOG_TRACE(solvestepeb) << "\n\t\t =============== right before INEXACT " << iterationCounter;
+          LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+
           etaLineSearch = InexactLineSearch(solInc, stageSol);
+
+          LOG_TRACE(solvestepeb) << "\n\t\t =============== right after INEXACT " << iterationCounter;
+          LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+        
           stageSol_temp.Add(etaLineSearch, solInc);
+
+          LOG_TRACE(solvestepeb) << "\n\t\t =============== right after ADD " << iterationCounter;
+          LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          
           stageSol = stageSol_temp;
+
+          LOG_TRACE(solvestepeb) << "\n\t\t =============== right after stageSol = stageSol_temp; " << iterationCounter;
+          LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
         }
 
-        LOG_TRACE(solvestepeb) << "\t\t =============== after LINESEARCH " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t =============== after LINESEARCH " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
         // residual
         algsys_->InitRHS();
@@ -190,19 +208,18 @@ namespace CoupledField
         algsys_->GetRHSVal( actRHS );
         residualErr = actRHS.NormL2();
 
-        LOG_TRACE(solvestepeb) << "\t\t =============== after RESIDUAL " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
-        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
         
         // calculate incremental error ========================================
         solIncrL2Norm = solInc.NormL2();
-        actSolL2Norm  = stageSol.NormL2();
-        if ( actSolL2Norm )
-          incrementalErr = solIncrL2Norm/actSolL2Norm;
+        stageSolL2Norm  = stageSol.NormL2();
+        if ( stageSolL2Norm )
+          incrementalErr = solIncrL2Norm/stageSolL2Norm;
         else {
           incrementalErr = solIncrL2Norm;
         }
@@ -222,7 +239,9 @@ namespace CoupledField
                   << "'.\n ==> incremental error: " << incrementalErr
                   << "\n ==> residual error: " << residualErr);
         }
-      }    
+      }
+      // now that we have reached our convergence threshold for this timestep, let's save the states in our model
+      matModelCoef_->UpdateHistoryValues();    
     } //stages
     
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
@@ -255,38 +274,38 @@ namespace CoupledField
     }
   }
 
-  double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol){
+  double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol){
 
     Double bottom_interval = 0.0 + 1e-15;
     Double top_interval = 1; 
     Double gamma = 0;
     
-    gamma = BrentMethod(solIncrement, actSol, bottom_interval, top_interval);
+    gamma = BrentMethod(solIncrement, stageSol, bottom_interval, top_interval);
     return gamma;
   }
 
-  double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol,Double eta){
+  double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& stageSol,Double eta){
     
     SBM_Vector residual_vector(BaseMatrix::DOUBLE);
-    SBM_Vector actSol_temp(BaseMatrix::DOUBLE); actSol_temp = actSol;
+    SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
     double EnergyDerivative = 0;
 
-    actSol.Add(eta,solIncrement);
+    stageSol.Add(eta,solIncrement);
     algsys_->InitRHS();
     assemble_->AssembleLinRHS();
     assemble_->AssembleNonLinRHS();
     algsys_->GetRHSVal( residual_vector );
     residual_vector.Inner(solIncrement,EnergyDerivative);
-    actSol = actSol_temp;
+    stageSol = stageSol_temp;
 
     return EnergyDerivative;
   }
 
 
 
-  double SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol)   {
+  double SolveStepEB::LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& stageSol)   {
 
-    SBM_Vector actSol_temp(BaseMatrix::DOUBLE); actSol_temp = actSol;
+    SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
     SBM_Vector refRHS(BaseMatrix::DOUBLE);
     SBM_Vector stepRHS(BaseMatrix::DOUBLE);
     Double residual_ref = 0.0;
@@ -301,7 +320,7 @@ namespace CoupledField
     Double delta = 1e-4;
     
     // obtain reference residual (start)
-    actSol.Add(eta0,solIncrement);
+    stageSol.Add(eta0,solIncrement);
     algsys_->InitRHS();
     assemble_->AssembleLinRHS();
     assemble_->AssembleNonLinRHS();
@@ -312,7 +331,7 @@ namespace CoupledField
     for( UInt i=0; i<nrEtas; i++) {
 
       // obtain trial residual (start)
-      actSol.Add(eta[i],solIncrement);
+      stageSol.Add(eta[i],solIncrement);
       algsys_->InitRHS();
       assemble_->AssembleLinRHS();
       assemble_->AssembleNonLinRHS();
@@ -330,11 +349,11 @@ namespace CoupledField
         break;
       }
     }
-    actSol = actSol_temp;
+    stageSol = stageSol_temp;
     return etaOpt;
   }
 
-  double SolveStepEB::InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol)   {
+  double SolveStepEB::InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol)   {
 
     Double nr_gammas = 5;
     double gamma = 1.0;
@@ -342,7 +361,7 @@ namespace CoupledField
     std::vector<Double> Energy;
 
     for( UInt idx=0; idx<nr_gammas; idx++) {
-      Energy.push_back(GetLineSearchDerivativeFunctionValue(solIncrement, actSol, gamma_trial[idx]));
+      Energy.push_back(GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, gamma_trial[idx]));
     }
 
     int closest_index = 0;
@@ -363,7 +382,7 @@ namespace CoupledField
 
 
 
-  double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b){
+  double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double a, Double b){
 
     double Fa, Fb, Fc;
     double c;
@@ -380,10 +399,10 @@ namespace CoupledField
     double p = 0;
     double q = 0;
 
-    SBM_Vector actSol_temp(BaseMatrix::DOUBLE); actSol_temp = actSol;
+    SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
 
-    Fa = GetLineSearchDerivativeFunctionValue(solIncrement, actSol, a);
-    Fb = GetLineSearchDerivativeFunctionValue(solIncrement, actSol, b);
+    Fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a);
+    Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
     c = a; 
     Fc = Fa;
 
@@ -445,7 +464,7 @@ namespace CoupledField
         a = b;
         Fa = Fb;
         b = b + new_step;
-        Fb = GetLineSearchDerivativeFunctionValue(solIncrement, actSol, b);
+        Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
         if (( Fb > 0 && Fc > 0 ) || ( Fb < 0 && Fc < 0 )){
             c = a;
             Fc = Fa;        

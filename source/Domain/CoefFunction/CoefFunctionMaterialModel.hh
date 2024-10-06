@@ -82,6 +82,9 @@ public:
     stressCoef_ = stressCoef;
   };
 
+  // Currently only used in EBHysteresis to update values for hysteretic computations and save the new values for the next timestep
+  void UpdateHistoryValues();
+
 protected:
 
   // Spatial dimension of the problem
