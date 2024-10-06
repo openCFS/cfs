@@ -78,12 +78,12 @@ DEFINE_LOG(eb, "EBHysteresis")
     M0_.Resize(numElems_, StdVector<Double>(dim_));
     M1_.Resize(numElems_, StdVector<Double>(dim_));
 
-    HxS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-    HyS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-    HzS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-    MxS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-    MyS_prev_.Resize(numElems_, StdVector<Double>(numS_));
-    MzS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    // HxS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    // HyS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    // HzS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    // MxS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    // MyS_prev_.Resize(numElems_, StdVector<Double>(numS_));
+    // MzS_prev_.Resize(numElems_, StdVector<Double>(numS_));
 
     HxS_n_.Resize(numElems_, StdVector<Double>(numS_));
     HyS_n_.Resize(numElems_, StdVector<Double>(numS_));
@@ -219,32 +219,50 @@ DEFINE_LOG(eb, "EBHysteresis")
 
   Matrix<Double> EBHysteresis::ComputeTensorialMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
   {
-#pragma omp critical
-{
-    if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-      globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-      //if there is a new iteration, save the values from the previous iteration
-      LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
-      hasElemSolution_.Init(false);
-    }
-    if( (timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_))){
-      hasElemSolution_.Init(false);
-      HxS_n_ = HxS_n_tmp_;
-      HyS_n_ = HyS_n_tmp_;
-      HzS_n_ = HzS_n_tmp_;
-      MxS_n_ = MxS_n_tmp_;
-      MyS_n_ = MyS_n_tmp_;
-      MzS_n_ = MzS_n_tmp_;
-      timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
-    }
-}
     UInt idx = ElemNum2Idx_[ElemNum];
-    if(hasElemSolution_[idx] == true){
+#pragma omp critical
+    {
+      if (globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter"))
+      {
+        globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+        // if there is a new iteration, save the values from the previous iteration
+        LOG_DBG3(eb) << "\n\t Trigger new iteration" << std::endl;
+        hasElemSolution_.Init(false);
+      }
+      if ((timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_)))
+      {
+        hasElemSolution_.Init(false);
+        HxS_n_ = HxS_n_tmp_;
+        HyS_n_ = HyS_n_tmp_;
+        HzS_n_ = HzS_n_tmp_;
+        MxS_n_ = MxS_n_tmp_;
+        MyS_n_ = MyS_n_tmp_;
+        MzS_n_ = MzS_n_tmp_;
+        H0_[idx] = H1_[idx];
+        for (UInt i = 0; i < dim_; ++i) {
+            H1_[idx][i] += HVec[i];
+        }
+        Double sumMx = 0.0, sumMy = 0.0, sumMz = 0.0;
+        for (UInt i = 0; i < numS_; ++i) {
+            sumMx += MxS_n_[idx][i];
+            sumMy += MyS_n_[idx][i];
+            sumMz += MzS_n_[idx][i];
+        }
+        M0_[idx][0] = sumMx;
+        M0_[idx][1] = sumMy;
+        M0_[idx][2] = sumMz;
+        timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+      }
+    }
+    
+    if (hasElemSolution_[idx] == true)
+    {
       return mu_[idx];
     }
     Vector<Double> M;
-    Vector<Double> M_dummy;
-    Matrix<Double> mu(dim_,dim_); mu.InitValue(0.0);
+    //Vector<Double> M_dummy;
+    Matrix<Double> mu(dim_, dim_);
+    mu.InitValue(0.0);
 
     // To obtain a good starting point for the quasi-Newton method in the first time step
     // and first Newton iteration the Jacobian is approximated by forward finite differences
@@ -266,18 +284,16 @@ DEFINE_LOG(eb, "EBHysteresis")
     M = Evaluate(HVec, false, idx);
 
     // get the values for H and M from the last timestep and get deltaH and deltaB
-    StdVector<Double>& H0 = H0_[idx];
-    StdVector<Double>& M0 = M0_[idx];
     StdVector<Double> B_k(dim_);
     StdVector<Double> B_k_0(dim_);
     StdVector<Double> delta_H(dim_);
     StdVector<Double> delta_B(dim_);
-    for(UInt i = 0; i < dim_; i++){
-      B_k[i] = mu_0 * (HVec[i] + M[i]);
-      B_k_0[i] = mu_0 * (H0[i] + M0[i]);
-      delta_H[i] = HVec[i] - H0[i];
+    for (UInt i = 0; i < dim_; i++)
+    {
+      B_k[i] = mu0_ * (HVec[i] + M[i]);
+      B_k_0[i] = mu0_ * (H0_[idx][i] + M0_[idx][i]);
+      delta_H[i] = HVec[i] - H0_[idx][i];
       delta_B[i] = B_k[i] - B_k_0[i];
-      H1_[idx][i] = HVec[i];
       M1_[idx][i] = M[i];
     }
 
@@ -299,13 +315,15 @@ DEFINE_LOG(eb, "EBHysteresis")
         mu = EvaluateLocalMu(delta_H, delta_B, idx);
         break;
       }
-      M_dummy = Evaluate(HVec, true, idx);
-    } else { // nonlinear case (only anhysteresis)
+      //M_dummy = Evaluate(HVec, true, idx);
+    }
+    else
+    { // nonlinear case (only anhysteresis)
       mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
     }
     mu_[idx] = mu;
-    M0_[idx] = M1_[idx];
-    H0_[idx] = H1_[idx];
+    // M0_[idx] = M1_[idx];
+    // H0_[idx] = H1_[idx];
     // mark this element as computed
     hasElemSolution_[idx] = true;
     return mu;
