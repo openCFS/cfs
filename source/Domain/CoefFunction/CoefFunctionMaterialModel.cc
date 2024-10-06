@@ -13,6 +13,7 @@
 #include <list>
 
 #include "MatVec/Vector.hh"
+#include "CoefFunctionMaterialModel.hh"
 
 namespace CoupledField {
 
@@ -83,30 +84,39 @@ template<class T> void CoefFunctionMaterialModel<T>::InitModel(
 
 }
 
-template<class T> void CoefFunctionMaterialModel<T>::GetScalar(
-    Double &coefScalar, const LocPointMapped &lpm) {
-  Vector<Complex> DependentVec;
+template <class TYPE>
+void CoefFunctionMaterialModel<TYPE>::UpdateHistoryValues()
+{
+  matModel_->UpdateStates();
+}
 
-  depCoef_->GetVector(DependentVec, lpm);
 
-  //Can i do this in less codelines? Complex vector to Real Vector??
-  Vector<Double> RealDependentVec;
+template <class T>
+void CoefFunctionMaterialModel<T>::GetScalar(
+    Double &coefScalar, const LocPointMapped &lpm)
+{
+    Vector<Complex> DependentVec;
 
-  RealDependentVec.Resize(3);
-  RealDependentVec.Init(0);
+    depCoef_->GetVector(DependentVec, lpm);
 
-  RealDependentVec[0] = std::real(DependentVec[0]);
-  RealDependentVec[1] = std::real(DependentVec[1]);
-  RealDependentVec[2] = std::real(DependentVec[2]);
+    // Can i do this in less codelines? Complex vector to Real Vector??
+    Vector<Double> RealDependentVec;
 
-  coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
+    RealDependentVec.Resize(3);
+    RealDependentVec.Init(0);
 
-  LOG_DBG(cfjc)
-  << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
-  LOG_DBG(cfjc)
-  << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
-  LOG_DBG(cfjc)
-  << "Epsilon = :" << coefScalar << std::endl;
+    RealDependentVec[0] = std::real(DependentVec[0]);
+    RealDependentVec[1] = std::real(DependentVec[1]);
+    RealDependentVec[2] = std::real(DependentVec[2]);
+
+    coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
+
+    LOG_DBG(cfjc)
+        << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
+    LOG_DBG(cfjc)
+        << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
+    LOG_DBG(cfjc)
+        << "Epsilon = :" << coefScalar << std::endl;
 }
 
 template<class T> void CoefFunctionMaterialModel<T>::GetTensor(

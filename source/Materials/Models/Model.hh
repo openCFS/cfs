@@ -53,6 +53,10 @@ public:
                                         LocPointMapped lpm, PtrCoefFct stressCoef){
     EXCEPTION( "Not implemented in base class");
   };
+
+  virtual void UpdateStates(){
+    EXCEPTION( "Not implemented in base class");
+  }
 };
 
 }

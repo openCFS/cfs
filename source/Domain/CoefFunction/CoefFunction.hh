@@ -835,6 +835,11 @@ public:
     EXCEPTION("CoefFuncion::RegisterStressDependence not overwritten by " << GetName());
   }
   
+  virtual void UpdateHistoryValues(){
+    EXCEPTION("CoefFuncion::UpdateHistoryValues not overwritten by " << GetName());
+  }
+
+
   //! return volume regionId being the correct neighbor of a surface region id
   virtual RegionIdType GetVolNeighborRegionId(RegionIdType surfId) {
 	  return neighborRegionId_[surfId];
