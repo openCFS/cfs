@@ -68,6 +68,9 @@ namespace CoupledField
     
     UInt pos = 0;
 
+    LOG_TRACE(solvestepeb) << "STARTING SetpTransNonLin() =============================================";
+    LOG_TRACE(solvestepeb) << "numStages:" << numStages;
+
     for(UInt i=0;i<numStages;i++){
       stageSol.Resize(feFunctions_.size());
       for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
@@ -77,6 +80,8 @@ namespace CoupledField
         fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
       stageSol.SetOwnership(false);
+
+      LOG_TRACE(solvestepeb) << "stageSol before while:" << stageSol.ToString();
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -95,11 +100,29 @@ namespace CoupledField
         iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
         stageSol_temp = stageSol;
 
+        LOG_TRACE(solvestepeb) << "=============== Start iteration " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+
+
+        
         // set up RHS
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
         assemble_->AssembleNonLinRHS();
         algsys_->GetRHSVal( actRHS );
+
+        LOG_TRACE(solvestepeb) << "\t\t =============== after setup RHS " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+
+
 
         // set up matrix
         assemble_->AssembleMatrices(isNewton);
@@ -111,6 +134,13 @@ namespace CoupledField
           algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
 
+        LOG_TRACE(solvestepeb) << "\t\t =============== after setup SYS matrix " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+
         // solve system
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
@@ -119,6 +149,14 @@ namespace CoupledField
         bool setIDBC = true;
         algsys_->Solve(setIDBC);
         algsys_->GetSolutionVal(solInc, setIDBC );
+
+        LOG_TRACE(solvestepeb) << "\t\t =============== after SOLVE " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+
 
         // apply line search
         Double etaLineSearch = 1.0;
@@ -138,12 +176,27 @@ namespace CoupledField
           stageSol = stageSol_temp;
         }
 
+        LOG_TRACE(solvestepeb) << "\t\t =============== after LINESEARCH " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+
         // residual
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
         assemble_->AssembleNonLinRHS();
         algsys_->GetRHSVal( actRHS );
         residualErr = actRHS.NormL2();
+
+        LOG_TRACE(solvestepeb) << "\t\t =============== after RESIDUAL " << iterationCounter;
+        LOG_TRACE(solvestepeb) << "\t\t solInc:" << solInc.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol:" << stageSol.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actRHS:" << actRHS.ToString();
+        LOG_TRACE(solvestepeb) << "\t\t actSol:" << actSol.ToString();
+
         
         // calculate incremental error ========================================
         solIncrL2Norm = solInc.NormL2();
