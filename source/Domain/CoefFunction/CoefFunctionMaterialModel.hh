@@ -84,6 +84,7 @@ public:
 
   // Currently only used in EBHysteresis to update values for hysteretic computations and save the new values for the next timestep
   void UpdateHistoryValues();
+  void AllowUpdates(bool allow);
 
 protected:
 

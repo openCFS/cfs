@@ -250,17 +250,21 @@ namespace CoupledField
                       (1.0), fluxDensityNL, coefUpdateGeo, false);
             }
           }
-        lin->SetName("(B,grad phi'): nonlinear problem; nonlinear subregion RHS");
-        lin->SetSolDependent();
-        LinearFormContext *ctx = new LinearFormContext( lin );
-        ctx->SetEntities( actSDList );
-        ctx->SetFeFunction(feFunc_reduced);
-        assemble_->AddLinearForm(ctx);
+        }else{
+          EXCEPTION("MagneticScalarPotentialPDE: no valid material model provided");
         }
-        // ===============================================================================================
-        // NONLINEAR CASE AND NONLINEAR REGION: \int B(H) \gradPhi' (end)
-        // ===============================================================================================
+
+      lin->SetName("(B,grad phi'): nonlinear problem; nonlinear subregion RHS");
+      lin->SetSolDependent();
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( actSDList );
+      ctx->SetFeFunction(feFunc_reduced);
+      assemble_->AddLinearForm(ctx);
       }
+      // ===============================================================================================
+      // NONLINEAR CASE AND NONLINEAR REGION: \int B(H) \gradPhi' (end)
+      // ===============================================================================================
+
 
       StdVector<shared_ptr<EntityList>> ent;
       StdVector<PtrCoefFct> coef;
