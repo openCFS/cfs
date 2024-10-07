@@ -90,6 +90,12 @@ void CoefFunctionMaterialModel<TYPE>::UpdateHistoryValues()
   matModel_->UpdateStates();
 }
 
+template <class TYPE>
+void CoefFunctionMaterialModel<TYPE>::AllowUpdates(bool allow)
+{
+  matModel_->AllowUpdates(allow);
+}
+
 
 template <class T>
 void CoefFunctionMaterialModel<T>::GetScalar(

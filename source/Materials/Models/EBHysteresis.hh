@@ -34,6 +34,7 @@ namespace CoupledField {
       // Originally this was handled via flags but manually updating the states (via an explicit call in SolveStepEB) is way 
       // safer and probably also faster since we do not need to check the states for every element at every iteration.
       void UpdateStates();
+      void AllowUpdates(bool allow);
 
       // just for the computation of the residual, we do not store anything here
       Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum);
@@ -55,7 +56,7 @@ namespace CoupledField {
 
       StdVector<Double> inv3x3(StdVector<Double> A);
 
-      Vector<Double> Evaluate(Vector<Double> E, bool saveTmpStageVecs, UInt idx);
+      Vector<Double> Evaluate(Vector<Double> E, UInt idx);
 
       Vector<Double> Eval_2D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
       Vector<Double> Eval_2D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
@@ -138,6 +139,8 @@ namespace CoupledField {
       double isMH_;
 
       std::string varHandle_;
+
+      bool saveTmpStageVecs_;
 
     };
 } //end of namespace

@@ -67,9 +67,9 @@ namespace CoupledField
     
     UInt pos = 0;
 
-    LOG_TRACE(solvestepeb) << "STARTING SetpTransNonLin() =============================================";
-    LOG_TRACE(solvestepeb) << "numStages:" << numStages;
-    LOG_TRACE(solvestepeb) << "actTime_:" << actTime_;
+    LOG_DBG2(solvestepeb) << "STARTING SetpTransNonLin() =============================================";
+    LOG_DBG2(solvestepeb) << "numStages:" << numStages;
+    LOG_DBG2(solvestepeb) << "actTime_:" << actTime_;
 
     for(UInt i=0;i<numStages;i++){
       stageSol.Resize(feFunctions_.size());
@@ -81,7 +81,7 @@ namespace CoupledField
       }
       stageSol.SetOwnership(false);
 
-      LOG_TRACE(solvestepeb) << "stageSol before while:" << stageSol.ToString();
+      LOG_DBG2(solvestepeb) << "stageSol before while:" << stageSol.ToString();
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -99,24 +99,25 @@ namespace CoupledField
         iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
         stageSol_temp = stageSol;
 
-        LOG_TRACE(solvestepeb) << "=============== Start iteration " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+        LOG_DBG2(solvestepeb) << "=============== Start iteration " << iterationCounter;
+        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
-        
+        matModelCoef_->AllowUpdates(true);
+
         // set up RHS
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
         assemble_->AssembleNonLinRHS();
         algsys_->GetRHSVal( actRHS );
 
-        LOG_TRACE(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
+        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
 
         // set up matrix
@@ -129,11 +130,12 @@ namespace CoupledField
           algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
 
-        LOG_TRACE(solvestepeb) << "\n\t\t =============== after setup SYS matrix " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup SYS matrix " << iterationCounter;
+        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+
 
         // solve system
         PDE_.SetBCs();
@@ -144,12 +146,14 @@ namespace CoupledField
         algsys_->Solve(setIDBC);
         algsys_->GetSolutionVal(solInc, setIDBC );
 
-        LOG_TRACE(solvestepeb) << "\n\t\t =============== after SOLVE " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t =============== after SOLVE " << iterationCounter;
+        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
+
+        matModelCoef_->AllowUpdates(false);
 
         // apply line search
         Double etaLineSearch = 1.0;
@@ -164,43 +168,48 @@ namespace CoupledField
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
         }else if ( lineSearch_ == "Inexact"){
-          LOG_TRACE(solvestepeb) << "\n\t\t =============== right before INEXACT " << iterationCounter;
-          LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== right before INEXACT " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
           etaLineSearch = InexactLineSearch(solInc, stageSol);
 
-          LOG_TRACE(solvestepeb) << "\n\t\t =============== right after INEXACT " << iterationCounter;
-          LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== right after INEXACT " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
         
           stageSol_temp.Add(etaLineSearch, solInc);
 
-          LOG_TRACE(solvestepeb) << "\n\t\t =============== right after ADD " << iterationCounter;
-          LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== right after ADD " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
           
           stageSol = stageSol_temp;
 
-          LOG_TRACE(solvestepeb) << "\n\t\t =============== right after stageSol = stageSol_temp; " << iterationCounter;
-          LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== right after stageSol = stageSol_temp; " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
         }
 
-        LOG_TRACE(solvestepeb) << "\n\t\t =============== after LINESEARCH " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t =============== after LINESEARCH " << iterationCounter;
+        LOG_DBG2(solvestepeb) << "\n\t\t etaLineSearch " << etaLineSearch;
+        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
+        
+        matModelCoef_->AllowUpdates(true);
+        
+        
         // residual
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
@@ -208,11 +217,11 @@ namespace CoupledField
         algsys_->GetRHSVal( actRHS );
         residualErr = actRHS.NormL2();
 
-        LOG_TRACE(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
-        LOG_TRACE(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_TRACE(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
+        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
         
         // calculate incremental error ========================================

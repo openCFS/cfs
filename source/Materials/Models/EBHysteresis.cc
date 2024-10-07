@@ -113,6 +113,7 @@ namespace CoupledField
 
     mp_ = domain->GetMathParser();
     globalIter_ = 0;
+    saveTmpStageVecs_ = false;
 
   }
 
@@ -170,12 +171,36 @@ namespace CoupledField
 
   Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum)
   {
+    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
     Vector<Double> B(dim_);
     UInt idx = ElemNum2Idx_[ElemNum];
 
     LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
     Vector<Double> M;
-    M = Evaluate(HVec, true, idx);
+    M = Evaluate(HVec, idx);
+
+    if(idx == 1){
+      LOG_DBG2(eb) << "\t ================================== GETFLUXDENSITY ==================================";
+      LOG_DBG2(eb) << "\t ================================== timestep = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+      LOG_DBG2(eb) << "\t ================================== globalIter_ = " << globalIter_;
+      LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+      LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, iterationCounter) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+
+      LOG_DBG2(eb) << "\t HVec = " << HVec.ToString();
+
+      LOG_DBG2(eb) << "\t H0_ = " << H0_[idx].ToString();
+      LOG_DBG2(eb) << "\t H1_ = " << H1_[idx].ToString();
+      LOG_DBG2(eb) << "\t M0_ = " << M0_[idx].ToString();
+
+      LOG_DBG2(eb) << "\t HxS_n_ = " << HxS_n_[idx]<< " \t\t\t\tHxS_n_tmp_ = "<< HxS_n_tmp_[idx];
+      LOG_DBG2(eb) << "\t HyS_n_ = " << HyS_n_[idx]<< " \t\t\t\tHyS_n_tmp_ = "<< HyS_n_tmp_[idx];
+      LOG_DBG2(eb) << "\t HzS_n_ = " << HzS_n_[idx]<< " \t\t\t\tHzS_n_tmp_ = "<< HzS_n_tmp_[idx];
+
+      LOG_DBG2(eb) << "\t MxS_n_ = " << MxS_n_[idx]<< " \t\t\t\tMxS_n_tmp_ = "<< MxS_n_tmp_[idx];
+      LOG_DBG2(eb) << "\t MyS_n_ = " << MyS_n_[idx]<< " \t\t\t\tMyS_n_tmp_ = "<< MyS_n_tmp_[idx];
+      LOG_DBG2(eb) << "\t MzS_n_ = " << MzS_n_[idx]<< " \t\t\t\tMzS_n_tmp_ = "<< MzS_n_tmp_[idx];
+      LOG_DBG2(eb) << "\t M = " << M.ToString();
+    }
 
     LOG_DBG3(eb) << "\n\t M = " << M.ToString();
 
@@ -197,6 +222,7 @@ namespace CoupledField
   Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum,
                                               LocPointMapped lpm, PtrCoefFct stressCoef)
   {
+    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
     Vector<Double> B(dim_);
     UInt idx = ElemNum2Idx_[ElemNum];
 
@@ -217,10 +243,11 @@ namespace CoupledField
     LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
 
     Vector<Double> M;
-    M = Evaluate(HVec, true, idx);
+    M = Evaluate(HVec, idx);
     
     LOG_DBG3(eb) << "\n\t M = " << M.ToString();
 
+    
     for (UInt i = 0; i < dim_; ++i)
     {
       B[i] = mu0_ * (HVec[i] + M[i]);
@@ -240,7 +267,10 @@ namespace CoupledField
   Matrix<Double> EBHysteresis::ComputeTensorialMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
   {
     UInt idx = ElemNum2Idx_[ElemNum];
+    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+
     if(idx == 1){
+      LOG_DBG2(eb) << "\t ================================== COMPUTETENSORIALMATERIALPARAMETER ==================================";
       LOG_DBG2(eb) << "\t ================================== timestep = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
       LOG_DBG2(eb) << "\t ================================== globalIter_ = " << globalIter_;
       LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
@@ -261,7 +291,7 @@ namespace CoupledField
       LOG_DBG2(eb) << "\t MzS_n_ = " << MzS_n_[idx]<< " \t\t\t\tMzS_n_tmp_ = "<< MzS_n_tmp_[idx];
     }
 
-    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+    
     
     Vector<Double> M;
     Matrix<Double> mu(dim_, dim_);
@@ -273,7 +303,7 @@ namespace CoupledField
     if (globalIter_ == 1)
     {
       Vector<Double> M;
-      M = Evaluate(HVec, false, idx);
+      M = Evaluate(HVec, idx);
       StdVector<Double> B_k(dim_);
       for (UInt i = 0; i < dim_; i++)
       {
@@ -286,7 +316,7 @@ namespace CoupledField
       return mu;
     }
 
-    M = Evaluate(HVec, false, idx);
+    M = Evaluate(HVec, idx);
 
     if(idx == 1){
       LOG_DBG2(eb) << "\t M = " << M.ToString();
@@ -305,8 +335,8 @@ namespace CoupledField
       delta_B[i] = B_k[i] - B_k_0[i];
     }
 
-    // if ((numS_ > 1) || (anhyst_type_ == 2))
-    // { // hysteretic case
+    if ((numS_ > 1) || (anhyst_type_ == 2))
+    { // hysteretic case
       switch (jacobian_method_)
       {
       case 1:
@@ -326,11 +356,11 @@ namespace CoupledField
         mu = EvaluateLocalMuBFGS(delta_H, delta_B, idx);
         break;
       }
-    // }
-    // else
-    // { // nonlinear case (only anhysteresis)
-    //   mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
-    // }
+    }
+    else
+    { // nonlinear case (only anhysteresis)
+      mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
+    }
     
     for (UInt i = 0; i < dim_; ++i) {
         H1_[idx][i] = HVec[i];
@@ -339,8 +369,13 @@ namespace CoupledField
   }
 
 
-
-
+  void EBHysteresis::AllowUpdates(bool allow)
+  {
+    saveTmpStageVecs_ = allow;
+    LOG_DBG2(eb) << "\t ===================================================================";
+    LOG_DBG2(eb) << "\t ===================================================================";
+    LOG_DBG2(eb) << "\t ==================== ALLOW UPDATES = "<< allow <<" ================";
+  }
 
   void EBHysteresis::UpdateStates()
   {
@@ -477,8 +512,8 @@ namespace CoupledField
         H_incy[i] = HVec[i] + eh_y[i];
       }
       // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
-      M_incx = Evaluate(H_incx, false, idx);
-      M_incy = Evaluate(H_incy, false, idx);
+      M_incx = Evaluate(H_incx, idx);
+      M_incy = Evaluate(H_incy, idx);
       for (UInt i = 0; i < dim_; i++)
       {
         B_incx[i] = mu0_ * (H_incx[i] + M_incx[i]);
@@ -509,9 +544,9 @@ namespace CoupledField
         H_incz[i] = HVec[i] + eh_z[i];
       }
       // Evaluate EB Hysteresis Model for the increment AND without updating the stage values!!
-      M_incx = Evaluate(H_incx, false, idx);
-      M_incy = Evaluate(H_incy, false, idx);
-      M_incz = Evaluate(H_incz, false, idx);
+      M_incx = Evaluate(H_incx, idx);
+      M_incy = Evaluate(H_incy, idx);
+      M_incz = Evaluate(H_incz, idx);
       for (UInt i = 0; i < dim_; i++)
       {
         B_incx[i] = mu0_ * (H_incx[i] + M_incx[i]);
@@ -925,7 +960,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       Different versions of Evaluate function, depending on which models are used
   =========================================================================================
   */
-  Vector<Double> EBHysteresis::Evaluate(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx)
+  Vector<Double> EBHysteresis::Evaluate(Vector<Double> Hn, UInt idx)
   {
     Vector<Double> ret;
     StdVector<Double> weight(numS_);
@@ -943,23 +978,23 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       {
         // fullEB + Multiscale mode
         #pragma omp critical
-        ret = Eval_2D_EBM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
+        ret = Eval_2D_EBM_MSM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
       {
         // VPM + Multiscale model
         #pragma omp critical
-        ret = Eval_2D_VPM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
+        ret = Eval_2D_VPM_MSM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 1))
       {
         // VPM + atan anhysteresis
-        ret = Eval_2D_VPM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
+        ret = Eval_2D_VPM_ATAN(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
       else if ((approx_type_ == "fullEB") && (anhyst_type_ == 1))
       {
         // fullEB + atan anhysteresis
-        ret = Eval_2D_EBM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
+        ret = Eval_2D_EBM_ATAN(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
     }
     else if (dim_ == 3)
@@ -968,18 +1003,18 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       {
         // fullEB + Multiscale model
         #pragma omp critical
-        ret = Eval_3D_EBM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
+        ret = Eval_3D_EBM_MSM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
       {
         // VPM + Multiscale model
         #pragma omp critical
-        ret = Eval_3D_VPM_MSM(Hn, saveTmpStageVecs, idx, weight, chi);
+        ret = Eval_3D_VPM_MSM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
       else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 1))
       {
         // VPM + atan anhysteresis
-        ret = Eval_3D_VPM_ATAN(Hn, saveTmpStageVecs, idx, weight, chi);
+        ret = Eval_3D_VPM_ATAN(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
       else if ((approx_type_ == "fullEB") && (anhyst_type_ == 1))
       {

@@ -261,7 +261,10 @@ namespace CoupledField
             lin = new BUIntegrator<Double>( new GradientOperator<FeH1,3> (),
                     (1.0), fluxDensityNL, coefUpdateGeo, false);
           }
+        }else{
+          EXCEPTION("MagneticScalarPotentialPDE: no valid material model provided");
         }
+
       lin->SetName("(B,grad phi'): nonlinear problem; nonlinear subregion RHS");
       lin->SetSolDependent();
       LinearFormContext *ctx = new LinearFormContext( lin );
