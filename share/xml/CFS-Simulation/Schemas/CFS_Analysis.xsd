@@ -136,6 +136,24 @@
       </xsd:extension>
     </xsd:simpleContent>
   </xsd:complexType>
+  <xsd:complexType name="DT_matrixReassembly">
+  <xsd:simpleContent>
+    <xsd:restriction base="DT_matrixReassemblyName">
+      <xsd:enumeration value="on"/>
+      <xsd:enumeration value="off"/>
+      <xsd:enumeration value="automatic"/>
+  </xsd:restriction>
+  </xsd:simpleContent>
+  </xsd:complexType>
+  <xsd:complexType name="DT_matrixReassemblyName">
+    <xsd:simpleContent>
+      <xsd:extension base="xsd:token">
+        <xsd:attribute name="treeStepping" type="xsd:boolean" use="optional" default="false" />
+        <xsd:attribute name="maxTreeLevel" type="xsd:int" use="optional" default="10" />
+      </xsd:extension>
+    </xsd:simpleContent>
+  </xsd:complexType>
+
 
   <!-- Data type for harmonic section, i.e. parameters required for
        performing a harmonic analysis -->
@@ -161,10 +179,15 @@
           </xsd:element>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1">
-          <xsd:annotation>
-            <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
-          </xsd:annotation>
-        </xsd:element>
+            <xsd:annotation>
+              <xsd:documentation>Writes the solution of the algebraic system into the DataBase section of the HDF5 output. Needed e.g. for interploating results used as input in subsequent steps.</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="matrixReassembly" minOccurs="0" maxOccurs="1" type="DT_matrixReassembly" default="off">
+            <xsd:annotation>
+              <xsd:documentation>If set to "off" the matrices won't be reassembled over the frequency steps.</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>  
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
