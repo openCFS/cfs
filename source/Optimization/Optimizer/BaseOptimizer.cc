@@ -177,7 +177,7 @@ bool BaseOptimizer::Scale::CheckScaling(int n, StdVector<double>& grad)
 void BaseOptimizer::Scale::ToInfo(ParamNode* in)
 {
   if(scaling.value == 0.0 || target == 0.0)
-    in->Get("active")->SetValue(false);
+    in->Get("active")->SetValue("no");
   else if(target != 0.0)
   {
     in->Get("target")->SetValue(target);
@@ -302,7 +302,7 @@ void BaseOptimizer::ToInfo(PtrParamNode pn)
   if(objective)
     objective->ToInfo(sc);
   else
-    sc->Get("active")->SetValue(false);
+    sc->Get("active")->SetValue("no");
 }
 
 boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()

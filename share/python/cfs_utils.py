@@ -17,6 +17,7 @@ import os
 import string
 import numpy as np
 import collections
+import glob
 
 # helper to print a (numpy) array with commas such that the output can be copied as python code
 def nice(array, round_digits = 10):
@@ -34,6 +35,13 @@ def nice(array, round_digits = 10):
   txt += ']'
   return txt
 
+## nice window input beautifier
+# when argsparse has '*' as input, it need to be globalized for windows
+def clean_input(input):
+  if isinstance(input, list):
+    return glob.glob(input[0]) if len(input) == 1 else input
+  else:
+    return input
 
 # helper to write values and coordinates to a csv (comma separated values) file
 # see element_to_node_2d in hdf5_tools

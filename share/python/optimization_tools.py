@@ -7,7 +7,11 @@ import numpy.linalg
 import math
 import os
 import sys
-import scipy.io
+try:
+  import scipy.io
+except ImportError:
+  print("warning: could not import scipy, let's hope, it is not needed.")
+  
 import xml.sax
 from lxml import etree
 from PIL import Image
@@ -397,7 +401,6 @@ def read_density_as_full_array(filename, attribute='design', fill=0.0, set = Non
 # @param setname either a string or D strings (list, tuple, ...)
 # @param silend if False prints that the file is created
 def write_density_file_bulk(filename, bulk, x = None, y = None, z = None, setname='optimization_tools.py', param = 1, silent=True):
-  
   if not silent:
     print("create '" + filename + "'")
     
@@ -407,7 +410,7 @@ def write_density_file_bulk(filename, bulk, x = None, y = None, z = None, setnam
   out.write('  <header>\n')
   if x and y and z:
     out.write('    <mesh x="' + str(x) + '" y="' + str(y) + '" z="' + str(z) + '"/>\n')  
-  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
+  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1" fixed="false" />\n')
   out.write('    <transferFunction application="mech" design="density" param="' + str(param) + '" type="simp"/>\n')
   out.write('  </header>\n')
   

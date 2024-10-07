@@ -9,7 +9,7 @@ set(DUMAS_VER "0.99") # for def_use_dumas.hh.in to be used in Dependencies.cc
 set(PACKAGE_FILE "${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "22e1eebd6bb65dad2e0694c859050635")
 set(PACKAGE_MIRRORS "https://github.com/jdumas/mma/archive/${PACKAGE_FILE}")  
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # we cannot link a parallel compiled suitesparse with debug without openmp
 # we need to set DEPS_ID before calling set_precompiled_pckg_file()

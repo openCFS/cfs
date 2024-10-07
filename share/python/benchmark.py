@@ -87,11 +87,9 @@ mech3dstr = """\
     </linearSystems> 
   </sequenceStep> 
   <optimization>
-    <costFunction type="compliance" task="minimize" >
-      <stopping queue="10" value="0.001" type="relativeCostChange"/>
-    </costFunction>
+    <costFunction type="compliance" task="minimize" />
     <constraint type="volume" value=".3" bound="upperBound" linear="true" mode="constraint" />
-    <optimizer type="optimalityCondition" maxIterations="5"/>
+    <optimizer type="ocm" maxIterations="5"/>
     <ersatzMaterial region="mech" material="mechanic" method="simp">
       <filters>
         <filter neighborhood="maxEdge" value="1.3" />
@@ -165,9 +163,7 @@ shapemapstr = """\
     </linearSystems>
   </sequenceStep>
   <optimization>
-    <costFunction type="compliance" sequence="1" linear="false">
-      <stopping queue="55" value="0.0001" type="relativeCostChange" maxHours="48"/>
-    </costFunction>
+    <costFunction type="compliance" />
     <constraint type="volume" bound="upperBound" value="0.4" design="density" linear="false"/>
     <constraint type="slope" bound="upperBound" value="1.1/nx" design="node" linear="true"/>
     <constraint type="slope" bound="upperBound" value="1.1/nx" design="profile" linear="true"/>

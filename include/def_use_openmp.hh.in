@@ -2,4 +2,4 @@
 
 #cmakedefine USE_OPENMP
 
-#cmakedefine OpenMP_CXX_VERSION @OpenMP_CXX_VERSION@
+#cmakedefine OpenMP_CXX_VERSION "@OpenMP_CXX_VERSION@"

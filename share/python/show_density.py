@@ -5,7 +5,6 @@ import sys
 import argparse
 import glob
 
-
 # you can approximate the stuff iteratively in python by
 # Image.fromarray(255* data.T).transpose(Image.FLIP_TOP_BOTTOM).show()
 # with data being an array
@@ -116,7 +115,7 @@ parser.add_argument('--color', help="name of color to be used -> extend for jet,
 
 args = parser.parse_args()
 
-input = args.input if len(args.input) != 1 else glob.glob(args.input[0]) # for Windows potentially globalize 
+input = clean_input(args.input) 
 
 if not args.saveall:
   if not os.path.exists(input[0]):
