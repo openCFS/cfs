@@ -2012,7 +2012,7 @@ namespace CoupledField
 
   void Assemble::CreateMatrixMap()
   {
-    std::string matrixReassembly = "off";
+    std::string matrixReassembly = "on";
     // Dependent on the type of analysis, only certain matrix types
     // (SYSTEM, STIFFNESS, MASS, DAMPING, CONVECTION, ...) are present.
     switch(analysisType_)

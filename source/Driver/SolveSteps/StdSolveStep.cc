@@ -1387,7 +1387,7 @@ namespace CoupledField {
     assemble_->AssembleLinRHS();
 
     // assemble matrices depending if reassembly is desired
-    std::string matrixReassembly = "off";
+    std::string matrixReassembly = "on";
     if (matrixReassembly == "on") {
       // assemble matrices
       assemble_->AssembleMatrices( );

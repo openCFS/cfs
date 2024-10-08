@@ -101,7 +101,7 @@ public:
   static void SignalHandler( int sig);
 
   //! String if matrix reassembly should be performed
-  std::string matrixReassembly = "off";
+  std::string matrixReassembly = "on";
 
   
 protected:

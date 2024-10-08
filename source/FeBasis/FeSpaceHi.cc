@@ -674,8 +674,8 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
         BiLinearForm *massInt = feFct->GenerateInterpolBilinForm(dim, dofDim, true);
         LinearForm * rhsInt = feFct->GenerateInterpolLinForm(dim, dofDim, coefFct, true);
 
-        BiLinFormContext * massCtx = new BiLinFormContext( massInt, SYSTEM);
-        std::string matrixReassembly = "off";
+        BiLinFormContext * massCtx = new BiLinFormContext( massInt, SYSTEM); // why do we need this in front of the if statement?
+        std::string matrixReassembly = "on";
         if (matrixReassembly == "on") {
           BiLinFormContext * massCtx = new BiLinFormContext( massInt, SYSTEM);
         }
