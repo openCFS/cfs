@@ -386,6 +386,11 @@ public:
   /** we are special dependent for dependency SPACE or GENERAL */
   bool IsSpacialDependent() const { return dependType_ == CoefFunction::SPACE ||dependType_ == CoefFunction::GENERAL; }
 
+
+  /** we are time or frequency dependent for dependency TIMEFREQ or GENERAL */
+  bool IsTimeFrequencyDependent() const { return dependType_ == CoefFunction::TIMEFREQ || dependType_ == CoefFunction::GENERAL; }
+
+
   /** some rhs load integrators are normalized by number elements via a compount coef
    * Here we can control if we want this. The CoefFunctionFileData does not want to to this */
   virtual bool DoNormalize() const { return true; }

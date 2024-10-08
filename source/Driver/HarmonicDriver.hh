@@ -100,6 +100,9 @@ public:
   //! Static method being called in the case of a Ctr-C signal
   static void SignalHandler( int sig);
 
+  //! String if matrix reassembly should be performed
+  std::string matrixReassembly = "off";
+
   
 protected:
 

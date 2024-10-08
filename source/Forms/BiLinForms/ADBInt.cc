@@ -11,6 +11,7 @@ namespace CoupledField{
       this->type_ = BiLinearForm::ADB_INT;
       this->name_ = "ADBInt";
       this->isSymmetric_ = false; // in general the ADB
+      this->isTimeFrequencyDependent_ = dData->IsTimeFrequencyDependent();
       assert(dData->GetDimType() == CoefFunction::TENSOR);
 #ifndef NDEBUG
       if(dData->GetDimType() != CoefFunction::TENSOR){

@@ -80,7 +80,7 @@ namespace CoupledField
     // read flag if all results should get written to database file section
     // to allow e.g. for general postprocessing or result extraction
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
-    
+
   }
 
   HarmonicDriver::~HarmonicDriver()
@@ -103,6 +103,11 @@ namespace CoupledField
   void HarmonicDriver::Init(bool restart)
   {
     isRestarted_ = restart;
+
+    if(param_->Has("matrixReassembly")){
+      param_->GetValue( "matrixReassembly", matrixReassembly, ParamNode::PASS );
+    }
+    
     
     // We do not know yet if frequencies are given with start, stop, ... or as list
     bool params = ReadParametrizedFrequencies();

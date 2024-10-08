@@ -37,6 +37,7 @@ namespace CoupledField{
      this->bOperator_ = bOp;
      this->coefScalar_ = scalCoef;
      this->factor_ = factor;
+     this->isTimeFrequencyDependent_ = scalCoef->IsTimeFrequencyDependent();
 
      // Ensure, that the coefficient set is a scalar valued one
      if( this->coefScalar_->GetDimType() != CoefFunction::SCALAR ) {

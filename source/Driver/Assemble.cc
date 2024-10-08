@@ -202,6 +202,10 @@ namespace CoupledField
     assert( biLinContext->GetFirstEntities() != NULL );
     assert( biLinContext->GetSecondEntities() != NULL );
 
+    // change the destination matrix based on integrator dependency
+    // e.g. if it is time/frequency dependent re-assign to the *_UPDATE matrix
+    FEMatrixType origDestMat = biLinContext->GetDestMat();
+    biLinContext->SetDestMat(origDestMat);
 
     // If the datatype of the bilinearformcontext is "COMPLEX"
     // we have to ensure that we are in an harmonic case.
@@ -1844,7 +1848,8 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
+      // only reassembly harmonic case if also frequency dependent
+      if(actContext.IsNonLin() || (actContext.GetIntegrator()->IsTimeFrequencyDependent() && analysisType_==BasePDE::HARMONIC) || analysisType_ == BasePDE::MULTIHARMONIC
 		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         matReassemble_[actContext.GetDestMat()] = true;
@@ -1889,6 +1894,11 @@ namespace CoupledField
                     << ": " << (it2->second ? "true" : "false");
       }
     }
+  }
+
+  void Assemble::Matrix2Complex(Matrix<Complex>& complexMat,Matrix<Double>& origMat){
+    complexMat.Resize( origMat.GetNumRows(), origMat.GetNumCols() );
+    complexMat.SetPart( Global::REAL, origMat );
   }
 
   void Assemble::Matrix2Harmonic(Matrix<Complex>& harmMat,
@@ -2002,7 +2012,7 @@ namespace CoupledField
 
   void Assemble::CreateMatrixMap()
   {
-
+    std::string matrixReassembly = "on";
     // Dependent on the type of analysis, only certain matrix types
     // (SYSTEM, STIFFNESS, MASS, DAMPING, CONVECTION, ...) are present.
     switch(analysisType_)
@@ -2030,15 +2040,27 @@ namespace CoupledField
       break;
 
     case BasePDE::HARMONIC:
-      matrixMap_[SYSTEM]    = SYSTEM;
-      matrixMap_[STIFFNESS] = SYSTEM;
-      matrixMap_[DAMPING]   = SYSTEM;
-      matrixMap_[DAMPING_AUX]   = SYSTEM;
-      matrixMap_[MASS]      = SYSTEM;
-      matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
-      matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
-      matrixMap_[DAMPING_UPDATE]   = SYSTEM;
-      matrixMap_[MASS_UPDATE]      = SYSTEM;
+      if (matrixReassembly == "on") {
+        matrixMap_[SYSTEM]    = SYSTEM;
+        matrixMap_[STIFFNESS] = STIFFNESS;
+        matrixMap_[DAMPING]   = DAMPING;
+        matrixMap_[MASS]      = MASS;
+        matrixMap_[AUXILIARY] = AUXILIARY;
+        matrixMap_[STIFFNESS_UPDATE] = STIFFNESS_UPDATE;
+        matrixMap_[DAMPING_UPDATE]   = DAMPING_UPDATE;
+        matrixMap_[MASS_UPDATE]      = MASS_UPDATE;
+      }
+      else {
+        matrixMap_[SYSTEM]    = SYSTEM;
+        matrixMap_[STIFFNESS] = SYSTEM;
+        matrixMap_[DAMPING]   = SYSTEM;
+        matrixMap_[DAMPING_AUX]   = SYSTEM;
+        matrixMap_[MASS]      = SYSTEM;
+        matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
+        matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
+        matrixMap_[DAMPING_UPDATE]   = SYSTEM;
+        matrixMap_[MASS_UPDATE]      = SYSTEM;
+      }
       break;
 
     case BasePDE::MULTIHARMONIC:
@@ -2213,21 +2235,26 @@ namespace CoupledField
         omega = mp_->Eval( mHandle_ );
       }
 
-      Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
-
       if( analysisType_ == BasePDE::MULTIHARMONIC){
+        Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
         algsys_->SetElementMatrix_MultHarm( mappedDest, harmMat,
                                             fctId1, eqnVec1,
                                             fctId2, eqnVec2,
                                             context.IsSetCounterPart(),
                                             sbmIndices);
-      }else{
-        algsys_->SetElementMatrix( mappedDest, harmMat,
-                                  fctId1, eqnVec1,
-                                  fctId2, eqnVec2,
-                                  context.IsSetCounterPart(),
-                                  preventStaticCond,
-                                  context.isDiagonal());
+      }else{ // harmonic case
+        if( algsys_->IsMatrixComplex()) { // not clear if this 'if' is needed or if it in scomplex all the time
+          // dirty hack: we make damping matrices complex valued (multipy by j) since ConstructEffectiveMatrix can only handle real valued factors
+          if(mappedDest==DAMPING||mappedDest==DAMPING_AUX||mappedDest==DAMPING_UPDATE) {
+            Matrix2Harmonic( harmMat, elemMat, DAMPING, context.GetEntryType(), 1.0 ); // elemMat -> harmMat should multipy by j
+          } else {
+            Matrix2Complex( harmMat, elemMat);
+          }
+          algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
+        } 
+        else {
+          algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
+        }
       }
     }
 

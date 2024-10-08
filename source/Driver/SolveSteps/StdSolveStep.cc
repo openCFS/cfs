@@ -18,6 +18,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 //#include "MatVec/SingleVector.hh"
 #include "Domain/Results/MHTimeFreqResult.hh"
+#include "Driver/HarmonicDriver.hh"
 
 
 namespace CoupledField {
@@ -1385,17 +1386,39 @@ namespace CoupledField {
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
 
-    assemble_->AssembleMatrices( );
+    // assemble matrices depending if reassembly is desired
+    std::string matrixReassembly = "on";
+    if (matrixReassembly == "on") {
+      // assemble matrices
+      assemble_->AssembleMatrices( );
+
+      // multiply matrices with imaginary number or angular frequency
+      algsys_->InitMatrix(SYSTEM); // initialize system matrix filled with zeros
+      Double omega = 2.0*M_PI*actFreq_;
+      std::map<FEMatrixType,Double> dynamicStiffnessMatrixFactors;
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS,1.0) );
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS_UPDATE,1.0) );
+      // multiply damping by omega, since we already multipied by j in assemble
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING,omega) );
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING_UPDATE,omega) );
+      // multiply damping inverse ba 1/omega since we already multipied by j in assemble
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING_AUX,1.0/omega) );
+      // multiply mass by omega^2
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,-omega*omega) );
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS_UPDATE,-omega*omega) );
+      algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors );
+
+    }
+    // no reassembly
+    else {
+      assemble_->AssembleMatrices( );
+    }
     PDE_.SetBCs();
     
     // store rhs vector back to PDE
     algsys_->GetRHSVal( rhsVec_ );
 
-    // Where should we get the matrix factors from in a harmonic case?
-    // In my opinion this method
-    //if( assemble_->IsMatrixUpdated() ) {
-    std::map<FEMatrixType,Double> empty;
-    algsys_->ConstructEffectiveMatrix(NO_FCT_ID,  empty );
+    algsys_->ExportLinSys(true,false,false);
     
 
     // Check if the AMG-framework is used (if so, we have
