@@ -674,7 +674,14 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
         BiLinearForm *massInt = feFct->GenerateInterpolBilinForm(dim, dofDim, true);
         LinearForm * rhsInt = feFct->GenerateInterpolLinForm(dim, dofDim, coefFct, true);
 
-        BiLinFormContext * massCtx = new BiLinFormContext( massInt, STIFFNESS);
+        BiLinFormContext * massCtx = new BiLinFormContext( massInt, SYSTEM);
+        std::string matrixReassembly = "off";
+        if (matrixReassembly == "on") {
+          BiLinFormContext * massCtx = new BiLinFormContext( massInt, SYSTEM);
+        }
+        else {
+          BiLinFormContext * massCtx = new BiLinFormContext( massInt, STIFFNESS);
+        }
         massInt->SetName("Interpolator");
         massCtx->SetEntities( actList, actList );
         massCtx->SetFeFunctions(feFct, feFct);

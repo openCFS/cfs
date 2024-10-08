@@ -69,7 +69,19 @@ namespace CoupledField
     FEMatrixType GetDestMat() const { return destMat_; }
 
     //! Set destination matrix
-    void SetDestMat(FEMatrixType destMat) { destMat_ = destMat; }
+    void SetDestMat(FEMatrixType destMat) {
+      // if the integrator is time ore frequency dependent (due to coefFunction) we re-direct assembly to the *_UPDATE matrices
+      // this avoids re-assembly of the whole matrix is only a few bilinear-forms need to be re-evaluated
+      if (integrator_->IsTimeFrequencyDependent()){
+        switch (destMat) {
+          case STIFFNESS: destMat=STIFFNESS_UPDATE; break;
+          case DAMPING: destMat=DAMPING_UPDATE; break;
+          case MASS: destMat=MASS_UPDATE; break;
+          default: break; // avoid "warning: enumeration value ‘...’ not handled in switch [-Wswitch]
+        }
+      }
+      destMat_ = destMat; 
+    }
 
     //! Defines a secondary destination for the element matrix
     void SetSecDestMat( FEMatrixType aSecMat,

@@ -175,7 +175,7 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
   std::string BiLinFormContext::ToString()
   {
     std::ostringstream os;
-    os << "BiLinFormContext nonLin=" << (IsNonLin() ? "true" : "false") 
+    os << "BiLinFormContext nonLin=" << (IsNonLin() ? "true" : "false") << " timeFreq=" << (integrator_->IsTimeFrequencyDependent() ? "true" : "false")
        << " pde1=" << ptPde1_->GetName() << " pde2=" << (ptPde2_ == NULL ? "NULL" : ptPde2_->GetName()) 
        << " integrator=" << integrator_->GetName() << " entityList1=" << ent1_->GetName(); 
     return os.str();

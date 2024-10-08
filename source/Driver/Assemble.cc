@@ -2012,7 +2012,7 @@ namespace CoupledField
 
   void Assemble::CreateMatrixMap()
   {
-    std::string matrixReassembly = "on";
+    std::string matrixReassembly = "off";
     // Dependent on the type of analysis, only certain matrix types
     // (SYSTEM, STIFFNESS, MASS, DAMPING, CONVECTION, ...) are present.
     switch(analysisType_)
@@ -2052,14 +2052,13 @@ namespace CoupledField
       }
       else {
         matrixMap_[SYSTEM]    = SYSTEM;
-        matrixMap_[STIFFNESS] = SYSTEM;
-        matrixMap_[DAMPING]   = SYSTEM;
-        matrixMap_[DAMPING_AUX]   = SYSTEM;
-        matrixMap_[MASS]      = SYSTEM;
-        matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
-        matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
-        matrixMap_[DAMPING_UPDATE]   = SYSTEM;
-        matrixMap_[MASS_UPDATE]      = SYSTEM;
+        matrixMap_[STIFFNESS] = STIFFNESS;
+        matrixMap_[DAMPING]   = DAMPING;
+        matrixMap_[MASS]      = MASS;
+        matrixMap_[AUXILIARY] = AUXILIARY;
+        matrixMap_[STIFFNESS_UPDATE] = NOTYPE;
+        matrixMap_[DAMPING_UPDATE]   = NOTYPE;
+        matrixMap_[MASS_UPDATE]      = NOTYPE;
       }
       break;
 
@@ -2283,9 +2282,13 @@ namespace CoupledField
 
     Double omega = isMultHarmDiag ? 2 * M_PI * f : mp_->Eval(mHandle_);
 
-    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
-       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)
+    if(domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE || domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC){
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
+    }
+    else if( domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC && (mappedDest==DAMPING||mappedDest==DAMPING_AUX||mappedDest==DAMPING_UPDATE) ){
+      // multiply damping with j
+      Matrix2Harmonic( harmMat, elemMat, DAMPING, context.GetEntryType(), 1.0 );
+    }
     else
       harmMat = elemMat;
 

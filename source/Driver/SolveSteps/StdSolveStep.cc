@@ -1387,7 +1387,7 @@ namespace CoupledField {
     assemble_->AssembleLinRHS();
 
     // assemble matrices depending if reassembly is desired
-    std::string matrixReassembly = "on";
+    std::string matrixReassembly = "off";
     if (matrixReassembly == "on") {
       // assemble matrices
       assemble_->AssembleMatrices( );
@@ -1411,7 +1411,21 @@ namespace CoupledField {
     }
     // no reassembly
     else {
+      // assemble matrices
       assemble_->AssembleMatrices( );
+
+      // multiply matrices with imaginary number or angular frequency
+      algsys_->InitMatrix(SYSTEM); // initialize system matrix filled with zeros
+      Double omega = 2.0*M_PI*actFreq_;
+      std::map<FEMatrixType,Double> dynamicStiffnessMatrixFactors;
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS,1.0) );
+      // multiply damping by omega, since we already multipied by j in assemble
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING,omega) );
+      // multiply damping inverse ba 1/omega since we already multipied by j in assemble
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING_AUX,1.0/omega) );
+      // multiply mass by omega^2
+      dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,-omega*omega) );
+      algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors );
     }
     PDE_.SetBCs();
     
@@ -1444,10 +1458,10 @@ namespace CoupledField {
       if( useGetRidOfZeros_ ) {
         algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
       }
-
-      algsys_->SetupPrecond();
-      algsys_->SetupSolver();
     }
+
+    algsys_->SetupPrecond();
+    algsys_->SetupSolver();
     
     algsys_->Solve();
 
