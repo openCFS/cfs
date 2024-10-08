@@ -76,6 +76,7 @@ DEFINE_LOG(eb, "EBHysteresis")
     H0_.Resize(numElems_, StdVector<Double>(dim_));
     H1_.Resize(numElems_, StdVector<Double>(dim_));
     M0_.Resize(numElems_, StdVector<Double>(dim_));
+    M1_.Resize(numElems_, StdVector<Double>(dim_));
 
     HxS_n_.Resize(numElems_, StdVector<Double>(numS_));
     HyS_n_.Resize(numElems_, StdVector<Double>(numS_));
@@ -97,6 +98,7 @@ DEFINE_LOG(eb, "EBHysteresis")
     globalIter_ = 0;
     saveTmpStageVecs_ = false;
 
+    hasElemSolution_.Resize(numElems_, false);
   }
 
   Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
@@ -146,7 +148,6 @@ DEFINE_LOG(eb, "EBHysteresis")
 
   Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum) 
   {
-    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
     Vector<Double> B(dim_);
     UInt idx = ElemNum2Idx_[ElemNum];
 
@@ -183,9 +184,6 @@ DEFINE_LOG(eb, "EBHysteresis")
       B[i] = mu0_ * (HVec[i] + M[i]);
     }
 
-    for (UInt i = 0; i < dim_; ++i) {
-        H1_[idx][i] = HVec[i];
-    }
     LOG_DBG3(eb) << "\n\t B = " << B.ToString();
     return B;
   }
@@ -196,7 +194,6 @@ DEFINE_LOG(eb, "EBHysteresis")
   Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum,
                                               LocPointMapped lpm, PtrCoefFct stressCoef)
   {
-    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
     Vector<Double> B(dim_);
     UInt idx = ElemNum2Idx_[ElemNum];
 
@@ -229,9 +226,6 @@ DEFINE_LOG(eb, "EBHysteresis")
 
     LOG_DBG3(eb) << "\n\t B = " << B.ToString();
     
-    for (UInt i = 0; i < dim_; ++i) {
-      H1_[idx][i] = HVec[i];
-    }
     return B;
   }
 
@@ -241,8 +235,12 @@ DEFINE_LOG(eb, "EBHysteresis")
   Matrix<Double> EBHysteresis::ComputeTensorialMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
   {
     UInt idx = ElemNum2Idx_[ElemNum];
-    globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-
+    if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
+      globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+      //if there is a new iteration, save the values from the previous iteration
+      LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
+      hasElemSolution_.Init(false);
+    }
     if(idx == 1){
       LOG_DBG2(eb) << "\t ================================== COMPUTETENSORIALMATERIALPARAMETER ==================================";
       LOG_DBG2(eb) << "\t ================================== timestep = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
@@ -265,7 +263,12 @@ DEFINE_LOG(eb, "EBHysteresis")
       LOG_DBG2(eb) << "\t MzS_n_ = " << MzS_n_[idx]<< " \t\t\t\tMzS_n_tmp_ = "<< MzS_n_tmp_[idx];
     }
 
-    
+     if(hasElemSolution_[idx] == true){
+        if(idx == 1){
+          LOG_DBG2(eb) << "\t mu from hasElemSolution_ = " << mu_[idx].ToString();
+        }
+        return mu_[idx];
+      }
     
     Vector<Double> M;
     Matrix<Double> mu(dim_, dim_);
@@ -285,6 +288,12 @@ DEFINE_LOG(eb, "EBHysteresis")
       if(idx == 1){
         LOG_DBG2(eb) << "\t M = " << M.ToString();
       }
+
+      if(idx == 1){
+        LOG_DBG2(eb) << "\t mu from globalIter_==1 = " << mu.ToString();
+      }
+      mu_[idx] = mu;  
+      hasElemSolution_[idx] = true;
       return mu;
     }
 
@@ -313,30 +322,55 @@ DEFINE_LOG(eb, "EBHysteresis")
       {
       case 1:
         // use finite differences
+            if(idx == 1){
+              LOG_DBG2(eb) << "\t use EvaluateLocalMuFiniteDifferences" ;
+            }
         mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
         break;
       case 2:
         // use Broyden method
+            if(idx == 1){
+              LOG_DBG2(eb) << "\t use EvaluateLocalMuGBM" ;
+            }
         mu = EvaluateLocalMuGBM(delta_H, delta_B, idx);
         break;
       case 3:
         // use simple finite differences
+           if(idx == 1){
+              LOG_DBG2(eb) << "\t use EvaluateLocalMu" ;
+            }
         mu = EvaluateLocalMu(delta_H, delta_B, idx);
         break;
       case 4:
         // use simple finite differences
+            if(idx == 1){
+              LOG_DBG2(eb) << "\t use EvaluateLocalMuBFGS" ;
+            }
         mu = EvaluateLocalMuBFGS(delta_H, delta_B, idx);
         break;
       }
     }
     else
     { // nonlinear case (only anhysteresis)
+      if(idx == 1){
+        LOG_DBG2(eb) << "\t mu from real EvaluateLocalMuAnhystersisOnly";
+      }
       mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
     }
-    
+
+    if(idx == 1){
+      LOG_DBG2(eb) << "\t mu from real Evaluate = " << mu.ToString();
+      LOG_DBG2(eb) << std::setprecision(15)<< "\t delta_H = " << delta_H.ToString();
+      LOG_DBG2(eb) << std::setprecision(15)<< "\t delta_B = " << delta_B.ToString();
+    }
+
     for (UInt i = 0; i < dim_; ++i) {
         H1_[idx][i] = HVec[i];
+        M0_[idx][i] = M[i];
     }
+    mu_[idx] = mu;    
+    H0_[idx] = H1_[idx];
+    hasElemSolution_[idx] = true;
     return mu;
   }
 
@@ -360,18 +394,6 @@ DEFINE_LOG(eb, "EBHysteresis")
       MxS_n_ = MxS_n_tmp_;
       MyS_n_ = MyS_n_tmp_;
       MzS_n_ = MzS_n_tmp_;
-      H0_ = H1_;
-      Double sumMx = 0.0, sumMy = 0.0, sumMz = 0.0;
-      for (UInt idx = 0; idx < numElems_; ++idx){
-        for (UInt i = 0; i < numS_; ++i) {
-            sumMx += MxS_n_[idx][i];
-            sumMy += MyS_n_[idx][i];
-            sumMz += MzS_n_[idx][i];
-        }
-        M0_[idx][0] = sumMx;
-        M0_[idx][1] = sumMy;
-        M0_[idx][2] = sumMz;
-      }
     }
   }
 
@@ -439,13 +461,8 @@ DEFINE_LOG(eb, "EBHysteresis")
         }
       }
     } 
-      /* if (idx == 1){
-        std::cout << "Hx: " << HVec[0] << ", Hy: " << HVec[1] << ", Hz: " << HVec[2] << std::endl;
-        std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-        std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-        std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-      } */
     return mu;
+
   }
 
   Matrix<Double> EBHysteresis::EvaluateLocalMuFiniteDifferences(Vector<Double> HVec, StdVector<Double> B_k, UInt idx){
@@ -866,14 +883,21 @@ DEFINE_LOG(eb, "EBHysteresis")
       mu[0][2] = 0.0;
       mu[1][2] = 0.0;
       mu[2][1] = 0.0;
-      for (UInt i = 0; i < dim_; i++)
-      {
-        if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-          Matrix<Double> e = mu_[idx];
-            mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
-        } 
+      for (UInt i = 0; i < dim_; i++){
+          if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
+            Matrix<Double> e = mu_[idx];
+              mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
+          } 
       }
     }
+    //################### just for checking some things #################
+/*       if (idx == 15){
+      std::cout << "Broyden" << std::endl;
+      std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
+      std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
+      std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
+    } */
+    //############### delete as soon as it works #######################
     return mu;
   }
 

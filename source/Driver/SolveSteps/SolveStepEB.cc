@@ -81,6 +81,9 @@ namespace CoupledField
       }
       stageSol.SetOwnership(false);
 
+      // now that we have reached our convergence threshold for this timestep, let's save the states in our model
+      matModelCoef_->UpdateHistoryValues();   
+      
       LOG_DBG2(solvestepeb) << "stageSol before while:" << stageSol.ToString();
 
       // set iteration counter
@@ -249,8 +252,7 @@ namespace CoupledField
                   << "\n ==> residual error: " << residualErr);
         }
       }
-      // now that we have reached our convergence threshold for this timestep, let's save the states in our model
-      matModelCoef_->UpdateHistoryValues();    
+ 
     } //stages
     
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
