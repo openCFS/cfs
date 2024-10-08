@@ -91,8 +91,6 @@ namespace CoupledField {
 
       UInt numElems_;
 
-      Double mu_0;
-
       Double Ps_;
       Double A_;
       Double mu0_;
@@ -131,6 +129,8 @@ namespace CoupledField {
 
       // epsilon tensor of the previous iteration
       StdVector< Matrix<Double> > mu_;
+
+      StdVector<bool> hasElemSolution_;
 
       //! Pointer to math parser instance
       MathParser* mp_;
