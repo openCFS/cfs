@@ -208,7 +208,8 @@ class MortarInterface : public BaseNcInterface {
     Double tolAbs_;
     Double tolRel_;
     RegionIdType region_;
-    bool mutualProjection_;
+    bool mutualProjection_; // 2D or 3D projection of parallel surfaces
+    bool cakePieceProjection_; // 2D projection of a wedge (cake piece)
 
     //caching for Line intersection
     Vector<Double> c0_Line_, c1_Line_, d0_Line_, d1_Line_, tmp_Line_;
@@ -227,6 +228,10 @@ class MortarInterface : public BaseNcInterface {
     std::vector<Grid::ElemElemMatch> intersectionCandiatesIdx_;
 
     Vector<Double> translationVector_;
+    // rotation angle for bloch periodic BC of a circle in radians
+    Double cakePieceRotationAngle_;
+    // center of rotation
+    Vector<Double> cakePieceRotationCenter_;
 
     // caching of node numbers for rotating interfaces
     bool hasNodeNums_;

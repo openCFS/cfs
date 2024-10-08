@@ -93,6 +93,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   region_(NO_REGION_ID),
   isReset_(false),
   translationVector_(),
+  cakePieceRotationCenter_(),
   hasNodeNums_(false),
   hasMoveInterfaceCoords_(false),
   hasSurfElems_(false)
@@ -210,9 +211,129 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
     // calculate the vector along which the master side was translated from the slave side
     // as the difference between the centres of master's and slave's bounding boxes
     for (UInt i = 0; i < ptGrid_->GetDim(); ++i)
-      translationVector_[i] = bboxMas[i][0] + bboxMas[i][1] - bboxSla[i][0]
-          - bboxSla[i][1];
+      translationVector_[i] = bboxMas[i][0] + bboxMas[i][1] - bboxSla[i][0] - bboxSla[i][1];
     translationVector_ *= 0.5;
+  }
+
+  // consider 2D-rotated mutual projection (cake-piece projection)
+  nciNode->GetValue("cakePieceProjection", cakePieceProjection_, ParamNode::PASS);
+  if (cakePieceProjection_) {
+    if (ptGrid_->GetDim() != 2) {
+      EXCEPTION("Rotated mutual projection is only supported for 2D grids");
+    } else {
+      Matrix<Double> bboxMas, bboxSla;
+      // get bounding boxes of lines [min(x),max(x);min(y),max(y)]
+      ptGrid_->CalcBoundingBoxOfRegion(masterSurfRegion_, bboxMas);
+      ptGrid_->CalcBoundingBoxOfRegion(slaveSurfRegion_, bboxSla);
+      // find intersection point of the bounding boxes
+      if (bboxMas[0][0] > bboxSla[0][1] + EPS || bboxMas[1][1] < bboxSla[1][0] - EPS)
+        EXCEPTION("No intersecting bounding boxes found for cake-piece projection!");
+      if (fabs(bboxMas[0][0] - bboxSla[0][0]) < EPS &&
+          fabs(bboxMas[0][1] - bboxSla[0][1]) < EPS &&
+          fabs(bboxMas[1][0] - bboxSla[1][0]) < EPS &&
+          fabs(bboxMas[1][1] - bboxSla[1][1]) < EPS)
+        EXCEPTION("Bounding boxes for cake-piece projection entirely overlap. Intersection is not unique!");
+      // check if both vectors have equal lengths
+      Double lenMas, lenSla;
+      lenMas = sqrt(pow(bboxMas[0][1]-bboxMas[0][0],2) + pow(bboxMas[1][1]-bboxMas[1][0],2));
+      lenSla = sqrt(pow(bboxSla[0][1]-bboxSla[0][0],2) + pow(bboxSla[1][1]-bboxSla[1][0],2));
+      if (fabs(lenMas - lenSla) > EPS)
+        EXCEPTION("Rotated mutual projection is only supported for lines of equal lengths");
+
+      // get two nodes of each line..
+      StdVector<UInt> nodesMas, nodesSla;
+      StdVector<Vector<Double>> coordsMas(2), coordsSla(2);
+      ptGrid_->GetNodesByRegion(nodesMas, masterSurfRegion_);
+      ptGrid_->GetNodesByRegion(nodesSla, slaveSurfRegion_);
+      for (UInt iNode = 0; iNode < 2; ++iNode) {
+        ptGrid_->GetNodeCoordinate(coordsMas[iNode], nodesMas[iNode], false);
+        ptGrid_->GetNodeCoordinate(coordsSla[iNode], nodesSla[iNode], false);
+      }
+
+      // get line parameters and find intersections
+      Vector<Double> intersectionPoint(2);
+      if (fabs(coordsMas[1][0] - coordsMas[0][0]) > EPS && 
+          fabs(coordsSla[1][0] - coordsSla[0][0])){
+        // if both lines can be parametrized as y = k*x + d, find the params
+        Double kMas,kSla,dMas,dSla;
+        kMas = (coordsMas[1][1] - coordsMas[0][1])/(coordsMas[1][0] - coordsMas[0][0]);
+        kSla = (coordsSla[1][1] - coordsSla[0][1])/(coordsSla[1][0] - coordsSla[0][0]);
+        dMas = coordsMas[0][1] - kMas * coordsMas[0][0];
+        dSla = coordsSla[0][1] - kSla * coordsSla[0][0];
+        intersectionPoint[0] = (dSla-dMas)/(kMas-kSla);
+        intersectionPoint[1] = kMas*intersectionPoint[0] + dMas;
+      }
+      else if (fabs(coordsMas[1][0] - coordsMas[0][0]) <= EPS) {
+        // if the primary line is horizontal (would lead to infinite kMas)
+        // find the params of secondary side
+        Double kSla,dSla;
+        kSla = (coordsSla[1][1] - coordsSla[0][1])/(coordsSla[1][0] - coordsSla[0][0]);
+        dSla = coordsSla[0][1] - kSla * coordsSla[0][0];
+        intersectionPoint[0] = (coordsMas[1][0] + coordsMas[0][0]) / 2;
+        intersectionPoint[1] = kSla*intersectionPoint[0] + dSla;
+      }
+      else if (fabs(coordsSla[1][0] - coordsSla[0][0]) <= EPS) {
+        // if the secondary line is horizontal (would lead to infinite kSla)
+        // find the params of primary side
+        Double kMas,dMas;
+        kMas = (coordsMas[1][1] - coordsMas[0][1])/(coordsMas[1][0] - coordsMas[0][0]);
+        dMas = coordsMas[0][1] - kMas * coordsMas[0][0];
+        intersectionPoint[0] = (coordsMas[1][0] + coordsMas[0][0]) / 2;
+        intersectionPoint[1] = kMas*intersectionPoint[0] + dMas;
+      } else {
+        EXCEPTION("Unexpected case.");
+      }
+
+      // extract line vectors from bounding boxes, knowing the intersection point
+      Vector<Double> lineMas(2), lineSla(2);
+      lineMas[0] = (fabs(bboxMas[0][0] - intersectionPoint[0]) < EPS) ? bboxMas[0][1] - intersectionPoint[0] : bboxMas[0][0] - intersectionPoint[0];
+      lineMas[1] = (fabs(bboxMas[1][0] - intersectionPoint[1]) < EPS) ? bboxMas[1][1] - intersectionPoint[1] : bboxMas[1][0] - intersectionPoint[1];
+      lineSla[0] = (fabs(bboxSla[0][0] - intersectionPoint[0]) < EPS) ? bboxSla[0][1] - intersectionPoint[0] : bboxSla[0][0] - intersectionPoint[0];
+      lineSla[1] = (fabs(bboxSla[1][0] - intersectionPoint[1]) < EPS) ? bboxSla[1][1] - intersectionPoint[1] : bboxSla[1][0] - intersectionPoint[1];
+
+      // check if intersection point is in bounding box
+      if (intersectionPoint[0] < bboxMas[0][0] - EPS || intersectionPoint[0] > bboxMas[0][1] + EPS ||
+          intersectionPoint[1] < bboxMas[1][0] - EPS || intersectionPoint[1] > bboxMas[1][1] + EPS)
+        EXCEPTION("Intersection point :\n" << intersectionPoint << "\n for cake-piece projection is not in bounding box of primary surface:\n" << bboxMas);
+      if (intersectionPoint[0] < bboxSla[0][0] - EPS || intersectionPoint[0] > bboxSla[0][1] + EPS ||
+          intersectionPoint[1] < bboxSla[1][0] - EPS || intersectionPoint[1] > bboxSla[1][1] + EPS)
+        EXCEPTION("Intersection point :\n" << intersectionPoint << "\n for cake-piece projection is not in bounding box of secondary surface:\n" << bboxSla);
+
+      // calculate the angle between the lines
+      cakePieceRotationAngle_ = acos((lineMas[0]*lineSla[0] + lineMas[1]*lineSla[1]) / (lenMas * lenSla));
+      // get the direction of rotation via cross product
+      Double crossProd;
+      crossProd = lineMas[0]*lineSla[1] - lineMas[1]*lineSla[0];
+      if (crossProd < 0)
+        cakePieceRotationAngle_ = -cakePieceRotationAngle_;
+
+      // store the center of the secondary bounding box as the center of rotation
+      cakePieceRotationCenter_.Resize(ptGrid_->GetDim());
+      for (UInt iDim = 0; iDim < ptGrid_->GetDim(); ++iDim)
+        cakePieceRotationCenter_[iDim] = (bboxMas[iDim][0] + bboxMas[iDim][1]) / 2;
+
+      // calculate the vector along which the master side was translated from the slave side
+      // as the difference between the centres of master's and slave's bounding boxes
+      translationVector_.Resize(ptGrid_->GetDim());
+      for (UInt iDim = 0; iDim < ptGrid_->GetDim(); ++iDim)
+        translationVector_[iDim] = bboxMas[iDim][0] + bboxMas[iDim][1] - bboxSla[iDim][0] - bboxSla[iDim][1];
+      translationVector_ *= 0.5;
+      // debug messages (convert to debug logs before merge)
+      // std::cout << "bboxMas: \n" << bboxMas << std::endl;
+      // std::cout << "bboxSla: \n" << bboxSla << std::endl;
+      // std::cout << "lenMas: \n" << lenMas << std::endl;
+      // std::cout << "lenSla: \n" << lenSla << std::endl;
+      // std::cout << "coordsMas: \n" << coordsMas << std::endl;
+      // std::cout << "coordsSla: \n" << coordsSla << std::endl;
+      // std::cout << "Intersection point: \n" << intersectionPoint << std::endl;
+      // std::cout << "lineMas: \n" << lineMas << std::endl;
+      // std::cout << "lineSla: \n" << lineSla << std::endl;
+      // std::cout << "crossProd" << crossProd << std::endl;
+      // Double rotDeg = cakePieceRotationAngle_ * 180.0 / M_PI;
+      // std::cout << "cakePieceRotationAngle: " << rotDeg << std::endl;
+      // std::cout << "cakePieceRotationCenter_: \n" << cakePieceRotationCenter_ << std::endl;
+      // std::cout << "translationVector: \n" << translationVector_ << std::endl;
+    }
   }
 
   PtrParamNode motionNode = nciNode->Get("rotation", ParamNode::PASS);
@@ -727,6 +848,9 @@ void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfE
           bbox[j] -= translationVector_[j];
           bbox[j + 3] -= translationVector_[j];
         }
+        // disable for cake-piece projection
+        if (cakePieceProjection_)
+          EXCEPTION("Precomputing intersection candidates is currently not working for cake-piece projection!");
       }
       Grid::HandleBox hbox(Grid::BBox3D(bbox[0], bbox[1], bbox[2],
                             bbox[3], bbox[4], bbox[5]),
@@ -822,6 +946,42 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
     c1 -= translationVector_;
     nodenum_c0 = 0;
     nodenum_c1 = 0;
+  }
+  // for cake-piece projection, perform translation and rotation of coordinates
+  if (cakePieceProjection_) {
+    // debug messages. Remove or make as debug logs before merge
+    // std::cout << "c0: " << c0 << std::endl;
+    // std::cout << "c1: " << c1 << std::endl;
+    // subtract rotation center
+    c0 -= cakePieceRotationCenter_;
+    c1 -= cakePieceRotationCenter_;
+    // rotate around z axis
+    Vector<Double> tmp(2);
+    tmp[0] = c0[0]*cos(cakePieceRotationAngle_) - c0[1]*sin(cakePieceRotationAngle_);
+    tmp[1] = c0[0]*sin(cakePieceRotationAngle_) + c0[1]*cos(cakePieceRotationAngle_);
+    c0 = tmp;
+    tmp[0] = c1[0]*cos(cakePieceRotationAngle_) - c1[1]*sin(cakePieceRotationAngle_);
+    tmp[1] = c1[0]*sin(cakePieceRotationAngle_) + c1[1]*cos(cakePieceRotationAngle_);
+    c1 = tmp;
+    // translate back to original position
+    c0 += cakePieceRotationCenter_;
+    c1 += cakePieceRotationCenter_;
+    // translate to primary interface position
+    c0 -= translationVector_;
+    c1 -= translationVector_;
+    nodenum_c0 = 0;
+    nodenum_c1 = 0;
+    // debug messages. Remove or make as debug logs before merge
+    // std::cout << "c0: " << c0 << std::endl;
+    // std::cout << "c1: " << c1 << std::endl;
+    // std::cout << "c0-center: " << c0 << std::endl;
+    // std::cout << "c1-center: " << c1 << std::endl;
+    // std::cout << "c0-center+rot: " << c0 << std::endl;
+    // std::cout << "c1-center+rot: " << c1 << std::endl;
+    // std::cout << "c0-center+rot+center: " << c0 << std::endl;
+    // std::cout << "c1-center+rot+center: " << c1 << std::endl;
+    // std::cout << "c0-final: " << c0 << std::endl;
+    // std::cout << "c1-final: " << c1 << std::endl;
   }
 
   // Project master nodes onto slave element, if interface is not coplanar
@@ -1050,7 +1210,8 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   ncElem->ptMaster = ifaceElem1;
   ncElem->ptSlave = ifaceElem2;
   ncElem->transVect = translationVector_;
-
+  ncElem->rotationAngle = cakePieceRotationAngle_;
+  ncElem->rotationCenter = cakePieceRotationCenter_;
   elemList_->AddElement(ncElem);
 
   return true;
