@@ -83,7 +83,7 @@ namespace CoupledField
 
       // now that we have reached our convergence threshold for this timestep, let's save the states in our model
       matModelCoef_->UpdateHistoryValues();   
-      
+
       LOG_DBG2(solvestepeb) << "stageSol before while:" << stageSol.ToString();
 
       // set iteration counter
@@ -171,35 +171,9 @@ namespace CoupledField
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
         }else if ( lineSearch_ == "Inexact"){
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== right before INEXACT " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
-
           etaLineSearch = InexactLineSearch(solInc, stageSol);
-
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== right after INEXACT " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
-        
           stageSol_temp.Add(etaLineSearch, solInc);
-
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== right after ADD " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
-          
           stageSol = stageSol_temp;
-
-          LOG_DBG2(solvestepeb) << "\n\t\t =============== right after stageSol = stageSol_temp; " << iterationCounter;
-          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
         }
 
         LOG_DBG2(solvestepeb) << "\n\t\t =============== after LINESEARCH " << iterationCounter;

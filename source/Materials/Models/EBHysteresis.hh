@@ -128,19 +128,12 @@ namespace CoupledField {
       // several integration points inside one element and we only need to evaluate the hysteresis
       // operator once for each element.
       StdVector< Matrix<Double> > mu_;
-      // Magnetization (only updated once per iteration). Reason for that is because there can be
-      // several integration points inside one element and we only need to evaluate the hysteresis
-      // operator once for each element.
-      StdVector< Vector<Double> > M_;
-
       StdVector<bool> alreadyHasMu_;
-      StdVector<bool> alreadyHasM_;
       
       //! Pointer to math parser instance
       MathParser* mp_;
 
       UInt iterTracker4Mu_;
-      UInt iterTracker4M_;
       double isMH_;
 
       std::string varHandle_;
