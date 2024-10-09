@@ -98,11 +98,8 @@ namespace CoupledField {
       Double chi_factor_;
       Double jacobian_method_;
 
-      StdVector< StdVector<Double> > H0_;
-      StdVector< StdVector<Double> > H1_;
-
-      StdVector< StdVector<Double> > M0_;
-      StdVector< StdVector<Double> > M1_;
+      StdVector< StdVector<Double> > Htotal_prev_;
+      StdVector< StdVector<Double> > Mprev_iter_;
 
       StdVector< StdVector<Double> > HxS_prev_;
       StdVector< StdVector<Double> > HyS_prev_;
