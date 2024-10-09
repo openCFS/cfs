@@ -57,6 +57,7 @@
 #include "PDE/MagEdgeAdjPDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MagEdgeMixedSFGPDE.hh"
+#include "PDE/MagEdgeRegulSFGPDE.hh"
 #include "PDE/MagEdgeSpecialAVPDE.hh"
 #include "PDE/DarwinPDE.hh"
 #include "PDE/MechPDE.hh"
@@ -808,6 +809,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new DarwinPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       } else if(formulation == "mixedSFG"){        
         ptSinglePde_[i] = new MagEdgeMixedSFGPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } else if(formulation == "regulSFG"){        
+        ptSinglePde_[i] = new MagEdgeRegulSFGPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       } else{
         EXCEPTION("Formulation of MagEdgePDE not known!");
       }
