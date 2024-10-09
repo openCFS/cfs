@@ -21,7 +21,7 @@ namespace CoupledField
   EBHysteresis::EBHysteresis() : Model(),
                                  numElems_{0},
                                  Ps_{0}, A_{0}, mu0_{0}, numS_{0}, chi_factor_{0}, jacobian_method_{0},
-                                 mp_{nullptr}, globalIter_{0},
+                                 mp_{nullptr}, iterTracker4Mu_{0},iterTracker4M_{0},
                                  isMH_{false}
   {
   }
@@ -109,12 +109,15 @@ namespace CoupledField
     MzS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
 
     mu_.Resize(numElems_, Matrix<Double>(dim_, dim_));
+    M_.Resize(numElems_, Vector<Double>(dim_));
 
     mp_ = domain->GetMathParser();
-    globalIter_ = 0;
+    iterTracker4Mu_ = 0;
+    iterTracker4M_ = 0;
     saveTmpStageVecs_ = false;
 
-    hasElemSolution_.Resize(numElems_, false);
+    alreadyHasMu_.Resize(numElems_, false);
+    alreadyHasM_.Resize(numElems_, false);
   }
 
   Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
@@ -174,14 +177,32 @@ namespace CoupledField
     Vector<Double> B(dim_);
     UInt idx = ElemNum2Idx_[ElemNum];
 
+    // the idea of this if is that the magnetization should only get updated for a new iteration (we might have several integration points
+    // in one element and since we only use ONE hysteresis operator for one element, this is correct).
+    // There is a similar mechanism in ComputeTensorialMaterialParameter function and since we cannot be 100% sure which one
+    // is called first, we need to have another iteration tracker for the mu in ComputeTensorialMaterialParameter but keep in mind
+    // that they are just used for keeping track of the need to re-compute 
+    if(iterTracker4M_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
+      iterTracker4M_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+      alreadyHasM_.Init(false);
+    }
+
     LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
     Vector<Double> M;
-    M = Evaluate(HVec, idx);
+
+    if(alreadyHasM_[idx] == true){
+      if(idx == 1){
+        LOG_DBG2(eb) << "\t M from alreadyHasM_ = " << mu_[idx].ToString();
+      }
+      M = M_[idx];
+    }else{
+      M = Evaluate(HVec, idx);
+    }
 
     if(idx == 1){
       LOG_DBG2(eb) << "\t ================================== GETFLUXDENSITY ==================================";
       LOG_DBG2(eb) << "\t ================================== timestep = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
-      LOG_DBG2(eb) << "\t ================================== globalIter_ = " << globalIter_;
+      LOG_DBG2(eb) << "\t ================================== iterTracker4Mu_ = " << iterTracker4Mu_;
       LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
       LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, iterationCounter) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
 
@@ -219,7 +240,6 @@ namespace CoupledField
   {
     Vector<Double> B(dim_);
     UInt idx = ElemNum2Idx_[ElemNum];
-
     Vector<Double> sigma;
     stressCoef->GetVector(sigma, lpm);
 
@@ -236,8 +256,27 @@ namespace CoupledField
     LOG_DBG3(eb) << "\n\t sigma = " << sigma.ToString();
     LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
 
+    // the idea of this if is that the magnetization should only get updated for a new iteration (we might have several integration points
+    // in one element and since we only use ONE hysteresis operator for one element, this is correct).
+    // There is a similar mechanism in ComputeTensorialMaterialParameter function and since we cannot be 100% sure which one
+    // is called first, we need to have another iteration tracker for the mu in ComputeTensorialMaterialParameter but keep in mind
+    // that they are just used for keeping track of the need to re-compute 
+    if(iterTracker4M_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
+      iterTracker4M_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+      alreadyHasM_.Init(false);
+    }
+
+    LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
     Vector<Double> M;
-    M = Evaluate(HVec, idx);
+
+    if(alreadyHasM_[idx] == true){
+      if(idx == 1){
+        LOG_DBG2(eb) << "\t M from alreadyHasM_ = " << mu_[idx].ToString();
+      }
+      M = M_[idx];
+    }else{
+      M = Evaluate(HVec, idx);
+    }
     
     LOG_DBG3(eb) << "\n\t M = " << M.ToString();
 
@@ -258,16 +297,20 @@ namespace CoupledField
   Matrix<Double> EBHysteresis::ComputeTensorialMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
   {
     UInt idx = ElemNum2Idx_[ElemNum];
-    if(globalIter_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-      globalIter_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-      //if there is a new iteration, save the values from the previous iteration
+    // the idea of this if is that the mu_ should only get updated for a new iteration (we might have several integration points
+    // in one element and since we only use ONE hysteresis operator for one element, this is correct).
+    // There is a similar mechanism in the two GetFluxDensity() functions and since we cannot be 100% sure which one
+    // is called first, we need to have another iteration tracker for the magnetization in GetFluxDensity but keep in mind
+    // that they are just used for keeping track of the need to re-compute 
+    if(iterTracker4Mu_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
+      iterTracker4Mu_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
       LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
-      hasElemSolution_.Init(false);
+      alreadyHasMu_.Init(false);
     }
     if(idx == 1){
       LOG_DBG2(eb) << "\t ================================== COMPUTETENSORIALMATERIALPARAMETER ==================================";
       LOG_DBG2(eb) << "\t ================================== timestep = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
-      LOG_DBG2(eb) << "\t ================================== globalIter_ = " << globalIter_;
+      LOG_DBG2(eb) << "\t ================================== iterTracker4Mu_ = " << iterTracker4Mu_;
       LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
       LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, iterationCounter) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
 
@@ -285,9 +328,9 @@ namespace CoupledField
       LOG_DBG2(eb) << "\t MzS_n_ = " << MzS_n_[idx]<< " \t\t\t\tMzS_n_tmp_ = "<< MzS_n_tmp_[idx];
     }
 
-     if(hasElemSolution_[idx] == true){
+     if(alreadyHasMu_[idx] == true){
         if(idx == 1){
-          LOG_DBG2(eb) << "\t mu from hasElemSolution_ = " << mu_[idx].ToString();
+          LOG_DBG2(eb) << "\t mu from alreadyHasMu_ = " << mu_[idx].ToString();
         }
         return mu_[idx];
       }
@@ -298,8 +341,8 @@ namespace CoupledField
 
     // To obtain a good starting point for the quasi-Newton method in the first time step
     // and first Newton iteration the Jacobian is approximated by forward finite differences
-    // if(timeStep_== 1 && globalIter_ == 1){
-    if (globalIter_ == 1)
+    // if(timeStep_== 1 && iterTracker4Mu_ == 1){
+    if (iterTracker4Mu_ == 1)
     {
       Vector<Double> M;
       M = Evaluate(HVec, idx);
@@ -314,10 +357,10 @@ namespace CoupledField
       }
 
       if(idx == 1){
-        LOG_DBG2(eb) << "\t mu from globalIter_==1 = " << mu.ToString();
+        LOG_DBG2(eb) << "\t mu from iterTracker4Mu_==1 = " << mu.ToString();
       }
       mu_[idx] = mu;  
-      hasElemSolution_[idx] = true;
+      alreadyHasMu_[idx] = true;
       return mu;
     }
 
@@ -393,7 +436,7 @@ namespace CoupledField
         Mprev_iter_[idx][i] = M[i];
     }
     mu_[idx] = mu;    
-    hasElemSolution_[idx] = true;
+    alreadyHasMu_[idx] = true;
     return mu;
   }
 
