@@ -23,7 +23,7 @@ DEFINE_LOG(eb, "EBHysteresis")
   EBHysteresis::EBHysteresis() : Model(),
                                  numElems_{0},
                                  Ps_{0}, A_{0}, mu0_{0}, numS_{0}, chi_factor_{0}, jacobian_method_{0},
-                                 mp_{nullptr}, iterTracker4Mu_{0},iterTracker4M_{0},
+                                 mp_{nullptr}, iterTracker4Mu_{0},
                                  isMH_{false}
   {
   }
@@ -90,15 +90,13 @@ DEFINE_LOG(eb, "EBHysteresis")
     MyS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
     MzS_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
 
-    mu_.Resize(numElems_, Matrix<Double>(dim_,dim_));
+    mu_.Resize(numElems_, Matrix<Double>(dim_, dim_));
 
     mp_ = domain->GetMathParser();
     iterTracker4Mu_ = 0;
-    iterTracker4M_ = 0;
     saveTmpStageVecs_ = false;
 
     alreadyHasMu_.Resize(numElems_, false);
-    alreadyHasM_.Resize(numElems_, false);
   }
 
   Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
@@ -151,57 +149,15 @@ DEFINE_LOG(eb, "EBHysteresis")
     Vector<Double> B(dim_);
     UInt idx = ElemNum2Idx_[ElemNum];
 
-    // the idea of this if is that the magnetization should only get updated for a new iteration (we might have several integration points
-    // in one element and since we only use ONE hysteresis operator for one element, this is correct).
-    // There is a similar mechanism in ComputeTensorialMaterialParameter function and since we cannot be 100% sure which one
-    // is called first, we need to have another iteration tracker for the mu in ComputeTensorialMaterialParameter but keep in mind
-    // that they are just used for keeping track of the need to re-compute 
-    if(iterTracker4M_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-      iterTracker4M_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-      alreadyHasM_.Init(false);
-    }
-
     LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
     Vector<Double> M;
-
-    if(alreadyHasM_[idx] == true){
-      if(idx == 1){
-        LOG_DBG2(eb) << "\t M from alreadyHasM_ = " << mu_[idx].ToString();
-      }
-      M = M_[idx];
-    }else{
-      M = Evaluate(HVec, idx);
-    }
-
-    if(idx == 1){
-      LOG_DBG2(eb) << "\t ================================== GETFLUXDENSITY ==================================";
-      LOG_DBG2(eb) << "\t ================================== timestep = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
-      LOG_DBG2(eb) << "\t ================================== iterTracker4Mu_ = " << iterTracker4Mu_;
-      LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
-      LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, iterationCounter) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-
-      LOG_DBG2(eb) << "\t HVec = " << HVec.ToString();
-
-      LOG_DBG2(eb) << "\t Htotal_prev_ = " << Htotal_prev_[idx].ToString();
-      LOG_DBG2(eb) << "\t Mprev_iter_ = " << Mprev_iter_[idx].ToString();
-
-      LOG_DBG2(eb) << "\t HxS_n_ = " << HxS_n_[idx]<< " \t\t\t\tHxS_n_tmp_ = "<< HxS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t HyS_n_ = " << HyS_n_[idx]<< " \t\t\t\tHyS_n_tmp_ = "<< HyS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t HzS_n_ = " << HzS_n_[idx]<< " \t\t\t\tHzS_n_tmp_ = "<< HzS_n_tmp_[idx];
-
-      LOG_DBG2(eb) << "\t MxS_n_ = " << MxS_n_[idx]<< " \t\t\t\tMxS_n_tmp_ = "<< MxS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t MyS_n_ = " << MyS_n_[idx]<< " \t\t\t\tMyS_n_tmp_ = "<< MyS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t MzS_n_ = " << MzS_n_[idx]<< " \t\t\t\tMzS_n_tmp_ = "<< MzS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t M = " << M.ToString();
-    }
+    M = Evaluate(HVec, idx);
 
     LOG_DBG3(eb) << "\n\t M = " << M.ToString();
-    
-    for(UInt i = 0; i < dim_; ++i){
+    for (UInt i = 0; i < dim_; ++i)
+    {
       B[i] = mu0_ * (HVec[i] + M[i]);
     }
-
-    LOG_DBG3(eb) << "\n\t B = " << B.ToString();
     return B;
   }
 
@@ -228,39 +184,15 @@ DEFINE_LOG(eb, "EBHysteresis")
 
     LOG_DBG3(eb) << "\n\t sigma = " << sigma.ToString();
     LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
-
-    // the idea of this if is that the magnetization should only get updated for a new iteration (we might have several integration points
-    // in one element and since we only use ONE hysteresis operator for one element, this is correct).
-    // There is a similar mechanism in ComputeTensorialMaterialParameter function and since we cannot be 100% sure which one
-    // is called first, we need to have another iteration tracker for the mu in ComputeTensorialMaterialParameter but keep in mind
-    // that they are just used for keeping track of the need to re-compute 
-    if(iterTracker4M_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-      iterTracker4M_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-      alreadyHasM_.Init(false);
-    }
-
-    LOG_DBG3(eb) << "\n\t HVec = " << HVec.ToString();
     Vector<Double> M;
+    M = Evaluate(HVec, idx);
 
-    if(alreadyHasM_[idx] == true){
-      if(idx == 1){
-        LOG_DBG2(eb) << "\t M from alreadyHasM_ = " << mu_[idx].ToString();
-      }
-      M = M_[idx];
-    }else{
-      M = Evaluate(HVec, idx);
-    }
-    
     LOG_DBG3(eb) << "\n\t M = " << M.ToString();
 
-    
     for (UInt i = 0; i < dim_; ++i)
     {
       B[i] = mu0_ * (HVec[i] + M[i]);
     }
-
-    LOG_DBG3(eb) << "\n\t B = " << B.ToString();
-    
     return B;
   }
 
@@ -272,35 +204,12 @@ DEFINE_LOG(eb, "EBHysteresis")
     UInt idx = ElemNum2Idx_[ElemNum];
     // the idea of this if is that the mu_ should only get updated for a new iteration (we might have several integration points
     // in one element and since we only use ONE hysteresis operator for one element, this is correct).
-    // There is a similar mechanism in the two GetFluxDensity() functions and since we cannot be 100% sure which one
-    // is called first, we need to have another iteration tracker for the magnetization in GetFluxDensity but keep in mind
-    // that they are just used for keeping track of the need to re-compute 
     if(iterTracker4Mu_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
       iterTracker4Mu_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
       LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
       alreadyHasMu_.Init(false);
     }
-    if(idx == 1){
-      LOG_DBG2(eb) << "\t ================================== COMPUTETENSORIALMATERIALPARAMETER ==================================";
-      LOG_DBG2(eb) << "\t ================================== timestep = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
-      LOG_DBG2(eb) << "\t ================================== iterTracker4Mu_ = " << iterTracker4Mu_;
-      LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
-      LOG_DBG2(eb) << "\t ================================== mp_->GetExprVars(MathParser::GLOB_HANDLER, iterationCounter) = " << mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-
-      LOG_DBG2(eb) << "\t HVec = " << HVec.ToString();
-
-      LOG_DBG2(eb) << "\t Htotal_prev_ = " << Htotal_prev_[idx].ToString();
-      LOG_DBG2(eb) << "\t Mprev_iter_ = " << Mprev_iter_[idx].ToString();
-
-      LOG_DBG2(eb) << "\t HxS_n_ = " << HxS_n_[idx]<< " \t\t\t\tHxS_n_tmp_ = "<< HxS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t HyS_n_ = " << HyS_n_[idx]<< " \t\t\t\tHyS_n_tmp_ = "<< HyS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t HzS_n_ = " << HzS_n_[idx]<< " \t\t\t\tHzS_n_tmp_ = "<< HzS_n_tmp_[idx];
-
-      LOG_DBG2(eb) << "\t MxS_n_ = " << MxS_n_[idx]<< " \t\t\t\tMxS_n_tmp_ = "<< MxS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t MyS_n_ = " << MyS_n_[idx]<< " \t\t\t\tMyS_n_tmp_ = "<< MyS_n_tmp_[idx];
-      LOG_DBG2(eb) << "\t MzS_n_ = " << MzS_n_[idx]<< " \t\t\t\tMzS_n_tmp_ = "<< MzS_n_tmp_[idx];
-    }
-
+   
      if(alreadyHasMu_[idx] == true){
         if(idx == 1){
           LOG_DBG2(eb) << "\t mu from alreadyHasMu_ = " << mu_[idx].ToString();
@@ -324,23 +233,13 @@ DEFINE_LOG(eb, "EBHysteresis")
           B_k[i] = mu_0 * (HVec[i] + M[i]);
       }
       mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
-      if(idx == 1){
-        LOG_DBG2(eb) << "\t M = " << M.ToString();
-      }
 
-      if(idx == 1){
-        LOG_DBG2(eb) << "\t mu from iterTracker4Mu_==1 = " << mu.ToString();
-      }
       mu_[idx] = mu;  
       alreadyHasMu_[idx] = true;
       return mu;
     }
 
     M = Evaluate(HVec, idx);
-
-    if(idx == 1){
-      LOG_DBG2(eb) << "\t M = " << M.ToString();
-    }
 
     // get the values for H and M from the last timestep and get deltaH and deltaB
     StdVector<Double> B_k(dim_);
@@ -397,12 +296,6 @@ DEFINE_LOG(eb, "EBHysteresis")
       mu = EvaluateLocalMuAnhystersisOnly(HVec, idx);
     }
 
-    if(idx == 1){
-      LOG_DBG2(eb) << "\t mu from real Evaluate = " << mu.ToString();
-      LOG_DBG2(eb) << std::setprecision(15)<< "\t delta_H = " << delta_H.ToString();
-      LOG_DBG2(eb) << std::setprecision(15)<< "\t delta_B = " << delta_B.ToString();
-    }
-
     for (UInt i = 0; i < dim_; ++i) {
         Htotal_prev_[idx][i] = HVec[i];
         Mprev_iter_[idx][i] = M[i];
@@ -416,9 +309,6 @@ DEFINE_LOG(eb, "EBHysteresis")
   void EBHysteresis::AllowUpdates(bool allow)
   {
     saveTmpStageVecs_ = allow;
-    LOG_DBG2(eb) << "\t ===================================================================";
-    LOG_DBG2(eb) << "\t ===================================================================";
-    LOG_DBG2(eb) << "\t ==================== ALLOW UPDATES = "<< allow <<" ================";
   }
 
   void EBHysteresis::UpdateStates()
