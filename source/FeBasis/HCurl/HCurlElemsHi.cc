@@ -29,6 +29,7 @@ DEFINE_LOG(feHCurlHi, "feHCurlHi")
 //!
 //!     curl(b*(grad(a)) = grad(b) x grad(a) = Cross(b,a)
 //!
+
 //! This second term is calculated within this method.
 inline AutoDiff<Double,3> Cross (const AutoDiff<Double,3> & u,
                                  const AutoDiff<Double,3> & v)
@@ -323,6 +324,9 @@ class Xpr_Diff_UV<D, FeHCurlHi::CURL> {
 
 
 
+
+
+
 FeHCurlHi::FeHCurlHi(Elem::FEType feType ) 
  :  FeHCurl(), FeHi(feType ){
   feType_ = feType;
@@ -555,12 +559,16 @@ void FeHCurlHiTria::GetCurlShFnc( Matrix<Double>& curl,
                                  const LocPointMapped& lpm,
                                  const Elem* elem, UInt comp ) {
 
-  Matrix<Double> locCurl;
-  CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
 
-  // Perform local->global curl transformation
-  curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
+  curl.Resize(1,3); 
+  for( UInt i = 0; i < 3; ++i ) {
+      if ( elem->extended->edges[i] < 0 ){
+        curl[0][i] = 2.0;
+      }else{
+        curl[0][i] = -2.0;
+      }
+  }
+  curl = curl*(1.0/ lpm.jacDet);
 }
 
 template<FeHCurlHi::DiffType DIFF_TYPE>
@@ -589,7 +597,7 @@ void FeHCurlHiTria::CalcLocShFnc2( Matrix<Double>& shape,
     // === a) standard Nedelec shape functions ===
     //Xpr_Diff_SVGradU<2,DIFF_TYPE> xpr( lambda[index1], lambda[index2], 1.0);
     for( UInt k = 0; k < 2; ++k ){
-      shape[k][i] = lambda[index1].DVal(k) * lambda[index2].Val() + lambda[index2].DVal(k) * lambda[index1].Val();
+      shape[k][i] = -lambda[index1].DVal(k) * lambda[index2].Val() + lambda[index2].DVal(k) * lambda[index1].Val();
     }
 
     // === b) gradient functions

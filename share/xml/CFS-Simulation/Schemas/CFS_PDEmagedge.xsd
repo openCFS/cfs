@@ -243,6 +243,7 @@
               <xsd:enumeration value="Darwin"/> 
               <xsd:enumeration value="Darwin_doubleLagrange"/>
               <xsd:enumeration value="mixedSFG"/>
+              <xsd:enumeration value="regulSFG"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 
