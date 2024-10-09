@@ -100,11 +100,8 @@ namespace CoupledField {
       UInt anhyst_type_;
       std::string approx_type_;
 
-      StdVector< StdVector<Double> > H0_;
-      StdVector< StdVector<Double> > H1_;
-
-      StdVector< StdVector<Double> > M0_;
-      StdVector< StdVector<Double> > M1_;
+      StdVector< StdVector<Double> > Htotal_prev_;
+      StdVector< StdVector<Double> > Mprev_iter_;
 
       StdVector< StdVector<Double> > HxS_prev_;
       StdVector< StdVector<Double> > HyS_prev_;

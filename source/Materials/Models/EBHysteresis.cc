@@ -91,10 +91,8 @@ namespace CoupledField
       break;
     }
 
-    H0_.Resize(numElems_, StdVector<Double>(dim_));
-    H1_.Resize(numElems_, StdVector<Double>(dim_));
-    M0_.Resize(numElems_, StdVector<Double>(dim_));
-    M1_.Resize(numElems_, StdVector<Double>(dim_));
+    Htotal_prev_.Resize(numElems_, StdVector<Double>(dim_));
+    Mprev_iter_.Resize(numElems_, StdVector<Double>(dim_));
 
     HxS_n_.Resize(numElems_, StdVector<Double>(numS_));
     HyS_n_.Resize(numElems_, StdVector<Double>(numS_));
@@ -189,9 +187,8 @@ namespace CoupledField
 
       LOG_DBG2(eb) << "\t HVec = " << HVec.ToString();
 
-      LOG_DBG2(eb) << "\t H0_ = " << H0_[idx].ToString();
-      LOG_DBG2(eb) << "\t H1_ = " << H1_[idx].ToString();
-      LOG_DBG2(eb) << "\t M0_ = " << M0_[idx].ToString();
+      LOG_DBG2(eb) << "\t Htotal_prev_ = " << Htotal_prev_[idx].ToString();
+      LOG_DBG2(eb) << "\t Mprev_iter_ = " << Mprev_iter_[idx].ToString();
 
       LOG_DBG2(eb) << "\t HxS_n_ = " << HxS_n_[idx]<< " \t\t\t\tHxS_n_tmp_ = "<< HxS_n_tmp_[idx];
       LOG_DBG2(eb) << "\t HyS_n_ = " << HyS_n_[idx]<< " \t\t\t\tHyS_n_tmp_ = "<< HyS_n_tmp_[idx];
@@ -276,9 +273,8 @@ namespace CoupledField
 
       LOG_DBG2(eb) << "\t HVec = " << HVec.ToString();
 
-      LOG_DBG2(eb) << "\t H0_ = " << H0_[idx].ToString();
-      LOG_DBG2(eb) << "\t H1_ = " << H1_[idx].ToString();
-      LOG_DBG2(eb) << "\t M0_ = " << M0_[idx].ToString();
+      LOG_DBG2(eb) << "\t Htotal_prev_ = " << Htotal_prev_[idx].ToString();
+      LOG_DBG2(eb) << "\t Mprev_iter_ = " << Mprev_iter_[idx].ToString();
 
       LOG_DBG2(eb) << "\t HxS_n_ = " << HxS_n_[idx]<< " \t\t\t\tHxS_n_tmp_ = "<< HxS_n_tmp_[idx];
       LOG_DBG2(eb) << "\t HyS_n_ = " << HyS_n_[idx]<< " \t\t\t\tHyS_n_tmp_ = "<< HyS_n_tmp_[idx];
@@ -339,8 +335,8 @@ namespace CoupledField
     for (UInt i = 0; i < dim_; i++)
     {
       B_k[i] = mu0_ * (HVec[i] + M[i]);
-      B_k_0[i] = mu0_ * (H0_[idx][i] + M0_[idx][i]);
-      delta_H[i] = HVec[i] - H0_[idx][i];
+      B_k_0[i] = mu0_ * (Htotal_prev_[idx][i] + Mprev_iter_[idx][i]);
+      delta_H[i] = HVec[i] - Htotal_prev_[idx][i];
       delta_B[i] = B_k[i] - B_k_0[i];
     }
 
@@ -393,11 +389,10 @@ namespace CoupledField
     }
 
     for (UInt i = 0; i < dim_; ++i) {
-        H1_[idx][i] = HVec[i];
-        M0_[idx][i] = M[i];
+        Htotal_prev_[idx][i] = HVec[i];
+        Mprev_iter_[idx][i] = M[i];
     }
     mu_[idx] = mu;    
-    H0_[idx] = H1_[idx];
     hasElemSolution_[idx] = true;
     return mu;
   }
