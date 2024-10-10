@@ -468,6 +468,24 @@ void FeHCurlHi::SetFaceGradient(UInt faceNum, bool useGrad) {
 }
 
 
+
+// ========================================================================
+//  FeHCurlHi explicit element definition 
+// ========================================================================
+
+// =======================
+//  LINE ELEMENT 
+// =======================
+
+FeHCurlHiLine::FeHCurlHiLine() : FeHCurlHi( Elem::ET_LINE2 ) {
+}
+
+
+FeHCurlHiLine::~FeHCurlHiLine() {
+  
+}
+
+
 // ========================================================================
 //  FeHCurlHi explicit element definition 
 // ========================================================================
