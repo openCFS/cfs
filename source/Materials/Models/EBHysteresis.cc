@@ -57,6 +57,22 @@ DEFINE_LOG(eb, "EBHysteresis")
     numS_ = ParameterMap["numS"];
     chi_factor_ = ParameterMap["chi_factor"];
     jacobian_method_ = ParameterMap["jacobian_method"];
+    anhyst_type_ = ParameterMap["anhyst_type"]; // 1 is atan, 2 is MSM
+    if (anhyst_type_ == 2)
+    {
+      // multiscale anhysteresis model
+      SMSM_model_ = std::make_unique<SMSM>(ParameterMap["Ps"],
+                                           ParameterMap["AS"],
+                                           ParameterMap["K1"],
+                                           ParameterMap["K2"],
+                                           ParameterMap["lambda100"],
+                                           ParameterMap["lambda111"],
+                                           dim_);
+    }else{
+      // atan anhysteresis model
+      Ps_ = ParameterMap["Ps"];
+      A_ = ParameterMap["A"];
+    }
 
     isMH_ = ParameterMap["isMH"];
     if(isMH_ == 1.0){
@@ -172,14 +188,14 @@ DEFINE_LOG(eb, "EBHysteresis")
     Vector<Double> sigma;
     stressCoef->GetVector(sigma, lpm);
 
-    // dirty hack for 2d setups: add zero z-component to the stress tensor
-    if(dim_ == 2){
-      sigma.Push_back(0.0);
-      sigma.Push_back(0.0);
-      sigma.Push_back(0.0);
-      sigma[5] = sigma[2];
-      sigma[2] = 0.0;
-    }
+    // // dirty hack for 2d setups: add zero z-component to the stress tensor
+    // if(dim_ == 2){
+    //   sigma.Push_back(0.0);
+    //   sigma.Push_back(0.0);
+    //   sigma.Push_back(0.0);
+    //   sigma[5] = sigma[2];
+    //   sigma[2] = 0.0;
+    // }
     SMSM_model_->Register_stress(sigma);
 
     LOG_DBG3(eb) << "\n\t sigma = " << sigma.ToString();
@@ -1474,10 +1490,9 @@ DEFINE_LOG(eb, "EBHysteresis")
 
 
         // Use the MSMS for calculation of the new stage magnetization vector
-        StdVector<Double> dirH(3);
+        StdVector<Double> dirH(2);
         dirH[0] = HrxS_sol[k] / HrS;
         dirH[1] = HryS_sol[k] / HrS;
-        dirH[2] = 0.0;
         LOG_DBG3(eb) << "\n\t INPUT (H) OF SMSM: [" << HrxS_sol[k] << "," << HryS_sol[k] << ", " << 0.0 << "]";
         SMSM_model_->Eval(HrS, dirH);
         Vector<Double> M = SMSM_model_->GetM();
@@ -1522,10 +1537,9 @@ DEFINE_LOG(eb, "EBHysteresis")
     Double uy = Hex_y - chi * std::sin(phi);
     Double uabs = std::sqrt(ux*ux + uy*uy);
 
-    StdVector<Double> dirH(3);
+    StdVector<Double> dirH(2);
     dirH[0] = ux / uabs;
     dirH[1] = uy / uabs;
-    dirH[2] = 0.0;
 
     StdVector<Double> de_dphi(2);
     StdVector<Double> d2e_dphi2(2);
