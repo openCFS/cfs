@@ -315,18 +315,25 @@ namespace CoupledField
       if ( nonLinTypes.Find(PERMEABILITY) == -1){ 
         if (isHystereticMat) // NONLINEAR CASE BUT LINEAR REGION: \int B gradPhi'
         {
-          lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+          if(dim_ == 2){
+            lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 2>(), 1.0, GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+          }else{
+            lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+          }
           lin2->SetName("(B,grad phi'): nonlinear problem; linear subregion RHS");
           LinearFormContext *ctx = new LinearFormContext(lin2);
           ctx->SetEntities(ent[i]);
           ctx->SetFeFunction(feFunc_reduced);
           assemble_->AddLinearForm(ctx);
-          std::cout << "here" << std::endl;
         }
         else // LINEAR CASE : \int \mu Hs gradPhi'
         {
           PtrCoefFct mu_times_Hs = CoefFunction::Generate(mp_, Global::REAL, CoefXprVecScalOp(mp_, coef[i], perm_, CoefXpr::OP_MULT));  
-          lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, mu_times_Hs, volRegions, coefUpdateGeo);
+          if(dim_ == 2){
+            lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 2>(), 1.0, mu_times_Hs, volRegions, coefUpdateGeo);
+          }else{
+            lin2 = new BUIntegrator<Double>(new GradientOperator<FeH1, 3>(), 1.0, mu_times_Hs, volRegions, coefUpdateGeo);
+          }
           
           lin2->SetName("(mu Hs,grad phi'): linear RHS");
           LinearFormContext *ctx = new LinearFormContext(lin2);

@@ -371,7 +371,7 @@ namespace CoupledField
 
     double Fa, Fb, Fc;
     double c;
-    double tolerance = 1e-2;
+    double tolerance = 1e-3;
     double max_iter = 1e3;
     double iter_counter = 0;
     double prev_step = 0;
