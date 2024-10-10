@@ -24,12 +24,14 @@ namespace CoupledField {
 
     public:
       //! Constructor
-      SMSM(Double Ms, Double AS, Double K1, Double K2, Double lambda100, Double lambda111);
+      SMSM(Double Ms, Double AS, Double K1, Double K2, Double lambda100, Double lambda111, UInt dim);
 
       //! Destructor
       virtual ~SMSM();
 
       void Eval(Double valH, StdVector<Double> dirHloc);
+      void Eval3D(Double valH, StdVector<Double> dirHloc);
+      void Eval2D(Double valH, StdVector<Double> dirHloc);
 
       void Register_stress(Vector<Double> sigma);
 
@@ -48,5 +50,6 @@ namespace CoupledField {
       Vector<Double> MMoy_;
       Matrix<Double> epsmumoy_;
       Matrix<Double> dMdH_;
+      UInt dim_;
     };
 } //end of namespace

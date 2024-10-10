@@ -63,7 +63,8 @@ namespace CoupledField
                                            ParameterMap["K1"],
                                            ParameterMap["K2"],
                                            ParameterMap["lambda100"],
-                                           ParameterMap["lambda111"]);
+                                           ParameterMap["lambda111"],
+                                           dim_);
     }else{
       // atan anhysteresis model
       Ps_ = ParameterMap["Ps"];
@@ -197,14 +198,14 @@ namespace CoupledField
     Vector<Double> sigma;
     stressCoef->GetVector(sigma, lpm);
 
-    // dirty hack for 2d setups: add zero z-component to the stress tensor
-    if(dim_ == 2){
-      sigma.Push_back(0.0);
-      sigma.Push_back(0.0);
-      sigma.Push_back(0.0);
-      sigma[5] = sigma[2];
-      sigma[2] = 0.0;
-    }
+    // // dirty hack for 2d setups: add zero z-component to the stress tensor
+    // if(dim_ == 2){
+    //   sigma.Push_back(0.0);
+    //   sigma.Push_back(0.0);
+    //   sigma.Push_back(0.0);
+    //   sigma[5] = sigma[2];
+    //   sigma[2] = 0.0;
+    // }
     SMSM_model_->Register_stress(sigma);
 
     LOG_DBG3(eb) << "\n\t sigma = " << sigma.ToString();
@@ -1504,10 +1505,9 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
 
 
         // Use the MSMS for calculation of the new stage magnetization vector
-        StdVector<Double> dirH(3);
+        StdVector<Double> dirH(2);
         dirH[0] = HrxS_sol[k] / HrS;
         dirH[1] = HryS_sol[k] / HrS;
-        dirH[2] = 0.0;
         LOG_DBG3(eb) << "\n\t INPUT (H) OF SMSM: [" << HrxS_sol[k] << "," << HryS_sol[k] << ", " << 0.0 << "]";
         SMSM_model_->Eval(HrS, dirH);
         Vector<Double> M = SMSM_model_->GetM();
@@ -1553,10 +1553,9 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     Double uy = Hex_y - chi * std::sin(phi);
     Double uabs = std::sqrt(ux*ux + uy*uy);
 
-    StdVector<Double> dirH(3);
+    StdVector<Double> dirH(2);
     dirH[0] = ux / uabs;
     dirH[1] = uy / uabs;
-    dirH[2] = 0.0;
 
     StdVector<Double> de_dphi(2);
     StdVector<Double> d2e_dphi2(2);
