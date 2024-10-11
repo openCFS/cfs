@@ -411,8 +411,7 @@ namespace CoupledField
         if ((std::abs(new_step) <= tol_act) || (std::abs(Fb) < eps)){
             return b;
         }
-
-        if ((std::abs(prev_step) >= tol_act) && ((std::abs(Fa)-std::abs(Fa))<eps)){
+        if ((std::abs(prev_step) >= tol_act) && ((std::abs(Fa-Fb))<eps)){
             cb = c - b;
             if (std::abs(a-c) < eps){ // linear interpolation, only two points available
                 t1 = Fb/Fa;
