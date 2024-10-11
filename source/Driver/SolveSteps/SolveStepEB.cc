@@ -261,8 +261,8 @@ namespace CoupledField
 
   double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol){
 
-    Double bottom_interval = 0.0 + 1e-15;
-    Double top_interval = 1; 
+    Double bottom_interval = 0.0 + 1e-5;
+    Double top_interval = 2; 
     Double gamma = 0;
     
     gamma = BrentMethod(solIncrement, stageSol, bottom_interval, top_interval);
@@ -273,7 +273,7 @@ namespace CoupledField
     
     SBM_Vector residual_vector(BaseMatrix::DOUBLE);
     SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
-    double EnergyDerivative = 0;
+    double EnergyDerivative = 0.0;
 
     stageSol.Add(eta,solIncrement);
     algsys_->InitRHS();
@@ -376,7 +376,7 @@ namespace CoupledField
     double iter_counter = 0;
     double prev_step = 0;
     double tol_act = 0;
-    double eps = 2.2204e-16;
+    double eps = std::numeric_limits<Double>::min();
     double new_step = 0;
     double cb = 0;
     double t1 = 0;
@@ -408,22 +408,22 @@ namespace CoupledField
         tol_act =  2*eps*std::abs(b) + tolerance/2 ;
         new_step = (c-b)/2 ;
 
-        if (std::abs(new_step) <= tol_act || std::abs(Fb) < eps){
+        if ((std::abs(new_step) <= tol_act) || (std::abs(Fb) < eps)){
             return b;
         }
 
-        if (std::abs(prev_step) >= tol_act && Fa == Fb){
+        if ((std::abs(prev_step) >= tol_act) && ((std::abs(Fa)-std::abs(Fa))<eps)){
             cb = c - b;
             if (std::abs(a-c) < eps){ // linear interpolation, only two points available
                 t1 = Fb/Fa;
                 p = cb*t1;
-                q = 1 - t1;
+                q = 1.0 - t1;
             }else { // three points, do quadratic inverse  interpolation
                 a = Fa/Fc;
                 t1 = Fb/Fc;
                 t2 = Fb/Fa;
-                p = t2*( cb*q*(q-t1) - (b-a)*(t1-1) );
-                q = (q-1)*(t1-1)*(t2-1);
+                p = t2*( cb*q*(q-t1) - (b-a)*(t1-1.0) );
+                q = (q-1.0)*(t1-1.0)*(t2-1.0);
             }
 
             if (p > 0){
@@ -432,7 +432,7 @@ namespace CoupledField
                 p = -p;
             }
 
-            if (p < ( 0.75*cb*q-std::abs(tol_act*q)/2 ) && p < abs(prev_step*q/2)){
+            if ((p < ( 0.75*cb*q-std::abs(tol_act*q)/2.0 )) && (p < abs(prev_step*q/2.0))){
                 new_step = p/q;
             }
         }
@@ -450,7 +450,7 @@ namespace CoupledField
         Fa = Fb;
         b = b + new_step;
         Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
-        if (( Fb > 0 && Fc > 0 ) || ( Fb < 0 && Fc < 0 )){
+        if (( Fb > 0.0 && Fc > 0.0 ) || ( Fb < 0.0 && Fc < 0.0 )){
             c = a;
             Fc = Fa;        
         }
