@@ -225,19 +225,24 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
       // get bounding boxes of lines [min(x),max(x);min(y),max(y)]
       ptGrid_->CalcBoundingBoxOfRegion(masterSurfRegion_, bboxMas);
       ptGrid_->CalcBoundingBoxOfRegion(slaveSurfRegion_, bboxSla);
+      // normalize tolerances
+      Double tol = fmax(fmax(fabs(bboxMas[0][0] - bboxMas[0][1]),
+                             fabs(bboxMas[1][0] - bboxMas[1][1])),
+                        fmax(fabs(bboxSla[0][0] - bboxSla[0][1]),
+                             fabs(bboxSla[1][0] - bboxSla[1][1]))) * tolRel_;
       // find intersection point of the bounding boxes
-      if (bboxMas[0][0] > bboxSla[0][1] + EPS || bboxMas[1][1] < bboxSla[1][0] - EPS)
+      if (bboxMas[0][0] > bboxSla[0][1] + tol || bboxMas[1][1] < bboxSla[1][0] - tol)
         EXCEPTION("No intersecting bounding boxes found for cake-piece projection!");
-      if (fabs(bboxMas[0][0] - bboxSla[0][0]) < EPS &&
-          fabs(bboxMas[0][1] - bboxSla[0][1]) < EPS &&
-          fabs(bboxMas[1][0] - bboxSla[1][0]) < EPS &&
-          fabs(bboxMas[1][1] - bboxSla[1][1]) < EPS)
+      if (fabs(bboxMas[0][0] - bboxSla[0][0]) < tol &&
+          fabs(bboxMas[0][1] - bboxSla[0][1]) < tol &&
+          fabs(bboxMas[1][0] - bboxSla[1][0]) < tol &&
+          fabs(bboxMas[1][1] - bboxSla[1][1]) < tol)
         EXCEPTION("Bounding boxes for cake-piece projection entirely overlap. Intersection is not unique!");
       // check if both vectors have equal lengths
       Double lenMas, lenSla;
       lenMas = sqrt(pow(bboxMas[0][1]-bboxMas[0][0],2) + pow(bboxMas[1][1]-bboxMas[1][0],2));
       lenSla = sqrt(pow(bboxSla[0][1]-bboxSla[0][0],2) + pow(bboxSla[1][1]-bboxSla[1][0],2));
-      if (fabs(lenMas - lenSla) > EPS)
+      if (fabs(lenMas - lenSla) > tol)
         EXCEPTION("Rotated mutual projection is only supported for lines of equal lengths");
 
       // get two nodes of each line..
@@ -252,7 +257,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
 
       // get line parameters and find intersections
       Vector<Double> intersectionPoint(2);
-      if (fabs(coordsMas[1][0] - coordsMas[0][0]) > EPS && 
+      if (fabs(coordsMas[1][0] - coordsMas[0][0]) > tol && 
           fabs(coordsSla[1][0] - coordsSla[0][0])){
         // if both lines can be parametrized as y = k*x + d, find the params
         Double kMas,kSla,dMas,dSla;
@@ -263,7 +268,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
         intersectionPoint[0] = (dSla-dMas)/(kMas-kSla);
         intersectionPoint[1] = kMas*intersectionPoint[0] + dMas;
       }
-      else if (fabs(coordsMas[1][0] - coordsMas[0][0]) <= EPS) {
+      else if (fabs(coordsMas[1][0] - coordsMas[0][0]) <= tol) {
         // if the primary line is horizontal (would lead to infinite kMas)
         // find the params of secondary side
         Double kSla,dSla;
@@ -272,7 +277,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
         intersectionPoint[0] = (coordsMas[1][0] + coordsMas[0][0]) / 2;
         intersectionPoint[1] = kSla*intersectionPoint[0] + dSla;
       }
-      else if (fabs(coordsSla[1][0] - coordsSla[0][0]) <= EPS) {
+      else if (fabs(coordsSla[1][0] - coordsSla[0][0]) <= tol) {
         // if the secondary line is horizontal (would lead to infinite kSla)
         // find the params of primary side
         Double kMas,dMas;
@@ -286,17 +291,17 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
 
       // extract line vectors from bounding boxes, knowing the intersection point
       Vector<Double> lineMas(2), lineSla(2);
-      lineMas[0] = (fabs(bboxMas[0][0] - intersectionPoint[0]) < EPS) ? bboxMas[0][1] - intersectionPoint[0] : bboxMas[0][0] - intersectionPoint[0];
-      lineMas[1] = (fabs(bboxMas[1][0] - intersectionPoint[1]) < EPS) ? bboxMas[1][1] - intersectionPoint[1] : bboxMas[1][0] - intersectionPoint[1];
-      lineSla[0] = (fabs(bboxSla[0][0] - intersectionPoint[0]) < EPS) ? bboxSla[0][1] - intersectionPoint[0] : bboxSla[0][0] - intersectionPoint[0];
-      lineSla[1] = (fabs(bboxSla[1][0] - intersectionPoint[1]) < EPS) ? bboxSla[1][1] - intersectionPoint[1] : bboxSla[1][0] - intersectionPoint[1];
+      lineMas[0] = (fabs(bboxMas[0][0] - intersectionPoint[0]) < tol) ? bboxMas[0][1] - intersectionPoint[0] : bboxMas[0][0] - intersectionPoint[0];
+      lineMas[1] = (fabs(bboxMas[1][0] - intersectionPoint[1]) < tol) ? bboxMas[1][1] - intersectionPoint[1] : bboxMas[1][0] - intersectionPoint[1];
+      lineSla[0] = (fabs(bboxSla[0][0] - intersectionPoint[0]) < tol) ? bboxSla[0][1] - intersectionPoint[0] : bboxSla[0][0] - intersectionPoint[0];
+      lineSla[1] = (fabs(bboxSla[1][0] - intersectionPoint[1]) < tol) ? bboxSla[1][1] - intersectionPoint[1] : bboxSla[1][0] - intersectionPoint[1];
 
       // check if intersection point is in bounding box
-      if (intersectionPoint[0] < bboxMas[0][0] - EPS || intersectionPoint[0] > bboxMas[0][1] + EPS ||
-          intersectionPoint[1] < bboxMas[1][0] - EPS || intersectionPoint[1] > bboxMas[1][1] + EPS)
+      if (intersectionPoint[0] < bboxMas[0][0] - tol || intersectionPoint[0] > bboxMas[0][1] + tol ||
+          intersectionPoint[1] < bboxMas[1][0] - tol || intersectionPoint[1] > bboxMas[1][1] + tol)
         EXCEPTION("Intersection point :\n" << intersectionPoint << "\n for cake-piece projection is not in bounding box of primary surface:\n" << bboxMas);
-      if (intersectionPoint[0] < bboxSla[0][0] - EPS || intersectionPoint[0] > bboxSla[0][1] + EPS ||
-          intersectionPoint[1] < bboxSla[1][0] - EPS || intersectionPoint[1] > bboxSla[1][1] + EPS)
+      if (intersectionPoint[0] < bboxSla[0][0] - tol || intersectionPoint[0] > bboxSla[0][1] + tol ||
+          intersectionPoint[1] < bboxSla[1][0] - tol || intersectionPoint[1] > bboxSla[1][1] + tol)
         EXCEPTION("Intersection point :\n" << intersectionPoint << "\n for cake-piece projection is not in bounding box of secondary surface:\n" << bboxSla);
 
       // calculate the angle between the lines

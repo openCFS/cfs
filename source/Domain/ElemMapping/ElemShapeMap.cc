@@ -306,7 +306,7 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   Vector<Double> globalPoint;
   Vector<Double> localPoint;
   esm->Local2Global(globalPoint, lp);
-
+std::cout << "------------------------global Point before: " << globalPoint << std::endl;
   // kirill:
   // We cannot simply map the global point lying on our surface element to the volume element: in case of mortar element
   // for p.b.c., the global point can lie out of the volume element. That's why we first map the global point form the NC-element to
@@ -333,14 +333,15 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   if (!useMaster)
     normal *= -1.0;
   
-  if (!(esmVol->CoordIsInsideElem(lpVol.coord, EPS))) {
-    WARN("Projected integration point is not inside volume element!");
+  if (!(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS*1e3))) {
+    WARN("Projected integration point '" << lpVol.coord << "' is not inside volume element!");
+    // debug commands, remove before merge!
+    // std::cout << "----------------------------global Point after: " << globalPoint << std::endl;
+    // std::cout << "lpVol.coord: " << lpVol.coord << std::endl;
+    // std::cout << "localPoint: " << localPoint << std::endl;
+    // esm->Local2Global(globalPoint, lp);
+    // esmSurfElem->TransferPointOntoSurface(mortarElem->transVect, mortarElem->rotationCenter, mortarElem->rotationAngle, globalPoint);
   }
-  // debug messages, remove before merge!
-  // std::cout << "------------------------global Point before: " << globalPoint << std::endl;
-  // std::cout << "----------------------------global Point after: " << globalPoint << std::endl;
-  // std::cout << "lpVol.coord: " << lpVol.coord << std::endl;
-  // std::cout << "localPoint: " << localPoint << std::endl;
 }
 
 Vector<double>& LocPointMapped::GetGlobal(Vector<double>& coord, const LocPoint* loc, bool fallback, bool update) const
@@ -613,7 +614,7 @@ void LagrangeElemShapeMap::TransferPointOntoSurface(const Vector<Double>& transl
   p3 = point - p1;
   p3.Normalize();
   Double cross = p2[0]*p3[1] - p2[1]*p3[0];
-  if (fabs(cross) < EPS)
+  if (fabs(cross) < NORM_EPS*1e3)
     return;
 
   // check for the direction of translation to decide in which direction we need to transfer
