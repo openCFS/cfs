@@ -91,7 +91,7 @@ DEFINE_LOG(smsm, "SMSM")
       // 2D CASE
       // here we can create a uniform meshin in 2d (circle)
 
-      numRows_ = 360*1;
+      numRows_ = 360*3;
       const UInt numCols = 2;
       Double delta_alpha = 2*M_PI/numRows_;
 
