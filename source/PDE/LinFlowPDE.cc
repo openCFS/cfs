@@ -506,10 +506,62 @@ namespace CoupledField {
       // CHECK FOR BASE BACKGROUND FLOW
       //======================================================================
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
-      if(flowId != ""){
+       
+      if(flowId == "") {
+        
+          // Check if no meanFluidMechVelocity is defined if no background flow exists 
+          if(myParam_->Get("storeResults")->HasByVal("nodeResult","type","meanFluidMechVelocity")) {
+            EXCEPTION("Result value meanFluidMechVelocity defined but no background flow is defined!");
+          }
+      }
+
+      // This makes sure that the meanFluidMechVelocity is only defined if a background flow is defined in the region 
+      else {
+
         if( isaxi_ ) {
           EXCEPTION("Axi formulation not checked for background flow, please check and verify!");
         }
+
+        //Check if result value meanFluidMechVelocity is defined
+        if(myParam_->Get("storeResults")->HasByVal("nodeResult","type","meanFluidMechVelocity")) {
+          
+          ParamNodeList regionListAll = myParam_->Get("regionList")->GetList("region");
+
+          //Check for allRegions in result value meanFluidMechVelocity
+          if(myParam_->Get("storeResults")->GetByVal("nodeResult","type","meanFluidMechVelocity")->Has("allRegions")) { 
+            
+            //iterate over allRegions 
+            for (boost::shared_ptr<ParamNode> region : regionListAll) {
+              
+              //Check if a background flow is defined
+              if(!region->Has("flowId")) {
+                 EXCEPTION("Result value meanFluidMechVelocity defined an a region that has no background flow defined!");
+              }
+            }
+          }
+
+          //Check for specific defined regions
+          else if(myParam_->Get("storeResults")->GetByVal("nodeResult","type","meanFluidMechVelocity")->Has("regionList")) { 
+            
+            ParamNodeList regionListMeanFlow = myParam_->Get("storeResults")->GetByVal("nodeResult","type","meanFluidMechVelocity")->Get("regionList")->GetList("region");
+            
+            //iterate over all regions meanFluidMechVelocity is calculated on
+            for (boost::shared_ptr<ParamNode> regionMean : regionListMeanFlow) {
+
+              //Check if the meanFluidMechVelocity region is defined in the region list
+              if(myParam_->Get("regionList")->HasByVal("region","name",regionMean->Get("name")->As<std::string>())) {
+                
+                //Check if the meanFluidMechVelocity region has a flowId defined in the region list
+                if(!myParam_->Get("regionList")->GetByVal("region","name",regionMean->Get("name")->As<std::string>())->Has("flowId")) {
+                  EXCEPTION("Result value meanFluidMechVelocity defined on region that has no background flow defined!");
+                }
+              } else {
+                EXCEPTION("Unknown region defined result value meanFluidMechVelocity");
+              }
+            }
+          }
+        } 
+
 
         // Get result info object for flow
         shared_ptr<ResultInfo> velocityInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
