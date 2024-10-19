@@ -10,35 +10,35 @@
 namespace CoupledField
 {
 
-PyObject* Optimization::PythonFunctionValues() const
+pyObject* Optimization::PythonFunctionValues() const
 {
   assert(false);
   return nullptr;
 }
 
-void Optimization::PythonStopOptimization(PyObject* args)
+void Optimization::PythonStopOptimization(pyObject* args)
 {
   assert(false);
 }
 
 
-PyObject* Optimization::PythonGetOptimizerProperties() const
+pyObject* Optimization::PythonGetOptimizerProperties() const
 {
   assert(false);
   return nullptr;
 }
 
-void OptimalityCondition::PythonSetProperty(PyObject* args)
+void OptimalityCondition::PythonSetProperty(pyObject* args)
 {
   assert(false);
 }
 
-void MMA::PythonSetProperty(PyObject* args)
+void MMA::PythonSetProperty(pyObject* args)
 {
   assert(false);
 }
 
-void DumasMMA::PythonSetProperty(PyObject* args)
+void DumasMMA::PythonSetProperty(pyObject* args)
 {
   assert(false);
 }
@@ -59,7 +59,7 @@ void Function::SetLocalPythonVirtualElementMap(StdVector<Function::Local::Identi
 }
 
 
-PyObject* Function::CallPythonFunction(bool eval)
+pyObject* Function::CallPythonFunction(bool eval)
 {
   assert(false);
   return NULL;
@@ -84,13 +84,13 @@ void Function::Local::Identifier::CalcLocalPythonGrad(Vector<double>& grad, cons
   assert(false);
 }
 
-PyObject* DesignSpace::PythonGetFilterProperties(PyObject* args) const
+pyObject* DesignSpace::PythonGetFilterProperties(pyObject* args) const
 {
   assert(false);
   return nullptr;
 }
 
-void DesignSpace::PythonSetFilterProperties(PyObject* args)
+void DesignSpace::PythonSetFilterProperties(pyObject* args)
 {
   assert(false);
 }

@@ -386,18 +386,18 @@ namespace CoupledField
      virtual void AddToDensityHeader(PtrParamNode pn) {};
 
      /** SpaghettiDesign has a own python module (script) which can be selected for python functions as script=design */
-     virtual PyObject* GetPythonModule() { return NULL; }
+     virtual pyObject* GetPythonModule() { return NULL; }
 
      /** implement python function get_opt_filter_values()
       * give python all GlobalFilter properties of filter as string/string dict
       * @param args which filter - default is 0 for the first one. Check 'total_filters' in result for range info */
-     PyObject* PythonGetFilterProperties(PyObject* args) const;
+     pyObject* PythonGetFilterProperties(pyObject* args) const;
 
      /** implement python function set_opt_filter_values()
       * From a dict, accept "beta" and "eta" and optionally "non_lin_scale" and "non_lin_offset".
       * If not both non_lin_ is given, it is computed automatically
       * @param args tuple with filter idx and string/string dict */
-     void PythonSetFilterProperties(PyObject* args);
+     void PythonSetFilterProperties(pyObject* args);
 
      /** the global LocalElementCache instance, not necessary enabled. Only a pointer for include reasons */
      LocalElementCache* elementCache = NULL;

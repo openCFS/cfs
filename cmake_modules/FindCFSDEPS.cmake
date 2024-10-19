@@ -162,6 +162,10 @@ if(USE_SUPERLU)
   include("${CFSDEPS_DIR}/superlu/External_SuperLU.cmake")
 endif()
 
+if(USE_LIBTORCH)
+  include("${CFSDEPS_DIR}/libtorch/External_libtorch.cmake")
+endif()
+
 #-------------------------------------------------------------------------------
 # Find Boost
 #-------------------------------------------------------------------------------

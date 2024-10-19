@@ -97,7 +97,7 @@ void PythonKernel::InitInterpreter()
   PyImport_AppendInittab("cfs", SetModulFunctions);
   Py_Initialize();
 
-  PyObject* version = PySys_GetObject("version");
+  pyObject* version = PySys_GetObject("version");
   if(!version)
     throw Exception("embedded Python not working: " + PyErr());
 
@@ -137,7 +137,7 @@ PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, cons
   boost::filesystem::path absolute = boost::filesystem::absolute(givenname.parent_path());
 
   // add to PYTHONPATH to make it more realistic to load the module :)
-  PyObject* sysPath = PySys_GetObject((char*) "path"); // must not decref after append - note the difference to the attribute syspath!
+  pyObject* sysPath = PySys_GetObject((char*) "path"); // must not decref after append - note the difference to the attribute syspath!
   LOG_DBG(pykernel) << "IPM: original sysPath=" << ConvertPythonList<string>(sysPath).ToString();
   // first add share
   PyList_Insert(sysPath, 0, PyUnicode_FromString(share.string().c_str()));
@@ -181,13 +181,13 @@ void PythonKernel::CallHook(Hook key)
   assert(param.function != "");
   assert(python->kernel_ != NULL);
 
-  PyObject* func = PyObject_GetAttrString(python->kernel_, param.function.c_str());
+  pyObject* func = pyObject_GetAttrString(python->kernel_, param.function.c_str());
   CheckPythonFunction(func, param.function.c_str());
 
-  PyObject* arg = PyTuple_New(1);
+  pyObject* arg = PyTuple_New(1);
   PyTuple_SetItem(arg, 0, CreatePythonDict(param.options)); // PyTuple_SetItem() steals the reference
 
-  PyObject* call = PyObject_CallObject(func, arg);
+  pyObject* call = pyObject_CallObject(func, arg);
   CheckPythonReturn(call);
 
   Py_XDECREF(call);
@@ -235,7 +235,7 @@ FeaturedDesign* PythonKernel::GetFeaturedDesign()
 
 
 template<class TYPE>
-void PythonKernel::ConvertPythonList(Container<TYPE>& vec, PyObject* list)
+void PythonKernel::ConvertPythonList(Container<TYPE>& vec, pyObject* list)
 {
   if (!PyList_Check(list))
     throw Exception("provided object is no list");
@@ -246,14 +246,14 @@ void PythonKernel::ConvertPythonList(Container<TYPE>& vec, PyObject* list)
 
   for(int i = 0; i < size; i++)
   {
-    PyObject* item = PyList_GetItem(list, i); // borrowed reference
+    pyObject* item = PyList_GetItem(list, i); // borrowed reference
     vec[i] = Convert<TYPE>(item);
   }
 }
 
 
 template<>
-std::string PythonKernel::Convert<std::string>(PyObject* item)
+std::string PythonKernel::Convert<std::string>(pyObject* item)
 {
   const char* c = PyUnicode_AsUTF8(item);
   if(!c)
@@ -262,13 +262,13 @@ std::string PythonKernel::Convert<std::string>(PyObject* item)
 }
 
 template<>
-double PythonKernel::Convert<double>(PyObject* item)
+double PythonKernel::Convert<double>(pyObject* item)
 {
   return PyFloat_AsDouble(item);
 }
 
 template<>
-Vector<int> PythonKernel::Convert<Vector<int> >(PyObject* item)
+Vector<int> PythonKernel::Convert<Vector<int> >(pyObject* item)
 {
   Vector<int> vec(item, false); // don't decref
   return vec;
@@ -276,9 +276,9 @@ Vector<int> PythonKernel::Convert<Vector<int> >(PyObject* item)
 
 
 template<class TYPE>
-PyObject* PythonKernel::CreatePythonList(const Container<TYPE>& vec)
+pyObject* PythonKernel::CreatePythonList(const Container<TYPE>& vec)
 {
-  PyObject* list = PyList_New(vec.GetSize());
+  pyObject* list = PyList_New(vec.GetSize());
   for(unsigned int i = 0; i < vec.GetSize(); i++)
     PyList_SetItem(list, i, Create<TYPE>(vec[i]));
   return list;
@@ -286,28 +286,28 @@ PyObject* PythonKernel::CreatePythonList(const Container<TYPE>& vec)
 
 
 template<>
-PyObject* PythonKernel::Create<std::string>(const std::string& val)
+pyObject* PythonKernel::Create<std::string>(const std::string& val)
 {
   return PyUnicode_FromString(val.c_str());
 }
 
 template<>
-PyObject* PythonKernel::Create<double>(const double& val)
+pyObject* PythonKernel::Create<double>(const double& val)
 {
   return PyFloat_FromDouble(val);
 }
 
 template<>
-PyObject* PythonKernel::Create<int>(const int& val)
+pyObject* PythonKernel::Create<int>(const int& val)
 {
   return PyLong_FromLong(val);
 }
 
 
-PyObject* PythonKernel::CreatePythonDict(const StdVector<pair<string, string> > options)
+pyObject* PythonKernel::CreatePythonDict(const StdVector<pair<string, string> > options)
 {
   // test dictionary
-  PyObject* dict = PyDict_New();
+  pyObject* dict = PyDict_New();
   for(auto opt : options)
     PyDict_SetItemString(dict, opt.first.c_str(), PyUnicode_FromString(opt.second.c_str()));
 
@@ -326,12 +326,12 @@ StdVector<pair<string, string> > PythonKernel::ParseOptions(ParamNodeList lst)
 
 
 
-StdVector<PyObject*> PythonKernel::ParseNumpyArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref)
+StdVector<pyObject*> PythonKernel::ParseNumpyArrays(pyObject* args, int expect, StdVector<Vector<double> >& data, bool decref)
 {
   if(PyTuple_Size(args) != expect)
     throw Exception("expects " + to_string(expect) + " parameters in python function call, got " + to_string(PyTuple_Size(args)));
 
-  StdVector<PyObject*> obj(expect);
+  StdVector<pyObject*> obj(expect);
 
   // could clearly be done smarter!
   switch(expect)
@@ -364,9 +364,9 @@ StdVector<PyObject*> PythonKernel::ParseNumpyArrays(PyObject* args, int expect, 
 }
 
 
-void PythonKernel::CheckPythonReturn(PyObject* pyobject, const char* name)
+void PythonKernel::CheckPythonReturn(pyObject* pyObject, const char* name)
 {
-  if(!pyobject)
+  if(!pyObject)
     // allow for stacktrace printing on console
     throw Exception("Python returns error " + string(name != NULL ? name : "") + ": " + PyErr());
 }
@@ -378,9 +378,9 @@ void PythonKernel::CheckPythonReturn(int ret, const char* name)
 }
 
 
-void PythonKernel::CheckPythonFunction(PyObject* pyobject, const char* name)
+void PythonKernel::CheckPythonFunction(pyObject* pyObject, const char* name)
 {
-  if(!(pyobject && PyCallable_Check(pyobject)))
+  if(!(pyObject && PyCallable_Check(pyObject)))
     throw Exception("Cannot call Python function " + string(name ? name : ""));
 }
 
@@ -397,17 +397,17 @@ string PythonKernel::PyErr(bool call_PyErr_Print)
     PyErr_Print();
 
   // https://docs.python.org/3/library/sys.html
-  PyObject* ltv = PySys_GetObject((char*) "last_value"); // borrowed reference, don't decref
+  pyObject* ltv = PySys_GetObject((char*) "last_value"); // borrowed reference, don't decref
 
   return ToString(ltv);
 }
 
-std::string PythonKernel::ToString(PyObject* obj)
+std::string PythonKernel::ToString(pyObject* obj)
 {
   if(!obj)
     return string();
 
-  PyObject* so = PyObject_Repr(obj); // new reference!
+  pyObject* so = pyObject_Repr(obj); // new reference!
   assert(so);
   const char* sc = PyUnicode_AsUTF8(so);
   assert(sc != NULL);
@@ -418,10 +418,10 @@ std::string PythonKernel::ToString(PyObject* obj)
 
 
 template<class T>
-Matrix<T> PythonKernel::Numpy2DArrayToMatrix(PyObject* numpy, Matrix<T>& out, bool decref)
+Matrix<T> PythonKernel::Numpy2DArrayToMatrix(pyObject* numpy, Matrix<T>& out, bool decref)
 {
   if(!PyArray_Check(numpy))
-    throw Exception("provided PyObject seems not to be a numpy array");
+    throw Exception("provided pyObject seems not to be a numpy array");
 
   PyArrayObject* arr = (PyArrayObject*) numpy;
 
@@ -441,10 +441,10 @@ Matrix<T> PythonKernel::Numpy2DArrayToMatrix(PyObject* numpy, Matrix<T>& out, bo
 }
 
 template<class T>
-void PythonKernel::MatrixToNumpyArray(const Matrix<T>& in, PyObject* numpy)
+void PythonKernel::MatrixToNumpyArray(const Matrix<T>& in, pyObject* numpy)
 {
   if(!PyArray_Check(numpy))
-    throw Exception("provided PyObject seems not to be a numpy array");
+    throw Exception("provided pyObject seems not to be a numpy array");
 
   PyArrayObject* arr = (PyArrayObject*) numpy;
 
@@ -461,19 +461,19 @@ void PythonKernel::MatrixToNumpyArray(const Matrix<T>& in, PyObject* numpy)
 
 // the pyton function stuff is in PythonKernelFunction.cc
 
-template Matrix<double> PythonKernel::Numpy2DArrayToMatrix<double>(PyObject*, Matrix<double>&, bool);
-template Matrix<int> PythonKernel::Numpy2DArrayToMatrix<int>(PyObject*, Matrix<int>&, bool);
+template Matrix<double> PythonKernel::Numpy2DArrayToMatrix<double>(pyObject*, Matrix<double>&, bool);
+template Matrix<int> PythonKernel::Numpy2DArrayToMatrix<int>(pyObject*, Matrix<int>&, bool);
 
-template void PythonKernel::MatrixToNumpyArray<double>(const Matrix<double>&, PyObject*);
-template void PythonKernel::MatrixToNumpyArray<int>(const Matrix<int>&, PyObject*);
+template void PythonKernel::MatrixToNumpyArray<double>(const Matrix<double>&, pyObject*);
+template void PythonKernel::MatrixToNumpyArray<int>(const Matrix<int>&, pyObject*);
 
-template PyObject* PythonKernel::CreatePythonList<std::string>(const Container<std::string>&);
-template PyObject* PythonKernel::CreatePythonList<double>(const Container<double>&);
-template PyObject* PythonKernel::CreatePythonList<int>(const Container<int>&);
+template pyObject* PythonKernel::CreatePythonList<std::string>(const Container<std::string>&);
+template pyObject* PythonKernel::CreatePythonList<double>(const Container<double>&);
+template pyObject* PythonKernel::CreatePythonList<int>(const Container<int>&);
 
-template void PythonKernel::ConvertPythonList<std::string>(Container<std::string>&, PyObject*);
-template void PythonKernel::ConvertPythonList<double>(Container<double>&, PyObject*);
-template void PythonKernel::ConvertPythonList<Vector<int> >(Container<Vector<int> >&, PyObject*);
+template void PythonKernel::ConvertPythonList<std::string>(Container<std::string>&, pyObject*);
+template void PythonKernel::ConvertPythonList<double>(Container<double>&, pyObject*);
+template void PythonKernel::ConvertPythonList<Vector<int> >(Container<Vector<int> >&, pyObject*);
 
 
 } // end of namespace

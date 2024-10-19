@@ -19,44 +19,44 @@ public:
   /** the static functions are generally optimization oriented and e.g. available for python functions */
 
   /** returns 4 values: dim, nx, ny, nz */
-  static PyObject* GetDims(PyObject* args);
+  static pyObject* GetDims(pyObject* args);
 
   /** number of design variables */
-  static PyObject* GetNumDesign(PyObject* args);
+  static pyObject* GetNumDesign(pyObject* args);
 
   /** return single plain design variable */
-  static PyObject* GetDesignValue(PyObject* args);
+  static pyObject* GetDesignValue(pyObject* args);
 
   /** set design variables to provided numpy array of proper size + optional acesss */
-  static PyObject* GetDesignValues(PyObject* args);
+  static pyObject* GetDesignValues(pyObject* args);
 
   /** expects two 1Dim Arrays for design bounds and two 1Dim arrays for constraint bounds. Not normalized, equal is both the same */
-  void GetBounds(PyObject* args);
+  void GetBounds(pyObject* args);
 
-  void GetInitialDesign(PyObject* args);
+  void GetInitialDesign(pyObject* args);
 
   /** Evaluate objective and expects 1Dim design as numpy array */
-  double EvalObjective(PyObject* args);
+  double EvalObjective(pyObject* args);
 
   /** automatically makes this a new iteration, could be changed by function to by called by python */
-  void EvalGradObjective(PyObject* args);
+  void EvalGradObjective(pyObject* args);
 
   /** Evaluate constraints and expects 1Dim design as numpy array and 1Dim array of size m for values */
-  void EvalConstraints(PyObject* args);
+  void EvalConstraints(pyObject* args);
 
-  void EvalGradConstraints(PyObject* args);
+  void EvalGradConstraints(pyObject* args);
 
   /** this should be in PythonKernel but somehow this gives a segfault which indicates that PyArg_ParseTuple is not defined?!
    * @param decref if false make sure to decref the objects via the return array
-   * @return you must not use the PyObjects when decref is true */
-  static StdVector<PyObject*> ParseArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref);
+   * @return you must not use the pyObjects when decref is true */
+  static StdVector<pyObject*> ParseArrays(pyObject* args, int expect, StdVector<Vector<double> >& data, bool decref);
 
   double GetSimpExponent();
 
   /** Returns derivative of compliance w.r.t. material tensor */
-  void Get_dfdH(PyObject *args);
+  void Get_dfdH(pyObject *args);
 
-  void GetCoreStiffness(PyObject *args);
+  void GetCoreStiffness(pyObject *args);
 
 protected:
 
@@ -71,7 +71,7 @@ private:
   std::string givenname;
 
   /** keeps the python script */
-  PyObject* module = NULL;
+  pyObject* module = NULL;
 
   /** number of design variables */
   unsigned int n = 0;

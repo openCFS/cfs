@@ -69,9 +69,9 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
 
   // call optional setup()
   std::string val = "not callable";
-  PyObject* setup = PyObject_GetAttrString(module, "setup");
+  pyObject* setup = pyObject_GetAttrString(module, "setup");
   if(setup && PyCallable_Check(setup)) {
-    PyObject* ret = PyObject_CallObject(setup, NULL);
+    pyObject* ret = pyObject_CallObject(setup, NULL);
     PythonKernel::CheckPythonReturn(ret, "setup"); // setup is optional, nut if there is function it shall work!
     val = PythonKernel::ToString(ret);
     Py_XDECREF(ret);
@@ -80,15 +80,15 @@ PythonOptimizer::PythonOptimizer(Optimization* opt, PtrParamNode pn) :
   pnh->Get("setup")->SetValue(val);
 
   // call mandatory init(n ,m, iters, name, options)
-  PyObject* init = PyObject_GetAttrString(module, "init");
+  pyObject* init = pyObject_GetAttrString(module, "init");
   if(init && PyCallable_Check(init)) {
-    PyObject* arg = PyTuple_New(5);
+    pyObject* arg = PyTuple_New(5);
     PyTuple_SetItem(arg, 0, PyLong_FromLong(n));
     PyTuple_SetItem(arg, 1, PyLong_FromLong(m));
     PyTuple_SetItem(arg, 2, PyLong_FromLong(optimization->GetMaxIterations()));
     PyTuple_SetItem(arg, 3, PyUnicode_FromString(progOpts->GetSimName().c_str()));
     PyTuple_SetItem(arg, 4, PythonKernel::CreatePythonDict(options));
-    PyObject* ret = PyObject_CallObject(init, arg);
+    pyObject* ret = pyObject_CallObject(init, arg);
     PythonKernel::CheckPythonReturn(ret, "init");
     pnh->Get("init")->SetValue(PythonKernel::ToString(ret));
     Py_XDECREF(ret);
@@ -112,11 +112,11 @@ void PythonOptimizer::SolveProblem()
 
   // call mandatory solve()
   std::string val;
-  PyObject* solve = PyObject_GetAttrString(module, "solve");
+  pyObject* solve = pyObject_GetAttrString(module, "solve");
   if(!solve || !PyCallable_Check(solve))
     throw Exception("no solve() in python module " + givenname);
 
-  PyObject* ret = PyObject_CallObject(solve, NULL);
+  pyObject* ret = pyObject_CallObject(solve, NULL);
   if(!ret)
     throw Exception("error calling solve() in python module " + givenname + ": " + PythonKernel::PyErr());
 
@@ -126,12 +126,12 @@ void PythonOptimizer::SolveProblem()
 }
 
 
-StdVector<PyObject*> PythonOptimizer::ParseArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref)
+StdVector<pyObject*> PythonOptimizer::ParseArrays(pyObject* args, int expect, StdVector<Vector<double> >& data, bool decref)
 {
   if(PyTuple_Size(args) != expect)
     throw Exception("expects " + to_string(expect) + " parameters in python function call, got " + to_string(PyTuple_Size(args)));
 
-  StdVector<PyObject*> obj(expect);
+  StdVector<pyObject*> obj(expect);
 
   // could clearly be done smarter!
   switch(expect)
@@ -166,10 +166,10 @@ StdVector<PyObject*> PythonOptimizer::ParseArrays(PyObject* args, int expect, St
   return obj;
 }
 
-void PythonOptimizer::GetInitialDesign(PyObject* args)
+void PythonOptimizer::GetInitialDesign(pyObject* args)
 {
   StdVector<Vector<double> > data;
-  StdVector<PyObject*> obj = ParseArrays(args, 1, data, false);
+  StdVector<pyObject*> obj = ParseArrays(args, 1, data, false);
 
   Vector<double>& x = data[0];
 
@@ -182,10 +182,10 @@ void PythonOptimizer::GetInitialDesign(PyObject* args)
 }
 
 
-void PythonOptimizer::GetBounds(PyObject *args)
+void PythonOptimizer::GetBounds(pyObject *args)
 {
   StdVector<Vector<double> > data;
-  StdVector<PyObject*> obj = ParseArrays(args, 4, data, false);
+  StdVector<pyObject*> obj = ParseArrays(args, 4, data, false);
 
   Vector<double>& xl = data[0];
   Vector<double>& xu = data[1];
@@ -202,10 +202,10 @@ void PythonOptimizer::GetBounds(PyObject *args)
     data[i].Export(obj[i]); // we must to decref obj!
 }
 
-double PythonOptimizer::EvalObjective(PyObject *args)
+double PythonOptimizer::EvalObjective(pyObject *args)
 {
   StdVector<Vector<double> > data;
-  StdVector<PyObject*> obj = ParseArrays(args, 1, data, false);
+  StdVector<pyObject*> obj = ParseArrays(args, 1, data, false);
 
   const Vector<double>& x = data[0];
 
@@ -216,10 +216,10 @@ double PythonOptimizer::EvalObjective(PyObject *args)
   return val;
 }
 
-void PythonOptimizer::EvalGradObjective(PyObject *args)
+void PythonOptimizer::EvalGradObjective(pyObject *args)
 {
   StdVector<Vector<double> > data;
-  StdVector<PyObject*> obj = ParseArrays(args, 2, data, false);
+  StdVector<pyObject*> obj = ParseArrays(args, 2, data, false);
 
   const Vector<double>& x = data[0];
   Vector<double>& grad = data[1];
@@ -243,10 +243,10 @@ void PythonOptimizer::EvalGradObjective(PyObject *args)
 }
 
 
-void PythonOptimizer::EvalConstraints(PyObject *args)
+void PythonOptimizer::EvalConstraints(pyObject *args)
 {
   StdVector<Vector<double> > data;
-  StdVector<PyObject*> obj = ParseArrays(args, 2, data, false);
+  StdVector<pyObject*> obj = ParseArrays(args, 2, data, false);
 
   const Vector<double>& x = data[0];
   Vector<double>& gval = data[1];
@@ -257,12 +257,12 @@ void PythonOptimizer::EvalConstraints(PyObject *args)
   gval.Export(obj[1]);
 }
 
-void PythonOptimizer::EvalGradConstraints(PyObject *args)
+void PythonOptimizer::EvalGradConstraints(pyObject *args)
 {
   // see EvalGradObjective() for comments
 
   StdVector<Vector<double> > data;
-  StdVector<PyObject*> obj = ParseArrays(args, 2, data, false);
+  StdVector<pyObject*> obj = ParseArrays(args, 2, data, false);
 
   const Vector<double>& x = data[0];
   Vector<double>& grad = data[1];
@@ -285,7 +285,7 @@ double PythonOptimizer::GetSimpExponent() {
   return optimization->GetDesign()->GetTransferFunction(DesignElement::DENSITY, App::MECH)->GetParam();
 }
 
-void PythonOptimizer::Get_dfdH(PyObject *args)
+void PythonOptimizer::Get_dfdH(pyObject *args)
 {
   // we get numpy 3d array from python and interprete it as a list of 2d numpy matrices
   PyArrayObject *list;
@@ -433,10 +433,10 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
   }
 }
 
-void PythonOptimizer::GetCoreStiffness(PyObject *args)
+void PythonOptimizer::GetCoreStiffness(pyObject *args)
 {
   StdVector<Vector<double> > data;
-  StdVector<PyObject*> obj = ParseArrays(args, 1, data, false);
+  StdVector<pyObject*> obj = ParseArrays(args, 1, data, false);
 
   PyArrayObject* arr = (PyArrayObject*) obj[0];
   // assume all matrices have same dimensions
@@ -464,7 +464,7 @@ void PythonOptimizer::GetCoreStiffness(PyObject *args)
 
 }
 
-PyObject* PythonOptimizer::GetDims(PyObject* args)
+pyObject* PythonOptimizer::GetDims(pyObject* args)
 {
   unsigned int dim = domain->GetGrid()->GetDim();
   // assume rectilinear mesh with one region only
@@ -475,7 +475,7 @@ PyObject* PythonOptimizer::GetDims(PyObject* args)
   StdVector<unsigned int> bounds = domain->GetGrid()->GetRegularDiscretization(regids.First());
   assert(bounds.GetSize() == 3);
 
-  PyObject* res = PyTuple_New(4);
+  pyObject* res = PyTuple_New(4);
   PyTuple_SetItem(res, 0, PyLong_FromLong(dim));
   PyTuple_SetItem(res, 1, PyLong_FromLong(bounds[0]));
   PyTuple_SetItem(res, 2, PyLong_FromLong(bounds[1]));
@@ -485,13 +485,13 @@ PyObject* PythonOptimizer::GetDims(PyObject* args)
 }
 
 /** number of design variables */
-PyObject* PythonOptimizer::GetNumDesign(PyObject* args)
+pyObject* PythonOptimizer::GetNumDesign(pyObject* args)
 {
   return PyLong_FromLong(domain->GetOptimization()->GetDesign()->data.GetSize());
 }
 
 /** return single plain design value */
-PyObject* PythonOptimizer::GetDesignValue(PyObject* args)
+pyObject* PythonOptimizer::GetDesignValue(pyObject* args)
 {
   DesignSpace* space = domain->GetOptimization()->GetDesign();
 
@@ -510,7 +510,7 @@ PyObject* PythonOptimizer::GetDesignValue(PyObject* args)
 
 /** set design variables to provided numpy array of proper size (1. arg) with optional access (2.arg).
  * @see BaseDesignElement::ValueSpecifier and BaseDesignElement::Access */
-PyObject* PythonOptimizer::GetDesignValues(PyObject* args)
+pyObject* PythonOptimizer::GetDesignValues(pyObject* args)
 {
   DesignSpace* space = domain->GetOptimization()->GetDesign();
 

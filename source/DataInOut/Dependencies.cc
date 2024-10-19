@@ -15,6 +15,7 @@
 #include <def_use_libfbi.hh>
 #include <def_use_libxml2.hh>
 #include <def_use_lis.hh>
+#include <def_use_libtorch.hh>
 #include <def_use_metis.hh>
 #include <def_use_mpi.hh>
 #include <def_use_openmp.hh>
@@ -288,6 +289,12 @@ void Dependencies::ReadSetting()
   lis.SetVersion(LIS_VER);
 #endif
   data.Push_back(lis);
+
+  Dependency libtorch("LIBTORCH", "USE_LIBTORCH", NOT_KNOWN);
+#ifdef USE_LIBTORCH
+  libtorch.active = true;
+#endif
+  data.Push_back(libtorch);
 
   Dependency superlu("SuperLU", "USE_SUPERLU", EASY);
 #ifdef USE_SUPERLU

@@ -175,7 +175,7 @@ public:
 
   void DescribeProperties(StdVector<std::pair<std::string, std::string> >& map) const override;
 
-  void PythonSetProperty(PyObject* args) override;
+  void PythonSetProperty(pyObject* args) override;
 
   /** inefficiently evaluations dual function, as the primal variables are generated and thrown away */
   double EvalDualFunction(Vector<double> &xin);

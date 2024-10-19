@@ -78,12 +78,10 @@ namespace CoupledField {
       Double Energy_linesearch(Double Hx, Double Hy, Double Hprev_x, Double Hprev_y, Double Mprev_x, Double Mprev_y,
                                Double phi, Double chi, Double &F_prime_orig, Double &F_prime_prime_orig);
 
-      void bledsinn(){
-        std::cout<<"bledsinn?ß===================="<<std::endl;
-      }
+
     private:
       //==============
-      std::unique_ptr<SMSM> SMSM_model_;
+      std::unique_ptr<SMSM_PYTORCH> SMSM_model_;
 
       UInt dim_; 
 

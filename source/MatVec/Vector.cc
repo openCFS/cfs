@@ -1477,7 +1477,7 @@ namespace CoupledField {
 #ifndef USE_EMBEDDED_PYTHON
 
   template<typename T>
-  Vector<T>::Vector(PyObject* obj, bool decref)
+  Vector<T>::Vector(pyObject* obj, bool decref)
   {
     this->capacity_ = 0;
     this->size_ = 0;
@@ -1487,13 +1487,13 @@ namespace CoupledField {
   }
 
   template<typename T>
-  void Vector<T>::Fill(PyObject* obj, bool decref)
+  void Vector<T>::Fill(pyObject* obj, bool decref)
   {
     EXCEPTION("Compile with USE_EMBEDDED_PYTHON");
   }
 
   template<typename T>
-  void Vector<T>::Export(PyObject* obj)
+  void Vector<T>::Export(pyObject* obj)
   {
     EXCEPTION("Compile with USE_EMBEDDED_PYTHON");
   }

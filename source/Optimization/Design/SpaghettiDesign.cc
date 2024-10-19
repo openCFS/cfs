@@ -115,10 +115,10 @@ StdVector<string> SpaghettiDesign::PythonGetInfoFieldKeys()
 {
   // get keys of python glob.info_field
   // no need to time the stuff
-  PyObject* afunc = PyObject_GetAttrString(module_, "cfs_info_field_keys");
+  pyObject* afunc = pyObject_GetAttrString(module_, "cfs_info_field_keys");
   PythonKernel::CheckPythonFunction(afunc, "cfs_info_field_keys");
 
-  PyObject* py_list = PyObject_CallObject(afunc, NULL);
+  pyObject* py_list = pyObject_CallObject(afunc, NULL);
   PythonKernel::CheckPythonReturn(py_list);
 
   if(!PyList_Check(py_list))
@@ -128,7 +128,7 @@ StdVector<string> SpaghettiDesign::PythonGetInfoFieldKeys()
 
   for(unsigned int i = 0; i < res.GetSize(); i++)
   {
-    PyObject* item = PyList_GetItem(py_list,i);
+    pyObject* item = PyList_GetItem(py_list,i);
     const char* c_str = PyUnicode_AsUTF8(item);
     assert(c_str != NULL);
     res[i] = string(c_str);
@@ -159,10 +159,10 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   py->Get("options")->SetValue(pyopts);
 
   // def cfs_init(rhomin, radius, boundary, transition, combine, orientation, nx, ny, nz, dx, design, dict):
-  PyObject* func = PyObject_GetAttrString(module_, "cfs_init");
+  pyObject* func = pyObject_GetAttrString(module_, "cfs_init");
   PythonKernel::CheckPythonFunction(func, "cfs_init");
 
-  PyObject* arg = PyTuple_New(4);
+  pyObject* arg = PyTuple_New(4);
 
   Matrix<double> mm;
   domain->GetGrid()->CalcBoundingBoxOfRegion(GetRegionIds().First(), mm);
@@ -194,19 +194,19 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   settings.Push_back(make_pair("orientation", orientation.ToString(orientation_)));
   PyTuple_SetItem(arg, 0, PythonKernel::CreatePythonDict(settings));
 
-  PyObject* des = PyTuple_New(design.GetSize());
+  pyObject* des = PyTuple_New(design.GetSize());
   for(unsigned int i = 0; i < design.GetSize(); i++)
     PyTuple_SetItem(des, i,  PyUnicode_FromString(DesignElement::type.ToString(design[i].design).c_str()));
   PyTuple_SetItem(arg, 1, des); // steals the reference, so no need to decref
 
-  PyObject* opt_ind = PyTuple_New(opt_indices.GetSize());
+  pyObject* opt_ind = PyTuple_New(opt_indices.GetSize());
   for(unsigned int i = 0; i < opt_indices.GetSize(); i++)
     PyTuple_SetItem(opt_ind, i,  PyLong_FromLong(opt_indices[i]));
   PyTuple_SetItem(arg, 2, opt_ind); // steals the reference, so no need to decref
 
   PyTuple_SetItem(arg, 3, PythonKernel::CreatePythonDict(pyopts));
 
-  PyObject* ret = PyObject_CallObject(func, arg);
+  pyObject* ret = pyObject_CallObject(func, arg);
   PythonKernel::CheckPythonReturn(ret);
 
   Py_XDECREF(ret);
@@ -216,7 +216,7 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   py_timer->Stop();
 }
 
-PyObject* SpaghettiDesign::GetPythonModule()
+pyObject* SpaghettiDesign::GetPythonModule()
 {
   return module_;
 }
@@ -226,17 +226,17 @@ void SpaghettiDesign::PythonUpdateSpaghetti()
   py_timer->Start();
 
   // def cfs_set_spaghetti(id, px, py, qx, qy, a_list, p):
-  PyObject* func = PyObject_GetAttrString(module_, "cfs_set_spaghetti");
+  pyObject* func = pyObject_GetAttrString(module_, "cfs_set_spaghetti");
   PythonKernel::CheckPythonFunction(func, "cfs_set_spaghetti");
 
   for(Noodle& s : spaghetti)
   {
     // create a tuple for points, minimum two points
-    PyObject* pyp = PyTuple_New(s.points.GetSize());
+    pyObject* pyp = PyTuple_New(s.points.GetSize());
     for(unsigned pi = 0; pi < s.points.GetSize(); pi++)
     {
       StdVector<Variable>& p = s.points[pi];
-      PyObject* lst = PyList_New(p.GetSize());
+      pyObject* lst = PyList_New(p.GetSize());
       for(unsigned int li = 0; li < p.GetSize(); li++)
         PyList_SetItem(lst, li, PyFloat_FromDouble(p[li].GetPlainDesignValue()));
       PyTuple_SetItem(pyp, pi, lst);
@@ -244,11 +244,11 @@ void SpaghettiDesign::PythonUpdateSpaghetti()
 
     // create a tuple for a or r - is allowed to be empty
     const StdVector<Variable>& vec = s.type == Noodle::NORMAL ? s.a : s.r;
-    PyObject* pyvec = PyTuple_New(vec.GetSize());
+    pyObject* pyvec = PyTuple_New(vec.GetSize());
     for(unsigned int vi = 0; vi < vec.GetSize(); vi++)
       PyTuple_SetItem(pyvec, vi, PyFloat_FromDouble(vec[vi].GetPlainDesignValue()));
 
-    PyObject* arg = PyTuple_New(s.HasAlpha() ? 5 : 4);
+    pyObject* arg = PyTuple_New(s.HasAlpha() ? 5 : 4);
     PyTuple_SetItem(arg, 0, PyLong_FromLong(s.idx));
     PyTuple_SetItem(arg, 1, pyp);
     PyTuple_SetItem(arg, 2, pyvec);
@@ -258,7 +258,7 @@ void SpaghettiDesign::PythonUpdateSpaghetti()
 
     LOG_DBG2(pasta) << "PUS: s=" << s.idx << " vec=" << vec.GetSize() << " func=" << func << " arg=" << PyTuple_Size(arg) << " pyvec=" << pyvec << " alpha? " << s.HasAlpha();
 
-    PyObject* ret = PyObject_CallObject(func, arg);
+    pyObject* ret = pyObject_CallObject(func, arg);
     PythonKernel::CheckPythonReturn(ret);
 
     Py_XDECREF(ret);
@@ -285,10 +285,10 @@ void SpaghettiDesign::MapFeatureToDensity()
   py_timer->Start();
 
   // up to now we only can do python
-  PyObject* func = PyObject_GetAttrString(module_, "cfs_map_to_design");
+  pyObject* func = pyObject_GetAttrString(module_, "cfs_map_to_design");
   PythonKernel::CheckPythonFunction(func, "cfs_map_to_design");
 
-  PyObject* ret = PyObject_CallObject(func, NULL);
+  pyObject* ret = pyObject_CallObject(func, NULL);
   PythonKernel::CheckPythonReturn(ret);
 
   // more convenient to use a temporary object than to iterate directly on the numpy object
@@ -324,10 +324,10 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   // for several functions for the same design set (compliance, volume, ...)
 
   // we cannot create a numpy array in C - so get it from python to be filled with the rho-density to be given to python
-  PyObject* afunc = PyObject_GetAttrString(module_, "cfs_get_drho_vector");
+  pyObject* afunc = pyObject_GetAttrString(module_, "cfs_get_drho_vector");
   PythonKernel::CheckPythonFunction(afunc, "cfs_get_drho_vector");
 
-  PyObject* np_rho = PyObject_CallObject(afunc, NULL);
+  pyObject* np_rho = pyObject_CallObject(afunc, NULL);
   PythonKernel::CheckPythonReturn(np_rho);
 
   // we create a temporary vector for the gradient values such that we can use Export() - just for convenience.
@@ -341,15 +341,15 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   drho.Export(np_rho);
 
   // now get the gradient from python. We get all gradients and ignore efficiency optimization by skipping fixed variables
-  PyObject* gfunc = PyObject_GetAttrString(module_, "cfs_get_gradient");
+  pyObject* gfunc = pyObject_GetAttrString(module_, "cfs_get_gradient");
   PythonKernel::CheckPythonFunction(gfunc, "cfs_get_gradient");
 
-  PyObject* arg = PyTuple_New(2);
+  pyObject* arg = PyTuple_New(2);
   Py_INCREF(np_rho); // this is important, as PyTuple_SetItem() steals the reference: https://docs.python.org/3/c-api/intro.html
   PyTuple_SetItem(arg, 0, np_rho);
   PyTuple_SetItem(arg, 1, PyUnicode_FromString(f->ToString().c_str()));
 
-  PyObject* np_grad = PyObject_CallObject(gfunc, arg);
+  pyObject* np_grad = pyObject_CallObject(gfunc, arg);
   PythonKernel::CheckPythonReturn(np_grad);
 
   // create temporary vector - ordering is all nodes, profiles, normals as in density.xml and SetupDesign()
@@ -386,13 +386,13 @@ void SpaghettiDesign::PrepareSpecialResults()
   StdVector<const ResultDescription*> res = GetGenericResults();
   for(const ResultDescription* rs : res)
   {
-    PyObject* afunc = PyObject_GetAttrString(module_, "cfs_get_info_field");
+    pyObject* afunc = pyObject_GetAttrString(module_, "cfs_get_info_field");
     PythonKernel::CheckPythonFunction(afunc, "cfs_get_info_field");
 
-    PyObject* arg = PyTuple_New(1);
+    pyObject* arg = PyTuple_New(1);
     PyTuple_SetItem(arg, 0, PyUnicode_FromString(rs->generic.c_str()));
 
-    PyObject* np = PyObject_CallObject(afunc, arg);
+    pyObject* np = pyObject_CallObject(afunc, arg);
     PythonKernel::CheckPythonReturn(np);
 
     Vector<double> sr(np, true); // decref

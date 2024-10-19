@@ -2,6 +2,7 @@
 cmake_minimum_required(VERSION 3.16.0 FATAL_ERROR)
 message(STATUS "Using CMake ${CMAKE_VERSION} with generator ${CMAKE_GENERATOR}")
 
+
 # Include global definitions for openCFS development server (host name, etc.)
 include("cmake_modules/DevelopmentServer.cmake")
 include(CMakePrintHelpers)
@@ -140,6 +141,7 @@ option(USE_ARPACK "Use the ARPACK eigensolver library. Required for Pade Approxi
 option(USE_FEAST "Use the FEAST eigenvalue solver (commumity edition)." ${USE_FEAST_DEFAULT})
 option(USE_SUITESPARSE "CHOLMOD/UMPFACK direct solvers with GPL configuration" ${USE_SUITESPARSE_DEFAULT} )
 option(USE_LIS "Use (L)ibrary of (I)terative (S)olvers (OpenMP parallel)" ${USE_LIS_DEFAULT})
+option(USE_LIBTORCH "Use pythorch C++ API" ${USE_LIBTORCH_DEFAULT})
 option(USE_SUPERLU "Use SuperLU direct solver and ILUs. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_SUPERLU_DEFAULT})
 option(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi installation" ${USE_PETSC_DEFAULT})
 option(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})

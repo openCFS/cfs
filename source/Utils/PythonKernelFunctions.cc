@@ -19,7 +19,7 @@ DEFINE_LOG(pkf, "PythonKernelFunctions")
 namespace CoupledField
 {
 
-PyObject* PythonKernel::mesher_set_nodes(PyObject *self, PyObject *args)
+pyObject* PythonKernel::mesher_set_nodes(pyObject *self, pyObject *args)
 {
   if(!CheckMesher())
     return NULL;
@@ -28,7 +28,7 @@ PyObject* PythonKernel::mesher_set_nodes(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
-PyObject* PythonKernel::mesher_set_regions(PyObject *self, PyObject *args)
+pyObject* PythonKernel::mesher_set_regions(pyObject *self, pyObject *args)
 {
   if(!CheckMesher())
     return NULL;
@@ -37,7 +37,7 @@ PyObject* PythonKernel::mesher_set_regions(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
-PyObject* PythonKernel::mesher_add_elements(PyObject *self, PyObject *args)
+pyObject* PythonKernel::mesher_add_elements(pyObject *self, pyObject *args)
 {
   if(!CheckMesher())
     return NULL;
@@ -46,7 +46,7 @@ PyObject* PythonKernel::mesher_add_elements(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
-PyObject* PythonKernel::mesher_add_named_nodes(PyObject *self, PyObject *args)
+pyObject* PythonKernel::mesher_add_named_nodes(pyObject *self, pyObject *args)
 {
   if(!CheckMesher())
     return NULL;
@@ -55,7 +55,7 @@ PyObject* PythonKernel::mesher_add_named_nodes(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
-PyObject* PythonKernel::mesher_add_named_elements(PyObject *self, PyObject *args)
+pyObject* PythonKernel::mesher_add_named_elements(pyObject *self, pyObject *args)
 {
   if(!CheckMesher())
     return NULL;
@@ -65,32 +65,32 @@ PyObject* PythonKernel::mesher_add_named_elements(PyObject *self, PyObject *args
 }
 
 /** cfs.bound(xl,xu,gl,gu) sets bounds for design and constraints in properly sized 1d numpy arrays */
-PyObject* opt_getDims(PyObject *self, PyObject *args)
+pyObject* opt_getDims(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? PythonOptimizer::GetDims(args) : NULL;
 }
 
-PyObject* get_opt_design_size(PyObject *self, PyObject *args)
+pyObject* get_opt_design_size(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? PythonOptimizer::GetNumDesign(args) : NULL;
 }
 
-PyObject* get_opt_design_value(PyObject *self, PyObject *args)
+pyObject* get_opt_design_value(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValue(args) : NULL;
 }
 
-PyObject* get_opt_design_values(PyObject *self, PyObject *args)
+pyObject* get_opt_design_values(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValues(args) : NULL;
 }
 
-PyObject* get_opt_iteraton(PyObject *self, PyObject *args)
+pyObject* get_opt_iteraton(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? PyLong_FromLong(domain->GetOptimization()->GetCurrentIteration()) : NULL;
 }
 
-PyObject* get_opt_stopping_rules(PyObject *self, PyObject *args)
+pyObject* get_opt_stopping_rules(pyObject *self, pyObject *args)
 {
   if(!python->CheckOpt())
     return NULL;
@@ -98,22 +98,22 @@ PyObject* get_opt_stopping_rules(PyObject *self, PyObject *args)
   return PythonKernel::CreatePythonDict(domain->GetOptimization()->GetStoppingRules());
 }
 
-PyObject* get_opt_function_values(PyObject *self, PyObject *args)
+pyObject* get_opt_function_values(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? domain->GetOptimization()->PythonFunctionValues() : NULL;
 }
 
-PyObject* get_opt_function_properties(PyObject *self, PyObject *args)
+pyObject* get_opt_function_properties(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? domain->GetOptimization()->PythonFunctionProperties(args) : NULL;
 }
 
-PyObject* get_opt_filter_values(PyObject *self, PyObject *args)
+pyObject* get_opt_filter_values(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? domain->GetOptimization()->GetDesign()->PythonGetFilterProperties(args) : NULL;
 }
 
-PyObject* set_opt_filter_values(PyObject *self, PyObject *args)
+pyObject* set_opt_filter_values(pyObject *self, pyObject *args)
 {
   if(!PythonKernel::CheckOpt())
     return NULL;
@@ -123,7 +123,7 @@ PyObject* set_opt_filter_values(PyObject *self, PyObject *args)
 }
 
 /** cfs.bound(xl,xu,gl,gu) sets bounds for design and constraints in properly sized 1d numpy arrays */
-PyObject* opt_bounds(PyObject *self, PyObject *args)
+pyObject* opt_bounds(pyObject *self, pyObject *args)
 
 {
   if(!python->CheckPyOpt())
@@ -134,7 +134,7 @@ PyObject* opt_bounds(PyObject *self, PyObject *args)
 }
 
 /** cfs.initialdesign(x) fills 1d numpy array */
-PyObject* opt_initialdesign(PyObject *self, PyObject *args)
+pyObject* opt_initialdesign(pyObject *self, pyObject *args)
 {
   if(!python->CheckPyOpt())
     return NULL;
@@ -144,13 +144,13 @@ PyObject* opt_initialdesign(PyObject *self, PyObject *args)
 }
 
 /** cfs.evalobj(x) returns a float) */
-PyObject* opt_evalobj(PyObject *self, PyObject *args)
+pyObject* opt_evalobj(pyObject *self, pyObject *args)
 {
   return python->CheckPyOpt() ? PyFloat_FromDouble(python->GetPyOpt()->EvalObjective(args)) : NULL;
 }
 
 /** cfs.cfs_commitIteration() commits iteration to cfs */
-PyObject* opt_commitIteration(PyObject *self, PyObject *args)
+pyObject* opt_commitIteration(pyObject *self, pyObject *args)
 {
   if(!python->CheckPyOpt())
     return NULL;
@@ -160,7 +160,7 @@ PyObject* opt_commitIteration(PyObject *self, PyObject *args)
 }
 
 /** cfs.evalgradobj(x,grad) fills numpy 1d arrays of size n */
-PyObject* opt_evalgradobj(PyObject *self, PyObject *args)
+pyObject* opt_evalgradobj(pyObject *self, pyObject *args)
 {
   if(!python->CheckPyOpt())
     return NULL;
@@ -170,7 +170,7 @@ PyObject* opt_evalgradobj(PyObject *self, PyObject *args)
 }
 
 /** cfs.cfs_evalconstrs(x,g) fills numpy 1d arrays of size n and m */
-PyObject* opt_evalconstrs(PyObject *self, PyObject *args)
+pyObject* opt_evalconstrs(pyObject *self, pyObject *args)
 {
   if(!python->CheckPyOpt())
     return NULL;
@@ -180,7 +180,7 @@ PyObject* opt_evalconstrs(PyObject *self, PyObject *args)
 }
 
 /** cfs.cfs_evalgradconstrs(x,grad) fills numpy 1d arrays of size n and m*n */
-PyObject* opt_evalgradconstrs(PyObject *self, PyObject *args)
+pyObject* opt_evalgradconstrs(pyObject *self, pyObject *args)
 {
   if(!python->CheckPyOpt())
     return NULL;
@@ -189,13 +189,13 @@ PyObject* opt_evalgradconstrs(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
-PyObject* opt_getSimpExponent(PyObject *self, PyObject *args)
+pyObject* opt_getSimpExponent(pyObject *self, pyObject *args)
 {
   return python->CheckPyOpt() ? PyFloat_FromDouble(python->GetPyOpt()->GetSimpExponent()) : NULL;
 }
 
 /** returns derivative of compliance w.r.t stiffness tensor entries of original (core) material */
-PyObject* opt_get_dfdH(PyObject *self, PyObject *args)
+pyObject* opt_get_dfdH(pyObject *self, pyObject *args)
 {
   if(!python->CheckPyOpt())
     return NULL;
@@ -205,7 +205,7 @@ PyObject* opt_get_dfdH(PyObject *self, PyObject *args)
 }
 
 /** cfs.cfs_getOrgStiffness(stiffness) returns stiffness tensor of original (core) material */
-PyObject* opt_getOrgStiffness(PyObject *self, PyObject *args)
+pyObject* opt_getOrgStiffness(pyObject *self, pyObject *args)
 {
   if(!python->CheckPyOpt())
     return NULL;
@@ -216,7 +216,7 @@ PyObject* opt_getOrgStiffness(PyObject *self, PyObject *args)
 
 /** make optimization stop in the next iteration.
  * param args tuple of bool and string with info if converged and the message */
-PyObject* opt_stop(PyObject *self, PyObject *args)
+pyObject* opt_stop(pyObject *self, pyObject *args)
 {
   if(!python->CheckOpt())
     return NULL;
@@ -226,7 +226,7 @@ PyObject* opt_stop(PyObject *self, PyObject *args)
 }
 
 /** return true if cfs's stopping criteria is met, including finding the file HALTOPT */
-PyObject* opt_dostop(PyObject *self, PyObject *args)
+pyObject* opt_dostop(pyObject *self, pyObject *args)
 {
   if(!python->CheckOpt())
     return NULL;
@@ -239,7 +239,7 @@ PyObject* opt_dostop(PyObject *self, PyObject *args)
     Py_RETURN_FALSE;
 }
 
-PyObject* opt_register_log_property(PyObject *self, PyObject *args)
+pyObject* opt_register_log_property(pyObject *self, pyObject *args)
 {
   if(!python->CheckOpt())
     return NULL;
@@ -252,7 +252,7 @@ PyObject* opt_register_log_property(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
-PyObject* opt_set_log_property(PyObject *self, PyObject *args)
+pyObject* opt_set_log_property(pyObject *self, pyObject *args)
 {
   if(!python->CheckOpt())
     return NULL;
@@ -265,12 +265,12 @@ PyObject* opt_set_log_property(PyObject *self, PyObject *args)
   Py_RETURN_NONE;
 }
 
-PyObject* optimizer_get_properties(PyObject *self, PyObject *args)
+pyObject* optimizer_get_properties(pyObject *self, pyObject *args)
 {
   return PythonKernel::CheckOpt() ? domain->GetOptimization()->PythonGetOptimizerProperties() : NULL;
 }
 
-PyObject* optimizer_set_property(PyObject *self, PyObject *args)
+pyObject* optimizer_set_property(pyObject *self, pyObject *args)
 {
   if(!python->CheckOpt())
     return NULL;
@@ -282,13 +282,13 @@ PyObject* optimizer_set_property(PyObject *self, PyObject *args)
 /** feature mapping stuff */
 
 /** the total number of feature mapping parameters - not only their optimization variables */
-PyObject* feature_mapping_num_parameters(PyObject *self, PyObject *args)
+pyObject* feature_mapping_num_parameters(pyObject *self, pyObject *args)
 {
   return PyLong_FromLong(PythonKernel::GetFeaturedDesign()->GetNumberOfFeatureMappingVariables());
 }
 
 /** fills the given array with feature mapping parameters. Including fixed ones and no aux or design */
-PyObject* feature_mapping_get_parameters(PyObject *self, PyObject *args)
+pyObject* feature_mapping_get_parameters(pyObject *self, pyObject *args)
 {
   FeaturedDesign* fd = PythonKernel::GetFeaturedDesign(); // throws
 
@@ -301,7 +301,7 @@ PyObject* feature_mapping_get_parameters(PyObject *self, PyObject *args)
 
   int ret = PyArg_ParseTuple(args, "O", &pyarray);
   PythonKernel::CheckPythonReturn(ret);
-  data.Export((PyObject*) pyarray);
+  data.Export((pyObject*) pyarray);
   Py_RETURN_NONE;
 }
 
@@ -311,7 +311,7 @@ PyObject* feature_mapping_get_parameters(PyObject *self, PyObject *args)
 
 
 /** return array with region names. The index is the 0-based region id  */
-PyObject* grid_get_regions(PyObject *self, PyObject *args)
+pyObject* grid_get_regions(pyObject *self, pyObject *args)
 {
   StdVector<std::string> vec;
   domain->GetGrid()->GetRegionNames(vec);
@@ -321,7 +321,7 @@ PyObject* grid_get_regions(PyObject *self, PyObject *args)
 
 
 /** return number of nodes in mesh (for all regions) */
-PyObject* grid_num_nodes(PyObject *self, PyObject *args)
+pyObject* grid_num_nodes(pyObject *self, pyObject *args)
 {
   int regid = -1;
   int ret = PyArg_ParseTuple(args, "|i", &regid);
@@ -334,7 +334,7 @@ PyObject* grid_num_nodes(PyObject *self, PyObject *args)
 
 /** return region nodes for given region id to proper numpy array if dtype=int.
  * Use grid_get_regions() and grid_num_nodes() */
-PyObject* grid_get_nodes(PyObject *self, PyObject *args)
+pyObject* grid_get_nodes(pyObject *self, pyObject *args)
 {
   int regid;
   PyArrayObject* pyarray = nullptr;
@@ -345,7 +345,7 @@ PyObject* grid_get_nodes(PyObject *self, PyObject *args)
   domain->GetGrid()->GetNodesByRegion(nodes, regid);
   Vector<unsigned int> vec(nodes.GetSize(), nodes.GetPointer(), false); // wrap empty Vector around StdVector
 
-  vec.Export((PyObject*) pyarray);
+  vec.Export((pyObject*) pyarray);
   Py_RETURN_NONE;
 }
 
@@ -353,7 +353,7 @@ PyObject* grid_get_nodes(PyObject *self, PyObject *args)
 
 /** fill numpy array with coordinates of given node number (1-based).
  * arguments are node number and numpy array */
-PyObject* grid_node_coord(PyObject *self, PyObject *args)
+pyObject* grid_node_coord(pyObject *self, pyObject *args)
 {
   int num;
   PyArrayObject* pycoord = nullptr;
@@ -363,12 +363,12 @@ PyObject* grid_node_coord(PyObject *self, PyObject *args)
 
   Vector<double> vec; // how sad to have this temporary objects :(
   domain->GetGrid()->GetNodeCoordinate(vec, num); // not updated
-  vec.Export((PyObject*) pycoord);
+  vec.Export((pyObject*) pycoord);
   Py_RETURN_NONE;
 }
 
 /** fill numpy array with all nodal coordinates */
-PyObject* grid_all_nodes_coord(PyObject *self, PyObject *args)
+pyObject* grid_all_nodes_coord(pyObject *self, pyObject *args)
 {
   PyArrayObject* numpy = nullptr;
   int ret = PyArg_ParseTuple(args, "O", &numpy);
@@ -393,7 +393,7 @@ PyObject* grid_all_nodes_coord(PyObject *self, PyObject *args)
 // pde stuff
 
 /** return list with single pde names */
-PyObject* single_pde_names(PyObject *self, PyObject *args)
+pyObject* single_pde_names(pyObject *self, pyObject *args)
 {
   assert(domain != NULL);
 
@@ -407,7 +407,7 @@ PyObject* single_pde_names(PyObject *self, PyObject *args)
 }
 
 /** return list of tuples (solution type, solution name) by singe pde idx */
-PyObject* single_pde_solutions(PyObject *self, PyObject *args)
+pyObject* single_pde_solutions(pyObject *self, pyObject *args)
 {
   const StdVector<SinglePDE*>& pdes = domain->GetSinglePDEs();
   int pde;
@@ -416,11 +416,11 @@ PyObject* single_pde_solutions(PyObject *self, PyObject *args)
   if(pde < 0 || pde >= (int) pdes.GetSize())
     throw Exception("invalid pde idx for single_pde_solutions(), needs to be below " + std::to_string(domain->GetSinglePDEs().GetSize()));
 
-  PyObject* list = PyList_New(pdes[pde]->GetFeFunctions().size());
+  pyObject* list = PyList_New(pdes[pde]->GetFeFunctions().size());
   int cnt = 0;
   for(const auto& it : pdes[pde]->GetFeFunctions())
   {
-    PyObject* tuple = PyTuple_New(2);
+    pyObject* tuple = PyTuple_New(2);
     PyTuple_SetItem(tuple, 0, PyLong_FromLong(it.first));
     PyTuple_SetItem(tuple, 1, PyUnicode_FromString(SolutionTypeEnum.ToString(it.first).c_str()));
     PyList_SetItem(list, cnt,tuple);
@@ -433,7 +433,7 @@ PyObject* single_pde_solutions(PyObject *self, PyObject *args)
 /** return equation mapping for single pde's solution.
  * Attributes are number of single pde, numpy array of node numbers (dtype=int) and numpy array of indices or size times dofs (dtype=int).
  * Enhance for attribute with solution type of the pde has more solutions. */
-PyObject* single_pde_mapping(PyObject *self, PyObject *args)
+pyObject* single_pde_mapping(pyObject *self, pyObject *args)
 {
   int pde;
   PyArrayObject* pynodenr = nullptr;
@@ -462,14 +462,14 @@ PyObject* single_pde_mapping(PyObject *self, PyObject *args)
     cnt++;
   }
 
-  nodenr.Export((PyObject*) pynodenr);
-  eqns.Export((PyObject*) pyeqns);
+  nodenr.Export((pyObject*) pynodenr);
+  eqns.Export((pyObject*) pyeqns);
 
   Py_RETURN_NONE;
 }
 
 /** return list with FeFunction names names */
-PyObject* fe_function_names(PyObject *self, PyObject *args)
+pyObject* fe_function_names(pyObject *self, pyObject *args)
 {
   assert(domain != NULL);
 
@@ -478,7 +478,7 @@ PyObject* fe_function_names(PyObject *self, PyObject *args)
 }
 
 /** return total number of equations. Don't call to early!!! */
-PyObject* fe_function_total_equations(PyObject *self, PyObject *args)
+pyObject* fe_function_total_equations(pyObject *self, pyObject *args)
 {
   const StdVector<unsigned int>& eqn = domain->GetBasePDE()->GetAssemble()->GetAlgSys()->GetFeFunctionsTotalEquations();
   StdVector<int> vec(eqn.GetSize());
@@ -489,25 +489,25 @@ PyObject* fe_function_total_equations(PyObject *self, PyObject *args)
 
 /** copy solution vector by given FeFunction
  * Argumensts are idx of fe function, bool for setIDBC, numpy array with proper size to be filled. */
-PyObject* fe_function_solution(PyObject *self, PyObject *args)
+pyObject* fe_function_solution(pyObject *self, pyObject *args)
 {
   int fe;
   bool idbc;
   PyArrayObject *array = nullptr;
   int ret = PyArg_ParseTuple(args, "ipO", &fe, &idbc, &array);
   PythonKernel::CheckPythonReturn(ret);
-  PythonKernel::CheckPythonReturn((PyObject*) array);
+  PythonKernel::CheckPythonReturn((pyObject*) array);
 
   // up to now we assume only real -> extend in case
   Vector<double> sol;
   domain->GetBasePDE()->GetAssemble()->GetAlgSys()->GetSolutionVal(sol, fe, idbc);
-  sol.Export((PyObject*) array);
+  sol.Export((pyObject*) array);
   Py_RETURN_NONE;
 }
 
 /** Nodal fe-function solution for given pde and solution type as vector of nodal solution
  * The first parameter is the 1-based node number, the pde-idx is usually 0, the solution type can be obtained by single_pde_solutions() */
-PyObject* fe_function_nodal_solution(PyObject *self, PyObject *args)
+pyObject* fe_function_nodal_solution(pyObject *self, pyObject *args)
 {
   int pde_idx;
   int sol_type;
@@ -539,7 +539,7 @@ PyObject* fe_function_nodal_solution(PyObject *self, PyObject *args)
 // general stuff
 
 /** return the problem name / simulation name of the current cfs run - the name of the output files */
-PyObject* get_simulation_name(PyObject *self, PyObject *args)
+pyObject* get_simulation_name(pyObject *self, pyObject *args)
 {
   std::string name = progOpts->GetSimName();
   return PyUnicode_FromString(name.c_str());
@@ -615,7 +615,7 @@ PyModuleDef PythonKernel::cfs_modules = {
     PyModuleDef_HEAD_INIT, "cfs", NULL, -1, cfs_methods, NULL, NULL, NULL, NULL
 };
 
-PyObject* PythonKernel::SetModulFunctions(void)
+pyObject* PythonKernel::SetModulFunctions(void)
 {
   // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
   //import_array();

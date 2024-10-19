@@ -774,7 +774,7 @@ class Function
     /** to export the (global) python functions to ErsatzMaterial.
      * The local functions are defined in Function::Local::Identifier::CalcLocalPython*()
      * @param eval if false the grad is called */
-    PyObject* CallPythonFunction(bool eval);
+    pyObject* CallPythonFunction(bool eval);
 
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
@@ -889,15 +889,15 @@ class Function
 
     /** All python functions have a single argument an dict with all xml values as flat list */
     /** the given options enriched by all xml function values */
-    PyObject* py_arg_ = NULL;
+    pyObject* py_arg_ = NULL;
 
     /** this is the name the python function gives itself. Default is python (schema) */
     std::string py_name_;
 
     /** the python function to evaluate. Having it set indicates, we are a python function */
-    PyObject* py_eval_ = NULL;
-    PyObject* py_grad_ = NULL;
-    PyObject* py_sparsity_ = NULL;
+    pyObject* py_eval_ = NULL;
+    pyObject* py_grad_ = NULL;
+    pyObject* py_sparsity_ = NULL;
     /** here we store the gradient vector for local python grad evaluations */
     CfsTLS<Vector<double> > py_local_grad_;
 

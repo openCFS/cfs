@@ -19,7 +19,7 @@ EXTERN_LOG(designSpace)
 namespace CoupledField
 {
 
-void Optimization::PythonStopOptimization(PyObject* args)
+void Optimization::PythonStopOptimization(pyObject* args)
 {
   int ok = -1;
   char* msg = nullptr;
@@ -30,7 +30,7 @@ void Optimization::PythonStopOptimization(PyObject* args)
   this->user_break_reason = std::string(msg);
 }
 
-PyObject* Optimization::PythonFunctionValues() const
+pyObject* Optimization::PythonFunctionValues() const
 {
   // from Optimization::LogFileLine()
   StdVector<std::pair<std::string, std::string> > objs;
@@ -41,13 +41,13 @@ PyObject* Optimization::PythonFunctionValues() const
   for(Function* g : constraints.all)
     cnstrs.Push_back(std::make_pair(g->ToString(), std::to_string(g->GetValue())));
 
-  PyObject* ret = PyTuple_New(2);
+  pyObject* ret = PyTuple_New(2);
   PyTuple_SetItem(ret, 0, PythonKernel::CreatePythonDict(objs));
   PyTuple_SetItem(ret, 1, PythonKernel::CreatePythonDict(cnstrs));
   return ret;
 }
 
-PyObject* Optimization::PythonFunctionProperties(PyObject* args)
+pyObject* Optimization::PythonFunctionProperties(pyObject* args)
 {
   char* ns = nullptr;
   PyArg_ParseTuple(args, "s", &ns);
@@ -58,7 +58,7 @@ PyObject* Optimization::PythonFunctionProperties(PyObject* args)
 }
 
 
-PyObject* Optimization::PythonGetOptimizerProperties() const
+pyObject* Optimization::PythonGetOptimizerProperties() const
 {
   StdVector<std::pair<std::string, std::string> > map;
 
@@ -68,7 +68,7 @@ PyObject* Optimization::PythonGetOptimizerProperties() const
   return PythonKernel::CreatePythonDict(map);
 }
 
-std::pair<string, string> ParseStringString(PyObject* args)
+std::pair<string, string> ParseStringString(pyObject* args)
 {
   char* fc = nullptr;
   char* sc = nullptr;
@@ -79,7 +79,7 @@ std::pair<string, string> ParseStringString(PyObject* args)
 }
 
 
-void OptimalityCondition::PythonSetProperty(PyObject* args)
+void OptimalityCondition::PythonSetProperty(pyObject* args)
 {
   auto ss = ParseStringString(args);
 
@@ -92,7 +92,7 @@ void OptimalityCondition::PythonSetProperty(PyObject* args)
 }
 
 
-void MMA::PythonSetProperty(PyObject* args)
+void MMA::PythonSetProperty(pyObject* args)
 {
   auto ss = ParseStringString(args);
 
@@ -102,7 +102,7 @@ void MMA::PythonSetProperty(PyObject* args)
     throw "Unknown property " + ss.first + " for 'MMA'";
 }
 
-void DumasMMA::PythonSetProperty(PyObject* args)
+void DumasMMA::PythonSetProperty(pyObject* args)
 {
   auto ss = ParseStringString(args);
 
@@ -139,13 +139,13 @@ void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
 
 
   // we have as kernel either kernel or design
-  PyObject* kernel = ppn->Get("script")->As<string>() == "kernel" ? python->GetKernel() : design->GetPythonModule();
+  pyObject* kernel = ppn->Get("script")->As<string>() == "kernel" ? python->GetKernel() : design->GetPythonModule();
 
   // the options are flattened and contain everything
   StdVector<std::pair<std::string, std::string> > list;
   pn->ToStringList(list);
 
-  PyObject* opt = PythonKernel::CreatePythonDict(list);
+  pyObject* opt = PythonKernel::CreatePythonDict(list);
   assert(opt != NULL);
   py_arg_ = PyTuple_New(1); // keep this for all python function calls
   Py_INCREF(opt); // to compensate SetItem()
@@ -155,10 +155,10 @@ void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
   // init is optional
   if(ppn->Has("init"))
   {
-    PyObject* func = PyObject_GetAttrString(kernel, ppn->Get("init")->As<string>().c_str());
+    pyObject* func = pyObject_GetAttrString(kernel, ppn->Get("init")->As<string>().c_str());
     if(func)
     {
-      PyObject* call = PyObject_CallObject(func, py_arg_);
+      pyObject* call = pyObject_CallObject(func, py_arg_);
       PythonKernel::CheckPythonReturn(call);
 
       Py_XDECREF(call);
@@ -167,15 +167,15 @@ void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
   }
 
   // create eval and grad pointers
-  py_eval_ = PyObject_GetAttrString(kernel, ppn->Get("eval")->As<string>().c_str());
+  py_eval_ = pyObject_GetAttrString(kernel, ppn->Get("eval")->As<string>().c_str());
   PythonKernel::CheckPythonFunction(py_eval_, ppn->Get("eval")->As<string>().c_str());
 
-  py_grad_ = PyObject_GetAttrString(kernel, ppn->Get("grad")->As<string>().c_str());
+  py_grad_ = pyObject_GetAttrString(kernel, ppn->Get("grad")->As<string>().c_str());
   PythonKernel::CheckPythonFunction(py_grad_, ppn->Get("grad")->As<string>().c_str());
 
   // we check this in SetLocalPythonVirtualElementMap()
   if(ppn->Has("sparsity"))
-    py_sparsity_ = PyObject_GetAttrString(kernel, ppn->Get("sparsity")->As<string>().c_str());
+    py_sparsity_ = pyObject_GetAttrString(kernel, ppn->Get("sparsity")->As<string>().c_str());
 }
 
 
@@ -194,7 +194,7 @@ void Function::SetLocalPythonVirtualElementMap(StdVector<Function::Local::Identi
     throw Exception("localPython requires python/sparsity to be given");
 
   PythonKernel::CheckPythonFunction(py_sparsity_);
-  PyObject* call = PyObject_CallObject(py_sparsity_, py_arg_);
+  pyObject* call = pyObject_CallObject(py_sparsity_, py_arg_);
   PythonKernel::CheckPythonReturn(call);
 
   StdVector<Vector<int> > vec;
@@ -221,10 +221,10 @@ void Function::SetLocalPythonVirtualElementMap(StdVector<Function::Local::Identi
 }
 
 
-PyObject* Function::CallPythonFunction(bool eval)
+pyObject* Function::CallPythonFunction(bool eval)
 {
-  PyObject* func = eval ? py_eval_ : py_grad_;
-  PyObject* call = PyObject_CallObject(func, py_arg_);
+  pyObject* func = eval ? py_eval_ : py_grad_;
+  pyObject* call = pyObject_CallObject(func, py_arg_);
   PythonKernel::CheckPythonReturn(call);
   return call;
 }
@@ -232,7 +232,7 @@ PyObject* Function::CallPythonFunction(bool eval)
 
 double ErsatzMaterial::CalcPython(Excitation& excite, Function* f, bool derivative)
 {
-  PyObject* pyret = f->CallPythonFunction(!derivative);
+  pyObject* pyret = f->CallPythonFunction(!derivative);
   double ret = -1;
   if(!derivative)
   {
@@ -256,13 +256,13 @@ double ErsatzMaterial::CalcPython(Excitation& excite, Function* f, bool derivati
   return ret;
 }
 
-PyObject* CallLocalPythonFunction(const Function* func, PyObject* py_func)
+pyObject* CallLocalPythonFunction(const Function* func, pyObject* py_func)
 {
   int idx = dynamic_cast<const LocalCondition*>(func)->GetCurrentRelativePosition();
 
-  PyObject* arg = PyTuple_New(1);
+  pyObject* arg = PyTuple_New(1);
   PyTuple_SetItem(arg, 0, PyLong_FromLong(idx)); // PyTuple_SetItem() steals the reference
-  PyObject* call = PyObject_CallObject(py_func, arg);
+  pyObject* call = pyObject_CallObject(py_func, arg);
   PythonKernel::CheckPythonReturn(call);
   Py_XDECREF(arg);
   return call;
@@ -271,7 +271,7 @@ PyObject* CallLocalPythonFunction(const Function* func, PyObject* py_func)
 /** implemented in PythonFunction.cc */
 double Function::Local::Identifier::CalcLocalPythonFunc(const Function::Local* local) const
 {
-  PyObject* call = CallLocalPythonFunction(local->func_, local->func_->py_eval_);
+  pyObject* call = CallLocalPythonFunction(local->func_, local->func_->py_eval_);
 
   double ret = PyFloat_AsDouble(call);
   Py_XDECREF(call);
@@ -281,11 +281,11 @@ double Function::Local::Identifier::CalcLocalPythonFunc(const Function::Local* l
 /** we return the "full" local python function gradient at once. Implemented in PythonFunction.cc */
 void Function::Local::Identifier::CalcLocalPythonGrad(Vector<double>& grad, const Function::Local* local) const
 {
-  PyObject* call = CallLocalPythonFunction(local->func_, local->func_->py_grad_);
+  pyObject* call = CallLocalPythonFunction(local->func_, local->func_->py_grad_);
   grad.Fill(call, true); // decref
 }
 
-PyObject* DesignSpace::PythonGetFilterProperties(PyObject* args) const
+pyObject* DesignSpace::PythonGetFilterProperties(pyObject* args) const
 {
   if(filter.GetSize() == 0)
     throw("it seams no filter is set for optimization");
@@ -324,7 +324,7 @@ PyObject* DesignSpace::PythonGetFilterProperties(PyObject* args) const
   return PythonKernel::CreatePythonDict(map);
 }
 
-void DesignSpace::PythonSetFilterProperties(PyObject* args)
+void DesignSpace::PythonSetFilterProperties(pyObject* args)
 {
   int idx = -1;
   double beta = -1.0;

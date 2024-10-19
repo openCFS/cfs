@@ -76,6 +76,15 @@ else()
   set(BOOTSTRAP ./bootstrap.bat)
 endif()
 
+# Check if the Boost source has already been downloaded
+if(EXISTS "${DEPS_PREFIX}/src/${PACKAGE_NAME}/boost")
+  message(STATUS "Boost source found, skipping download.")
+  set(BOOST_DOWNLOAD_COMMAND "")  # Disable the download step
+else()
+  message(STATUS "Boost source not found, proceeding with download.")
+  set(BOOST_DOWNLOAD_COMMAND ${PACKAGE_MIRRORS})
+endif()
+
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
@@ -115,7 +124,7 @@ else()
   ExternalProject_Add(${PACKAGE_NAME}
     PREFIX ${DEPS_PREFIX}
     BINARY_DIR ${DEPS_SOURCE}
-    URL ${PACKAGE_MIRRORS}
+    URL ${BOOST_DOWNLOAD_COMMAND}
     URL_MD5 ${PACKAGE_MD5}
     # DOWNLOAD_DIR is ignored, if URL contains not the file mirror
     DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}
@@ -128,7 +137,7 @@ else()
     CONFIGURE_COMMAND ${BOOTSTRAP} 
     # on Windows calling b2 might result in security issues (access violation)
     # --threading=multi seems to work even with USE_OPENMP=OFF on all systems?!
-    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} ${B2_ARGS} link=static address-model=64 threading=multi runtime-link=shared variant=release install
+    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} ${B2_ARGS} link=static address-model=64 threading=multi runtime-link=shared variant=release install -d+2
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY}
     # Wrap build step in script to log output, since it's super long and clutters the pipeline

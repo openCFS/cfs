@@ -32,7 +32,7 @@ namespace CoupledField
 
     void DescribeProperties(StdVector<std::pair<std::string, std::string> >& map) const override;
 
-    void PythonSetProperty(PyObject* args) override;
+    void PythonSetProperty(pyObject* args) override;
 
   private:
 

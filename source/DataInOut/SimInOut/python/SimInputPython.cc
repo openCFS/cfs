@@ -78,12 +78,12 @@ void SimInputPython::ReadMesh(Grid* grid)
   assert(grid->GetNumNodes() == 0);
   assert(grid->regionData.IsEmpty());
 
-  PyObject* init = PyObject_GetAttrString(module, "set_cfs_mesh");
+  pyObject* init = pyObject_GetAttrString(module, "set_cfs_mesh");
   if(init && PyCallable_Check(init)) {
-    PyObject* arg = PyTuple_New(1);
+    pyObject* arg = PyTuple_New(1);
     PyTuple_SetItem(arg, 0, PythonKernel::CreatePythonDict(options));
     LOG_DBG(pymesh) << "RM: call set_cfs_mesh()";
-    PyObject* ret = PyObject_CallObject(init, arg);
+    pyObject* ret = pyObject_CallObject(init, arg);
     LOG_DBG(pymesh) << "RM: called set_cfs_mesh()";
     if(!ret)
       throw Exception("set_cfs_mesh() aborted in module " + givenname + ": " + PythonKernel::PyErr());
@@ -107,7 +107,7 @@ void SimInputPython::ReadMesh(Grid* grid)
 }
 
 
-void SimInputPython::SetNodes(PyObject* args)
+void SimInputPython::SetNodes(pyObject* args)
 {
   assert(grid != NULL);
 
@@ -117,7 +117,7 @@ void SimInputPython::SetNodes(PyObject* args)
   PyArrayObject *array = NULL;
 
   PyArg_ParseTuple(args, "O!", &PyArray_Type, &array);
-  PythonKernel::CheckPythonReturn((PyObject*) array);
+  PythonKernel::CheckPythonReturn((pyObject*) array);
 
   if(!PyArray_Check(array))
     throw Exception("did not get numpy array with set_nodes()");
@@ -148,15 +148,15 @@ void SimInputPython::SetNodes(PyObject* args)
   Py_XDECREF(args);
 }
 
-void SimInputPython::SetRegions(PyObject* args)
+void SimInputPython::SetRegions(pyObject* args)
 {
   if(grid->regionData.GetSize() > 0)
     throw Exception("set_regions() called before");
 
   // https://stackoverflow.com/questions/3253563/pass-list-as-argument-to-python-c-module
-  PyObject* list;
+  pyObject* list;
   PyArg_ParseTuple(args, "O!", &PyList_Type, &list);
-  PythonKernel::CheckPythonReturn((PyObject*) list);
+  PythonKernel::CheckPythonReturn((pyObject*) list);
 
   unsigned int numLines = PyList_Size(list);
   if(numLines < 1)
@@ -166,7 +166,7 @@ void SimInputPython::SetRegions(PyObject* args)
   StdVector<RegionIdType> reg_ids(numLines); // = int
 
   for(unsigned int i = 0; i < numLines; i++) {
-    PyObject* obj = PyList_GetItem(list, i);
+    pyObject* obj = PyList_GetItem(list, i);
     const char* line = PyUnicode_AsUTF8(obj);
     reg_names[i] = string(line);
     reg_ids[i] = i;
@@ -178,7 +178,7 @@ void SimInputPython::SetRegions(PyObject* args)
   Py_XDECREF(args);
 }
 
-void SimInputPython::AddElements(PyObject* args)
+void SimInputPython::AddElements(pyObject* args)
 {
   // we get total, cfs_type, array of ints
 
@@ -187,7 +187,7 @@ void SimInputPython::AddElements(PyObject* args)
   PyArrayObject *array = NULL;
   int ret = PyArg_ParseTuple(args, "iiO!", &total, &type, &PyArray_Type, &array);
   PythonKernel::CheckPythonReturn(ret);
-  PythonKernel::CheckPythonReturn((PyObject*) array);
+  PythonKernel::CheckPythonReturn((pyObject*) array);
   LOG_DBG(pymesh) << "AE: total=" << total << " type=" << type << "=" << Elem::feType.ToString((Elem::FEType) type);
 
 
@@ -220,27 +220,27 @@ void SimInputPython::AddElements(PyObject* args)
   Py_XDECREF(args);
 }
 
-void SimInputPython::AddNamedNodes(PyObject* args)
+void SimInputPython::AddNamedNodes(pyObject* args)
 {
   AddNamedNodesElements(args, true);
 }
 
 
-void SimInputPython::AddNamedElements(PyObject* args)
+void SimInputPython::AddNamedElements(pyObject* args)
 {
   AddNamedNodesElements(args, false);
 }
 
-void SimInputPython::AddNamedNodesElements(PyObject* args, bool nodes)
+void SimInputPython::AddNamedNodesElements(pyObject* args, bool nodes)
 {
   char* s;
   PyArrayObject *array = NULL;
   int ret = PyArg_ParseTuple(args, "sO!", &s, &PyArray_Type, &array);
   PythonKernel::CheckPythonReturn(ret);
-  PythonKernel::CheckPythonReturn((PyObject*) array);
+  PythonKernel::CheckPythonReturn((pyObject*) array);
   LOG_DBG(pymesh) << "ANNE: action=" << (nodes ? "nodes" : "elements") << " s=" << s << " rows=" << PyArray_DIM(array,0);
 
-  Vector<unsigned int> vec((PyObject*) array, false); // shall be np.array(nodes, dtype=uintc)
+  Vector<unsigned int> vec((pyObject*) array, false); // shall be np.array(nodes, dtype=uintc)
   LOG_DBG3(pymesh) << "ANNE: vec=" << vec.ToString();
   StdVector<unsigned int> stv;
   stv.Assign(vec.GetPointer(), vec.GetSize(), true); // takes memory ownership

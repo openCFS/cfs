@@ -12,7 +12,7 @@
 
 // MuParser Python Object
 typedef struct {
-    PyObject_HEAD
+    pyObject_HEAD
     mu::Parser *parser;
     std::map<std::string, double> *vars;
 } MuParserObject;
@@ -36,7 +36,7 @@ static void FormatMuPError(mu::Parser::exception_type &ex) {
 }
 
 // Object Allocation
-static PyObject* MuParser_new(PyTypeObject *type, PyObject *args, PyObject *kwds) {
+static pyObject* MuParser_new(PyTypeObject *type, pyObject *args, pyObject *kwds) {
     MuParserObject *self = (MuParserObject*) type->tp_alloc(type, 0);
 
     if (self != NULL) {
@@ -44,7 +44,7 @@ static PyObject* MuParser_new(PyTypeObject *type, PyObject *args, PyObject *kwds
         self->vars = new std::map<std::string, double>();
     }
 
-    return (PyObject*) self;
+    return (pyObject*) self;
 }
 
 // Object Deallocation
@@ -58,14 +58,14 @@ static void MuParser_dealloc(MuParserObject *self) {
         self->vars = NULL;
     }
 
-    Py_TYPE(self)->tp_free((PyObject*) self);
+    Py_TYPE(self)->tp_free((pyObject*) self);
 }
 
 // Object Initialization
-static int MuParser_init(MuParserObject *self, PyObject *args, PyObject *kwds) {
+static int MuParser_init(MuParserObject *self, pyObject *args, pyObject *kwds) {
     static char *kwlist[] = {"expr", "vars", "consts", NULL};
     char *expr = NULL;
-    PyObject *vars = NULL, *consts = NULL;
+    pyObject *vars = NULL, *consts = NULL;
 
     if (!PyArg_ParseTupleAndKeywords(args, kwds, "|zOO", kwlist, &expr, &vars, &consts)) {
         return -1;
@@ -105,14 +105,14 @@ static int MuParser_init(MuParserObject *self, PyObject *args, PyObject *kwds) {
             return -1;
         }
 
-        PyObject *items = PyMapping_Items(vars);
+        pyObject *items = PyMapping_Items(vars);
         Py_ssize_t numVars = PySequence_Length(items);
 
         for (Py_ssize_t i = 0; i < numVars; ++i) {
-            PyObject *item = PySequence_GetItem(items, i);
-            PyObject *varName = PySequence_GetItem(item, 0);
-            PyObject *number = PySequence_GetItem(item, 1);
-            PyObject *value = NULL;
+            pyObject *item = PySequence_GetItem(items, i);
+            pyObject *varName = PySequence_GetItem(item, 0);
+            pyObject *number = PySequence_GetItem(item, 1);
+            pyObject *value = NULL;
 
             if (varName == NULL || !PyUnicode_Check(varName)) {
                 Py_DECREF(item);
@@ -133,7 +133,7 @@ static int MuParser_init(MuParserObject *self, PyObject *args, PyObject *kwds) {
                 return -1;
             }
 
-            PyObject *asciiVar = PyUnicode_AsASCIIString(varName);
+            pyObject *asciiVar = PyUnicode_AsASCIIString(varName);
             if (asciiVar == NULL) {
                 Py_DECREF(item);
                 Py_DECREF(varName);
@@ -175,14 +175,14 @@ static int MuParser_init(MuParserObject *self, PyObject *args, PyObject *kwds) {
             return -1;
         }
 
-        PyObject *items = PyMapping_Items(consts);
+        pyObject *items = PyMapping_Items(consts);
         Py_ssize_t numConsts = PySequence_Length(items);
 
         for (Py_ssize_t i = 0; i < numConsts; ++i) {
-            PyObject *item = PySequence_GetItem(items, i);
-            PyObject *constName = PySequence_GetItem(item, 0);
-            PyObject *number = PySequence_GetItem(item, 1);
-            PyObject *value = NULL;
+            pyObject *item = PySequence_GetItem(items, i);
+            pyObject *constName = PySequence_GetItem(item, 0);
+            pyObject *number = PySequence_GetItem(item, 1);
+            pyObject *value = NULL;
 
             if (constName == NULL || !PyUnicode_Check(constName)) {
                 Py_DECREF(item);
@@ -203,7 +203,7 @@ static int MuParser_init(MuParserObject *self, PyObject *args, PyObject *kwds) {
                 return -1;
             }
 
-            PyObject *asciiConst = PyUnicode_AsASCIIString(constName);
+            pyObject *asciiConst = PyUnicode_AsASCIIString(constName);
             if (asciiConst == NULL) {
                 Py_DECREF(item);
                 Py_DECREF(constName);
@@ -242,8 +242,8 @@ static int MuParser_init(MuParserObject *self, PyObject *args, PyObject *kwds) {
 }
 
 // Obtain the math expression
-static PyObject* MuParser_getexpr(MuParserObject *self, void *closure) {
-    PyObject *expr = NULL;
+static pyObject* MuParser_getexpr(MuParserObject *self, void *closure) {
+    pyObject *expr = NULL;
 
     try {
         expr = PyUnicode_FromString(self->parser->GetExpr().c_str());
@@ -256,7 +256,7 @@ static PyObject* MuParser_getexpr(MuParserObject *self, void *closure) {
 }
 
 // Set the math expression
-static int MuParser_setexpr(MuParserObject *self, PyObject *value, void *closure) {
+static int MuParser_setexpr(MuParserObject *self, pyObject *value, void *closure) {
     if (value == NULL) {
         PyErr_SetString(PyExc_TypeError, "Cannot delete the expr attribute");
         return -1;
@@ -266,7 +266,7 @@ static int MuParser_setexpr(MuParserObject *self, PyObject *value, void *closure
         return -1;
     }
 
-    PyObject *asciiBytes = PyUnicode_AsASCIIString(value);
+    pyObject *asciiBytes = PyUnicode_AsASCIIString(value);
     if (asciiBytes == NULL) return -1;
 
     std::string expr(PyBytes_AsString(asciiBytes));
@@ -293,7 +293,7 @@ static int MuParser_setexpr(MuParserObject *self, PyObject *value, void *closure
 }
 
 // Evaluate the math expression
-static PyObject* MuParser_eval(MuParserObject *self) {
+static pyObject* MuParser_eval(MuParserObject *self) {
     int resultSize = 0;
     mu::value_type *values = NULL;
 
@@ -305,7 +305,7 @@ static PyObject* MuParser_eval(MuParserObject *self) {
         return NULL;
     }
 
-    PyObject *result = NULL;
+    pyObject *result = NULL;
 
     if (resultSize == 1) {
         result = PyFloat_FromDouble(values[0]);
@@ -324,7 +324,7 @@ static PyObject* MuParser_eval(MuParserObject *self) {
 }
 
 // Obtain the value of a variable
-static PyObject* MuParser_getvar(MuParserObject *self, PyObject *args) {
+static pyObject* MuParser_getvar(MuParserObject *self, pyObject *args) {
     char *name = NULL;
 
     if (!PyArg_ParseTuple(args, "s", &name)) return NULL;
@@ -340,7 +340,7 @@ static PyObject* MuParser_getvar(MuParserObject *self, PyObject *args) {
 }
 
 // Define a variable
-static PyObject* MuParser_setvar(MuParserObject *self, PyObject *args, PyObject *kwds) {
+static pyObject* MuParser_setvar(MuParserObject *self, pyObject *args, pyObject *kwds) {
     static char *kwlist[] = {"name", "value", NULL};
     char *name = NULL;
     double value = 0.0;
@@ -370,7 +370,7 @@ static PyObject* MuParser_setvar(MuParserObject *self, PyObject *args, PyObject 
 
 
 // Remove a variable
-static PyObject* MuParser_removevar(MuParserObject *self, PyObject *args) {
+static pyObject* MuParser_removevar(MuParserObject *self, pyObject *args) {
     char *name = NULL;
     if (!PyArg_ParseTuple(args, "s", &name)) return NULL;
 
@@ -394,7 +394,7 @@ static PyObject* MuParser_removevar(MuParserObject *self, PyObject *args) {
 }
 
 // Obtain the value of a constant
-static PyObject* MuParser_getconst(MuParserObject *self, PyObject *args) {
+static pyObject* MuParser_getconst(MuParserObject *self, pyObject *args) {
     char *name = NULL;
     if (!PyArg_ParseTuple(args, "s", &name)) return NULL;
 
@@ -421,7 +421,7 @@ static PyObject* MuParser_getconst(MuParserObject *self, PyObject *args) {
 }
 
 // Define a constant
-static PyObject* MuParser_setconst(MuParserObject *self, PyObject *args, PyObject *kwds) {
+static pyObject* MuParser_setconst(MuParserObject *self, pyObject *args, pyObject *kwds) {
     static char *kwlist[] = {"name", "value", NULL};
     char *name = NULL;
     double value = 0.0;
@@ -534,7 +534,7 @@ static struct PyModuleDef muparsermodule = {
 
 // Module Initialization
 PyMODINIT_FUNC PyInit_muparser() {
-    PyObject * module = NULL;
+    pyObject * module = NULL;
 
     if (PyType_Ready(&muparser_type) < 0) return NULL;
 
@@ -544,7 +544,7 @@ PyMODINIT_FUNC PyInit_muparser() {
     PyModule_AddStringConstant(module, "__version__", "@PYMUPARSER_VERSION@");
 
     Py_INCREF(&muparser_type);
-    PyModule_AddObject(module, "muparser", (PyObject*) &muparser_type);
+    PyModule_AddObject(module, "muparser", (pyObject*) &muparser_type);
 
     return module;
 }

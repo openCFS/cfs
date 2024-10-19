@@ -20,7 +20,7 @@ using namespace CoupledField;
 static int callback_val=5;
 
 /* expects a long of value 4 and returns callback_val which is 5 */
-static PyObject* cfs_val(PyObject *self, PyObject *args)
+static pyObject* cfs_val(pyObject *self, pyObject *args)
 {
   long c;
   PyArg_ParseTuple(args, "l", &c);
@@ -31,7 +31,7 @@ static PyObject* cfs_val(PyObject *self, PyObject *args)
 
 
 /** get a numpy array (dim = 1) and a long with the size of the array */
-static PyObject* cfs_vec(PyObject *self, PyObject *args)
+static pyObject* cfs_vec(pyObject *self, pyObject *args)
 {
   PyArrayObject *vec1;
   PyArrayObject *vec2;
@@ -51,7 +51,7 @@ static PyObject* cfs_vec(PyObject *self, PyObject *args)
   return PyLong_FromLong(n);
 }
 
-static PyObject* cfs_mod_mat(PyObject *self, PyObject *args){
+static pyObject* cfs_mod_mat(pyObject *self, pyObject *args){
   // consider list of 2d arrays as and 3d array
   PyArrayObject *list;
   PyArg_ParseTuple(args, "O!", &PyArray_Type, &list);
@@ -91,7 +91,7 @@ static PyModuleDef cfs_modules = {
     PyModuleDef_HEAD_INIT, "cfs", NULL, -1, cfs_methods, NULL, NULL, NULL, NULL
 };
 
-static PyObject* PyInit_cfs(void)
+static pyObject* PyInit_cfs(void)
 {
   // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
   import_array();
@@ -110,8 +110,8 @@ BOOST_AUTO_TEST_CASE(embedded_python)
   PyRun_SimpleString("import os; print('embedded python: runs in ' + os.getcwd())");
 
   // test system
-  PyObject* version = PySys_GetObject("version");
-  std::cout << "pyobject version=" << version << std::endl;
+  pyObject* version = PySys_GetObject("version");
+  std::cout << "pyObject version=" << version << std::endl;
   if(!version)
     PyErr_Print();
 
@@ -133,21 +133,21 @@ BOOST_AUTO_TEST_CASE(embedded_python)
   // add it to the system path
   if(boost::filesystem::is_directory(path))
   {
-    PyObject* sysPath = PySys_GetObject((char*) "path"); // must not decref after append
+    pyObject* sysPath = PySys_GetObject((char*) "path"); // must not decref after append
     PyList_Append(sysPath, PyUnicode_FromString(path.string().c_str()));
   }
   else
     std::cout << "WARNING: not running in build directory, make sure */source/unittest is in PYTHONPATH" << std::endl;
 
   // https://docs.python.org/3.8/extending/embedding.html
-  PyObject* pModule = PyImport_ImportModule("embeddedpython");
+  pyObject* pModule = PyImport_ImportModule("embeddedpython");
 
   if(pModule != NULL)
   {
     // call python function
-    PyObject* pFunc = PyObject_GetAttrString(pModule, "inc_a");
+    pyObject* pFunc = pyObject_GetAttrString(pModule, "inc_a");
     assert(pFunc && PyCallable_Check(pFunc));
-    PyObject* pValue = PyObject_CallObject(pFunc, NULL);
+    pyObject* pValue = pyObject_CallObject(pFunc, NULL);
     BOOST_TEST(pValue);
     BOOST_TEST(PyLong_AsLong(pValue) == 1);
     std::cout << "inc_c returned: " << PyLong_AsLong(pValue) << std::endl;
@@ -156,7 +156,7 @@ BOOST_AUTO_TEST_CASE(embedded_python)
 
     // get numpy object from python
     // https://stackoverflow.com/questions/43437885/how-do-i-access-a-numpy-array-in-embedded-python-from-c
-    PyArrayObject* array = (PyArrayObject*) PyObject_GetAttrString(pModule, "A");
+    PyArrayObject* array = (PyArrayObject*) pyObject_GetAttrString(pModule, "A");
     BOOST_TEST(array);
     std::cout << "dims: " << PyArray_NDIM(array) << ":" << PyArray_DIM(array,0) << "," << PyArray_DIM(array,1) << std::endl;
     BOOST_TEST(PyArray_NDIM(array) == 2);
@@ -167,18 +167,18 @@ BOOST_AUTO_TEST_CASE(embedded_python)
       }
     Py_XDECREF(array);
 
-    PyObject* pA = PyObject_GetAttrString(pModule, "print_A");
+    pyObject* pA = pyObject_GetAttrString(pModule, "print_A");
     assert(pA && PyCallable_Check(pA));
-    PyObject_CallObject(pA, NULL);
+    pyObject_CallObject(pA, NULL);
     Py_DECREF(pA);
 
     // call python method with more than one return value
-    PyObject* mv = PyObject_GetAttrString(pModule, "many_values");
+    pyObject* mv = pyObject_GetAttrString(pModule, "many_values");
     assert(mv && PyCallable_Check(mv));
-    PyObject* arg = PyTuple_New(2);
+    pyObject* arg = PyTuple_New(2);
     PyTuple_SetItem(arg, 0, PyLong_FromLong(6));
     PyTuple_SetItem(arg, 1, PyFloat_FromDouble(3.14));
-    PyObject* ret = PyObject_CallObject(mv, arg);
+    pyObject* ret = pyObject_CallObject(mv, arg);
     Py_XDECREF(arg); // I guess val1 and val1 are decremented here?!
     if(!ret)
       PyErr_Print();
@@ -189,56 +189,56 @@ BOOST_AUTO_TEST_CASE(embedded_python)
     BOOST_TEST_REQUIRE(PyTuple_Size(ret) == 2);
 
     // test Vector and numpy conversion
-    PyObject* V = PyObject_GetAttrString(pModule, "V");
+    pyObject* V = pyObject_GetAttrString(pModule, "V");
     if(!V)
       PyErr_Print();
     Vector<double> v(V,true);
     std::cout << v.ToString() << std::endl;
 
     // test for numpy type
-    PyObject* a = (PyObject*) PyObject_GetAttrString(pModule, "a");
+    pyObject* a = (pyObject*) pyObject_GetAttrString(pModule, "a");
 
     if(!a)
       PyErr_Print();
 
     std::cout << "a as long is " << PyLong_AsLong(a) << std::endl;
-    // std::cout << "isinstance : " << PyObject_IsInstance(a,(PyObject*) &PyArray_Type) << std::endl;
+    // std::cout << "isinstance : " << pyObject_IsInstance(a,(pyObject*) &PyArray_Type) << std::endl;
     // std::cout << "check a: " << PyArray_Check(a) << std::endl;
     Py_XDECREF(a);
 
     // test parsing boolean
-    PyObject* derivative = PyObject_GetAttrString(pModule, "derivative");
-    BOOST_TEST(!PyObject_IsTrue(derivative));
+    pyObject* derivative = pyObject_GetAttrString(pModule, "derivative");
+    BOOST_TEST(!pyObject_IsTrue(derivative));
 
     // test dictionary
-    PyObject* dict = PyDict_New();
+    pyObject* dict = PyDict_New();
     PyDict_SetItemString(dict, "franz", PyUnicode_FromString("franzl"));
     PyDict_SetItemString(dict, "hans", PyLong_FromLong(5));
     arg = PyTuple_New(1);
     PyTuple_SetItem(arg, 0, dict);
-    pFunc = PyObject_GetAttrString(pModule, "print_dict");
+    pFunc = pyObject_GetAttrString(pModule, "print_dict");
     assert(pFunc && PyCallable_Check(pFunc));
-    pValue = PyObject_CallObject(pFunc, arg);
+    pValue = pyObject_CallObject(pFunc, arg);
     Py_XDECREF(arg);
     Py_XDECREF(pValue);
     Py_XDECREF(pFunc);
 
 
     // call python function with a tuple (not numpy), and empty tuple and a number
-    PyObject* gv = PyObject_GetAttrString(pModule, "get_vec");
+    pyObject* gv = pyObject_GetAttrString(pModule, "get_vec");
     assert(gv && PyCallable_Check(gv));
-    PyObject* gva = PyTuple_New(3); // gvl + gve + 2
-    PyObject* gvl = PyTuple_New(2); // the list object as first attribute
+    pyObject* gva = PyTuple_New(3); // gvl + gve + 2
+    pyObject* gvl = PyTuple_New(2); // the list object as first attribute
     PyTuple_SetItem(gvl, 0, PyFloat_FromDouble(0.1));
     PyTuple_SetItem(gvl, 1, PyFloat_FromDouble(0.2));
 
-    PyObject* gve = PyTuple_New(0); // empty tuple
+    pyObject* gve = PyTuple_New(0); // empty tuple
 
     PyTuple_SetItem(gva, 0, gvl);
     PyTuple_SetItem(gva, 1, gve);
     PyTuple_SetItem(gva, 2, PyLong_FromLong(2)); // gvl size
 
-    PyObject* gvr = PyObject_CallObject(gv, gva);
+    pyObject* gvr = pyObject_CallObject(gv, gva);
 
     if(!gvr) PyErr_Print();
     Py_XDECREF(gvr); // I guess val1 and val1 are decremented here?!
@@ -249,8 +249,8 @@ BOOST_AUTO_TEST_CASE(embedded_python)
 
 
     // PyArray_Zeros, PyArray_SimpleNew(), PyArray_SimpleNewFromData and PyArray_Resize don't work.  :(
-    // PyObject* resized = PyArray_Resize(vec, &ad, 0, NPY_CORDER);
-    //PyObject* new_vec = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, data.GetPointer());
+    // pyObject* resized = PyArray_Resize(vec, &ad, 0, NPY_CORDER);
+    //pyObject* new_vec = PyArray_SimpleNewFromData(1, dims, NPY_DOUBLE, data.GetPointer());
 
 
     Py_DECREF(pModule); // we know it is not NULL

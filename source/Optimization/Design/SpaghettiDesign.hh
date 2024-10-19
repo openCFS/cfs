@@ -32,7 +32,7 @@ public:
   void AddToDensityHeader(PtrParamNode pn) override;
 
   /** the spaghetti python script */
-  PyObject* GetPythonModule() override;
+  pyObject* GetPythonModule() override;
 
   typedef enum { NO_TIP = -1, START, END, INNER } Tip;
 
@@ -200,7 +200,7 @@ private:
   StdVector<std::pair<std::string, std::string> > pyopts;
 
   /** this contains the (later optional) Python script */
-  PyObject* module_ = NULL;
+  pyObject* module_ = NULL;
 
   PtrParamNode sp_info_; // our own info
 

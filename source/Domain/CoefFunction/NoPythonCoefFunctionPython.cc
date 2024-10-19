@@ -16,7 +16,7 @@ CoefFunctionPython::~CoefFunctionPython()
 }
 
 
-PyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
+pyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
 {
   return NULL;
 }

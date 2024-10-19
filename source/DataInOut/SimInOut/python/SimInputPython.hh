@@ -32,27 +32,27 @@ namespace CoupledField
     /** to be called first as cfs.set_nodes with a numpy array with three columns of doubles with the nodes coordinates.
      * The nodes are referred to as 1-based ids.
      * Called from PythonKernel, which is our friend (can call private functions) */
-    void SetNodes(PyObject* args);
+    void SetNodes(pyObject* args);
 
     /** to be called second as cfs.set_regions with a list of region names. The region id for the other functions is the 0-based index */
-    void SetRegions(PyObject* args);
+    void SetRegions(pyObject* args);
 
     /** to be called after SetRegions() as cfs.add_elements with the following parameters. Can be called many times for different fe types
      * - integer of the total number of elements
      * - integer with the Elem::FEType
      * - numpy array with the columns element number (1-based), region id, node numbers (1-based) corresponding to fe type */
-    void AddElements(PyObject* args);
+    void AddElements(pyObject* args);
 
     /** to be called optionally after SetNodes as cfs.add_named_nodes , can be called multiple times.
      * first parameter is a string with a name, second is a numpy array of dtype=numpy.uintc with 1-based node ids */
-    void AddNamedNodes(PyObject* args);
+    void AddNamedNodes(pyObject* args);
 
     /** to be called optionally after the last AddElements() call as cfs.add_named_elements, can be called multiple times.
      * first parameter is a string with a name, second is a numpy array of dtype=numpy.uintc with 1-based element ids */
-    void AddNamedElements(PyObject* args);
+    void AddNamedElements(pyObject* args);
 
     /** helper for AddNamedNodes() and AddNamedElements() */
-    void AddNamedNodesElements(PyObject* args, bool nodes);
+    void AddNamedNodesElements(pyObject* args, bool nodes);
 
     /** all AddElements() must match and sum up with this number. */
     unsigned int total_elements_ = 0;
@@ -64,7 +64,7 @@ namespace CoupledField
     StdVector<std::pair<std::string, std::string> > options;
 
     /** this represents the python script */
-    PyObject* module = NULL;
+    pyObject* module = NULL;
 
     /** set by ReadMesh() */
     Grid* grid = NULL;

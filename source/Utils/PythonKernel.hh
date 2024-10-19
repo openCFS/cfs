@@ -80,7 +80,7 @@ public:
   }
 
   /** optional python module (script). Can be NULL */
-  PyObject* GetKernel() { return kernel_; }
+  pyObject* GetKernel() { return kernel_; }
 
   /** to by called by the pathon mesher to forward the static functions from cfs_modules_, called from python to the class */
   void Register(SimInputPython* mesher, bool remove = false) { this->mesher_ = remove ? NULL : mesher; }
@@ -92,7 +92,7 @@ public:
   struct LoadStatus
   {
     /** the python module (script) to call functions from. You need to free it after usage! */
-    PyObject* module = NULL;
+    pyObject* module = NULL;
     /** the actually used path. But module loading might mess this up. Save is to start with empty PYTHONPATH */
     std::string full_file;
     /** the actually used system path. The path of the current script is set first */
@@ -121,47 +121,47 @@ public:
 
   /** helper which creates a python dictionary for a string resource.
    * @see ParseOptions() */
-  static PyObject* CreatePythonDict(const StdVector<std::pair<std::string, std::string> > options);
+  static pyObject* CreatePythonDict(const StdVector<std::pair<std::string, std::string> > options);
 
   /** helper which creates a python list of entities which need to be specialized in Create().
    * Any TYPE needs a specialization of Create<>(). */
   template<class TYPE>
-  static PyObject* CreatePythonList(const StdVector<TYPE>& list) {
+  static pyObject* CreatePythonList(const StdVector<TYPE>& list) {
     return CreatePythonList(Container<TYPE>(list));
   }
 
   template<class TYPE>
-  static PyObject* CreatePythonList(const Vector<TYPE>& list) {
+  static pyObject* CreatePythonList(const Vector<TYPE>& list) {
     return CreatePythonList(Container<TYPE>(list));
   }
 
   /** common implementation for Vector and StdVector */
   template<class TYPE>
-  static PyObject* CreatePythonList(const Container<TYPE>& list);
+  static pyObject* CreatePythonList(const Container<TYPE>& list);
 
-  /** convert a single value to PyObject. Works with specialization. */
+  /** convert a single value to pyObject. Works with specialization. */
   template<class TYPE>
-  static PyObject* Create(const TYPE& val);
+  static pyObject* Create(const TYPE& val);
 
   template<class TYPE>
-  static void ConvertPythonList(Vector<TYPE>& vec, PyObject* list) {
+  static void ConvertPythonList(Vector<TYPE>& vec, pyObject* list) {
     Container<TYPE> cont(vec);
     ConvertPythonList(cont, list);
   }
 
   template<class TYPE>
-  static void ConvertPythonList(StdVector<TYPE>& vec, PyObject* list) {
+  static void ConvertPythonList(StdVector<TYPE>& vec, pyObject* list) {
     Container<TYPE> cont(vec);
     ConvertPythonList(cont, list);
   }
 
   template<class TYPE>
-  static void ConvertPythonList(Container<TYPE>& vec, PyObject* list);
+  static void ConvertPythonList(Container<TYPE>& vec, pyObject* list);
 
 
   /** convenience function */
   template<class TYPE>
-  static StdVector<TYPE> ConvertPythonList(PyObject* list) {
+  static StdVector<TYPE> ConvertPythonList(pyObject* list) {
     StdVector<TYPE> vec;
     ConvertPythonList<TYPE>(vec, list);
     return vec;
@@ -169,22 +169,22 @@ public:
 
   /** counterpart of Create(). Has specialization for double, ... */
   template<class TYPE>
-  static TYPE Convert(PyObject* item);
+  static TYPE Convert(pyObject* item);
 
-  /** returns the string representation of a PyObject()
+  /** returns the string representation of a pyObject()
    * If obj is NULL an empty string is returned */
-  static std::string ToString(PyObject* obj);
+  static std::string ToString(pyObject* obj);
 
   /** convenience function which checks the return value and if it fails calls PyErr_Print() and throws an exception
-   * @param pyobject e.g. what you get from PyObject_CallObject
+   * @param pyObject e.g. what you get from pyObject_CallObject
    * @param name if given, used for thrown error message */
-  static void CheckPythonReturn(PyObject* pyobject, const char* name = NULL); // { CheckPythonReturn(pyobject == NULL ? 0 : 1, name); }
+  static void CheckPythonReturn(pyObject* pyObject, const char* name = NULL); // { CheckPythonReturn(pyObject == NULL ? 0 : 1, name); }
   static void CheckPythonReturn(int ret, const char* name = NULL);
 
   /** convenience function which checks if the python function is callable
-   * @param pyobject e.g. what you get from PyObject_GetAttrString
+   * @param pyObject e.g. what you get from pyObject_GetAttrString
    * @param name optional function name for error message */
-  static void CheckPythonFunction(PyObject* pyobject, const char* name = NULL);
+  static void CheckPythonFunction(pyObject* pyObject, const char* name = NULL);
 
   /** if an exception had been occurred and PyErr_Print() would print an stacktrace
    * @param call PyErr_Print()
@@ -210,18 +210,18 @@ public:
   /** DOES NOT WORK! SHALL REPLACE PythonOptimizer::ParseArrays() BUT SEGAULTS ?!
      * Helper which processes a PyTupleObject which needs to consist only of 1dim numpy arrays
      * @param decref if false make sure to decref the objects via the return array
-     * @return you must not uses the PyObjects when decref is true */
-  static StdVector<PyObject*> ParseNumpyArrays(PyObject* args, int expect, StdVector<Vector<double> >& data, bool decref);
+     * @return you must not uses the pyObjects when decref is true */
+  static StdVector<pyObject*> ParseNumpyArrays(pyObject* args, int expect, StdVector<Vector<double> >& data, bool decref);
 
   /** Write 2D numpy array data to a Matrix.
    * @param numpy PyArrayObject*
    * @param out is properly set
    * @param decref shall numpy be decrefed? */
   template<class T>
-  static Matrix<T> Numpy2DArrayToMatrix(PyObject* numpy, Matrix<T>& out, bool decref);
+  static Matrix<T> Numpy2DArrayToMatrix(pyObject* numpy, Matrix<T>& out, bool decref);
 
   template<class T>
-  static Matrix<T> Numpy2DArrayToMatrix(PyObject* numpy, bool decref)
+  static Matrix<T> Numpy2DArrayToMatrix(pyObject* numpy, bool decref)
   {
     Matrix<T> out;
     return Numpy2DArrayToMatrix(numpy, out, decref);
@@ -229,7 +229,7 @@ public:
 
   /** Write Matrix data to numpy array which needs already to be of proper size */
   template<class T>
-  static void MatrixToNumpyArray(const Matrix<T>& in, PyObject* numpy);
+  static void MatrixToNumpyArray(const Matrix<T>& in, pyObject* numpy);
 
 private:
 
@@ -257,7 +257,7 @@ private:
 
   /** This is the kernel module (python script) if loaded. Not that mesh reader, python optimizer, ... have their
    * own modules (files) */
-  PyObject* kernel_ = NULL;
+  pyObject* kernel_ = NULL;
 
   PtrParamNode info_;
 
@@ -266,7 +266,7 @@ private:
   static SimInputPython* mesher_;
   static PythonOptimizer* pyopt_;
 
-// we can have a dummy PyObject* from Vector but not these structures
+// we can have a dummy pyObject* from Vector but not these structures
 #ifdef USE_EMBEDDED_PYTHON
   /** all callable functions to be packed to the cfs module to be imported by python scripts.
    * Set in PythonKernelFunctions.cc */
@@ -277,16 +277,16 @@ private:
 #endif
 
   /** give the python interpreter the static functions to be called from python via import cfs*/
-  static PyObject* SetModulFunctions(void);
+  static pyObject* SetModulFunctions(void);
 
 
   /** make the static functions class members to allow access to private members (via friend)
    * The other functions are non-class in PythonKernel.cc  */
-  static PyObject* mesher_set_nodes(PyObject* self, PyObject* args);
-  static PyObject* mesher_set_regions(PyObject* self, PyObject* args);
-  static PyObject* mesher_add_elements(PyObject* self, PyObject* args);
-  static PyObject* mesher_add_named_nodes(PyObject* self, PyObject* args);
-  static PyObject* mesher_add_named_elements(PyObject* self, PyObject* args);
+  static pyObject* mesher_set_nodes(pyObject* self, pyObject* args);
+  static pyObject* mesher_set_regions(pyObject* self, pyObject* args);
+  static pyObject* mesher_add_elements(pyObject* self, pyObject* args);
+  static pyObject* mesher_add_named_nodes(pyObject* self, pyObject* args);
+  static pyObject* mesher_add_named_elements(pyObject* self, pyObject* args);
 
 }; // end of class
 

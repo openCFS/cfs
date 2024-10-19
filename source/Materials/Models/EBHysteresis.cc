@@ -58,7 +58,7 @@ namespace CoupledField
     if (anhyst_type_ == 2)
     {
       // multiscale anhysteresis model
-      SMSM_model_ = std::make_unique<SMSM>(ParameterMap["Ps"],
+      SMSM_model_ = std::make_unique<SMSM_PYTORCH>(ParameterMap["Ps"],
                                            ParameterMap["AS"],
                                            ParameterMap["K1"],
                                            ParameterMap["K2"],

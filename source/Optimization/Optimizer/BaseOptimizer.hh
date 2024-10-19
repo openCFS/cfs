@@ -124,7 +124,7 @@ namespace CoupledField
      * Only very few Optimizers will implement the feature (e.g. OCM)
      * @param tuple of two strings: parameter, value
      * @see Optimization::PythoGetOptimizerProperties() */
-    virtual void PythonSetProperty(PyObject* args)
+    virtual void PythonSetProperty(pyObject* args)
     {
       throw "optimizer_set_property() not implement by " + Optimization::optimizer.ToString(type_);
     }

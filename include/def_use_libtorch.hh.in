@@ -1,0 +1,4 @@
+// Define used to check if LIBTORCH library is used
+
+#cmakedefine USE_LIBTORCH
+

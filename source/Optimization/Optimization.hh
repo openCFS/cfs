@@ -189,7 +189,7 @@ namespace CoupledField
          * After the call, the next DoStopOptimization() will return true.
          * Uses user_break_message and user_break_converged.
          * @param args tuple with boolean if converged and message  */
-        void PythonStopOptimization(PyObject* args);
+        void PythonStopOptimization(pyObject* args);
 
         /** set the break status
          * @param reason if reason is not set, also converged is ignored */
@@ -198,7 +198,7 @@ namespace CoupledField
         /** allow Python to query the current optimizer and some of its properties
          * @return string/string dict with 'optimizer' and general/specific properties. Only few can be set
          * @see BaseOptimizer::PythonSetProperty() */
-        PyObject* PythonGetOptimizerProperties() const;
+        pyObject* PythonGetOptimizerProperties() const;
 
         /** are we in transient optimization?
          * FIXE -> Context */
@@ -219,11 +219,11 @@ namespace CoupledField
 
         /** implement the PythonKernelFunction::get_opt_function_values()
          * Returns a tuple of string/string dicts with function name (as in .info.xml) and value for objectives and constraints */
-        PyObject* PythonFunctionValues() const;
+        pyObject* PythonFunctionValues() const;
 
         /** implement PythonKernelFunction::get_opt_function_properties()
          * @param args name as in .info.xml for objective/constraint/observe */
-        PyObject* PythonFunctionProperties(PyObject* args);
+        pyObject* PythonFunctionProperties(pyObject* args);
 
         /** Returns all functions. Does not blow up local constraints. Combines objective and constraints.
          * Always creates the list, so use only rarely.

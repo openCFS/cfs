@@ -47,7 +47,7 @@ public:
 protected: // we have protected instead of private to avoid "private field is not used" errors when compiled w/o
 
   /** do the actual function call */
-  PyObject* CallFunction(const LocPointMapped& lpm);
+  pyObject* CallFunction(const LocPointMapped& lpm);
 
   unsigned int dim_ = 0;
 
@@ -65,7 +65,7 @@ protected: // we have protected instead of private to avoid "private field is no
 
 #ifdef USE_EMBEDDED_PYTHON
   /** function object to be repeatedly called */
-  PyObject* eval_ = NULL;
+  pyObject* eval_ = NULL;
 #endif
 };
 

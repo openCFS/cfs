@@ -52,4 +52,36 @@ namespace CoupledField {
       Matrix<Double> dMdH_;
       UInt dim_;
     };
+
+
+
+  class SMSM_PYTORCH {
+
+    public:
+      //! Constructor
+      SMSM_PYTORCH(Double Ms, Double AS, Double K1, Double K2, Double lambda100, Double lambda111, UInt dim);
+
+      //! Destructor
+      virtual ~SMSM_PYTORCH();
+
+      void Eval(Double valH, StdVector<Double> dirHloc);
+      void Eval3D(Double valH, StdVector<Double> dirHloc);
+      void Eval2D(Double valH, StdVector<Double> dirHloc);
+
+      void Register_stress(Vector<Double> sigma);
+
+      Vector<Double> GetM(){return MMoy_;};
+      Matrix<Double> GetEps(){return epsmumoy_;};
+      Matrix<Double> GetdMdH(){EXCEPTION("return dMdH_;");};
+      Matrix<Double> GetSigma(){return SIGMAloc_;};
+
+    private:
+      Double l100_, l111_, AS_, K1_, K2_, Ms_, mu0_;
+      Matrix<Double> SIGMAloc_;
+      UInt numRows_;
+      Vector<Double> MMoy_;
+      Matrix<Double> epsmumoy_;
+      Matrix<Double> dMdH_;
+      UInt dim_;
+    };
 } //end of namespace

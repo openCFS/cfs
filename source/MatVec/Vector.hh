@@ -21,7 +21,7 @@
   #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
   #include <Python.h>
 #else
-  struct PyObject;
+  struct pyObject;
 #endif
 
 namespace CoupledField {
@@ -144,7 +144,7 @@ template<typename T> class ElemStoreSol;
      * Creates own data and copies the content.
      * @param obj numpy array which is validated
      * @param decref shall the object referecence counter be decremented */
-    Vector(PyObject* obj, bool decref);
+    Vector(pyObject* obj, bool decref);
 
     //! Destructor
     
@@ -258,7 +258,7 @@ template<typename T> class ElemStoreSol;
 
     /** Resize and fill the object with a numpy array (dim=1) object
      * @see Export() */
-    void Fill(PyObject* obj, bool decref = true);
+    void Fill(pyObject* obj, bool decref = true);
 
     //@}
 
@@ -549,7 +549,7 @@ template<typename T> class ElemStoreSol;
 
     /** writes the content of the vector to a numpy array which needs to have proper size and type.
      * @see Fill() */
-    void Export(PyObject* obj);
+    void Export(pyObject* obj);
 
 
     // =======================================================================

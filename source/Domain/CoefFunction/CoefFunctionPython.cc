@@ -36,13 +36,13 @@ CoefFunctionPython::CoefFunctionPython(PtrParamNode pn, unsigned int dim) : Coef
 
   if(init_ != "")
   {
-    PyObject* func = PyObject_GetAttrString(python->GetKernel(), init_.c_str());
+    pyObject* func = pyObject_GetAttrString(python->GetKernel(), init_.c_str());
     PythonKernel::CheckPythonFunction(func, init_.c_str());
 
-    PyObject* arg = PyTuple_New(1);
+    pyObject* arg = PyTuple_New(1);
     PyTuple_SetItem(arg, 0, PythonKernel::CreatePythonDict(opt)); // PyTuple_SetItem() steals the reference
 
-    PyObject* call = PyObject_CallObject(func, arg);
+    pyObject* call = pyObject_CallObject(func, arg);
     PythonKernel::CheckPythonReturn(call);
 
     Py_XDECREF(call);
@@ -50,7 +50,7 @@ CoefFunctionPython::CoefFunctionPython(PtrParamNode pn, unsigned int dim) : Coef
     Py_XDECREF(func);
   }
 
-  eval_ = PyObject_GetAttrString(python->GetKernel(), function_.c_str());
+  eval_ = pyObject_GetAttrString(python->GetKernel(), function_.c_str());
   PythonKernel::CheckPythonFunction(eval_, function_.c_str());
 
 }
@@ -61,9 +61,9 @@ CoefFunctionPython::~CoefFunctionPython()
 }
 
 
-PyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
+pyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
 {
-  PyObject* arg = PyTuple_New(1);
+  pyObject* arg = PyTuple_New(1);
 
   if(by_coord_) {
     Vector<double> pointCoord;
@@ -82,7 +82,7 @@ PyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
   }
 
   assert(eval_ != NULL);
-  PyObject* ret = PyObject_CallObject(eval_, arg);
+  pyObject* ret = pyObject_CallObject(eval_, arg);
   PythonKernel::CheckPythonReturn(ret);
 
   Py_XDECREF(arg);
@@ -92,7 +92,7 @@ PyObject* CoefFunctionPython::CallFunction(const LocPointMapped& lpm)
 
 void CoefFunctionPython::GetVector(Vector<double>& vec, const LocPointMapped& lpm)
 {
-  PyObject* ret = CallFunction(lpm);
+  pyObject* ret = CallFunction(lpm);
   assert(ret != NULL);
 
   PythonKernel::ConvertPythonList<double>(vec, ret);
@@ -102,7 +102,7 @@ void CoefFunctionPython::GetVector(Vector<double>& vec, const LocPointMapped& lp
 
 void CoefFunctionPython::GetScalar(double& val, const LocPointMapped& lpm)
 {
-  PyObject* ret = CallFunction(lpm);
+  pyObject* ret = CallFunction(lpm);
   assert(ret != NULL);
 
   val = PyFloat_AsDouble(ret);
