@@ -42,6 +42,10 @@ namespace CoupledField {
     virtual PtrCoefFct GetScalCoefFncNonLin_MagStrict(MaterialType matType,
                                             Global::ComplexPart matDataType,
                                             PtrCoefFct mechStrain );
+
+    virtual PtrCoefFct GetScalCoefFncPureMatDepend( MaterialType matType,
+                                            Global::ComplexPart matDataType,
+                                            PtrCoefFct dependency );
     //@}
 
   private:

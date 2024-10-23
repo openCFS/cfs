@@ -994,7 +994,10 @@ void CoefFunctionApproxIsotropicTemperatureDependent::GetScalar(Double& coefScal
 
   // evaluate vector of dependency
   Vector<Double> elemSol;
-  dependCoef_->GetVector( elemSol, lpm);
+  if(dependCoef_){
+    dependCoef_->GetVector( elemSol, lpm);
+  }
+
 
   Double temperature;
   tempCoef_->GetScalar(temperature, lpm);
