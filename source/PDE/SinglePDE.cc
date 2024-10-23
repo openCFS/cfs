@@ -2953,6 +2953,15 @@ namespace CoupledField {
         esNode = valueNode->Get("externalSimulation");
       } else {
         esNode = valueNode->Get("sequenceStep");
+        // nested reading not possible, check flag and return zeros and warning
+        if domain_->GetIsExternalDomain() {
+          // return zero values
+          coef = CoefFunction::Generate( mp_, Global::REAL, "0.0");
+          definedDofs.insert(0);
+          updatedGeo = false;
+          harm = CoefFunction::Generate( mp_, Global::REAL, "0.0");
+          return;
+        }
       }
       PtrParamNode qNode = esNode->Get("quantity");
       PtrParamNode tfm = esNode->Get("timeFreqMapping");
