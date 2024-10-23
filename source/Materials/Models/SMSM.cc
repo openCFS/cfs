@@ -475,7 +475,8 @@ DEFINE_LOG(smsm, "SMSM")
     
 
 
-    std::string model_path = "/Users/kroppert/Devel/CFS_SRC/cfs/source/Materials/Models/tracedmodel.pt";
+    // std::string model_path = "/Users/kroppert/Devel/CFS_SRC/cfs/source/Materials/Models/nn_tracedmodel_nostress.pt";
+    std::string model_path = "/Users/kroppert/Devel/CFS_SRC/cfs/source/Materials/Models/nn_tracedmodel_nostress.pt";
     try {
         // Deserialize the ScriptModule from a file using torch::jit::load().
         module_ = torch::jit::load(model_path);
@@ -491,7 +492,8 @@ DEFINE_LOG(smsm, "SMSM")
 
     dirHloc_x_ = torch::zeros({1});
     dirHloc_y_ = torch::zeros({1});
-    input_ = torch::zeros({1, 6}, torch::TensorOptions().dtype(torch::kFloat32).device(device_));
+    // ADAPT NUMBER OF INPUT PARAMETERS FOR THE SPECIFIC MODEL!!!!!!
+    input_ = torch::zeros({1, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(device_));
     // Move the model to the correct device
     module_.to(device_);
   }
@@ -520,85 +522,132 @@ DEFINE_LOG(smsm, "SMSM")
   void SMSM_PYTORCH::Eval2D(Double valH, StdVector<Double> dirHloc)
   {
     
-    // Disable gradient calculations
-    torch::NoGradGuard no_grad;
+  // Disable gradient calculations
+  torch::NoGradGuard no_grad;
 
-    dirHloc_x_.fill_(dirHloc[0]);
-    dirHloc_y_.fill_(dirHloc[1]);
+  dirHloc_x_.fill_(dirHloc[0]);
+  dirHloc_y_.fill_(dirHloc[1]);
 
-    // Calculate phi_H tensors
-    torch::Tensor phi_H = torch::atan2(dirHloc_y_, dirHloc_x_);
+  // Calculate phi_H tensors
+  torch::Tensor phi_H = torch::atan2(dirHloc_y_, dirHloc_x_);
 
-    float sigma_value = 1000.0; // hardcoded for now!!!!
+  float sigma_value = 0.0; // hardcoded for now!!!!
 
-    // Fill the input tensor
-    input_.index_put_({torch::indexing::Slice(), 0}, float(this->AS_));  // AS
-    input_.index_put_({torch::indexing::Slice(), 1}, float(this->Ms_));  // Ms
-    input_.index_put_({torch::indexing::Slice(), 2}, sigma_value);  // sigma_value
-    input_.index_put_({torch::indexing::Slice(), 3}, torch::cos(phi_H));  // cos(phi_H)
-    input_.index_put_({torch::indexing::Slice(), 4}, torch::sin(phi_H));  // sin(phi_H)
-    input_.index_put_({torch::indexing::Slice(), 5}, float(valH));  // Hm
+  /* for the 
+  nn_tracedmodel_nostress
+  model 
+  // Fill the input tensor
+  input_.index_put_({torch::indexing::Slice(), 0}, float(this->AS_));  // AS
+  input_.index_put_({torch::indexing::Slice(), 1}, float(this->Ms_));  // Ms
+  input_.index_put_({torch::indexing::Slice(), 2}, sigma_value);  // sigma_value
+  input_.index_put_({torch::indexing::Slice(), 3}, torch::cos(phi_H));  // cos(phi_H)
+  input_.index_put_({torch::indexing::Slice(), 4}, torch::sin(phi_H));  // sin(phi_H)
+  input_.index_put_({torch::indexing::Slice(), 5}, float(valH));  // Hm
 
-    // Print original (unstandardized) input for comparison
-    // std::cout << "Original Input (before standardization):" << std::endl;
-    // for (int i = 0; i < 1; ++i) {
-    //     std::cout << "Row " << i << ": AS=" << input[i][0].item<float>() 
-    //               << ", Ms=" << input[i][1].item<float>()
-    //               << ", sigma_value=" << input[i][2].item<float>()
-    //               << ", cos(phi_H)=" << input[i][3].item<float>()
-    //               << ", sin(phi_H)=" << input[i][4].item<float>()
-    //               << ", Hm=" << input[i][5].item<float>() << std::endl;
-    // }
+  // StandardScaler mean and scale values (extracted from Python)
+  std::vector<float> means = {2.54919544e-03, 1.50080931e+06, 1.14014903e-01, 0.0, 0.0, 4.57253514e-14};  
+  std::vector<float> scales = {1.41628864e-03, 2.88708871e+05, 5.77473713e+02, 0.0, 0.0, 5.83152930e+03}; 
+  // Standardize the input except for the columns in exception_array
+  std::vector<int> exception_array = {3, 4};  // Don't standardize cos(phi_H) and sin(phi_H)
 
-    // StandardScaler mean and scale values (extracted from Python)
-    std::vector<float> means = {2.54919544e-03, 1.50080931e+06, 1.14014903e-01, 0.0, 0.0, 4.57253514e-14};  
-    std::vector<float> scales = {1.41628864e-03, 2.88708871e+05, 5.77473713e+02, 0.0, 0.0, 5.83152930e+03}; 
-
-    // Standardize the input except for the columns in exception_array
-    std::vector<int> exception_array = {3, 4};  // Don't standardize cos(phi_H) and sin(phi_H)
-
-    for (int col = 0; col < input_.size(1); ++col) {
-        if (std::find(exception_array.begin(), exception_array.end(), col) != exception_array.end() || scales[col] == 0.0) {
-            continue;  // Skip this column if it's in the exception array or if the scale is zero
-        }
-        // Standardize: (x - mean) / scale
-        input_.index({torch::indexing::Slice(), col}) = 
-            (input_.index({torch::indexing::Slice(), col}) - means[col]) / scales[col];
+  for (int col = 0; col < input_.size(1); ++col) {
+    if (std::find(exception_array.begin(), exception_array.end(), col) != exception_array.end() || scales[col] == 0.0) {
+        continue;  // Skip this column if it's in the exception array or if the scale is zero
     }
+    // Standardize: (x - mean) / scale
+    input_.index({torch::indexing::Slice(), col}) = 
+        (input_.index({torch::indexing::Slice(), col}) - means[col]) / scales[col];
+  }
+  */
 
-    // Print standardized input for comparison
-    // std::cout << "\nStandardized Input:" << std::endl;
-    // for (int i = 0; i < 1; ++i) {
-    //     std::cout << "Row " << i << ": AS=" << input[i][0].item<float>() 
-    //               << ", Ms=" << input[i][1].item<float>()
-    //               << ", sigma_value=" << input[i][2].item<float>()
-    //               << ", cos(phi_H)=" << input[i][3].item<float>()
-    //               << ", sin(phi_H)=" << input[i][4].item<float>()
-    //               << ", Hm=" << input[i][5].item<float>() << std::endl;
-    // }
+  /* for the 
+  gpytorch_tracedmodel_nostress
+  model
+  */ 
+  // Fill the input tensor
+  input_.index_put_({torch::indexing::Slice(), 0}, torch::cos(phi_H));  // cos(phi_H)
+  input_.index_put_({torch::indexing::Slice(), 1}, torch::sin(phi_H));  // sin(phi_H)
+  input_.index_put_({torch::indexing::Slice(), 2}, float(valH));  // Hm
 
-    // Prepare input as a vector of IValues (inputs for the model)
-    std::vector<torch::jit::IValue> inputs;
-    inputs.push_back(input_);
+  // StandardScaler mean and scale values (extracted from Python)
+  std::vector<float> means_input = {0.0, 0.0, -81.33720124};  
+  std::vector<float> scales_input = {0.0, 0.0, 8633.30900407}; 
+  std::vector<float> means_output = {-450.19066208, 4782.10063801};  
+  std::vector<float> scales_output = {860875.40319934, 856825.08206652 }; 
+  // Standardize the input and output except for the columns in exception_array
+  std::vector<int> exception_array = {0, 1};  // Don't standardize cos(phi_H) and sin(phi_H)
 
-    // Execute the model and turn its output into a tensor
-    at::Tensor output = module_.forward(inputs).toTensor();
+  // // Print the input tensor values before standardization
+  // auto input_data_before = input_.accessor<float, 2>();  // Assuming it's a 2D tensor
+  // std::cout << "Input tensor values (before standardization):" << std::endl;
+  // for (int i = 0; i < input_.size(0); ++i) {
+  //     for (int j = 0; j < input_.size(1); ++j) {
+  //         std::cout << "input_[" << i << "][" << j << "] = " << input_data_before[i][j] << std::endl;
+  //     }
+  // }
 
-    // Move the output back to CPU to print
-    output = output.to(torch::kCPU);
 
-    // Print ypred_test[:,0] and ypred_test[:,1] (first two columns of output)
-    auto output_data = output.accessor<float, 2>();  // Assuming output is a 2D tensor
 
-    // std::cout << "\nypred_test[:,0] (Mx) and ypred_test[:,1] (My):" << std::endl;
-    // for (int i = 0; i < output.size(0); ++i) {
-    //     std::cout << "Mx: " << output_data[i][0] << ", My: " << output_data[i][1] << std::endl;
-    // }
+  for (int col = 0; col < input_.size(1); ++col) {
+      if (std::find(exception_array.begin(), exception_array.end(), col) != exception_array.end() || scales_input[col] == 0.0) {
+          continue;  // Skip this column if it's in the exception array or if the scale is zero
+      }
+      // Standardize: (x - mean) / scale
+      input_.index({torch::indexing::Slice(), col}) = 
+          (input_.index({torch::indexing::Slice(), col}) - means_input[col]) / scales_input[col];
+  }
+
+
+
+  // // Print the input tensor values after standardization
+  // auto input_data_after = input_.accessor<float, 2>();  // Assuming it's a 2D tensor
+  // std::cout << "Input tensor values (after standardization):" << std::endl;
+  // for (int i = 0; i < input_.size(0); ++i) {
+  //     for (int j = 0; j < input_.size(1); ++j) {
+  //         std::cout << "input_[" << i << "][" << j << "] = " << input_data_after[i][j] << std::endl;
+  //     }
+  // }
+
+
+  // Prepare input as a vector of IValues (inputs for the model)
+  std::vector<torch::jit::IValue> inputs;
+  inputs.push_back(input_);
+
+  // Execute the model and turn its output into a tensor (for the NN model)
+  at::Tensor mean_output = module_.forward(inputs).toTensor();
+
+  // Execute the model and turn its output into a tensor (for the GPR model the output is a tuple)
+  // auto output_tuple = module_.forward(inputs).toTuple();  // Get the tuple output
+  // at::Tensor mean_output = output_tuple->elements()[0].toTensor();  // Extract the mean
+  // at::Tensor variance_output = output_tuple->elements()[1].toTensor();  // Extract the variance
+
+  // Move the output back to CPU to print
+  mean_output = mean_output.to(torch::kCPU);
+
+
+  //Inverse transform the output
+  for (int col = 0; col < mean_output.size(1); ++col) {
+      if (scales_output[col] != 0.0) {
+          // Inverse of the standardization: x_original = x_scaled * scale + mean
+          mean_output.index({torch::indexing::Slice(), col}) = 
+              mean_output.index({torch::indexing::Slice(), col}) * scales_output[col] + means_output[col];
+      }
+  }
+
+  // Print ypred_test[:,0] and ypred_test[:,1] (first two columns of output)
+  auto mean_output_data = mean_output.accessor<float, 2>();  // Assuming output is a 2D tensor
+
+  // std::cout << "\ndirHloc:" << dirHloc.ToString() << std::endl;
+  // std::cout << "\nvalH:" << valH << std::endl;
+  // for (int i = 0; i < 2; ++i) {
+  //     std::cout << "Mx: " << mean_output_data[i][0] << ", My: " << mean_output_data[i][1] << std::endl;
+  // }
+
 
   MMoy_.Resize(2);
   MMoy_.Init(0.0);
-  MMoy_[0] = output_data[0][0];
-  MMoy_[1] = output_data[0][1];
+  MMoy_[0] = mean_output_data[0][0];
+  MMoy_[1] = mean_output_data[0][1];
 
   }
 
