@@ -2955,9 +2955,21 @@ namespace CoupledField {
         esNode = valueNode->Get("sequenceStep");
         // nested reading not possible, check flag and return zeros and warning
         if( domain_->GetIsExternalDomain() ) {
+          WARN("You are recursively reading simulation states including sequence steps. Setting all values of " << esNode->Get("quantity")->Get("name")->As<std::string>() << " to zero since the sequence step is not read in!");
           // return zero values
-          coef = CoefFunction::Generate( mp_, Global::REAL, "0.0");
-          definedDofs.insert(0);
+          if( type == ResultInfo::EntryType::SCALAR ) {
+            coef = CoefFunction::Generate( mp_, Global::REAL, "0.0");
+            definedDofs.insert(0);
+          } else if( type == ResultInfo::EntryType::VECTOR ) {
+            StdVector<std::string> vecVals(dim_);
+            vecVals.Init("0.0");
+            coef = CoefFunction::Generate( mp_, Global::REAL, vecVals);
+            for( UInt i = 0; i < dim_; ++i ) {
+              definedDofs.insert(i);
+            }
+          } else {
+            EXCEPTION("You are trying to recursively read in a quantity that is not a scalar or vector. This is not supported yet!");
+          }
           updateGeo = false;
           harm = CoefFunction::Generate( mp_, Global::REAL, "0.0");
           return;
