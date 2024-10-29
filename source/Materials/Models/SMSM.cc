@@ -493,7 +493,7 @@ DEFINE_LOG(smsm, "SMSM")
     dirHloc_x_ = torch::zeros({1});
     dirHloc_y_ = torch::zeros({1});
     // ADAPT NUMBER OF INPUT PARAMETERS FOR THE SPECIFIC MODEL!!!!!!
-    input_ = torch::zeros({1, 3}, torch::TensorOptions().dtype(torch::kFloat32).device(device_));
+    input_ = torch::zeros({1, 5}, torch::TensorOptions().dtype(torch::kFloat32).device(device_));
     // Move the model to the correct device
     module_.to(device_);
   }
@@ -536,46 +536,37 @@ DEFINE_LOG(smsm, "SMSM")
   /* for the 
   nn_tracedmodel_nostress
   model 
+  */
   // Fill the input tensor
   input_.index_put_({torch::indexing::Slice(), 0}, float(this->AS_));  // AS
   input_.index_put_({torch::indexing::Slice(), 1}, float(this->Ms_));  // Ms
-  input_.index_put_({torch::indexing::Slice(), 2}, sigma_value);  // sigma_value
-  input_.index_put_({torch::indexing::Slice(), 3}, torch::cos(phi_H));  // cos(phi_H)
-  input_.index_put_({torch::indexing::Slice(), 4}, torch::sin(phi_H));  // sin(phi_H)
-  input_.index_put_({torch::indexing::Slice(), 5}, float(valH));  // Hm
+  // input_.index_put_({torch::indexing::Slice(), 2}, sigma_value);  // sigma_value
+  input_.index_put_({torch::indexing::Slice(), 2}, torch::cos(phi_H));  // cos(phi_H)
+  input_.index_put_({torch::indexing::Slice(), 3}, torch::sin(phi_H));  // sin(phi_H)
+  input_.index_put_({torch::indexing::Slice(), 4}, float(valH));  // Hm
 
-  // StandardScaler mean and scale values (extracted from Python)
-  std::vector<float> means = {2.54919544e-03, 1.50080931e+06, 1.14014903e-01, 0.0, 0.0, 4.57253514e-14};  
-  std::vector<float> scales = {1.41628864e-03, 2.88708871e+05, 5.77473713e+02, 0.0, 0.0, 5.83152930e+03}; 
-  // Standardize the input except for the columns in exception_array
-  std::vector<int> exception_array = {3, 4};  // Don't standardize cos(phi_H) and sin(phi_H)
-
-  for (int col = 0; col < input_.size(1); ++col) {
-    if (std::find(exception_array.begin(), exception_array.end(), col) != exception_array.end() || scales[col] == 0.0) {
-        continue;  // Skip this column if it's in the exception array or if the scale is zero
-    }
-    // Standardize: (x - mean) / scale
-    input_.index({torch::indexing::Slice(), col}) = 
-        (input_.index({torch::indexing::Slice(), col}) - means[col]) / scales[col];
-  }
-  */
 
   /* for the 
   gpytorch_tracedmodel_nostress
   model
   */ 
   // Fill the input tensor
-  input_.index_put_({torch::indexing::Slice(), 0}, torch::cos(phi_H));  // cos(phi_H)
-  input_.index_put_({torch::indexing::Slice(), 1}, torch::sin(phi_H));  // sin(phi_H)
-  input_.index_put_({torch::indexing::Slice(), 2}, float(valH));  // Hm
+  // input_.index_put_({torch::indexing::Slice(), 0}, torch::cos(phi_H));  // cos(phi_H)
+  // input_.index_put_({torch::indexing::Slice(), 1}, torch::sin(phi_H));  // sin(phi_H)
+  // input_.index_put_({torch::indexing::Slice(), 2}, float(valH));  // Hm
+
+
+
 
   // StandardScaler mean and scale values (extracted from Python)
-  std::vector<float> means_input = {0.0, 0.0, -81.33720124};  
-  std::vector<float> scales_input = {0.0, 0.0, 8633.30900407}; 
-  std::vector<float> means_output = {-450.19066208, 4782.10063801};  
-  std::vector<float> scales_output = {860875.40319934, 856825.08206652 }; 
+  // for the cos(phi) and sin(phi) enter 0.0!
+  std::vector<float> means_input = {2.96177837e-03, 1.40515493e+06, 0.0, 0.0, 1.57281174e+01};  
+  std::vector<float> scales_input = {1.12018447e-03, 1.18703615e+05, 0.0, 0.0, 8.69155511e+03}; 
+  std::vector<float> means_output = {389.51755523, -22.13245129};  
+  std::vector<float> scales_output = {936219.22701107, 936385.22703299}; 
   // Standardize the input and output except for the columns in exception_array
-  std::vector<int> exception_array = {0, 1};  // Don't standardize cos(phi_H) and sin(phi_H)
+  std::vector<int> exception_array = {2, 3};  // Don't standardize cos(phi_H) and sin(phi_H)
+
 
   // // Print the input tensor values before standardization
   // auto input_data_before = input_.accessor<float, 2>();  // Assuming it's a 2D tensor
