@@ -2616,7 +2616,7 @@ namespace CoupledField {
         useGetRidOfZeros_ = false;
       }
       else if (useCase == "" && hasNCI && getRidOfZerosXML=="auto") {
-        std::cout << "Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.";
+        //std::cout << "Zero entities will be removed from the system matrix in each iteration to reduce solver effort because the model contains at least one NCI. Define \"no\" for \"getRidOfZeros\" in \"linearSystems\" explicitly to avoid this.";
         useGetRidOfZeros_ = true;
       }
       else if (useCase != ""  && getRidOfZerosXML=="yes") {

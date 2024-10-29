@@ -306,7 +306,6 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   Vector<Double> globalPoint;
   Vector<Double> localPoint;
   esm->Local2Global(globalPoint, lp);
-std::cout << "------------------------global Point before: " << globalPoint << std::endl;
   // kirill:
   // We cannot simply map the global point lying on our surface element to the volume element: in case of mortar element
   // for p.b.c., the global point can lie out of the volume element. That's why we first map the global point form the NC-element to
