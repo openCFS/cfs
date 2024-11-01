@@ -356,16 +356,17 @@ namespace CoupledField {
             shared_ptr<ResultInfo> resultInfo = GetResultInfo(MAG_ELEM_PERMEABILITY); 
             std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
             shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
-            //PtrCoefFct permeability;
+
+            PtrCoefFct permeability;
             //get coeff-Fnc for the magnetic permeability
             ReadMaterialDependency( "permeabilityFrozen", resultInfo->dofNames, resultInfo->entryType, false,
-                                    entity, curCoef, updatedGeo_ );
-            // //compute the reluctivity
-            // PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
-            // curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeability,
-            //                                  CoefXpr::OP_DIV));      
+                                    entity, permeability, updatedGeo_ );
+            // /ompute the reluctivity
+            PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+            curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, permeability,
+                                             CoefXpr::OP_DIV));      
             //For postprocessing                        
-            matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, curCoef);    
+            matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);    
             isPermFrozen = true;                    
           } 
           else {
