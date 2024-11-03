@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+ <documentation>
+    <title> rectangular domain with point source in the center and ABC of 1st order</title>
+    <authors>
+      <author>Paul Maurerlehner</author>
+    </authors>
+    <date>2024-12-27</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>abc</keyword>
+      <keyword>tdef</keyword>
+      <keyword>complex material parameters</keyword>
+    </keywords>
+    <references>
+       PhD thesis Maurerlehner 2023 TU Graz, TDEF paper in Acta Acustica Maurerlehner et al. 2025
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      3D model of a semi-infinite duct for 1D plane-wave propagation
+      in an inhomogeneous duct, consisting of three differenct fluids
+      (air, equivalent fluid 1, equivalent fluid 2). The air is non-dissipative,
+      whereas in the in the two different equivalent fluids, the TDEF formulation 
+      is applied. A pressure pulse propagates through the three domains, which is 
+      damped within the dissipative equivalent fluid domains and
+      partially reflected at the interfaces due to the changing characteristic impedance.
+      At the right boundary of the duct, the narrow-band non-reflecting boundary
+      boundary condition (NRBC) is applied to avoid reflections. The left boundary
+      (excitation BC) is reflective.
+      Note that the target frequency for the NRBC differs from the source frequency
+      because of the dispersive nature of the material, causing a shift in frequency 
+      of the pulse until it reaches the non-reflecting boundary.
+      The rational function approximation of the equivalent fluid, required for 
+      the TDEF formulation is provided in the .mat file.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="TDEFMultiMaterial3D.h5ref" />
+    </input>
+    <output>
+      <hdf5 />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <variableList>
+      <var name="freq_src" value="1000" />
+    </variableList>
+    <regionList>
+      <region name="air" material="air" />
+      <region name="eqFluid1" material="porous_NC2_Nv1" />
+      <region name="eqFluid2" material="porous_NC1_Nv4" />
+    </regionList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps> 400 </numSteps>
+        <deltaT> 5e-5 </deltaT>
+      </transient>    
+    </analysis>
+ 
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="air" timeDomainEqFluid="no"/>
+          <region name="eqFluid1" timeDomainEqFluid="yes"/>
+          <region name="eqFluid2" timeDomainEqFluid="yes"/>
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="bc_left" value="(t lt 1/freq_src)? 1-cos(2*pi*freq_src*t) : 0" />
+          <absorbingBCs name="bc_right" volumeRegion="eqFluid2" targetFrequency="100" />
+           <!-- Note: the target frequency of the NRBC differs from the center frequency of the excitation because of  
+           the dispersive nature, causing a shift of the center frequency of the wave pulse -->
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure" >
+            <allRegions  saveBegin="150" saveInc="10"/>
+            <!-- Note: not all time steps stored to save storage -->
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

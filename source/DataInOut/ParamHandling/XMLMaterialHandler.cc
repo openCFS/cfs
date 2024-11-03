@@ -1,6 +1,7 @@
 #include "XMLMaterialHandler.hh"
 
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
@@ -581,12 +582,89 @@ namespace CoupledField {
     //! [Read PtrParamNode]
     // read density
     if (acou->Has("density")) { // check if PtrParamNode acou has <density> tag
-    	PtrCoefFct densFct;
-      // generate a complex valued coefficient function, if only real part is given, the imaginary part will be set to 0
-      densFct = ReadScalarLin(acou, "density", Global::COMPLEX);
-      material->SetCoefFct( DENSITY, densFct ); // set it to the material
+      PtrParamNode dens = acou->Get("density");
+      if (dens->Has("linear")) {
+        PtrCoefFct densFct;
+        // generate a complex valued coefficient function, if only real part is given, the imaginary part will be set to 0
+        densFct = ReadScalarLin(acou, "density", Global::COMPLEX);
+        material->SetCoefFct(DENSITY, densFct); // set it to the material
+      }
+      // create coef functions for the coefficients of the rational function approximation representing the INVERSE complex frequency-dependent density
+      if (dens->Has("inverseFormApproxTDEF")) {
+        std::cout << std::endl
+                  << "Rational function approximation provided for the inverse density (specific volume)" << std::endl;
+
+        if (dens->Get("inverseFormApproxTDEF")->Has("rationalFunctionApprox")) {
+
+          // read constant part of rational function approximation (high-freq limit)
+          PtrCoefFct densInf;
+          PtrParamNode rationalInv = dens->Get("inverseFormApproxTDEF");
+          densInf = ReadScalarLin(rationalInv, "rationalFunctionApprox", Global::COMPLEX);
+
+          material->SetCoefFct(DENSITY, CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, "1.0", densInf, CoefXpr::OP_DIV))); // set it to the material (required for acoustic environment)
+          material->SetCoefFct(ACOU_TDEF_INVDENS_CONST, densInf);
+
+          //  read the variable number of REAL poles (denominator: pole=alpha, numerator: residue=A)
+          if (dens->Get("inverseFormApproxTDEF")->Get("rationalFunctionApprox")->Has("poleListReal")) {
+            PtrParamNode invDensPoleRealNode;
+            ParamNodeList invDensPolesReal;
+
+            invDensPoleRealNode = rationalInv->Get("rationalFunctionApprox")->Get("poleListReal", ParamNode::PASS);
+            invDensPolesReal = invDensPoleRealNode->GetChildren();
+
+            UInt numRealP = invDensPolesReal.GetSize();
+            std::cout << "Number of real poles: " << numRealP << std::endl;
+            Vector<Double> parNumerRe(numRealP);
+            Vector<Double> parDenomRe(numRealP);
+            for (UInt i = 0; i < numRealP; i++) {
+              parDenomRe[i] = invDensPolesReal[i]->Get("pole")->Get("real")->As<Double>();
+              parNumerRe[i] = invDensPolesReal[i]->Get("residue")->Get("real")->As<Double>();
+            }
+            material->SetVector(parNumerRe, ACOU_TDEF_INVDENS_A, Global::REAL);
+            material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_ALPHA, Global::REAL);
+          }
+          else {
+            // set empty vector to avoid errors
+            Vector<Double> emptyVec;
+            material->SetVector(emptyVec, ACOU_TDEF_INVDENS_A, Global::REAL);
+          }
+
+          //  read the variable number of COMPLEX-conjugated poles (denominator: pole=beta+j gamma, numerator: residue=B+jC)
+          if (dens->Get("inverseFormApproxTDEF")->Get("rationalFunctionApprox")->Has("poleListComplex")) {
+            PtrParamNode invDensPoleComplNode;
+            ParamNodeList invDensPolesCompl;
+
+            invDensPoleComplNode = rationalInv->Get("rationalFunctionApprox")->Get("poleListComplex", ParamNode::PASS);
+            invDensPolesCompl = invDensPoleComplNode->GetChildren();
+
+            UInt numComplP = invDensPolesCompl.GetSize();
+            std::cout << "Number of complex-conjugated pole pairs: " << numComplP << std::endl;
+
+            Vector<Double> parNumerRe(numComplP);
+            Vector<Double> parDenomRe(numComplP);
+            Vector<Double> parNumerIm(numComplP);
+            Vector<Double> parDenomIm(numComplP);
+            for (UInt i = 0; i < numComplP; i++) {
+              parDenomRe[i] = invDensPolesCompl[i]->Get("pole")->Get("real")->As<Double>();
+              parNumerRe[i] = invDensPolesCompl[i]->Get("residue")->Get("real")->As<Double>();
+              parDenomIm[i] = invDensPolesCompl[i]->Get("pole")->Get("imag")->As<Double>();
+              parNumerIm[i] = invDensPolesCompl[i]->Get("residue")->Get("imag")->As<Double>();
+            }
+
+            material->SetVector(parNumerRe, ACOU_TDEF_INVDENS_B, Global::REAL);
+            material->SetVector(parDenomRe, ACOU_TDEF_INVDENS_BETA, Global::REAL);
+            material->SetVector(parNumerIm, ACOU_TDEF_INVDENS_C, Global::REAL);
+            material->SetVector(parDenomIm, ACOU_TDEF_INVDENS_GAMMA, Global::REAL);
+          }
+          else {
+            // set empty vector to avoid errors
+            Vector<Double> emptyVec;
+            material->SetVector(emptyVec, ACOU_TDEF_INVDENS_B, Global::REAL);
+          }
+        }
+      }
     }
-    
+
     // read adiabatic exponent
     if (acou->Has("adiabaticExponent")) {
       PtrCoefFct fct = ReadScalarLin(acou, "adiabaticExponent", Global::REAL);
@@ -595,10 +673,87 @@ namespace CoupledField {
     
     // read compression modulus
     if (acou->Has("compressionModulus")) {
-    	PtrCoefFct blkFct = ReadScalarLin(acou, "compressionModulus", Global::COMPLEX);
-    	material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
+      PtrParamNode blk = acou->Get("compressionModulus");
+      if (blk->Has("linear")) {
+        PtrCoefFct blkFct;
+        // generate a complex valued coefficient function, if only real part is given, the imaginary part will be set to 0
+        blkFct = ReadScalarLin(acou, "compressionModulus", Global::COMPLEX);
+        material->SetCoefFct(ACOU_BULK_MODULUS, blkFct); // set it to the material
+      }
+      // create coef functions for the coefficients of the rational function approximation representing the INVERSE complex frequency-dependent bulk modulus
+      if (blk->Has("inverseFormApproxTDEF")) {
+        std::cout << std::endl
+                  << "Rational function approximation provided for the inverse bulk modulus (compressibility)" << std::endl;
+
+        // read constant part of rational function approximation (high-freq limit)
+        PtrCoefFct BlkInf;
+        PtrParamNode rationalInv = blk->Get("inverseFormApproxTDEF");
+        BlkInf = ReadScalarLin(rationalInv, "rationalFunctionApprox", Global::COMPLEX);
+
+        material->SetCoefFct(ACOU_BULK_MODULUS, CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, "1.0", BlkInf, CoefXpr::OP_DIV))); // set it to the material (required for acoustic environment)
+        material->SetCoefFct(ACOU_TDEF_INVBLK_CONST, BlkInf);                                                                                  // set it to the material (used in coef function)
+
+        //  read the variable number of REAL poles (denominator: pole=alpha, numerator: residue=A)
+        if (blk->Get("inverseFormApproxTDEF")->Get("rationalFunctionApprox")->Has("poleListReal")) {
+          PtrParamNode invBlkPoleRealNode;
+          ParamNodeList invBlkPolesReal;
+
+          invBlkPoleRealNode = rationalInv->Get("rationalFunctionApprox")->Get("poleListReal", ParamNode::PASS);
+          invBlkPolesReal = invBlkPoleRealNode->GetChildren();
+
+          UInt numRealP = invBlkPolesReal.GetSize();
+          std::cout << "Number of real poles: " << numRealP << std::endl;
+          Vector<Double> parNumerRe(numRealP);
+          Vector<Double> parDenomRe(numRealP);
+          for (UInt i = 0; i < numRealP; i++) {
+            parDenomRe[i] = invBlkPolesReal[i]->Get("pole")->Get("real")->As<Double>();
+            parNumerRe[i] = invBlkPolesReal[i]->Get("residue")->Get("real")->As<Double>();
+          }
+
+          material->SetVector(parNumerRe, ACOU_TDEF_INVBLK_A, Global::REAL);
+          material->SetVector(parDenomRe, ACOU_TDEF_INVBLK_ALPHA, Global::REAL);
+        }
+        else {
+          // set empty vector to avoid errors
+          Vector<Double> emptyVec;
+          material->SetVector(emptyVec, ACOU_TDEF_INVBLK_A, Global::REAL);
+        }
+
+        //  read the variable number of COMPLEX-conjugated poles (denominator: pole=beta+j gamma, numerator: residue=B+jC)
+        if (blk->Get("inverseFormApproxTDEF")->Get("rationalFunctionApprox")->Has("poleListComplex")) {
+          PtrParamNode invBLKPoleComplNode;
+          ParamNodeList invBLKPolesCompl;
+
+          invBLKPoleComplNode = rationalInv->Get("rationalFunctionApprox")->Get("poleListComplex", ParamNode::PASS);
+          invBLKPolesCompl = invBLKPoleComplNode->GetChildren();
+
+          UInt numComplP = invBLKPolesCompl.GetSize();
+          std::cout << "Number of complex-conjugated pole pairs: " << numComplP << std::endl;
+          Vector<Double> parNumerRe(numComplP);
+          Vector<Double> parDenomRe(numComplP);
+          Vector<Double> parNumerIm(numComplP);
+          Vector<Double> parDenomIm(numComplP);
+          for (UInt i = 0; i < numComplP; i++) {
+            parDenomRe[i] = invBLKPolesCompl[i]->Get("pole")->Get("real")->As<Double>();
+            parNumerRe[i] = invBLKPolesCompl[i]->Get("residue")->Get("real")->As<Double>();
+            parDenomIm[i] = invBLKPolesCompl[i]->Get("pole")->Get("imag")->As<Double>();
+            parNumerIm[i] = invBLKPolesCompl[i]->Get("residue")->Get("imag")->As<Double>();
+          }
+
+          // set material params: Vector (see e.g. "pronyList")
+          material->SetVector(parNumerRe, ACOU_TDEF_INVBLK_B, Global::REAL);
+          material->SetVector(parDenomRe, ACOU_TDEF_INVBLK_BETA, Global::REAL);
+          material->SetVector(parNumerIm, ACOU_TDEF_INVBLK_C, Global::REAL);
+          material->SetVector(parDenomIm, ACOU_TDEF_INVBLK_GAMMA, Global::REAL);
+        }
+        else {
+          // set empty vector to avoid errors
+          Vector<Double> emptyVec;
+          material->SetVector(emptyVec, ACOU_TDEF_INVBLK_B, Global::REAL);
+        }
+      }
     }
-    
+
     // read kinematic viscosity
     if (acou->Has("kinematicViscosity")) {
       PtrCoefFct kinVisc = ReadScalarLin(acou, "kinematicViscosity", Global::REAL);

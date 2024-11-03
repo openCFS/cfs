@@ -1,0 +1,55 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+
+  <material name="porousStrong">
+    <acoustic>
+      <density>
+        <linear>
+          <real>100</real>
+        </linear>
+        <inverseFormApproxTDEF>
+          <rationalFunctionApprox>
+            <linear>
+              <real>0.772093023255814</real>
+            </linear>
+            <poleListReal>
+              <rationalTerm>
+                <pole real="84764" />
+                <residue real="-20397.84" />
+              </rationalTerm>
+            </poleListReal>
+          </rationalFunctionApprox>
+        </inverseFormApproxTDEF>
+      </density>
+
+      <compressionModulus>
+        <linear>
+          <real>100</real>
+        </linear>
+        <inverseFormApproxTDEF>
+          <rationalFunctionApprox>
+            <linear>
+              <real>6.586619718309859e-06</real>
+            </linear>
+          </rationalFunctionApprox>
+        </inverseFormApproxTDEF>
+      </compressionModulus>
+    </acoustic>
+  </material>
+
+  <material name="air">
+    <acoustic>
+      <density>
+        <linear>
+          <real>1.204 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 142000 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+
+</cfsMaterialDataBase>

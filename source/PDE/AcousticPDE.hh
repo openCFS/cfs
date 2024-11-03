@@ -50,6 +50,19 @@ namespace CoupledField{
     virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
 
+    // Struct to collect the coefficients of the rational function approximation in case of the TDEF formulation
+    struct rationalCoeffsTDEF {
+      StdVector<PtrCoefFct> AC, BC, CC, AlphaC, BetaC, GammaC;
+      StdVector<PtrCoefFct> AV, BV, CV, AlphaV, BetaV, GammaV;
+    };
+    // Struct to collect the number of real and complex poles of the rational function approximation for the TDEF formulation
+    struct NumPolesTDEF {
+      Vector<unsigned int> realC;
+      Vector<unsigned int> complC;
+      Vector<unsigned int> realV;
+      Vector<unsigned int> complV;
+    };
+
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
@@ -88,8 +101,23 @@ namespace CoupledField{
     void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id,
     		                    RegionIdType actRegion, std::string tempId);
 
-//    //! Set special RHS values
-//    virtual void SetRhsValues();
+    //! create TDEF integrators (The time domain equivalent fluid formulation requires terms additional to the standard wave equation, see Diss Maurerlehner 2023)
+    void DefineTDEFIntegrators(UInt iRegion, string polyId, string integId, shared_ptr<ElemList> actSDList, rationalCoeffsTDEF &TDEFcoeffs);
+
+    //! create Surface integrators for ABC in case the BC is adjacent to a TDEF region (TDEF formulation applied)
+    void DefineTDEFABCSurfaceIntegrators(PtrCoefFct &coeffStiffTDEF, RegionIdType &aRegion, std::set<RegionIdType> &adjVolRegion, shared_ptr<EntityList> &actSDList, rationalCoeffsTDEF &TDEFcoeffs);
+
+    //! calculate the ABC coefficients for TDEF region (TDEF formulation applied)
+    void CalcCoefsTDEFABC(UInt iRegion, PtrCoefFct &factor, PtrCoefFct &c0, PtrCoefFct &dens, PtrCoefFct &omegaTrg, PtrCoefFct &coeffDamp, PtrCoefFct &coeffStiffTDEF);
+
+    //! read TDEF coefficients (coefficients of rational function approx. of the complex, frequency-dependent inverse equivalent fluid parameters) for the given region
+    void ReadTDEFCoefficients(UInt iRegion, rationalCoeffsTDEF &TDEFcoeffs);
+
+    //! evaluate the rational function approximation of the equivalent fluid parameters (inverse bulk modulus and inverse density) at given frequency for a given region
+    void EvalTDEFRationalFncs(UInt iRegion, PtrCoefFct actFreq, rationalCoeffsTDEF &TDEFcoeffs);
+
+    //    //! Set special RHS values
+    //    virtual void SetRhsValues();
 
   private:
     //! Defines integrators for Nitsche coupling of an unknown on one specific
@@ -171,6 +199,14 @@ namespace CoupledField{
 
     //! flag for checking if only one material is defined in the whole computational domain 
     bool isOnlyOneMaterial_;
+
+    // Variables for the Time-Domain Equvivalent Fluid formulation
+    bool timeDomainEqFluidFormulation_; //! flag indicating if the TDEF formulation is applied
+    StdVector<bool> isTDEFReg_;         // flag indicating if a region is a TDEF region (i.e., has TDEF material definition)
+    rationalCoeffsTDEF TDEFcoeffs_;     // struct with coeffs of the rational function approximation of the equivalent fluid parameters
+    NumPolesTDEF TDEFpoleNumber_;       // // struct no. poles in the rational function approximation of the equivalent fluid parameters
+    PtrCoefFct invTDEFBlk_;
+    PtrCoefFct invTDEFDens_;
 
     //! Definition of convective integrators (Pierce Operator)
     //! \param actRegion  region id
