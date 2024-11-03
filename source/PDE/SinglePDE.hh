@@ -76,7 +76,6 @@ namespace CoupledField
     //! Destructor
     virtual ~SinglePDE();
   
-  
     // ======================================================
     // GET /SET  METHODS
     // ======================================================

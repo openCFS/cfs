@@ -222,6 +222,82 @@
     <xsd:attribute name="lossTangensDelta" type="xsd:token" use="required"/>
   </xsd:complexType>
 
+  <!-- **************************************************************************************** -->
+  <!--  Data types for specifying rational function approximations -->
+  <!-- **************************************************************************************** -->
+  <xsd:complexType name="DT_RationalFuncInv">
+    <xsd:sequence>
+      <xsd:element name="rationalFunctionApprox" type="DT_RationalFunAcouEqFluid" minOccurs="0"
+        maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> Rational function approximation, which is currently only
+            used for the time domain formulation of the equivalent fluid. Provide the constant
+            (high-frequency limit, i.e., instantaneous response), real poles (damped response)
+            response, and complex-conjugated pole pairs (oscillatory response). </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_RationalFunAcouEqFluid">
+    <xsd:sequence>
+      <xsd:element name="linear" type="DT_ScalarType">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> Real-valued constant (high-frequency limit, i.e.
+            instantaneous response). </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="poleListReal" type="DT_RationalTerm" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> List of real poles causing in a damped response. It is
+            defined by real-valued pole (denomiator) and real-valued residue (numerator of the
+            rational function). If provided, the imaginary part is ignored. The total number of
+            poles is limited to 15. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="poleListComplex" type="DT_RationalTerm" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> List of comlex-conjugated pole pairs causing in an
+            oscillatory response. It is defined by the real and imaginary part of the pole
+            (denominator of the rational function) and residue (numerator), respectively. The total
+            number of poles is limited to 15. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_RationalTerm">
+    <xsd:sequence>
+      <xsd:element name="rationalTerm" type="DT_RationalTermDef" minOccurs="1" maxOccurs="15">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> Definition of rational term, consisting of denominator
+            (pole) and numerator (residue). The pole can be either real or a complex-conjugated pole
+            pair. The total number of poles is limited to 15. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_RationalTermDef">
+    <xsd:sequence>
+      <xsd:element name="pole" type="DT_ComplexTypeCompact" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> Denominator (pole) of the rational function. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="residue" type="DT_ComplexTypeCompact" minOccurs="1" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> Numerator (residue) of the rational function. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_ComplexTypeCompact">
+    <xsd:attribute name="real" type="xsd:double" use="required" />
+    <xsd:attribute name="imag" type="xsd:double" use="optional" />
+  </xsd:complexType>
+
   <!-- ******************************************************************* -->
   <!--  Data type for specifying flow direction (directly)                 -->
   <!-- ******************************************************************* -->

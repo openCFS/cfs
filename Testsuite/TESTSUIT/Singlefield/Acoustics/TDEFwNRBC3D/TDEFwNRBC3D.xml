@@ -1,0 +1,108 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation /home/paul/Devel/CFS_SRC/cfs/share/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title> rectangular domain with point source in the center and ABC of 1st order</title>
+    <authors>
+      <author>Paul Maurerlehner</author>
+    </authors>
+    <date>2024-12-27</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>abc</keyword>
+      <keyword>tdef</keyword>
+      <keyword>complex material parameters</keyword>
+    </keywords>
+    <references> PhD thesis Maurerlehner 2023 TU Graz, TDEF paper in Acta Acustica Maurerlehner et
+      al. 2025 </references>
+    <isVerified>yes</isVerified>
+    <description> 3D model of a semi-infinite duct for 1D plane-wave propagation in a strongly
+      damped material. The duct is shorter than the wavelength which requires an accurate ABC (NRBC)
+      to avoid reflections. The hamonic excitation is simulated in transient analysis based on the
+      TDEF formulation and the in a harmonic analysis based on the complex fluid formulation. The
+      analytic solution of the problem can be computed as p(omega,t) = P e^(i omaga t) e^(-i alpha
+      x) e^(beta x), where the imaginary part of the complex wavenumber k = alpha + i beta accounts
+      for damping. The wavenumber can be obtained as k = omega/c = omega sqrt(rho/K), where the
+      equivalent density rho and equivalent bulk modulus K are complex and depend on the frequency.
+      The rational function approximation of the equivalent fluid, required for the TDEF formulation
+      is provided in the .mat file. </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="TDEFwNRBC3D.h5ref" />
+    </input>
+    <output>
+      <hdf5 id="id_h5" />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <variableList>
+      <var name="freq_src" value="1000" />
+    </variableList>
+    <regionList>
+      <region name="eqFluid" material="porousStrong" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps> 300 </numSteps>
+        <deltaT> 1e-5 </deltaT>
+      </transient>
+    </analysis>
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="eqFluid" timeDomainEqFluid="yes" />
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="bc_left" value="sin(2*pi*freq_src*t)" />
+          <absorbingBCs name="bc_right" volumeRegion="eqFluid" targetFrequency="1000" />
+          <!-- Note: 
+           * Currently, variables cannot be used for the targetFrequency (only numerical value allowed)
+           * The target frequency of the NRBC depends on the distance from the source because of  
+            the dispersive nature, causing a shift in frequency of the wave pulse of the material -->
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions saveBegin="0" saveInc="10" />
+            <!-- Note: not all time steps stored to save storage -->
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+
+  <sequenceStep index="2">
+    <analysis>
+      <harmonic>
+        <numFreq>1</numFreq>
+        <startFreq>freq_src</startFreq>
+        <stopFreq>freq_src</stopFreq>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="eqFluid" complexFluid="yes" useRationalMatApproximation="yes" />
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="bc_left" value="1" />
+          <absorbingBCs name="bc_right" volumeRegion="eqFluid" />
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions />
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+
+</cfsSimulation>

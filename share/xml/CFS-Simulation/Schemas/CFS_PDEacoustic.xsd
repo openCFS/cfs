@@ -50,6 +50,8 @@
                     <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="initialFieldD1Id" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="complexFluid" type="DT_CFSBool" use="optional" default="no"/>
+                    <xsd:attribute name="timeDomainEqFluid" type="DT_CFSBool" use="optional" default="no"/>
+                    <xsd:attribute name="useRationalMatApproximation" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -469,6 +471,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AcousticHD">
         <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
+        <xsd:attribute name="targetFrequency" type="xsd:token" use="optional"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

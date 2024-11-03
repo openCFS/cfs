@@ -136,6 +136,7 @@
       <xsd:enumeration value="abc"/>
       <xsd:enumeration value="pml"/>
       <xsd:enumeration value="aeroacoustics"/>
+      <xsd:enumeration value="tdef"/>
       
       <!-- Water waves -->
       <xsd:enumeration value="waterWaves"/>

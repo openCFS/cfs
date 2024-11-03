@@ -20,6 +20,8 @@
     <xsd:sequence>
       <xsd:element name="density" type="DT_AcousticScalarLinear"/>
       <xsd:element name="compressionModulus" type="DT_AcousticScalarLinear"/>
+      <xsd:element name="densityInvTDEF" type="DT_RationalFuncInv" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="compressionModulusInvTDEF" type="DT_RationalFuncInv" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="damping" type="DT_AcousticDamping" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="nonlinear" type="DT_AcousticNonlinear" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="kinematicViscosity" type="DT_AcousticScalarLinear" minOccurs="0" maxOccurs="1"/>
@@ -31,7 +33,23 @@
 
   <xsd:complexType name="DT_AcousticScalarLinear">
     <xsd:sequence>
-      <xsd:element name="linear" type="DT_ScalarType" minOccurs="0"/>
+      <xsd:element name="linear" type="DT_ScalarType" minOccurs="0" />
+      <xsd:element name="inverseFormApproxTDEF" type="DT_RationalFuncInv" minOccurs="0"
+        maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en"> Rational function (multi-pole model) approximating the
+            frequency response function of the INVERSE of a material parameter. It is required to
+            solve the time convolutions of the (inverse) material parameter with a solution quantity
+            (e.g., time domain formulation of the equivalent fluid). It is defined by a real-valued
+            constant (high-frequency limit), N real and M complex poles. This introduces N+M
+            additional auxiliary unknowns required to solve the convolution of the time domain
+            formulatinon. For fitting of the poles and residues of the rational function various
+            algorithms, such as the vector fitting approach from Gustavsen and Semlyen (DOI:
+            10.1109/61.772353, DOI: 10.1109/61.660941) can be applied. Note that passivity must be
+            ensured to assure that the model cannot generate energy. This requires that the rational
+            (transfer) function is positive real. </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
 

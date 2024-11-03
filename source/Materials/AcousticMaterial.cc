@@ -14,7 +14,7 @@ namespace CoupledField {
   // ***********************
   AcousticMaterial::AcousticMaterial(MathParser *mp, CoordSystem *defaultCoosy) : BaseMaterial(ACOUSTIC, mp, defaultCoosy)
   {
-    // set the allowed material parameters
+    //set the allowed material parameters
     isAllowed_.insert(DENSITY);
     isAllowed_.insert(ACOU_BULK_MODULUS);
     isAllowed_.insert(ACOU_SOUND_SPEED);
@@ -24,6 +24,20 @@ namespace CoupledField {
     isAllowed_.insert(RAYLEIGH_BETA);
     isAllowed_.insert(LOSS_TANGENS_DELTA);
     isAllowed_.insert(ACOU_BOVERA);
+    isAllowed_.insert(ACOU_TDEF_INVDENS_CONST);
+    isAllowed_.insert(ACOU_TDEF_INVDENS_A);
+    isAllowed_.insert(ACOU_TDEF_INVDENS_ALPHA);
+    isAllowed_.insert(ACOU_TDEF_INVDENS_B);
+    isAllowed_.insert(ACOU_TDEF_INVDENS_BETA);
+    isAllowed_.insert(ACOU_TDEF_INVDENS_C);
+    isAllowed_.insert(ACOU_TDEF_INVDENS_GAMMA);
+    isAllowed_.insert(ACOU_TDEF_INVBLK_CONST);
+    isAllowed_.insert(ACOU_TDEF_INVBLK_A);
+    isAllowed_.insert(ACOU_TDEF_INVBLK_ALPHA);
+    isAllowed_.insert(ACOU_TDEF_INVBLK_B);
+    isAllowed_.insert(ACOU_TDEF_INVBLK_BETA);
+    isAllowed_.insert(ACOU_TDEF_INVBLK_C);
+    isAllowed_.insert(ACOU_TDEF_INVBLK_GAMMA);
   }
 
   AcousticMaterial::~AcousticMaterial() {
@@ -45,5 +59,4 @@ namespace CoupledField {
       }
     }
   }
-
-  } // namespace CoupledField
+}
