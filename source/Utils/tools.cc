@@ -16,6 +16,13 @@
 #include "Domain/Domain.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/PythonKernel.hh"
+#if defined(WIN32)
+  #define NOMINMAX // https://stackoverflow.com/questions/5004858/why-is-stdmin-failing-when-windows-h-is-included
+  #include <windows.h>
+  #include <psapi.h>
+#elif defined(__APPLE__)
+  #include <libproc.h>
+#endif
 
 using boost::char_separator;
 using boost::tokenizer;
@@ -504,7 +511,27 @@ namespace CoupledField {
 
   int MemoryUsage(bool peak)
   {
-    // if the file dows not exist we return 0
+#if defined(WIN32)
+    // https://stackoverflow.com/questions/77988344/get-memory-usage-of-this-process-c-win32
+    PROCESS_MEMORY_COUNTERS pmc;
+    if(GetProcessMemoryInfo(GetCurrentProcess(), &pmc, sizeof(pmc)))
+    {
+      if(peak)
+        return pmc.PeakWorkingSetSize / 1024;
+      else
+        return pmc.WorkingSetSize / 1024;
+    }
+    return 0;
+#elif defined(__APPLE__)
+    if(peak)
+      return 0;
+    // https://blog.guillaume-gomez.fr/articles/2021-09-06+sysinfo%3A+how+to+extract+systems%27+information
+    struct proc_taskinfo proc; // we don't know peak memory
+    int st = proc_pidinfo(getpid(), PROC_PIDTASKINFO, 0, &proc, PROC_PIDTASKINFO_SIZE);
+    return st == PROC_PIDTASKINFO_SIZE ? proc.pti_resident_size/1024 : 0;
+#else
+    // if the file does not exist, we return 0
+    // Note that https://stackoverflow.com/questions/1543157/how-can-i-find-out-how-much-memory-my-c-app-is-using-on-the-mac does not work on macOS
     std::ifstream file("/proc/self/status", std::ifstream::in);
 
     std::string data;
@@ -518,14 +545,11 @@ namespace CoupledField {
         {
           return lexical_cast<int>(data);
         }
-        catch(boost::bad_lexical_cast &)
-        {
-          return 0;
-        }
+        catch(boost::bad_lexical_cast &) {} // will return 0 below
       }
     }
-
     return 0;
+#endif
   }
 
   double SmoothMax(double left, double right, double beta, bool normalize)
