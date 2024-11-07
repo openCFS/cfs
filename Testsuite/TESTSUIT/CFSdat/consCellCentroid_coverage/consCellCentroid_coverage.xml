@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsdat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Conservative cell centroid interpolation with smaller target CA mesh (coverage check)</title>
+    <authors>
+      <author>sschoder</author>
+    </authors>
+    <date>2025-08-13</date>
+    <keywords>
+      <keyword>cfsdat</keyword>
+    </keywords>
+    <references>
+      This testcase is based on consCentroid_coverage.xml
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Purpose: Verify that the conservative cell centroid field interpolation works correctly when
+      the target CA mesh has FEWER elements than the source CFD grid (CA &lt; CFD).
+    </description>
+  </documentation>
+
+
+  <pipeline>
+    <stepValueDefinition>
+      <startStop>
+        <startStep value="0"/>
+        <numSteps value="9"/>
+        <startTime value="0.01"/>
+        <delta  value="0.01"/>
+        <deleteOffset value="no"/>
+      </startStop>
+    </stepValueDefinition>
+
+    <meshInput id="input1" gridType="fullGrid">
+      <inputFile>
+        <ensight fileName="cfd/2DflowData_Ensight/source_DATA.encas">
+          <variableList>
+            <variable CFSVarName="fluidMechPressure" EnsightVarName="pressure"/>
+          </variableList>
+        </ensight>
+      </inputFile>
+    </meshInput>
+
+    <interpolation type="FieldInterpolation_Conservative_CellCentroid"
+                   id="interp1" inputFilterIds="input1">
+      <targetMesh>
+        <hdf5 fileName="mesh/mesh.h5"/>
+      </targetMesh>
+
+      <singleResult>
+        <inputQuantity resultName="fluidMechPressure"/>
+        <outputQuantity resultName="acouRhsLoad"/>
+      </singleResult>
+
+      <regions>
+        <sourceRegions>
+          <region name="fluid"/>
+        </sourceRegions>
+        <targetRegions>
+          <region name="physical_entity_1"/>
+          <!-- interpolation on surface -->
+          <region name="physical_entity_2"/>
+          <region name="physical_entity_3"/>
+          <region name="physical_entity_4"/>
+          <region name="physical_entity_5"/>
+        </targetRegions>
+      </regions>
+    </interpolation>
+
+    <meshOutput id="consCellCentroid_coverage" inputFilterIds="interp1">
+      <outputFile>
+        <hdf5 extension="h5" compressionLevel="1" externalFiles="no"/>
+      </outputFile>
+      <saveResults>
+        <result resultName="acouRhsLoad">
+          <allRegions/>
+        </result>
+      </saveResults>
+    </meshOutput>
+  </pipeline>
+</cfsdat>
