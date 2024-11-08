@@ -22,31 +22,10 @@ if(DEBUG)
   set(CHECK_MEM_ALLOC 1)
 endif()
 
-# Check if compiler supports OpenMP
-find_package(OpenMP) # properties might be used from deps even with USE_OPENMP=OFF
-
+# make sure openmp_blas.cmake run already
 if(USE_OPENMP)
-  if(NOT OpenMP_FOUND)
-    message(FATAL_ERROR "USE_OPENMP selected but not found in system")
-  endif()
-
-  set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS}")
-
-  if(APPLE)
-    # homebrew uses since Okt 2022 not the system path and we need to help cfs and lis
-    # according to cmake docu, OpenMP_<lang>_INCLUDE_DIR is input and OpenMP_<lang>_INCLUDE_DIRS is output, wherever the OpenMP_<lang>_INCLUDE_DIR is set?!
-    # sometimes the C stuff is set and is valid for C++, give it a try
-    if(NOT OpenMP_CXX_INCLUDE_DIR)
-      # dump_variables("OpenMP")
-      set(OpenMP_CXX_INCLUDE_DIR ${OpenMP_C_INCLUDE_DIR})
-    endif()
-    assert_set(OpenMP_CXX_INCLUDE_DIR) # /opt/homebrew[/opt/libomp]/include
-    assert_set(OpenMP_libomp_LIBRARY) # /opt/homebrew[/opt/libomp]/lib/libomp.dylib"
-    get_filename_component(OpenMP_LIBDIR ${OpenMP_libomp_LIBRARY} DIRECTORY) # also use for lis
-    include_directories(AFTER SYSTEM "${OpenMP_CXX_INCLUDE_DIR}")
-    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L${OpenMP_LIBDIR} ")
-  endif()   
-endif() # USE_OPENMP
+  assert_set(OpenMP_FOUND)
+endif()
 
 # Clang can be UNIX (macOS as AppleClang or Linux) or Windows (MSVC bundled).
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")

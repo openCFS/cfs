@@ -128,6 +128,7 @@ option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_
 
 # USE_* triggers more or less optional external dependencies.
 set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, (Apple) ACCELERATE")
+# we set convenience USE_MKL, USE_OPENBLAS, USE_NETLIB, USE_ACCELERATE in openmp_blas.cmake
 set_property(CACHE USE_BLAS_LAPACK PROPERTY STRINGS OPENBLAS MKL NETLIB ACCELERATE)
 option(USE_OPENMP "Enable support for OpenMP" ${USE_OPENMP_DEFAULT})
 option(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
@@ -292,6 +293,24 @@ mark_as_advanced(USE_PHIST_CG)
 # Find executables of a few required programs
 include("cmake_modules/FindPrograms.cmake")
 
+# Set path where shared/static libraries should go. We only have lib
+set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib CACHE INTERNAL "Single output directory for building all libraries.")
+
+# set RPATH to a relative path (Linux and theoretically but not pracically macOS)
+# this ensures dynamically linked libraries are found
+# check the set value with `chrpath -l bin/cfs` (Linux) or 'otool -l bin/cfs' (macOS) 
+set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
+# this is no typo with $ORIGIN: https://stackoverflow.com/tags/rpath/info
+set(CMAKE_BUILD_RPATH "$ORIGIN/../lib") # this is needed such that origin is first
+set(CMAKE_INSTALL_REMOVE_ENVIRONMENT_RPATH TRUE) # should remove oneapi stuff, but does not seem to work
+set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib") # for some reason this seems to be ignored because rpath remains the same after install
+
+# Set path where executables should go
+set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")
+
+# find conditonally OpenMP and load the proper BLAS (especially MKL)
+include("cmake_modules/openmp_blas.cmake")
+
 # Set compiler flags according to output target and debug setting
 # TODO: for in distro.cmake the architecture is set, hence distro.cmake
 #       shall run before compiler.cmake. However vor win32 compiler settings are used in distr.sh 
@@ -305,20 +324,6 @@ include("cmake_modules/CheckFortranRuntime.cmake")
 
 # Perform some configure checks
 include("cmake_modules/ConfigureChecks.cmake")
-
-# Set path where shared/static libraries should go. We only have lib
-set(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib CACHE INTERNAL "Single output directory for building all libraries.")
-
-# set RPATH to a relative path (Linux and theoretically but not pracically macOS)
-# this ensures dynamically linked libraries are found
-# check the set value with `chrpath -l bin/cfs` (Linux) or 'otool -l bin/cfs' (macOS) 
-set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
-set(CMAKE_BUILD_RPATH "$ORIGIN/../lib") # this is needed such that origin is first
-set(CMAKE_INSTALL_REMOVE_ENVIRONMENT_RPATH TRUE) # should remove oneapi stuff, but does not seem to work
-set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib") # for some reason this seems to be ignored because rpath remains the same after install
-
-# Set path where executables should go
-set(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin CACHE INTERNAL "Single output directory for building all executables.")
 
 # Create and set a path where temporaries should go
 set(CFS_TEMP_DIR "${CFS_BINARY_DIR}/tmp")
@@ -544,28 +549,5 @@ if(CFS_WC_MODIFIED)
 endif()
 set(CPACK_CMAKE_GENERATOR "Ninja") # this disables a rebuild i.e. "CPack: - Run preinstall target for..." which seems to be only done for "Unix Makefiles"
 
-# choose what to install
-# see https://cmake.org/cmake/help/v3.9/command/install.html#installing-directories
-
-# tailing / in source leads to rename to destionation
-#install(PROGRAMS "${CFS_BINARY_DIR}/bin" DESTINATION "." PATTERN "[A-Z]*" EXCLUDE)
-install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERMISSIONS
-  PATTERN "*.lib" EXCLUDE
-  PATTERN "*.cmake" EXCLUDE
-  PATTERN "*.in" EXCLUDE
-  PATTERN "*.exp" EXCLUDE
-  PATTERN "*.manifest" EXCLUDE
-  )
-install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISSIONS
-  PATTERN "*.a" EXCLUDE
-  PATTERN "*.la" EXCLUDE
-  PATTERN "*.pc" EXCLUDE
-  PATTERN "*.lib" EXCLUDE
-  PATTERN "*.cmake" EXCLUDE
-  PATTERN "*.in" EXCLUDE
-  PATTERN "pkgconfig" EXCLUDE )
-# license install
-file(COPY "${CFS_SOURCE_DIR}/LICENSE" DESTINATION "${CFS_BINARY_DIR}/license/")
-install(DIRECTORY "${CFS_BINARY_DIR}/license/" DESTINATION "license" USE_SOURCE_PERMISSIONS)
-
-include(CPack)
+# make sure that on cpack -G ZIP or make install everything is copied. make install is uncommon
+include("cmake_modules/redistributables.cmake")

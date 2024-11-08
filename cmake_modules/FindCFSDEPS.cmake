@@ -59,6 +59,18 @@ if(USE_EMBEDDED_PYTHON)
   include_directories(${Python_NumPy_INCLUDE_DIRS})
 endif()
 
+# these are optional external blas/lapack libs. 
+# MKL and Apple's Accellerate is set in openmp_blas.cmake to have it before compile.cmake
+if(USE_BLAS_LAPACK STREQUAL "NETLIB")
+  set(USE_NETLIB 1)
+  include("${CFSDEPS_DIR}/netlib/External_Netlib.cmake")
+endif()
+
+if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
+  set(USE_OPENBLAS 1)
+  include("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
+endif()
+
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
@@ -91,38 +103,6 @@ IF(USE_GIDPOST)
 
   INCLUDE("${CFSDEPS_DIR}/gidpost/External_GiDpost.cmake")
 ENDIF(USE_GIDPOST)
-
-#-----------------------------------------------------------------------------
-# Find Netlib BLAS/LAPACK library
-# MKL contains blas and lapack, OpenBLAS contains blas and somehow also lapack?!
-#-----------------------------------------------------------------------------
-if(USE_BLAS_LAPACK STREQUAL "NETLIB")
-  include("${CFSDEPS_DIR}/netlib/External_Netlib.cmake")
-endif()
-
-#-----------------------------------------------------------------------------
-# Find OpenBLAS/LAPACK library
-# see NETLIB comment
-#-----------------------------------------------------------------------------
-if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
-  include("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
-endif()
-
-#-----------------------------------------------------------------------------
-# Find Intel Math Kernel library
-# see NETLIB comment
-#-----------------------------------------------------------------------------
-
-
-if(USE_BLAS_LAPACK STREQUAL "MKL")
-  include("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
-endif()
-
-# Apple's Accelerate Framework is a system lib - nothing to build
-if(USE_BLAS_LAPACK STREQUAL "ACCELERATE")
-  include("${CFS_SOURCE_DIR}/cmake_modules/FindAppleAccelerate.cmake")
-endif()
-
 
 #-----------------------------------------------------------------------------
 # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-

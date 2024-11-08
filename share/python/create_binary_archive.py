@@ -46,28 +46,13 @@ def copy_redist(target):
         return
     print('warning: none of the files',cands,'found in',base)  
   
-  
   if platform.system() == 'Windows':
     cpl_base = dir_cand(["C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\windows\\redist\\intel64_win\\compiler", # e.g. oneAPI 2023.0.2
                          "C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\bin"]) # e.g. oneAPI 2024.2.2
-                        
     cpl_files = ['libiomp5md.dll','libifcoremd.dll','libmmd.dll','svml_dispmd.dll']
-  
-    mkl_base = dir_cand(["C:\\Program Files (x86)\\Intel\\oneAPI\\mkl\\latest\\redist\\intel64",   # e.g. oneAPI 2023.0.2
-                         "C:\\Program Files (x86)\\Intel\\oneAPI\\mkl\\latest\\bin"]) # 2024.2.2
-                       
-    mkl_files = ['mkl_avx512.2.dll','mkl_def.2.dll','mkl_vml_avx512.2.dll','mkl_vml_def.2.dll','mkl_vml_mc.2.dll','mkl_vml_mc3.2.dll','mkl_avx2.2.dll','mkl_core.2.dll','mkl_intel_thread.2.dll','mkl_vml_avx2.2.dll','mkl_vml_cmpt.2.dll']
-  
-    # add 1033/mkl_msg.dll ?
-    file_cand(mkl_files,mkl_base,['mkl_avx.2.dll','mkl_avx2.2.dll']) # 2023.0.2, 2024.2.2
-    file_cand(mkl_files,mkl_base,['mkl_vml_avx.2.dll','mkl_vml_avx2.2.dll']) # 2023.0.2, 2024.2.2
     copy_redist_helper(mkl_base, mkl_files, target)
-  elif platform.system() == 'Linux':
-    cpl_base = dir_cand(['/opt/intel/oneapi/compiler/latest/lib'])
-    cpl_files = ['libiomp5.so']
-    # on Linux we link mkl statically. It is ok to copy the .so to bin
-  copy_redist_helper(cpl_base, cpl_files, target)
-
+    copy_redist_helper(cpl_base, cpl_files, target)
+  # on Linux we assume gcc Fortran and therefore gnu openmp (no libiomp.so needed)
 
 def copy_redist_helper(dir, files, target):
   if not os.path.isdir(dir):

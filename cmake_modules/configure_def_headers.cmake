@@ -51,22 +51,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_superlu.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_superlu.hh")
 
-if(USE_BLAS_LAPACK STREQUAL "MKL")
-  set(USE_MKL 1)
-endif()
-
-if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
-  set(USE_OPENBLAS 1)
-endif()
-
-if(USE_BLAS_LAPACK STREQUAL "NETLIB")
-  set(USE_NETLIB 1)
-endif()
-
-if(USE_BLAS_LAPACK STREQUAL "ACCELERATE")
-  set(USE_ACCELERATE 1)
-endif()
-
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_blas.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_blas.hh")
 

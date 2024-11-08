@@ -229,7 +229,7 @@ void Dependencies::ReadSetting()
 
   Dependency mkl("MKL", "USE_MKL", ISSL);
 #ifdef USE_MKL
-  CFSMKLVersion ver;
+  CFSMKLVersion ver; // FIXME this is from def_use_blas.hh.in - check if necessary, this is dangerous code!!!
   MKL_Get_Version(reinterpret_cast<MKLVersion*>(&ver));
   MKL_Free_Buffers();
   mkl.SetVersion(ver.MajorVersion,ver.MinorVersion,ver.BuildNumber);

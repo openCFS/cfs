@@ -1,0 +1,49 @@
+# see https://www.intel.com/content/www/us/en/docs/onemkl/developer-guide-windows/2023-0/cmake-config-for-onemkl.html
+
+# see MKLConfig.cmake from your oneAPI installation /opt/intel/oneapi/mkl/latest/lib/cmake/mkl/MKLConfig.cmake
+
+set(MKL_LINK "static") # when we are static, we do not need to copy/install mkl dlls.
+set(MKL_INTERFACE "lp64") # lp64 = 4 bytes integer, ilp64 = 8 bytes integer - the wrong setting makes cfs randomly crash. Default seems to change
+if(NOT USE_OPENMP)
+  set(MKL_THREADING "sequential" CACHE STRING "The OpenMP implemention we want to use")
+elseif(WIN32 OR OpenMP_iomp5_LIBRARY) # /opt/intel/oneapi/compiler/2021.4.0/linux/compiler/lib/intel64_lin/libiomp5.so
+  # Intel OpenMP - for Windows or when intel compilers are used
+  set(MKL_THREADING "intel_thread" CACHE STRING "The OpenMP implemention we want to use")   
+else()
+  # standard Linux case with gcc/gfortran
+  set(MKL_THREADING "gnu_thread" CACHE STRING "The OpenMP implemention we want to use")
+endif()  
+set_property(CACHE MKL_THREADING PROPERTY STRINGS gnu_thread intel_thread sequential)
+
+# possible paths to search for MKLConfig.cmake. With oneAPI's setvars, MKLROOT is set. 
+set(POSSIBLE_PATHS "$ENV{MKLROOT}" "/opt/intel/oneapi/mkl/latest" "C:/Program Files (x86)/Intel/oneAPI/mkl/latest" "$ENV{INTEL_INSTALL_DIR}/mkl/latest") # last is shared runners in ci pipeline
+
+# searches and runs MKLConfig.cmake which sets most necessary cmake variables "magically"
+find_package(MKL CONFIG PATHS ${POSSIBLE_PATHS})   
+
+if(MKL_FOUND)
+  # cmake_print_properties(TARGETS MKL::MKL PROPERTIES INTERFACE_COMPILE_OPTIONS INTERFACE_INCLUDE_DIRECTORIES)
+  # set CFS variables with the values from MKLConfig.cmake
+  set(MKL_INCLUDE_DIR ${MKL_INCLUDE}) # TODO: homogenise to use original name from MKLConfig once legacy_mkl.cmake is removed
+  # MKL_LIB_DIR (cfs name) is used by some cfsdeps, find it based on the imported target. 
+  get_target_property(mkl_core_lib MKL::mkl_core IMPORTED_LOCATION)
+  get_filename_component(MKL_LIB_DIR "${mkl_core_lib}" DIRECTORY)
+  # TODO: remove MKL_BLAS_LIB and use BLAS_LIBRARY once we don't need legacy_mkl.cmake any more
+  set(MKL_BLAS_LIB "$<LINK_ONLY:MKL::MKL>") # used in TARGET_LL of all openCFS targets
+  set(BLAS_LIBRARY "${MKL_BLAS_LIB}")
+  cmake_print_variables(MKL_LINK_LINE)
+else()
+  # this is the legacy case - probably only for centos6-gcc runner - remove if possible!
+  include("${CFS_SOURCE_DIR}/cmake_modules/legacy_mkl.cmake")
+endif()
+
+
+#Linux: MKL_LINK_LINE=$<IF:$<BOOL:OFF>,,>;-Wl,--start-group;MKL::mkl_intel_lp64;MKL::mkl_intel_thread;MKL::mkl_core;-Wl,--end-group
+#Linux: MKL_LINK_LINE=$<IF:$<BOOL:OFF>,,>;-Wl,--start-group;MKL::mkl_gf_lp64;MKL::mkl_gnu_thread;MKL::mkl_core;-Wl,--end-group  -lgomp;-lm;-ldl;-lpthread
+#Win32: MKL_LINK_LINE=$<IF:$<BOOL:OFF>,,>;MKL::mkl_intel_lp64;MKL::mkl_intel_thread;MKL::mkl_core
+
+# no copy/install of mkl redistributables necessary as we link statically.
+
+mark_as_advanced(ENABLE_BLACS ENABLE_BLAS95 ENABLE_CDFT ENABLE_CPARDISO ENABLE_LAPACK95 ENABLE_OMP_OFFLOAD ENABLE_SCALAPACK ENABLE_TRY_SYCL_COMPILE)
+mark_as_advanced(MKL_DIR MKL_ARCH MKL_INCLUDE MKL_INTERFACE_FULL MKL_THREADING MKL_VERSION_H MKL_MPI OMP_LIBRARY OMP_DLL_DIR)
+mark_as_advanced(mkl_core_file mkl_cdft_core_file mkl_gf_ilp64_file mkl_intel_thread_file mkl_gf_lp64_file mkl_blas95_lp64_file mkl_blacs_intelmpi_lp64_file mkl_lapack95_lp64_file mkl_sequential_file mkl_gnu_thread_file mkl_scalapack_lp64_file)
