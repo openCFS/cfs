@@ -210,11 +210,11 @@ public:
     }
     return *me;
   }
-  Dim2<P,I>& operator+=(P x) { // for Square Matrix Only
+  Dim2<P,I>& operator+=(P x) {
     I *me = static_cast<I*>(this);
-    //int rsz = me->rows(), csz = me->cols(),
-    //min = ( rsz < csz ) ? rsz : csz ;
-    for (unsigned int i=0; i<me->rows(); i++) me->operator()(i,i) += this->rhs;
+    for (unsigned int i=0; i<me->rows(); i++) 
+      for (unsigned int j=0; j<me->cols(); j++)
+        me->operator()(i,j) += x;
     return *me;
   }
  
@@ -233,11 +233,11 @@ public:
     }
     return *me;
   }
-  Dim2<P,I>& operator-=(P x) { // for Square Matrix Only
+  Dim2<P,I>& operator-=(P x) { 
     I *me = static_cast<I*>(this);
-    //int rsz = me->rows(), csz = me->cols(),
-    //min = ( rsz < csz ) ? rsz : csz ;
-    for (unsigned int i=0; i<me->rows(); i++) me->operator()(i,i) -= this->rhs;
+    for (unsigned int i=0; i<me->rows(); i++) 
+      for (unsigned int j=0; j<me->cols(); j++)
+        me->operator()(i,j) -= x;
     return *me;
   }
  
