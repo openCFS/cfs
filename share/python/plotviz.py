@@ -46,7 +46,7 @@ def find_style(idx, args, axis, data):
   # we assume for multiple files and y+y2 that we have common data (e.g. compliance and greyness)
   # we have same colors for the same file (by idx) but different linestyle  
   if len(args.input) > 1:
-    color = colors[idx] if not args.black else 'black'
+    color = colors[idx % len(colors)] if not args.black else 'black'
     linestyle = '-' if axis == 'x' else ':'
     marker = markers[i] if len(data) <= 40 else ' '
   else:
@@ -697,11 +697,6 @@ if __name__ == '__main__':
   fiy2, y2, y2lbl = column(meta,data,args.y2,args.bar) if args.y2 else ([],[],[])
   
   fiz, z, zlabel = column(meta,data,args.z,args.bar) if args.z else ([],[],[])
-  
-  print('meta',meta)
-  print('input',args.input)
-  print('fiy',fiy,'fiy2',fiy2)
-
   
   for i in range(1,len(x)):
     if type(x[i][0]) != type(x[0][0]):
