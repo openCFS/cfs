@@ -274,7 +274,16 @@ if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSIO
   set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -fallow-argument-mismatch") # was once --std=legacy # see https://github.com/Reference-LAPACK/lapack/issues/353
 endif()  
 
-# in CheckFortanRuntime.cmake we copy redistributable intel libs for deplyment 
+if(WIN32 AND ${CMAKE_Fortran_COMPILER_ID} MATCHES "Intel") # ifx and ifort 
+   # prevent the following error on arpack - but shall not harm for the other Fortran cfsdeps, too 
+   # ucrt.lib(api-ms-win-crt-math-l1-1-0.dll) : error LNK2005: ldexp already defined in libmmt.lib(ldexp_iface_c99.obj)
+   set(CFSDEPS_Fortran_FLAGS "/fpp /libs:dll")
+   if(USE_OPENMP)                                                                                                                                                                         
+      set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} /threads ")                                                                                                                  
+   endif() 
+endif()
+
+# in CheckFortanRuntime.cmake and redistributables.cmake we copy redistributable intel libs for deployment 
 
 #cmake_print_variables(CFSDEPS_C_FLAGS)
 #cmake_print_variables(CFSDEPS_CXX_FLAGS)

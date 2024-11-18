@@ -1,0 +1,54 @@
+--- CMakeLists.org.txt	2024-11-18 11:39:49
++++ CMakeLists.txt	2024-11-18 11:42:58
+@@ -280,9 +280,8 @@
+ 
+ # Find BLAS
+ 
+-if (NOT TARGET BLAS::BLAS) # Search only if not already found by upper CMakeLists.txt
++if ((TESTS OR EXAMPLES) AND NOT TARGET BLAS::BLAS) # Search only if required and not already found by upper CMakeLists.txt
+     find_package(BLAS REQUIRED)
+-
+     # BLAS::BLAS target was already created at this point by FindBLAS.cmake if cmake version >= 3.18
+     if (NOT TARGET BLAS::BLAS) # Create target "at hand" to ensure compatibility if cmake version < 3.18
+         add_library(BLAS::BLAS INTERFACE IMPORTED)
+@@ -292,7 +291,7 @@
+ 
+ # Find LAPACK
+ 
+-if (NOT TARGET LAPACK::LAPACK) # Search only if not already found by upper CMakeLists.txt
++if ((TESTS OR EXAMPLES) AND NOT TARGET LAPACK::LAPACK) # Search only if required and not already found by upper CMakeLists.txt
+     find_package(LAPACK REQUIRED)
+ 
+     # LAPACK::LAPACK target was already created at this point by FindLAPACK.cmake if cmake version >= 3.18
+@@ -304,7 +303,7 @@
+ 
+ # As BLAS/LAPACK does not provide ICB, we may have to deal with symbols the old-fashion-boring-cumbersome-fortran/C way...
+ 
+-if (SYMBOLSUFFIX)
++if ((TESTS OR EXAMPLES) AND SYMBOLSUFFIX)
+     if ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "GNU")
+       set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -cpp -ffixed-line-length-none")
+     elseif ("${CMAKE_Fortran_COMPILER_ID}" MATCHES "Intel")
+@@ -388,13 +387,15 @@
+ # use -DBUILD_SHARED_LIBS=ON|OFF to control static/shared
+ add_library(arpack ${arpackutil_STAT_SRCS} ${arpacksrc_STAT_SRCS} ${arpacksrc_ICB})
+ 
+-target_link_libraries(arpack
+-  PUBLIC
+-  $<INSTALL_INTERFACE:$<IF:$<BOOL:${BUILD_SHARED_LIBS}>,,LAPACK::LAPACK>>
+-  $<INSTALL_INTERFACE:$<IF:$<BOOL:${BUILD_SHARED_LIBS}>,,BLAS::BLAS>>
+-  $<BUILD_INTERFACE:LAPACK::LAPACK>
+-  $<BUILD_INTERFACE:BLAS::BLAS>
+-)
++if(TESTS OR EXAMPLES)
++  target_link_libraries(arpack
++    PUBLIC
++    $<INSTALL_INTERFACE:$<IF:$<BOOL:${BUILD_SHARED_LIBS}>,,LAPACK::LAPACK>>
++    $<INSTALL_INTERFACE:$<IF:$<BOOL:${BUILD_SHARED_LIBS}>,,BLAS::BLAS>>
++    $<BUILD_INTERFACE:LAPACK::LAPACK>
++    $<BUILD_INTERFACE:BLAS::BLAS>  
++  )
++endif()  
+ target_link_options(arpack PUBLIC "${EXTRA_LDFLAGS}")
+ set_target_properties(arpack PROPERTIES OUTPUT_NAME arpack${LIBSUFFIX}${ITF64SUFFIX})
+ set_target_properties(arpack PROPERTIES VERSION 2.1.0)

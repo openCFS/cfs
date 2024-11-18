@@ -16,7 +16,7 @@ set(SNOPT_VER "7.2.8") # for def_use_snopt.hh.in
 set(PACKAGE_VER ${SNOPT_VER})
 set(PACKAGE_FILE "snopt-${PACKAGE_VER}-cfsdeps.zip")
 set(PACKAGE_MD5 "9e75be8400eb878b9cb3d489084af196")
-set(DEPS_VER "-a") # -a for the usrmjr patch!
+set(DEPS_VER "-b") # CFSDEPS_Fortran_FLAGS 
 
 # with CFS_DOWNLOAD_SNOPT the encrypted file can be found
 # when we need to download, the key needs to be set from local .cfs_platform_defaults.cmake, environment or cmake -DCFS_DOWNLOAD_SNOPT=...
