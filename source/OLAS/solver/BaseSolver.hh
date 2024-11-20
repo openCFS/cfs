@@ -98,7 +98,6 @@ namespace CoupledField {
      * If there is a parameter with param_name in the xml file, it is used and printed.
      * @param param_name simple xpath chain via slash */
     void CheckParameter(PtrParamNode out, double* val, const char* param_name);
-    void CheckParameter(PtrParamNode out, char** val, const char* param_name);
     void CheckParameter(PtrParamNode out, int* val, const char* param_name);  
     void CheckParameter(PtrParamNode out, size_t* val, const char* param_name);  
     void CheckParameter(PtrParamNode out, bool* val, const char* param_name);
