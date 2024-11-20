@@ -46,6 +46,12 @@ public:
   /** we check with Optimization::tunes to not mix up with a copied objection which was registered */
   bool IsRegistered() const;
 
+  /** e.g. other robust filters connect to this Tune. Sets the value content */
+  void Append(double* value, GlobalFilter* f = nullptr);
+
+  /** opposite of Append() */
+  void Remove(double* value, GlobalFilter* f = nullptr);
+
   void ToInfo(PtrParamNode in) const;
 
   /** regular update to be called from Optimization::CommitIteration() to set value */
@@ -75,8 +81,12 @@ private:
   /** helper for constructor */
   void FindGraynessStoppingRule();
 
-  /** here we store the actual value */
+  /** here we store the actual values.  */
   double* value = nullptr;
+
+  /** here we store additional values (other filters in the robust case)
+   * @see Append() and Remove() */
+  StdVector<double*> external;
 
   double end = -1;
 
@@ -101,7 +111,7 @@ private:
   Optimization* opt = nullptr;
 
   /** when we are linked to a GlobalFilter we call SetNonLinCorrection() */
-  GlobalFilter* gf = nullptr;
+  StdVector<GlobalFilter*> gf;
 
   Method method_ = NO_METHOD;
 

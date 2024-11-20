@@ -200,8 +200,11 @@ void Optimization::PostInitSecond()
   if(manager.any().harmonic)
     log.AddToHeader("freq");
 
+  // this is Daniel specific
   if(isMultiObjective_)
     log.AddToHeader("multiObjectiveValue");
+
+  LOG_DBG(opt) << "PIS: me=" << me->IsEnabled() << " #me=" << me->excitations.GetSize() << " #obj=" << objectives.data.GetSize();
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
@@ -212,6 +215,11 @@ void Optimization::PostInitSecond()
       log.AddToHeader("min_ef_" + lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
     }
   }
+
+  if(me->IsEnabled() && me->excitations.GetSize() > 1)
+    for(Excitation& ex : me->excitations)
+      log.AddToHeader("objective_" + ex.GetFullLabel());
+
   log.AddToHeader("duration");
 
   if(design->HasAlphaVariable())
@@ -986,6 +994,17 @@ Function* Optimization::GetFunction(const std::string& name, bool throw_exceptio
   return f;
 }
 
+Tune* Optimization::SearchTune(Tune::Usage usage, bool silent)
+{
+  for(Tune* t : tunes)
+    if(t->GetUsage() == usage)
+      return t;
+
+  if(!silent)
+    throw Exception("none of the " + std::to_string(tunes.GetSize()) + " registered tunes is of usage " + Tune::usage.ToString(usage));
+  return nullptr;
+}
+
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
 {
   // the symmetry works only for squared models with a horizontal symmetry axis
@@ -1404,6 +1423,11 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
         *out << " \t" << f->bandgap.upper.col;
       }
     }
+
+    // more details are written to .info.xml in ErsatzMaterial::LogFileLine()
+    if(me->IsEnabled() && me->excitations.GetSize() > 1)
+      for(Excitation& ex : me->excitations)
+        *out << " \t" << ex.cost;
 
     *out << " \t" << duration;
     if(design->HasAlphaVariable())

@@ -102,7 +102,7 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
       }
 
     } // end asymptotes
-    if (subSolverType_ == BFGS_SOLV)
+    if(subSolverType_ == BFGS_SOLV)
     {
       if(this_opt_pn_->Has("bfgs_setting"))
       {

@@ -43,14 +43,16 @@ void Tune::Init(PtrParamNode pn, Usage use)
   LOG_DBG(tune) << "I " << usage.ToString(usage_) << " opt=" << opt << " value=" << value;
 }
 
-void Tune::Register(double* value, Optimization* opt, GlobalFilter* gf)
+void Tune::Register(double* value, Optimization* opt, GlobalFilter* f)
 {
-  assert(!(gf != nullptr && usage_ != BETA));
+  assert(!(f != nullptr && usage_ != BETA));
   assert(value != nullptr && opt != nullptr);
   assert(!IsRegistered());
   this->value = value;
   this->opt = opt;
-  this->gf = gf; // might be null
+  if(f != nullptr)
+    this->gf.Push_back(f);
+
 
   // tries to find a greyness stopping rule, if not found, a warning is issued
   if(stopping_greyness_)
@@ -77,6 +79,30 @@ bool Tune::IsRegistered() const
     return true;
   LOG_DBG(tune) << "IR tune not registered #tunes=" << opt->tunes.GetSize() << " opt " << opt << " value=" << value;
   return false;
+}
+
+void Tune::Append(double* value, GlobalFilter* f)
+{
+  LOG_DBG(tune) << "A " << value << " f=" << f << " e=" << external.ToString(TS_PYTHON) << " gf=" << gf.ToString(TS_PYTHON);
+
+  assert(!external.Contains(value));
+  external.Push_back(value);
+  *value = *(this->value);
+
+  assert(!gf.Contains(f));
+  gf.Push_back(f);
+
+}
+
+void Tune::Remove(double* value, GlobalFilter* f)
+{
+  int vi = external.Find(value, true); // quiet - somehow debugging shows unknown beta adress in the robust case?!
+  int fi = gf.Find(f, true);
+  LOG_DBG(tune) << "R " << value << " f=" << f << " vi=" << vi << " fi=" << fi << " e=" << external.ToString(TS_PYTHON) << " gf=" << gf.ToString(TS_PYTHON);
+  if(vi >= 0)
+    external.Erase((size_t) vi);
+  if(fi >= 0)
+    gf.Erase((size_t) fi);
 }
 
 double Tune::CalcTransistionZone(double y) const
@@ -150,13 +176,14 @@ void Tune::Update(unsigned int iter)
   else
   {
     *value = cand;
+    for(double* ptr : external)
+      *ptr = cand;
 
-    if(gf)
+    for(GlobalFilter* f : gf)
     {
-      DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(gf->region, gf->design);
-      gf->SetNonLinCorrection(&(opt->GetDesign()->data[dr->base]));
-      LOG_DBG(tune) << "U ref=" << dr->base << " SetNonLinCorrection -> scale=" << gf->non_lin_scale << " offset=" << gf->non_lin_offset;
-
+      DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(f->region, f->design);
+      f->SetNonLinCorrection(&(opt->GetDesign()->data[dr->base]));
+      LOG_DBG(tune) << "U ref=" << dr->base << " b=" << f->beta << " e=" << f->eta << " SNLC -> scale=" << f->non_lin_scale << " offset=" << f->non_lin_offset << " f=" << f << " gf=" << gf.ToString(TS_PYTHON);
     }
 
     opt->SetAuxLogValue(usage.ToString(usage_), *value);

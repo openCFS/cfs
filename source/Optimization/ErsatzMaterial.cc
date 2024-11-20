@@ -485,7 +485,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
     iteration->Get(boost::get<0>(log.bloch_info[i]))->SetValue(boost::get<1>(log.bloch_info[i]));
 
-  // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
+  // add our multiple excitation stuff here.
+  // the .plot.dat already has a simplified output in Optimization.cc
   if(me->IsEnabled())
   {
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
@@ -1889,7 +1890,7 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
       double sp = 0.0;
       u.Inner(rhs, sp);
       result += sp * excite.GetFactor(func) * GetStepWeight(ts);
-      LOG_DBG(em) << "CC: result=" << result << " sp=" << sp << " u=" << u.ToString() << " func=" << func->ToString();
+      LOG_DBG(em) << "CC: result=" << result << " sp=" << sp << " func=" << func->ToString();
     }
   }
   return result;
@@ -3908,6 +3909,8 @@ double ErsatzMaterial::CalcGlobalFunction(Excitation& excite, Function* f, bool 
 
 void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 {
+  LOG_DBG(em) << "SSP";
+
   assert(!baseOptimizer_ || baseOptimizer_->ValidateTimers());
   // if ev_only_excite is set we use the given excitation
   // -> it shall not coincide
@@ -4017,6 +4020,8 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 
 void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_excite)
 {
+  LOG_DBG(em) << "SAPs ev=" << (ev_only_excite ? ev_only_excite->GetFullLabel() : "null");
+
   assert(!baseOptimizer_ || baseOptimizer_->ValidateTimers());
   // solve all adjoints needed for gradient calculation
   assert(!(ev_only_excite != NULL && me->IsEnabled()));
@@ -4196,6 +4201,8 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 template<class T>
 void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 {
+  LOG_DBG(em) << "SAP f=" << f->ToString();
+
   boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();
@@ -4547,8 +4554,11 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   LOG_DBG2(em) << "ts: " << ts << " f: " << f->ToString();
   Vector<Complex>& u = forward.Get(excite, NULL, ts)->GetComplexVector(StateSolution::RAW_VECTOR);
   Vector<Complex>& l = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::SEL_VECTOR);
-  LOG_DBG2(em) << "ConstructComplexAdjointRHS: u = " << u.ToString();
-  LOG_DBG2(em) << "ConstructComplexAdjointRHS: l = " << l.ToString();
+  LOG_DBG2(em) << "CCARHS: u = " << u.ToString();
+  LOG_DBG2(em) << "CCARHS: l = " << l.ToString();
+  LOG_DBG(em) << "CCARHS: #u=" << u.GetSize() << " #l=" << l.GetSize();
+  assert(u.GetSize() > 0); // should actually also hold for l!
+
 
   // create a OLAS vector
   Vector<Complex>& rhs = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::RHS_VECTOR);

@@ -293,7 +293,10 @@ endif()
 #cmake_print_variables(CFS_CXX_FLAGS)
 #cmake_print_variables(CFS_LINKER_FLAGS)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_CXX_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}") # does not overwrite the cache variable
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_CXX_FLAGS} ${CFS_SUPPRESSIONS}") # does not overwrite the cache variable
+if(NOT DEBUG) # note that CFS_OPT_FLAGS are set for cfsdeps even for debug as we store the zip without build information
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_OPT_FLAGS}")
+endif()
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CFS_LINKER_FLAGS}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CFS_LINKER_FLAGS}")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_LINKER_FLAGS}")

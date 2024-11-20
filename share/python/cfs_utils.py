@@ -11,7 +11,6 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 # lxml is technically based on the libxml2 C-code bat hat the nicer python interface
 import lxml
 import lxml.etree
-import six
 import math
 import os
 import string
@@ -78,6 +77,8 @@ def namespace(query):
 
 # replace a single xpath value -> must exist once!
 # the xpath shall contain a single result. e.g. '//cfs:materialData/@file
+# when using conditions like //cfs:constraint[@type="volume"][@mode="constraint"]/@value
+# you need to quote when using via command line as '//cfs:constraint[@type="volume"][@mode="constraint"]/@value'
 # internally we get via lxml the element by removing /@file from the expression
 # if the original attribute value has '/nx' this will stay, even when value has not '/nx' set.
 #@param unique if True there must be one match, if false there may be more than one - none is also an option
@@ -89,16 +90,19 @@ def replace(xml, path, value, unique = True):
       raise RuntimeError(path + " not found")
     if len(res) > 1:
       raise RuntimeError(path + " not unique, has " + str(len(res)) + " hits")
-
+  
   # in the attribute case we have to fake
   idx = path.rfind('/@')
+  key = path[idx+2:]
   if idx > 0:
-    # query element
+    # query element (we might not be unique)
     elem = xml.xpath(path[0:idx], namespaces = namespace(path))
     for e in elem:
-      data = e.attrib[path[idx+2:]]
+      if key not in e.attrib:
+        raise RuntimeError("key '" + key + "' not in element " + str(e.attrib) + " maybe specify more precisely")
+      data = e.attrib[key]
       by_nx = str(data).find('/nx') > 0 and str(value).find('/nx') == -1
-      e.attrib[path[idx+2:]] = str(value) + ('/nx' if by_nx else '')
+      e.attrib[key] = str(value) + ('/nx' if by_nx else '')
     return len(elem)
   else:
     for e in res:
@@ -134,10 +138,7 @@ def xpath(xml, path):
     data = res[0]
     return str(data)
   except AttributeError: # this happens when xml is from libxml2 and not lxml
-    if six.PY2:
-      raise RuntimeError('is your xml paramater from libxml2? You need to switch to lxml')
-    else: 
-      raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
+    raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
 
   
 # does at least one element exist
@@ -149,10 +150,7 @@ def has(xml, path):
     else:
       return True
   except AttributeError: # this happens when xml is from libxml2 and not lxml
-    if six.PY2:
-      raise RuntimeError('is your xml paramater from libxml2? You need to switch to lxml')
-    else: 
-      raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
+    raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
   
 # dump a xml node
 def dump(xml, path):

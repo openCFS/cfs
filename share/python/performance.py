@@ -272,7 +272,7 @@ parser.add_argument('--wall', help="show only wall times", action='store_true', 
 parser.add_argument('--cpu', help="show only cpu times", action='store_true', default=False)
 parser.add_argument('--threshold', help="show only wall time above this seconds", type=float, default=0.0)
 parser.add_argument('-m', '--mesh', help="for execution give a mesh file for calculation, alternatively 'mesh_type' and 'res'")
-parser.add_argument('--executable', help="for execution what to call for cfs", default='cfs_rel')
+parser.add_argument('--executable', help="for execution what to call for cfs", default='cfs')
 parser.add_argument('-r', '--repeat', help="how often shall execution be repeated - default is 1", type=int, default=1)
 parser.add_argument("--skip_noise", help="suppress too small times", type=float, default=1e-1)
 parser.add_argument('--ref', help="reference file to compare timers with")

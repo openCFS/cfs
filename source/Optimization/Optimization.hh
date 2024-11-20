@@ -233,6 +233,8 @@ namespace CoupledField
         /** return a function (objective and constraint/observe) by name */
         Function* GetFunction(const std::string& name, bool throw_exception = true);
 
+        Tune* SearchTune(Tune::Usage usage, bool silent = false);
+
         /** Our base ParamNode pointer, pointing to input <optimization> */
         PtrParamNode optParamNode;
 

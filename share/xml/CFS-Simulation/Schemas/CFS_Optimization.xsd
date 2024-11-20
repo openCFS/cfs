@@ -2582,7 +2582,8 @@
           <!-- Continuation for Heaviside filter and steepness of tanh -->
           <xsd:attribute name="beta" type="xsd:token" use="optional" >
             <xsd:annotation>
-              <xsd:documentation>Either a float or 'tune'. Smoothing parameter for heaviside, tanh and expression.</xsd:documentation>
+              <xsd:documentation>Either a float or 'tune'/'tunded'. Smoothing parameter for heaviside, tanh and expression.
+              'tune' requires a child 'tune'. 'tuned' only for second and third filter in the robust case</xsd:documentation>
             </xsd:annotation>
           </xsd:attribute>
 
