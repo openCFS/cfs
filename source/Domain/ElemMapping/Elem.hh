@@ -4,6 +4,7 @@
 #include <bitset>
 #include <map>
 #include <boost/array.hpp>
+#include <mutex>
 
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
@@ -159,6 +160,9 @@ namespace CoupledField
 
     //! Global collection of reference element shape
     static std::map<Elem::FEType,ElemShape> shapes;
+
+    // Static mutex for guarding access to shapes
+    static std::mutex shapesMutex;
   };
 
 

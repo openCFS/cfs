@@ -374,22 +374,45 @@ std::string ElemShapeMap::ToString() const
   return ss.str();
 }
 
-void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
-  ptElem_ = ptElem;
-  isUpdated_ = isUpdated;
-  isAxi_ = ptGrid_->IsAxi();
-  SetModelDepth(ptGrid_->GetDepth2dPlane());
+// void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
+//   ptElem_ = ptElem;
+//   isUpdated_ = isUpdated;
+//   isAxi_ = ptGrid_->IsAxi();
+//   SetModelDepth(ptGrid_->GetDepth2dPlane());
 
-  // Check, if the element is a surface element
-  if (Elem::shapes[ptElem->type].dim == ptGrid_->GetDim() - 1) {
-    try {
-      ptSurfElem_ = dynamic_cast<const SurfElem*>(ptElem);
-    } catch (...) {
-      EXCEPTION("Could not convert element #" << ptElem->elemNum << " to a surface element");
+//   // Check, if the element is a surface element
+//   if (Elem::shapes[ptElem->type].dim == ptGrid_->GetDim() - 1) {
+//     try {
+//       ptSurfElem_ = dynamic_cast<const SurfElem*>(ptElem);
+//     } catch (...) {
+//       EXCEPTION("Could not convert element #" << ptElem->elemNum << " to a surface element");
+//     }
+//   } else {
+//     ptSurfElem_ = nullptr;
+//   }
+// }
+
+void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
+    ptElem_ = ptElem;
+    isUpdated_ = isUpdated;
+    isAxi_ = ptGrid_->IsAxi();
+    SetModelDepth(ptGrid_->GetDepth2dPlane());
+
+    std::cout << "In ElemShapeMap::SetElem()" << std::endl;
+
+    // Check if the element is a surface element
+    {
+        std::lock_guard<std::mutex> lock(Elem::shapesMutex); // Lock the mutex
+        if (Elem::shapes[ptElem->type].dim == ptGrid_->GetDim() - 1) {
+            try {
+                ptSurfElem_ = dynamic_cast<const SurfElem*>(ptElem);
+            } catch (...) {
+                EXCEPTION("Could not convert element #" << ptElem->elemNum << " to a surface element");
+            }
+        } else {
+            ptSurfElem_ = nullptr;
+        }
     }
-  } else {
-    ptSurfElem_ = nullptr;
-  }
 }
 
 // ========================================================================
@@ -466,14 +489,14 @@ LagrangeElemShapeMap::~LagrangeElemShapeMap() {
 //  feMap_.clear();
 }
 
-void LagrangeElemShapeMap::Local2Global(Vector<Double>& globPoint,
-    const LocPoint& lp) {
-
-  //step 1: evaluate shape fncs. at local coordinate
-  ptFe_->GetShFnc(shFnc_, lp, nullptr, 0);
-
+void LagrangeElemShapeMap::Local2Global(Vector<Double> &globPoint,
+                                        const LocPoint &lp) {
+  // step 1: evaluate shape fncs. at local coordinate
+  Vector<Double> shFnc;
+  ptFe_->GetShFnc(shFnc, lp, nullptr, 0);
   // step2: multiply shape fncs for each dimension with according matrix entries
-  globPoint = coords_ * shFnc_;
+  globPoint = coords_ * shFnc;
+  std::cout << "coords_ = " << coords_ << std::endl;
 }
 
 void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
@@ -1174,6 +1197,29 @@ void LagrangeElemShapeMap::Global2LocalLine2(Vector<Double>& locPoint,
 
   locPoint[0] = shape.nodeCoords[0][0]
       + (shape.nodeCoords[1][0] - shape.nodeCoords[0][0]) * s;
+
+  std::cout << "--------------------------------" << std::endl;
+  std::cout << "--------------------------------" << std::endl;
+  std::cout << "Global point: " << globalPoint << std::endl;
+  std::cout << "Endpoint 0: " << c0 << std::endl;
+  std::cout << "Endpoint 1: " << c1 << std::endl;
+  std::cout << "--------------------------------" << std::endl;
+  std::cout << "Local Coords Node 0: " << shape.nodeCoords[0] << std::endl;
+  std::cout << "Local Coords Node 1: " << shape.nodeCoords[1] << std::endl;
+  std::cout << "--------------------------------" << std::endl;
+  std::cout << "Local point: " << locPoint << std::endl;
+  std::cout << "--------------------------------" << std::endl;
+  std::cout << "--------------------------------" << std::endl;
+
+
+  if (locPoint[0] < -1.0 || locPoint[0] > 1.0) {
+    WARN("Global point is not on the line element!");
+    xi_k[0] = shape.nodeCoords[0][0];
+    Local2Global(c0, xi_k);
+
+    xi_k[0] = shape.nodeCoords[1][0];
+    Local2Global(c1, xi_k);
+  }
 }
 
 void LagrangeElemShapeMap::Global2LocalGeneral(Vector<Double>& locPoint,
@@ -2127,6 +2173,11 @@ void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated)
 
   // get coordinates from grid
   ptGrid_->GetElemNodesCoord(coords_, ptElem->connect, isUpdated_);
+  std::cout << "----------------------------" << std::endl;
+  std::cout << "SetElem with given coords:" << std::endl << coords_ << std::endl;
+  std::cout << "ElemNum: " << ptElem->elemNum << std::endl;
+  std::cout << "isUpdated: " << isUpdated << std::endl;
+  std::cout << "----------------------------" << std::endl;
   //  std::cerr << "**** Coordinates for element " << ptElem->elemNum
   //      << " with connect " << ptElem->connect.ToString()
   //
@@ -2146,6 +2197,9 @@ void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated)
 void LagrangeElemShapeMap::SetElem(const Elem* ptElem, const Matrix<double>& coords)
 {
   this->coords_ = coords;
+  std::cout << "----------------------------" << std::endl;
+  std::cout << "SetElem with given coords:" << coords_ << std::endl;
+  std::cout << "----------------------------" << std::endl;
   assert(elems_.feMap_.find(ptElem->type) != elems_.feMap_.end());
   ptFe_ = elems_.feMap_[ptElem->type];
   shape_ = &Elem::shapes[ptElem_->type];

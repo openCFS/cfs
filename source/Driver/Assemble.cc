@@ -40,7 +40,13 @@ namespace CoupledField
 {
   // declare logging stream
   DEFINE_LOG(assemble, "assemble")
-
+  DEFINE_LOG(assemble_Luca, "assemble_Luca")
+  DEFINE_LOG(progress_bar, "progress_bar")
+  DEFINE_LOG(verbose_luca, "verbose_luca")
+  DEFINE_LOG(in_assemble_std, "in_assemble_std")
+  DEFINE_LOG(log_algsys, "log_algsys")
+  DEFINE_LOG(entities, "log_entities")
+  DEFINE_LOG(log_bilinear, "log_bilinear")
 
   Assemble::Assemble( AlgebraicSys* algsys,
                       BasePDE::AnalysisType analysis,
@@ -460,17 +466,21 @@ namespace CoupledField
 
   }
 
+  // LUCA TODO: find issue(s) in here!!
   void Assemble::AssembleMatrices_Std(bool isNewtonPart) {
 
     LOG_DBG(assemble) << "AM_Std: AssembleMatrices_Std() enter sequence=" << domain->GetDriver()->GetActSequenceStep();
+    LOG_DBG(in_assemble_std) << "Top of AssembleMatrices_Std(): isNewtonPart= " << isNewtonPart;
+    LOG_DBG(in_assemble_std) << "Initial setup: matrixUpdated_=" << matrixUpdated_ << ", isFirstTime_=" << isFirstTime_;
 
     timer_->Start();
 
     // Reset for matrix update
     matrixUpdated_ = false;
+    LOG_DBG(in_assemble_std) << "Matrix update state reset.";
 
     // Temporary: Check each time for non-linearities
-    // On first Assembly, assemble all matrices for each BiLinearForm
+    // On first Assembly, assemble all matrices for each BilinearForm
     CheckNonLinearities(isFirstTime_);
 
     // Init all matrices, which have to be reassembled
@@ -480,6 +490,8 @@ namespace CoupledField
       for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
         if( it->second == true ) {
           LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
+          LOG_DBG(in_assemble_std) << "init matrices: " << it->first;
+          LOG_DBG(log_algsys) << "Initializing matrix for reassembly: " << it->first;
           algsys_->InitMatrix( matrixMap_[it->first] );
         }
       }
@@ -497,8 +509,12 @@ namespace CoupledField
       std::stringstream progStream;
       boost::timer::progress_display progress( size*forms.GetSize(), progStream );
 
-      if(printProgressBar_)
+      if(printProgressBar_) {
         std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
+        LOG_DBG(progress_bar) << "  - Calculating BiLinearForms on (firstEntities) '"  << firstEntities.GetName() << " (" << size << " elements)'";
+      }
+
+      LOG_DBG2(progress_bar) << "  - Calculating BiLinearForms on (firstEntities) '"  << firstEntities.GetName() << " (" << size << " elements)'";
 
       if(!isNewtonPart)
       {
@@ -525,10 +541,16 @@ namespace CoupledField
           continue; // assemble next bilin form
       } // end !isNewtonPart
 
+      std::atomic<UInt> current_thread_order(0);
+      LOG_DBG(in_assemble_std) << "Atomic order variable initialized.";
+
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
       {
       UInt numT = CFS_NUM_THREADS;
       UInt aThread = GetThreadNum();
+
+      LOG_DBG(in_assemble_std) << "Thread " << aThread << " started with numT=" << numT;
+
       StdVector<BiLinearForm *> biLinForms(forms.GetSize());
       biLinForms.Init(NULL);
 
@@ -536,11 +558,25 @@ namespace CoupledField
       UInt start = chunksize * aThread;
       UInt end = (aThread==numT-1)? size : (chunksize * (aThread+1));
 
+      LOG_DBG(in_assemble_std) << "Thread " << aThread << " range (start, end) [" << start << ", " << end << "].";
+
+      // LOG_DBG2(assemble_Luca) << "numT: " << numT << ", aThread: " << aThread << " =? " << omp_get_thread_num() << ", chunksize: " << chunksize << ", start: " << start << ", end: " << end;
+
+      // #pragma omp parallel for schedule(static)
       for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
         //copy bilinear forms
         biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
+        LOG_DBG(log_bilinear) << "Thread " << aThread << " cloned BiLinearForm: " << biLinForms[iForm]->GetName();
       }
 
+      // Wait until it's this thread's turn
+      while (current_thread_order.load() != aThread) {
+          // Optionally, use a short sleep to reduce busy-waiting
+          #pragma omp flush(current_thread_order)
+      }
+
+      LOG_DBG(in_assemble_std) << "Thread " << aThread << " proceeding with entity processing.";
+      
 //     #pragma omp critical
 //         {
 //             std::cout << "Thread #" << omp_get_thread_num() << " computing entites from " << start << " to " << end << " for " << end-start << " entities" << std::endl;
@@ -550,7 +586,9 @@ namespace CoupledField
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
+
       //LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum  << " and " << it2.GetElem()->elemNum;
+      LOG_DBG(entities) << "Thread " << aThread << " it1.GetIdString(): " << it1.GetIdString() << " it2.GetIdString(): " << it2.GetIdString();
 
       it1.Begin();
       it2.Begin();
@@ -568,7 +606,10 @@ namespace CoupledField
       FeFctIdType fctId1, fctId2;
       for( UInt i = start;i < end; ++i  ) {
 
+        LOG_DBG(in_assemble_std) << "Thread " << aThread << " - it1.GetIdString() = " << it1.GetIdString() << ", it2.GetIdString() = " << it2.GetIdString();
         LOG_DBG2(assemble) << "AM_Std: elems are " << it1.GetIdString() << " and " << it2.GetIdString();
+        LOG_DBG2(assemble_Luca) << "size: " << size << "numT: " << numT << ", aThread: " << aThread << " =? " << omp_get_thread_num() << ", chunksize: " << chunksize << ", start: " << start << ", end: " << end << ", i = " << i;
+        LOG_DBG(entities) << "Thread " << aThread << " processing entity pair: it1.GetIdString(): " << it1.GetIdString() << " and it2.GetIdString(): " << it2.GetIdString();
 
         // Loop over all bilinear forms
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
@@ -601,6 +642,7 @@ namespace CoupledField
 
           BiLinearForm * form =nullptr;
           form = UseOpenMP() ? biLinForms[iForm] : actContext.GetIntegrator();
+          // BiLinearForm * form = biLinForms[iForm];
 
           LOG_DBG2(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
           if(!skipElemAssembly_){
@@ -611,24 +653,34 @@ namespace CoupledField
                 ++progress;
                 std::cout << progStream.str();
                 progStream.str("");
+
+                // LOG_DBG2(progress_bar) << progStream.str();
               }
 
               LOG_DBG3(assemble) << feMatrixType.ToString(destMat) << "\n";
+
+              // --- LUCA TODO ON ---
               // Calc element matrix
-              if ( form->IsComplex() ){
-                form->CalcElementMatrix( elemMatrixC, it1, it2 );
-                LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " cplx CEM -> " << elemMatrixC.ToString();
-              } else {
-                form->CalcElementMatrix( elemMatrix, it1, it2 );
-                if(it1.IsElemType()) {
-                  LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
+              // #pragma omp critical
+              // {
+                if ( form->IsComplex() ){
+                  form->CalcElementMatrix( elemMatrixC, it1, it2 );
+                  LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " cplx CEM -> " << elemMatrixC.ToString();
+                  LOG_DBG(in_assemble_std) << "Thread " << aThread << " computed complex element matrix.";
+                } else {
+                  form->CalcElementMatrix( elemMatrix, it1, it2 );
+                  if(it1.IsElemType()) {
+                    LOG_DBG3(assemble) << "AM_Std: e=" << it1.GetElem()->elemNum << " reg=" << it1.GetElem()->regionId;
+                  }
+                  LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString();
+                  LOG_DBG(in_assemble_std) << "Thread " << aThread << " computed real element matrix.";
+                  if(actContext.IsSetNegate()){
+                    assert(!form->IsComplex());
+                    elemMatrix*= (-1.0);
+                  }
                 }
-                LOG_DBG3(assemble) << "AM_Std: e=" << it1.ToString() << " real CEM -> " << elemMatrix.ToString();
-                if(actContext.IsSetNegate()){
-                  assert(!form->IsComplex());
-                  elemMatrix*= (-1.0);
-                }
-              }
+              // }
+              // -- LUCA TODO OFF ---
 
               // info.xml logging in detailed logging case for the first element only
               if(i == 0 && progOpts->DoDetailedInfo())
@@ -706,6 +758,7 @@ namespace CoupledField
               // increment iterators
             } catch (Exception& e) {
               RETHROW_EXCEPTION(e, "Could not calculate element matrix of BiLinearForm '" << form->GetName() << "' on '" << actContext.GetFirstEntities()->GetName()<< "'");
+              LOG_DBG(in_assemble_std) << "Error in thread " << aThread << " calculating element matrix: " << e.what();
             }
           } //if block to skip assembly
         }// loop over bilinearforms
@@ -715,11 +768,24 @@ namespace CoupledField
         if( secondEntities.GetSize() != 1 )
           it2++;
       } // loop over entities
-      for( UInt iForm = 0; iForm < forms.GetSize()&&UseOpenMP(); ++iForm ) {
-        //delete copied bilinear forms
-        delete biLinForms[iForm];
+
+      if ( UseOpenMP() ) {
+        for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+          //delete copied bilinear forms
+          delete biLinForms[iForm];
+          biLinForms[iForm] = NULL;
+        }
       }
 
+      LOG_DBG(in_assemble_std) << "Thread " << aThread << " completed entity processing.";
+
+      // Update the execution order to allow the next thread to proceed
+      current_thread_order.fetch_add(1);
+
+      LOG_DBG(in_assemble_std) << "Thread " << aThread << " incremented current_thread_order to " << current_thread_order;
+
+      // Synchronize all threads to ensure completion before logging a line break
+      #pragma omp barrier
     }//OMP END
 
     }// loop over entitylist pairs

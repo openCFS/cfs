@@ -127,6 +127,7 @@ namespace CoupledField
    //  ret->SetElem(ptElem, isUpdated );
    //  return ret;
 
+   // What exactlyhappens here with Mine()
    StdVector<UInt>& lastShapeElemNumOrig                      = lastShapeElemNumOrig_.Mine();
    StdVector<UInt>& lastShapeElemNumUpdated                   = lastShapeElemNumUpdated_.Mine();
    StdVector<shared_ptr<ElemShapeMap> > & elemShapeMapOrig    = elemShapeMapOrig_.Mine();
@@ -160,15 +161,21 @@ namespace CoupledField
         // inside the shape map class becomes outdated which is dangerous
         // decision by element number is a piece of crap. we can cache some shape maps
         // to avoid memory reallocation but otherwise, it just does not work out
+        if(elemShapeMapUpdated[(UInt)idx].use_count()>1){
+          WARN("Returning a shared pointer with reference count > 1. This is dangerous. Check for memory leaks.");
+        }
         return elemShapeMapUpdated[(UInt)idx];
       }
       else
+
+      /// check this ----------------------------------------------------------------------------------
       {
         //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
         for(UInt aIdx =0;aIdx<elemShapeMapUpdated.GetSize();aIdx++){
-         if(elemShapeMapUpdated[aIdx].use_count()==1){
+         if(elemShapeMapUpdated[aIdx].use_count()==1){ // what is usecount??
             elemShapeMapUpdated[aIdx]->SetElem(ptElem, isUpdated );
             lastShapeElemNumUpdated[aIdx] = ptElem->elemNum;
+            std::cout << "---------------element number: " << ptElem->elemNum << std::endl;
             return elemShapeMapUpdated[aIdx];
           }
         }
@@ -178,6 +185,7 @@ namespace CoupledField
         lastShapeElemNumUpdated.Push_back(ptElem->elemNum);
         return newMap;
       }
+      /// check this ----------------------------------------------------------------------------------
     }
     else // the not updated version
     {
