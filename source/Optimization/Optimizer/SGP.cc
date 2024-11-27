@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include <algorithm>
+#include <memory>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ProgramOptions.hh"
@@ -586,7 +587,10 @@ void SGP::CalcTensDeriv(StdVector<Matrix<double>>& deriv, StdVector<Vector<doubl
       assert(ptFe != NULL);
 
       // Get shape map from grid
-      shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap(elem);
+      // shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap(elem);
+      // grid_->UpdateIndividualShapeMap(elem, ptFe);
+      // shared_ptr<ElemShapeMap> esm = elem->ptrShapeMap;
+      shared_ptr<ElemShapeMap> esm = (elem)->GetElemShapeMap(grid_);
       // for intermediate steps
       Matrix<double> bMatT;
       Matrix<double> bMat;

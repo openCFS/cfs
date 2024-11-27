@@ -945,7 +945,12 @@ namespace CoupledField {
     ret.Push_back( lexical_cast<std::string>( it.GetElem()->elemNum ) );
     Vector<Double> globCoord, locCoord;
     
-    ptGrid_->GetElemShapeMap(it.GetElem())->GetGlobMidPoint(globCoord);
+    // ptGrid_->GetElemShapeMap(it.GetElem())->GetGlobMidPoint(globCoord);
+    // it.GetElem()->ptrShapeMap->GetGlobMidPoint(globCoord); // ??? (LUCA) TODO
+    // workaround - do we even need any update here?
+    const Elem* bufferElem = it.GetElem();
+    shared_ptr<ElemShapeMap> bufferEsm = (bufferElem)->GetElemShapeMap(ptGrid_, false);
+    bufferEsm->GetGlobMidPoint(globCoord);
     
     if( coordSys_ != NULL ) {
       coordSys_->Global2LocalCoord( locCoord, globCoord );

@@ -388,7 +388,10 @@ namespace CoupledField {
         // Check, if element has same dimension as grid
         // -> We want to find only volume elements
         if( Elem::shapes[orderedElems_[iElem]->type].dim == dim_ ) {
-          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(orderedElems_[iElem]);
+          // shared_ptr<ElemShapeMap> esm = GetElemShapeMap(orderedElems_[iElem]);
+          // shared_ptr<ElemShapeMap> esm(orderedElems_[iElem]->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = (orderedElems_[iElem])->GetElemShapeMap(this);
+
           esm->GetGlobMidPoint(actEntCoord);
           temp = (actEntCoord-coord );
           entityDist[iElem] = temp.NormL2();
@@ -892,6 +895,12 @@ namespace CoupledField {
       }
     }
 
+    // Maybe we should initialize ShapeMaps here
+    // #pragma omp critical (GridCFS)
+    // {
+    //   InitElemShapeMaps();
+    // }
+
     // in case of internalMesh the region is already marked as regular
     // so we can skip the test here
     for(unsigned int i = 0; i < regionData.GetSize(); i++) {
@@ -931,6 +940,11 @@ namespace CoupledField {
         mp->SetValue(MathParser::GLOB_HANDLER, "nz", reg[2]);
       }
     }
+
+    // TODO:IMPLEMENT initialize shape maps after elements were created (here, the function InitElemShapeMaps() gets called)
+    // elements are stored in volElems_ and surfElems_
+    // InitElemShapeMaps();
+    // -> line 899
   }
   
   void GridCFS::GenerateDGSurfaceElemes(std::set<RegionIdType> regionList,
@@ -1196,7 +1210,10 @@ namespace CoupledField {
     if(!el->extended)
     {
       Point cP;
-      shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(el,isupdated);
+      // shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(el,isupdated);
+      // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(this, isupdated);
+      
       esm->CalcBarycenter(cP);
       center = cP.data;
     }
@@ -1477,7 +1494,9 @@ namespace CoupledField {
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           const Elem * ptElem = it.GetElem();
-          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm(ptElem->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(this, false);
           Vector<Double> midPoint = 
               Elem::shapes[ptElem->type].midPointCoord;
           esm->CalcJ( jac, midPoint );
@@ -1502,7 +1521,10 @@ namespace CoupledField {
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
           const Elem * ptElem = it.GetElem();
-          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm(ptElem->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(this, false);
+
           Double minEdge, maxEdge;
           esm->GetMaxMinEdgeLength(maxEdge,minEdge);
           actVal[it.GetPos()] = maxEdge / minEdge;
@@ -1515,7 +1537,10 @@ namespace CoupledField {
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
           const Elem * ptElem = it.GetElem();
-          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm(ptElem->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(this, false);
+
           Vector<Double> midPoint = 
               Elem::shapes[ptElem->type].midPointCoord;
           esm->CalcJ( jac, midPoint );
@@ -1529,7 +1554,10 @@ namespace CoupledField {
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
           const Elem * ptElem = it.GetElem();
-          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm(ptElem->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(this, false);
+
           actVal[it.GetPos()] = esm->CalcVolume();
         } // loop over elements
         break;
@@ -1570,7 +1598,10 @@ namespace CoupledField {
         locDir[actComp] = 1.0;
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           Vector<Double> midPoint;
-          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(it.GetElem());
+          // shared_ptr<ElemShapeMap> esm = GetElemShapeMap(it.GetElem());
+          // shared_ptr<ElemShapeMap>  esm((it.GetElem())->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = (it.GetElem())->GetElemShapeMap(this, false);
+
           esm->GetGlobMidPoint(midPoint);
           actCosy->Local2GlobalVector(coordDir, locDir, midPoint);
           for( UInt i = 0; i < dim_; ++i ) {
@@ -1597,7 +1628,9 @@ namespace CoupledField {
         // loop over surface elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           const SurfElem * ptElem = it.GetSurfElem();
-          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap>  esm(ptElem->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(this, false);
           Vector<Double> midPoint = 
               Elem::shapes[it.GetElem()->type].midPointCoord;
           esm->CalcNormal( normal, midPoint );
@@ -1615,7 +1648,10 @@ namespace CoupledField {
         // loop over surface elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           const SurfElem * ptElem = it.GetSurfElem();
-          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap> esm(ptElem->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(this, false);
+
           actVal[it.GetPos()] = esm->CalcVolume();
         } // loop over elements
         break;
@@ -1654,7 +1690,12 @@ namespace CoupledField {
     // we do not know of the order of the nodes within the element,
     // hence we have to find the diameter vector and compare it.
 
-    shared_ptr<ElemShapeMap> esm = (this->GetElemShapeMap(elems[0]));
+    // shared_ptr<ElemShapeMap> esm_legacy = (this->GetElemShapeMap(elems[0]));
+    // shared_ptr<ElemShapeMap> esm(elems[0]->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (elems[0])->GetElemShapeMap(this, false);
+
+    // LUCA: What is/was esm_legacy ???
+
     Elem::ShapeType refShape = Elem::GetShapeType(elems[0]->type);
 
     // only line, quad and hexa can be regular. If you have a
@@ -1682,7 +1723,10 @@ namespace CoupledField {
     Vector<Double> diff; // difference vector
     for(unsigned int i = 1, in = elems.GetSize(); i < in; i++)
     {
-      shared_ptr<ElemShapeMap> testEsm = (this->GetElemShapeMap(elems[i]));
+      // shared_ptr<ElemShapeMap> testEsm = (this->GetElemShapeMap(elems[i]));
+      // shared_ptr<ElemShapeMap> testEsm(elems[i]->ptrShapeMap);
+      shared_ptr<ElemShapeMap> testEsm = (elems[i])->GetElemShapeMap(this, false);
+
       Elem::ShapeType testShape = Elem::GetShapeType(elems[i]->type);
       if(testShape != refShape) return false;
 
@@ -2534,8 +2578,9 @@ namespace CoupledField {
       if(volElems_.IsEmpty() || volElems_.First().IsEmpty())
         throw Exception("no volume elements in grid found, maybe dimension mismatch with analysis");
 
-      // take the first vol element of the first vol region. The first ordered element might be a surface element
-      GetElemShapeMap(volElems_.First().First(), false)->GetEdgeLength(edges);
+      // GetElemShapeMap(volElems_.First().First(), false)->GetEdgeLength(edges);
+      // volElems_.First().First()->ptrShapeMap->GetEdgeLength(edges); 
+      volElems_.First().First()->GetElemShapeMap(this, false)->GetEdgeLength(edges);
       assert(edges.GetSize() == GetDim());
 
       Matrix<double> m = CalcGridBoundingBox();
@@ -2886,8 +2931,65 @@ namespace CoupledField {
       for( UInt iDim = 0; iDim < dim_; iDim++ ) {
         actOffset[iDim] = offsets[iNode*dim_ + iDim];
       }
-      deltCoords_[nodes[iNode]-1]= actOffset;
+      deltCoords_[nodes[iNode]-1] = actOffset;
     }
+
+    // // TODO_IMPLEMENT: every time this function gets called, we also need to call Grid::UpdateElemShapeMaps(). However, we need to find out how to do this properly, as SetNodeOffset() gets only nodes, but the elemShapeMaps are defined for elements.
+
+    // // Something like this, maybe?
+
+    // // first a function to map nodes to elements, maybe turn this into separate function
+    // // --------------------------------
+    // if(!mappedNodeToElems_) {
+    //   nodeElemMapIndices_.Resize(GetNumNodes() + 2);
+    //   nodeElemMapIndices_.Init(0);
+    //   for (UInt e = 0; e < numElems_; e++) {
+    //     Elem* elem = orderedElems_[e];
+
+    //     for (UInt n = 0; n < elem->connect.GetSize(); n++) {
+    //       nodeElemMapIndices_[elem->connect[n]]++;
+    //     }
+    //   }
+
+    //   UInt idx = 0;
+
+    //   for (UInt n = 1; n < GetNumNodes() + 2; n++) {
+    //     UInt add = nodeElemMapIndices_[n];
+    //     nodeElemMapIndices_[n] = idx;
+    //     idx += add;
+    //   }
+
+    //   UInt dummy = GetNumElems() + 2;
+    //   nodeElemMap_.Resize(idx);
+    //   nodeElemMap_.Init(dummy);
+
+    //   for (UInt e = 0; e < numElems_; e++) {
+    //     Elem* elem = orderedElems_[e];
+
+    //     for (UInt n = 0; n < elem->connect.GetSize(); n++) {
+    //       UInt node = elem->connect[n];
+    //       UInt sIdx;
+
+    //       for (sIdx = nodeElemMapIndices_[node]; nodeElemMap_[sIdx] != dummy; sIdx++) {}
+    //       nodeElemMap_[sIdx] = e + 1;
+    //     }
+    //   }
+    //   mappedNodeToElems_ = true;
+    // }
+    // // --------------------------------
+
+    // // then update the elemShapeMaps, add this into separate function
+    // for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++) {
+    //   const UInt node = nodes[iNode];
+    //   const UInt maxIdx = nodeElemMapIndices_[node + 1];
+
+    //   for (UInt idx = nodeElemMapIndices_[node]; idx < maxIdx; idx++) {
+    //     const UInt elemIdx = nodeElemMap_[idx];
+    //     // Elem* elem = orderedElems_[elemIdx - 1];
+    //     //UpdateIndividualElemShapeMap(elem, true);
+    //     // UpdateElemShapeMaps(elem, true);
+    //   }
+    // }
   }
 
 
@@ -4335,8 +4437,11 @@ namespace CoupledField {
 
     // according to Jens, NACS does not use the scaling with depth_ in this function
     // only CalcVolumeOfEntityList uses CalcVolume(true) in GridNACS
-    for(unsigned int i = 0, n = elems.GetSize(); i < n; i++ )
-      volume += GetElemShapeMap(elems[i], updated)->CalcVolume();
+    for(unsigned int i = 0, n = elems.GetSize(); i < n; i++ ) {
+      // volume += GetElemShapeMap(elems[i], updated)->CalcVolume();
+      // volume += elems[i]->ptrShapeMap->CalcVolume();
+      volume += elems[i]->GetElemShapeMap(this, updated)->CalcVolume();
+    }
 
     return volume;
   }
@@ -4355,7 +4460,10 @@ namespace CoupledField {
         const Elem * ptEl = it.GetElem();
         
         
-        shared_ptr<ElemShapeMap> esm = GetElemShapeMap( ptEl, updated );
+        // shared_ptr<ElemShapeMap> esm = GetElemShapeMap( ptEl, updated );
+        // shared_ptr<ElemShapeMap> esm(ptEl->ptrShapeMap);
+        shared_ptr<ElemShapeMap> esm = (ptEl)->GetElemShapeMap(this, updated);
+
         // sum up element contribution
         // enable scaling with depth_ for 2d plane case as it is done in NACS
         volume += esm->CalcVolume(true);
@@ -4674,9 +4782,15 @@ namespace CoupledField {
     }
     for (UInt iElems = 0; iElems < numElems; ++iElems) {
       Elem* el = elems[iElems];
-      shared_ptr<ElemShapeMap> esm = GetElemShapeMap( el, false );
+      // shared_ptr<ElemShapeMap> esm = GetElemShapeMap( el, false );
+      // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(this, false);
+
+      if (!esm) std::cerr << "esm is null" << std::endl;
+      if (typeid(*esm) == typeid(ElemShapeMap)) std::cerr << "esm points to an abstract ElemShapeMap object" << std::endl;
 
       jacDet = esm->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
+      
       if( jacDet < 0 ) {
         try {
         el->CorrectConnectivity(*this);
@@ -4690,7 +4804,10 @@ namespace CoupledField {
           WARN("Trying to correct connectivity by permutating array. This can be costly! Recheck the mesh!");
           bool success = false;
           do{
-            shared_ptr<ElemShapeMap> esmTMP = GetElemShapeMap( el, false );
+            // shared_ptr<ElemShapeMap> esmTMP = GetElemShapeMap( el, false );
+            // shared_ptr<ElemShapeMap> esmTMP(el->ptrShapeMap);
+            shared_ptr<ElemShapeMap> esmTMP = (el)->GetElemShapeMap(this, false);
+
             jacDet = esmTMP->CalcJDet( jacobian, Elem::shapes[el->type].midPointCoord);
             if(jacDet > 0){
               success = true;
@@ -4704,7 +4821,9 @@ namespace CoupledField {
           }
         }
         //we need to reset the element in case of precached maps
-        esm->SetElem(el,false);
+
+        // TODO IMPLEMENT: use the UpdateIndividualShapeMap function to reset the individual elements
+        //this->UpdateIndividualElemShapeMap(el, true); // false?
       }
     }    
     // if some elements were successfully reoriented, issue warning

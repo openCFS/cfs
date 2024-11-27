@@ -98,7 +98,10 @@ Vector<double> SGPHolder::GetElemVols()
   Vector<double> vol(n_elems_);
   if(space_->IsRegular())
   { // we use 1/(the volume of the first element) as fraction
-    double vole = domain->GetGrid()->GetElemShapeMap(space_->data[0].elem, false)->CalcVolume();
+    // double vole = domain->GetGrid()->GetElemShapeMap(space_->data[0].elem, false)->CalcVolume();
+    // double vole = domain->GetGrid()->GetElemShapeMap()->CalcVolume(); // Not sure yet if we neet ptrShapeMap with the most recent idea
+    // double vole = space_->data[0].elem->ptrShapeMap->CalcVolume();
+    double vole = space_->data[0].elem->GetElemShapeMap(domain->GetGrid(), false)->CalcVolume();
     vol.Init(vole);
   } else {
     for (unsigned int e = 0; e < n_elems_; e++) {

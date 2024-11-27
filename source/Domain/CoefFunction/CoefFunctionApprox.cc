@@ -188,7 +188,9 @@ void CoefFunctionComposite::MultiplyByElemArea( Double & value, const LocPointMa
       << "' in region '" << terminals_[tcElemArea_] << "'. What I got was: " << surfElem.ToString());
     }
     // calculate area of this element
-    shared_ptr<ElemShapeMap> esm = ptGrid->GetElemShapeMap( surfElem[0]);
+    // shared_ptr<ElemShapeMap> esm = ptGrid->GetElemShapeMap( surfElem[0]);
+    // shared_ptr<ElemShapeMap> esm(surfElem[0]->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (surfElem[0])->GetElemShapeMap(ptGrid);
     Double area = esm->CalcVolume();
     // add to map
     elemAreas_.insert(std::make_pair(volElemNum, area));

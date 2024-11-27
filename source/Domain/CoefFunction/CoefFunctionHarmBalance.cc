@@ -401,7 +401,11 @@ template<class T>
             // Loop over every element in that region
             for(it.Begin(); !it.IsEnd(); it++){
               const Elem * el = it.GetElem();
-              esm = it.GetGrid()->GetElemShapeMap(el, true);
+              // esm = it.GetGrid()->GetElemShapeMap(el, true);
+              // esm.reset(el->ptrShapeMap);
+              // esm = el->ptrShapeMap;
+              shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(it.GetGrid(), true);
+
               // Where do we evaluate the magnetic flux density?
               // Element or integration point -> see UPDATE from above
               lp = Elem::shapes[el->type].midPointCoord;

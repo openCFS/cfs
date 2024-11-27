@@ -78,7 +78,10 @@ namespace CoupledField{
     const UInt nrFncs = ptFe->GetNumFncs();
 
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+    // shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+    // shared_ptr<ElemShapeMap> esm(ptElem->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+
     // Get integration points
     StdVector<LocPoint> intPoints;
     StdVector<Double> weights;

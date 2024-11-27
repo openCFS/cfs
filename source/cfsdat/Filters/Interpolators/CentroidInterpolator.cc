@@ -232,15 +232,23 @@ void CentroidInterpolator::PrepareCalculation(){
   for(UInt aInfo=0;aInfo<trgElements.GetSize();++aInfo){
     if(trgElements[aInfo]!= NULL){
       const UInt& tElem = trgElements[aInfo]->elemNum;
-      const UInt& sElem = inGrid->GetElem(allSrcElems[aInfo])->elemNum;
+      const Elem* curElem = inGrid->GetElem(allSrcElems[aInfo]);
+      const UInt& sElem = curElem->elemNum;
       upMap->GetEquation(sElemEq,sElem,ResultInfo::ELEMENT);
 
-      shared_ptr<ElemShapeMap> eShape = inGrid->GetElemShapeMap(inGrid->GetElem(allSrcElems[aInfo]),true);
+      // shared_ptr<ElemShapeMap> eShape = inGrid->GetElemShapeMap(inGrid->GetElem(allSrcElems[aInfo]),true);
+      // inGrid->UpdateIndividualElemShapeMap(sElem, true); // const
+      // shared_ptr<ElemShapeMap> eShape(trgElements[aInfo]->ptrShapeMap);
+      shared_ptr<ElemShapeMap> eShape = ((curElem))->GetElemShapeMap(inGrid, true);
       Double vol = eShape->CalcVolume();
 
       //compute shape function
       const Elem* curTE = trgGrid_->GetElem(tElem);
-      eShape = trgGrid_->GetElemShapeMap(curTE,true);
+      // eShape = trgGrid_->GetElemShapeMap(curTE,true);
+      // eShape.reset(curTE->ptrShapeMap);
+      // trgGrid_->UpdateIndividualElemShapeMap(curTE, true); // const
+      // eShape = curTE->ptrShapeMap;
+      eShape = ((curTE))->GetElemShapeMap(trgGrid_, true);
       const CF::StdVector<UInt>& tElemConnect = curTE->connect;
 
       localPoint.Init();

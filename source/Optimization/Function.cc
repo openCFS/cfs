@@ -2239,7 +2239,10 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
 
   // find the orthogonal dimensions based on radius
   StdVector<double> edges;
-  domain->GetGrid()->GetElemShapeMap(de.elem, false)->GetEdgeLength(edges);
+  // domain->GetGrid()->GetElemShapeMap(de.elem, false)->GetEdgeLength(edges);
+  // de.elem->ptrShapeMap->GetEdgeLength(edges);
+  // de.elem->ptrShapeMap->GetElemShapeMap(domain->GetGrid(), false)->GetEdgeLength(edges);
+  de.elem->GetElemShapeMap(domain->GetGrid(), false)->GetEdgeLength(edges);
 
   assert(edges.GetSize() == dim);
   orthogonal.Resize(dim);

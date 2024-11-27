@@ -1559,7 +1559,9 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
   {
     if(design->IsRegular())
     { // we use 1/(the volume of the first element) as fraction
-      fraction = 1.0 / grid->GetElemShapeMap(design->data[0].elem, false)->CalcVolume();
+      // fraction = 1.0 / grid->GetElemShapeMap(design->data[0].elem, false)->CalcVolume();
+      // fraction = 1.0 / design->data[0].elem->ptrShapeMap->CalcVolume();
+      fraction = 1.0 / design->data[0].elem->GetElemShapeMap(grid, false)->CalcVolume();
     }
     else
     {
@@ -1589,7 +1591,10 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
               for(unsigned int i = cur_reg.base; i < u; i++)
               {
                 DesignElement* de = &design->data[i];
-                fraction += grid->GetElemShapeMap(de->elem, false)->CalcVolume();
+                // fraction += grid->GetElemShapeMap(de->elem, false)->CalcVolume();
+                // fraction += grid->GetElem()->ptrShapeMap->CalcVolume();
+                // fraction += de->elem->ptrShapeMap->CalcVolume();
+                fraction += de->elem->GetElemShapeMap(grid, false)->CalcVolume();
               }
             }
           }
@@ -1663,7 +1668,10 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
               val *= fraction;
               if(!design->IsRegular())
               {
-                const double vol = grid->GetElemShapeMap(de->elem, false)->CalcVolume();
+                // const double vol = grid->GetElemShapeMap(de->elem, false)->CalcVolume();
+                // const double vol = grid->GetElem()->ptrShapeMap->CalcVolume();
+                // const double vol = de->elem->ptrShapeMap->CalcVolume();
+                const double vol = de->elem->GetElemShapeMap(grid, false)->CalcVolume();
                 val *= vol;
               }
               de->AddGradient(c, g, val);
@@ -1692,7 +1700,11 @@ double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool 
               }
               else
               {
-                const double vol = grid->GetElemShapeMap(de->elem, false)->CalcVolume();
+                // const double vol = grid->GetElemShapeMap(de->elem, false)->CalcVolume();
+                // const double vol = grid->GetElem()->ptrShapeMap->CalcVolume();
+                // const double vol = grid->GetElem()->CalcVolume();
+                // const double vol = de->elem->ptrShapeMap->CalcVolume();
+                const double vol = de->elem->GetElemShapeMap(grid, false)->CalcVolume();
                 sum += des * vol;
               }
             } // if derivative

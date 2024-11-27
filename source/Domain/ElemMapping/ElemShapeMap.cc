@@ -48,8 +48,10 @@ LocPointMapped::LocPointMapped() :
  */
 void LocPointMapped::Set(const LocPoint& lp,
                          shared_ptr<ElemShapeMap> esm,
-                         Double weight)
-{
+                         Double weight) {
+  static std::mutex lpmMutex;
+  std::lock_guard<std::mutex> lock(lpmMutex);
+  
   this->shapeMap = esm;
   this->lp = lp;
   this->weight = weight;
@@ -58,7 +60,7 @@ void LocPointMapped::Set(const LocPoint& lp,
 
   // Calculate Jacobian, its inverse as well as determinant for local point
   jacDet = esm->CalcJDet(jac, lp, true);
-  
+
   // The inversion can only be performed in case we have a quadratic Jacobian
   // i.e. the dimension of the element is the dimension of the grid
   if (jac.GetNumCols() == jac.GetNumRows()) {
@@ -75,23 +77,21 @@ void LocPointMapped::Set(const LocPoint& lp,
   }
 
   // safety check for negative Jacobian determinant
-  if (jacDet <= 0.0) {
-    EXCEPTION(
-        "Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() 
-        << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) 
-        << "' is negative in local point "
-        << lp.coord.ToString() << "!");
+  if ( jacDet <= 0.0) {
+    EXCEPTION("Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative with value:\n" << jacDet << "\nThe Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
   }
 
   // Check, if geometry is axi-symmetric. In this case we adjust the "volume" of
   // the Jacobian and store the global point
-  Vector<Double> globPoint;
-  if (esm->IsAxi()) {
-    esm->Local2Global(globPoint, lp);
-    jacDet *= 2 * M_PI * globPoint[0];
-  } else {
-    globPoint.Clear();
-  }
+  // Vector<Double> globPoint;
+  // if (esm->IsAxi()) {
+  //   esm->Local2Global(globPoint, lp);   // Could Global2Local be faulty?
+  //   std::cout << "globPoint: " << globPoint.ToString() << "\n";
+  //   jacDet *= 2 * M_PI * globPoint[0];
+  //   std::cout << "jacDet after Local2Global: " << jacDet << "\n";
+  // } else {
+  //   globPoint.Clear();
+  // }
 }
 
 // same for NACS and CFS (but why does NACS not use CalcJDet here
@@ -101,6 +101,9 @@ void LocPointMapped::Set(const LocPoint& lp,
 // can/should be commented out if not working correctly for depth_ != 1.0
 void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
                          Double weight, Matrix<Double>& cornerCoord) {
+  static std::mutex lpmMutex;
+  std::lock_guard<std::mutex> lock(lpmMutex);
+
   this->shapeMap = esm;
   this->lp = lp;
   this->weight = weight;
@@ -141,9 +144,9 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
 
   // safety check for negative Jacobian determinant
   if ( checkJacobi_ ) {
-	  if ( jacDet <= 0.0) {
-		  EXCEPTION("Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative! The Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
-	  }
+    if ( jacDet <= 0.0) {
+        EXCEPTION("Jacobian determinant of element " << ptEl->elemNum << " with connectivity " << ptEl->connect.ToString() << " in region '" << shapeMap->GetGrid()->GetRegion().ToString(ptEl->regionId) << "' is negative with value:\n" << jacDet << "\nThe Jacobian was:\n " << jac << " Coordinates were: \n" << shapeMap->CalcVolume());
+    }
   }
 
   // Check, if geometry is axi-symmetric. In this case scale the
@@ -212,7 +215,9 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions, const 
 
     // create new local point for volume element
     lpmVol.reset(new LocPointMapped());
-    esmVol = shapeMap->GetGrid()->GetElemShapeMap(ptVolElem, shapeMap->IsUpdated());
+    // esmVol = shapeMap->GetGrid()->GetElemShapeMap(ptVolElem, shapeMap->IsUpdated());
+    // esmVol = ptVolElem->ptrShapeMap;
+    esmVol = (ptVolElem)->GetElemShapeMap(shapeMap->GetGrid(), shapeMap->IsUpdated());
   } else {
     esmVol = lpmVol->shapeMap;
   } // !isSameElem
@@ -266,9 +271,14 @@ void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemSh
   // get correct volume element
   const Elem* volElem = surfElem->ptVolElems[0];
   // shape map for assigned volume element
-  const shared_ptr<ElemShapeMap> esmVol =  this->shapeMap->GetGrid()->GetElemShapeMap(volElem, this->shapeMap->IsUpdated());
+  // const shared_ptr<ElemShapeMap> esmVol =  this->shapeMap->GetGrid()->GetElemShapeMap(volElem, this->shapeMap->IsUpdated());
+  // const shared_ptr<ElemShapeMap> esmVol(volElem->ptrShapeMap);
+  const shared_ptr<ElemShapeMap> esmVol = (volElem)->GetElemShapeMap(this->shapeMap->GetGrid(), this->shapeMap->IsUpdated());
+
   // get shape map of the corresponding surface element
-  const shared_ptr<ElemShapeMap> esmSurf = this->shapeMap->GetGrid()->GetElemShapeMap(surfElem, this->shapeMap->IsUpdated());
+  // const shared_ptr<ElemShapeMap> esmSurf = this->shapeMap->GetGrid()->GetElemShapeMap(surfElem, this->shapeMap->IsUpdated());
+  // const shared_ptr<ElemShapeMap> esmSurf(surfElem->ptrShapeMap);
+  const shared_ptr<ElemShapeMap> esmSurf = (surfElem)->GetElemShapeMap(this->shapeMap->GetGrid(), this->shapeMap->IsUpdated());
 
   //in this special case, we need to transform local2Global wrt mortarelem
   //then global2local wrt volume elem...
@@ -323,6 +333,7 @@ void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemSh
   LOG_DBG2(locPointMapped) "normal loc-----------:" << locNormal << std::endl;
   LOG_DBG2(locPointMapped) "normal glob-------------------:" << this->normal << std::endl << std::endl;
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
+  // Pati's sanity check
   for (UInt iDim = 0; iDim < globIntPoint.GetSize(); ++iDim)
     assert(abs(globIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
   assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS));
@@ -421,13 +432,13 @@ LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton() {
   }
 }
 
-LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton(const LagrangeMapSingleton&) {
-  return;
-}            
+// LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton(const LagrangeMapSingleton&) {
+//   return;
+// }            
 
-LagrangeElemShapeMap::LagrangeMapSingleton& LagrangeElemShapeMap::LagrangeMapSingleton::operator=(const LagrangeMapSingleton&) {
-  return *this;
-}
+// LagrangeElemShapeMap::LagrangeMapSingleton& LagrangeElemShapeMap::LagrangeMapSingleton::operator=(const LagrangeMapSingleton&) {
+//   return *this;
+// }
 
 LagrangeElemShapeMap::LagrangeMapSingleton::~LagrangeMapSingleton() {
   // delete reference elements
@@ -440,12 +451,6 @@ LagrangeElemShapeMap::LagrangeMapSingleton::~LagrangeMapSingleton() {
 //    }
 //    tMap.clear();
 //  }
-}
-
-LagrangeElemShapeMap::LagrangeMapSingleton&
-LagrangeElemShapeMap::LagrangeMapSingleton::getInstance() {
-  static LagrangeMapSingleton instance;
-  return instance;
 }
 
 LagrangeElemShapeMap::LagrangeElemShapeMap(Grid* ptGrid) :
@@ -2118,6 +2123,8 @@ std::string LagrangeElemShapeMap::ToString() const
 
 void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated)
 {
+  // printAccessCounter("SetElem()");
+  std::lock_guard<std::mutex> lock(mutex_);
   ElemShapeMap::SetElem(ptElem, isUpdated);
   //  ptElem_ = ptElem;
   //  isUpdated_ = isUpdated;
@@ -2139,7 +2146,8 @@ void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated)
       EXCEPTION("Element of type '" << Elem::feType.ToString(ptElem->type) << "' not defined for Lagrangian Shape Map!");
   #endif
 
-  ptFe_ = elems_.feMap_[ptElem->type];
+  // ptFe_ = elems_.feMap_[ptElem->type];
+  ptFe_ = elems_.getFeMapEntry(ptElem->type);
   shape_ = &Elem::shapes[ptElem_->type];
 }
 
@@ -2147,7 +2155,8 @@ void LagrangeElemShapeMap::SetElem(const Elem* ptElem, const Matrix<double>& coo
 {
   this->coords_ = coords;
   assert(elems_.feMap_.find(ptElem->type) != elems_.feMap_.end());
-  ptFe_ = elems_.feMap_[ptElem->type];
+  // ptFe_ = elems_.feMap_[ptElem->type];
+  ptFe_ = elems_.getFeMapEntry(ptElem->type);
   shape_ = &Elem::shapes[ptElem_->type];
 }
 

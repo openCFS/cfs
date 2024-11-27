@@ -302,7 +302,9 @@ void FeSpaceHi::SetElemOrder( const Elem* ptEl, FeHi* ptFe,
       assert(ptVolEl);
       // we have surface element 
       StdVector<UInt> surfLocDir;
-      shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(ptVolEl, false);
+      // shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(ptVolEl, false);
+      // shared_ptr<ElemShapeMap> esm(ptVolEl->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (ptVolEl)->GetElemShapeMap(ptGrid_, false);
 
       esm->MapSurfLocDirs( ptEl, surfLocDir );
       LOG_DBG3(feSpaceHi) << "\tSurface directions w.r.t. volume: " 

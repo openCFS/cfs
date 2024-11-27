@@ -469,6 +469,10 @@ namespace CoupledField
     /** @see Grid::CalcRegulardGridDiscretization() */
     StdVector<unsigned int> CalcRegulardGridDiscretization() override;
 
+    // using Grid::InitIndividualElemShapeMap;
+    // using Grid::InitElemShapeMaps;
+    //using Grid::UpdateElemShapeMaps;
+    //using Grid::UpdateIndividualElemShapeMap;
 
     //@}
 

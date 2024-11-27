@@ -501,7 +501,11 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
       const Elem* curE = NULL;
       curE = this->destGrid_->GetElem(eIt->first);
       targetSpace->GetElemEqns(elemEqns,curE);
-      esm = this->destGrid_->GetElemShapeMap( curE, true );
+      // esm = this->destGrid_->GetElemShapeMap( curE, true );
+      // esm.reset(curE->ptrShapeMap);
+      // ??? (LUCA)
+      // esm = curE->ptrShapeMap;
+      esm = (curE)->GetElemShapeMap(this->destGrid_, true);
       //now we add for each source node the corresponding entries
       for(UInt aNode=0; aNode < eIt->second.size(); aNode++){
         UInt curNodeNum = eIt->second[aNode];
@@ -773,7 +777,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
       continue;
     }
     this->GetElemSolution(eSol,curE->elemNum);
-    esm = this->srcGrid_->GetElemShapeMap( curE, true );
+    // esm = this->srcGrid_->GetElemShapeMap( curE, true );
+    // esm.reset(curE->ptrShapeMap);
+    // esm = curE->ptrShapeMap;
+    esm = (curE)->GetElemShapeMap(this->srcGrid_, true);
     LocPoint lp = localCoords_[i];
     lpm.Set(lp,esm,1.0);
     BaseFE * fe = esm->GetBaseFE();

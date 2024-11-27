@@ -50,7 +50,7 @@ namespace CoupledField
     region_.Add( NO_REGION_ID, "_NO_REGION_");
 
     UInt slotsToReserve = 6;
-    for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++){
+    for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++) {
       lastShapeElemNumOrig_.Mine(aT).Reserve(slotsToReserve);
       lastShapeElemNumUpdated_.Mine(aT).Reserve(slotsToReserve);
       elemShapeMapOrig_.Mine(aT).Reserve(slotsToReserve);
@@ -121,101 +121,100 @@ namespace CoupledField
     return grid_bounding_box_;
   }
 
-  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated)
-  {
-   //  shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
-   //  ret->SetElem(ptElem, isUpdated );
-   //  return ret;
+  // TODO_IMPLEMENT: Add a function that resets the elemShapeMaps for a specified region (that has been moved). Resetting the shape map can be done simply by calling shapeMap->SetElem(Elem, isUpdated=true)
+  /*
+  , e.g.,
 
-   StdVector<UInt>& lastShapeElemNumOrig                      = lastShapeElemNumOrig_.Mine();
-   StdVector<UInt>& lastShapeElemNumUpdated                   = lastShapeElemNumUpdated_.Mine();
-   StdVector<shared_ptr<ElemShapeMap> > & elemShapeMapOrig    = elemShapeMapOrig_.Mine();
-   StdVector<shared_ptr<ElemShapeMap> > & elemShapeMapUpdated = elemShapeMapUpdated_.Mine();
+  * get element
+  * create new elemshapemap and add to shapeMap pointer of the element,
+      elem->shapeMap->reset(new LagrangeElemShapeMap(this));
+      elem->shapeMap->SetElem(ptElem, isUpdated=False ); (we will not have isUpdated available for the initialization)
+  */
 
+  // TODO_IMPLEMENT: function InitElemShapeMaps that creates an elemShapeMap for every element on the grid (surface elements in surfElems_ and volume element in volElems_). Gets called when the grid is created (via the domain class)
+  // void Grid::InitElemShapeMaps()
+  // {
+  //   // volume elements
+  //   for (auto& region : volElems_) {
+  //     for (auto& elem : region) {
+  //       elem->ptrShapeMap = shared_ptr<LagrangeElemShapeMap>(new LagrangeElemShapeMap(this));
+  //       elem->ptrShapeMap->SetElem(elem, false);
+  //     }
+  //   }
 
-    if(elemShapeMapUpdated.GetSize() > 10){
-      WARN("More than 10 cached elemShapeMaps detected. This is unlikely to happen. Check for memory overflow.");
-    }
+  //   // surface elements
+  //   for (auto& region : surfElems_) {
+  //     for (auto& elem : region) {
+  //       elem->ptrShapeMap = shared_ptr<LagrangeElemShapeMap>(new LagrangeElemShapeMap(this));
+  //       elem->ptrShapeMap->SetElem(elem, false);
+  //     }
+  //   }
+  // }
 
-    if(isUpdated)
-    {
-      Integer idx = lastShapeElemNumUpdated.Find(ptElem->elemNum);
-      if(idx>=0){
-        ////check for special element number 0 in case of mortar interface elements
-        if(ptElem->elemNum==0){
-          //still, there may be situations in which some object still holds references
-          //this is just due to the incosistent element numbering of mortarNcElems, as well as
-          //the projected master construct. We will have to fix this or find another way around
-          if(elemShapeMapUpdated[(UInt)idx].use_count()>1){
-            shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
-            ret->SetElem(ptElem, isUpdated );
-            return ret;
-          }else{
-            elemShapeMapUpdated[(UInt)idx]->SetElem(ptElem, isUpdated );
-          }
-        }
-        //even if we found it, we can only return it, if we really have reference count==1
-        //this is because we have cached variables inside the class itself...
-        // thereby, if we just return it, it can happen that the cached shape function
-        // inside the shape map class becomes outdated which is dangerous
-        // decision by element number is a piece of crap. we can cache some shape maps
-        // to avoid memory reallocation but otherwise, it just does not work out
-        return elemShapeMapUpdated[(UInt)idx];
-      }
-      else
-      {
-        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
-        for(UInt aIdx =0;aIdx<elemShapeMapUpdated.GetSize();aIdx++){
-         if(elemShapeMapUpdated[aIdx].use_count()==1){
-            elemShapeMapUpdated[aIdx]->SetElem(ptElem, isUpdated );
-            lastShapeElemNumUpdated[aIdx] = ptElem->elemNum;
-            return elemShapeMapUpdated[aIdx];
-          }
-        }
-        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
-        newMap->SetElem(ptElem, isUpdated );
-        elemShapeMapUpdated.Push_back(newMap);
-        lastShapeElemNumUpdated.Push_back(ptElem->elemNum);
-        return newMap;
-      }
-    }
-    else // the not updated version
-    {
-      Integer idx = lastShapeElemNumOrig.Find(ptElem->elemNum);
-      if(idx>=0){
-        ////check for special element number 0 in case of mortar interface elements
-        if(ptElem->elemNum==0){
-          //still, there may be situations in which some object still holds references
-          //this is just due to the incosistent element numbering of mortarNcElems, as well as
-          //the projected master construct. We will have to fix this or find another way around
-          if(elemShapeMapOrig[(UInt)idx].use_count()>1){
-            shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
-            ret->SetElem(ptElem, isUpdated );
-            return ret;
-          }else{
-            elemShapeMapOrig[(UInt)idx]->SetElem(ptElem, isUpdated );
-          }
-        }
-        return elemShapeMapOrig[(UInt)idx];
-      }
-      else // idx is zero
-      {
-        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
-        for(UInt aIdx =0;aIdx<elemShapeMapOrig.GetSize();aIdx++){
-         if(elemShapeMapOrig[aIdx].use_count()==1){
-            elemShapeMapOrig[aIdx]->SetElem(ptElem, isUpdated );
-            lastShapeElemNumOrig[aIdx] = ptElem->elemNum;
-            return elemShapeMapOrig[aIdx];
-          }
-        }
-        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
-        newMap->SetElem(ptElem, isUpdated );
-        elemShapeMapOrig.Push_back(newMap);
-        lastShapeElemNumOrig.Push_back(ptElem->elemNum);
-        return newMap;
-      }
-    }
-  }
+  // void Grid::UpdateElemShapeMaps(bool isSurface, RegionIdType regionId=-1)
+  // {
+  //   if (regionId == -1) {
+  //     if (isSurface) {
+  //       for (auto& region : surfElems_) {
+  //         for (Elem* elem : region) {
+  //           elem->ptrShapeMap->SetElem(elem, true);
+  //         }
+  //       }
+  //     } else { // volume elements
+  //       for (auto& region : volElems_) {
+  //         for (Elem* elem : region) {
+  //           elem->ptrShapeMap->SetElem(elem, true);
+  //         }
+  //       }
+  //     }
+  //   } else {
+  //     if (isSurface) {
+  //       for (auto& elem : surfElems_[surfRegionIds_.Find(regionId)]) {
+  //         // note: there is a function GetSurfRegionIds()
+  //         elem->ptrShapeMap->SetElem(elem, true);
+  //       }
+  //     } else { // volume elements
+  //       for (auto& elem : volElems_[volRegionIds_.Find(regionId)]) {
+  //         // note: there is a function GetVolRegionIds()
+  //         elem->ptrShapeMap->SetElem(elem, true);
+  //       }
+  //     }
+  //   }
+  // }
+
+  // TODO_IMPLEMENT: merge updateVolElemShapeMaps and updateSurfElemShapeMaps again into one function 
+  // that takes a regionId as an argument and updates the shape maps for the given region
+  // inside the function, check if the passed ID is contained in the volRegionIds_, otherwise,
+  // if it is contained in surfRegionIds_, and pass an error if it is not contained in either of them.
+  // a regionId of -2 should update all regions, a regionId of -2 should update no region and pass a warning (only in debug).
+
+  // void Grid::UpdateIndividualElemShapeMap(Elem* elem, bool isUpdated) {
+  //   elem->ptrShapeMap->SetElem(elem, isUpdated);
+  // }
+
+  // void Grid::InitIndividualElemShapeMap(Elem* elem, bool isUpdated)
+  // {
+  //   elem->ptrShapeMap = shared_ptr<LagrangeElemShapeMap>(new LagrangeElemShapeMap(this));
+  //   elem->ptrShapeMap->SetElem(elem, isUpdated);
+
+  //   // elem->GetElemShapeMap(this, isUpdated) = shared_ptr<LagrangeElemShapeMap>(new LagrangeElemShapeMap(this));
+  // }
+
+  // void Grid::InitIndividualElemShapeMap(SurfElem* elem, bool isUpdated)
+  // {
+  //   // surface elements need a cast to the Elem type beforehand!
+  //   Elem* castElem = static_cast<Elem*>(elem);
+  //   castElem->ptrShapeMap = shared_ptr<LagrangeElemShapeMap>(new LagrangeElemShapeMap(this));
+  //   castElem->ptrShapeMap->SetElem(castElem, isUpdated);
+  // }
+
+  // void Grid::InitIndividualElemShapeMap(MortarNcSurfElem* elem, bool isUpdated)
+  // {
+  //   // mortar elements need a cast to the Elem type beforehand!
+  //   Elem* castElem = static_cast<Elem*>(elem);
+  //   castElem->ptrShapeMap = shared_ptr<LagrangeElemShapeMap>(new LagrangeElemShapeMap(this));
+  //   castElem->ptrShapeMap->SetElem(castElem, isUpdated);
+  // }
   
   RegionIdType Grid::AddRegion(const std::string& name, bool reg)
   {
@@ -439,8 +438,10 @@ namespace CoupledField
 
     // our operation target
     StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
-    for(UInt i = 0;  i < elems.GetSize(); i++)
-      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->extended->barycenter);
+    for(UInt i = 0;  i < elems.GetSize(); i++) {
+      // GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->extended->barycenter);
+      elems[i]->GetElemShapeMap(this, updated)->CalcBarycenter(elems[i]->extended->barycenter); // ???
+    }
 
     rd.barycenters = true; // don't do it again!
 
@@ -672,13 +673,26 @@ namespace CoupledField
     // We reset the interfaces in reverse order, so we always only delete nodes and elements that were created last
     // the double loop in Grid::InitNcInterfacesFromXML() assures that moving interfaces are updated last.
     // also, we need to assure that actively moving interfaces are updated before passively moving ones.
-    for (auto it = ncInterfaces_.End(); it-- != ncInterfaces_.Begin();) {
+
+    // TODO_IMPLEMENT: remove this part again as we found another way (hopefully)
+    // clear members
+    // for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++) {
+    //   lastShapeElemNumOrig_.Mine(aT).Clear();
+    //   lastShapeElemNumUpdated_.Mine(aT).Clear();
+    //   elemShapeMapOrig_.Mine(aT).Clear();
+    //   elemShapeMapUpdated_.Mine(aT).Clear();
+    // }
+    
+
+    for(auto it = ncInterfaces_.End(); it-- != ncInterfaces_.Begin();) {
       (*it)->ResetInterface();
     }
-    for (auto it = ncInterfaces_.Begin(); it != ncInterfaces_.End(); ++it) {
+
+    for(auto it = ncInterfaces_.Begin(); it != ncInterfaces_.End(); ++it) {
       (*it)->UpdateInterface();
     }
   }
+
   bool Grid::HasNCI() {
     if (!ncInterfaces_.IsEmpty())
       return true;
@@ -926,7 +940,8 @@ namespace CoupledField
 
     // Computes lattice spacing
     StdVector<double> spacing; // the output
-    GetElemShapeMap(elems[0], false)->GetEdgeLength(spacing);
+    // GetElemShapeMap(elems[0], false)->GetEdgeLength(spacing);
+    elems[0]->GetElemShapeMap(this, false)->GetEdgeLength(spacing);
 
     if (dim == 2)
       n[2] = 1;
@@ -1097,15 +1112,17 @@ namespace CoupledField
       for( it = mElems.begin(); it != mElems.end(); ++it ) {
 
         // check, if global point can be mapped to the element
-        shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it, updatedGeo);
+        // shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it, updatedGeo);
+        // shared_ptr<ElemShapeMap> esm((*it)->ptrShapeMap);
+        shared_ptr<ElemShapeMap> esm = (*it)->GetElemShapeMap(this, updatedGeo);
 
-        esm->Global2Local(locCoord, matches[iM].globCoord );
-        if( esm->CoordIsInsideElem(locCoord, 0.0) ) {
-          candidateElem.Push_back( *it );
+        esm->Global2Local(locCoord, matches[iM].globCoord);
+        if( esm->CoordIsInsideElem(locCoord, 0.0)) {
+          candidateElem.Push_back(*it);
           candidateLp.Push_back( locCoord );
-        } else if ( esm->CoordIsInsideElem(locCoord, tol) ) {
-          vagueCandElem.Push_back( *it );
-          vagueCandLp.Push_back( locCoord );
+        } else if ( esm->CoordIsInsideElem(locCoord, tol)) {
+          vagueCandElem.Push_back(*it);
+          vagueCandLp.Push_back(locCoord);
         }
       }
 

@@ -89,7 +89,9 @@ namespace CoupledField{
         UInt numElemNodes = nodeIds.GetSize();
 
         // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
-        shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+        // shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+        // shared_ptr<ElemShapeMap> ptrEsm(ptrElem->ptrShapeMap);
+        shared_ptr<ElemShapeMap> ptrEsm = (ptrElem)->GetElemShapeMap(this->grid_);
 
         // get Base Fe, which provides the shape functions for interpolating with the identity operator 
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
@@ -207,7 +209,9 @@ namespace CoupledField{
         UInt numElemNodes = nodeIds.GetSize();
 
         // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
-        shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+        // shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+        // shared_ptr<ElemShapeMap> ptrEsm(ptrElem->ptrShapeMap);
+        shared_ptr<ElemShapeMap> ptrEsm = (ptrElem)->GetElemShapeMap(this->grid_);
 
         // get Base Fe, which provides the shape functions for interpolating with the identity operator 
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
@@ -302,7 +306,9 @@ namespace CoupledField{
         UInt numElemNodes = nodeIds.GetSize();
 
         // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
-        shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+        // shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+        // shared_ptr<ElemShapeMap> ptrEsm(ptrElem->ptrShapeMap);
+        shared_ptr<ElemShapeMap> ptrEsm = (ptrElem)->GetElemShapeMap(this->grid_);
 
         // get Base Fe, which provides the shape functions for interpolating with the identity operator 
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
@@ -350,7 +356,9 @@ namespace CoupledField{
         UInt numElemNodes = nodeIds.GetSize();
 
         // get the ElemShapeMap of the current element from the grid (attention! updated geometry is not set!)
-        shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+        // shared_ptr<ElemShapeMap> ptrEsm = this->grid_->GetElemShapeMap(ptrElem);
+        // shared_ptr<ElemShapeMap> ptrEsm(ptrElem->ptrShapeMap);
+        shared_ptr<ElemShapeMap> ptrEsm = (ptrElem)->GetElemShapeMap(this->grid_);
 
         // get Base Fe, which provides the shape functions for interpolating with the identity operator 
         BaseFE* ptrFe = ptrEsm->GetBaseFE();

@@ -500,7 +500,10 @@ namespace CoupledField {
           continue;
         }
 
-        shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
+        // shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
+        // grid_->UpdateIndividualElemShapeMap(myElem, true);  // ??? (LUCA)
+        // shared_ptr<ElemShapeMap> esm(myElem->ptrShapeMap);
+        shared_ptr<ElemShapeMap> esm = (myElem)->GetElemShapeMap(grid_, true);
 
         LocPointMapped lpm;
         lpm.Set(lp,esm,0.0);
@@ -744,7 +747,10 @@ namespace CoupledField {
         temp.Init();
       }
 
-      shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
+      // shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
+      // grid_->UpdateIndividualElemShapeMap(myElem, true);
+      // shared_ptr<ElemShapeMap> esm(myElem->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (myElem)->GetElemShapeMap(grid_, true);
 
       LocPointMapped lpm;
       lpm.Set(lp,esm,0.0);

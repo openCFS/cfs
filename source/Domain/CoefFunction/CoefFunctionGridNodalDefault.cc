@@ -112,7 +112,9 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetTensor(Matrix<DATA_TYPE>& CoefM
 
   this->GetElemSolution( elemSol, sourceElem->elemNum);
 
-  shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+  // shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+  // shared_ptr<ElemShapeMap> esm(sourceElem->ptrShapeMap);
+  shared_ptr<ElemShapeMap> esm = (sourceElem)->GetElemShapeMap(this->srcGrid_, true);
   BaseFE *ptFe = esm->GetBaseFE();
 
   if(lpm.isSurface)
@@ -165,7 +167,9 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefM
 
   this->GetElemSolution( elemSol, sourceElem->elemNum);
 
-  shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+  // shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+  // shared_ptr<ElemShapeMap> esm(sourceElem->ptrShapeMap);
+  shared_ptr<ElemShapeMap> esm = (sourceElem)->GetElemShapeMap(this->srcGrid_, true);
   BaseFE * ptFe = esm->GetBaseFE();
   if(lpm.isSurface)
     this->myOperator_->ApplyOp(CoefMat,(*lpm.lpmVol),ptFe,elemSol);
@@ -196,7 +200,9 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
 
   sourceElem = lpm.ptEl;
   this->GetElemSolution( elemSol, sourceElem->elemNum);
-  shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+  // shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+  // shared_ptr<ElemShapeMap> esm(sourceElem->ptrShapeMap);
+  shared_ptr<ElemShapeMap> esm = (sourceElem)->GetElemShapeMap(this->srcGrid_, true);
   BaseFE * ptFe = esm->GetBaseFE();
   if(lpm.isSurface)
     this->myOperator_->ApplyOp(ptSol,(*lpm.lpmVol),ptFe,elemSol);
@@ -245,7 +251,10 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetScalarValuesAtPoints( const Std
   LocPointMapped lpm;
   for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
     const Elem* sourceElem = elements[curPoint];
-    esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+    // esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+    // esm.reset(sourceElem->ptrShapeMap);
+    // esm = sourceElem->ptrShapeMap;
+    esm = (sourceElem)->GetElemShapeMap(this->srcGrid_, true);
     LocPoint lp = locals[curPoint];
     lpm.Set(lp,esm,1.0);
     this->GetScalar(vals[curPoint],lpm);
@@ -265,7 +274,10 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetVectorValuesAtPoints( const Std
   LocPointMapped lpm;
   for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
     const Elem* sourceElem = elements[curPoint];
-    esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+    // esm = this->srcGrid_->GetElemShapeMap( sourceElem, true );
+    // esm.reset(sourceElem->ptrShapeMap);
+    // esm = sourceElem->ptrShapeMap;
+    esm = (sourceElem)->GetElemShapeMap(this->srcGrid_, true);
     LocPoint lp = locals[curPoint];
     lpm.Set(lp,esm,1.0);
     this->GetVector(vals[curPoint],lpm);

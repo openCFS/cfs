@@ -673,8 +673,18 @@ void SurfaceIdentityOperatorScaledBySurface<FE,D,D_DOF,TYPE>::
   //Double factor2 = lp.shapeMap->CalcVolume();
   const NcSurfElem* sElem = dynamic_cast<const NcSurfElem*>(lp.ptEl);
 
-  shared_ptr<ElemShapeMap> esm1 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[0].get(),true);
-  shared_ptr<ElemShapeMap> esm2 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[1].get(),true);
+  // shared_ptr<ElemShapeMap> esm1 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[0].get(),true);
+  // shared_ptr<ElemShapeMap> esm1 = sElem->neighbors[0]->ptrShapeMap;
+  // shared_ptr<ElemShapeMap> esm1 = (const_cast<NcSurfElem*>(sElem->neighbors[0]))->GetElemShapeMap(lp.shapeMap->GetGrid(), true);  // or SurfElem only
+  NcSurfElem* nonConstNeigh0 = (sElem->neighbors[0].get());
+  shared_ptr<ElemShapeMap> esm1 = nonConstNeigh0->GetElemShapeMap(lp.shapeMap->GetGrid(), true);
+  // shared_ptr<ElemShapeMap> esm1 = (sElem->neighbors[0])->GetElemShapeMap(lp.shapeMap->GetGrid(), true);
+  // shared_ptr<ElemShapeMap> esm2 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[1].get(),true);
+  // shared_ptr<ElemShapeMap> esm2 = sElem->neighbors[1]->ptrShapeMap;
+  // shared_ptr<ElemShapeMap> esm2 = (const_cast<NcSurfElem*>(sElem->neighbors[1]))->GetElemShapeMap(lp.shapeMap->GetGrid(), true); // ...
+  NcSurfElem* nonConstNeigh1 = (sElem->neighbors[1].get());
+  shared_ptr<ElemShapeMap> esm2 = nonConstNeigh1->GetElemShapeMap(lp.shapeMap->GetGrid(), true);
+  // shared_ptr<ElemShapeMap> esm2 = (sElem->neighbors[1])->GetElemShapeMap(lp.shapeMap->GetGrid(), true);
 
   /*
    * Enable depth scaling for 2d plane case here, as it is done in NACS

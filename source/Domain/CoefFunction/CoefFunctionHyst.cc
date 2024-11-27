@@ -1142,7 +1142,10 @@ namespace CoupledField {
 		LocPoint lp = Elem::shapes[el->type].midPointCoord;
 		LocPointMapped lpm;
     bool updateShapeMap = false;
-		shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, updateShapeMap);
+		// shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, updateShapeMap);
+    // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(it.GetGrid(), updateShapeMap);
+
 		lpm.Set(lp, esm, 0.0);
 
 		// get number of integration points
@@ -3170,10 +3173,11 @@ namespace CoupledField {
 		//std::cout << "Midpoint coords: " << Elem::shapes[el->type].midPointCoord.ToString() << std::endl;
 		LocPointMapped lpm;
     bool updateShapeMap = false;
-		shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, updateShapeMap);
-		//std::cout << "0" << std::endl;
+		// shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, updateShapeMap);
+    // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(it.GetGrid(), updateShapeMap);
+
 		lpm.Set(lp, esm, 0.0);
-		//std::cout << "1" << std::endl;
 		// get number of integration points
 
 		StdVector<LocPoint> intPoints;
@@ -3237,7 +3241,11 @@ namespace CoupledField {
          */
         el = it.GetElem();
         bool updateShapeMap = false;
-        esm = it.GetGrid()->GetElemShapeMap(el, updateShapeMap);
+        // esm = it.GetGrid()->GetElemShapeMap(el, updateShapeMap);
+        // esm.reset(el->ptrShapeMap);
+        // esm = el->ptrShapeMap;
+        shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(it.GetGrid(), updateShapeMap);
+        
 				//std::cout << "ElemType: " << el->type << std::endl;
 
         if (storeOnlyMidpoints == false) {

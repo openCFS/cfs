@@ -661,7 +661,9 @@ void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& gl
     } else {
       LocPoint & lp = localCoords[i];
       const Elem * ptElem = elems[i];
-      shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      // shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      // shared_ptr<ElemShapeMap> esm(ptElem->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ptGrid);
       lpm.Set( lp, esm, 0);
       this->GetVector( values[i], lpm);
     }
@@ -690,7 +692,9 @@ void CoefFunction::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& gl
            << ". Setting values to zero for this point" );
     } else {
       const Elem * ptElem = elems[i];
-      shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      // shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      // shared_ptr<ElemShapeMap>  esm(ptElem->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ptGrid);
       lpm.Set( lp, esm, 0);
       this->GetVector( values[i], lpm);
     }
@@ -718,7 +722,9 @@ void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& gl
     } else {
       LocPoint & lp = localCoords[i];
       const Elem * ptElem = elems[i];
-      shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      // shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      // shared_ptr<ElemShapeMap> esm(ptElem->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ptGrid);
       lpm.Set( lp, esm, 0);
       this->GetScalar( values[i], lpm);
     }
@@ -745,7 +751,9 @@ void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& gl
     } else {
       LocPoint & lp = localCoords[i];
       const Elem * ptElem = elems[i];
-      shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      // shared_ptr<ElemShapeMap>  esm = ptGrid->GetElemShapeMap( ptElem );
+      // shared_ptr<ElemShapeMap> esm(ptElem->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ptGrid);
       lpm.Set( lp, esm, 0);
       this->GetScalar( values[i], lpm);
     }
@@ -965,8 +973,10 @@ void CoefCompoundTest() {
     // generate dummy local point mapped for first element to see the 
     // toolchain working
     const Elem * ptEl = myDom->GetGrid()->GetElem( 1 );
-    shared_ptr<ElemShapeMap> esm = 
-        myDom->GetGrid()->GetElemShapeMap( ptEl, false );
+    // shared_ptr<ElemShapeMap> esm = 
+    //     myDom->GetGrid()->GetElemShapeMap( ptEl, false );
+    // shared_ptr<ElemShapeMap> esm(ptEl->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (ptEl)->GetElemShapeMap(myDom->GetGrid());
     LocPoint lp;
     Vector<Double> midPoint(3);
     midPoint.Init();
@@ -1011,8 +1021,10 @@ void CoefCompoundTest() {
      // generate dummy local point mapped for first element to see the 
      // toolchain working
      const Elem * ptEl = myDom->GetGrid()->GetElem( 1 );
-     shared_ptr<ElemShapeMap> esm = 
-         myDom->GetGrid()->GetElemShapeMap( ptEl, false );
+    //  shared_ptr<ElemShapeMap> esm = 
+    //      myDom->GetGrid()->GetElemShapeMap( ptEl, false );
+    // shared_ptr<ElemShapeMap> esm(ptEl->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (ptEl)->GetElemShapeMap(myDom->GetGrid());
      LocPoint lp;
      Vector<Double> midPoint(3);
      midPoint.Init();

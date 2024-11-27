@@ -933,7 +933,11 @@ namespace CoupledField {
 
         // get global element midpoint
         const Elem* ptEl = it.GetElem();
-        esm = destGrid->GetElemShapeMap( ptEl , false );
+        // esm = destGrid->GetElemShapeMap( ptEl , false );
+        // esm.reset(ptEl->ptrShapeMap);
+        // ??? (LUCA)
+        // esm = ptEl->ptrShapeMap;
+        esm = ((ptEl))->GetElemShapeMap(destGrid);
         esm->GetGlobMidPoint( globPoints[pos++] );
       } 
     }else {
@@ -978,7 +982,10 @@ namespace CoupledField {
             vals[pos++] = NAN;
             continue;
           }
-          esm = srcGrid->GetElemShapeMap( elems[i], true );
+          // esm = srcGrid->GetElemShapeMap( elems[i], true );
+          // esm.reset(elems[i]->ptrShapeMap);
+          // esm = elems[i]->ptrShapeMap;
+          esm = (elems[i])->GetElemShapeMap(srcGrid, true);
           lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
@@ -990,7 +997,10 @@ namespace CoupledField {
             vals[pos++] = NAN;
             continue;
           }
-          esm = srcGrid->GetElemShapeMap( elems[i], true );
+          // esm = srcGrid->GetElemShapeMap( elems[i], true );
+          // esm.reset(elems[i]->ptrShapeMap);
+          // esm = elems[i]->ptrShapeMap;
+          esm = (elems[i])->GetElemShapeMap(srcGrid, true);
           lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector
@@ -1027,7 +1037,10 @@ namespace CoupledField {
         for( UInt i = 0; i < lps.GetSize(); ++i ) {
           if( elems[i] == NULL)
             continue;
-          esm = srcGrid->GetElemShapeMap( elems[i], true );
+          // esm = srcGrid->GetElemShapeMap( elems[i], true );
+          // esm.reset(elems[i]->ptrShapeMap);
+          // esm = elems[i]->ptrShapeMap;
+          esm = (elems[i])->GetElemShapeMap(srcGrid, true);
           lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
@@ -1037,7 +1050,10 @@ namespace CoupledField {
         for( UInt i = 0; i < lps.GetSize(); ++i ) {
           if( elems[i] == NULL)
             continue;
-          esm = srcGrid->GetElemShapeMap( elems[i], true );
+          // esm = srcGrid->GetElemShapeMap( elems[i], true );
+          // esm.reset(elems[i]->ptrShapeMap);
+          // esm = elems[i]->ptrShapeMap;
+          esm = (elems[i])->GetElemShapeMap(srcGrid, true);
           lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector

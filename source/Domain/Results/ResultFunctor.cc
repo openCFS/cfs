@@ -68,7 +68,9 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
       const Elem * el = it.GetElem();
       LocPoint lp = Elem::shapes[el->type].midPointCoord;
       LocPointMapped lpm;
-      shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, updatedGeo);
+      // shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, updatedGeo);
+      // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(it.GetGrid(), updatedGeo);
       lpm.Set(lp, esm, 0.0);
       this->GetVector(tempField, lpm );
       // loop over dofs
@@ -112,7 +114,9 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
         const Elem* el = elems[i];
         LocPoint& lp = localCoords[i];
         LocPointMapped lpm;
-        shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap( el, updatedGeo );
+        // shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap( el, updatedGeo );
+        // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+        shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(it.GetGrid(), updatedGeo);
         lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
 
@@ -235,8 +239,10 @@ template<> void EnergyResultFunctor<Double>::EvalResult(shared_ptr<BaseResult> r
         shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm =
-            elemIt.GetGrid()->GetElemShapeMap( el, true );
+        // shared_ptr<ElemShapeMap> esm =
+        //     elemIt.GetGrid()->GetElemShapeMap( el, true );
+        // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+        shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(elemIt.GetGrid(), true);
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -314,8 +320,10 @@ template<> void EnergyResultFunctor<Complex>::EvalResult(shared_ptr<BaseResult> 
         shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm =
-            elemIt.GetGrid()->GetElemShapeMap( el, true );
+        // shared_ptr<ElemShapeMap> esm =
+        //     elemIt.GetGrid()->GetElemShapeMap( el, true );
+        // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+        shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(elemIt.GetGrid(), true);
 
         // Get integration points
         StdVector<LocPoint> intPoints;
@@ -431,7 +439,9 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
 
       feSpace->GetFe(elemIt, method, order);
       // Get shape map from grid
-      shared_ptr<ElemShapeMap> esm =  elemIt.GetGrid()->GetElemShapeMap( el, true );
+      // shared_ptr<ElemShapeMap> esm =  elemIt.GetGrid()->GetElemShapeMap( el, true );
+      // shared_ptr<ElemShapeMap> esm(el->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esm = (el)->GetElemShapeMap(elemIt.GetGrid(), true);
 
       // Get integration points
       StdVector<LocPoint> intPoints;
@@ -653,7 +663,9 @@ template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Doubl
 
     shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm =  ptGrid_->GetElemShapeMap( ptElement, true );
+    // shared_ptr<ElemShapeMap> esm =  ptGrid_->GetElemShapeMap( ptElement, true );
+    // shared_ptr<ElemShapeMap> esm(ptElement->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (ptElement)->GetElemShapeMap(ptGrid_, true);
 
     // Get integration points
     StdVector<LocPoint> intPoints;

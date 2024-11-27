@@ -861,8 +861,10 @@ namespace CoupledField {
         } else if (outIt.GetType() == EntityList::ELEM_LIST) {
           
           Vector<Double> globMidPoint;
-          shared_ptr<ElemShapeMap> esm =
-              ptGrid_->GetElemShapeMap(outIt.GetElem(), true);
+          // shared_ptr<ElemShapeMap> esm =
+          //     ptGrid_->GetElemShapeMap(outIt.GetElem(), true);
+          // shared_ptr<ElemShapeMap> esm((outIt.GetElem())->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = ((outIt.GetElem()))->GetElemShapeMap(ptGrid_, true);
           esm->GetGlobMidPoint(globMidPoint);
           mParser_->SetCoordinates(  rHandles_[outDof],
                                      *(domain->GetCoordSystem()),
@@ -921,8 +923,10 @@ namespace CoupledField {
                                     coords );
         } else if (outIt.GetType() == EntityList::ELEM_LIST) {
           Vector<Double> globMidPoint;
-          shared_ptr<ElemShapeMap> esm =
-              ptGrid_->GetElemShapeMap(outIt.GetElem(), true);
+          // shared_ptr<ElemShapeMap> esm =
+          //     ptGrid_->GetElemShapeMap(outIt.GetElem(), true);
+          // shared_ptr<ElemShapeMap> esm((outIt.GetElem())->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = ((outIt.GetElem()))->GetElemShapeMap(ptGrid_, true);
           esm->GetGlobMidPoint(globMidPoint);
           mParser_->SetCoordinates(  rHandles_[outDof],
                                      *(domain->GetCoordSystem()),
@@ -1216,7 +1220,9 @@ namespace CoupledField {
           shared_ptr<FeSpace> feSpace = feFct->GetFeSpace();
           shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
           // Get shape map from grid
-          shared_ptr<ElemShapeMap> esm = elemIt.GetGrid()->GetElemShapeMap( el, true );
+          // shared_ptr<ElemShapeMap> esm = elemIt.GetGrid()->GetElemShapeMap( el, true );
+          // shared_ptr<ElemShapeMap> esm(elemIt.GetElem()->ptrShapeMap);
+          shared_ptr<ElemShapeMap> esm = ((el))->GetElemShapeMap(elemIt.GetGrid(), true);
 
           // Get integration points
           StdVector<LocPoint> intPoints;

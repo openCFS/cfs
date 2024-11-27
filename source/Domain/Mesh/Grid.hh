@@ -297,7 +297,7 @@ namespace CoupledField
     //!
     //! \param ptElem Pointer to the geometrical element
     //! \param updated Flag for updated Lagrangian geometry
-    virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem, bool updated = false);
+    // virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem, bool updated = false);
     
     virtual void AddElems(UInt nElems) = 0;
 
@@ -1130,8 +1130,21 @@ namespace CoupledField
     /** To be set from FinishInit() */
     StdVector<RegionData> regionData;
 
+    // void UpdateIndividualElemShapeMap(Elem *elem, bool isUpdated);  // Why not public though?
+
   protected:
-    
+
+    // void InitElemShapeMaps();
+
+    // void UpdateElemShapeMaps(bool isSurface, RegionIdType regionId);
+
+    // // void UpdateIndividualElemShapeMap(Elem *elem, bool isUpdated);
+
+    // // if elements are created after the initial reading process, we need to initialize their shape maps as well
+    // void InitIndividualElemShapeMap(Elem *elem, bool isUpdated=false);
+    // void InitIndividualElemShapeMap(SurfElem *elem, bool isUpdated=false);
+    // void InitIndividualElemShapeMap(MortarNcSurfElem *elem, bool isUpdated=false);
+
     //! Flag for 2d-plane (default = 1m)
     Double depth2dPlane_;
     

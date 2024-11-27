@@ -26,6 +26,7 @@
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
 #include "Utils/mathParser/mathParser.hh"
+// #include "Domain/Mesh/Grid.hh"
 
 #include "Utils/Timer.hh"
 
@@ -53,6 +54,9 @@ typedef CGAL::Polygon_with_holes_2<Kernel> CGALPolygonWithHoles2;
 #include "DataInOut/Logging/LogConfigurator.hh"
 DEFINE_LOG(mortarInterface, "mortarInterface")
 namespace CoupledField {
+
+  class Grid;
+  // class Elem;
 
   //=================================================
   // CGAL Presort of intersection candidates
@@ -685,6 +689,14 @@ namespace CoupledField {
     }
     // assign offsets to the grid.
     ptGrid_->SetNodeOffset(movingNodeIds_, globalNodeOffset);
+
+    // update the elemshape maps
+    // ptGrid_->UpdateElemShapeMaps(false, movingVolRegion_);
+    // for (const auto &region : connectedVolRegions_) {
+    //   ptGrid_->UpdateElemShapeMaps(false, region);
+    // }
+    // ptGrid_->UpdateElemShapeMaps(true, primarySurfRegion_);
+    // ptGrid_->UpdateElemShapeMaps(true, secondarySurfRegion_);
   }
 
 
@@ -720,7 +732,7 @@ namespace CoupledField {
 
     // try moving the interface one step
     MoveInterface();
-    
+
     // reset the isReset_ flag to indicate that the interface was updated
     isReset_ = false;
 
@@ -743,6 +755,8 @@ namespace CoupledField {
 
     // if elements were found, update the surface integrators and check for grid export
     if(elemList_->GetSize() > 0) {
+      // TODO_IMPLEMENTATION: call UpdateElemShapeMaps() here
+      // call with: movingVolRegion_, connectedVolRegions_, primarySurfRegion_, secondarySurfRegion_
       // add the intersection elements to the BiLinFormContext
       UpdateIntegrators();
       // export the interface to the grid if specified
@@ -1054,7 +1068,10 @@ namespace CoupledField {
 
     // Project primary nodes onto secondary element, if interface is not coplanar
     if (!isCoplanar_) {
-      shared_ptr<ElemShapeMap> esmSecondary = ptGrid_->GetElemShapeMap(ifaceElem2, isMoving_);
+      // shared_ptr<ElemShapeMap> esmSecondary = ptGrid_->GetElemShapeMap(ifaceElem2, isMoving_);
+      // shared_ptr<ElemShapeMap> esmSecondary(ifaceElem2->ptrShapeMap);
+      shared_ptr<ElemShapeMap> esmSecondary = (ifaceElem2)->GetElemShapeMap(ptGrid_, isMoving_);
+
       LocPoint midPointSecondary = Elem::shapes[ifaceElem2->type].midPointCoord;
 
       // compute maximal allowed distance as sum of lengths of both lines
@@ -1220,6 +1237,8 @@ namespace CoupledField {
     ncElem->ptSecondary = ifaceElem2;
     ncElem->transVect = translationVector_;
     ncElem->projectedPrimary = projElem;
+    // ptGrid_->InitIndividualElemShapeMap(ncElem.get(), true);
+
     elemList_->AddElement(ncElem);
     return true;
   }
@@ -1663,7 +1682,8 @@ namespace CoupledField {
     ncElem->type = Elem::ET_QUAD4;
     ncElem->ptPrimary = ifaceElem1;
     ncElem->ptSecondary = ifaceElem2;
-
+    // ptGrid_->InitIndividualElemShapeMap(ncElem.get(), true);
+    
     elemList_->AddElement(ncElem);
 
     return true;
@@ -2064,6 +2084,8 @@ namespace CoupledField {
             elemToAdd->ptSecondary = secondarySurfElems_[secondaryIndex];
             elemToAdd->projectedPrimary = nullptr;
             elemToAdd->transVect = translationVector_;
+            // ptGrid_->InitIndividualElemShapeMap(elemToAdd, true);
+
           #ifdef USE_OPENMP
             // set lock to add elements to the grid
             omp_set_lock(&elemListLock_);
@@ -2169,6 +2191,8 @@ namespace CoupledField {
             // AddNodeToGrid directly assigns the new node id to the projected element in this case.
             AddNodeToGrid(primaryNodeCoords[iPrimaryNodes], projectedPrimaryElement->connect[iPrimaryNodes], tempNewNodeIds);
           }
+          // ptGrid_->InitIndividualElemShapeMap(projectedPrimaryElement.get(), true);
+
           // now loop over all triangulated elements and add to the NC elemList_
           for (UInt iElems = numElemsStart; iElems < numElemsUpdated; ++iElems) {
              // we only need the projected primary element in the non-coplanar case
@@ -2177,6 +2201,8 @@ namespace CoupledField {
             elemToAdd->ptSecondary = secondarySurfElems_[secondaryIndex];
             elemToAdd->projectedPrimary = projectedPrimaryElement;
             elemToAdd->transVect = translationVector_;
+            // ptGrid_->InitIndividualElemShapeMap(elemToAdd.get(), true);
+
           #ifdef USE_OPENMP
             // set lock to add elements to the grid
             omp_set_lock(&elemListLock_);
@@ -2372,6 +2398,7 @@ namespace CoupledField {
           // AddNodeToGrid directly assigns the new node id to the projected element in this case.
           AddNodeToGrid(primaryNodeCoords[iPrimaryNodes], projectedPrimaryElement->connect[iPrimaryNodes], newNodeIds);
         }
+        // ptGrid_->InitIndividualElemShapeMap(projectedPrimaryElement.get(), true);
       } // (!isCoplanar_)
       // now loop over all triangulated elements and add to the NC elemList_
       for (UInt iElems = numElemsStart; iElems < numElemsUpdated; ++iElems) {
@@ -2380,6 +2407,8 @@ namespace CoupledField {
         elemToAdd->ptSecondary = secondaryElement;
         elemToAdd->projectedPrimary = projectedPrimaryElement;
         elemToAdd->transVect = translationVector_;
+        // ptGrid_->InitIndividualElemShapeMap(elemToAdd.get(), true);
+
       #ifdef USE_OPENMP
         // set lock to add elements to the grid
         omp_set_lock(&elemListLock_);
@@ -2851,6 +2880,7 @@ namespace CoupledField {
         AddNodeToGrid(inputPolygon[iNodes], newNodeId, newNodeIds);
         ncElem->connect[1] = newNodeId;
         ncElem->connect[2] = centerNodeId;
+        // ptGrid_->InitIndividualElemShapeMap(ncElem, true);
         outputTriangles.Push_back(ncElem);
       }
       // assign the last trianlge connecting the last and first nodes
@@ -2860,6 +2890,7 @@ namespace CoupledField {
       ncElem->connect[0] = newNodeId;
       ncElem->connect[1] = firstNodeId;
       ncElem->connect[2] = centerNodeId;
+      // ptGrid_->InitIndividualElemShapeMap(ncElem, true);
       outputTriangles.Push_back(ncElem);
     }
     // if we have only 3 or 4 intersection nodes, we can directly assign a linear tri or quad element
@@ -2872,6 +2903,7 @@ namespace CoupledField {
         AddNodeToGrid(inputPolygon[iNodes], newNodeId, newNodeIds);
         ncElem->connect[iNodes] = newNodeId;
       }
+      // ptGrid_->InitIndividualElemShapeMap(ncElem, true);
       outputTriangles.Push_back(ncElem);
     }
     else if (numNodes == 3) {
@@ -2884,6 +2916,7 @@ namespace CoupledField {
         AddNodeToGrid(inputPolygon[iNodes], newNodeId, newNodeIds);
         ncElem->connect[iNodes] = newNodeId;
       }
+      // ptGrid_->InitIndividualElemShapeMap(ncElem, true);
       outputTriangles.Push_back(ncElem);
     } else {
       EXCEPTION("Cannot triangulate less then 3 nodes.")

@@ -861,7 +861,10 @@ namespace CoupledField{
       // Loop over all elements
       for( UInt iEl = 0; iEl < numElems; ++iEl) {
         Elem* ptEl = elems[iEl];
-        shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap( ptEl );
+        // shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap( ptEl );
+        // ptGrid_->UpdateIndividualElemShapeMap(ptEl, true); // ptEl = protected here
+        // shared_ptr<ElemShapeMap> esm(ptEl->ptrShapeMap);
+        shared_ptr<ElemShapeMap> esm = (ptEl)->GetElemShapeMap(ptGrid_/*, true*/);   // true ???
         const ElemShape & shape = Elem::shapes[ptEl->type];
         
         // Determine aspect ratio, if within tolerance -> continue

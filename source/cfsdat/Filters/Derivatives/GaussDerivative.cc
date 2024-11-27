@@ -153,7 +153,10 @@ void GaussDerivative::CalcFeVolume(UInt usedElems, StdVector<UInt>& masterElemId
   for (UInt i = 0; i < usedElems; i++) {
     UInt elemNum = revMap[i];
     const Elem* elem = grid_->GetElem(elemNum);
-    shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap(elem);
+    // shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap(elem);
+    // grid_->UpdateIndividualElemShapeMap(elem, true); // const
+    // shared_ptr<ElemShapeMap> esm(elem->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = ((elem))->GetElemShapeMap(grid_);
     Elem::ShapeType st = Elem::GetShapeType(elem->type);
     ElemShape& eShape = Elem::GetShape(st);
     if (eShape.dim == 3) {

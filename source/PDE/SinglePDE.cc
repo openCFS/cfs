@@ -1378,8 +1378,11 @@ namespace CoupledField {
         UInt pos = 0;
         LocPointMapped lpm;
         for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
-          shared_ptr<ElemShapeMap> esm =
-              ptGrid_->GetElemShapeMap( fap.elems[iElem], true );
+          // shared_ptr<ElemShapeMap> esm =
+          //     ptGrid_->GetElemShapeMap( fap.elems[iElem], true );
+          // ptGrid_->UpdateIndividualElemShapeMap(fap.elems[iElem], true);  // const
+          shared_ptr<ElemShapeMap> esm = (fap.elems[iElem])->GetElemShapeMap(ptGrid_, true);
+          // shared_ptr<ElemShapeMap> esm(fap.elems[iElem]->ptrShapeMap);
           lpm.Set(fap.locPoints[iElem], esm, 0.0);
           fct->GetVector(temp, lpm );
           
@@ -1394,8 +1397,10 @@ namespace CoupledField {
         UInt pos = 0;
         LocPointMapped lpm;
         for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
-          shared_ptr<ElemShapeMap> esm =
-              ptGrid_->GetElemShapeMap( fap.elems[iElem], true );
+          // shared_ptr<ElemShapeMap> esm =
+          //     ptGrid_->GetElemShapeMap( fap.elems[iElem], true );
+          // ptGrid_->UpdateIndividualElemShapeMap(fap.elems[iElem], true);  // const
+          shared_ptr<ElemShapeMap> esm = (fap.elems[iElem])->GetElemShapeMap(ptGrid_, true);
           lpm.Set(fap.locPoints[iElem], esm, 0.0);
           fct->GetVector(temp, lpm );
 
@@ -1455,8 +1460,10 @@ namespace CoupledField {
         // Loop over all points
         for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
           
-          shared_ptr<ElemShapeMap> esm =
-              ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
+          // shared_ptr<ElemShapeMap> esm =
+          //     ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
+          // ptGrid_->UpdateIndividualElemShapeMap(fap.elems[iPoint], true); // const
+          shared_ptr<ElemShapeMap> esm = (fap.elems[iPoint])->GetElemShapeMap(ptGrid_, true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
           
           fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
@@ -1499,8 +1506,10 @@ namespace CoupledField {
         // Loop over all points
         for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
           
-          shared_ptr<ElemShapeMap> esm =
-              ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
+          // shared_ptr<ElemShapeMap> esm =
+          //     ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
+          // ptGrid_->UpdateIndividualElemShapeMap(fap.elems[iPoint], true); // const
+          shared_ptr<ElemShapeMap> esm = (fap.elems[iPoint])->GetElemShapeMap(ptGrid_, true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
           
           fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
@@ -1810,7 +1819,9 @@ namespace CoupledField {
           //                                    << " in Elem " << ptElem->elemNum << std::endl;
                
                // check again mapping by performing loc->glob mapping
-          shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(ptElem);
+          // shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(ptElem);
+          // ptGrid_->UpdateIndividualElemShapeMap(ptElem, true); // const
+          shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ptGrid_);
           //esm->Local2Global(globPoint, locPoint);
           //               std::cerr << "\tAdditional check loc->glob delivers global point " 
           //                   << globPoint.ToString() << std::endl << std::endl;

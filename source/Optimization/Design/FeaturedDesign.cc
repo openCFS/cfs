@@ -285,7 +285,10 @@ void FeaturedDesign::SetupMeshStructure()
 
   // We need the spacing of an element
   assert(data[0].elem != nullptr);
-  shared_ptr<ElemShapeMap> esm = grid->GetElemShapeMap(data[0].elem);
+  // shared_ptr<ElemShapeMap> esm = grid->GetElemShapeMap(data[0].elem);
+  // shared_ptr<ElemShapeMap> esm = data[0].elem->ptrShapeMap;
+  shared_ptr<ElemShapeMap> esm = data[0].elem->GetElemShapeMap(grid);
+  // shared_ptr<ElemShapeMap> esm(data[0].elem->ptrShapeMap);
   double minEdge, maxEdge;
   esm->GetMaxMinEdgeLength(maxEdge,minEdge);
   LOG_DBG(FD) << "SMS: dx_=min=" << minEdge << " max=" << maxEdge;

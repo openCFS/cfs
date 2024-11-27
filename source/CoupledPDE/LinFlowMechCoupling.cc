@@ -263,8 +263,16 @@ void LinFlowMechCoupling::DefineIntegrators() {
         const Elem* ptElem1 = elMaster->GetElem(surfMasterId);
         const Elem* ptElem2 = elSlave->GetElem(surfSlaveId);
 
-        shared_ptr<ElemShapeMap> esm1T = elMaster->GetGrid()->GetElemShapeMap(ptElem1,true);
-        shared_ptr<ElemShapeMap> esm2T = elSlave->GetGrid()->GetElemShapeMap(ptElem2,true);
+        // shared_ptr<ElemShapeMap> esm1T = elMaster->GetGrid()->GetElemShapeMap(ptElem1,true);
+        // elMaster->GetGrid()->UpdateIndividualElemShapeMap(ptElem1, true);
+        // shared_ptr<ElemShapeMap> esm1T(ptElem1->ptrShapeMap); // const
+        // shared_ptr<ElemShapeMap> esm2T = elSlave->GetGrid()->GetElemShapeMap(ptElem2,true);
+        // elSlave->GetGrid()->UpdateIndividualElemShapeMap(ptElem2, true);
+        // shared_ptr<ElemShapeMap> esm2T(ptElem2->ptrShapeMap); // const
+
+        // dirty fix ( for now )
+        shared_ptr<ElemShapeMap> esm1T = ((ptElem1))->GetElemShapeMap(elMaster->GetGrid(), true);
+        shared_ptr<ElemShapeMap> esm2T = ((ptElem2))->GetElemShapeMap(elSlave->GetGrid(), true);
 
         //Get minimum element size from solid
         Double min1,max1; 

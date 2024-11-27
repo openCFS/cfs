@@ -173,7 +173,10 @@ void FEBasedInterpolator::FillMatrix(StdVector<CF::UInt>& globSrcEntity, StdVect
             PutIntoMatrix(trgMap_->GetEntityIndex(targetElemNumber), i,  1.0);
           } else {
             const Elem* elem = trgGrid_->GetElem(targetElemNumber);
-            shared_ptr<ElemShapeMap> esm = this->trgGrid_->GetElemShapeMap( elem, true );
+            // shared_ptr<ElemShapeMap> esm = this->trgGrid_->GetElemShapeMap( elem, true );
+            // trgGrid_->UpdateIndividualElemShapeMap(elem, true); // const
+            // shared_ptr<ElemShapeMap> esm(elem->ptrShapeMap);
+            shared_ptr<ElemShapeMap> esm = ((elem))->GetElemShapeMap(this->trgGrid_, true);
             FeH1 * trgElemFE = dynamic_cast<FeH1*>(esm->GetBaseFE());
             Vector<Double> ShFns;
             trgElemFE->GetShFnc(ShFns,locCoords[i],elem);
@@ -287,7 +290,10 @@ void FEBasedInterpolator::FillMatrix(StdVector<CF::UInt>& globSrcEntity, StdVect
             PutIntoMatrix(i, scrMap_->GetEntityIndex(sourceElemNumber), 1.0);
           } else {
             const Elem* elem = inGrid_->GetElem(sourceElemNumber);
-            shared_ptr<ElemShapeMap> esm = this->inGrid_->GetElemShapeMap( elem, true );
+            // shared_ptr<ElemShapeMap> esm = this->inGrid_->GetElemShapeMap( elem, true );
+            // inGrid_->UpdateIndividualElemShapeMap(elem, true); // const
+            // shared_ptr<ElemShapeMap> esm(elem->ptrShapeMap);
+            shared_ptr<ElemShapeMap> esm = ((elem))->GetElemShapeMap(this->inGrid_, true);
             FeH1 * trgElemFE = dynamic_cast<FeH1*>(esm->GetBaseFE());
             Vector<Double> ShFns;
             trgElemFE->GetShFnc(ShFns,locCoords[i],elem);

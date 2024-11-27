@@ -56,7 +56,8 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   const UInt nrFncsB = ptFeB->GetNumFncs();
 
   // Get shape map from grid
-  shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+  shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
 
   // Get integration points
   StdVector<LocPoint> intPoints;
@@ -180,8 +181,13 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   const UInt nrFncsB = ptFeB->GetNumFncs();
 
   // Get shape map from grid
-  shared_ptr<ElemShapeMap> esm1 = ent1.GetGrid()->GetElemShapeMap( ptElem1, this->coordUpdate_ );
-  shared_ptr<ElemShapeMap> esm2 = ent1.GetGrid()->GetElemShapeMap( ptElem2, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esm1 = ent1.GetGrid()->GetElemShapeMap( ptElem1, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esm1(ptElem1->ptrShapeMap);
+  // shared_ptr<ElemShapeMap> esm2 = ent1.GetGrid()->GetElemShapeMap( ptElem2, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esm2(ptElem2->ptrShapeMap);
+
+  shared_ptr<ElemShapeMap> esm1 = (ptElem1)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+  shared_ptr<ElemShapeMap> esm2 = (ptElem2)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
 
   // Get integration points
   StdVector<LocPoint> intPoints;
@@ -305,7 +311,9 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   elemMat.Init();
 
   // Get shape map of the mortar element from grid
-  shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap(ptMortarElem, this->coordUpdate_);
+  // shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap(ptMortarElem, this->coordUpdate_);
+  // shared_ptr<ElemShapeMap> esmNc(ptMortarElem->ptrShapeMap);
+  shared_ptr<ElemShapeMap> esmNc = (ptMortarElem)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
 
   // Get local integration points and weights
   StdVector<LocPoint> intPoints;
@@ -363,8 +371,11 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
     ComputePenalty(const SurfElem* ptSurfPrimary, const SurfElem* ptSurfSecondary, 
                    EntityIterator& ent1, MAT_DATA_TYPE& penaltyFactor) { 
   // get shape maps of surface elements
-  shared_ptr<ElemShapeMap> esm1T = ent1.GetGrid()->GetElemShapeMap(ptSurfPrimary, this->coordUpdate_);
-  shared_ptr<ElemShapeMap> esm2T = ent1.GetGrid()->GetElemShapeMap(ptSurfSecondary, this->coordUpdate_);
+  // shared_ptr<ElemShapeMap> esm1T = ent1.GetGrid()->GetElemShapeMap(ptSurfPrimary, this->coordUpdate_);
+  // shared_ptr<ElemShapeMap> esm2T = ent1.GetGrid()->GetElemShapeMap(ptSurfSecondary, this->coordUpdate_);
+  shared_ptr<ElemShapeMap> esm1T = (ptSurfPrimary)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+  shared_ptr<ElemShapeMap> esm2T = (ptSurfSecondary)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+  
   //obtain pointer to basis functions of the surface elements
   BaseFE* SFe1 = this->ptFeSpace1_->GetFe(ptSurfPrimary->elemNum);
   BaseFE* SFe2 = this->ptFeSpace2_->GetFe(ptSurfSecondary->elemNum);
@@ -474,7 +485,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 
   // Extract MortarNcSurfElem element
   const NcSurfElem* ptNcElem = ent1.GetNcSurfElem();
-  const MortarNcSurfElem* ptMortarElem = dynamic_cast<const MortarNcSurfElem*>(ptNcElem);
+  const MortarNcSurfElem* ptMortarElem = dynamic_cast<const MortarNcSurfElem*>(ptNcElem); // TODO: check
   
   // Primary-side and secondary-side surface elements
   const SurfElem* ptSurfPrimary = ptMortarElem->ptPrimary;
@@ -497,9 +508,12 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   elemMat.Init();
 
   // Get shape maps from grid
-  shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
-  shared_ptr<ElemShapeMap> esmPrimary = ent1.GetGrid()->GetElemShapeMap( ptSurfPrimary, this->coordUpdate_ );
-  shared_ptr<ElemShapeMap> esmSecondary = ent1.GetGrid()->GetElemShapeMap( ptSurfSecondary, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esmPrimary = ent1.GetGrid()->GetElemShapeMap( ptSurfPrimary, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esmSecondary = ent1.GetGrid()->GetElemShapeMap( ptSurfSecondary, this->coordUpdate_ );
+  shared_ptr<ElemShapeMap> esmNc = (ptMortarElem)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+  shared_ptr<ElemShapeMap> esmPrimary = (ptSurfPrimary)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+  shared_ptr<ElemShapeMap> esmSecondary = (ptSurfSecondary)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
 
   // Get local integration points and weights
   StdVector<LocPoint> intPoints;
@@ -513,6 +527,9 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   assert(ptSurfSecondary != nullptr);
   assert(ptFePrimary != nullptr);
   assert(ptFeSecondary != nullptr);
+  assert(esmNc != nullptr);
+  assert(esmPrimary != nullptr);
+  assert(esmSecondary != nullptr);
   LOG_DBG2(mortarInt) << "Region primary: " << ptMortarElem->ptPrimary->ptVolElems[0]->regionId;
   LOG_DBG2(mortarInt) << "Region secondary: " << ptMortarElem->ptSecondary->ptVolElems[0]->regionId;
   LOG_DBG2(mortarInt) << "elemNum primary: " << ptMortarElem->ptPrimary->ptVolElems[0]->elemNum;
@@ -546,10 +563,14 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
        * element. So we perform the Global2Local mapping in the projected
        * element, which has been computed already by the intersection
        * algorithm. Sometimes the intersection is the projected primary element
-       * itself, in which case we need no coordinate mapping at all.  
+       * itself, in which case we need no coordinate mapping at all.
        */ 
       if ( ptMortarElem->projectedPrimary != nullptr) {
-        shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()->GetElemShapeMap(ptMortarElem->projectedPrimary.get(), this->coordUpdate_);
+        // shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()->GetElemShapeMap(ptMortarElem->projectedPrimary.get(), this->coordUpdate_);
+        // this let's 8 tests "ctest -R Mortar" fail
+        // shared_ptr<ElemShapeMap> esmProj = (const_cast<MortarNcSurfElem*>(ptMortarElem))->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+        // this let's 5 tests "..." fail but MovingMortar is one of them
+        shared_ptr<ElemShapeMap> esmProj = (ptMortarElem->projectedPrimary.get())->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
         esmProj->Global2Local(ipPrimary.coord, globIntPoint);
       } else { // projectedPrimary == nullptr means it is the MortarElem itself
         ipPrimary.coord = intPoints[iIntPts].coord;
@@ -567,8 +588,12 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       << "\n\tlocal coordinares in secondary: " << ipSecondary.coord.ToString();
 #endif
 
+    // LocPoint ipNc;
+    // esmNc->Global2Local(ipNc.coord, globIntPoint);
+    // lpmNc.Set( ipNc, esmNc, weights[iIntPts] );
+
     // Calculate for each integration point the LocPointMapped
-    lpmNc.Set( intPoints[iIntPts], esmNc, weights[iIntPts] );
+    lpmNc.Set( intPoints[iIntPts], esmNc, weights[iIntPts] ); // esmNc
     lpmPrimary.SetWithSurface( ipPrimary, esmPrimary, this->volRegions_, weights[iIntPts] );
     lpmSecondary.SetWithSurface( ipSecondary, esmSecondary, this->volRegions_, weights[iIntPts] );
 
@@ -688,9 +713,15 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   result.Init();
 
   // Get shape maps from grid
-  shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
-  shared_ptr<ElemShapeMap> esmPrimary = ent1.GetGrid()->GetElemShapeMap( ptSurfPrimary, this->coordUpdate_ );
-  shared_ptr<ElemShapeMap> esmSecondary = ent1.GetGrid()->GetElemShapeMap( ptSurfSecondary, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esmNc = ent1.GetGrid()->GetElemShapeMap( ptMortarElem, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esmPrimary = ent1.GetGrid()->GetElemShapeMap( ptSurfPrimary, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esmSecondary = ent1.GetGrid()->GetElemShapeMap( ptSurfSecondary, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esmNc(ptMortarElem->ptrShapeMap);
+  // shared_ptr<ElemShapeMap> esmPrimary(ptSurfPrimary->ptrShapeMap);
+  // shared_ptr<ElemShapeMap> esmSecondary(ptSurfSecondary->ptrShapeMap);
+  shared_ptr<ElemShapeMap> esmNc = (ptMortarElem)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+  shared_ptr<ElemShapeMap> esmPrimary = (ptSurfPrimary)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+  shared_ptr<ElemShapeMap> esmSecondary = (ptSurfSecondary)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
 
   // Get local integration points and weights
   StdVector<LocPoint> intPoints;
@@ -745,7 +776,11 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
        * itself, in which case we need no coordinate mapping at all.
        */
       if ( ptMortarElem->projectedPrimary != nullptr) {
-        shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()->GetElemShapeMap(ptMortarElem->projectedPrimary.get(), this->coordUpdate_);
+        // shared_ptr<ElemShapeMap> esmProj = ent1.GetGrid()->GetElemShapeMap(ptMortarElem->projectedPrimary.get(), this->coordUpdate_);
+        // shared_ptr<ElemShapeMap> esmProj(ptMortarElem->projectedPrimary->ptrShapeMap);
+        // shared_ptr<ElemShapeMap> esmProj = (const_cast<MortarNcSurfElem*>(ptMortarElem))->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+        shared_ptr<ElemShapeMap> esmProj = (ptMortarElem->projectedPrimary.get())->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
+        // shared_ptr<ElemShapeMap> esmProj = (const_cast<MortarNcSurfElem*>(ptMortarElem))->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
         esmProj->Global2Local(ipPrimary.coord, globIntPoint);
       } else { // projectedPrimary == nullptr means it is the MortarElem itself
         ipPrimary.coord = intPoints[iIntPts].coord;

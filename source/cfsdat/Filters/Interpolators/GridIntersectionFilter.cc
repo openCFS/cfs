@@ -143,7 +143,11 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
 
     //compute shape function
     const Elem* curTE = trgGrid_->GetElem(tElem);
-    eShape = trgGrid_->GetElemShapeMap(curTE,true);
+    // eShape = trgGrid_->GetElemShapeMap(curTE,true);
+    // eShape.reset(curTE->ptrShapeMap);
+    // trgGrid_->UpdateIndividualElemShapeMap(curTE, true); // const
+    // eShape = curTE->ptrShapeMap;
+    eShape = ((curTE))->GetElemShapeMap(trgGrid_, true);
     const CF::StdVector<UInt>& tElemConnect = curTE->connect;
 
     localPoint.Init();

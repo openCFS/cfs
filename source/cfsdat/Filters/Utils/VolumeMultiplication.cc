@@ -46,7 +46,10 @@ void VolumeMultiplication::PrepareCalculation() {
   for (UInt i = 0; i < usedElems_; i++) {
     UInt elemNum = revMap[i];
     const Elem* elem = grid->GetElem(elemNum);
-    shared_ptr<ElemShapeMap> esm = grid->GetElemShapeMap(elem);
+    // shared_ptr<ElemShapeMap> esm = grid->GetElemShapeMap(elem);
+    // grid->UpdateIndividualElemShapeMap(elem, true); // const
+    // shared_ptr<ElemShapeMap> esm(elem->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = ((elem))->GetElemShapeMap(grid);
     Elem::ShapeType st = Elem::GetShapeType(elem->type);
     ElemShape& eShape = Elem::GetShape(st);
     if (eShape.dim == 3) {

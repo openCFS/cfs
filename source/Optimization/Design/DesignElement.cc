@@ -479,7 +479,9 @@ const Point* DesignElement::GetLocation()
   // check for ghost elements
   if(elem == NULL) EXCEPTION("location_ not set but elem is NULL");
 
-  domain->GetGrid()->GetElemShapeMap(elem, false)->CalcBarycenter(*location_);
+  // domain->GetGrid()->GetElemShapeMap(elem, false)->CalcBarycenter(*location_);
+  // elem->ptrShapeMap->CalcBarycenter(*location_);
+  elem->GetElemShapeMap(domain->GetGrid())->CalcBarycenter(*location_);
 
   LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
   return location_;
@@ -491,7 +493,9 @@ double DesignElement::CalcVolume()
   if(elemVol_ >= 0)
     return elemVol_;
 
-  elemVol_ = domain->GetGrid()->GetElemShapeMap(elem, false)->CalcVolume();
+  // elemVol_ = domain->GetGrid()->GetElemShapeMap(elem, false)->CalcVolume();
+  // elemVol_ = elem->ptrShapeMap->CalcVolume();
+  elemVol_ = elem->GetElemShapeMap(domain->GetGrid())->CalcVolume();
   return elemVol_;
 }
 
@@ -1491,7 +1495,9 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
   // We need the spacing of a element to detect periodic elements later
   StdVector<double> spacing; // the output
   Elem* elem = space->data[0].elem;
-  domain->GetGrid()->GetElemShapeMap(elem, false)->GetEdgeLength(spacing);
+  // domain->GetGrid()->GetElemShapeMap(elem, false)->GetEdgeLength(spacing);
+  // elem->ptrShapeMap->GetEdgeLength(spacing);
+  elem->GetElemShapeMap(domain->GetGrid())->GetEdgeLength(spacing);
 
   // in the periodic case the neighborhood is enlarged
   StdVector<std::pair<Elem*, int> > enlarged_data;

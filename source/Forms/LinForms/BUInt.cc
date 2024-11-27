@@ -103,8 +103,10 @@ BUIntegrator(BaseBOperator * bOp,
      nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
-     shared_ptr<ElemShapeMap> esm =
-         ent.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+    //  shared_ptr<ElemShapeMap> esm =
+    //      ent.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+    // shared_ptr<ElemShapeMap> esm = ptElem->ptrShapeMap;
+    shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ent.GetGrid(), this->coordUpdate_);
 
      // Get integration points
      intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order, 

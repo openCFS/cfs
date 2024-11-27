@@ -1340,12 +1340,22 @@ namespace CFSTool {
             // const Elem* el1Surf = NULL;
             // const Elem* el2Surf = NULL;
             // const Elem* el3Surf = NULL;
-            shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
-            shared_ptr<ElemShapeMap> esm2 = ptGrid2->GetElemShapeMap( el2, true );
+            // shared_ptr<ElemShapeMap> esm1 = ptGrid1->GetElemShapeMap( el1, true );
+            // ptGrid1->UpdateIndividualElemShapeMap(el1, true); // const
+            // shared_ptr<ElemShapeMap> esm1(el1->ptrShapeMap);
+            shared_ptr<ElemShapeMap> esm1 = ((el1))->GetElemShapeMap(ptGrid1, true);
+            // shared_ptr<ElemShapeMap> esm2 = ptGrid2->GetElemShapeMap( el2, true );
+            // ptGrid2->UpdateIndividualElemShapeMap(el2, true); // const
+            // shared_ptr<ElemShapeMap> esm2(el2->ptrShapeMap);
+            shared_ptr<ElemShapeMap> esm2 = ((el2))->GetElemShapeMap(ptGrid2, true);
             shared_ptr<ElemShapeMap> esm3;
             if(ptGrid3) 
             {
-              esm3 = ptGrid3->GetElemShapeMap( el3, true );
+              // esm3 = ptGrid3->GetElemShapeMap( el3, true );
+              // esm3.reset(el3->ptrShapeMap);
+              // ptGrid3->UpdateIndividualElemShapeMap(el3, true); // const
+              // esm3 = el3->ptrShapeMap;
+              shared_ptr<ElemShapeMap> esm3 = ((el3))->GetElemShapeMap(ptGrid3, true);
             }
             
             if( isSurf ) 

@@ -54,8 +54,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
    return *this;
  }
 
- 
- 
+ shared_ptr<ElemShapeMap> Elem::GetElemShapeMap(Grid *grid, bool update) {
+   if (!ptrShapeMap) {
+     this->ptrShapeMap = shared_ptr<LagrangeElemShapeMap>(new LagrangeElemShapeMap(grid));
+     this->ptrShapeMap->SetElem(this, update);
+   }
+   else if (update) {
+     this->ptrShapeMap->SetElem(this, update);
+   }
+   return ptrShapeMap;
+ }
+
+ // const overload to simplify function calls
+ shared_ptr<ElemShapeMap> Elem::GetElemShapeMap(Grid* grid, bool update) const {
+   return (this)->GetElemShapeMap(grid, update);
+}
+
  void Elem::GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const {
    // check, if face is defined at all
    Integer locFaceIndex = this->extended->faces.Find(faceNum);
@@ -323,7 +337,6 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
 //        }
 //      }
   }
-
 
   ElemShape::ElemShape():
                 dim(0),

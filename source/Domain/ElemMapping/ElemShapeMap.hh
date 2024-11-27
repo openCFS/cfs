@@ -7,6 +7,9 @@
 #include "MatVec/Matrix.hh"
 #include "Elem.hh"
 #include "SurfElem.hh"
+#include <mutex>
+#include <thread>
+#include <atomic>
 
 #include "Utils/ThreadLocalStorage.hh"
 
@@ -188,11 +191,7 @@ namespace CoupledField {
     //! set, if jacobi determinat should be checked; standard is YES
     void SetCheckJacobi(bool check) {
     		checkJacobi_ = check;
-    };
-
-    //! Specialized version for NMG points
-    void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
-                                          Double weight, bool useMaster);
+    }
 
     //! Return shape map
     const shared_ptr<ElemShapeMap> GetShapeMap() const {return shapeMap;}
@@ -264,6 +263,30 @@ namespace CoupledField {
     //@}
   };
 
+  // =======================================
+  // Thread safe wrapper for LocPointMapped
+  // =======================================
+
+  //! get() and update() ensure controlled/thread safe (one thread after the other) access to a
+  //! LocPointMapped instance
+  class LocPointMappedThreadSafe {
+    private:
+      LocPointMapped lpm_thread_;
+      mutable std::mutex mutex_lpm_thread_; // one thread access only
+
+    public:
+      // safe update
+      void update(const std::function<void(LocPointMapped&)>& func) {
+        std::lock_guard<std::mutex> lock(mutex_lpm_thread_);  // proper locking and unlocking of mutex
+        func(lpm_thread_);
+      }
+
+      // safe getter
+      LocPointMapped get() const {
+        std::lock_guard<std::mutex> lock(mutex_lpm_thread_);  // proper locking and unlocking of mutex
+        return lpm_thread_;
+      }
+  };
 
   
   // ===========================================================================
@@ -308,10 +331,11 @@ namespace CoupledField {
     Grid* GetGrid() {
       return ptGrid_;
     }
-
+    
     //! Set current element.
     //! Be very careful with it,
     //! @see Grid::GetElemShapeMap()
+    //! @see Elem::ptrShapeMap
     //! \param ptElem output Current element
     virtual void SetElem( const Elem* ptElem,
                           bool isUpdated = false );
@@ -538,6 +562,9 @@ namespace CoupledField {
   //! bi/trilinear shape functions of the Lagrangian elements.
   class LagrangeElemShapeMap : public ElemShapeMap {
 
+  private:
+    std::mutex mutex_;
+
   public:
     //! Constructor
     LagrangeElemShapeMap( Grid* ptGrid );
@@ -693,20 +720,45 @@ namespace CoupledField {
     //! Pointer to H1 element of lower order
     FeH1LagrangeExpl* ptFe_;
 
-    //! Helper struct containing the reference element
-    class LagrangeMapSingleton
-    { 
-    private: 
-      LagrangeMapSingleton();   
-      LagrangeMapSingleton(const LagrangeMapSingleton&);            
-      LagrangeMapSingleton& operator=(const LagrangeMapSingleton&);
+    /* Helper struct containing the reference element
+    This code defines a thread-safe singleton class, LagrangeMapSingleton, which manages a shared resource (feMap_).
+    Key elements:
+    1. Private constructor, deleted copy constructor, and deleted assignment operator ensure that only one instance can ever be created.
+    2. getInstance() uses a static local variable to guarantee thread-safe initialization (since C++11).
+    3. A std::mutex (mapMutex) is provided to protect access to the shared resource.
+    4. threadSafeAccessToFeMap() uses std::lock_guard to acquire the mutex, ensuring that any modifications or access to feMap_ occur safely in a multithreaded context.
+    */
+    class LagrangeMapSingleton {
+    private:
+      LagrangeMapSingleton();
+      LagrangeMapSingleton(const LagrangeMapSingleton &) = delete;            // prevent accidenal copying
+      LagrangeMapSingleton &operator=(const LagrangeMapSingleton &) = delete; // prevent accidenal copying
       ~LagrangeMapSingleton();
-    public: 
-      static LagrangeMapSingleton& getInstance();
+      std::mutex mapMutex;
+
+    public:
+      static LagrangeMapSingleton &getInstance() {
+        static LagrangeMapSingleton instance;
+        return instance;
+      }
+
+      void threadSafeAccessToFeMap() {
+        std::lock_guard<std::mutex> lock(mapMutex);
+        // Access or modify feMap_ here
+      }
+
+      // Add a new entry to the map (ensuring thread safety)
+      FeH1LagrangeExpl* getFeMapEntry(Elem::FEType type) {
+        std::lock_guard<std::mutex> lock(mapMutex);
+        auto it = feMap_.find(type);
+        if (it == feMap_.end())
+          EXCEPTION("Element type '" << Elem::feType.ToString(type) << "' not defined for Lagrangian Shape Map!");
+        return it->second;
+      }
 
       //! Map containing the reference elements
-      TLMap<Elem::FEType, FeH1LagrangeExpl* > feMap_;
-    }; 
+      TLMap<Elem::FEType, FeH1LagrangeExpl *> feMap_;
+    };
 
     //! Nodal coordinates
     Matrix<Double> coords_;

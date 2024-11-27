@@ -41,14 +41,19 @@ namespace CoupledField
 {
   // declare logging stream
   DEFINE_LOG(assemble, "assemble")
-
+  DEFINE_LOG(assemble_Luca, "assemble_Luca")
+  DEFINE_LOG(progress_bar, "progress_bar")
+  DEFINE_LOG(verbose_luca, "verbose_luca")
+  DEFINE_LOG(in_assemble_std, "in_assemble_std")
+  DEFINE_LOG(log_algsys, "log_algsys")
+  DEFINE_LOG(entities, "log_entities")
+  DEFINE_LOG(log_bilinear, "log_bilinear")
 
   Assemble::Assemble( AlgebraicSys* algsys,
                       BasePDE::AnalysisType analysis,
                       MathParser* mp,
                       PtrParamNode infoNode)
   {
-
     // init general params
     algsys_ = algsys;
     analysisType_ = analysis;
@@ -509,6 +514,8 @@ namespace CoupledField
       if(printProgressBar_)
         std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
 
+      LOG_DBG2(progress_bar) << "  - Calculating BiLinearForms on (firstEntities) '"  << firstEntities.GetName() << " (" << size << " elements)'";
+
       if(!isNewtonPart)
       {
         // First loop over all integrators to check, if any of them
@@ -533,6 +540,9 @@ namespace CoupledField
         if(!anyReassemble)
           continue; // assemble next bilin form
       } // end !isNewtonPart
+
+      if (CFS_NUM_THREADS > size)
+        WARN("Assemble: You asked for more threds than entities are available in the form. Consider using fewer threads.");
 
 #pragma omp parallel num_threads(CFS_NUM_THREADS)
       {

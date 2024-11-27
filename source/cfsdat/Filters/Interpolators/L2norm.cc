@@ -117,7 +117,10 @@ void L2norm::PrepareCalculation(){
       InpolationStruct newStruct;
       //get nodenumbers of containing src-element
       inGrid->GetElemNodes(tempNodeNums, allTrgElems[aMatch]);
-      shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(inGrid->GetElem(aMatch+1),true);
+      // shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(inGrid->GetElem(aMatch+1),true);
+      // inGrid->UpdateIndividualElemShapeMap(???, true);  // ??? (LUCA)
+      // shared_ptr<ElemShapeMap> eShape(inGrid->GetElem(aMatch+1)->ptrShapeMap);
+      shared_ptr<ElemShapeMap> eShape = ((inGrid->GetElem(aMatch+1)))->GetElemShapeMap(trgGrid_, true);
       newStruct.volume = eShape->CalcVolume();
       newStruct.trgElemNum = allTrgElems[aMatch];
       newStruct.tNNum.Resize(tempNodeNums.GetSize());

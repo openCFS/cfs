@@ -43,10 +43,14 @@ Transform::Transform(PtrParamNode pn, DesignSpace* space)
     throw Exception("transform: the named element '" + center_str_ + "' for center of rotation shall be only 1 node!");
 
   // most probably the barycenters are not calculated yet
-  domain->GetGrid()->GetElemShapeMap(elems[0], false)->CalcBarycenter(center_);
+  // domain->GetGrid()->GetElemShapeMap(elems[0], false)->CalcBarycenter(center_);
+  // elems[0]->ptrShapeMap->CalcBarycenter(center_);
+  elems[0]->GetElemShapeMap(domain->GetGrid(), false)->CalcBarycenter(center_);
 
   double tmp;
-  domain->GetGrid()->GetElemShapeMap(elems[0], false)->GetMaxMinEdgeLength(h_, tmp); // h_ is the largest edge size
+  // domain->GetGrid()->GetElemShapeMap(elems[0], false)->GetMaxMinEdgeLength(h_, tmp); // h_ is the largest edge size
+  // elems[0]->ptrShapeMap->GetMaxMinEdgeLength(h_, tmp);
+  elems[0]->GetElemShapeMap(domain->GetGrid(), false)->GetMaxMinEdgeLength(h_, tmp);
 
   LOG_DBG(transform) << "T a='" << pn->Get("angle")->As<std::string>() << " -> " << angle_ << " c=" << elems[0]->elemNum;
 

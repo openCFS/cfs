@@ -176,7 +176,11 @@ void MeshFilter::Cell2Node(Vector<Double>& returnVec,
     QuantityStruct aStru = interpolData[i];
 
     const Elem* curE = trgGrid_->GetElem(aStru.trgElemNum);
-    eShape = trgGrid_->GetElemShapeMap(curE,true);
+    // eShape = trgGrid_->GetElemShapeMap(curE,true);
+    // eShape.reset(curE->ptrShapeMap); // like this! NOTE: check wether it is a raw or smart pointer!!
+    // trgGrid_->UpdateIndividualElemShapeMap(curE, true);
+    // eShape = curE->ptrShapeMap;
+    eShape = ((curE))->GetElemShapeMap(trgGrid_, true);
 
     const CF::StdVector<UInt>& eConn = curE->connect;
 

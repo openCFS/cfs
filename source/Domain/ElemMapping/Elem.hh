@@ -5,6 +5,7 @@
 #include <map>
 #include <boost/array.hpp>
 
+// #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
@@ -12,6 +13,8 @@
 
 namespace CoupledField
 {
+  class ElemShapeMap;
+  class Grid;
 
   // forward definition
   struct ElemShape;
@@ -38,7 +41,6 @@ namespace CoupledField
     //! Dummy destructor
     virtual ~Elem();
 
-  public:
     // ========================================================================
     //  Public Enumeration Types
     // ========================================================================
@@ -116,6 +118,18 @@ namespace CoupledField
     //! Extended element information
     ExtendedElementInfo* extended;
 
+    // TODO_IMPLEMENT: add pointer to corresponding shapeMap
+    // e.g. , unique_ptr<ElemShape> shapeMap = nullptr;
+    // std::unique_ptr<ElemShape> shapeMap = nullptr; // currently faulty since Elem's free() needs additional clear()
+    // ElemShapeMap* ptrShapeMap = nullptr;
+    // std::unique_ptr<ElemShape> shapeMap = nullptr; // smart pointer idea
+    // StdVector<ElemShape*> shapeMap;
+
+    shared_ptr<ElemShapeMap> GetElemShapeMap(Grid* grid, bool update = false);
+    
+    // const overload to simplify function calls
+    shared_ptr<ElemShapeMap> GetElemShapeMap(Grid* grid, bool update = false) const;
+
     // ======================================================
     // HELPER METHODS
     // ======================================================
@@ -155,10 +169,11 @@ namespace CoupledField
     UInt GetElemNum() const {return elemNum;};
     //@}
 
-  public:
-
     //! Global collection of reference element shape
     static std::map<Elem::FEType,ElemShape> shapes;
+
+  private:
+    shared_ptr<ElemShapeMap> ptrShapeMap;
   };
 
 

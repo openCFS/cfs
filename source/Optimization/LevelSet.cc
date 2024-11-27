@@ -480,7 +480,9 @@ LevelSet::LevelSet(Optimization* opt, PtrParamNode pn) :
   assert(design_ != NULL);
 
   // cache the element widths, assumes a uniform grid!!
-  domain->GetGrid()->GetElemShapeMap((*design_)[0].elem, false)->GetEdgeLength(edge_length_);
+  // domain->GetGrid()->GetElemShapeMap((*design_)[0].elem, false)->GetEdgeLength(edge_length_);
+  // (*design_)[0].elem->ptrShapeMap->GetEdgeLength(edge_length_);
+  (*design_)[0].elem->GetElemShapeMap(domain->GetGrid(), false)->GetEdgeLength(edge_length_);
   assert(edge_length_.GetSize() == (domain->GetGrid()->GetDim() == 2 ? 2 : 3));
   LOG_DBG(ls) << "edge_length_: x = " << edge_length_[0] << ", y = " << edge_length_[1];
   if(edge_length_.GetSize() == 3)

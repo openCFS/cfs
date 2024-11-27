@@ -28,7 +28,7 @@ public:
    * TODO intPoints and weights could be cached!
    * @param elem if NULL it is marked as unset, resets also ip
    * @return @see CurrElemShapeMap() */
-  ElemShapeMap* SetElem(const Elem* elem);
+  ElemShapeMap* SetElem(const Elem* elem);  // SetElem()
 
   /** optionally set the integration point. Sets also esm content! */
   LocPointMapped& SetIP(unsigned int ip);

@@ -153,7 +153,10 @@ void DesignStructure::SetFilter(PtrParamNode pn, bool skip_cfs_filtering)
   StdVector<double> edges;
   if(regular)
   {
-    domain->GetGrid()->GetElemShapeMap(data[0].elem, false)->GetEdgeLength(edges);
+    // domain->GetGrid()->GetElemShapeMap(data[0].elem, false)->GetEdgeLength(edges);
+    // data[0].elem->ptrShapeMap->GetEdgeLength(edges);
+    data[0].elem->GetElemShapeMap(domain->GetGrid())->GetEdgeLength(edges);
+
     // also initialize the vicinity elements!
     VicinityElement::Init(space, this);
   }
@@ -733,7 +736,10 @@ double DesignStructure::FindFilterRadius(Filter::FilterSpace space, const Design
     case Filter::VOLUME_RADIUS:
     {
       // TODO really check for axis symmetry off
-      double tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
+      // double tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
+      // double tmp = de->elem->ptrShapeMap->CalcVolume();
+      double tmp = de->elem->GetElemShapeMap(domain->GetGrid())->CalcVolume();
+      // double tmp = de->elem->GetElemShapeMap(false)->CalcVolume(); like this
       // The radius is <value> times square/cube edge length where the
       // square/cube has the volume of the element
       double radius = value * std::pow(tmp, 1.0/ (double) domain->GetGrid()->GetDim());

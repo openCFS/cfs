@@ -162,7 +162,9 @@ double MagSIMP::ExtractRelactivity(CoefFunction* org_mat, const Elem* elem, UInt
   {
     // we are here in the linear BDBInt case (first time) and nonlinear scalar BBInt case
     LocPointMapped lpm;
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
+    // shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
+    // shared_ptr<ElemShapeMap> esm = elem->ptrShapeMap;
+    shared_ptr<ElemShapeMap> esm = (elem)->GetElemShapeMap(domain->GetGrid());
     LocPoint lp = Elem::GetShape( Elem::GetShapeType( elem->type) ).midPointCoord;
     lpm.Set(lp, esm); // element constant we need no weight
 
@@ -286,7 +288,9 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
     assert(method != IntScheme::UNDEFINED);
     assert(!intPoints.IsEmpty());
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+    // shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+    // shared_ptr<ElemShapeMap> esm = de->elem->ptrShapeMap;
+    shared_ptr<ElemShapeMap> esm = (de->elem)->GetElemShapeMap(domain->GetGrid());
 
     vol = esm->CalcVolume();
 
@@ -442,7 +446,9 @@ void MagSIMP::CalcN(LinearFormContext* form, Vector<double>& N)
     assert(h1 != NULL);
 
     // the shape map knows about the real element size
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(iter.GetElem());
+    // shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(iter.GetElem());
+    // shared_ptr<ElemShapeMap> esm = iter.GetElem()->ptrShapeMap;
+    shared_ptr<ElemShapeMap> esm = (iter.GetElem())->GetElemShapeMap(domain->GetGrid(), false);
 
     // the equations assigned to the element
     bdb->GetFeSpace1()->GetElemEqns(eqn, iter.GetElem());
@@ -680,7 +686,10 @@ void MagSIMP::CalcMagFluxAdjRHS(Excitation& excite, Function* f, Vector<double>&
 
     // add element volume to volume of whole domain
     // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+    // shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(de->elem);
+    // shared_ptr<ElemShapeMap> esm(de->elem->ptrShapeMap);
+    shared_ptr<ElemShapeMap> esm = (de->elem)->GetElemShapeMap(domain->GetGrid());
+
     vol = esm->CalcVolume();
     volume += vol;
     LOG_DBG3(ms) << "CMFAR accumulated volume =" << volume;

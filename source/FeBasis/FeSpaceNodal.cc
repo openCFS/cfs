@@ -272,7 +272,9 @@ void FeSpaceNodal::GetNodalCoords(StdVector<Vector<Double> > & coords,
        this->GetNodesOfElement(curENodes,entIt.GetElem(),BaseFE::ALL);
        //get shape map
        //esm = this->ptGrid_->GetElemShapeMap( entIt.GetElem(), true );
-       esm = this->ptGrid_->GetElemShapeMap( entIt.GetElem(), updatedGeo );
+        // this->ptGrid_->UpdateIndividualElemShapeMap(entIt.GetElem(), true);  // ??? (LUCA)
+        // esm = entIt.GetElem()->ptrShapeMap;
+        shared_ptr<ElemShapeMap> esm = (entIt.GetElem())->GetElemShapeMap(this->ptGrid_, true); // true ???
 
 
        Matrix<Double> nCoord;

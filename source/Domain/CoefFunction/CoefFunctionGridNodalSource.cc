@@ -255,7 +255,10 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     	    for ( UInt i=0; i<elems.GetSize(); i++) {
     	    	numEl++;
     	    	const Elem* ptElem = elems[i];
-    	    	shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( ptElem, true );
+    	    	// shared_ptr<ElemShapeMap> esm = this->srcGrid_->GetElemShapeMap( ptElem, true );
+						// ??? (LUCA)
+						// shared_ptr<ElemShapeMap> esm(ptElem->ptrShapeMap);
+						shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(this->srcGrid_, true);
     	    	meanElemVol_ += esm->CalcVolume();
     	    }
     	}

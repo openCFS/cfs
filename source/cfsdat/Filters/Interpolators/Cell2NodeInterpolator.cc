@@ -119,7 +119,10 @@ void Cell2NodeInterpolator::PrepareCalculation(){
     if(trgElements[aMatch]!= NULL){
       //obtain element volume
       QuantityStruct newStruct;
-      shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
+      // shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
+      // trgGrid_->UpdateIndividualElemShapeMap(trgElements[aMatch], true);
+      // shared_ptr<ElemShapeMap> eShape(trgElements[aMatch]->ptrShapeMap);
+      shared_ptr<ElemShapeMap> eShape = ((trgElements[aMatch]))->GetElemShapeMap(trgGrid_, true);
       newStruct.localCoords = locPoints[aMatch].coord;
       newStruct.srcEqnSingle = allSrcElems[aMatch];
       newStruct.trgElemNum = trgElements[aMatch]->elemNum;

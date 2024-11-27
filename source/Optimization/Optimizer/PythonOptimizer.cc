@@ -383,7 +383,13 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
       assert(method != IntScheme::UNDEFINED);
       assert(!intPoints.IsEmpty());
       // Get shape map from grid
-      shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
+      // shared_ptr<ElemShapeMap> esm = domain->GetGrid()->GetElemShapeMap(elem);
+      // domain->GetGrid()->UpdateIndividualElemShapeMap(elem, true); // const
+      // shared_ptr<ElemShapeMap> esm = const_cast<Elem*>(elem)->GetElemShapeMap(domain->GetGrid());
+      // Quick fix: cast element to non-const before calling GetElemShapeMap -----------------------
+      // Elem* nonConstElem = elem;
+      shared_ptr<ElemShapeMap> esm = elem->GetElemShapeMap(domain->GetGrid()/*, true*/);  // true ???
+      // TODO: const overload GetElemShapeMap() later ----------------------------------------------
       // for intermediate steps
       Matrix<double> bMatT;
       // this is the result

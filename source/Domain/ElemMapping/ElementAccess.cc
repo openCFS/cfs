@@ -31,7 +31,10 @@ ElemShapeMap* ElementAccess::SetElem(const Elem* elem)
   {
     assert(elem->type != Elem::ET_UNDEF);
 
-    esm = domain->GetGrid()->GetElemShapeMap(elem);
+    // esm = domain->GetGrid()->GetElemShapeMap(elem);
+    // esm.reset(elem->ptrShapeMap);  // ???
+    // esm = elem->ptrShapeMap;
+    esm = (elem)->GetElemShapeMap(domain->GetGrid());
 
     if(bdb != NULL)
     {

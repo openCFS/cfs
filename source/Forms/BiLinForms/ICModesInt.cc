@@ -47,8 +47,10 @@ CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
         << "elements are present!");
   }
   // Get shape map from grid
-  shared_ptr<ElemShapeMap> esm =
-      ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esm =
+  //     ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+  // shared_ptr<ElemShapeMap> esm(ptElem->ptrShapeMap);
+  shared_ptr<ElemShapeMap> esm = (ptElem)->GetElemShapeMap(ent1.GetGrid(), this->coordUpdate_);
 
   // Get integration points
   StdVector<LocPoint> intPoints;
