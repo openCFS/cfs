@@ -49,7 +49,7 @@ namespace CoupledField
     // in addition, add always the NO_REGION to the enum
     region_.Add( NO_REGION_ID, "_NO_REGION_");
 
-    UInt slotsToReserve = 6;
+    UInt slotsToReserve = 6; // Pati: ist zwar komisch aber scheint zumindest keine Probleme zu machen
     for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++){
       lastShapeElemNumOrig_.Mine(aT).Reserve(slotsToReserve);
       lastShapeElemNumUpdated_.Mine(aT).Reserve(slotsToReserve);
@@ -121,13 +121,13 @@ namespace CoupledField
     return grid_bounding_box_;
   }
 
-  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated)
+  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated)  // what is ptElem?
   {
    //  shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
    //  ret->SetElem(ptElem, isUpdated );
    //  return ret;
 
-   // What exactlyhappens here with Mine()
+   // What exactlyhappens here with Mine()?
    StdVector<UInt>& lastShapeElemNumOrig                      = lastShapeElemNumOrig_.Mine();
    StdVector<UInt>& lastShapeElemNumUpdated                   = lastShapeElemNumUpdated_.Mine();
    StdVector<shared_ptr<ElemShapeMap> > & elemShapeMapOrig    = elemShapeMapOrig_.Mine();
@@ -189,8 +189,8 @@ namespace CoupledField
     }
     else // the not updated version
     {
-      Integer idx = lastShapeElemNumOrig.Find(ptElem->elemNum);
-      if(idx>=0){
+      Integer idx = lastShapeElemNumOrig.Find(ptElem->elemNum); // Find(): -1 = not found
+      if(idx>=0){   // second cycle idx becomes -1 and stays -1 in cycle 3, 4, 5
         ////check for special element number 0 in case of mortar interface elements
         if(ptElem->elemNum==0){
           //still, there may be situations in which some object still holds references
@@ -216,10 +216,11 @@ namespace CoupledField
             return elemShapeMapOrig[aIdx];
           }
         }
-        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
+        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));  // Was tut newMap()?
         newMap->SetElem(ptElem, isUpdated );
         elemShapeMapOrig.Push_back(newMap);
         lastShapeElemNumOrig.Push_back(ptElem->elemNum);
+        std::cout << "lastShapeElemNumOrig.ElemNum: " << lastShapeElemNumOrig << std::endl;
         return newMap;
       }
     }
@@ -680,6 +681,40 @@ namespace CoupledField
     // We reset the interfaces in reverse order, so we always only delete nodes and elements that were created last
     // the double loop in Grid::InitNcInterfacesFromXML() assures that moving interfaces are updated last.
     // also, we need to assure that actively moving interfaces are updated before passively moving ones.
+
+    // std::cout << "num slots - lastShapeElemNumOrig_: " << lastShapeElemNumOrig_.GetNumSlots() << std::endl;
+    // std::cout << "num slots - lastShapeElemNumUpdated_: " << lastShapeElemNumUpdated_.GetNumSlots() << std::endl;
+    // std::cout << "num slots - elemShapeMapOrig_: " << elemShapeMapOrig_.GetNumSlots() << std::endl;
+    // std::cout << "num slots - elemShapeMapUpdated_: " << elemShapeMapUpdated_.GetNumSlots() << std::endl;
+    // std::cout << "num slots - CFS_NUM_THREADS: " << CFS_NUM_THREADS << std::endl;
+
+    #pragma omp critical  // synchronized clearing could be helpful
+    {
+      for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++){
+      lastShapeElemNumOrig_.Mine(aT).Clear();
+      lastShapeElemNumUpdated_.Mine(aT).Clear();
+      elemShapeMapOrig_.Mine(aT).Clear();
+      elemShapeMapUpdated_.Mine(aT).Clear();
+      }
+
+      // for (UInt aT = 0; aT < lastShapeElemNumOrig_.GetNumSlots(); aT++) {
+      //   // Clear numeric data
+      //   lastShapeElemNumOrig_.Mine(aT).Clear();
+      //   lastShapeElemNumUpdated_.Mine(aT).Clear();
+
+      //   // Clear shape maps and release shared pointers
+      //   auto& shapeMapOrig = elemShapeMapOrig_.Mine(aT);
+      //   for (auto& ptr : shapeMapOrig)
+      //     ptr.reset();
+      //   shapeMapOrig.Clear();
+
+      //   auto& shapeMapUpdated = elemShapeMapUpdated_.Mine(aT);
+      //   for (auto& ptr : shapeMapUpdated)
+      //     ptr.reset();
+      //   shapeMapUpdated.Clear();
+      // }
+    }
+
     for (auto it = ncInterfaces_.End(); it-- != ncInterfaces_.Begin();) {
       (*it)->ResetInterface();
     }
@@ -687,6 +722,7 @@ namespace CoupledField
       (*it)->UpdateInterface();
     }
   }
+
   bool Grid::HasNCI() {
     if (!ncInterfaces_.IsEmpty())
       return true;

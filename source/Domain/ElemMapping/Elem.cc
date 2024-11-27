@@ -8,7 +8,7 @@ namespace CoupledField {
 
 // static declaration
 std::map<Elem::FEType,ElemShape> Elem::shapes;
-std::mutex Elem::shapesMutex;
+// std::mutex Elem::shapesMutex;
 
   Elem::Elem() : 
     elemNum(0),

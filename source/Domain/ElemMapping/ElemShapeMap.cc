@@ -402,7 +402,7 @@ void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
 
     // Check if the element is a surface element
     {
-        std::lock_guard<std::mutex> lock(Elem::shapesMutex); // Lock the mutex
+        // std::lock_guard<std::mutex> lock(Elem::shapesMutex); // Lock the mutex
         if (Elem::shapes[ptElem->type].dim == ptGrid_->GetDim() - 1) {
             try {
                 ptSurfElem_ = dynamic_cast<const SurfElem*>(ptElem);
