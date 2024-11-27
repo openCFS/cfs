@@ -50,7 +50,7 @@ namespace CoupledField
     region_.Add( NO_REGION_ID, "_NO_REGION_");
 
     UInt slotsToReserve = 6;
-    for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++){
+    for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++) {
       lastShapeElemNumOrig_.Mine(aT).Reserve(slotsToReserve);
       lastShapeElemNumUpdated_.Mine(aT).Reserve(slotsToReserve);
       elemShapeMapOrig_.Mine(aT).Reserve(slotsToReserve);
@@ -672,13 +672,25 @@ namespace CoupledField
     // We reset the interfaces in reverse order, so we always only delete nodes and elements that were created last
     // the double loop in Grid::InitNcInterfacesFromXML() assures that moving interfaces are updated last.
     // also, we need to assure that actively moving interfaces are updated before passively moving ones.
-    for (auto it = ncInterfaces_.End(); it-- != ncInterfaces_.Begin();) {
+
+    // clear members
+    for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++) {
+      lastShapeElemNumOrig_.Mine(aT).Clear();
+      lastShapeElemNumUpdated_.Mine(aT).Clear();
+      elemShapeMapOrig_.Mine(aT).Clear();
+      elemShapeMapUpdated_.Mine(aT).Clear();
+    }
+    
+
+    for(auto it = ncInterfaces_.End(); it-- != ncInterfaces_.Begin();) {
       (*it)->ResetInterface();
     }
-    for (auto it = ncInterfaces_.Begin(); it != ncInterfaces_.End(); ++it) {
+
+    for(auto it = ncInterfaces_.Begin(); it != ncInterfaces_.End(); ++it) {
       (*it)->UpdateInterface();
     }
   }
+
   bool Grid::HasNCI() {
     if (!ncInterfaces_.IsEmpty())
       return true;
