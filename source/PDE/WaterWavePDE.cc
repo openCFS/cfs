@@ -113,85 +113,87 @@ namespace CoupledField{
     }
     return crSpaces;
   }
-  
-  
-  void WaterWavePDE::ReadDampingInformation() {
-    std::map<std::string, DampingType> idDampType;
-    std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
 
-    // try to get dampingList
-    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
-    if( dampListNode ) {
-
-      // get specific damping nodes
-      ParamNodeList dampNodes = dampListNode->GetChildren();
-
-      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
-
-        std::string dampString = dampNodes[i]->GetName();
-        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
-
-        // determine type of damping
-        DampingType actType;
-        String2Enum( dampString, actType );
-
-        if( actType == RAYLEIGH ) {
-          // set data for Rayleigh damping
-          shared_ptr<RaylDampingData> actRaylDamp(new RaylDampingData());
-          actRaylDamp->alpha = "0.0"; // will be read from the material file in ComputeRayleighDamping()
-          actRaylDamp->beta = "0.0"; // will be read from the material file in ComputeRayleighDamping()
-          actRaylDamp->adjustDamping = false; // always false -> no adjusting of alpha and beta
-          idRaylData[actId] = actRaylDamp;        
-        }
-
-        // store damping type string
-        idDampType[actId] = actType;
-
-      }
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-        myParam_->Get("regionList")->GetChildren();
-
+  void WaterWavePDE::ReadDampingInformation()
+  {
+    // get regions of current PDE
+    ParamNodeList regionParamNodes = myParam_->Get("regionList")->GetChildren();
+    // corresponding region id
     RegionIdType actRegionId;
+    // corresponding region name and damping id
     std::string actRegionName, actDampingId;
+    // try to get the dampingList and return if it is not specified
+    PtrParamNode dampListNode = myParam_->Get("dampingList", ParamNode::PASS);
+    if (dampListNode) {
+      // get the individual damping nodes
+      ParamNodeList dampNodes = dampListNode->GetChildren();
+      // map of damping ids from the xml and corresponding damping types
+      std::map<std::string, DampingType> idDampType;
 
-    for (UInt k = 0; k < regionNodes.GetSize(); k++) {
-      regionNodes[k]->GetValue( "name", actRegionName );
-      regionNodes[k]->GetValue( "dampingId", actDampingId );
-      if( actDampingId == "" )
-        continue;
+      // Run over all region param nodes and assign the required damping information
+      for (UInt iRegion = 0; iRegion < regionParamNodes.GetSize(); ++iRegion) {
+        regionParamNodes[iRegion]->GetValue("name", actRegionName);
+        regionParamNodes[iRegion]->GetValue("dampingId", actDampingId);
 
-      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
+        // pass if no damping is defined
+        if (actDampingId == "")
+          continue;
 
-      // Check actDampingId was already registerd
-      if( idDampType.count( actDampingId ) == 0 ) {
-        EXCEPTION( "Damping with id '" << actDampingId
-                   << "' was not defined in 'dampingList'" );
-      }
+        // parse region id from region name
+        actRegionId = ptGrid_->GetRegion().Parse(actRegionName);
 
-      dampingList_[actRegionId] = idDampType[actDampingId];
-      if ( dampingList_[actRegionId] == RAYLEIGH ){
-        RaylDampingData actRayl = *(idRaylData[actDampingId]);
-        Double dampFreq;
+        // now, read the damping information from the dampingList
+        for (UInt iChild = 0; iChild < dampNodes.GetSize(); ++iChild) {
+          std::string dampString = dampNodes[iChild]->GetName();
+          std::string actId = dampNodes[iChild]->Get("id")->As<std::string>();
+          // only consider damping information for the current damping id
+          if (actId != actDampingId)
+            continue;
 
-        // Check if TanDelta was defined in mat file
-        if ( materials_[actRegionId]->IsSet(LOSS_TANGENS_DELTA) && materials_[actRegionId]->IsSet(RAYLEIGH_FREQUENCY) ){
-          EXCEPTION( "TangensDelta damping not implemented in WaterWavePDE" );
+          // determine type of damping
+          DampingType actType;
+          String2Enum(dampString, actType);
+
+          // store damping type string
+          idDampType[actId] = actType;
+          // break after the information is set as only one damping ID per region is possible
+          break;
         }
-        // ComputeRayleighDamping function is used to be consistent with other PDEs for later refactoring
-        // dampFreq is set as defined in mat file -> ComputeRayleighDamping sets alpha and beta as defined in mat file
-        materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-        // Compute Rayleigh damping parameters
-        materials_[actRegionId]->
-        ComputeRayleighDamping( actRayl.alpha, actRayl.beta,
-                                dampFreq, actRayl.ratioDeltaF, 
-                                actRayl.adjustDamping, isComplex_ );
-        regionRaylDamping_[actRegionId] = actRayl;
-      } else if(dampingList_[actRegionId] == PML &&
-          analysistype_ == BasePDE::TRANSIENT ) {
-        isTimeDomPML_ = true;
+
+        // check actDampingId was indeed registerd above
+        if (idDampType.count(actDampingId) == 0)
+          EXCEPTION("Damping with id '" << actDampingId << "' of region '" << actRegionName << "' was not found. Is it defined in the 'dampingList'?");
+
+        // assign damping type to the region
+        dampingList_[actRegionId] = idDampType[actDampingId];
+
+        // if Rayleigh damping is specified, parse and store the additional damping information
+        if (dampingList_[actRegionId] == RAYLEIGH) {
+          RaylDampingData actRaylCoeffs;
+          materials_[actRegionId]->GetRayleighCoeffStrings(actRaylCoeffs.alpha, actRaylCoeffs.beta);
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+        }
+        else if (dampingList_[actRegionId] == ADAPTED_LOSS_TANGENS_DELTA) {
+          if (!(analysistype_ == BasePDE::HARMONIC))
+            EXCEPTION("Adapted loss tangent delta damping is only allowed for harmonic analysis.");
+          RaylDampingData actRaylCoeffs;
+          materials_[actRegionId]->GetFreqAdaptedRayleighCoeffStrings(actRaylCoeffs.alpha, actRaylCoeffs.beta);
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+        }
+        else if (dampingList_[actRegionId] == GLOBAL_RAYLEIGH) {
+          EXCEPTION("Global Rayleigh damping is not yet implemented.");
+          if (dampNodes.GetSize() != 1)
+            EXCEPTION("Global Rayleigh damping does not allow for additional damping nodes defined.");
+          RaylDampingData actRaylCoeffs;
+          actRaylCoeffs.alpha = dampNodes[0]->Get("alpha")->As<std::string>();
+          actRaylCoeffs.beta = dampNodes[0]->Get("beta")->As<std::string>();
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+        }
+
+        // set flag to compute extra integrators for transient PML
+        if (dampingList_[actRegionId] == PML && analysistype_ == BasePDE::TRANSIENT) {
+          isTimeDomPML_ = true;
+        }
       }
     }
 
@@ -397,10 +399,10 @@ namespace CoupledField{
 
       BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 
-      //check for damping
-      if ( dampingList_[actRegion] == RAYLEIGH ) {
-        RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
-        stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
+      // check for damping
+      if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
+        RaylDampingData &actDamp = (regionRaylDamping_[actRegion]);
+        stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
       }
 
       feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
@@ -476,10 +478,10 @@ namespace CoupledField{
             gravityInt->SetName("gravityWaveIntegrator");
             BiLinFormContext *gravityContext = new BiLinFormContext(gravityInt, MASS);
 
-            //check for damping
-            if ( dampingList_[volRegion] == RAYLEIGH ) {
-              RaylDampingData & actDamp = (regionRaylDamping_[volRegion]);
-              gravityContext->SetSecDestMat(DAMPING, actDamp.alpha );
+            // check for damping
+            if (dampingList_[volRegion] == RAYLEIGH || dampingList_[volRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[volRegion] == GLOBAL_RAYLEIGH) {
+              RaylDampingData &actDamp = (regionRaylDamping_[volRegion]);
+              gravityContext->SetSecDestMat(DAMPING, actDamp.alpha);
             }
 
             gravityContext->SetEntities( actSDList, actSDList );

@@ -1003,7 +1003,7 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
   double pamping_m = 0.0; // add on without omega
   // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
   RegionIdType regionId = de->elem->regionId;
-  if(ctxt->pde->GetDamping(regionId) == RAYLEIGH)
+  if(ctxt->pde->GetDamping(regionId) == RAYLEIGH || ctxt->pde->GetDamping(regionId) == ADAPTED_LOSS_TANGENS_DELTA || ctxt->pde->GetDamping(regionId) == GLOBAL_RAYLEIGH)
   {
     assert(mode != EIGENFREQ);
     SinglePDE* pde = ctxt->pde;

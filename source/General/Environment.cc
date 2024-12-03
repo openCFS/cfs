@@ -575,7 +575,6 @@ namespace CoupledField {
     // Rayleigh Damping
     MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" );
     MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" );
-    MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" );
     MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" );
 
     // General Material Nonlinearity
@@ -1771,80 +1770,104 @@ namespace CoupledField {
     }
   }
 
-  template<>
-  void String2Enum<DampingType>( const std::string &in, DampingType &out ) {
-
-    if( in == "none" ) {
+  template <>
+  void String2Enum<DampingType>(const std::string &in, DampingType &out)
+  {
+    if (in == "none") {
       out = NONE;
-    } else if( in == "rayleigh" ) {
+    }
+    else if (in == "rayleigh") {
       out = RAYLEIGH;
-    } else if( in == "abc") {
+    }
+    else if (in == "abc") {
       out = ABCDAMP;
-    } else if( in == "thermoViscous") {
+    }
+    else if (in == "thermoViscous") {
       out = THERMOVISCOUS;
-    } else if( in == "fractional") {
+    }
+    else if (in == "fractional") {
       out = FRACTIONAL;
-    } else if( in == "fractiona_gl") {
+    }
+    else if (in == "fractiona_gl") {
       out = FRACTIONAL_GL;
-    } else if( in == "fractional_blank") {
+    }
+    else if (in == "fractional_blank") {
       out = FRACTIONAL_BLANK;
-    } else if( in == "fractional_gl_int") {
+    }
+    else if (in == "fractional_gl_int") {
       out = FRACTIONAL_GL_INT;
-    } else if( in == "fractional_blank_int") {
+    }
+    else if (in == "fractional_blank_int") {
       out = FRACTIONAL_BLANK_INT;
-    } else if( in == "pml" ) {
+    }
+    else if (in == "pml") {
       out = PML;
-    } else if( in == "dampLayer" ) {
+    }
+    else if (in == "dampLayer") {
       out = DAMPLAYER;
-    } else if( in == "mapping" ) {
+    }
+    else if (in == "mapping") {
       out = MAPPING;
-    } else {
-      EXCEPTION( "'" << in << "' cannot be converted into an "
-                 << "'DampingType' item!" );
+    }
+    else if (in == "adaptedLossTangensDelta") {
+      out = ADAPTED_LOSS_TANGENS_DELTA;
+    }
+    else if (in == "globalRayleigh") {
+      out = GLOBAL_RAYLEIGH;
+    }
+    else {
+      EXCEPTION("'" << in << "' cannot be converted into a 'DampingType' item!");
     }
   }
 
-  template<>
-  void Enum2String<DampingType>( const DampingType &in, std::string& out ) {
-    switch(in) {
-      case NONE:
-        out = "none";
-        break;
-      case RAYLEIGH:
-        out = "rayleigh";
-        break;
-      case ABCDAMP:
-        out = "abc";
-        break;
-      case THERMOVISCOUS:
-        out = "thermoViscous";
-        break;
-      case FRACTIONAL:
-        out = "fractional";
-        break;
-      case FRACTIONAL_GL:
-        out = "fractiona_gl";
-        break;
-      case FRACTIONAL_BLANK:
-        out = "fractional_blank";
-        break;
-      case FRACTIONAL_GL_INT:
-        out = "fractional_gl_int";
-        break;
-      case FRACTIONAL_BLANK_INT:
-        out = "fractional_blank_int";
-        break;
-      case PML:
-        out = "pml";
-        break;
-      case DAMPLAYER:
-        out = "dampLayer";
-        break;
-      case MAPPING:
-        out = "mapping";
-        break;
-      default:
-        EXCEPTION( "No conversion found for 'DapmingType' " << in );
+  template <>
+  void Enum2String<DampingType>(const DampingType &in, std::string &out)
+  {
+    switch (in) {
+    case NONE:
+      out = "none";
+      break;
+    case RAYLEIGH:
+      out = "rayleigh";
+      break;
+    case ABCDAMP:
+      out = "abc";
+      break;
+    case THERMOVISCOUS:
+      out = "thermoViscous";
+      break;
+    case FRACTIONAL:
+      out = "fractional";
+      break;
+    case FRACTIONAL_GL:
+      out = "fractiona_gl";
+      break;
+    case FRACTIONAL_BLANK:
+      out = "fractional_blank";
+      break;
+    case FRACTIONAL_GL_INT:
+      out = "fractional_gl_int";
+      break;
+    case FRACTIONAL_BLANK_INT:
+      out = "fractional_blank_int";
+      break;
+    case PML:
+      out = "pml";
+      break;
+    case DAMPLAYER:
+      out = "dampLayer";
+      break;
+    case MAPPING:
+      out = "mapping";
+      break;
+    case ADAPTED_LOSS_TANGENS_DELTA:
+      out = "adaptedLossTangensDelta";
+      break;
+    case GLOBAL_RAYLEIGH:
+      out = "globalRayleigh";
+      break;
+    default:
+      EXCEPTION("No conversion found for 'DapmingType' " << in);
     }
   }
 

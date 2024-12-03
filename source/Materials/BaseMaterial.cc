@@ -1289,71 +1289,40 @@ namespace CoupledField
     return Yprevious_[idx];
   }
 
-  void BaseMaterial::ComputeRayleighDamping(string& alpha, string& beta,
-                                            Double dampFreq, Double ratioDeltaF,
-                                            bool adjustDamping, bool isHarmonic ) {
-
-    // First, calculate ALPHA and BETA for the current dampFreq
-    Double measuredFreq;
-    std::string alphaOrig, betaOrig;
-    GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
-    
-    if ( IsSet( RAYLEIGH_ALPHA ) 
-         && IsSet( RAYLEIGH_BETA ) 
-         && IsSet(RAYLEIGH_FREQUENCY) ) {
-      Double a, b;
-      GetScalar( a, RAYLEIGH_ALPHA, Global::REAL );
-      GetScalar( b, RAYLEIGH_BETA, Global::REAL);
-      GetScalar( measuredFreq, RAYLEIGH_FREQUENCY, Global::REAL ); 
-
-      alphaOrig = lexical_cast<std::string>(a);
-      betaOrig = lexical_cast<std::string>(b);
-
-      if( abs(measuredFreq-dampFreq) > 0.001*measuredFreq ){
-        alphaOrig = "(" + alphaOrig + "*" +
-                    lexical_cast<std::string>(dampFreq/measuredFreq) + ")";
-        betaOrig= "(" + betaOrig + "*" +
-                  lexical_cast<std::string>(measuredFreq/dampFreq)+ ")";
-      }
-    }
-    else if ( IsSet(LOSS_TANGENS_DELTA) && IsSet(RAYLEIGH_FREQUENCY) ){
-
-      std::string tanDelta, deltaFreq, omega1, omega2;
-
-      Double td;
-      GetScalar( td, LOSS_TANGENS_DELTA , Global::REAL );
-      // make sure to enclose the expression by brackets!
-      tanDelta = "("+ lexical_cast<std::string>(td) + ")";
-      deltaFreq= lexical_cast<std::string>(ratioDeltaF)+"*"+ lexical_cast<std::string>(measuredFreq);
-
-      omega1= "(("+lexical_cast<std::string>(measuredFreq)+"-"+deltaFreq+")*2.0*pi)";
-      omega2= "(("+lexical_cast<std::string>(measuredFreq)+"+"+deltaFreq+")*2.0*pi)";
-
-      //Computation of alpha and beta according to Habil.Kaltenbacher p. 50 ff
-      // alpha + beta*omega_i*omega_i = omega_i*tanDelta_i
-      //betaOrig=tanDelta*((omega2-omega1)/(omega2*omega2-omega1*omega1));
-      betaOrig=tanDelta+"*((" + omega2 +"-" + omega1 +")/("+omega2+"*"+omega2+"-"+omega1+"*"+omega1+"))";
-      //alphaOrig=(omega1*tanDelta)-(betaOrig*omega1*omega1);
-      alphaOrig="("+omega1+"*"+tanDelta+")-("+betaOrig+"*"+omega1+"*"+omega1+")";
-    }
-    else
-      EXCEPTION("Error in specification of Rayleigh damping!!!" );
-
-    // If adjustDamping is true and we are in the frequency domain,
-    // we can adjust alpha and beta to keep the loss factor (tangens Delta)
-    // constant frequency.
-    if( adjustDamping && isHarmonic ) {
-      // calculate modified alpha' = alpha / measuredFreq * f
-      alpha = "(" + alphaOrig + ")/" + lexical_cast<std::string>(measuredFreq)  + "* f";
-      // calculate modified beta' = beta * measuredFreq / f
-      beta =  "(" + betaOrig + ")*" + lexical_cast<std::string>(measuredFreq) + " / f";
+  void BaseMaterial::GetRayleighCoeffStrings(std::string &alpha, std::string &beta)
+  {
+    if (this->raylDampType_ == ALPHA_BETA) {
+      double a;
+      double b;
+      GetScalar(a, RAYLEIGH_ALPHA, Global::REAL);
+      GetScalar(b, RAYLEIGH_BETA, Global::REAL);
+      alpha = lexical_cast<std::string>(a);
+      beta = lexical_cast<std::string>(b);
+      return;
     }
     else {
-      alpha = alphaOrig;
-      beta = betaOrig;
+      EXCEPTION("Rayleigh Alpha and Beta have not been set!")
     }
   }
 
+  void BaseMaterial::GetFreqAdaptedRayleighCoeffStrings(std::string &alpha, std::string &beta)
+  {
+    if (this->raylDampType_ == ADAPTED_LOSS_TANGENS) {
+      // First, check if the damping information is provided as a constant or frequency dependent
+      std::string tanDeltaStr;
+      GetString(tanDeltaStr, LOSS_TANGENS_DELTA);
+      double deltaF = 0.01;
+      // make sure to enclose the expression by brackets!
+      std::string deltaFStr = lexical_cast<std::string>(deltaF);
+      // simplified formula to keep mathParser string short
+      alpha = tanDeltaStr + "* pi * f * (1 - (" + deltaFStr + ")^2)";
+      beta = tanDeltaStr + "* 1 / (4 * pi * f)";
+      return;
+    }
+    else {
+      EXCEPTION("Adapted Loss Tangens has not been set!")
+    }
+  }
 
   MaterialType BaseMaterial::ConvertMaterialClass(MaterialClass mc)
   {

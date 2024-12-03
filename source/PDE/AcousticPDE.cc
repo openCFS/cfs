@@ -124,91 +124,88 @@ namespace CoupledField{
     }
     return crSpaces;
   }
-  
-  void AcousticPDE::ReadDampingInformation() {
-    std::map<std::string, DampingType> idDampType;
-    std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
 
-    // try to get dampingList
-    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
-    if( dampListNode ) {
-
-      // get specific damping nodes
-      ParamNodeList dampNodes = dampListNode->GetChildren();
-
-      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
-
-        std::string dampString = dampNodes[i]->GetName();
-        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
-
-        // determine type of damping
-        DampingType actType;
-        String2Enum( dampString, actType );
-
-        if( actType == RAYLEIGH ) {
-          // set data for Rayleigh damping
-          shared_ptr<RaylDampingData> actRaylDamp(new RaylDampingData());
-          actRaylDamp->alpha = "0.0";
-          actRaylDamp->beta = "0.0";
-          actRaylDamp->adjustDamping = true;
-          actRaylDamp->ratioDeltaF = 0.01;
-          actRaylDamp->freq = 0.0;
-          dampNodes[i]->GetValue( "freq", actRaylDamp->freq, ParamNode::PASS);
-          dampNodes[i]->GetValue( "ratioDeltaF", actRaylDamp->ratioDeltaF,
-                                  ParamNode::PASS );
-          dampNodes[i]->GetValue( "adjustDamping",actRaylDamp->adjustDamping,  
-                                  ParamNode::PASS);
-          idRaylData[actId] = actRaylDamp;        
-        }
-
-        // store damping type string
-        idDampType[actId] = actType;
-
-      }
-    }
-
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-        myParam_->Get("regionList")->GetChildren();
-
+  void AcousticPDE::ReadDampingInformation()
+  {
+    // get regions of current PDE
+    ParamNodeList regionParamNodes = myParam_->Get("regionList")->GetChildren();
+    // corresponding region id
     RegionIdType actRegionId;
+    // corresponding region name and damping id
     std::string actRegionName, actDampingId;
+    // try to get the dampingList and return if it is not specified
+    PtrParamNode dampListNode = myParam_->Get("dampingList", ParamNode::PASS);
+    if (dampListNode) {
+      // get the individual damping nodes
+      ParamNodeList dampNodes = dampListNode->GetChildren();
+      // map of damping ids from the xml and corresponding damping types
+      std::map<std::string, DampingType> idDampType;
 
-    for (UInt k = 0; k < regionNodes.GetSize(); k++) {
-      regionNodes[k]->GetValue( "name", actRegionName );
-      regionNodes[k]->GetValue( "dampingId", actDampingId );
-      if( actDampingId == "" )
-        continue;
+      // Run over all region param nodes and assign the required damping information
+      for (UInt iRegion = 0; iRegion < regionParamNodes.GetSize(); ++iRegion) {
+        regionParamNodes[iRegion]->GetValue("name", actRegionName);
+        regionParamNodes[iRegion]->GetValue("dampingId", actDampingId);
 
-      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
+        // pass if no damping is defined
+        if (actDampingId == "")
+          continue;
 
-      // Check actDampingId was already registerd
-      if( idDampType.count( actDampingId ) == 0 ) {
-        EXCEPTION( "Damping with id '" << actDampingId
-                   << "' was not defined in 'dampingList'" );
-      }
+        // parse region id from region name
+        actRegionId = ptGrid_->GetRegion().Parse(actRegionName);
 
-      dampingList_[actRegionId] = idDampType[actDampingId];
-      if ( dampingList_[actRegionId] == RAYLEIGH ){
-        RaylDampingData actRayl = *(idRaylData[actDampingId]);
-        Double dampFreq;
+        // now, read the damping information from the dampingList
+        for (UInt iChild = 0; iChild < dampNodes.GetSize(); ++iChild) {
+          std::string dampString = dampNodes[iChild]->GetName();
+          std::string actId = dampNodes[iChild]->Get("id")->As<std::string>();
+          // only consider damping information for the current damping id
+          if (actId != actDampingId)
+            continue;
 
-        if( actRayl.freq == 0.0 ) {
-          materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-        } else { 
-          dampFreq = actRayl.freq;
+          // determine type of damping
+          DampingType actType;
+          String2Enum(dampString, actType);
+
+          // store damping type string
+          idDampType[actId] = actType;
+          // break after the information is set as only one damping ID per region is possible
+          break;
         }
-        // Compute Rayleigh damping parameters
-        materials_[actRegionId]->
-        ComputeRayleighDamping( actRayl.alpha, actRayl.beta,
-                                dampFreq, actRayl.ratioDeltaF, 
-                                actRayl.adjustDamping, isComplex_ );
-        regionRaylDamping_[actRegionId] = actRayl;
-      } else if(dampingList_[actRegionId] == PML &&
-          analysistype_ == BasePDE::TRANSIENT ) {
-        isTimeDomPML_ = true;
+
+        // check actDampingId was indeed registerd above
+        if (idDampType.count(actDampingId) == 0)
+          EXCEPTION("Damping with id '" << actDampingId << "' of region '" << actRegionName << "' was not found. Is it defined in the 'dampingList'?");
+
+        // assign damping type to the region
+        dampingList_[actRegionId] = idDampType[actDampingId];
+
+        // if Rayleigh damping is specified, parse and store the additional damping information
+        if (dampingList_[actRegionId] == RAYLEIGH) {
+          RaylDampingData actRaylCoeffs;
+          materials_[actRegionId]->GetRayleighCoeffStrings(actRaylCoeffs.alpha, actRaylCoeffs.beta);
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+        }
+        else if (dampingList_[actRegionId] == ADAPTED_LOSS_TANGENS_DELTA) {
+          if (!(analysistype_ == BasePDE::HARMONIC))
+            EXCEPTION("Adapted loss tangent delta damping is only allowed for harmonic analysis.");
+          RaylDampingData actRaylCoeffs;
+          materials_[actRegionId]->GetFreqAdaptedRayleighCoeffStrings(actRaylCoeffs.alpha, actRaylCoeffs.beta);
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+        }
+        else if (dampingList_[actRegionId] == GLOBAL_RAYLEIGH) {
+          EXCEPTION("Global Rayleigh damping is not yet implemented.");
+          if (dampNodes.GetSize() != 1)
+            EXCEPTION("Global Rayleigh damping does not allow for additional damping nodes defined.");
+          RaylDampingData actRaylCoeffs;
+          actRaylCoeffs.alpha = dampNodes[0]->Get("alpha")->As<std::string>();
+          actRaylCoeffs.beta = dampNodes[0]->Get("beta")->As<std::string>();
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+        }
+
+        // set flag to compute extra integrators for transient PML
+        if (dampingList_[actRegionId] == PML && analysistype_ == BasePDE::TRANSIENT) {
+          isTimeDomPML_ = true;
+        }
       }
-      
     }
   }
 
@@ -1055,35 +1052,34 @@ namespace CoupledField{
     // stiffness context
     stiffInt->SetName("LaplaceIntegrator");
     BiLinFormContext *stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS);
-
     feFunctions_[formulation_]->AddEntityList(actSDList);
     stiffIntDescr->SetEntities(actSDList, actSDList);
     stiffIntDescr->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
     stiffInt->SetFeSpace(feFunctions_[formulation_]->GetFeSpace());
 
-    assemble_->AddBiLinearForm(stiffIntDescr);
-    bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, stiffInt));
-
     // mass context
     massInt->SetName("MassIntegrator");
     massInt->SetFeSpace(feFunctions_[formulation_]->GetFeSpace());
-
     BiLinFormContext *massContext = new BiLinFormContext(massInt, MASS);
-
     massContext->SetEntities(actSDList, actSDList);
     massContext->SetFeFunctions(feFunctions_[formulation_], feFunctions_[formulation_]);
-    assemble_->AddBiLinearForm(massContext);
-    massInts_[actRegion] = massInt;
 
-    // check damping
-    if (dampingList_[actRegion] == RAYLEIGH) {
+    // Check for Rayleigh damping
+    if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
       if (complexFluidFormulation_)
-        EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
-
+      EXCEPTION("Complex fluid region and Rayleigh damping not allowed!!");
       RaylDampingData &actDamp = regionRaylDamping_[actRegion];
-      stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
       massContext->SetSecDestMat(DAMPING, actDamp.alpha);
+      stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
     }
+
+    // add bilinear form descriptions to the assembler
+    assemble_->AddBiLinearForm(stiffIntDescr);
+    assemble_->AddBiLinearForm(massContext);
+    // Add bdb-integrator to global list, as we need them later for calculation of postprocessing results.
+    bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, stiffInt));
+    // Add mass-integrator to global list, as we need them later for calculation of postprocessing results
+    massInts_[actRegion] = massInt;
   }
 
   void AcousticPDE::DefineSurfaceIntegrators( ){
@@ -2807,7 +2803,7 @@ namespace CoupledField{
       cSQR = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV) );
     }
   }
-} // namespace CoupledField
+  } // namespace CoupledField
 
 template void AcousticPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string,
     RegionIdType actRegion, std::string tempId);

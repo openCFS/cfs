@@ -58,7 +58,8 @@ namespace CoupledField {
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
     FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6,
     FRACTIONAL_GL_INT=7, FRACTIONAL_BLANK_INT=8,
-    PML, DAMPLAYER, MAPPING};
+    PML = 9, DAMPLAYER = 10, MAPPING = 11, 
+    ADAPTED_LOSS_TANGENS_DELTA = 12, GLOBAL_RAYLEIGH = 13};
 
   //! Type of nonlinearity for certain pdes
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
@@ -404,9 +405,10 @@ namespace CoupledField {
     // =========
     DENSITY,
 
-    // -- Rayleigh damping --
-    RAYLEIGH_ALPHA, RAYLEIGH_BETA, RAYLEIGH_FREQUENCY, RAYLEIGH_DELTA_FREQ,
-    LOSS_TANGENS_DELTA,
+    // =========
+    // Rayleigh damping
+    // =========
+    RAYLEIGH_ALPHA, RAYLEIGH_BETA, LOSS_TANGENS_DELTA,
 
     // -- General Material Nonlinearity --
     NONLIN_DEPENDENCY,

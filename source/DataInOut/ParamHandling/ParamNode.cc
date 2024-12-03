@@ -291,20 +291,18 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
   }
 
   // perform action, in case no node was found
-  if (result == NULL || action == APPEND)
-  {
+  if (result == NULL || action == APPEND) {
     // depending on ActionType:
-    switch (action)
-    {
+    switch (action) {
     case DEFAULT:
-      EXCEPTION("Some action has to be performed")
-      ;
+      EXCEPTION("Some action has to be performed");
       break;
-    case EX:
-      EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
-          << this->name_ << "'" << " has a child '" << myName << "' ")
-      ;
+    case EX: {
+      std::string matName;
+      GetValue("name", matName, ParamNode::EX);
+      EXCEPTION("None of the " << children_.GetSize() << " childs of element '" << this->name_ << "' with name '" << matName << "' has a child '" << myName << "' ");
       break;
+    }
     case PASS:
       break;
     case INSERT:
