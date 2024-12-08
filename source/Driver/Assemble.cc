@@ -532,9 +532,12 @@ namespace CoupledField
       StdVector<BiLinearForm *> biLinForms(forms.GetSize());
       biLinForms.Init(NULL);
 
-      UInt chunksize = std::floor(size/numT);
+      // UInt chunksize = std::floor(size/numT);                // last chunk eventually ends up being disproportionally large
+      UInt chunksize = std::ceil((double)size / (double)numT);  // adjustment to distribute chunks' sizes more evenly
       UInt start = chunksize * aThread;
-      UInt end = (aThread==numT-1)? size : (chunksize * (aThread+1));
+      // UInt end = (aThread==numT-1)? size : (chunksize * (aThread+1));
+      UInt end = std::min(size, start + chunksize);             // should be sufficient enough
+
 
       for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
         //copy bilinear forms
