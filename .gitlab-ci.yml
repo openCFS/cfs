@@ -600,7 +600,7 @@ cfsdeps:gcc12:
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
   extends: .cfsdeps
-  image: opencfs/centos7-intel
+  image: opencfs/rhel8-intel
   <<: *cache_cfsdeps-intel
   artifacts:
     paths:
@@ -744,9 +744,9 @@ cfsdeps:MSVC2022-Ifort2021:
 .intel_before: &intel_before
   before_script:
     # we assume CC, CXX and FC is set in the image properly (e.g. in the file bash_profile)
-    - icc -v
-    - icpc -v
-    - ifort -v
+    - (icc -v || icx -v)
+    - (icpc -v || icpx -v)
+    - (ifort -v || ifx -v)
     - $CC -v
     - $CXX -v
     - $FC -v
@@ -853,9 +853,9 @@ linux:gcc12:
 # intel compiler builds
 linux:intel:
   extends: .default_build_job
-  image: opencfs/centos7-intel
+  image: opencfs/rhel8-intel
   variables:
-    BUILD_NAME: "Intel2021"
+    BUILD_NAME: "Intel2025"
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
       <<: *require-rebuild-changes
@@ -1242,7 +1242,7 @@ stable_par:intel:linux:
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 / stable parallel
+    BUILD_NAME: Intel2025 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1255,7 +1255,7 @@ unstable_ser:intel:linux:
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 / unstable serial
+    BUILD_NAME: Intel2025 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1462,7 +1462,7 @@ unstable_par:intel:linux:
     - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: Intel2021 / unstable parallel
+    BUILD_NAME: Intel2025 / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1498,7 +1498,7 @@ broken_ser:intel:linux:
     - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: Intel2021 / broken serial
+    BUILD_NAME: Intel2025 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
