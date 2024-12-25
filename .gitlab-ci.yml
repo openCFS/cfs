@@ -23,6 +23,11 @@ variables:
   # build options for the maximal config
   MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON"
   MUSL_CONFIG_OPTIONS: "-DCMAKE_EXE_LINKER_FLAGS=-static -DMKL_THREADING=gnu_thread" # link statically
+  # Select which tag of the build containers we use. Update the tag when there are breaking changes in the conainers!
+  # This way pipelines for old CFS-commits can still run on old container versions.
+  # see https://gitlab.com/openCFS/build-environment/-/tags
+  # or https://hub.docker.com/u/opencfs for the available images
+  BUILD_ENVIRONMENT_TAG: 2024.12
 
 # stages in the pipeline run in succession
 stages:
@@ -116,7 +121,7 @@ workflow:
 
 testsuite-revision:
   extends: .check
-  image: opencfs/fedora32
+  image: opencfs/fedora32:$BUILD_ENVIRONMENT_TAG
   variables:
     # we clone to make sure we have everything (including current names of the SHAs)
     GIT_STRATEGY: clone
@@ -147,7 +152,7 @@ testsuite-revision:
 markdown-link-check:
   extends: .check
   image: 
-    name: ghcr.io/tcort/markdown-link-check # working label :3.12.2
+    name: opencfs/markdown-link-check:$BUILD_ENVIRONMENT_TAG
     entrypoint: ["/bin/sh","-c"]
   variables:
     GIT_STRATEGY: fetch
@@ -175,7 +180,7 @@ markdown-link-check:
         compare_to: 'refs/heads/master'
 pipeline-changes:
   extends: .check
-  image: opencfs/fedora32
+  image: opencfs/fedora32:$BUILD_ENVIRONMENT_TAG
   # switch off cloning the Testsuite submodule
   variables:
     GIT_STRATEGY: none
@@ -577,7 +582,7 @@ rhel:9:
 
 cfsdeps:gcc7:
   extends: .cfsdeps
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   <<: *cache_cfsdeps-gcc7
   artifacts:
     paths:
@@ -588,7 +593,7 @@ cfsdeps:gcc7:
 
 cfsdeps:gcc12:
   extends: .cfsdeps
-  image: opencfs/fedora37
+  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
   <<: *cache_cfsdeps-gcc12
   artifacts:
     paths:
@@ -600,7 +605,7 @@ cfsdeps:gcc12:
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
   extends: .cfsdeps
-  image: opencfs/rhel8-intel
+  image: opencfs/rhel8-intel:$BUILD_ENVIRONMENT_TAG
   <<: *cache_cfsdeps-intel
   artifacts:
     paths:
@@ -610,7 +615,7 @@ cfsdeps:intel:
 
 cfsdeps:gcc13-musl:
   extends: .cfsdeps
-  image: opencfs/alpine:2024.02
+  image: opencfs/alpine:$BUILD_ENVIRONMENT_TAG
   variables:
     <<: *cfsdeps-variables
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS # add the MUSL-options
@@ -786,7 +791,7 @@ cfsdeps:MSVC2022-Ifort2021:
 # maximal build using as many options as possible
 linux:gcc7max-debug:
   extends: .default_build_job
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
@@ -798,7 +803,7 @@ linux:gcc7max-debug:
 # maximal build using as many options as possible
 linux:gcc7max:
   extends: .default_build_job
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "GCC7 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
@@ -810,7 +815,7 @@ linux:gcc7max:
 # this is the offcial release buils
 linux:gcc7:
   extends: .default_build_job
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "GCC7"
   <<: [ *release_build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
@@ -820,7 +825,7 @@ linux:gcc7:
 
 linux:gcc13-musl:
   extends: .default_build_job
-  image: opencfs/alpine:2024.02
+  image: opencfs/alpine:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "GCC13-MUSL"
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
@@ -831,7 +836,7 @@ linux:gcc13-musl:
 
 linux:gcc7min:
   extends: .default_build_job
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "GCC7 minimal"
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
@@ -842,7 +847,7 @@ linux:gcc7min:
 
 linux:gcc12:
   extends: .default_build_job
-  image: opencfs/fedora37
+  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "GCC12"
   <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc12 ]
@@ -853,7 +858,7 @@ linux:gcc12:
 # intel compiler builds
 linux:intel:
   extends: .default_build_job
-  image: opencfs/rhel8-intel
+  image: opencfs/rhel8-intel:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "Intel2025"
   rules:
@@ -869,7 +874,7 @@ linux:intel:
 # LLVM clang compiler builds
 linux:clang-debug:
   extends: .default_build_job
-  image: opencfs/fedora37-clang
+  image: opencfs/fedora37-clang:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "Clang debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
@@ -901,7 +906,7 @@ linux:clang-debug:
 # build with ninja
 linux:gcc12:ninja:
   extends: .default_build_job
-  image: opencfs/fedora37
+  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
   rules:
     # this job is always manual (just for info)
     - if: $CFS_PIPELINE_TYPE == "test"
@@ -1069,7 +1074,7 @@ windows:MSVC2022-Ifort2021:
 stable_ser:gcc7min:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
     BUILD_NAME: "GCC7 minimal / stable serial"
@@ -1082,7 +1087,7 @@ stable_ser:gcc7min:linux:
 unstable_ser:gcc7min:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
     # is built without opnemp  
@@ -1098,7 +1103,7 @@ stable_par:gcc7max:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
@@ -1113,7 +1118,7 @@ unstable_ser:gcc7max:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
@@ -1126,7 +1131,7 @@ unstable_ser:gcc7max:linux:
 # closed build using as many options as possible and containing closed source software AND tests
 stable_par:gcc7closed:linux:
   stage: test
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1187,7 +1192,7 @@ stable_par:gcc7closed:linux:
 stable_ser:gcc13-musl:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
     BUILD_NAME: "GCC13-MUSL / stable serial"
@@ -1200,7 +1205,7 @@ stable_ser:gcc13-musl:linux:
 stable_par:gcc13-musl:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
     BUILD_NAME: "GCC13-MUSL / stable parallel"
@@ -1211,7 +1216,7 @@ stable_par:gcc13-musl:linux:
     - linux:gcc13-musl
 
 stable_par:gcc12:linux:
-  image: opencfs/fedora37
+  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   stage: test
@@ -1224,7 +1229,7 @@ stable_par:gcc12:linux:
     - linux:gcc12
 
 unstable_ser:gcc12:linux:
-  image: opencfs/fedora37
+  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   stage: test
@@ -1239,7 +1244,7 @@ unstable_ser:gcc12:linux:
 stable_par:intel:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
     BUILD_NAME: Intel2025 / stable parallel
@@ -1252,7 +1257,7 @@ stable_par:intel:linux:
 unstable_ser:intel:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
     BUILD_NAME: Intel2025 / unstable serial
@@ -1304,7 +1309,7 @@ unstable_ser:MSVC2022-Ifort2021:windows:
     - windows:MSVC2022-Ifort2021
 
 python:linux:
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   extends: .ctest_default
   tags:
     - saas-linux-small-amd64
@@ -1363,7 +1368,7 @@ broken_ser:gcc7min:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
     # is built without opnemp  
     BUILD_NAME: "GCC7 minimal / broken serial"
@@ -1387,7 +1392,7 @@ unstable_par:gcc7max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
@@ -1402,7 +1407,7 @@ broken_ser:gcc7max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
@@ -1419,7 +1424,7 @@ no-slow_ser:gcc7max-debug:linux:
   <<: *test_no_slow
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7
+  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   # overwrite rules & variables
   rules:
     - !reference [.max_never_auto_rule, rules]
@@ -1434,7 +1439,7 @@ no-slow_ser:gcc7max-debug:linux:
 
 unstable_par:gcc12:linux:
   extends: .test_extra
-  image: opencfs/fedora37
+  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1446,7 +1451,7 @@ unstable_par:gcc12:linux:
 
 broken_ser:gcc12:linux:
   extends: .test_extra
-  image: opencfs/fedora37
+  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1460,7 +1465,7 @@ unstable_par:intel:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: Intel2025 / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
@@ -1472,7 +1477,7 @@ unstable_par:gcc13-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: GCC13-MUSL / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
@@ -1484,7 +1489,7 @@ broken_ser:gcc13-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: GCC13-MUSL / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1496,7 +1501,7 @@ broken_ser:intel:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
+  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: Intel2025 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1524,7 +1529,7 @@ broken_ser:MSVC2022-Ifort2021:windows:
 # build doxygen docu
 doxygen:
   stage: docs
-  image: opencfs/fedora32
+  image: opencfs/fedora32:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
