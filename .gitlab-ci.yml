@@ -381,13 +381,6 @@ debian:11: # (bullseye)
     TAG: "11"
 
 # RHEL derivatives
-# centos 7, see https://hub.docker.com/_/centos, probably not maintained any more
-rhel:7:
-  extends: .platform
-  variables:
-    IMAGE: "centos"
-    TAG: "7"
-
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
 rhel:8:
   extends: .platform
