@@ -436,6 +436,24 @@ rhel:9:
         - build/cfsdeps/cache/sources/
       fallback_keys:
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
+# a cache including ccache
+.cache_cfsdeps-gcc14: &cache_cfsdeps-gcc14
+  cache:
+    - key: cfsdeps-precompiled-gcc14-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        - cfsdeps-precompiled-gcc14-$CI_DEFAULT_BRANCH
+    - key: ccache-gcc14-${CI_COMMIT_REF_NAME}
+      paths:
+        - ccache
+      fallback_keys:
+        - ccache-gcc14-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
 # seperate cache for intel, since shared runners need to save space
 .cache_cfsdeps-intel: &cache_cfsdeps-intel
   cache:
@@ -488,6 +506,12 @@ rhel:9:
   # show the contents of the cfsdeps cache
   - ls -l cfsdeps/cache/precompiled || ls #debug
   - ls -l cfsdeps/cache/sources || ls #debug
+  # analyze ccache
+  - ls $CI_PROJECT_DIR/ccache || true #debug
+  - ccache --verbose --show-stats || true
+  - ccache --verbose --zero-stats || true
+  - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
+  - if [ -n  "${CLEAR_CCACHE+set}" ]; then (rm -rf $CCACHE_DIR || echo "env variable CCACHE_DIR undefined" ); else echo "no clear of ccache directory (=$CCACHE_DIR) requested via environment variable CLEAR_CCACHE"; fi
   # remove precompiled when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
   - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache ) || echo "no clear-cache requested in commit message"
   - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache; else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
@@ -592,6 +616,16 @@ cfsdeps:gcc12:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_12*-lib.zip # legacy
       - build/cfsdeps/cache/precompiled/*GNU-12*.zip
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    expire_in: 6 hours
+
+cfsdeps:gcc14:
+  extends: .cfsdeps
+  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
+  <<: *cache_cfsdeps-gcc14
+  artifacts:
+    paths:
+      - build/cfsdeps/cache/precompiled/*GNU-14*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
@@ -711,12 +745,16 @@ cfsdeps:MSVC2022-Ifort2021:
     # clean up a bit to free disk space for cache-creation, leave artifacts and cache
     - rm -rf _CPack_Packages vtk include source bin lib
     - df -h # debug
+    # ccache info
+    - ccache --verbose --show-stats || true
+    - ccache --verbose --show-log-stats || true
     # save buildid for environment
     - *save_cdash_buildid
   artifacts:
     paths: # just an example
       - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
       - build/CMakeCache_build-stage.txt
+      - build/ccache.log # for debug
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 1.2 days            
 
@@ -846,6 +884,24 @@ linux:gcc12:
   <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc12 ]
   needs: 
     - job: cfsdeps:gcc12
+      optional: true
+
+linux:gcc14:
+  extends: .default_build_job
+  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
+  variables:
+    BUILD_NAME: "GCC14"
+    # configure cmake to use ninja and ccache
+    CMAKE_GENERATOR: Ninja
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
+    # configure ccache, see https://ccache.dev/manual/latest.html
+    CCACHE_BASEDIR: $CI_PROJECT_DIR/build 
+    CCACHE_DIR: $CI_PROJECT_DIR/ccache
+    CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
+    CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc14 ]
+  needs: 
+    - job: cfsdeps:gcc14
       optional: true
 
 # intel compiler builds
