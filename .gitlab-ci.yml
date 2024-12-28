@@ -595,7 +595,7 @@ rhel:9:
   script:
     - cmake $CFS_CONFIG_OPTIONS ..
     - cmake .
-    - make cfsdeps
+    - cmake --build . --target cfsdeps --parallel 1
   after_script:
     - ls -l build/cfsdeps/cache/precompiled || ls # debug
     - *restore_Testsuite_ignore
@@ -626,6 +626,8 @@ cfsdeps:gcc12:
 cfsdeps:gcc14:
   extends: .cfsdeps
   image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
+  variables:
+    CMAKE_GENERATOR: Ninja
   <<: *cache_cfsdeps-gcc14
   artifacts:
     paths:
