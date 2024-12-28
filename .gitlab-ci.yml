@@ -28,6 +28,11 @@ variables:
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
   BUILD_ENVIRONMENT_TAG: 2024.12
+  # configure ccache, see https://ccache.dev/manual/latest.html
+  CCACHE_BASEDIR: $CI_PROJECT_DIR/build
+  CCACHE_DIR: $CI_PROJECT_DIR/ccache
+  CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
+  CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
 
 # stages in the pipeline run in succession
 stages:
@@ -507,14 +512,13 @@ rhel:9:
   - ls -l cfsdeps/cache/precompiled || ls #debug
   - ls -l cfsdeps/cache/sources || ls #debug
   # analyze ccache
-  - ls $CI_PROJECT_DIR/ccache || true #debug
+  - ls $CCACHE_DIR || true #debug
   - ccache --verbose --show-stats || true
   - ccache --verbose --zero-stats || true
   - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
-  - if [ -n  "${CLEAR_CCACHE+set}" ]; then (rm -rf $CCACHE_DIR || echo "env variable CCACHE_DIR undefined" ); else echo "no clear of ccache directory (=$CCACHE_DIR) requested via environment variable CLEAR_CCACHE"; fi
-  # remove precompiled when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
-  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache ) || echo "no clear-cache requested in commit message"
-  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache; else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
+  # remove precompiled and ccache when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
+  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR ) || echo "no clear-cache requested in commit message"
+  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
   - ls -l cfsdeps || ls # debug
 
 # if testsuite_ignore is there, restore it
@@ -894,11 +898,6 @@ linux:gcc14:
     # configure cmake to use ninja and ccache
     CMAKE_GENERATOR: Ninja
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-    # configure ccache, see https://ccache.dev/manual/latest.html
-    CCACHE_BASEDIR: $CI_PROJECT_DIR/build 
-    CCACHE_DIR: $CI_PROJECT_DIR/ccache
-    CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
-    CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
   <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc14 ]
   needs: 
     - job: cfsdeps:gcc14
