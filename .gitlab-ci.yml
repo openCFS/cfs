@@ -1289,6 +1289,32 @@ unstable_ser:gcc12:linux:
   needs:
     - linux:gcc12
 
+stable_par:gcc14:linux:
+  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
+  tags:
+    - saas-linux-small-amd64
+  stage: test
+  variables:
+    BUILD_NAME: "GCC14 / stable parallel"
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-LE unstable|broken"
+  <<: *test_generic
+  needs:
+    - linux:gcc14
+
+unstable_ser:gcc14:linux:
+  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
+  tags:
+    - saas-linux-small-amd64
+  stage: test
+  variables:
+    BUILD_NAME: "GCC14 / unstable serial"
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L unstable"
+  <<: *test_generic
+  needs:
+    - linux:gcc14
+
 stable_par:intel:linux:
   tags:
     - saas-linux-small-amd64
@@ -1508,6 +1534,30 @@ broken_ser:gcc12:linux:
     CTEST_OPTIONS: "-L broken"
   needs:
     - linux:gcc12
+
+unstable_par:gcc14:linux:
+  extends: .test_extra
+  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
+  tags:
+    - saas-linux-small-amd64
+  variables:
+    BUILD_NAME: "GCC14 / unstable parallel"
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-L unstable"
+  needs:
+    - linux:gcc14
+
+broken_ser:gcc14:linux:
+  extends: .test_extra
+  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
+  tags:
+    - saas-linux-small-amd64
+  variables:
+    BUILD_NAME: "GCC14 / broken serial"
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L broken"
+  needs:
+    - linux:gcc14
 
 unstable_par:intel:linux:
   extends: .test_extra
