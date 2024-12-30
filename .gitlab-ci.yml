@@ -417,6 +417,26 @@ rhel:9:
 # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
 # we use one cache per compiler type, and one cache per branch
 # the master branch is used as a fallback key, it's cache is kept up to date by the nightly schedule
+# a cache including ccache
+# This is the generic cache: The CACHE_KEY must be set in every job
+.cache_linux: &cache_linux
+  cache:
+    - key: cfsdeps-precompiled-${CACHE_KEY}-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        - cfsdeps-precompiled-${CACHE_KEY}-$CI_DEFAULT_BRANCH
+    - key: ccache-${CACHE_KEY}-${CI_COMMIT_REF_NAME}
+      paths:
+        - ccache
+      fallback_keys:
+        - ccache-${CACHE_KEY}-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
+
 .cache_cfsdeps-gcc7: &cache_cfsdeps-gcc7
   cache:
     - key: cfsdeps-precompiled-gcc7-$CI_COMMIT_REF_NAME
@@ -469,23 +489,6 @@ rhel:9:
         # requires disabling od seperate branches
         # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
         - cfsdeps-precompiled-intel-$CI_DEFAULT_BRANCH
-    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
-      paths:
-        - build/cfsdeps/cache/sources/
-      fallback_keys:
-        # requires disabling od seperate branches
-        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
-        - cfsdeps-sources-$CI_DEFAULT_BRANCH
-
-.cache_cfsdeps-alpine: &cache_cfsdeps-alpine
-  cache:
-    - key: cfsdeps-precompiled-alpine-${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/precompiled/
-      fallback_keys:
-        # requires disabling od seperate branches
-        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
-        - cfsdeps-precompiled-alpine-$CI_DEFAULT_BRANCH
     - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/sources/
@@ -627,11 +630,12 @@ cfsdeps:gcc14:
   extends: .cfsdeps
   image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
   variables:
-    CMAKE_GENERATOR: Ninja
-  <<: *cache_cfsdeps-gcc14
+    <<: *cfsdeps-variables
+    CACHE_KEY: Fedora41GCC14
+  <<: *cache_linux
   artifacts:
     paths:
-      - build/cfsdeps/cache/precompiled/*GNU-14*.zip
+      - build/cfsdeps/cache/precompiled/*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
@@ -646,13 +650,14 @@ cfsdeps:intel:
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
-cfsdeps:gcc13-musl:
+cfsdeps:gcc14-musl:
   extends: .cfsdeps
   image: opencfs/alpine:$BUILD_ENVIRONMENT_TAG
   variables:
     <<: *cfsdeps-variables
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS # add the MUSL-options
-  <<: *cache_cfsdeps-alpine
+    CACHE_KEY: AlpineGCC14
+  <<: *cache_linux
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
@@ -860,15 +865,20 @@ linux:gcc7:
     - job: cfsdeps:gcc7
       optional: true
 
-linux:gcc13-musl:
+linux:gcc14-musl:
   extends: .default_build_job
   image: opencfs/alpine:$BUILD_ENVIRONMENT_TAG
   variables:
-    BUILD_NAME: "GCC13-MUSL"
+    BUILD_NAME: "GCC14-MUSL"
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
-  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-alpine ]
+    CACHE_KEY: AlpineGCC14
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
+    # use Ninja (which actually is 'samurai' on Alpine)
+    CMAKE_GENERATOR: Ninja
+  <<: [ *build_rules, *gcc_before, *cache_linux ]
   needs: 
-    - job: cfsdeps:gcc13-musl
+    - job: cfsdeps:gcc14-musl
       optional: true
 
 linux:gcc7min:
@@ -897,10 +907,11 @@ linux:gcc14:
   image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "GCC14"
+    CACHE_KEY: Fedora41GCC14
     # configure cmake to use ninja and ccache
     CMAKE_GENERATOR: Ninja
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc14 ]
+  <<: [ *build_rules, *gcc_before, *cache_linux ]
   needs: 
     - job: cfsdeps:gcc14
       optional: true
@@ -1239,31 +1250,31 @@ stable_par:gcc7closed:linux:
       annotations: build/annotations.json
     when: always
 
-stable_ser:gcc13-musl:linux:
+stable_ser:gcc14-musl:linux:
   tags:
     - saas-linux-small-amd64
   image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
-    BUILD_NAME: "GCC13-MUSL / stable serial"
+    BUILD_NAME: "GCC14-MUSL / stable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
-    - linux:gcc13-musl
+    - linux:gcc14-musl
 
-stable_par:gcc13-musl:linux:
+stable_par:gcc14-musl:linux:
   tags:
     - saas-linux-small-amd64
   image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
-    BUILD_NAME: "GCC13-MUSL / stable parallel"
+    BUILD_NAME: "GCC14-MUSL / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
-    - linux:gcc13-musl
+    - linux:gcc14-musl
 
 stable_par:gcc12:linux:
   image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
@@ -1573,29 +1584,29 @@ unstable_par:intel:linux:
   needs:
     - linux:intel
 
-unstable_par:gcc13-musl:linux:
+unstable_par:gcc14-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
-    BUILD_NAME: GCC13-MUSL / unstable parallel
+    BUILD_NAME: GCC14-MUSL / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
-    - linux:gcc13-musl
+    - linux:gcc14-musl
 
-broken_ser:gcc13-musl:linux:
+broken_ser:gcc14-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
-    BUILD_NAME: GCC13-MUSL / broken serial
+    BUILD_NAME: GCC14-MUSL / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
-    - linux:gcc13-musl
+    - linux:gcc14-musl
 
 broken_ser:intel:linux:
   extends: .test_extra
