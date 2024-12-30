@@ -390,16 +390,7 @@ if(DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS} OR "$ENV{CI_JOB_STAGE}" MATCHES "buil
   # Use an additional test during the build stage to grep the compiler errors
   add_test(Pipeline_Build_check-compiler-errors grep "0 Compiler errors" build.log)
   enable_testing()
-  # we need this options if we do not clone and include the testsuite, 
-  # but still want to submit the build resutls to cdash
-  set(DROP_SITE "movm.mi.uni-erlangen.de" CACHE STRING "URL of the CDash dashboard to submit test results")
-  mark_as_advanced(DROP_SITE)
-  set(DROP_LOCATION "/cdash/submit.php?project=CFS")
-  set(DROP_METHOD "http")
-  set(NIGHTLY_START_TIME "00:00:00 CET")
-  set(SUBMIT_URL "${DROP_METHOD}://${DROP_SITE}${DROP_LOCATION}") # for recent cmake versions
-  message(STATUS "submitting tests to: ${SUBMIT_URL}")
-  include(Dart) # to actually write DartConfiguration.tcl
+  message(STATUS "submitting tests to: ${CTEST_SUBMIT_URL}")
 endif()
 
 if(NOT DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS} AND NOT BUILD_TESTING)
