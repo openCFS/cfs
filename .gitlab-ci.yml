@@ -33,6 +33,7 @@ variables:
   CCACHE_DIR: $CI_PROJECT_DIR/ccache
   CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
+  CCACHE_MAXSIZE: 150M
 
 # stages in the pipeline run in succession
 stages:
@@ -466,18 +467,6 @@ rhel:9:
         - build/cfsdeps/cache/sources/
       fallback_keys:
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
-.cache_cfsdeps-gcc12: &cache_cfsdeps-gcc12
-  cache:
-    - key: cfsdeps-precompiled-gcc12-${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/precompiled/
-      fallback_keys:
-        - cfsdeps-precompiled-gcc12-$CI_DEFAULT_BRANCH
-    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
-      paths:
-        - build/cfsdeps/cache/sources/
-      fallback_keys:
-        - cfsdeps-sources-$CI_DEFAULT_BRANCH
 
 # seperate cache for intel, since shared runners need to save space
 .cache_cfsdeps-intel: &cache_cfsdeps-intel
@@ -614,29 +603,6 @@ cfsdeps:gcc7:
     paths:
       - build/cfsdeps/cache/precompiled/*GNU_7*-lib.zip # legacy
       - build/cfsdeps/cache/precompiled/*GNU-7*.zip
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 6 hours
-
-cfsdeps:gcc12:
-  extends: .cfsdeps
-  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
-  <<: *cache_cfsdeps-gcc12
-  artifacts:
-    paths:
-      - build/cfsdeps/cache/precompiled/*GNU_12*-lib.zip # legacy
-      - build/cfsdeps/cache/precompiled/*GNU-12*.zip
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 6 hours
-
-cfsdeps:gcc14:
-  extends: .cfsdeps
-  variables:
-    <<: *cfsdeps-variables
-    IMAGE: fedora41
-  <<: *cache_linux_cfsdeps-job
-  artifacts:
-    paths:
-      - build/cfsdeps/cache/precompiled/*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
@@ -892,30 +858,6 @@ linux:gcc7min:
     - job: cfsdeps:gcc7
       optional: true
 
-linux:gcc12:
-  extends: .default_build_job
-  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
-  variables:
-    BUILD_NAME: "GCC12"
-  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc12 ]
-  needs: 
-    - job: cfsdeps:gcc12
-      optional: true
-
-linux:gcc14:
-  extends: .default_build_job
-  variables:
-    IMAGE: fedora41
-    BUILD_NAME: "GCC14"
-    CACHE_KEY: Fedora41GCC14
-    # configure cmake to use ninja and ccache
-    CMAKE_GENERATOR: Ninja
-    CMAKE_CXX_COMPILER_LAUNCHER: ccache
-  <<: [ *build_rules, *gcc_before, *cache_linux_build-job ]
-  needs: 
-    - job: cfsdeps:gcc14
-      optional: true
-
 # intel compiler builds
 linux:intel:
   extends: .default_build_job
@@ -963,39 +905,6 @@ linux:clang-debug:
       fallback_keys:
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
   needs: []
-
-# build with ninja
-linux:gcc12:ninja:
-  extends: .default_build_job
-  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
-  rules:
-    # this job is always manual (just for info)
-    - if: $CFS_PIPELINE_TYPE == "test"
-      <<: *require-rebuild-changes
-      when: manual
-      allow_failure: true # do not stop the pipeline for this info-job
-    # it is not useful for nightly builds since it has no cdash output
-    - if: $CFS_PIPELINE_TYPE == "nightly"
-      when: never
-    - !reference [.build_rules, rules]
-  before_script:
-     # general build before script
-    - *before-script-build
-  script:
-    # configure with correct generator
-    - cmake -G Ninja ..
-    # build - note that we depend on cfsdeps:gcc12, hence the dependencies might already be built with make
-    # e.g. suitesparse cannot be build in parallel with ninja
-    - ninja -j1 cfsdeps
-    # build cfs in parallel   
-    - ninja  
-    # create artifacts
-    - cpack -G TGZ
-  after_script:
-    - ls -la
-  needs: 
-    - job: cfsdeps:gcc12
-      optional: true
 
 # windows build
 windows:MSVC2022-Ifort2021:
@@ -1276,58 +1185,6 @@ stable_par:gcc14-musl:linux:
   needs:
     - linux:gcc14-musl
 
-stable_par:gcc12:linux:
-  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  stage: test
-  variables:
-    BUILD_NAME: "GCC12 / stable parallel"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken"
-  <<: *test_generic
-  needs:
-    - linux:gcc12
-
-unstable_ser:gcc12:linux:
-  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  stage: test
-  variables:
-    BUILD_NAME: "GCC12 / unstable serial"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
-  needs:
-    - linux:gcc12
-
-stable_par:gcc14:linux:
-  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  stage: test
-  variables:
-    BUILD_NAME: "GCC14 / stable parallel"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken"
-  <<: *test_generic
-  needs:
-    - linux:gcc14
-
-unstable_ser:gcc14:linux:
-  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  stage: test
-  variables:
-    BUILD_NAME: "GCC14 / unstable serial"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
-  needs:
-    - linux:gcc14
-
 stable_par:intel:linux:
   tags:
     - saas-linux-small-amd64
@@ -1523,54 +1380,6 @@ no-slow_ser:gcc7max-debug:linux:
     # this special test_no_slow does -LE "unstable|slow"
   needs:
     - linux:gcc7max-debug
-
-unstable_par:gcc12:linux:
-  extends: .test_extra
-  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  variables:
-    BUILD_NAME: "GCC12 / unstable parallel"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-L unstable"
-  needs:
-    - linux:gcc12
-
-broken_ser:gcc12:linux:
-  extends: .test_extra
-  image: opencfs/fedora37:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  variables:
-    BUILD_NAME: "GCC12 / broken serial"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-L broken"
-  needs:
-    - linux:gcc12
-
-unstable_par:gcc14:linux:
-  extends: .test_extra
-  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  variables:
-    BUILD_NAME: "GCC14 / unstable parallel"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-L unstable"
-  needs:
-    - linux:gcc14
-
-broken_ser:gcc14:linux:
-  extends: .test_extra
-  image: opencfs/fedora41:$BUILD_ENVIRONMENT_TAG
-  tags:
-    - saas-linux-small-amd64
-  variables:
-    BUILD_NAME: "GCC14 / broken serial"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-L broken"
-  needs:
-    - linux:gcc14
 
 unstable_par:intel:linux:
   extends: .test_extra
