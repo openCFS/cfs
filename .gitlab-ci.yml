@@ -821,17 +821,17 @@ linux:gcc7max:
     - job: cfsdeps:gcc7
       optional: true
 
-# this is the offcial release buils
 linux:gcc7:
   extends: .default_build_job
   image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
   variables:
     BUILD_NAME: "GCC7"
-  <<: [ *release_build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
   needs: 
     - job: cfsdeps:gcc7
       optional: true
 
+# this is the official release build
 linux:gcc14-musl:
   extends: .default_build_job
   variables:
@@ -842,7 +842,7 @@ linux:gcc14-musl:
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
     # use Ninja (which actually is 'samurai' on Alpine)
     CMAKE_GENERATOR: Ninja
-  <<: [ *build_rules, *gcc_before, *cache_linux_build-job ]
+  <<: [ *release_build_rules, *gcc_before, *cache_linux_build-job ]
   needs: 
     - job: cfsdeps:gcc14-musl
       optional: true
@@ -1322,15 +1322,15 @@ broken_ser:gcc7min:linux:
     - linux:gcc7min
 
 # this test has the speciality that it shall run at an unspecified image 
-all_par:gcc7:any-linux:
+all_par:gcc14-musl:any-linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   variables:
-    BUILD_NAME: "GCC7 / all parallel any-linux"
+    BUILD_NAME: "GCC14-MUSL / all parallel any-linux"
     # no special options - we take all default (should be all tests & in parallel if NCPU>1)
   needs:
-    - linux:gcc7
+    - linux:gcc14-musl
 
 unstable_par:gcc7max:linux:
   extends: .test_extra
@@ -1539,7 +1539,7 @@ pages:
     # only for release pipelines in our namespace
     - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAMESPACE == "openCFS"
   dependencies:
-    - linux:gcc7
+    - linux:gcc14-musl
     - doxygen
   script:
     - mkdir -p public # create public dir
@@ -1577,7 +1577,7 @@ pages:
   after_script: []
   before_script: []
   needs:
-    - linux:gcc7
+    - linux:gcc14-musl
     - windows:MSVC2022-Ifort2021
 
 repack-release: # publish release packages (when a tag is pushed)
@@ -1650,27 +1650,3 @@ release:
           url: "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}" # uploaded by 'package' job before
           filepath: '/CFS-Windows.zip' # optional, but required for 'latest', defines the URL (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
           link_type: 'package' # optional, defines the section and icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
-
-copy_to_draco:
-  dependencies:
-    - linux:gcc7
-  script:
-    # copy over via scp
-    - scp "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
-  environment:
-    name: share_programs
-  <<: *deploy_rules
-
-install_on_draco:
-  dependencies: []
-  script:
-    # extract on draco by ssh
-    - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
-    # set the new symlink and replace the old one in one atomic operation
-    - ssh draco "cd /opt/programs/cfs_master/; ln -s CFS-$CI_COMMIT_SHA-Linux new; mv -fT new latest"
-    # run the cleanup script
-    - ssh draco "cd /opt/programs/cfs_master/; ./cleanup.sh"
-  environment:
-    name: share_programs
-  <<: *deploy_rules
-  needs: ["copy_to_draco"]
