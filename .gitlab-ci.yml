@@ -27,7 +27,7 @@ variables:
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: 2024.12.31
+  BUILD_ENVIRONMENT_TAG: latest
   # configure ccache, see https://ccache.dev/manual/latest.html
   CCACHE_BASEDIR: $CI_PROJECT_DIR/build
   CCACHE_DIR: $CI_PROJECT_DIR/ccache
