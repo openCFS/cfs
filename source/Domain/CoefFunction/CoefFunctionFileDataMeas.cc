@@ -57,9 +57,10 @@ void CoefFunctionFileDataMeas::GetVector(Vector<Double>& vec, const LocPointMapp
 
   StdVector<Double> dataVec = *iterData;
   Double time = *iterTime;
+  //std::cout << "time: " << time << std::endl;
 
   //check time
-  if ( actTime != time )
+  if ( (std::abs(actTime - time)) / std::abs(time) > 1e-10 )
     EXCEPTION("In CoefFunctionFileDataMeas::GetVector: time from file and transient analysis does not fit!")
 
   vec.Resize(dataVec.size());

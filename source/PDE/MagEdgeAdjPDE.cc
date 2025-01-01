@@ -373,7 +373,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
 
       bRHSRegions_[ent[i]->GetRegion()] = coef[i];      
 
-      // Here we store the B-field of the forward) simulation (magEdgePDE)
+      // Here we store the B-field of the forward simulation (magEdgePDE)
       Bmap_[ent[i]->GetRegion()] = coef[i];
     }
 
@@ -753,6 +753,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
         PtrCoefFct relucParam4;        
         RegionIdType actRegion = *regIt;
 
+        //needed for posprocessing of "magAveragedFluxDensity" result!
         if(Bmap_.find(*regIt) != Bmap_.end()){
           // B from previous (forward) simulation
           Bforward = Bmap_[*regIt];

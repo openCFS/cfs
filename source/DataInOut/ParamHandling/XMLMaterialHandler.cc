@@ -1025,12 +1025,12 @@ namespace CoupledField {
               info.analyticExprDerivP2 = iso->Get("nuDerivP2")->As<std::string>().c_str();
             } else
                 info.analyticExprDerivP2 = "0.0";
-            // read analytic derivative of nu w.r.t. parameter 1
+            // read analytic derivative of nu w.r.t. parameter 3
             if(iso->Has("nuDerivP3")){
               info.analyticExprDerivP3 = iso->Get("nuDerivP3")->As<std::string>().c_str();
             } else
                 info.analyticExprDerivP3 = "0.0";
-            // read analytic derivative of nu w.r.t. parameter 1
+            // read analytic derivative of nu w.r.t. parameter 4
             if(iso->Has("nuDerivP4")){
               info.analyticExprDerivP4 = iso->Get("nuDerivP4")->As<std::string>().c_str();
             } else
@@ -1096,6 +1096,19 @@ namespace CoupledField {
             material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_EB), Global::REAL);
             material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL);
             material->SetScalar(model->Get("jacobian_method")->As<Double>(), MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
+
+            BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(model, material);
+            if (model->Has("deriv_A")) {
+              info.analyticExprDerivP1 = model->Get("deriv_A")->As<std::string>().c_str();
+            } else
+              info.analyticExprDerivP1 = "0.0";
+            if (model->Has("deriv_Ps")) {
+              info.analyticExprDerivP2 = model->Get("deriv_Ps")->As<std::string>().c_str();
+            } else
+              info.analyticExprDerivP2 = "0.0";
+
+            info.approxType = ANALYTIC;
+            material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
           }
         }
       }
