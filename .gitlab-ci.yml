@@ -1046,7 +1046,7 @@ stable_par:gcc7max:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
+  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
@@ -1061,7 +1061,7 @@ unstable_ser:gcc7max:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
+  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
@@ -1077,7 +1077,7 @@ stable_par:gcc7closed:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: centos7-gcc7
+    IMAGE: centos7-gcc7:$BUILD_ENVIRONMENT_TAG
     BUILD_NAME: "GCC7 closed / stable opt parallel"
     # embedded_python is not closed but technically not that easy deployable
     CFS_CONFIG_OPTIONS: "-DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_SUITESPARSE=ON -DBUILD_CFSDAT=OFF" 
@@ -1311,14 +1311,14 @@ unstable_par:gcc7max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
+  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
     BUILD_NAME: "GCC7 maximal / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-L unstable"      
+    CTEST_OPTIONS: "-L unstable"
   needs:
     - linux:gcc7max
 
@@ -1326,7 +1326,7 @@ broken_ser:gcc7max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
+  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
@@ -1343,7 +1343,7 @@ no-slow_ser:gcc7max-debug:linux:
   <<: *test_no_slow
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7:$BUILD_ENVIRONMENT_TAG
+  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
   # overwrite rules & variables
   rules:
     - !reference [.max_never_auto_rule, rules]
