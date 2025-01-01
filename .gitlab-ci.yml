@@ -477,8 +477,8 @@ rhel:9:
   - ls -l cfsdeps/cache/sources || ls #debug
   # analyze ccache
   - ls $CCACHE_DIR || true #debug
-  - ccache --verbose --show-stats || true
-  - ccache --verbose --zero-stats || true
+  - ccache --verbose --show-stats || ccache -s || true
+  - ccache --verbose --zero-stats || ccache -z || true
   - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
   # remove precompiled and ccache when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
   - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR ) || echo "no clear-cache requested in commit message"
@@ -688,9 +688,11 @@ cfsdeps:MSVC2022-Ifort2021:
     # clean up a bit to free disk space for cache-creation, leave artifacts and cache
     - rm -rf _CPack_Packages vtk include source bin lib
     - df -h # debug
-    # ccache info
-    - ccache --verbose --show-stats || true
+    # ccache info & clean
+    - ccache --verbose --show-stats || ccache -s || true
     - ccache --verbose --show-log-stats || true
+    - ccache --verbose --cleanup || ccache -c || true
+    - ccache --verbose --show-stats || ccache -s || true
     # save buildid for environment
     - *save_cdash_buildid
   artifacts:
@@ -837,6 +839,8 @@ linux:intel:
   variables:
     IMAGE: rhel8-intel
     BUILD_NAME: "Intel2025"
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
       <<: *require-rebuild-changes
