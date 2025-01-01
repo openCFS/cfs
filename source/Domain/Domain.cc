@@ -866,6 +866,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     // Initialize current PDE
     // -> This step has now moved to method InitPDEs
     //ptSinglePde_[i]->Init();
+    //std::cout << "Domain Name: " << actPdeName << std::endl;
   }
 }
 

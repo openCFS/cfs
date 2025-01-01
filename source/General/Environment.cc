@@ -482,6 +482,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_SCALAR, "Magnetic_Reluctivity_Scalar" );
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_Reluctivity_Derivative" );
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV_P1, "Magnetic_Reluctivity_DerivativeP1" );
+    MaterialTypeEnum.Add( MAG_ANHYST_DERIV_P1, "Magnetic_Anhyst_DerivativeP1" );
+    MaterialTypeEnum.Add( MAG_ANHYST_DERIV_P2, "Magnetic_Anhyst_DerivativeP2" );
+    MaterialTypeEnum.Add( MAG_ANHYST_DERIV_P3, "Magnetic_Anhyst_DerivativeP3" );
+    MaterialTypeEnum.Add( MAG_ANHYST_DERIV_P4, "Magnetic_Anhyst_DerivativeP4" );
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV_P2, "Magnetic_Reluctivity_DerivativeP2" );
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV_P3, "Magnetic_Reluctivity_DerivativeP3" );
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV_P4, "Magnetic_Reluctivity_DerivativeP4" );    

@@ -1316,6 +1316,10 @@ namespace CoupledField {
     LOG_DBG(singlepde) <<  pdename_ << ": Requesting coefficient function for solution type " << SolutionTypeEnum.ToString(type);
     
     PtrCoefFct ret;
+    // HACK!!!!!!!!!!!!!!!!!
+    if ( type == MAG_MAGNETIZATION )
+      ret = matModelCoef_;
+
     // 1) look in fieldCoefs
     if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
       if( matCoefs_.find(type) == matCoefs_.end() ) {

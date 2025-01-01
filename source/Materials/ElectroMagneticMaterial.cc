@@ -38,6 +38,10 @@ namespace CoupledField
     isAllowed_.insert( MAG_RELUCTIVITY_SCALAR );
     isAllowed_.insert( MAG_RELUCTIVITY_DERIV );
     isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P1 );
+    isAllowed_.insert( MAG_ANHYST_DERIV_P1 );
+    isAllowed_.insert( MAG_ANHYST_DERIV_P2 );
+    isAllowed_.insert( MAG_ANHYST_DERIV_P3 );
+    isAllowed_.insert( MAG_ANHYST_DERIV_P4 );        
     isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P2 );
     isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P3 );
     isAllowed_.insert( MAG_RELUCTIVITY_DERIV_P4 );            
@@ -1268,15 +1272,17 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
                                  Global::ComplexPart matDataType,
                                  PtrCoefFct fluxCoef) {
     //This method allocates the objects handling the drivatives of the
-    //reluctivity w.r.t parameters
+    //reluctivity  or magnetic anhysteresis curve w.r.t parameters
     //needed in adjoint magnetic PDE
 
     // do check
     if( matType != MAG_RELUCTIVITY_DERIV_P1 &&
         matType != MAG_RELUCTIVITY_DERIV_P2 &&
         matType != MAG_RELUCTIVITY_DERIV_P3 &&
-        matType != MAG_RELUCTIVITY_DERIV_P4 ) {
-      EXCEPTION("Derivative of Scalar reluctivity w.r.t. paremeters P1 - P4 allowed!");
+        matType != MAG_RELUCTIVITY_DERIV_P4 &&
+        matType != MAG_ANHYST_DERIV_P1 &&
+        matType != MAG_ANHYST_DERIV_P2 ) {
+      EXCEPTION("Just derivative of Scalar reluctivity w.r.t. paremeters P1 - P4 or of anhysteresis curve w.r.t. P1 - P4 allowed!");
     }
 
     // Ensure that only real-valued parameters are used
@@ -1290,36 +1296,48 @@ GetScalCoefFncNonLin_MagStrict(MaterialType matType,
     MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY_SCALAR];
     if ( matNl.approxType == ANALYTIC ) {
       // this is for describing the reluctivity directly in the xml as analytic formula
-      // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
+      // basically, all occurences of B_R or H_R are replaced with the CoefFunction fluxDensAbs
 
-      // get Euclidean norm of B
+      // get Euclidean norm of B or H
       CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
       PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
 
-      // get function of B
+      shared_ptr<CoefFunctionCompound<Double> > parFnc(new CoefFunctionCompound<Double>(mp_));
+      std::map<std::string,PtrCoefFct> symbols;
+
+      // get function of B or H
       std::string fncStr;
       if ( matType == MAG_RELUCTIVITY_DERIV_P1 ) {
         fncStr = matNl.analyticExprDerivP1;
+        symbols["B"] = fluxDensAbs;
       } 
       else if ( matType == MAG_RELUCTIVITY_DERIV_P2 ) {
         fncStr = matNl.analyticExprDerivP2;
+        symbols["B"] = fluxDensAbs;
       }
       else if ( matType == MAG_RELUCTIVITY_DERIV_P3 ) {
         fncStr = matNl.analyticExprDerivP3;
+        symbols["B"] = fluxDensAbs;
       } 
       else if ( matType == MAG_RELUCTIVITY_DERIV_P4 ) {
         fncStr = matNl.analyticExprDerivP4;
+        symbols["B"] = fluxDensAbs;
       } 
+      else if ( matType == MAG_ANHYST_DERIV_P1) {
+        fncStr = matNl.analyticExprDerivP1;
+        symbols["H"] = fluxDensAbs;
+      }   
+      else if ( matType == MAG_ANHYST_DERIV_P2) {
+        fncStr = matNl.analyticExprDerivP2;
+        symbols["H"] = fluxDensAbs;
+      }             
       else {
-        EXCEPTION("matType has to be MAG_RELUCTIVITY_DERIV_P1 - P4!");
+        EXCEPTION("matType has to be MAG_RELUCTIVITY_DERIV_P1 - P4 or MAG_ANHYST_DERIV_P1 - P2");
       }
-
-      shared_ptr<CoefFunctionCompound<Double> > parFnc(new CoefFunctionCompound<Double>(mp_));
-      std::map<std::string,PtrCoefFct> symbolsNu;
-      symbolsNu["B"] = fluxDensAbs;
+      
       fncStr.insert(0,"( ");
       fncStr.append(" )");
-      parFnc->SetScalar(fncStr,symbolsNu);
+      parFnc->SetScalar(fncStr,symbols);
       ret = parFnc;
     } else {
       EXCEPTION("Just ANALYTIC functions are allowed")
