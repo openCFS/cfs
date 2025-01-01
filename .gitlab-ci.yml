@@ -944,7 +944,7 @@ windows:MSVC2022-Ifort2021:
     # optionally install cmake if not present
     - *cmake_test_or_install
     # CDash submit
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
+    - ctest -VV -D ExperimentalSubmit --track $CDASH_TRACK || true # very-verbose output, do not stop after script on fail
     # save buildid
     - *save_cdash_buildid
   artifacts:
@@ -1095,7 +1095,7 @@ stable_par:gcc7closed:linux:
     - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
       when: never
     - !reference [.build_rules, rules]
-  <<: [*gcc_before,*cache_linux_build-job]
+  <<: [*gcc_before,*cache_linux_build-job,*after_cdash_submit]
   script:
     ## BUILD STAGE
     - echo "CFS_CONFIG_OPTIONS="$CFS_CONFIG_OPTIONS
@@ -1122,12 +1122,6 @@ stable_par:gcc7closed:linux:
     - du -h --max-depth=1 . # debug
     # run the testsuite
     - ctest -D ExperimentalTest ${CTEST_OPTIONS} --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
-  after_script:
-    - cd build
-    # CDash submit
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    # save buildid
-    - *save_cdash_buildid
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/' # regular expression that searches through the job output and extracts the matching line. (\s = whitespace, \d = digit, ? = match 0 or 1 of the preceeding character, % = % sign; see https://docs.gitlab.com/ee/ci/yaml/#coverage for coverage infos)
   needs:
     - job: "cfsdeps:gcc7"
