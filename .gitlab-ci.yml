@@ -1050,7 +1050,7 @@ stable_par:gcc7max:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
+  image: opencfs/centos7-gcc7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
@@ -1065,7 +1065,7 @@ unstable_ser:gcc7max:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
+  image: opencfs/centos7-gcc7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
@@ -1081,7 +1081,7 @@ stable_par:gcc7closed:linux:
   tags:
     - saas-linux-small-amd64
   variables:
-    IMAGE: centos7-gcc7:$BUILD_ENVIRONMENT_TAG
+    IMAGE: centos7-gcc7
     BUILD_NAME: "GCC7 closed / stable opt parallel"
     # embedded_python is not closed but technically not that easy deployable
     CFS_CONFIG_OPTIONS: "-DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_SUITESPARSE=ON -DBUILD_CFSDAT=OFF" 
@@ -1089,6 +1089,7 @@ stable_par:gcc7closed:linux:
     CTEST_OPTIONS: "-LE unstable|broken -R Opt"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  image: opencfs/$IMAGE:$BUILD_ENVIRONMENT_TAG
   # ensure closed build is tested only when the keys are set
   rules:
     - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
