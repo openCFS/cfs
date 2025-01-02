@@ -26,5 +26,5 @@ Remove-Item "$env:INTEL_INSTALL_DIR\compiler\$LATEST_VERSION\windows\lib\x86" -F
 
 # install git
 wget.exe --quiet https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/PortableGit-2.43.0-64-bit.7z.exe
-./PortableGit-2.43.0-64-bit.7z.exe -o "$env:CI_PROJECT_DIR/cache/git" -y
+#./PortableGit-2.43.0-64-bit.7z.exe -o"$env:CI_PROJECT_DIR"/cache/git -y
 Remove-Item PortableGit-2.43.0-64-bit.7z.exe -Force -Recurse -ErrorAction SilentlyContinue
