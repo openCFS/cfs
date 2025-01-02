@@ -1,9 +1,18 @@
 # this should be run from the CFS root directory
 
+# install ccache (https://ccache.dev/download.html)
+wget.exe --quiet https://github.com/ccache/ccache/releases/download/v4.10.2/ccache-4.10.2-windows-x86_64.zip
+Expand-Archive -Path ccache-4.10.2-windows-x86_64.zip -DestinationPath ccache-extract
+New-Item -ItemType directory -Path cache/ccache
+Get-Childitem -Path ccache-extract -Include "ccache.exe" -File -Recurse | Copy-Item  -Destination cache/ccache
+# cleanup
+Remove-Item ccache-4.10.2-windows-x86_64.zip -Force -Recurse -ErrorAction SilentlyContinue
+Remove-Item ccache-extract -Force -Recurse -ErrorAction SilentlyContinue
+
 # install Fortran compiler
 .gitlab/ci/install_windows.bat https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7a6db8a1-a8b9-4043-8e8e-ca54b56c34e4/w_HPCKit_p_2024.0.1.35_offline.exe intel.oneapi.win.ifort-compiler
 # remove unnecessary stuff
-$LATEST_VERSION=Get-ChildItem -Path "$env:INTEL_INSTALL_DIR\compiler\" -Name | Select-String -NotMatch latest | %{$_.Line} | Sort-Object | Select-Object -Last 1
+$LATEST_VERSION=Get-ChildItem -Path "$env:INTEL_INSTALL_DIR\compiler" -Name | Select-String -NotMatch latest | %{$_.Line} | Sort-Object | Select-Object -Last 1
 
 Remove-Item "$env:INTEL_INSTALL_DIR\compiler\$LATEST_VERSION\windows\compiler\lib\ia32_win" -Force  -Recurse -ErrorAction SilentlyContinue
 Remove-Item "$env:INTEL_INSTALL_DIR\compiler\$LATEST_VERSION\windows\bin\intel64_ia32" -Force  -Recurse -ErrorAction SilentlyContinue
