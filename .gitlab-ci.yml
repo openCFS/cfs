@@ -898,6 +898,8 @@ windows:MSVC2022-Ifort2021:
                     ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.log &&
                     ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
                     ctest -D ExperimentalTest --track $CDASH_TRACK -V"
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache.exe
   script:
     # inherit the standard script, then extend by mv command
     - !reference [.windows-shared-build, script]

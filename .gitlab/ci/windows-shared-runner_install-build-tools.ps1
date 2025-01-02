@@ -1,5 +1,14 @@
 # this should be run from the CFS root directory
 
+# install ccache (https://ccache.dev/download.html)
+wget.exe --quiet https://github.com/ccache/ccache/releases/download/v4.10.2/ccache-4.10.2-windows-x86_64.zip
+Expand-Archive -LiteralPath "ccache-4.10.2-windows-x86_64.zip" -DestinationPath "ccache-install"
+Remove-Item "ccache-4.10.2-windows-x86_64.zip" -Force -Recurse -ErrorAction SilentlyContinue
+New-Item  -ItemType "directory" -Path "$env:CI_PROJECT_DIR\cache\ccache"
+Copy-Item -Path "ccache-install" -Filter "ccache.exe" -Destination "$env:CI_PROJECT_DIR\cache\ccache" –Recurse
+#Get-ChildItem -Path ".\*.exe" -Recurse | Move-Item -Destination "$env:CI_PROJECT_DIR/cache/ccache"
+cmake -E rm -rf -- "ccache-install"
+
 # install Fortran compiler
 .gitlab/ci/install_windows.bat https://registrationcenter-download.intel.com/akdlm/IRC_NAS/7a6db8a1-a8b9-4043-8e8e-ca54b56c34e4/w_HPCKit_p_2024.0.1.35_offline.exe intel.oneapi.win.ifort-compiler
 # remove unnecessary stuff

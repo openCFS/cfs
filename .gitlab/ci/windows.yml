@@ -42,6 +42,8 @@
     # see https://gitlab.com/gitlab-org/gitlab-runner/-/issues/4480
     - *powershell-debug-start_collapsed
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\cache"; $null
+    - Get-ChildItem -Path "$env:CCACHE_DIR"; $null
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\cache\ccache"; $null
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build"; $null
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\precompiled"; $null
     - *powershell-debug-end
@@ -105,6 +107,12 @@
       policy: $CFSDEPS_PRECOMPILED_POLICY
       fallback_keys:
         - cfsdeps-precompiled-windows-$CI_DEFAULT_BRANCH
+    - key: ccache-windows-$CI_COMMIT_REF_NAME
+      paths:
+        - ccache
+      policy: $CFSDEPS_PRECOMPILED_POLICY
+      fallback_keys:
+        - ccache-windows-$CI_DEFAULT_BRANCH
   before_script:
     # install the tools to cache
     - if(!(Test-Path cache)) { .gitlab/ci/windows-shared-runner_install-build-tools.ps1 } else { ls cache }
@@ -115,7 +123,7 @@
     - if ( "$CI_COMMIT_MESSAGE" -match "clear-cache" ) { $CLEAR_CACHE = "yes" } else { Write-Host "no clear-cache requested in commit message" }
     - if ( $null -eq $CLEAR_CACHE ) { Write-Host "no CLEAR_CACHE variable set" } else { cmake -E rm -rf -- "$CI_PROJECT_DIR\build\cfsdeps\cache" }
     # set git path for tools like patch and diff
-    - $env:Path += ";${CI_PROJECT_DIR}/cache/git/usr/bin"
+    - $env:Path += ";${CI_PROJECT_DIR}/cache/git/usr/bin;${CI_PROJECT_DIR}/cache/ccache"
     # make sure build/Testing is not present
     - cmake -E rm -rf -- "$CI_PROJECT_DIR\build\Testing"
     # debug
@@ -123,6 +131,8 @@
     # try to locate visual studio installation (only info)
     - *powershell-debug-start_collapsed
     - Get-Childitem -Path "C:\Program Files (x86)\Microsoft Visual Studio" -Include *vars*.bat -Recurse -ErrorAction SilentlyContinue; $null
+    - $CMAKE_CXX_COMPILER_LAUNCHER --verbose --show-stats; $null
+    - $CMAKE_CXX_COMPILER_LAUNCHER --verbose --zero-stats; $null
     - *powershell-debug-end
     # info about free space (debug)
     - Get-Volume; $null
@@ -143,6 +153,9 @@
   after_script:
     # zip all log files in the build directory
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build" -Include *.log -Recurse -ErrorAction SilentlyContinue | Compress-Archive -DestinationPath "$env:CI_PROJECT_DIR\build\logs.zip"; $null
+    # ccache stats & cleanup
+    - ccache.exe --verbose --show-stats; $null
+    - ccache.exe --verbose --cleanup; $null
     # do the CDash submission
     - !reference [.windwos_cdash,after_script]
 
