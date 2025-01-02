@@ -944,7 +944,7 @@ windows:MSVC2022-Ifort2021:
     # optionally install cmake if not present
     - *cmake_test_or_install
     # CDash submit
-    - ctest --debug -D ExperimentalSubmit --track $CDASH_TRACK || true # debug output, do not stop after script on fail
+    - ctest -VV -D ExperimentalSubmit --track $CDASH_TRACK || true # very-verbose output, do not stop after script on fail
     # save buildid
     - *save_cdash_buildid
   artifacts:
