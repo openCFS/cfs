@@ -94,6 +94,11 @@ workflow:
   - if: $CI_PIPELINE_SOURCE == "web" && $CFS_PIPELINE_TYPE == "manual"
     variables:
       CFS_PIPELINE_NAME: "Manual for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  # create a manual pipeline but run tests the match RUN_PATTERN
+  - if: $CI_PIPELINE_SOURCE == "web" && $RUN_PATTERN != null
+    variables:
+      CFS_PIPELINE_TYPE: "manual"
+      CFS_PIPELINE_NAME: "Running $RUN_PATTERN for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
   # automatically run if branch name starts or ends with test or is scheduled
   - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
     variables:
@@ -510,7 +515,7 @@ rhel:9:
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     # builds & tests are required
-    - if: $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "test" || ($CFS_PIPELINE_TYPE == "manual" && '$CI_JOB_NAME_SLUG =~ $RUN_PATTERN')
       <<: *require-rebuild-changes
     # all manual
     - if: $CFS_PIPELINE_TYPE == "manual"
