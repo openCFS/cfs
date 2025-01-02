@@ -131,8 +131,9 @@
     # try to locate visual studio installation (only info)
     - *powershell-debug-start_collapsed
     - Get-Childitem -Path "C:\Program Files (x86)\Microsoft Visual Studio" -Include *vars*.bat -Recurse -ErrorAction SilentlyContinue; $null
-    - $CMAKE_CXX_COMPILER_LAUNCHER --verbose --show-stats; $null
-    - $CMAKE_CXX_COMPILER_LAUNCHER --verbose --zero-stats; $null
+    - Write-Host "CMAKE_CXX_COMPILER_LAUNCHER=$CMAKE_CXX_COMPILER_LAUNCHER" # debug
+    - ccache.exe --verbose --show-stats; $null
+    - ccache.exe --verbose --zero-stats; $null
     - *powershell-debug-end
     # info about free space (debug)
     - Get-Volume; $null
