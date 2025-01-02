@@ -4,8 +4,8 @@
 wget.exe --quiet https://github.com/ccache/ccache/releases/download/v4.10.2/ccache-4.10.2-windows-x86_64.zip
 Expand-Archive -LiteralPath "ccache-4.10.2-windows-x86_64.zip" -DestinationPath "ccache-install"
 Remove-Item "ccache-4.10.2-windows-x86_64.zip" -Force -Recurse -ErrorAction SilentlyContinue
-New-Item  -ItemType "directory" -Path "$env:CI_PROJECT_DIR\cache\ccache"
-Copy-Item -Path "ccache-install" -Filter "ccache.exe" -Destination "$env:CI_PROJECT_DIR\cache\ccache" –Recurse
+New-Item  -ItemType "directory" -Path "$env:CI_PROJECT_DIR/cache/ccache"
+Copy-Item -Path "ccache-install" -Filter "ccache.exe" -Destination "$env:CI_PROJECT_DIR/cache/ccache" –Recurse
 #Get-ChildItem -Path ".\*.exe" -Recurse | Move-Item -Destination "$env:CI_PROJECT_DIR/cache/ccache"
 cmake -E rm -rf -- "ccache-install"
 
@@ -26,5 +26,5 @@ Remove-Item "$env:INTEL_INSTALL_DIR\compiler\$LATEST_VERSION\windows\lib\x86" -F
 
 # install git
 wget.exe --quiet https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/PortableGit-2.43.0-64-bit.7z.exe
-./PortableGit-2.43.0-64-bit.7z.exe -o"$env:CI_PROJECT_DIR/cache/git" -y
+./PortableGit-2.43.0-64-bit.7z.exe -o "$env:CI_PROJECT_DIR/cache/git" -y
 Remove-Item PortableGit-2.43.0-64-bit.7z.exe -Force -Recurse -ErrorAction SilentlyContinue
