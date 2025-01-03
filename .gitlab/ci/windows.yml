@@ -155,8 +155,8 @@
     # zip all log files in the build directory
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build" -Include *.log -Recurse -ErrorAction SilentlyContinue | Compress-Archive -DestinationPath "$env:CI_PROJECT_DIR\build\logs.zip"; $null
     # ccache stats & cleanup
-    - ccache.exe --verbose --show-stats; $null
-    - ccache.exe --verbose --cleanup; $null
+    - ${CI_PROJECT_DIR}/cache/ccache/ccache.exe --verbose --show-stats; $null
+    - ${CI_PROJECT_DIR}/cache/ccache/ccache.exe --verbose --cleanup; $null
     # do the CDash submission
     - !reference [.windwos_cdash,after_script]
 
