@@ -39,6 +39,7 @@ variables:
 stages:
   - check
   - platform
+  - clear
   - cfsdeps
   - build
   - test # we may have several test configs for one build
@@ -427,11 +428,13 @@ rhel:9:
     - key: cfsdeps-precompiled_${IMAGE}_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/precompiled/
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-precompiled_${IMAGE}_${CI_DEFAULT_BRANCH}
     - key: cfsdeps-sources_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/sources/
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-sources_${CI_DEFAULT_BRANCH}
 
@@ -439,24 +442,77 @@ rhel:9:
 .cache_linux_build-job: &cache_linux_build-job
   cache:
     # the cfsdeps are build config specific, use a fallback to get the ones from the default config
-    - key: cfsdeps-precompiled_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
+    - key: cfsdeps-precompiled_${IMAGE}_${JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/precompiled/
+      policy: $CACHE_POLICY
       # fallback for perhaps populated in cfsdeps stage
       fallback_keys:
         - cfsdeps-precompiled_${IMAGE}_${CI_COMMIT_REF_NAME}
         - cfsdeps-precompiled_${IMAGE}_${CI_DEFAULT_BRANCH}
     # the ccache entry is specific to the image (i.e. build system and compiler) and build configuration (e.g. CI_JOB_NAME_SLUG)
-    - key: ccache_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
+    - key: ccache_${IMAGE}_${JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
       paths:
         - ccache
+      policy: $CACHE_POLICY
       fallback_keys:
-        - ccache_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_DEFAULT_BRANCH}
+        - ccache_${IMAGE}_${JOB_NAME_SLUG}_${CI_DEFAULT_BRANCH}
     - key: cfsdeps-sources_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/sources/
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-sources_${CI_DEFAULT_BRANCH}
+
+# cache for clearing
+.clear-cache_rules: &clear-cache_rules
+  rules:
+    - if: $clear-cache != $null
+    - if: $CI_COMMIT_MESSAGE =~ /clear-cache/
+
+clear-cache:job:
+  stage: clear
+  variables:
+    CACHE_POLICY: push
+  <<: [*clear-cache_rules,*cache_linux_build-job]
+  parallel: 
+    matrix:
+      - IMAGE: centos7-gcc7
+        JOB_NAME_SLUG:
+          - linux-gcc7
+          - linux-gcc7min
+          - linux-gcc7max
+      - IMAGE: centos8-intel
+        JOB_NAME_SLUG:
+          - linux-intel
+      - IMAGE: alpine
+        JOB_NAME_SLUG: [ gcc14-musl ]
+      - IMAGE: windows # will clear ccache and precompiled
+        JOB_NAME_SLUG: [ msvc-ifort ]
+  script:
+    - mkdir -p build/cfsdeps/cache/precompiled
+    - touch "build/cfsdeps/cache/precompiled/clear-cache_$(date +%Y-%m-%d_%H-%M)"
+    - mkdir -p ccache
+    - touch "ccache/clear-cache_$(date +%Y-%m-%d_%H-%M)"
+
+clear-cache:cfsdeps:
+  stage: clear
+  variables:
+    CACHE_POLICY: push
+  <<: [*clear-cache_rules,*cache_linux_cfsdeps-job]
+  parallel:
+    matrix:
+      - IMAGE: 
+          - centos7-gcc7
+          - centos8-intel
+          - alpine
+          - windows
+  script:
+    - mkdir -p build/cfsdeps/cache/precompiled
+    - touch "build/cfsdeps/cache/precompiled/clear-cache_$(date +%Y-%m-%d_%H-%M)"
+    # also clear sources (last one of the parallel ones wins)
+    - mkdir -p build/cfsdeps/cache/sources/
+    - touch "build/cfsdeps/cache/sources/clear-cache_$(date +%Y-%m-%d_%H-%M)"
 
 .before-script-build: &before-script-build
   - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
@@ -480,9 +536,9 @@ rhel:9:
   - ccache --verbose --show-stats || ccache -s || true
   - ccache --verbose --zero-stats || ccache -z || true
   - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
-  # remove precompiled and ccache when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
+  # remove precompiled and ccache when we find clear-cache in the commit message or if an environment variable clear-cache is defined
   - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR ) || echo "no clear-cache requested in commit message"
-  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
+  - if [ -n  "${clear-cache+set}" ]; then rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR else echo "no clear cache requested via environment variable clear-cache"; fi
   - ls -l cfsdeps || ls # debug
 
 # if testsuite_ignore is there, restore it
@@ -490,7 +546,7 @@ rhel:9:
   - (ls Testsuite_ignore && mv -T Testsuite_ignore Testsuite) || ls Testsuite
   - git status # debug
 
-# define when csdeps need to be rebuilt based on changes
+# define when cfsdeps need to be rebuilt based on changes
 .cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
   # changes that require the cfsdeps to be re-built
   changes:
@@ -508,7 +564,11 @@ rhel:9:
     - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
       <<: *require-rebuild-changes
       when: manual
-      needs: [] # allow to be triggered manually without cfsdeps
+      needs: # allow to be triggered manually without cfsdeps (still wait for clear-cache jobs)
+        - job: "clear-cache:cfsdeps"
+          optional: true
+        - job: "clear-cache:job"
+          optional: true
     # builds & tests are required
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
@@ -570,7 +630,11 @@ rhel:9:
       - build/cfsdeps/cache/precompiled/*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
-  needs: []
+  needs:
+    - job: "clear-cache:cfsdeps"
+      optional: true
+    - job: "clear-cache:job"
+      optional: true
 
 cfsdeps:gcc7:
   extends: .cfsdeps
@@ -603,8 +667,7 @@ cfsdeps:MSVC2022-Ifort2021:
   variables:
     # set the cache policy to pull-push to update the cache
     INSTALL_POLICY: pull-push
-    CFSDEPS_SOURCES_POLICY: pull-push
-    CFSDEPS_PRECOMPILED_POLICY: pull-push
+    CACHE_POLICY: pull-push
     # define the build command
     BUILD_COMMAND: "cmake --build . --target cfsdeps"
   after_script:
@@ -615,8 +678,6 @@ cfsdeps:MSVC2022-Ifort2021:
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
     expire_in: 2 days
-  # Set empty needs so that the jobs start immediately (not per stage)
-  needs: []
 
 #######################################################################
 # BUILD STAGE definitions
@@ -649,6 +710,8 @@ cfsdeps:MSVC2022-Ifort2021:
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+    JOB_NAME_SLUG: ${CI_JOB_NAME_SLUG} # used in the cache-key
+    CACHE_POLICY: pull-push
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"

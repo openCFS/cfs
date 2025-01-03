@@ -71,8 +71,8 @@
     # set the default cache policy (for build jobs) to pull
     # see https://docs.gitlab.com/ee/ci/caching/index.html#use-a-variable-to-control-a-jobs-cache-policy
     INSTALL_POLICY: pull
-    CFSDEPS_SOURCES_POLICY: pull
-    CFSDEPS_PRECOMPILED_POLICY: pull
+    CACHE_POLICY: pull
+    CACHE_POLICY: pull
     #BUILD_COMMAND: $CI_PROJECT_DIR\.gitlab\ci\dashboard-build.bat
   # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
   # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
@@ -95,24 +95,24 @@
     # We fallback to the "master" branch, this way new merge requests have a cache (fallback) but write their own
     # This requires disabling the cache separation between protected and non-protected branches (GitLab setting),
     # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches.
-    - key: cfsdeps-sources-windows-$CI_COMMIT_REF_NAME
+    - key: cfsdeps-sources_windows_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/sources
-      policy: $CFSDEPS_SOURCES_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
-        - cfsdeps-sources-windows-$CI_DEFAULT_BRANCH
-    - key: cfsdeps-precompiled-windows-$CI_COMMIT_REF_NAME
+        - cfsdeps-sources_windows_${CI_DEFAULT_BRANCH}
+    - key: cfsdeps-precompiled_windows_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/precompiled
-      policy: $CFSDEPS_PRECOMPILED_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
-        - cfsdeps-precompiled-windows-$CI_DEFAULT_BRANCH
-    - key: ccache-windows-$CI_COMMIT_REF_NAME
+        - cfsdeps-precompiled_windows_${CI_DEFAULT_BRANCH}
+    - key: ccache_windows_msvc-ifort_${CI_COMMIT_REF_NAME}
       paths:
         - ccache
-      policy: $CFSDEPS_PRECOMPILED_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
-        - ccache-windows-$CI_DEFAULT_BRANCH
+        - ccache_windows_msvc-ifort_${CI_DEFAULT_BRANCH}
   before_script:
     # install the tools to cache
     - if(!(Test-Path cache)) { .gitlab/ci/windows-shared-runner_install-build-tools.ps1 } else { ls cache }
@@ -159,6 +159,11 @@
     - ccache.exe --verbose --cleanup; $null
     # do the CDash submission
     - !reference [.windwos_cdash,after_script]
+  needs: # nndes is empy if the clear-cache jobs are absent
+    - job: "clear-cache:cfsdeps"
+      optional: true
+    - job: "clear-cache:job"
+      optional: true
 
 ### TESTS ###
 
