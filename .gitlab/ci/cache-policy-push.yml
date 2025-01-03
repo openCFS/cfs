@@ -1,0 +1,33 @@
+# set the cache policy to push such that cache is not pulled
+variables:
+  CACHE_POLICY: push
+  INSTALL_POLICY: push # used for the windows install
+
+# this job is created when this file is included
+clear-cache:
+  extends: .check
+  image: alpine
+  tags:
+    - saas-linux-small-amd64
+  allow_failure: true # only for info, do not prevent merge
+  script:
+    - echo $CLEAR_CACHE
+    - echo $CACHE_POLICY
+    - echo $INSTALL_POLICY
+    - echo $CI_COMMIT_MESSAGE
+    - /or/commit/message/contained/clear-cache
+
+# this job installs the windows build dependencies in a fresh cache
+install:MSVC2022-Ifort2021:
+  extends: .windows-shared-build
+  stage: cfsdeps
+  variables:
+    INSTALL_POLICY: push
+    # define a dummy build command
+    BUILD_COMMAND: "echo $INSTALL_POLICY"
+  after_script:
+    # just debug
+    - !reference [.powershell_debug_dir_listing, script]
+  artifacts: {}
+  # Set empty needs so that the jobs start immediately (not per stage)
+  needs: []

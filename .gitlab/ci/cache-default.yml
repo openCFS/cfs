@@ -1,0 +1,6 @@
+# set the default cache policy
+variables:
+  CACHE_POLICY: pull-push
+  INSTALL_POLICY: pull-push # used for the windows install
+
+# we could also move our cache templates here

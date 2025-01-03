@@ -69,10 +69,8 @@
     # define config by variable # cfsdat leads to build error on Windows?
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON"
     # set the default cache policy (for build jobs) to pull
+    INSTALL_POLICY: "pull" # only pull the install, the cfsdeps step has done it (fresh if necessary)
     # see https://docs.gitlab.com/ee/ci/caching/index.html#use-a-variable-to-control-a-jobs-cache-policy
-    INSTALL_POLICY: pull
-    CFSDEPS_SOURCES_POLICY: pull
-    CFSDEPS_PRECOMPILED_POLICY: pull
     #BUILD_COMMAND: $CI_PROJECT_DIR\.gitlab\ci\dashboard-build.bat
   # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
   # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
@@ -87,7 +85,7 @@
         - .gitlab/ci/install_windows.bat
       paths:
         - cache
-      policy: $INSTALL_POLICY
+      policy: pull
     # sources and precompiled
     # * the primary key (specialized with CI_COMMIT_REF_NAME) is used for pull & push (i.e. can be overwritten)
     # * a list of fallback keys can be used for pull (download only) if no primary key is found
@@ -98,19 +96,19 @@
     - key: cfsdeps-sources-windows-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/sources
-      policy: $CFSDEPS_SOURCES_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-sources-windows-$CI_DEFAULT_BRANCH
     - key: cfsdeps-precompiled-windows-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/precompiled
-      policy: $CFSDEPS_PRECOMPILED_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-precompiled-windows-$CI_DEFAULT_BRANCH
     - key: ccache-windows-$CI_COMMIT_REF_NAME
       paths:
         - ccache
-      policy: $CFSDEPS_PRECOMPILED_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
         - ccache-windows-$CI_DEFAULT_BRANCH
   before_script:

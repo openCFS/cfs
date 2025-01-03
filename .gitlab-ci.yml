@@ -8,11 +8,16 @@
 # include common stuff to make this file shorter
 include:
   - local: .gitlab/ci/windows.yml
-
-# short manual section about tags (define which jobs can be run by which runners):
-# - docker: runners using docker, all is defined by the image, no other tags required (python, linux, ...)
-# - linux: generic linux
-# - mdmt: runners who can deploy to the TU Wien infrastructure
+  # this switches the CACHE_POLICY by including the file with a variable definition (and an info job)
+  # see https://docs.gitlab.com/ee/ci/yaml/includes.html#merge-method-for-include
+  # and https://docs.gitlab.com/ee/ci/yaml/includes.html#use-nested-includes-with-duplicate-include-entries
+  - local: .gitlab/ci/cache-default.yml
+  # since it is included __after__ the above cache-default, it wins (and variables are overwritten)
+  - local: .gitlab/ci/cache-policy-push.yml
+    rules:
+      - if: $CLEAR_CACHE != null
+      - if: $CI_COMMIT_MESSAGE =~ /clear-cache/
+      - if: $CACHE_POLICY == "push" # effectively just add the info job
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
@@ -216,6 +221,7 @@ runner-debug:
   script:
     - echo "$CFS_PIPELINE_NAME"
     - echo "$CFS_PIPELINE_TYPE"
+    - echo "$CACHE_POLICY:$INSTALL_POLICY"
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
     - echo $GITLAB_USER_ID
@@ -427,11 +433,13 @@ rhel:9:
     - key: cfsdeps-precompiled_${IMAGE}_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/precompiled/
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-precompiled_${IMAGE}_${CI_DEFAULT_BRANCH}
     - key: cfsdeps-sources_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/sources/
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-sources_${CI_DEFAULT_BRANCH}
 
@@ -442,6 +450,7 @@ rhel:9:
     - key: cfsdeps-precompiled_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/precompiled/
+      policy: $CACHE_POLICY
       # fallback for perhaps populated in cfsdeps stage
       fallback_keys:
         - cfsdeps-precompiled_${IMAGE}_${CI_COMMIT_REF_NAME}
@@ -450,11 +459,13 @@ rhel:9:
     - key: ccache_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
       paths:
         - ccache
+      policy: $CACHE_POLICY
       fallback_keys:
         - ccache_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_DEFAULT_BRANCH}
     - key: cfsdeps-sources_${CI_COMMIT_REF_NAME}
       paths:
         - build/cfsdeps/cache/sources/
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-sources_${CI_DEFAULT_BRANCH}
 
@@ -480,9 +491,6 @@ rhel:9:
   - ccache --verbose --show-stats || ccache -s || true
   - ccache --verbose --zero-stats || ccache -z || true
   - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
-  # remove precompiled and ccache when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
-  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR ) || echo "no clear-cache requested in commit message"
-  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
   - ls -l cfsdeps || ls # debug
 
 # if testsuite_ignore is there, restore it
@@ -501,7 +509,7 @@ rhel:9:
 
 .build_rules: &build_rules
   rules:
-    # there should be changes but a user has skipped the build
+    # there should be changes (in cfsdeps or cfs) but a user has skipped the build
     - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
       <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
       when: manual
@@ -521,7 +529,7 @@ rhel:9:
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
-    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test" 
       when: manual
       allow_failure: true
       needs: [] # allow to be triggered manually without cfsdeps
@@ -545,13 +553,16 @@ rhel:9:
     GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
   rules:
-    # include the cfsdeps stage even if there are no changes by setting this variable
+    # include the cfsdeps stage even if there are no changes by setting the variable BUILD_CFSDEPS & manual
     - if: $BUILD_CFSDEPS == "manual" || ( $BUILD_CFSDEPS && $CFS_PIPELINE_TYPE == "manual" )
       when: manual
+    # only BUILD_CFSDEPS
     - if: $BUILD_CFSDEPS
     # only add cfsdeps jobs if there are changes
+    # ... in a "test" pipeline
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *cfsdeps-rebuild-changes
+    # ... in a 'manual' pipeline
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes
       when: manual
@@ -601,11 +612,6 @@ cfsdeps:MSVC2022-Ifort2021:
   rules:
     - !reference [.cfsdeps,rules]
   variables:
-    # set the cache policy to pull-push to update the cache
-    INSTALL_POLICY: pull-push
-    CFSDEPS_SOURCES_POLICY: pull-push
-    CFSDEPS_PRECOMPILED_POLICY: pull-push
-    # define the build command
     BUILD_COMMAND: "cmake --build . --target cfsdeps"
   after_script:
     # just debug
@@ -615,8 +621,10 @@ cfsdeps:MSVC2022-Ifort2021:
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
     expire_in: 2 days
-  # Set empty needs so that the jobs start immediately (not per stage)
-  needs: []
+  # Set optional needs for install job (only available for clear-cache case)
+  needs:
+    - job: install:MSVC2022-Ifort2021
+      optional: true
 
 #######################################################################
 # BUILD STAGE definitions
@@ -914,6 +922,8 @@ windows:MSVC2022-Ifort2021:
   needs:
     # set the needs to 'optional' since the cfsdeps job might not be present
     - job: cfsdeps:MSVC2022-Ifort2021
+      optional: true
+    - job: install:MSVC2022-Ifort2021
       optional: true
 
 
