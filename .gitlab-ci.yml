@@ -8,11 +8,16 @@
 # include common stuff to make this file shorter
 include:
   - local: .gitlab/ci/windows.yml
-
-# short manual section about tags (define which jobs can be run by which runners):
-# - docker: runners using docker, all is defined by the image, no other tags required (python, linux, ...)
-# - linux: generic linux
-# - mdmt: runners who can deploy to the TU Wien infrastructure
+  # this switches the CACHE_POLICY by including the file with a variable definition (and an info job)
+  # see https://docs.gitlab.com/ee/ci/yaml/includes.html#merge-method-for-include
+  # and https://docs.gitlab.com/ee/ci/yaml/includes.html#use-nested-includes-with-duplicate-include-entries
+  - local: .gitlab/ci/cache-default.yml
+  # since it is included __after__ the above cache-default, it wins (and variables are overwritten)
+  - local: .gitlab/ci/cache-policy-push.yml
+    rules:
+      - if: $CLEAR_CACHE != null
+      - if: $CI_COMMIT_MESSAGE =~ /clear-cache/
+      - if: $CACHE_POLICY == "push" # effectively just add the info job
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
@@ -216,6 +221,7 @@ runner-debug:
   script:
     - echo "$CFS_PIPELINE_NAME"
     - echo "$CFS_PIPELINE_TYPE"
+    - echo "$CACHE_POLICY:$INSTALL_POLICY"
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
     - echo $GITLAB_USER_ID
@@ -410,80 +416,29 @@ rhel:9:
 # store the precompiled ones as artifacts
 # we need to precompile for all GCC versions independently
 
-# cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
-# use the ref-name, e.g. `master` as key -> same for successive builds
-# it is stored as a zip archive and extracted before each stage - this takes time,
-# thus we combine the build and configure step
-# the key is used to define which cache is used for which job.
-
-# requires disabling od seperate branches
-# see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
-# we use one cache per compiler type, and one cache per branch
-# the master branch is used as a fallback key, it's cache is kept up to date by the nightly schedule
-
-# cache for linux cfsdeps
-.cache_linux_cfsdeps-job: &cache_linux_cfsdeps-job
-  cache:
-    - key: cfsdeps-precompiled_${IMAGE}_${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/precompiled/
-      fallback_keys:
-        - cfsdeps-precompiled_${IMAGE}_${CI_DEFAULT_BRANCH}
-    - key: cfsdeps-sources_${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/sources/
-      fallback_keys:
-        - cfsdeps-sources_${CI_DEFAULT_BRANCH}
-
-# cache for all linux build jobs
-.cache_linux_build-job: &cache_linux_build-job
-  cache:
-    # the cfsdeps are build config specific, use a fallback to get the ones from the default config
-    - key: cfsdeps-precompiled_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/precompiled/
-      # fallback for perhaps populated in cfsdeps stage
-      fallback_keys:
-        - cfsdeps-precompiled_${IMAGE}_${CI_COMMIT_REF_NAME}
-        - cfsdeps-precompiled_${IMAGE}_${CI_DEFAULT_BRANCH}
-    # the ccache entry is specific to the image (i.e. build system and compiler) and build configuration (e.g. CI_JOB_NAME_SLUG)
-    - key: ccache_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
-      paths:
-        - ccache
-      fallback_keys:
-        - ccache_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_DEFAULT_BRANCH}
-    - key: cfsdeps-sources_${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/sources/
-      fallback_keys:
-        - cfsdeps-sources_${CI_DEFAULT_BRANCH}
-
-.before-script-build: &before-script-build
-  - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
-  # make sure the Testsuite submodule is OK
-  - git status # debug
-  - git diff -- Testsuite # debug
-  - git diff --exit-code -- Testsuite || (mv Testsuite Testsuite_ignore && git checkout Testsuite)
-  - git status # debug
-  # report disk space
-  - df -h # disk space debug
-  - du -h --max-depth=1 . # repos space debug
-  # setup build directory
-  - mkdir -p build # create if it does not exist
-  - cd build # descend in build
-  - rm -f CMakeCache.txt # clear old cache
-  # show the contents of the cfsdeps cache
-  - ls -l cfsdeps/cache/precompiled || ls #debug
-  - ls -l cfsdeps/cache/sources || ls #debug
-  # analyze ccache
-  - ls $CCACHE_DIR || true #debug
-  - ccache --verbose --show-stats || ccache -s || true
-  - ccache --verbose --zero-stats || ccache -z || true
-  - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
-  # remove precompiled and ccache when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
-  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR ) || echo "no clear-cache requested in commit message"
-  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache && rm -rf $CCACHE_DIR else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
-  - ls -l cfsdeps || ls # debug
+.before-script-build:
+  script:
+    - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
+    # make sure the Testsuite submodule is OK
+    - git status # debug
+    - git diff -- Testsuite # debug
+    - git diff --exit-code -- Testsuite || (mv Testsuite Testsuite_ignore && git checkout Testsuite)
+    - git status # debug
+    # report disk space
+    - df -h # disk space debug
+    - du -h --max-depth=1 . # repos space debug
+    # setup build directory
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+    - rm -f CMakeCache.txt # clear old cache
+    # show the contents of the caches
+    - !reference [.linux_list_cache, script]
+    # analyze ccache
+    - ls $CCACHE_DIR || true #debug
+    - ccache --verbose --show-stats || ccache -s || true
+    - ccache --verbose --zero-stats || ccache -z || true
+    - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
+    - ls -l cfsdeps || ls # debug
 
 # if testsuite_ignore is there, restore it
 .restore_Testsuite_ignore: &restore_Testsuite_ignore
@@ -501,7 +456,7 @@ rhel:9:
 
 .build_rules: &build_rules
   rules:
-    # there should be changes but a user has skipped the build
+    # there should be changes (in cfsdeps or cfs) but a user has skipped the build
     - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
       <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
       when: manual
@@ -521,7 +476,7 @@ rhel:9:
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
-    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test" 
       when: manual
       allow_failure: true
       needs: [] # allow to be triggered manually without cfsdeps
@@ -545,31 +500,38 @@ rhel:9:
     GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
   rules:
-    # include the cfsdeps stage even if there are no changes by setting this variable
+    # include the cfsdeps stage even if there are no changes by setting the variable BUILD_CFSDEPS & manual
     - if: $BUILD_CFSDEPS == "manual" || ( $BUILD_CFSDEPS && $CFS_PIPELINE_TYPE == "manual" )
       when: manual
+    # only BUILD_CFSDEPS
     - if: $BUILD_CFSDEPS
     # only add cfsdeps jobs if there are changes
+    # ... in a "test" pipeline
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *cfsdeps-rebuild-changes
+    # ... in a 'manual' pipeline
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes
       when: manual
+  cache: !reference [.cache_linux_cfsdeps-job, cache]
   before_script:
     - pwd # debug
-    - *before-script-build
+    - !reference [.before-script-build, script]
   script:
     - cmake $CFS_CONFIG_OPTIONS ..
     - cmake .
     - cmake --build . --target cfsdeps --parallel 1
   after_script:
-    - ls -l build/cfsdeps/cache/precompiled || ls # debug
+    # show the contents of the caches
+    - export CACHE_LIST_N=after
+    - !reference [.linux_list_cache, script]
     - *restore_Testsuite_ignore
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 6 hours
+      - build/cfsdeps/cache/sources/
+    name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
+    expire_in: 12 hours
   needs: []
 
 cfsdeps:gcc7:
@@ -577,7 +539,6 @@ cfsdeps:gcc7:
   variables:
     <<: *cfsdeps-variables
     IMAGE: centos7-gcc7
-  <<: *cache_linux_cfsdeps-job
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
@@ -585,7 +546,6 @@ cfsdeps:intel:
   variables:
     <<: *cfsdeps-variables
     IMAGE: rhel8-intel
-  <<: *cache_linux_cfsdeps-job
 
 cfsdeps:gcc14-musl:
   extends: .cfsdeps
@@ -593,7 +553,6 @@ cfsdeps:gcc14-musl:
     <<: *cfsdeps-variables
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS # add the MUSL-options
     IMAGE: alpine
-  <<: *cache_linux_cfsdeps-job
 
 cfsdeps:MSVC2022-Ifort2021:
   extends: .windows-shared-build
@@ -601,11 +560,6 @@ cfsdeps:MSVC2022-Ifort2021:
   rules:
     - !reference [.cfsdeps,rules]
   variables:
-    # set the cache policy to pull-push to update the cache
-    INSTALL_POLICY: pull-push
-    CFSDEPS_SOURCES_POLICY: pull-push
-    CFSDEPS_PRECOMPILED_POLICY: pull-push
-    # define the build command
     BUILD_COMMAND: "cmake --build . --target cfsdeps"
   after_script:
     # just debug
@@ -614,9 +568,13 @@ cfsdeps:MSVC2022-Ifort2021:
     when: on_success
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
-    expire_in: 2 days
-  # Set empty needs so that the jobs start immediately (not per stage)
-  needs: []
+      - build/cfsdeps/cache/sources/
+    name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
+    expire_in: 12 hours
+  # Set optional needs for install job (only available for clear-cache case)
+  needs:
+    - job: install:MSVC2022-Ifort2021
+      optional: true
 
 #######################################################################
 # BUILD STAGE definitions
@@ -649,6 +607,7 @@ cfsdeps:MSVC2022-Ifort2021:
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+  cache: !reference [.cache_linux_build-job, cache ]
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"
@@ -682,6 +641,9 @@ cfsdeps:MSVC2022-Ifort2021:
     - du -h --max-depth=1 . # debug
     - cd build
     - du -h --max-depth=1 . # debug
+    # show the contents of the caches
+    - export CACHE_LIST_N=after
+    - !reference [.linux_list_cache, script]
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # rename CMakeCache to avoid conflicts
     - cp CMakeCache.txt CMakeCache_build-stage.txt
@@ -697,10 +659,12 @@ cfsdeps:MSVC2022-Ifort2021:
     - *save_cdash_buildid
   artifacts:
     paths: # just an example
-      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - ./build/CFS-${CI_COMMIT_REF_SLUG}-Linux.tar.gz # the packed binaries for distribution
       - build/CMakeCache_build-stage.txt
       - build/ccache.log # for debug
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    # show files on the MR page, see https://docs.gitlab.com/ee/ci/yaml/#artifactsexpose_as
+    expose_as: 'job logs'
     expire_in: 1.2 days            
 
 .except-skip-gcc: &except-skip-gcc
@@ -720,7 +684,7 @@ cfsdeps:MSVC2022-Ifort2021:
     # debug output
     - gcc --version
     # general build before script
-    - *before-script-build
+    - !reference [.before-script-build, script]
 
 .intel_before: &intel_before
   before_script:
@@ -736,7 +700,7 @@ cfsdeps:MSVC2022-Ifort2021:
     - rm -rf Testsuite
     - git checkout Testsuite
     # general build before script
-    - *before-script-build
+    - !reference [.before-script-build, script]
 
 # ensure maximal build is tested never tested automatically in forks 
 # if someone wants to enable max-builds one has to manually define the variable "DO_MAX_BUILD" and set its value to "ON"
@@ -749,15 +713,6 @@ cfsdeps:MSVC2022-Ifort2021:
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.build_rules, rules]
-
-# build artifacts expire early
-.build_artifacs_short: &build_artifacs_short
-  artifacts:
-    paths: # just an example
-      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
-      - build/CMakeCache_build-stage.txt
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 5h
 
 #######################################################################
 # BUILD STAGE
@@ -773,7 +728,7 @@ linux:gcc7max-debug:
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-  <<: [ *max_rules, *gcc_before, *cache_linux_build-job ]
+  <<: [ *max_rules, *gcc_before ]
   needs: 
     - job: cfsdeps:gcc7
       optional: true
@@ -787,7 +742,7 @@ linux:gcc7max:
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-  <<: [ *max_rules, *gcc_before, *cache_linux_build-job ]
+  <<: [ *max_rules, *gcc_before ]
   needs: 
     - job: cfsdeps:gcc7
       optional: true
@@ -799,7 +754,7 @@ linux:gcc7:
     BUILD_NAME: "GCC7"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache    
-  <<: [ *build_rules, *gcc_before, *cache_linux_build-job ]
+  <<: [ *build_rules, *gcc_before ]
   needs: 
     - job: cfsdeps:gcc7
       optional: true
@@ -815,7 +770,7 @@ linux:gcc14-musl:
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
     # use Ninja (which actually is 'samurai' on Alpine)
     CMAKE_GENERATOR: Ninja
-  <<: [ *release_build_rules, *gcc_before, *cache_linux_build-job ]
+  <<: [ *release_build_rules, *gcc_before ]
   needs: 
     - job: cfsdeps:gcc14-musl
       optional: true
@@ -828,7 +783,7 @@ linux:gcc7min:
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-  <<: [ *build_rules, *gcc_before, *cache_linux_build-job ]
+  <<: [ *build_rules, *gcc_before ]
   needs:
     - job: cfsdeps:gcc7
       optional: true
@@ -846,7 +801,7 @@ linux:intel:
       <<: *require-rebuild-changes
       when: manual
     - !reference [.build_rules, rules]
-  <<: [ *intel_before,*cache_linux_build-job ]
+  <<: [ *intel_before ]
   needs:
     - job: cfsdeps:intel
       optional: true
@@ -867,9 +822,7 @@ linux:clang-debug:
     # ensure clang is installed
     - clang --version
     # general build before script
-    - *before-script-build
-  # artifacts are not needed long since no tests are done for this job
-  <<: [ *build_artifacs_short ]
+    - !reference [.before-script-build, script]
   cache:
     - key: cfsdeps-precompiled-Clang-${CI_COMMIT_REF_NAME}
       paths:
@@ -914,6 +867,8 @@ windows:MSVC2022-Ifort2021:
   needs:
     # set the needs to 'optional' since the cfsdeps job might not be present
     - job: cfsdeps:MSVC2022-Ifort2021
+      optional: true
+    - job: install:MSVC2022-Ifort2021
       optional: true
 
 
@@ -1097,7 +1052,8 @@ stable_par:gcc7closed:linux:
     - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
       when: never
     - !reference [.build_rules, rules]
-  <<: [*gcc_before,*cache_linux_build-job,*after_cdash_submit]
+  <<: [*gcc_before,*after_cdash_submit]
+  cache: !reference [.cache_linux_build-job, cache ]
   script:
     ## BUILD STAGE
     - echo "CFS_CONFIG_OPTIONS="$CFS_CONFIG_OPTIONS

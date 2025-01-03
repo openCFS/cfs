@@ -31,10 +31,11 @@
 # for Powershell see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
 .powershell-debug-start_collapsed:
   script: &powershell-debug-start_collapsed
-    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output[collapsed=true]$([char]13)$([char]27)[0KDebug Information (klick to expand)"
+    - $env:DEBUGNAME += "i"
+    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$env:DEBUGNAME[collapsed=true]$([char]13)$([char]27)[0KDebug Information $env:DEBUGNAME (klick to expand)"
 .powershell-debug-end:
   script: &powershell-debug-end
-    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output$([char]13)$([char]27)[0K"
+    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$env:DEBUGNAME$([char]13)$([char]27)[0K"
 
 .powershell_debug_dir_listing:
   script:
@@ -46,6 +47,7 @@
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\cache\ccache"; $null
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build"; $null
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\precompiled"; $null
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\sources"; $null
     - *powershell-debug-end
 
 .windwos_cdash:
@@ -69,10 +71,8 @@
     # define config by variable # cfsdat leads to build error on Windows?
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON"
     # set the default cache policy (for build jobs) to pull
+    INSTALL_POLICY: "pull" # only pull the install, the cfsdeps step has done it (fresh if necessary)
     # see https://docs.gitlab.com/ee/ci/caching/index.html#use-a-variable-to-control-a-jobs-cache-policy
-    INSTALL_POLICY: pull
-    CFSDEPS_SOURCES_POLICY: pull
-    CFSDEPS_PRECOMPILED_POLICY: pull
     #BUILD_COMMAND: $CI_PROJECT_DIR\.gitlab\ci\dashboard-build.bat
   # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
   # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
@@ -98,19 +98,19 @@
     - key: cfsdeps-sources-windows-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/sources
-      policy: $CFSDEPS_SOURCES_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-sources-windows-$CI_DEFAULT_BRANCH
     - key: cfsdeps-precompiled-windows-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/precompiled
-      policy: $CFSDEPS_PRECOMPILED_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-precompiled-windows-$CI_DEFAULT_BRANCH
     - key: ccache-windows-$CI_COMMIT_REF_NAME
       paths:
         - ccache
-      policy: $CFSDEPS_PRECOMPILED_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
         - ccache-windows-$CI_DEFAULT_BRANCH
   before_script:
@@ -118,10 +118,6 @@
     - if(!(Test-Path cache)) { .gitlab/ci/windows-shared-runner_install-build-tools.ps1 } else { ls cache }
     # debug
     - !reference [.powershell_debug_dir_listing, script]
-    # delete any cfsdeps/cache when environment variable CLEAR_CACHE is set or clear-cache is in the commit message
-    - Write-Host "CLEAR_CACHE=$CLEAR_CACHE" # debug
-    - if ( "$CI_COMMIT_MESSAGE" -match "clear-cache" ) { $CLEAR_CACHE = "yes" } else { Write-Host "no clear-cache requested in commit message" }
-    - if ( $null -eq $CLEAR_CACHE ) { Write-Host "no CLEAR_CACHE variable set" } else { cmake -E rm -rf -- "$CI_PROJECT_DIR\build\cfsdeps\cache" }
     # set git path for tools like patch and diff
     - $env:Path += ";${CI_PROJECT_DIR}/cache/git/usr/bin;${CI_PROJECT_DIR}/cache/ccache"
     # make sure build/Testing is not present
