@@ -3,4 +3,64 @@ variables:
   CACHE_POLICY: pull-push
   INSTALL_POLICY: pull-push # used for the windows install
 
-# we could also move our cache templates here
+# cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
+# use the ref-name, e.g. `master` as key -> same for successive builds
+# it is stored as a zip archive and extracted before each stage - this takes time,
+# thus we combine the build and configure step
+# the key is used to define which cache is used for which job.
+
+# requires disabling od seperate branches
+# see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+# we use one cache per compiler type, and one cache per branch
+# the master branch is used as a fallback key, it's cache is kept up to date by the nightly schedule
+
+# cache for linux cfsdeps
+.cache_linux_cfsdeps-job: &cache_linux_cfsdeps-job
+  cache:
+    - key: cfsdeps-precompiled_${IMAGE}_${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      policy: $CACHE_POLICY
+      fallback_keys:
+        - cfsdeps-precompiled_${IMAGE}_${CI_DEFAULT_BRANCH}
+    - key: cfsdeps-sources_${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/sources/
+      policy: $CACHE_POLICY
+      fallback_keys:
+        - cfsdeps-sources_${CI_DEFAULT_BRANCH}
+
+# cache for all linux build jobs
+.cache_linux_build-job: &cache_linux_build-job
+  cache:
+    # the cfsdeps are build config specific, use a fallback to get the ones from the default config
+    - key: cfsdeps-precompiled_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      policy: $CACHE_POLICY
+      # fallback for perhaps populated in cfsdeps stage
+      fallback_keys:
+        - cfsdeps-precompiled_${IMAGE}_${CI_COMMIT_REF_NAME}
+        - cfsdeps-precompiled_${IMAGE}_${CI_DEFAULT_BRANCH}
+    # the ccache entry is specific to the image (i.e. build system and compiler) and build configuration (e.g. CI_JOB_NAME_SLUG)
+    - key: ccache_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_COMMIT_REF_NAME}
+      paths:
+        - ccache
+      policy: $CACHE_POLICY
+      fallback_keys:
+        - ccache_${IMAGE}_${CI_JOB_NAME_SLUG}_${CI_DEFAULT_BRANCH}
+    - key: cfsdeps-sources_${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/sources/
+      policy: $CACHE_POLICY
+      fallback_keys:
+        - cfsdeps-sources_${CI_DEFAULT_BRANCH}
+
+# see https://docs.gitlab.com/ee/ci/jobs/job_logs.html#custom-collapsible-sections
+.linux_list_cache: &linux_list_cache
+  script: 
+    - echo -e "\e[0Ksection_start:`date +%s`:cache_list[collapsed=true]\r\e[0KList Cache (sources, precompiled, ccache)"
+    - du -ah --max-depth=2 $CI_PROJECT_DIR/build/cfsdeps/cache/sources || true
+    - du -ah $CI_PROJECT_DIR/build/cfsdeps/cache/precompiled || true
+    - du -h $CCACHE_DIR || true
+    - echo -e "\e[0Ksection_end:`date +%s`:cache_list\r\e[0K"
