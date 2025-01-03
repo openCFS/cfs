@@ -132,7 +132,9 @@ workflow:
 
 testsuite-revision:
   extends: .check
-  image: opencfs/fedora32:$BUILD_ENVIRONMENT_TAG
+  image:
+    name: alpine/git:2.47.1
+    entrypoint: ["/bin/sh","-c"]
   variables:
     # we clone to make sure we have everything (including current names of the SHAs)
     GIT_STRATEGY: clone
@@ -191,7 +193,9 @@ markdown-link-check:
         compare_to: 'refs/heads/master'
 pipeline-changes:
   extends: .check
-  image: opencfs/fedora32:$BUILD_ENVIRONMENT_TAG
+  image:
+    name: alpine/git:2.47.1
+    entrypoint: ["/bin/sh","-c"]
   # switch off cloning the Testsuite submodule
   variables:
     GIT_STRATEGY: none
@@ -212,6 +216,7 @@ pipeline-changes:
 
 runner-debug:
   extends: .check
+  image: alpine
   tags:
     - saas-linux-small-amd64
   rules:
@@ -244,6 +249,7 @@ runner-debug:
 # this job is created when there is a skip-build in the commit message
 skip-build:
   extends: .check
+  image: alpine
   tags:
     - saas-linux-small-amd64
   rules:
@@ -268,6 +274,7 @@ skip-build:
 
 cpp-code-changes:
   extends: .check
+  image: alpine
   tags:
     - saas-linux-small-amd64
   rules:
