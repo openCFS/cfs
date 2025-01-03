@@ -476,29 +476,38 @@ rhel:9:
       fallback_keys:
         - cfsdeps-sources_${CI_DEFAULT_BRANCH}
 
-.before-script-build: &before-script-build
-  - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
-  # make sure the Testsuite submodule is OK
-  - git status # debug
-  - git diff -- Testsuite # debug
-  - git diff --exit-code -- Testsuite || (mv Testsuite Testsuite_ignore && git checkout Testsuite)
-  - git status # debug
-  # report disk space
-  - df -h # disk space debug
-  - du -h --max-depth=1 . # repos space debug
-  # setup build directory
-  - mkdir -p build # create if it does not exist
-  - cd build # descend in build
-  - rm -f CMakeCache.txt # clear old cache
-  # show the contents of the cfsdeps cache
-  - ls -l cfsdeps/cache/precompiled || ls #debug
-  - ls -l cfsdeps/cache/sources || ls #debug
-  # analyze ccache
-  - ls $CCACHE_DIR || true #debug
-  - ccache --verbose --show-stats || ccache -s || true
-  - ccache --verbose --zero-stats || ccache -z || true
-  - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
-  - ls -l cfsdeps || ls # debug
+# see https://docs.gitlab.com/ee/ci/jobs/job_logs.html#custom-collapsible-sections
+.linux_list_cache: &linux_list_cache
+  script: 
+    - echo -e "\e[0Ksection_start:`date +%s`:cache_list[collapsed=true]\r\e[0KList Cache (sources, precompiled, ccache)"
+    - du -ah --max-depth=2 $CI_PROJECT_DIR/build/cfsdeps/cache/sources || true
+    - du -ah $CI_PROJECT_DIR/build/cfsdeps/cache/precompiled || true
+    - du -h $CCACHE_DIR || true
+    - echo -e "\e[0Ksection_end:`date +%s`:cache_list\r\e[0K"
+
+.before-script-build:
+  script:
+    - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
+    # make sure the Testsuite submodule is OK
+    - git status # debug
+    - git diff -- Testsuite # debug
+    - git diff --exit-code -- Testsuite || (mv Testsuite Testsuite_ignore && git checkout Testsuite)
+    - git status # debug
+    # report disk space
+    - df -h # disk space debug
+    - du -h --max-depth=1 . # repos space debug
+    # setup build directory
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+    - rm -f CMakeCache.txt # clear old cache
+    # show the contents of the caches
+    - !reference [.linux_list_cache, script]
+    # analyze ccache
+    - ls $CCACHE_DIR || true #debug
+    - ccache --verbose --show-stats || ccache -s || true
+    - ccache --verbose --zero-stats || ccache -z || true
+    - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
+    - ls -l cfsdeps || ls # debug
 
 # if testsuite_ignore is there, restore it
 .restore_Testsuite_ignore: &restore_Testsuite_ignore
@@ -575,13 +584,14 @@ rhel:9:
       when: manual
   before_script:
     - pwd # debug
-    - *before-script-build
+    - !reference [.before-script-build, script]
   script:
     - cmake $CFS_CONFIG_OPTIONS ..
     - cmake .
     - cmake --build . --target cfsdeps --parallel 1
   after_script:
-    - ls -l build/cfsdeps/cache/precompiled || ls # debug
+    # show the contents of the caches
+    - !reference [.linux_list_cache, script]
     - *restore_Testsuite_ignore
   artifacts:
     paths:
@@ -697,6 +707,8 @@ cfsdeps:MSVC2022-Ifort2021:
     - du -h --max-depth=1 . # debug
     - cd build
     - du -h --max-depth=1 . # debug
+    # show the contents of the caches
+    - !reference [.linux_list_cache, script]
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # rename CMakeCache to avoid conflicts
     - cp CMakeCache.txt CMakeCache_build-stage.txt
@@ -735,7 +747,7 @@ cfsdeps:MSVC2022-Ifort2021:
     # debug output
     - gcc --version
     # general build before script
-    - *before-script-build
+    - !reference [.before-script-build, script]
 
 .intel_before: &intel_before
   before_script:
@@ -751,7 +763,7 @@ cfsdeps:MSVC2022-Ifort2021:
     - rm -rf Testsuite
     - git checkout Testsuite
     # general build before script
-    - *before-script-build
+    - !reference [.before-script-build, script]
 
 # ensure maximal build is tested never tested automatically in forks 
 # if someone wants to enable max-builds one has to manually define the variable "DO_MAX_BUILD" and set its value to "ON"
@@ -882,7 +894,7 @@ linux:clang-debug:
     # ensure clang is installed
     - clang --version
     # general build before script
-    - *before-script-build
+    - !reference [.before-script-build, script]
   # artifacts are not needed long since no tests are done for this job
   <<: [ *build_artifacs_short ]
   cache:

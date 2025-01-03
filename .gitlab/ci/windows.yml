@@ -46,6 +46,7 @@
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\cache\ccache"; $null
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build"; $null
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\precompiled"; $null
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\sources"; $null
     - *powershell-debug-end
 
 .windwos_cdash:
@@ -85,7 +86,7 @@
         - .gitlab/ci/install_windows.bat
       paths:
         - cache
-      policy: pull
+      policy: $INSTALL_POLICY
     # sources and precompiled
     # * the primary key (specialized with CI_COMMIT_REF_NAME) is used for pull & push (i.e. can be overwritten)
     # * a list of fallback keys can be used for pull (download only) if no primary key is found
