@@ -536,8 +536,9 @@ rhel:9:
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 6 hours
+      - build/cfsdeps/cache/sources/
+    name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
+    expire_in: 12 hours
   needs: []
 
 cfsdeps:gcc7:
@@ -574,7 +575,9 @@ cfsdeps:MSVC2022-Ifort2021:
     when: on_success
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
-    expire_in: 2 days
+      - build/cfsdeps/cache/sources/
+    name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
+    expire_in: 12 hours
   # Set optional needs for install job (only available for clear-cache case)
   needs:
     - job: install:MSVC2022-Ifort2021
@@ -663,10 +666,12 @@ cfsdeps:MSVC2022-Ifort2021:
     - *save_cdash_buildid
   artifacts:
     paths: # just an example
-      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - ./build/CFS-${CI_COMMIT_REF_SLUG}-Linux.tar.gz # the packed binaries for distribution
       - build/CMakeCache_build-stage.txt
       - build/ccache.log # for debug
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    # show files on the MR page, see https://docs.gitlab.com/ee/ci/yaml/#artifactsexpose_as
+    expose_as: 'job logs'
     expire_in: 1.2 days            
 
 .except-skip-gcc: &except-skip-gcc
@@ -715,15 +720,6 @@ cfsdeps:MSVC2022-Ifort2021:
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.build_rules, rules]
-
-# build artifacts expire early
-.build_artifacs_short: &build_artifacs_short
-  artifacts:
-    paths: # just an example
-      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
-      - build/CMakeCache_build-stage.txt
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 5h
 
 #######################################################################
 # BUILD STAGE
@@ -834,8 +830,6 @@ linux:clang-debug:
     - clang --version
     # general build before script
     - !reference [.before-script-build, script]
-  # artifacts are not needed long since no tests are done for this job
-  <<: [ *build_artifacs_short ]
   cache:
     - key: cfsdeps-precompiled-Clang-${CI_COMMIT_REF_NAME}
       paths:
