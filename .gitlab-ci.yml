@@ -530,6 +530,7 @@ rhel:9:
     - cmake --build . --target cfsdeps --parallel 1
   after_script:
     # show the contents of the caches
+    - export CACHE_LIST_N=after
     - !reference [.linux_list_cache, script]
     - *restore_Testsuite_ignore
   artifacts:
@@ -645,6 +646,7 @@ cfsdeps:MSVC2022-Ifort2021:
     - cd build
     - du -h --max-depth=1 . # debug
     # show the contents of the caches
+    - export CACHE_LIST_N=after
     - !reference [.linux_list_cache, script]
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # rename CMakeCache to avoid conflicts

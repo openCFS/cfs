@@ -59,8 +59,9 @@ variables:
 # see https://docs.gitlab.com/ee/ci/jobs/job_logs.html#custom-collapsible-sections
 .linux_list_cache: &linux_list_cache
   script: 
-    - echo -e "\e[0Ksection_start:`date +%s`:cache_list[collapsed=true]\r\e[0KList Cache (sources, precompiled, ccache)"
+    - echo -e "\e[0Ksection_start:`date +%s`:cache_list_$CACHE_LIST_N[collapsed=true]\r\e[0KList Cache (sources, precompiled, ccache)"
     - du -ah --max-depth=2 $CI_PROJECT_DIR/build/cfsdeps/cache/sources || true
     - du -ah $CI_PROJECT_DIR/build/cfsdeps/cache/precompiled || true
-    - du -h $CCACHE_DIR || true
-    - echo -e "\e[0Ksection_end:`date +%s`:cache_list\r\e[0K"
+    - du -sh $CCACHE_DIR || true
+    - echo -e "\e[0Ksection_end:`date +%s`:cache_list_$CACHE_LIST_N\r\e[0K"
+    - export CACHE_LIST_N="${CACHE_LIST_N}i"
