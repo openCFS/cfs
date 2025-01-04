@@ -31,10 +31,11 @@
 # for Powershell see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
 .powershell-debug-start_collapsed:
   script: &powershell-debug-start_collapsed
-    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output[collapsed=true]$([char]13)$([char]27)[0KDebug Information (klick to expand)"
+    - $env:DEBUGNAME += "i"
+    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$DEBUGNAME[collapsed=true]$([char]13)$([char]27)[0KDebug Information $DEBUGNAME (klick to expand)"
 .powershell-debug-end:
   script: &powershell-debug-end
-    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output$([char]13)$([char]27)[0K"
+    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$DEBUGNAME$([char]13)$([char]27)[0K"
 
 .powershell_debug_dir_listing:
   script:
