@@ -38,7 +38,7 @@ variables:
   CCACHE_DIR: $CI_PROJECT_DIR/ccache
   CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
-  CCACHE_MAXSIZE: 150M
+  CCACHE_MAXSIZE: 200M
 
 # stages in the pipeline run in succession
 stages:
