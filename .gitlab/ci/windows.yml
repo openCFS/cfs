@@ -27,15 +27,16 @@
     - echo "Build on CDash - $CDASH_BUILD_URL"
     - echo "Tests on CDash - $CDASH_TEST_URL"
 
-# headers for collapsible sections https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
+# headers for _collapsible sections_, see https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
 # for Powershell see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
+# make the DEBUGNAME variable accessible in subsequent sections https://docs.gitlab.com/ee/ci/variables/#pass-an-environment-variable-from-the-script-section-to-another-section-in-the-same-job
 .powershell-debug-start_collapsed:
   script: &powershell-debug-start_collapsed
-    - $env:DEBUGNAME += "i"
-    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$env:DEBUGNAME[collapsed=true]$([char]13)$([char]27)[0KDebug Information $env:DEBUGNAME (klick to expand)"
+    - $DEBUGNAME += "i"; Add-Content -Path $GITLAB_ENV -Value "DEBUGNAME=$DEBUGNAME" # make sure the collapsible section is unique across the pipeline and accessible in after_script
+    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$DEBUGNAME[collapsed=true]$([char]13)$([char]27)[0KDebug Information $DEBUGNAME (klick to expand)"
 .powershell-debug-end:
   script: &powershell-debug-end
-    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$env:DEBUGNAME$([char]13)$([char]27)[0K"
+    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$DEBUGNAME$([char]13)$([char]27)[0K"
 
 .powershell_debug_dir_listing:
   script:
