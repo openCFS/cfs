@@ -32,7 +32,8 @@ variables:
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: latest
+  BUILD_ENVIRONMENT_TAG: 2025.01
+  BUILD_ENVIRONMENT_REGISTRY: "opencfs" # defaults to using docker-hub, change to "registry.gitlab.com/opencfs/build-environment" to use the one on GitLab
   # configure ccache, see https://ccache.dev/manual/latest.html
   CCACHE_BASEDIR: $CI_PROJECT_DIR/build
   CCACHE_DIR: $CI_PROJECT_DIR/ccache
@@ -165,7 +166,7 @@ testsuite-revision:
 markdown-link-check:
   extends: .check
   image: 
-    name: opencfs/markdown-link-check:$BUILD_ENVIRONMENT_TAG
+    name: $BUILD_ENVIRONMENT_REGISTRY/markdown-link-check:$BUILD_ENVIRONMENT_TAG
     entrypoint: ["/bin/sh","-c"]
   variables:
     GIT_STRATEGY: fetch
@@ -499,7 +500,7 @@ rhel:9:
 .cfsdeps: &cfsdeps
   stage: cfsdeps
   # the IMAGE variable needs to be defined in the job defintion
-  image: opencfs/$IMAGE:$BUILD_ENVIRONMENT_TAG
+  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   # switch off cloning the Testsuite submodule
@@ -607,7 +608,7 @@ cfsdeps:MSVC2022-Ifort2021:
 
 .default_build_job: &default_build_job
   stage: build
-  image: opencfs/$IMAGE:$BUILD_ENVIRONMENT_TAG
+  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
@@ -837,8 +838,8 @@ linux:intel:
 # LLVM clang compiler builds
 linux:clang-debug:
   extends: .default_build_job
-  image: opencfs/fedora37-clang:$BUILD_ENVIRONMENT_TAG
   variables:
+    IMAGE: fedora37-clang
     BUILD_NAME: "Clang debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
   rules:
@@ -941,6 +942,7 @@ windows:MSVC2022-Ifort2021:
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
+  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
   rules:
     - !reference [.build_rules, rules]
   before_script:
@@ -1006,9 +1008,9 @@ windows:MSVC2022-Ifort2021:
 stable_ser:gcc7min:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: "GCC7 minimal / stable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
@@ -1019,9 +1021,9 @@ stable_ser:gcc7min:linux:
 unstable_ser:gcc7min:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
+    IMAGE: ubuntu22.04
     # is built without opnemp  
     BUILD_NAME: "GCC7 minimal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1035,10 +1037,10 @@ stable_par:gcc7max:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos7-gcc7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
+    IMAGE: centos7-gcc7
     BUILD_NAME: "GCC7 maximal / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
@@ -1050,10 +1052,10 @@ unstable_ser:gcc7max:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos7-gcc7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
+    IMAGE: centos7-gcc7
     BUILD_NAME: "GCC7 maximal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
@@ -1065,10 +1067,10 @@ stable_par:gcc7closed:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos7-gcc7:$BUILD_ENVIRONMENT_TAG
   rules: # overwrite rules given via extends: .test_generic
     - !reference [linux:gcc7closed, rules]
   variables:
+    IMAGE: centos7-gcc7
     BUILD_NAME: "GCC7 closed / stable opt parallel"
     TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF "
     CTEST_OPTIONS: "-LE unstable|broken -R Opt"
@@ -1078,9 +1080,9 @@ stable_par:gcc7closed:linux:
 stable_ser:gcc14-musl:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: "GCC14-MUSL / stable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
@@ -1091,9 +1093,9 @@ stable_ser:gcc14-musl:linux:
 stable_par:gcc14-musl:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: "GCC14-MUSL / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
@@ -1104,9 +1106,9 @@ stable_par:gcc14-musl:linux:
 stable_par:intel:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: Intel2025 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
@@ -1117,9 +1119,9 @@ stable_par:intel:linux:
 unstable_ser:intel:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   stage: test
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: Intel2025 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
@@ -1169,7 +1171,7 @@ unstable_ser:MSVC2022-Ifort2021:windows:
     - windows:MSVC2022-Ifort2021
 
 python:linux:
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
+  image: $BUILD_ENVIRONMENT_REGISTRY/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   extends: .ctest_default
   tags:
     - saas-linux-small-amd64
@@ -1228,8 +1230,8 @@ broken_ser:gcc7min:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
+    IMAGE: ubuntu22.04
     # is built without opnemp  
     BUILD_NAME: "GCC7 minimal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1252,11 +1254,11 @@ unstable_par:gcc7max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
+    IMAGE: centos7
     BUILD_NAME: "GCC7 maximal / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
@@ -1267,11 +1269,11 @@ broken_ser:gcc7max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
+    IMAGE: centos7
     BUILD_NAME: "GCC7 maximal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
@@ -1284,12 +1286,12 @@ no-slow_ser:gcc7max-debug:linux:
   <<: *test_no_slow
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos7:$BUILD_ENVIRONMENT_TAG
   # overwrite rules & variables
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
+    IMAGE: centos7
     BUILD_NAME: "GCC7 maximal debug / no-slow serial"
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
@@ -1301,8 +1303,8 @@ unstable_par:intel:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: Intel2025 / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
@@ -1313,8 +1315,8 @@ unstable_par:gcc14-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: GCC14-MUSL / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
@@ -1325,8 +1327,8 @@ broken_ser:gcc14-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: GCC14-MUSL / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
@@ -1337,8 +1339,8 @@ broken_ser:intel:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   variables:
+    IMAGE: ubuntu22.04
     BUILD_NAME: Intel2025 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
@@ -1365,7 +1367,7 @@ broken_ser:MSVC2022-Ifort2021:windows:
 # build doxygen docu
 doxygen:
   stage: docs
-  image: opencfs/fedora32:$BUILD_ENVIRONMENT_TAG
+  image: $BUILD_ENVIRONMENT_REGISTRY/fedora32:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
