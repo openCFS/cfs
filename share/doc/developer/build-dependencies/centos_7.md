@@ -1,6 +1,10 @@
 CFS++ build dependencies for Centos 7
 =====================================
 
+> since Centos 7 is not supported any more the repos are offline.
+> Thus, these instructions do not work any more.
+> Perhaps they could be reactivated by using the arviced repos at https://vault.centos.org
+
 This should also work (with slight adaptions) on derivates like 
 * Fedora
 * Centos

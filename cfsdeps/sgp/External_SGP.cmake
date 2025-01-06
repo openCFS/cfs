@@ -12,7 +12,7 @@ set(SGP_VER ${PACKAGE_VER}) # for Dependencies.cc
 # this is currently a branch from Ngoc, the next version might be already from the master (-> mirror)
 set(PACKAGE_FILE "sgp-cfs-debug-3drot-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "186e68b457f21ee786c9dcf7fa1a36f5")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # OpenMP
 if(USE_OPENMP)
@@ -43,11 +43,11 @@ set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 # set DEPS_ARG with defaults for a cmake project
 set_deps_args_default(ON) # set compiler flags 
 # add the specific settings for the packge which comes in cmake style
-assert_set(MKL_ROOT_DIR)
+assert_set(MKL_ROOT) # should be provided by MKLConfig.cmake of oneAPI
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
-  -DMKL_ROOT_DIR=${MKL_ROOT_DIR}
+  -DMKL_ROOT_DIR=${MKL_ROOT}
   -DBUILD_EXAMPLES:BOOL=OFF
   -DBUILD_TESTING:BOOL=OFF
   -DUSE_OPENMP:BOOL=${USE_OPENMP})
