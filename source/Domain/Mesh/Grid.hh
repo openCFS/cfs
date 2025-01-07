@@ -952,6 +952,17 @@ namespace CoupledField
         @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
     StdVector<UInt> GetRegularDiscretization(RegionIdType region);
 
+    //! Info about network grid
+    bool isNetworkGrid_ = false;
+
+    virtual bool IsNetworkGrid(){
+      return isNetworkGrid_;
+    }
+
+    virtual void SetNetworkGrid(bool isNetworkGrid){
+      isNetworkGrid_ = isNetworkGrid;
+    }
+
     // =======================================================================
     // FINITE VOLUME REPRESENTATION SECTION
     // =======================================================================

@@ -36,6 +36,10 @@ namespace CoupledField
     virtual void InitModule();
 
     virtual void ReadMesh(Grid *mi);
+
+    void ReadMeshFile(Grid *mi);
+
+    void ReadMeshNetwork(Grid *mi);
   
     // =======================================================================
     // GENERAL MESH INFORMATION
@@ -237,6 +241,15 @@ namespace CoupledField
     /** Info Node base */
     PtrParamNode info_;
     //@}
+
+    // =======================================================================
+    // NETWORK ATTRIBUTES
+    // =======================================================================
+    
+    //! Bool to differentiate mesh reading mode
+    bool readNetwork_ = false;
+
+    PtrParamNode networkNode_;
 
   };
 

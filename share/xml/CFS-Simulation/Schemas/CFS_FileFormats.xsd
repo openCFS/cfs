@@ -435,42 +435,38 @@
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic"> 
         <xsd:sequence>
-          <xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
+          <xsd:element name="network" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="node" minOccurs="0" maxOccurs="unbounded">
+                <xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
                   <xsd:complexType>
-                    <xsd:attribute name="Name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="x" type="xsd:token" use="required"/>
-                    <xsd:attribute name="y" type="xsd:token" use="required"/>
-                    <xsd:attribute name="z" type="xsd:token" use="required"/>
-                    <xsd:attribute name="coordSysId" type="xsd:token"
-                      use="optional"  default="default"/>
+                    <xsd:sequence>
+                      <xsd:element name="node" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:complexType>
+                          <xsd:attribute name="Name" type="xsd:token" use="required"/>
+                          <xsd:attribute name="x" type="xsd:double" use="required"/>
+                          <xsd:attribute name="y" type="xsd:double" use="required"/>
+                          <xsd:attribute name="z" type="xsd:double" use="required"/>
+                          <xsd:attribute name="coordSysId" type="xsd:token"
+                            use="optional"  default="default"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
                   </xsd:complexType>
                 </xsd:element>
-              </xsd:sequence>
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:sequence>
-
-        <xsd:element name="coord">
-        <xsd:complexType>
-          <xsd:attribute name="x" type="xsd:token" use="optional"/>
-          <xsd:attribute name="y" type="xsd:token" use="optional"/>
-          <xsd:attribute name="z" type="xsd:token" use="optional"/>
-          <xsd:attribute name="r" type="xsd:token" use="optional"/>
-          <xsd:attribute name="phi" type="xsd:token" use="optional"/>
-          <xsd:attribute name="coordSysId" type="xsd:token"
-            use="optional"  default="default"/>
-        </xsd:complexType>
-      </xsd:element>
-
-        
-          <xsd:element name="elemList" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="elems" type="DT_DomainElems" minOccurs="0"
-                  maxOccurs="unbounded"/>
+                <xsd:element name="elementList" minOccurs="0" maxOccurs="1">
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="elems" minOccurs="0" maxOccurs="unbounded">
+                        <xsd:complexType>
+                          <xsd:attribute name="Name" type="xsd:token" use="required"/>
+                          <xsd:attribute name="TerminalA" type="xsd:token" use="required"/>
+                          <xsd:attribute name="TerminalB" type="xsd:token" use="required"/>
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                  </xsd:complexType>
+                </xsd:element>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>

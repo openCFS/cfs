@@ -191,6 +191,46 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Section for specifying the coils (optional) -->
+          <xsd:element name="network" minOccurs="0">
+            <xsd:annotation>
+              <xsd:documentation>Defines a network based on the definition of an internal mesh</xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="networkElement" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="Name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="Type" use="required">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                          <xsd:enumeration value="Resistor"/>
+                          <xsd:enumeration value="Inductor"/>
+                          <xsd:enumeration value="Capacitor"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
+                    <xsd:attribute name="Value" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="terminal" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:annotation>
+                    <xsd:documentation>
+                      Terminal definition for the coupling of network elements to the FEM simulation.
+                      The FEMTerminal tag is used to define the coupling surface, while the 
+                      NetworkTerminal tag is used to define the coupling node from the network.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:attribute name="FEMTerminal" type="xsd:token" use="required"/>
+                    <xsd:attribute name="NetworkTerminal" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+              <xsd:attribute name="MeshID" type="xsd:token" use="required"/>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_MagneticStoreResults" minOccurs="0"
             maxOccurs="1"/>

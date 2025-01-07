@@ -34,100 +34,261 @@ InternalMesh::InternalMesh(std::string fileName, PtrParamNode inputNode,
   // in base class
   capabilities_.insert(SimInput::MESH);
 
-  // parse the file and create corresponding paramnode
-  xml_ = XmlReader::ParseFile(fileName_);
+  // check if we want to define it via an external xml file or if it is an internal
+  // network mesh
 
+  ParamNodeList inputList = inputNode->GetList("network");
   
-  if(xml_->GetName() != string("cfsInternalMesh"))
-    EXCEPTION("file " << fileName_ << " is not a cfsInternalMesh-file!");
+  if (inputList.GetSize()>0) {
+    if (inputList[0]->GetName()=="network") {
+      readNetwork_ = true;
+      networkNode_ = inputList[0];
+    } else {
+      // parse the file and create corresponding paramnode
+      xml_ = XmlReader::ParseFile(fileName_);
 
-  xml_ = xml_->Get("grid"); 
+      
+      if(xml_->GetName() != string("cfsInternalMesh"))
+        EXCEPTION("file " << fileName_ << " is not a cfsInternalMesh-file!");
 
-  xml_->GetValue("dim", dim_);
-  assert(dim_ == 2 || dim_ == 3);
+      xml_ = xml_->Get("grid"); 
 
-  xml_->GetValue("nx", nelems_[0]);
-  xml_->GetValue("ny", nelems_[1]);
-  maxNumElems_ = nelems_[0] * nelems_[1];
-  maxNumNodes_ = (nelems_[0]+1) * (nelems_[1]+1);
+      xml_->GetValue("dim", dim_);
+      assert(dim_ == 2 || dim_ == 3);
 
-  assert(maxNumElems_ > 0);
-  if(dim_ == 3)
-  {
-    assert(xml_->Has("nz"));
-    xml_->GetValue("nz", nelems_[2]);
-    maxNumElems_ *= nelems_[2];
-    maxNumNodes_ *= (nelems_[2]+1);
-    assert(maxNumElems_ > 0);
+      xml_->GetValue("nx", nelems_[0]);
+      xml_->GetValue("ny", nelems_[1]);
+      maxNumElems_ = nelems_[0] * nelems_[1];
+      maxNumNodes_ = (nelems_[0]+1) * (nelems_[1]+1);
 
-    maximal_[2] = 1.0; // set default maximal z to 1.0
+      assert(maxNumElems_ > 0);
+      if(dim_ == 3)
+      {
+        assert(xml_->Has("nz"));
+        xml_->GetValue("nz", nelems_[2]);
+        maxNumElems_ *= nelems_[2];
+        maxNumNodes_ *= (nelems_[2]+1);
+        assert(maxNumElems_ > 0);
+
+        maximal_[2] = 1.0; // set default maximal z to 1.0
+      }
+      else
+        nelems_[2] = 0;
+
+      // set the region name
+      if(xml_->Has("region"))
+        regionNames_.Push_back(xml_->Get("region")->Get("name")->As<string>());
+      else
+        regionNames_.Push_back("mech"); // default region name
+
+      // FIXME put this in the log output
+      info_->Get("basic")->Get("nx")->SetValue(nelems_[0]);
+      info_->Get("basic")->Get("ny")->SetValue(nelems_[1]);
+      info_->Get("basic")->Get("nz")->SetValue(nelems_[2]);
+      
+      cout << "dim = " << dim_
+          << ", nx = " << nelems_[0]
+          << ", ny = " << nelems_[1]
+          << ", nz = " << nelems_[2]
+          << ", numElems = " << maxNumElems_
+          << ", numNodes = " << maxNumNodes_
+          << ", regionname = " << string(regionNames_[0])
+          << endl;
+
+      elemDimReadIn_.Resize(dim_);
+    }
   }
-  else
-    nelems_[2] = 0;
-
-  // set the region name
-  if(xml_->Has("region"))
-    regionNames_.Push_back(xml_->Get("region")->Get("name")->As<string>());
-  else
-    regionNames_.Push_back("mech"); // default region name
-
-  // FIXME put this in the log output
-  info_->Get("basic")->Get("nx")->SetValue(nelems_[0]);
-  info_->Get("basic")->Get("ny")->SetValue(nelems_[1]);
-  info_->Get("basic")->Get("nz")->SetValue(nelems_[2]);
-  
-  cout << "dim = " << dim_
-       << ", nx = " << nelems_[0]
-       << ", ny = " << nelems_[1]
-       << ", nz = " << nelems_[2]
-       << ", numElems = " << maxNumElems_
-       << ", numNodes = " << maxNumNodes_
-       << ", regionname = " << string(regionNames_[0])
-       << endl;
-
-  elemDimReadIn_.Resize(dim_);
 }
 
 void InternalMesh::InitModule()
 {
-  if(xml_->Has("dimensions"))
+  if(!readNetwork_)
   {
-    PtrParamNode dims = xml_->Get("dimensions");
-    if(dims->Has("minimal"))
+    if(xml_->Has("dimensions"))
     {
-      dims->Get("minimal")->GetValue("x", minimal_[0]);
-      dims->Get("minimal")->GetValue("y", minimal_[1]);
-      if(dim_ == 3)
-        dims->Get("minimal")->GetValue("z", minimal_[2]);
+      PtrParamNode dims = xml_->Get("dimensions");
+      if(dims->Has("minimal"))
+      {
+        dims->Get("minimal")->GetValue("x", minimal_[0]);
+        dims->Get("minimal")->GetValue("y", minimal_[1]);
+        if(dim_ == 3)
+          dims->Get("minimal")->GetValue("z", minimal_[2]);
+      }
+
+      if(dims->Has("maximal"))
+      {
+        dims->Get("maximal")->GetValue("x", maximal_[0]);
+        dims->Get("maximal")->GetValue("y", maximal_[1]);
+        if(dim_ == 3)
+          dims->Get("maximal")->GetValue("z", maximal_[2]);
+      }
+
+      // sanity checks
+      assert(minimal_[0] < maximal_[0]);
+      assert(minimal_[1] < maximal_[1]);
+      assert(dim_ == 3 ? (minimal_[2] < maximal_[2]) : true);
     }
 
-    if(dims->Has("maximal"))
-    {
-      dims->Get("maximal")->GetValue("x", maximal_[0]);
-      dims->Get("maximal")->GetValue("y", maximal_[1]);
-      if(dim_ == 3)
-        dims->Get("maximal")->GetValue("z", maximal_[2]);
-    }
-
-    // sanity checks
-    assert(minimal_[0] < maximal_[0]);
-    assert(minimal_[1] < maximal_[1]);
-    assert(dim_ == 3 ? (minimal_[2] < maximal_[2]) : true);
+    if(xml_->Has("boundary"))
+      ParseBoundary(xml_->Get("boundary"));
+      
+    PtrParamNode dims_ = info_->Get("coordinate_dimensions");
+    dims_->Get("minimal")->Get("x")->SetValue(minimal_[0]);
+    dims_->Get("minimal")->Get("y")->SetValue(minimal_[1]);
+    dims_->Get("minimal")->Get("z")->SetValue(minimal_[2]);
+    dims_->Get("maximal")->Get("x")->SetValue(maximal_[0]);
+    dims_->Get("maximal")->Get("y")->SetValue(maximal_[1]);
+    dims_->Get("maximal")->Get("z")->SetValue(maximal_[2]);
   }
-
-  if(xml_->Has("boundary"))
-    ParseBoundary(xml_->Get("boundary"));
-    
-  PtrParamNode dims_ = info_->Get("coordinate_dimensions");
-  dims_->Get("minimal")->Get("x")->SetValue(minimal_[0]);
-  dims_->Get("minimal")->Get("y")->SetValue(minimal_[1]);
-  dims_->Get("minimal")->Get("z")->SetValue(minimal_[2]);
-  dims_->Get("maximal")->Get("x")->SetValue(maximal_[0]);
-  dims_->Get("maximal")->Get("y")->SetValue(maximal_[1]);
-  dims_->Get("maximal")->Get("z")->SetValue(maximal_[2]);
 }
 
 void InternalMesh::ReadMesh(Grid *mi)
+{
+  if (readNetwork_) {
+    ReadMeshNetwork(mi);
+  } else {
+    ReadMeshFile(mi);
+  }
+}
+
+void InternalMesh::ReadMeshNetwork(Grid *mi)
+{
+  mi_ = mi;
+  mi_->SetNetworkGrid(true);
+
+  // parse the file and get all the info from the xml
+
+  // get the node list
+  PtrParamNode nodeListNode = networkNode_->Get("nodeList",
+                                                 ParamNode::PASS);
+
+  // get the element list
+  PtrParamNode elemListNode = networkNode_->Get("elementList",
+                                                 ParamNode::PASS);
+
+  // both have to be defined in order to fully define a mesh
+  if(!nodeListNode || !elemListNode)
+  {
+    EXCEPTION("To define a mesh internally, you have to define a nodeList and a corresponding elementList!");
+  }
+
+  // we are fine, let's continue
+  // read all nodes
+  ParamNodeList nodeListNodeList = nodeListNode->GetChildren();
+
+  // read all elements
+  ParamNodeList elemListNodeList = elemListNode->GetChildren();
+
+
+  maxNumNodes_ = nodeListNodeList.GetSize();
+
+  mi_->AddNodes(maxNumNodes_);
+
+  // write node coordinates directly into the grid
+  // in contrast to the other method, we only have one element per region
+  // init
+  UInt nodeNum(0);
+  StdVector<std::string> nodeNameVec;
+  nodeNameVec.Resize(maxNumNodes_);
+  // loop
+  for(UInt curNode = 0; curNode < maxNumNodes_; ++curNode)  
+  {
+    Vector<Double> loc(3);
+    nodeListNodeList[curNode]->GetValue( "x", loc[0] );
+    nodeListNodeList[curNode]->GetValue( "y", loc[1] );
+    nodeListNodeList[curNode]->GetValue( "z", loc[2] );
+    mi_->SetNodeCoordinate(++nodeNum, loc);
+
+    std::string nameStr;
+    nodeListNodeList[curNode]->GetValue( "Name", nameStr );
+    nodeNameVec[curNode] = nameStr;
+  }
+
+  // loop over all elements (and therefore regions) and assign the nodes correspondingly
+  maxNumElems_ = elemListNodeList.GetSize();
+
+  mi_->AddElems(maxNumElems_);
+
+
+  // each region has just one element
+  // init
+  regionNodes_.Resize(maxNumElems_);
+  UInt elemNum(0);
+  regionNames_.Resize(maxNumElems_);
+
+  StdVector<StdVector<UInt> > elems;
+  elems.Resize(maxNumElems_);
+  StdVector<StdVector<UInt> > elemNums;
+  elemNums.Resize(maxNumElems_);
+  StdVector<StdVector<Elem::FEType> > elemTypes;
+  elemTypes.Resize(maxNumElems_);
+  StdVector<RegionIdType> regionIds;
+  regionIds.Resize(maxNumElems_);
+
+  
+  // loop
+  for(UInt curElem = 0; curElem < maxNumElems_; ++curElem)  
+  {
+    // read the element definition
+    std::string elemName;
+    elemListNodeList[curElem]->GetValue( "Name", elemName );
+
+    std::string TerminalA;
+    elemListNodeList[curElem]->GetValue( "TerminalA", TerminalA );
+
+    std::string TerminalB;
+    elemListNodeList[curElem]->GetValue( "TerminalB", TerminalB );
+
+    // insert to region name vector
+    regionNames_[curElem] = elemName;
+
+
+    // define the nodes per set
+    for(UInt curNode = 0; curNode < maxNumNodes_; ++curNode)
+    {
+      if(TerminalA==nodeNameVec[curNode]){
+        // define nodes per region
+        regionNodes_[curElem].insert(curNode+1);
+        // define element connectivity
+        elems[curElem].Push_back(curNode+1);
+      } 
+    }
+    for(UInt curNode = 0; curNode < maxNumNodes_; ++curNode)
+    {
+      if(TerminalB==nodeNameVec[curNode]){
+        // define nodes per region
+        regionNodes_[curElem].insert(curNode+1);
+        // define element connectivity
+        elems[curElem].Push_back(curNode+1);
+      } 
+    }
+
+    // add the one region and directly set regular to true?
+    regionIds[curElem] = mi_->AddRegion(regionNames_[curElem], false);  
+
+    // we only have line 2 elements
+    elemTypes[curElem].Push_back(Elem::ET_LINE2);
+    
+    // region and elem number are the same, but elements start at 1
+    elemNums[curElem].Push_back(curElem+1);
+
+  }
+
+  
+  UInt n(0);
+  for(UInt j = 0; j < elems.GetSize(); ++j)
+  {
+    n=0;
+    for(UInt i = 0; i < elemTypes[j].GetSize(); ++i)
+    {
+      mi_->SetElemData(elemNums[j][i], elemTypes[j][i], regionIds[j], &elems[j][n]);
+      n += Elem::shapes[elemTypes[j][i]].numNodes;
+    }
+  }
+
+}
+
+void InternalMesh::ReadMeshFile(Grid *mi)
 {
   mi_ = mi;
 
@@ -244,7 +405,11 @@ UInt InternalMesh::GetNumElems(const Integer dim)
 UInt InternalMesh::GetNumRegions()
 {
   // we only have one region
-  return 1;
+  if (readNetwork_) {
+    return regionNames_.GetSize();
+  } else {
+    return 1;
+  }
 }
 
 UInt InternalMesh::GetNumNamedNodes()
@@ -288,38 +453,46 @@ void InternalMesh::GetAllRegionNames(StdVector<string> &regionNames)
 void InternalMesh::GetRegionNamesOfDim(StdVector<string> &regionNames,
     const UInt dim) 
 {
-  regionNames.Clear();
+  if (readNetwork_) {
+    EXCEPTION("InternalMesh::GetNodeNames() not implemented for network mesh");
+  } else {
+    regionNames.Clear();
 
-  // Check if elements of desired dimension were read in. If not,
-  // read them in into dummy variables
-  if(elemDimReadIn_[dim-1] == false)
-  {
-    StdVector<StdVector<UInt> > elems, elemNums;
-    StdVector<StdVector<Elem::FEType> > elemTypes;
-    StdVector<RegionIdType> dummyId;
-    GetElements(elems,elemTypes,elemNums,dummyId,dim);
+    // Check if elements of desired dimension were read in. If not,
+    // read them in into dummy variables
+    if(elemDimReadIn_[dim-1] == false)
+    {
+      StdVector<StdVector<UInt> > elems, elemNums;
+      StdVector<StdVector<Elem::FEType> > elemTypes;
+      StdVector<RegionIdType> dummyId;
+      GetElements(elems,elemTypes,elemNums,dummyId,dim);
+    }
+
+    // Look for region names of desired dimension
+    for(UInt i=0; i<regionDim_.GetSize(); i++) 
+      if(regionDim_[i] == dim)
+        regionNames.Push_back(regionNames_[i]);
   }
-
-  // Look for region names of desired dimension
-  for(UInt i=0; i<regionDim_.GetSize(); i++) 
-    if(regionDim_[i] == dim)
-      regionNames.Push_back(regionNames_[i]);
 
 }
 
 void InternalMesh::GetNodeNames(StdVector<string> &nodeNames) 
 {
-  nodeNames.Reserve(dim_ == 2 ? 4 : 6);
-  // FIXME hard coded node names
-  nodeNames.Push_back("bottom");
-  nodeNames.Push_back("top");
-  nodeNames.Push_back("left");
-  nodeNames.Push_back("right");
+  if (readNetwork_) {
+    EXCEPTION("InternalMesh::GetNodeNames() not implemented for network mesh");
+  } else {
+    nodeNames.Reserve(dim_ == 2 ? 4 : 6);
+    // FIXME hard coded node names
+    nodeNames.Push_back("bottom");
+    nodeNames.Push_back("top");
+    nodeNames.Push_back("left");
+    nodeNames.Push_back("right");
 
-  if(dim_ == 3)
-  {
-    nodeNames.Push_back("front");
-    nodeNames.Push_back("back");
+    if(dim_ == 3)
+    {
+      nodeNames.Push_back("front");
+      nodeNames.Push_back("back");
+    }
   }
 }
 
@@ -360,112 +533,116 @@ void InternalMesh::GetElements(StdVector<StdVector<UInt> > & elems,
     StdVector<RegionIdType> & regionIds,
     const UInt dim)
 {
-  // Check that dimension is correct
-  if(dim < 1 || dim > 3)
-    EXCEPTION("The dimension of elements to be read in was specified with "
-        << dim << "but is only allowed to have a value between 1 and 3!");
+  if (readNetwork_) {
+    EXCEPTION("InternalMesh::GetNodeNames() not implemented for network mesh");
+  } else {
+    // Check that dimension is correct
+    if(dim < 1 || dim > 3)
+      EXCEPTION("The dimension of elements to be read in was specified with "
+          << dim << "but is only allowed to have a value between 1 and 3!");
 
-  // If there are no elements, we assume that this is fine and
-  // simply return
-  if(maxNumElems_ <= 0)
-    return;
+    // If there are no elements, we assume that this is fine and
+    // simply return
+    if(maxNumElems_ <= 0)
+      return;
 
-  // Some additional variables
-  UInt eType(6);
-  // UInt eNodes(4);
-  RegionIdType regionId(0);
-  Integer regionIndex(0);
+    // Some additional variables
+    UInt eType(6);
+    // UInt eNodes(4);
+    RegionIdType regionId(0);
+    Integer regionIndex(0);
 
-  if(dim_ == 3)
-  {
-    eType = 10;
-    // eNodes = 8;
+    if(dim_ == 3)
+    {
+      eType = 10;
+      // eNodes = 8;
+    }
+
+    // prepare the vectors
+    // we only need to do this once because we only have one region!
+    regionIds.Push_back(regionId);
+    elems.Push_back( StdVector<UInt>() );
+    elems.Last().Reserve(maxNumElems_);
+
+    elemNums.Push_back( StdVector<UInt>() );
+    elemNums.Last().Reserve(maxNumElems_);
+
+    elemTypes.Push_back( StdVector<Elem::FEType>() );
+    elemTypes.Last().Reserve(maxNumElems_);
+
+
+    UInt eNum(0);
+    UInt num(0);
+    // std::cout << std::endl; // FIXME
+
+    for(UInt z = 0; z < (dim_ == 2 ? 1 : nelems_[2]); ++z)
+      for(UInt y = 0; y < nelems_[1]; ++y)
+        for(UInt x = 0; x < nelems_[0]; ++x)
+        {
+          ++eNum;
+
+          switch(dim)
+          {
+          case 2:
+          {
+            num = y*(nelems_[0]+1) + x + 1;
+            elems[regionIndex].Push_back(num);
+            ++num;
+            elems[regionIndex].Push_back(num);
+
+            num = (y+1)*(nelems_[0]+1) + x + 2;
+            elems[regionIndex].Push_back(num);
+            --num;
+            elems[regionIndex].Push_back(num);
+
+            /* FIXME put this into the log file
+              std::cout << "elem " << eNum
+                        << ": n1 = " << y*(nelems_[0]+1) + x + 1
+                        << ", n2 = " << y*(nelems_[0]+1) + x + 2
+                        << ", n3 = " << (y+1)*(nelems_[0]+1) + x + 2
+                        << ", n4 = " << (y+1)*(nelems_[0]+1) + x + 1
+                        << std::endl;
+            */
+
+            break;
+          }
+
+          case 3:
+          {
+            num = ((z+1)*(nelems_[1]+1) + y)*(nelems_[0]+1) + x + 1;
+            elems[regionIndex].Push_back(num);
+            num = ((z+1)*(nelems_[1]+1) + y+1)*(nelems_[0]+1) + x + 1;
+            elems[regionIndex].Push_back(num);
+            ++num;
+            elems[regionIndex].Push_back(num);
+            num = ((z+1)*(nelems_[1]+1) + y)*(nelems_[0]+1) + x + 2;
+            elems[regionIndex].Push_back(num);
+
+            num = (z*(nelems_[1]+1) + y)*(nelems_[0]+1) + x + 1;
+            elems[regionIndex].Push_back(num);
+            num = (z*(nelems_[1]+1) + y+1)*(nelems_[0]+1) + x + 1;
+            elems[regionIndex].Push_back(num);
+            ++num;
+            elems[regionIndex].Push_back(num);
+            num = (z*(nelems_[1]+1) + y)*(nelems_[0]+1) + x + 2;
+            elems[regionIndex].Push_back(num);
+
+            break;
+          }
+
+          default:
+            EXCEPTION("not supported dimension for internal mesh");
+          }
+
+          elemTypes[regionIndex].Push_back(AnsysType2ElemType(eType));
+          elemNums[regionIndex].Push_back(eNum);
+
+        }
+
+    // Set flag which indicates, that elements of given dimension
+    // were read in
+    elemDimReadIn_[dim-1] = true;
   }
-
-  // prepare the vectors
-  // we only need to do this once because we only have one region!
-  regionIds.Push_back(regionId);
-  elems.Push_back( StdVector<UInt>() );
-  elems.Last().Reserve(maxNumElems_);
-
-  elemNums.Push_back( StdVector<UInt>() );
-  elemNums.Last().Reserve(maxNumElems_);
-
-  elemTypes.Push_back( StdVector<Elem::FEType>() );
-  elemTypes.Last().Reserve(maxNumElems_);
-
-
-  UInt eNum(0);
-  UInt num(0);
-  // std::cout << std::endl; // FIXME
-
-  for(UInt z = 0; z < (dim_ == 2 ? 1 : nelems_[2]); ++z)
-    for(UInt y = 0; y < nelems_[1]; ++y)
-      for(UInt x = 0; x < nelems_[0]; ++x)
-      {
-        ++eNum;
-
-        switch(dim)
-        {
-        case 2:
-        {
-          num = y*(nelems_[0]+1) + x + 1;
-          elems[regionIndex].Push_back(num);
-          ++num;
-          elems[regionIndex].Push_back(num);
-
-          num = (y+1)*(nelems_[0]+1) + x + 2;
-          elems[regionIndex].Push_back(num);
-          --num;
-          elems[regionIndex].Push_back(num);
-
-          /* FIXME put this into the log file
-						std::cout << "elem " << eNum
-											<< ": n1 = " << y*(nelems_[0]+1) + x + 1
-											<< ", n2 = " << y*(nelems_[0]+1) + x + 2
-											<< ", n3 = " << (y+1)*(nelems_[0]+1) + x + 2
-											<< ", n4 = " << (y+1)*(nelems_[0]+1) + x + 1
-											<< std::endl;
-           */
-
-          break;
-        }
-
-        case 3:
-        {
-          num = ((z+1)*(nelems_[1]+1) + y)*(nelems_[0]+1) + x + 1;
-          elems[regionIndex].Push_back(num);
-          num = ((z+1)*(nelems_[1]+1) + y+1)*(nelems_[0]+1) + x + 1;
-          elems[regionIndex].Push_back(num);
-          ++num;
-          elems[regionIndex].Push_back(num);
-          num = ((z+1)*(nelems_[1]+1) + y)*(nelems_[0]+1) + x + 2;
-          elems[regionIndex].Push_back(num);
-
-          num = (z*(nelems_[1]+1) + y)*(nelems_[0]+1) + x + 1;
-          elems[regionIndex].Push_back(num);
-          num = (z*(nelems_[1]+1) + y+1)*(nelems_[0]+1) + x + 1;
-          elems[regionIndex].Push_back(num);
-          ++num;
-          elems[regionIndex].Push_back(num);
-          num = (z*(nelems_[1]+1) + y)*(nelems_[0]+1) + x + 2;
-          elems[regionIndex].Push_back(num);
-
-          break;
-        }
-
-        default:
-          EXCEPTION("not supported dimension for internal mesh");
-        }
-
-        elemTypes[regionIndex].Push_back(AnsysType2ElemType(eType));
-        elemNums[regionIndex].Push_back(eNum);
-
-      }
-
-  // Set flag which indicates, that elements of given dimension
-  // were read in
-  elemDimReadIn_[dim-1] = true;
 }
 
 void InternalMesh::GetNamedNodes(StdVector<StdVector<UInt> > &nodes,
