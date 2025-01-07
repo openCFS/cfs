@@ -7,6 +7,7 @@
 
 # include common stuff to make this file shorter
 include:
+  - local: .gitlab/ci/linux.yml
   - local: .gitlab/ci/windows.yml
   # this switches the CACHE_POLICY by including the file with a variable definition (and an info job)
   # see https://docs.gitlab.com/ee/ci/yaml/includes.html#merge-method-for-include
@@ -426,15 +427,23 @@ rhel:9:
 
 .before-script-build:
   script:
+    # git repo info
+    - export DEBUG_SECTION_TITLE='git repository info'
+    - !reference [.linux-debug-start_collapsed, script]
     - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
     # make sure the Testsuite submodule is OK
     - git status # debug
     - git diff -- Testsuite # debug
     - git diff --exit-code -- Testsuite || (mv Testsuite Testsuite_ignore && git checkout Testsuite)
     - git status # debug
+    - !reference [.linux-debug-end, script]
     # report disk space
+    - export DEBUG_SECTION_TITLE='disk space info'
+    - !reference [.linux-debug-start_collapsed, script]
     - df -h # disk space debug
     - du -h --max-depth=1 . # repos space debug
+    - ls -l build/cfsdeps || ls # debug
+    - !reference [.linux-debug-end, script]
     # setup build directory
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
@@ -442,11 +451,13 @@ rhel:9:
     # show the contents of the caches
     - !reference [.linux_list_cache, script]
     # analyze ccache
+    - export DEBUG_SECTION_TITLE='ccache setup and debug info'
+    - !reference [.linux-debug-start_collapsed, script]
     - ls $CCACHE_DIR || true #debug
     - ccache --verbose --show-stats || ccache -s || true
     - ccache --verbose --zero-stats || ccache -z || true
     - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
-    - ls -l cfsdeps || ls # debug
+    - !reference [.linux-debug-end, script]
 
 # if testsuite_ignore is there, restore it
 .restore_Testsuite_ignore: &restore_Testsuite_ignore
@@ -590,7 +601,10 @@ cfsdeps:MSVC2022-Ifort2021:
 
 # set environment for URL on CDash
 # see https://docs.gitlab.com/ee/ci/environments/index.html#set-dynamic-environment-urls-after-a-job-finishes
-.save_cdash_buildid: &save_cdash_buildid
+.save_cdash_buildid:
+  script:
+  - export DEBUG_SECTION_TITLE='Save CDash build ID'
+  - !reference [.linux-debug-start_collapsed, script]
   - ls -R Testing # debug
   - cat Testing/*/Done.xml # debug
   - grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml # debug
@@ -602,6 +616,7 @@ cfsdeps:MSVC2022-Ifort2021:
   # output to annotations
   # https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
   - echo '{"CDash":[{"external_link":{"label":"CDash Build","url":"'$CDASH_BUILD_URL'"}},{"external_link":{"label":"CDash Tests","url":"'$CDASH_TEST_URL'"}}]}' > annotations.json
+  - !reference [.linux-debug-end, script]
   # output to job log
   - echo "Build on CDash - $CDASH_BUILD_URL"
   - echo "Tests on CDash - $CDASH_TEST_URL"
@@ -630,6 +645,8 @@ cfsdeps:MSVC2022-Ifort2021:
     - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
     # install test to create arifacts (first delete stuff to make space for packing)
+    - export DEBUG_SECTION_TITLE='Delete stuff to make space for packing'
+    - !reference [.linux-debug-start_collapsed, script]
     - df -h # debug
     - du -h --max-depth=1 . # debug
     - find cfsdeps/* -type d -not -wholename "*/cache" -not -wholename "*/cache/*" -prune -exec rm -rf {} + # delete cfsdeps (except cache)
@@ -637,32 +654,39 @@ cfsdeps:MSVC2022-Ifort2021:
     - find -iregex ".*\(\([.]a\)\|\([.]hpp\)\)$" -delete # delete *.a and *.hpp files
     - du -h --max-depth=1 . # debug
     - df -h # debug
+    - !reference [.linux-debug-end, script]
     - ctest -D ExperimentalTest --track $CDASH_TRACK # test build and install
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
   after_script:
+    - export DEBUG_SECTION_TITLE='debug information and cleanup'
+    - !reference [.linux-debug-start_collapsed, script]
     - git status # debug
     # restore testsuite
     - *restore_Testsuite_ignore
     - ls -la # debug
     - df -h # debug
-    - du -h --max-depth=1 . # debug
-    - cd build
-    - du -h --max-depth=1 . # debug
+    - du -h --max-depth=1 $CI_PROJECT_DIR # debug
+    - du -h --max-depth=1 $CI_PROJECT_DIR/build # debug
+    # clean up a bit to free disk space for cache-creation, leave artifacts and cache
+    - rm -rf $CI_PROJECT_DIR/build/_CPack_Packages $CI_PROJECT_DIR/build/vtk $CI_PROJECT_DIR/build/include $CI_PROJECT_DIR/build/source $CI_PROJECT_DIR/build/bin $CI_PROJECT_DIR/build/lib
+    - df -h # debug
+    - !reference [.linux-debug-end, script]
     # show the contents of the caches
     - !reference [.linux_list_cache, script]
+    # submit test results
+    - cd build
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    # rename CMakeCache to avoid conflicts
-    - cp CMakeCache.txt CMakeCache_build-stage.txt
-    # clean up a bit to free disk space for cache-creation, leave artifacts and cache
-    - rm -rf _CPack_Packages vtk include source bin lib
-    - df -h # debug
+    - cp CMakeCache.txt CMakeCache_build-stage.txt # rename CMakeCache to avoid conflicts
     # ccache info & clean
     - ccache --verbose --show-stats || ccache -s || true
+    - export DEBUG_SECTION_TITLE='ccache details'
+    - !reference [.linux-debug-start_collapsed, script]
     - ccache --verbose --show-log-stats || true
     - ccache --verbose --cleanup || ccache -c || true
     - ccache --verbose --show-stats || ccache -s || true
+    - !reference [.linux-debug-end, script]
     # save buildid for environment
-    - *save_cdash_buildid
+    - !reference [.save_cdash_buildid,script]
   artifacts:
     paths: # just an example
       - ./build/CFS-${CI_COMMIT_REF_SLUG}-Linux.tar.gz # the packed binaries for distribution
@@ -917,22 +941,26 @@ windows:MSVC2022-Ifort2021:
 # _python_ is seperate as not to re-run python tests for all GCCx versions.
 
 # test for cmake or install it
-.cmake_test_or_install: &cmake_test_or_install
+.cmake_test_or_install:
+  script:
+  - export DEBUG_SECTION_TITLE='cmake test or install'
+  - !reference [.linux-debug-start_collapsed, script]
   - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.22.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
   - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
   - echo $PATH
   - ctest --version
   - cmake --version
+  - !reference [.linux-debug-end, script]
 
 .after_cdash_submit: &after_cdash_submit
   after_script:
     - cd build
     # optionally install cmake if not present
-    - *cmake_test_or_install
+    - !reference [.cmake_test_or_install,script]
     # CDash submit
     - ctest -VV -D ExperimentalSubmit --track $CDASH_TRACK || true # very-verbose output, do not stop after script on fail
     # save buildid
-    - *save_cdash_buildid
+    - !reference [.save_cdash_buildid,script]
   artifacts:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
@@ -954,7 +982,7 @@ windows:MSVC2022-Ifort2021:
     # obtain the build config
     - ./bin/cfs --dependencies config.cmake
     # optionally install cmake if not present
-    - *cmake_test_or_install
+    - !reference [.cmake_test_or_install,script]
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -1194,7 +1222,7 @@ python:linux:
     - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
     - mkdir -p build
     - cd build
-    - *cmake_test_or_install # optionally install cmake if not present
+    - !reference [.cmake_test_or_install,script] # optionally install cmake if not present
     - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
