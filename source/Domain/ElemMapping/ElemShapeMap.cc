@@ -1088,7 +1088,7 @@ void LagrangeElemShapeMap::Global2LocalDuester(
             locPoint[1] = pow(-1, m) * w;
             locPoint[2] = pow(-1, n) * w;
             Local2GlobalScaled(f, locPoint);
-            f = f - globalPoint;
+            f = f - globalPoint*sf_;
             f_test = f.NormL2();
             if (f_old > f_test) {
               xi_start = locPoint;
@@ -2147,6 +2147,20 @@ void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated)
   //      << "(" << (isUpdated ? "updated)" : "original)") << std::endl
   //      << coords_ << std::endl;
 
+  // set scaled coordinates and scaling factor
+  Vector<Double> p0, p1, diff;
+  p0.Resize(coords_.GetNumRows());
+  p1.Resize(coords_.GetNumRows());
+
+  for( UInt i = 0; i < coords_.GetNumRows(); ++i ) {
+    p0[i] = coords_[0][i];
+    p1[i] = coords_[1][i];
+  }
+
+  diff = p1-p0;
+  this->sf_ = 1/diff.NormL2();
+  this->scaledCoords_ = coords_*sf_;
+  
   // set reference element
   #ifndef NDEBUG
     if( elems_.feMap_.find(ptElem->type) == elems_.feMap_.end())
