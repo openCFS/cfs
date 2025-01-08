@@ -476,6 +476,16 @@ void LagrangeElemShapeMap::Local2Global(Vector<Double>& globPoint,
   globPoint = coords_ * shFnc_;
 }
 
+void LagrangeElemShapeMap::Local2GlobalScaled(Vector<Double>& globPoint,
+    const LocPoint& lp) {
+
+  //step 1: evaluate shape fncs. at local coordinate
+  ptFe_->GetShFnc(shFnc_, lp, nullptr, 0);
+
+  // step2: multiply shape fncs for each dimension with according matrix entries
+  globPoint = scaledCoords_ * shFnc_;
+}
+
 void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
     const Vector<Double>& globalPoint) {
 
@@ -1029,8 +1039,8 @@ void LagrangeElemShapeMap::Global2LocalDuester(
   f.Init();
 
   // get global coordinates to initialize f
-  Local2Global(f, locPoint);
-  f = f - globalPoint;
+  Local2GlobalScaled(f, locPoint);
+  f = f - globalPoint*sf_;
   f_old = f.NormL2();
   f_start = f; // store the initial value of f
   // try to find better initial f values
@@ -1040,8 +1050,8 @@ void LagrangeElemShapeMap::Global2LocalDuester(
     for (Double w = 0.5; w <= 1.0; w += 0.5) {
       for (UInt j = 1; j < 3; j++) {
         locPoint[0] = pow(-1, j) * w;
-        Local2Global(f, locPoint);
-        f = f - globalPoint;
+        Local2GlobalScaled(f, locPoint);
+        f = f - globalPoint*sf_;
         f_test = f.NormL2();
         // if the new f value is smaller than the old one, keep the new one and
         // set the new start positions
@@ -1058,8 +1068,8 @@ void LagrangeElemShapeMap::Global2LocalDuester(
         for (UInt m = 1; m < 3; m++) {
           locPoint[0] = pow(-1, j) * w;
           locPoint[1] = pow(-1, m) * w;
-          Local2Global(f, locPoint);
-          f = f - globalPoint;
+          Local2GlobalScaled(f, locPoint);
+          f = f - globalPoint*sf_;
           f_test = f.NormL2();
           if (f_old > f_test) {
             xi_start = locPoint;
@@ -1077,7 +1087,7 @@ void LagrangeElemShapeMap::Global2LocalDuester(
             locPoint[0] = pow(-1, j) * w;
             locPoint[1] = pow(-1, m) * w;
             locPoint[2] = pow(-1, n) * w;
-            Local2Global(f, locPoint);
+            Local2GlobalScaled(f, locPoint);
             f = f - globalPoint;
             f_test = f.NormL2();
             if (f_old > f_test) {
@@ -1097,7 +1107,7 @@ void LagrangeElemShapeMap::Global2LocalDuester(
     delta_xi.Init();
     xi_start.Init();
     // Calculate Jacobian (J) at iteration point xi_k (locPoint)
-    this->CalcJ(J, locPoint);
+    this->CalcJScaled(J, locPoint);
     // Calculate local search direction delta_xi
     GetLocDirJac(delta_xi, f, J);
 
@@ -1106,8 +1116,8 @@ void LagrangeElemShapeMap::Global2LocalDuester(
     while (l < 60 && f_test >= f_old) {
       Double dampFac = 1.0 / std::pow(2.0, (Double)l);
       xi_start = locPoint + (delta_xi * dampFac);
-      Local2Global(f, xi_start);
-      f = f - globalPoint;
+      Local2GlobalScaled(f, xi_start);
+      f = f - globalPoint*sf_;
       f_test = f.NormL2();
       l++;
     }
@@ -2050,6 +2060,10 @@ void LagrangeElemShapeMap::CalcJ(Matrix<Double>& jac, const LocPoint& lp) {
    */
 }
 
+void LagrangeElemShapeMap::CalcJScaled(Matrix<Double>& jac, const LocPoint& lp) {
+  jac = scaledCoords_ * ptFe_->GetLocDerivShFnc( lp, ptElem_);
+}
+
 //! Calculation of Jacobian with given coordinates
 void LagrangeElemShapeMap::CalcJ( Matrix<Double>& jac,
        		                     const LocPoint& lp,
@@ -2146,6 +2160,19 @@ void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated)
 void LagrangeElemShapeMap::SetElem(const Elem* ptElem, const Matrix<double>& coords)
 {
   this->coords_ = coords;
+  
+  Vector<Double> p0, p1, diff;
+  p0.Resize(coords_.GetNumRows());
+  p1.Resize(coords_.GetNumRows());
+
+  for( UInt i = 0; i < coords_.GetNumRows(); ++i ) {
+    p0[i] = coords[0][i];
+    p1[i] = coords[1][i];
+  }
+
+  diff = p1-p0;
+  this->sf_ = 1/diff.NormL2();
+  this->scaledCoords_ = coords*sf_;
   assert(elems_.feMap_.find(ptElem->type) != elems_.feMap_.end());
   ptFe_ = elems_.feMap_[ptElem->type];
   shape_ = &Elem::shapes[ptElem_->type];

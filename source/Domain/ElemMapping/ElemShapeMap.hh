@@ -560,6 +560,13 @@ namespace CoupledField {
     void Local2Global( Vector<Double>& globPoint, 
                        const LocPoint& lp );
 
+    //! Similar to Local2Global, only that the scaled coordinates are used
+    //! This can be beneficial for the Duester algorithm when dealing with
+    //! small meshes, since the Jacobian of these meshes can lead to 
+    //! numerical problems
+    void Local2GlobalScaled( Vector<Double>& globPoint, 
+                       const LocPoint& lp );
+
     //! @copydoc ElemShapeMap::Global2Local
     void Global2Local( Vector<Double>& locPoint, 
                        const Vector<Double>& glob );
@@ -618,6 +625,10 @@ namespace CoupledField {
 
     //! @copydoc ElemShapeMap::CalcJ
     void CalcJ( Matrix<Double>& jac, 
+                const LocPoint& ip );
+
+    //! Similar to CalcJ but using scaled coordinates
+    void CalcJScaled( Matrix<Double>& jac, 
                 const LocPoint& ip );
     
     //! @copydoc ElemShapeMap::CalcJ with given coordinates
@@ -710,6 +721,12 @@ namespace CoupledField {
 
     //! Nodal coordinates
     Matrix<Double> coords_;
+
+    //! Scaled odal coordinates
+    Matrix<Double> scaledCoords_;
+
+    //! Scaling factor
+    double sf_;
     
     //! Shape of reference element
     const ElemShape* shape_;
