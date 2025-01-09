@@ -377,6 +377,20 @@ namespace CoupledField {
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Reading boundary conditions";
     ReadBCs();
+    // If we perform iterative coupling to get some predeformation but we do not
+    // have an actual coupling coefficient, the iterSolveStep is not finalized
+    // and therefore the geometry update (and further computation) is ignored.
+    // Here, we finalize it manually, just to be sure.
+    
+    // check if we have some iterative coupling
+    if ( isIterCoupled_ ){
+      iterCplPde_->TriggerFinalize();
+    }
+    
+
+    // manually call finalize
+
+
     ReadSpecialBCs();
 
     // =====================================================================
@@ -1877,11 +1891,22 @@ namespace CoupledField {
       LOG_TRACE(singlepde) << pdename_ << ": Reading initial state";
       
       PtrParamNode isInfo = icInfo->Get("initialState");
+
       
       // Ensure, that we have a static or transient analysis
-      if( !( analysistype_ == STATIC || analysistype_ == TRANSIENT ) ) {
+      // Comment dmayrhofer 20250114: I added the functionality for the harmonic case too,
+      // although only the real part of the deformation will be considered  
+
+      if( !( analysistype_ == STATIC || analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) ) {
         WARN( "Initial conditions are only meaningful in a transient analysis and "
-            << "will be omitted for this type of analysis" );
+            << "for a special case in harmonic computations, where pre-deformation is used. " 
+            << "Hence, the initial condition will be omitted for this type of analysis.");
+      }
+      if( analysistype_ == HARMONIC ) { 
+        WARN( "Initial conditions for harmonic computations are a highly specific feature. "
+            << "Please look at testcases to know what is tested and what is not. " 
+            << "Not all combinations of couplings/inputs are tested which might cause unexpected results. "
+            << "Proceed with caution!");
       }
       
       PtrParamNode srcNode = isNode->GetChild();
@@ -3177,6 +3202,11 @@ namespace CoupledField {
       }
       else
         EXCEPTION("TENSOR not implemented yet!");
+      
+      // add all dofs to the definedDofs
+      for(UInt i = 0; i < compNames.GetSize(); ++i ){
+        definedDofs.insert(i);
+      }
     }
     else if(valueNode->Has("fileData"))
     {

@@ -77,12 +77,41 @@
             <xsd:element name="geometryUpdate" minOccurs="0">
               <xsd:complexType>
                 <xsd:sequence>
-                   <xsd:element name="region" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:element name="region" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
-                     <xsd:attribute name="name" type="xsd:token" use="required"/>                   
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>                   
                     </xsd:complexType>                  
-                   </xsd:element>                         
+                  </xsd:element>                       
                 </xsd:sequence>
+                <xsd:attribute name="EnableRefNode" type="DT_CFSBool" use="optional" default="no">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                    Enables the definition of a reference node. This reference node has a phase of 0 and all 
+                    results in this region are converted to be relativ to the phase of the reference node.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="RefNodeName" type="xsd:token" use="optional" default="">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                    Name of the reference node (e.g. nodeList, nodeSet). 
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="RefNodeDOFNumber" type="xsd:int" use="optional" default="0">
+                   <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                    Degrees of freedom of the reference node.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="RefNodePhaseOffset" type="xsd:double" use="optional" default="0.0">
+                   <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                    Phase offset of the reference node. This is set to 0 by default and can be used to add a phase offset to the whole region.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
@@ -94,6 +123,14 @@
 			          Multiple PDEs can be specified - use ";" or " " for separation.
 			          Example: mechanic;smooth
 			          Default order: Uncoupled PDEs with heat, mechanic and smooth at the end followed by coupledPDEs
+			        </xsd:documentation>
+			      </xsd:annotation>
+			    </xsd:attribute>
+          <!-- Check if we use a different reordering strategy -->
+          <xsd:attribute name="endWithCoupledPDEs" type="DT_CFSBool" use="optional" default="yes">
+			      <xsd:annotation>
+			        <xsd:documentation xml:lang="en">
+			          Defines if directly coupled PDEs will be solved at the end or at the beginning.
 			        </xsd:documentation>
 			      </xsd:annotation>
 			    </xsd:attribute>

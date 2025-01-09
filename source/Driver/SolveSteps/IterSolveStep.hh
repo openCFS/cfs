@@ -148,6 +148,9 @@ namespace CoupledField
     
     //! Set FeFunction for displacement
     void SetDispFct( shared_ptr<FeFunction<Double> > disp);
+
+    //! Set FeFunction for complex displacement
+    void SetDispFctComplex( shared_ptr<FeFunction<Complex> > dispComplex);
     
     //! Set FeFunction for velocity (needed for geometry update)
     void SetVelFct( shared_ptr<FeFunction<Double> > vel);
@@ -177,6 +180,24 @@ namespace CoupledField
     
     //! \copydoc ConvCriterion::GetSupport
     StdVector<shared_ptr<EntityList> > GetSupport() override;
+
+    //! Get if PDE is complex valued
+    bool GetIsComplex() { return isComplex_; };
+
+    //! Set if PDE is complex valued
+    void SetIsComplex( bool isComplex ) { isComplex_ = isComplex; };
+
+    //! Set function to set either activate or deactivate the usage of a reference node for the phase correction in harmonic predeformed simulations
+    void SetEnableRefNode( bool refNodeEnabled ) { refNodeEnabled_ = refNodeEnabled;};
+
+    //! Set function to set the reference node name
+    void SetRefNodeName( std::string refNodeName ) { refNodeName_ = refNodeName;};
+
+    //! Set function to set the reference node DOF
+    void SetRefNodeDOF( UInt refNodeDOF ) { refNodeDOF_ = refNodeDOF;};
+    
+    //! Set function to set the phase offset
+    void SetPhaseOffset( double phaseOffset ) { phaseOffset_ = phaseOffset;};
     
   protected:
     
@@ -184,10 +205,13 @@ namespace CoupledField
     shared_ptr<FeFunction<Double> > disp_mech_;
 
     //! Pointer to displacement FeFunction
-    shared_ptr<FeFunction<Double> > disp_smooth_;
+    //shared_ptr<FeFunction<Double> > disp_smooth_;
 
     //! Pointer to displacement FeFunction
     shared_ptr<FeFunction<Double> > disp_;
+
+    //! Pointer to complex valued displacement FeFunction
+    shared_ptr<FeFunction<Complex> > dispComplex_;
 
     //! Pointer to velocity FeFunction
     shared_ptr<FeFunction<Double> > vel_;
@@ -206,6 +230,27 @@ namespace CoupledField
     
     //! if just norm of mechanical displacement is of interest, but no updated geometry is needed
     bool justNorm_;
+
+    //! bool to check if the feFunction is complex valued
+    bool isComplex_ = false;
+
+    //! enables using a reference node to which the phase is corrected to
+    bool refNodeEnabled_ = false;
+
+    //! name of the reference node used to compute the phase correction
+    std::string refNodeName_;
+
+    //! DOF of the reference node to which we map the phase to
+    UInt refNodeDOF_;
+
+    //! phase offset that is used in addition to the node based phase correction
+    double phaseOffset_;
+
+    //! phase correction including phase of DOF of node and user specified correction
+    double phaseCorrection_;
+
+    //! phase correction multiplier
+    Complex phaseCorrMult_ = 1.0;
   };
   
   // ======================================================================
@@ -236,6 +281,9 @@ namespace CoupledField
                                    const std::string& pdeName,
                                    bool& updatedGeo );
 
+    //! Manually trigger the finalize procedure if it has not been done yet
+    void TriggerFinalize();
+    
     //! Function similar to GetCouplingCoefFct but only returns updatedGeo
     void GetUpdateGeoForPDE( SolutionType type,
                              shared_ptr<EntityList>  list,
@@ -342,6 +390,9 @@ namespace CoupledField
     
     // use user defined PDE order
     bool customReorderPDE_;
+
+    // either start or end with coupled PDEs
+    bool endWithCoupledPDEs_;
 
     // custom PDE order
     std::string PDEorder_;

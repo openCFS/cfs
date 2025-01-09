@@ -67,6 +67,9 @@ namespace CoupledField
                                    const std::string& pdeName,
                                    bool& updatedGeo );
 
+    //! Triggers the finalization within the iterSolveStep
+    void TriggerFinalize();
+
     //! Function similar to GetCouplingCoefFct but only returns updatedGeo
     void GetUpdateGeoForPDE( SolutionType type,
                              shared_ptr<EntityList>  list,

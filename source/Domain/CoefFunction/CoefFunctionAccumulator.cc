@@ -27,7 +27,19 @@ void CoefFunctionAccumulator::GetTensor(Matrix<Complex>& coefMat,
 
 void CoefFunctionAccumulator::GetVector(Vector<Complex>& coefVec,
                                         const LocPointMapped& lpm ){
-  REFACTOR
+  #pragma omp critical (COEFFUNCTIONACCUMULATOR_SUMMATION)
+  {
+    fct_->GetVector(coefVec, lpm);
+    Complex temp;
+    for( UInt i = 0; i < coefVec.GetSize(); ++i ) {
+      if( integrate_ ) {
+        temp += coefVec[i] * coefVec[i] * lpm.weight * lpm.jacDet;
+      } else {
+        temp += coefVec[i] * coefVec[i];
+      }
+    }
+    squaredSum_ += std::abs(temp);
+  }
 }
 
 void CoefFunctionAccumulator::GetScalar(Complex& coef, const LocPointMapped& lpm ){

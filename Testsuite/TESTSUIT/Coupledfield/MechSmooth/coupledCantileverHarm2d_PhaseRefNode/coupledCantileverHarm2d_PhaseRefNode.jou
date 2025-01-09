@@ -1,0 +1,70 @@
+reset
+undo on
+
+
+Echo off
+Warning off
+
+
+#{l = 1e-2}; # length of the cantilever
+#{h = 1e-3}; # height of the cantilever
+#{n_el_h = 3}; # number of elements for the height
+#{n_el_l = 8}; # number of elements for the length
+#{h_s = 2e-3}; # height of the additional domain
+
+
+# geometry
+
+create surface rectangle width {l} height {h} zplane
+move surface 1 x {l/2} y {h/2} z 0
+
+create surface rectangle width {l} height {h_s} zplane
+move surface 2 x {l/2} y {h+h_s/2} z 0
+
+
+# merge everything
+imprint tolerant volume all
+merge volume all
+
+
+# mesh
+
+curve 2 4 interval {n_el_h}
+curve 1 3 interval {n_el_l}
+mesh surface 1 
+
+curve 6 8 interval {n_el_h*h_s/h}
+mesh surface 2
+
+
+# blocks
+
+block 1 add surface 1
+block 1 name "cantilev"
+
+block 2 add surface 2
+block 2 name "air"
+
+
+# nodesets
+
+nodeset 1 add curve 2
+nodeset 1 name "BC_Fix"
+
+nodeset 2 add curve 4
+nodeset 2 name "BC_Load"
+
+nodeset 3 add curve 5 
+nodeset 3 name "BC_Top_smooth"
+
+nodeset 4 add curve 6
+nodeset 4 name "BC_Fix_smooth"
+
+nodeset 5 add curve 1
+nodeset 5 name "BC_IF"
+
+
+Echo on
+Warning on
+
+export ansys cdb "cantilever.cdb" overwrite

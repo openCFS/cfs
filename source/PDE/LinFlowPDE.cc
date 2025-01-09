@@ -2115,7 +2115,7 @@ namespace CoupledField {
       availResults_.insert( presTens );
       PtrCoefFct presFnc = this->GetCoefFct( FLUIDMECH_PRESSURE );
       StdVector<PtrCoefFct> presTensDiagValues;
-      PtrCoefFct zeroPres = CoefFunction::Generate( mp_,  part,
+      PtrCoefFct zeroPres = CoefFunction::Generate( mp_, part,
           CoefXprBinOp(mp_, presFnc, CoefFunction::Generate( mp_, part, "0"), CoefXpr::OP_MULT));
       if( subType_ == "axi" ) {
         presTensDiagValues = StdVector<PtrCoefFct>(2*dim_);
@@ -2427,7 +2427,7 @@ namespace CoupledField {
           mp_, part, CoefXprBinOp(mp_, presFnc, velFncNormal, CoefXpr::OP_DIV));
       DefineFieldResult(surfImpFct, surfImpedance);
       
-      // === FLUID-MECHAINC IMPEDANCE ===
+      // === FLUID-MECHANIC IMPEDANCE ===
       // Impedance Z_{\mathrm{lf}} = \int_{\mathrm{\Gamma}} v_{\mathrm{lf,n}} / p dGamma
       shared_ptr<ResultInfo> impedance(new ResultInfo);
       impedance->resultType = FLUIDMECH_IMPEDANCE;
@@ -2440,16 +2440,53 @@ namespace CoupledField {
       if( isComplex_ ) {
         impedanceFct.reset(
             new ResultFunctorIntegrate<Complex>(surfImpFct, feFct, impedance));
-        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(impedanceFct)
-            ->SetAveraged(true);
+        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(impedanceFct)->SetAveraged(true);
       } else {
         impedanceFct.reset(
             new ResultFunctorIntegrate<Double>(surfImpFct, feFct, impedance));
-        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)
-            ->SetAveraged(true);
+        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)->SetAveraged(true);
       }
       resultFunctors_[FLUIDMECH_IMPEDANCE] = impedanceFct;
       availResults_.insert(impedance);
+
+
+      // === FLUID-MECHANIC VOLUME FLOW RATE ===
+      shared_ptr<ResultInfo> volFlowRate(new ResultInfo);
+      volFlowRate.reset(new ResultInfo);
+      volFlowRate->resultType = FLUIDMECH_VOLUME_FLOW_RATE;
+      volFlowRate->dofNames = "";
+      volFlowRate->unit = MapSolTypeToUnit(FLUIDMECH_VOLUME_FLOW_RATE);
+      volFlowRate->entryType = ResultInfo::SCALAR;
+      volFlowRate->definedOn = ResultInfo::SURF_REGION;
+      // Integrate normal displacement
+      shared_ptr<ResultFunctor> volFlowRateFunc;
+      if(isComplex_)
+        volFlowRateFunc.reset(new ResultFunctorIntegrate<Complex>(velFncNormal, velFeFct, volFlowRate));
+      else
+        volFlowRateFunc.reset(new ResultFunctorIntegrate<Double>(velFncNormal, velFeFct, volFlowRate));
+      resultFunctors_[FLUIDMECH_VOLUME_FLOW_RATE] = volFlowRateFunc;
+      availResults_.insert(volFlowRate);
+
+      
+      // === FLUID-MECHANIC AVERAGED PRESSURE ===
+      shared_ptr<ResultInfo> avgPres(new ResultInfo);
+      avgPres.reset(new ResultInfo);
+      avgPres->resultType = FLUIDMECH_AVERAGED_PRESSURE;
+      avgPres->dofNames = "";
+      avgPres->unit = MapSolTypeToUnit(FLUIDMECH_AVERAGED_PRESSURE);
+      avgPres->entryType = ResultInfo::SCALAR;
+      avgPres->definedOn = ResultInfo::SURF_REGION;
+      // Integrate normal displacement
+      shared_ptr<ResultFunctor> avgPresFunc;
+      if(isComplex_) {
+        avgPresFunc.reset(new ResultFunctorIntegrate<Complex>(presFnc, feFct, avgPres));
+        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(avgPresFunc)->SetAveraged(true);
+      } else {
+        avgPresFunc.reset(new ResultFunctorIntegrate<Double>(presFnc, feFct, avgPres));
+        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(avgPresFunc)->SetAveraged(true);
+      }
+      resultFunctors_[FLUIDMECH_AVERAGED_PRESSURE] = avgPresFunc;
+      availResults_.insert(avgPres);
 
     }
   

@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>Transient LinFlow-PDE acoustic impedance calculation result variables</title>
+    <authors>
+      <author>Tobias Wilczacki</author>
+    </authors>
+    <date>2025-07-06</date>
+    <keywords>
+      <keyword>flow</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+    Test for the result variables for the acoustic impedance calculation. A Channel were the result variables fluidMechVolumeFlowRate and fluidMechAveragedPressure are evaluated in the middle of the channel to calculate the acoustic impedance. Adapted from the PlaneWave3D Testcases.
+    Taking the pressure p(t=0.0425)=21.7Pa and the velocity v(t=0.0425)=0.36m/s to calculate the fluidMechAveragedPressure and fluidMechVolumeFlowRate. As the pressure excitation is the same throughout the cross section it is equal to the fluidMechAveragedPressure. The fluidMechVolumeFlowRate Q can be calculate using the area of the cross section A=25e-6m^2: Q=v*A=0.36m/s*25e-6m^2=9m^3/s. Those numbers are quite similar to the numerical results if the simulation time is increased to 84 steps.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="PlaneWave3DImpedance.h5ref"/>
+      <!--cdb fileName="Channel_mesh.cdb"/>-->
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <variableList>
+    <var name="f_exc" value="1000"/> 
+    </variableList>
+    
+    <regionList>
+      <region name="Channel" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="Excite"/>
+      <surfRegion name="BC_Channel_Wall"/>
+      <surfRegion name="Imp_surface_1"/>
+      <surfRegion name="BC_Top"/>
+    </surfRegionList> 
+    
+  </domain>
+  
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="orderVel">
+      <isoOrder>2</isoOrder> 
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="orderPres">
+       <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>10</numSteps>
+        <deltaT>2e-5</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel">
+        <regionList>
+          <region name="Channel" />
+        </regionList>
+        
+      
+        <bcsAndLoads> 
+         <noSlip name="BC_Channel_Wall">
+            <comp dof="x" />
+            <comp dof="y" />
+            <comp dof="z" />
+          </noSlip>
+          
+          <noSlip name="BC_Top">
+            <comp dof="y" />
+            <comp dof="z" />
+          </noSlip>
+          
+          
+          <pressure name="Excite" value="50*sin(2*pi*f_exc*t)*(1-exp(-t/(3e-3)))"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions outputIds="h5"/> 
+          </nodeResult>
+          <surfRegionResult type="fluidMechVolumeFlowRate">
+            <surfRegionList>
+              <surfRegion name="Imp_surface_1" outputIds="txt"/>
+            </surfRegionList>
+          </surfRegionResult>
+          <surfRegionResult type="fluidMechAveragedPressure">
+            <surfRegionList>
+              <surfRegion name="Imp_surface_1" outputIds="txt"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </fluidMechLin>
+    </pdeList>
+    
+    <linearSystems getRidOfZeros="no">
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

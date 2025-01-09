@@ -198,6 +198,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     assert(disp);
     disp_ = disp;
   }
+
+  void ConvCriterionDisplacement::SetDispFctComplex( shared_ptr<FeFunction<Complex> > disp) {
+    assert(disp);
+    dispComplex_ = disp;
+  }
   
   void ConvCriterionDisplacement::SetVelFct( shared_ptr<FeFunction<Double> > vel) {
     assert(vel);
@@ -229,7 +234,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // update grid to current values
       // Check if displacement fefunction is set
     // if we just want to calculate the norm, we need no geometry update
-    if( !disp_ || justNorm_)
+    if( !(disp_ || dispComplex_) || justNorm_)
         return;
 /*    
     double currentNorm = CalcNorm(actNorm_, oldNorm_);
@@ -239,14 +244,58 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 	   return;
    } 
 */	    
-      Grid * ptGrid = disp_->GetGrid();
+      Grid * ptGrid;
+      if( isComplex_ ) {
+        ptGrid = dispComplex_->GetGrid();
+      } else {
+        ptGrid = disp_->GetGrid();
+      }
       const UInt dim = ptGrid->GetDim();
       // Grid for vel and acc
       //Grid * ptGridVel = vel_->GetGrid();
       //Grid * ptGridAcc = acc_->GetGrid();
       // Loop over all regions of FeFunction
       shared_ptr<EntityList> nodes;
-      std::set<RegionIdType> dispRegions = disp_->GetRegions();
+      std::set<RegionIdType> dispRegions;
+      if( isComplex_ ) {
+        dispRegions = dispComplex_->GetRegions();
+
+        // get the potential reference node and calcualte the phase offset
+        if( refNodeEnabled_ ) {
+          shared_ptr<EntityList> refNodeList;
+          refNodeList = ptGrid->GetEntityList(EntityList::NODE_LIST, refNodeName_);
+          if( refNodeList->GetSize() != 1 ) {
+            EXCEPTION("The reference node name specified either does not exist or contains more than one node!");
+          }
+          EntityIterator refNodeIt = refNodeList->GetIterator();
+          Vector<Complex> refNodeOffset(dim);
+          dispComplex_->GetEntitySolution(refNodeOffset, refNodeIt);
+
+          // calculate the phase and phase correction
+          Vector<double> refNodePhase(dim);
+          for( UInt ii=0; ii<refNodePhase.GetSize(); ii++) {
+            refNodePhase[ii] = std::arg(refNodeOffset[ii]);
+          }
+          phaseCorrection_ = -refNodePhase[refNodeDOF_]+phaseOffset_/180.0*3.14159265358979323846;
+          // this complex value can be used to directly multiply it with the result, leading to a zero phase for the specified DOF
+          // the rest will be projected by using the real value
+          phaseCorrMult_ = std::polar(1.0,phaseCorrection_);
+
+          // calculate the actual offset of the reference node and give feedback to the user
+          Vector<Complex> refNodeOffsetCorr(dim);
+          refNodeOffsetCorr = refNodeOffset*phaseCorrMult_;
+          std::cout << "Found reference node " << refNodeName_ << "!" << std::endl;
+          std::cout << "Initial position: " << refNodeOffset.ToString() << std::endl;
+          std::cout << "Reference calculated based on DOF " << refNodeDOF_ << std::endl;
+          std::cout << "Corrected position: " << refNodeOffsetCorr.ToString() << std::endl;
+        }
+      } else {
+        dispRegions = disp_->GetRegions();
+      }
+
+      // dummy to compute the offset of the current node and DOF based on the phase correction multiplier
+      Complex curOffset;
+      
       std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
 
       for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
@@ -270,7 +319,16 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
           nodeNums[pos] = nodeIt.GetNode();
           // aquire nodal solution
-          disp_->GetEntitySolution(offset, nodeIt);
+          if( isComplex_ ) {
+            Vector<Complex> offsetComplex(dim);
+            dispComplex_->GetEntitySolution(offsetComplex, nodeIt);
+            for( UInt i=0; i<offsetComplex.GetSize(); i++ ) {
+              curOffset = offsetComplex[i]*phaseCorrMult_;
+              offset[i] = curOffset.real();
+            }
+          } else {
+            disp_->GetEntitySolution(offset, nodeIt);
+          }
 
           UInt offsetPos = pos*dim;
           for( UInt iDim = 0; iDim < dim; ++iDim ) {
@@ -294,14 +352,19 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   void ConvCriterionDisplacement::StopSampling() {
 
     // if no displacement is set, just leave
-    if( !disp_)
+    if( !(disp_ || dispComplex_))
       return;
 
     oldNorm_ = actNorm_;
     actNorm_ = 0.0;
 
     // Calculate norm of total displacement
-    Grid * ptGrid = disp_->GetGrid();
+    Grid * ptGrid;
+    if( isComplex_ ) {
+      ptGrid = dispComplex_->GetGrid();
+    } else {
+      ptGrid = disp_->GetGrid();
+    }
     
     // update nc interfaces if existing
     //ptGrid->MoveNcInterfaces();
@@ -309,7 +372,16 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     const UInt dim = ptGrid->GetDim();
     // Loop over all regions of FeFunction
     shared_ptr<EntityList> nodes;
-    std::set<RegionIdType> dispRegions = disp_->GetRegions();
+    std::set<RegionIdType> dispRegions;
+    if( isComplex_ ) {
+      dispRegions = dispComplex_->GetRegions();
+    } else {
+      dispRegions = disp_->GetRegions();
+    }
+    
+    // dummy to compute the offset of the current node and DOF based on the phase correction multiplier
+    Complex curOffset;
+    
     std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
 
     for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
@@ -332,7 +404,16 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
         nodeNums[pos] = nodeIt.GetNode();
         // aquire nodal solution
-        disp_->GetEntitySolution(offset, nodeIt);
+        if( isComplex_ ) {
+          Vector<Complex> offsetComplex(dim);
+          dispComplex_->GetEntitySolution(offsetComplex, nodeIt);
+          for( UInt i=0; i<offsetComplex.GetSize(); i++ ) {
+            curOffset = offsetComplex[i]*phaseCorrMult_;
+            offset[i] = curOffset.real();
+          }
+        } else {
+          disp_->GetEntitySolution(offset, nodeIt);
+        }
         
         for( UInt iDim = 0; iDim < dim; ++iDim ) {
           actNorm_ +=  offset[iDim] * offset[iDim];
@@ -444,6 +525,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       if ( !PDEorder_.empty() ) {
         customReorderPDE_ = true;
       }
+      endWithCoupledPDEs_ = param_->Get("endWithCoupledPDEs")->As<bool>();
     }
 
     // 1) Check for general convergence criterions
@@ -531,21 +613,45 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   }
   
   
+  void IterSolveStep::TriggerFinalize() {
+    if( !isFinalized_) {
+      LOG_DBG(itersolvestep) << "Calling ::Finalize() from TriggerFinalize()";
+      Finalize();
+    } 
+  }
+  
   void IterSolveStep::Finalize() {
     LOG_TRACE(itersolvestep) << "Finalizing iterative coupled solve step";
     
     // 1) Check for updated geometry
     if( param_->Has("geometryUpdate") ) {
-      ParamNodeList regionNodes = param_->Get("geometryUpdate")->GetChildren();
+      ParamNodeList regionNodes = param_->Get("geometryUpdate")->GetList("region");
+
+      bool enableRefNode = false;
+      PtrParamNode geomUpdateParamNode = param_->Get("geometryUpdate", ParamNode::PASS );
+      geomUpdateParamNode->GetValue( "EnableRefNode", enableRefNode, ParamNode::PASS );
+
+      std::string refNodeName;
+      double phaseOffset = 0.0;
+      UInt refNodeDOF = 0;
+      if( enableRefNode ) {
+        // search for the named node, get its ID and use it as a reference
+        refNodeName = geomUpdateParamNode->Get("RefNodeName")->As<std::string>();
+        phaseOffset = geomUpdateParamNode->Get("RefNodePhaseOffset")->As<double>();
+        refNodeDOF = geomUpdateParamNode->Get("RefNodeDOFNumber")->As<UInt>();
+        // we get the actual node number later on when we have access to the grid pointer
+      }
 
       if( regionNodes.GetSize() > 0 ) {
 
         // check for presence of mechanical PDE
         shared_ptr<FeFunction<Double> > disp;
+        shared_ptr<FeFunction<Complex> > dispComplex;
         //shared_ptr<FeFunction<Double> > vel;
         //shared_ptr<FeFunction<Double> > acc;
         // check for presence of smooth PDE
         shared_ptr<FeFunction<Double> > dispSmooth;
+        shared_ptr<FeFunction<Complex> > dispSmoothComplex;
         //shared_ptr<FeFunction<Double> > velSmooth;
         UInt numSinglePDEs = rPDE_.singlePDEs_.GetSize();
         for( UInt i = 0; i < numSinglePDEs; ++i ) {
@@ -553,8 +659,14 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           // furthermore, we have to distinguish which region uses which criterion
           SinglePDE * ptPde = rPDE_.singlePDEs_[i]; 
           if( ptPde->GetName() == "mechanic" ) {
-            disp = dynamic_pointer_cast<FeFunction<Double> >
-            (ptPde->GetFeFunction(MECH_DISPLACEMENT));
+            // enable harmonic case
+            if ( ptPde->IsComplex() ) {
+              dispComplex = dynamic_pointer_cast<FeFunction<Complex> >
+                            (ptPde->GetFeFunction(MECH_DISPLACEMENT));
+            } else {
+              disp = dynamic_pointer_cast<FeFunction<Double> >
+                            (ptPde->GetFeFunction(MECH_DISPLACEMENT));
+            }
             LOG_DBG(itersolvestep) << "=> Found MECH_DISPLACEMENT as coupling quantity";
 //            vel = dynamic_pointer_cast<FeFunction<Double> >
 //                        (ptPde->GetFeFunction(MECH_VELOCITY));
@@ -570,11 +682,26 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               convDisp.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
             }
 
-            convDisp->SetDispFct( disp );
+            if ( ptPde->IsComplex() ) {
+              WARN("You specified a geometry update for a harmonic simulation. Only the real part of the deformation will be used!");
+              convDisp->SetDispFctComplex( dispComplex );
+              convDisp->SetIsComplex(true);
+              convDisp->SetEnableRefNode(enableRefNode);
+              convDisp->SetRefNodeName(refNodeName);
+              convDisp->SetRefNodeDOF(refNodeDOF);
+              convDisp->SetPhaseOffset(phaseOffset);
+            } else {
+              convDisp->SetDispFct( disp );
+            }
             // We set the vel and acc as well since they have their own FeFunction and need the geometry update too
-            //convDisp->SetVelFct( vel );
+            //convDispSmooth->SetVelFct( velSmooth );
             //convDisp->SetAccFct( acc );
-            Grid * ptGrid = disp->GetGrid();
+            Grid * ptGrid;
+            if ( ptPde->IsComplex() ) {
+              ptGrid = dispComplex->GetGrid();
+            } else {
+              ptGrid = disp->GetGrid();
+            }
 
             LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
             // Read in all regions, which have geometric update and check if they are present in the mechPDE
@@ -591,8 +718,14 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
             }
 
           } else if( ptPde->GetName() == "smooth" ) {
-            dispSmooth = dynamic_pointer_cast<FeFunction<Double> >
-            (ptPde->GetFeFunction(SMOOTH_DISPLACEMENT));
+            // enable harmonic case
+            if ( ptPde->IsComplex() ) {
+              dispSmoothComplex = dynamic_pointer_cast<FeFunction<Complex> >
+                            (ptPde->GetFeFunction(SMOOTH_DISPLACEMENT));
+            } else {
+              dispSmooth = dynamic_pointer_cast<FeFunction<Double> >
+                            (ptPde->GetFeFunction(SMOOTH_DISPLACEMENT));
+            }
             LOG_DBG(itersolvestep) << "=> Found SMOOTH_DISPLACEMENT as coupling quantity";
 //            velSmooth = dynamic_pointer_cast<FeFunction<Double> >
 //                        (ptPde->GetFeFunction(SMOOTH_VELOCITY));
@@ -606,11 +739,26 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               convDispSmooth.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
             }
 
-            convDispSmooth->SetDispFct( dispSmooth );
+            if ( ptPde->IsComplex() ) {
+              WARN("You specified a geometry update for a harmonic simulation. Only the real part of the deformation will be used!");
+              convDispSmooth->SetDispFctComplex( dispSmoothComplex );
+              convDispSmooth->SetIsComplex(true);
+              convDispSmooth->SetEnableRefNode(enableRefNode);
+              convDispSmooth->SetRefNodeName(refNodeName);
+              convDispSmooth->SetRefNodeDOF(refNodeDOF);
+              convDispSmooth->SetPhaseOffset(phaseOffset);
+            } else {
+              convDispSmooth->SetDispFct( dispSmooth );
+            }
             // We set the vel and acc as well since they have their own FeFunction and need the geometry update too
             //convDispSmooth->SetVelFct( velSmooth );
             //convDisp->SetAccFct( acc );
-            Grid * ptGrid = dispSmooth->GetGrid();
+            Grid * ptGrid;
+            if ( ptPde->IsComplex() ) {
+              ptGrid = dispSmoothComplex->GetGrid();
+            } else {
+              ptGrid = dispSmooth->GetGrid();
+            }
 
             LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
             // Read in all regions, which have geometric update and check if they are present in the mechPDE
@@ -629,7 +777,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           }
 
         }
-        if(!disp && !dispSmooth) {
+        if(!disp && !dispComplex && !dispSmooth && !dispSmoothComplex) {
           WARN( "No geometry updated will performed, as no mechanical "
               << "physic is defined");
         } else {
@@ -712,6 +860,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       iter = t.begin();
       end = t.end();
 
+      if( !endWithCoupledPDEs_ ) {
+        // append the coupled PDEs
+        for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+          rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+        }
+      }
+
       std::set<SinglePDE*>::iterator     it = uncoupledPdes.begin();
       for( ; iter != end; iter++) {
         // loop over all specified PDEs and append them
@@ -747,9 +902,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         }
       }
 
-      // append the coupled PDEs
-      for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
-        rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+      if( endWithCoupledPDEs_ ) {
+        // append the coupled PDEs
+        for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+          rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+        }
       }
     } else {
       // use the classical reordering scheme
