@@ -1115,11 +1115,11 @@ void LagrangeElemShapeMap::Global2LocalDuester(
     locPoint = xi_start;
     k++;
     // raise exception if the algorithm does not converge
-    if (k == 60) {
+    /*if (k == 60) {
       WARN("Newton-Raphson algorithm did not converge for global to local "
            "conversion in point"
            << globalPoint << ". The determined local coordinates are "
-           << locPoint << ". The remaining f_test is " << f_test << ".");
+           << locPoint << ". The remaining f_test is " << f_test << ".");*/
     }
   }
 }
