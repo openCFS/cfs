@@ -3168,6 +3168,11 @@ namespace CoupledField {
       }
       else
         EXCEPTION("TENSOR not implemented yet!");
+      
+      // add all dofs to the definedDofs
+      for(UInt i = 0; i < compNames.GetSize(); ++i ){
+        definedDofs.insert(i);
+      }
     }
     else if(valueNode->Has("fileData"))
     {
