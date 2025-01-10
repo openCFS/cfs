@@ -1120,7 +1120,7 @@ void LagrangeElemShapeMap::Global2LocalDuester(
            "conversion in point"
            << globalPoint << ". The determined local coordinates are "
            << locPoint << ". The remaining f_test is " << f_test << ".");*/
-    }
+    //}
   }
 }
 
