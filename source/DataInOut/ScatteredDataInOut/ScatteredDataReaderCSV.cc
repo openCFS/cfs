@@ -108,6 +108,7 @@ namespace CoupledField
     
     // Variable for doubles values in a single line
     std::vector<double> vec;
+    std::vector<double> vecImag; // we only initialize it and set it to zero so that harmonic stuff works, although we just ignore it
     std::vector<double> coord(3);
 
     // Iterate over lines in CSV file
@@ -124,6 +125,10 @@ namespace CoupledField
       {
         vec.resize(std::distance(tokens.begin(), tokens.end()));
       }
+      if(vecImag.empty())
+      {
+        vecImag.resize(std::distance(tokens.begin(), tokens.end()));
+      }
 
       Tokenizer::iterator tkIt(tokens.begin());
       
@@ -136,6 +141,7 @@ namespace CoupledField
         sstr >> value;
         
         vec[i] = value;
+        vecImag[i] = 0.0;
       }
 
       std::map<UInt, UInt>::iterator dofIt, dofEnd;
@@ -161,13 +167,16 @@ namespace CoupledField
         dofIt = qidDof2Column_[*qIt].begin();
         dofEnd = qidDof2Column_[*qIt].end();
         std::vector<double> qdofs(std::distance(dofIt, dofEnd));
+        std::vector<double> qdofsImag(std::distance(dofIt, dofEnd));
 
         for( ; dofIt != dofEnd; dofIt++ ) 
         {
           qdofs[dofIt->first] = vec[dofIt->second];
+          qdofsImag[dofIt->first] = vecImag[dofIt->second];
         }
         
         scatteredDataPerQuantity_[*qIt].push_back(qdofs);
+        scatteredDataPerQuantityImag_[*qIt].push_back(qdofsImag);
       }
     }
 
