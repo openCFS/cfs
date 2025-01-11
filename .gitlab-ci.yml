@@ -206,6 +206,32 @@ trigger-testsuite:
   needs:
     - job: testsuite-revision
 
+# this is a trigger job to check the testsuite revision
+trigger-testsuite-token:
+  stage: test
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" # $CI_MERGE_REQUEST_IID # this is a merge request & there are changes in the testsuite
+      <<: *Testsuite_changes
+      variables:
+        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
+      variables:
+        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
+      when: manual
+    # there are no changes, take the default value for the TESTSUITE_BRANCH
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly"
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+  variables:
+    IMAGE: opencfs/alpine
+    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
+  script:
+    - curl --request POST --form "token=$CI_JOB_TOKEN" --form ref=$TESTSUITE_BRANCH --from "variables[CFS_UPSTREAM_PROJECT]=$CFS_UPSTREAM_PROJECT" --from "variables[CFS_UPSTREAM_REF]=$CFS_UPSTREAM_REF" "https://gitlab.com/api/v4/projects/15151800/trigger/pipeline"
+  needs:
+    - job: testsuite-revision
+
+
 # this is a parent-child example
 trigger-testsuite-include:
   stage: test
