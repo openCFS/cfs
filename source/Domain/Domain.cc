@@ -58,6 +58,7 @@
 #include "PDE/DarwinPDE.hh"
 #include "PDE/FullWaveMaxwellAVPDE.hh"
 #include "PDE/FullWaveMaxwellEPDE.hh"
+#include "PDE/FullWaveMaxwellEadjPDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/SmoothPDE.hh"
 #include "PDE/TestPDE.hh"
@@ -795,6 +796,9 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
           EXCEPTION("Formulation of MagEdgePDE not known!");
         }
       }
+    }
+    else if (actPdeName == "emWaveEAdj"){
+      ptSinglePde_[i] = new FullWaveMaxwellEadjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
 
     else if (actPdeName == "heatConduction")
