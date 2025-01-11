@@ -805,7 +805,7 @@ linux:gcc14-musl:
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
-    # use Ninja (which actually is 'samurai' on Alpine)
+    # use Ninja to test if we have dependencies declared properly, standard would be "Unix Makefiles"
     CMAKE_GENERATOR: Ninja
   <<: [ *release_build_rules, *gcc_before ]
   needs: 
