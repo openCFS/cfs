@@ -197,7 +197,7 @@ trigger-testsuite:
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
-    branch: trigger #same as the parent pipeline
+    branch: $TESTSUITE_BRANCH #same as the parent pipeline
     strategy: depend # only pass when Testsuite pipeline passes
     forward: # forward all variables
       yaml_variables: true
@@ -273,6 +273,8 @@ runner-debug:
     - echo "$CFS_PIPELINE_NAME"
     - echo "$CFS_PIPELINE_TYPE"
     - echo "$CACHE_POLICY:$INSTALL_POLICY"
+    - echo $TESTSUITE_BRANCH
+    - echo $CFS_UPSTREAM_REF
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
     - echo $GITLAB_USER_ID
