@@ -165,7 +165,7 @@ testsuite-revision:
     # obtain the testsuite reference
     - git submodule status # debug
     # save the Testsuite submodule SHA
-    - echo "TESTSUITE_SHA=$( git submodule status |grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' )" | tee -a dot.env
+    - echo "CFS_TESTSUITE_SHA=$( git submodule status |grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' )" | tee -a dot.env
   after_script:
     - cat dot.env | ls # debug
   artifacts:
@@ -189,9 +189,16 @@ trigger-testsuite:
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly"
     - if: $CFS_PIPELINE_TYPE == "manual"
       when: manual
+  variables:
+    IMAGE: opencfs/ubuntu24.04
+    CFS_PIPELINE_ID: $CI_PIPELINE_ID
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
     branch: $TESTSUITE_BRANCH #same as the parent pipeline
+    strategy: depend # only pass when Testsuite pipeline passes
+    forward: # forward all variables
+      yaml_variables: true
+      pipeline_variables: true
   needs:
     - job: testsuite-revision
 
