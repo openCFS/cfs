@@ -44,7 +44,7 @@ variables:
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
   CCACHE_MAXSIZE: 200M
   # define the testsuite branch to test against - altered if there are changes
-  TESTSUITE_BRANCH: master
+  TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
   CFS_UPSTREAM_REF: $CI_COMMIT_REF_NAME # default ref for artifacts in downstream (Testsuite) pipelines
 
 # stages in the pipeline run in succession
