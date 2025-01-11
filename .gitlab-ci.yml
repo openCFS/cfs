@@ -200,6 +200,7 @@ trigger-testsuite:
   variables:
     IMAGE: opencfs/alpine
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
+    TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
     branch: $TESTSUITE_BRANCH #same as the parent pipeline
