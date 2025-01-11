@@ -45,6 +45,7 @@ variables:
   CCACHE_MAXSIZE: 200M
   # define the testsuite branch to test against - altered if there are changes
   TESTSUITE_BRANCH: master
+  CFS_UPSTREAM_REF: $CI_COMMIT_REF_NAME # default ref for artifacts in downstream (Testsuite) pipelines
 
 # stages in the pipeline run in succession
 stages:
@@ -88,11 +89,13 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "manual"
       CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
+      CFS_UPSTREAM_REF: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
   # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
+      CFS_UPSTREAM_REF: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
@@ -190,8 +193,8 @@ trigger-testsuite:
     - if: $CFS_PIPELINE_TYPE == "manual"
       when: manual
   variables:
-    IMAGE: opencfs/ubuntu24.04
-    CFS_PIPELINE_ID: $CI_PIPELINE_ID
+    IMAGE: opencfs/alpine
+    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
     branch: trigger #same as the parent pipeline
