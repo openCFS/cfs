@@ -1,6 +1,6 @@
 #include <fstream>
 #include <string.h>
-#include "FullWaveMaxwellEPDE.hh"
+#include "FullWaveMaxwellEadjPDE.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/Coil.hh"
@@ -42,14 +42,13 @@
 #include "Domain/Results/ResultFunctor.hh"
 namespace CoupledField
 {
-
   // declare class specific logging stream
-  DEFINE_LOG(FullWaveMaxwellEPDE, "FullWaveMaxwellEPDE")
+  DEFINE_LOG(FullWaveMaxwellEadjPDE, "FullWaveMaxwellEadjPDE")
 
   // **************
   //  Constructor
   // **************
-  FullWaveMaxwellEPDE::FullWaveMaxwellEPDE(Grid *aptgrid, PtrParamNode paramNode,
+  FullWaveMaxwellEadjPDE::FullWaveMaxwellEadjPDE(Grid *aptgrid, PtrParamNode paramNode,
                                          PtrParamNode infoNode,
                                          shared_ptr<SimState> simState, Domain *domain)
       : SinglePDE(aptgrid, paramNode, infoNode, simState, domain)
@@ -58,23 +57,23 @@ namespace CoupledField
     // =====================================================================
     // set solution information
     // =====================================================================
-    pdename_ = "fullwave-E";
+    pdename_ = "fullwave-Eadj";
+    std::cout << "In PDE: " << pdename_ << std::endl;
+    
     // We reuse the Darwin material class (same as classical magnetic material plus permittivity)
     pdematerialclass_ = ELECTROMAGNETIC_DARWIN;
 
     //! Always use updated Lagrangian formulation
     updatedGeo_ = true; // true;
 
-    formulationType_ = paramNode->Get("formulation")->As<std::string>();
-
     // check if we have a 3d setup
     bool is3d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "3d";
     if (!is3d)
-      EXCEPTION("FullWaveMaxwellEPDE is just implemented for 3D setups!");
+      EXCEPTION("FullWaveMaxwellEadjPDE is just implemented for 3D setups!");
 
     // initialize material coef functions covering all regions
     reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
-    perm_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
+    //perm_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, isComplex_));
     conduc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
     eps_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
   }
@@ -82,14 +81,14 @@ namespace CoupledField
   // *************
   //  Destructor
   // *************
-  FullWaveMaxwellEPDE::~FullWaveMaxwellEPDE()
+  FullWaveMaxwellEadjPDE::~FullWaveMaxwellEadjPDE()
   {
   }
 
   // ****************************
   //  Initialize Nonlinearities
   // ****************************
-  void FullWaveMaxwellEPDE::InitNonLin()
+  void FullWaveMaxwellEadjPDE::InitNonLin()
   {
 
     SinglePDE::InitNonLin();
@@ -98,7 +97,7 @@ namespace CoupledField
   // ****************************
   //  Read damping information
   // ****************************
-  void FullWaveMaxwellEPDE::ReadDampingInformation() {
+  void FullWaveMaxwellEadjPDE::ReadDampingInformation() {
     std::map<std::string, DampingType> idDampType;
     std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
 
@@ -188,7 +187,7 @@ namespace CoupledField
   // *****************************
   //  Definition of Integrators
   // *****************************
-  void FullWaveMaxwellEPDE::DefineIntegrators()
+  void FullWaveMaxwellEadjPDE::DefineIntegrators()
   {
 
     RegionIdType actRegion;
@@ -204,7 +203,7 @@ namespace CoupledField
 
 
 
-    shared_ptr<BaseFeFunction> eVecPotFeFunc = feFunctions_[ELEC_FIELD_INTENSITY];
+    shared_ptr<BaseFeFunction> eVecPotFeFunc = feFunctions_[ELEC_FIELD_INTENSITY_ADJ];
     shared_ptr<FeSpace> eVecPotFeSpace = eVecPotFeFunc->GetFeSpace();
 
     for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++)
@@ -275,8 +274,8 @@ namespace CoupledField
         PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
         PtrCoefFct permeability = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, 
                                                          reluctivity, CoefXpr::OP_DIV));
-        perm_->AddRegion(actRegion, permeability);  
-        matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+        // perm_->AddRegion(actRegion, permeability);  
+        // matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 
 
         // Electric / Magnetic Permittivity
@@ -389,7 +388,7 @@ namespace CoupledField
     }   // end for regions
   }     // end DefineIntegrators
 
-  void FullWaveMaxwellEPDE::DefineNcIntegrators()
+  void FullWaveMaxwellEadjPDE::DefineNcIntegrators()
   {
     StdVector<NcInterfaceInfo>::iterator ncIt = ncInterfaces_.Begin(), endIt = ncInterfaces_.End();
     for (; ncIt != endIt; ++ncIt)
@@ -404,7 +403,7 @@ namespace CoupledField
         if (dim_ == 2){
             EXCEPTION("FullWaveMaxwellEPDE only works for 3D geometry!")
         } else {
-            DefineNitscheCoupling<3,1>(ELEC_FIELD_INTENSITY, *ncIt );
+            DefineNitscheCoupling<3,1>(ELEC_FIELD_INTENSITY_ADJ, *ncIt );
         }
           break;
       }
@@ -415,15 +414,15 @@ namespace CoupledField
     }
   }
 
-  void FullWaveMaxwellEPDE::DefineSurfaceIntegrators()
+  void FullWaveMaxwellEadjPDE::DefineSurfaceIntegrators()
   {
   }
 
-  void FullWaveMaxwellEPDE::DefineRhsLoadIntegrators()
+  void FullWaveMaxwellEadjPDE::DefineRhsLoadIntegrators()
   {
     //LOG_TRACE(FullWaveMaxwellEPDE) << "Defining rhs load integrators for FullWaveMaxwellEPDE";
 
-    shared_ptr<BaseFeFunction> eVecPotFeFunc = feFunctions_[ELEC_FIELD_INTENSITY];
+    shared_ptr<BaseFeFunction> eVecPotFeFunc = feFunctions_[ELEC_FIELD_INTENSITY_ADJ];
 
     StdVector<shared_ptr<EntityList>> ent;
     StdVector<PtrCoefFct> coef;
@@ -468,7 +467,7 @@ namespace CoupledField
     }
   }
 
-  void FullWaveMaxwellEPDE::DefineSolveStep()
+  void FullWaveMaxwellEadjPDE::DefineSolveStep()
   {
     solveStep_ = new StdSolveStep(*this);
   }
@@ -479,18 +478,18 @@ namespace CoupledField
   // TIME-STEPPING SECTION
   // ======================================================
 
-  void FullWaveMaxwellEPDE::InitTimeStepping()
+  void FullWaveMaxwellEadjPDE::InitTimeStepping()
   {
     // Use complete implicit scheme
     Double gamma = 1.0;
     GLMScheme *scheme = new Trapezoidal(gamma);
     TimeSchemeGLM::NonLinType nlType = (nonLin_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType));
-    feFunctions_[ELEC_FIELD_INTENSITY]->SetTimeScheme(myScheme);
+    feFunctions_[ELEC_FIELD_INTENSITY_ADJ]->SetTimeScheme(myScheme);
   }
 
 
-  void FullWaveMaxwellEPDE::DefinePrimaryResults()
+  void FullWaveMaxwellEadjPDE::DefinePrimaryResults()
   {
 
     StdVector<std::string> vecComponents;
@@ -498,20 +497,20 @@ namespace CoupledField
 
     // === ELECTRIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> elecIntens(new ResultInfo);
-    elecIntens->resultType = ELEC_FIELD_INTENSITY;
+    elecIntens->resultType = ELEC_FIELD_INTENSITY_ADJ;
     elecIntens->SetVectorDOFs(dim_, isaxi_);
     elecIntens->dofNames = vecComponents;
     elecIntens->unit = "V/m";
     elecIntens->definedOn = ResultInfo::ELEMENT;
     elecIntens->entryType = ResultInfo::VECTOR;
-    feFunctions_[ELEC_FIELD_INTENSITY]->SetResultInfo(elecIntens);
-    DefineFieldResult(feFunctions_[ELEC_FIELD_INTENSITY], elecIntens);
+    feFunctions_[ELEC_FIELD_INTENSITY_ADJ]->SetResultInfo(elecIntens);
+    DefineFieldResult(feFunctions_[ELEC_FIELD_INTENSITY_ADJ], elecIntens);
 
     // -----------------------------------
     //  Define xml-names of Dirichlet BCs
     // -----------------------------------
-    hdbcSolNameMap_[ELEC_FIELD_INTENSITY] = "fluxParallel";
-    idbcSolNameMap_[ELEC_FIELD_INTENSITY] = "potential";
+    hdbcSolNameMap_[ELEC_FIELD_INTENSITY_ADJ] = "fluxParallel";
+    idbcSolNameMap_[ELEC_FIELD_INTENSITY_ADJ] = "potential";
 
     // === PERMEABILITY ===
     shared_ptr<ResultInfo> permeability(new ResultInfo);
@@ -525,9 +524,9 @@ namespace CoupledField
     DefineFieldResult(permFct, permeability);
   }
 
-  void FullWaveMaxwellEPDE::DefinePostProcResults()
+  void FullWaveMaxwellEadjPDE::DefinePostProcResults()
   {
-    shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_FIELD_INTENSITY];
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_FIELD_INTENSITY_ADJ];
 
     // === MAGNETIC ENERGY DENSITY INTEGRATED OVER PERIOD  (in the harmonic case)===
     shared_ptr<ResultInfo> jld(new ResultInfo);
@@ -589,7 +588,7 @@ namespace CoupledField
   }
 
 
-  void FullWaveMaxwellEPDE::FinalizePostProcResults() {
+  void FullWaveMaxwellEadjPDE::FinalizePostProcResults() {
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<RegionIdType>::iterator regIt = regions_.Begin();
     
@@ -597,13 +596,13 @@ namespace CoupledField
     SinglePDE::FinalizePostProcResults();
 
 
-    shared_ptr<CoefFunctionMulti> elecIntensCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_INTENSITY]);
+    shared_ptr<CoefFunctionMulti> elecIntensCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_INTENSITY_ADJ]);
 
     // ============ E*E averaged over one period ============
     shared_ptr<CoefFunctionMulti> eCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_ENERGY_DENSITY]);
     PtrCoefFct conjEinE = CoefFunction::Generate( mp_, part,
-            CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY),
-                               GetCoefFct(ELEC_FIELD_INTENSITY), CoefXpr::OP_MULT_CONJ) );
+            CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY_ADJ),
+                               GetCoefFct(ELEC_FIELD_INTENSITY_ADJ), CoefXpr::OP_MULT_CONJ) );
     PtrCoefFct halfCoef = CoefFunction::Generate( mp_, part, "0.5");
 
     regIt = regions_.Begin();
@@ -620,13 +619,13 @@ namespace CoupledField
 
 
   std::map<SolutionType, shared_ptr<FeSpace>>
-  FullWaveMaxwellEPDE::CreateFeSpaces(const std::string &formulation,
+  FullWaveMaxwellEadjPDE::CreateFeSpaces(const std::string &formulation,
                                      PtrParamNode infoNode)
   {
     std::map<SolutionType, shared_ptr<FeSpace>> crSpaces;
-    PtrParamNode eVecPotSpaceNode = infoNode->Get("elecFieldIntensity");
-    crSpaces[ELEC_FIELD_INTENSITY] = FeSpace::CreateInstance(myParam_, eVecPotSpaceNode, FeSpace::HCURL, ptGrid_);
-    crSpaces[ELEC_FIELD_INTENSITY]->Init(solStrat_);
+    PtrParamNode eVecPotSpaceNode = infoNode->Get("elecFieldIntensityAdj");
+    crSpaces[ELEC_FIELD_INTENSITY_ADJ] = FeSpace::CreateInstance(myParam_, eVecPotSpaceNode, FeSpace::HCURL, ptGrid_);
+    crSpaces[ELEC_FIELD_INTENSITY_ADJ]->Init(solStrat_);
 
     return crSpaces;
   }
