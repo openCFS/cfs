@@ -43,6 +43,8 @@ variables:
   CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
   CCACHE_MAXSIZE: 200M
+  # define the testsuite branch to test against - altered if there are changes
+  TESTSUITE_BRANCH: master
 
 # stages in the pipeline run in succession
 stages:
@@ -142,28 +144,58 @@ testsuite-revision:
   variables:
     # we clone to make sure we have everything (including current names of the SHAs)
     GIT_STRATEGY: clone
-    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_STRATEGY: none
   rules:
     # only create the job if there are changes in the Testsuite submodule
-    - if: $CFS_PIPELINE_TYPE == "test" 
-      <<: *Testsuite_changes
-      when: on_success
-      allow_failure: true # only for info
-    - if: $CFS_PIPELINE_TYPE != /test/
-      <<: *Testsuite_changes
+    - if: $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "nightly"
+    - if: $CFS_PIPELINE_TYPE == "manual"
       when: manual
-      allow_failure: true # only for info
+      #<<: *Testsuite_changes
+      #when: on_success
+      #allow_failure: true # only for info
+    #- if: $CFS_PIPELINE_TYPE != /test/
+    #  <<: *Testsuite_changes
+    #  when: manual
+    #  allow_failure: true # only for info
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
     - echo "The Testsuite in $CI_COMMIT_REF_NAME has changes compared to master!"
   script:
-    # check in Testsuite submodule
-    - cd Testsuite
-    - git --no-pager log -1 --pretty=tformat:'%h %D'
-    # check if we are on a branch called like the branch from CFS (or still on master)
-    - git --no-pager log -1 --pretty=tformat:'%h %D' | egrep -w "(${CI_COMMIT_REF_NAME})|(master)"
+    # obtain the testsuite reference
+    - git submodule status # debug
+    # save the Testsuite submodule SHA
+    - echo "TESTSUITE_SHA=$( git submodule status |grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' )" | tee -a dot.env
   after_script:
-    - pwd # debug
+    - cat dot.env | ls # debug
+  artifacts:
+    reports:
+      dotenv: dot.env
+
+# this is a trigger job to check the testsuite revision
+trigger-testsuite:
+  stage: test
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" # $CI_MERGE_REQUEST_IID # this is a merge request & there are changes in the testsuite
+      <<: *Testsuite_changes
+      variables:
+        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
+      variables:
+        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
+      when: manual
+    # there are no changes, take the default value for the TESTSUITE_BRANCH
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly"
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+  trigger:
+    project: $CI_PROJECT_NAMESPACE/Testsuite
+    branch: $TESTSUITE_BRANCH #same as the parent pipeline
+  needs:
+    - job: testsuite-revision
+
+# the testsuite pipeline should have a check job that needs artifacts from this pipeline. The test job must compare the testsuite SHA
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
