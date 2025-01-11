@@ -44,7 +44,7 @@ variables:
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
   CCACHE_MAXSIZE: 200M
   # define the testsuite branch to test against - altered if there are changes
-  TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
+  # TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME # for some reason this is not working in the trigger job, see https://gitlab.com/gitlab-org/gitlab/-/issues/222956#note_741532520
   CFS_UPSTREAM_REF: $CI_COMMIT_REF_NAME # default ref for artifacts in downstream (Testsuite) pipelines
   CFS_PIPELINE_ID: $CI_PIPELINE_ID
 
@@ -188,10 +188,14 @@ trigger-testsuite:
       <<: *Testsuite_changes
       variables:
         TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
-      when: manual
+      #when: manual # just commented for debugging - uncomment to make the job manual
     # there are no changes, take the default value for the TESTSUITE_BRANCH
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly"
+      variables:
+        TESTSUITE_BRANCH: $CI_DEFAULT_BRANCH
     - if: $CFS_PIPELINE_TYPE == "manual"
+      variables:
+        TESTSUITE_BRANCH: $CI_DEFAULT_BRANCH
       when: manual
   variables:
     IMAGE: opencfs/alpine
