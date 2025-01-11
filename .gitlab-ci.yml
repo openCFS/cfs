@@ -198,7 +198,7 @@ trigger-testsuite:
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
-    branch: $TESTSUITE_BRANCH #same as the parent pipeline
+    branch: "${TESTSUITE_BRANCH}" #same as the parent pipeline
     strategy: depend # only pass when Testsuite pipeline passes
     forward: # forward all variables
       yaml_variables: true
@@ -209,6 +209,7 @@ trigger-testsuite:
 # this is a trigger job to check the testsuite revision
 trigger-testsuite-token:
   stage: test
+  image: curlimages/curl:latest
   rules:
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" # $CI_MERGE_REQUEST_IID # this is a merge request & there are changes in the testsuite
       <<: *Testsuite_changes
@@ -227,7 +228,7 @@ trigger-testsuite-token:
     IMAGE: opencfs/alpine
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
   script:
-    - curl --request POST --form "token=$CI_JOB_TOKEN" --form ref=$TESTSUITE_BRANCH --from "variables[CFS_UPSTREAM_PROJECT]=$CFS_UPSTREAM_PROJECT" --from "variables[CFS_UPSTREAM_REF]=$CFS_UPSTREAM_REF" "https://gitlab.com/api/v4/projects/15151800/trigger/pipeline"
+    - curl --request POST --form "token=$CI_JOB_TOKEN" --form ref=$TESTSUITE_BRANCH --form "variables[CFS_UPSTREAM_PROJECT]=$CFS_UPSTREAM_PROJECT" --form "variables[CFS_UPSTREAM_REF]=$CFS_UPSTREAM_REF" --form "variables[IMAGE]=$IMAGE" "https://gitlab.com/api/v4/projects/15151800/trigger/pipeline"
   needs:
     - job: testsuite-revision
 
