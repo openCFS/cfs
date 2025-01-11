@@ -198,7 +198,7 @@ trigger-testsuite:
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
-    branch: "${TESTSUITE_BRANCH}" #same as the parent pipeline
+    branch: $TESTSUITE_BRANCH #same as the parent pipeline
     strategy: depend # only pass when Testsuite pipeline passes
     forward: # forward all variables
       yaml_variables: true
@@ -219,7 +219,7 @@ trigger-testsuite-token:
       <<: *Testsuite_changes
       variables:
         TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
-      when: manual
+      #when: manual # just commented for debugging - uncomment to make the job manual
     # there are no changes, take the default value for the TESTSUITE_BRANCH
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly"
     - if: $CFS_PIPELINE_TYPE == "manual"
