@@ -194,7 +194,7 @@ trigger-testsuite:
     CFS_PIPELINE_ID: $CI_PIPELINE_ID
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
-    branch: $TESTSUITE_BRANCH #same as the parent pipeline
+    branch: trigger #same as the parent pipeline
     strategy: depend # only pass when Testsuite pipeline passes
     forward: # forward all variables
       yaml_variables: true
