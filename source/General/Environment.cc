@@ -115,6 +115,7 @@ namespace CoupledField {
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
+    SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_ADJ, "elecFieldIntensityAdj");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_SURF, "elecFieldIntensitySurf");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_TRANSVERSAL, "elecFieldIntensityTransversal");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_LONGITUDINAL, "elecFieldIntensityLongitudinal");
@@ -261,6 +262,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT2, "magEddyCurrent2");
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     SolutionTypeEnum.Add(MAG_ELEM_RELUCTIVITY, "magElemReluctivity");
+    SolutionTypeEnum.Add(MAG_ELEM_PERMITTIVITY, "magElemPermittivity");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
     SolutionTypeEnum.Add(MAG_POLARIZATION, "magPolarization");
 
@@ -1158,6 +1160,7 @@ namespace CoupledField {
         break;
 
       case ELEC_FIELD_INTENSITY:
+      case ELEC_FIELD_INTENSITY_ADJ:
       case ELEC_FIELD_INTENSITY_SURF:
       case MAG_POTENTIAL_DERIV1:
         return "V/m";
@@ -1185,6 +1188,9 @@ namespace CoupledField {
 
       case MAG_ELEM_PERMEABILITY:
         return "Vs/Am";
+
+      case MAG_ELEM_PERMITTIVITY:
+        return "As/Vm";        
 
       case MAG_POLARIZATION:
         return "Vs/m^2";
@@ -1685,6 +1691,12 @@ namespace CoupledField {
        out = NLELEC_TRIPOLE_TEMP_DEP;
     } else if( in == "elecPermittivity") {
        out = NLELEC_PERMITTIVITY;
+    } else if( in == "matReluctivity") {
+       out = MAT_RELUCTIVITY;
+    } else if( in == "matPermittivity") {
+       out = MAT_PERMITTIVITY;
+    } else if( in == "matConductivity") {
+       out = MAT_CONDUCTIVITY;              
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
                  << "'NonLinType' item!" );
@@ -1765,6 +1777,12 @@ namespace CoupledField {
       case NLELEC_PERMITTIVITY:
         out = "elecPermittivity";
         break;
+      case MAT_RELUCTIVITY:
+        out = "matReluctivity";
+      case MAT_PERMITTIVITY:
+        out = "matPermittivity";
+      case MAT_CONDUCTIVITY:
+        out = "matConductivity";
       default:
         EXCEPTION( "No conversion found for 'NonLinType' " << in );
     }

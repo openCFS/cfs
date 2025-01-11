@@ -14,6 +14,7 @@ SET(PDE_SRCS
   MagEdgeMixedAVPDE.cc
   FullWaveMaxwellAVPDE.cc
   FullWaveMaxwellEPDE.cc
+  FullWaveMaxwellEadjPDE.cc
   MagneticPDE.cc
   DarwinPDE.cc
   MechPDE.cc

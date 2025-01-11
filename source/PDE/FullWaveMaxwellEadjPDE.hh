@@ -1,5 +1,5 @@
-#ifndef FILE_FULLWAVEMAXWELLEPDE
-#define FILE_FULLWAVEMAXWELLEPDE
+#ifndef FILE_FULLWAVEMAXWELLEADJPDE
+#define FILE_FULLWAVEMAXWELLEADJPDE
 
 #include <map>
 #include "SinglePDE.hh" 
@@ -11,12 +11,12 @@ namespace CoupledField
 
 
   /** Class for 3D simulation with fullwave Maxwells equations in E-form */
-  class FullWaveMaxwellEPDE : public SinglePDE
+  class FullWaveMaxwellEadjPDE : public SinglePDE
   {
   public:
 
     //! Constructor
-    FullWaveMaxwellEPDE( Grid * aptgrid, PtrParamNode paramNode,
+    FullWaveMaxwellEadjPDE( Grid * aptgrid, PtrParamNode paramNode,
                 PtrParamNode infoNode,
                 shared_ptr<SimState> simState, Domain* domain );
 
@@ -24,7 +24,7 @@ namespace CoupledField
 
     //! The default destructor is responsible for freeing the Coil objects
     //! the ReadCoils() method brought into being.
-    ~FullWaveMaxwellEPDE();
+    ~FullWaveMaxwellEadjPDE();
 
 
   protected:
