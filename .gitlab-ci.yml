@@ -152,12 +152,15 @@ testsuite-revision:
   rules:
     # only create the job if there are changes in the Testsuite submodule
     - if: $CFS_PIPELINE_TYPE == "test"
-    - if: $CFS_PIPELINE_TYPE == "nightly"
+      <<: *Testsuite_changes
+    - if: $CFS_PIPELINE_TYPE == "nightly" # nightly runs on master therefore compare commit
+      changes:
+        paths:
+          - Testsuite
     - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
       when: manual
-      #<<: *Testsuite_changes
-      #when: on_success
-      #allow_failure: true # only for info
+      allow_failure: true # only for info
     #- if: $CFS_PIPELINE_TYPE != /test/
     #  <<: *Testsuite_changes
     #  when: manual
@@ -170,99 +173,26 @@ testsuite-revision:
     - git submodule status # debug
     # save the Testsuite submodule SHA
     - echo "CFS_TESTSUITE_SHA=$( git submodule status |grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' )" | tee -a dot.env
+    # save the pipeline URL
+    - echo "CFS_PIPELINE_URL=$CI_PIPELINE_URL" | tee -a dot.env
   after_script:
     - cat dot.env | ls # debug
   artifacts:
     reports:
       dotenv: dot.env
 
-# this is a trigger job to check the testsuite revision
-trigger-testsuite:
-  stage: test
-  rules:
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" # $CI_MERGE_REQUEST_IID # this is a merge request & there are changes in the testsuite
-      <<: *Testsuite_changes
-      variables:
-        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *Testsuite_changes
-      variables:
-        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
-      #when: manual # just commented for debugging - uncomment to make the job manual
-    # there are no changes, take the default value for the TESTSUITE_BRANCH
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly"
-      variables:
-        TESTSUITE_BRANCH: $CI_DEFAULT_BRANCH
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      variables:
-        TESTSUITE_BRANCH: $CI_DEFAULT_BRANCH
-      when: manual
+# trigger a testsuite pipeline to check the reference
+check-testsuite-branch:
+  stage: check
+  rules: # same rules as testsuite-revision
+    - !reference [testsuite-revision, rules]
   variables:
-    IMAGE: opencfs/alpine
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
-    TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
+    CFS_PIPELINE_BRANCH: $CI_COMMIT_REF_NAME
+    CFS_JOB_NAME: $CI_JOB_NAME
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
     branch: $CI_COMMIT_REF_NAME #same as the parent pipeline
-    strategy: depend # only pass when Testsuite pipeline passes
-    forward: # forward all variables
-      yaml_variables: true
-      pipeline_variables: true
-  needs:
-    - job: testsuite-revision
-
-# this is a trigger job to check the testsuite revision
-trigger-testsuite-token:
-  stage: test
-  image: curlimages/curl:latest
-  rules:
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" # $CI_MERGE_REQUEST_IID # this is a merge request & there are changes in the testsuite
-      <<: *Testsuite_changes
-      variables:
-        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *Testsuite_changes
-      variables:
-        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
-      #when: manual # just commented for debugging - uncomment to make the job manual
-    # there are no changes, take the default value for the TESTSUITE_BRANCH
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly"
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-  variables:
-    IMAGE: opencfs/alpine
-    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
-  script:
-    - curl --request POST --form "token=$CI_JOB_TOKEN" --form ref=$TESTSUITE_BRANCH --form "variables[CFS_UPSTREAM_PROJECT]=$CFS_UPSTREAM_PROJECT" --form "variables[CFS_UPSTREAM_REF]=$CFS_UPSTREAM_REF" --form "variables[IMAGE]=$IMAGE" "https://gitlab.com/api/v4/projects/15151800/trigger/pipeline"
-  needs:
-    - job: testsuite-revision
-
-
-# this is a parent-child example
-trigger-testsuite-include:
-  stage: test
-  rules:
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" # $CI_MERGE_REQUEST_IID # this is a merge request & there are changes in the testsuite
-      <<: *Testsuite_changes
-      variables:
-        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *Testsuite_changes
-      variables:
-        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
-      when: manual
-    # there are no changes, take the default value for the TESTSUITE_BRANCH
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly"
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-  variables:
-    IMAGE: opencfs/alpine
-    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
-  trigger:
-    include:
-      - project: $CI_PROJECT_NAMESPACE/Testsuite
-        ref: $TESTSUITE_BRANCH #same as the parent pipeline
-        file: .gitlab-ci.yml
     strategy: depend # only pass when Testsuite pipeline passes
     forward: # forward all variables
       yaml_variables: true
