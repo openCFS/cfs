@@ -200,7 +200,7 @@ testsuite-revision:
 Testsuite:
   stage: test
   rules: # same can trigger automatically after testsuite-revision
-    # we need a rebuild
+    # if testsuite has changed and we need a rebuild
     - if: $CFS_PIPELINE_TYPE == "testsuite" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       changes:
         paths: !reference [.require-rebuild-changes, changes, paths]
@@ -338,14 +338,10 @@ cpp-code-changes:
     - saas-linux-small-amd64
   rules:
     - if: $CFS_PIPELINE_TYPE == "test"
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
+      <<: *require-rebuild-changes
       allow_failure: true # only for info, do not prevent merge
     - if: $CFS_PIPELINE_TYPE == "manual"
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
+      <<: *require-rebuild-changes
       when: manual
       allow_failure: true # only for info, do not prevent merge
   script:
@@ -541,16 +537,12 @@ rhel:9:
       <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
       when: manual
     - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
+      <<: *require-rebuild-changes
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     # builds & tests are required
     - if: $CFS_PIPELINE_TYPE == "test"
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
+      <<: *require-rebuild-changes
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *Testsuite_changes
     # all manual
@@ -558,9 +550,7 @@ rhel:9:
       <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
       when: manual
     - if: $CFS_PIPELINE_TYPE == "manual"
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
+      <<: *require-rebuild-changes
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     - if: $CFS_PIPELINE_TYPE == "manual"
@@ -932,9 +922,7 @@ linux:intel:
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
+      <<: *require-rebuild-changes
       when: manual
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
       <<: *Testsuite_changes
@@ -1266,9 +1254,7 @@ stable_par:MSVC2022-Ifort2021:windows:
   rules:
     #make it optional since MSVC builds currently are not running in parallel
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
+      <<: *require-rebuild-changes
       when: manual
       allow_failure: true
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
