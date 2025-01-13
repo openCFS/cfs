@@ -202,9 +202,7 @@ Testsuite:
   rules: # same can trigger automatically after testsuite-revision
     # if testsuite has changed and we need a rebuild
     - if: $CFS_PIPELINE_TYPE == "testsuite" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
+      <<: *require-rebuild-changes
     # only the testsuite has changed -> test against master in the testsuite
     - if: $CFS_PIPELINE_TYPE == "testsuite" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
