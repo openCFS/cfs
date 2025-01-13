@@ -153,21 +153,14 @@ testsuite-revision:
     # only create the job if there are changes in the Testsuite submodule
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *Testsuite_changes
-    - if: $CFS_PIPELINE_TYPE == "nightly" # nightly runs on master therefore compare commit
-      changes:
-        paths:
-          - Testsuite
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
       when: manual
       allow_failure: true # only for info
-    #- if: $CFS_PIPELINE_TYPE != /test/
-    #  <<: *Testsuite_changes
-    #  when: manual
-    #  allow_failure: true # only for info
+    # or do the check for nightly & release no matter of there are changes or not (makes sure testsuite merge was done)
+    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
-    - echo "The Testsuite in $CI_COMMIT_REF_NAME has changes compared to master!"
   script:
     # obtain the testsuite reference
     - git submodule status # debug
@@ -182,14 +175,15 @@ testsuite-revision:
       dotenv: dot.env
 
 # trigger a testsuite pipeline to check the reference
-check-testsuite-branch:
+testsuite-check:
   stage: check
-  rules: # same rules as testsuite-revision
-    - !reference [testsuite-revision, rules]
+  rules: # same can trigger automatically after testsuite-revision
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
+    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
   variables:
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
     CFS_PIPELINE_BRANCH: $CI_COMMIT_REF_NAME
-    CFS_JOB_NAME: $CI_JOB_NAME
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
     branch: $CI_COMMIT_REF_NAME #same as the parent pipeline
@@ -199,6 +193,7 @@ check-testsuite-branch:
       pipeline_variables: true
   needs:
     - job: testsuite-revision
+
 
 # the testsuite pipeline should have a check job that needs artifacts from this pipeline. The test job must compare the testsuite SHA
 
