@@ -184,7 +184,8 @@ testsuite-revision:
     # obtain the testsuite reference
     - git submodule status # debug
     # save the Testsuite submodule SHA
-    - echo "CFS_TESTSUITE_SHA=$( git submodule status |grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' )" | tee -a dot.env
+    - export CFS_TESTSUITE_SHA=$( git submodule status | grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' ) 
+    - echo "CFS_TESTSUITE_SHA=$CFS_TESTSUITE_SHA" | tee -a dot.env
     # check if the SHAs match
     - if [ -n  "${TESTSUITE_SHA+set}" ]; then echo "checking if Testsuite submodule in CFS is equal to latest Testsuite ($TESTSUITE_SHA)"; echo $CFS_TESTSUITE_SHA | grep $TESTSUITE_SHA; else echo "variable TESTSUITE_SHA is not set -> no check"; fi
     # save the pipeline URL
