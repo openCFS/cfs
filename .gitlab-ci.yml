@@ -168,12 +168,14 @@ testsuite-revision:
     GIT_SUBMODULE_STRATEGY: none
   rules:
     # only create the job if there are changes in the Testsuite submodule
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "testsuite"
+    - if: $CFS_PIPELINE_TYPE == "test"
       <<: *Testsuite_changes
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
       when: manual
       allow_failure: true # only for info
+    # run if triggered by Testsuite
+    - if: $CFS_PIPELINE_TYPE == "testsuite"
     # or do the check for nightly & release no matter of there are changes or not (makes sure testsuite merge was done)
     - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
   before_script:
@@ -183,6 +185,8 @@ testsuite-revision:
     - git submodule status # debug
     # save the Testsuite submodule SHA
     - echo "CFS_TESTSUITE_SHA=$( git submodule status |grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' )" | tee -a dot.env
+    # check if the SHAs match
+    - if [ -n  "${TESTSUITE_SHA+set}" ]; then echo "checking if Testsuite submodule in CFS is equal to latest Testsuite ($TESTSUITE_SHA)"; echo $CFS_TESTSUITE_SHA | grep $TESTSUITE_SHA; else echo "variable TESTSUITE_SHA is not set -> no check"; fi
     # save the pipeline URL
     - echo "CFS_PIPELINE_URL=$CI_PIPELINE_URL" | tee -a dot.env
   after_script:
