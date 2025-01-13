@@ -272,7 +272,7 @@ pipeline-changes:
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *pipeline_changes
       allow_failure: true # only for info, do not prevent merge
-    - if: $CFS_PIPELINE_TYPE == "manual"
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "testsuite"
       <<: *pipeline_changes
       when: manual
       allow_failure: true # only for info, do not prevent merge
@@ -288,7 +288,7 @@ runner-debug:
   tags:
     - saas-linux-small-amd64
   rules:
-    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "testsuite"
       when: manual
       allow_failure: true # only for info, do not prevent merge
   script:
