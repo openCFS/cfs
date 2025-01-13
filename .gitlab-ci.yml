@@ -224,7 +224,9 @@ Testsuite:
   needs:
     - job: testsuite-revision
     - job: linux:gcc14-musl
+      optional: true
     - job: windows:MSVC2022-Ifort2021
+      optional: true
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
