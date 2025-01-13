@@ -74,7 +74,7 @@ workflow:
   # put the most specific rules first - we have a release tag (in the correct format)
   - if: $CI_PIPELINE_SOURCE == "pipeline" # the pipeline was triggered by CFS
     variables:
-      CFS_PIPELINE_TYPE: "test"
+      CFS_PIPELINE_TYPE: "testsuite"
       CFS_PIPELINE_NAME: "Triggered"
   # tags with 20* should be protected in the GitLab repo settings
   - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
@@ -156,7 +156,6 @@ workflow:
       - "**/*.cmake"
       - "**/*.cmake.in"
       - source/**/*.{hh,cc,h,c}
-      - Testsuite
 
 testsuite-revision:
   extends: .check
@@ -169,7 +168,7 @@ testsuite-revision:
     GIT_SUBMODULE_STRATEGY: none
   rules:
     # only create the job if there are changes in the Testsuite submodule
-    - if: $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "testsuite"
       <<: *Testsuite_changes
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
@@ -198,12 +197,12 @@ Testsuite:
   stage: test
   rules: # same can trigger automatically after testsuite-revision
     # if testsuite has changed and we need a rebuild
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+    - if: $CFS_PIPELINE_TYPE == "testsuite" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       changes:
         paths: !reference [.require-rebuild-changes, changes, paths]
         compare_to: 'refs/heads/master'
     # only the testsuite has changed -> test against master in the testsuite
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+    - if: $CFS_PIPELINE_TYPE == "testsuite" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
       variables:
         CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
@@ -540,12 +539,18 @@ rhel:9:
     # builds & tests are required
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *Testsuite_changes
     # all manual
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
       when: manual
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
+      when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
@@ -560,6 +565,10 @@ rhel:9:
 .release_build_rules: &release_build_rules
   rules:
     - if: $CFS_PIPELINE_TYPE == "release"
+    - if: $CFS_PIPELINE_TYPE == "testsuite"
+      changes:
+        paths: !reference [.require-rebuild-changes, changes, paths]
+        compare_to: 'refs/heads/master'
     - !reference [.build_rules, rules]
 
 .cfsdeps: &cfsdeps
@@ -911,6 +920,9 @@ linux:intel:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
       <<: *require-rebuild-changes
       when: manual
+    - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
+      <<: *Testsuite_changes
+      when: manual
     - !reference [.build_rules, rules]
   <<: [ *intel_before ]
   needs:
@@ -1239,6 +1251,10 @@ stable_par:MSVC2022-Ifort2021:windows:
     #make it optional since MSVC builds currently are not running in parallel
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
+      when: manual
+      allow_failure: true
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
       when: manual
       allow_failure: true
     - !reference [.ctest_default, rules]
