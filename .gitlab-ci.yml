@@ -72,6 +72,10 @@ workflow:
   name: "$CFS_PIPELINE_NAME"
   rules:
   # put the most specific rules first - we have a release tag (in the correct format)
+  - if: $CI_PIPELINE_SOURCE == "pipeline" # the pipeline was triggered by CFS
+    variables:
+      CFS_PIPELINE_TYPE: "test"
+      CFS_PIPELINE_NAME: "Triggered"
   # tags with 20* should be protected in the GitLab repo settings
   - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
     variables:
@@ -114,10 +118,6 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
-  - if: $CI_PIPELINE_SOURCE == "pipeline" # the pipeline was triggered by CFS
-    variables:
-      CFS_PIPELINE_TYPE: "test"
-      CFS_PIPELINE_NAME: "Triggered"
   # when no rule triggers, no pipeline is created
 
 #################################################
