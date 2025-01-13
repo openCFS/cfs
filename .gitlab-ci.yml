@@ -338,7 +338,7 @@ cpp-code-changes:
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
       allow_failure: true # only for info, do not prevent merge
-    - if: $CFS_PIPELINE_TYPE == "manual"
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "testsuite"
       <<: *require-rebuild-changes
       when: manual
       allow_failure: true # only for info, do not prevent merge
