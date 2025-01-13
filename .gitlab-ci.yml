@@ -43,9 +43,9 @@ variables:
   CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
   CCACHE_MAXSIZE: 200M
-  # define the testsuite branch to test against - altered if there are changes
-  # TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME # for some reason this is not working in the trigger job, see https://gitlab.com/gitlab-org/gitlab/-/issues/222956#note_741532520
-  CFS_UPSTREAM_REF: $CI_COMMIT_REF_NAME # default ref for artifacts in downstream (Testsuite) pipelines
+  # default ref for artifacts in downstream (Testsuite) pipelines
+  CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_COMMIT_REF_NAME # for the testsuite submodule check
+  CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CFS_UPSTREAM_REF_FOR_SUBMODULE # for the build artifacts
   CFS_PIPELINE_ID: $CI_PIPELINE_ID
 
 # stages in the pipeline run in succession
@@ -90,13 +90,13 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "manual"
       CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
-      CFS_UPSTREAM_REF: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
+      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
   # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
-      CFS_UPSTREAM_REF: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
+      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
@@ -133,12 +133,26 @@ workflow:
     GIT_STRATEGY: none
   cache: {} # disable
 
-# Check the revision of the testsuite submodule
+## different sets of changes with different conditions
+
+# the revision of the testsuite submodule has changed
 .Testsuite_changes: &Testsuite_changes
       changes:
         paths:
           - Testsuite
         compare_to: 'refs/heads/master'
+
+# changes that require the c++ builds to run
+.require-rebuild-changes: &require-rebuild-changes
+  # works like only/except changes
+  # for examples, see https://docs.gitlab.com/ee/ci/yaml/#onlychanges--exceptchanges
+  changes:
+    paths:
+      - "**/CMakeLists.txt"
+      - "**/*.cmake"
+      - "**/*.cmake.in"
+      - source/**/*.{hh,cc,h,c}
+      - Testsuite
 
 testsuite-revision:
   extends: .check
@@ -174,16 +188,27 @@ testsuite-revision:
     reports:
       dotenv: dot.env
 
-# trigger a testsuite pipeline to check the reference
-testsuite-check:
-  stage: check
+# trigger a Testsuite pipeline multi-project pipeline, see https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html#multi-project-pipelines
+# for this to work there needs to be a corresponding testsuite branch
+Testsuite:
+  stage: test
   rules: # same can trigger automatically after testsuite-revision
+    # if testsuite has changed and we need a rebuild
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      changes:
+        paths: !reference [.require-rebuild-changes, changes, paths]
+        compare_to: 'refs/heads/master'
+    # only the testsuite has changed -> test against master in the testsuite
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
+      variables:
+        CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
+      needs: [testsuite-revision]
+    # for nightly and release we test - all refs point to master
     - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
   variables:
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
-    CFS_PIPELINE_BRANCH: $CI_COMMIT_REF_NAME
+    CFS_UPSTREAM_REF: $CI_DEFAULT_BRANCH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
     branch: $CI_COMMIT_REF_NAME #same as the parent pipeline
@@ -193,9 +218,8 @@ testsuite-check:
       pipeline_variables: true
   needs:
     - job: testsuite-revision
-
-
-# the testsuite pipeline should have a check job that needs artifacts from this pipeline. The test job must compare the testsuite SHA
+    - job: linux:gcc14-musl
+    - job: windows:MSVC2022-Ifort2021
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
@@ -299,17 +323,6 @@ skip-build:
       allow_failure: true # only for info, do not prevent merge
   script:
     - /commit/message/contained/skip-build
-
-.require-rebuild-changes: &require-rebuild-changes
-  # changes that require the c++ builds to run
-  # works like only/except changes
-  # for examples, see https://docs.gitlab.com/ee/ci/yaml/#onlychanges--exceptchanges
-  changes:
-    - "**/CMakeLists.txt"
-    - "**/*.cmake"
-    - "**/*.cmake.in"
-    - source/**/*.{hh,cc,h,c}
-    - Testsuite
 
 cpp-code-changes:
   extends: .check
