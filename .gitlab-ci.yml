@@ -114,6 +114,10 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  - if: $CI_PIPELINE_SOURCE == "pipeline" # the pipeline was triggered by CFS
+    variables:
+      CFS_PIPELINE_TYPE: "test"
+      CFS_PIPELINE_NAME: "Triggered"
   # when no rule triggers, no pipeline is created
 
 #################################################
