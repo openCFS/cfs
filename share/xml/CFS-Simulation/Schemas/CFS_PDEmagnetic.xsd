@@ -207,6 +207,8 @@
                           <xsd:enumeration value="Resistor"/>
                           <xsd:enumeration value="Inductor"/>
                           <xsd:enumeration value="Capacitor"/>
+                          <xsd:enumeration value="VoltageSource"/>
+                          <xsd:enumeration value="CurrentSource"/>
                         </xsd:restriction>
                       </xsd:simpleType>
                     </xsd:attribute>
