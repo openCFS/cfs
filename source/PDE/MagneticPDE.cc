@@ -1197,6 +1197,26 @@ namespace CoupledField {
       }
     }
 
+    // === MAGNETIC VECTOR POTENTIAL AVERAGED ===
+    shared_ptr<ResultInfo> dispNormal, dispVol;
+    shared_ptr<PtrCoefFct> coefFctA;
+    coefFctA = this->GetCoefFct(MAG_POTENTIAL);
+    
+    magVecPotAvg.reset(new ResultInfo);
+    magVecPotAvg->resultType = MAG_POTENTIAL_AVERAGED;
+    magVecPotAvg->dofNames = "";
+    magVecPotAvg->unit = MapSolTypeToUnit(MAG_POTENTIAL_AVERAGED);
+    magVecPotAvg->entryType = ResultInfo::SCALAR;
+    magVecPotAvg->definedOn = ResultInfo::REGION;
+    // Integrate normal displacement
+    shared_ptr<ResultFunctor> magVecPotAvgFct;
+    if(isComplex_)
+      magVecPotAvgFct.reset(new ResultFunctorIntegrate<Complex>(coefFctA, feFct, magVecPotAvg));
+    else
+      magVecPotAvgFct.reset(new ResultFunctorIntegrate<Double>(coefFctA, feFct, magVecPotAvg));
+    resultFunctors_[MAG_POTENTIAL_AVERAGED] = magVecPotAvgFct;
+    availResults_.insert(coefFctA);
+
     // from NACS
     // === ELECTRIC SCALAR POTENTIAL - 1ST DERIVATIVE===
     if (isMixed_) {
