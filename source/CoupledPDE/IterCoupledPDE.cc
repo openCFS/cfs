@@ -62,6 +62,12 @@ namespace CoupledField
     
   }
 
+  void IterCoupledPDE::TriggerFinalize() {
+    // directly pass the query to the IterSolveStep instance
+    solveStep_->TriggerFinalize();
+    
+  }
+
   void IterCoupledPDE::GetUpdateGeoForPDE( SolutionType type,
                                            shared_ptr<EntityList>  list,
                                            const std::string& pdeName,

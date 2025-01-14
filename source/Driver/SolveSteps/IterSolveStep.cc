@@ -263,6 +263,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         EntityIterator nodeIt = nodes->GetIterator();
 
         // Loop over all nodes
+        //if(this->)
         Vector<Double> offset(dim), totalOffset(nodes->GetSize() * dim );
         StdVector<UInt> nodeNums(nodes->GetSize());
         UInt pos = 0;
@@ -531,6 +532,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   }
   
   
+  void IterSolveStep::TriggerFinalize() {
+    if( !isFinalized_) {
+      LOG_DBG(itersolvestep) << "Calling ::Finalize() from TriggerFinalize()";
+      Finalize();
+    } 
+  }
+  
   void IterSolveStep::Finalize() {
     LOG_TRACE(itersolvestep) << "Finalizing iterative coupled solve step";
     
@@ -591,8 +599,14 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
             }
 
           } else if( ptPde->GetName() == "smooth" ) {
-            dispSmooth = dynamic_pointer_cast<FeFunction<Double> >
-            (ptPde->GetFeFunction(SMOOTH_DISPLACEMENT));
+            // enable harmonic case
+            if ( ptPde->IsComplex() ) {
+              dispSmooth = dynamic_pointer_cast<FeFunction<Complex> >
+                            (ptPde->GetFeFunction(SMOOTH_DISPLACEMENT));
+            } else {
+              dispSmooth = dynamic_pointer_cast<FeFunction<Double> >
+                            (ptPde->GetFeFunction(SMOOTH_DISPLACEMENT));
+            }
             LOG_DBG(itersolvestep) << "=> Found SMOOTH_DISPLACEMENT as coupling quantity";
 //            velSmooth = dynamic_pointer_cast<FeFunction<Double> >
 //                        (ptPde->GetFeFunction(SMOOTH_VELOCITY));
