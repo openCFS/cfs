@@ -371,6 +371,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_POWER_PRESSURE_ONLY, "fluidMechPowerPressureOnly");
     SolutionTypeEnum.Add(FLUIDMECH_SURFIMPEDANCE, "fluidMechSurfaceImpedance");
     SolutionTypeEnum.Add(FLUIDMECH_IMPEDANCE, "fluidMechImpedance");
+    SolutionTypeEnum.Add(FLUIDMECH_VOLUME_FLOW_RATE, "fluidMechVolumeFlowRate");
+    SolutionTypeEnum.Add(FLUIDMECH_AVERAGED_PRESSURE, "fluidMechAveragedPressure");
 
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
 
@@ -998,6 +1000,7 @@ namespace CoupledField {
         return "m^3";
         break;
       case SPLIT_RHS_LOAD:
+      case FLUIDMECH_VOLUME_FLOW_RATE:
         return "m^3/s";
         break;
 
@@ -1011,6 +1014,7 @@ namespace CoupledField {
       case FLUIDMECH_TOTAL_STRESS:
       case FLUIDMECH_SURFACE_TRACTION:
       case FLUIDMECH_ZERO_PRESSURE:
+      case FLUIDMECH_AVERAGED_PRESSURE:
       case WATER_PRESSURE:
       case WATER_PRES_TENS:
       case SMOOTH_ZERO_PRESSURE:
@@ -1035,6 +1039,10 @@ namespace CoupledField {
       case FLUIDMECH_PRESSURE_DERIV_2:
         return "Pa/m^2";
         break;
+
+      case FLUIDMECH_SURFIMPEDANCE:
+      case FLUIDMECH_IMPEDANCE:
+        return "Pa s/m^3";
 
       case ACOU_DIV_LH_TENSOR:
         return "kg m^-2 s^-2";
