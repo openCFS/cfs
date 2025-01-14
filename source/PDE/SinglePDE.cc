@@ -1884,7 +1884,9 @@ namespace CoupledField {
       PtrParamNode isInfo = icInfo->Get("initialState");
       
       // Ensure, that we have a static or transient analysis
-      if( !( analysistype_ == STATIC || analysistype_ == TRANSIENT ) ) {
+      // Comment dmayrhofer 20250114: I added the functionality for the harmonic case too,
+      // although only the real part of the deformation will be considered
+      if( !( analysistype_ == STATIC || analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) ) {
         WARN( "Initial conditions are only meaningful in a transient analysis and "
             << "will be omitted for this type of analysis" );
       }
