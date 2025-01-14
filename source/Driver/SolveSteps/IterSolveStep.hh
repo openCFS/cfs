@@ -148,6 +148,9 @@ namespace CoupledField
     
     //! Set FeFunction for displacement
     void SetDispFct( shared_ptr<FeFunction<Double> > disp);
+
+    //! Set FeFunction for complex displacement
+    void SetDispFctComplex( shared_ptr<FeFunction<Complex> > dispComplex);
     
     //! Set FeFunction for velocity (needed for geometry update)
     void SetVelFct( shared_ptr<FeFunction<Double> > vel);
@@ -177,6 +180,12 @@ namespace CoupledField
     
     //! \copydoc ConvCriterion::GetSupport
     StdVector<shared_ptr<EntityList> > GetSupport() override;
+
+    //! Get if PDE is complex valued
+    bool GetIsComplex() { return isComplex_; };
+
+    //! Set if PDE is complex valued
+    void SetIsComplex( bool isComplex ) { isComplex_ = isComplex; };
     
   protected:
     
@@ -184,10 +193,13 @@ namespace CoupledField
     shared_ptr<FeFunction<Double> > disp_mech_;
 
     //! Pointer to displacement FeFunction
-    shared_ptr<FeFunction<Double> > disp_smooth_;
+    //shared_ptr<FeFunction<Double> > disp_smooth_;
 
     //! Pointer to displacement FeFunction
     shared_ptr<FeFunction<Double> > disp_;
+
+    //! Pointer to complex valued displacement FeFunction
+    shared_ptr<FeFunction<Complex> > dispComplex_;
 
     //! Pointer to velocity FeFunction
     shared_ptr<FeFunction<Double> > vel_;
@@ -206,6 +218,9 @@ namespace CoupledField
     
     //! if just norm of mechanical displacement is of interest, but no updated geometry is needed
     bool justNorm_;
+
+    //! bool to check if the feFunction is complex valued
+    bool isComplex_ = false;
   };
   
   // ======================================================================

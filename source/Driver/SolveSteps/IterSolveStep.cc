@@ -198,6 +198,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     assert(disp);
     disp_ = disp;
   }
+
+  void ConvCriterionDisplacement::SetDispFctComplex( shared_ptr<FeFunction<Complex> > disp) {
+    assert(disp);
+    dispComplex_ = disp;
+  }
   
   void ConvCriterionDisplacement::SetVelFct( shared_ptr<FeFunction<Double> > vel) {
     assert(vel);
@@ -229,7 +234,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // update grid to current values
       // Check if displacement fefunction is set
     // if we just want to calculate the norm, we need no geometry update
-    if( !disp_ || justNorm_)
+    if( !(disp_ || dispComplex_) || justNorm_)
         return;
 /*    
     double currentNorm = CalcNorm(actNorm_, oldNorm_);
@@ -239,14 +244,24 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 	   return;
    } 
 */	    
-      Grid * ptGrid = disp_->GetGrid();
+      Grid * ptGrid;
+      if( isComplex_ ) {
+        ptGrid = dispComplex_->GetGrid();
+      } else {
+        ptGrid = disp_->GetGrid();
+      }
       const UInt dim = ptGrid->GetDim();
       // Grid for vel and acc
       //Grid * ptGridVel = vel_->GetGrid();
       //Grid * ptGridAcc = acc_->GetGrid();
       // Loop over all regions of FeFunction
       shared_ptr<EntityList> nodes;
-      std::set<RegionIdType> dispRegions = disp_->GetRegions();
+      std::set<RegionIdType> dispRegions;
+      if( isComplex_ ) {
+        dispRegions = dispComplex_->GetRegions();
+      } else {
+        dispRegions = disp_->GetRegions();
+      }
       std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
 
       for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
@@ -271,7 +286,15 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
           nodeNums[pos] = nodeIt.GetNode();
           // aquire nodal solution
-          disp_->GetEntitySolution(offset, nodeIt);
+          if( isComplex_ ) {
+            Vector<Complex> offsetComplex(dim);
+            dispComplex_->GetEntitySolution(offsetComplex, nodeIt);
+            for( UInt i=0; i<offsetComplex.GetSize(); i++ ) {
+              offset[i] = offsetComplex[i].real();
+            }
+          } else {
+            disp_->GetEntitySolution(offset, nodeIt);
+          }
 
           UInt offsetPos = pos*dim;
           for( UInt iDim = 0; iDim < dim; ++iDim ) {
@@ -295,14 +318,19 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   void ConvCriterionDisplacement::StopSampling() {
 
     // if no displacement is set, just leave
-    if( !disp_)
+    if( !(disp_ || dispComplex_))
       return;
 
     oldNorm_ = actNorm_;
     actNorm_ = 0.0;
 
     // Calculate norm of total displacement
-    Grid * ptGrid = disp_->GetGrid();
+    Grid * ptGrid;
+    if( isComplex_ ) {
+      ptGrid = dispComplex_->GetGrid();
+    } else {
+      ptGrid = disp_->GetGrid();
+    }
     
     // update nc interfaces if existing
     //ptGrid->MoveNcInterfaces();
@@ -310,7 +338,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     const UInt dim = ptGrid->GetDim();
     // Loop over all regions of FeFunction
     shared_ptr<EntityList> nodes;
-    std::set<RegionIdType> dispRegions = disp_->GetRegions();
+    std::set<RegionIdType> dispRegions;
+    if( isComplex_ ) {
+      dispRegions = dispComplex_->GetRegions();
+    } else {
+      dispRegions = disp_->GetRegions();
+    }
     std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
 
     for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
@@ -333,7 +366,15 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
         nodeNums[pos] = nodeIt.GetNode();
         // aquire nodal solution
-        disp_->GetEntitySolution(offset, nodeIt);
+        if( isComplex_ ) {
+          Vector<Complex> offsetComplex(dim);
+          dispComplex_->GetEntitySolution(offsetComplex, nodeIt);
+          for( UInt i=0; i<offsetComplex.GetSize(); i++ ) {
+            offset[i] = offsetComplex[i].real();
+          }
+        } else {
+          disp_->GetEntitySolution(offset, nodeIt);
+        }
         
         for( UInt iDim = 0; iDim < dim; ++iDim ) {
           actNorm_ +=  offset[iDim] * offset[iDim];
@@ -550,10 +591,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
         // check for presence of mechanical PDE
         shared_ptr<FeFunction<Double> > disp;
+        shared_ptr<FeFunction<Complex> > dispComplex;
         //shared_ptr<FeFunction<Double> > vel;
         //shared_ptr<FeFunction<Double> > acc;
         // check for presence of smooth PDE
         shared_ptr<FeFunction<Double> > dispSmooth;
+        shared_ptr<FeFunction<Complex> > dispSmoothComplex;
         //shared_ptr<FeFunction<Double> > velSmooth;
         UInt numSinglePDEs = rPDE_.singlePDEs_.GetSize();
         for( UInt i = 0; i < numSinglePDEs; ++i ) {
@@ -601,7 +644,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           } else if( ptPde->GetName() == "smooth" ) {
             // enable harmonic case
             if ( ptPde->IsComplex() ) {
-              dispSmooth = dynamic_pointer_cast<FeFunction<Complex> >
+              dispSmoothComplex = dynamic_pointer_cast<FeFunction<Complex> >
                             (ptPde->GetFeFunction(SMOOTH_DISPLACEMENT));
             } else {
               dispSmooth = dynamic_pointer_cast<FeFunction<Double> >
@@ -620,11 +663,22 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               convDispSmooth.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
             }
 
-            convDispSmooth->SetDispFct( dispSmooth );
+            if ( ptPde->IsComplex() ) {
+              WARN("You specified a geometry update for a harmonic simulation. Only the real part of the deformation will be used!");
+              convDispSmooth->SetDispFctComplex( dispSmoothComplex );
+              convDispSmooth->SetIsComplex(true);
+            } else {
+              convDispSmooth->SetDispFct( dispSmooth );
+            }
             // We set the vel and acc as well since they have their own FeFunction and need the geometry update too
             //convDispSmooth->SetVelFct( velSmooth );
             //convDisp->SetAccFct( acc );
-            Grid * ptGrid = dispSmooth->GetGrid();
+            Grid * ptGrid;
+            if ( ptPde->IsComplex() ) {
+              ptGrid = dispSmoothComplex->GetGrid();
+            } else {
+              ptGrid = dispSmooth->GetGrid();
+            }
 
             LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
             // Read in all regions, which have geometric update and check if they are present in the mechPDE
@@ -643,7 +697,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           }
 
         }
-        if(!disp && !dispSmooth) {
+        if(!disp && !dispComplex && !dispSmooth && !dispSmoothComplex) {
           WARN( "No geometry updated will performed, as no mechanical "
               << "physic is defined");
         } else {
