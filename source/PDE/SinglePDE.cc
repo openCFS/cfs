@@ -375,6 +375,20 @@ namespace CoupledField {
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Reading boundary conditions";
     ReadBCs();
+    // If we perform iterative coupling to get some predeformation but we do not
+    // have an actual coupling coefficient, the iterSolveStep is not finalized
+    // and therefore the geometry update (and further computation) is ignored.
+    // Here, we finalize it manually, just to be sure.
+    
+    // check if we have some iterative coupling
+    if ( isIterCoupled_ ){
+      iterCplPde_->TriggerFinalize();
+    }
+    
+
+    // manually call finalize
+
+
     ReadSpecialBCs();
 
     // =====================================================================
