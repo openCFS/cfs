@@ -43,6 +43,10 @@ variables:
   CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
   CCACHE_MAXSIZE: 200M
+  # default ref for artifacts in downstream (Testsuite) pipelines
+  CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_COMMIT_REF_NAME # for the testsuite submodule check
+  CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CFS_UPSTREAM_REF_FOR_SUBMODULE # for the build artifacts
+  CFS_PIPELINE_ID: $CI_PIPELINE_ID
 
 # stages in the pipeline run in succession
 stages:
@@ -68,6 +72,10 @@ workflow:
   name: "$CFS_PIPELINE_NAME"
   rules:
   # put the most specific rules first - we have a release tag (in the correct format)
+  - if: $CI_PIPELINE_SOURCE == "pipeline" # the pipeline was triggered by CFS
+    variables:
+      CFS_PIPELINE_TYPE: "testsuite"
+      CFS_PIPELINE_NAME: "Triggered by $TESTSUITE_PROJECT !$TESTSUITE_MR of $TESTSUITE_BRANCH"
   # tags with 20* should be protected in the GitLab repo settings
   - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
     variables:
@@ -86,11 +94,13 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "manual"
       CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
+      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
   # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
+      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
@@ -127,12 +137,25 @@ workflow:
     GIT_STRATEGY: none
   cache: {} # disable
 
-# Check the revision of the testsuite submodule
+## different sets of changes with different conditions
+
+# the revision of the testsuite submodule has changed
 .Testsuite_changes: &Testsuite_changes
       changes:
         paths:
           - Testsuite
         compare_to: 'refs/heads/master'
+
+# changes that require the c++ builds to run
+.require-rebuild-changes: &require-rebuild-changes
+  # works like only/except changes
+  # for examples, see https://docs.gitlab.com/ee/ci/yaml/#onlychanges--exceptchanges
+  changes:
+    paths:
+      - "**/CMakeLists.txt"
+      - "**/*.cmake"
+      - "**/*.cmake.in"
+      - source/**/*.{hh,cc,h,c}
 
 testsuite-revision:
   extends: .check
@@ -142,28 +165,70 @@ testsuite-revision:
   variables:
     # we clone to make sure we have everything (including current names of the SHAs)
     GIT_STRATEGY: clone
-    GIT_SUBMODULE_STRATEGY: recursive
+    GIT_SUBMODULE_STRATEGY: none
   rules:
     # only create the job if there are changes in the Testsuite submodule
-    - if: $CFS_PIPELINE_TYPE == "test" 
+    - if: $CFS_PIPELINE_TYPE == "test"
       <<: *Testsuite_changes
-      when: on_success
-      allow_failure: true # only for info
-    - if: $CFS_PIPELINE_TYPE != /test/
+    - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
       when: manual
       allow_failure: true # only for info
+    # run if triggered by Testsuite - ensure a MR is open in CFS
+    - if: $CFS_PIPELINE_TYPE == "testsuite" && $CI_OPEN_MERGE_REQUESTS
+    # or do the check for nightly & release no matter of there are changes or not (makes sure testsuite merge was done)
+    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
   before_script:
+    - env # debug
     - git --no-pager log -1 --pretty=tformat:'%h %D'
-    - echo "The Testsuite in $CI_COMMIT_REF_NAME has changes compared to master!"
   script:
-    # check in Testsuite submodule
-    - cd Testsuite
-    - git --no-pager log -1 --pretty=tformat:'%h %D'
-    # check if we are on a branch called like the branch from CFS (or still on master)
-    - git --no-pager log -1 --pretty=tformat:'%h %D' | egrep -w "(${CI_COMMIT_REF_NAME})|(master)"
+    # obtain the testsuite reference
+    - git submodule status # debug
+    # save the Testsuite submodule SHA
+    - export CFS_TESTSUITE_SHA=$( git submodule status | grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' ) 
+    - echo "The 'testsuite' submodule in CFS refers to ..." && echo "CFS_TESTSUITE_SHA=$CFS_TESTSUITE_SHA" | tee -a dot.env
+    # check if the SHAs match only if this pipeline was triggered by the Testsuite the variable TESTSUITE_SHA will be set
+    - if [ -n  "${TESTSUITE_SHA+set}" ]; then echo "Checking if 'testsuite' submodule in CFS is equal to latest Testsuite ..."; echo "  head of branch $TESTSUITE_BRANCH in $TESTSUITE_PROJECT gave TESTSUITE_SHA=$TESTSUITE_SHA"; echo "  is it equal to CFS_TESTSUITE_SHA?"; echo $CFS_TESTSUITE_SHA | grep $TESTSUITE_SHA; else echo "variable TESTSUITE_SHA is not set -> no check"; fi
+    # save the pipeline URL
+    - echo "CFS_PIPELINE_URL=$CI_PIPELINE_URL" | tee -a dot.env
   after_script:
-    - pwd # debug
+    - cat dot.env || ls # debug
+  artifacts:
+    reports:
+      dotenv: dot.env
+
+# trigger a Testsuite pipeline multi-project pipeline, see https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html#multi-project-pipelines
+# for this to work there needs to be a corresponding testsuite branch
+Testsuite:
+  stage: test
+  rules: # same can trigger automatically after testsuite-revision
+    # if testsuite has changed and we need a rebuild
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+    # only the testsuite has changed -> test against master in the testsuite
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
+      variables:
+        CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
+      needs: [testsuite-revision]
+    # for nightly and release we test - all refs point to master
+    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
+  variables:
+    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
+    CFS_UPSTREAM_REF: $CI_DEFAULT_BRANCH
+  trigger:
+    project: $CI_PROJECT_NAMESPACE/Testsuite
+    branch: $CI_COMMIT_REF_NAME #same as the parent pipeline
+    strategy: depend # only pass when Testsuite pipeline passes
+    forward: # forward all variables
+      yaml_variables: true
+      pipeline_variables: true
+  needs:
+    - job: testsuite-revision
+    - job: linux:gcc14-musl
+      optional: true
+    - job: windows:MSVC2022-Ifort2021
+      optional: true
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
@@ -231,6 +296,8 @@ runner-debug:
     - echo "$CFS_PIPELINE_NAME"
     - echo "$CFS_PIPELINE_TYPE"
     - echo "$CACHE_POLICY:$INSTALL_POLICY"
+    - echo $TESTSUITE_BRANCH
+    - echo $CFS_UPSTREAM_REF
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
     - echo $GITLAB_USER_ID
@@ -265,17 +332,6 @@ skip-build:
       allow_failure: true # only for info, do not prevent merge
   script:
     - /commit/message/contained/skip-build
-
-.require-rebuild-changes: &require-rebuild-changes
-  # changes that require the c++ builds to run
-  # works like only/except changes
-  # for examples, see https://docs.gitlab.com/ee/ci/yaml/#onlychanges--exceptchanges
-  changes:
-    - "**/CMakeLists.txt"
-    - "**/*.cmake"
-    - "**/*.cmake.in"
-    - source/**/*.{hh,cc,h,c}
-    - Testsuite
 
 cpp-code-changes:
   extends: .check
@@ -489,12 +545,18 @@ rhel:9:
     # builds & tests are required
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *Testsuite_changes
     # all manual
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
       when: manual
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
+      when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
@@ -860,6 +922,9 @@ linux:intel:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
       <<: *require-rebuild-changes
       when: manual
+    - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
+      <<: *Testsuite_changes
+      when: manual
     - !reference [.build_rules, rules]
   <<: [ *intel_before ]
   needs:
@@ -1188,6 +1253,10 @@ stable_par:MSVC2022-Ifort2021:windows:
     #make it optional since MSVC builds currently are not running in parallel
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
+      when: manual
+      allow_failure: true
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
       when: manual
       allow_failure: true
     - !reference [.ctest_default, rules]
