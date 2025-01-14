@@ -75,7 +75,7 @@ workflow:
   - if: $CI_PIPELINE_SOURCE == "pipeline" # the pipeline was triggered by CFS
     variables:
       CFS_PIPELINE_TYPE: "testsuite"
-      CFS_PIPELINE_NAME: "Triggered"
+      CFS_PIPELINE_NAME: "Triggered by $TESTSUITE_PROJECT !$CI_MERGE_REQUEST_IID of $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
   # tags with 20* should be protected in the GitLab repo settings
   - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
     variables:
@@ -186,7 +186,7 @@ testsuite-revision:
     # save the Testsuite submodule SHA
     - export CFS_TESTSUITE_SHA=$( git submodule status | grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' ) 
     - echo "CFS_TESTSUITE_SHA=$CFS_TESTSUITE_SHA" | tee -a dot.env
-    # check if the SHAs match
+    # check if the SHAs match only if this pipeline was triggered by the Testsuite the variable TESTSUITE_SHA will be set
     - if [ -n  "${TESTSUITE_SHA+set}" ]; then echo "checking if Testsuite submodule in CFS is equal to latest Testsuite ($TESTSUITE_SHA)"; echo $CFS_TESTSUITE_SHA | grep $TESTSUITE_SHA; else echo "variable TESTSUITE_SHA is not set -> no check"; fi
     # save the pipeline URL
     - echo "CFS_PIPELINE_URL=$CI_PIPELINE_URL" | tee -a dot.env
@@ -202,10 +202,10 @@ Testsuite:
   stage: test
   rules: # same can trigger automatically after testsuite-revision
     # if testsuite has changed and we need a rebuild
-    - if: $CFS_PIPELINE_TYPE == "testsuite" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
     # only the testsuite has changed -> test against master in the testsuite
-    - if: $CFS_PIPELINE_TYPE == "testsuite" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
       variables:
         CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
@@ -272,7 +272,7 @@ pipeline-changes:
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *pipeline_changes
       allow_failure: true # only for info, do not prevent merge
-    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "testsuite"
+    - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *pipeline_changes
       when: manual
       allow_failure: true # only for info, do not prevent merge
@@ -288,7 +288,7 @@ runner-debug:
   tags:
     - saas-linux-small-amd64
   rules:
-    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "testsuite"
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
       when: manual
       allow_failure: true # only for info, do not prevent merge
   script:
@@ -341,7 +341,7 @@ cpp-code-changes:
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
       allow_failure: true # only for info, do not prevent merge
-    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "testsuite"
+    - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
       when: manual
       allow_failure: true # only for info, do not prevent merge
@@ -570,10 +570,6 @@ rhel:9:
 .release_build_rules: &release_build_rules
   rules:
     - if: $CFS_PIPELINE_TYPE == "release"
-    - if: $CFS_PIPELINE_TYPE == "testsuite"
-      changes:
-        paths: !reference [.require-rebuild-changes, changes, paths]
-        compare_to: 'refs/heads/master'
     - !reference [.build_rules, rules]
 
 .cfsdeps: &cfsdeps
