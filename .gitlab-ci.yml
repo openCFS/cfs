@@ -45,8 +45,20 @@ variables:
   CCACHE_MAXSIZE: 200M
   # default ref for artifacts in downstream (Testsuite) pipelines
   CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_COMMIT_REF_NAME # for the testsuite submodule check
-  CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CFS_UPSTREAM_REF_FOR_SUBMODULE # for the build artifacts
-  CFS_PIPELINE_ID: $CI_PIPELINE_ID
+  CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_COMMIT_REF_NAME # for the build artifacts
+  # set the pipeline type via variable, see https://docs.gitlab.com/ee/ci/yaml/#variablesoptionsq
+  CFS_PIPELINE_TYPE:
+    value: "test"
+    options:
+      - "manual"
+      - "test"
+      - "nightly"
+      - "release"
+      - "pipeline"
+    description: "The type of the pipeline: usually you want 'test', 'manual', or 'nightly'. Other options are for pipeline-experiments only!"
+  # all rules:changes:compare_to use this value - it can be set in as a variable when creating a pipeline
+  # since branch and MR pipelines show a different behavior without this option, we set it (see https://docs.gitlab.com/ee/ci/yaml/#ruleschanges)
+  COMPARE_CHANGES_TO: $CI_DEFAULT_BRANCH # if one does merge requests to a different branch than the default this needs to be changed
 
 # stages in the pipeline run in succession
 stages:
@@ -94,13 +106,15 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "manual"
       CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
-      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
+      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggered pipelines
+      CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_MERGE_REQUEST_REF_PATH # for build artifacts
   # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
-      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggerd pipelines
+      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggered pipelines
+      CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_MERGE_REQUEST_REF_PATH # for build artifacts
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
@@ -109,15 +123,15 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "nightly"
       CFS_PIPELINE_NAME: "Scheduled for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
-  # create a manual pipeline via the web interface (for any branch) by setting the variable CFS_PIPELINE_TYPE=manual
-  - if: $CI_PIPELINE_SOURCE == "web" && $CFS_PIPELINE_TYPE == "manual"
-    variables:
-      CFS_PIPELINE_NAME: "Manual for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
-  # automatically run if branch name starts or ends with test or is scheduled
-  - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
+  # automatically run if branch name starts or ends with test
+  - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  # honor the CFS_PIPELINE_TYPE from the Web-ui
+  - if: $CI_PIPELINE_SOURCE == "web"
+    variables:
+      CFS_PIPELINE_NAME: "$CFS_PIPELINE_TYPE for ${CI_COMMIT_REF_NAME}: $CI_COMMIT_TITLE"
   # when no rule triggers, no pipeline is created
 
 #################################################
@@ -144,7 +158,7 @@ workflow:
       changes:
         paths:
           - Testsuite
-        compare_to: 'refs/heads/master'
+        compare_to: $COMPARE_CHANGES_TO
 
 # changes that require the c++ builds to run
 .require-rebuild-changes: &require-rebuild-changes
@@ -156,6 +170,7 @@ workflow:
       - "**/*.cmake"
       - "**/*.cmake.in"
       - source/**/*.{hh,cc,h,c}
+    compare_to: $COMPARE_CHANGES_TO
 
 testsuite-revision:
   extends: .check
@@ -167,19 +182,47 @@ testsuite-revision:
     GIT_STRATEGY: clone
     GIT_SUBMODULE_STRATEGY: none
   rules:
-    # only create the job if there are changes in the Testsuite submodule
+    # this job must run and pass whenever we need to trigger the testsuite
+    # if we have cpp code changes
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *require-rebuild-changes
+      variables: # debug
+        RULE: 'test + require-rebuild-changes'
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+      when: manual
+      variables: # debug
+        RULE: 'manual + require-rebuild-changes'
+    # create the job if there are changes in the Testsuite submodule
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *Testsuite_changes
+      variables: # debug
+        RULE: 'test + Testsuite_changes'
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
       when: manual
-      allow_failure: true # only for info
-    # run if triggered by Testsuite - ensure a MR is open in CFS
+      variables: # debug
+        RULE: 'manual + Testsuite_changes'
+    # run if triggered by Testsuite - this ensures a MR is open in CFS
     - if: $CFS_PIPELINE_TYPE == "testsuite" && $CI_OPEN_MERGE_REQUESTS
-    # or do the check for nightly & release no matter of there are changes or not (makes sure testsuite merge was done)
+      variables: # debug
+        RULE: 'testsuite'
+    # or do the check for nightly & release no matter if there are changes or not (-> this makes sure testsuite merge was done)
     - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
+      variables: # debug
+        RULE: 'nightly or release'
+    # if there are no changes, the job should be created but allowed to fail - it is just informational then
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true
+      variables: # debug
+        RULE: 'info'
   before_script:
+    - echo "This job is in the pipeline because of the rule '$RULE'"
+    - export DEBUG_SECTION_TITLE='Environment variables'
+    - !reference [.linux-debug-start_collapsed, script]
     - env # debug
+    - !reference [.linux-debug-end, script]
     - git --no-pager log -1 --pretty=tformat:'%h %D'
   script:
     # obtain the testsuite reference
@@ -202,9 +245,11 @@ testsuite-revision:
 Testsuite:
   stage: test
   rules: # same can trigger automatically after testsuite-revision
-    # if testsuite has changed and we need a rebuild
+    # if we have cpp code changes
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *require-rebuild-changes
+      variables:
+        CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
     # only the testsuite has changed -> test against master in the testsuite
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
@@ -213,9 +258,15 @@ Testsuite:
       needs: [testsuite-revision]
     # for nightly and release we test - all refs point to master
     - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
+      variables:
+        CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
+    # if there are no changes, the job is created but becomes informational (manual & allowed to fail)
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true
+      needs: [testsuite-revision] # empty [] in rules:needs removes needs altogether - previous stage must complete
   variables:
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
-    CFS_UPSTREAM_REF: $CI_DEFAULT_BRANCH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
     branch: $CI_COMMIT_REF_NAME #same as the parent pipeline
@@ -259,7 +310,7 @@ markdown-link-check:
         paths:
         - .gitlab-ci.yml
         - .gitlab/ci/*.yml
-        compare_to: 'refs/heads/master'
+        compare_to: $COMPARE_CHANGES_TO
 pipeline-changes:
   extends: .check
   image:
@@ -530,7 +581,7 @@ rhel:9:
     paths:
       - "cfsdeps/**/*"
       - "cmake_modules/FindCFSDEPS.cmake"
-    compare_to: 'refs/heads/master'
+    compare_to: $COMPARE_CHANGES_TO
 
 .build_rules: &build_rules
   rules:
@@ -1286,10 +1337,14 @@ python:linux:
     # run when we have changes in python files
     - if: $CFS_PIPELINE_TYPE == "test"
       changes:
-        - "**/*.py"
+        paths:
+          - "**/*.py"
+        compare_to: $COMPARE_CHANGES_TO
     - if: $CFS_PIPELINE_TYPE == "manual"
       changes:
-        - "**/*.py"
+        paths:
+          - "**/*.py"
+        compare_to: $COMPARE_CHANGES_TO
       when: manual
   variables:
     TEST_NAME: "stable"
