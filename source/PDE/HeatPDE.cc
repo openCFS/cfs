@@ -194,11 +194,9 @@ void HeatPDE::DefineIntegrators() {
   // Define integrators for "standard" materials
   std::map<RegionIdType, BaseMaterial*>::iterator it;
   shared_ptr<FeSpace> mySpace = feFunctions_[HEAT_TEMPERATURE]->GetFeSpace();
-
-  for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-    // Set current region and material
-    actRegion = it->first;
-    actSDMat = it->second;
+  for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
+      actRegion = regions_[iRegion];
+      actSDMat    = materials_[actRegion];
 
     // Get current region name
     std::string regionName = ptGrid_->GetRegion().ToString(actRegion);

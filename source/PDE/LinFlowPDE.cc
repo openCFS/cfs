@@ -244,10 +244,10 @@ namespace CoupledField {
 
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
 
       // Set current region and material
-      actRegion = it->first;
+      actRegion = regions_[iRegion];
 
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);

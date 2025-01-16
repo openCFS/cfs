@@ -156,10 +156,9 @@ namespace CoupledField {
 
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
       // Set current region and material
-      actRegion = it->first;
+      actRegion = regions_[iRegion];
 
     // Not needed at the moment. Commented out due to gcc 4.6.
 #if 0

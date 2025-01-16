@@ -328,9 +328,9 @@ namespace CoupledField{
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[WATER_PRESSURE]->GetFeSpace();
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
       // Set current region and material
-      actRegion = it->first;
+      actRegion = regions_[iRegion];
       // actSDMat = it->second;
       // save the density
       PtrCoefFct dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );

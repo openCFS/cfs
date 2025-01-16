@@ -155,40 +155,38 @@ namespace CoupledField {
   void MagneticPDE::DefineIntegrators() {
 
     RegionIdType actRegion;
-	  BaseMaterial * actMat = NULL;
+    BaseMaterial * actMat = NULL;
 
-	  // determine tensor representation of the material parameters needed
-	  SubTensorType tensorType;
-	  if ( dim_ == 3 ) {
-		  tensorType = FULL;
-	  } else {
-		  if ( isaxi_ == true ) {
-			  tensorType = AXI;
-		  } else {
-			  // 2d: plane case
-			  tensorType = PLANE_STRAIN;
-		  }
-	  }
+    // determine tensor representation of the material parameters needed
+    SubTensorType tensorType;
+    if ( dim_ == 3 ) {
+      tensorType = FULL;
+    } else {
+      if ( isaxi_ == true ) {
+        tensorType = AXI;
+      } else {
+        // 2d: plane case
+        tensorType = PLANE_STRAIN;
+      }
+    }
 
-	  shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
-	  shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
-	  double factor = 1.0;
-	  if ( isMagnetoStrictCoupled_ == true ){
-		  // similar to the piezoelectric case we have to multiply the magnetic pde in the magnetostrictive case with -1 to
-		  // get a symmetric equation system (in mechanics we have -div(sigma) in magnetics +rot(H) -> multiply magnetics with -1)
-		  factor = -1.0;
-	  }
+    double factor = 1.0;
+    if ( isMagnetoStrictCoupled_ == true ){
+      // similar to the piezoelectric case we have to multiply the magnetic pde in the magnetostrictive case with -1 to
+      // get a symmetric equation system (in mechanics we have -div(sigma) in magnetics +rot(H) -> multiply magnetics with -1)
+      factor = -1.0;
+    }
 
-	  //  Loop over all regions
-	  std::map<RegionIdType, BaseMaterial*>::iterator it;
-	  //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    //  Loop over all regions
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
 
-	  for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-
-		  // Set current region and material
-		  actRegion = it->first;
-		  actMat = it->second;
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
+      actRegion = regions_[iRegion];
+      actMat    = materials_[actRegion];
 
 		  // Get current region name
 		  std::string regionName = ptGrid_->GetRegion().ToString(actRegion);

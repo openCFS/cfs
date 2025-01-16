@@ -105,11 +105,9 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[TEST_DOF];
     shared_ptr<FeSpace> mySpace = feFunc->GetFeSpace();
   
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-    
-      // Set current region and material
-      actRegion = it->first;
-      actSDMat = it->second;
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
+      actRegion = regions_[iRegion];
+      actSDMat    = materials_[actRegion];
     
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
