@@ -532,6 +532,7 @@
           <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
 
         </xsd:choice>
+        <xsd:attribute name="volumeRegion" type="xsd:token" use="optional"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

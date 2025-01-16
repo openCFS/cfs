@@ -59,6 +59,17 @@ namespace CoupledField {
     //! Read special boundary conditions
     void ReadSpecialBCs(){};
 
+    /** Check what stabilisation type is selected for the given region
+     * and compute the stabilisation factor CoefFunction.
+     * @param ent region to check
+     * @param factor pointer to write the CoefFunction of the stabilisation factor to
+     * @return the stabilisation type
+     */
+    CoupledField::BasePDE::StabilisationType GetStabilisation(RegionIdType ent, PtrCoefFct &factor);
+
+    /** Check if volume neighbour has SUPG enabled. */
+    bool VolNeighbourHasSUPG(EntityIterator entit);
+
     void ReadDampingInformation();
 
     //! Initialize NonLinearities
