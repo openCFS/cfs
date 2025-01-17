@@ -2152,21 +2152,6 @@ namespace CoupledField {
 
     CFS_NUM_THREADS = cfs; // this is a global int variable
 
-#if defined(_MSC_VER) && (!defined(__INTEL_COMPILER)) && (!defined(__INTEL_LLVM_COMPILER))
-    if(!quiet && cfs > 1)
-    {
-      cout << "==================================================================================" << std::endl;
-      cout << "  WARNING:This version of openCFS has been compiled using Microsoft C++ compilers." << std::endl;
-      cout << "  Due to limited support for OpenMP (Version 2.0), the number of parallel CFS threads is limited to 1." << std::endl;
-      cout << "  The number of CFS threads for this run has been specified to " << cfs << ", either" << std::endl;
-      cout << "  by using command line argument \"-t " << cfs << "\", or by environment variable CFS_NUM_THREADS." << std::endl;
-      cout << "  Due to these compiler limitations, this has been reset to a single thread." << std::endl;
-      cout << "  Note that the settings for OMP_NUM_THREADS and/or MKL_NUM_THREADS are not involved." << std::endl;
-      cout << "==================================================================================" << std::endl;
-    }
-    CFS_NUM_THREADS=1;
-#endif
-
     // on almost all Linux and Windows systems this is MKL_NUM_THREADS.
     const char* otherenv = GetBlasThreadsEnvVariable(true); // DUMMY_NUM_THREADS for openblas and netlib
     const std::string otherstr = std::string(otherenv);

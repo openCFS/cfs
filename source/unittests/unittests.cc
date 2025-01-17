@@ -416,3 +416,21 @@ BOOST_AUTO_TEST_CASE(ConvertToVec_UpperTriangular)
   m.ConvertToVec_UpperTriangular(v);
   std::cout << "v(m) = " << v.ToString() << std::endl;
 }
+
+// to test that MSVC uses with /openmp:llvm OpenMP >= 3.0 which allows unsigned loop variables
+// the original MSVC with OpenMP does not allow this.
+// the purpose of the test is to see, if the compiler complaines or not
+BOOST_AUTO_TEST_CASE(signed_omp_loop)
+{
+  Vector<double> v(100, 2.0);
+
+  #pragma omp parallel for
+  for(int i = 0; i < v.GetSize(); i++)
+    v[i] = std::exp(v[i]);
+
+  #pragma omp parallel for
+  for(unsigned int i = 0; i < v.GetSize(); i++)
+    v[i] = std::sin(v[i]);
+}
+
+
