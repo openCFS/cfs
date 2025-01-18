@@ -533,7 +533,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   
   void IterSolveStep::Finalize() {
     LOG_TRACE(itersolvestep) << "Finalizing iterative coupled solve step";
-    
+
     // 1) Check for updated geometry
     if( param_->Has("geometryUpdate") ) {
       ParamNodeList regionNodes = param_->Get("geometryUpdate")->GetChildren();
@@ -788,11 +788,15 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
     
     // In the end print final ordering:
+    // In the end print final ordering:
+    std::cout << "++ Final ordering of PDEs: ";
     LOG_DBG(itersolvestep) << "Final ordering of PDEs:";
     for( UInt i = 0; i < rPDE_.numPDEs_; ++i ) {
       LOG_DBG(itersolvestep) << "\t" << i+1 << ": " 
           <<  rPDE_.PDEs_[i]->GetName();
+          std::cout << " " << i+1 << ": " <<  rPDE_.PDEs_[i]->GetName();
     }
+    std::cout << std::endl;
   }
   
   PtrCoefFct IterSolveStep::GetCouplingCoefFct( SolutionType type,
@@ -1190,6 +1194,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
                              << ", f = " << actFreq_;
     LOG_TRACE(itersolvestep) << "--------------------------------------\n";
 
+    if( !isFinalized_) {
+      LOG_DBG(itersolvestep) << "Calling ::Finalize() at start of SolveStepHarmonic";
+      Finalize();
+    } 
+
     UInt iter = 0;
     bool normsReached = false;
     std::map<SolutionType, shared_ptr<ConvCriterion> >::iterator convIt;
@@ -1232,7 +1241,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       //  2) Calculate Single PDEs
       // -----------------------------------
       for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
-
         LOG_DBG(itersolvestep) << "Processing PDE '" <<
             rPDE_.PDEs_[i]->GetName() << "'";
 

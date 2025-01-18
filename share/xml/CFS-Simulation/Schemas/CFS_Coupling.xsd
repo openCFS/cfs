@@ -134,6 +134,7 @@
               <xsd:enumeration value="magEnergy"/>
               <xsd:enumeration value="magJouleLossPowerDensity"/>
               <xsd:enumeration value="magElemPermeability"/>
+              <xsd:enumeration value="elecFieldIntensity" />
               <xsd:enumeration value="smoothDisplacement"/>
               <xsd:enumeration value="smoothVelocity"/>
               <xsd:enumeration value="fluidMechVelocity"/>

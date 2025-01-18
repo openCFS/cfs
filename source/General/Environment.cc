@@ -116,6 +116,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_ADJ, "elecFieldIntensityAdj");
+    SolutionTypeEnum.Add(ELEC_FIELD_VORTICITY, "elecFieldVorticity");
+    SolutionTypeEnum.Add(ELEC_FIELD_VORTICITY_ADJ, "elecFieldVorticityAdj");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_SURF, "elecFieldIntensitySurf");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_TRANSVERSAL, "elecFieldIntensityTransversal");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY_LONGITUDINAL, "elecFieldIntensityLongitudinal");
@@ -1163,6 +1165,11 @@ namespace CoupledField {
       case ELEC_FIELD_INTENSITY_SURF:
       case MAG_POTENTIAL_DERIV1:
         return "V/m";
+        break;
+
+      case ELEC_FIELD_VORTICITY:
+      case ELEC_FIELD_VORTICITY_ADJ:
+        return "V/m^2";
         break;
 
       case MAG_FLUX:
