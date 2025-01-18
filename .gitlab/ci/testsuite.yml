@@ -1,0 +1,48 @@
+spec:
+  inputs:
+    branch:
+---
+# include the testsuite trigger, see https://docs.gitlab.com/ee/ci/yaml/inputs.html#define-input-parameters-with-specinputs
+
+# trigger a Testsuite pipeline multi-project pipeline, see https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html#multi-project-pipelines
+# for this to work there needs to be a corresponding testsuite branch
+Testsuite:$[[ inputs.branch ]]:
+  stage: test
+  rules: # same can trigger automatically after testsuite-revision
+    # only the testsuite has changed -> test against master in the testsuite
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *Testsuite_changes
+      variables:
+        CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
+      needs: [testsuite-revision]
+    # if we have cpp code changes
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+      variables:
+        CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
+    # for nightly and release we test - all refs point to master
+    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
+      variables:
+        CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
+    # if there are no changes, the job is created but becomes informational (manual & allowed to fail)
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true
+      needs: [testsuite-revision] # empty [] in rules:needs removes needs altogether - previous stage must complete
+  variables:
+    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
+  trigger:
+    project: $CI_PROJECT_NAMESPACE/Testsuite
+    branch: $[[ inputs.branch ]]
+    strategy: depend # only pass when Testsuite pipeline passes
+    forward: # forward all variables
+      yaml_variables: true
+      pipeline_variables: true
+  needs:
+    - job: testsuite-revision
+    - job: linux:gcc14-musl
+      optional: true
+    - job: windows:MSVC2022-Ifort2021
+      optional: true
+
+
