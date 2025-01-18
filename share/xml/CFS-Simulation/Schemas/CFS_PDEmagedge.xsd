@@ -461,6 +461,7 @@
       <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="elecFieldVorticity" />     
       <xsd:enumeration value="elecFieldIntensityTransversal"/>
       <xsd:enumeration value="elecFieldIntensityLongitudinal"/>
       <xsd:enumeration value="displacementCurrentDensity"/>
@@ -475,6 +476,7 @@
       <xsd:enumeration value="magElemPermittivity"/>
       <xsd:enumeration value="magElemReluctivity" />
       <xsd:enumeration value="magRhsLoad"/>
+      <xsd:enumeration value="elecRhsLoad"/>
       <xsd:enumeration value="magCoreLossDensity"/>
       <xsd:enumeration value="magJouleLossPowerDensity"/>
       <!-- non-physical design variable for simp topology optimization of magnetic material (standard case) -->

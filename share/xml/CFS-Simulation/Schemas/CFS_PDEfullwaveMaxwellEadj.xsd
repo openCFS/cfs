@@ -183,6 +183,7 @@
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector"/>
+                <xsd:element name="elecFieldIntensity" type="DT_BcInhomVector"/>
                 <xsd:element name="measuredFluxDensity" type="DT_BcInhomVector">
                   <xsd:annotation>
                     <xsd:documentation>Measured magnetic flux density (will be read from file) </xsd:documentation>
@@ -290,9 +291,6 @@
   <!-- Definition of nodal result types of magnetic PDE -->
   <xsd:simpleType name="DT_WaveEAdjNodeResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="elecPotential"/>
-      <xsd:enumeration value="lagrangeMultiplier"/>
-      <xsd:enumeration value="lagrangeMultiplier1"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -301,7 +299,14 @@
   <xsd:simpleType name="DT_WaveEAdjElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecFieldIntensityAdj"/>
+      <xsd:enumeration value="elecFieldVorticityAdj" />           
+      <xsd:enumeration value="magElemPermittivity"/>
+      <xsd:enumeration value="magElemReluctivity" />     
       <xsd:enumeration value="magRhsLoadAdj"/>
+      <xsd:enumeration value="elecRhsLoadAdj"/>
+      <xsd:enumeration value="gradParam1"/>
+      <xsd:enumeration value="gradParam2"/>
+      <xsd:enumeration value="gradParam3"/>      
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -315,12 +320,9 @@
   <xsd:simpleType name="DT_WaveEAdjRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="volume"/>
-      <xsd:enumeration value="magAveragedFluxDensity"/>
-      <xsd:enumeration value="magGradAdjParam"/>
-      <xsd:enumeration value="magGradAdjParam1"/>
-      <xsd:enumeration value="magGradAdjParam2"/>
-      <xsd:enumeration value="magGradAdjParam3"/>
-      <xsd:enumeration value="magGradAdjParam4"/>
+      <xsd:enumeration value="gradParam1"/>
+      <xsd:enumeration value="gradParam2"/>
+      <xsd:enumeration value="gradParam3"/>            
     </xsd:restriction>
   </xsd:simpleType>
 

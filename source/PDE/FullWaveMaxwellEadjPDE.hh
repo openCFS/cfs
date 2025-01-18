@@ -89,6 +89,20 @@ namespace CoupledField
     //! needed for calculating H field
     std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
 
+    //! map containing the electric vorticity of forward simulation
+    std::map<RegionIdType, PtrCoefFct> EvorticityForward_;
+
+    //! map containing the electric vorticity of forward simulation
+    std::map<RegionIdType, PtrCoefFct> EfieldForward_;
+
+    //! map containing the derivative of reluctivity with respect to density
+    //! is read out of 5 file, provided by external optimizer
+    std::map<RegionIdType, PtrCoefFct> derivReluctivity_;
+
+    //! map containing the derivative of permittivity with respect to density
+    //! is read out of 5 file, provided by external optimizer    
+    std::map<RegionIdType, PtrCoefFct> derivPermittivity_;
+
     //! Set containing all regions with regularized conductivity
 
     //! This set contains all regions, which have no physical conductivity,
