@@ -527,7 +527,28 @@ namespace CoupledField
 
   void FullWaveMaxwellEPDE::DefinePostProcResults()
   {
+    StdVector<std::string> vecComponents;
+    vecComponents = "x", "y", "z";
+
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_FIELD_INTENSITY];
+
+    // === CURL OF ELECTRIC FIELD = ELECTRIC VORTICITY ===
+    shared_ptr<ResultInfo> curlE(new ResultInfo);
+    curlE->resultType = ELEC_FIELD_VORTICITY;
+    curlE->dofNames = vecComponents;
+    curlE->unit = "V/m^2";
+    curlE->definedOn = ResultInfo::ELEMENT;
+    curlE->entryType = ResultInfo::VECTOR;
+    availResults_.insert( curlE );
+    shared_ptr<CoefFunctionFormBased> curlFunc;
+    if( isComplex_ ) {
+      curlFunc.reset(new CoefFunctionBOp<Complex>(feFct, curlE));
+    } else {
+      curlFunc.reset(new CoefFunctionBOp<Double>(feFct, curlE));
+    }
+    DefineFieldResult( curlFunc, curlE );
+    stiffFormCoefs_.insert(curlFunc);
+
 
     // === MAGNETIC ENERGY DENSITY INTEGRATED OVER PERIOD  (in the harmonic case)===
     shared_ptr<ResultInfo> jld(new ResultInfo);

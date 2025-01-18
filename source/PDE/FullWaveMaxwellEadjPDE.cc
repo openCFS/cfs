@@ -465,6 +465,36 @@ namespace CoupledField
 
       bRHSRegions_[ent[i]->GetRegion()] = coef[i];
     }
+
+    //read electric field intensity from forward simulation
+    StdVector<std::string> nameOfDofs;
+    ReadRhsExcitation("elecFieldIntensity", nameOfDofs, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);    
+    for (UInt i = 0; i < ent.GetSize(); ++i)
+    {
+       // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST ||
+          ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
+        EXCEPTION("Electric field intensity from forward simulation can only be specified in a volume!")
+      }
+          
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl, 3, 1, Complex>(),
+                                         Complex(1.0), coef[i], coefUpdateGeo);
+      } else {
+        lin = new BUIntegrator<Double>( new IdentityOperator<FeHCurl, 3, 1, Double>(),
+                                        1.0, coef[i], coefUpdateGeo);
+      }
+
+      lin->SetName("RHSFieldintensityIntegrator");
+      
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(eVecPotFeFunc);
+      assemble_->AddLinearForm(ctx);
+      eVecPotFeFunc->AddEntityList(ent[i]);
+
+      bRHSRegions_[ent[i]->GetRegion()] = coef[i];
+    }
   }
 
   void FullWaveMaxwellEadjPDE::DefineSolveStep()
@@ -526,7 +556,27 @@ namespace CoupledField
 
   void FullWaveMaxwellEadjPDE::DefinePostProcResults()
   {
+    StdVector<std::string> vecComponents;
+    vecComponents = "x", "y", "z";
+
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_FIELD_INTENSITY_ADJ];
+
+    // === CURL OF ELECTRIC FIELD = ELECTRIC VORTICITY ===
+    shared_ptr<ResultInfo> curlEadj(new ResultInfo);
+    curlEadj->resultType = ELEC_FIELD_VORTICITY_ADJ;
+    curlEadj->dofNames = vecComponents;
+    curlEadj->unit = "V/m^2";
+    curlEadj->definedOn = ResultInfo::ELEMENT;
+    curlEadj->entryType = ResultInfo::VECTOR;
+    availResults_.insert( curlEadj );
+    shared_ptr<CoefFunctionFormBased> curlFunc;
+    if( isComplex_ ) {
+      curlFunc.reset(new CoefFunctionBOp<Complex>(feFct, curlEadj));
+    } else {
+      curlFunc.reset(new CoefFunctionBOp<Double>(feFct, curlEadj));
+    }
+    DefineFieldResult( curlFunc, curlEadj );
+    stiffFormCoefs_.insert(curlFunc);
 
     // === MAGNETIC ENERGY DENSITY INTEGRATED OVER PERIOD  (in the harmonic case)===
     shared_ptr<ResultInfo> jld(new ResultInfo);

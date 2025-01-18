@@ -183,6 +183,7 @@
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="fieldIntensity" type="DT_BcInhomVector"/>
+                <xsd:element name="elecFieldIntensity" type="DT_BcInhomVector"/>
                 <xsd:element name="measuredFluxDensity" type="DT_BcInhomVector">
                   <xsd:annotation>
                     <xsd:documentation>Measured magnetic flux density (will be read from file) </xsd:documentation>
@@ -301,7 +302,12 @@
   <xsd:simpleType name="DT_WaveEAdjElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecFieldIntensityAdj"/>
+      <xsd:enumeration value="elecFieldVorticityAdj" />           
+      <xsd:enumeration value="magElemPermeability"/>
+      <xsd:enumeration value="magElemPermittivity"/>
+      <xsd:enumeration value="magElemReluctivity" />     
       <xsd:enumeration value="magRhsLoadAdj"/>
+
     </xsd:restriction>
   </xsd:simpleType>
 

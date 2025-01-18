@@ -461,6 +461,7 @@
       <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="elecFieldIntensity"/>
+      <xsd:enumeration value="elecFieldVorticity" />     
       <xsd:enumeration value="elecFieldIntensityTransversal"/>
       <xsd:enumeration value="elecFieldIntensityLongitudinal"/>
       <xsd:enumeration value="displacementCurrentDensity"/>

@@ -2131,7 +2131,7 @@ namespace CoupledField {
       elementList.Reserve(numElems);
       // loop over all elements and insert them in the list
       for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
-        elementList.Push_back(volElems_[index][iElem]->GetElemNum());
+        elementList.Push_back(volElems_[index][iElem]->elemNum);
       }
       
     } else {
@@ -2143,7 +2143,7 @@ namespace CoupledField {
         elementList.Reserve(numElems);
         // loop over all elements and insert them in the list
         for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
-          elementList.Push_back(surfElems_[index][iElem]->GetElemNum());
+          elementList.Push_back(surfElems_[index][iElem]->elemNum);
         }
       } else {
         EXCEPTION( "GridCFS: The region with id '" << regionId
