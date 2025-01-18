@@ -582,6 +582,20 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
+      <xsd:enumeration value="fluidMechVolumeFlowRate">
+        <xsd:annotation>
+          <xsd:documentation>
+            Q = \int_Gamma v dGamma
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="fluidMechAveragedPressure">
+        <xsd:annotation>
+          <xsd:documentation>
+            p_avg = 1/Gamma \int_Gamma p dGamma
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 

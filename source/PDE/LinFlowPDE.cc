@@ -2440,13 +2440,11 @@ namespace CoupledField {
       if( isComplex_ ) {
         impedanceFct.reset(
             new ResultFunctorIntegrate<Complex>(surfImpFct, feFct, impedance));
-        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(impedanceFct)
-            ->SetAveraged(true);
+        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(impedanceFct)->SetAveraged(true);
       } else {
         impedanceFct.reset(
             new ResultFunctorIntegrate<Double>(surfImpFct, feFct, impedance));
-        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)
-            ->SetAveraged(true);
+        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)->SetAveraged(true);
       }
       resultFunctors_[FLUIDMECH_IMPEDANCE] = impedanceFct;
       availResults_.insert(impedance);
@@ -2466,7 +2464,7 @@ namespace CoupledField {
         volFlowRateFunc.reset(new ResultFunctorIntegrate<Complex>(velFncNormal, velFeFct, volFlowRate));
       else
         volFlowRateFunc.reset(new ResultFunctorIntegrate<Double>(velFncNormal, velFeFct, volFlowRate));
-      resultFunctors_[MECH_DEF_SURF_VOLUME] = volFlowRateFunc;
+      resultFunctors_[FLUIDMECH_VOLUME_FLOW_RATE] = volFlowRateFunc;
       availResults_.insert(volFlowRate);
 
       
@@ -2482,14 +2480,12 @@ namespace CoupledField {
       shared_ptr<ResultFunctor> avgPresFunc;
       if(isComplex_) {
         avgPresFunc.reset(new ResultFunctorIntegrate<Complex>(presFnc, feFct, avgPres));
-        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)
-            ->SetAveraged(true);
+        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(impedanceFct)->SetAveraged(true);
       } else {
         avgPresFunc.reset(new ResultFunctorIntegrate<Double>(presFnc, feFct, avgPres));
-        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)
-            ->SetAveraged(true);
+        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)->SetAveraged(true);
       }
-      resultFunctors_[MECH_DEF_SURF_VOLUME] = avgPresFunc;
+      resultFunctors_[FLUIDMECH_AVERAGED_PRESSURE] = avgPresFunc;
       availResults_.insert(avgPres);
 
     }
