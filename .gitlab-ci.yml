@@ -251,6 +251,7 @@ Testsuite:
       variables:
         CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
         TESTSUITE_BRANCH: $CI_DEFAULT_BRANCH
+      needs: [testsuite-revision] # remove, just for testing of trigger:branch
     # only the testsuite has changed -> test against master in the testsuite
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
