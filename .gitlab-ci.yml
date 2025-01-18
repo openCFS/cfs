@@ -250,18 +250,23 @@ Testsuite:
       <<: *require-rebuild-changes
       variables:
         CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
+        TESTSUITE_BRANCH: $CI_DEFAULT_BRANCH
     # only the testsuite has changed -> test against master in the testsuite
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
       variables:
         CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
+        TESTSUITE_BRANCH: $CI_COMMIT_REF_NAME
       needs: [testsuite-revision]
     # for nightly and release we test - all refs point to master
     - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
       variables:
         CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
+        TESTSUITE_BRANCH: $CI_DEFAULT_BRANCH
     # if there are no changes, the job is created but becomes informational (manual & allowed to fail)
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      variables:
+        TESTSUITE_BRANCH: $CI_DEFAULT_BRANCH
       when: manual
       allow_failure: true
       needs: [testsuite-revision] # empty [] in rules:needs removes needs altogether - previous stage must complete
@@ -269,7 +274,7 @@ Testsuite:
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
-    branch: $CI_COMMIT_REF_NAME #same as the parent pipeline
+    branch: $TESTSUITE_BRANCH #same as the parent pipeline or master
     strategy: depend # only pass when Testsuite pipeline passes
     forward: # forward all variables
       yaml_variables: true
