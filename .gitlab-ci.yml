@@ -245,11 +245,6 @@ testsuite-revision:
 Testsuite:
   stage: test
   rules: # same can trigger automatically after testsuite-revision
-    # if we have cpp code changes
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      <<: *require-rebuild-changes
-      variables:
-        CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
     # only the testsuite has changed -> test against master in the testsuite
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
@@ -260,16 +255,11 @@ Testsuite:
     - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
       variables:
         CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
-    # if there are no changes, the job is created but becomes informational (manual & allowed to fail)
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-      allow_failure: true
-      needs: [testsuite-revision] # empty [] in rules:needs removes needs altogether - previous stage must complete
   variables:
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
-    branch: $CI_COMMIT_REF_NAME #same as the parent pipeline
+    branch: $CI_COMMIT_REF_NAME #same as the parent pipeline, must exist for the trigger to succeed
     strategy: depend # only pass when Testsuite pipeline passes
     forward: # forward all variables
       yaml_variables: true
