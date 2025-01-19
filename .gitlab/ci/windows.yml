@@ -166,6 +166,7 @@
     # Override already defined variable to get submodules
     # see https://docs.gitlab.com/ee/ci/yaml/yaml_optimization.html#merge-details for merge-details with 'extends'
     GIT_SUBMODULE_STRATEGY: recursive
+    RUNNER_AFTER_SCRIPT_TIMEOUT: 15m # increase the timeout
   rules:
     - !reference [.ctest_default, rules]
   before_script:
