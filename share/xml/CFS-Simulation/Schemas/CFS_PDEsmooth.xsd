@@ -108,6 +108,27 @@
                 <xsd:element name="neumannInhom"   type="DT_SmoothIN"      />
                 <xsd:element name="load"           type="DT_SmoothLoad"    />
                 <xsd:element name="pressure"       type="DT_BcInhomScalar"/>
+
+                <!-- Stiffness at surface -->
+                <xsd:element name="normalStiffness" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a stiffness in normal-direction of the boundary.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <!-- Damping at surface -->
+                <xsd:element name="normalDamping" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a normal traction on the surface proportional to k * normal velovity, i.e.
+                      the 'value' k defines a damping konstant per area in normal-direction of the boundary.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <!-- Damping at surface -->
+                <xsd:element name="normalMass" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a normal traction on the surface proportional to k * normal acceleration, 
+                      i.e. the scalar 'value' k specifies a mass per area acting in normal-direction.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -268,6 +289,7 @@
   <xsd:simpleType name="DT_SmoothElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothDeformEnergyDensity"/>
+      <xsd:enumeration value="smoothStrain"/>
     </xsd:restriction>
   </xsd:simpleType>
 
