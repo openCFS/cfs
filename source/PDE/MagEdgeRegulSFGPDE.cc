@@ -62,9 +62,9 @@ DEFINE_LOG(MagEdgeRegulSFGPDE, "MagEdgeRegulSFGPDE")
     updatedGeo_        = true; //true;
 
     // check if we have a 2d setup
-    // bool is2d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "plane";
-    // if ( !is2d )
-    //   EXCEPTION("MagEdgeRegulSFGPDE is just implemented for 2D setups!");
+    bool is2d = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>() == "plane";
+    if ( !is2d )
+      EXCEPTION("MagEdgeRegulSFGPDE is just implemented for 2D setups!");
 
     mu0_ = 4.0 * M_PI * 1e-7;
     rho0_ = mu0_ * std::pow(10.0, (5.0/2.0));
@@ -124,11 +124,7 @@ DEFINE_LOG(MagEdgeRegulSFGPDE, "MagEdgeRegulSFGPDE")
       // ==============================
       PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       BaseBDBInt* stiffUpperLeft = NULL;
-      if(is3d_){
-        stiffUpperLeft = new BBInt<>(new  IdentityOperator<FeHCurl,3, 1, Double>(), constOne, mu0_, updatedGeo_) ;
-      }else{
-        stiffUpperLeft = new BBInt<>(new  IdentityOperator<FeHCurl,2, 1, Double>(), constOne, mu0_, updatedGeo_) ;
-      }  
+      stiffUpperLeft = new BBInt<>(new  IdentityOperator<FeHCurl,2, 1, Double>(), constOne, mu0_, updatedGeo_) ;
       stiffUpperLeft->SetName("NNIntegrator");
       BiLinFormContext * stiffUpperLeftContext = new BiLinFormContext(stiffUpperLeft, STIFFNESS );
       stiffUpperLeftContext->SetEntities( actSDList, actSDList );
@@ -138,13 +134,8 @@ DEFINE_LOG(MagEdgeRegulSFGPDE, "MagEdgeRegulSFGPDE")
       // right matrix part: rho curlN curlN
       // ==============================
       BiLinearForm* stiffUpperRight = NULL;
-      if(is3d_){
-        stiffUpperRight = new BBInt<>(new CurlOperator<FeHCurl,3,Double>(),
+      stiffUpperRight = new BBInt<>(new CurlOperator<FeHCurl,2,Double>(),
                                     constOne, rho0_, updatedGeo_);
-      }else{
-        stiffUpperRight = new BBInt<>(new CurlOperator<FeHCurl,2,Double>(),
-                                    constOne, rho0_, updatedGeo_);
-      } 
       
       stiffUpperRight->SetName("CurlNCurlNIntegrator");
       BiLinFormContext * stiffUpperRightContext = new BiLinFormContext(stiffUpperRight, STIFFNESS );
@@ -162,11 +153,7 @@ DEFINE_LOG(MagEdgeRegulSFGPDE, "MagEdgeRegulSFGPDE")
   LinearForm* MagEdgeRegulSFGPDE::GetCurrentDensityInt( Double factor, PtrCoefFct coef, std::string coilId)
   {
     LinearForm * ret = NULL;
-    if(is3d_){
-      ret = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), factor, coef, updatedGeo_);
-    }else{
-      ret = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 2, Double>(), factor, coef, updatedGeo_);
-    }
+    ret = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 2, Double>(), factor, coef, updatedGeo_);
     
     return ret;
   }
@@ -259,11 +246,7 @@ DEFINE_LOG(MagEdgeRegulSFGPDE, "MagEdgeRegulSFGPDE")
   void MagEdgeRegulSFGPDE::DefinePrimaryResults() {
 
       StdVector<std::string> vecComponents;
-      if(is3d_){
-        vecComponents = "x", "y", "z";
-      }else{
-        vecComponents = "x", "y";
-      }
+      vecComponents = "x", "y";
       
 
       // === MAGNETIC RESULT FIELD INTENSITY ===
