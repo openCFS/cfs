@@ -604,8 +604,14 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           // furthermore, we have to distinguish which region uses which criterion
           SinglePDE * ptPde = rPDE_.singlePDEs_[i]; 
           if( ptPde->GetName() == "mechanic" ) {
-            disp = dynamic_pointer_cast<FeFunction<Double> >
-            (ptPde->GetFeFunction(MECH_DISPLACEMENT));
+            // enable harmonic case
+            if ( ptPde->IsComplex() ) {
+              dispComplex = dynamic_pointer_cast<FeFunction<Complex> >
+                            (ptPde->GetFeFunction(MECH_DISPLACEMENT));
+            } else {
+              disp = dynamic_pointer_cast<FeFunction<Double> >
+                            (ptPde->GetFeFunction(MECH_DISPLACEMENT));
+            }
             LOG_DBG(itersolvestep) << "=> Found MECH_DISPLACEMENT as coupling quantity";
 //            vel = dynamic_pointer_cast<FeFunction<Double> >
 //                        (ptPde->GetFeFunction(MECH_VELOCITY));
@@ -621,11 +627,22 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               convDisp.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
             }
 
-            convDisp->SetDispFct( disp );
+            if ( ptPde->IsComplex() ) {
+              WARN("You specified a geometry update for a harmonic simulation. Only the real part of the deformation will be used!");
+              convDisp->SetDispFctComplex( dispComplex );
+              convDisp->SetIsComplex(true);
+            } else {
+              convDisp->SetDispFct( disp );
+            }
             // We set the vel and acc as well since they have their own FeFunction and need the geometry update too
-            //convDisp->SetVelFct( vel );
+            //convDispSmooth->SetVelFct( velSmooth );
             //convDisp->SetAccFct( acc );
-            Grid * ptGrid = disp->GetGrid();
+            Grid * ptGrid;
+            if ( ptPde->IsComplex() ) {
+              ptGrid = dispComplex->GetGrid();
+            } else {
+              ptGrid = disp->GetGrid();
+            }
 
             LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
             // Read in all regions, which have geometric update and check if they are present in the mechPDE
