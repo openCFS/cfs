@@ -35,14 +35,13 @@ variables:
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: 2025.01
+  BUILD_ENVIRONMENT_TAG: 2025.01.21
   BUILD_ENVIRONMENT_REGISTRY:
     value: "opencfs" # defaults to using docker-hub
     options:
       - "opencfs"
       - "registry.gitlab.com/opencfs/build-environment"
     description: "Container registry to pull from to obtain the build-environment (docker) container images for the Linux builds. Set BUILD_ENVIRONMENT_TAG to specify a image tag to use."
-     #, change to "registry.gitlab.com/opencfs/build-environment" to use the one on GitLab
   # configure ccache, see https://ccache.dev/manual/latest.html
   CCACHE_BASEDIR: $CI_PROJECT_DIR/build
   CCACHE_DIR: $CI_PROJECT_DIR/ccache
@@ -681,6 +680,12 @@ cfsdeps:intel:
     <<: *cfsdeps-variables
     IMAGE: rhel8-intel
 
+cfsdeps:clang:
+  extends: .cfsdeps
+  variables:
+    <<: *cfsdeps-variables
+    IMAGE: rhel8-llvm
+
 cfsdeps:gcc14-musl:
   extends: .cfsdeps
   variables:
@@ -982,9 +987,11 @@ linux:intel:
 linux:clang-debug:
   extends: .default_build_job
   variables:
-    IMAGE: fedora37-clang
+    IMAGE: rhel8-llvm
     BUILD_NAME: "Clang debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-clang/'
       when: manual
@@ -1006,7 +1013,9 @@ linux:clang-debug:
         - build/cfsdeps/cache/sources/
       fallback_keys:
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
-  needs: []
+  needs:
+    - job: cfsdeps:clang
+      optional: true
 
 # windows build
 windows:MSVC2022-Ifort2021:
