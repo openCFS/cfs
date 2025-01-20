@@ -23,11 +23,12 @@
 namespace CoupledField{
 
 template<typename T>
-CoefFunctionMapping<T>::CoefFunctionMapping(PtrParamNode mapDef, PtrCoefFct matCoef,
+CoefFunctionMapping<T>::CoefFunctionMapping(PtrParamNode mapDef, PtrCoefFct speedOfSound,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains,
-                                    CoefFunction::CoefDimType type):
-  CoefFunctionPML<T>(mapDef, matCoef,EntList,pdeDomains,type){
+                                    bool isVector):
+  CoefFunctionPML<T>(mapDef, speedOfSound,EntList,
+                  pdeDomains,isVector){
 
 }
 
@@ -46,7 +47,7 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Complex>& tensor,
 	  Double locThick=0.0;
 	  Double position=0.0;
 	  Double sos;
-	  this->matCoef_->GetScalar(sos,lpm);
+	  this->speedOfSound_->GetScalar(sos,lpm);
 	  for(UInt i=0;i<this->dim_;++i){
 	    this->GetThicknessAtPoint(locThick,position,lpm,i);
         Double z = position/locThick;
@@ -69,7 +70,7 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Double>& tensor,
   Double locThick=0.0;
   Double position=0.0;
   Double sos;
-  this->matCoef_->GetScalar(sos,lpm);
+  this->speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     Double z = position/locThick;
@@ -90,7 +91,7 @@ void CoefFunctionMapping<T>::GetVector(Vector<Complex>& vec,
 	  Double locThick=0.0;
 	  Double position=0.0;
 	  Double sos;
-	  this->matCoef_->GetScalar(sos,lpm);
+	  this->speedOfSound_->GetScalar(sos,lpm);
 	  for(UInt i=0;i<this->dim_;++i){
 	    this->GetThicknessAtPoint(locThick,position,lpm,i);
         Double z = position/locThick;
@@ -113,7 +114,7 @@ void CoefFunctionMapping<T>::GetVector(Vector<Double>& vec,
   Double locThick=0.0;
   Double position=0.0;
   Double sos;
-  this->matCoef_->GetScalar(sos,lpm);
+  this->speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     Double z = position/locThick;
@@ -133,7 +134,7 @@ void CoefFunctionMapping<T>::GetScalar(Complex& val,
   Complex one(1.0,0.0);
   val = one;
   Double sos;
-  this->matCoef_->GetScalar(sos,lpm);
+  this->speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     Double z = position/locThick;
@@ -154,7 +155,7 @@ void CoefFunctionMapping<T>::GetScalar(Double& val,
   Double position=0.0;
   val = 1.0;
   Double sos;
-  this->matCoef_->GetScalar(sos,lpm);
+  this->speedOfSound_->GetScalar(sos,lpm);
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     Double z = position/locThick;

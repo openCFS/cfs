@@ -155,16 +155,11 @@ namespace CoupledField{
           sFactors[i] = one;
         }
       } 
-      if ( isActive_ ) {
-        tensor[0][0] = sFactors[0] / (sFactors[1]*sFactors[2]);
-        tensor[1][1] = sFactors[1] / (sFactors[0]*sFactors[2]);
-        tensor[2][2] = sFactors[2] / (sFactors[0]*sFactors[1]);
-      }
-      else {
-        tensor[0][0] = sFactors[1]*sFactors[2] / sFactors[0];
-        tensor[1][1] = sFactors[0]*sFactors[2] / sFactors[1];
-        tensor[2][2] = sFactors[0]*sFactors[1] / sFactors[2];
-      } 
+      
+      tensor[0][0] = sFactors[1]*sFactors[2] / sFactors[0];
+      tensor[1][1] = sFactors[0]*sFactors[2] / sFactors[1];
+      tensor[2][2] = sFactors[0]*sFactors[1] / sFactors[2];
+       
     }
     else {
       for(UInt i=0;i<this->dim_;++i){

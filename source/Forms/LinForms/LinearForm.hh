@@ -91,14 +91,6 @@ namespace CoupledField{
          return linType_;
       }
 
-      void SetType(FEMatrixType type ){
-         linType_ = type;
-      }
-
-      FEMatrixType GetType( ){
-         return linType_;
-      }
-
       UInt GetHarm() const {
          return harm_;
       }
