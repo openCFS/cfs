@@ -142,7 +142,12 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15)
       set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-builtins") # at least AppleClang
       set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-enum-constexpr-conversion")
-    endif()  
+    endif()
+
+    # clang >= 18 is missing some standard c++ functions without that flag
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 18)
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -static-libstdc++")
+    endif()
   endif() # end Clang   
 endif() # CXX GNU+Clang  
 
