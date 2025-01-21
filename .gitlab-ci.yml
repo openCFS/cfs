@@ -634,11 +634,11 @@ rhel:9:
     # manual
     - if: $BUILD_CFSDEPS == "manual" || ( $BUILD_CFSDEPS && $CFS_PIPELINE_TYPE == "manual" )
       when: manual
-    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ && $CFS_PIPELINE_TYPE == "manual"
+    - if: ( $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ || $CI_MERGE_REQUEST_LABELS =~ /clear-cache/ ) && $CFS_PIPELINE_TYPE == "manual"
       when: manual
     # automatic
-    - if: $BUILD_CFSDEPS 
-    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/
+    - if: $BUILD_CFSDEPS || ( $CLEAR_CACHE != $null )
+    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ || $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
     # only add cfsdeps jobs if there are changes
     # ... in a "test" pipeline
     - if: $CFS_PIPELINE_TYPE == "test"
