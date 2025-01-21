@@ -15,7 +15,7 @@ set(PACKAGE_NAME "ipopt")
 set(PACKAGE_VER "3.14.12")  # it makes sense to have this in sync with External_IPOPT_Win.cmake
 set(PACKAGE_FILE "${PACKAGE_VER}.tar.gz")
 set(PACKAGE_MD5 "b2bcb362be4c10eccde02829d3025faa")
-set(DEPS_VER "-b") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-c") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://github.com/coin-or/Ipopt/archive/refs/tags/releases/${PACKAGE_FILE}")
@@ -49,12 +49,17 @@ elseif(USE_BLAS_LAPACK STREQUAL "MKL")
     message(STATUS "on Alpine Linux we need static linking of MKL - take link line from CFS")
     # use the MKL-link-line as used in CFS - for static linking this will issue a warning about static linking of a shared library
     string(CONCAT LAPACK_STR "${MKL_LINK_LINE} ${MKL_THREAD_LIB} ${MKL_SUPP_LINK}")
-    message(STATUS "${LAPACK_STR}")
+    #message(STATUS "${LAPACK_STR}")
+    #message("${MMKL_LINK_LINE}")
+    #message("${IMPORTED_TARGETS}")
+    set(MKL_LIBRARIES "${MKL_LINK_LINE}")
+    list(FILTER MKL_LIBRARIES INCLUDE REGEX "MKL::") # only keep parts called MKL::
+    #message("MKL_LIBRARIES=${MKL_LIBRARIES}")
     # now replace all targets with the paths
     foreach(lib ${MKL_LIBRARIES})
-      get_target_property(loc MKL::${lib} IMPORTED_LOCATION)
-      message(STATUS "  MKL::${lib} -> ${loc}")
-      string(REPLACE "MKL::${lib}" "${loc}" LAPACK_STR "${LAPACK_STR}")
+      get_target_property(loc ${lib} IMPORTED_LOCATION)
+      message(STATUS "  ${lib} -> ${loc}")
+      string(REPLACE "${lib}" "${loc}" LAPACK_STR "${LAPACK_STR}")
     endforeach()
     # replace ; by space
     string(REPLACE ";" " " LAPACK_STR "${LAPACK_STR}")
