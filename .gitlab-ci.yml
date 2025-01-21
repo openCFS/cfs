@@ -1531,7 +1531,7 @@ broken_ser:MSVC2022-Ifort2021:windows:
 # build doxygen docu
 doxygen:
   stage: docs
-  image: $BUILD_ENVIRONMENT_REGISTRY/fedora32:$BUILD_ENVIRONMENT_TAG
+  image: $BUILD_ENVIRONMENT_REGISTRY/fedora41:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
