@@ -221,7 +221,6 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES "Intel") # ifort and ifx
   endif() # WIN32
 endif() # Intel Fortran compilers ifort and ifx
 
-message(STATUS "CFS_FORTRAN_LIBS=${CFS_FORTRAN_LIBS}")
 #==============================================================================
 # Create a header file include/def_cfs_fortran_interface.hh with the correct
 # mangling for the Fortran routines called in openCFS.
