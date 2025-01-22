@@ -35,8 +35,13 @@ variables:
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: 2025.01
-  BUILD_ENVIRONMENT_REGISTRY: "opencfs" # defaults to using docker-hub, change to "registry.gitlab.com/opencfs/build-environment" to use the one on GitLab
+  BUILD_ENVIRONMENT_TAG: 2025.01.21
+  BUILD_ENVIRONMENT_REGISTRY:
+    value: "opencfs" # defaults to using docker-hub
+    options:
+      - "opencfs"
+      - "registry.gitlab.com/opencfs/build-environment"
+    description: "Container registry to pull from to obtain the build-environment (docker) container images for the Linux builds. Set BUILD_ENVIRONMENT_TAG to specify a image tag to use."
   # configure ccache, see https://ccache.dev/manual/latest.html
   CCACHE_BASEDIR: $CI_PROJECT_DIR/build
   CCACHE_DIR: $CI_PROJECT_DIR/ccache
@@ -629,11 +634,11 @@ rhel:9:
     # manual
     - if: $BUILD_CFSDEPS == "manual" || ( $BUILD_CFSDEPS && $CFS_PIPELINE_TYPE == "manual" )
       when: manual
-    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ && $CFS_PIPELINE_TYPE == "manual"
+    - if: ( $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ || $CI_MERGE_REQUEST_LABELS =~ /clear-cache/ ) && $CFS_PIPELINE_TYPE == "manual"
       when: manual
     # automatic
-    - if: $BUILD_CFSDEPS 
-    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/
+    - if: $BUILD_CFSDEPS || ( $CLEAR_CACHE != $null )
+    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ || $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
     # only add cfsdeps jobs if there are changes
     # ... in a "test" pipeline
     - if: $CFS_PIPELINE_TYPE == "test"
@@ -662,11 +667,11 @@ rhel:9:
     expire_in: 12 hours
   needs: []
 
-cfsdeps:gcc7:
+cfsdeps:gcc9:
   extends: .cfsdeps
   variables:
     <<: *cfsdeps-variables
-    IMAGE: centos7-gcc7
+    IMAGE: centos7-gcc9
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
@@ -674,6 +679,12 @@ cfsdeps:intel:
   variables:
     <<: *cfsdeps-variables
     IMAGE: rhel8-intel
+
+cfsdeps:clang:
+  extends: .cfsdeps
+  variables:
+    <<: *cfsdeps-variables
+    IMAGE: rhel8-llvm
 
 cfsdeps:gcc14-musl:
   extends: .cfsdeps
@@ -860,43 +871,43 @@ cfsdeps:MSVC2022-Ifort2021:
 
 
 # maximal build using as many options as possible
-linux:gcc7max-debug:
+linux:gcc9max-debug:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc7
-    BUILD_NAME: "GCC7 maximal debug"
+    IMAGE: centos7-gcc9
+    BUILD_NAME: "GCC9 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *max_rules, *gcc_before ]
   needs: 
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true
 
 # maximal build using as many options as possible
-linux:gcc7max:
+linux:gcc9max:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc7
-    BUILD_NAME: "GCC7 maximal"
+    IMAGE: centos7-gcc9
+    BUILD_NAME: "GCC9 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *max_rules, *gcc_before ]
   needs: 
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true
 
-linux:gcc7:
+linux:gcc9:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc7
-    BUILD_NAME: "GCC7"
+    IMAGE: centos7-gcc9
+    BUILD_NAME: "GCC9"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache    
   <<: [ *build_rules, *gcc_before ]
   needs: 
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true
 
 # this is the official release build
@@ -915,25 +926,25 @@ linux:gcc14-musl:
     - job: cfsdeps:gcc14-musl
       optional: true
 
-linux:gcc7min:
+linux:gcc9min:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc7
-    BUILD_NAME: "GCC7 minimal"
+    IMAGE: centos7-gcc9
+    BUILD_NAME: "GCC9 minimal"
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *build_rules, *gcc_before ]
   needs:
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true
 
 # closed build using as many options as possible and containing closed source software AND tests
-linux:gcc7closed:
+linux:gcc9closed:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc7
-    BUILD_NAME: "GCC7 closed"
+    IMAGE: centos7-gcc9
+    BUILD_NAME: "GCC9 closed"
     # embedded_python is not closed but technically not that easy deployable
     CFS_CONFIG_OPTIONS: "-DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_SUITESPARSE=ON -DBUILD_CFSDAT=OFF" 
     # use ccache
@@ -948,7 +959,7 @@ linux:gcc7closed:
   artifacts:
     access: 'none'
   needs:
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true  
 
 # intel compiler builds
@@ -976,9 +987,11 @@ linux:intel:
 linux:clang-debug:
   extends: .default_build_job
   variables:
-    IMAGE: fedora37-clang
+    IMAGE: rhel8-llvm
     BUILD_NAME: "Clang debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-clang/'
       when: manual
@@ -1000,7 +1013,9 @@ linux:clang-debug:
         - build/cfsdeps/cache/sources/
       fallback_keys:
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
-  needs: []
+  needs:
+    - job: cfsdeps:clang
+      optional: true
 
 # windows build
 windows:MSVC2022-Ifort2021:
@@ -1129,7 +1144,7 @@ windows:MSVC2022-Ifort2021:
     - ctest -D ExperimentalTest ${CTEST_OPTIONS} --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 
-# we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc7max-debug
+# we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
 .test_no_slow: &test_no_slow
   <<: *ctest_default
   script:
@@ -1146,34 +1161,34 @@ windows:MSVC2022-Ifort2021:
 # the build is taken from the dependencies
 # Naming scheme for ci-jobs: <test-set_parallelism>:<build-name>:<system>
 # Naming scheme for BUILD_NAME: build config / test-set parallelism
-stable_ser:gcc7min:linux:
+stable_ser:gcc9min:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: "GCC7 minimal / stable serial"
+    BUILD_NAME: "GCC9 minimal / stable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
-    - linux:gcc7min
+    - linux:gcc9min
 
-unstable_ser:gcc7min:linux:
+unstable_ser:gcc9min:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
   variables:
     IMAGE: ubuntu22.04
     # is built without opnemp  
-    BUILD_NAME: "GCC7 minimal / unstable serial"
+    BUILD_NAME: "GCC9 minimal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
   needs:
-    - linux:gcc7min
+    - linux:gcc9min
 
-stable_par:gcc7max:linux:
+stable_par:gcc9max:linux:
   extends: .test_generic
   tags:
     - saas-linux-small-amd64
@@ -1181,14 +1196,14 @@ stable_par:gcc7max:linux:
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
-    IMAGE: centos7-gcc7
-    BUILD_NAME: "GCC7 maximal / stable parallel"
+    IMAGE: centos7-gcc9
+    BUILD_NAME: "GCC9 maximal / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   needs:
-    - linux:gcc7max
+    - linux:gcc9max
 
-unstable_ser:gcc7max:linux:
+unstable_ser:gcc9max:linux:
   extends: .test_generic
   tags:
     - saas-linux-small-amd64
@@ -1196,27 +1211,27 @@ unstable_ser:gcc7max:linux:
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
-    IMAGE: centos7-gcc7
-    BUILD_NAME: "GCC7 maximal / unstable serial"
+    IMAGE: centos7-gcc9
+    BUILD_NAME: "GCC9 maximal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   needs:
-    - linux:gcc7max
+    - linux:gcc9max
 
-stable_par:gcc7closed:linux:
+stable_par:gcc9closed:linux:
   extends: .test_generic
   tags:
     - saas-linux-small-amd64
   stage: test
   rules: # overwrite rules given via extends: .test_generic
-    - !reference [linux:gcc7closed, rules]
+    - !reference [linux:gcc9closed, rules]
   variables:
-    IMAGE: centos7-gcc7
-    BUILD_NAME: "GCC7 closed / stable opt parallel"
+    IMAGE: centos7-gcc9
+    BUILD_NAME: "GCC9 closed / stable opt parallel"
     TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF "
     CTEST_OPTIONS: "-LE unstable|broken -R Opt"
   needs:
-    - linux:gcc7closed
+    - linux:gcc9closed
 
 stable_ser:gcc14-musl:linux:
   tags:
@@ -1375,18 +1390,18 @@ python:linux:
       when: manual
       allow_failure: true
 
-broken_ser:gcc7min:linux:
+broken_ser:gcc9min:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   variables:
     IMAGE: ubuntu22.04
     # is built without opnemp  
-    BUILD_NAME: "GCC7 minimal / broken serial"
+    BUILD_NAME: "GCC9 minimal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
-    - linux:gcc7min
+    - linux:gcc9min
 
 # this test has the speciality that it shall run at an unspecified image 
 all_par:gcc14-musl:any-linux:
@@ -1399,7 +1414,7 @@ all_par:gcc14-musl:any-linux:
   needs:
     - linux:gcc14-musl
 
-unstable_par:gcc7max:linux:
+unstable_par:gcc9max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
@@ -1408,13 +1423,13 @@ unstable_par:gcc7max:linux:
     - !reference [.test_extra, rules]
   variables:
     IMAGE: centos7
-    BUILD_NAME: "GCC7 maximal / unstable parallel"
+    BUILD_NAME: "GCC9 maximal / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
-    - linux:gcc7max
+    - linux:gcc9max
 
-broken_ser:gcc7max:linux:
+broken_ser:gcc9max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
@@ -1423,14 +1438,14 @@ broken_ser:gcc7max:linux:
     - !reference [.test_extra, rules]
   variables:
     IMAGE: centos7
-    BUILD_NAME: "GCC7 maximal / broken serial"
+    BUILD_NAME: "GCC9 maximal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
-    - linux:gcc7max
+    - linux:gcc9max
 
 # debug is compiled without openmp
-no-slow_ser:gcc7max-debug:linux:
+no-slow_ser:gcc9max-debug:linux:
   extends: .test_extra
   <<: *test_no_slow
   tags:
@@ -1441,12 +1456,12 @@ no-slow_ser:gcc7max-debug:linux:
     - !reference [.test_extra, rules]
   variables:
     IMAGE: centos7
-    BUILD_NAME: "GCC7 maximal debug / no-slow serial"
+    BUILD_NAME: "GCC9 maximal debug / no-slow serial"
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     # this special test_no_slow does -LE "unstable|slow"
   needs:
-    - linux:gcc7max-debug
+    - linux:gcc9max-debug
 
 unstable_par:intel:linux:
   extends: .test_extra
@@ -1516,7 +1531,7 @@ broken_ser:MSVC2022-Ifort2021:windows:
 # build doxygen docu
 doxygen:
   stage: docs
-  image: $BUILD_ENVIRONMENT_REGISTRY/fedora32:$BUILD_ENVIRONMENT_TAG
+  image: $BUILD_ENVIRONMENT_REGISTRY/fedora41:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
