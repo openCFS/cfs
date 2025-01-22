@@ -32,6 +32,18 @@ if(MKL_FOUND)
   set(MKL_BLAS_LIB "$<LINK_ONLY:MKL::MKL>") # used in TARGET_LL of all openCFS targets
   set(BLAS_LIBRARY "${MKL_BLAS_LIB}")
   cmake_print_variables(MKL_LINK_LINE)
+  # generate a resolved MKL-link-line for cfsdeps
+  set(MKL_LIBRARIES "${MKL_LINK_LINE}")
+  list(FILTER MKL_LIBRARIES INCLUDE REGEX "MKL::") # only keep parts called MKL::
+  # now replace all targets with the full paths
+  set(MKL_LINK_LINE_CFSDEPS "${MKL_LINK_LINE} ${MKL_THREAD_LIB} ${MKL_SUPP_LINK}")
+  foreach(lib ${MKL_LIBRARIES})
+    get_target_property(loc ${lib} IMPORTED_LOCATION)
+    message(STATUS "  ${lib} -> ${loc}")
+    string(REPLACE "${lib}" "${loc}" MKL_LINK_LINE_CFSDEPS "${MKL_LINK_LINE_CFSDEPS}")
+  endforeach()
+  string(REPLACE ";" " " MKL_LINK_LINE_CFSDEPS "${MKL_LINK_LINE_CFSDEPS}")
+  cmake_print_variables(MKL_LINK_LINE_CFSDEPS)
 else()
   # this is the legacy case - probably only for centos6-gcc runner - remove if possible!
   include("${CFS_SOURCE_DIR}/cmake_modules/legacy_mkl.cmake")

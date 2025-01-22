@@ -45,29 +45,8 @@ if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
   string(CONCAT LAPACK_STR "-L${CMAKE_BINARY_DIR}/lib -lopenblas")
 elseif(USE_BLAS_LAPACK STREQUAL "MKL")
   # see https://coin-or.github.io/Ipopt/INSTALL.html howecver --with-lapack seems also to work instead of --with-lapack-lflags
-  if(${DIST} STREQUAL "ALPINE")
-    message(STATUS "on Alpine Linux we need static linking of MKL - take link line from CFS")
-    # use the MKL-link-line as used in CFS - for static linking this will issue a warning about static linking of a shared library
-    string(CONCAT LAPACK_STR "${MKL_LINK_LINE} ${MKL_THREAD_LIB} ${MKL_SUPP_LINK}")
-    #message(STATUS "${LAPACK_STR}")
-    #message("${MMKL_LINK_LINE}")
-    #message("${IMPORTED_TARGETS}")
-    set(MKL_LIBRARIES "${MKL_LINK_LINE}")
-    list(FILTER MKL_LIBRARIES INCLUDE REGEX "MKL::") # only keep parts called MKL::
-    #message("MKL_LIBRARIES=${MKL_LIBRARIES}")
-    # now replace all targets with the paths
-    foreach(lib ${MKL_LIBRARIES})
-      get_target_property(loc ${lib} IMPORTED_LOCATION)
-      message(STATUS "  ${lib} -> ${loc}")
-      string(REPLACE "${lib}" "${loc}" LAPACK_STR "${LAPACK_STR}")
-    endforeach()
-    # replace ; by space
-    string(REPLACE ";" " " LAPACK_STR "${LAPACK_STR}")
-  else()
-    # it should not matter what IPOPT does as long as we pass configure
-    # this is known to work in most cases
-    string(CONCAT LAPACK_STR "-L${MKL_LIB_DIR} -Wl,--no-as-needed -lmkl_intel_lp64 -lmkl_sequential -lmkl_core -lm")
-  endif()
+  # we take the link line from MKLConfig.cmake with targets resolved
+  set(LAPACK_STR "${MKL_LINK_LINE_CFSDEPS}")
 endif()
 
 # for blas and Accelerate hope for the best, it is just to get over configure
