@@ -29,13 +29,12 @@ endif()
 
 # Clang can be UNIX (macOS as AppleClang or Linux) or Windows (MSVC bundled).
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CFS_CXX_FLAGS "-std=c++14 -ftemplate-depth-100 -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  set(CFS_CXX_FLAGS "-std=c++17 -ftemplate-depth-100 -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
 
   if(USE_CGAL)
     # CGAL seems to require -frounding-math 
-    # warning gcc 12+13 crash creating a hdf5 file using hdf5 1.8.20 
-    # probably -frounding-math needs to be in sync with all cfsdeps
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math") 
+    # in theory use of Boost.multiprecision instead of gmp/mpfr can be enforced via -DCMAKE_OVERRIDDEN_DEFAULT_ENT_BACKEND=BOOST_BACKEND
+    #set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
   endif() 
 
   # this is set via ccmake (advanded) and produces very slow code which can check during runtime for memory issues   
@@ -94,10 +93,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
   endif()
   set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} ${CFS_OPT_FLAGS} -w -Wno-everything")
-  if(USE_CGAL) # see comment about -frounding-math for gcc 12+13 above
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
-  endif()
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
     set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-int") # needed for SuperLU (and maybe others)
@@ -130,12 +125,13 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-c11-extensions")
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-potentially-evaluated-expression")
-    # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117
-    #set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-constant-conversion")
     # include/muParserBytecode.h:51:7: error: anonymous types declared in an anonymous union are an extension
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-nested-anon-types")
-    # from boost 1.78 hash.hpp 'unary_function<const std::error_category *, unsigned long>' is deprecated
+    # from boost 1.78 warning: 'sprintf' is deprecated: 
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-declarations")
+    # from boost 1.78 with C++17 'warning: 'BOOST_NO_AUTO_PTR' macro redefined'
+    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-macro-redefined") 
+    
     # not all gcc options are compatible with clang (mac)
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-warning-option")
     
@@ -155,11 +151,11 @@ endif() # CXX GNU+Clang
 if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). Interface seems compatible
   # BOOST_ALL_NO_LIB is mandatoy for Windows, correct but not necessary on UNIX
   if(WIN32)
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Qstd=c++14 -D_WIN32_WINNT=0x0A00  -DBOOST_ALL_NO_LIB /fp:precise")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Qstd=c++17 -D_WIN32_WINNT=0x0A00  -DBOOST_ALL_NO_LIB /fp:precise")
     set(CFSDEPS_C_FLAGS " -D_WIN32_WINNT=0x0A00 /fp:precise")
     set(CFSDEPS_CXX_FLAGS " -D_WIN32_WINNT=0x0A00 /fp:precise")
   else()
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS}  -std=c++14 -fp-model=precise")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS}  -std=c++17 -fp-model=precise")
     set(CFSDEPS_C_FLAGS " -fp-model=precise")
     set(CFSDEPS_CXX_FLAGS " -fp-model=precise")
   endif()
@@ -172,10 +168,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
     # error: cannot use 'throw' with exceptions disabled
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /EHsc")
   endif() 
-  if(USE_CGAL) # remove when we use header only CGAL
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
-  endif()
 
   # also icx on Windows with MSVC command line interface seems to understand gcc style
   set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment ")
@@ -189,7 +181,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
 endif() # IntelLLVM
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  # this is for WINDOWS 10. It is essential to have the same version for the boost libs see External_Boost.cmake
+  set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /std:c++17") 
+  # this is for Windows 10 and 11. It is essential to have the same version for the boost libs see External_Boost.cmake
   set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
   
   # support for alternative tokens requires the following
@@ -240,18 +233,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   #-----------------------------------------------------------------------------
   IF(UNIX)
     IF(DEBUG)
-      SET(CFS_CXX_FLAGS "-std=c++14 -g -w0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++14 -g ${CFSDEPS_CXX_FLAGS}") 
+      SET(CFS_CXX_FLAGS "-std=c++17 -g -w0 ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++17 -g ${CFSDEPS_CXX_FLAGS}") 
     ELSE()
       # release case
-      SET(CFS_CXX_FLAGS "-std=c++14 -w0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++14 -w0 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_CXX_FLAGS "-std=c++17 -w0 ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++17 -w0 ${CFSDEPS_CXX_FLAGS}")
       SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
     ENDIF()
   ELSE()
     # this is for WINDOWS 10
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /DBOOST_ALL_NO_LIB /Qstd=c++14")
-    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++14")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /DBOOST_ALL_NO_LIB /Qstd=c++17")
+    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++17")
     IF(DEBUG)
       SET(CFS_CXX_FLAGS "/Z7 /W0 ${CFS_CXX_FLAGS}")
       SET(CFSDEPS_CXX_FLAGS "/Z7 ${CFSDEPS_CXX_FLAGS}")

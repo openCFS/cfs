@@ -68,6 +68,10 @@
 
 #ifdef USE_CGAL
 #include <CGAL/version.h>
+  #ifndef WIN32
+  #include <gmp.h>
+  #include <mpfr.h>
+  #endif
 #endif
 
 #ifdef USE_EIGEN
@@ -76,6 +80,7 @@
 
 #ifdef USE_FLANN
 #include <flann/flann.hpp>
+#include <lz4.h>
 #endif
 
 #ifdef USE_XERCES
@@ -105,7 +110,7 @@
 #include <fstream>
 #include <muParserBase.h>
 
-#if _WIN32
+#if defined(WIN32)
   #undef max
 #endif
 
@@ -336,6 +341,14 @@ void Dependencies::ReadSetting()
   Dependency cgal("CGAL", "USE_CGAL", GPL);
 #ifdef USE_CGAL
   cgal.SetVersion(QUOTEME(CGAL_VERSION));
+
+  #ifndef WIN32
+    // we still need GMP and MPFR for CGAL
+    data.Push_back(Dependency("gmp", "", "", LGPL, "used by CGAL"));
+    data.Last().SetVersion(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
+
+    data.Push_back(Dependency("MPFR", "", MPFR_VERSION_STRING, LGPL, "used by CGAL"));
+  #endif
 #endif
   data.Push_back(cgal);
 
@@ -348,6 +361,10 @@ void Dependencies::ReadSetting()
   Dependency flann("flann", "USE_FLANN", NOT_KNOWN);
 #ifdef USE_FLANN
   flann.SetVersion(FLANN_VERSION_);
+
+  // for flann >= 1.9.2 we need to provide lz4
+  data.Push_back(Dependency("lz4", "", "", BSD, "used by flann"));
+  data.Last().SetVersion(LZ4_VERSION_MAJOR, LZ4_VERSION_MINOR, LZ4_VERSION_RELEASE);
 #endif
   data.Push_back(flann);
 

@@ -17,6 +17,7 @@ macro(dump_depencency_variables)
   cmake_print_variables(DEPS_ID)      # optional package id like "openmp" or "no_openmp"
   cmake_print_variables(DEPS_PREFIX)  # usuallay "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}"
   cmake_print_variables(DEPS_SOURCE)  # usuallay "${DEPS_PREFIX}/src/${PACKAGE_NAME}"
+  cmake_print_variables(DEPS_SUBDIR)  # set when CMakeLists.txt is not directly in DEPS_SOURCE
   cmake_print_variables(DEPS_INSTALL) # with install_manifest.txt directly ${CMAKE_BINARY_DIR} otherwise ${DEPS_PREFIX}/install
   cmake_print_variables(DEPS_LIB_TYPE)# default "static", otherwise "dynamic" or "static-dynamic"
   # kind of internal "class attributes" of DependencyTools. Check with DepsPackaging*.cmake.in
@@ -48,6 +49,7 @@ macro(clear_depencency_variables)
   unset(DEPS_ID)
   unset(DEPS_PREFIX)
   unset(DEPS_SOURCE)
+  unset(DEPS_SUBDIR)
   unset(DEPS_INSTALL)
   set(DEPS_LIB_TYPE "static") # default
   unset(USE_C_CXX)
@@ -110,7 +112,7 @@ macro(set_package_library_list_lib_prefix IN_LIST)
 endmacro()
 
 
-# set standard variables. Kind of late constructor.
+# set standard variables. Kind of late constructor. Not for header-only deps
 #
 # also set some standard (hidden) CACHE variables with uppercase package name.
 # in rare cases <package>_INCLUDE_DIR is not CMAKE_BINARY_DIR/include. Overwrite the setting
@@ -149,6 +151,16 @@ macro(set_standard_variables)
   # you might usually also want to call the clean-<package> target   
   add_custom_target(overwrite-${PACKAGE_NAME} cmake . -U ${_UPPER_PACKAGE_NAME}_LIBRARY -U ${_UPPER_PACKAGE_NAME}_INCLUDE_DIR
      COMMENT "delete cached ${PACKAGE_NAME}_LIBRARY and _INCLUDE_DIR")
+endmacro()
+
+# adds clean-<package> and target for head-only deps. See set_standard_variables() 
+macro(add_clean_target)
+  assert_set(PACKAGE_NAME)
+
+  # see set_standard_variables()
+  add_custom_target(clean-${PACKAGE_NAME} cmake -E remove_directory ${DEPS_PREFIX}
+     COMMAND cmake -E remove ${PRECOMPILED_PCKG_FILE}
+     COMMENT "delete cfsdeps/${PACKAGE_NAME} and precompiled")
 endmacro()
 
 
@@ -405,12 +417,21 @@ macro(create_external_cmake_patched)
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
 endmacro()
 
+
+
+# set DEPS_SUBDIR to set SOURCE_SUBDIR argument of ExternalProject_Add()
 macro(create_external_cmake)
 
   assert_set(PACKAGE_NAME)
   assert_set(DEPS_ARGS)
   assert_set(DEPS_PREFIX)
   assert_unset(PATCHES_SCRIPT)
+  
+  if(DEPS_SUBDIR)
+    set(_SOURCE_SUBDIR "${DEPS_SUBDIR}")
+  else()
+    set(_SOURCE_SUBDIR ".")
+  endif()    
 
   # URL can take a list of mirrors but when there is a file, it needs to be the only one.
   # file means, that we have the source already in the cfsdeps cache. If not, we store there
@@ -419,6 +440,7 @@ macro(create_external_cmake)
   # we need to build the package - here in cmake style
   ExternalProject_Add("${PACKAGE_NAME}"
     PREFIX "${DEPS_PREFIX}"
+    SOURCE_SUBDIR "${_SOURCE_SUBDIR}"
     URL "${PACKAGE_MIRRORS}"
     URL_MD5 "${PACKAGE_MD5}"
     # DOWNLOAD_DIR is ignored, if URL contains not the file mirror

@@ -425,7 +425,7 @@ BOOST_AUTO_TEST_CASE(signed_omp_loop)
   Vector<double> v(100, 2.0);
 
   #pragma omp parallel for
-  for(int i = 0; i < v.GetSize(); i++)
+  for(int i = 0; i < (int) v.GetSize(); i++)
     v[i] = std::exp(v[i]);
 
   #pragma omp parallel for

@@ -99,6 +99,7 @@ struct Construct_coord_iterator {
 #ifdef USE_CGAL
 struct Distance {
   typedef CGAL::Point Query_item;
+  typedef CGAL::Point Point_d;
   typedef double FT;
 
   double transformed_distance(const CGAL::Point& p1, const CGAL::Point& p2) const {

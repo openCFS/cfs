@@ -410,7 +410,7 @@ include_directories(
   ${CFS_SOURCE_DIR}/source)
 
 if(USE_CGAL)
-  include_directories(${CGAL_INCLUDE_DIR} ${MPFR_INCLUDE_DIR})
+  include_directories(${CGAL_INCLUDE_DIR})
 endif(USE_CGAL)
 
 if(USE_VTK)

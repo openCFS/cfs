@@ -26,11 +26,9 @@ set(DEPS_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}")
 set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 
 # the clean-<package> target deletes everything to allow a clean make <package>
-add_custom_target(clean-${PACKAGE_NAME} cmake -E remove_directory ${DEPS_PREFIX}
-COMMAND cmake -E remove ${PRECOMPILED_PCKG_FILE}
-COMMENT "delete cfsdeps/${PACKAGE_NAME} and precompiled")
+add_clean_target()
 
-# this is the standard target for cmake projects. The files to package come from the install_manifest.txt
+# Don't use use install_manifest.txt
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
 # set DEPS_ARG with defaults for a cmake project

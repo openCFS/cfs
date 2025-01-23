@@ -1,189 +1,84 @@
-#-------------------------------------------------------------------------------
-# Computational Geometry Algorithms Library
-#
-# Project Homepage
-# http://www.cgal.org/
-#-------------------------------------------------------------------------------
+# CGAL: The Computational Geometry Algorithms Library
+# https://www.cgal.org
+# CGAL consists of different (open source) licenes, most are GPL, therefore we have no CGAL in the default build
+# CGAL is header only and requires officially for CGAL >= 6 C++17 and gcc >= 11.4 (but it works with gcc 9)  
+# we currently provide gmp and mpfr to prevent cfs link errors, but we don't provide them when configuring CGAL
+clear_depencency_variables()
 
-#-------------------------------------------------------------------------------
-# Set paths to cgal sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(cgal_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cgal")
-set(cgal_source  "${cgal_prefix}/src/cgal")
-set(cgal_install  "${CMAKE_CURRENT_BINARY_DIR}")
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "cgal")
+set(PACKAGE_VER "6.0.1")
+set(PACKAGE_FILE "CGAL-${PACKAGE_VER}-library.tar.xz")
+set(PACKAGE_MD5 "ea827f6778063e00554ae41f4c845492")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-string(TOLOWER "${CMAKE_BUILD_TYPE}" CMAKE_BUILD_TYPE)
-IF(CMAKE_BUILD_TYPE STREQUAL "debug")
-  SET(CMAKE_BUILD_TYPE "Debug")
-ELSE(CMAKE_BUILD_TYPE STREQUAL "debug")
-  SET(CMAKE_BUILD_TYPE "Release")
-ENDIF(CMAKE_BUILD_TYPE STREQUAL "debug")
+# the mirrors can point to arbitrary file names. 
+set(PACKAGE_MIRRORS "https://github.com/CGAL/cgal/releases/download/v${PACKAGE_VER}/${PACKAGE_FILE}") 
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
 
-# Make sure that static Boost libs are used under Windows.
-SET(CGAL_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -DBOOST_THREAD_USE_LIB")
+ # we do not compile as eigen is header only
+use_c_and_fortran(OFF OFF)
 
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
 
-SET(CMAKE_ARGS
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_INSTALL_PREFIX:PATH=${cgal_install}
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-  -DCMAKE_CXX_FLAGS:STRING=${CGAL_CXX_FLAGS}
-  -DCMAKE_BUILD_TYPE:STRING=Release
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-)
+# cmake package building directly to cfs build. precompiled package via manifest
+set(DEPS_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}")
+set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
+# the clean-<package> target deletes everything to allow a clean make <package>
+add_clean_target()
 
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgal/cgal-patch.cmake.in")
-SET(PFN "${cgal_prefix}/cgal-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+# Don't use use install_manifest.txt
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
-SET(BOOST_SETUP_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/cgal/CGAL_SetupBoost.cmake.in")
-SET(BOOST_SETUP "${cgal_prefix}/CGAL_SetupBoost.cmake")
-CONFIGURE_FILE("${BOOST_SETUP_TEMPL}" "${BOOST_SETUP}" @ONLY) 
+# set DEPS_ARG with defaults for a cmake project 
+set_deps_args_default(ON)
+# CGAL 6.0.1 should work without gmp/mpfr, but currently produces link errors without gmp
+# see https://github.com/CGAL/cgal/issues/8567 and https://github.com/CGAL/cgal/issues/8606
+# see also -DCMAKE_OVERRIDDEN_DEFAULT_ENT_BACKEND=BOOST_BACKEND in compiler.cmake
+# currently the following options don't do their job: CGAL_DISABLE_GMP=ON, CGAL_CMAKE_EXACT_NT_BACKEND=BOOST_BACKEND
+# therefore we build gmp and mpfr on macOS and Linux.  
 
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "https://github.com/CGAL/cgal/releases/download/releases%2FCGAL-${CGAL_VER}/CGAL-${CGAL_VER}.tar.xz"
-  "http://archive.ubuntu.com/ubuntu/pool/universe/c/cgal/cgal_${CGAL_VER}.orig.tar.xz"
-  "https://gforge.inria.fr/frs/download.php/32361/${CGAL_BZ2}"
-  "${CFS_DS_SOURCES_DIR}/cgal/${CGAL_BZ2}"
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgal/${CGAL_BZ2}")
-SET(MD5_SUM ${CGAL_MD5})
+# --- it follows generic final block for cmake packages with no patch and no postinstall ---
 
-SET(DLFN "${cgal_prefix}/cgal-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "cgal" "${CGAL_VER}")  
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${cgal_prefix}")
+assert_unset(PATCHES_SCRIPT)
 
-SET(ZIPFROMCACHE "${cgal_prefix}/cgal-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+# filter from DEPS_INSTALL, zip and copy to binary dir 
+generate_packing_script_install_dir()
 
-SET(ZIPTOCACHE "${cgal_prefix}/cgal-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
 
-#-------------------------------------------------------------------------------
-# Determine paths of CGAL libraries.
-#-------------------------------------------------------------------------------
-SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-SET(CGAL_LIBRARY
-  "${LD}/libCGAL.a"
-  CACHE FILEPATH "CGAL library.")
+# dump_depencency_variables()
 
-MARK_AS_ADVANCED(CGAL_INCLUDE_DIR)
-MARK_AS_ADVANCED(CGAL_LIBRARY)
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
 
-#-------------------------------------------------------------------------------
-# The CGAL external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(cgal
-    PREFIX "${cgal_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-  )
-ELSE()
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(cgal
-    DEPENDS boost zlib gmp mpfr
-    PREFIX "${cgal_prefix}"
-    URL ${LOCAL_FILE}
-    URL_MD5 ${CGAL_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-      -DCGAL_INSTALL_BIN_DIR:PATH=bin
-      -DCGAL_INSTALL_CMAKE_DIR:PATH=${LIB_SUFFIX}/CGAL
-      -DCGAL_INSTALL_LIB_DIR:PATH=${LIB_SUFFIX}
-      -DBUILD_SHARED_LIBS:BOOL=OFF
-#      -DBoost_INCLUDE_DIR:PATH=${cgal_install}/include
-#      -DBoost_LIBRARY_DIRS:PATH=${cgal_install}/${LIB_SUFFIX}/$ARCH_STR
-#      -DBoost_THREAD_LIBRARY:FILEPATH=${BOOST_THREAD_LIB}
-#      -DBoost_THREAD_LIBRARY_RELEASE:FILEPATH=${BOOST_THREAD_LIB_RELEASE}
-#      -DBoost_THREAD_LIBRARY_DEBUG:FILEPATH=${BOOST_THREAD_LIB_DEBUG}
-      -DWITH_CGAL_Qt3:BOOL=OFF
-      -DWITH_CGAL_Qt3/CMakeLists.txt:BOOL=OFF
-      -DWITH_CGAL_Qt4:BOOL=OFF
-      -DWITH_CGAL_Qt4/CMakeLists.txt:BOOL=OFF
-      -DWITH_CGAL_Core/CMakeLists.txt:BOOL=OFF
-      -DWITH_CGAL_ImageIO/CMakeLists.txt:BOOL=OFF
-      -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
-      -DZLIB_LIBRARY:PATH=${ZLIB_LIBRARY}
-      -DGMP_INCLUDE_DIR:PATH=${GMP_INCLUDE_DIR}
-      -DGMP_LIBRARIES:FILEPATH=${GMP_LIBRARY}
-      -DGMP_LIBRARIES_DIR:PATH=${cgal_install}/${LIB_SUFFIX}
-      -DWITH_GMP:BOOL=ON
-      -DMPFR_INCLUDE_DIR:PATH=${MPFR_INCLUDE_DIR}
-      -DMPFR_LIBRARIES:FILEPATH=${MPFR_LIBRARY}
-      -DWITH_MPFR:BOOL=ON
-    BUILD_BYPRODUCTS ${CGAL_LIBRARY}
-  )
-  
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(cgal cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${cgal_prefix}
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(cgal cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF()
+# if not, build newly and possibly pack the stuff
+else()
+  create_external_cmake()  
 
-# copy the appropriate special license in the license folder
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/LICENSE.binary.GPL" DESTINATION "${CFS_BINARY_DIR}/license/")
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  else()
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()  
+  endif()  
+endif()
 
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  cgal
-)
+if(UNIX)
+  # we would like to use CGAL with boost only, but currently this doesn't work on Linux/macOS, but on Windows
+  add_dependencies(cgal mpfr)
+endif()
 
-SET(CGAL_INCLUDE_DIR "${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/src/cgal/include" "${CFS_BINARY_DIR}/src/cgal-build/include"  "${CFS_BINARY_DIR}/src/cgal/include/CGAL")
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

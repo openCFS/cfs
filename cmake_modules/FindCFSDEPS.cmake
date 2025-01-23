@@ -176,31 +176,14 @@ endif(USE_VTK)
 #-----------------------------------------------------------------------------
 # Find CGAL
 #-----------------------------------------------------------------------------
-IF(USE_CGAL)
-  SET(MSG "The build of gmp and mpfr is only supported for MSYS on Windows!")
-  SET(MSG "${MSG} It is configure-based and therefore requires a shell")
-  SET(MSG "${MSG} interpreter like bash from MSYS. If you need CGAL, you need")
-  SET(MSG "${MSG} to use an MSYS environment or cross compile from Linux.")     
-  IF(WIN32)
-    MESSAGE(FATAL_ERROR "${MSG}")
-   ENDIF()
-
-  SET(GMP_VER "6.1.2")
-  SET(GMP_BZ2 "gmp-${GMP_VER}.tar.bz2")
-  SET(GMP_MD5 "8ddbb26dc3bd4e2302984debba1406a5")
-  INCLUDE("${CFSDEPS_DIR}/gmp/External_gmp.cmake")
-  
-  SET(MPFR_VER "3.1.5")
-  SET(MPFR_BZ2 "mpfr-${MPFR_VER}.tar.bz2")
-  SET(MPFR_MD5 "b1d23a55588e3b2a13e3be66bc69fd8d")
-  INCLUDE("${CFSDEPS_DIR}/mpfr/External_mpfr.cmake")
-
-  SET(CGAL_URL "${CFS_DS_SOURCES_DIR}/cgal")
-  SET(CGAL_VER "4.9.1")
-  SET(CGAL_BZ2 "CGAL-${CGAL_VER}.tar.xz")
-  SET(CGAL_MD5 "820ef17ffa7ed87af6cc9918a961d966")
-  INCLUDE("${CFSDEPS_DIR}/cgal/External_CGAL.cmake")
-ENDIF(USE_CGAL)
+if(USE_CGAL)
+  # currently (CGAL 6.0.1) we still need gmp/mpfr on Unix, but it should work with boost alone
+  if(NOT WIN32)
+    include("${CFSDEPS_DIR}/gmp/External_GMP.cmake")
+    include("${CFSDEPS_DIR}/mpfr/External_MPFR.cmake")
+  endif()
+  include("${CFSDEPS_DIR}/cgal/External_CGAL.cmake")
+endif(USE_CGAL)
 
 #-----------------------------------------------------------------------------
 # Find fast box intersection library.
@@ -229,6 +212,8 @@ endif()
 
 # FLANN - Fast Library for Approximate Nearest Neighbors
 if(USE_FLANN)
+  # dependecy for flann
+  include("${CFSDEPS_DIR}/lz4/External_LZ4.cmake")
   include("${CFSDEPS_DIR}/flann/External_FLANN.cmake")
 endif()
 

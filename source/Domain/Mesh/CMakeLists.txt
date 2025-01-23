@@ -1,7 +1,8 @@
-INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
+if(USE_XERCES)
+  include_directories(${XERCES_INCLUDE_DIR})
+endif()
 
-
-SET(MESH_SRCS 
+set(MESH_SRCS 
   Grid.cc
   NcInterfaces/BaseNcInterface.cc
   NcInterfaces/MortarInterface.cc
@@ -10,13 +11,12 @@ SET(MESH_SRCS
   MeshUtils/Intersection/VolumeGridIntersection.cc
   MeshUtils/Intersection/IntersectAlgos/CoordTetra.cc
   MeshUtils/Intersection/IntersectAlgos/TriaIntersect.cc
-  MeshUtils/Intersection/IntersectAlgos/ElemIntersect2D.cc
-  )
+  MeshUtils/Intersection/IntersectAlgos/ElemIntersect2D.cc)
 
 
-ADD_LIBRARY(mesh STATIC ${MESH_SRCS})
+add_library(mesh STATIC ${MESH_SRCS})
 
-SET(TARGET_LL
+set(TARGET_LL
   utils
   elemmapping
   coordsystems
@@ -24,34 +24,23 @@ SET(TARGET_LL
   paramh
   matvec
   cfsgeneral
-  integration
-  )
+  integration)
 
-IF(USE_CGAL)
-  SET(TARGET_LL
-    ${TARGET_LL}
-    ${MPFR_LIBRARY}
-    ${GMP_LIBRARY}
-    ${GMPXX_LIBRARY}
-    ${CGAL_LIBRARY}
-    ${BOOST_THREAD_LIB}
-  )
-ENDIF(USE_CGAL)
+if(USE_CGAL)
+  if(UNIX)
+    list(APPEND TARGET_LL ${MPFR_LIBRARY} ${GMP_LIBRARY})
+  endif()
+  list(APPEND TARGET_LL ${BOOST_THREAD_LIB})				
+endif()
 
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel" AND USE_OPENMP)
-  SET(TARGET_LL
-    ${TARGET_LL}
-    ${BOOST_THREAD_LIB}
-  )
-ENDIF()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel" AND USE_OPENMP)
+  list(APPEND TARGET_LL ${BOOST_THREAD_LIB})
+endif()
 
-SET(TARGET_LL
-  ${TARGET_LL}
-  ${XERCES_LIBRARY}
-)
+if(USE_XERCES)
+  list(APPEND TARGET_LL ${XERCES_LIBRARY})
+endif()
 
-LIST(REMOVE_DUPLICATES TARGET_LL)
+list(REMOVE_DUPLICATES TARGET_LL)
 
-TARGET_LINK_LIBRARIES(mesh
-  ${TARGET_LL}
-  )
+target_link_libraries(mesh ${TARGET_LL})
