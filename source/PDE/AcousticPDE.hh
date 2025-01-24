@@ -67,6 +67,9 @@ namespace CoupledField{
 
     //!  Define available primary results
     void DefinePrimaryResults();
+
+    //! Check if there is only one material 
+    void CheckIfIsOnlyOneMaterial();
     
     //! Define available postprocessing results
     void DefinePostProcResults();
@@ -161,6 +164,9 @@ namespace CoupledField{
 
     //! need wave-PDE for changing density
     bool complexFluidFormulation_;
+
+    //! flag for checking if only one material is defined in the whole computational domain 
+    bool isOnlyOneMaterial_;
 
     //! Definition of convective integrators (Pierce Operator)
     //! \param actRegion  region id

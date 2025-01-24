@@ -68,6 +68,7 @@ namespace CoupledField{
     isTimeDomPML_      = false;
     isAPML_            = false;
     complexFluidFormulation_ = false;
+    isOnlyOneMaterial_ = true;
 
     //! set the PDE formulation
     std::string pdeFormulation = myParam_->Get("formulation")->As<std::string>();
@@ -2200,6 +2201,62 @@ namespace CoupledField{
     SinglePDE::FinalizePostProcResults();
   }
 
+  void AcousticPDE::CheckIfIsOnlyOneMaterial(){
+
+    // isOnlyOneMaterial_ initialized to true (assume the best case, if we find one counter example, set it to false)
+
+    // check if there is only one region defined (one region, one material)
+    if( regions_.size() <= 1 ) {
+      return;
+    }
+
+    // get list of parameter nodes for region definitions
+    UInt i,numRegions;
+    ParamNodeList regionNodes;
+    PtrParamNode regionListNode = domain_->GetParamRoot()->Get("domain")->Get("regionList",ParamNode::PASS );
+
+    if( regionListNode) {
+      regionNodes = regionListNode->GetList("region");
+      numRegions = regionNodes.GetSize();
+    }
+
+    // get the reference material for the first region
+    RegionIdType actRegion = regions_[0];
+    std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+
+    std::string regionNameDomain, refMaterial;
+    // iterate over all regions
+    for( i = 0; i < numRegions; ++i ) {
+      // get data from node
+      regionNodes[i]->GetValue("name", regionNameDomain);
+
+      if( regionNameDomain==regionName) {
+        regionNodes[i]->GetValue("material", refMaterial);
+      }
+    }
+
+    std::string actMaterial;
+    // start by 1 and not 0 because 0 is the reference region
+    for (UInt iRegion = 1; iRegion < regions_.GetSize(); iRegion++) {
+      actRegion = regions_[iRegion];
+      regionName = ptGrid_->GetRegion().ToString(actRegion);
+
+      
+      for( i = 0; i < numRegions; ++i ) {
+        // get data from node
+        regionNodes[i]->GetValue("name", regionNameDomain);
+
+        if( regionNameDomain == regionName) {
+          regionNodes[i]->GetValue("material", actMaterial);
+          
+          if ( refMaterial != actMaterial ){
+            isOnlyOneMaterial_ = false;
+          }
+        }
+      }
+    }
+  }
+
   void AcousticPDE::DefinePostProcResults(){
     
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
@@ -2294,8 +2351,15 @@ namespace CoupledField{
       pres->resultType = ACOU_PRESSURE;
       pres->dofNames = "";
       pres->unit = MapSolTypeToUnit(ACOU_PRESSURE);
+      CheckIfIsOnlyOneMaterial();
       pres->entryType = ResultInfo::SCALAR;
-      pres->definedOn = ResultInfo::ELEMENT;
+      if(isOnlyOneMaterial_){ // only one material is defined in the whole computational domain
+        pres->definedOn = ResultInfo::NODE; //can be defined as nodal quantity - no material jump
+      } else{ // if more than one material (i.e. material jump occuring)
+        pres->definedOn = ResultInfo::ELEMENT; // result downgraded from nodal to element
+        WARN("More than one material is defined in the whole computational domain:\n"
+        "-> nodeResult for acouPressure is downgraded to elemResult")
+      }
       // Define pressure as p = rho * dPsi/dt
       PtrCoefFct potD1Fct= this->GetCoefFct( ACOU_POTENTIAL_DERIV_1 );
       PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
