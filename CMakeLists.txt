@@ -542,3 +542,5 @@ set(CPACK_CMAKE_GENERATOR "Ninja") # this disables a rebuild i.e. "CPack: - Run 
 
 # make sure that on cpack -G ZIP or make install everything is copied. make install is uncommon
 include("cmake_modules/redistributables.cmake")
+
+# just a comment to trigger cxx changes in the pipeline
