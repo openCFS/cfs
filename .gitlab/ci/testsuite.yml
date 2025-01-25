@@ -1,7 +1,7 @@
 spec:
   inputs:
     build_job:
-      default: ''
+      default: 'linux:gcc14-musl'
       description: 'the CFS build job the pipeline should run for'
       type: string
 ---
