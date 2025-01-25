@@ -5,14 +5,6 @@
 # * check on https://cfs-dev.mdmt.tuwien.ac.at/ci/lint
 # * do not use a command `echo "warning: the : is not allowed in a string"`
 
-
-# the revision of the testsuite submodule has changed
-.Testsuite_changes: &Testsuite_changes
-      changes:
-        paths:
-          - Testsuite
-        compare_to: $COMPARE_CHANGES_TO
-
 # include common stuff to make this file shorter
 include:
   - local: .gitlab/ci/linux.yml
@@ -33,7 +25,10 @@ include:
   - local: .gitlab/ci/testsuite-branch.yml
     rules: # ensure there are testsuite changes + the included job ónly runs for cxx changes
       - if: $CFS_PIPELINE_TYPE != "testsuite"
-        <<: *Testsuite_changes
+        changes:
+          paths:
+            - Testsuite
+          compare_to: $CI_DEFAULT_BRANCH
 
 
 
@@ -173,6 +168,12 @@ workflow:
 
 ## different sets of changes with different conditions
 
+# the revision of the testsuite submodule has changed
+.Testsuite_changes: &Testsuite_changes
+      changes:
+        paths:
+          - Testsuite
+        compare_to: $COMPARE_CHANGES_TO
 
 # changes that require the c++ builds to run
 .require-rebuild-changes: &require-rebuild-changes
