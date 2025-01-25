@@ -5,6 +5,14 @@
 # * check on https://cfs-dev.mdmt.tuwien.ac.at/ci/lint
 # * do not use a command `echo "warning: the : is not allowed in a string"`
 
+
+# the revision of the testsuite submodule has changed
+.Testsuite_changes: &Testsuite_changes
+      changes:
+        paths:
+          - Testsuite
+        compare_to: $COMPARE_CHANGES_TO
+
 # include common stuff to make this file shorter
 include:
   - local: .gitlab/ci/linux.yml
@@ -165,12 +173,6 @@ workflow:
 
 ## different sets of changes with different conditions
 
-# the revision of the testsuite submodule has changed
-.Testsuite_changes: &Testsuite_changes
-      changes:
-        paths:
-          - Testsuite
-        compare_to: $COMPARE_CHANGES_TO
 
 # changes that require the c++ builds to run
 .require-rebuild-changes: &require-rebuild-changes
