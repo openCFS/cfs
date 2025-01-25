@@ -20,6 +20,8 @@ include:
       - if: $CI_COMMIT_MESSAGE =~ /clear-cache/
       - if: $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
       - if: $CACHE_POLICY == "push" # effectively just add the info job
+  # include the testsuite trigger job (if there are changes in the Testsuite)
+  - local: .gitlab/ci/testsuite.yml
 
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
@@ -244,37 +246,6 @@ testsuite-revision:
   artifacts:
     reports:
       dotenv: dot.env
-
-# trigger a Testsuite pipeline multi-project pipeline, see https://docs.gitlab.com/ee/ci/pipelines/downstream_pipelines.html#multi-project-pipelines
-# for this to work there needs to be a corresponding testsuite branch
-Testsuite:
-  stage: test
-  rules: # same can trigger automatically after testsuite-revision
-    # only the testsuite has changed -> test against master in the testsuite
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      <<: *Testsuite_changes
-      variables:
-        CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
-      needs: [testsuite-revision]
-    # for nightly and release we test - all refs point to master
-    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
-      variables:
-        CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
-  variables:
-    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
-  trigger:
-    project: $CI_PROJECT_NAMESPACE/Testsuite
-    branch: $CI_COMMIT_REF_NAME #same as the parent pipeline, must exist for the trigger to succeed
-    strategy: depend # only pass when Testsuite pipeline passes
-    forward: # forward all variables
-      yaml_variables: true
-      pipeline_variables: true
-  needs:
-    - job: testsuite-revision
-    - job: linux:gcc14-musl
-      optional: true
-    - job: windows:msvc2022
-      optional: true
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
