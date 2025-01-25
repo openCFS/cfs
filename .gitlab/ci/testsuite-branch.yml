@@ -1,0 +1,31 @@
+spec:
+  inputs:
+    build_job:
+      default: 'linux:gcc14-musl'
+      description: 'the CFS build job the pipeline should run for'
+      type: string
+---
+
+# trigger the testsuite on a branch
+Testsuite:$[[ inputs.build_job ]]:
+  stage: test
+  rules: # same can trigger automatically after testsuite-revision
+    # there are cpp changes
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      changes: !reference [.require-rebuild-changes,changes]
+    # for nightly and release we test - all refs point to master
+    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
+  variables:
+    CFS_SHA: $CI_COMMIT_SHA
+    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
+    CFS_BUILD: "$[[ inputs.build_job ]]"
+  trigger:
+    project: $CI_PROJECT_NAMESPACE/Testsuite
+    branch: $CI_COMMIT_REF_NAME #same as the parent pipeline, must exist for the trigger to succeed
+    strategy: depend # only pass when Testsuite pipeline passes
+    forward: # forward all variables
+      yaml_variables: true
+      pipeline_variables: true
+  needs:
+    - job: testsuite-revision
+    - job: $[[ inputs.build_job ]]

@@ -20,6 +20,13 @@ include:
       - if: $CI_COMMIT_MESSAGE =~ /clear-cache/
       - if: $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
       - if: $CACHE_POLICY == "push" # effectively just add the info job
+  # include the testsuite for the builds (by default for linux:gcc14-musl)
+  - local: .gitlab/ci/testsuite.yml
+  - local: .gitlab/ci/testsuite-branch.yml
+    rules: # ensure there are testsuite changes + the included job ónly runs for cxx changes
+      - if: $CFS_PIPELINE_TYPE != "testsuite"
+        <<: *Testsuite_changes
+
 
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
@@ -250,17 +257,19 @@ testsuite-revision:
 Testsuite:
   stage: test
   rules: # same can trigger automatically after testsuite-revision
+    # if there are changes that require a rebuild -> there will be a pipeline triggerd on the build
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      changes: !reference [.require-rebuild-changes,changes]
+      when: never
     # only the testsuite has changed -> test against master in the testsuite
     - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       <<: *Testsuite_changes
-      variables:
-        CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
-      needs: [testsuite-revision]
     # for nightly and release we test - all refs point to master
-    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
-      variables:
-        CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
+#    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
+#      variables:
+#        CFS_SHA: $CI_COMMIT_SHA # to check if the build artifacts are correct
   variables:
+    CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_DEFAULT_BRANCH
     CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
   trigger:
     project: $CI_PROJECT_NAMESPACE/Testsuite
@@ -271,10 +280,6 @@ Testsuite:
       pipeline_variables: true
   needs:
     - job: testsuite-revision
-    - job: linux:gcc14-musl
-      optional: true
-    - job: windows:MSVC2022-Ifort2021
-      optional: true
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:

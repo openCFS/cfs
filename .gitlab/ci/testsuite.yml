@@ -1,0 +1,33 @@
+spec:
+  inputs:
+    build_job:
+      default: ''
+      description: 'the CFS build job the pipeline should run for'
+      type: string
+---
+
+# trigger the testsuite on 'master' when there are cpp-changes
+Testsuite-master:$[[ inputs.build_job ]]:
+  stage: test
+  rules: # same can trigger automatically after testsuite-revision
+    # cancel if there are also testsuite changes (the pipeline will be triggered for the testsuite-branch)
+    - if: $CFS_PIPELINE_TYPE
+      changes: !reference [.Testsuite_changes,changes]
+      when: never
+    # only the testsuite has changed -> test against master in the testsuite
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      changes: !reference [.require-rebuild-changes,changes]
+  variables:
+    CFS_SHA: $CI_COMMIT_SHA
+    CFS_UPSTREAM_PROJECT: $CI_PROJECT_PATH
+    CFS_BUILD: "$[[ inputs.build_job ]]"
+  trigger:
+    project: $CI_PROJECT_NAMESPACE/Testsuite
+    branch: $CI_DEFAULT_BRANCH #same as the parent pipeline, must exist for the trigger to succeed
+    strategy: depend # only pass when Testsuite pipeline passes
+    forward: # forward all variables
+      yaml_variables: true
+      pipeline_variables: true
+  needs:
+    - job: testsuite-revision
+    - job: $[[ inputs.build_job ]]
