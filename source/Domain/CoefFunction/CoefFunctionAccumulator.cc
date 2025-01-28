@@ -38,7 +38,7 @@ void CoefFunctionAccumulator::GetVector(Vector<Complex>& coefVec,
         temp += coefVec[i] * coefVec[i];
       }
     }
-    squaredSum_ = std::abs(temp);
+    squaredSum_ += std::abs(temp);
   }
 }
 

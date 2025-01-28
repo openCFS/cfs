@@ -290,7 +290,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
             Vector<Complex> offsetComplex(dim);
             dispComplex_->GetEntitySolution(offsetComplex, nodeIt);
             for( UInt i=0; i<offsetComplex.GetSize(); i++ ) {
-              offset[i] = offsetComplex[i].real();
+              offset[i] = sqrt(offsetComplex[i].real()*offsetComplex[i].real()+offsetComplex[i].imag()*offsetComplex[i].imag());
             }
           } else {
             disp_->GetEntitySolution(offset, nodeIt);
@@ -370,7 +370,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           Vector<Complex> offsetComplex(dim);
           dispComplex_->GetEntitySolution(offsetComplex, nodeIt);
           for( UInt i=0; i<offsetComplex.GetSize(); i++ ) {
-            offset[i] = offsetComplex[i].real();
+            offset[i] = sqrt(offsetComplex[i].real()*offsetComplex[i].real()+offsetComplex[i].imag()*offsetComplex[i].imag());
           }
         } else {
           disp_->GetEntitySolution(offset, nodeIt);
@@ -486,6 +486,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       if ( !PDEorder_.empty() ) {
         customReorderPDE_ = true;
       }
+      endWithCoupledPDEs_ = param_->Get("endWithCoupledPDEs")->As<bool>();
     }
 
     // 1) Check for general convergence criterions
@@ -628,7 +629,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
             }
 
             if ( ptPde->IsComplex() ) {
-              WARN("You specified a geometry update for a harmonic simulation. Only the real part of the deformation will be used!");
+              WARN("You specified a geometry update for a harmonic simulation. Only the amplitude of the deformation will be used!");
               convDisp->SetDispFctComplex( dispComplex );
               convDisp->SetIsComplex(true);
             } else {
@@ -681,7 +682,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
             }
 
             if ( ptPde->IsComplex() ) {
-              WARN("You specified a geometry update for a harmonic simulation. Only the real part of the deformation will be used!");
+              WARN("You specified a geometry update for a harmonic simulation. Only the amplitude of the deformation will be used!");
               convDispSmooth->SetDispFctComplex( dispSmoothComplex );
               convDispSmooth->SetIsComplex(true);
             } else {
@@ -797,6 +798,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       iter = t.begin();
       end = t.end();
 
+      if( !endWithCoupledPDEs_ ) {
+        // append the coupled PDEs
+        for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+          rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+        }
+      }
+
       std::set<SinglePDE*>::iterator     it = uncoupledPdes.begin();
       for( ; iter != end; iter++) {
         // loop over all specified PDEs and append them
@@ -832,9 +840,11 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         }
       }
 
-      // append the coupled PDEs
-      for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
-        rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+      if( endWithCoupledPDEs_ ) {
+        // append the coupled PDEs
+        for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+          rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+        }
       }
     } else {
       // use the classical reordering scheme
