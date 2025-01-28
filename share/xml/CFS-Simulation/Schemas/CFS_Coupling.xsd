@@ -97,6 +97,14 @@
 			        </xsd:documentation>
 			      </xsd:annotation>
 			    </xsd:attribute>
+          <!-- Check if we use a different reordering strategy -->
+          <xsd:attribute name="endWithCoupledPDEs" type="DT_CFSBool" use="optional" default="yes">
+			      <xsd:annotation>
+			        <xsd:documentation xml:lang="en">
+			          Defines if directly coupled PDEs will be solved at the end or at the beginning.
+			        </xsd:documentation>
+			      </xsd:annotation>
+			    </xsd:attribute>
         </xsd:extension>
       </xsd:complexContent>
     </xsd:complexType>

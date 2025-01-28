@@ -361,6 +361,9 @@ namespace CoupledField
     // use user defined PDE order
     bool customReorderPDE_;
 
+    // either start or end with coupled PDEs
+     bool endWithCoupledPDEs_;
+
     // custom PDE order
     std::string PDEorder_;
 
