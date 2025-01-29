@@ -186,6 +186,18 @@ namespace CoupledField
 
     //! Set if PDE is complex valued
     void SetIsComplex( bool isComplex ) { isComplex_ = isComplex; };
+
+    //! Set function to set either activate or deactivate the usage of a reference node for the phase correction in harmonic predeformed simulations
+    void SetEnableRefNode( bool refNodeEnabled ) { refNodeEnabled_ = refNodeEnabled;};
+
+    //! Set function to set the reference node name
+    void SetRefNodeName( std::string refNodeName ) { refNodeName_ = refNodeName;};
+
+    //! Set function to set the reference node DOF
+    void SetRefNodeDOF( UInt refNodeDOF ) { refNodeDOF_ = refNodeDOF;};
+    
+    //! Set function to set the phase offset
+    void SetPhaseOffset( double phaseOffset ) { phaseOffset_ = phaseOffset;};
     
   protected:
     
@@ -221,6 +233,24 @@ namespace CoupledField
 
     //! bool to check if the feFunction is complex valued
     bool isComplex_ = false;
+
+    //! enables using a reference node to which the phase is corrected to
+    bool refNodeEnabled_ = false;
+
+    //! name of the reference node used to compute the phase correction
+    std::string refNodeName_;
+
+    //! DOF of the reference node to which we map the phase to
+    UInt refNodeDOF_;
+
+    //! phase offset that is used in addition to the node based phase correction
+    double phaseOffset_;
+
+    //! phase correction including phase of DOF of node and user specified correction
+    double phaseCorrection_;
+
+    //! phase correction multiplier
+    Complex phaseCorrMult_ = 1.0;
   };
   
   // ======================================================================
@@ -362,7 +392,7 @@ namespace CoupledField
     bool customReorderPDE_;
 
     // either start or end with coupled PDEs
-     bool endWithCoupledPDEs_;
+    bool endWithCoupledPDEs_;
 
     // custom PDE order
     std::string PDEorder_;
