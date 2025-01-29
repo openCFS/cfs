@@ -259,9 +259,43 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
       std::set<RegionIdType> dispRegions;
       if( isComplex_ ) {
         dispRegions = dispComplex_->GetRegions();
+
+        // get the potential reference node and calcualte the phase offset
+        if( refNodeEnabled_ ) {
+          shared_ptr<EntityList> refNodeList;
+          refNodeList = ptGrid->GetEntityList(EntityList::NODE_LIST, refNodeName_);
+          if( refNodeList->GetSize() != 1 ) {
+            EXCEPTION("The reference node name specified either does not exist or contains more than one node!");
+          }
+          EntityIterator refNodeIt = refNodeList->GetIterator();
+          Vector<Complex> refNodeOffset(dim);
+          dispComplex_->GetEntitySolution(refNodeOffset, refNodeIt);
+
+          // calculate the phase and phase correction
+          Vector<double> refNodePhase(dim);
+          for( UInt ii=0; ii<refNodePhase.GetSize(); ii++) {
+            refNodePhase[ii] = std::arg(refNodeOffset[ii]);
+          }
+          phaseCorrection_ = -refNodePhase[refNodeDOF_]+phaseOffset_/180.0*3.14159265358979323846;
+          // this complex value can be used to directly multiply it with the result, leading to a zero phase for the specified DOF
+          // the rest will be projected by using the real value
+          phaseCorrMult_ = std::polar(1.0,phaseCorrection_);
+
+          // calculate the actual offset of the reference node and give feedback to the user
+          Vector<Complex> refNodeOffsetCorr(dim);
+          refNodeOffsetCorr = refNodeOffset*phaseCorrMult_;
+          std::cout << "Found reference node " << refNodeName_ << "!" << std::endl;
+          std::cout << "Initial position: " << refNodeOffset.ToString() << std::endl;
+          std::cout << "Reference calculated based on DOF " << refNodeDOF_ << std::endl;
+          std::cout << "Corrected position: " << refNodeOffsetCorr.ToString() << std::endl;
+        }
       } else {
         dispRegions = disp_->GetRegions();
       }
+
+      // dummy to compute the offset of the current node and DOF based on the phase correction multiplier
+      Complex curOffset;
+      
       std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
 
       for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
@@ -290,7 +324,8 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
             Vector<Complex> offsetComplex(dim);
             dispComplex_->GetEntitySolution(offsetComplex, nodeIt);
             for( UInt i=0; i<offsetComplex.GetSize(); i++ ) {
-              offset[i] = sqrt(offsetComplex[i].real()*offsetComplex[i].real()+offsetComplex[i].imag()*offsetComplex[i].imag());
+              curOffset = offsetComplex[i]*phaseCorrMult_;
+              offset[i] = curOffset.real();
             }
           } else {
             disp_->GetEntitySolution(offset, nodeIt);
@@ -344,6 +379,10 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     } else {
       dispRegions = disp_->GetRegions();
     }
+    
+    // dummy to compute the offset of the current node and DOF based on the phase correction multiplier
+    Complex curOffset;
+    
     std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
 
     for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
@@ -370,7 +409,8 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
           Vector<Complex> offsetComplex(dim);
           dispComplex_->GetEntitySolution(offsetComplex, nodeIt);
           for( UInt i=0; i<offsetComplex.GetSize(); i++ ) {
-            offset[i] = sqrt(offsetComplex[i].real()*offsetComplex[i].real()+offsetComplex[i].imag()*offsetComplex[i].imag());
+            curOffset = offsetComplex[i]*phaseCorrMult_;
+            offset[i] = curOffset.real();
           }
         } else {
           disp_->GetEntitySolution(offset, nodeIt);
@@ -586,7 +626,22 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
     // 1) Check for updated geometry
     if( param_->Has("geometryUpdate") ) {
-      ParamNodeList regionNodes = param_->Get("geometryUpdate")->GetChildren();
+      ParamNodeList regionNodes = param_->Get("geometryUpdate")->GetList("region");
+
+      bool enableRefNode = false;
+      PtrParamNode geomUpdateParamNode = param_->Get("geometryUpdate", ParamNode::PASS );
+      geomUpdateParamNode->GetValue( "EnableRefNode", enableRefNode, ParamNode::PASS );
+
+      std::string refNodeName;
+      double phaseOffset = 0.0;
+      UInt refNodeDOF = 0;
+      if( enableRefNode ) {
+        // search for the named node, get its ID and use it as a reference
+        refNodeName = geomUpdateParamNode->Get("RefNodeName")->As<std::string>();
+        phaseOffset = geomUpdateParamNode->Get("RefNodePhaseOffset")->As<double>();
+        refNodeDOF = geomUpdateParamNode->Get("RefNodeDOFNumber")->As<UInt>();
+        // we get the actual node number later on when we have access to the grid pointer
+      }
 
       if( regionNodes.GetSize() > 0 ) {
 
@@ -632,6 +687,10 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               WARN("You specified a geometry update for a harmonic simulation. Only the amplitude of the deformation will be used!");
               convDisp->SetDispFctComplex( dispComplex );
               convDisp->SetIsComplex(true);
+              convDisp->SetEnableRefNode(enableRefNode);
+              convDisp->SetRefNodeName(refNodeName);
+              convDisp->SetRefNodeDOF(refNodeDOF);
+              convDisp->SetPhaseOffset(phaseOffset);
             } else {
               convDisp->SetDispFct( disp );
             }
@@ -685,6 +744,10 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               WARN("You specified a geometry update for a harmonic simulation. Only the amplitude of the deformation will be used!");
               convDispSmooth->SetDispFctComplex( dispSmoothComplex );
               convDispSmooth->SetIsComplex(true);
+              convDispSmooth->SetEnableRefNode(enableRefNode);
+              convDispSmooth->SetRefNodeName(refNodeName);
+              convDispSmooth->SetRefNodeDOF(refNodeDOF);
+              convDispSmooth->SetPhaseOffset(phaseOffset);
             } else {
               convDispSmooth->SetDispFct( dispSmooth );
             }

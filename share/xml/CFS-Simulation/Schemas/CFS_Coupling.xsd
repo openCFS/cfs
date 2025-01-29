@@ -77,12 +77,16 @@
             <xsd:element name="geometryUpdate" minOccurs="0">
               <xsd:complexType>
                 <xsd:sequence>
-                   <xsd:element name="region" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:element name="region" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
-                     <xsd:attribute name="name" type="xsd:token" use="required"/>                   
+                      <xsd:attribute name="name" type="xsd:token" use="required"/>                   
                     </xsd:complexType>                  
-                   </xsd:element>                         
+                  </xsd:element>                       
                 </xsd:sequence>
+                <xsd:attribute name="EnableRefNode" type="DT_CFSBool" use="optional" default="no"/>
+                <xsd:attribute name="RefNodeName" type="xsd:token" use="optional" default=""/>
+                <xsd:attribute name="RefNodeDOFNumber" type="xsd:int" use="optional" default="0"/>
+                <xsd:attribute name="RefNodePhaseOffset" type="xsd:double" use="optional" default="0.0"/>
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
