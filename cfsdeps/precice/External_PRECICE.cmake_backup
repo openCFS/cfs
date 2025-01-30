@@ -1,0 +1,19 @@
+# External_PRECICE.cmake - Minimal module to integrate preCICE without building
+
+clear_depencency_variables()
+
+set(PACKAGE_NAME "precice")
+set(PACKAGE_VER "v3.1.2")
+
+# Attempt to locate the preCICE package using its CMake config
+find_package(precice CONFIG REQUIRED)
+
+if(NOT TARGET precice::precice)
+  message(FATAL_ERROR "preCICE target not found. Check your preCICE installation.")
+endif()
+
+set(PRECICE_INCLUDE_DIR "${precice_INCLUDE_DIRS}")
+set(PRECICE_LIBRARY ${precice_LIBRARIES})
+
+
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

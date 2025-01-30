@@ -70,6 +70,26 @@ IF(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
   TARGET_LINK_DIRECTORIES(cfs PUBLIC ${INTEL_LIB_DIR})
 ENDIF()
 
+IF(USE_PRECICE)
+  find_package(precice CONFIG REQUIRED)
+
+  # Retrieve the interface include directories from the imported target
+  get_target_property(precice_includes precice::precice INTERFACE_INCLUDE_DIRECTORIES)
+  message(STATUS "Using preCICE include directories: ${precice_includes}")
+
+  # Append the 'precice' subdirectory to the existing include paths
+  # I really don't know why precice config misses the /precice path...
+  foreach(dir ${precice_includes})
+    list(APPEND corrected_includes "${dir}/precice")
+  endforeach()
+
+  message(STATUS "Corrected preCICE include directories: ${corrected_includes}")
+
+  # Add these include directories to the target
+  target_include_directories(cfs PRIVATE ${corrected_includes})
+  LIST(APPEND TARGET_LL precice::precice)
+ENDIF()
+
 # Target link libraries for openCFS executable target.
 #message(STATUS "cfs TARGET_LL=${TARGET_LL}")
 TARGET_LINK_LIBRARIES(cfs ${TARGET_LL})
