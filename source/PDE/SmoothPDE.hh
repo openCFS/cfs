@@ -61,6 +61,11 @@ protected:
     //! define the SoltionStep-Driver
     void DefineSolveStep();
 
+    //! In prescribed-displacement mode, skip the algebraic system entirely (no graph, no
+    //! matrix, no solver): the field is injected directly into the already-allocated solution
+    //! vector. Otherwise the standard StdPDE::DefineAlgSys() is used.
+    virtual void DefineAlgSys() override;
+
     //! Read special results definition
     void ReadSpecialResults();
 
@@ -123,6 +128,15 @@ protected:
     SubTensorType tensorType_;
 
     StdVector<std::string> dofNames_;
+
+    //! True when the displacement is prescribed externally (read from a whole-domain field,
+    //! e.g. computed by OpenFOAM) instead of being solved for. In this mode the PDE assembles
+    //! and solves nothing; PrescribedSolveStep writes the field directly into the solution.
+    bool prescribedDisplacement_ = false;
+
+    //! Register the externally prescribed whole-domain displacement as an external data source
+    //! on the SMOOTH_DISPLACEMENT fe-function (used in prescribed mode instead of solving).
+    void ReadPrescribedDisplacement();
 
   };
 

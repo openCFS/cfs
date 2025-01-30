@@ -360,6 +360,8 @@ namespace CoupledField {
   
   void SinglePDE::Init_Stage2() {
     
+    domain_->InitPreciceAdapter(this);
+
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
@@ -2912,15 +2914,18 @@ namespace CoupledField {
         regionList->SetRegion(list->GetRegion());
         regions = shared_ptr<RegionList>(regionList);
       }
+      // we need the name to determine if the result can be attributed to a known (internal result) to check where it is defined (node/element)
+      std::string resName = valueNode->GetName();
+
       if(!isComplex) {
         coef = CoefFunctionGrid::Generate(domain_, Global::REAL, infoNode_ , valueNode->Get("grid"),
-                                          regions,type);
+                                          regions,type,resName);
         //this is hardcoded so far. should be changed or generated depending on the type
         //of grid (nodal or higher order)
         //coef.reset(new CoefFunctionNodalGrid<Double>(valueNode->Get("grid")));
       } else {
         coef = CoefFunctionGrid::Generate(domain_, Global::COMPLEX, infoNode_ , valueNode->Get("grid"),
-                                          regions,type);
+                                          regions,type,resName);
         //coef.reset(new CoefFunctionNodalGrid<Complex>(valueNode->Get("grid")));
       }
       //read in the defined dofs

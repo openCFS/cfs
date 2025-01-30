@@ -1,0 +1,68 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: syntax cmake; space-indent on; indent-width 2; encoding utf-8;
+#-------------------------------------------------------------------------------
+# CoupledCfsTest.cmake - run a preCICE-coupled openCFS<->openCFS test.
+#
+# Like CoupledTest.cmake, but the coupling partner is a SECOND openCFS instance
+# (cfs+cfs) instead of the mock_fluid binary. Used for openCFS<->openCFS preCICE
+# tests under Testsuite/TESTSUIT/preCICE (e.g. the two-domain characteristic
+# acoustic coupling). The partner participant's problem name is PARTNER_BASENAME;
+# the main participant (diffed against the .h5ref) is the directory basename.
+#
+# A test registers itself via (see e.g. TESTSUIT/preCICE/CharacteristicBC1Dcoupled):
+#   ADD_TEST(<name> ${CMAKE_COMMAND}
+#     -DEPSILON:STRING=1e-5
+#     -DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+#     -DPARTNER_BASENAME:STRING=fluid
+#     [-DPRECICE_CONFIG:STRING=precice-config.xml]
+#     -P ${CFS_COUPLED_CFS_TEST})
+#-------------------------------------------------------------------------------
+SET(USE_OPENMP "@USE_OPENMP@")
+SET(USE_PETSC "@USE_PETSC@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CMAKE_EXECUTABLE_SUFFIX "@CMAKE_EXECUTABLE_SUFFIX@")
+set(TESTSUITE_CFSTOOL_MODE "@TESTSUITE_CFSTOOL_MODE@")
+set(TESTSUITE_THREADS "@TESTSUITE_THREADS@")
+
+# Paths to the binaries used by a coupled test.
+SET(CFS_BINARY     "${CFS_BINARY_DIR}/bin/cfs${CMAKE_EXECUTABLE_SUFFIX}")
+SET(CFSTOOL_BINARY "${CFS_BINARY_DIR}/bin/cfstool${CMAKE_EXECUTABLE_SUFFIX}")
+
+# Path to testsuite source / output directories.
+SET(TESTSUITE_SRC_DIR "@TESTSUITE_DIR@")
+SET(TESTSUITE_BIN_DIR "@TESTSUITE_BIN_DIR@")
+
+INCLUDE("${TESTSUITE_SRC_DIR}/TestMacros.cmake")
+
+# defaults for the per-test variables (can be overridden via -D in ADD_TEST)
+IF(NOT PRECICE_CONFIG)
+  SET(PRECICE_CONFIG "precice-config.xml")
+ENDIF()
+IF(NOT PARTNER_BASENAME)
+  MESSAGE(FATAL_ERROR "CoupledCfsTest: PARTNER_BASENAME must be set (the partner participant's problem name)")
+ENDIF()
+
+#-------------------------------------------------------------------------------
+# Macro: copy inputs, run partner cfs + main cfs concurrently, then compare
+# results_hdf5/<basename>.h5 against <basename>.h5ref via cfstool.
+#-------------------------------------------------------------------------------
+MACRO(CFS_COUPLED_CFS_TEST)
+  GENERATE_TEST_NAME_AND_FILE("${CURRENT_TEST_DIR}")
+  DETERMINE_TEST_FILE_LIST()
+  CLEANUP_TEST_DIR()
+  COPY_TEST_FILES("${TEST_FILE_LIST}" "${SKIP_H5REF}")
+
+  IF(TESTSUITE_THREADS LESS 2 AND USE_OPENMP)
+    MESSAGE("You are using USE_OPENMP but test only with 1 thread.")
+  ENDIF()
+  SET(CFS_ARGS ${CFS_ARGS} "-t${TESTSUITE_THREADS}")
+
+  IF("${CFSTOOL_MODE}" STREQUAL "")
+    SET(CFSTOOL_MODE ${TESTSUITE_CFSTOOL_MODE})
+  ENDIF()
+
+  RUN_COUPLED_CFS_SIMULATION()
+  DIFF_TEST_RESULTS_CFSTOOL("${EPSILON}" "${CFSTOOL_MODE}")
+ENDMACRO(CFS_COUPLED_CFS_TEST)
+
+CFS_COUPLED_CFS_TEST()

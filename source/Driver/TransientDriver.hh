@@ -33,6 +33,10 @@ namespace CoupledField {
     //! Default destructor
     virtual ~TransientDriver();
 
+    //! Pointer to the transient driver instance, needed for the signal handler
+    //! to communicate with (also used by TransientDriverPrecice)
+    static TransientDriver * instance;
+
     //! Initialization method
     void Init( bool restart);
 

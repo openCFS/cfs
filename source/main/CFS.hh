@@ -12,6 +12,7 @@ namespace CoupledField
   class MaterialHandler;
   class LogConfigurator;
   class SimState;
+  class IPreciceAdapter;
 
   /** This is the base class of CFS.
    * It basically gives more structure for the original main() call. */
@@ -75,6 +76,9 @@ namespace CoupledField
     shared_ptr<MaterialHandler> materialHandler;
     
     std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
+
+    /** Adapter to precice library, used for coupling different softwares with each other */
+    std::unique_ptr<IPreciceAdapter> preciceAdapter_;
   };
 }
 #endif /* CFS_HH_ */

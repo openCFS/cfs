@@ -1307,7 +1307,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> res1(new ResultInfo);
     res1->resultType = MAG_POTENTIAL;
     res1->dofNames = vecComponents;
-    res1->definedOn = ResultInfo::NODE;
+    res1->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_POTENTIAL);
     res1->entryType = ResultInfo::VECTOR;
     res1->unit = MapSolTypeToUnit(MAG_POTENTIAL);
     res1->SetFeFunction(vecFct);
@@ -1330,7 +1330,7 @@ namespace CoupledField {
       res2->resultType = ELEC_POTENTIAL;
       res2->dofNames = "";
       res2->unit = "V";
-      res2->definedOn = ResultInfo::NODE;
+      res2->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_POTENTIAL);
       res2->entryType = ResultInfo::SCALAR;
 //      results_.Push_back( res2 );
       availResults_.insert( res2 );
@@ -1350,7 +1350,7 @@ namespace CoupledField {
       currentInfo->resultType = COIL_CURRENT;
       currentInfo->dofNames = "";
       currentInfo->unit = "A";
-      currentInfo->definedOn = ResultInfo::COIL;
+      currentInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_CURRENT);
       currentInfo->entryType = ResultInfo::SCALAR;
 
       feFunctions_[COIL_CURRENT]->SetResultInfo(currentInfo);
@@ -1362,7 +1362,7 @@ namespace CoupledField {
     permeability->resultType = MAG_ELEM_PERMEABILITY;
     permeability->dofNames = "";
     permeability->unit = "Vs/Am";
-    permeability->definedOn = ResultInfo::ELEMENT;
+    permeability->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_PERMEABILITY);
     permeability->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
     matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
@@ -1387,7 +1387,7 @@ namespace CoupledField {
     velocity->dofNames = vecDofNames;
     velocity->unit = "m/s";
 
-    velocity->definedOn = ResultInfo::NODE;
+    velocity->definedOn = ResultInfo::MapSolTypeToDefinedOn(MEAN_FLUIDMECH_VELOCITY);
     velocity->entryType = ResultInfo::VECTOR;
 
     VelocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
@@ -1420,7 +1420,7 @@ namespace CoupledField {
       aDot->resultType = MAG_POTENTIAL_DERIV1;
       aDot->dofNames = aVecComponents;
       aDot->unit = "V/m";
-      aDot->definedOn = ResultInfo::NODE; //ELEMENT;
+      aDot->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_POTENTIAL_DERIV1);
       aDot->entryType = ResultInfo::VECTOR;
       availResults_.insert( aDot );
       DefineTimeDerivResult( MAG_POTENTIAL_DERIV1, 1, MAG_POTENTIAL );
@@ -1431,7 +1431,7 @@ namespace CoupledField {
         iDot->resultType = COIL_CURRENT_DERIV1;
         iDot->dofNames = "";
         iDot->unit = "A/s";
-        iDot->definedOn = ResultInfo::COIL;
+        iDot->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_CURRENT_DERIV1);
         iDot->entryType = ResultInfo::SCALAR;
         availResults_.insert( iDot );
         DefineTimeDerivResult( COIL_CURRENT_DERIV1, 1, COIL_CURRENT );
@@ -1445,7 +1445,7 @@ namespace CoupledField {
       phiDot->resultType = ELEC_POTENTIAL_DERIV_1;
       phiDot->dofNames = "";
       phiDot->unit = "V/s";
-      phiDot->definedOn = ResultInfo::NODE;
+      phiDot->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_POTENTIAL_DERIV_1);
       phiDot->entryType = ResultInfo::SCALAR;
       availResults_.insert( phiDot );
       DefineTimeDerivResult( ELEC_POTENTIAL_DERIV_1, 1, ELEC_POTENTIAL );
@@ -1457,7 +1457,7 @@ namespace CoupledField {
     rhs->dofNames = aVecComponents;
     rhs->unit = "";
     rhs->entryType = ResultInfo::VECTOR;
-    rhs->definedOn = ResultInfo::NODE;
+    rhs->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_RHS_LOAD);
     rhsFeFunctions_[MAG_POTENTIAL]->SetResultInfo(rhs);
     DefineFieldResult( rhsFeFunctions_[MAG_POTENTIAL], rhs );
 
@@ -1490,7 +1490,7 @@ namespace CoupledField {
     normFlux->dofNames = "";
     normFlux->unit = "Vs/m^2";
     normFlux->entryType = ResultInfo::SCALAR;
-    normFlux->definedOn = ResultInfo::ELEMENT;
+    normFlux->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_NORMAL_FLUX_DENSITY);
     shared_ptr<CoefFunctionSurf> sNormFDens;
     sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
     DefineFieldResult( sNormFDens, normFlux );
@@ -1502,7 +1502,7 @@ namespace CoupledField {
     flux->dofNames = "";
     flux->unit = "Vs";
     flux->entryType = ResultInfo::SCALAR;
-    flux->definedOn = ResultInfo::SURF_REGION;
+    flux->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FLUX);
     shared_ptr<ResultFunctor> fluxFct;
     if( isComplex_ ) {
       fluxFct.reset(new ResultFunctorIntegrate<Complex>(sNormFDens,
@@ -1520,7 +1520,7 @@ namespace CoupledField {
     magIntens->dofNames = vecComponents;
     //magIntens->SetVectorDOFs(dim_, isaxi_);
     magIntens->unit = "A/m";
-    magIntens->definedOn = ResultInfo::ELEMENT;
+    magIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FIELD_INTENSITY);
     magIntens->entryType = ResultInfo::VECTOR;
 
     /*
@@ -1566,7 +1566,7 @@ namespace CoupledField {
       magJ->resultType = MAG_POLARIZATION;
       magJ->SetVectorDOFs(dim_, isaxi_);
       magJ->unit = "Vs/m^2";
-      magJ->definedOn = ResultInfo::ELEMENT;
+      magJ->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_POLARIZATION);
       magJ->entryType = ResultInfo::VECTOR;
 
       DefineFieldResult( polarization_, magJ );
@@ -1576,7 +1576,7 @@ namespace CoupledField {
       magM->resultType = MAG_MAGNETIZATION;
       magM->SetVectorDOFs(dim_, isaxi_);
       magM->unit = "A/m";
-      magM->definedOn = ResultInfo::ELEMENT;
+      magM->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_MAGNETIZATION);
       magM->entryType = ResultInfo::VECTOR;
 
       DefineFieldResult( magnetization_, magM );
@@ -1602,7 +1602,7 @@ namespace CoupledField {
       eddy->resultType = MAG_EDDY_CURRENT_DENSITY;
       eddy->dofNames = aVecComponents;
       eddy->unit = "A/m^2";
-      eddy->definedOn = ResultInfo::ELEMENT;
+      eddy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT_DENSITY);
       eddy->entryType = ResultInfo::VECTOR;
       availResults_.insert( eddy );
 
@@ -1671,7 +1671,7 @@ namespace CoupledField {
       epd->resultType = MAG_EDDY_POWER_DENSITY;
       epd->dofNames = "";
       epd->unit = "W/m^3";
-      epd->definedOn = ResultInfo::ELEMENT;
+      epd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_POWER_DENSITY);
       epd->entryType = ResultInfo::SCALAR;
 
       // from NACS
@@ -1721,7 +1721,7 @@ namespace CoupledField {
       ep->resultType = MAG_EDDY_POWER;
       ep->dofNames = "";
       ep->unit = "W";
-      ep->definedOn = ResultInfo::REGION;
+      ep->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_POWER);
       ep->entryType = ResultInfo::SCALAR;
       availResults_.insert( ep );
       shared_ptr<ResultFunctor> epFunctor;
@@ -1752,7 +1752,7 @@ namespace CoupledField {
       psiDotRes->resultType = COIL_INDUCED_VOLTAGE;
       psiDotRes->dofNames = "";
       psiDotRes->unit = "V";
-      psiDotRes->definedOn = ResultInfo::COIL;
+      psiDotRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_INDUCED_VOLTAGE);
       psiDotRes->entryType = ResultInfo::SCALAR;
 
       availResults_.insert( psiDotRes );
@@ -1776,7 +1776,7 @@ namespace CoupledField {
       elecIntens->SetVectorDOFs(dim_, isaxi_);
       elecIntens->dofNames = vecComponents;
       elecIntens->unit = "V/m";
-      elecIntens->definedOn = ResultInfo::ELEMENT;
+      elecIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY);
       elecIntens->entryType = ResultInfo::VECTOR;
 
       // assemble coefficient function E = - dA/dt
@@ -1795,7 +1795,7 @@ namespace CoupledField {
     ccd->resultType = MAG_COIL_CURRENT_DENSITY;
     ccd->dofNames = aVecComponents;
     ccd->unit = "A/m^2";
-    ccd->definedOn = ResultInfo::ELEMENT;
+    ccd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_COIL_CURRENT_DENSITY);
     ccd->entryType = ResultInfo::VECTOR;
     availResults_.insert( ccd );
     shared_ptr<CoefFunctionMulti> ccdCoef(new CoefFunctionMulti(CoefFunction::VECTOR, jDim, 1,isComplex_));
@@ -1806,7 +1806,7 @@ namespace CoupledField {
     tcd->resultType = MAG_TOTAL_CURRENT_DENSITY;
     tcd->dofNames = aVecComponents;
     tcd->unit = "A/m^2";
-    tcd->definedOn = ResultInfo::ELEMENT;
+    tcd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_TOTAL_CURRENT_DENSITY);
     tcd->entryType = ResultInfo::VECTOR;
     availResults_.insert( tcd );
     shared_ptr<CoefFunctionMulti> tcdCoef(new CoefFunctionMulti(CoefFunction::VECTOR,jDim,1,
@@ -1820,7 +1820,7 @@ namespace CoupledField {
 	mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
 	mfd->dofNames = vecComponents;
 	mfd->unit = MapSolTypeToUnit(mfd->resultType);
-	mfd->definedOn = ResultInfo::SURF_ELEM;
+	mfd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_MAXWELL_DENSITY);
 	mfd->entryType = ResultInfo::VECTOR;
 	availResults_.insert( mfd );
 
@@ -1835,7 +1835,7 @@ namespace CoupledField {
   mfdN->resultType = MAG_NORMALFORCE_MAXWELL_DENSITY;
   mfdN->dofNames = vecComponents;
   mfdN->unit = MapSolTypeToUnit(mfdN->resultType);
-  mfdN->definedOn = ResultInfo::SURF_ELEM;
+  mfdN->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_NORMALFORCE_MAXWELL_DENSITY);
   mfdN->entryType = ResultInfo::VECTOR;
   availResults_.insert( mfdN );
   shared_ptr<CoefFunctionSurfMaxwell> maxNormalForceDens(new CoefFunctionSurfMaxwell(false,
@@ -1848,7 +1848,7 @@ namespace CoupledField {
   mfdT->resultType = MAG_TANGENTIALFORCE_MAXWELL_DENSITY;
   mfdT->dofNames = vecComponents;
   mfdT->unit = MapSolTypeToUnit(mfdT->resultType);
-  mfdT->definedOn = ResultInfo::SURF_ELEM;
+  mfdT->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_TANGENTIALFORCE_MAXWELL_DENSITY);
   mfdT->entryType = ResultInfo::VECTOR;
   availResults_.insert( mfdT );
   shared_ptr<CoefFunctionSurfMaxwell> maxTangentialForceDens(new CoefFunctionSurfMaxwell(false,
@@ -1863,7 +1863,7 @@ namespace CoupledField {
 	mf->resultType = MAG_FORCE_MAXWELL;
 	mf->dofNames = vecComponents;
 	mf->unit = "N";
-	mf->definedOn = ResultInfo::SURF_REGION;
+	mf->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_MAXWELL);
 	mf->entryType = ResultInfo::VECTOR;
 	availResults_.insert( mf );
 
@@ -1882,7 +1882,7 @@ namespace CoupledField {
 	vwp->resultType = MAG_FORCE_VWP;
 	vwp->dofNames = vecComponents;
 	vwp->unit = "N";
-	vwp->definedOn = ResultInfo::SURF_REGION;
+	vwp->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FORCE_VWP);
 	vwp->entryType = ResultInfo::VECTOR;
 	availResults_.insert( vwp );
 
@@ -1908,7 +1908,7 @@ namespace CoupledField {
     energy->resultType = MAG_ENERGY;
     energy->dofNames = "";
     energy->unit = "Ws";
-    energy->definedOn = ResultInfo::REGION;
+    energy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ENERGY);
     energy->entryType = ResultInfo::SCALAR;
     availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
@@ -1926,7 +1926,7 @@ namespace CoupledField {
     psiRes->resultType = COIL_LINKED_FLUX;
     psiRes->dofNames = "";
     psiRes->unit = "Vs/m^2";
-    psiRes->definedOn = ResultInfo::COIL;
+    psiRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_LINKED_FLUX);
     psiRes->entryType = ResultInfo::SCALAR;
     availResults_.insert( psiRes );
     shared_ptr<ResultFunctor> psiFunc;
@@ -1949,7 +1949,7 @@ namespace CoupledField {
     indRes->resultType = COIL_INDUCTANCE;
     indRes->dofNames = "";
     indRes->unit = "Vs/A";
-    indRes->definedOn = ResultInfo::COIL;
+    indRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_INDUCTANCE);
     indRes->entryType = ResultInfo::SCALAR;
     availResults_.insert( indRes );
     shared_ptr<ResultFunctor> indFunc;
@@ -1970,7 +1970,7 @@ namespace CoupledField {
     cldRes->resultType = MAG_CORE_LOSS_DENSITY;
     cldRes->dofNames = "";
     cldRes->unit = "W/kg";
-    cldRes->definedOn = ResultInfo::ELEMENT;
+    cldRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_CORE_LOSS_DENSITY);
     cldRes->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> coreLossDensCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, false));
     DefineFieldResult( coreLossDensCoef, cldRes );
@@ -1980,7 +1980,7 @@ namespace CoupledField {
     clRes->resultType = MAG_CORE_LOSS;
     clRes->dofNames = "";
     clRes->unit = "W";
-    clRes->definedOn = ResultInfo::REGION;
+    clRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_CORE_LOSS);
     clRes->entryType = ResultInfo::SCALAR;
     //DefineFieldResult( coreLossCoef, clRes );
     availResults_.insert( clRes );
@@ -2002,7 +2002,7 @@ namespace CoupledField {
     jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
     jld->dofNames = "";
     jld->unit = "W/m^3";
-    jld->definedOn = ResultInfo::ELEMENT;
+    jld->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_JOULE_LOSS_POWER_DENSITY);
     jld->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
     DefineFieldResult( jldCoef, jld );

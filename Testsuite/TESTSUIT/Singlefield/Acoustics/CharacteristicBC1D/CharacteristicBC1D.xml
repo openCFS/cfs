@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>1D plane-wave duct: characteristicCouplingBC absorbing test (w_in = 0)</title>
+    <authors>
+      <author>Dominik Mayrhofer</author>
+    </authors>
+    <date>2026-06-25</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+    </keywords>
+    <references>characteristic_coupling_derivation.md</references>
+    <isVerified>no</isVerified>
+    <description>
+      Standalone regression test for the acoustic characteristicCouplingBC (no preCICE,
+      no OpenFOAM). A 1-cycle 5 kHz Hann-windowed sine burst is launched at S_interface
+      (x = 0) and propagates +x along a short 0.17 m duct. At the far end S_out the
+      characteristicCouplingBC is applied with a constant incoming invariant w_in = 0,
+      where it must reduce to a pure first-order absorbing BC: the packet reaches S_out
+      around step 25 and is absorbed (no reflection) by ~step 35. The committed .h5ref
+      locks this behaviour. Geometry/time are downsized from the original 1.5 m / 480-step
+      validation case so the run is under 1 s and the reference under 1 MB (see make_mesh.py).
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <gmsh fileName="channel.msh"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="V" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="S_interface"/>
+      <surfRegion name="S_out"/>
+      <surfRegion name="S_side"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>40</numSteps>
+        <deltaT>2.0e-5</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="V"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <!-- Source: Hann-windowed 1-cycle 5 kHz burst (smooth onset/offset), duration 2e-4 s. -->
+          <normalVelocity name="S_interface"
+                          value="(t lt 2e-4) ? (0.5*(1-cos(2*pi*t/2e-4)))*sin(2*pi*5000*t) : 0"/>
+
+          <!-- Device under test: characteristic coupling BC with w_in = 0.
+               Must behave exactly like <absorbingBCs name="S_out" volumeRegion="V"/>. -->
+          <characteristicCouplingBC name="S_out" volumeRegion="V" value="0.0" sign="1.0"/>
+          <!-- S_side: no BC = sound-hard wall -> keeps the wave 1D (plane). -->
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="acouPressure"><allRegions/></nodeResult>
+          <elemResult type="acouVelocity"><allRegions/></elemResult>
+          <surfElemResult type="acouCharacteristic">
+            <surfRegionList><surfRegion name="S_out"/></surfRegionList>
+          </surfElemResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard><matrix storage="sparseNonSym"/></standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

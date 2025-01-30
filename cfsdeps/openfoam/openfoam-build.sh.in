@@ -1,0 +1,27 @@
+#!/bin/bash
+# Build OpenFOAM inside its sourced environment.
+# Generated from cfsdeps/openfoam/openfoam-build.sh.in - do not edit, can be re-run manually.
+cd "@DEPS_SOURCE@" || exit 1
+
+# mpicc & friends for WM_MPLIB=SYSTEMOPENMPI may not be in the default PATH
+if [ -n "@OPENFOAM_MPI_BINDIR@" ]; then
+  export PATH="@OPENFOAM_MPI_BINDIR@:$PATH"
+fi
+
+# This script runs under the cfs make (ExternalProject build step), which exports
+# MAKEFLAGS (cmake generates sub-makes with -s). wmake only applies its -j option
+# when MAKEFLAGS is EMPTY - inheriting it silently turns the whole OpenFOAM build
+# serial (hours instead of ~30-60 min). Detach from the outer make entirely.
+unset MAKEFLAGS MFLAGS MAKELEVEL
+
+# etc/bashrc can return non-zero for harmless reasons (e.g. missing optional dirs)
+set +e
+source ./etc/bashrc
+set -e
+
+./Allwmake -j @CFS_DEPS_BUILD_THREADS@ -s
+
+# sanity check: some Allwmake versions return 0 although components failed
+test -x "$FOAM_APPBIN/pimpleFoam"
+test -s "$FOAM_LIBBIN/libfiniteVolume.so"
+echo "OpenFOAM @OPENFOAM_VER@ build OK: $FOAM_APPBIN"

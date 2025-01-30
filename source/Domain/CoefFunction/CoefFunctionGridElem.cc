@@ -66,7 +66,7 @@ template<class DATA_TYPE>
     this->snapToCFSStep_ = configNode->Get("snapToCFSTimeStep")->As<bool>();
     this->verboseSum_ = configNode->Get("verboseSum")->As<bool>();
     this->verboseTimeFreqFactor_ = configNode->Get("verboseTimeFreqFactor")->As<bool>();
-    
+
     // get the solution quantity
     solName_ = configNode->Get("quantity")->As<std::string>();
     solType_ = SolutionTypeEnum.Parse(solName_);
@@ -230,7 +230,7 @@ template<class DATA_TYPE>
   template<class DATA_TYPE>
   void CoefFunctionGridElem<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMat,
                                                    const LocPointMapped& lpm ){
-    EXCEPTION("CoefFunctionGridElem: GetScalar is not implemented here"); 
+    EXCEPTION("CoefFunctionGridElem: GetScalar is not implemented here");
   }
 
   template<class DATA_TYPE>
@@ -673,20 +673,17 @@ template<class DATA_TYPE>
       Double preStepValue = stepIter->second;
       UInt postStepNumber = stepIter->first;
       Double postStepValue = stepIter->second;
-      bool notEnd = true;
       if (stepValue > postStepValue) {
-        while (stepIter != stepValueMap_.end() && stepIter->second < stepValue && notEnd){
+        while (stepIter != stepValueMap_.end() && stepIter->second < stepValue) {
           preStepNumber = postStepNumber;
           preStepValue = postStepValue;
           ++stepIter;
           if (stepIter != stepValueMap_.end()) {
             postStepNumber = stepIter->first;
             postStepValue = stepIter->second;
-          } else {
-            notEnd = false;
           }
         }
-        if (stepValue > postStepValue) {
+        if (stepIter == stepValueMap_.end() && stepValue > postStepValue) {
           preStepNumber = postStepNumber;
           preStepValue = postStepValue;
         }

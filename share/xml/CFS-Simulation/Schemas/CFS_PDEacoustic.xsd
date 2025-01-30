@@ -173,6 +173,7 @@
                 <xsd:element name="rhsMassTimeDeriv" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rhsMassConvective" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance" type="DT_AcouImpedance"/>
+                <xsd:element name="characteristicCouplingBC" type="DT_CharacteristicCouplingBC"/>
                 <xsd:element name="boundaryLayer" type="DT_AcouBoundaryLayer"/>
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
                 <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull">
@@ -501,6 +502,33 @@
     <xsd:attribute name="impedanceId" type="xsd:token" use="optional" default="id"/>
   </xsd:complexType>
 
+  <!-- Element type for the characteristic (impedance-matched) coupling BC, used to
+       couple an external compressible-flow solver (e.g. OpenFOAM) to the acoustic wave
+       equation via preCICE without spurious reflections.
+
+       It realises the Robin condition   dpsi/dn + (1/c0) psi_t = w_in/(rho0 c0)
+       as the sum of
+         - a boundary damping term (reusing the absorbing-BC term, coeffDamp = 1/c0), and
+         - an incident-wave normal-velocity load  v_fed = sign * w_in/(rho0 c0),
+       where w_in is the neighbour's outgoing acoustic invariant, fed via preCICE through
+       the inherited <grid>/<defaultGrid> mechanism (CoefFunctionGridNodalDefaultPrecice).
+
+       Currently implemented for the acouPotential formulation only (normalVelocity is its
+       native boundary datum). Inherits 'name' (coupling surface) and the optional
+       'volumeRegion' (adjacent volume, required here to read rho0/c0 from the material). -->
+  <xsd:complexType name="DT_CharacteristicCouplingBC">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcInhomScalar">
+        <xsd:attribute name="sign" type="xsd:token" use="optional" default="1.0">
+          <xsd:annotation>
+            <xsd:documentation>Global sign (+1.0 or -1.0) of the injected incident normal velocity
+              v_fed = sign * w_in/(rho0 c0). Calibrated once with the one-way-wave test.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   <!-- Element type for specifying an acoustic boundary layer -->
   <xsd:complexType name="DT_AcouBoundaryLayer">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
@@ -728,6 +756,11 @@
       <xsd:enumeration value="acouSurfImpedance">
         <xsd:annotation>
           <xsd:documentation>\mathrm{Z_a} = \mathrm{p_a} / (\mathrm{v_a} \cdot \mathrm{n}), evalutated on surface elements</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="acouCharacteristic">
+        <xsd:annotation>
+          <xsd:documentation>Outgoing acoustic characteristic invariant w_out = p' + rho0 c0 v_n, evaluated on surface elements (impedance-matched characteristic coupling).</xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
     </xsd:restriction>

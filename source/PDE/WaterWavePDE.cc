@@ -684,7 +684,7 @@ namespace CoupledField{
     res1->dofNames = "";
     res1->unit = "Pa";
 
-    res1->definedOn = ResultInfo::NODE;
+    res1->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_PRESSURE);
     res1->entryType = ResultInfo::SCALAR;
     feFunctions_[WATER_PRESSURE]->SetResultInfo(res1);
     results_.Push_back( res1 );
@@ -702,7 +702,7 @@ namespace CoupledField{
     rhs->resultType = WATER_RHS_LOAD;
     rhs->dofNames = "";
     rhs->unit = "?";
-    rhs->definedOn = ResultInfo::NODE;
+    rhs->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_RHS_LOAD);
     rhs->entryType = ResultInfo::SCALAR;
     this->rhsFeFunctions_[WATER_PRESSURE]->SetResultInfo(rhs);
     DefineFieldResult( this->rhsFeFunctions_[WATER_PRESSURE], rhs );
@@ -728,7 +728,7 @@ namespace CoupledField{
     pml->dofNames = vecDofNames;
     //pml->dofNames = "";
     pml->unit = "";
-    pml->definedOn = ResultInfo::ELEMENT;
+    pml->definedOn = ResultInfo::MapSolTypeToDefinedOn(PML_DAMP_FACTOR);
     pml->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionMulti> pmlFct(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, 
                                                                isComplex_));
@@ -743,7 +743,7 @@ namespace CoupledField{
         pmlScal->resultType = WATER_PMLAUXSCALAR;
         pmlScal->dofNames = "";
         pmlScal->unit = "-";
-        pmlScal->definedOn = ResultInfo::NODE;
+        pmlScal->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_PMLAUXSCALAR);
         pmlScal->entryType = ResultInfo::SCALAR;
         feFunctions_[WATER_PMLAUXSCALAR]->SetResultInfo(pmlScal);
         results_.Push_back( pmlScal );
@@ -755,7 +755,7 @@ namespace CoupledField{
       pmlVec->resultType = WATER_PMLAUXVEC;
       pmlVec->dofNames = vecDofNames;
       pmlVec->unit = "-";
-      pmlVec->definedOn = ResultInfo::NODE;
+      pmlVec->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_PMLAUXVEC);
       pmlVec->entryType = ResultInfo::VECTOR;
       feFunctions_[WATER_PMLAUXVEC]->SetResultInfo(pmlVec);
       results_.Push_back( pmlVec );
@@ -825,7 +825,7 @@ namespace CoupledField{
     density->resultType = ELEM_DENSITY;
     density->dofNames = "";
     density->unit = "kg/m^3";
-    density->definedOn = ResultInfo::ELEMENT;
+    density->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEM_DENSITY);
     density->entryType = ResultInfo::SCALAR;
     shared_ptr<CoefFunctionMulti> densFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false )); // we do not have complex density
     matCoefs_[ELEM_DENSITY] = densFct;
@@ -837,7 +837,7 @@ namespace CoupledField{
     pos->dofNames = vecDofNames;
     pos->unit = "m";
     pos->entryType = ResultInfo::VECTOR;
-    pos->definedOn = ResultInfo::ELEMENT;
+    pos->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_POSITION);
     // pressure gradient
     shared_ptr<CoefFunctionFormBased> presGradFct;
     shared_ptr<BaseFeFunction> presFct = feFunctions_[WATER_PRESSURE];
@@ -869,7 +869,7 @@ namespace CoupledField{
     presTens->dofNames = tensorComponentNames;
     presTens->unit = MapSolTypeToUnit(WATER_PRES_TENS);
     presTens->entryType = ResultInfo::TENSOR;
-    presTens->definedOn = ResultInfo::ELEMENT;
+    presTens->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_PRES_TENS);
     presTens->SetFeFunction(feFunctions_[WATER_PRESSURE]);
     availResults_.insert( presTens );
     StdVector<PtrCoefFct> presTensDiagValues;
@@ -894,7 +894,7 @@ namespace CoupledField{
     surfaceTractionInfo->dofNames = vecDofNames;
     surfaceTractionInfo->unit = "Pa";
     surfaceTractionInfo->entryType = ResultInfo::VECTOR;
-    surfaceTractionInfo->definedOn = ResultInfo::SURF_ELEM;
+    surfaceTractionInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_SURFACE_TRACTION);
     surfaceTractionFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTractionInfo));
     DefineFieldResult(surfaceTractionFct, surfaceTractionInfo);
     surfCoefFcts_[surfaceTractionFct] = feFunctions_[WATER_PRESSURE];
@@ -906,7 +906,7 @@ namespace CoupledField{
     reactionForceInfo->dofNames = vecDofNames;
     reactionForceInfo->unit = MapSolTypeToUnit(WATER_SURFACE_FORCE);
     reactionForceInfo->entryType = ResultInfo::VECTOR;
-    reactionForceInfo->definedOn = ResultInfo::SURF_REGION;
+    reactionForceInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_SURFACE_FORCE);
     // Integrate surface traction
     shared_ptr<ResultFunctor> reactionForceFct;
     if (isComplex_)
@@ -930,7 +930,7 @@ namespace CoupledField{
     torqueDensityTensorInfo->dofNames = tensorFullComponentNames;
     torqueDensityTensorInfo->unit = MapSolTypeToUnit(WATER_TDT);
     torqueDensityTensorInfo->entryType = ResultInfo::TENSOR;
-    torqueDensityTensorInfo->definedOn = ResultInfo::ELEMENT;
+    torqueDensityTensorInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_TDT);
     // actual computation (expression) is defined in finalize, 
     // Tensor valued results are (can be?) evaluated from vector-type coefFunctions
     shared_ptr<CoefFunctionMulti> torqueDensityTensorFct(new CoefFunctionMulti(CoefFunction::VECTOR, tensorFullComponentNames.GetSize(), 1, isComplex_));
@@ -945,7 +945,7 @@ namespace CoupledField{
     surfaceTorqueDensityInfo->dofNames = vecDofNames;
     surfaceTorqueDensityInfo->unit = MapSolTypeToUnit(WATER_SURFACE_TORQUE_DENSITY);
     surfaceTorqueDensityInfo->entryType = ResultInfo::VECTOR;
-    surfaceTorqueDensityInfo->definedOn = ResultInfo::SURF_ELEM;
+    surfaceTorqueDensityInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_SURFACE_TORQUE_DENSITY);
     surfaceTorqueDensityFct.reset(new CoefFunctionSurf(true, 1.0, surfaceTorqueDensityInfo));
     DefineFieldResult(surfaceTorqueDensityFct, surfaceTorqueDensityInfo);
     surfCoefFcts_[surfaceTorqueDensityFct] = torqueDensityTensorFct;
@@ -962,7 +962,7 @@ namespace CoupledField{
     reactionTorqueInfo->dofNames = torqueDofNames;
     reactionTorqueInfo->unit = MapSolTypeToUnit(WATER_SURFACE_TORQUE);
     reactionTorqueInfo->entryType = ResultInfo::VECTOR;
-    reactionTorqueInfo->definedOn = ResultInfo::SURF_REGION;
+    reactionTorqueInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(WATER_SURFACE_TORQUE);
     // Integrate surface torque
     shared_ptr<ResultFunctor> reactionTorqueFct;
     if (isComplex_)

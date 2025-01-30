@@ -571,6 +571,9 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechNormalStructIntensity"/>
       <xsd:enumeration value="mechNormalStress"/>
+      <!-- preCICE-read surface traction (dedicated coupling input, applied as a load via a
+           grid CoefFunction); distinct from the PDE-computed mechNormalStress above -->
+      <xsd:enumeration value="mechNormalStressPrecice"/>
     </xsd:restriction>
   </xsd:simpleType>
 

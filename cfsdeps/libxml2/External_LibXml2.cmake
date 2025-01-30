@@ -21,6 +21,14 @@ add_standard_mirrors_or_set_local()
  # we'll disable fortran for ipopt as it is not needed
 use_c_and_fortran(ON OFF)
 
+# preCICE embeds libxml2 into its shared libprecice.so, so it needs a -fPIC build.
+# The lib stays static (a plain C archive embeds cleanly, nothing extra to ship);
+# only the configure flags below switch. DEPS_ID gives the -fPIC variant its own
+# precompiled cache name so a cached non-PIC zip is not reused.
+if(CFS_BUILD_PRECICE AND UNIX)
+  set(DEPS_ID "pic")
+endif()
+
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
@@ -33,7 +41,15 @@ set_standard_variables()
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
 set_configure_default()
-set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --disable-shared --without-ftp --without-html --without-http --without-icu --without-iconv --without-python --without-modules --without-lzma)    
+set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --disable-shared --without-ftp --without-html --without-http --without-icu --without-iconv --without-python --without-modules --without-lzma)
+
+# --with-pic: see DEPS_ID above. --without-zlib: otherwise undefined gz* refs get
+# embedded into the shared libprecice.so (which has no DT_NEEDED libz), breaking
+# every consumer's link. preCICE only parses plain XML config files, and cfs
+# handles .xml.gz itself via boost::iostreams, not via libxml2.
+if(CFS_BUILD_PRECICE AND UNIX)
+  set(DEPS_CONFIGURE ${DEPS_CONFIGURE} --with-pic --without-zlib)
+endif()
 
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
 

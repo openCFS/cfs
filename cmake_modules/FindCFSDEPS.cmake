@@ -58,6 +58,16 @@ if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
   include("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
 endif()
 
+# preCICE is built from source via cfsdeps, UNLESS the developer points to an
+# already-installed preCICE with -Dprecice_DIR=... (then the adapter falls back
+# to find_package). Building preCICE pulls in eigen + libxml2 as build deps.
+# Decided BEFORE zlib/boost/libxml2: those switch their build strategy
+# (shared / -fPIC) when preCICE is built - see their External_*.cmake.
+set(CFS_BUILD_PRECICE OFF)
+if(USE_PRECICE AND NOT precice_DIR)
+  set(CFS_BUILD_PRECICE ON)
+endif()
+
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
@@ -109,7 +119,61 @@ if(USE_SUITESPARSE)
   include("${CFSDEPS_DIR}/suitesparse/External_SuiteSparse.cmake")
 endif()
 
-if(USE_EIGEN)
+# preCICE optional MPI / PETSc features. openCFS does not build MPI itself and builds
+# PETSc via cfsdeps only when USE_PETSC is set; preCICE's MPI/PETSc features are built
+# against whatever openCFS/the system provides. Both flags only take EFFECT when preCICE
+# is actually built (USE_PRECICE -> CFS_BUILD_PRECICE).
+#
+# USE_PRECICE_MPI is exposed UNCONDITIONALLY as a visible cache option (even while
+# preCICE/OpenFOAM are off) so its state is always inspectable in ccmake - only the bool
+# is always present, the forcing/defaulting logic below stays nested. It is tied to
+# OpenFOAM, which is always built against a system MPI (WM_MPLIB=SYSTEMOPENMPI, whose
+# presence is enforced in cfsdeps/openfoam/External_OpenFOAM.cmake): while USE_OPENFOAM
+# is on the flag is forced ON and locked (and USE_OPENFOAM anyway requires USE_PRECICE,
+# see the FATAL gate further below), otherwise it is a free choice defaulting to openCFS'
+# own USE_MPI. _USE_PRECICE_MPI_OF_LOCK records OpenFOAM's last state so a user's own
+# choice is preserved across plain reconfigures and only reset on the on->off transition.
+#
+# USE_PRECICE_PETSC stays nested (only shown/used when preCICE is built). PETSc mapping
+# requires MPI, so enabling it forces USE_PRECICE_MPI on.
+
+# --- MPI (always exposed) ---
+option(USE_PRECICE_MPI "Build preCICE with MPI communication (against openCFS/system MPI); only effective when USE_PRECICE is on" "${USE_MPI}")
+if(USE_OPENFOAM)
+  set(USE_PRECICE_MPI ON CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI); only effective when USE_PRECICE is on" FORCE)
+  message(STATUS "preCICE: USE_PRECICE_MPI forced ON by USE_OPENFOAM (OpenFOAM always builds against a system MPI)")
+elseif(_USE_PRECICE_MPI_OF_LOCK)
+  # OpenFOAM was enabled (and forced MPI on) but is now off -> restore the free default
+  set(USE_PRECICE_MPI "${USE_MPI}" CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI); only effective when USE_PRECICE is on" FORCE)
+endif()
+set(_USE_PRECICE_MPI_OF_LOCK "${USE_OPENFOAM}" CACHE INTERNAL "tracks USE_OPENFOAM to flip USE_PRECICE_MPI back when OpenFOAM is disabled")
+
+# --- PETSc (nested: only relevant when preCICE is built) ---
+if(CFS_BUILD_PRECICE)
+  set(_precice_petsc_default OFF)
+  if(USE_PETSC)
+    # openCFS builds PETSc in cfsdeps (see below) - reuse that one
+    set(_precice_petsc_default ON)
+  else()
+    find_package(PkgConfig QUIET)
+    if(PKG_CONFIG_FOUND)
+      pkg_check_modules(_PRECICE_PETSC QUIET PETSc)
+      if(_PRECICE_PETSC_FOUND)
+        set(_precice_petsc_default ON)
+      endif()
+    endif()
+  endif()
+  option(USE_PRECICE_PETSC "Build preCICE with PETSc mapping (requires MPI; against openCFS/system PETSc)" ${_precice_petsc_default})
+
+  # PETSc mapping needs MPI - force MPI on when PETSc is requested
+  if(USE_PRECICE_PETSC AND NOT USE_PRECICE_MPI)
+    message(STATUS "preCICE: USE_PRECICE_PETSC requires MPI - enabling USE_PRECICE_MPI")
+    set(USE_PRECICE_MPI ON CACHE BOOL "Build preCICE with MPI communication (against openCFS/system MPI); only effective when USE_PRECICE is on" FORCE)
+  endif()
+endif()
+
+# eigen is also a (header-only) build dependency of preCICE
+if(USE_EIGEN OR CFS_BUILD_PRECICE)
   include("${CFSDEPS_DIR}/eigen/External_EIGEN.cmake")
 endif()
 
@@ -146,9 +210,9 @@ if(USE_XERCES)
 endif()
 
 #-------------------------------------------------------------------------------
-# libxml2 is an alternative for Xerces
+# libxml2 is an alternative for Xerces (and a required build dependency of preCICE)
 #-------------------------------------------------------------------------------
-if(USE_LIBXML2)
+if(USE_LIBXML2 OR CFS_BUILD_PRECICE)
   include("${CFSDEPS_DIR}/libxml2/External_LibXml2.cmake")
 endif()
 
@@ -275,6 +339,26 @@ if(BUILD_HWLOC)
   
   INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
 endif(BUILD_HWLOC)
+
+# preCICE coupling library (built against the cfs boost/eigen/libxml2 above).
+# Exposes PRECICE_LIBRARY / PRECICE_INCLUDE_DIR consumed by source/Utils/preciceAdapter.
+# Skipped when -Dprecice_DIR=... is given (developer-provided preCICE via find_package).
+if(CFS_BUILD_PRECICE)
+  include("${CFSDEPS_DIR}/precice/External_PRECICE.cmake")
+endif()
+
+# OpenFOAM + preCICE OpenFOAM adapter: the partner solver for real coupled
+# openCFS<->OpenFOAM tests. Build order per precice.org: dependencies ->
+# preCICE -> OpenFOAM -> OpenFOAM adapter (enforced via add_dependencies).
+# Test-only (GPL): run as external programs, never linked or shipped with cfs.
+if(USE_OPENFOAM)
+  if(NOT CFS_BUILD_PRECICE)
+    message(FATAL_ERROR "USE_OPENFOAM requires USE_PRECICE (without precice_DIR): "
+      "the OpenFOAM adapter is built against the cfsdeps preCICE")
+  endif()
+  include("${CFSDEPS_DIR}/openfoam/External_OpenFOAM.cmake")
+  include("${CFSDEPS_DIR}/openfoam-adapter/External_OpenFOAMAdapter.cmake")
+endif()
 
 # ghost is required for phist or could be used standalone
 if(BUILD_GHOST)

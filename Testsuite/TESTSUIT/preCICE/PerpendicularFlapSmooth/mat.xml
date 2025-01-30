@@ -1,0 +1,38 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- Pseudo-elastic smooth material for the Fluid region (prescribed SmoothPDE: unused in the
+       solve, but required by the smooth material-class assignment). -->
+  <material name="smoothMat">
+    <smooth>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus><real>1</real></elasticityModulus>
+            <poissonNumber><real>0.3</real></poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </smooth>
+  </material>
+  <material name="test">
+    <mechanical>
+      <density>
+        <linear>
+          <real>3000</real> <!--2330.0-->
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 4e6 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

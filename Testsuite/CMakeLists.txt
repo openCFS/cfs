@@ -132,6 +132,15 @@ include("TestMacros.cmake")
 # * compare_info_xml.py for comparison of special info.xml stuff (eigenfrequencies) via parameter "info.xml"
 set(CFS_STANDARD_TEST "${CMAKE_BINARY_DIR}/testsuite/StandardTest.cmake")
 set(PYTHON_TEST "${CMAKE_BINARY_DIR}/testsuite/PythonTest.cmake")
+# driver for preCICE-coupled tests (mock partner + cfs), see TESTSUIT/preCICE
+set(CFS_COUPLED_TEST "${CMAKE_BINARY_DIR}/testsuite/CoupledTest.cmake")
+# driver for preCICE-coupled openCFS<->openCFS tests (cfs + cfs), see TESTSUIT/preCICE
+set(CFS_COUPLED_CFS_TEST "${CFS_BINARY_DIR}/testsuite/CoupledCfsTest.cmake")
+# driver for preCICE-coupled openCFS<->OpenFOAM tests (cfs + real OpenFOAM solver).
+# Tests using this driver are gated on USE_OPENFOAM in TESTSUIT/preCICE/CMakeLists.txt;
+# such builds generate openfoam-env.sh at configure time.
+set(CFS_COUPLED_FOAM_TEST "${CFS_BINARY_DIR}/testsuite/CoupledFoamTest.cmake")
+set(OPENFOAM_ENV_SCRIPT "${CFS_BINARY_DIR}/openfoam-env.sh")
 
 # Define path to info.xml compare script (for eigenvalue and other stuff)
 set(COMPARE_INFO_XML "${CMAKE_CURRENT_SOURCE_DIR}/compare_info_xml.py")
@@ -246,3 +255,8 @@ configure_file("StandardTest.cmake.in" "${CFS_STANDARD_TEST}" @ONLY)
 
 # python tests including matviz.py is used in the optimization group
 configure_file("PythonTest.cmake.in" "${PYTHON_TEST}" @ONLY)
+
+# Configure the preCICE coupled test driver.
+configure_file("CoupledTest.cmake.in" "${CFS_COUPLED_TEST}" @ONLY)
+configure_file("CoupledCfsTest.cmake.in" "${CFS_COUPLED_CFS_TEST}" @ONLY)
+configure_file("CoupledFoamTest.cmake.in" "${CFS_COUPLED_FOAM_TEST}" @ONLY)

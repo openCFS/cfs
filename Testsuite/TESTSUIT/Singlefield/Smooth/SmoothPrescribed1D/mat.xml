@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- Pseudo-elastic material for the smoothing PDE. Unused in prescribed mode (no solve),
+       but the region still needs a smooth material because DefineIntegrators is kept (v1). -->
+  <material name="smoothMat">
+    <smooth>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus><real>1</real></elasticityModulus>
+            <poissonNumber><real>0.49</real></poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </smooth>
+  </material>
+</cfsMaterialDataBase>

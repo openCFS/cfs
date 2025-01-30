@@ -125,6 +125,7 @@
           <xsd:enumeration value="mechDisplacedSurfVolume"/>
           <xsd:enumeration value="mechForce"/>
           <xsd:enumeration value="mechNormalStress"/>
+          <xsd:enumeration value="mechNormalStressPrecice"/>
           <xsd:enumeration value="mechDyadicStrain"/>
           <xsd:enumeration value="mechDyadicStrainSum"/>
           <xsd:enumeration value="mechQuadDisplacement"/>

@@ -1,0 +1,79 @@
+<precice-configuration>
+
+  <log>
+    <sink filter="%Severity% > debug" enabled="false"/>
+  </log>
+
+  <!--
+    Full coupling combination for the PerpendicularFlapSmooth CI test (OpenFOAM replaced by the
+    mock_fluid partner). Iterative (parallel-implicit + IQN-ILS) FSI plus a one-way SmoothPDE
+    volume deformation, with two PDEs on the Solid participant:
+      Fluid (mock) : writes Stress on the wetted interface and a whole-volume DisplacementVolume,
+                     reads back the solid Displacement.
+      Solid (cfs)  : mechanic PDE reads Stress (-> mechNormalStressPrecice load) and writes
+                     Displacement; SmoothPDE reads DisplacementVolume (-> smoothDisplacement).
+    The implicit scheme re-iterates each time window, exercising the checkpoint path in both
+    participants. The mock writes analytic (time-only) data, so it is deterministic.
+  -->
+
+  <data:vector name="Stress"/>
+  <data:vector name="Displacement"/>
+  <data:vector name="DisplacementVolume"/>
+
+  <mesh name="Fluid-Nodes1"  dimensions="3"><use-data name="Displacement"/></mesh>
+  <mesh name="Solid-Nodes1"  dimensions="3"><use-data name="Displacement"/></mesh>
+  <mesh name="Fluid-Faces1"  dimensions="3"><use-data name="Stress"/></mesh>
+  <mesh name="Solid-Faces1"  dimensions="3"><use-data name="Stress"/></mesh>
+  <mesh name="Fluid-Volume"  dimensions="3"><use-data name="DisplacementVolume"/></mesh>
+  <mesh name="Solid-FluidVol" dimensions="3"><use-data name="DisplacementVolume"/></mesh>
+
+  <participant name="Fluid">
+    <provide-mesh name="Fluid-Nodes1"/>
+    <provide-mesh name="Fluid-Faces1"/>
+    <provide-mesh name="Fluid-Volume"/>
+    <receive-mesh name="Solid-Nodes1" from="Solid"/>
+    <write-data name="Stress"             mesh="Fluid-Faces1"/>
+    <write-data name="DisplacementVolume" mesh="Fluid-Volume"/>
+    <read-data  name="Displacement"       mesh="Fluid-Nodes1"/>
+    <mapping:nearest-neighbor direction="read" from="Solid-Nodes1" to="Fluid-Nodes1"
+                              constraint="consistent"/>
+  </participant>
+
+  <participant name="Solid">
+    <provide-mesh name="Solid-Nodes1"/>
+    <provide-mesh name="Solid-Faces1"/>
+    <provide-mesh name="Solid-FluidVol"/>
+    <receive-mesh name="Fluid-Faces1" from="Fluid"/>
+    <receive-mesh name="Fluid-Volume" from="Fluid"/>
+    <write-data name="Displacement"       mesh="Solid-Nodes1"/>
+    <read-data  name="Stress"             mesh="Solid-Faces1"/>
+    <read-data  name="DisplacementVolume" mesh="Solid-FluidVol"/>
+    <mapping:nearest-neighbor direction="read" from="Fluid-Faces1" to="Solid-Faces1"
+                              constraint="consistent"/>
+    <mapping:nearest-neighbor direction="read" from="Fluid-Volume" to="Solid-FluidVol"
+                              constraint="consistent"/>
+  </participant>
+
+  <m2n:sockets acceptor="Fluid" connector="Solid" exchange-directory="."/>
+
+  <coupling-scheme:parallel-implicit>
+    <participants first="Fluid" second="Solid"/>
+    <max-time value="0.1"/>
+    <time-window-size value="0.01"/>
+    <max-iterations value="50"/>
+    <exchange data="Stress"             mesh="Fluid-Faces1"  from="Fluid" to="Solid"/>
+    <exchange data="Displacement"       mesh="Solid-Nodes1"  from="Solid" to="Fluid"/>
+    <!-- passive one-way output: fluid volume deformation -> SmoothPDE (no convergence/acceleration) -->
+    <exchange data="DisplacementVolume" mesh="Fluid-Volume"  from="Fluid" to="Solid"/>
+    <relative-convergence-measure data="Displacement" mesh="Solid-Nodes1" limit="1e-4"/>
+    <acceleration:IQN-ILS>
+      <data name="Displacement" mesh="Solid-Nodes1"/>
+      <preconditioner type="residual-sum"/>
+      <filter type="QR1" limit="1e-6"/>
+      <initial-relaxation value="0.5"/>
+      <max-used-iterations value="100"/>
+      <time-windows-reused value="8"/>
+    </acceleration:IQN-ILS>
+  </coupling-scheme:parallel-implicit>
+
+</precice-configuration>

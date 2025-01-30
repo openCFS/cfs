@@ -625,7 +625,9 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     LOG_TRACE(itersolvestep) << "Finalizing iterative coupled solve step";
     
     // 1) Check for updated geometry
-    if( param_->Has("geometryUpdate") ) {
+    // param_ is null when the coupling is declared with an empty <couplingList/>
+    // (no <iterative> block); in that case there is no geometryUpdate to process.
+    if( param_ && param_->Has("geometryUpdate") ) {
       ParamNodeList regionNodes = param_->Get("geometryUpdate")->GetList("region");
 
       bool enableRefNode = false;
@@ -1042,6 +1044,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     }
   }
   
+  // forward to all contained PDEs (see BaseSolveStep::RefreshPrescribed())
+  void IterSolveStep::RefreshPrescribed() {
+    for (UInt i = 0; i < rPDE_.PDEs_.GetSize(); i++) {
+      rPDE_.PDEs_[i]->GetSolveStep()->RefreshPrescribed();
+    }
+  }
+
   // ========================================================================
   //  STATIC COUPLED ITERATION
   // ========================================================================
@@ -1050,7 +1059,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     LOG_TRACE(itersolvestep) << "----------------------";
     LOG_TRACE(itersolvestep) << " Solving static step  ";
     LOG_TRACE(itersolvestep) << "----------------------\n";
-    
+
+    // see InitTimeStepping(): make sure the PDE solve order is built even for
+    // uncoupled PDEs (no <coupling> to trigger Finalize() lazily).
+    if( !isFinalized_ ) {
+      Finalize();
+    }
+
     UInt iter = 0;
     bool normsReached = false;
     std::map<SolutionType, shared_ptr<ConvCriterion> >::iterator convIt;
@@ -1164,6 +1179,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   //----------------------- TRANSIENT-----------------------------------------
   
   void IterSolveStep::InitTimeStepping() {
+    // Finalize() builds the actual PDE solve order (rPDE_.PDEs_). It is otherwise
+    // only triggered lazily by GetCouplingCoefFct(), i.e. when a <coupling> quantity
+    // links the PDEs. For uncoupled PDEs (no <coupling>) that lazy path never fires,
+    // so ensure the structure is finalized here before any time stepping.
+    if( !isFinalized_ ) {
+      Finalize();
+    }
     for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
       rPDE_.PDEs_[i]->GetSolveStep()->InitTimeStepping();
     }
@@ -1185,8 +1207,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     bool normsReached = false;
     std::map<SolutionType, shared_ptr<ConvCriterion> >::iterator convIt;
 
-
-    PtrParamNode actNode = convNode_->Get("step",ParamNode::APPEND); 
+    PtrParamNode actNode = convNode_->Get("step",ParamNode::APPEND);
     actNode->Get("number")->SetValue(actStep_);
     if (nonLinLogging_) {
 
@@ -1347,6 +1368,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     LOG_TRACE(itersolvestep) <<" Solving harmonic step " << actStep_
                              << ", f = " << actFreq_;
     LOG_TRACE(itersolvestep) << "--------------------------------------\n";
+
+    // see InitTimeStepping(): make sure the PDE solve order is built even for
+    // uncoupled PDEs (no <coupling> to trigger Finalize() lazily).
+    if( !isFinalized_ ) {
+      Finalize();
+    }
 
     UInt iter = 0;
     bool normsReached = false;

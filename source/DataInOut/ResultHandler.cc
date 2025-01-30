@@ -241,6 +241,14 @@ namespace CoupledField {
 
         UpdateResult(actContext.result);
 
+      } else {
+        // Only warn if the result was NOT externally updated (e.g. by the preCICE
+        // adapter via MarkReadResultsUpdated()). Those are already in isUpdated_.
+        if(isUpdated_.find(*it) == isUpdated_.end()) {
+          WARN("No result functor present for result '"
+            << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType)
+            << "' on '" << actContext.result->GetEntityList()->GetName() << "'!");
+        }
       }
     }
   }
@@ -265,6 +273,13 @@ namespace CoupledField {
       // store context
       ResultContext & actContext = *(resultContexts_[*it]);
       BaseResult & actResult  = *(actContext.result);
+
+      // security check: if no result functor is present and the result was not
+      // externally updated (e.g. by the preCICE adapter), we leave. Results filled
+      // externally (without a functor) are marked via UpdateResult() before
+      // FinishStep() is called, so they appear in isUpdated_ and can be written.
+      if( !actContext.functor && isUpdated_.find(*it) == isUpdated_.end() )
+        continue;
 
       if(actContext.sequenceStep != sequenceStep_)
         continue;
@@ -310,7 +325,7 @@ namespace CoupledField {
          
           } else {
             // Standard case, no interpolation necessary
-            
+
             // Add current result to given output file
             LOG_DBG(resHandler) << "Adding result '" << actResult.GetResultInfo()->resultName
                 << "' on '" << actResult.GetEntityList()->GetName() << "' to '"
@@ -457,8 +472,8 @@ namespace CoupledField {
     // Fetch postprocs
     StdVector<shared_ptr<PostProc> > postProcs;
     PostProc::CreatePostProc(postProcNode,  domain->GetGrid(), postProcs);
-                              
-    // iterate over all postprocs 
+
+    // iterate over all postprocs
     for( UInt i = 0; i < postProcs.GetSize(); i++ )
     {
       // register current solution with new object
@@ -731,7 +746,7 @@ namespace CoupledField {
               << "; actStep=" << actStep_ << " actStepVal=" << actStepVal_ 
               << "; needed=" << isNeeded_.size() << "; updated=" << isUpdated_.size()
               << std::endl;
-    
+
     std::set<shared_ptr<BaseResult> >::iterator iter;
     
     for(iter = isNeeded_.begin(); iter !=  isNeeded_.end(); iter++)

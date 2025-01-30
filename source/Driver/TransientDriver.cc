@@ -30,7 +30,7 @@ namespace CoupledField {
 
   // Define pointer to transient driver instance, needed for the signal handler
   // to communicate with
-  TransientDriver * instance = NULL;
+  TransientDriver * TransientDriver::instance = nullptr;
   
   // ===============
   //   Constructor

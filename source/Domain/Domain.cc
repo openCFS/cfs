@@ -34,6 +34,8 @@
 #include "DataInOut/SimInput.hh"
 #include "General/Exception.hh"
 
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
+
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimization.hh"
@@ -118,7 +120,7 @@ Domain::Domain(
   multiSequenceDriver_ = NULL;
   param_ = rootNode;
   info_ = infoNode;
-  
+  preciceAdapter_ = NULL;
   ptMatHandler_ = ptMat;
   ptMatHandler_->SetDomain( this );
   
@@ -1287,6 +1289,16 @@ bool Domain::HasPerdiodicBC() const
         return true;
   }
   return false;
+}
+
+void Domain::InitPreciceAdapter(SinglePDE* pde)
+{
+  // Fetch the adapter from the global instance instead of a member set at
+  // construction: a multisequence step reading an earlier sequence step's
+  // results creates a new Domain instance, which must not keep a stale
+  // preciceAdapter_ pointer.
+  this->preciceAdapter_ = CoupledField::gPreciceAdapter;
+  this->preciceAdapter_->Initialize(this, pde);
 }
 
 }

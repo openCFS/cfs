@@ -28,13 +28,13 @@ variables:
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   CTEST_PROGRESS_OUTPUT: "ON" # makes the ctest output shorter, see https://cmake.org/cmake/help/latest/envvar/CTEST_PROGRESS_OUTPUT.html#envvar:CTEST_PROGRESS_OUTPUT
   # build options for the maximal config
-  MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON"
+  MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON -DUSE_PRECICE=ON -DUSE_OPENFOAM=ON"
   MUSL_CONFIG_OPTIONS: "-DCMAKE_EXE_LINKER_FLAGS=-static -DMKL_THREADING=gnu_thread" # link statically
   # Select which tag of the build containers we use. Update the tag when there are breaking changes in the conainers!
   # This way pipelines for old CFS-commits can still run on old container versions.
   # see https://gitlab.com/openCFS/build-environment/-/tags
   # or https://hub.docker.com/u/opencfs for the available images
-  BUILD_ENVIRONMENT_TAG: 2026.06.01
+  BUILD_ENVIRONMENT_TAG: 2026.07
   BUILD_ENVIRONMENT_REGISTRY:
     value: "opencfs" # defaults to using docker-hub
     options:
@@ -552,6 +552,7 @@ rhel:10:
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
+      - build/cfsdeps/cache/precompiled/*.tar.gz # large deps (openfoam) use tar.gz to preserve symlinks
       - build/cfsdeps/cache/sources/
     name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
     expire_in: 12 hours
@@ -566,11 +567,66 @@ rhel:10:
       - job_execution_timeout
   needs: []
 
+# regular gcc9 dependencies (default deps) for the non-max gcc9 builds
+# (linux:gcc9 / gcc9min / gcc9closed). Lean centos7-gcc9 image, no preCICE/OpenFOAM -
+# those live in cfsdeps:gcc9max below, so the regular builds neither pull the heavier
+# _max image (OpenMPI) nor lose their precompiled cache (which is keyed on ${IMAGE}).
 cfsdeps:gcc9:
   extends: .cfsdeps
   variables:
     <<: *cfsdeps-variables
     IMAGE: centos7-gcc9
+
+# max gcc9 dependencies for the OpenFOAM/preCICE-enabled builds (linux:gcc9max*).
+# Uses the centos7-gcc9-max image (flex + zlib-devel + openmpi-devel needed by OpenFOAM)
+# and build+caches preCICE here so the gcc9max build (MAX_CONFIG_OPTIONS -> USE_PRECICE)
+# consumes the precompiled package instead of building preCICE in the build stage
+# (avoids build-stage timeouts). OpenFOAM itself comes precompiled from largedeps:gcc9
+# (this job then only unpacks it and builds the small openfoam-adapter on top).
+cfsdeps:gcc9max:
+  extends: .cfsdeps
+  variables:
+    <<: *cfsdeps-variables
+    CFS_CONFIG_OPTIONS: "-DUSE_PRECICE=ON -DUSE_OPENFOAM=ON"
+    IMAGE: centos7-gcc9-max
+  needs:
+    # reuse the default-dep precompiled packages from the regular gcc9 job: same
+    # compiler/platform (GNU 9.3.1 / RHEL_7), so vtk/hdf5/metis/cgns/... are identical
+    # and are unpacked here instead of rebuilt. Only the preCICE-specific variants
+    # (boost/zlib/libxml2 built shared/-fPIC -> different package name), preCICE itself
+    # and the openfoam-adapter are (re)built in this job.
+    # NOTE: relies on OpenMPI staying OFF the default PATH in the _max image (as it is),
+    # so no dep silently builds an MPI variant under the same name.
+    - job: cfsdeps:gcc9
+      optional: true
+    # consume the precompiled openfoam tar.gz if the largedeps job ran (analog of
+    # the cfsdeps:msvc2022 <- largedeps:msvc2022 pattern)
+    - job: largedeps:gcc9
+      optional: true
+
+# job(s) to build large Linux cfsdeps in parallel (analog of largedeps:msvc2022).
+# OpenFOAM takes multiple core-hours - built separately so the regular cfsdeps and
+# build jobs only unpack the precompiled .tar.gz passed on as artifact/cache.
+largedeps:gcc9:
+  extends: .cfsdeps
+  variables:
+    <<: *cfsdeps-variables
+    IMAGE: centos7-gcc9-max
+    # USE_PRECICE is required by USE_OPENFOAM (FindCFSDEPS gate); precice itself
+    # is NOT built here - only the ${TARGET} target is.
+    CFS_CONFIG_OPTIONS: "-DUSE_PRECICE=ON -DUSE_OPENFOAM=ON"
+  # OpenFOAM needs the cores: a small (2 vCPU) runner does not fit the timeout.
+  # Adjust the tag if large runners are not available for this project.
+  tags:
+    - saas-linux-large-amd64
+  script:
+    - cmake -DCFS_TESTSUITE=OFF $CFS_CONFIG_OPTIONS ..
+    - cmake .
+    - cmake --build . --target ${TARGET} --parallel 1
+  # here we define the large cfsdeps to run in the parallel:matrix jobs
+  parallel:
+    matrix:
+      - TARGET: [openfoam]
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
@@ -694,6 +750,23 @@ cfsdeps:msvc2022:
     - cmake --build . --target cfsdeps --parallel 1
     - ctest -D ExperimentalBuild --group $CDASH_TRACK -V |& tee build.log
     - ctest --quiet -O submit.log -D ExperimentalSubmit --group $CDASH_TRACK  || cat submit.log
+    # USE_OPENFOAM builds only (gated on the USE_OPENFOAM key in CMakeCache.txt,
+    # no-op elsewhere; with the key ON, openfoam-env.sh and the runtime tree are
+    # guaranteed by configure/cfsdeps, so a missing piece fails the tar loudly
+    # instead of skipping silently): pack the
+    # OpenFOAM runtime (bin/etc/META-INFO/platforms - platforms holds the solver
+    # binaries and libs incl. the preCICE openfoam-adapter in FOAM_LIBBIN) together
+    # with openfoam-env.sh BEFORE the cleanup below deletes the cfsdeps trees. The
+    # gcc9max test stage unpacks it at the same absolute path (/builds/... is
+    # identical across jobs of a project), so openfoam-env.sh and the adapter's
+    # DT_RPATH (-> build/lib, where the extracted cfs package provides
+    # libprecice.so.3) work unchanged and the OpenFOAM-coupled preCICE tests can
+    # run there. This is the earliest job that ALWAYS has the complete runtime
+    # (the deps-stage package is rules-gated and deliberately excludes the
+    # adapter). tar.gz like the precompiled cfsdeps package (artifact zip breaks
+    # the symlinks) and runtime-only (no src/wmake), i.e. smaller than that proven
+    # package. CI-internal artifact only - OpenFOAM (GPL) stays out of the cfs package.
+    - if grep -qiE '^USE_OPENFOAM:BOOL=(ON|TRUE|1|YES)$' CMakeCache.txt; then tar czf openfoam-runtime.tar.gz openfoam-env.sh cfsdeps/openfoam/src/openfoam/bin cfsdeps/openfoam/src/openfoam/etc cfsdeps/openfoam/src/openfoam/META-INFO cfsdeps/openfoam/src/openfoam/platforms; fi
     # install test to create arifacts (first delete stuff to make space for packing)
     - export DEBUG_SECTION_TITLE='Delete stuff to make space for packing'
     - !reference [.linux-debug-start_collapsed, script]
@@ -738,6 +811,7 @@ cfsdeps:msvc2022:
   artifacts:
     paths: # just an example
       - ./build/CFS-${CI_COMMIT_REF_SLUG}-Linux.tar.gz # the packed binaries for distribution
+      - build/openfoam-runtime.tar.gz # USE_OPENFOAM lanes only ("no matching files" warning elsewhere is expected)
       - build/CMakeCache_build-stage.txt
       - build/ccache.log # for debug
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
@@ -757,12 +831,33 @@ cfsdeps:msvc2022:
     variables:
       - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
 
+# OpenFOAM/preCICE (gcc9max lane) link the image's OpenMPI, installed under
+# /usr/lib64/openmpi but kept OFF the default PATH/loader path. Prepend it so
+# mpirun is found and libmpi.so (pulled in via libprecice.so) resolves at link +
+# run time. On a _max image the dir MUST exist -> fail loudly; else: silent no-op.
+.setup-openmpi-env:
+  script:
+    - |
+      case "$IMAGE" in
+        *_max)
+          if [ -d /usr/lib64/openmpi/bin ]; then
+            export PATH="/usr/lib64/openmpi/bin:$PATH"
+            export LD_LIBRARY_PATH="/usr/lib64/openmpi/lib:${LD_LIBRARY_PATH}"
+            echo "openmpi env prepended: mpirun=$(command -v mpirun)"
+          else
+            echo "ERROR: _max image but /usr/lib64/openmpi missing (OpenFOAM/preCICE link libmpi.so)" >&2
+            exit 1
+          fi ;;
+      esac
+
 .gcc_before: &gcc_before
   before_script:
     # debug output
     - gcc --version
     # general build before script
     - !reference [.before-script-build, script]
+    # gcc9max lane: make the image's OpenMPI reachable (loud on _max, no-op else)
+    - !reference [.setup-openmpi-env, script]
 
 .intel_before: &intel_before
   before_script:
@@ -801,26 +896,26 @@ cfsdeps:msvc2022:
 linux:gcc9max-debug:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc9
+    IMAGE: centos7-gcc9-max
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *max_rules, *gcc_before ]
-  needs: 
-    - job: cfsdeps:gcc9
+  needs:
+    - job: cfsdeps:gcc9max
       optional: true
 
 # maximal build using as many options as possible
 linux:gcc9max:
   extends: .default_build_job
   variables:
-    IMAGE: centos7-gcc9
+    IMAGE: centos7-gcc9-max
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *max_rules, *gcc_before ]
-  needs: 
-    - job: cfsdeps:gcc9
+  needs:
+    - job: cfsdeps:gcc9max
       optional: true
 
 linux:gcc9:
@@ -1029,6 +1124,14 @@ windows:msvc2022:
     - !reference [.linux-debug-start_collapsed, script]
     - tar -xzvf "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" --strip-components=1 # extract to correct location
     - !reference [.linux-debug-end, script]
+    # USE_OPENFOAM lane (gcc9max): unpack the OpenFOAM runtime passed on from the
+    # build job (openfoam-env.sh + cfsdeps/openfoam/... at the same absolute paths
+    # as in the build job) so the OpenFOAM-coupled preCICE tests can run here.
+    # Registration is opted in per test job via -DUSE_OPENFOAM=ON in
+    # TEST_CONFIG_OPTIONS (a standalone Testsuite configure cannot infer the flag
+    # from the cfs binary, see Testsuite/TESTSUIT/preCICE/CMakeLists.txt). No-op
+    # for all other lanes.
+    - if [ -f openfoam-runtime.tar.gz ]; then tar xzf openfoam-runtime.tar.gz; fi
     # obtain the build config
     - ./bin/cfs --dependencies config.cmake
     # optionally install cmake if not present
@@ -1039,6 +1142,8 @@ windows:msvc2022:
     - lscpu
     - echo "MKL_CBWR=${MKL_CBWR:-unset} MKL_NUM_THREADS=${MKL_NUM_THREADS:-unset}"
     - !reference [.linux-debug-end, script]
+    # gcc9max lane: make the image's OpenMPI reachable (loud on _max, no-op else)
+    - !reference [.setup-openmpi-env, script]
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -1122,8 +1227,15 @@ stable_par:gcc9max:linux:
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
-    IMAGE: centos7-gcc9
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    # must match the gcc9max build image: the binaries are linked against the
+    # _max image's OpenMPI (preCICE-MPI) and OpenFOAM, so the lean centos7-gcc9
+    # image would fail at runtime with a missing libmpi.so / OpenFOAM libs.
+    IMAGE: centos7-gcc9-max
+    # -DUSE_OPENFOAM=ON registers the OpenFOAM-coupled preCICE tests (the OpenFOAM
+    # runtime is unpacked from the build job's openfoam-runtime.tar.gz artifact in
+    # .ctest_default). If the artifact were missing, the tests still register and
+    # fail loudly at 'source openfoam-env.sh' - no silent skip.
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2 -DUSE_OPENFOAM=ON
     CTEST_OPTIONS: "-LE unstable|broken"
   needs:
     - linux:gcc9max
@@ -1136,7 +1248,9 @@ unstable_ser:gcc9max:linux:
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
-    IMAGE: centos7-gcc9
+    # must match the gcc9max build image (OpenMPI / OpenFOAM runtime libs); see
+    # stable_par:gcc9max:linux above.
+    IMAGE: centos7-gcc9-max
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1326,7 +1440,8 @@ unstable_par:gcc9max:linux:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    IMAGE: centos7
+    # must match the gcc9max build image (OpenMPI / OpenFOAM runtime libs).
+    IMAGE: centos7-gcc9-max
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1340,7 +1455,8 @@ broken_ser:gcc9max:linux:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    IMAGE: centos7
+    # must match the gcc9max build image (OpenMPI / OpenFOAM runtime libs).
+    IMAGE: centos7-gcc9-max
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1357,7 +1473,8 @@ no-slow_ser:gcc9max-debug:linux:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    IMAGE: centos7
+    # must match the gcc9max-debug build image (OpenMPI / OpenFOAM runtime libs).
+    IMAGE: centos7-gcc9-max
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     # this special test_no_slow does -LE "unstable|slow"

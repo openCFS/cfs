@@ -178,12 +178,6 @@ namespace CoupledField {
      * If this is set to try, only Outputs with "isStreaming() == true" are being called */
     bool streamOnly = false;
 
-  private:
-    
-    // =======================================================================
-    // METHODS FOR OUTPUT FUNCTIONALITY
-    // =======================================================================
-
     //! Structure containing additional information about result objects
     struct ResultContext {
 
@@ -224,6 +218,17 @@ namespace CoupledField {
       StdVector<std::string > outputIds;
 
     };
+
+    //! Allows access to the ResultContexts (e.g. for the preCICE adapter)
+    std::map<shared_ptr<BaseResult>, shared_ptr<ResultContext> >* GetResultContexts() {
+      return &resultContexts_;
+    }
+
+  private:
+
+    // =======================================================================
+    // METHODS FOR OUTPUT FUNCTIONALITY
+    // =======================================================================
 
     //! Checks, if a result has to be written in the current step
     bool IsOutput( ResultContext& context );

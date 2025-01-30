@@ -1,0 +1,40 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+
+application     pimpleFoam;
+
+startFrom       startTime;
+startTime       0;
+stopAt          endTime;
+endTime         0.1;        // 10 coupling windows - just enough to capture the
+                            // start of the flap deflection + volume deformation
+deltaT          0.01;
+
+// write only the final state (keeps the test artifacts small)
+writeControl    timeStep;
+writeInterval   10;
+purgeWrite      0;
+writeFormat     ascii;
+writePrecision  8;
+writeCompression off;
+timeFormat      general;
+timePrecision   6;
+runTimeModifiable yes;
+
+// Load the preCICE adapter
+libs ( "libpreciceAdapterFunctionObject.so" );
+
+functions
+{
+    preCICE_Adapter
+    {
+        type    preciceAdapterFunctionObject;
+        libs    ( "libpreciceAdapterFunctionObject.so" );
+    }
+}

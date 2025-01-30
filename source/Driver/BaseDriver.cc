@@ -6,6 +6,8 @@
 #include <string>
 
 #include "Utils/ToolsFull.hh"
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
+#include "Utils/preciceAdapter/TransientDriverPrecice.hh"
 #include "Utils/StdVector.hh"
 #include "General/Exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -74,7 +76,14 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
         break;
 
       case BasePDE::TRANSIENT:
-        ptdriver = new TransientDriver( seqStep, false, state, myDom, seqNode, info );
+        // A registered, non-dummy preCICE adapter -> use the coupling driver. Secondary/source
+        // domains (e.g. a previous sequence step loaded via SimState::GetDomain during a field
+        // read) never get an adapter registered, so preciceAdapter_ is null there: guard it and
+        // fall back to the plain transient driver.
+        if(myDom->GetPreciceAdapter() && !myDom->GetPreciceAdapter()->IsPreciceDummy())
+          ptdriver = new TransientDriverPrecice( seqStep, false, state, myDom, seqNode, info );
+        else
+          ptdriver = new TransientDriver( seqStep, false, state, myDom, seqNode, info );
         break;
 
       case BasePDE::HARMONIC:

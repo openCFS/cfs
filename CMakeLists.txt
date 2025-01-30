@@ -150,6 +150,11 @@ option(USE_NANOFLANN "Enable support for nanoflann - KD-Tree nearest neighbor se
 set(USE_XML_READER ${USE_XML_READER_DEFAULT} CACHE STRING "Choose either 'xerces' or 'libxml2' as xml reader.")
 set_property(CACHE USE_XML_READER PROPERTY STRINGS xerces libxml2)
 
+option(USE_PRECICE "Enable preCICE support" ${USE_PRECICE_DEFAULT} )
+# partner solver for real coupled openCFS<->OpenFOAM tests; requires USE_PRECICE
+option(USE_OPENFOAM "Build OpenFOAM + the preCICE OpenFOAM adapter (coupled testing only)" ${USE_OPENFOAM_DEFAULT})
+
+
 # icc has issues with boost asio, so simply disable this rare feature
 if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(USE_STREAMING OFF)
@@ -378,6 +383,7 @@ if(USE_VTK)
   include_directories(${VTK_INCLUDE_DIR})
 endif(USE_VTK)
 
+
 # Make sure the linker can find the CFS base libraries once it is built.
 link_directories(${CFSDEPS_LIBRARY_DIR} ${LIBRARY_OUTPUT_PATH})
 
@@ -469,6 +475,7 @@ add_subdirectory(source/PDE/LatticeBoltzmannSolver)
 add_subdirectory(source/Utils)
 add_subdirectory(source/Utils/mathParser)
 add_subdirectory(source/Utils/EvalIntegrals)
+add_subdirectory(source/Utils/preciceAdapter)
 add_subdirectory(source/Optimization)
 add_subdirectory(source/Optimization/Design)
 add_subdirectory(source/Optimization/Optimizer)

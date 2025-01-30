@@ -255,7 +255,7 @@ namespace CoupledField {
     
     res1->dofNames = "";
     res1->unit = "?";
-    res1->definedOn = ResultInfo::NODE;
+    res1->definedOn = ResultInfo::MapSolTypeToDefinedOn(TEST_DOF);
     res1->entryType = ResultInfo::SCALAR;
     feFunctions_[TEST_DOF]->SetResultInfo(res1);
     results_.Push_back( res1 );
@@ -301,7 +301,7 @@ namespace CoupledField {
     field->resultType = TEST_FIELD;
     field->dofNames = vecComponents;
     field->unit = "??";
-    field->definedOn = ResultInfo::ELEMENT;
+    field->definedOn = ResultInfo::MapSolTypeToDefinedOn(TEST_FIELD);
     field->entryType = ResultInfo::VECTOR;
     availResults_.insert( field );
     shared_ptr<CoefFunctionFormBased> fieldFunc;

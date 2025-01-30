@@ -24,7 +24,7 @@ namespace CoupledField
   class MultiSequenceDriver;
   class SimInput;
   class ResultHandler;
-  
+  class IPreciceAdapter;
   class SimState;
   class BaseDriver;
   class Timer;
@@ -250,7 +250,19 @@ namespace CoupledField
 
     shared_ptr<Timer> init_analysis_timer;
 
-    
+    //! Register the preCICE adapter (real or dummy) with this domain
+    void RegisterPreciceAdapter(IPreciceAdapter* ad){
+      this->preciceAdapter_ = ad;
+    }
+
+    //! Return the registered preCICE adapter (dummy when built/run without preCICE)
+    IPreciceAdapter* GetPreciceAdapter() const {
+      return this->preciceAdapter_;
+    }
+
+    //! Fetch the global preCICE adapter and initialize it for this domain/PDE
+    void InitPreciceAdapter(SinglePDE* pde);
+
   protected:
 
   private:
@@ -394,6 +406,9 @@ namespace CoupledField
     //! Since these Enums can not be created on the fly, we have to keep
     //! track of them here and assign them individually to avoid redefinition */
     int genResId_ = 0;
+
+    //! Pointer to the preCICE adapter (dummy instance when preCICE is not used)
+    IPreciceAdapter* preciceAdapter_;
   };
 
 }

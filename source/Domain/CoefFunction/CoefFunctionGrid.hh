@@ -62,7 +62,8 @@ class CoefFunctionGrid : public CoefFunction{
               PtrParamNode infoNode,
               PtrParamNode configNode,
               shared_ptr<RegionList> regions,
-			  ResultInfo::EntryType type);
+              ResultInfo::EntryType type,
+              const std::string& resName = "");
 
     ///Constructor which sets every field to default values
     /// carefully check for each field in an overloaded class

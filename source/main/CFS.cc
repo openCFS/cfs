@@ -41,6 +41,9 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/PythonKernel.hh"
 
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
+#include "Utils/preciceAdapter/PreciceAdapterFactory.hh"
+
 #ifdef USE_MKL
 #include <mkl_service.h>
 #ifndef mkl_get_version
@@ -243,12 +246,19 @@ int CFS::Run()
     // if a python function is registered, call it.
     python->CallHook(PythonKernel::POST_GRID);
 
+    // Initialize the preCICE adapter using the factory (a no-op dummy without preCICE)
+    preciceAdapter_ = CreatePreciceAdapter(paramNode_);
+    CoupledField::gPreciceAdapter = preciceAdapter_.get();
+    domain->RegisterPreciceAdapter(preciceAdapter_.get());
+
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else
       SolveProblem();
 
     python->CallHook(PythonKernel::POST_SOLVE_PROBLEM);
+
+    preciceAdapter_->Finalize();
 
     // wait for all drivers to be initialized before printing the math parser variables
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);

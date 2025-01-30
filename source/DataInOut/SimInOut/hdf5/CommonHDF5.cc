@@ -462,6 +462,12 @@ void WriteDataSetND(hid_t loc, const std::string& name,
     H5Pset_shuffle(dcpl);
     H5Pset_deflate(dcpl, compressionLevel); // gzip level 1-9 - anything > 1 usually too slow
   }
+  // For checkpointed / rewritten steps (e.g. preCICE implicit coupling rolls back and
+  // re-writes the same step) the dataset may already exist. Remove the stale one so the
+  // fresh data can be written; H5Dcreate2 would otherwise fail on a duplicate name.
+  // In a normal single run the dataset never pre-exists, so this is a no-op there.
+  if (H5Lexists(loc, name.c_str(), H5P_DEFAULT) > 0)
+    H5Ldelete(loc, name.c_str(), H5P_DEFAULT);
   hid_t dset = H5Dcreate2(loc, name.c_str(), NativeType<T>(), space, H5P_DEFAULT, dcpl, H5P_DEFAULT);
   H5Sclose(space);
   if (dcpl != H5P_DEFAULT)

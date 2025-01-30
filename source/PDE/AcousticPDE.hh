@@ -144,6 +144,9 @@ namespace CoupledField{
     //! acoustic source density
     shared_ptr<CoefFunctionMulti> acousticSourceDensityCoef_;
 
+    //! acoustic rhs source density
+    shared_ptr<CoefFunctionMulti> acousticRhsDensityCoef_;
+
     //! Coefficient function for the flow field
 
     //! This coefficient function describes the flow field. As this 

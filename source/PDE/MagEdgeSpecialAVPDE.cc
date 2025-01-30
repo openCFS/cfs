@@ -482,7 +482,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       voltIntInfo->resultType = COIL_VOLTAGE_INTEGRAL;
       voltIntInfo->dofNames = "";
       voltIntInfo->unit = MapSolTypeToUnit(COIL_VOLTAGE_INTEGRAL);
-      voltIntInfo->definedOn = ResultInfo::COIL;
+      voltIntInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_VOLTAGE_INTEGRAL);
       voltIntInfo->entryType = ResultInfo::SCALAR;
       voltIntInfo->SetFeFunction(feFunctions_[COIL_VOLTAGE_INTEGRAL]);
 
@@ -494,7 +494,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       voltInfo->resultType = COIL_VOLTAGE;
       voltInfo->dofNames = "";
       voltInfo->unit = MapSolTypeToUnit(COIL_VOLTAGE);
-      voltInfo->definedOn = ResultInfo::COIL;
+      voltInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(COIL_VOLTAGE);
       voltInfo->entryType = ResultInfo::SCALAR;
       availResults_.insert( voltInfo );
       DefineTimeDerivResult( voltInfo->resultType, 1, COIL_VOLTAGE_INTEGRAL );
@@ -511,7 +511,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     permeability->resultType = MAG_ELEM_PERMEABILITY;
     permeability->dofNames = "";
     permeability->unit = "Vs/Am";
-    permeability->definedOn = ResultInfo::ELEMENT;
+    permeability->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_PERMEABILITY);
     permeability->entryType = ResultInfo::SCALAR;
     // In multiharmonic analysis we have complex permeability
     if(analysistype_ == MULTIHARMONIC){
@@ -565,7 +565,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     energy->resultType = MAG_ENERGY;
     energy->dofNames = "";
     energy->unit = "Ws";
-    energy->definedOn = ResultInfo::REGION;
+    energy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ENERGY);
     energy->entryType = ResultInfo::SCALAR;
     availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
@@ -590,7 +590,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       elecIntens->SetVectorDOFs(dim_, isaxi_);
       elecIntens->dofNames = vecComponents;
       elecIntens->unit = "V/m";
-      elecIntens->definedOn = ResultInfo::ELEMENT;
+      elecIntens->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY);
       elecIntens->entryType = ResultInfo::VECTOR;
       shared_ptr<CoefFunctionMulti> elecIntensFunc( new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
       DefineFieldResult( elecIntensFunc, elecIntens );
@@ -601,7 +601,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       eddy->resultType = MAG_EDDY_CURRENT_DENSITY;
       eddy->dofNames = vecComponents;
       eddy->unit = "A/m^2";
-      eddy->definedOn = ResultInfo::ELEMENT;
+      eddy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT_DENSITY);
       eddy->entryType = ResultInfo::VECTOR;
       shared_ptr<CoefFunctionMulti> eddyFunc( new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
       DefineFieldResult( eddyFunc, eddy );
@@ -613,7 +613,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       ec->resultType = MAG_EDDY_CURRENT;
       ec->dofNames = "";
       ec->unit = "A";
-      ec->definedOn = ResultInfo::SURF_REGION;
+      ec->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_EDDY_CURRENT);
       ec->entryType = ResultInfo::SCALAR;
       availResults_.insert( ec );
       // first, create normal mapping
@@ -635,7 +635,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       jld->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
       jld->dofNames = "";
       jld->unit = "W/m^3";
-      jld->definedOn = ResultInfo::ELEMENT;
+      jld->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_JOULE_LOSS_POWER_DENSITY);
       jld->entryType = ResultInfo::SCALAR;
       shared_ptr<CoefFunctionMulti> jldCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, isComplex_));
       DefineFieldResult( jldCoef, jld );
@@ -646,7 +646,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       jldRes->resultType = MAG_JOULE_LOSS_POWER;
       jldRes->dofNames = "";
       jldRes->unit = "W";
-      jldRes->definedOn = ResultInfo::REGION;
+      jldRes->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_JOULE_LOSS_POWER);
       jldRes->entryType = ResultInfo::SCALAR;
       availResults_.insert( jldRes );
       shared_ptr<ResultFunctor> jldFunc;
@@ -673,7 +673,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     perm->resultType = MAG_ELEM_PERMEABILITY;
     perm->dofNames = "";
     perm->unit = "Vs/Am";
-    perm->definedOn = ResultInfo::ELEMENT;
+    perm->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_PERMEABILITY);
     perm->entryType = ResultInfo::SCALAR;
 
     PtrCoefFct muFunc = CoefFunction::Generate( mp_, part,
@@ -685,7 +685,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     reluc->resultType = MAG_ELEM_RELUCTIVITY;
     reluc->dofNames = "";
     reluc->unit = "Am/Vs";
-    reluc->definedOn = ResultInfo::ELEMENT;
+    reluc->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_RELUCTIVITY);
     reluc->entryType = ResultInfo::SCALAR;
     DefineFieldResult( reluc_, reluc );
 

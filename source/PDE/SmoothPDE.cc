@@ -36,6 +36,7 @@
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/SolveSteps/PrescribedSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
 namespace CoupledField {
@@ -52,9 +53,14 @@ namespace CoupledField {
     nonLin_        = false;
     nonLinMaterial_= false;
     
-    //! Always use total Lagrangian formulation 
+    //! Always use total Lagrangian formulation
     updatedGeo_        = false;
-    
+
+    // Prescribed-displacement mode: if a <prescribedDisplacement> block is present, the
+    // whole-domain deformation is read from an external source (e.g. computed by OpenFOAM)
+    // and injected directly into the solution -- the smoothing PDE is not solved.
+    prescribedDisplacement_ = ( myParam_->Get("prescribedDisplacement", ParamNode::PASS) != nullptr );
+
     // ****************************
     // DETERMINE GEOMETRY
     // ****************************
@@ -129,10 +135,14 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> myFct = feFunctions_[SMOOTH_DISPLACEMENT];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     
-    unsigned int rows = 0;
-    unsigned int cols = 0;
-    materials_.begin()->second->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::REAL)->GetTensorSize(rows, cols);
-    assert(rows > 0 && cols > 0);
+    // In prescribed-displacement mode there is no stiffness and no (smooth) material is needed;
+    // only the fe-space approximation and entity lists are set up below to define the DOFs.
+    if( !prescribedDisplacement_ ) {
+      unsigned int rows = 0;
+      unsigned int cols = 0;
+      materials_.begin()->second->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::REAL)->GetTensorSize(rows, cols);
+      assert(rows > 0 && cols > 0);
+    }
     
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -165,8 +175,9 @@ namespace CoupledField {
       
       // ====================================================================
       //  Standard Linear Stiffness (with potential non-linear scaling)
+      //  (skipped in prescribed mode: no matrix is assembled, so no stiffness/material needed)
       // ====================================================================
-      
+      if( !prescribedDisplacement_ ) {
         
       PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
       
@@ -193,8 +204,8 @@ namespace CoupledField {
       PtrParamNode form = infoNode_->Get("header")->Get("integrators")->Get("matrixBiLinearForms")->GetByVal("bilinearForm","integrator","LinElastInt",ParamNode::APPEND);
       PtrParamNode coef = form->Get("coef", ParamNode::APPEND);
       coef->Get("value")->SetValue(stiffInt->GetCoef()->ToString());
-      
-      
+      }
+
       // in the end, at the region to the feFunction      // to be implemented
       myFct->AddEntityList( actSDList );
     }
@@ -274,7 +285,14 @@ namespace CoupledField {
   void SmoothPDE::DefineRhsLoadIntegrators(PtrParamNode input)
   {
     LOG_TRACE(smoothpde) << "Defining rhs load integrators for smooth PDE";
-    
+
+    if( prescribedDisplacement_ ) {
+      // Prescribed mode: register the external whole-domain displacement source; there is no
+      // RHS to assemble (the field is injected directly into the solution, see DefineSolveStep).
+      ReadPrescribedDisplacement();
+      return;
+    }
+
     // Get FESpace and FeFunction of smooth displacement
     shared_ptr<BaseFeFunction> myFct = feFunctions_[SMOOTH_DISPLACEMENT];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
@@ -568,9 +586,52 @@ namespace CoupledField {
     return bOp;
   }
 
+  void SmoothPDE::DefineAlgSys()
+  {
+    if( prescribedDisplacement_ ) {
+      // No algebraic system in prescribed mode: skip the matrix graph, the system matrix and
+      // the solver. The fe-function solution vector is already allocated (FeFunction::Finalize),
+      // and PrescribedSolveStep writes the field directly into it -- nothing is assembled/solved.
+      // (Mirrors the matrix-free path used for direct-coupled PDEs.)
+      return;
+    }
+    StdPDE::DefineAlgSys();
+  }
+
   void SmoothPDE::DefineSolveStep()
   {
-    solveStep_ = new StdSolveStep(*this);
+    if( prescribedDisplacement_ )
+      // No solve: the prescribed external displacement is written straight into the solution.
+      solveStep_ = new PrescribedSolveStep(*this);
+    else
+      solveStep_ = new StdSolveStep(*this);
+  }
+
+  void SmoothPDE::ReadPrescribedDisplacement()
+  {
+    PtrParamNode pdNode = myParam_->Get("prescribedDisplacement", ParamNode::PASS);
+    if( !pdNode )
+      return;
+
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[SMOOTH_DISPLACEMENT];
+    shared_ptr<ResultInfo> aResult = feFct->GetResultInfo();
+
+    // Register the externally prescribed displacement as an external data source over the whole
+    // domain (all PDE regions). PrescribedSolveStep::ApplyPrescribed() later writes it directly
+    // into the solution vector via ApplyExternalData() -- no assembly, no linear solve. The
+    // source is re-evaluated every step, so a time-dependent field is picked up automatically.
+    for( UInt i = 0; i < regions_.GetSize(); ++i )
+    {
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_) );
+      actSDList->SetRegion( regions_[i] );
+
+      PtrCoefFct coef;
+      std::set<UInt> definedDofs;
+      bool coefUpdateGeo;
+      ReadUserFieldValues( actSDList, pdNode->Get("vector"), aResult->dofNames, aResult->entryType,
+                           isComplex_, coef, definedDofs, coefUpdateGeo );
+      feFct->AddExternalDataSource( coef, actSDList );
+    }
   }
   
   // ======================================================
@@ -620,7 +681,7 @@ namespace CoupledField {
     disp->unit = "m";
     disp->entryType = ResultInfo::VECTOR;
     disp->SetFeFunction(feFunctions_[SMOOTH_DISPLACEMENT]);
-    disp->definedOn = ResultInfo::NODE;
+    disp->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_DISPLACEMENT);
     feFunctions_[SMOOTH_DISPLACEMENT]->SetResultInfo(disp);
 
     // -----------------------------------
@@ -662,7 +723,7 @@ namespace CoupledField {
       vel->dofNames = dispDofNames;
       vel->unit = "m/s";
       vel->entryType = ResultInfo::VECTOR;
-      vel->definedOn = ResultInfo::NODE;
+      vel->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_VELOCITY);
       availResults_.insert( vel );
       DefineTimeDerivResult( SMOOTH_VELOCITY, 1, SMOOTH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[SMOOTH_VELOCITY];
@@ -693,7 +754,7 @@ namespace CoupledField {
     stressZero->dofNames = "";
     stressZero->unit = MapSolTypeToUnit(SMOOTH_ZERO_PRESSURE);
     stressZero->entryType = ResultInfo::SCALAR;
-    stressZero->definedOn = ResultInfo::NODE;
+    stressZero->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_ZERO_PRESSURE);
     availResults_.insert( stressZero );
     PtrCoefFct constZero = CoefFunction::Generate( mp_, Global::REAL, "0.0");
 
@@ -727,7 +788,7 @@ namespace CoupledField {
     strain->dofNames = stressComponents;
     strain->unit =  "";
     strain->entryType = ResultInfo::TENSOR;
-    strain->definedOn = ResultInfo::ELEMENT;
+    strain->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_STRAIN);
     shared_ptr<CoefFunctionFormBased> strainFunc;
     if( isComplex_ ) {
       strainFunc.reset(new CoefFunctionBOp<Complex>(feFct, strain));
@@ -743,7 +804,7 @@ namespace CoupledField {
     contactForceDensity->dofNames = dispDofNames;
     contactForceDensity->unit = MapSolTypeToUnit(SMOOTH_CONTACT_FORCE_DENSITY);
     contactForceDensity->entryType = ResultInfo::VECTOR;
-    contactForceDensity->definedOn = ResultInfo::SURF_ELEM;
+    contactForceDensity->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_CONTACT_FORCE_DENSITY);
     availResults_.insert( contactForceDensity );
 
     StdVector<std::string> surfList1;
@@ -766,7 +827,7 @@ namespace CoupledField {
     contactForce->dofNames = dispDofNames;
     contactForce->unit = MapSolTypeToUnit(SMOOTH_CONTACT_FORCE);
     contactForce->entryType = ResultInfo::VECTOR;
-    contactForce->definedOn = ResultInfo::SURF_REGION;
+    contactForce->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_CONTACT_FORCE);
     // Integrate surface traction
     shared_ptr<ResultFunctor> contactForceFct;
     if(isComplex_)
@@ -783,7 +844,7 @@ namespace CoupledField {
     defEnergyDens->dofNames = "";
     defEnergyDens->unit = MapSolTypeToUnit(SMOOTH_DEFORM_ENERGY_DENS);
     defEnergyDens->entryType = ResultInfo::SCALAR;
-    defEnergyDens->definedOn = ResultInfo::ELEMENT;
+    defEnergyDens->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_DEFORM_ENERGY_DENS);
     shared_ptr<CoefFunctionFormBased> dedFunc;
     if( isComplex_ ) {
       dedFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
@@ -800,7 +861,7 @@ namespace CoupledField {
     defEnergy->dofNames = "";
     defEnergy->unit = MapSolTypeToUnit(SMOOTH_DEFORM_ENERGY);
     defEnergy->entryType = ResultInfo::SCALAR;
-    defEnergy->definedOn = ResultInfo::REGION;
+    defEnergy->definedOn = ResultInfo::MapSolTypeToDefinedOn(SMOOTH_DEFORM_ENERGY);
     availResults_.insert(defEnergy);
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {

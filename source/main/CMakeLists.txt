@@ -24,6 +24,8 @@ SET(TARGET_LL
   utils
   domain
   elemmapping
+  ipreciceadapter
+  preciceadapter
   ${CFS_FORTRAN_DYNRT_LIBS} )
 
 IF(USE_XERCES)

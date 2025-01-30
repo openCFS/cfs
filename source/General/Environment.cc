@@ -106,6 +106,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
+    // Dedicated result for the preCICE-read surface traction (applied as a load via a grid
+    // CoefFunction). Kept separate from the PDE-computed MECH_NORMAL_STRESS so an externally
+    // imposed coupling input never aliases an internally computed post-processing result.
+    SolutionTypeEnum.Add(MECH_NORMAL_STRESS_PRECICE, "mechNormalStressPrecice");
     SolutionTypeEnum.Add(MECH_DYADIC_STRAIN, "mechDyadicStrain");
     SolutionTypeEnum.Add(MECH_DYADIC_STRAIN_SUM, "mechDyadicStrainSum");
     SolutionTypeEnum.Add(MECH_QUAD_DISP, "mechQuadDisplacement");
@@ -186,6 +190,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_FORCE, "acouForce");
     SolutionTypeEnum.Add(ACOU_SURF_AVG_IMPEDANCE, "acouSurfAvgImpedance");
     SolutionTypeEnum.Add(ACOU_SURFIMPEDANCE, "acouSurfImpedance");
+    SolutionTypeEnum.Add(ACOU_CHARACTERISTIC, "acouCharacteristic");
+    SolutionTypeEnum.Add(ACOU_CHARACTERISTIC_COUPLING, "acouCharacteristicCoupling");
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_1, "acouPotentialD1");
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_2, "acouPotentialD2");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
@@ -340,6 +346,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_NORMAL_VELOCITY, "fluidMechNormalVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_ZERO_PRESSURE, "fluidMechZeroPressure");
+    SolutionTypeEnum.Add(FLUIDMECH_ABSOLUTE_PRESSURE, "fluidMechAbsolutePressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");
@@ -426,6 +433,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");
     SolutionTypeEnum.Add(JACOBIAN, "jacobian");
     SolutionTypeEnum.Add(ASPECT_RATIO, "aspectRatio");
+    // element area/volume grid-info results (GridCFS::CreateGridInformation, printGridInfo="yes")
+    // both the "area" and "volume" results carry SolutionType VOLUME; without this Add the
+    // output path throws "Invalid key <VOLUME> for 'SolutionTypeEnum'".
+    SolutionTypeEnum.Add(VOLUME, "volume");
 
     //LBM velocity
     SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION, "LBMProbabilityDistribution");
@@ -1055,6 +1066,8 @@ namespace CoupledField {
 
       case ACOU_PRESSURE:
       case ACOU_SURFPRESSURE:
+      case ACOU_CHARACTERISTIC:
+      case ACOU_CHARACTERISTIC_COUPLING:
       case FLUIDMECH_STRESS:
       case FLUIDMECH_PRESSURE:
       case FLUIDMECH_COMP_STRESS:
@@ -1064,6 +1077,7 @@ namespace CoupledField {
       case FLUIDMECH_SURFACE_TRACTION:
       case FLUIDMECH_ZERO_PRESSURE:
       case FLUIDMECH_AVERAGED_PRESSURE:
+      case FLUIDMECH_ABSOLUTE_PRESSURE:
       case WATER_PRESSURE:
       case WATER_PRES_TENS:
       case SMOOTH_ZERO_PRESSURE:
@@ -1297,6 +1311,7 @@ namespace CoupledField {
       case MECH_STRESS:
       case MECH_IRR_STRESS:
       case MECH_NORMAL_STRESS:
+      case MECH_NORMAL_STRESS_PRECICE:
       case MECH_THERMAL_STRESS:
       case MECH_PRINCIPAL_STRESS:
       case MECH_PRINCIPAL_STRESS_MIN:

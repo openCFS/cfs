@@ -157,6 +157,9 @@ add_subdirectory(Singlefield/Acoustics/Surf2VolMapping2D)
 add_subdirectory(Singlefield/Acoustics/RayleighDamping3D)
 add_subdirectory(Singlefield/Acoustics/AdaptedLossTanDelta3D)
 add_subdirectory(Singlefield/Acoustics/AcousticHarmonic25D)
+if(USE_PARDISO)
+  add_subdirectory(Singlefield/Acoustics/CharacteristicBC1D)
+endif()
 
 #-------------------------------------------------------------------------------
 # Subdirectories for water waves test cases.
@@ -191,6 +194,7 @@ IF(USE_PARDISO)
   ADD_SUBDIRECTORY(Singlefield/Smooth/TransientUniaxialStrainStiffening2D)
 ENDIF(USE_PARDISO)
 ADD_SUBDIRECTORY(Singlefield/Smooth/DeformedBeam2d)
+ADD_SUBDIRECTORY(Singlefield/Smooth/SmoothPrescribed1D)
 
 #-------------------------------------------------------------------------------
 # Subdirectories for Split PDE test cases.
@@ -1119,3 +1123,10 @@ if(BUILD_CFSDAT)
     #add_subdirectory(CFSdat/FFT_2D)
   endif(USE_BLAS_LAPACK STREQUAL "MKL")
 endif() # BUILD_CFSDAT
+
+#-------------------------------------------------------------------------------
+# preCICE-coupled tests (cfs + mock_fluid partner). Only when built with preCICE.
+#-------------------------------------------------------------------------------
+if(USE_PRECICE)
+  add_subdirectory(preCICE)
+endif()

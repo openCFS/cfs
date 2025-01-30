@@ -60,6 +60,7 @@ endif()
 SET(TARGET_LL 
   scattereddatainout
   materials
+  preciceadapter
   ${MUPARSER_LIBRARY} 
   ${LAPACK_LIBRARY} )
 

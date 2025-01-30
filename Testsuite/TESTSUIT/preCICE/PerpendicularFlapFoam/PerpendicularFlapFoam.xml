@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <documentation>
+    <title>PerpendicularFlapFoam: FSI against a real OpenFOAM solver via preCICE</title>
+    <authors>
+      <author>Dominik Mayrhofer</author>
+    </authors>
+    <date>2026-07-15</date>
+    <keywords>
+      <keyword>transient</keyword>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references>preCICE perpendicular-flap tutorial (precice.org)</references>
+    <isVerified>no</isVerified>
+    <description>
+      "Solid" participant of the PerpendicularFlapFoam test - REAL OpenFOAM-coupled FSI
+      (pimpleFoam + openfoam-adapter as the "Fluid" participant): parallel-implicit
+      coupling with IQN-ILS. The cfs mechanic PDE on the flap reads the fluid traction
+      on the three wetted interfaces (mechNormalStressPrecice, applied as forceDensity)
+      and writes its displacement back.
+      NOTE: deliberately NO passive one-way data (like the DisplacementVolume/SmoothPDE
+      channel of the full-size perpendicular_flap_smooth case): preCICE 3.4.1 serves
+      passive exchanged data nondeterministically, making reference comparison
+      impossible - see the report 'precice-passive-data-read-nondeterminism.md'.
+      The solid mesh is read from the committed .h5ref; it and the fluid blockMeshDict
+      come from one block spec (make_meshes.py).
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="PerpendicularFlapFoam.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml"/>
+
+    <preciceCoupling>
+      <participantName name="Solid"/>
+      <participantMeshList>
+        <participantMeshName name="Solid-Nodes1" region="SolidSide_Interface1"/>
+        <participantMeshName name="Solid-Faces1" region="SolidSide_Interface1"/>
+        <participantMeshName name="Solid-Nodes2" region="SolidSide_Interface2"/>
+        <participantMeshName name="Solid-Faces2" region="SolidSide_Interface2"/>
+        <participantMeshName name="Solid-Nodes3" region="SolidSide_Interface3"/>
+        <participantMeshName name="Solid-Faces3" region="SolidSide_Interface3"/>
+      </participantMeshList>
+      <precice_configFile file="precice-config.xml"/>
+      <sequenceStep>1</sequenceStep>
+    </preciceCoupling>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="Solid" material="test"/>
+    </regionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange id="order2"><isoOrder>2</isoOrder></Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="integ2">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>10</numSteps>
+        <deltaT>1e-2</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="Solid" polyId="order2" integId="integ2"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <!-- clamped flap base -->
+          <fix name="SolidFixed">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <!-- plane strain: no out-of-plane displacement -->
+          <fix name="frontAndBack_solid">
+            <comp dof="z"/>
+          </fix>
+          <!-- fluid traction applied on all three wetted interfaces via preCICE -->
+          <forceDensity name="SolidSide_Interface1">
+            <grid>
+              <defaultGrid quantity="mechNormalStressPrecice" dependtype="GENERAL" definedOn="element">
+                <globalFactor>1</globalFactor>
+              </defaultGrid>
+            </grid>
+          </forceDensity>
+          <forceDensity name="SolidSide_Interface2">
+            <grid>
+              <defaultGrid quantity="mechNormalStressPrecice" dependtype="GENERAL" definedOn="element">
+                <globalFactor>1</globalFactor>
+              </defaultGrid>
+            </grid>
+          </forceDensity>
+          <forceDensity name="SolidSide_Interface3">
+            <grid>
+              <defaultGrid quantity="mechNormalStressPrecice" dependtype="GENERAL" definedOn="element">
+                <globalFactor>1</globalFactor>
+              </defaultGrid>
+            </grid>
+          </forceDensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <regionList><region name="Solid"/></regionList>
+          </nodeResult>
+          <surfElemResult type="mechNormalStress">
+            <surfRegionList>
+              <surfRegion name="SolidSide_Interface1" neighborRegion="Solid"/>
+              <surfRegion name="SolidSide_Interface2" neighborRegion="Solid"/>
+              <surfRegion name="SolidSide_Interface3" neighborRegion="Solid"/>
+            </surfRegionList>
+          </surfElemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard><matrix storage="sparseNonSym"/></standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

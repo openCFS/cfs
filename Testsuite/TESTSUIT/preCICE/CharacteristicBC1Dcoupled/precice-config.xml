@@ -1,0 +1,62 @@
+<precice-configuration>
+
+  <log>
+    <sink filter="%Severity% > debug" enabled="false"/>
+  </log>
+
+  <!--
+    openCFS <-> openCFS impedance-matched (characteristic) acoustic coupling.
+    A plane-wave duct split at x = Lf into two openCFS acoustic participants:
+      Fluid    (x in [0, Lf])      launches a burst at S_in, writes its outgoing invariant
+                                   w_out_F (AcousticCharacteristicFromFluid) at S_couple,
+                                   reads w_out_A as its incoming w_in.
+      Acoustic (x in [Lf, Lf+La])  writes its outgoing invariant w_out_A
+                                   (AcousticCharacteristicFromAcou) at S_couple, reads w_out_F
+                                   as its w_in (-> characteristicCouplingBC), absorbs at S_far.
+    Owner-tagged data names so the meaning never flips with wave direction. The openCFS adapter
+    maps each by ROLE (write -> acouCharacteristic, read -> acouCharacteristicCoupling), so both
+    participants can be openCFS. Serial-explicit => one solve per window => deterministic.
+  -->
+
+  <data:scalar name="AcousticCharacteristicFromAcou"/>   <!-- Acoustic -> Fluid -->
+  <data:scalar name="AcousticCharacteristicFromFluid"/>  <!-- Fluid -> Acoustic -->
+
+  <mesh name="Fluid-Interface" dimensions="3">
+    <use-data name="AcousticCharacteristicFromAcou"/>
+    <use-data name="AcousticCharacteristicFromFluid"/>
+  </mesh>
+
+  <mesh name="Acoustic-Mesh" dimensions="3">
+    <use-data name="AcousticCharacteristicFromAcou"/>
+    <use-data name="AcousticCharacteristicFromFluid"/>
+  </mesh>
+
+  <participant name="Fluid">
+    <provide-mesh name="Fluid-Interface"/>
+    <receive-mesh name="Acoustic-Mesh" from="Acoustic"/>
+    <write-data name="AcousticCharacteristicFromFluid" mesh="Fluid-Interface"/>
+    <read-data  name="AcousticCharacteristicFromAcou"  mesh="Fluid-Interface"/>
+    <mapping:nearest-neighbor direction="read" from="Acoustic-Mesh" to="Fluid-Interface"
+                              constraint="consistent"/>
+  </participant>
+
+  <participant name="Acoustic">
+    <provide-mesh name="Acoustic-Mesh"/>
+    <receive-mesh name="Fluid-Interface" from="Fluid"/>
+    <write-data name="AcousticCharacteristicFromAcou"  mesh="Acoustic-Mesh"/>
+    <read-data  name="AcousticCharacteristicFromFluid" mesh="Acoustic-Mesh"/>
+    <mapping:nearest-neighbor direction="read" from="Fluid-Interface" to="Acoustic-Mesh"
+                              constraint="consistent"/>
+  </participant>
+
+  <m2n:sockets acceptor="Fluid" connector="Acoustic" exchange-directory="."/>
+
+  <coupling-scheme:serial-explicit>
+    <participants first="Fluid" second="Acoustic"/>
+    <max-time value="8e-4"/>
+    <time-window-size value="2e-5"/>
+    <exchange data="AcousticCharacteristicFromFluid" mesh="Fluid-Interface" from="Fluid"    to="Acoustic"/>
+    <exchange data="AcousticCharacteristicFromAcou"  mesh="Acoustic-Mesh"   from="Acoustic" to="Fluid"/>
+  </coupling-scheme:serial-explicit>
+
+</precice-configuration>

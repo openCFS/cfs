@@ -302,7 +302,7 @@ namespace CoupledField {
     
     res1->dofNames = "";
     res1->unit = MapSolTypeToUnit(ELEC_POTENTIAL);
-    res1->definedOn = ResultInfo::NODE;
+    res1->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_POTENTIAL);
     res1->entryType = ResultInfo::SCALAR;
     feFunctions_[ELEC_POTENTIAL]->SetResultInfo(res1);
 
@@ -333,7 +333,7 @@ namespace CoupledField {
     condTensor->unit = MapSolTypeToUnit(ELEC_COND_TENSOR);
     condTensor->entryType = ResultInfo::TENSOR;
     condTensor->SetFeFunction(feFunctions_[ELEC_POTENTIAL]);
-    condTensor->definedOn = ResultInfo::ELEMENT;
+    condTensor->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_COND_TENSOR);
     availResults_.insert(condTensor);
   }
   
@@ -377,7 +377,7 @@ namespace CoupledField {
     potDot->resultType = ELEC_POTENTIAL_DERIV_1;
     potDot->dofNames = "";
     potDot->unit = MapSolTypeToUnit(ELEC_POTENTIAL_DERIV_1);
-    potDot->definedOn = ResultInfo::NODE;
+    potDot->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_POTENTIAL_DERIV_1);
     potDot->entryType = ResultInfo::SCALAR;
     availResults_.insert( potDot );    
     DefineTimeDerivResult( ELEC_POTENTIAL_DERIV_1, 1, ELEC_POTENTIAL );      
@@ -388,7 +388,7 @@ namespace CoupledField {
     ef->SetVectorDOFs(dim_, isaxi_);
     ef->dofNames = vecComponents;
     ef->unit = MapSolTypeToUnit(ELEC_FIELD_INTENSITY);
-    ef->definedOn = ResultInfo::ELEMENT;
+    ef->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_FIELD_INTENSITY);
     ef->entryType = ResultInfo::VECTOR;
     availResults_.insert(ef);
     shared_ptr<CoefFunctionFormBased> eFunc;
@@ -405,7 +405,7 @@ namespace CoupledField {
     flux->resultType = ELEC_CURRENT_DENSITY;
     flux->SetVectorDOFs(dim_, isaxi_);
     flux->unit = MapSolTypeToUnit(ELEC_CURRENT_DENSITY);
-    flux->definedOn = ResultInfo::ELEMENT;
+    flux->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_CURRENT_DENSITY);
     flux->entryType = ResultInfo::VECTOR;
     availResults_.insert(flux);
     shared_ptr<CoefFunctionFormBased> fluxFunc;
@@ -423,7 +423,7 @@ namespace CoupledField {
     fluxNormal->dofNames = "";
     fluxNormal->unit = MapSolTypeToUnit(ELEC_NORMAL_CURRENT_DENSITY);
     fluxNormal->entryType = ResultInfo::SCALAR;
-    fluxNormal->definedOn = ResultInfo::SURF_ELEM;
+    fluxNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_NORMAL_CURRENT_DENSITY);
     availResults_.insert(fluxNormal);
     shared_ptr<CoefFunctionSurf> fluxFctNormal;
     fluxFctNormal.reset(new CoefFunctionSurf(true, -1.0, fluxNormal));
@@ -437,7 +437,7 @@ namespace CoupledField {
     elecCurrent->dofNames = "";
     elecCurrent->unit = MapSolTypeToUnit(ELEC_CURRENT);
     elecCurrent->entryType = ResultInfo::SCALAR;
-    elecCurrent->definedOn = ResultInfo::SURF_REGION; /* cannot output to gmsh */
+    elecCurrent->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_CURRENT);
     // Current = \int \vec j \dot \vec n dA
     shared_ptr<ResultFunctor> elecCurrentFct;
     if (isComplex_) {
@@ -456,7 +456,7 @@ namespace CoupledField {
     dflux->resultType = DISPLACEMENT_CURRENT_FIELD_INTENSITY;
     dflux->SetVectorDOFs(dim_, isaxi_);
     dflux->unit = MapSolTypeToUnit(DISPLACEMENT_CURRENT_FIELD_INTENSITY);
-    dflux->definedOn = ResultInfo::ELEMENT;
+    dflux->definedOn = ResultInfo::MapSolTypeToDefinedOn(DISPLACEMENT_CURRENT_FIELD_INTENSITY);
     dflux->entryType = ResultInfo::VECTOR;
     availResults_.insert(dflux);
     shared_ptr<BaseFeFunction> potDotFct =
@@ -476,7 +476,7 @@ namespace CoupledField {
     dfluxNormal->dofNames = "";
     dfluxNormal->unit = MapSolTypeToUnit(DISPLACEMENT_NORMAL_CURRENT_DENSITY);
     dfluxNormal->entryType = ResultInfo::SCALAR;
-    dfluxNormal->definedOn = ResultInfo::SURF_ELEM;
+    dfluxNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(DISPLACEMENT_NORMAL_CURRENT_DENSITY);
     availResults_.insert(dfluxNormal);
     shared_ptr<CoefFunctionSurf> dfluxFctNormal;
     dfluxFctNormal.reset(new CoefFunctionSurf(true, -1.0, dfluxNormal));
@@ -490,7 +490,7 @@ namespace CoupledField {
     dispCurrent->dofNames = "";
     dispCurrent->unit = MapSolTypeToUnit(DISPLACEMENT_CURRENT_SURF);
     dispCurrent->entryType = ResultInfo::SCALAR;
-    dispCurrent->definedOn = ResultInfo::SURF_REGION; /* cannot output to gmsh */
+    dispCurrent->definedOn = ResultInfo::MapSolTypeToDefinedOn(DISPLACEMENT_CURRENT_SURF);
     // Current = \int \vec j \dot \vec n dA
     shared_ptr<ResultFunctor> dispCurrentFct;
     if (isComplex_) {
@@ -509,7 +509,7 @@ namespace CoupledField {
     edflux->resultType = ELECTRIC_AND_DISPLACEMENT_CURRENT_DENSITY;
     edflux->SetVectorDOFs(dim_, isaxi_);
     edflux->unit = MapSolTypeToUnit(ELECTRIC_AND_DISPLACEMENT_CURRENT_DENSITY);
-    edflux->definedOn = ResultInfo::ELEMENT;
+    edflux->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELECTRIC_AND_DISPLACEMENT_CURRENT_DENSITY);
     edflux->entryType = ResultInfo::VECTOR;
     availResults_.insert( edflux );
     PtrCoefFct totalCurrDensity;
@@ -524,7 +524,7 @@ namespace CoupledField {
     edfluxNormal->dofNames = "";
     edfluxNormal->unit = MapSolTypeToUnit(ELECTRIC_AND_DISPLACEMENT_NORMAL_CURRENT_DENSITY);
     edfluxNormal->entryType = ResultInfo::SCALAR;
-    edfluxNormal->definedOn = ResultInfo::SURF_ELEM;
+    edfluxNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELECTRIC_AND_DISPLACEMENT_NORMAL_CURRENT_DENSITY);
     availResults_.insert( edfluxNormal );
     PtrCoefFct totalCurrNormalDensity;
     totalCurrNormalDensity =
@@ -539,7 +539,7 @@ namespace CoupledField {
     current->dofNames = "";
     current->unit = MapSolTypeToUnit(ELEC_AND_DISPLACEMENT_CURRENT);
     current->entryType = ResultInfo::SCALAR;
-    current->definedOn = ResultInfo::SURF_REGION; /* cannot output to gmsh */
+    current->definedOn = ResultInfo::MapSolTypeToDefinedOn(ELEC_AND_DISPLACEMENT_CURRENT);
     availResults_.insert(current);
     // Current = \int \vec j \dot \vec n dA
     shared_ptr<ResultFunctor> currentFct;

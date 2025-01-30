@@ -1,0 +1,88 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      fvSolution;
+}
+
+solvers
+{
+
+    p
+    {
+            
+    solver           PCG;
+    preconditioner   DIC;
+    tolerance        1e-8;
+    relTol 	         1.0e-3;
+    }
+
+    pFinal
+    {
+        $p;
+        relTol          0;
+    }
+
+    pcorr
+    {
+        $p;
+    }
+
+    pcorrFinal
+    {
+        $pcorr;
+        relTol          0;
+    }
+
+    Phi
+    {
+        $p;
+    }
+
+    U
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-6;
+        relTol          1e-4;
+        minIter         2;
+    }
+
+    UFinal
+    {
+        $U;
+        relTol          0;
+    }
+
+    // The volume mesh deformation is exported to openCFS (DisplacementVolume ->
+    // SmoothPDE) and diffed against the test reference. With the usual loose
+    // tolerances the far field of the motion solve is only ~1e-4-converged and
+    // varies run-to-run (invisible to the flow, but not to the regression test).
+    // The mesh is tiny - solve the motion to machine precision.
+    "cellDisplacement(Final)?"
+    {
+        solver          PCG;
+        preconditioner  DIC;
+        tolerance       1e-12;
+        relTol          0;
+    }
+}
+
+PIMPLE
+{
+    nCorrectors 4;
+    nNonOrthogonalCorrectors 1;
+    // tolerance 1.0e-14;
+    // relTol 5e-3;
+    consistent  true;
+    correctPhi  true;
+    momentumPredictor true; 
+    nOuterCorrectors    1;
+}
+
+
+potentialFlow
+{
+    nNonOrthogonalCorrectors 10;
+}

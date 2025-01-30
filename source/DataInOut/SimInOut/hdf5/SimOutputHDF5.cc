@@ -320,8 +320,10 @@ namespace CoupledField
     regionGroup = CreateGroup(resultGroup, regionName, true);
 
     // try to create subgroup for entity
+    // use_existing: on a checkpoint rewrite (preCICE implicit coupling rolls back and
+    // re-writes the same step) this entity subgroup already exists; open instead of throw.
     LOG_DBG2(h5Out) << "AMR: Create subgroup " << entityString << " for result " << resultName << " on region " << regionName << " in step " << currStep_;
-    subGroup = CreateGroup(regionGroup, entityString);
+    subGroup = CreateGroup(regionGroup, entityString, true);
 
     if( sol->GetEntryType() == BaseMatrix::DOUBLE ) 
     {
@@ -1152,9 +1154,12 @@ namespace CoupledField
     // Create / open group for FeFunction
     fctGroup = CreateGroup(physGroup, fctName, true); // use existing
     
-    // Create group for current step
+    // Create / open group for current step
+    // use_existing: a preCICE implicit-coupling checkpoint rewrites the same step's
+    // database entry on rollback, so the step group may already exist (matches the
+    // pde/fct groups above). Datasets/attributes below overwrite in place.
     std::string stepStr = std::to_string(currStepDb_);
-    stepGroup = CreateGroup(fctGroup, stepStr);
+    stepGroup = CreateGroup(fctGroup, stepStr, true);
     WriteAttribute( stepGroup, "StepValue", currStepValueDb_ );
     
     // Now write coefficients for fefunction

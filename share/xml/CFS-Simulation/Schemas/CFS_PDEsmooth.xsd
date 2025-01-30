@@ -94,6 +94,12 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Externally prescribed whole-domain displacement (optional).
+               When present, the smooth PDE does NOT solve: the field is injected directly
+               into the SMOOTH_DISPLACEMENT solution each step (see PrescribedSolveStep). -->
+          <xsd:element name="prescribedDisplacement" type="DT_SmoothPrescribedDisplacement"
+                       minOccurs="0" maxOccurs="1"/>
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -319,6 +325,17 @@
       <xsd:enumeration value="smoothContactForce"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+ <!-- Externally prescribed whole-domain displacement source.
+      The <vector> provides the displacement field over the domain (value / grid / preCICE,
+      via the usual inhomogeneous-vector content). When this element is present the smooth PDE
+      assembles and solves nothing; the field is written directly into the SMOOTH_DISPLACEMENT
+      solution each step. -->
+  <xsd:complexType name="DT_SmoothPrescribedDisplacement">
+    <xsd:sequence>
+      <xsd:element name="vector" type="DT_BcInhomVector" minOccurs="1" maxOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
 
  <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_SmoothStoreResults">

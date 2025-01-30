@@ -20,6 +20,17 @@ add_standard_mirrors_or_set_local()
 # pure C
 use_c_and_fortran(ON OFF)
 
+# When preCICE is built, boost becomes a shared library (see External_Boost.cmake).
+# A shared libboost_iostreams.so cannot embed the non-PIC static libz.a, so it links
+# the shared libz.so instead - which this cmake build produces anyway alongside the
+# static lib. Pack and ship it, too ("static-dynamic"), so the closed package stays
+# self-contained. DEPS_ID gives a distinct precompiled cache name, otherwise an older
+# static-only zip (without libz.so) would be reused.
+if(CFS_BUILD_PRECICE AND UNIX)
+  set(DEPS_ID "shared")
+  set(DEPS_LIB_TYPE "static-dynamic")
+endif()
+
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 

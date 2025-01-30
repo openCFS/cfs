@@ -63,6 +63,8 @@
 #include "Optimization/Context.hh"
 #include "Optimization/Excitation.hh"
 
+#include "Domain/Results/ResultInfo.hh"
+
 namespace CoupledField {
 
   DEFINE_LOG(mechpde, "mechpde")
@@ -1989,6 +1991,51 @@ namespace CoupledField {
       assemble_->AddLinearForm(ctx);
       myFct->AddEntityList(ent[i]);
     } // for
+
+
+
+    // ===============
+    //  MECH_NORMAL_STRESS
+    // ===============
+    LOG_DBG(mechpde) << "Reading mechanical normal stress";
+    ReadRhsExcitation("mechNormalStress", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
+
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Mechanical normal stress must be defined on elements")
+      }
+      // ensure that list contains only surface elements
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim != (dim_-1) ) {
+        EXCEPTION("Mechanical normal stress can only be defined on surface elements");
+      }
+
+      if( dim_ == 2) {
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
+                  Complex(1.0), coef[i], coefUpdateGeo);
+        } else {
+          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
+                  1.0, coef[i],coefUpdateGeo);
+        }
+      } else  {
+        if(isComplex_) {
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(),
+                  Complex(1.0), coef[i], coefUpdateGeo);
+        } else {
+          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
+                  1.0, coef[i], coefUpdateGeo);
+        }
+      }
+      lin->SetName("normalStressInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    } // for
     
     
     
@@ -2661,7 +2708,7 @@ namespace CoupledField {
     disp->unit = "m";
     disp->entryType = ResultInfo::VECTOR;
     disp->SetFeFunction(feFunctions_[MECH_DISPLACEMENT]);
-    disp->definedOn = ResultInfo::NODE;
+    disp->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_DISPLACEMENT);
     feFunctions_[MECH_DISPLACEMENT]->SetResultInfo(disp);
 
     // -----------------------------------
@@ -2705,7 +2752,7 @@ namespace CoupledField {
       vel->dofNames = dispDofNames;
       vel->unit = "m/s";
       vel->entryType = ResultInfo::VECTOR;
-      vel->definedOn = ResultInfo::NODE;
+      vel->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_VELOCITY);
       availResults_.insert( vel );
       DefineTimeDerivResult( MECH_VELOCITY, 1, MECH_DISPLACEMENT );
       vFct = timeDerivFeFunctions_[MECH_VELOCITY];
@@ -2717,7 +2764,7 @@ namespace CoupledField {
       velElem->dofNames = dispDofNames;
       velElem->unit = "m/s";
       velElem->entryType = ResultInfo::VECTOR;
-      velElem->definedOn = ResultInfo::ELEMENT;
+      velElem->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_VELOCITY_ELEM);
       availResults_.insert( velElem );
       PtrCoefFct velFct= this->GetCoefFct( MECH_VELOCITY );
       PtrCoefFct velFctCoef;
@@ -2732,7 +2779,7 @@ namespace CoupledField {
       acc->dofNames = dispDofNames;
       acc->unit = "m/s^2";
       acc->entryType = ResultInfo::VECTOR;
-      acc->definedOn = ResultInfo::NODE;
+      acc->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_ACCELERATION);
       availResults_.insert( acc );
       DefineTimeDerivResult( MECH_ACCELERATION, 2, MECH_DISPLACEMENT );
       aFct = timeDerivFeFunctions_[MECH_ACCELERATION];
@@ -2745,7 +2792,7 @@ namespace CoupledField {
     rhs->dofNames = dispDofNames;
     rhs->unit = "N";
     rhs->entryType = ResultInfo::VECTOR;
-    rhs->definedOn = ResultInfo::NODE;
+    rhs->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_RHS_LOAD);
     rhsFeFunctions_[MECH_DISPLACEMENT]->SetResultInfo(rhs);
     DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
     
@@ -2756,7 +2803,7 @@ namespace CoupledField {
     stress->dofNames = stressComponents;
     stress->unit =  "N/m^2";
     stress->entryType = ResultInfo::TENSOR;
-    stress->definedOn = ResultInfo::ELEMENT;
+    stress->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_STRESS);
     PtrCoefFct stressCoef;
     
     shared_ptr<CoefFunctionFormBased> sigmaFunc;
@@ -2803,7 +2850,7 @@ namespace CoupledField {
     }
     principalstress->unit =  "N/m^2";
     principalstress->entryType = ResultInfo::VECTOR;
-    principalstress->definedOn = ResultInfo::ELEMENT;
+    principalstress->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRESS);
     
     
     //Variante principal stress CACHE, stress NO CACHE
@@ -2817,7 +2864,7 @@ namespace CoupledField {
     principalstress_min->dofNames = dispDofNames;
     principalstress_min->unit = "N/m^2";
     principalstress_min->entryType = ResultInfo::VECTOR;
-    principalstress_min->definedOn = ResultInfo::ELEMENT;
+    principalstress_min->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRESS_MIN);
     
     // === MECHANIC MINIMUM PRINCIPAL STRESS - SCALAR ===
     shared_ptr<ResultInfo> principalstress_min_scal(new ResultInfo);
@@ -2825,7 +2872,7 @@ namespace CoupledField {
     principalstress_min_scal->dofNames = "min";
     principalstress_min_scal->unit = "N/m^2";
     principalstress_min_scal->entryType = ResultInfo::SCALAR;
-    principalstress_min_scal->definedOn = ResultInfo::ELEMENT;
+    principalstress_min_scal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRESS_MIN_SCAL);
     
     // === MECHANIC MAXIMUM PRINCIPAL STRESS - VECTOR ===
     shared_ptr<ResultInfo> principalstress_max(new ResultInfo);
@@ -2833,7 +2880,7 @@ namespace CoupledField {
     principalstress_max->dofNames = dispDofNames;
     principalstress_max->unit = "N/m^2";
     principalstress_max->entryType = ResultInfo::VECTOR;
-    principalstress_max->definedOn = ResultInfo::ELEMENT;
+    principalstress_max->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRESS_MAX);
     
     // === MECHANIC MAXIMUM PRINCIPAL STRESS - SCALAR ===
     shared_ptr<ResultInfo> principalstress_max_scal(new ResultInfo);
@@ -2841,7 +2888,7 @@ namespace CoupledField {
     principalstress_max_scal->dofNames = "max";
     principalstress_max_scal->unit = "N/m^2";
     principalstress_max_scal->entryType = ResultInfo::SCALAR;
-    principalstress_max_scal->definedOn = ResultInfo::ELEMENT;
+    principalstress_max_scal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRESS_MAX_SCAL);
     
     // === MECHANIC MEDIUM PRINCIPAL STRESS - VECTOR ===
     shared_ptr<ResultInfo> principalstress_med(new ResultInfo);
@@ -2849,7 +2896,7 @@ namespace CoupledField {
     principalstress_med->dofNames = dispDofNames;
     principalstress_med->unit = "N/m^2";
     principalstress_med->entryType = ResultInfo::VECTOR;
-    principalstress_med->definedOn = ResultInfo::ELEMENT;
+    principalstress_med->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRESS_MED);
     
     // === MECHANIC MEDIUM PRINCIPAL STRESS - SCALAR ===
     shared_ptr<ResultInfo> principalstress_med_scal(new ResultInfo);
@@ -2857,7 +2904,7 @@ namespace CoupledField {
     principalstress_med_scal->dofNames = "med";
     principalstress_med_scal->unit = "N/m^2";
     principalstress_med_scal->entryType = ResultInfo::SCALAR;
-    principalstress_med_scal->definedOn = ResultInfo::ELEMENT;
+    principalstress_med_scal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRESS_MED_SCAL);
     
     shared_ptr<CoefFunctionCompound<Double> > prinStressCoefMin(new CoefFunctionCompound<Double>(mp_));
     shared_ptr<CoefFunctionCompound<Double> > prinStressCoefMax(new CoefFunctionCompound<Double>(mp_));
@@ -2937,7 +2984,7 @@ namespace CoupledField {
       stress->dofNames = stressComponents;
       stress->unit =  "N/m^2";
       stress->entryType = ResultInfo::TENSOR;
-      stress->definedOn = ResultInfo::ELEMENT;
+      stress->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_THERMAL_STRESS);
       DefineFieldResult( thermalStress_, stress );
     }
     
@@ -2950,7 +2997,7 @@ namespace CoupledField {
     misesStress->dofNames = "";
     misesStress->unit = "N/m^2";
     misesStress->entryType = ResultInfo::SCALAR;
-    misesStress->definedOn = ResultInfo::ELEMENT;
+    misesStress->definedOn = ResultInfo::MapSolTypeToDefinedOn(VON_MISES_STRESS);
     if ( !isComplex_ ) {
       shared_ptr<CoefFunctionCompound<Double> > misesCoef(new CoefFunctionCompound<Double>(mp_));
       std::map<std::string, PtrCoefFct> var;
@@ -2989,7 +3036,7 @@ namespace CoupledField {
     strain->dofNames = stressComponents;
     strain->unit =  "";
     strain->entryType = ResultInfo::TENSOR;
-    strain->definedOn = ResultInfo::ELEMENT;
+    strain->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_STRAIN);
     shared_ptr<CoefFunctionFormBased> strainFunc;
     if( isComplex_ ) {
       strainFunc.reset(new CoefFunctionBOp<Complex>(feFct, strain));
@@ -3011,7 +3058,7 @@ namespace CoupledField {
     }
     principalstrain->unit =  "";
     principalstrain->entryType = ResultInfo::VECTOR;
-    principalstrain->definedOn = ResultInfo::ELEMENT;
+    principalstrain->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRAIN);
     
     // === MECHANIC MINIMUM PRINCIPAL STRAIN - VECTOR ===
     shared_ptr<ResultInfo> principalstrain_min(new ResultInfo);
@@ -3019,7 +3066,7 @@ namespace CoupledField {
     principalstrain_min->dofNames = dispDofNames;
     principalstrain_min->unit = "";
     principalstrain_min->entryType = ResultInfo::VECTOR;
-    principalstrain_min->definedOn = ResultInfo::ELEMENT;
+    principalstrain_min->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRAIN_MIN);
     
     // === MECHANIC MINIMUM PRINCIPAL STRAIN - SCALAR ===
     shared_ptr<ResultInfo> principalstrain_min_scal(new ResultInfo);
@@ -3027,7 +3074,7 @@ namespace CoupledField {
     principalstrain_min_scal->dofNames = "";
     principalstrain_min_scal->unit = "";
     principalstrain_min_scal->entryType = ResultInfo::SCALAR;
-    principalstrain_min_scal->definedOn = ResultInfo::ELEMENT;
+    principalstrain_min_scal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRAIN_MIN_SCAL);
     
     // === MECHANIC MAXIMUM PRINCIPAL STRAIN - VECTOR ===
     shared_ptr<ResultInfo> principalstrain_max(new ResultInfo);
@@ -3035,7 +3082,7 @@ namespace CoupledField {
     principalstrain_max->dofNames = dispDofNames;
     principalstrain_max->unit = "";
     principalstrain_max->entryType = ResultInfo::VECTOR;
-    principalstrain_max->definedOn = ResultInfo::ELEMENT;
+    principalstrain_max->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRAIN_MAX);
     
     // === MECHANIC MAXIMUM PRINCIPAL STRAIN - SCALAR ===
     shared_ptr<ResultInfo> principalstrain_max_scal(new ResultInfo);
@@ -3043,7 +3090,7 @@ namespace CoupledField {
     principalstrain_max_scal->dofNames = "";
     principalstrain_max_scal->unit = "";
     principalstrain_max_scal->entryType = ResultInfo::SCALAR;
-    principalstrain_max_scal->definedOn = ResultInfo::ELEMENT;
+    principalstrain_max_scal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRAIN_MAX_SCAL);
     
     // === MECHANIC MEDIUM PRINCIPAL STRAIN - VECTOR ===
     shared_ptr<ResultInfo> principalstrain_med(new ResultInfo);
@@ -3051,7 +3098,7 @@ namespace CoupledField {
     principalstrain_med->dofNames = dispDofNames;
     principalstrain_med->unit = "";
     principalstrain_med->entryType = ResultInfo::VECTOR;
-    principalstrain_med->definedOn = ResultInfo::ELEMENT;
+    principalstrain_med->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRAIN_MED);
     
     // === MECHANIC MEDIUM PRINCIPAL STRAIN - SCALAR ===
     shared_ptr<ResultInfo> principalstrain_med_scal(new ResultInfo);
@@ -3059,7 +3106,7 @@ namespace CoupledField {
     principalstrain_med_scal->dofNames = "";
     principalstrain_med_scal->unit = "";
     principalstrain_med_scal->entryType = ResultInfo::SCALAR;
-    principalstrain_med_scal->definedOn = ResultInfo::ELEMENT;
+    principalstrain_med_scal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PRINCIPAL_STRAIN_MED_SCAL);
     
     shared_ptr<CoefFunctionEigen> prinStrainCoef(new CoefFunctionEigen(feFct, principalstrain, strainFunc));
     shared_ptr<CoefFunctionCache<Double> > prinStrainCoefCache(new CoefFunctionCache<Double>(feFct, principalstrain, prinStrainCoef));
@@ -3143,7 +3190,7 @@ namespace CoupledField {
       thermalStrain->dofNames = stressComponents;
       thermalStrain->unit =  "";
       thermalStrain->entryType = ResultInfo::TENSOR;
-      thermalStrain->definedOn = ResultInfo::ELEMENT;
+      thermalStrain->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_THERMAL_STRAIN);
       DefineFieldResult( thermalStrain_, thermalStrain );
     }
     
@@ -3159,7 +3206,7 @@ namespace CoupledField {
       intens->dofNames = dispDofNames ;
       intens->unit =  "N/ms";
       intens->entryType = ResultInfo::VECTOR;
-      intens->definedOn = ResultInfo::ELEMENT;
+      intens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_STRUCT_INTENSTIY);
       
       // The mechanic structural intensity calculates as
       // I = -[stress] * conj(v)
@@ -3177,7 +3224,7 @@ namespace CoupledField {
       kinEnergyDens->dofNames = "";
       kinEnergyDens->unit = "Ws/m^3";
       kinEnergyDens->entryType = ResultInfo::SCALAR;
-      kinEnergyDens->definedOn = ResultInfo::ELEMENT;
+      kinEnergyDens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_KIN_ENERGY_DENS);
       if( isComplex_ ) {
         kedFunc.reset(new CoefFunctionBdBKernel<Complex>(vFct, 0.5));
       } else {
@@ -3193,7 +3240,7 @@ namespace CoupledField {
       kinEnergy->dofNames = "";
       kinEnergy->unit = "Ws";
       kinEnergy->entryType = ResultInfo::SCALAR;
-      kinEnergy->definedOn = ResultInfo::REGION;
+      kinEnergy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_KIN_ENERGY);
       availResults_.insert ( kinEnergy );
       if( isComplex_ ) {
         keFunc.reset(new EnergyResultFunctor<Complex>(vFct, kinEnergy, 0.5));
@@ -3209,7 +3256,7 @@ namespace CoupledField {
       intensNormal->dofNames = "" ;
       intensNormal->unit =  "N/ms";
       intensNormal->entryType = ResultInfo::SCALAR;
-      intensNormal->definedOn = ResultInfo::SURF_ELEM;
+      intensNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_NORMAL_STRUCT_INTENSITY);
       sNormStructIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
       DefineFieldResult( sNormStructIntens, intensNormal );
       surfCoefFcts_[sNormStructIntens] = intensFct;
@@ -3220,7 +3267,7 @@ namespace CoupledField {
       power->dofNames = "";
       power->unit = "W";
       power->entryType = ResultInfo::SCALAR;
-      power->definedOn = ResultInfo::SURF_REGION;
+      power->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_POWER);
       availResults_.insert( power );
       // then, integrate values
       if(isComplex_)
@@ -3237,7 +3284,7 @@ namespace CoupledField {
     quadDisp->dofNames = "";
     quadDisp->unit = "m^2";
     quadDisp->entryType = ResultInfo::SCALAR;
-    quadDisp->definedOn = ResultInfo::ELEMENT;
+    quadDisp->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_QUAD_DISP);
     shared_ptr<CoefFunctionFormBased> quad;
     if(isComplex_)
       quad.reset(new CoefFunctionQuadSol<Complex>(feFct));
@@ -3251,7 +3298,7 @@ namespace CoupledField {
     quadDispSum->dofNames = "";
     quadDispSum->unit = "m^2";
     quadDispSum->entryType = ResultInfo::SCALAR;
-    quadDispSum->definedOn = ResultInfo::REGION;
+    quadDispSum->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_QUAD_DISP_SUM);
     availResults_.insert( quadDispSum );
     shared_ptr<ResultFunctor> qdsFunc;
     if(isComplex_)
@@ -3266,7 +3313,7 @@ namespace CoupledField {
     dyadicStrain->dofNames = "e11", "e12", "e13", "e21", "e22", "e23", "e31", "e32", "e33";
     dyadicStrain->unit = "m/m";
     dyadicStrain->entryType = ResultInfo::TENSOR;
-    dyadicStrain->definedOn = ResultInfo::ELEMENT;
+    dyadicStrain->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_DYADIC_STRAIN);
     shared_ptr<CoefFunctionFormBased> dyadic;
     if(isComplex_)
       dyadic.reset(new CoefFunctionDyadicStrain<Complex>(feFct));
@@ -3281,7 +3328,7 @@ namespace CoupledField {
     dyadicStrainSum->dofNames = "e11", "e12", "e13", "e21", "e22", "e23", "e31", "e32", "e33";
     dyadicStrainSum->unit = "m/m";
     dyadicStrainSum->entryType = ResultInfo::TENSOR;
-    dyadicStrainSum->definedOn = ResultInfo::REGION;
+    dyadicStrainSum->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_DYADIC_STRAIN_SUM);
     availResults_.insert( dyadicStrainSum );
     shared_ptr<ResultFunctor> dssFunc;
     if(isComplex_)
@@ -3296,7 +3343,7 @@ namespace CoupledField {
     defEnergyDens->dofNames = "";
     defEnergyDens->unit = "Ws/m^3";
     defEnergyDens->entryType = ResultInfo::SCALAR;
-    defEnergyDens->definedOn = ResultInfo::ELEMENT;
+    defEnergyDens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_DEFORM_ENERGY_DENS);
     shared_ptr<CoefFunctionFormBased> dedFunc;
     if( isComplex_ ) {
       dedFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
@@ -3313,7 +3360,7 @@ namespace CoupledField {
     defEnergy->dofNames = "";
     defEnergy->unit = "Ws";
     defEnergy->entryType = ResultInfo::SCALAR;
-    defEnergy->definedOn = ResultInfo::REGION;
+    defEnergy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_DEFORM_ENERGY);
     availResults_.insert( defEnergy );
     shared_ptr<ResultFunctor> deFunc;
     if(isComplex_)
@@ -3330,7 +3377,7 @@ namespace CoupledField {
     totEnergyDens->dofNames = "";
     totEnergyDens->unit = "Ws";
     totEnergyDens->entryType = ResultInfo::SCALAR;
-    totEnergyDens->definedOn = ResultInfo::ELEMENT;
+    totEnergyDens->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_TOTAL_ENERGY_DENS);
     shared_ptr<CoefFunction> tedFunc;
     // in static and buckling analysis, the total energy density equals the deformation one
     if (analysistype_ == STATIC  || analysistype_ == BUCKLING)
@@ -3345,7 +3392,7 @@ namespace CoupledField {
     tEnergy->dofNames = "";
     tEnergy->unit = "Ws";
     tEnergy->entryType = ResultInfo::SCALAR;
-    tEnergy->definedOn = ResultInfo::REGION;
+    tEnergy->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_TOTAL_ENERGY);
     availResults_.insert( tEnergy );
     shared_ptr<ResultFunctor> teFunc;
     if( isComplex_ ) {
@@ -3366,7 +3413,7 @@ namespace CoupledField {
     dispNormal->dofNames = "";
     dispNormal->unit = "m";
     dispNormal->entryType = ResultInfo::SCALAR;
-    dispNormal->definedOn = ResultInfo::SURF_ELEM;
+    dispNormal->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_NORMAL_DISPLACEMENT);
     
     dispFctNormal.reset(new CoefFunctionSurf(true, 1.0, dispNormal));
     DefineFieldResult(dispFctNormal, dispNormal);
@@ -3377,7 +3424,7 @@ namespace CoupledField {
     dispVol->dofNames = "";
     dispVol->unit = "m^3";
     dispVol->entryType = ResultInfo::SCALAR;
-    dispVol->definedOn = ResultInfo::SURF_REGION;
+    dispVol->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_DEF_SURF_VOLUME);
     // Integrate normal displacement
     shared_ptr<ResultFunctor> dispVolFct;
     if(isComplex_)
@@ -3395,7 +3442,7 @@ namespace CoupledField {
     normalStressInfo->dofNames = dispDofNames;
     normalStressInfo->unit = "Pa";
     normalStressInfo->entryType = ResultInfo::VECTOR;
-    normalStressInfo->definedOn = ResultInfo::SURF_ELEM;
+    normalStressInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_NORMAL_STRESS);
     
     normalStressFct.reset(new CoefFunctionSurf(true, 1.0, normalStressInfo));
     DefineFieldResult(normalStressFct, normalStressInfo);
@@ -3408,7 +3455,7 @@ namespace CoupledField {
     reactionForceInfo->dofNames = dispDofNames;
     reactionForceInfo->unit = "N";
     reactionForceInfo->entryType = ResultInfo::VECTOR;
-    reactionForceInfo->definedOn = ResultInfo::SURF_REGION;
+    reactionForceInfo->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_FORCE);
     // Integrate surface traction
     shared_ptr<ResultFunctor> reactionForceFct;
     if(isComplex_)
@@ -3428,7 +3475,7 @@ namespace CoupledField {
 
     mech_tensor_hm->unit = "Pa";
     mech_tensor_hm->entryType = ResultInfo::TENSOR;
-    mech_tensor_hm->definedOn = ResultInfo::ELEMENT;
+    mech_tensor_hm->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_TENSOR_HILL_MANDEL);
     shared_ptr<CoefFunctionFormBased> stiff_coef_hm;
     if(isComplex_) // does not really handle the case where only some regions have complex material
       stiff_coef_hm.reset(new CoefFunctionHomogenization<Complex, App::MECH>(feFct, HILL_MANDEL));
@@ -3447,7 +3494,7 @@ namespace CoupledField {
 
     mech_tensor->unit = "Pa";
     mech_tensor->entryType = ResultInfo::TENSOR;
-    mech_tensor->definedOn = ResultInfo::ELEMENT;
+    mech_tensor->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_TENSOR);
     shared_ptr<CoefFunctionFormBased> stiff_coef;
     if(isComplex_) // does not really handle the case where only some regions have complex material
       stiff_coef.reset(new CoefFunctionHomogenization<Complex, App::MECH>(feFct, VOIGT));
@@ -3462,7 +3509,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> mpd(new ResultInfo);
     mpd->resultType = MECH_PSEUDO_DENSITY;
     mpd->entryType = ResultInfo::SCALAR;
-    mpd->definedOn = ResultInfo::ELEMENT;
+    mpd->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_PSEUDO_DENSITY);
     mpd->dofNames = "";
     mpd->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
@@ -3471,7 +3518,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> ppd(new ResultInfo);
     ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
     ppd->entryType = ResultInfo::SCALAR;
-    ppd->definedOn = ResultInfo::ELEMENT;
+    ppd->definedOn = ResultInfo::MapSolTypeToDefinedOn(PHYSICAL_PSEUDO_DENSITY);
     ppd->dofNames = "";
     ppd->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
@@ -3482,7 +3529,7 @@ namespace CoupledField {
     mtt->dofNames = "Tr(E)";
     mtt->unit = "Pa";
     mtt->entryType = ResultInfo::SCALAR;
-    mtt->definedOn = ResultInfo::ELEMENT;
+    mtt->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_TENSOR_TRACE);
     mtt->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mtt);
     
@@ -3492,7 +3539,7 @@ namespace CoupledField {
     ms->dofNames = dispDofNames;
     ms->unit = "m";
     ms->entryType = ResultInfo::VECTOR;
-    ms->definedOn = ResultInfo::NODE;
+    ms->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_SHAPE);
     ms->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ms);
     
@@ -3502,7 +3549,7 @@ namespace CoupledField {
     mev->dofNames = "elemVol";
     mev->unit = "";
     mev->entryType = ResultInfo::SCALAR;
-    mev->definedOn = ResultInfo::ELEMENT;
+    mev->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_ELEM_VOL);
     mev->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mev);
 
@@ -3512,7 +3559,7 @@ namespace CoupledField {
     mep->dofNames = "elemPorosity";
     mep->unit = "";
     mep->entryType = ResultInfo::SCALAR;
-    mep->definedOn = ResultInfo::ELEMENT;
+    mep->definedOn = ResultInfo::MapSolTypeToDefinedOn(MECH_ELEM_POROSITY);
     mep->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mep);
 

@@ -296,6 +296,9 @@ namespace CoupledField
      * Is abstract in the BaseClass - it is poor design to enforce abstract methods,
      * when they are not really necessary */
     virtual void PreStepStatic() override {}
+
+    //! forward to all contained PDEs (see BaseSolveStep::RefreshPrescribed())
+    virtual void RefreshPrescribed() override;
  
     /** base method for solving one static step */
     virtual void SolveStepStatic() override;

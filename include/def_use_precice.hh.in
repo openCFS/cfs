@@ -1,0 +1,4 @@
+// Define used to check if precice is used
+
+#cmakedefine USE_PRECICE @USE_PRECICE@
+

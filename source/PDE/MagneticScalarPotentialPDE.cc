@@ -361,7 +361,7 @@ namespace CoupledField
     res1->resultType = MAG_POTENTIAL;
     res1->dofNames = "";
     res1->unit = "A";
-    res1->definedOn = ResultInfo::NODE;
+    res1->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_POTENTIAL);
     res1->entryType = ResultInfo::SCALAR;
     feFunctions_[MAG_POTENTIAL]->SetResultInfo(res1);
     res1->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
@@ -403,7 +403,7 @@ namespace CoupledField
     ef->resultType = MAG_FIELD_INTENSITY;
     ef->dofNames = vecDofNames;
     ef->unit = "A/m";
-    ef->definedOn = ResultInfo::ELEMENT;
+    ef->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FIELD_INTENSITY);
     ef->entryType = ResultInfo::VECTOR;
     // The recipe about how to actually evaluate H, is defined in FinalizePostProcResults()
     shared_ptr<CoefFunctionMulti> hIntensFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
@@ -418,7 +418,7 @@ namespace CoupledField
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
       perm->dofNames = "xx", "yy", "xy";
       perm->unit = "Vs/Am";
-      perm->definedOn = ResultInfo::ELEMENT;
+      perm->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_PERMEABILITY);
       perm->entryType = ResultInfo::TENSOR;
       perm_coef.reset(new CoefFunctionHomogenization<double, App::MAG>(feFct));
       DefineFieldResult(perm_coef , perm);
@@ -426,7 +426,7 @@ namespace CoupledField
     }else{
       perm->dofNames = "";
       perm->unit = "Vs/Am";
-      perm->definedOn = ResultInfo::ELEMENT;
+      perm->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_ELEM_PERMEABILITY);
       perm->entryType = ResultInfo::SCALAR;
       DefineFieldResult( perm_, perm );
     }
@@ -437,7 +437,7 @@ namespace CoupledField
     bf->resultType = MAG_FLUX_DENSITY;
     bf->dofNames = vecDofNames;
     bf->unit = "T";
-    bf->definedOn = ResultInfo::ELEMENT;
+    bf->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_FLUX_DENSITY);
     bf->entryType = ResultInfo::VECTOR;
     // The recipe about how to actually evaluate B, is defined in FinalizePostProcResults()
     shared_ptr<CoefFunctionMulti> bFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
@@ -448,7 +448,7 @@ namespace CoupledField
     hf->resultType = MAG_POTENTIAL_DIV;
     hf->dofNames = vecDofNames;
     hf->unit = "A/m";
-    hf->definedOn = ResultInfo::ELEMENT;
+    hf->definedOn = ResultInfo::MapSolTypeToDefinedOn(MAG_POTENTIAL_DIV);
     hf->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> hFunc;
     hFunc.reset(new CoefFunctionBOp<Double>(feFct, hf, -1.0));
