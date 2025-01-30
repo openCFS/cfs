@@ -2,13 +2,11 @@
 #define CFS_HH_
 
 #include "Utils/StdVector.hh"
+//#include "Utils/preciceAdapter/PreciceAdapter.hh"
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/DefineInOutFiles.hh"
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
 
-#include "def_use_precice.hh"
-#ifdef USE_PRECICE
-#   include <precice.hpp>
-#endif
 
 namespace CoupledField
 {
@@ -18,11 +16,7 @@ namespace CoupledField
   class LogConfigurator;
   class SimState;
   
-#ifdef USE_PRECICE
-  using Participant = precice::Participant;
-#else
-  class Participant;
-#endif
+
 
   /** This is the base class of CFS.
    * It basically gives more structure for the original main() call. */
@@ -87,8 +81,8 @@ namespace CoupledField
     
     std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
 
-    /** Object for interaction with precice library */
-    Participant* participant_;
+    std::unique_ptr<IPreciceAdapter> preciceAdapter_;
+
   };
 }
 #endif /* CFS_HH_ */

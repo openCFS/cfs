@@ -36,6 +36,7 @@
 #include "petsc.h"
 #include "OLAS/external/petsc/PETSCSolver.hh"
 #endif
+#include "Utils/preciceAdapter/PreciceAdapterFactory.hh"
 
 
 
@@ -189,7 +190,12 @@ CFS::CFS(int argc, const char **argv) :
     env->Get("host")->SetValue(hostname_);
   
   infoNode->ToFile("", true);
+
+  // Initialize the PreCICE Adapter using the factory
+  preciceAdapter_ = CreatePreciceAdapter(paramNode_);
+  preciceAdapter_->initialize();
 }
+
 
 
 CFS::~CFS()
@@ -243,31 +249,6 @@ int CFS::Run()
 
     SetupIO(paramNode_);
 
-    // =====================================================================================================================
-    // ============================= precice start =========================================================================
-#ifdef USE_PRECICE
-    // according to the tutorial on how to couple to precice https://precice.org/couple-your-code-steering-methods.html,
-    // we need rank and size of the "current thread". However, in openCFS, we are using
-    // openMP. MPI is only used when compiling with PETSC
-    int rank = 0;//omp_get_thread_num(); //0;
-    int size = 1;
-    // Initialize preCICE participant
-    std::string participantName, configFileName;
-    paramNode_->Get("fileFormats/preciceCoupling/participantName")->GetValue("name", participantName);
-    paramNode_->Get("fileFormats/preciceCoupling/precice_configFile")->GetValue("file", configFileName);
-
-    participant_ = new precice::Participant(participantName, configFileName, rank, size);
-
-    participant_->initialize();
-    // participant.advance(10);
-    // participant.finalize();
-#endif
-    // =====================================================================================================================
-    // ============================= precice end =========================================================================
-
-
-
-
     domain = new Domain( gridInputs, resultHandler, materialHandler,
         simState, paramNode_, infoNode );
 
@@ -276,6 +257,7 @@ int CFS::Run()
 
     // if a python function is registered, call it.
     python->CallHook(PythonKernel::POST_GRID);
+
 
     if(progOpts->GetPrintGrid())
       PrintGrid();

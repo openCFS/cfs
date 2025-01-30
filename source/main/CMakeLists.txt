@@ -21,9 +21,10 @@ SET(TARGET_LL
   utils
   datainout
   paramh
-  utils
   domain
   elemmapping
+  ipreciceadapter
+  preciceadapter
   ${CFS_FORTRAN_DYNRT_LIBS} )
 
 IF(USE_XERCES)
@@ -57,6 +58,7 @@ ENDIF(DEPS_SEQUENTIAL)
 # lapack is in NETLIB, OPENBLAS and MKL
 # LIST(APPEND TARGET_LL -lpthread -lquadmath )
 
+
 SET(CFS_LINK_FLAGS "")
 
 # Even if we did not compile openCFS itself with OpenMP enabled, we may have
@@ -68,26 +70,6 @@ ENDIF()
 IF(CMAKE_GENERATOR STREQUAL "Visual Studio 16 2019")
   SET(INTEL_LIB_DIR "${INTEL_COMPILER_DIR}/../../compiler/lib/intel64_win")
   TARGET_LINK_DIRECTORIES(cfs PUBLIC ${INTEL_LIB_DIR})
-ENDIF()
-
-IF(USE_PRECICE)
-  find_package(precice CONFIG REQUIRED)
-
-  # Retrieve the interface include directories from the imported target
-  get_target_property(precice_includes precice::precice INTERFACE_INCLUDE_DIRECTORIES)
-  message(STATUS "Using preCICE include directories: ${precice_includes}")
-
-  # Append the 'precice' subdirectory to the existing include paths
-  # I really don't know why precice config misses the /precice path...
-  foreach(dir ${precice_includes})
-    list(APPEND corrected_includes "${dir}/precice")
-  endforeach()
-
-  message(STATUS "Corrected preCICE include directories: ${corrected_includes}")
-
-  # Add these include directories to the target
-  target_include_directories(cfs PRIVATE ${corrected_includes})
-  LIST(APPEND TARGET_LL precice::precice)
 ENDIF()
 
 # Target link libraries for openCFS executable target.
