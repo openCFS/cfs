@@ -273,7 +273,7 @@ Testsuite:
     - job: testsuite-revision
     - job: linux:gcc14-musl
       optional: true
-    - job: windows:MSVC2022-Ifort2021
+    - job: windows:msvc2022
       optional: true
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
@@ -693,7 +693,7 @@ cfsdeps:gcc14-musl:
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS # add the MUSL-options
     IMAGE: alpine
 
-cfsdeps:MSVC2022-Ifort2021:
+cfsdeps:msvc2022:
   extends: .windows-shared-build
   stage: cfsdeps
   rules:
@@ -712,7 +712,7 @@ cfsdeps:MSVC2022-Ifort2021:
     expire_in: 12 hours
   # Set optional needs for install job (only available for clear-cache case)
   needs:
-    - job: install:MSVC2022-Ifort2021
+    - job: install:msvc2022
       optional: true
 
 #######################################################################
@@ -1018,12 +1018,12 @@ linux:clang-debug:
       optional: true
 
 # windows build
-windows:MSVC2022-Ifort2021:
+windows:msvc2022:
   extends: .windows-shared-build
   stage: build
   <<: *release_build_rules
   variables:
-    BUILD_NAME: "MSVC2022-Ifort2021"
+    BUILD_NAME: "msvc2022"
     # see https://yaml-multiline.info/ for multiline info
     BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
@@ -1037,8 +1037,8 @@ windows:MSVC2022-Ifort2021:
   script:
     # inherit the standard script, then extend by mv command
     - !reference [.windows-shared-build, script]
-    # rename packaged file to branch-based name
-    - mv "CFS-$CI_COMMIT_SHA-win64.zip" "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
+    # rename packaged file to branch-based name - ignore a possible -modified variant
+    - mv "CFS-$CI_COMMIT_SHA*-win64.zip" "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
   artifacts:
     when: always
     paths:
@@ -1047,9 +1047,9 @@ windows:MSVC2022-Ifort2021:
     expire_in: 1 days
   needs:
     # set the needs to 'optional' since the cfsdeps job might not be present
-    - job: cfsdeps:MSVC2022-Ifort2021
+    - job: cfsdeps:msvc2022
       optional: true
-    - job: install:MSVC2022-Ifort2021
+    - job: install:msvc2020
       optional: true
 
 
@@ -1286,22 +1286,22 @@ unstable_ser:intel:linux:
     - linux:intel
 
 # windows tests
-stable_ser:MSVC2022-Ifort2021:windows:
+stable_ser:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2022-Ifort2021 / stable serial
+    BUILD_NAME: msvc2022 / stable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script: 
     - !reference [.windows-test_stable, script]
   needs:
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
-stable_par:MSVC2022-Ifort2021:windows:
+stable_par:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2022-Ifort2021 / stable parallel
+    BUILD_NAME: msvc2022 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
   script: 
     - !reference [.windows-test_stable, script]
@@ -1317,18 +1317,18 @@ stable_par:MSVC2022-Ifort2021:windows:
       allow_failure: true
     - !reference [.ctest_default, rules]
   needs:
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
-unstable_ser:MSVC2022-Ifort2021:windows:
+unstable_ser:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2022-Ifort2021 / unstable serial
+    BUILD_NAME: msvc2022 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_unstable, script]
   needs:
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
 python:linux:
   image: $BUILD_ENVIRONMENT_REGISTRY/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
@@ -1511,18 +1511,18 @@ broken_ser:intel:linux:
   needs:
     - linux:intel
 
-broken_ser:MSVC2022-Ifort2021:windows:
+broken_ser:msvc2022:windows:
   extends: .windows-shared-test
   stage: test_extra
   rules:
     - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: MSVC2022-Ifort2021 / broken serial
+    BUILD_NAME: msvc2022 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_broken, script]
   needs:
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
 #######################################################################
 # DOCS STAGE - Documentation jobs
@@ -1660,7 +1660,7 @@ pages:
   before_script: []
   needs:
     - linux:gcc14-musl
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
 repack-release: # publish release packages (when a tag is pushed)
   extends: .package-release_common

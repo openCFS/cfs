@@ -65,7 +65,7 @@
   <<: *windows-shared_tags
   variables:
     INTEL_INSTALL_DIR: $CI_PROJECT_DIR\cache\oneAPI
-    FC: ifort
+    FC: ifx
     #CI_DEBUG_TRACE: "true"
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
@@ -85,7 +85,6 @@
         prefix: windows-shared-install
         files:
         - .gitlab/ci/windows-shared-runner_install-build-tools.ps1
-        - .gitlab/ci/install_windows.bat
       paths:
         - cache
       policy: $INSTALL_POLICY
