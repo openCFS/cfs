@@ -5,7 +5,7 @@
 #include <fstream>
 #include <iomanip>
 #include <boost/lexical_cast.hpp>
-#include <boost/timer/progress_display.hpp>
+//#include <boost/timer/progress_display.hpp>
 
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -504,10 +504,10 @@ namespace CoupledField
 
       // Total work: numElement x numForms
       std::stringstream progStream;
-      boost::timer::progress_display progress( size*forms.GetSize(), progStream );
+      //boost::timer::progress_display progress( size*forms.GetSize(), progStream );
 
-      if(printProgressBar_)
-        std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
+      // if(printProgressBar_)
+      //   std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
 
       if(!isNewtonPart)
       {
@@ -616,11 +616,11 @@ namespace CoupledField
             try {
 
               // make only output if desired
-              if( printProgressBar_) {
-                ++progress;
-                std::cout << progStream.str();
-                progStream.str("");
-              }
+              // if( printProgressBar_) {
+              //   ++progress;
+              //   std::cout << progStream.str();
+              //   progStream.str("");
+              // }
 
               LOG_DBG3(assemble) << feMatrixType.ToString(destMat) << "\n";
               // Calc element matrix
@@ -1141,14 +1141,14 @@ namespace CoupledField
       // total number of elements/entities in the first entitylist
       UInt size = firstEntities.GetSize();
 
-      if( printProgressBar_) {
-        std::cout << "  - Calculating BiLinearForms on '"
-            << firstEntities.GetName()
-            << " (" << size << " elements)'\n";
-      }
+      // if( printProgressBar_) {
+      //   std::cout << "  - Calculating BiLinearForms on '"
+      //       << firstEntities.GetName()
+      //       << " (" << size << " elements)'\n";
+      // }
       // Total work: numElement x numForms
       std::stringstream progStream;
-      boost::timer::progress_display progress(size*forms.GetSize(), progStream);
+      //boost::timer::progress_display progress(size*forms.GetSize(), progStream);
 
       // Loop over all elements/entities
       EntityIterator it1 = firstEntities.GetIterator();
@@ -1214,11 +1214,11 @@ namespace CoupledField
             BiLinearForm * form = actContext.GetIntegrator();
 
             // make only output if desired
-            if( printProgressBar_) {
-              ++progress;
-              std::cout << progStream.str();
-              progStream.str("");
-            }
+            // if( printProgressBar_) {
+            //   ++progress;
+            //   std::cout << progStream.str();
+            //   progStream.str("");
+            // }
 
             // Calc element matrix
             if ( form->IsComplex() ){
@@ -1383,14 +1383,14 @@ namespace CoupledField
       EntityList& secondEntities = *(listIt->first.second);
       UInt size = firstEntities.GetSize();
 
-      if( printProgressBar_) {
-        std::cout << "  - Calculating BiLinearForms on '"
-            << firstEntities.GetName()
-            << " (" << size << " elements)'\n";
-      }
+      // if( printProgressBar_) {
+      //   std::cout << "  - Calculating BiLinearForms on '"
+      //       << firstEntities.GetName()
+      //       << " (" << size << " elements)'\n";
+      // }
       // Total work: numElement x numForms
       std::stringstream progStream;
-      boost::timer::progress_display progress( size*forms.GetSize(), progStream );
+      //boost::timer::progress_display progress( size*forms.GetSize(), progStream );
 
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
@@ -1426,11 +1426,11 @@ namespace CoupledField
           BiLinearForm * form = actContext.GetIntegrator();
 
           // make only output if desired
-          if( printProgressBar_) {
-            ++progress;
-            std::cout << progStream.str();
-            progStream.str("");
-          }
+          // if( printProgressBar_) {
+          //   ++progress;
+          //   std::cout << progStream.str();
+          //   progStream.str("");
+          // }
 
             // Calc element matrix
             if ( form->IsComplex() ){
@@ -1590,26 +1590,26 @@ namespace CoupledField
         EntityIterator  entIt = actContext.GetEntities()->GetIterator();
         UInt size = actContext.GetEntities()->GetSize();
 
-        if(printProgressBar_)
-          std::cout << "  - Calculating '" << form->GetName() << "' on '" << actContext.GetEntities()->GetName() << " (" << size << " elements)'\n";
+        // if(printProgressBar_)
+        //   std::cout << "  - Calculating '" << form->GetName() << "' on '" << actContext.GetEntities()->GetName() << " (" << size << " elements)'\n";
 
         LOG_DBG(assemble) << "ARLF: form=" << form->GetName() << " on " << actContext.GetEntities()->GetName() << " (" << size << ") at=" << BasePDE::analysisType.ToString(analysisType_);
         LOG_DBG(assemble) << "ARLF: ac-pde=" << actContext.GetPde()->ToString();
         assert(analysisType_ == actContext.GetPde()->GetAnalysisType());
 
         std::stringstream progStream;
-        boost::timer::progress_display progress( size, progStream );
+        //boost::timer::progress_display progress( size, progStream );
 
         if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::HARMONIC25D) {
 
           Vector<Complex> elemVec;
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
             // make only output if desired
-            if( printProgressBar_) {
-              ++progress;
-              std::cout << progStream.str();
-              progStream.str("");
-            }
+            // if( printProgressBar_) {
+            //   ++progress;
+            //   std::cout << progStream.str();
+            //   progStream.str("");
+            // }
 
             // Calculate complex valued element vector
             form->CalcElemVector( elemVec, entIt );
@@ -1629,11 +1629,11 @@ namespace CoupledField
           // iterate over all entities
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
             // make only output if desired
-            if( printProgressBar_) {
-              ++progress;
-              std::cout << progStream.str();
-              progStream.str("");
-            }
+            // if( printProgressBar_) {
+            //   ++progress;
+            //   std::cout << progStream.str();
+            //   progStream.str("");
+            // }
 
             LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " el=" << entIt.ToString() << " fctId=" << fctId;
             LOG_DBG3(assemble) << "ARLF: linform: " << form->ToString();

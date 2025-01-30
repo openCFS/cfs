@@ -152,6 +152,9 @@ option(USE_FLANN "Enable support for FLANN - Fast Library for Approximate Neares
 set(USE_XML_READER ${USE_XML_READER_DEFAULT} CACHE STRING "Choose either 'xerces' or 'libxml2' as xml reader.")
 set_property(CACHE USE_XML_READER PROPERTY STRINGS xerces libxml2)
 
+option(USE_PRECICE "Enable preCICE support" ${USE_PRECICE_DEFAULT} )
+
+
 # icc has issues with boost asio, so simply disable this rare feature
 if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   set(USE_STREAMING OFF)
@@ -379,6 +382,7 @@ endif(USE_CGAL)
 if(USE_VTK)
   include_directories(${VTK_INCLUDE_DIR})
 endif(USE_VTK)
+
 
 # Make sure the linker can find the CFS base libraries once it is built.
 link_directories(${CFSDEPS_LIBRARY_DIR} ${LIBRARY_OUTPUT_PATH})

@@ -5,6 +5,11 @@
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/DefineInOutFiles.hh"
 
+#include "def_use_precice.hh"
+#ifdef USE_PRECICE
+#   include <precice.hpp>
+#endif
+
 namespace CoupledField
 {
   class ResultHandler;
@@ -12,6 +17,12 @@ namespace CoupledField
   class MaterialHandler;
   class LogConfigurator;
   class SimState;
+  
+#ifdef USE_PRECICE
+  using Participant = precice::Participant;
+#else
+  class Participant;
+#endif
 
   /** This is the base class of CFS.
    * It basically gives more structure for the original main() call. */
@@ -75,6 +86,9 @@ namespace CoupledField
     shared_ptr<MaterialHandler> materialHandler;
     
     std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
+
+    /** Object for interaction with precice library */
+    Participant* participant_;
   };
 }
 #endif /* CFS_HH_ */

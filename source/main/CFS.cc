@@ -24,6 +24,8 @@
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
+#include <omp.h>
+#include <sched.h>
 #if not defined(WIN32) 
 #  include <unistd.h>
 #endif
@@ -34,6 +36,9 @@
 #include "petsc.h"
 #include "OLAS/external/petsc/PETSCSolver.hh"
 #endif
+
+
+
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "PDE/SinglePDE.hh"
@@ -237,6 +242,31 @@ int CFS::Run()
     python = new PythonKernel(paramNode_->Get("python", ParamNode::PASS), infoNode);
 
     SetupIO(paramNode_);
+
+    // =====================================================================================================================
+    // ============================= precice start =========================================================================
+#ifdef USE_PRECICE
+    // according to the tutorial on how to couple to precice https://precice.org/couple-your-code-steering-methods.html,
+    // we need rank and size of the "current thread". However, in openCFS, we are using
+    // openMP. MPI is only used when compiling with PETSC
+    int rank = 0;//omp_get_thread_num(); //0;
+    int size = 1;
+    // Initialize preCICE participant
+    std::string participantName, configFileName;
+    paramNode_->Get("fileFormats/preciceCoupling/participantName")->GetValue("name", participantName);
+    paramNode_->Get("fileFormats/preciceCoupling/precice_configFile")->GetValue("file", configFileName);
+
+    participant_ = new precice::Participant(participantName, configFileName, rank, size);
+
+    participant_->initialize();
+    // participant.advance(10);
+    // participant.finalize();
+#endif
+    // =====================================================================================================================
+    // ============================= precice end =========================================================================
+
+
+
 
     domain = new Domain( gridInputs, resultHandler, materialHandler,
         simState, paramNode_, infoNode );

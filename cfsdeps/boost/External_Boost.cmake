@@ -7,14 +7,18 @@ clear_depencency_variables()
 set(PACKAGE_NAME "boost")
 # note that any newer version than 1.78.0 causes > 30 wrong test results, e.g. ExpressionHeatSource
 # probably in conjunction with muparser 2.2.6. There is a branch upgrade_boost which contains changes to compille 1.84
-set(PACKAGE_VER "1.78.0")  
-set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
-set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
+#set(PACKAGE_VER "1.78.0")  
+#set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
+#set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
+set(PACKAGE_VER "1.71.0")  
+set(PACKAGE_FILE "boost_1_71_0.tar.bz2") # does not reflect PACKAGE_VER style
+set(PACKAGE_MD5 "4cdf9b5c2dc01fb2b7b733d5af30e558") # 1.71.0
 
 set(DEPS_VER "-c") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
   
 # the mirrors can point to arbitrary file names. 
-set(PACKAGE_MIRRORS "https://boostorg.jfrog.io/artifactory/main/release/${PACKAGE_VER}/source/${PACKAGE_FILE}")
+#set(PACKAGE_MIRRORS "https://boostorg.jfrog.io/artifactory/main/release/${PACKAGE_VER}/source/${PACKAGE_FILE}")
+set(PACKAGE_MIRRORS "https://archives.boost.io/release/${PACKAGE_VER}/source/${PACKAGE_FILE}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
@@ -99,7 +103,7 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 else()
   # even with the list in boostrap a lot of unnecessary stuff would be build
   # 1.81.0 set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-json --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave --without-url --no-cmake-config) 
-  set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-math --without-nowide --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave  --no-cmake-config)
+  set(WITHOUT --without-python --without-graph_parallel --without-mpi --without-container --without-context --without-math --without-contract --without-coroutine --without-graph --without-stacktrace --without-fiber --without-wave  --no-cmake-config)
 
   if(WIN32)
     # compile cfs with BOOST_ALL_NO_LIB  and make sure _WIN32_WINNT matches cfs 

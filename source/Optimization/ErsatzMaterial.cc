@@ -4,7 +4,7 @@
 #include <iostream>
 #include <set>
 #include <string>
-#include <boost/timer/progress_display.hpp>
+//#include <boost/timer/progress_display.hpp>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -4742,12 +4742,12 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
   // where c_l := v_loc^T N^T E_l N v_loc
 
   assert(f->ctxt->DoBuckling());
-
+  /*
   std::stringstream progStream;
   boost::timer::progress_display progress(rhs.GetSize(), progStream);
   if (printProgressBar_)
     cout << "\n- Establishing adjoint right hand side";
-
+  */
   // get stuff from linear elasticity
   Excitation* excite = f->ctxt->GetExcitation();
   unsigned int linElaExIndex = excite->index - (me->DoHomogenization() ? me->GetNumberHomogenization(context->ToApp()) : 1);
@@ -4965,14 +4965,14 @@ void ErsatzMaterial::ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& m
         if( eqns[eq] != 0 )
           rhs[std::abs(eqns[eq])-1] += derivativeElem[eq];
       }
-
+      /*
       if (printProgressBar_)
       {
         ++progress;
         cout << progStream.str() << flush;
         progStream.str("");
       }
-
+      */
       it++;
     } // end loop elements
     } // end omp parallel

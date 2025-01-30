@@ -136,3 +136,5 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_cfs_stats.hh.in"
   "${CFS_BINARY_DIR}/include/def_cfs_stats.hh"
   @ONLY )
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_precice.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_precice.hh")
