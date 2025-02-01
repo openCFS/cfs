@@ -12,19 +12,7 @@
 // Hostname on which the source tree has been configured
 #define CFS_BUILD_HOST "@CFS_BUILD_HOST@"
 
-// Type of working copy SVN or git
-#define CFS_WC_TYPE "@CFS_WC_TYPE@"
-
-// Global version of SVN working copy
-#define CFS_WC_REVISION "@CFS_WC_REVISION@"
-
-// URL of SVN repository
-#define CFS_WC_URL "@CFS_WC_URL@"
-
-// Was WC modified?
-#define CFS_WC_MODIFIED "@CFS_WC_MODIFIED@"
-
-// Git commit corresponding to built exe
+// current git commit, possibly ending with -modified, possibly short sha1 in future
 #define CFS_GIT_COMMIT "@CFS_GIT_COMMIT@"
 
 // Local git branch corresponding to built exe

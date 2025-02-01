@@ -34,12 +34,21 @@ def nice(array, round_digits = 10):
   txt += ']'
   return txt
 
-## nice window input beautifier
+## Windows input beautifier
 # when argsparse has '*' as input, it need to be globalized for windows
-def clean_input(input):
+# drawback is, that for a wrong file name an empty list is returned.
+# @param abbort if no existing file is described, we print an error message and exit()
+def clean_input(input, abbort = False):
   if isinstance(input, list):
-    return glob.glob(input[0]) if len(input) == 1 else input
+    result = glob.glob(input[0]) if len(input) == 1 else input
+    if(len(result) == 0 and abbort):
+      print("error: '" + input[0] + "' refers no existing file");
+      os.sys.exit(1)
+    return result  
   else:
+    if(abbort and not os.path.exists(input)):
+      print("error: '" + input + "' refers no existing file");
+      os.sys.exit(1)
     return input
 
 # helper to write values and coordinates to a csv (comma separated values) file

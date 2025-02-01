@@ -378,7 +378,7 @@ GlobalFilter DesignStructure::Parse(PtrParamNode pn, const DesignElement* ref_de
     else if(pn->Get("density/beta")->As<string>() == "tuned")
     {
       /** we can set global.ext_tune only to a Tune object when we do the final Registration in PostCopy() */
-      global.ext_tune = (Tune*) GlobalFilter::UNSET_EXT_BETA_TUNE;
+      global.ext_tune = (Tune*)(0) + GlobalFilter::UNSET_EXT_BETA_TUNE; // prevent conversion of different size
       global.beta = -1;
     }
     else

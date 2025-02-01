@@ -482,10 +482,10 @@ void SplineBoxDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fu
   StdVector<BaseDesignElement*> opt_buddies; // to be reused temporary vector
   StdVector<BaseDesignElement*> all_buddies; // to be reused temporary vector
   int nsp = total_num_cp_ * dim_;
-  BaseDesignElement *bde;
-  BaseDesignElement *bdex, *prev_dex, *next_dex;
-  BaseDesignElement *bdey, *prev_dey, *next_dey;
-  BaseDesignElement *bdez, *prev_dez, *next_dez;
+  BaseDesignElement* bde = nullptr;
+  BaseDesignElement *bdex = nullptr, *prev_dex = nullptr, *next_dex = nullptr;
+  BaseDesignElement *bdey = nullptr, *prev_dey = nullptr, *next_dey = nullptr;
+  BaseDesignElement *bdez = nullptr, *prev_dez = nullptr, *next_dez = nullptr;
 
   // traverse control points only and do the corresponding coordinates implicitly
   for(int e = 0; e < (int)total_num_cp_; ++e) {

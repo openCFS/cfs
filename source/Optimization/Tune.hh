@@ -90,6 +90,10 @@ private:
 
   double end = -1;
 
+  /** prevent too early stopping by graynesss */
+  static constexpr double OFF = -4711;
+  double minimal = OFF;
+
   /** how often do we update? 1 is every time, 50 is every 50 iterations */
   unsigned int stride = 1;
 

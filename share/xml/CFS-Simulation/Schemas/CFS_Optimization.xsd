@@ -3028,26 +3028,39 @@
         </xsd:restriction>
       </xsd:simpleType>  
     </xsd:attribute>
-    <xsd:attribute name="start" type="xsd:float" use="optional" default="1"/>
-    <xsd:attribute name="end" type="xsd:float" use="optional"/>
+    <xsd:attribute name="start" type="xsd:float" use="optional" default="1">
+      <xsd:annotation>
+        <xsd:documentation>Initival value to be tuned (default 1)</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="end" type="xsd:float" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>We stop tuning when exceeding this value. We might stop earlier by stopping criteria. Default depends on variable</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="minimal" type="xsd:float" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Ignore stopping criteria up to exceeding this value</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
     <xsd:attribute name="grow" type="xsd:float" use="optional">
       <xsd:annotation>
-        <xsd:documentation>we have different default values, depending on method. See info.xml</xsd:documentation>
+        <xsd:documentation>We have different default values, depending on method. See info.xml</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="obj_max_grow" type="xsd:float" use="optional" default="0.2">
       <xsd:annotation>
-        <xsd:documentation>only for method is 'obj'</xsd:documentation>
+        <xsd:documentation>Only for method is 'obj'</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="stride" type="xsd:unsignedInt" use="optional" default="1">
       <xsd:annotation>
-        <xsd:documentation>how often to apply? 1 for every, 2 for every second ...</xsd:documentation>
+        <xsd:documentation>How often to apply? 1 for every, 2 for every second ...</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="stopping_greyness" type="xsd:boolean" use="optional" default="true">
       <xsd:annotation>
-        <xsd:documentation>search for stopping rule 'greyness' stop growing when bound is reached</xsd:documentation>
+        <xsd:documentation>Search for stopping rule 'greyness' stop growing when bound is reached</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>     

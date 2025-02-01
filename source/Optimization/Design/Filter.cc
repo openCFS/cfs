@@ -44,7 +44,7 @@ GlobalFilter::~GlobalFilter()
 {
   LOG_DBG(flt) << "~GF &beta=" << &beta << " tune=" << tune.IsSet() << " e_t=" << ext_tune;
 
-  if(ext_tune != nullptr && ext_tune != (Tune*) UNSET_EXT_BETA_TUNE)
+  if(ext_tune != nullptr && ext_tune != (Tune*)(0) + UNSET_EXT_BETA_TUNE) // prevent conversion of different size
     ext_tune->Remove(&beta, this);
 }
 
@@ -63,7 +63,7 @@ void GlobalFilter::PostCopy(bool register_tune)
         throw Exception("beta tune already registered. In the robust case, the first filter shall have 'tune' beta, the other ones 'tuned'");
       tune.Register(&beta, domain->GetOptimization(), this);
     }
-    else if(ext_tune == (Tune*) UNSET_EXT_BETA_TUNE)
+    else if(ext_tune == (Tune*)(0) + UNSET_EXT_BETA_TUNE) // prevent conversion of different size
     {
       if(t == nullptr)
         throw Exception("No beta tune registered. In the robust case, the first filter shall have 'tune' beta, the other ones 'tuned'");

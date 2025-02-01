@@ -35,6 +35,7 @@ void Tune::Init(PtrParamNode pn, Usage use)
   method_ = method.Parse(pn->Get("method")->As<string>());
   start = pn->Get("start")->As<double>();
   end  = pn->Has("end")  ? pn->Get("end")->As<double>()  : (use == BETA ? 256 : 6);
+  minimal  = pn->Has("minimal")  ? pn->Get("minimal")->As<double>() : OFF;
   grow = pn->Has("grow") ? pn->Get("grow")->As<double>() : (method_ == OBJ ? 1e-4 : (method_ == MULT ? 2 : 0.1));
   max_grow_rate = pn->Get("obj_max_grow")->As<double>();
   stride =  pn->Get("stride")->As<unsigned int>();
@@ -52,7 +53,6 @@ void Tune::Register(double* value, Optimization* opt, GlobalFilter* f)
   this->opt = opt;
   if(f != nullptr)
     this->gf.Push_back(f);
-
 
   // tries to find a greyness stopping rule, if not found, a warning is issued
   if(stopping_greyness_)
@@ -91,7 +91,6 @@ void Tune::Append(double* value, GlobalFilter* f)
 
   assert(!gf.Contains(f));
   gf.Push_back(f);
-
 }
 
 void Tune::Remove(double* value, GlobalFilter* f)
@@ -123,6 +122,7 @@ void Tune::ToInfo(PtrParamNode info) const
   in->Get("method")->SetValue(method.ToString(method_));
   in->Get("start")->SetValue(start);
   in->Get("end")->SetValue(end);
+  in->Get("minimal")->SetValue(minimal == OFF ? "-" : std::to_string(minimal));
   in->Get("grow")->SetValue(grow);
   if(method_ == OBJ)
     in->Get("max_grow_rate")->SetValue(max_grow_rate);
@@ -168,26 +168,38 @@ void Tune::Update(unsigned int iter)
 
   LOG_DBG(tune) << "U: iter=" << iter << " m=" << method.ToString(method_) << " old=" << *value << " cand=" << cand << " end=" << end << " SG=" << SufficientlyGray() << " v=" << value;
 
-  if(cand > end || SufficientlyGray())
+  if(cand > end)
   {
     once_stopped_ = true;
+
     LOG_DBG(tune) << "U: cand=" << cand << " end=" << end << " SG=" << SufficientlyGray() << " -> once_stopped_=true";
+    return;
   }
-  else
+
+  if(SufficientlyGray() && iter > 2) // small initial density can lead to too small grayness in the beginning
   {
-    *value = cand;
-    for(double* ptr : external)
-      *ptr = cand;
-
-    for(GlobalFilter* f : gf)
+    LOG_DBG(tune) << "U: cand=" << cand << " SG=" << SufficientlyGray() << " iter=" << iter << " -> once_stopped_=true";
+    if(minimal == OFF || cand > minimal)
     {
-      DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(f->region, f->design);
-      f->SetNonLinCorrection(&(opt->GetDesign()->data[dr->base]));
-      LOG_DBG(tune) << "U ref=" << dr->base << " b=" << f->beta << " e=" << f->eta << " SNLC -> scale=" << f->non_lin_scale << " offset=" << f->non_lin_offset << " f=" << f << " gf=" << gf.ToString(TS_PYTHON);
+      once_stopped_ = true;
+      LOG_DBG(tune) << "U: SG=" << SufficientlyGray() << " minimal=" << minimal << " cand=" << cand << " -> once_stopped_=true";
+      return;
     }
-
-    opt->SetAuxLogValue(usage.ToString(usage_), *value);
   }
+
+  // do it: set the candidate to the value
+  *value = cand;
+  for(double* ptr : external)
+    *ptr = cand;
+
+  for(GlobalFilter* f : gf)
+  {
+    DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(f->region, f->design);
+    f->SetNonLinCorrection(&(opt->GetDesign()->data[dr->base]));
+    LOG_DBG(tune) << "U ref=" << dr->base << " b=" << f->beta << " e=" << f->eta << " SNLC -> scale=" << f->non_lin_scale << " offset=" << f->non_lin_offset << " f=" << f << " gf=" << gf.ToString(TS_PYTHON);
+  }
+
+  opt->SetAuxLogValue(usage.ToString(usage_), *value);
 }
 
 void Tune::FindGraynessStoppingRule()

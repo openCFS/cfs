@@ -433,7 +433,8 @@ def process(input):
   # we assume first comments (and assume the last comment to be the header description)
   # then the body. For comment/body/comment we ignore comments after body
   for i,l in enumerate(lines):
-    h = l.strip()
+    h = l.replace('"','').strip()
+   
     if len(h) == 0:
       print('skip empty line',i+1)
       continue

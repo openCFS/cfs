@@ -117,8 +117,8 @@ void DumasMMA::DescribeProperties(StdVector<std::pair<std::string, std::string> 
 void DumasMMA::SolveProblem()
 {
   Optimization* opt = this->optimization;
-  int m = (int) opt->constraints.view->GetNumberOfActiveConstraints();
-  int n = (int) opt->design->GetNumberOfVariables();
+  unsigned int m = (int) opt->constraints.view->GetNumberOfActiveConstraints();
+  unsigned int n = (int) opt->design->GetNumberOfVariables();
   assert(xval.GetSize() == n);
   assert(n >= opt->design->data.GetSize());
 
@@ -152,7 +152,7 @@ void DumasMMA::SolveProblem()
     }
 
     // Set outer move limits
-    for(int i=0; i<n; i++)
+    for(unsigned int i=0; i<n; i++)
     {
       BaseDesignElement* de = opt->design->GetDesignElement(i);
       xmax[i] = std::min(de->GetUpperBound(), xval[i] + move_limit);

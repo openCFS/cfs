@@ -133,7 +133,8 @@ namespace CoupledField {
 
     // write creator
     std::stringstream creator;
-    creator << "openCFS " << CFS_VERSION << ", " << CFS_NAME << " ( " << CFS_WC_REVISION << " )";
+    // we omit CFS_GIT_COMMIT to prevent recompiles, the info is also in the info.xml and the branch tells probably more
+    creator << "openCFS " << CFS_VERSION << ", " << CFS_NAME << " (" << CFS_GIT_BRANCH << ")";
     std::string creatorString = creator.str();
     H5IO::Write1DArray( infoGroup, "Creator", 1, &creatorString, dPropList_ );
 

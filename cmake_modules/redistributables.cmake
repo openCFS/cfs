@@ -15,7 +15,7 @@ endif()
 #MKL_THREAD_LIB=C:/Program Files (x86)/Intel/oneAPI/compiler/latest/lib/libiomp5md.lib
 if(MKL_THREAD_LIB) # empty in the gnu openmp case and legacy_mkl case (which installs itself)
   install(PROGRAMS ${MKL_THREAD_LIB} DESTINATION "${INSTALL_DESTINATION}")
-  message(STATUS "  will install ${MKL_THREAD_LIB} to '${INSTALL_DESTINATION}' upon installation (cpack)")
+  message(STATUS "will install ${MKL_THREAD_LIB} to '${INSTALL_DESTINATION}' upon installation (cpack)")
 endif()
 
 

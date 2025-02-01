@@ -116,8 +116,7 @@ namespace CoupledField {
     char buf[128];
     std::string flavor = capaOut_ == true ? "CAPA" : "SDRC I-DEAS";
 
-    (*output) << std::setw(6) << -1 << std::endl << std::setw(6)
-              << 151 << std::endl ;
+    (*output) << std::setw(6) << -1 << std::endl << std::setw(6) << 151 << std::endl ;
 
 #if _MSC_VER >= 1400
 #define snprintf _snprintf
@@ -132,7 +131,7 @@ namespace CoupledField {
     (*output) << buf << std::endl;
 
     // DB Application
-    (*output) << "openCFS (TU Wien and Univ. of Erlangen-Nuremberg)" << std::endl;
+    (*output) << "openCFS (TU Wien, TUGRAZ and FAU)" << std::endl;
 
     std::stringstream sstr;
     dt::time_facet *facet = new dt::time_facet(" %d-%b-%y  %H:%M:%S");
@@ -147,7 +146,7 @@ namespace CoupledField {
     (*output) << sstr.str() << std::endl;
 
     // UNV Creating Application
-    (*output) << "CFS++" << std::endl;
+    (*output) << "openCFS" << std::endl;
 
     UInt year, month;
     (*output) << sstr.str();
@@ -159,7 +158,7 @@ namespace CoupledField {
     sstr >> month;    
     (*output) << std::setw(10) << (year*100 + month);
     sstr.clear(); sstr.str("");
-    sstr << CFS_WC_REVISION;
+    sstr << CFS_GIT_COMMIT;
     UInt rev;
     std::string modif;
     sstr >> rev >> modif;

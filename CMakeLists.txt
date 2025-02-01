@@ -75,7 +75,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date, independent on the significance of the change (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "25")
-set(CFS_VERSION_MONTH "01")
+set(CFS_VERSION_MONTH "02")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -341,9 +341,8 @@ endif()
 # Set date of configure run.
 TODAY(CFS_CONF_DATE)
 
-# Determine URL of subversion repository, global revision of working copy
-# and other informations from working copy
-include("cmake_modules/DetermineWorkingCopyInfos.cmake")
+# determine CFS_GIT_COMMIT (might end with -modified) and CFS_GIT_BRANCH
+include("cmake_modules/git_commit.cmake")
 
 endif(PIPELINE_TEST_STAGE_CONFIG) # this is the end of the non indent else() for the if(PIPELINE_TEST_STAGE_CONFIG) case
 
@@ -369,9 +368,6 @@ if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
       message(FATAL_ERROR "${MSG}")
     endif()
   endif()
-  # set a build name
-  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" CACHE STRING "Name of build on the dashboard")
-  mark_as_advanced(BUILDNAME)
   enable_testing()
 endif(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
 if(NOT PIPELINE_TEST_STAGE_CONFIG)
@@ -534,10 +530,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE INTERNAL "") # since project() sets a
 
 # set cpack config options
 # see https://cmake.org/Wiki/CMake:CPackConfiguration
-string(STRIP "${CFS_GIT_COMMIT}" CPACK_PACKAGE_VERSION)
-if(CFS_WC_MODIFIED)
-  set(CPACK_PACKAGE_VERSION "${CPACK_PACKAGE_VERSION}-modified")
-endif()
+string(STRIP "${CFS_GIT_COMMIT}" CPACK_PACKAGE_VERSION) # might end with -modified
 set(CPACK_CMAKE_GENERATOR "Ninja") # this disables a rebuild i.e. "CPack: - Run preinstall target for..." which seems to be only done for "Unix Makefiles"
 
 # make sure that on cpack -G ZIP or make install everything is copied. make install is uncommon
