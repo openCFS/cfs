@@ -93,16 +93,9 @@ if(USE_METIS)
   include("${CFSDEPS_DIR}/metis/External_METIS.cmake")
 endif()
 
-#-------------------------------------------------------------------------------
-# Search for GiDpost library
-#-------------------------------------------------------------------------------
-IF(USE_GIDPOST)
-  SET(GIDPOST_VER "2.1")
-  SET(GIDPOST_ZIP "gidpost-${GIDPOST_VER}.zip")
-  SET(GIDPOST_MD5 "a7fe745e40593dc4598920b312663d29")
-
-  INCLUDE("${CFSDEPS_DIR}/gidpost/External_GiDpost.cmake")
-ENDIF(USE_GIDPOST)
+if(USE_GIDPOST)
+  include("${CFSDEPS_DIR}/gidpost/External_GiDpost.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-

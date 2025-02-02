@@ -96,6 +96,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
     set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-int") # needed for SuperLU (and maybe others)
+    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-incompatible-pointer-types") # needed for gidpost (and maybe others)
   endif()
 
   # enable all warnings, then disable the ones we cannot prevent (e.g. from lib includes).

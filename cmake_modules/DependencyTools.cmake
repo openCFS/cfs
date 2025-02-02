@@ -79,7 +79,7 @@ endmacro()
 # determine common PACKAGE_LIBRARY content for a standard cmake package.
 #
 # can only be used for the simple standard case.
-# sets PACKAGE_LIBRARY
+# sets PACKAGE_LIBRARY. Note that  ${PACKAGE_NAME}_LIBRARY is set in set_standard_variables()
 macro(set_package_library_default)
   assert_set(PACKAGE_NAME)
   assert_set(LIB_SUFFIX)
@@ -349,7 +349,7 @@ macro(generate_packing_script_install_dir)
   assert_set(DEPS_LIB_TYPE)
   # with DEPS_INSTALL == CMAKE_BINARY_DIR we would pack the whole lib and include for all current packages
   if(${DEPS_INSTALL} STREQUAL ${CMAKE_BINARY_DIR})
-    message(FATAL_ERROR "either DEPS_INSTALL is wrong or you want to call generate_packing_manifest")
+    message(FATAL_ERROR "either DEPS_INSTALL is wrong or you want to call generate_packing_script_manifest")
   endif()
   
   assert_not(${DEPS_INSTALL} ${CMAKE_BINARY_DIR}) # would pack all and probably install_manifest.txt is meant

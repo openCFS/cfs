@@ -378,7 +378,7 @@ void Dependencies::ReadSetting()
 
   Dependency gid("GiDpost", "USE_GIDPOST", EASY);
 #ifdef USE_GIDPOST
-  metis.SetVersion(GIDPOST_VERSION);
+  gid.SetVersion(GIDPOST_VERSION);
 #endif
   data.Push_back(gid);
 

@@ -73,6 +73,9 @@ namespace CoupledField {
     }
     // store complete name including directory into fileName_
     fileName_ = fs::path(dirName_ / fileName_ ).string();
+    if(isRestart) {
+      WARN("Restart support for gidpost was removed with upgrade to gidpost 2.11 (around Feb. 2025). This is untested ...")
+    }
   }
 
 
@@ -1011,11 +1014,11 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
     if ( isAscii_ == true) {
       postFileName = fileName_ + ".post.res";
       isInitialized_ = !GiD_OpenPostResultFile( postFileName.c_str(),
-                                                GiD_PostAscii, isRestart_ );
+                                                GiD_PostAscii );
     } else {
       postFileName = fileName_ + ".post.bin";
       isInitialized_ = !GiD_OpenPostResultFile( postFileName.c_str(),
-                                                GiD_PostBinary, isRestart_ );
+                                                GiD_PostBinary );
     }
 
     // print grid
