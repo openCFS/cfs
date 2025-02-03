@@ -45,11 +45,13 @@ namespace CoupledField {
 
       // Create the PreCICE participant
       participant_ = std::make_unique<precice::Participant>(
-          configFileName,
           participantName,
+          configFileName,
           rank_,
           size_
       );
+
+      participant_->initialize();
     
 #endif
   }
