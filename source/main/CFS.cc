@@ -190,10 +190,6 @@ CFS::CFS(int argc, const char **argv) :
     env->Get("host")->SetValue(hostname_);
   
   infoNode->ToFile("", true);
-
-  // Initialize the PreCICE Adapter using the factory
-  preciceAdapter_ = CreatePreciceAdapter(paramNode_);
-  preciceAdapter_->initialize();
 }
 
 
@@ -258,7 +254,10 @@ int CFS::Run()
     // if a python function is registered, call it.
     python->CallHook(PythonKernel::POST_GRID);
 
-
+    // Initialize the PreCICE Adapter using the factory
+    preciceAdapter_ = CreatePreciceAdapter(paramNode_);
+    preciceAdapter_->initialize();
+    
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else
