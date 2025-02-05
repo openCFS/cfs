@@ -7,10 +7,11 @@
 namespace CoupledField  {
 CoefFunctionAccumulator::CoefFunctionAccumulator(PtrCoefFct fct, 
                                                  bool integrate )
-: CoefFunction(), integrate_(integrate) {
+: CoefFunction(), integrate_(integrate)  {
   squaredSum_ = 0.0;
   fct_ = fct;
   dependType_ = fct->GetDependency(); 
+  this->SetComplex(fct->IsComplex());
   
 //  sum_.Resize(fct_->GetVecSize());
   
@@ -47,9 +48,9 @@ void CoefFunctionAccumulator::GetScalar(Complex& coef, const LocPointMapped& lpm
 		//Double square = coef.real()*coef.real() - coef.imag()*coef.imag();
 		if( integrate_ )
 			//squaredSum_ = square * lpm.weight * lpm.jacDet;
-			squaredSum_ = std::abs(coef*coef) * lpm.weight * lpm.jacDet;
+			squaredSum_ += std::abs(coef*coef) * lpm.weight * lpm.jacDet;
 		else
-			squaredSum_ = std::abs(coef*coef);
+			squaredSum_ += std::abs(coef*coef);
 	}
 
 }

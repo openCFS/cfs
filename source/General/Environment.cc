@@ -145,6 +145,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_ENERGY_DENSITY, "elecEnergyDensity");
     SolutionTypeEnum.Add(ELEC_FORCE_DENSITY, "elecForceDensity");
     SolutionTypeEnum.Add(ELEC_RHS_LOAD, "elecRhsLoad");
+    SolutionTypeEnum.Add(ELEC_RHS_LOAD_ADJ, "elecRhsLoadAdj");
     SolutionTypeEnum.Add(ELEC_ELEM_PERMITTIVITY, "elecElemPermittivity");
     SolutionTypeEnum.Add(ELEC_COND_TENSOR, "ElectCond");
 
@@ -256,7 +257,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT2, "magEddyCurrent2");
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     SolutionTypeEnum.Add(MAG_ELEM_RELUCTIVITY, "magElemReluctivity");
+    SolutionTypeEnum.Add(MAG_ELEM_RELUCTIVITY_DERIV, "magElemReluctivityDeriv");    
     SolutionTypeEnum.Add(MAG_ELEM_PERMITTIVITY, "magElemPermittivity");
+    SolutionTypeEnum.Add(MAG_ELEM_PERMITTIVITY_DERIV, "magElemPermittivityDeriv");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
     SolutionTypeEnum.Add(MAG_POLARIZATION, "magPolarization");
 
@@ -346,6 +349,12 @@ namespace CoupledField {
     for(unsigned int i = 0; i < 66; i++)
       SolutionTypeEnum.Add( (SolutionType) (OPT_RESULT_1 + i), "optResult_" + std::to_string(i+1));
       // SolutionTypeEnum.Add(OPT_RESULT_1, "optResult_1");
+
+
+    //for optimization
+    SolutionTypeEnum.Add(GRAD_PARAM1, "gradParam1");
+    SolutionTypeEnum.Add(GRAD_PARAM2, "gradParam2");
+    SolutionTypeEnum.Add(GRAD_PARAM3, "gradParam3");
 
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
@@ -1066,6 +1075,7 @@ namespace CoupledField {
         break;
 
       case MAG_ELEM_RELUCTIVITY:
+      case MAG_ELEM_RELUCTIVITY_DERIV:
         return "Am/Vs";
 
       case ELEC_POTENTIAL:
@@ -1109,6 +1119,7 @@ namespace CoupledField {
         return "Vs/Am";
 
       case MAG_ELEM_PERMITTIVITY:
+      case MAG_ELEM_PERMITTIVITY_DERIV:      
         return "As/Vm";        
 
       case MAG_POLARIZATION:
@@ -1692,10 +1703,13 @@ namespace CoupledField {
         break;
       case MAT_RELUCTIVITY:
         out = "matReluctivity";
+        break;
       case MAT_PERMITTIVITY:
         out = "matPermittivity";
+        break;
       case MAT_CONDUCTIVITY:
         out = "matConductivity";
+        break;
       default:
         EXCEPTION( "No conversion found for 'NonLinType' " << in );
     }

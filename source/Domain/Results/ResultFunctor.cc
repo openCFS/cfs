@@ -392,15 +392,119 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
   Vector<TYPE> elemValVec(numDofs);
   Matrix<TYPE> tempValMat;
   Matrix<TYPE> elemValMat;
-
-  // Loop over names (= regions / surface regions / named elements)
+  
+  // Loop over names (= regions / surface regions / named elements / elements )
   UInt pos = 0;
-  for(nameIt.Begin(); !nameIt.IsEnd(); nameIt++)
-  {
-    shared_ptr<EntityList> actSDList = isCoil ? nameIt.GetCoil()->GetElems()
-                                              : nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName());
+  shared_ptr<EntityList> actSDList;
+  EntityIterator elemIt;
 
-    EntityIterator elemIt = actSDList->GetIterator();
+  if ( nameIt.GetType() ==  EntityList::ELEM_LIST ) {
+    //here we compute element results
+    // loop over elements
+    for (nameIt.Begin(); !nameIt.IsEnd(); nameIt++)
+    {
+      switch(coef_->GetDimType())
+      {
+      case CoefFunction::SCALAR:
+        tempValScal = 0.0;
+        elemValScal = 0.0;
+        break;
+      case CoefFunction::VECTOR:
+        tempValVec.Init();
+        elemValVec.Init();
+        break;
+      case CoefFunction::TENSOR:
+        tempValMat.Init();
+        elemValMat.Init();
+        break;
+      default:
+        assert(false);
+      }
+      const Elem* el = nameIt.GetElem();    
+      // Obtain FE element from feSpace and integration scheme
+      IntegOrder order;
+      IntScheme::IntegMethod method;
+
+      feSpace->GetFe(nameIt, method, order);
+      // Get shape map from grid
+      shared_ptr<ElemShapeMap> esm =  nameIt.GetGrid()->GetElemShapeMap( el, true );
+
+      // Get integration points
+      StdVector<LocPoint> intPoints;
+      StdVector<Double> weights;
+      intScheme->GetIntPoints( Elem::GetShapeType(el->type), method, order, intPoints, weights );
+
+      // Loop over all integration points
+      LocPointMapped lpm;
+      for(UInt i = 0; i < intPoints.GetSize(); i++)
+      {
+        // Calculate for each integration point the LocPointMapped
+        lpm.Set(intPoints[i], esm, weights[i]);
+        switch(coef_->GetDimType())
+        {
+          case CoefFunction::SCALAR:
+            coef_->GetScalar(tempValScal, lpm );
+            elemValScal += tempValScal * lpm.jacDet * weights[i];
+            break;
+          case CoefFunction::VECTOR:
+            coef_->GetVector(tempValVec, lpm );
+            elemValVec += tempValVec * (lpm.jacDet * weights[i]);
+            break;
+          case CoefFunction::TENSOR:
+            coef_->GetTensor(tempValMat, lpm);
+            if(i == 0)
+              elemValMat.Resize(tempValMat); //
+            elemValMat += tempValMat * (lpm.jacDet * weights[i]);
+            break;
+          default:
+            assert(false);
+        }
+      } // loop integration points      
+
+      UInt pos = nameIt.GetPos();
+      switch(coef_->GetDimType())
+      {        
+        case CoefFunction::SCALAR:
+          vec[pos] = elemValScal;
+          break;
+        case CoefFunction::VECTOR:
+          pos *= numDofs;
+          for(unsigned jDof = 0; jDof < numDofs; ++jDof )
+            vec[pos+jDof] = elemValVec[jDof];
+          break;
+        case CoefFunction::TENSOR:
+        {
+          unsigned int rows = tempValMat.GetNumRows();
+          unsigned int cols = tempValMat.GetNumCols();          
+
+          LOG_DBG(resfunc) << "RFI::ER TENSOR res=" << res->ToString() << " nD=" << numDofs << " r=" << rows << " c=" << cols;
+
+          if(numDofs == rows * cols)
+            elemValMat.ConvertToVec_AppendRows(tempValVec);
+          else
+            elemValMat.ConvertToVec_UpperTriangular(tempValVec);
+
+          assert(tempValVec.GetSize() == numDofs);
+          pos *= numDofs;
+          for(unsigned jDof = 0; jDof < numDofs; ++jDof)
+            vec[pos+jDof] = tempValVec[jDof];
+
+          break;
+        }
+
+        default:
+          assert(false);
+      }      
+    } // loop elements
+  }
+  else {
+    //here we go over regions / named elements
+    for(nameIt.Begin(); !nameIt.IsEnd(); nameIt++)
+    {
+    actSDList = isCoil ? nameIt.GetCoil()->GetElems()
+                        : nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName());
+    elemIt = actSDList->GetIterator();   
+    
     TYPE regionVolume = 0.0;
     // loop over elements
     for (elemIt.Begin(); !elemIt.IsEnd(); elemIt++)
@@ -419,8 +523,8 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
         tempValMat.Init();
         elemValMat.Init();
         break;
-      default:
-        assert(false);
+        default:
+          assert(false);
       }
 
       const Elem* el = elemIt.GetElem();
@@ -445,25 +549,24 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
       {
         // Calculate for each integration point the LocPointMapped
         lpm.Set(intPoints[i], esm, weights[i]);
-
         switch(coef_->GetDimType())
         {
-        case CoefFunction::SCALAR:
-          coef_->GetScalar(tempValScal, lpm );
-          elemValScal += tempValScal * lpm.jacDet * weights[i];
-          break;
-        case CoefFunction::VECTOR:
-          coef_->GetVector(tempValVec, lpm );
-          elemValVec += tempValVec * (lpm.jacDet * weights[i]);
-          break;
-        case CoefFunction::TENSOR:
-          coef_->GetTensor(tempValMat, lpm);
-          if(i == 0)
-            elemValMat.Resize(tempValMat); //
-          elemValMat += tempValMat * (lpm.jacDet * weights[i]);
-          break;
-        default:
-          assert(false);
+          case CoefFunction::SCALAR:
+            coef_->GetScalar(tempValScal, lpm );
+            elemValScal += tempValScal * lpm.jacDet * weights[i];
+            break;
+          case CoefFunction::VECTOR:
+            coef_->GetVector(tempValVec, lpm );
+            elemValVec += tempValVec * (lpm.jacDet * weights[i]);
+            break;
+          case CoefFunction::TENSOR:
+            coef_->GetTensor(tempValMat, lpm);
+            if(i == 0)
+              elemValMat.Resize(tempValMat); //
+            elemValMat += tempValMat * (lpm.jacDet * weights[i]);
+            break;
+          default:
+            assert(false);
         }
         if (average_) { // we need to compute the volume
           elemVolume += lpm.jacDet * weights[i];
@@ -472,39 +575,34 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
 
       switch(coef_->GetDimType())
       {
-      case CoefFunction::SCALAR:
-        vec[nameIt.GetPos()] += elemValScal;
-        break;
-      case CoefFunction::VECTOR:
-        for(unsigned jDof = 0; jDof < numDofs; ++jDof )
-          vec[pos+jDof] += elemValVec[jDof];
-        break;
-      case CoefFunction::TENSOR:
-      {
-        unsigned int rows = tempValMat.GetNumRows();
-        unsigned int cols = tempValMat.GetNumCols();
+        case CoefFunction::SCALAR:
+          vec[nameIt.GetPos()] += elemValScal;
+          break;
+        case CoefFunction::VECTOR:
+          for(unsigned jDof = 0; jDof < numDofs; ++jDof )
+            vec[pos+jDof] += elemValVec[jDof];
+          break;
+        case CoefFunction::TENSOR:
+        {
+          unsigned int rows = tempValMat.GetNumRows();
+          unsigned int cols = tempValMat.GetNumCols();
 
-        LOG_DBG(resfunc) << "RFI::ER TENSOR res=" << res->ToString() << " nD=" << numDofs << " r=" << rows << " c=" << cols;
+          LOG_DBG(resfunc) << "RFI::ER TENSOR res=" << res->ToString() << " nD=" << numDofs << " r=" << rows << " c=" << cols;
 
-        if(numDofs == rows * cols)
-          elemValMat.ConvertToVec_AppendRows(tempValVec);
-        else
-          elemValMat.ConvertToVec_UpperTriangular(tempValVec);
+          if(numDofs == rows * cols)
+            elemValMat.ConvertToVec_AppendRows(tempValVec);
+          else
+            elemValMat.ConvertToVec_UpperTriangular(tempValVec);
 
-        assert(tempValVec.GetSize() == numDofs);
+          assert(tempValVec.GetSize() == numDofs);
+          for(unsigned jDof = 0; jDof < numDofs; ++jDof)
+            vec[pos+jDof] += tempValVec[jDof];
 
-        // feSpace->GetFe(elemIt, method, order);
-        // Get shape map from grid
-        // shared_ptr<ElemShapeMap> esm = elemIt.GetGrid()->GetElemShapeMap(el, true);
+          break;
+        }
 
-        for(unsigned jDof = 0; jDof < numDofs; ++jDof)
-          vec[pos+jDof] += tempValVec[jDof];
-
-        break;
-      }
-
-      default:
-        assert(false);
+        default:
+          assert(false);
       }
       regionVolume += elemVolume;
     } // loop elements
@@ -520,8 +618,9 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
         break;
       }
     }
-    pos+= numDofs;
+      pos+= numDofs;
   } // loop regions
+ }
 }
 
 template class ResultFunctorIntegrate<Complex>;

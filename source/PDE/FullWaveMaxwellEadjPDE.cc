@@ -22,6 +22,7 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
+#include "CoupledPDE/IterCoupledPDE.hh"
 
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
@@ -259,11 +260,27 @@ namespace CoupledField
           std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
           shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
         
-          //get coeff-Fnc for the magnetic permeability
-          ReadMaterialDependency( "magElemReluctivity", resultInfo->dofNames, resultInfo->entryType, false,
+          //get coeff-Fnc for the magnetic reluctivity
+          ReadMaterialDependency( "matReluctivity", resultInfo->dofNames, resultInfo->entryType, false,
                                     entity, reluctivity, updatedGeo_ );
 
-        } else {
+          // //get coeff-Fnc for the drivative of magnetic reluctivity w.r.t. parameter, and store it for postprocessing
+          // PtrCoefFct reluctivityDeriv = NULL;                                    
+          // ReadMaterialDependency( "magElemReluctivityDeriv", resultInfo->dofNames, resultInfo->entryType, false,
+          //                           entity, reluctivityDeriv, updatedGeo_ );
+          // if ( reluctivityDeriv == NULL )
+          //   std::cout << "No magElemReluctivityDeriv!!" << std::endl;
+
+          PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");                                    
+          derivReluctivity_[actRegion] = constOne; //reluctivityDeriv;
+
+          //get the curl of the electric field of forward simulation
+          std::string pdeName = "fullwave-E";
+          PtrCoefFct forwardEVortex = iterCplPde_->GetCouplingCoefFct(ELEC_FIELD_VORTICITY, actSDList, pdeName, updatedGeo_); 
+          //forwardEVortex->IsComplex(true);
+          EvorticityForward_[actRegion] = forwardEVortex; //iterCplPde_->GetCouplingCoefFct(ELEC_FIELD_VORTICITY, actSDList, pdeName, updatedGeo_);          
+        } 
+        else {
           reluctivity = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL);
         }
         // Add material to global, distributed reluctivity coefficient function
@@ -287,11 +304,26 @@ namespace CoupledField
           shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
         
           //get coeff-Fnc for the magnetic permittivity
-          ReadMaterialDependency( "magElemPermittivity", resultInfo->dofNames, resultInfo->entryType, false,
+          ReadMaterialDependency( "matPermittivity", resultInfo->dofNames, resultInfo->entryType, false,
                                   entity, eps, updatedGeo_ );                                  
-        } else {        
+
+          //get coeff-Fnc for the drivative of magnetic permittivty w.r.t. parameter, and store it for postprocessing
+          // PtrCoefFct permDeriv = NULL;                                    
+          // ReadMaterialDependency( "matPermittivityDeriv", resultInfo->dofNames, resultInfo->entryType, false,
+          //                         entity, permDeriv, updatedGeo_ );
+          // if (permDeriv == NULL )
+          //   std::cout << "No magElemPermittivityDeriv!!" << std::endl;
+
+          PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");    
+          derivPermittivity_[actRegion] = constOne;    
+
+          //get the curl of the electric field of forward simulation
+          std::string pdeName = "fullwave-E";
+          EfieldForward_[actRegion] = iterCplPde_->GetCouplingCoefFct(ELEC_FIELD_INTENSITY, actSDList, pdeName, updatedGeo_);                                          
+        } 
+        else {        
           eps = actMat->GetScalCoefFnc(MAG_PERMITTIVITY_SCALAR, Global::REAL);        
-        }
+        }        
         // Add material to global, distributed coefficient function
         eps_->AddRegion(actRegion, eps);                
         matCoefs_[MAG_ELEM_PERMITTIVITY]->AddRegion(actRegion, eps);
@@ -384,6 +416,7 @@ namespace CoupledField
         M_E_E_epsilonContext->SetEntities(actSDList, actSDList);
         M_E_E_epsilonContext->SetFeFunctions(eVecPotFeFunc, eVecPotFeFunc);
         assemble_->AddBiLinearForm(M_E_E_epsilonContext);
+        massInts_[actRegion] = M_E_E_epsilon;  
       } // END OF NONLIN/LIN PART
     }   // end for regions
   }     // end DefineIntegrators
@@ -578,6 +611,39 @@ namespace CoupledField
     DefineFieldResult( curlFunc, curlEadj );
     stiffFormCoefs_.insert(curlFunc);
 
+    // === Adjoint MAGNETIC RHS ===
+    shared_ptr<ResultInfo> rhs(new ResultInfo);
+    rhs->resultType = ELEC_RHS_LOAD_ADJ;
+    rhs->dofNames = vecComponents;
+    rhs->unit = "-";
+    rhs->entryType = ResultInfo::VECTOR;
+    rhs->definedOn = ResultInfo::ELEMENT;
+    rhsFeFunctions_[ELEC_FIELD_INTENSITY_ADJ]->SetResultInfo(rhs);
+    DefineFieldResult( rhsFeFunctions_[ELEC_FIELD_INTENSITY_ADJ], rhs );
+
+
+    // === just define it: will be used in FinalizePostProcResult
+    shared_ptr<ResultInfo> averagedEV(new ResultInfo);
+    averagedEV->resultType = ELEC_FIELD_VORTICITY;
+    averagedEV->dofNames = vecComponents;
+    averagedEV->unit = "V/m^2";
+    averagedEV->entryType = ResultInfo::VECTOR;
+    averagedEV->definedOn = ResultInfo::ELEMENT;
+    // The computation is defined in FinalizePostProcResults()
+    shared_ptr<CoefFunctionMulti> averagedEVfnc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    DefineFieldResult(averagedEVfnc, averagedEV);  
+
+    // === just define it: will be used in FinalizePostProcResult
+    shared_ptr<ResultInfo> averagedEI(new ResultInfo);
+    averagedEI->resultType = ELEC_FIELD_INTENSITY;
+    averagedEI->dofNames = vecComponents;
+    averagedEI->unit = "V/m";
+    averagedEI->entryType = ResultInfo::VECTOR;
+    averagedEI->definedOn = ResultInfo::ELEMENT;
+    // The computation is defined in FinalizePostProcResults()
+    shared_ptr<CoefFunctionMulti> averagedEIfnc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    DefineFieldResult(averagedEIfnc, averagedEI);  
+
     // === MAGNETIC ENERGY DENSITY INTEGRATED OVER PERIOD  (in the harmonic case)===
     shared_ptr<ResultInfo> jld(new ResultInfo);
     jld->resultType = MAG_ENERGY_DENSITY;
@@ -599,20 +665,8 @@ namespace CoupledField
     shared_ptr<ResultFunctor> jldFunc;
     jldFunc.reset( new ResultFunctorIntegrate<Complex>(jldCoef, feFct, jldRes) );
     resultFunctors_[MAG_ENERGY] = jldFunc;
-
-    // // === PERMEABILITY ===
-    // shared_ptr<ResultInfo> permeability ( new ResultInfo );
-    // permeability->resultType = MAG_ELEM_PERMEABILITY;
-    // permeability->dofNames = "";
-    // permeability->unit = "Vs/Am";
-    // permeability->definedOn = ResultInfo::ELEMENT;
-    // permeability->entryType = ResultInfo::SCALAR;
-    // shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
-    // matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
-    // DefineFieldResult(permFct, permeability);
-    // availResults_.insert(permeability);
-
-    // === RELUCTIVITY ===
+    
+        // === RELUCTIVITY ===
     shared_ptr<ResultInfo> reluctivity ( new ResultInfo );
     reluctivity->resultType = MAG_ELEM_RELUCTIVITY;
     reluctivity->dofNames = "";
@@ -639,30 +693,106 @@ namespace CoupledField
 
 
   void FullWaveMaxwellEadjPDE::FinalizePostProcResults() {
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+    //Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<RegionIdType>::iterator regIt = regions_.Begin();
     
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
 
-
     shared_ptr<CoefFunctionMulti> elecIntensCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_INTENSITY_ADJ]);
 
-    // ============ E*E averaged over one period ============
-    shared_ptr<CoefFunctionMulti> eCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_ENERGY_DENSITY]);
-    PtrCoefFct conjEinE = CoefFunction::Generate( mp_, part,
-            CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY_ADJ),
-                               GetCoefFct(ELEC_FIELD_INTENSITY_ADJ), CoefXpr::OP_MULT_CONJ) );
-    PtrCoefFct halfCoef = CoefFunction::Generate( mp_, part, "0.5");
+    // ======================== Computation of gardients for SIMP =================
+    StdVector<std::string> vecComponents;
+    vecComponents = "x", "y", "z";
 
-    regIt = regions_.Begin();
-    // for the sake of simplicity we should real with the total current density
-    for( ; regIt != regions_.End(); ++regIt ) {
-      RegionIdType actRegion = *regIt;
-      eCoef->AddRegion(actRegion, CoefFunction::Generate( mp_, part,  CoefXprBinOp(mp_, conjEinE, halfCoef, CoefXpr::OP_MULT) ));
-    }
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_FIELD_INTENSITY_ADJ];
 
+      // === Pure helper results ===
+      shared_ptr<ResultInfo> opt1(new ResultInfo);
+      opt1->resultType = OPT_RESULT_1; 
+      opt1->dofNames = "";
+      opt1->unit = "";
+      opt1->definedOn = ResultInfo::ELEMENT;
+      opt1->entryType = ResultInfo::SCALAR;      
+      shared_ptr<CoefFunctionMulti> optMult1(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+      DefineFieldResult(optMult1, opt1);
 
+      shared_ptr<ResultInfo> opt2(new ResultInfo);
+      opt2->resultType = OPT_RESULT_2; 
+      opt2->dofNames = "";
+      opt2->unit = "";
+      opt2->definedOn = ResultInfo::ELEMENT;
+      opt2->entryType = ResultInfo::SCALAR;      
+      shared_ptr<CoefFunctionMulti> optMult2(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+      DefineFieldResult(optMult2, opt2);
+
+      // === Gradient via adjoint ===
+      // === Parameter 1 is reluctivity
+      shared_ptr<ResultInfo> gradAdjParam1;
+      gradAdjParam1.reset(new ResultInfo);
+      gradAdjParam1->resultType = GRAD_PARAM1;
+      gradAdjParam1->dofNames = "";
+      gradAdjParam1->unit = "";
+      gradAdjParam1->entryType = ResultInfo::SCALAR;
+      gradAdjParam1->definedOn = ResultInfo::ELEMENT; //REGION;   
+      availResults_.insert(gradAdjParam1);                         
+      shared_ptr<ResultFunctor> gradElem1;
+      gradElem1.reset(new ResultFunctorIntegrate<Complex>(optMult1, feFct, gradAdjParam1));
+      resultFunctors_[GRAD_PARAM1] = gradElem1;
+
+      // === Parameter 2 is permittivity
+      shared_ptr<ResultInfo> gradAdjParam2;
+      gradAdjParam2.reset(new ResultInfo);
+      gradAdjParam2->resultType = GRAD_PARAM2;
+      gradAdjParam2->dofNames = "";
+      gradAdjParam2->unit = "";
+      gradAdjParam2->entryType = ResultInfo::SCALAR;
+      gradAdjParam2->definedOn = ResultInfo::ELEMENT; //REGION;   
+      availResults_.insert(gradAdjParam2);                         
+      shared_ptr<ResultFunctor> gradElem2;
+      gradElem2.reset(new ResultFunctorIntegrate<Complex>(optMult2, feFct, gradAdjParam2));
+      resultFunctors_[GRAD_PARAM2] = gradElem2;
+
+      //compute gradient
+      shared_ptr<CoefFunctionMulti> scalMult1 = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[OPT_RESULT_1]);    
+      shared_ptr<CoefFunctionMulti> eVorticityField = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_VORTICITY]);      
+      shared_ptr<CoefFunctionMulti> scalMult2 = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[OPT_RESULT_2]);    
+      shared_ptr<CoefFunctionMulti> eField = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_INTENSITY]);  
+
+      regIt = regions_.Begin();
+      for (; regIt != regions_.End(); ++regIt) {
+        // ========= Electric Vorticity Field =============
+        PtrCoefFct curlForward = NULL;
+        PtrCoefFct mult1 = NULL;
+        RegionIdType actRegion = *regIt;
+        if(EvorticityForward_.find(*regIt) != EvorticityForward_.end()){
+          // Curl of E = ELEC_FIELD_VORTICITY from forward simulation
+          curlForward = EvorticityForward_[*regIt];
+          // get ELEC_FIELD_VORTICITY_ADJ is curl(Eadj), where Eadj is the adjoint solution!
+          PtrCoefFct curlAdj = this->GetCoefFct(ELEC_FIELD_VORTICITY_ADJ);          
+          mult1 = CoefFunction::Generate( mp_, Global::COMPLEX,
+                             CoefXprBinOp(mp_, curlForward, curlAdj, CoefXpr::OP_MULT_CONJ) );        
+          scalMult1->AddRegion(actRegion, mult1);
+
+          //curl of E-field from forward simulation
+          eVorticityField->AddRegion(*regIt, curlForward);    
+        }
+
+        PtrCoefFct eForward = NULL;
+        PtrCoefFct mult2 = NULL;
+        if(EfieldForward_.find(*regIt) != EfieldForward_.end()){
+          // Electric field intensity = ELEC_FIELD_INTENSITY from forward simulation
+          eForward = EfieldForward_[*regIt];
+          // get coef of ELEC_FIELD_INTENSITY_ADJ: is adjoint solution!
+          PtrCoefFct eFieldAdj = this->GetCoefFct(ELEC_FIELD_INTENSITY_ADJ);
+          mult2 = CoefFunction::Generate( mp_, Global::COMPLEX,
+                             CoefXprBinOp(mp_, eForward, eFieldAdj, CoefXpr::OP_MULT_CONJ) );        
+          scalMult2->AddRegion(actRegion, mult2);
+
+          //curl of E-field from forward simulation
+          eField->AddRegion(*regIt, eForward);    
+        }
+      } // loop over regions
 
   }
 

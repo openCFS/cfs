@@ -431,6 +431,11 @@ public:
     return isComplex_;
   }
 
+  //! Set coeffunction is complex
+  virtual void SetComplex(bool isComplex) {
+    isComplex_ = isComplex;
+  }
+
   /** helper for using simplified CoefFunctionConst interface GetScalar(), ... without lpm.
    * For performance reason don't use shared pointers, hence don't store the pointer!
    * Does NOT return a const version but a CoefFunctionCons cast!

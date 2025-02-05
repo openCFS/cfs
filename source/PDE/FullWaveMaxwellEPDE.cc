@@ -261,7 +261,7 @@ namespace CoupledField
           shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
         
           //get coeff-Fnc for the magnetic permeability
-          ReadMaterialDependency( "magElemReluctivity", resultInfo->dofNames, resultInfo->entryType, false,
+          ReadMaterialDependency( "matReluctivity", resultInfo->dofNames, resultInfo->entryType, false,
                                     entity, reluctivity, updatedGeo_ );
 
         } else {
@@ -288,7 +288,7 @@ namespace CoupledField
           shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
         
           //get coeff-Fnc for the magnetic permittivity
-          ReadMaterialDependency( "magElemPermittivity", resultInfo->dofNames, resultInfo->entryType, false,
+          ReadMaterialDependency( "matPermittivity", resultInfo->dofNames, resultInfo->entryType, false,
                                   entity, eps, updatedGeo_ );                                  
         } else {        
           eps = actMat->GetScalCoefFnc(MAG_PERMITTIVITY_SCALAR, Global::REAL);        
@@ -548,6 +548,17 @@ namespace CoupledField
     }
     DefineFieldResult( curlFunc, curlE );
     stiffFormCoefs_.insert(curlFunc);
+
+
+    // === Adjoint MAGNETIC RHS ===
+    shared_ptr<ResultInfo> rhs(new ResultInfo);
+    rhs->resultType = ELEC_RHS_LOAD;
+    rhs->dofNames = vecComponents;
+    rhs->unit = "-";
+    rhs->entryType = ResultInfo::VECTOR;
+    rhs->definedOn = ResultInfo::ELEMENT;
+    rhsFeFunctions_[ELEC_FIELD_INTENSITY]->SetResultInfo(rhs);
+    DefineFieldResult( rhsFeFunctions_[ELEC_FIELD_INTENSITY], rhs );
 
 
     // === MAGNETIC ENERGY DENSITY INTEGRATED OVER PERIOD  (in the harmonic case)===
