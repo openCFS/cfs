@@ -1,0 +1,11 @@
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
+set(CMAKE_SOURCE_DIR "@CMAKE_SOURCE_DIR@")
+include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+# don't search for hdf5 and more important, no examples
+set(PATCHES "gidpost_cmake.patch")
+
+apply_patches("${PATCHES}" "${CMAKE_SOURCE_DIR}/cfsdeps/gidpost")
+

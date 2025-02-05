@@ -9,10 +9,10 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "gidpost")
-set(PACKAGE_VER "2.11")
+set(PACKAGE_VER "2.11") # not that we hide depecreced warnings in SimOutGiD.cc 
 set(PACKAGE_FILE "gidpost-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "20cbd5b359fb1b6ef4ae5d2f1f26a41e")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names.
 
@@ -44,11 +44,6 @@ set(DEPS_ARGS
   ${DEPS_ARGS}
   -DZLIB_INCLUDE_DIR:FILEPATH=${ZLIB_INCLUDE_DIR}
   -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
-  # if we would remove the required from find_package(HDF5 REQUIRED COMPONENTS C HL) we could go without
-  -DHDF5_INCLUDE_DIRS:FILEPATH=${HDF5_INCLUDE_DIR}
-  -DHDF5_INCLUDE_DIR:FILEPATH=${HDF5_INCLmUDE_DIR}
-  -DHDF5_LIBRARY:FILEPATH=${HDF5_LIBRARY}
-  -DHDF5_LIBRARIES:FILEPATH=${HDF5_LIBRARY}
   
   -DENABLE_FORTRAN_EXAMPLES=OFF
   -DENABLE_HDF5=OFF
@@ -57,8 +52,8 @@ set(DEPS_ARGS
 
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
-# we don't need to patch - we skipp the append patch for version 2.1 up to 01.2025
-assert_unset(PATCHES_SCRIPT)
+# we need to patch - we skip the append patch frin version 2.1 in 02.2025
+generate_patches_script()
 
 # we have no postinstall, so don't call generate_postinstall_script()
 assert_unset(POSTINSTALL_SCRIPT)
@@ -80,8 +75,8 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # if not, build newly and possibly pack the stuff
 else()
-  # standard cmake project without patch    
-  create_external_cmake()  
+  # patched cmake project    
+  create_external_cmake_patched()  
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
@@ -93,5 +88,5 @@ endif()
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
 
-# we disable hdf5 but gidpost searches for it nevertheless
-add_dependencies(${PACKAGE_NAME} zlib hdf5)
+# we don't use the hdf5 dependency - use it, if you want to use binary gidpost
+add_dependencies(${PACKAGE_NAME} zlib)

@@ -18,7 +18,11 @@ using namespace boost::assign;
 
 #define USE_CONST
 // Header of postprocessing library
+#pragma GCC diagnostic push // pop at end of file only
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+
 #include <gidpost.h>
+
 #undef USE_CONST
 
 namespace CoupledField {
@@ -1039,3 +1043,6 @@ for ( UInt iEnt = 1; iEnt <= numEnt; iEnt++ ) {         \
 
 
 } // end of namespace
+
+#pragma GCC diagnostic pop
+
