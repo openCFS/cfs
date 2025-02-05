@@ -5,6 +5,8 @@
 // Forward declaration
 namespace CoupledField {
     class ParamNode;
+    class Domain;
+    class BaseSolveStep;
 }
 
 namespace CoupledField
@@ -22,8 +24,12 @@ namespace CoupledField
         /**
          * @brief Initializes the PreCICE participant.
          */
-        virtual void initialize() = 0;
+        virtual void initialize(Domain* domain) = 0;
 
+        /**
+         * @brief Initializes the PreCICE participant.
+         */
+        virtual void RegisterSolveStep(BaseSolveStep* solvestep) = 0;
 
         /**
          * @brief Finalizes the PreCICE participant.

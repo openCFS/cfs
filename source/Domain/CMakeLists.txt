@@ -33,6 +33,8 @@ SET(TARGET_LL
   datainout
   simouttext
   datainout
+  ipreciceadapter
+  preciceadapter
   ${MUPARSER_LIBRARY}
 )
 

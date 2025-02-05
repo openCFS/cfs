@@ -21,10 +21,9 @@ SET(TARGET_LL
   utils
   datainout
   paramh
+  utils
   domain
   elemmapping
-  ipreciceadapter
-  preciceadapter
   ${CFS_FORTRAN_DYNRT_LIBS} )
 
 IF(USE_XERCES)
@@ -57,7 +56,6 @@ ENDIF(DEPS_SEQUENTIAL)
 
 # lapack is in NETLIB, OPENBLAS and MKL
 # LIST(APPEND TARGET_LL -lpthread -lquadmath )
-
 
 SET(CFS_LINK_FLAGS "")
 

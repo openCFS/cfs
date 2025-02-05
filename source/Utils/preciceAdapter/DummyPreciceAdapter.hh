@@ -1,5 +1,3 @@
-// source/Utils/preciceAdapter/NullPreciceAdapter.hh
-
 #ifndef FILE_CFS_DUMMYPRECICEADAPTER_HH
 #define FILE_CFS_DUMMYPRECICEADAPTER_HH
 
@@ -17,13 +15,20 @@ namespace CoupledField
         DummyPreciceAdapter() = default;
         ~DummyPreciceAdapter() override = default;
 
-        void initialize() override {
+        void initialize(Domain* domain) override {
+            // No-op
+        }
+
+        void RegisterSolveStep(BaseSolveStep* solveStep) override {
             // No-op
         }
 
         void finalize() override {
             // No-op
         }
+
+        // Define a non-inline dummy function to force an object file to be generated.
+        // void DummyPreciceAdapter_ForceBuild();
     };
 }
 

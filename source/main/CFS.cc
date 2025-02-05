@@ -24,8 +24,6 @@
 #include "DataInOut/ParamHandling/XmlReader.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/ColoredConsole.hh"
-#include <omp.h>
-#include <sched.h>
 #if not defined(WIN32) 
 #  include <unistd.h>
 #endif
@@ -36,10 +34,6 @@
 #include "petsc.h"
 #include "OLAS/external/petsc/PETSCSolver.hh"
 #endif
-#include "Utils/preciceAdapter/PreciceAdapterFactory.hh"
-
-
-
 
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "PDE/SinglePDE.hh"
@@ -185,7 +179,6 @@ CFS::CFS(int argc, const char **argv) :
 }
 
 
-
 CFS::~CFS()
 {
   // flush last information.
@@ -239,10 +232,6 @@ int CFS::Run()
     // if a python function is registered, call it.
     python->CallHook(PythonKernel::POST_GRID);
 
-    // Initialize the PreCICE Adapter using the factory
-    preciceAdapter_ = CreatePreciceAdapter(paramNode_);
-    preciceAdapter_->initialize();
-    
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else

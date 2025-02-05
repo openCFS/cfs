@@ -10,6 +10,7 @@ namespace CoupledField {
 
   //! forward class declarations
   class Timer;
+  class IPreciceAdapter;
 
   //! Class for transient simulations
   
@@ -118,6 +119,8 @@ namespace CoupledField {
     
     //! Timer for estimating remaining runtime 
     boost::shared_ptr<Timer> timer_;
+
+    IPreciceAdapter* preciceAdapter_;
 
   };
 

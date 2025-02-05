@@ -126,16 +126,18 @@
 
   <xsd:complexType name="DT_PreciceCoupling">
       <xsd:sequence>
-          <xsd:element name="participantName" type="DT_PreciceParticipantName" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="precice_configFile" type="DT_PreciceConfigFile" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="participantName" type="DT_PreciceName" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="participantMeshName" type="DT_PreciceName" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="exchangeQuantity" type="DT_PreciceName" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="precice_configFile" type="DT_PreciceFile" minOccurs="1" maxOccurs="1"/>
       </xsd:sequence>
   </xsd:complexType>
 
-  <xsd:complexType name="DT_PreciceParticipantName">
+  <xsd:complexType name="DT_PreciceName">
       <xsd:attribute name="name" type="xsd:string" use="required"/>
   </xsd:complexType>
 
-  <xsd:complexType name="DT_PreciceConfigFile">
+  <xsd:complexType name="DT_PreciceFile">
       <xsd:attribute name="file" type="xsd:string" use="required"/>
   </xsd:complexType>
 
