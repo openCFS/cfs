@@ -13,6 +13,7 @@
 #include "TransientDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Timer.hh"
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -109,6 +110,8 @@ namespace CoupledField {
         instance = this;
       }
     }
+
+    preciceAdapter_ = domain_->GetPreciceAdapter();
   }
 
   void TransientDriver::SetAccumulatedTime(Double accTime ) {
@@ -172,7 +175,9 @@ namespace CoupledField {
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
   
- 
+    // when using precice, we need direct access to the solvestep
+    preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
+
    
     ptPDE_->WriteGeneralPDEdefines();
     ptPDE_->GetSolveStep()->SetStartStep( startStep );

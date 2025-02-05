@@ -2,11 +2,8 @@
 #define CFS_HH_
 
 #include "Utils/StdVector.hh"
-//#include "Utils/preciceAdapter/PreciceAdapter.hh"
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/DefineInOutFiles.hh"
-#include "Utils/preciceAdapter/IPreciceAdapter.hh"
-
 
 namespace CoupledField
 {
@@ -15,8 +12,6 @@ namespace CoupledField
   class MaterialHandler;
   class LogConfigurator;
   class SimState;
-  
-
 
   /** This is the base class of CFS.
    * It basically gives more structure for the original main() call. */
@@ -80,9 +75,6 @@ namespace CoupledField
     shared_ptr<MaterialHandler> materialHandler;
     
     std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
-
-    std::unique_ptr<IPreciceAdapter> preciceAdapter_;
-
   };
 }
 #endif /* CFS_HH_ */

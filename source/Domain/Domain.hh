@@ -26,7 +26,7 @@ namespace CoupledField
   class MultiSequenceDriver;
   class SimInput;
   class ResultHandler;
-  
+  class IPreciceAdapter;
   class SimState;
   class BaseDriver;
   class MathParser;
@@ -240,7 +240,10 @@ namespace CoupledField
       genResId_ += 1;
     }
 
-
+    IPreciceAdapter* GetPreciceAdapter() const {
+      return preciceAdapter_.get();
+    }
+    
   protected:
 
   private:
@@ -384,6 +387,9 @@ namespace CoupledField
     //! Since these Enums can not be created on the fly, we have to keep
     //! track of them here and assign them individually to avoid redefinition */
     int genResId_ = 0;
+
+    /** Adapter to precice library, used for coupling different softwares with each other */
+    std::unique_ptr<IPreciceAdapter> preciceAdapter_;
   };
 
 }

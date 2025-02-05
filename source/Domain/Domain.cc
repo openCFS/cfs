@@ -34,6 +34,9 @@
 #include "DataInOut/SimInput.hh"
 #include "General/Exception.hh"
 
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
+#include "Utils/preciceAdapter/PreciceAdapterFactory.hh"
+
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Optimization.hh"
@@ -124,6 +127,10 @@ Domain::Domain(
   
   // register variables defined in "variableList" element
   RegisterVariables();
+
+    // Initialize the PreCICE Adapter using the factory
+  preciceAdapter_ = CreatePreciceAdapter(param_);
+  
 }
 
 void Domain::CreateGrid()
@@ -474,6 +481,9 @@ void Domain::SolveProblem()
   BaseDriver* driver = multiSequenceDriver_;
   if(driver == NULL)
     driver = ptSingleDriver_;
+
+  // initialize the precice adapter
+  preciceAdapter_->initialize(this);
 
   // PostInit needs to be called in advance!
   if(optimization_ != NULL)

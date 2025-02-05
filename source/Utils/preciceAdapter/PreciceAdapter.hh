@@ -3,43 +3,50 @@
 
 #include "IPreciceAdapter.hh"
 #include <string>
+#include <vector>
 #include <boost/shared_ptr.hpp>
 #include "def_use_precice.hh"
 #ifdef USE_PRECICE
 #include <precice.hpp>
 #endif
 
-
 namespace CoupledField
 {
-  class ParamNode;
+        class ParamNode;
+        class Domain;
+        class BaseSolveStep;
 
+        class PreciceAdapter : public IPreciceAdapter
+        {
+        public:
+                PreciceAdapter(boost::shared_ptr<ParamNode> paramNode);
 
-  class PreciceAdapter : public IPreciceAdapter {
-      public:
-          PreciceAdapter(boost::shared_ptr<ParamNode> paramNode);
+                ~PreciceAdapter() override;
 
-          ~PreciceAdapter() override;
-          void initialize() override;
-          void finalize() override;
+                void initialize(Domain *domain) override;
+                void RegisterSolveStep(BaseSolveStep *solveStep) override;
+                void finalize() override;
 
-  private:
-        boost::shared_ptr<ParamNode> paramNode_;
+        private:
+                boost::shared_ptr<ParamNode> paramNode_;
 #ifdef USE_PRECICE
-        std::unique_ptr<precice::Participant> participant_; ///< PreCICE participant instance
+                std::unique_ptr<precice::Participant> participant_; ///< PreCICE participant instance
 #endif
-        std::string configFileName_;
-        std::string participantName_;
-        int rank_;
-        int size_;
+                std::string configFileName_;
+                std::string participantName_;
+                std::string participantMeshName_;
+                std::string participantExchangeQuantityName_;
+                std::vector<double> exchangeQuantity_;
+                int rank_;
+                int size_;
 
+                Domain *domain_;
+                BaseSolveStep *solveStep_;
 
-        
-
-        // Disable copy and assignment
-        PreciceAdapter(const PreciceAdapter&) = delete;
-        PreciceAdapter& operator=(const PreciceAdapter&) = delete;
-  };
+                // Disable copy and assignment
+                PreciceAdapter(const PreciceAdapter &) = delete;
+                PreciceAdapter &operator=(const PreciceAdapter &) = delete;
+        };
 
 } // end of namespace
 #endif

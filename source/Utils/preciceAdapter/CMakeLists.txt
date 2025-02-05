@@ -27,12 +27,8 @@ if(USE_PRECICE)
   #target_compile_definitions(preciceadapter PRIVATE USE_PRECICE)
 else()
   # Add DummyPreciceAdapter.cc to the preciceadapter target
-  target_sources(preciceadapter PUBLIC DummyPreciceAdapter.cc)
-
-  # Optionally, define a compile definition if needed
-  #target_compile_definitions(preciceadapter PRIVATE NO_PRECICE)
+  target_sources(preciceadapter PRIVATE DummyPreciceAdapter.cc)
 endif()
-
 
 # Interface library for IPreciceAdapter
 add_library(ipreciceadapter INTERFACE)
