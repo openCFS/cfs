@@ -262,6 +262,8 @@ namespace CoupledField {
       ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
       resHandler->FinishStep( );
       
+      preciceAdapter_->RegisterTimeStep();
+
       // write out re-start only in the last step
       if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {
         if( writeRestart_ || writeAllSteps_ || isPartOfSequence_)

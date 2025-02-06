@@ -25,6 +25,7 @@ namespace CoupledField
 
                 void initialize(Domain *domain) override;
                 void RegisterSolveStep(BaseSolveStep *solveStep) override;
+                void RegisterTimeStep() override;
                 void finalize() override;
 
         private:
@@ -35,7 +36,8 @@ namespace CoupledField
                 std::string configFileName_;
                 std::string participantName_;
                 std::string participantMeshName_;
-                std::string participantExchangeQuantityName_;
+                std::string participantExchangeQuantityName_;               
+                std::string cfsExchangeQuantityName_;
                 std::vector<double> exchangeQuantity_;
                 int rank_;
                 int size_;
