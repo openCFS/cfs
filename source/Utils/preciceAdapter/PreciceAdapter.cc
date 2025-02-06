@@ -2,6 +2,7 @@
 #include "IPreciceAdapter.hh"
 #include "PreciceAdapter.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ResultHandler.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "Driver/TransientDriver.hh"
@@ -60,6 +61,20 @@ namespace CoupledField
         LOG_DBG(preciceAdapter) << "Provided mesh for participant " << participantName_
                                 << " is: " << participantMeshName_;
 
+
+        // Validate and convert the participantExchangeQuantityName_ to an openCFS result name
+        std::string convertedName;
+        if (participantExchangeQuantityName_ == "Temperature") {
+            convertedName = "heatTemperature";
+        } else if (participantExchangeQuantityName_ == "Displacement") {
+            convertedName = "mechDisplacement";
+        } else {
+            EXCEPTION("Invalid participantExchangeQuantityName_: " << participantExchangeQuantityName_
+                    << ". Currently the adapter works for one of [\"Temperature\", \"Displacement\"]");
+        }
+        cfsExchangeQuantityName_ = convertedName;
+
+
         domain_ = domain;
         if (domain_->GetGridMap().size() > 1)
         {
@@ -85,6 +100,29 @@ namespace CoupledField
         // Determine number of vertices
         // TODO: this has to be adjusted to the relevant regions as well
         int vertexSize = domain_->GetGrid()->GetNumNodes();
+
+        /* Alternative start */
+        int numNodes = domain_->GetGrid()->GetNumElems(CoupledField::ALL_REGIONS);
+        int numElements = domain_->GetGrid()->GetNumNodes(CoupledField::ALL_REGIONS);
+        int maxNumEqns = numNodes;
+        std::vector<int> entityEqns(maxNumEqns);
+        /* 
+        Currently we will not be able to couple higher order results with precice because there is no
+        infrastructure that maps virtual nodes (imagine a first order grid and second order Lagrangian shape
+        functions, then there are also dof's on edges and faces and interior - depending on the order). But
+        the ResultHandler knows that we have a "definedOn" variable which gets set in the actual PDE and let's assume
+        it says NODES. Then the ResultHandler evaluates the FeFunction (which includes the virtual nodes from higher
+        order polynomials) at exactly the wanted node (now it's a vertex node). Actually not really because we get
+        the node number where we want to get the result at and simply take the value there - we are not including
+        the other polynomial nodes at this location - which on the other hand might be correct if Lagrangian elements
+        are used, then the shape function of other (polynomial) nodes are zero at the evaluation node anyway...
+        If we ever wanted to include higher order coupling, we would need to be able to write higher order results.
+        So, being able to write higher order results would be the first step towards coupling higher order results
+        with precice.
+        In the current version, when evaluating the results, the final vector already includes DBC's, so we don't
+        need to worry about that at this place.
+        */
+        /* Alternative end */
 
         // Downcast the grid pointer to GridCFS to access the no-argument version of GetNodeCoordinates().
         GridCFS* gridCFS = dynamic_cast<GridCFS*>(domain_->GetGrid());
@@ -131,7 +169,6 @@ namespace CoupledField
 
 
     void PreciceAdapter::RegisterSolveStep(BaseSolveStep *solveStep){
-
         // Try to cast to StdSolveStep*
         StdSolveStep* stdSolveStep = dynamic_cast<StdSolveStep*>(solveStep);
         if (!stdSolveStep) {
@@ -141,7 +178,45 @@ namespace CoupledField
         solveStep_ = stdSolveStep;
     }
 
+    void PreciceAdapter::RegisterTimeStep(){
+        ResultHandler * resHandler = domain_->GetResultHandler();
 
+        // TODO We should probably check this at another place
+        // Make sure the exchanged result via precice is defined in the openCFS xml file
+        // this means, we need to check if it there is a Result for that quantity
+        bool found = false;
+        auto* resultContextsPtr = resHandler->GetResultContexts();
+        for (auto& entry : *resultContextsPtr) {
+            // entry.first is a shared_ptr<BaseResult>
+            // entry.second is a shared_ptr<ResultContext>
+            shared_ptr<BaseResult> baseResult = entry.first;
+            shared_ptr<ResultHandler::ResultContext> resultContext = entry.second;
+
+            BaseResult & actResult  = *(resultContext->result);
+
+            LOG_DBG(preciceAdapter) << "Registering result '"
+                             << actResult.GetResultInfo()->resultName
+                             << "' on '"
+                             << actResult.GetEntityList()->GetName()
+                             << "' in precice adapter";
+            
+
+            if(cfsExchangeQuantityName_ == actResult.GetResultInfo()->resultName){
+                found = true;
+                // Get results and nodnumbers (or at least location information)
+
+
+            }
+        }
+        if(!found){
+            EXCEPTION("PreciceAdapter: I cannot find the result [precicename:"<<participantExchangeQuantityName_<<", cfsname:"<<cfsExchangeQuantityName_<<
+                      "] in the available results."<< " Please check the precice and openCFS xml files.");
+        }
+
+
+        //participant_->readData("thermSolver-Mesh", "Temperature", vertexIDs, dt, displacements);
+
+    }
 
 
     void PreciceAdapter::finalize()

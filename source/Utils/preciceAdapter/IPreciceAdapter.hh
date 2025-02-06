@@ -31,6 +31,8 @@ namespace CoupledField
          */
         virtual void RegisterSolveStep(BaseSolveStep* solvestep) = 0;
 
+        virtual void RegisterTimeStep() = 0;
+
         /**
          * @brief Finalizes the PreCICE participant.
          *
