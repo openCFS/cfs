@@ -18,7 +18,7 @@ clear-cache:
     - /or/commit/message/contained/clear-cache
 
 # this job installs the windows build dependencies in a fresh cache
-install:MSVC2022-Ifort2021:
+install:msvc2022:
   extends: .windows-shared-build
   stage: cfsdeps
   rules:

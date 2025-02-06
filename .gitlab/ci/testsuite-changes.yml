@@ -52,4 +52,4 @@ Testsuite:build:
   needs:
     - job: testsuite-revision
     - job: linux:gcc14-musl
-    - job: windows:MSVC2022-Ifort2021
+    - job: windows:msvc2022
