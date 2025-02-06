@@ -1276,17 +1276,6 @@ stable_par:msvc2022:windows:
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
   script: 
     - !reference [.windows-test_stable, script]
-  rules:
-    #make it optional since MSVC builds currently are not running in parallel
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      <<: *require-rebuild-changes
-      when: manual
-      allow_failure: true
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      <<: *Testsuite_changes
-      when: manual
-      allow_failure: true
-    - !reference [.ctest_default, rules]
   needs:
     - windows:msvc2022
 
