@@ -186,6 +186,7 @@ namespace CoupledField
         // this means, we need to check if it there is a Result for that quantity
         bool found = false;
         auto* resultContextsPtr = resHandler->GetResultContexts();
+        Vector<Double>*  res_vec = NULL;
         for (auto& entry : *resultContextsPtr) {
             // entry.first is a shared_ptr<BaseResult>
             // entry.second is a shared_ptr<ResultContext>
@@ -193,6 +194,9 @@ namespace CoupledField
             shared_ptr<ResultHandler::ResultContext> resultContext = entry.second;
 
             BaseResult & actResult  = *(resultContext->result);
+            // This is more or less a c&p from FeFunction<T>::ExtractResult( shared_ptr<BaseResult> res )
+            shared_ptr<EntityList> list = actResult.GetEntityList();
+            EntityIterator it = list->GetIterator();
 
             LOG_DBG(preciceAdapter) << "Registering result '"
                              << actResult.GetResultInfo()->resultName
@@ -203,7 +207,63 @@ namespace CoupledField
 
             if(cfsExchangeQuantityName_ == actResult.GetResultInfo()->resultName){
                 found = true;
-                // Get results and nodnumbers (or at least location information)
+                // Get results and location information for precice
+                Vector<double> tempField;
+                EntityList::ListType entityListType = actResult.GetEntityList()->GetType();
+                switch( entityListType ) 
+                {
+                    case EntityList::ELEM_LIST:
+                    case EntityList::SURF_ELEM_LIST:
+                    {
+                        // in FieldCoefFunctor<TYPE>::EvalResult this is handled in a separate
+                        // way compared to nodal evaluation. The reason for that is that element
+                        // values, e.g., mech stress tensor, is a derived quantity and it's evaluated
+                        // in the cell/element center
+                        // loop over elements
+                        for(it.Begin(); !it.IsEnd(); it++)
+                        {
+                            const Elem * el = it.GetElem();
+                            LocPoint lp = Elem::shapes[el->type].midPointCoord;
+                            LocPointMapped lpm;
+                            shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
+                            lpm.Set(lp, esm, 0.0);
+                            EXCEPTION("No element value handling via precice yet!");
+                            // resultContext->functor->EvalResult(actContext.result);
+                            // this->GetVector(tempField, lpm );
+                            // loop over dofs
+                            // for(UInt iDim = 0; iDim < dim_; iDim++ )
+                            //     vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
+                            // }
+                        }
+                    }
+                    case EntityList::NODE_LIST:
+                    {
+                        
+                        res_vec = dynamic_cast<Vector<Double>*>(actResult.GetSingleVector());
+                        int pos = 0;
+                        int dim = participant_->getDataDimensions(participantMeshName_, participantExchangeQuantityName_);
+                        for(it.Begin(); !it.IsEnd(); it++)
+                        {
+                            // we could either go via the FeSpace and get the equation number
+                            // for the specific entity but since we know how the actSol
+                            // was generated we can skip this re-organization step
+
+                            // Have a look at void FeFunction<T>::ExtractResult( shared_ptr<BaseResult> res )
+                            // there the connection to solution (res_vec) and eqnNumbers is set
+
+                            for( int k = 0; k < dim; ++k)
+                            {
+                                LOG_DBG(preciceAdapter) << "Reading mapping of node "
+                                << it.GetNode()
+                                << " with result in " << k<< " direction: "
+                                << (*res_vec)[pos*dim+k]
+                                << " in precice adapter";    
+
+                            }
+                        }
+
+                    }
+                }
 
 
             }
