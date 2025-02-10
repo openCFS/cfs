@@ -1063,7 +1063,7 @@ namespace CoupledField {
     res1->dofNames = vecComponents;
     res1->definedOn = ResultInfo::NODE;
     res1->entryType = ResultInfo::VECTOR;
-    res1->unit = "Vs/m";
+    res1->unit = MapSolTypeToUnit(MAG_POTENTIAL);
     res1->SetFeFunction(vecFct);
     results_.Push_back( res1 );
     availResults_.insert( res1 );
