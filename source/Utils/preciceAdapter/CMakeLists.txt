@@ -9,7 +9,9 @@ if(USE_PRECICE)
   find_package(precice CONFIG REQUIRED)
 
   # Add PreciceAdapter.cc to the preciceadapter target
-  target_sources(preciceadapter PRIVATE PreciceAdapter.cc)
+  target_sources(preciceadapter PRIVATE 
+  MinimalXmlParser.cc
+  PreciceAdapter.cc)
 
   # Retrieve the interface include directories from the imported target
   get_target_property(precice_includes precice::precice INTERFACE_INCLUDE_DIRECTORIES)

@@ -1,6 +1,8 @@
 
 #include "IPreciceAdapter.hh"
 #include "PreciceAdapter.hh"
+#include "MinimalXmlParser.hh"
+#include "PreciceConfigReader.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "Domain/Domain.hh"
@@ -100,6 +102,45 @@ namespace CoupledField
             configFileName_,
             rank_,
             size_);
+
+
+
+
+
+    try {
+        CoupledField::MyPreciceConfigReader configReader(configFileName_);
+        const auto &parts = configReader.getParticipants();
+        bool found = false;
+        for (const auto &pc : parts) {
+        if (pc.name == participantName_) {
+            found = true;
+            LOG_DBG(preciceAdapter) << "Found participant: " << pc.name;
+            if (!pc.provideMesh.empty()) {
+            LOG_DBG(preciceAdapter) << "Participant " << pc.name 
+                                    << " provides mesh " << pc.provideMesh;
+            }
+            break;
+        }
+        }
+        if (!found) {
+        EXCEPTION("Participant " << participantName_ 
+                    << " not found in precice-config.xml");
+        }
+    } catch (const std::exception &e) {
+        EXCEPTION("Error reading precice-config.xml: " << e.what());
+    }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         // Retrieve the mesh dimension from preCICE using the mesh name.
