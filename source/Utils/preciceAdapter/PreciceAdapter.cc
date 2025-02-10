@@ -2,7 +2,6 @@
 #include "IPreciceAdapter.hh"
 #include "PreciceAdapter.hh"
 #include "MinimalXmlParser.hh"
-#include "PreciceConfigReader.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "Domain/Domain.hh"
@@ -42,34 +41,13 @@ namespace CoupledField
         finalize();
     }
 
-    void PreciceAdapter::initialize(Domain *domain)
-    {
-        // Steps
-        // 1. Retrieve necessary configuration parameters from the parameter node.
-        // 2. Create the preCICE participant using the retrieved configuration.
-        // 3. Flatten the cfs grid’s node coordinates into a flat vector format required by preCICE.
-        // 4. Generate a sequential list of vertex IDs. == THIS MUST BE ADAPTED FOR REGION HANDLING
-        // 5. Register the mesh (with node coordinates and vertex IDs) with preCICE.
-        // 6. Determine and reserve the space for the exchange quantity.
-        // 7. Initialize the preCICE participant.
-#ifdef USE_PRECICE
-        if (!paramNode_)
-        {
-            EXCEPTION("PreciceAdapter: Parameter node is not set.");
-        }
 
-        // 1. Retrieve necessary configuration parameters from the parameter node.
+    void PreciceAdapter::readConfigurationParameters() {
+        // Retrieve parameters from paramNode_ (participantName_, participantMeshName_, etc.)
         paramNode_->Get("fileFormats/preciceCoupling/participantName")->GetValue("name", participantName_);
         paramNode_->Get("fileFormats/preciceCoupling/participantMeshName")->GetValue("name", participantMeshName_);
         paramNode_->Get("fileFormats/preciceCoupling/exchangeQuantity")->GetValue("name", participantExchangeQuantityName_);
         paramNode_->Get("fileFormats/preciceCoupling/precice_configFile")->GetValue("file", configFileName_);
-
-        LOG_DBG(preciceAdapter) << "Initializing PreCICE participant: " << participantName_
-                                << " with config file: " << configFileName_
-                                << " at rank: " << rank_ << " out of size: " << size_;
-
-        LOG_DBG(preciceAdapter) << "Provided mesh for participant " << participantName_
-                                << " is: " << participantMeshName_;
 
 
         // Validate and convert the participantExchangeQuantityName_ to an openCFS result name
@@ -84,8 +62,41 @@ namespace CoupledField
         }
         cfsExchangeQuantityName_ = convertedName;
 
+    }
 
-        domain_ = domain;
+    void PreciceAdapter::readPreciceConfiguration() {
+        // Use PreciceConfigReader to read additional configuration.
+        try {
+            PreciceConfigReader configReader(configFileName_);
+            const auto &participants = configReader.getParticipants();
+            bool found = false;
+            for (const auto &pc : participants) {
+                if (pc.name == participantName_) {
+                    activeParticipantConfig_ = pc; // Store the relevant configuration
+                    LOG_DBG(preciceAdapter) << "Loaded configuration for participant: " << pc.name;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                EXCEPTION("Participant " << participantName_ << " not found in precice-config.xml");
+            }
+        } catch (const std::exception &e) {
+            EXCEPTION("Error reading precice-config.xml: " << e.what());
+        }
+
+        /*
+            In case I need to have a look at the participant configuration, I can use
+            for (const auto &pm : activeParticipantConfig_.provideMeshes) {
+                LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
+                                        << " provides mesh: " << pm.name;
+            }
+            or others like    activeParticipantConfig_.{provideMeshes, receiveMeshes, readData, writeData}
+            }
+        */
+    }
+
+    void PreciceAdapter::createPreciceParticipant() {
         if (domain_->GetGridMap().size() > 1)
         {
             EXCEPTION("PreciceAdapter: works only with one grid per simulation - until now");
@@ -96,160 +107,83 @@ namespace CoupledField
             EXCEPTION("PreciceAdapter: this only works when using a transient simulation")
         }
 
-        // 2. Create the PreCICE participant using the retrieved configuration.
+        // Create the PreCICE participant instance.
         participant_ = std::make_unique<precice::Participant>(
-            participantName_,
-            configFileName_,
-            rank_,
-            size_);
-
-
-
-
-
-    try {
-        CoupledField::MyPreciceConfigReader configReader(configFileName_);
-        const auto &parts = configReader.getParticipants();
-        bool found = false;
-        for (const auto &pc : parts) {
-        if (pc.name == participantName_) {
-            found = true;
-            LOG_DBG(preciceAdapter) << "Found participant: " << pc.name;
-            if (!pc.provideMesh.empty()) {
-            LOG_DBG(preciceAdapter) << "Participant " << pc.name 
-                                    << " provides mesh " << pc.provideMesh;
-            }
-            break;
-        }
-        }
-        if (!found) {
-        EXCEPTION("Participant " << participantName_ 
-                    << " not found in precice-config.xml");
-        }
-    } catch (const std::exception &e) {
-        EXCEPTION("Error reading precice-config.xml: " << e.what());
+            participantName_, configFileName_, rank_, size_);
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-        // Retrieve the mesh dimension from preCICE using the mesh name.
+    void PreciceAdapter::setupMeshAndCoordinates() {
+        // Retrieve mesh dimension from participant.
         int meshDim = participant_->getMeshDimensions(participantMeshName_);
-
-        /* 
-        Currently we will not be able to couple higher order results with precice because there is no
-        infrastructure that maps virtual nodes (imagine a first order grid and second order Lagrangian shape
-        functions, then there are also dof's on edges and faces and interior - depending on the order). But
-        the ResultHandler knows that we have a "definedOn" variable which gets set in the actual PDE and let's assume
-        it says NODES. Then the ResultHandler evaluates the FeFunction (which includes the virtual nodes from higher
-        order polynomials) at exactly the wanted node (now it's a vertex node). Actually not really because we get
-        the node number where we want to get the result at and simply take the value there - we are not including
-        the other polynomial nodes at this location - which on the other hand might be correct if Lagrangian elements
-        are used, then the shape function of other (polynomial) nodes are zero at the evaluation node anyway...
-        If we ever wanted to include higher order coupling, we would need to be able to write higher order results.
-        So, being able to write higher order results would be the first step towards coupling higher order results
-        with precice.
-        In the current version, when evaluating the results, the final vector already includes DBC's, so we don't
-        need to worry about that at this place.
-        */
-        /* Alternative end */
-
-        // Downcast the grid pointer to GridCFS to access the no-argument version of GetNodeCoordinates().
+        // Get grid from the domain and flatten node coordinates.
         GridCFS* gridCFS = dynamic_cast<GridCFS*>(domain_->GetGrid());
         if (!gridCFS) {
             EXCEPTION("PreciceAdapter: Domain's grid is not of type GridCFS as expected.");
         }
 
-        // node number (1 based, does not have to start at 1)
-        ResultHandler * resHandler = domain_->GetResultHandler();
+        // Build nodeNumCoordMap_ and nodenumsvec_.
+        ResultHandler* resHandler = domain_->GetResultHandler();
         auto* resultContextsPtr = resHandler->GetResultContexts();
-        
-        // Make sure the exchanged result via precice is defined in the openCFS xml file
-        // this means, we need to check if it there is a Result for that quantity
-        bool found = false;
-        for (auto& entry : *resultContextsPtr) {
+        for (auto &entry : *resultContextsPtr) {
             shared_ptr<ResultHandler::ResultContext> resultContext = entry.second;
-
-            BaseResult & actResult  = *(resultContext->result);
+            BaseResult & actResult = *(resultContext->result);
             shared_ptr<EntityList> list = actResult.GetEntityList();
             EntityIterator it = list->GetIterator();
-
-            LOG_DBG(preciceAdapter) << "Registering result '" << actResult.GetResultInfo()->resultName
-                                << "' on '" << actResult.GetEntityList()->GetName()<< "' in precice adapter";
-            if(cfsExchangeQuantityName_ == actResult.GetResultInfo()->resultName){
-                found = true;
-            }
-
-            EntityList::ListType entityListType = actResult.GetEntityList()->GetType();
-            switch( entityListType ) 
-            {
-                case EntityList::ELEM_LIST:
-                case EntityList::SURF_ELEM_LIST:
-                {
-                    WARN("PreciceAdapter: result exchange via elements not yet possible");
-                    break;
+            if (actResult.GetEntityList()->GetType() == EntityList::NODE_LIST) {
+                for (it.Begin(); !it.IsEnd(); it++) {
+                    int nodenum = it.GetNode();
+                    nodenumsvec_.push_back(nodenum);
+                    Vector<double> coord;
+                    gridCFS->GetNodeCoordinate(coord, nodenum, true);
+                    nodeNumCoordMap_[nodenum] = coord;
                 }
-                case EntityList::NODE_LIST:
-                {
-                    for(it.Begin(); !it.IsEnd(); it++)
-                    {
-                        int nodenum = it.GetNode();
-                        nodenumsvec_.push_back(nodenum);
-                        Vector<double> coord;
-                        gridCFS->GetNodeCoordinate(coord,nodenum,true);
-                        nodeNumCoordMap_[nodenum] = coord;
-                    }
-                    break;
-                }
-                default:
-                EXCEPTION("PreciceAdapter: Unknown entityListType "<<entityListType);
             }
-
         }
-        if(!found){
-            EXCEPTION("PreciceAdapter: I cannot find the result [precicename:"<<participantExchangeQuantityName_<<", cfsname:"<<cfsExchangeQuantityName_<<
-                        "] in the available results."<< " Please check the precice and openCFS xml files.");
-        }
-
-        // 3. Create a flat vector with the expected size.
+        // Flatten node coordinates.
         std::vector<double> flatCoords(nodenumsvec_.size() * meshDim);
-        // Flatten the node coordinate container into a flat array required by preCICE.
-        // The flatCoords vector will have layout: [x0, y0, z0, x1, y1, z1, ...] (for 3D)
-        // or [x0, y0, x1, y1, ...] (for 2D), depending on meshDim.
-        for (int i = 0; i < nodenumsvec_.size(); ++i)
-        {
-            // ATTENTION 1 based!!!
-            Vector<double> point = nodeNumCoordMap_[i+1];
-            for (int j = 0; j < meshDim; ++j)
-            {
+        for (size_t i = 0; i < nodenumsvec_.size(); ++i) {
+            Vector<double> point = nodeNumCoordMap_[nodenumsvec_[i]];
+            for (int j = 0; j < meshDim; ++j) {
                 flatCoords[i * meshDim + j] = point[j];
             }
         }
-
-        // take care, precicenodenumsvec_ gets adapted by setMeshVertices!!!
-        precicenodenumsvec_ = nodenumsvec_;
+        precicenodenumsvec_ = nodenumsvec_; // if needed.
         participant_->setMeshVertices(participantMeshName_, flatCoords, precicenodenumsvec_);
+    }
 
-
-        // Retrieve the exchange quantity dimension for the provided mesh and exchange data name.
-        // This dimension determines how many components each exchange data entry has.
+    void PreciceAdapter::reserveExchangeQuantities() {
+        // Reserve space for exchange data based on the dimension.
         int exchangeQuantityDim = participant_->getDataDimensions(participantMeshName_, participantExchangeQuantityName_);
         exchangeQuantity_.resize(nodenumsvec_.size() * exchangeQuantityDim);
+    }
 
 
-        participant_->initialize();
+
+
+    void PreciceAdapter::initialize(Domain *domain) {
+#ifdef USE_PRECICE
+    domain_ = domain;
+
+    // Step 1: Retrieve configuration parameters from the ParamNode.
+    readConfigurationParameters();
+
+    // Step 2: Parse the precice-config.xml file 
+    readPreciceConfiguration();
+
+    // Step 3: Create the PreCICE participant.
+    createPreciceParticipant();
+
+    // Step 4: Extract and flatten node coordinates.
+    setupMeshAndCoordinates();
+
+    // Step 5: Reserve space for exchange quantities.
+    reserveExchangeQuantities();
+
+    // Step 6: Initialize the PreCICE participant.
+    participant_->initialize();
 #endif
     }
+
 
 
     void PreciceAdapter::RegisterSolveStep(BaseSolveStep *solveStep){
