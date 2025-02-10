@@ -4,6 +4,7 @@
 #include "IPreciceAdapter.hh"
 #include <string>
 #include <vector>
+#include "MatVec/Vector.hh"
 #include <boost/shared_ptr.hpp>
 #include "def_use_precice.hh"
 #ifdef USE_PRECICE
@@ -38,6 +39,13 @@ namespace CoupledField
                 std::string participantMeshName_;
                 std::string participantExchangeQuantityName_;               
                 std::string cfsExchangeQuantityName_;
+                // node number (1 based, does not have to start at 1)
+                std::map<unsigned int, Vector<double>> nodeNumCoordMap_;
+                // node number - result map
+                std::map<int, Vector<double>> nodeResultMap_;
+                std::vector<double> flatResults_;
+                std::vector<int> nodenumsvec_;
+                std::vector<int> precicenodenumsvec_;
                 std::vector<double> exchangeQuantity_;
                 int rank_;
                 int size_;

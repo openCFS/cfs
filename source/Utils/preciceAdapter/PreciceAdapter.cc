@@ -23,7 +23,15 @@ namespace CoupledField
           participant_(nullptr),
 #endif
           rank_(0),
-          size_(1)
+          size_(1),
+          configFileName_(""),
+          participantName_(""),
+          participantMeshName_(""),
+          participantExchangeQuantityName_(""),               
+          cfsExchangeQuantityName_(""),
+          flatResults_(0.0),
+          nodenumsvec_(0),
+          exchangeQuantity_(0.0)
     {
     }
 
@@ -85,8 +93,6 @@ namespace CoupledField
         if( !dynamic_cast<TransientDriver*>(domain_->GetSingleDriver()) ){
             EXCEPTION("PreciceAdapter: this only works when using a transient simulation")
         }
-        Double dt;
-        dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT();;
 
         // 2. Create the PreCICE participant using the retrieved configuration.
         participant_ = std::make_unique<precice::Participant>(
@@ -95,17 +101,10 @@ namespace CoupledField
             rank_,
             size_);
 
+
         // Retrieve the mesh dimension from preCICE using the mesh name.
         int meshDim = participant_->getMeshDimensions(participantMeshName_);
-        // Determine number of vertices
-        // TODO: this has to be adjusted to the relevant regions as well
-        int vertexSize = domain_->GetGrid()->GetNumNodes();
 
-        /* Alternative start */
-        int numNodes = domain_->GetGrid()->GetNumElems(CoupledField::ALL_REGIONS);
-        int numElements = domain_->GetGrid()->GetNumNodes(CoupledField::ALL_REGIONS);
-        int maxNumEqns = numNodes;
-        std::vector<int> entityEqns(maxNumEqns);
         /* 
         Currently we will not be able to couple higher order results with precice because there is no
         infrastructure that maps virtual nodes (imagine a first order grid and second order Lagrangian shape
@@ -130,37 +129,81 @@ namespace CoupledField
             EXCEPTION("PreciceAdapter: Domain's grid is not of type GridCFS as expected.");
         }
 
-        // 3. Create a flat vector with the expected size.
-        const StdVector<Vector<double>>& coordsContainer = gridCFS->GetNodeCoordinates();
+        // node number (1 based, does not have to start at 1)
+        ResultHandler * resHandler = domain_->GetResultHandler();
+        auto* resultContextsPtr = resHandler->GetResultContexts();
+        
+        // Make sure the exchanged result via precice is defined in the openCFS xml file
+        // this means, we need to check if it there is a Result for that quantity
+        bool found = false;
+        for (auto& entry : *resultContextsPtr) {
+            shared_ptr<ResultHandler::ResultContext> resultContext = entry.second;
 
-        std::vector<double> flatCoords(vertexSize * meshDim);
+            BaseResult & actResult  = *(resultContext->result);
+            shared_ptr<EntityList> list = actResult.GetEntityList();
+            EntityIterator it = list->GetIterator();
+
+            LOG_DBG(preciceAdapter) << "Registering result '" << actResult.GetResultInfo()->resultName
+                                << "' on '" << actResult.GetEntityList()->GetName()<< "' in precice adapter";
+            if(cfsExchangeQuantityName_ == actResult.GetResultInfo()->resultName){
+                found = true;
+            }
+
+            EntityList::ListType entityListType = actResult.GetEntityList()->GetType();
+            switch( entityListType ) 
+            {
+                case EntityList::ELEM_LIST:
+                case EntityList::SURF_ELEM_LIST:
+                {
+                    WARN("PreciceAdapter: result exchange via elements not yet possible");
+                    break;
+                }
+                case EntityList::NODE_LIST:
+                {
+                    for(it.Begin(); !it.IsEnd(); it++)
+                    {
+                        int nodenum = it.GetNode();
+                        nodenumsvec_.push_back(nodenum);
+                        Vector<double> coord;
+                        gridCFS->GetNodeCoordinate(coord,nodenum,true);
+                        nodeNumCoordMap_[nodenum] = coord;
+                    }
+                    break;
+                }
+                default:
+                EXCEPTION("PreciceAdapter: Unknown entityListType "<<entityListType);
+            }
+
+        }
+        if(!found){
+            EXCEPTION("PreciceAdapter: I cannot find the result [precicename:"<<participantExchangeQuantityName_<<", cfsname:"<<cfsExchangeQuantityName_<<
+                        "] in the available results."<< " Please check the precice and openCFS xml files.");
+        }
+
+        // 3. Create a flat vector with the expected size.
+        std::vector<double> flatCoords(nodenumsvec_.size() * meshDim);
         // Flatten the node coordinate container into a flat array required by preCICE.
         // The flatCoords vector will have layout: [x0, y0, z0, x1, y1, z1, ...] (for 3D)
         // or [x0, y0, x1, y1, ...] (for 2D), depending on meshDim.
-        for (int i = 0; i < vertexSize; ++i)
+        for (int i = 0; i < nodenumsvec_.size(); ++i)
         {
-            const Vector<double>& point = coordsContainer[i];
+            // ATTENTION 1 based!!!
+            Vector<double> point = nodeNumCoordMap_[i+1];
             for (int j = 0; j < meshDim; ++j)
             {
                 flatCoords[i * meshDim + j] = point[j];
             }
         }
 
-        // asking openCFS for the the vertexIDs is not optimal because in cfs they are based on and connected to elements.
-        // for now, let us just hack this
-        std::vector<int> vertexIDs(vertexSize);
-        std::iota(vertexIDs.begin(), vertexIDs.end(), 0); // fills the vector with 0,1,2,...vertexSize-1
-        participant_->setMeshVertices(participantMeshName_, flatCoords, vertexIDs);
+        // take care, precicenodenumsvec_ gets adapted by setMeshVertices!!!
+        precicenodenumsvec_ = nodenumsvec_;
+        participant_->setMeshVertices(participantMeshName_, flatCoords, precicenodenumsvec_);
 
-        if (coordsContainer.GetSize() != static_cast<size_t>(vertexSize)) {
-            EXCEPTION("PreciceAdapter: Mismatch between vertex size (" << vertexSize << ") and coordinate container size (" 
-                    << coordsContainer.GetSize() << ")");
-        }
 
         // Retrieve the exchange quantity dimension for the provided mesh and exchange data name.
         // This dimension determines how many components each exchange data entry has.
         int exchangeQuantityDim = participant_->getDataDimensions(participantMeshName_, participantExchangeQuantityName_);
-        exchangeQuantity_.resize(vertexSize * exchangeQuantityDim);
+        exchangeQuantity_.resize(nodenumsvec_.size() * exchangeQuantityDim);
 
 
         participant_->initialize();
@@ -181,10 +224,6 @@ namespace CoupledField
     void PreciceAdapter::RegisterTimeStep(){
         ResultHandler * resHandler = domain_->GetResultHandler();
 
-        // TODO We should probably check this at another place
-        // Make sure the exchanged result via precice is defined in the openCFS xml file
-        // this means, we need to check if it there is a Result for that quantity
-        bool found = false;
         auto* resultContextsPtr = resHandler->GetResultContexts();
         Vector<Double>*  res_vec = NULL;
         for (auto& entry : *resultContextsPtr) {
@@ -198,83 +237,88 @@ namespace CoupledField
             shared_ptr<EntityList> list = actResult.GetEntityList();
             EntityIterator it = list->GetIterator();
 
-            LOG_DBG(preciceAdapter) << "Registering result '"
-                             << actResult.GetResultInfo()->resultName
-                             << "' on '"
-                             << actResult.GetEntityList()->GetName()
-                             << "' in precice adapter";
-            
-
-            if(cfsExchangeQuantityName_ == actResult.GetResultInfo()->resultName){
-                found = true;
-                // Get results and location information for precice
-                Vector<double> tempField;
-                EntityList::ListType entityListType = actResult.GetEntityList()->GetType();
-                switch( entityListType ) 
+            // Get results and location information for precice
+            Vector<double> tempField;
+            EntityList::ListType entityListType = actResult.GetEntityList()->GetType();
+            switch( entityListType ) 
+            {
+                case EntityList::ELEM_LIST:
+                case EntityList::SURF_ELEM_LIST:
                 {
-                    case EntityList::ELEM_LIST:
-                    case EntityList::SURF_ELEM_LIST:
-                    {
-                        // in FieldCoefFunctor<TYPE>::EvalResult this is handled in a separate
-                        // way compared to nodal evaluation. The reason for that is that element
-                        // values, e.g., mech stress tensor, is a derived quantity and it's evaluated
-                        // in the cell/element center
-                        // loop over elements
-                        for(it.Begin(); !it.IsEnd(); it++)
-                        {
-                            const Elem * el = it.GetElem();
-                            LocPoint lp = Elem::shapes[el->type].midPointCoord;
-                            LocPointMapped lpm;
-                            shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
-                            lpm.Set(lp, esm, 0.0);
-                            EXCEPTION("No element value handling via precice yet!");
-                            // resultContext->functor->EvalResult(actContext.result);
-                            // this->GetVector(tempField, lpm );
-                            // loop over dofs
-                            // for(UInt iDim = 0; iDim < dim_; iDim++ )
-                            //     vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
-                            // }
-                        }
-                    }
-                    case EntityList::NODE_LIST:
-                    {
-                        
-                        res_vec = dynamic_cast<Vector<Double>*>(actResult.GetSingleVector());
-                        int pos = 0;
-                        int dim = participant_->getDataDimensions(participantMeshName_, participantExchangeQuantityName_);
-                        for(it.Begin(); !it.IsEnd(); it++)
-                        {
-                            // we could either go via the FeSpace and get the equation number
-                            // for the specific entity but since we know how the actSol
-                            // was generated we can skip this re-organization step
-
-                            // Have a look at void FeFunction<T>::ExtractResult( shared_ptr<BaseResult> res )
-                            // there the connection to solution (res_vec) and eqnNumbers is set
-
-                            for( int k = 0; k < dim; ++k)
-                            {
-                                LOG_DBG(preciceAdapter) << "Reading mapping of node "
-                                << it.GetNode()
-                                << " with result in " << k<< " direction: "
-                                << (*res_vec)[pos*dim+k]
-                                << " in precice adapter";    
-
-                            }
-                        }
-
-                    }
+                    // in FieldCoefFunctor<TYPE>::EvalResult this is handled in a separate
+                    // way compared to nodal evaluation. The reason for that is that element
+                    // values, e.g., mech stress tensor, is a derived quantity and it's evaluated
+                    // in the cell/element center
+                    // loop over elements
+                    // for(it.Begin(); !it.IsEnd(); it++)
+                    // {
+                    //     const Elem * el = it.GetElem();
+                    //     LocPoint lp = Elem::shapes[el->type].midPointCoord;
+                    //     LocPointMapped lpm;
+                    //     shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
+                    //     lpm.Set(lp, esm, 0.0);
+                    //     EXCEPTION("No element value handling via precice yet!");
+                        // resultContext->functor->EvalResult(actContext.result);
+                        // this->GetVector(tempField, lpm );
+                        // loop over dofs
+                        // for(UInt iDim = 0; iDim < dim_; iDim++ )
+                        //     vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
+                        // }
+                    // }
+                    break;
                 }
+                case EntityList::NODE_LIST:
+                {
+                    
+                    res_vec = dynamic_cast<Vector<Double>*>(actResult.GetSingleVector());
+                    
+                    int pos = 0;
+                    int resdim = participant_->getDataDimensions(participantMeshName_, participantExchangeQuantityName_);
+                    for(it.Begin(); !it.IsEnd(); it++)
+                    {
+                        // we could either go via the FeSpace and get the equation number
+                        // for the specific entity but since we know how the actSol
+                        // was generated we can skip this re-organization step
 
+                        // Have a look at void FeFunction<T>::ExtractResult( shared_ptr<BaseResult> res )
+                        // there the connection to solution (res_vec) and eqnNumbers is set
 
+                        int node = it.GetNode();
+                        // Create a vector of length 'dim' for the result of this node.
+                        Vector<double> resultForNode(resdim);
+                        for (int k = 0; k < resdim; ++k)
+                        {
+                            resultForNode[k] = (*res_vec)[pos * resdim + k];
+                            LOG_DBG(preciceAdapter)
+                                << "Reading result for node " << node
+                                << " component " << k
+                                << ": " << resultForNode[k];
+                        }
+                        nodeResultMap_[node] = resultForNode;
+                        ++pos;
+                    }
+                    
+                    // reate a flat vector from the node results using the ordering from nodenumsvec_.
+                    flatResults_.resize(nodenumsvec_.size() * resdim);
+                    for (std::size_t i = 0; i < nodenumsvec_.size(); ++i)
+                    {
+                        int node = nodenumsvec_[i]; // Get node number in the registered order.
+                        Vector<double> nodeResult = nodeResultMap_[node];
+                        for (int k = 0; k < resdim; ++k)
+                        {
+                            flatResults_[i * resdim + k] = nodeResult[k];
+                        }
+                    }
+                    break;
+                }
             }
         }
-        if(!found){
-            EXCEPTION("PreciceAdapter: I cannot find the result [precicename:"<<participantExchangeQuantityName_<<", cfsname:"<<cfsExchangeQuantityName_<<
-                      "] in the available results."<< " Please check the precice and openCFS xml files.");
-        }
 
-
-        //participant_->readData("thermSolver-Mesh", "Temperature", vertexIDs, dt, displacements);
+        participant_->writeData(participantMeshName_, participantExchangeQuantityName_,
+                                precicenodenumsvec_, flatResults_);
+        // participant_->readData(participantMeshName_, participantExchangeQuantityName_, precicenodenumsvec_,
+        //                        dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT(),
+        //                        flatResults_);
 
     }
 
