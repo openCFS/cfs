@@ -250,6 +250,9 @@ namespace CoupledField {
       analysis_id_.time = actTime_;
       analysis_id_.step = actTimeStep_;
 
+      // only if precice is activated and used
+      //preciceAdapter_->RegisterTimeStepReadData();
+
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(actTime_);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
@@ -262,7 +265,8 @@ namespace CoupledField {
       ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
       resHandler->FinishStep( );
       
-      preciceAdapter_->RegisterTimeStep();
+      // only if precice is activated and used
+      preciceAdapter_->RegisterTimeStepWriteData();
 
       // write out re-start only in the last step
       if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {

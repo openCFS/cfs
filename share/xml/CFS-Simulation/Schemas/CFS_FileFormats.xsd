@@ -128,7 +128,6 @@
       <xsd:sequence>
           <xsd:element name="participantName" type="DT_PreciceName" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="participantMeshName" type="DT_PreciceName" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="exchangeQuantity" type="DT_PreciceName" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="precice_configFile" type="DT_PreciceFile" minOccurs="1" maxOccurs="1"/>
       </xsd:sequence>
   </xsd:complexType>

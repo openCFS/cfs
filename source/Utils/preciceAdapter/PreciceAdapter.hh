@@ -34,10 +34,31 @@ namespace CoupledField
                 // Main adapter methods
                 void initialize(Domain *domain) override;
                 void RegisterSolveStep(BaseSolveStep *solveStep) override;
-                void RegisterTimeStep() override;
+                void RegisterTimeStepWriteData() override;
                 void finalize() override;
 
+                enum Exchangetype {READ=0, WRITE=1};
 
+                /**
+                 * Contains runtime data for an exchange quantity.
+                 *
+                 * This container links the configuration (the quantity name and the mesh on which it is defined)
+                 * with the runtime data: the node numbers at which the quantity is defined,
+                 * and the actual exchanged data.
+                 */
+                struct PreciceRuntimeQuantity {
+                        std::string precicename;                // Quantity name (e.g., "Temperature")
+                        std::string cfsname;                // Quantity name in cfs (e.g., "heatTemperature")
+                        std::string meshName;            // Mesh name on which this quantity is defined.
+                        //int griddim;                    // spatial dimension of the grid
+                        int quantitydim;                // dimension of the quantity (scalar, vector)
+                        //GridCFS* meshPtr;                // Pointer to the corresponding mesh object.
+                        //std::vector<int> nodeNumbers;    // Node numbers where the quantity is defined.
+                        std::vector<double> data;        // The actual data (flattened) for exchange.
+                        std::map<int, Vector<double>> nodeResultMap; // different representation of the data. key is the cfs node number
+                        bool available;                  // flag if the requested quantity is ready
+                        Exchangetype type;               // flag if this is read or write data
+                };
 
         private:
 
@@ -67,7 +88,14 @@ namespace CoupledField
          * Reserves the exchange quantity vector based on the data dimensions and number of nodes.
          */
         void reserveExchangeQuantities();
+        
+        /**
+         * Convert the result name specified in precice's config to openCFS result name
+         */
+        std::string convertResultNamesToCFS(std::string precicename);
         // --- End of helper functions ---
+
+        
 
 
         // --- Data members ---
@@ -78,18 +106,16 @@ namespace CoupledField
         std::string configFileName_;
         std::string participantName_;
         std::string participantMeshName_;
-        std::string participantExchangeQuantityName_;
-        std::string cfsExchangeQuantityName_;
 
         // Mapping from node numbers to coordinates
         std::map<unsigned int, Vector<double>> nodeNumCoordMap_;
-        // Mapping for results (if needed)
-        std::map<int, Vector<double>> nodeResultMap_;
-        std::vector<double> flatResults_;
-        std::vector<int> nodenumsvec_;
-        std::vector<int> precicenodenumsvec_;
-        std::vector<double> exchangeQuantity_;
+        std::vector<int> cfsNodeNumsVec_;
+        std::vector<int> preciceNodeNumsVec_;
         ParticipantConfig activeParticipantConfig_;
+
+        // runtime containers
+        std::vector<PreciceRuntimeQuantity> runtimeReadQuantities_;
+        std::vector<PreciceRuntimeQuantity> runtimeWriteQuantities_;
 
         int rank_;
         int size_;
