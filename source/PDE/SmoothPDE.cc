@@ -693,6 +693,22 @@ namespace CoupledField {
         contactForceFct.reset(new ResultFunctorIntegrate<Double>(contactForceDensityFunc, feFct, contactForce));
     resultFunctors_[SMOOTH_CONTACT_FORCE] = contactForceFct;
     availResults_.insert(contactForce);
+    
+    // === SMOOTH DEFORMATION ENERGY DENSITY ===
+    shared_ptr<ResultInfo> defEnergyDens(new ResultInfo);
+    defEnergyDens->resultType = SMOOTH_DEFORM_ENERGY_DENS;
+    defEnergyDens->dofNames = "";
+    defEnergyDens->unit = MapSolTypeToUnit(SMOOTH_DEFORM_ENERGY_DENS);
+    defEnergyDens->entryType = ResultInfo::SCALAR;
+    defEnergyDens->definedOn = ResultInfo::ELEMENT;
+    shared_ptr<CoefFunctionFormBased> dedFunc;
+    if( isComplex_ ) {
+      dedFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
+    } else {
+      dedFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
+    }
+    DefineFieldResult( dedFunc, defEnergyDens );
+    stiffFormCoefs_.insert(dedFunc);
   }
 
 

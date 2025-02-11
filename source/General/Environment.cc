@@ -158,6 +158,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE_DENSITY, "smoothContactForceDensity");
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE, "smoothContactForce");
+    SolutionTypeEnum.Add(SMOOTH_DEFORM_ENERGY_DENS, "smoothDeformEnergyDensity");
+
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
@@ -904,6 +906,7 @@ namespace CoupledField {
 
       case SPLIT_POT_ENERGY:
       case ELEC_ENERGY_DENSITY:
+      case SMOOTH_DEFORM_ENERGY_DENS:
         return "Ws/m^3";
         break;
 

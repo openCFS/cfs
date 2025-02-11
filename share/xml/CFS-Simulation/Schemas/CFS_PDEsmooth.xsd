@@ -267,6 +267,7 @@
   <!-- Definition of element result types of smooth PDE -->
   <xsd:simpleType name="DT_SmoothElemResult">
     <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="smoothDeformEnergyDensity"/>
       <xsd:enumeration value=""/>
     </xsd:restriction>
   </xsd:simpleType>
