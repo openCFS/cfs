@@ -23,7 +23,7 @@ namespace CoupledField
             // No-op
         }
 
-        void RegisterTimeStep() override {
+        void RegisterTimeStepWriteData() override {
             // No-op
         }
 
