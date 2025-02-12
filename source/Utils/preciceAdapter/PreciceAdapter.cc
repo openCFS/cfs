@@ -132,8 +132,8 @@ namespace CoupledField
             // Validate and convert the precicename to an openCFS result name
             rq.cfsname = convertResultNamesToCFS(rq.precicename);
             //rq.griddim = 0;
-            rq.quantitydim = 0;
-            rq.meshName = "";
+            rq.quantitydim = participant_->getDataDimensions(participantMeshName_, rq.precicename);
+            rq.meshName = entry.mesh;
             //rq.nodeNumbers = {0};
             // Reserve space for the actual exchanged data:
             //rq.data.resize(cfsNodeNumsVec_.size() * rq.quantitydim);
@@ -141,6 +141,11 @@ namespace CoupledField
             runtimeReadQuantities_.push_back(rq);
         }
 
+        // this is not a joke! we need this because precice's setMeshVertices method changes
+        // the last argument! by doing this, we have our original node number vector from cfs
+        // and the adapted one from precice
+        preciceNodeNumsVec_ = cfsNodeNumsVec_;
+        participant_->setMeshVertices(participantMeshName_, flatCoords_, preciceNodeNumsVec_);
     }
 
     void PreciceAdapter::setupMeshAndCoordinates() {
@@ -153,35 +158,44 @@ namespace CoupledField
         // Build nodeNumCoordMap_ and cfsNodeNumsVec_.
         ResultHandler* resHandler = domain_->GetResultHandler();
         auto* resultContextsPtr = resHandler->GetResultContexts();
-        for (auto &entry : *resultContextsPtr) {
-            shared_ptr<ResultHandler::ResultContext> resultContext = entry.second;
-            BaseResult & actResult = *(resultContext->result);
-            shared_ptr<EntityList> list = actResult.GetEntityList();
-            EntityIterator it = list->GetIterator();
-            if (actResult.GetEntityList()->GetType() == EntityList::NODE_LIST) {
-                for (it.Begin(); !it.IsEnd(); it++) {
-                    int nodenum = it.GetNode();
-                    cfsNodeNumsVec_.push_back(nodenum);
-                    Vector<double> coord;
-                    gridCFS->GetNodeCoordinate(coord, nodenum, true);
-                    nodeNumCoordMap_[nodenum] = coord;
+        if (resultContextsPtr->empty()) {
+            EXCEPTION("No result contexts available");
+        } else {
+            bool foundNodeList = false;
+            // Loop over all result contexts as long as we find a node result
+            for (auto entry = resultContextsPtr->begin(); entry != resultContextsPtr->end(); ++entry) {
+                shared_ptr<ResultHandler::ResultContext> resultContext = entry->second;
+                BaseResult & actResult = *(resultContext->result);
+                // Check if the current result context's entity list is of type NODE_LIST.
+                if (actResult.GetEntityList()->GetType() == EntityList::NODE_LIST) {
+                    // Process the node-based result.
+                    shared_ptr<EntityList> list = actResult.GetEntityList();
+                    EntityIterator it = list->GetIterator();
+                    for (it.Begin(); !it.IsEnd(); it++) {
+                        int nodenum = it.GetNode();
+                        cfsNodeNumsVec_.push_back(nodenum);
+                        Vector<double> coord;
+                        gridCFS->GetNodeCoordinate(coord, nodenum, true);
+                        nodeNumCoordMap_[nodenum] = coord;
+                    }
+                    foundNodeList = true;
+                    break; // Stop processing further result contexts.
                 }
             }
+            if (!foundNodeList) {
+                EXCEPTION("No NODE_LIST result context found");
+            }
         }
+        
         // Flatten node coordinates.
         int cfsGridDim = gridCFS->GetDim();
-        std::vector<double> flatCoords(cfsNodeNumsVec_.size() * cfsGridDim);
+        flatCoords_.resize(cfsNodeNumsVec_.size() * cfsGridDim);
         for (size_t i = 0; i < cfsNodeNumsVec_.size(); ++i) {
             Vector<double> point = nodeNumCoordMap_[cfsNodeNumsVec_[i]];
             for (int j = 0; j < cfsGridDim; ++j) {
-                flatCoords[i * cfsGridDim + j] = point[j];
+                flatCoords_[i * cfsGridDim + j] = point[j];
             }
         }
-        // this is not a joke! we need this because precice's setMeshVertices method changes
-        // the last argument! by doing this, we have our original node number vector from cfs
-        // and the adapted one from precice
-        preciceNodeNumsVec_ = cfsNodeNumsVec_;
-        participant_->setMeshVertices(participantMeshName_, flatCoords, preciceNodeNumsVec_);
         
     }
 
@@ -196,11 +210,11 @@ namespace CoupledField
     // Step 2: Parse the precice-config.xml file 
     readPreciceConfiguration();
 
-    // Step 3: Create the PreCICE participant.
-    createPreciceParticipant();
-
-    // Step 4: Extract and flatten node coordinates.
+    // Step 3: Extract and flatten node coordinates.
     setupMeshAndCoordinates();
+    
+    // Step 4: Create the PreCICE participant.
+    createPreciceParticipant();
 
     // Step 5: Initialize the PreCICE participant.
     participant_->initialize();
@@ -219,6 +233,24 @@ namespace CoupledField
         solveStep_ = stdSolveStep;
     }
 
+
+
+    void PreciceAdapter::RegisterTimeStepReadData(){
+        // loop over the required results that we need - defined in the precice config
+        for (auto &quantity : runtimeReadQuantities_) {
+            LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
+                                    << " reads data: " << quantity.cfsname
+                                    << " on mesh: " << quantity.meshName;
+
+            // we need to resize the data vector
+            quantity.data.resize(cfsNodeNumsVec_.size() * quantity.quantitydim);
+            participant_->readData(quantity.meshName, quantity.precicename, preciceNodeNumsVec_,
+                                dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT(),
+                                quantity.data);
+            
+        }
+
+    }
 
 
     void PreciceAdapter::RegisterTimeStepWriteData(){
@@ -345,22 +377,6 @@ namespace CoupledField
             participant_->writeData( quantity.meshName, quantity.precicename,
                                     preciceNodeNumsVec_, quantity.data);
         }
-
-
-        // // do we also need to read something?
-        // if(activeParticipantConfig_.readData.size() > 0){
-        //     for (const auto &pm : activeParticipantConfig_.readData) {
-        //         // check if this is the correct quantity to read
-        //         if(pm.name == participantExchangeQuantityName_){
-        //             LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
-        //                                     << " writes data: " << pm.name
-        //                                     << " on mesh: " << pm.mesh;
-        //             participant_->readData(pm.mesh, pm.name, preciceNodeNumsVec_,
-        //                                 dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT(),
-        //                                 flatResults_);
-        //         }
-        //     }
-        // }
 
         double cfs_dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT();
         double precice_dt = this->participant_->getMaxTimeStepSize();
