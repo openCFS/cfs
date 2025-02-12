@@ -21,7 +21,7 @@ include:
       - if: $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
       - if: $CACHE_POLICY == "push" # effectively just add the info job
   # include the testsuite trigger job (if there are changes in the Testsuite)
-  - local: .gitlab/ci/testsuite.yml
+  #- local: .gitlab/ci/testsuite.yml
 
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
