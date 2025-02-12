@@ -5,6 +5,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "Domain/Domain.hh"
+#include "Domain/Results/ResultFunctor.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "Driver/TransientDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -65,16 +66,6 @@ namespace CoupledField
         } catch (const std::exception &e) {
             EXCEPTION("Error reading precice-config.xml: " << e.what());
         }
-
-        /*
-            In case I need to have a look at the participant configuration, I can use
-            for (const auto &pm : activeParticipantConfig_.provideMeshes) {
-                LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
-                                        << " provides mesh: " << pm.name;
-            }
-            or others like    activeParticipantConfig_.{provideMeshes, receiveMeshes, readData, writeData}
-            }
-        */
     }
 
 
@@ -84,9 +75,13 @@ namespace CoupledField
             convertedName = "heatTemperature";
         } else if (precicename == "Displacement") {
             convertedName = "mechDisplacement";
+        } else if (precicename == "MagneticFluxDensity") {
+            convertedName = "magFluxDensity";
+        } else if (precicename == "MagneticFieldIntensity") {
+            convertedName = "magFieldIntensity";
         } else {
             EXCEPTION("Invalid quantity: " << precicename
-                    << ". Currently the adapter only works for one of [\"Temperature\", \"Displacement\"]");
+                    << ". Currently the adapter only works for one of [\"Temperature\", \"Displacement\", \"MagneticFluxDensity\", \"MagneticFieldIntensity\"]");
         }
         return convertedName;
     }
@@ -183,7 +178,10 @@ namespace CoupledField
                 }
             }
             if (!foundNodeList) {
-                EXCEPTION("No NODE_LIST result context found");
+                LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
+                                    << " could not find a node result. "
+                                    << " Either you are using edge elements or we need to"
+                                    << " continue until the next sequence step";
             }
         }
 
@@ -213,11 +211,16 @@ namespace CoupledField
     // Step 3: Extract and flatten node coordinates.
     setupMeshAndCoordinates();
     
+    // maybe we are not yet in the correct sequence step, therefore,
+    // continue
+    if(cfsNodeNumsVec_.size() == 0){ return;}
+
     // Step 4: Create the PreCICE participant.
     createPreciceParticipant();
 
-    // Step 5: Initialize the PreCICE participant.
+    // Step 5: Initialize the PreCICE participant.    
     participant_->initialize();
+    
 #endif
     }
 
@@ -236,6 +239,9 @@ namespace CoupledField
 
 
     void PreciceAdapter::RegisterTimeStepReadData(){
+        // could happen if we are not in the right sequencestep
+        if(cfsNodeNumsVec_.size() == 0) return;
+
         // loop over the required results that we need - defined in the precice config
         for (auto &quantity : runtimeReadQuantities_) {
             LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
@@ -266,6 +272,9 @@ namespace CoupledField
 
 
     void PreciceAdapter::RegisterTimeStepWriteData(){
+        // could happen if we are not in the right sequencestep
+        if(cfsNodeNumsVec_.size() == 0) return;
+        
         // Get the result contexts from the opencfs result handler.
         ResultHandler * resHandler = domain_->GetResultHandler();
         auto* resultContextsPtr = resHandler->GetResultContexts();
@@ -289,6 +298,15 @@ namespace CoupledField
                     EntityIterator it = list->GetIterator();
                     EntityList::ListType entityListType = actResult.GetEntityList()->GetType();
 
+                    // Determine the dimension for this quantity from the runtime container.
+                    int quantityDim = quantity.quantitydim;
+                    // quick sanity check
+                    if(quantityDim != actResult.GetResultInfo()->GetDimDof()){
+                        EXCEPTION("PreciceAdapter: the requested quantity should have dimension "<<
+                                    quantityDim<<" but openCFS provided a result with dimension "<<
+                                    actResult.GetResultInfo()->GetDimDof());
+                    }
+
                     // Get results and location information for precice
                     switch( entityListType ) 
                     {
@@ -299,36 +317,35 @@ namespace CoupledField
                             // way compared to nodal evaluation. The reason for that is that element
                             // values, e.g., mech stress tensor, is a derived quantity and it's evaluated
                             // in the cell/element center
+
+                            // downcast to FieldCoefFunctor
+                            FieldCoefFunctor<double>* fcfunctor = dynamic_cast<FieldCoefFunctor<double>*>(resultContext->functor.get());
+                            if(!fcfunctor){
+                                EXCEPTION("PreciceAdapter: no downcast to FieldCoefFunctor possible");
+                            }
                             // loop over elements
-                            // for(it.Begin(); !it.IsEnd(); it++)
-                            // {
-                            //     const Elem * el = it.GetElem();
-                            //     LocPoint lp = Elem::shapes[el->type].midPointCoord;
-                            //     LocPointMapped lpm;
-                            //     shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
-                            //     lpm.Set(lp, esm, 0.0);
-                            //     EXCEPTION("No element value handling via precice yet!");
-                                // resultContext->functor->EvalResult(actContext.result);
-                                // this->GetVector(tempField, lpm );
-                                // loop over dofs
-                                // for(UInt iDim = 0; iDim < dim_; iDim++ )
-                                //     vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
-                                // }
-                            // }
+                            for(it.Begin(); !it.IsEnd(); it++)
+                            {
+                                const Elem * el = it.GetElem();
+                                LocPoint lp = Elem::shapes[el->type].midPointCoord;
+                                LocPointMapped lpm;
+                                Vector<double> tempField;
+                                shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
+                                lpm.Set(lp, esm, 0.0);
+
+                                resultContext->functor->EvalResult(resultContext->result);
+                                fcfunctor->GetVector(tempField, lpm );
+                                LOG_DBG(preciceAdapter) << "element "<<el->elemNum
+                                                        <<" has center " << lpm.GetGlobal().ToString()
+                                                        <<" and result "<<tempField.ToString();
+                                //quantity.nodeResultMap[node] = resultForNode;
+                            }
                             WARN("PreciceAdapter: Element-based result processing is not yet implemented.");
                             break;
                         }
                         case EntityList::NODE_LIST:
                         {
-                            // Determine the dimension for this quantity from the runtime container.
-                            int quantityDim = quantity.quantitydim;
-                            // quick sanity check
-                            if(quantityDim != actResult.GetResultInfo()->GetDimDof()){
-                                EXCEPTION("PreciceAdapter: the requested quantity should have dimension "<<
-                                         quantityDim<<" but openCFS provided a result with dimension "<<
-                                         actResult.GetResultInfo()->GetDimDof());
-                            }
-                            
+                           
                             // Retrieve the result vector from actResult.
                             Vector<double>* res_vec = dynamic_cast<Vector<Double>*>(actResult.GetSingleVector());
                             if (!res_vec) {

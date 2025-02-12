@@ -175,6 +175,8 @@ namespace CoupledField {
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
   
+    // init precice coupling adapter
+    preciceAdapter_->initialize(domain_);
     // when using precice, we need direct access to the solvestep
     preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
 

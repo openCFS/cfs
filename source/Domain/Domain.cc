@@ -482,9 +482,6 @@ void Domain::SolveProblem()
   if(driver == NULL)
     driver = ptSingleDriver_;
 
-  // initialize the precice adapter
-  preciceAdapter_->initialize(this);
-
   // PostInit needs to be called in advance!
   if(optimization_ != NULL)
     optimization_->SolveProblem(); // will call multiple driver->SolveProblem
