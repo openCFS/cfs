@@ -186,7 +186,7 @@ namespace CoupledField
                 EXCEPTION("No NODE_LIST result context found");
             }
         }
-        
+
         // Flatten node coordinates.
         int cfsGridDim = gridCFS->GetDim();
         flatCoords_.resize(cfsNodeNumsVec_.size() * cfsGridDim);
@@ -248,6 +248,18 @@ namespace CoupledField
                                 dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT(),
                                 quantity.data);
             
+            // for easier handling, we also fill the nodeResultMap
+            // but keep in mind that the nodes in nodeResultMap are a point cloud and
+            // do not have to be real node-values!
+            for (std::size_t i = 0; i < preciceNodeNumsVec_.size(); ++i) {
+                int cfsnode = cfsNodeNumsVec_[i];
+                Vector<double> vals;
+                vals.Resize(quantity.quantitydim);
+                for(std::size_t k = 0; k < quantity.quantitydim; ++k){
+                    vals[k] = quantity.data[i * quantity.quantitydim + k];
+                }
+                quantity.nodeResultMap[cfsnode] = vals;
+            }
         }
 
     }
