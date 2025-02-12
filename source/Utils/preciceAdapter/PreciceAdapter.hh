@@ -35,6 +35,7 @@ namespace CoupledField
                 void initialize(Domain *domain) override;
                 void RegisterSolveStep(BaseSolveStep *solveStep) override;
                 void RegisterTimeStepWriteData() override;
+                void RegisterTimeStepReadData() override;
                 void finalize() override;
 
                 enum Exchangetype {READ=0, WRITE=1};
@@ -110,6 +111,7 @@ namespace CoupledField
         // Mapping from node numbers to coordinates
         std::map<unsigned int, Vector<double>> nodeNumCoordMap_;
         std::vector<int> cfsNodeNumsVec_;
+        std::vector<double> flatCoords_;
         std::vector<int> preciceNodeNumsVec_;
         ParticipantConfig activeParticipantConfig_;
 

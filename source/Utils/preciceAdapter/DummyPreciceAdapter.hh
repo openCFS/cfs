@@ -27,6 +27,10 @@ namespace CoupledField
             // No-op
         }
 
+        void RegisterTimeStepReadData() override {
+            // No-op
+        }
+
         void finalize() override {
             // No-op
         }

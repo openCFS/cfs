@@ -251,7 +251,7 @@ namespace CoupledField {
       analysis_id_.step = actTimeStep_;
 
       // only if precice is activated and used
-      //preciceAdapter_->RegisterTimeStepReadData();
+      preciceAdapter_->RegisterTimeStepReadData();
 
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(actTime_);
@@ -310,6 +310,7 @@ namespace CoupledField {
                                           accTime_+GetDuration());
     }
 
+    preciceAdapter_->finalize();
   }
 
   void TransientDriver::SetToStepValue(UInt stepNum, Double stepVal ) {

@@ -12,7 +12,7 @@ namespace CoupledField {
 namespace CoupledField
 {
     /**
-     * @brief Abstract interface for PreciceAdapter.
+     * Abstract interface for PreciceAdapter.
      *
      * Defines the contract for PreCICE interaction. Concrete implementations
      * can either use PreCICE or perform no operations.
@@ -22,19 +22,27 @@ namespace CoupledField
         virtual ~IPreciceAdapter() = default;
 
         /**
-         * @brief Initializes the PreCICE participant.
+         * Initializes the PreCICE participant.
          */
         virtual void initialize(Domain* domain) = 0;
 
         /**
-         * @brief Initializes the PreCICE participant.
+         * Initializes the PreCICE participant.
          */
         virtual void RegisterSolveStep(BaseSolveStep* solvestep) = 0;
 
+        /**
+         * Writes data of the finished time step
+         */
         virtual void RegisterTimeStepWriteData() = 0;
 
         /**
-         * @brief Finalizes the PreCICE participant.
+         * Reads data needed for the current time step
+         */
+        virtual void RegisterTimeStepReadData() = 0;
+
+        /**
+         * Finalizes the PreCICE participant.
          *
          * Called automatically upon destruction.
          */
