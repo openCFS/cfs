@@ -57,6 +57,7 @@ namespace CoupledField
                         //std::vector<int> nodeNumbers;    // Node numbers where the quantity is defined.
                         std::vector<double> data;        // The actual data (flattened) for exchange.
                         std::map<int, Vector<double>> nodeResultMap; // different representation of the data. key is the cfs node number
+                        std::map<int, Vector<double>> elemResultMap; // different representation of the data. key is the cfs element number
                         bool available;                  // flag if the requested quantity is ready
                         Exchangetype type;               // flag if this is read or write data
                 };
@@ -107,12 +108,21 @@ namespace CoupledField
         std::string configFileName_;
         std::string participantName_;
         std::string participantMeshName_;
-
+        std::string participantElemMeshName_;
+        
         // Mapping from node numbers to coordinates
         std::map<unsigned int, Vector<double>> nodeNumCoordMap_;
         std::vector<int> cfsNodeNumsVec_;
         std::vector<double> flatCoords_;
         std::vector<int> preciceNodeNumsVec_;
+
+        // Mapping from element numbers to midpoint coordinates
+        std::map<unsigned int, Vector<double>> elemNumCoordMap_;
+        std::vector<int> cfsElemNumsVec_;
+        std::vector<double> flatElemCoords_;
+        std::vector<int> preciceElemNumsVec_;
+        bool needElemMesh_;
+
         ParticipantConfig activeParticipantConfig_;
 
         // runtime containers
