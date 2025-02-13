@@ -29,6 +29,8 @@ namespace CoupledField
           configFileName_(""),
           participantName_(""),
           participantMeshName_(""),
+          participantElemMeshName_(""),
+          needElemMesh_(false),
           cfsNodeNumsVec_(0)
     {
     }
@@ -55,6 +57,15 @@ namespace CoupledField
             for (const auto &pc : participants) {
                 if (pc.name == participantName_) {
                     activeParticipantConfig_ = pc; // Store the relevant configuration
+                    // now let's check if there is a _elem mesh in the provide meshes
+                    for (const auto &mesh : pc.provideMeshes) {
+                        // Check if mesh.name ends with "_elem"
+                        if (mesh.name.size() >= 5 &&
+                            mesh.name.substr(mesh.name.size() - 5) == "_elem") {
+                            needElemMesh_ = true;
+                            break;
+                        }
+                    }
                     LOG_DBG(preciceAdapter) << "Loaded configuration for participant: " << pc.name;
                     found = true;
                     break;
@@ -110,7 +121,13 @@ namespace CoupledField
             rq.cfsname = convertResultNamesToCFS(rq.precicename);
             // specified grid dimension in precice config
             //rq.griddim = participant_->getMeshDimensions(participantMeshName_);
-            rq.quantitydim = participant_->getDataDimensions(participantMeshName_, rq.precicename);
+            if(needElemMesh_)
+            {
+                rq.quantitydim = participant_->getDataDimensions(participantMeshName_+"_elem", rq.precicename);
+            }else
+            {
+                rq.quantitydim = participant_->getDataDimensions(participantMeshName_, rq.precicename);
+            }
             rq.meshName = entry.mesh;
             //rq.nodeNumbers = cfsNodeNumsVec_;
             // Reserve space for the actual exchanged data:
@@ -119,7 +136,7 @@ namespace CoupledField
             runtimeWriteQuantities_.push_back(rq);
         }
 
-        // TODO: Reading is not finished yet
+
         for (const auto &entry : activeParticipantConfig_.readData) {
             PreciceRuntimeQuantity rq;
             rq.precicename = entry.name;
@@ -141,6 +158,17 @@ namespace CoupledField
         // and the adapted one from precice
         preciceNodeNumsVec_ = cfsNodeNumsVec_;
         participant_->setMeshVertices(participantMeshName_, flatCoords_, preciceNodeNumsVec_);
+
+        // Similarly, register the element mesh with preCICE.
+        // Derive the element mesh name by appending "_elem" to the participant mesh name.
+        // but only if the "node mesh name"+"_elem" is specified in the precice config
+        if(needElemMesh_)
+        {
+            participantElemMeshName_ = participantMeshName_ + "_elem";
+            preciceElemNumsVec_ = cfsElemNumsVec_;
+            participant_->setMeshVertices(participantElemMeshName_, flatElemCoords_, preciceElemNumsVec_);
+        }
+
     }
 
     void PreciceAdapter::setupMeshAndCoordinates() {
@@ -161,21 +189,51 @@ namespace CoupledField
             for (auto entry = resultContextsPtr->begin(); entry != resultContextsPtr->end(); ++entry) {
                 shared_ptr<ResultHandler::ResultContext> resultContext = entry->second;
                 BaseResult & actResult = *(resultContext->result);
+                shared_ptr<EntityList> list = actResult.GetEntityList();
+                EntityIterator it = list->GetIterator();
                 // Check if the current result context's entity list is of type NODE_LIST.
-                if (actResult.GetEntityList()->GetType() == EntityList::NODE_LIST) {
-                    // Process the node-based result.
-                    shared_ptr<EntityList> list = actResult.GetEntityList();
-                    EntityIterator it = list->GetIterator();
-                    for (it.Begin(); !it.IsEnd(); it++) {
-                        int nodenum = it.GetNode();
-                        cfsNodeNumsVec_.push_back(nodenum);
-                        Vector<double> coord;
-                        gridCFS->GetNodeCoordinate(coord, nodenum, true);
-                        nodeNumCoordMap_[nodenum] = coord;
+                switch( actResult.GetEntityList()->GetType() ) 
+                {
+                    case EntityList::NODE_LIST:
+                    {
+                        // Loop over nodes.
+                        for (it.Begin(); !it.IsEnd(); it++) {
+                            int nodenum = it.GetNode();
+                            if (nodeNumCoordMap_.find(nodenum) == nodeNumCoordMap_.end()) {
+                                cfsNodeNumsVec_.push_back(nodenum);
+                                Vector<double> coord;
+                                gridCFS->GetNodeCoordinate(coord, nodenum, true);
+                                nodeNumCoordMap_[nodenum] = coord;
+                            }
+                        }
+                        foundNodeList = true;
+                        break; // Stop processing further result contexts.
                     }
-                    foundNodeList = true;
-                    break; // Stop processing further result contexts.
+                    case EntityList::ELEM_LIST:
+                    case EntityList::SURF_ELEM_LIST:
+                    {
+                        // Loop over elements
+                        for(it.Begin(); !it.IsEnd(); it++)
+                        {
+                            const Elem * el = it.GetElem();
+                            int elemNum = el->GetElemNum();
+                            // Check if this element number is not already in the map
+                            if (elemNumCoordMap_.find(elemNum) == elemNumCoordMap_.end())
+                            {
+                                Vector<double> center;
+                                gridCFS->GetElemCentroid(center, elemNum, true);
+                                cfsElemNumsVec_.push_back(elemNum);
+                                elemNumCoordMap_[elemNum] = center;
+                            }
+
+                        }
+                        break;
+                    }
+                    default:
+                        EXCEPTION("PreciceAdapter::setupMeshAndCoordinates: Unhandled entity list type.");
+                        break;
                 }
+
             }
             if (!foundNodeList) {
                 LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
@@ -195,6 +253,15 @@ namespace CoupledField
             }
         }
         
+        // Flatten element midpoint coordinates.
+        Vector<double> midPoint;
+        flatElemCoords_.resize(cfsElemNumsVec_.size() * cfsGridDim);
+        for (std::size_t i = 0; i < cfsElemNumsVec_.size(); ++i) {
+            midPoint = elemNumCoordMap_[cfsElemNumsVec_[i]];
+            for (int j = 0; j < cfsGridDim; ++j) {
+                flatElemCoords_[i * cfsGridDim + j] = midPoint[j];
+            }
+        }
     }
 
 
@@ -335,12 +402,12 @@ namespace CoupledField
 
                                 resultContext->functor->EvalResult(resultContext->result);
                                 fcfunctor->GetVector(tempField, lpm );
-                                LOG_DBG(preciceAdapter) << "element "<<el->elemNum
-                                                        <<" has center " << lpm.GetGlobal().ToString()
-                                                        <<" and result "<<tempField.ToString();
-                                //quantity.nodeResultMap[node] = resultForNode;
+                                // LOG_DBG(preciceAdapter) << "element "<<el->elemNum
+                                //                         <<" has center " << lpm.GetGlobal().ToString()
+                                //                         <<" and result "<<tempField.ToString();
+                                quantity.elemResultMap[el->GetElemNum()] = tempField;
                             }
-                            WARN("PreciceAdapter: Element-based result processing is not yet implemented.");
+
                             break;
                         }
                         case EntityList::NODE_LIST:
@@ -367,26 +434,13 @@ namespace CoupledField
                                 for (int k = 0; k < quantityDim; ++k)
                                 {
                                     resultForNode[k] = (*res_vec)[pos * quantityDim + k];
-                                    LOG_DBG(preciceAdapter)
-                                        << "Reading result for node " << node
-                                        << " component " << k
-                                        << ": " << resultForNode[k];
+                                    // LOG_DBG(preciceAdapter)
+                                    //     << "Reading result for node " << node
+                                    //     << " component " << k
+                                    //     << ": " << resultForNode[k];
                                 }
                                 quantity.nodeResultMap[node] = resultForNode;
                                 ++pos;
-                            }
-
-
-                            // reate a flat vector from the node results using the ordering from cfsNodeNumsVec_.
-                            quantity.data.resize(cfsNodeNumsVec_.size() * quantityDim);
-                            for (std::size_t i = 0; i < cfsNodeNumsVec_.size(); ++i)
-                            {
-                                int node = cfsNodeNumsVec_[i]; // Get node number in the registered order.
-                                Vector<double> nodeResult = quantity.nodeResultMap[node];
-                                for (int k = 0; k < quantityDim; ++k)
-                                {
-                                    quantity.data[i * quantityDim + k] = nodeResult[k];
-                                }
                             }
                             break;
                         }
@@ -400,11 +454,54 @@ namespace CoupledField
                 EXCEPTION("PreciceAdapter: result "<<quantity.cfsname<<" was requested from openCFS but not provided");
             }
 
+
             LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
-                                    << " writes data: " << quantity.precicename
-                                    << " on mesh: " << quantity.meshName;
-            participant_->writeData( quantity.meshName, quantity.precicename,
-                                    preciceNodeNumsVec_, quantity.data);
+                        << " writes data: " << quantity.precicename
+                        << " on mesh: " << quantity.meshName;
+
+
+            // create a flat vector from the results using the ordering from cfsNodeNumsVec_ or cfsElemNumsVec_.
+            if(!quantity.nodeResultMap.empty())
+            {
+                // case of nodal results
+                quantity.data.resize(cfsNodeNumsVec_.size() * quantity.quantitydim);
+                for (std::size_t i = 0; i < cfsNodeNumsVec_.size(); ++i)
+                {
+                    int node = cfsNodeNumsVec_[i]; // Get node number in the registered order.
+                    Vector<double> nodeResult = quantity.nodeResultMap[node];
+                    for (int k = 0; k < quantity.quantitydim; ++k)
+                    {
+                        quantity.data[i * quantity.quantitydim + k] = nodeResult[k];
+                    }
+                }
+                participant_->writeData( quantity.meshName, quantity.precicename,
+                        preciceNodeNumsVec_, quantity.data);
+            }else{
+                if(!needElemMesh_)
+                {
+                    EXCEPTION("PreciceAdapter: you want to write an element result but did not specify the xxx_elem mesh in proved-mesh");
+                }
+
+                LOG_DBG(preciceAdapter) << "number of elements in quantity.elemResultMap " << quantity.elemResultMap.size();
+                LOG_DBG(preciceAdapter) << "size of preciceElemNumsVec_ " << preciceElemNumsVec_.size();
+                
+
+                quantity.data.resize(quantity.elemResultMap.size() * quantity.quantitydim);
+                int p = 0;
+                for(const auto& pair : quantity.elemResultMap)
+                {
+                    int elemNum = pair.first;
+                    const CoupledField::Vector<CoupledField::Double>& value = pair.second;
+                    for (int k = 0; k < quantity.quantitydim; ++k)
+                    {
+                        quantity.data[p * quantity.quantitydim + k] = value[k];
+                    }
+                    ++p;
+                }
+
+                participant_->writeData( quantity.meshName, quantity.precicename,
+                        preciceElemNumsVec_, quantity.data);
+            }
         }
 
         double cfs_dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT();

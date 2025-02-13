@@ -222,7 +222,7 @@ namespace CoupledField{
     MapNodalEqns(2);
     
     // TEMPORARY: print information
-    PrintEqnMap();
+    //PrintEqnMap();
     CheckConsistency();
 #ifdef USE_OPENMP
     std::map< RegionIdType, std::map<Elem::FEType, FeH1* > >::iterator regIt = refElems_.begin();
