@@ -161,6 +161,24 @@ namespace CoupledField
     Double LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, 
                       Double& etaLineSearch, bool trans=false);
 
+    //! does a line search: It gives the optimal line search parameter. 
+    //! This minimizes the Energy functional in the Newton direction.
+    //! To accelerate the process just a set of eta \in Eta is tried out.
+    Double LineSearchMinEnergyHeuristic(SBM_Vector& solIncrement, SBM_Vector& actSol, 
+                      Double& etaLineSearch, bool trans=false);
+
+    //! does a line search: It gives the optimal line search parameter. 
+    //! This minimizes the Energy functional in the Newton direction.
+    //! Here the minimization is exactly solved by Brent's method.
+    Double LineSearchMinEnergy(SBM_Vector& solIncrement, SBM_Vector& actSol, 
+                      Double& etaLineSearch, bool trans=false);
+
+    //! computes the derivative of the energy functional w.r.t the line search parameter eta.
+    Double GetEnergyDerivativeEta(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta);
+
+    //! solves a one-dimensional root-finding problem by Brent's method
+    Double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, double a, double b);
+
     //! does a line search for multiharmonic analysis and returns the optimal residual norm
     Double LineSearchMultHarm(const SBM_Vector& solIncrement, SBM_Vector& actSol,
                       Double& etaLineSearch, MHTimeFreqResult& ftRes);

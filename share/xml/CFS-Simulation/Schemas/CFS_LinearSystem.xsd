@@ -237,12 +237,29 @@
               </xsd:documentation>
             </xsd:annotation>
           </xsd:enumeration>
-          <xsd:enumeration value="minEnergy">
+          <xsd:enumeration value="minResidual">
           <xsd:annotation>
               <xsd:documentation>
                 An array of line search parameters gamma is used to evaluate the residual for 
                 gamma = [0.1 0.2 0.3 0.4 0.5 0.6 0.6 0.7 0.8 0.9 1] and the one which minimizes the residual
                 is used for the Newton step.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="minEnergy">
+          <xsd:annotation>
+              <xsd:documentation>
+                Computes the optimal line search parameter. This minimzes the Energy functional in the Newton diretion.
+                To solve the optimization problem, Brent's method is used.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:enumeration>
+          <xsd:enumeration value="minEnergyHeuristic">
+          <xsd:annotation>
+              <xsd:documentation>
+                Computes the optimal line search parameter. This minimzes the Energy functional in the Newton diretion.
+                To solve the optimization problem, just a few parametes \eta \in [0.1 0.2 0.3 0.4 0.5 0.6 0.6 0.7 0.8 0.9 1]
+                are tried out.
               </xsd:documentation>
             </xsd:annotation>
           </xsd:enumeration>

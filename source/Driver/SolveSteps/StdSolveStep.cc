@@ -128,7 +128,6 @@ namespace CoupledField {
   // ======================================================
   // STATIC SOLVING SECTION
   // ======================================================
-  
   void StdSolveStep::PreStepStatic( ) {
     
     // init RHS at this place, because e.g. forces of other PDEs are added
@@ -137,12 +136,12 @@ namespace CoupledField {
     
   }
   
-  
+
   void StdSolveStep::PostStepStatic() {
     
   }
   
-  
+
   void StdSolveStep::SolveStepStatic() {
     
     if (nonLin_) {
@@ -258,7 +257,7 @@ namespace CoupledField {
       solStrat_->SetActSolStep(iLevel + 1);
       ReadNonLinData();
 
-      if((lineSearch_ != "none") && (lineSearch_ != "minEnergy")){
+      if((lineSearch_ != "none") && (lineSearch_ != "minEnergy") && (lineSearch_ != "minResidual") && (lineSearch_ != "minEnergyHeuristic")){
         EXCEPTION("The selected line search method is currently only available for energy-based hysteresis");
       }
       
@@ -304,7 +303,6 @@ namespace CoupledField {
           algsys_->UpdateRHS(SYSTEM,solVec_,true);
           solVec_.ScalarMult(-1.0);
         }
-        
         
         // assemble Newton bilinear forms
         isNewton = true;
@@ -377,8 +375,16 @@ namespace CoupledField {
         }
         else {
           // do line search
-          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
-          
+          // but first we ask what line search technique should be applied
+          if (lineSearch_ == "minResidual") { 
+            residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+          }
+          else if (lineSearch_ == "minEnergyHeuristic") {
+            residualL2Norm = LineSearchMinEnergyHeuristic(solInc, actSol, etaLineSearch);
+          }
+          else if (lineSearch_ == "minEnergy") {
+            residualL2Norm = LineSearchMinEnergy(solInc, actSol, etaLineSearch);
+          }
           // store the new solution
           solVec_ = actSol;
         }
@@ -1275,41 +1281,41 @@ namespace CoupledField {
       fncIt->second->GetTimeScheme()->FinishStep();
     }
   }
-/** direct quasi-Newton formlation
- * Solves for one transient time step by using the direct quasi-Newton formulation.
- * In this formulation the PDE is directly linearized by a Taylor Series expansion.
- * So we come up with a linear algebraic system of the form
- * dF/du * delta_u = -F
- * where F is the residual of the PDE and dF/du is the Jacobian of the PDE.
- * 
- * ### MAGNETOSTATIC PHI-FORMULATION ###
- * This would lead to the following weak form
- * (-dB/dH gradDelta_Phi, gradPhi')_Omega = -(B_prev, gradPhi')_Omega .
- * 
- * ### MAGNETOSTATIC A-FORMULATION ###
- * This would lead to the following weak form
- * (-dH/dB curlDelta_A, curlA')_Omega = -(H_prev, curlA')_Omega - (J_s, A')_Omega .
- * 
- * where dB/dH or dH/dB is the material tensor mu(H) or nu(B) respectively.
- * This system of equations has to be solved until the error norm is small enough.
- * 
- * =================================================================================
- * ### Start: ALGORITHM
- * =================================================================================
- * u = linearFEM() // initial guess with current boundary conditions
- * while(true) // nonlinear iterations
- *   getMaterialTensor() // evaluate hysteresis operator + DFP for mu(H)
- *   solveSystem() // solve linearized system from above
- *   performNewtonStep() // maybe also use a linesearch method
- *   checkStoppingCriteria() // check if error small enough
- *   saveState() // save all needed quantities for next iteration (if necessary)
- * end while
- * 
- * saveState() // save all needed quantities for next time step
- * =================================================================================
- * ### End: ALGORITHM
- * =================================================================================
-**/
+  /** direct quasi-Newton formlation
+   * Solves for one transient time step by using the direct quasi-Newton formulation.
+   * In this formulation the PDE is directly linearized by a Taylor Series expansion.
+   * So we come up with a linear algebraic system of the form
+   * dF/du * delta_u = -F
+   * where F is the residual of the PDE and dF/du is the Jacobian of the PDE.
+   * 
+   * ### MAGNETOSTATIC PHI-FORMULATION ###
+   * This would lead to the following weak form
+   * (-dB/dH gradDelta_Phi, gradPhi')_Omega = -(B_prev, gradPhi')_Omega .
+   * 
+   * ### MAGNETOSTATIC A-FORMULATION ###
+   * This would lead to the following weak form
+   * (-dH/dB curlDelta_A, curlA')_Omega = -(H_prev, curlA')_Omega - (J_s, A')_Omega .
+   * 
+   * where dB/dH or dH/dB is the material tensor mu(H) or nu(B) respectively.
+   * This system of equations has to be solved until the error norm is small enough.
+   * 
+   * =================================================================================
+   * ### Start: ALGORITHM
+   * =================================================================================
+   * u = linearFEM() // initial guess with current boundary conditions
+   * while(true) // nonlinear iterations
+   *   getMaterialTensor() // evaluate hysteresis operator + DFP for mu(H)
+   *   solveSystem() // solve linearized system from above
+   *   performNewtonStep() // maybe also use a linesearch method
+   *   checkStoppingCriteria() // check if error small enough
+   *   saveState() // save all needed quantities for next iteration (if necessary)
+   * end while
+   * 
+   * saveState() // save all needed quantities for next time step
+   * =================================================================================
+   * ### End: ALGORITHM
+   * =================================================================================
+  **/
   void StdSolveStep::StepTransHyst(){
     mParser_->SetExpr(MathParser::GLOB_HANDLER,"iterationCounter");
     mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", 0);
@@ -1788,7 +1794,7 @@ namespace CoupledField {
 
     // Loop over time steps
     for(UInt i = 0; i < ftRes.GetNumTimeSteps(); ++i){
-//      std::cout << "=========== Timestep " << i << " =========" << std::endl;
+    //      std::cout << "=========== Timestep " << i << " =========" << std::endl;
       // TODO this should be double
       Vector<Complex> timeStepVec = ftRes.GetTimeResult(i);
       solVec_(0) = (Vector<Complex>)timeStepVec;
@@ -1807,7 +1813,7 @@ namespace CoupledField {
   void StdSolveStep::AssembleMH(const UInt& N, const UInt& M, const bool onlyDiagBlocks) {
     // loop over every frequency and assemble the correct SBM blocks
 
-//    std::cout << "  - Calculating BiLinearForms for multiharmonic analysis" <<std::endl;
+    //    std::cout << "  - Calculating BiLinearForms for multiharmonic analysis" <<std::endl;
 
     // Init all matrices, which have to be reassembled
     // Usually this is done in Assemble::AssembleMatrices_Std but we don't
@@ -1837,9 +1843,9 @@ namespace CoupledField {
           // the matrix entries for odd harmonics are zero, therefore we don't
           // have to assemble them
           // Have to assemble them in certain cases...
-//           if( h%2 != 0 && h!=0 ){
-//             continue;
-//           }
+  //           if( h%2 != 0 && h!=0 ){
+  //             continue;
+  //           }
 
 
         }else{
@@ -2127,6 +2133,212 @@ namespace CoupledField {
     return residualL2NormOpt;
   }
 
+  Double StdSolveStep::LineSearchMinEnergyHeuristic(SBM_Vector& solIncrement, SBM_Vector& actSol,
+          Double& etaLineSearch, bool trans)  {
+    
+    // INIT. EVERY NEEDED VARIABLE
+    SBM_Vector solOld(BaseMatrix::DOUBLE);
+    solOld = actSol;
+    const UInt nrEtas = 10;
+    const Double eta_trial[nrEtas] = {0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1};
+    std::vector<Double> Energy;
+    Double etaOpt = 0.0;
+    SBM_Vector current_increment(BaseMatrix::DOUBLE);
+    int closest_index = 0;
+    Double min_distance = 0;
+    bool isNewton = false;
+    SBM_Vector resdiual_L2norm_opt(BaseMatrix::DOUBLE);
+
+    // STORE CURRENT INCREMENT TO SETUP THE ENERGY FUNCTIONAL E(eta) = dot(R(eta),current_increment)
+    current_increment = solIncrement;
+
+    // TRY OUT A FEW ETA FOR R(eta) for E(eta) = dot(R(eta),current_increment) FOR ALL eta IN eta_trial
+    for( UInt idx = 0; idx < nrEtas; idx++) {
+      Energy.push_back(GetEnergyDerivativeEta(solIncrement, actSol, eta_trial[idx]));
+    }
+
+    // GET THE VALUE OF ENERGY R(eta) THAT IS CLOSEST TO ZERO
+    min_distance = std::abs(Energy[0]);
+    for (UInt idx = 1; idx < nrEtas; ++idx) {
+      Double distance = std::abs(Energy[idx]);
+      if (distance < min_distance) {
+        min_distance = distance;
+        closest_index = idx;
+      }
+    }
+    etaOpt = eta_trial[closest_index];
+    etaLineSearch = etaOpt;
+
+    
+    // GET RESIDUAL L2 NORM FOR THE ACT SOLUTION
+    actSol.Add( 1.0, solOld, etaOpt, solIncrement ); // Set new solution
+    algsys_->InitRHS(RhsLinVal_ ); // set RHS: linear part
+    assemble_->AssembleNonLinRHS(); // set RHS: nonlinear part
+    assemble_->AssembleMatrices(isNewton); // setup the matrices
+    solVec_.ScalarMult(-1.0);
+    algsys_->UpdateRHS(SYSTEM,solVec_,true); // compute residual = K*x-RHS
+    solVec_.ScalarMult(-1.0);
+    algsys_->GetRHSVal( resdiual_L2norm_opt ); // get residual vector
+
+    return resdiual_L2norm_opt.NormL2(); // compute L2 norm of residual vector
+  }
+
+  Double StdSolveStep::GetEnergyDerivativeEta(SBM_Vector& solIncrement, SBM_Vector& actSol,Double eta){
+
+    SBM_Vector residual_vector(BaseMatrix::DOUBLE);
+    SBM_Vector solOld(BaseMatrix::DOUBLE); solOld = actSol;
+    Double dEnergy_deta = 0;
+
+    // take care about the data types
+    // get new solution A_k+1 candidate for the tried eta: A_k+1 = A_k + \eta*\delta A 
+    // solVec_ = solOld + eta*solIncrement
+    if(actSol.GetEntryType() == BaseMatrix::DOUBLE) actSol.Add( 1.0, solOld, eta, solIncrement);
+    else actSol.Add( (Complex) 1.0, solOld, (Complex) eta, solIncrement);
+    solVec_ = actSol; // this is needed to let the assembler know how the RHS should be assembled
+
+    // set RHS: linear part
+    algsys_->InitRHS(RhsLinVal_ );
+    // set RHS: nonlinear part
+    assemble_->AssembleNonLinRHS();
+    // setup the matrices
+    bool isNewton = false;
+    assemble_->AssembleMatrices(isNewton);
+    // setup the residual vector
+    solVec_.ScalarMult(-1.0);
+    algsys_->UpdateRHS(SYSTEM,solVec_,true);
+    solVec_.ScalarMult(-1.0);
+    algsys_->GetRHSVal( residual_vector );
+
+    // compute the dot product: dot(R(eta),current_increment)
+    residual_vector.Inner(solIncrement,dEnergy_deta);
+
+    // set back old solution
+    actSol = solOld;
+
+    return dEnergy_deta;
+  }
+
+  Double StdSolveStep::LineSearchMinEnergy(SBM_Vector& solIncrement, SBM_Vector& actSol,
+          Double& etaLineSearch, bool trans)  {
+
+    // INIT. EVERY NEEDED VARIABLE
+    SBM_Vector solOld(BaseMatrix::DOUBLE); solOld = actSol;
+    bool isNewton = false;
+    SBM_Vector resdiual_L2norm_opt(BaseMatrix::DOUBLE);
+    Double bottom_interval = 0.01;
+    Double top_interval = 1; 
+    Double etaOpt = 0.0;
+
+    // apply Brent's method to get an optimal value for eta
+    etaOpt = BrentMethod(solIncrement, actSol, bottom_interval, top_interval);
+    etaLineSearch = etaOpt;
+
+
+    // GET RESIDUAL L2 NORM FOR THE ACT SOLUTION
+    actSol.Add( 1.0, solOld, etaOpt, solIncrement ); // Set new solution
+    algsys_->InitRHS(RhsLinVal_ ); // set RHS: linear part
+    assemble_->AssembleNonLinRHS(); // set RHS: nonlinear part
+    assemble_->AssembleMatrices(isNewton); // setup the matrices
+    solVec_.ScalarMult(-1.0);
+    algsys_->UpdateRHS(SYSTEM,solVec_,true); // compute residual = K*x-RHS
+    solVec_.ScalarMult(-1.0);
+    algsys_->GetRHSVal( resdiual_L2norm_opt ); // get residual vector
+
+    return resdiual_L2norm_opt.NormL2(); // compute L2 norm of residual vector
+  }
+
+  double StdSolveStep::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b){
+
+    double Fa, Fb, Fc;
+    double c;
+    double tolerance = 1e-2;
+    double max_iter = 1e3;
+    double iter_counter = 0;
+    double prev_step = 0;
+    double tol_act = 0;
+    double eps = 2.2204e-16;
+    double new_step = 0;
+    double cb = 0;
+    double t1 = 0;
+    double t2 = 0;
+    double p = 0;
+    double q = 0;
+
+    SBM_Vector actSol_temp(BaseMatrix::DOUBLE); actSol_temp = actSol;
+
+    Fa = GetEnergyDerivativeEta(solIncrement, actSol, a);
+    Fb = GetEnergyDerivativeEta(solIncrement, actSol, b);
+    c = a; 
+    Fc = Fa;
+
+    while(iter_counter < max_iter){
+        iter_counter  = iter_counter + 1;
+
+        prev_step = b - a;
+
+        if (std::abs(Fc) < std::abs(Fb)){ // swap for b to be best approximation
+            a = b ;
+            b = c ;
+            c = a ;
+            Fa = Fb ;
+            Fb = Fc ;
+            Fc = Fa ;
+        }
+
+        tol_act =  2*eps*std::abs(b) + tolerance/2 ;
+        new_step = (c-b)/2 ;
+
+        if (std::abs(new_step) <= tol_act || std::abs(Fb) < eps){
+            return b;
+        }
+
+        if (std::abs(prev_step) >= tol_act && Fa == Fb){
+            cb = c - b;
+            if (std::abs(a-c) < eps){ // linear interpolation, only two points available
+                t1 = Fb/Fa;
+                p = cb*t1;
+                q = 1 - t1;
+            }else { // three points, do quadratic inverse  interpolation
+                a = Fa/Fc;
+                t1 = Fb/Fc;
+                t2 = Fb/Fa;
+                p = t2*( cb*q*(q-t1) - (b-a)*(t1-1) );
+                q = (q-1)*(t1-1)*(t2-1);
+            }
+
+            if (p > 0){
+                q = -q;
+            }else {
+                p = -p;
+            }
+
+            if (p < ( 0.75*cb*q-std::abs(tol_act*q)/2 ) && p < abs(prev_step*q/2)){
+                new_step = p/q;
+            }
+        }
+
+        // step must be at least as large as tolerance
+        if (std::abs(new_step) < tol_act){
+            if (new_step > 0){
+                new_step = tol_act ;
+            } else{
+                new_step = -tol_act ;
+            }
+        }
+
+        a = b;
+        Fa = Fb;
+        b = b + new_step;
+        Fb = GetEnergyDerivativeEta(solIncrement, actSol, b);
+        if (( Fb > 0 && Fc > 0 ) || ( Fb < 0 && Fc < 0 )){
+            c = a;
+            Fc = Fa;        
+        }
+    }
+    return b;
+  }
+
+
 
   Double StdSolveStep::LineSearchMultHarm(const SBM_Vector& solIncrement, SBM_Vector& actSol,
           Double& etaLineSearch, MHTimeFreqResult& ftRes)  {
@@ -2218,14 +2430,14 @@ namespace CoupledField {
       }
     } // eta-loop
 
-//    std::cout << "Optimal eta = " << etaOpt << std::endl;
+  //    std::cout << "Optimal eta = " << etaOpt << std::endl;
     etaLineSearch = etaOpt;
 
-//    std::cout << "Considered Harmonics: " << consideredH_ << std::endl;
-//    std::cout << eta[0] << " - " << etaError[0] << std::endl;
-//    std::cout << eta[1] << " - " << etaError[1] << std::endl;
-//    std::cout << eta[2] << " - " << etaError[2] << std::endl;
-//    std::cout << eta[3] << " - " << etaError[3] << std::endl;
+  //    std::cout << "Considered Harmonics: " << consideredH_ << std::endl;
+  //    std::cout << eta[0] << " - " << etaError[0] << std::endl;
+  //    std::cout << eta[1] << " - " << etaError[1] << std::endl;
+  //    std::cout << eta[2] << " - " << etaError[2] << std::endl;
+  //    std::cout << eta[3] << " - " << etaError[3] << std::endl;
 
     // Set new solution for optimal eta
     if(lineSearch_ == "multiharmonicIncreasing"){
@@ -2258,7 +2470,6 @@ namespace CoupledField {
     }
     return residualL2NormOpt;
   }
-  
   
 
   Double StdSolveStep::LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
