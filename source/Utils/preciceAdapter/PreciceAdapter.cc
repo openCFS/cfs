@@ -407,6 +407,7 @@ namespace CoupledField
                             {
                                 EXCEPTION("PreciceAdapter: no downcast to FieldCoefFunctor possible");
                             }
+                            resultContext->functor->EvalResult(resultContext->result);
                             for (it.Begin(); !it.IsEnd(); it++)
                             {
                                 const Elem *el = it.GetElem();
@@ -415,7 +416,6 @@ namespace CoupledField
                                 Vector<double> tempField;
                                 shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
                                 lpm.Set(lp, esm, 0.0);
-                                resultContext->functor->EvalResult(resultContext->result);
                                 fcfunctor->GetVector(tempField, lpm);
                                 // LOG_DBG(preciceAdapter) << "element "<<el->elemNum
                                 //                         <<" has center " << lpm.GetGlobal().ToString()
