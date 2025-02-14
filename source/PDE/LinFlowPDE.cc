@@ -2428,10 +2428,10 @@ namespace CoupledField {
       shared_ptr<ResultFunctor> avgPresFunc;
       if(isComplex_) {
         avgPresFunc.reset(new ResultFunctorIntegrate<Complex>(presFnc, feFct, avgPres));
-        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(impedanceFct)->SetAveraged(true);
+        dynamic_pointer_cast<ResultFunctorIntegrate<Complex>>(avgPresFunc)->SetAveraged(true);
       } else {
         avgPresFunc.reset(new ResultFunctorIntegrate<Double>(presFnc, feFct, avgPres));
-        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(impedanceFct)->SetAveraged(true);
+        dynamic_pointer_cast<ResultFunctorIntegrate<Double>>(avgPresFunc)->SetAveraged(true);
       }
       resultFunctors_[FLUIDMECH_AVERAGED_PRESSURE] = avgPresFunc;
       availResults_.insert(avgPres);
