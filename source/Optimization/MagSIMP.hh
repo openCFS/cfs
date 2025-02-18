@@ -42,7 +42,7 @@ public:
 protected:
 
   /** @see Optimization::PostInit() */
-  virtual void PostInit();
+  void PostInit() override;
 
   /** Get's linear or nonlinear nu_r from the elements material property */
   double CalcRelactivity(const Elem* elem, UInt dim);
@@ -51,22 +51,21 @@ protected:
 
   /** overloads SIMP::CalcFunction()
    * @see ErsatzMaterial::CalcFunction */
-  double CalcFunction(Excitation& excite, Function* f, bool derivative);
+  double CalcFunction(Excitation& excite, Function* f, bool derivative) override;
 
   /** [1 0; 0 0] or [0 0; 0 1] for SQR_MAG_FLUX_DENS_X/Y */
   const Matrix<double>& GetSelectionMatrix(const Function* f) const;
 
   /** @see ErsatzMaterial::FillRealAdjointRHS() */
 
-  bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs);
+  bool FillRealAdjointRHS(Excitation& excite, Function* f, Vector<double>& rhs) override;
   
   /** @see ErsatzMaterial::FillComplexAdjointRHS() */
 
-  bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs);
+  bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs) override;
 
   /** See ErsatzMaterial::SetElementK() */
-  void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
-
+  void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0) override
   {
     if(f->ctxt->IsComplex())
       SetElementK<std::complex<double>, double >( f, de, tf, app, out, derivative, calcMode, ev);
@@ -75,7 +74,7 @@ protected:
   }
 
   /** See ErsatzMaterial::SubstractCalcU1KU2RHS() */
-  void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec);
+  void SubstractCalcU1KU2RHS(Function* f, TransferFunction* tf, DesignElement* de, DesignDependentRHS* rhs, SingleVector* mat_vec) override;
 
 private:
 

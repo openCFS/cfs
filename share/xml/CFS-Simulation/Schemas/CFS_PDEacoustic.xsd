@@ -710,6 +710,37 @@
       <xsd:enumeration value="pmlTensor"/>
       <xsd:enumeration value="pmlDeterminant"/>
       <xsd:enumeration value="pmlDistance"/>
+
+      <xsd:enumeration value="pseudoDensity">
+        <xsd:annotation>
+          <xsd:documentation>Non-physical design variable for simp topology optimization.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="physicalPseudoDensity">
+        <xsd:annotation>
+          <xsd:documentation>Physical application of design variable in the simulation.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="optResult_1">
+        <xsd:annotation>
+          <xsd:documentation>General optimization result, e.g. for the gradient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="optResult_2">
+        <xsd:annotation>
+          <xsd:documentation>General optimization result, e.g. for the gradient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="optResult_3">
+        <xsd:annotation>
+          <xsd:documentation>General optimization result, e.g. for the gradient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="optResult_4">
+        <xsd:annotation>
+          <xsd:documentation>General optimization result, e.g. for the gradient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 

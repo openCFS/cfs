@@ -1903,6 +1903,7 @@
           <xsd:enumeration value="lbm" />
           <xsd:enumeration value="heat" />
           <xsd:enumeration value="magnetic" />
+          <xsd:enumeration value="acoustic" />
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -1924,7 +1925,6 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="density" />
       <xsd:enumeration value="rhsDensity" />
-      <xsd:enumeration value="acouDensity" />
       <xsd:enumeration value="polarization" />
       <!-- trace for elastic FMO and other paramMat stuff, mech_11, mech_22 and mech_33 -->
       <xsd:enumeration value="mech_trace" />
@@ -2019,6 +2019,7 @@
       <xsd:enumeration value="conjugateCompliance" />
       <xsd:enumeration value="globalDynamicCompliance" />
       <xsd:enumeration value="dynamicOutput" />
+      <xsd:enumeration value="reflectedWave" />
       <xsd:enumeration value="absOutput" />
       <xsd:enumeration value="tracking" />
       <xsd:enumeration value="elecEnergy" />
@@ -2029,10 +2030,13 @@
       <xsd:enumeration value="youngsModulus" />
       <xsd:enumeration value="youngsModulusE1" />
       <xsd:enumeration value="youngsModulusE2" />
-      <xsd:enumeration value="volume" />
       <!-- requires python sub-element -->
       <xsd:enumeration value="python"/>
       <xsd:enumeration value="localPython"/>
+
+      <xsd:enumeration value="volume" />
+      <xsd:enumeration value="greyness" />
+      
       <xsd:enumeration value="penalizedVolume" />
       <xsd:enumeration value="filteringGap" />
       <xsd:enumeration value="gap" />
@@ -2191,6 +2195,8 @@
       <xsd:enumeration value="slackFunction" />
       <!-- tracking heat temperature at interfaces -->
       <xsd:enumeration value="tempTrackingAtInterface" />
+      <xsd:enumeration value="dynamicOutput" />
+      <xsd:enumeration value="reflectedWave" />
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -2959,7 +2965,7 @@
       <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_BcInhomVector_mod" />
       <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_Load" />
       <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
-      <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_Load" />
+      <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_BcInhomScalar_acou" />
 
       <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
@@ -2983,6 +2989,23 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+   <xsd:complexType name="DT_BcInhomScalar_acou">
+    <xsd:complexContent>
+        <xsd:extension base="DT_BcInhomScalar">
+          <xsd:attribute name="surfRegion" type="xsd:string" use="optional">
+            <xsd:annotation>
+              <xsd:documentation>The name of the surfaceRegion where used on the normalVelocity excitation.</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+          <xsd:attribute name="volumeNeighbour" type="xsd:string" use="optional">
+            <xsd:annotation>
+              <xsd:documentation>The name of the volumeRegion used to obtain the material parameters. (Usually the neighbour of the selected surface.)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+        </xsd:extension>
+    </xsd:complexContent>
+</xsd:complexType>
 
   <!-- Simple load definition -->
   <xsd:complexType name="DT_Load">
@@ -3406,7 +3429,11 @@
           <!-- when type is slackFunction we need to give function -->
           <xsd:attribute name="function" use="optional" type="DT_SlackFunction" default="no_function"/>
   
-          <xsd:attribute name="penalty" type="xsd:float" use="optional" default="1.0"/>
+          <xsd:attribute name="scale" type="xsd:float" use="optional" default="1.0">
+            <xsd:annotation>
+              <xsd:documentation>Contributution to the summed multi objecitve value</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
   
           <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
           <!-- only the globalSlope has a value and only within multiObjective -->

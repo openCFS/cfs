@@ -243,6 +243,56 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     break;
   }
 
+  case Function::REFLECTED_WAVE:
+  {
+    // J = (u - z)^T L (u - z)*
+    // J' = 2*Re(lambda K' (u-z))
+    // K^T lambda = - L (u-z)
+    // Similar to dynamicOutput, but the solution gets shifted by a constant value z. 
+    // In acoustics, z is the pressure caused by the excitation, so we only see the reflected wave.
+    
+    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true); // exception and use_single
+    double weight = excite.GetWeightedFactor(f);
+
+    LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
+
+    // get the z paramter and the region of excitation
+    RegionIdType reg = GetExcitationRegion(f);
+    Complex z = GetExcitationPressure(f);
+    StdVector<SingleVector*>& u2 = forward.Get(excite)->elem[app];
+    StdVector<Vector<complex<double>>> umz(u2.GetSize());
+
+    // This code is only for excitation inside the optimization region and not verified
+    // get all nodeIds for the ecitation
+    StdVector<unsigned int> regNodes;
+    grid->GetNodesByRegion(regNodes, reg);
+    LOG_DBG(simp) << "CF: reg=" << reg << " -> nodes=" << regNodes.ToString(); 
+    assert(umz.GetSize() == design->data.GetSize());
+    // loop over all design elements
+    for(DesignElement& de : design->data){
+      unsigned int idx = de.GetIndex();
+      Vector<complex<double>>* vec = dynamic_cast<Vector<complex<double>>*>(u2[idx]);
+      umz[idx] = *vec;
+      assert(umz[idx].GetSize() == de.elem->connect.GetSize());
+      LOG_DBG3(simp) << "CF: Set u-z for: elem idx=" << idx << " test for=" << de.elem->connect.ToString(); 
+      // loop over all nodes of the design elements
+      for(unsigned int node_idx = 0; node_idx < de.elem->connect.GetSize(); node_idx++){
+        // check if one of the nodes is in the excitation region -> substract z
+        if(regNodes.Contains(de.elem->connect[node_idx])) {
+          throw Exception("Excitation inside optimization region is not verified.");
+          umz[idx][node_idx] -= z;
+          LOG_DBG3(simp) << "CF: Set u-z for: elem idx=" << idx << " node idx=" << node_idx << " -> " << umz[idx][node_idx]; 
+        }
+      }
+    }
+    StdVector<SingleVector*> umzptr(u2.GetSize());
+    for(unsigned int i = 0; i < u2.GetSize(); i++)
+      umzptr[i] = &umz[i];
+
+    CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, umzptr, NULL, weight, STANDARD, f);
+    break;
+  }
+
   case Function::PRESSURE_DROP:
   {
     LatticeBoltzmannPDE* lbmPde = f->ctxt->GetLatticeBoltzmannPDE();

@@ -506,7 +506,6 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case PYTHON_FUNCTION:
   case LOCAL_PYTHON_FUNCTION:
   case ARC_OVERLAP:
-  case PYTHON_VOLUME:
     return PLAIN;
 
   // filtered stuff different for sensitivity filtering
@@ -537,6 +536,7 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case OUTPUT:
   case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case REFLECTED_WAVE:
   case ABS_OUTPUT:
   case CONJUGATE_COMPLIANCE:
   case GLOBAL_DYNAMIC_COMPLIANCE:
@@ -572,6 +572,7 @@ Function::Access Function::DefaultAccess(Function::Type type) const
     return PHYSICAL;
 
   case MULTI_OBJECTIVE:
+  case NO_TYPE:
     assert(false);
     break;
   }
@@ -654,7 +655,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case PYTHON_FUNCTION: // check in case!
   case LOCAL_PYTHON_FUNCTION:
   case ARC_OVERLAP:
-  case PYTHON_VOLUME:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;
@@ -687,6 +687,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case OUTPUT:
   case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case REFLECTED_WAVE:
   case ENERGY_FLUX:
   case TRACKING:
   case ABS_OUTPUT:
@@ -741,6 +742,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     break;
 
   case MULTI_OBJECTIVE: // only to make the switch complete
+  case NO_TYPE:
     assert(false);
     break;
   }
@@ -832,6 +834,7 @@ bool Function::IsAdjointBased() const {
   case ABS_OUTPUT:
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case DYNAMIC_OUTPUT:
+  case REFLECTED_WAVE:
   case ELEC_ENERGY:
   case ENERGY_FLUX:
   case GLOBAL_STRESS:
@@ -862,6 +865,7 @@ bool Function::NeedsSelectionVector() const {
   case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case REFLECTED_WAVE:
   case ENERGY_FLUX:
     return true;
 

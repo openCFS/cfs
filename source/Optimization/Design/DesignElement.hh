@@ -171,7 +171,6 @@ class DesignElement : public BaseDesignElement
 {
 public:
 
-
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();
 
@@ -223,7 +222,7 @@ public:
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
-    double GetDesign(Access access) const;
+    double GetDesign(BaseDesignElement::Access access) const;
 
     /** Returns the design based on Function::access. This needs to be PHYSICAL, PLAIN or FILTERED.
      * @param tf only required if PHYSICAL, if PHYSICAL and not given tries GetPyhsicalDesign() */

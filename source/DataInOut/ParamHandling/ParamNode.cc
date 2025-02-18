@@ -1215,8 +1215,19 @@ void ParamNode::Dump(int level) const
 }
 
 
-void ParamNode::ToStringList(StdVector<std::pair<std::string, std::string> >& list, int level) const
+StdVector<std::pair<std::string, std::string>> ParamNode::ToStringList(int max_level) const
 {
+  StdVector<std::pair<std::string, std::string>> res;
+  ToStringList(res, max_level, 0); // let the recursive game begin
+  return res;
+}
+
+
+void ParamNode::ToStringList(StdVector<std::pair<std::string, std::string> >& list, int max_level, int level) const
+{
+  if(level > max_level)
+    return;
+
   // level 0 name is not printed, level 1 is printed and only from level 2 we have a parent name chain
   string parentname;
   for(int add = level; add >= 2; add--) // e.g. we have level 2
@@ -1237,7 +1248,7 @@ void ParamNode::ToStringList(StdVector<std::pair<std::string, std::string> >& li
 
 
   for(auto child : children_)
-      child->ToStringList(list, level +1);
+      child->ToStringList(list, max_level, level +1);
 }
 
 StdVector<string> ParamNode::SplitIntoTokens(const string& input) const

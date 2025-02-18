@@ -192,6 +192,9 @@ void MMA::PostInit()
   m = cc.view->GetNumberOfActiveConstraints();
   LOG_DBG(mmaTopOpt) << "PI: n=" << n << " m=" << m;
 
+  if(m == 0)
+    throw Exception("MMA requires at least one constraint!");
+
   // set design and bounds
   xval.Resize(n);
   optimization->GetDesign()->WriteDesignToExtern(xval, true);

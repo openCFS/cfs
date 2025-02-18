@@ -91,7 +91,7 @@ class Objective : public Function
     /** The name eventually enriched by the coord information for HOM_TENSOR */
     std::string GetName() const;
 
-    /** Adds the value but don't touch penalty */
+    /** Adds the value but don't touch scale */
     void AddValue(double add) { value_ += add; }
 
     /** Resets the Value to 0.0 */ // TODO move!
@@ -100,7 +100,7 @@ class Objective : public Function
     /** is a homogenization tensor coord set */
     bool HasHomogenizationEntry() const { return boost::get<0>(coord) != -1; }
 
-    double GetPenalty() const { return penalty_; }
+    double GetScale() const { return scale_; }
 
     /** overloads Function::ToInfo() */
     void ToInfo(PtrParamNode info);
@@ -115,7 +115,7 @@ class Objective : public Function
   private:
 
     /** by default 1.0 if not multiObjective */
-    double penalty_;
+    double scale_;
 };
 
 
@@ -141,9 +141,9 @@ public:
   Objective* Get(const std::string& name, bool throw_exception = true);
 
   /** Sums up the history results of multiple objectives.
-   * @param if true the penalty value is included
+   * @param if true the scale value is included
    * @param history the positive or negative index within history. Negative in Python style (-1 last, ...)*/
-  double GetHistoryValue(bool penalty = true, int history = -1);
+  double GetHistoryValue(bool scale = true, int history = -1);
 
   unsigned int GetHistorySize();
 

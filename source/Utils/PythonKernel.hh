@@ -47,7 +47,7 @@ extern PythonKernel* python;
    * It needs just the interpreter being initialized, but requires no handle. This scripts are also called
    * modules, don't confuse them with the modules for the interpreter!
    *
-   * Anytime USE_EMBEDDED_PYTHON is enabled, the interpreter is called on startup (when not called with --noPython)
+   * Anytime USE_EMBEDDED_PYTHON is enabled, the interpreter is called on startup
    * as we cannot know so early if we want it later.
    *
    * See the corresponding test case (search for <python> and embeddedpython.cc. To google, search for "python c api" */
@@ -252,7 +252,7 @@ private:
 
   std::map<Hook, HookParam> hooks_;
 
-  /** not initialized when not compiled with USE_EMBEDDED_PYTHON or when called with --noPython */
+  /** not initialized when not compiled with USE_EMBEDDED_PYTHON */
   bool initialized_ = false;
 
   /** This is the kernel module (python script) if loaded. Not that mesh reader, python optimizer, ... have their

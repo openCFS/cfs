@@ -490,6 +490,45 @@ PyObject* PythonOptimizer::GetNumDesign(PyObject* args)
   return PyLong_FromLong(domain->GetOptimization()->GetDesign()->data.GetSize());
 }
 
+
+/** arg can be enum value or string */
+Function::Access ParseAccess(PyObject* arg)
+{
+  Function::Access ret = Function::NO_ACCESS;
+  if(PyLong_Check(arg))
+    ret = (Function::Access) PyLong_AsLong(arg);
+  else
+  {
+    const char* c_str = PyUnicode_AsUTF8(arg);
+    ret = Function::access.Parse(c_str);
+  }
+  return ret;
+}
+
+double GetDesign(const BaseDesignElement* bde, Function::Access ac)
+{
+  switch(ac)
+  {
+  case Function::DEFAULT:
+  case Function::NO_ACCESS:
+  case Function::PLAIN:
+    return bde->GetDesign(DesignElement::PLAIN);
+
+  case Function::PHYSICAL:
+  case Function::FILTERED:
+  {
+    const DesignElement* de = dynamic_cast<const DesignElement*>(bde);
+    if(de == nullptr)
+      return bde->GetDesign(); // slack can only be plain
+    else
+      return ac == Function::PHYSICAL ? de->GetPhysicalDesign() : de->GetDesign(DesignElement::SMART);
+  }
+  }
+  assert(false);
+  return -1;
+}
+
+
 /** return single plain design value */
 PyObject* PythonOptimizer::GetDesignValue(PyObject* args)
 {
@@ -499,39 +538,59 @@ PyObject* PythonOptimizer::GetDesignValue(PyObject* args)
     throw("arguments for opt_get_design_value() are 0-based index and optionally access");
 
   unsigned int idx = PyLong_AsLong(PyTuple_GetItem(args,0));
-  DesignElement::Access ac = PyTuple_Size(args) == 2 ? (DesignElement::Access) PyLong_AsLong(PyTuple_GetItem(args,1)) : DesignElement::PLAIN;
+
+  Function::Access ac = PyTuple_Size(args) == 2 ? ParseAccess(PyTuple_GetItem(args,1)) : Function::PLAIN;
 
   if(idx < 0 || idx >= space->GetNumberOfVariables())
     EXCEPTION("invalid design index " << idx);
 
-  return PyFloat_FromDouble(space->GetDesignElement(idx)->GetDesign(ac));
+  return PyFloat_FromDouble(GetDesign(space->GetDesignElement(idx), ac));
 }
 
 
 /** set design variables to provided numpy array of proper size (1. arg) with optional access (2.arg).
+ * access can be int or string
  * @see BaseDesignElement::ValueSpecifier and BaseDesignElement::Access */
 PyObject* PythonOptimizer::GetDesignValues(PyObject* args)
 {
   DesignSpace* space = domain->GetOptimization()->GetDesign();
 
-
   if(PyTuple_Size(args) < 1 || PyTuple_Size(args) > 2)
     throw("arguments for opt_get_design_values() are numpy-return, access (optional)");
 
-  DesignElement::Access ac = PyTuple_Size(args) == 2 ? (DesignElement::Access) PyLong_AsLong(PyTuple_GetItem(args,1)) : DesignElement::PLAIN;
+  Function::Access ac = PyTuple_Size(args) == 2 ? ParseAccess(PyTuple_GetItem(args,1)) : Function::PLAIN;
+
+  LOG_DBG(pyopt) << "GDVs access=" << ac << "=" << Function::access.ToString(ac) << " n=" << space->GetNumberOfVariables();
 
   Vector<double> py(space->GetNumberOfVariables());
 
   for(unsigned int i = 0, n = space->GetNumberOfVariables(); i < n; i++)
-    py[i] = space->GetDesignElement(i)->GetDesign(ac);
+    py[i] = GetDesign(space->GetDesignElement(i), ac);
 
   py.Export(PyTuple_GetItem(args,0)); // PyTuple_GetItem = Borrowed reference
 
   Py_RETURN_NONE;
 }
 
+PyObject* PythonOptimizer::Transfer(PyObject* args, bool derivative)
+{
+  DesignSpace* space = domain->GetOptimization()->GetDesign();
+  assert(space);
 
+  if(PyTuple_Size(args) < 1 || PyTuple_Size(args) > 2)
+    throw "arguments for opt_(d_)_transfer() are value, index (optional)";
 
+  int idx =  PyTuple_Size(args) == 2 ? PyLong_AsLong(PyTuple_GetItem(args,1)) : 0;
 
+  if(idx < 0 || idx > space->transfer.GetSize()-1)
+    throw "invalid index for opt_(d_)_transfer() " + to_string(idx) + " range is 0 ... " + to_string(space->transfer.GetSize()-1);
+
+  double val = PyFloat_AsDouble(PyTuple_GetItem(args,0));
+
+  if(derivative)
+    return PyFloat_FromDouble(space->transfer[idx].Derivative(val));
+  else
+    return PyFloat_FromDouble(space->transfer[idx].Transform(val));
+}
 
 } // namespace

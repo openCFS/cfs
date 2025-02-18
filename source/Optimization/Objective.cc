@@ -30,7 +30,7 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
   // the current value -> check <Get/Set>Value() when altering the presets!
   this->index_       = idx;
 
-  this->penalty_ = pn_type->Has("penalty") ? pn_type->Get("penalty")->As<Double>() : 1.0;
+  this->scale_ = pn_type->Has("scale") ? pn_type->Get("scale")->As<Double>() : 1.0;
 
   get<0>(coord) = -1;
   get<1>(coord) = -1;
@@ -51,7 +51,7 @@ Objective::Objective(Type type, double parameter, Access acc)
   this->type_ = type;
   this->parameter_ = parameter;
   this->access_ = acc;
-  this->penalty_ = 1.0;
+  this->scale_ = 1.0;
 }
 
 
@@ -263,14 +263,14 @@ void ObjectiveContainer::ToInfo(PtrParamNode in)
       PtrParamNode o = m->Get("objective", ParamNode::APPEND);
       Objective* f = data[i];
       f->ToInfo(o);
-      o->Get("penalty")->SetValue(f->penalty_); // always for multiobjective
+      o->Get("scale")->SetValue(f->scale_); // always for multiobjective
     }
   }
   else
   {
     data[0]->ToInfo(in);
-    if(data[0]->GetPenalty() != 1.0) // only when it is set
-      in->Get("penalty")->SetValue(data[0]->GetPenalty());
+    if(data[0]->GetScale() != 1.0) // only when it is set
+      in->Get("scale")->SetValue(data[0]->GetScale());
   }
 
   in->Get("task")->SetValue(minimize_ ? "minimize" : "maximize");
@@ -321,7 +321,7 @@ double ObjectiveContainer::GetHistoryValue(bool penalty, int index)
   for(unsigned int i = 0; i < data.GetSize(); i++)
   {
     double val = data[i]->history[idx];
-    vals[i] = (penalty ? data[i]->penalty_ : 1.0) * val;
+    vals[i] = (penalty ? data[i]->scale_ : 1.0) * val;
     result += vals[i];
   }
 

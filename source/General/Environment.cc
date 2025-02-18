@@ -194,7 +194,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_KIN_ENERGY, "acouKinEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
-    SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
 
     SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
     SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
@@ -1238,6 +1237,7 @@ namespace CoupledField {
       case MECH_ELEM_VOL:
       case MECH_ELEM_POROSITY:
       case MECH_PSEUDO_DENSITY:
+      case PSEUDO_DENSITY:
       case PHYSICAL_PSEUDO_DENSITY:
         return "";
         break;

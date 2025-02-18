@@ -263,12 +263,12 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
   assert(f == NULL || g == NULL);
   LOG_DBG3(desel) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
                 << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
-                << " penalty=" << (f != NULL ? boost::lexical_cast<string>(f->GetPenalty()) : "-")
+                << " penalty=" << (f != NULL ? boost::lexical_cast<string>(f->GetScale()) : "-")
                 << " old= " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()])
-                << " add=" << (f != NULL ? value * f->GetPenalty() : value)
-                << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->GetPenalty() : constraintGradient[g->GetIndex()] + value);
+                << " add=" << (f != NULL ? value * f->GetScale() : value)
+                << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->GetScale() : constraintGradient[g->GetIndex()] + value);
   if(f != NULL)
-    costGradient[f->GetIndex()] += value * f->GetPenalty();
+    costGradient[f->GetIndex()] += value * f->GetScale();
   else
     constraintGradient[g->GetIndex()] += value;
 }
@@ -281,7 +281,7 @@ void BaseDesignElement::AddGradient(const Function* f, double value)
       || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL) );
 
   if(f->IsObjective())
-    costGradient[f->GetIndex()] += value * static_cast<const Objective*>(f)->GetPenalty();
+    costGradient[f->GetIndex()] += value * static_cast<const Objective*>(f)->GetScale();
   else
     constraintGradient[f->GetIndex()] += value;
 }
@@ -429,9 +429,8 @@ DesignElement::Type DesignElement::Default(const Context* ctxt)
   case App::MECH:
   case App::MAG:
   case App::BUCKLING:
-    return DENSITY;
   case App::ACOUSTIC:
-    return ACOU_DENSITY;
+    return DENSITY;
   case App::ELEC:
     return POLARIZATION;
   default:
@@ -741,7 +740,7 @@ double DesignElement::GetPhysicalDesign(const Context* ctxt) const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == RHS_DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
+  return(type_ == DENSITY || type_ == RHS_DENSITY || type_ == POLARIZATION || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
 }
 
 
@@ -868,7 +867,6 @@ void DesignElement::SetEnums()
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
   type.Add(RHS_DENSITY, "rhsDensity");
-  type.Add(ACOU_DENSITY, "acouDensity");
   type.Add(POLARIZATION, "polarization");
   type.Add(EMODUL, "emodul");
   type.Add(POISSON, "poisson");

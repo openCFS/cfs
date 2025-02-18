@@ -38,6 +38,7 @@
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/MagSIMP.hh"
+#include "Optimization/AcouSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
@@ -378,6 +379,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::OUTPUT, "output");
   Function::type.Add(Function::SQUARED_OUTPUT, "squaredOutput");
   Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
+  Function::type.Add(Function::REFLECTED_WAVE, "reflectedWave");
   Function::type.Add(Function::ABS_OUTPUT, "absOutput");
   Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
   Function::type.Add(Function::CONJUGATE_COMPLIANCE, "conjugateCompliance");
@@ -460,7 +462,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
   Function::type.Add(Function::MAG_COUPLING,"magCoupling");
   Function::type.Add(Function::ARC_OVERLAP,"arc_overlap");
-  Function::type.Add(Function::PYTHON_VOLUME, "python_volume");
   Function::type.Add(Function::PYTHON_FUNCTION,"python");
   Function::type.Add(Function::LOCAL_PYTHON_FUNCTION,"localPython");
 
@@ -748,11 +749,14 @@ Optimization* Optimization::CreateInstance()
     switch(material)
     {
     case OptimizationMaterial::MECH:
-    case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
     case OptimizationMaterial::ELEC:
     case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
+      break;
+
+    case OptimizationMaterial::ACOUSTIC:
+      opt = new AcouSIMP();
       break;
 
     case OptimizationMaterial::PIEZOCOUPLING:
@@ -1085,24 +1089,24 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
 
       //double ov = CalcObjective(excite, f); // this is virtual!
       double ov = CalcFunction(excite, f, false); // this is virtual!
-      excite.cost += ov * f->GetPenalty();
+      excite.cost += ov * f->GetScale();
 
       // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
       double weight = !f->DoEvaluateAlways(excite.sequence) ? 1.0 : excite.normalized_weight;
 
       f->AddValue(ov * weight);
 
-      result += ov * f->GetPenalty() * weight;
+      result += ov * f->GetScale() * weight;
 
       // if multiobjective, store function values
       if(isMultiObjective_ && multiObjectiveType_ != Objective::WEIGHTED_SUM)
       {
-        ovp[o] = ov * f->GetPenalty();
-        ovpw[o] = ov * f->GetPenalty() * weight;
+        ovp[o] = ov * f->GetScale();
+        ovpw[o] = ov * f->GetScale() * weight;
       }
 
       LOG_DBG(opt) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
-          << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
+          << " penalty" << f->GetScale() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
           << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
     }
 
@@ -1592,7 +1596,7 @@ DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
   if(pde->GetName() == "electrostatic") return DesignElement::POLARIZATION;
   if(pde->GetName() == "LatticeBoltzmann") return DesignElement::DENSITY;
   if(pde->GetName() == "mechanic") return DesignElement::DENSITY;
-  if(pde->GetName() == "acoustic") return DesignElement::ACOU_DENSITY;
+  if(pde->GetName() == "acoustic") return DesignElement::DENSITY;
 
   throw Exception("invalid");
 }
@@ -1603,7 +1607,7 @@ DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
 //  {
 //  case DesignElement::DENSITY:
 //      return App::MECH; // wrong for buckling
-//  case DesignElement::ACOU_DENSITY:
+//  case DesignElement::DENSITY:
 //    return App::ACOUSTIC;
 //  case DesignElement::POLARIZATION:
 //    return App::ELEC;

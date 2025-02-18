@@ -36,6 +36,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionImpedanceModel.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
@@ -333,6 +334,17 @@ namespace CoupledField{
       LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffK = " << coeffK->ToString() << "\n";
       LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffM = " << coeffM->ToString() << "\n";
 
+      // when we do optimization we wrap the original CoefFunction.
+      if(domain->HasDesign())
+      {
+        // We wrap not a single material, but the pre-factors for stiffness and mass-matrix. Therefore NO_MATERIAL is used.
+        // e.g. 1 for the stiffness and rho^2/K^2 for the mass matrix.
+        CoefFunctionOpt* tmpFnc1 = new CoefFunctionOpt(domain->GetDesign(), coeffM, NO_MATERIAL, this);
+        coeffM.reset(tmpFnc1);
+        CoefFunctionOpt* tmpFnc2 = new CoefFunctionOpt(domain->GetDesign(), coeffK, NO_MATERIAL, this); // takes double and complex
+        coeffK.reset(tmpFnc2);
+      }
+
       BaseBDBInt *stiffInt = nullptr;
       BaseBDBInt *massInt = nullptr;
 
@@ -371,6 +383,12 @@ namespace CoupledField{
         else {
           EXCEPTION("Unsupported dimension for PDE");
         }
+      }
+
+      // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+      if(domain->HasDesign()){
+        dynamic_pointer_cast<CoefFunctionOpt>(coeffM)->SetForm(massInt);
+        dynamic_pointer_cast<CoefFunctionOpt>(coeffK)->SetForm(stiffInt);
       }
 
       // set stiffness integrator context and mass integrator context
@@ -2319,6 +2337,25 @@ namespace CoupledField{
     surfPres->entryType = ResultInfo::SCALAR;
     surfPres->definedOn = ResultInfo::SURF_ELEM;
     DefineFieldResult(presFct, surfPres);
+
+    // optimization results are provided in DesignSpace::ExtractResults()
+    // === PSEUDO_DENISTY ===
+    shared_ptr<ResultInfo> mpd(new ResultInfo);
+    mpd->resultType = PSEUDO_DENSITY;
+    mpd->entryType = ResultInfo::SCALAR;
+    mpd->definedOn = ResultInfo::ELEMENT;
+    mpd->dofNames = MapSolTypeToUnit(PSEUDO_DENSITY);
+    mpd->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
+
+    // === PHYSICAL_PSEUDO_DENISTY ===
+    shared_ptr<ResultInfo> ppd(new ResultInfo);
+    ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
+    ppd->entryType = ResultInfo::SCALAR;
+    ppd->definedOn = ResultInfo::ELEMENT;
+    ppd->dofNames = MapSolTypeToUnit(PHYSICAL_PSEUDO_DENSITY);
+    ppd->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
   
     shared_ptr<CoefFunctionFormBased> presGradFct;
     

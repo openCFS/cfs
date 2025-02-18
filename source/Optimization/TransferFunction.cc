@@ -190,8 +190,9 @@ App::Type TransferFunction::Default(const Context* ctxt)
   case App::ELEC:
     return App::ELEC;
   case App::HEAT:
+    return App::HEAT;
   case App::ACOUSTIC:
-    return App::LAPLACE;
+    return App::ACOUSTIC;
   case App::LBM:
     return App::LBM;
   case App::MAG:
@@ -247,9 +248,6 @@ App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctx
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:
     return App::MECH;
-
-  case DesignElement::ACOU_DENSITY:
-    return App::LAPLACE;
 
   case DesignElement::POLARIZATION:
     return App::PIEZO_COUPLING;

@@ -425,6 +425,17 @@ protected:
    * @return true if function is handled */
   virtual bool FillComplexAdjointRHS(Excitation& excite, Function* f, Vector<Complex>& rhs) { return false; }
 
+  /** Obtain the complex pressure amplitude of the excitation, e.g. caused by the normalVelocity b.c.
+   * @param f Current function.
+   * @return Nodal (constant) pressure of the incident wave. */
+  virtual const Complex GetExcitationPressure(Function* f) { throw Exception("not implemented"); }
+
+  /** Obtain the excitation surfRegion region
+   * @param f Current function.
+   * @param attr The name of the region attribute ("surfRegion" by default, can be "volumeNeighbour").
+   * @return The retrieved region ID.*/
+  virtual const RegionIdType GetExcitationRegion(Function* f, const std::string& attr = "surfRegion") { throw Exception("not implemented"); }
+
   /** do we do SIMP or FreeMat or ... */
   Method method_;
 
@@ -540,12 +551,12 @@ private:
    * The adjoint system is \f$Kv = phi^T \frac{\partial G(u)}{\partial u} phi\f$. */
   void ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
 
-  /** Calculates the Greyness OR gauss-greyness! and the derivative of the (gauss) greyness.
+  /** Calculates the Greyness.
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set. Optionally also grad_out
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @return invalid in derivative case*/
-  double CalcGreyness(Condition* g, bool derivative);
+  double CalcGreyness(Function* f, bool derivative);
 
   /** Calculates the difference between filtered and non-filtered stiffness tensor.
    * @param derivative if false the return value is calculated. Otherwise the value in
