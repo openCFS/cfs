@@ -156,7 +156,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
     set(CFSDEPS_C_FLAGS " -D_WIN32_WINNT=0x0A00 /fp:precise")
     set(CFSDEPS_CXX_FLAGS " -D_WIN32_WINNT=0x0A00 /fp:precise")
   else()
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS}  -std=c++17 -fp-model=precise")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -std=c++17 -fp-model=precise")
     set(CFSDEPS_C_FLAGS " -fp-model=precise")
     set(CFSDEPS_CXX_FLAGS " -fp-model=precise")
   endif()

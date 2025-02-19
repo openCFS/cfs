@@ -1,0 +1,289 @@
+#include "GinkgoSolver.hh"
+// the header in extensions is not shipped with ginkgo.hpp
+#include <ginkgo/extensions/config/json_config.hpp>
+
+#include <string>
+#include "Domain/Domain.hh"
+#include "Driver/BaseDriver.hh"
+#include "MatVec/SparseOLASMatrix.hh"
+#include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include <sstream>
+#include <stdio.h>
+#include <boost/filesystem.hpp>
+
+using std::string;
+using std::to_string;
+using std::complex;
+
+Enum<GinkgoSolver::GinkgoSolverType>  GinkgoSolver::ginkgoSolverType;
+Enum<GinkgoSolver::GinkgoPrecondType> GinkgoSolver::ginkgoPrecondType;
+Enum<GinkgoSolver::TolType>           GinkgoSolver::tolType;
+
+namespace CoupledField
+{
+DEFINE_LOG(ginkgo, "ginkgo")
+
+GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::EntryType type)
+{
+  ginkgoPrecondType.SetName("GinkgoSolver::GinkgoPrecondType");
+  ginkgoPrecondType.Add(NOPRECOND, "noprecond");
+  ginkgoPrecondType.Add(AMG, "amg");
+  ginkgoPrecondType.Add(JACOBI, "jacobi");
+  ginkgoPrecondType.Add(ILU, "ilu");
+  ginkgoPrecondType.Add(IC, "ic");
+  ginkgoPrecondType.Add(PT_JSON, "json");
+
+  ginkgoSolverType.SetName("GinkgoSolver::GinkgoSolverType");
+  ginkgoSolverType.Add(NOSOLVER, "nosolver");
+  ginkgoSolverType.Add(CG, "cg");
+  ginkgoSolverType.Add(BICGSTAB, "bicgstab");
+  ginkgoSolverType.Add(GMRES, "gmres");
+  ginkgoSolverType.Add(ST_JSON, "json");
+
+  tolType.SetName("GinkgoSolver::TolType");
+  tolType.Add(ABSOLUTE, "absolute");
+  tolType.Add(INITIAL_RESNORM, "initial_resnorm");
+  tolType.Add(RHS_NORM, "rhs_norm");
+
+  infoNode_ =  olasInfo->Get("ginko");
+  xml_ = pn;
+
+  // solver and precond might be overwritten by "json"
+  solver_type = ginkgoSolverType.Parse(pn->Get("solver")->As<string>());
+  precond_type = ginkgoPrecondType.Parse(pn->Get("precond")->As<string>());
+
+  max_iter = pn->Get("maxIter")->As<double>();
+  tolerance = pn->Get("tolerance")->As<double>();
+  min_tol = pn->Get("minimalTolerance")->As<double>();
+
+  tol_type = tolType.Parse(pn->Get("toleranceType")->As<string>());
+  switch(tol_type)
+  {
+  case ABSOLUTE:
+    tol_mode = gko::stop::mode::absolute;
+    break;
+  case INITIAL_RESNORM:
+    tol_mode = gko::stop::mode::initial_resnorm;
+    break;
+  case RHS_NORM:
+    tol_mode = gko::stop::mode::rhs_norm;
+    break;
+  }
+
+  initial_zero = pn->Get("initial_zero")->As<bool>();
+
+  // do we use an external json configuration file? Not meant for daily use but e.g. to test what to add in cfs via xml.
+  if(pn->Has("json"))
+  {
+    json = pn->Get("json")->As<string>();
+    if(!boost::filesystem::exists(json)) // we have compile issues with icpx in the pipeline with std::filesystem
+      throw Exception("cannot open json file '" + json + "'");
+    infoNode_->Get("json")->SetValue(json);
+    solver_type = ST_JSON;
+    precond_type = PT_JSON;
+  }
+
+  // to save space we configure these executors mutal exclusive in cfsdeps
+#ifdef USE_OPENMP
+  exec = gko::OmpExecutor::create();
+#else
+  exec = gko::ReferenceExecutor::create();
+#endif
+}
+
+void GinkgoSolver::Setup(BaseMatrix &sysmat)
+{
+  LOG_DBG(ginkgo) << "Setup: e=" << sysmat.entryType.ToString(sysmat.GetEntryType()) << " s=" << sysmat.storageType.ToString(sysmat.GetStorageType())
+                  << " r=" << sysmat.GetNumRows() << " c=" << sysmat.GetNumCols();
+
+  if(sysmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM)
+    throw Exception("Ginkgo solver can only handle non-symmetric matrix storrage");
+
+  if(sysmat.GetEntryType() == BaseMatrix::DOUBLE)
+    Setup<double>(dynamic_cast<CRS_Matrix<double>*>(&sysmat));
+  else
+    Setup<complex<double>>(dynamic_cast<CRS_Matrix<complex<double>>*>(&sysmat));
+}
+
+template <class T>
+void GinkgoSolver::Setup(CRS_Matrix<T>* m)
+{
+  assert(m != nullptr);
+
+  // Ginkgo knows signed 32 and 64 as idx, but not unsigned
+  int nnz  = (int) m->GetNnz();
+  int nrow = (int) m->GetNumRows();
+  int ncol = (int) m->GetNumCols();
+
+  // nice that we need no temporary data for the matrix
+  auto vv = gko::make_array_view(exec, nnz, m->GetDataPointer());
+  auto cv = gko::make_array_view(exec, nnz, (int*) m->GetColPointer());
+  auto rv = gko::make_array_view(exec, nrow + 1, (int*) m->GetRowPointer());
+
+  auto csr = gko::share(gko::matrix::Csr<T, int>::create(exec, gko::dim<2>(nrow,ncol), vv, cv, rv));
+  logger = gko::share(gko::log::Convergence<double>::create());
+  std::shared_ptr<gko::LinOpFactory> factory;
+
+  // we set this information every time as we handle the options here in detail
+  PtrParamNode ip = infoNode_->Get("precond");
+  ip->Get("type")->SetValue(ginkgoPrecondType.ToString(precond_type)); // automatically set to json
+
+  PtrParamNode is = infoNode_->Get("solver");
+  is->Get("type")->SetValue(ginkgoSolverType.ToString(solver_type)); // json in case
+
+  // a json file contains a arbitrary ginkgo configuration, more versatile than the cfs xml configuration subset
+  if(!json.empty())
+  {
+    // this code is copied from file-config-solver.cpp which also has some sample json config files
+    auto config = gko::ext::config::parse_json_file(json);
+    auto reg = gko::config::registry();
+    auto td = gko::config::make_type_descriptor<T, int>();
+    factory = gko::config::parse(config, reg, td).on(exec);
+  }
+  else
+  {
+    switch(precond_type)
+    {
+    case JACOBI:
+    {
+      unsigned int mbs = 1;
+      if(xml_->Has("jacobi"))
+        mbs = xml_->Get("jacobi/max_block_size")->As<unsigned int>();
+      ip->Get("max_block_size")->SetValue(mbs);
+      precond = gko::preconditioner::Jacobi<>::build().with_max_block_size(mbs).on(exec);
+      break;
+    }
+    case ILU:
+      precond = gko::preconditioner::Ilu<>::build().on(exec);
+      break;
+    case IC:
+      // there is also ParIct with fill in factor limit, however this is extremely slow. Experiment via json
+      // gko::factorization::ParIct<T, int>::build().with_fill_in_limit(limit).with_iterations(iter).on(exec);
+      precond = gko::preconditioner::Ic<>::build().on(exec);
+      break;
+    case AMG:
+    {
+      gko::size_type iter = 1;
+      if(xml_->Has("amg"))
+        iter  = xml_->Get("amg/iterations")->As<unsigned int>();
+      ip->Get("iterations")->SetValue((int) iter);
+
+      precond = gko::solver::Multigrid::build()
+                  .with_mg_level(gko::multigrid::Pgm<T, int>::build().with_deterministic(true))
+                  .with_criteria(gko::stop::Iteration::build().with_max_iters(iter)).on(exec);
+      break;
+    }
+    case PT_JSON:
+    case NOPRECOND:
+      assert(false);
+      break;
+    }
+
+    auto iter_crit = gko::stop::Iteration::build().with_max_iters(max_iter);
+    const gko::remove_complex<T> tol = tolerance;
+    auto norm_crit =  gko::stop::ResidualNorm<>::build().with_baseline(tol_mode).with_reduction_factor(tol);
+    is->Get("max_iter")->SetValue(max_iter);
+    is->Get("tolerance")->SetValue(tolerance);
+    is->Get("mode")->SetValue(tolType.ToString(tol_type));
+    switch(solver_type)
+    {
+    case CG:
+      factory = gko::solver::Cg<>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
+      break;
+    case BICGSTAB:
+      factory = gko::solver::Bicgstab<>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
+      break;
+    case GMRES:
+      factory = gko::solver::Gmres<>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
+      break;
+    case NOSOLVER:
+    case ST_JSON:
+      assert(false);
+      break;
+    }
+  }
+
+  solver = factory->generate(csr);
+  solver->add_logger(logger);
+}
+
+void GinkgoSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
+{
+  if(sysmat.GetEntryType() == BaseMatrix::DOUBLE)
+    Solve<double>(rhs, sol);
+  else
+    Solve<complex<double>>(rhs, sol);
+}
+
+template <class T>
+void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
+{
+  // the vectors seem to be possibly based on blocks and therefore are not necessarily just Vector
+
+  // create a continuous vector and fill it
+  std::vector<T> rhs_tmp(rhs.GetSize());
+  T val;
+  for(unsigned int i = 0; i < rhs.GetSize(); i++)
+  {
+    rhs.GetEntry(i, val);
+    rhs_tmp[i] = val;
+  }
+
+  // make a ginkgo right hand side view
+  auto rsv = gko::make_array_view(exec, (int) rhs_tmp.size(), rhs_tmp.data()); // again, ginkgo has signed indices
+  // make the ginkgo rhs based on the view
+  auto b = gko::matrix::Dense<T>::create(exec, gko::dim<2>((int) rhs.GetSize(), 1), rsv, 1);
+
+  // our solution. cfs provides an initial guess
+  auto x = gko::matrix::Dense<T>::create(exec, gko::dim<2>(rhs.GetSize(), 1));
+  for(unsigned int i = 0; i < rhs.GetSize(); i++)
+  {
+    sol.GetEntry(i,val);
+    x->at(i) = initial_zero ? (T) 0.0 : val;
+  }
+  double initial_sol_norm = initial_zero ? 0.0 : sol.NormL2();
+
+  // solve S x = b for x
+  solver->apply(b, x);
+
+  // store solution slowly
+  assert(x->get_num_stored_elements() == sol.GetSize());
+  for(unsigned int i = 0; i < sol.GetSize(); i++)
+    sol.SetEntry(i, x->at(i));
+
+  assert(solver->get_loggers().size() == 1);
+
+  bool conv = logger->has_converged();
+  size_t iters = logger->get_num_iterations();
+  auto grn = gko::as<gko::matrix::Dense<double>>(logger->get_residual_norm());
+  double res_norm = ((complex<double>) grn->at(0,0)).real();
+
+  LOG_DBG(ginkgo) << "Solve: converged=" << conv << " iters=" << iters << " residual=" << res_norm << " sol=" << sol.NormL2() << " inital=" << initial_sol_norm;
+
+  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+  auto in = infoNode_->Get("solve", at);
+  in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
+  in->Get("converged")->SetValue(conv);
+  in->Get("iters")->SetValue((unsigned int) iters);
+  in->Get("residual")->SetValue(res_norm);
+  in->Get("sol")->SetValue(sol.NormL2());
+  in->Get("initial")->SetValue(initial_sol_norm);
+  if(!json.empty())
+    in->Get("json")->SetValue("conv criteria set in json");
+
+  if(!conv)
+  {
+    string msg = "no convergence within " + to_string(iters) + " iterations with residual " + to_string(res_norm);
+    if(!json.empty())
+      msg += " (set criteria within you json file)";
+    if(res_norm < std::max(tolerance, min_tol))
+      infoNode_->SetWarning(msg + " but within minimal tolerance " + to_string(std::max(tolerance, min_tol)));
+    else
+      throw Exception("ginkgo: " + msg);
+  }
+}
+
+} // end of namespace
+
+

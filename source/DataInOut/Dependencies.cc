@@ -10,6 +10,7 @@
 #include <def_use_flann.hh>
 #include <def_use_ghost.hh>
 #include <def_use_gidpost.hh>
+#include <def_use_ginkgo.hh>
 #include <def_use_hwloc.hh>
 #include <def_use_ipopt.hh>
 #include <def_use_libfbi.hh>
@@ -81,6 +82,11 @@
 #ifdef USE_FLANN
 #include <flann/flann.hpp>
 #include <lz4.h>
+#endif
+
+#ifdef USE_GINKGO
+#include <ginkgo/config.hpp>
+#include <nlohmann/json.hpp>
 #endif
 
 #ifdef USE_XERCES
@@ -293,6 +299,16 @@ void Dependencies::ReadSetting()
   lis.SetVersion(LIS_VER);
 #endif
   data.Push_back(lis);
+
+  Dependency ginkgo("Ginkgo", "USE_GINKGO", BSD);
+#ifdef USE_GINKGO
+  ginkgo.SetVersion(GKO_VERSION_MAJOR, GKO_VERSION_MINOR, GKO_VERSION_PATCH);
+
+  // change this if someone else might want to use json but not ginkgo
+  data.Push_back(Dependency("nlohmann_json", "", "", MIT, "used by Gingko"));
+  data.Last().SetVersion(NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_MINOR);
+#endif
+  data.Push_back(ginkgo);
 
   Dependency superlu("SuperLU", "USE_SUPERLU", EASY);
 #ifdef USE_SUPERLU

@@ -30,6 +30,7 @@ namespace CoupledField {
     EnumTuple( BaseSolver::UMFPACK, "umfpack" ),
     EnumTuple( BaseSolver::CHOLMOD, "cholmod"),
     EnumTuple( BaseSolver::LIS, "lis"),
+    EnumTuple( BaseSolver::GINKGO, "ginkgo"),
     EnumTuple( BaseSolver::PETSC, "petsc"),
     EnumTuple( BaseSolver::SUPERLU, "superlu" ),
     EnumTuple( BaseSolver::PHIST, "phist_linSolv"),

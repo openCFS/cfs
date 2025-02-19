@@ -31,7 +31,7 @@ namespace CoupledField {
     //! all types of matrices.
     typedef enum {NOSOLVER, RICHARDSON, CG, LANCZOS, QMR, GMRES,
                   MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO_SOLVER,
-                  UMFPACK, CHOLMOD, LIS,PETSC, SUPERLU, SPOOLES,
+                  UMFPACK, CHOLMOD, LIS, GINKGO, PETSC, SUPERLU,
                   LDL_SOLVER, LU_SOLVER, DIAGSOLVER ,PHIST, EXTERNAL_SOLVER} SolverType;
     static Enum<SolverType> solverType;
 

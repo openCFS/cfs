@@ -131,6 +131,12 @@ if(USE_LIS)
   include("${CFSDEPS_DIR}/lis/External_LIS.cmake")
 endif()
 
+if(USE_GINKGO)
+  # we use json for the optional json configuration. Make it more universal once use want to use json independently
+  include("${CFSDEPS_DIR}/nlohmann_json/External_nlohmann_json.cmake")
+  include("${CFSDEPS_DIR}/ginkgo/External_Ginkgo.cmake")
+endif()
+
 if(USE_SUPERLU)
   include("${CFSDEPS_DIR}/superlu/External_SuperLU.cmake")
 endif()

@@ -460,6 +460,17 @@ function(dump_variables)
   endforeach()
 endfunction()
 
+# create a variable with the opposite of the content of a given variable
+# invert(INF_OMP USE_OPENMP)
+# cmake_print_variables(INF_OMP USE_OPENMP)
+function(invert VAR_NAME VAR_VALUE)
+  if(${VAR_VALUE})
+    set(${VAR_NAME} OFF PARENT_SCOPE)
+  else()
+    set(${VAR_NAME} ON PARENT_SCOPE)
+  endif()
+endfunction()
+
 
 # dump the content of the given directory
 macro(DUMP_DIR DIR)

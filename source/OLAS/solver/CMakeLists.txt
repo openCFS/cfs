@@ -49,6 +49,10 @@ IF(USE_LIS)
   SET(TARGET_LL ${TARGET_LL} lis-olas)
 ENDIF(USE_LIS)
 
+if(USE_GINKGO)
+  list(APPEND TARGET_LL ginkgo-olas)
+endif()
+
 IF(USE_PETSC)
   SET(TARGET_LL ${TARGET_LL} petsc-olas)
 ENDIF(USE_PETSC)

@@ -2,8 +2,13 @@
 #include <def_use_suitesparse.hh>
 #include <def_use_superlu.hh>
 #include <def_use_lis.hh>
+#include <def_use_ginkgo.hh>
 #include <def_use_petsc.hh>
 #include <def_use_phist_cg.hh>
+
+#ifdef USE_GINKGO
+#include "OLAS/external/ginkgo/GinkgoSolver.hh"
+#endif
 
 #include "OLAS/algsys/SolStrategy.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -37,8 +42,6 @@
 #ifdef USE_PETSC
 #include "OLAS/external/petsc/PETSCSolver.hh"
 #endif
-
-
 
 #ifdef USE_PHIST_CG
 #include "OLAS/external/phist/PhistLinearSolver.hh"
@@ -350,30 +353,26 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     break;
 
   case BaseSolver::LIS:
-
 #ifdef USE_LIS
-  {
-    // Check suitability of matrix
-    if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
-      EXCEPTION("LIS only works with (S)CRS_Matrix class!");
-
-    const StdMatrix &stdmat = dynamic_cast<const StdMatrix &>(mat);
-    if(stdmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM
-        && stdmat.GetStorageType() != BaseMatrix::SPARSE_SYM  )
-      EXCEPTION("LIS only works with (S)CRS_Matrix class!");
-
+    // GetSolverCompatMatrixFormats() ensures proper non-sym type
     retSolver = new LISSolver(solverNode, olasInfo, eType);
-    LOG_DBG(genSolver) << " GenerateSolver: Generated LIS solver";
-
-  }
 #else
-  EXCEPTION("Compile with USE_LIS to enable interface to LIS.");
+    throw Exception("Compile with USE_LIS to enable interface to LIS.");
+#endif
+  break;
+
+  case BaseSolver::GINKGO:
+#ifdef USE_GINKGO
+    // GetSolverCompatMatrixFormats() ensures proper non-sym type
+    retSolver = new GinkgoSolver(solverNode, olasInfo, eType);
+#else
+    throw Exception("Compile with USE_GINKGO to enable interface to ginkgo.");
 #endif
   break;
 
   case BaseSolver::PETSC:
 
- #ifdef USE_PETSC
+#ifdef USE_PETSC
    {
      // Check suitability of matrix
      if (mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX)
@@ -391,9 +390,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
    EXCEPTION("Compile with USE_PETSC to enable interface to PETSC.");
  #endif
    break;
-
-
-
 
   case BaseSolver::PHIST:
 
@@ -415,11 +411,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     EXCEPTION("Compile with USE_PHIST_CG to enable interface to PHIST_CG.");
   #endif
     break;
-
-
-
-
-
 
   case BaseSolver::CHOLMOD:
 #ifdef USE_SUITESPARSE
@@ -542,8 +533,9 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
       ret.insert(BaseMatrix::SPARSE_SYM);
       break;
 
+    case BaseSolver::GINKGO:
     case BaseSolver::LIS:
-      ret.insert(BaseMatrix::SPARSE_SYM);
+      // ginkgo and lis can don't know about symmetric storage saving
       ret.insert(BaseMatrix::SPARSE_NONSYM);
       break;
 
@@ -573,30 +565,25 @@ GetSolverCompatMatrixFormats(BaseSolver::SolverType st) {
     // The external solver should not be limited by the matrix format within cfs
     case BaseSolver::EXTERNAL_SOLVER:
       break;
-
-    default:
-      EXCEPTION("Unhandled case");
-      break;
   }
   return ret;
 }
 
 //! Return if preconditioner is capable of solving a SBM system
-bool IsSolverSBMCapable(BaseSolver::SolverType st) {
-  bool ret = false;
-  
+bool IsSolverSBMCapable(BaseSolver::SolverType st)
+{
   switch(st) {
     // All iterative solvers can handle any sparse matrix format
     case BaseSolver::NOSOLVER:
     case BaseSolver::RICHARDSON: 
-    case BaseSolver::CG: 
+    case BaseSolver::CG:
     case BaseSolver::LANCZOS: 
     case BaseSolver::QMR:
     case BaseSolver::GMRES:
     case BaseSolver::MINRES:
     case BaseSolver::SYMMLQ: 
-      ret = true;
-      break;
+      return true;
+
     case BaseSolver::LAPACK_LU:
     case BaseSolver::LAPACK_LL:
     case BaseSolver::PARDISO_SOLVER:  
@@ -604,14 +591,19 @@ bool IsSolverSBMCapable(BaseSolver::SolverType st) {
     case BaseSolver::CHOLMOD: 
     case BaseSolver::LDL_SOLVER:
     case BaseSolver::DIAGSOLVER:
-      ret = false;
-      break;
 
-    default:
-      EXCEPTION("Unhandled case");
-      break;
+    // check these
+    case BaseSolver::UMFPACK:
+    case BaseSolver::LIS:
+    case BaseSolver::GINKGO:
+    case BaseSolver::PETSC:
+    case BaseSolver::SUPERLU:
+    case BaseSolver::PHIST:
+    case BaseSolver::EXTERNAL_SOLVER:
+      return false;
   }
-  return ret;
+  assert(false);
+  return false; // please compiler
 }
 
 

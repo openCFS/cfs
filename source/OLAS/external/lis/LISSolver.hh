@@ -107,20 +107,20 @@ namespace CoupledField
 
    //LIS_SOLVER solver_;
 
-   LIS_PRECON precond_;
+   LIS_PRECON precond_ = nullptr;
 
-   LIS_SOLVER solver_;
+   LIS_SOLVER solver_ = nullptr;
 
    //stores the system Matrix
-   LIS_MATRIX A_;
+   LIS_MATRIX A_ = nullptr;
    // this is our working copy we can safely delete without disturbing cfs
-   LIS_MATRIX A0_;
+   LIS_MATRIX A0_ = nullptr;
 
    //stores the current solution
-   LIS_VECTOR x_;
+   LIS_VECTOR x_ = nullptr;
 
    ///stores the current RHS
-   LIS_VECTOR b_;
+   LIS_VECTOR b_ = nullptr;
 
    ///pointer to xml node
    PtrParamNode xml_;

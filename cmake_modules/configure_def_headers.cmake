@@ -25,6 +25,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_lis.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ginkgo.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ginkgo.hh")
   
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_petsc.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_petsc.hh")
