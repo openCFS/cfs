@@ -9,6 +9,7 @@
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "Driver/TransientDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
 #include <numeric>
@@ -24,11 +25,12 @@ namespace CoupledField
 #ifdef USE_PRECICE
       participant_(nullptr),
 #endif
-
+      isInit_(false),
       configFileName_(""),
       participantName_(""),
       participantMeshName_(""),
       participantElemMeshName_(""),
+      sequenceStep_(),
       nodeNumCoordMap_(),
       cfsNodeNumsVec_(),
       flatCoords_(),
@@ -44,7 +46,8 @@ namespace CoupledField
       rank_(0),
       size_(1),
       domain_(nullptr),
-      solveStep_(nullptr)
+      solveStep_(nullptr),
+      singlePDE_(nullptr)
     {
     }
 
@@ -53,12 +56,6 @@ namespace CoupledField
         finalize();
     }
 
-
-    // Helper function: returns true if 'str' ends with 'suffix'
-    static bool endsWith(const std::string &str, const std::string &suffix) {
-        return (str.size() >= suffix.size() &&
-                str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0);
-    }
 
     // Helper function: add a unique node to the node container and map
     static void addUniqueNode(GridCFS* gridCFS, int nodenum,
@@ -90,6 +87,7 @@ namespace CoupledField
         paramNode_->Get("fileFormats/preciceCoupling/participantName")->GetValue("name", participantName_);
         paramNode_->Get("fileFormats/preciceCoupling/participantMeshName")->GetValue("name", participantMeshName_);
         paramNode_->Get("fileFormats/preciceCoupling/precice_configFile")->GetValue("file", configFileName_);
+        sequenceStep_ = paramNode_->Get("fileFormats/preciceCoupling")->Get("sequenceStep")->As<int>();
     }
 
     void PreciceAdapter::readPreciceConfiguration() {
@@ -124,21 +122,23 @@ namespace CoupledField
     }
 
 
-    std::string PreciceAdapter::convertResultNamesToCFS(std::string precicename){
+    std::tuple<std::string, SolutionType> PreciceAdapter::convertResultNamesToCFS(std::string precicename){
         std::string convertedName;
         if (precicename == "Temperature") {
-            convertedName = "heatTemperature";
+            return std::make_tuple("heatTemperature", SolutionType::HEAT_TEMPERATURE) ;
         } else if (precicename == "Displacement") {
-            convertedName = "mechDisplacement";
+            return std::make_tuple("mechDisplacement", SolutionType::MECH_DISPLACEMENT);
         } else if (precicename == "MagneticFluxDensity") {
-            convertedName = "magFluxDensity";
+            return std::make_tuple("magFluxDensity", SolutionType::MAG_FLUX_DENSITY);
         } else if (precicename == "MagneticFieldIntensity") {
-            convertedName = "magFieldIntensity";
+            return std::make_tuple("magFieldIntensity", SolutionType::MAG_FIELD_INTENSITY);
+        } else if (precicename == "JouleLossDensity") {
+            return std::make_tuple("magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY);
         } else {
             EXCEPTION("Invalid quantity: " << precicename
-                    << ". Currently the adapter only works for one of [\"Temperature\", \"Displacement\", \"MagneticFluxDensity\", \"MagneticFieldIntensity\"]");
+                    << ". Currently the adapter only works for one of"
+                    << "[\"Temperature\", \"Displacement\", \"MagneticFluxDensity\", \"MagneticFieldIntensity\",\"JouleLossDensity\",]");
         }
-        return convertedName;
     }
 
 
@@ -163,7 +163,9 @@ namespace CoupledField
             rq.precicename = entry.name;
         
             // Validate and convert the precicename to an openCFS result name
-            rq.cfsname = convertResultNamesToCFS(rq.precicename);
+            auto [tempName, tempSolutionType] = convertResultNamesToCFS(rq.precicename);
+            rq.cfsname = tempName;
+            rq.solutiontype = tempSolutionType;
             // Determine data dimensions based on whether an element mesh is needed
             rq.quantitydim = (needElemMesh_) ?
                 participant_->getDataDimensions(participantMeshName_ + "_elem", rq.precicename) :
@@ -182,7 +184,9 @@ namespace CoupledField
             rq.precicename = entry.name;
         
             // Validate and convert the precicename to an openCFS result name
-            rq.cfsname = convertResultNamesToCFS(rq.precicename);
+            auto [tempName, tempSolutionType] = convertResultNamesToCFS(rq.precicename);
+            rq.cfsname = tempName;
+            rq.solutiontype = tempSolutionType;
             //rq.griddim = 0;
             rq.quantitydim = participant_->getDataDimensions(participantMeshName_, rq.precicename);
             rq.meshName = entry.mesh;
@@ -218,53 +222,38 @@ namespace CoupledField
             EXCEPTION("PreciceAdapter: Domain's grid is not of type GridCFS as expected.");
         }
 
-        // Process result contexts to extract node and element information.
-        ResultHandler* resHandler = domain_->GetResultHandler();
-        auto* resultContextsPtr = resHandler->GetResultContexts();
-        if (resultContextsPtr->empty()) {
-            EXCEPTION("No result contexts available");
-        }
-        bool foundNodeList = false;
-        // Loop over all result contexts as long as we find a node result
-        for (auto entry = resultContextsPtr->begin(); entry != resultContextsPtr->end(); ++entry) {
-            shared_ptr<ResultHandler::ResultContext> resultContext = entry->second;
-            BaseResult & actResult = *(resultContext->result);
-            shared_ptr<EntityList> list = actResult.GetEntityList();
-            EntityIterator it = list->GetIterator();
-            // Check if the current result context's entity list is of type NODE_LIST.
-            switch( actResult.GetEntityList()->GetType() ) 
+        // get the region list from the domain tag in the openCFS simulation xml file
+        ParamNodeList regionListNode = paramNode_->Get("domain")->Get("regionList")->GetChildren();
+        
+        if(regionListNode.GetSize() > 0) 
+        {
+            for( UInt i = 0; i < regionListNode.GetSize(); i++ ) 
             {
-                case EntityList::NODE_LIST:
-                {
-                    for (it.Begin(); !it.IsEnd(); it++) {
-                        int nodenum = it.GetNode();
-                        addUniqueNode(gridCFS, nodenum, cfsNodeNumsVec_, nodeNumCoordMap_);
-                    }
-                    foundNodeList = true;
-                    break; // Stop processing further result contexts.
-                }
-                case EntityList::ELEM_LIST:
-                case EntityList::SURF_ELEM_LIST:
-                {
-                    for (it.Begin(); !it.IsEnd(); it++) {
-                        const Elem * el = it.GetElem();
-                        addUniqueElem(gridCFS, el->GetElemNum(), cfsElemNumsVec_, elemNumCoordMap_);
-                    }
-                    break;
-                }
-                default:
-                    EXCEPTION("PreciceAdapter::setupMeshAndCoordinates: Unhandled entity list type.");
-                    break;
+            std::string regionName = regionListNode[i]->Get("name")->As<std::string>(); 
+            RegionIdType regionId = gridCFS->GetRegion().Parse( regionName );
+            StdVector<UInt> elems, nodes;
+            gridCFS->GetElementsByRegion(elems, regionId);
+            gridCFS->GetNodesByRegion(nodes, regionId);
+            shared_ptr<EntityList> elemlist = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, regionName);
+            shared_ptr<EntityList> nodelist = gridCFS->GetEntityList(EntityList::ListType::NODE_LIST, regionName);
+
+            // Nodes
+            EntityIterator it = nodelist->GetIterator();
+            for (it.Begin(); !it.IsEnd(); it++) {
+                int nodenum = it.GetNode();
+                addUniqueNode(gridCFS, nodenum, cfsNodeNumsVec_, nodeNumCoordMap_);
+            }
+
+            // Nodes
+            it = elemlist->GetIterator();
+            for (it.Begin(); !it.IsEnd(); it++) {
+                const Elem * el = it.GetElem();
+                addUniqueElem(gridCFS, el->GetElemNum(), cfsElemNumsVec_, elemNumCoordMap_);
+            }
+
             }
         }
-
-        if (!foundNodeList) {
-            LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
-                                << " could not find a node result. "
-                                << " Either you are using edge elements or we need to"
-                                << " continue until the next sequence step";
-        }
-        
+                
 
         // Flatten node coordinates into a contiguous vector.
         int cfsGridDim = gridCFS->GetDim();
@@ -288,7 +277,7 @@ namespace CoupledField
     }
 
 
-    void PreciceAdapter::initialize(Domain *domain) {
+    void PreciceAdapter::initialize(Domain *domain, SinglePDE* pde) {
 #ifdef USE_PRECICE
     domain_ = domain;
 
@@ -303,13 +292,22 @@ namespace CoupledField
     
     // maybe we are not yet in the correct sequence step, therefore,
     // continue
-    if(cfsNodeNumsVec_.size() == 0){ return;}
+    if( !(dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetActSequenceStep() == sequenceStep_) ){ return;}
 
     // Step 4: Create the PreCICE participant.
-    createPreciceParticipant();
+    if(!isInit_){
+        createPreciceParticipant();
+        isInit_ = true;
+    }
+    
+    RegisterSinglePDE(pde);
 
-    // Step 5: Initialize the PreCICE participant.    
+    RegisterExternalResults();
+
+    // Step 5: Initialize the PreCICE participant.      
     participant_->initialize();
+
+    
     
 #endif
     }
@@ -326,12 +324,18 @@ namespace CoupledField
         solveStep_ = stdSolveStep;
     }
 
+    void PreciceAdapter::RegisterSinglePDE(SinglePDE* pde){
+        singlePDE_ = pde;
+    }
 
 
     void PreciceAdapter::RegisterTimeStepReadData(){
         // could happen if we are not in the right sequencestep
-        if (cfsNodeNumsVec_.empty()) return;
+        if( !(dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetActSequenceStep() == sequenceStep_) ) return;
 
+       
+        //TODO handle nodal and element cases. Maybe handle it based on the particular result
+        // like expectResultType nodes or elements
         // loop over the required results that we need - defined in the precice config
         for (auto &quantity : runtimeReadQuantities_) {
             LOG_DBG(preciceAdapter) << "Participant " << activeParticipantConfig_.name
@@ -339,30 +343,75 @@ namespace CoupledField
                                     << " on mesh: " << quantity.meshName;
 
             // we need to resize the data vector
-            quantity.data.resize(cfsNodeNumsVec_.size() * quantity.quantitydim);
-            participant_->readData(quantity.meshName, quantity.precicename, preciceNodeNumsVec_,
+            quantity.data.resize(cfsElemNumsVec_.size() * quantity.quantitydim);
+            participant_->readData(quantity.meshName, quantity.precicename, preciceElemNumsVec_,
                                 dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT(),
                                 quantity.data);
             
             // for easier handling, we also fill the nodeResultMap
             // but keep in mind that the nodes in nodeResultMap are a point cloud and
-            // do not have to be real node-values!
-            for (std::size_t i = 0; i < preciceNodeNumsVec_.size(); ++i) {
-                int cfsnode = cfsNodeNumsVec_[i];
+            // do not have to be real node-values! They can also be element values
+            for (std::size_t i = 0; i < preciceElemNumsVec_.size(); ++i) {
+                int cfselem = cfsElemNumsVec_[i];
                 Vector<double> vals;
                 vals.Resize(quantity.quantitydim);
                 for (size_t k = 0; k < static_cast<size_t>(quantity.quantitydim); ++k) {
                     vals[k] = quantity.data[i * quantity.quantitydim + k];
                 }
-                quantity.nodeResultMap[cfsnode] = vals;
+                quantity.elemResultMap[cfselem] = vals;
             }
+
+
+
+            // ================================== START TESTING
+ 
+            //Get the result contexts from the opencfs result handler.
+            ResultHandler * resHandler = domain_->GetResultHandler();
+            auto* resultContextsPtr = resHandler->GetResultContexts();
+
+            
+            //loop over the required results that we need - defined in the precice config      
+            
+            //Process each matching result context to fill result maps
+            for (auto &entry : *resultContextsPtr) {
+                shared_ptr<BaseResult> baseResult = entry.first;
+                shared_ptr<ResultHandler::ResultContext> resultContext = entry.second;
+                Result<Double>& actSol = static_cast<Result<Double>& >(*baseResult);
+                EntityIterator it = actSol.GetEntityList()->GetIterator();
+                Vector<Double>& vec = actSol.GetVector();
+                Vector<Double> tempField;
+                vec.Resize( it.GetSize() * quantity.quantitydim );
+                
+                // here we just assume the results are EntityList::ELEM_LIST and SCALAR
+                // TODO: we need to define somewhere in the xml file if the read
+                // quantities are element or node based results
+
+                // similar to have a look at ResultFunctor.cc lines 63ff
+                // std::string cfsResultName = baseResult->GetResultInfo()->resultName;
+                // if (cfsResultName == quantity.cfsname) {
+                //     for(it.Begin(); !it.IsEnd(); it++)
+                //         {
+                //         const Elem * el = it.GetElem();
+                //         // get result of element
+                //         tempField = quantity.elemResultMap[el->GetElemNum()];
+                //         // loop over dofs
+                //         for(UInt iDim = 0; iDim < quantity.quantitydim; iDim++ )
+                //             vec[it.GetPos()*quantity.quantitydim + iDim] = tempField[iDim];
+                //         }
+                // }
+            }
+            
+
+            // ==================================  END TESTING
+
         }
+
     }
 
 
     void PreciceAdapter::RegisterTimeStepWriteData(){
         // could happen if we are not in the right sequencestep
-        if (cfsNodeNumsVec_.empty()) return;
+        if( !(dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetActSequenceStep() == sequenceStep_) ) return;
         
         // Get the result contexts from the opencfs result handler.
         ResultHandler * resHandler = domain_->GetResultHandler();
@@ -502,6 +551,84 @@ namespace CoupledField
     }
 
 
+
+    void PreciceAdapter::RegisterExternalResults()
+    {
+    #ifdef USE_PRECICE
+    // Get the result handler from the domain.
+    ResultHandler* resHandler = domain_->GetResultHandler();
+    if(!resHandler)
+        EXCEPTION("PreciceAdapter::RegisterElementResults: No result handler available.");
+
+    if(runtimeReadQuantities_.size() == 0) return;
+
+    GridCFS* gridCFS = dynamic_cast<GridCFS*>(domain_->GetGrid());
+    //solveStep_
+
+    // get the entity list of the entities on which the pde is defined on
+    StdVector<RegionIdType> regions = singlePDE_->GetRegions();
+    
+
+   shared_ptr<EntityList> list = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, gridCFS->GetRegionName(regions[0]));
+   if(!list)
+       EXCEPTION("PreciceAdapter::RegisterElementResults: Could not create element entity list.");
+
+    // EntityIterator it = list->GetIterator();
+    // for (it.Begin(); !it.IsEnd(); it++)
+    // {
+    //     const Elem *el = it.GetElem();
+    // }
+
+    // For each runtime quantity that is element-based (i.e. does not have nodal results)
+    for(auto &quantity : runtimeReadQuantities_) {
+        // If nodal results are empty but we have element results, then we treat it as an element result.
+            // Create a new shallow result object.
+            shared_ptr<BaseResult> sol(new Result<Double>());
+            sol->SetEntityList(list);
+            
+            // Create a new ResultInfo to describe this element result.
+            shared_ptr<ResultInfo> ri(new ResultInfo());
+            ri->resultName = quantity.cfsname;
+            ri->resultType = quantity.solutiontype;
+            ri->definedOn  = ResultInfo::ELEMENT;
+            // If the quantity has dimension 1 we use SCALAR; otherwise, we use VECTOR.
+            ri->entryType  = (quantity.quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
+            ri->dofNames = "";
+            sol->SetResultInfo(ri);
+            
+            // Prepare additional parameters for registration.
+            StdVector<std::string> outDest;
+            outDest.Push_back("");
+            
+            // Register the result with the result handler.
+            // The parameters here (0,0,1,1,outDest,"",true,false) mimic the style in GridCFS::CreateGridInformation.
+            resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1, 1, outDest, "", true, false);
+            
+            // LOG_DBG(preciceAdapter) << "Registered element result '" << quantity.cfsname << "' with "
+            //                         << elemEntityList->GetSize() << " elements.";
+        
+    }
+    #endif
+    }
+
+    Vector<Double> PreciceAdapter::GetElemResult(SolutionType solType, int elemNum)
+    {
+        bool found = false;
+        for(auto &quantity : runtimeReadQuantities_)
+        {
+            if(quantity.solutiontype == solType)
+            {
+                found = true;
+                return quantity.elemResultMap[elemNum];
+            }            
+
+        }
+        if(!found)
+            EXCEPTION("PreciceAdapter: no result with solution type "<<solType<<" found");
+
+    }
+
+
     void PreciceAdapter::finalize()
     {
 #ifdef USE_PRECICE
@@ -513,5 +640,7 @@ namespace CoupledField
         }
 #endif
     }
+
+
 
 } // end of namespace

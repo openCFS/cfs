@@ -371,6 +371,8 @@ namespace CoupledField {
   
     void SinglePDE::Init_Stage2() {
     
+    domain_->InitPreciceAdapter(this);
+
     // =====================================================================
     // read in boundary conditions
     // =====================================================================
