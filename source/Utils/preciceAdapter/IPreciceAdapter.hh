@@ -1,12 +1,15 @@
 #ifndef FILE_CFS_IPRECICEADAPTER_HH
 #define FILE_CFS_IPRECICEADAPTER_HH
 
+#include "MatVec/Vector.hh"
 
 // Forward declaration
 namespace CoupledField {
     class ParamNode;
     class Domain;
     class BaseSolveStep;
+    class SinglePDE;
+
 }
 
 namespace CoupledField
@@ -24,7 +27,7 @@ namespace CoupledField
         /**
          * Initializes the PreCICE participant.
          */
-        virtual void initialize(Domain* domain) = 0;
+        virtual void initialize(Domain* domain, SinglePDE* pde) = 0;
 
         /**
          * Initializes the PreCICE participant.
@@ -41,6 +44,8 @@ namespace CoupledField
          */
         virtual void RegisterTimeStepReadData() = 0;
 
+        virtual Vector<Double> GetElemResult(SolutionType solType, int elemNum) = 0;
+        
         /**
          * Finalizes the PreCICE participant.
          *

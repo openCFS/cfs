@@ -5,7 +5,6 @@
 #include "PreciceConfigReader.hh"
 #include <string>
 #include <vector>
-#include "MatVec/Vector.hh"
 #include <boost/shared_ptr.hpp>
 #include "def_use_precice.hh"
 #ifdef USE_PRECICE
@@ -16,8 +15,9 @@ namespace CoupledField
 {
         class ParamNode;
         class Domain;
-        class BaseSolveStep;
+        class StdSolveStep;
         class GridCFS;
+        class SinglePDE;
 
         /**
          * The PreciceAdapter class manages the coupling between openCFS and preCICE.
@@ -32,11 +32,12 @@ namespace CoupledField
                 ~PreciceAdapter() override;
 
                 // Main adapter methods
-                void initialize(Domain *domain) override;
+                void initialize(Domain *domain, SinglePDE* pde) override;
                 void RegisterSolveStep(BaseSolveStep *solveStep) override;
                 void RegisterTimeStepWriteData() override;
                 void RegisterTimeStepReadData() override;
                 void finalize() override;
+                Vector<Double> GetElemResult(SolutionType solType, int elemNum) override;
 
                 enum Exchangetype {READ=0, WRITE=1};
 
@@ -50,6 +51,7 @@ namespace CoupledField
                 struct PreciceRuntimeQuantity {
                         std::string precicename;                // Quantity name (e.g., "Temperature")
                         std::string cfsname;                // Quantity name in cfs (e.g., "heatTemperature")
+                        SolutionType solutiontype;                // 
                         std::string meshName;            // Mesh name on which this quantity is defined.
                         //int griddim;                    // spatial dimension of the grid
                         int quantitydim;                // dimension of the quantity (scalar, vector)
@@ -91,16 +93,23 @@ namespace CoupledField
          */
         void reserveExchangeQuantities();
         
+
+        void RegisterSinglePDE(SinglePDE* pde);
+
+        void RegisterExternalResults();
+
+
         /**
          * Convert the result name specified in precice's config to openCFS result name
          */
-        std::string convertResultNamesToCFS(std::string precicename);
+        std::tuple<std::string, SolutionType> convertResultNamesToCFS(std::string precicename);
         // --- End of helper functions ---
 
         
 
 
         // --- Data members ---
+        bool isInit_;
         boost::shared_ptr<ParamNode> paramNode_;
 #ifdef USE_PRECICE
         std::unique_ptr<precice::Participant> participant_; ///< preCICE participant instance
@@ -109,7 +118,8 @@ namespace CoupledField
         std::string participantName_;
         std::string participantMeshName_;
         std::string participantElemMeshName_;
-        
+        int sequenceStep_;
+
         // Mapping from node numbers to coordinates
         std::map<unsigned int, Vector<double>> nodeNumCoordMap_;
         std::vector<int> cfsNodeNumsVec_;
@@ -133,7 +143,8 @@ namespace CoupledField
         int size_;
 
         Domain *domain_;
-        BaseSolveStep *solveStep_;
+        StdSolveStep *solveStep_;
+        SinglePDE *singlePDE_;
         // --- End of data members ---
 
         // Disable copy and assignment.

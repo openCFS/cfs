@@ -710,18 +710,16 @@ template<class DATA_TYPE>
       Double postStepValue = stepIter->second;
       bool notEnd = true;
       if (stepValue > postStepValue) {
-        while (stepIter->second < stepValue && notEnd) {
+        while (stepIter != stepValueMap_.end() && stepIter->second < stepValue) {
           preStepNumber = postStepNumber;
           preStepValue = postStepValue;
           ++stepIter;
           if (stepIter != stepValueMap_.end()) {
             postStepNumber = stepIter->first;
             postStepValue = stepIter->second;
-          } else {
-            notEnd = false;
           }
         }
-        if (stepValue > postStepValue) {
+        if (stepIter == stepValueMap_.end() && stepValue > postStepValue) {
           preStepNumber = postStepNumber;
           preStepValue = postStepValue;
         }

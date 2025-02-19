@@ -376,7 +376,9 @@ void Domain::PostInit(UInt sequenceStep)
     if(DensityFile::NeedLoadErsatzMaterial())
       designSpace_ = DensityFile::ReadErsatzMaterial();
   }
-
+  
+  //preciceAdapter_->initialize(this);
+  
   // For optimization the design needs to be already set to initialize the proper material coefficients
   // in the multisequence case init does something else and was already called above
   // note that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
@@ -487,6 +489,8 @@ void Domain::SolveProblem()
     optimization_->SolveProblem(); // will call multiple driver->SolveProblem
   else
     driver->SolveProblem();
+
+  this->GetPreciceAdapter()->finalize();
 }
 
   // **********************
@@ -1347,4 +1351,8 @@ bool Domain::HasPerdiodicBC() const
   return false;
 }
 
+void Domain::InitPreciceAdapter(SinglePDE* pde)
+{
+  this->preciceAdapter_->initialize(this, pde);
+}
 }

@@ -242,6 +242,8 @@ namespace CoupledField
       return preciceAdapter_.get();
     }
     
+    void InitPreciceAdapter(SinglePDE* pde);
+
   protected:
 
   private:

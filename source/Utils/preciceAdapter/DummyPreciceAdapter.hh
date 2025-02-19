@@ -15,7 +15,7 @@ namespace CoupledField
         DummyPreciceAdapter() = default;
         ~DummyPreciceAdapter() override = default;
 
-        void initialize(Domain* domain) override {
+        void initialize(Domain* domain, SinglePDE* pde) override {
             // No-op
         }
 
@@ -35,6 +35,10 @@ namespace CoupledField
             // No-op
         }
 
+        Vector<Double> GetElemResult(SolutionType solType, int elemNum) override{
+            // No-op
+        }
+        
         // Define a non-inline dummy function to force an object file to be generated.
         // void DummyPreciceAdapter_ForceBuild();
     };

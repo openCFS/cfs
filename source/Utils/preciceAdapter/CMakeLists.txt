@@ -11,7 +11,10 @@ if(USE_PRECICE)
   # Add PreciceAdapter.cc to the preciceadapter target
   target_sources(preciceadapter PRIVATE 
   MinimalXmlParser.cc
-  PreciceAdapter.cc)
+  PreciceAdapter.cc
+  # ScatteredDataReaderPrecice.cc
+  CoefFunctionGridElemDefaultPrecice.cc
+  )
 
   # Retrieve the interface include directories from the imported target
   get_target_property(precice_includes precice::precice INTERFACE_INCLUDE_DIRECTORIES)

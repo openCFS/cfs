@@ -88,6 +88,7 @@
 #include "CoefFunctionGridNodalSource.hh"
 //element based version
 #include "CoefFunctionGridElemDefault.hh"
+#include "Utils/preciceAdapter/CoefFunctionGridElemDefaultPrecice.hh"
 //#include "CoefFunctionGridHigherDefault.hh"
 //#include "CoefFunctionGridHigherInterp.hh"
 #include "Driver/BaseDriver.hh"
@@ -106,6 +107,7 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
 
+  
   // verify the solution type (nodal/element data)
 
   // parse the quantity and check if it is known
@@ -170,8 +172,16 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                 configNode->Get("defaultGrid"), tmpNode, regions,type));
         }
         else {
-          ret.reset(new CoefFunctionGridElemDefault<Double>(ptDomain,
+          if(!ptDomain->GetPreciceAdapter())
+          {
+            ret.reset(new CoefFunctionGridElemDefault<Double>(ptDomain,
                       configNode->Get("defaultGrid"), tmpNode, regions,type));
+          }else{
+            // precice case
+            ret.reset(new CoefFunctionGridElemDefaultPrecice<Double>(ptDomain,
+                      configNode->Get("defaultGrid"), tmpNode, regions,type));
+          }
+          
         }
       }
 
@@ -326,13 +336,13 @@ void CoefFunctionGrid::DetermineResult(std::string inputID,UInt seqStep){
   domain_->GetResultHandler()->GetResultTypes(inputID,seqStep,results,false);
   //now we search for the appropriate result
   for(UInt i = 0;i<results.GetSize();i++){
-	  if( results[i]->resultType == solType_ ) {
+    if( results[i]->resultType == solType_ ) {
       resultInfo_ = results[i];
-	    break;
-	  }
+      break;
+    }
   }
   std::string solString = SolutionTypeEnum.ToString(solType_);
-  if(!resultInfo_.get())
+  if((!resultInfo_.get()))
 	  EXCEPTION("Can not find result " << solString << " in given file!");
 }
 

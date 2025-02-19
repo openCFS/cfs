@@ -150,7 +150,7 @@ namespace CoupledField {
   // ==================
   void TransientDriver::Init( bool restart) 
   {
-    isRestarted_ = restart;
+    isRestarted_ = restart;    
     InitializePDEs();
   }
     
@@ -176,7 +176,7 @@ namespace CoupledField {
     Double percentCounter = timeStepPercent;
   
     // init precice coupling adapter
-    preciceAdapter_->initialize(domain_);
+    //preciceAdapter_->initialize(domain_);
     // when using precice, we need direct access to the solvestep
     preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
 
@@ -312,7 +312,7 @@ namespace CoupledField {
                                           accTime_+GetDuration());
     }
 
-    preciceAdapter_->finalize();
+
   }
 
   void TransientDriver::SetToStepValue(UInt stepNum, Double stepVal ) {
