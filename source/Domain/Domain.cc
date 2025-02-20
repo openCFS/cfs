@@ -35,7 +35,6 @@
 #include "General/Exception.hh"
 
 #include "Utils/preciceAdapter/IPreciceAdapter.hh"
-#include "Utils/preciceAdapter/PreciceAdapterFactory.hh"
 
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Design/DesignSpace.hh"
@@ -127,9 +126,6 @@ Domain::Domain(
   
   // register variables defined in "variableList" element
   RegisterVariables();
-
-    // Initialize the PreCICE Adapter using the factory
-  preciceAdapter_ = CreatePreciceAdapter(param_);
   
 }
 
@@ -490,7 +486,6 @@ void Domain::SolveProblem()
   else
     driver->SolveProblem();
 
-  this->GetPreciceAdapter()->finalize();
 }
 
   // **********************
@@ -1354,6 +1349,14 @@ bool Domain::HasPerdiodicBC() const
 
 void Domain::InitPreciceAdapter(SinglePDE* pde)
 {
+  // The global variable is so dirty but I cannot come up with a better
+  // way. The problem is in a multisequence step when a sequence step
+  // requires an earlier sequence step's value, it creates a new domain
+  // instance, which would then just hold the the garbage pointer of preciceAdapter_
+  this->preciceAdapter_ = CoupledField::gPreciceAdapter;
   this->preciceAdapter_->initialize(this, pde);
+
 }
+
+
 }

@@ -12,6 +12,7 @@ if(USE_PRECICE)
   target_sources(preciceadapter PRIVATE 
   MinimalXmlParser.cc
   PreciceAdapter.cc
+  IPreciceAdapter.cc
   # ScatteredDataReaderPrecice.cc
   CoefFunctionGridElemDefaultPrecice.cc
   )

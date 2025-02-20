@@ -37,6 +37,7 @@ namespace CoupledField
 
         Vector<Double> GetElemResult(SolutionType solType, int elemNum) override{
             // No-op
+            return Vector<Double>();
         }
         
         // Define a non-inline dummy function to force an object file to be generated.

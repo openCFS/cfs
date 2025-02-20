@@ -297,17 +297,13 @@ namespace CoupledField
     // Step 4: Create the PreCICE participant.
     if(!isInit_){
         createPreciceParticipant();
+        participant_->initialize();
         isInit_ = true;
     }
-    
+
     RegisterSinglePDE(pde);
 
     RegisterExternalResults();
-
-    // Step 5: Initialize the PreCICE participant.      
-    participant_->initialize();
-
-    
     
 #endif
     }
@@ -387,18 +383,18 @@ namespace CoupledField
                 // quantities are element or node based results
 
                 // similar to have a look at ResultFunctor.cc lines 63ff
-                // std::string cfsResultName = baseResult->GetResultInfo()->resultName;
-                // if (cfsResultName == quantity.cfsname) {
-                //     for(it.Begin(); !it.IsEnd(); it++)
-                //         {
-                //         const Elem * el = it.GetElem();
-                //         // get result of element
-                //         tempField = quantity.elemResultMap[el->GetElemNum()];
-                //         // loop over dofs
-                //         for(UInt iDim = 0; iDim < quantity.quantitydim; iDim++ )
-                //             vec[it.GetPos()*quantity.quantitydim + iDim] = tempField[iDim];
-                //         }
-                // }
+                std::string cfsResultName = baseResult->GetResultInfo()->resultName;
+                if (cfsResultName == quantity.cfsname) {
+                    for(it.Begin(); !it.IsEnd(); it++)
+                        {
+                        const Elem * el = it.GetElem();
+                        // get result of element
+                        tempField = quantity.elemResultMap[el->GetElemNum()];
+                        // loop over dofs
+                        for(UInt iDim = 0; iDim < quantity.quantitydim; iDim++ )
+                            vec[it.GetPos()*quantity.quantitydim + iDim] = tempField[iDim];
+                        }
+                }
             }
             
 
@@ -530,17 +526,33 @@ namespace CoupledField
                 LOG_DBG(preciceAdapter) << "Size of preciceElemNumsVec_: " << preciceElemNumsVec_.size();
 
                 quantity.data.resize(quantity.elemResultMap.size() * quantity.quantitydim);
-                int p = 0;
-                for (const auto& pair : quantity.elemResultMap) {
-                    // pair.first is the element number, pair.second is the result vector
-                    const Vector<double>& value = pair.second;
+                
+                for(size_t i = 0; i < cfsElemNumsVec_.size(); ++i){
+                    int cfselemnum = cfsElemNumsVec_[i];
+                    int preciceelemnum = preciceElemNumsVec_[i];
+                    Vector<double>& value = quantity.elemResultMap[cfselemnum];
                     for (int k = 0; k < quantity.quantitydim; ++k) {
-                        quantity.data[p * quantity.quantitydim + k] = value[k];
+                        quantity.data[preciceelemnum * quantity.quantitydim + k] = value[k];
                     }
-                    ++p;
                 }
+
                 participant_->writeData(quantity.meshName, quantity.precicename,
                                         preciceElemNumsVec_, quantity.data);
+
+            //     // logging
+            //     for (size_t i = 0; i < preciceElemNumsVec_.size(); ++i) {
+            //         int cfsElem = cfsElemNumsVec_[i];
+            //         int preciceElem = preciceElemNumsVec_[i];
+            //         std::ostringstream oss;
+            //         oss << "CFS Element: " << cfsElem 
+            //             << ", PreCICE Element: " << preciceElem 
+            //             << ", Result: ";
+            //         // For each element, output all components if vector result.
+            //         for (int d = 0; d < quantity.quantitydim; ++d) {
+            //             oss << quantity.data[i * quantity.quantitydim + d] << " ";
+            //         }
+            //     LOG_DBG(preciceAdapter) << oss.str();
+            // }
             }
         }
 
@@ -573,12 +585,6 @@ namespace CoupledField
    if(!list)
        EXCEPTION("PreciceAdapter::RegisterElementResults: Could not create element entity list.");
 
-    // EntityIterator it = list->GetIterator();
-    // for (it.Begin(); !it.IsEnd(); it++)
-    // {
-    //     const Elem *el = it.GetElem();
-    // }
-
     // For each runtime quantity that is element-based (i.e. does not have nodal results)
     for(auto &quantity : runtimeReadQuantities_) {
         // If nodal results are empty but we have element results, then we treat it as an element result.
@@ -602,10 +608,9 @@ namespace CoupledField
             
             // Register the result with the result handler.
             // The parameters here (0,0,1,1,outDest,"",true,false) mimic the style in GridCFS::CreateGridInformation.
-            resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1, 1, outDest, "", true, false);
-            
-            // LOG_DBG(preciceAdapter) << "Registered element result '" << quantity.cfsname << "' with "
-            //                         << elemEntityList->GetSize() << " elements.";
+            resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
+                                       domain_->GetSingleDriver()->GetNumSteps(),
+                                       outDest, "", true, false);
         
     }
     #endif
