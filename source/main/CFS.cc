@@ -39,6 +39,9 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/PythonKernel.hh"
 
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
+#include "Utils/preciceAdapter/PreciceAdapterFactory.hh"
+
 using namespace CoupledField;
 using namespace std;
 using namespace boost::posix_time;
@@ -232,6 +235,11 @@ int CFS::Run()
     // if a python function is registered, call it.
     python->CallHook(PythonKernel::POST_GRID);
 
+    // Initialize the PreCICE Adapter using the factory
+    preciceAdapter_ = CreatePreciceAdapter(paramNode_);
+    CoupledField::gPreciceAdapter = preciceAdapter_.get();
+    domain->RegisterPreciceAdapter(preciceAdapter_.get());
+  
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else
@@ -239,6 +247,7 @@ int CFS::Run()
 
     python->CallHook(PythonKernel::POST_SOLVE_PROBLEM);
 
+    preciceAdapter_->finalize();
 
     // wait for all drivers to be initialized before printing the math parser variables
     domain->GetMathParser()->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("domain/globalMathParser"), MathParser::GLOB_HANDLER);

@@ -238,11 +238,18 @@ namespace CoupledField
       genResId_ += 1;
     }
 
+
+    void RegisterPreciceAdapter(IPreciceAdapter* ad){
+      this->preciceAdapter_ = ad;
+    }
+
     IPreciceAdapter* GetPreciceAdapter() const {
-      return preciceAdapter_.get();
+      return this->preciceAdapter_;
     }
     
     void InitPreciceAdapter(SinglePDE* pde);
+
+
 
   protected:
 
@@ -388,8 +395,7 @@ namespace CoupledField
     //! track of them here and assign them individually to avoid redefinition */
     int genResId_ = 0;
 
-    /** Adapter to precice library, used for coupling different softwares with each other */
-    std::unique_ptr<IPreciceAdapter> preciceAdapter_;
+    IPreciceAdapter* preciceAdapter_;
   };
 
 }

@@ -14,6 +14,12 @@ namespace CoupledField {
 
 namespace CoupledField
 {
+    class IPreciceAdapter;
+
+    //! Define global instance of this class
+    extern IPreciceAdapter* gPreciceAdapter;
+
+
     /**
      * Abstract interface for PreciceAdapter.
      *
