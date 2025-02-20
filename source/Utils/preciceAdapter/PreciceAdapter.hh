@@ -3,6 +3,7 @@
 
 #include "IPreciceAdapter.hh"
 #include "PreciceConfigReader.hh"
+
 #include <string>
 #include <vector>
 #include <boost/shared_ptr.hpp>
@@ -18,7 +19,8 @@ namespace CoupledField
         class StdSolveStep;
         class GridCFS;
         class SinglePDE;
-
+        class ResultBase;
+        
         /**
          * The PreciceAdapter class manages the coupling between openCFS and preCICE.
          *
@@ -40,29 +42,6 @@ namespace CoupledField
                 Vector<Double> GetElemResult(SolutionType solType, int elemNum) override;
 
                 enum Exchangetype {READ=0, WRITE=1};
-
-                /**
-                 * Contains runtime data for an exchange quantity.
-                 *
-                 * This container links the configuration (the quantity name and the mesh on which it is defined)
-                 * with the runtime data: the node numbers at which the quantity is defined,
-                 * and the actual exchanged data.
-                 */
-                struct PreciceRuntimeQuantity {
-                        std::string precicename;                // Quantity name (e.g., "Temperature")
-                        std::string cfsname;                // Quantity name in cfs (e.g., "heatTemperature")
-                        SolutionType solutiontype;                // 
-                        std::string meshName;            // Mesh name on which this quantity is defined.
-                        //int griddim;                    // spatial dimension of the grid
-                        int quantitydim;                // dimension of the quantity (scalar, vector)
-                        //GridCFS* meshPtr;                // Pointer to the corresponding mesh object.
-                        //std::vector<int> nodeNumbers;    // Node numbers where the quantity is defined.
-                        std::vector<double> data;        // The actual data (flattened) for exchange.
-                        std::map<int, Vector<double>> nodeResultMap; // different representation of the data. key is the cfs node number
-                        std::map<int, Vector<double>> elemResultMap; // different representation of the data. key is the cfs element number
-                        bool available;                  // flag if the requested quantity is ready
-                        Exchangetype type;               // flag if this is read or write data
-                };
 
         private:
 
@@ -102,7 +81,7 @@ namespace CoupledField
         /**
          * Convert the result name specified in precice's config to openCFS result name
          */
-        std::tuple<std::string, SolutionType> convertResultNamesToCFS(std::string precicename);
+        std::tuple<std::string, SolutionType> convertResultNamesToCFS(const std::string& precicename);
         // --- End of helper functions ---
 
         
@@ -136,8 +115,8 @@ namespace CoupledField
         ParticipantConfig activeParticipantConfig_;
 
         // runtime containers
-        std::vector<PreciceRuntimeQuantity> runtimeReadQuantities_;
-        std::vector<PreciceRuntimeQuantity> runtimeWriteQuantities_;
+        std::vector<std::unique_ptr<ResultBase>> runtimeReadResults_;
+        std::vector<std::unique_ptr<ResultBase>> runtimeWriteResults_;
 
         int rank_;
         int size_;
