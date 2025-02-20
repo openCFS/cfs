@@ -13,7 +13,8 @@ if(USE_PRECICE)
   MinimalXmlParser.cc
   PreciceAdapter.cc
   IPreciceAdapter.cc
-  # ScatteredDataReaderPrecice.cc
+  NodeResult.cc
+  ElementResult.cc
   CoefFunctionGridElemDefaultPrecice.cc
   )
 
