@@ -13,6 +13,7 @@
 //================================================================================================
 
 
+#ifdef USE_PRECICE
 
 #include "CoefFunctionGridElemDefaultPrecice.hh"
 #include "Utils/preciceAdapter/IPreciceAdapter.hh"
@@ -158,3 +159,56 @@ template class CoefFunctionGridElemDefaultPrecice<Double>;
 template class CoefFunctionGridElemDefaultPrecice<Complex>;
 
 } // namespace CoupledField
+
+#else
+
+
+#include "CoefFunctionGridElemDefaultPrecice.hh"
+
+namespace CoupledField {
+
+template<typename T>
+CoefFunctionGridElemDefaultPrecice<T>::CoefFunctionGridElemDefaultPrecice(
+    Domain* domain,
+    boost::shared_ptr<ParamNode> configNode,
+    boost::shared_ptr<ParamNode> curInfo,
+    boost::shared_ptr<RegionList> region,
+    ResultInfo::EntryType /*entryType*/)
+  : CoefFunctionGridElem<T>(domain, configNode, region)
+{
+    // Dummy constructor: no additional functionality.
+}
+
+template<typename T>
+void CoefFunctionGridElemDefaultPrecice<T>::GetVector(Vector<T>& vec, const LocPointMapped& /*lpm*/)
+{
+    // Dummy implementation: simply resize and fill with zeros
+    vec.Resize(1); // or an appropriate dimension
+    vec[0] = T(); // default-constructed value
+}
+
+template<typename T>
+void CoefFunctionGridElemDefaultPrecice<T>::GetScalar(T& scalar, const LocPointMapped& /*lpm*/)
+{
+    scalar = T(); // default value
+}
+
+template<typename T>
+void CoefFunctionGridElemDefaultPrecice<T>::DetermineResult(std::string /*name*/, UInt /*id*/)
+{
+    return ;
+}
+
+template<typename T>
+void CoefFunctionGridElemDefaultPrecice<T>::SetRegions(boost::shared_ptr<RegionList> /*region*/)
+{
+    // Do nothing.
+}
+
+// Explicit instantiation for the types used in the project.
+template class CoefFunctionGridElemDefaultPrecice<Double>;
+template class CoefFunctionGridElemDefaultPrecice<Complex>;
+
+} // namespace CoupledField
+
+#endif
