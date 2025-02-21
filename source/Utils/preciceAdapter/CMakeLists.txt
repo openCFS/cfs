@@ -34,7 +34,10 @@ if(USE_PRECICE)
   #target_compile_definitions(preciceadapter PRIVATE USE_PRECICE)
 else()
   # Add DummyPreciceAdapter.cc to the preciceadapter target
-  target_sources(preciceadapter PRIVATE DummyPreciceAdapter.cc)
+  target_sources(preciceadapter PRIVATE 
+                 DummyPreciceAdapter.cc
+                 IPreciceAdapter.cc
+                 CoefFunctionGridElemDefaultPrecice.cc)
 endif()
 
 # Interface library for IPreciceAdapter
