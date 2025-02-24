@@ -6,6 +6,7 @@
 #include <string>
 
 #include "Utils/tools.hh"
+#include "Utils/preciceAdapter/TransientDriverPrecice.hh"
 #include "Utils/StdVector.hh"
 #include "General/Exception.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -74,8 +75,14 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
         break;
 
       case BasePDE::TRANSIENT:
-        ptdriver = new TransientDriver( seqStep, false, state, myDom, seqNode, info );
-        break;
+        if(myDom->GetPreciceAdapter()){
+          ptdriver = new TransientDriverPrecice( seqStep, false, state, myDom, seqNode, info );
+          break;
+        }else{
+          ptdriver = new TransientDriver( seqStep, false, state, myDom, seqNode, info );
+          break;
+        }
+        
 
       case BasePDE::HARMONIC:
         ptdriver = new HarmonicDriver( seqStep, false, state, myDom, seqNode, info  );

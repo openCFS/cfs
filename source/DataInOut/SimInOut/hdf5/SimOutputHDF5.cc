@@ -439,15 +439,20 @@ namespace CoupledField {
       regionGroup = resultGroup.createGroup( regionName );
     }
 
+    if (H5IO::GroupExists(regionGroup, entityString)) {
+      subGroup = regionGroup.openGroup(entityString);
+    } else {
+      subGroup = regionGroup.createGroup(entityString);
+    }
     // try to create subgroup for entity
-    try {
-      LOG_DBG2(h5Out) << "Create subgroup " << entityString
-          << " for result " << resultName << " on region " << regionName
-          << " in step " << currStep_;
-      subGroup = regionGroup.createGroup( entityString );
-    } H5_CATCH( "Could not create subgroup " << entityString
-                << " for result " << resultName << " on region "
-                << regionName << ". Maybe the group already exists.");
+    // try {
+    //   LOG_DBG2(h5Out) << "Create subgroup " << entityString
+    //       << " for result " << resultName << " on region " << regionName
+    //       << " in step " << currStep_;
+    //   subGroup = regionGroup.createGroup( entityString );
+    // } H5_CATCH( "Could not create subgroup " << entityString
+    //             << " for result " << resultName << " on region "
+    //             << regionName << ". Maybe the group already exists.");
 
     if( sol->GetEntryType() == BaseMatrix::DOUBLE ) {
 
@@ -1477,7 +1482,11 @@ namespace CoupledField {
 
     // Create group for current step
     std::string stepStr = lexical_cast<std::string>(currStepDb_);
-    stepGroup = fctGroup.createGroup(stepStr);
+    if (H5IO::GroupExists(fctGroup, stepStr)) {
+      stepGroup = fctGroup.openGroup(stepStr);
+    } else {
+      stepGroup = fctGroup.createGroup(stepStr);
+    }
     H5IO::WriteAttribute( stepGroup, "StepValue", currStepValueDb_ );
     
     // Now write coefficients for fefunction

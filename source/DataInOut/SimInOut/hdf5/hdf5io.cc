@@ -919,10 +919,13 @@ hsize_t H5IO::maxChunkSize_= 100;
                                  std::min( (UInt) colSize,
                                            (UInt) maxChunkSize_ ) };
       newList.setChunk( 2, chunk);
-      H5::DataSet dataset = loc.createDataSet( name, *stdType,
-                                               space, newList );
-      dataset.write( conv.GetOutBufferPtr(), *nativeType  );
-
+      H5::DataSet dataset;
+      if (H5IO::DatasetExists(loc, name)) {
+        dataset = loc.openDataSet(name);
+      } else {
+        dataset = loc.createDataSet(name, *stdType, space, newList);
+      }
+      dataset.write(conv.GetOutBufferPtr(), *nativeType);
       // reset conversion object
       conv.CleanUp();
 

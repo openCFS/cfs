@@ -28,6 +28,7 @@ SET(TARGET_LL
   algsys-olas
   graph-olas
   utils
+  preciceadapter
   matvec
 )
 

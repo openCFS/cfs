@@ -13,7 +13,6 @@
 #include "TransientDriver.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Utils/Timer.hh"
-#include "Utils/preciceAdapter/IPreciceAdapter.hh"
 #include "DataInOut/SimState.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -33,7 +32,7 @@ namespace CoupledField {
 
   // Define pointer to transient driver instance, needed for the signal handler
   // to communicate with
-  TransientDriver * instance = NULL;
+  TransientDriver * TransientDriver::instance = nullptr;
   
   // ===============
   //   Constructor
@@ -111,7 +110,7 @@ namespace CoupledField {
       }
     }
 
-    preciceAdapter_ = domain_->GetPreciceAdapter();
+    
   }
 
   void TransientDriver::SetAccumulatedTime(Double accTime ) {
@@ -175,12 +174,7 @@ namespace CoupledField {
     Double timeStepPercent = (double)numstep_/10;
     Double percentCounter = timeStepPercent;
   
-    // init precice coupling adapter
-    //preciceAdapter_->initialize(domain_);
-    // when using precice, we need direct access to the solvestep
-    preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
-
-   
+  
     ptPDE_->WriteGeneralPDEdefines();
     ptPDE_->GetSolveStep()->SetStartStep( startStep );
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
@@ -252,8 +246,6 @@ namespace CoupledField {
       analysis_id_.time = actTime_;
       analysis_id_.step = actTimeStep_;
 
-      // only if precice is activated and used
-      preciceAdapter_->RegisterTimeStepReadData();
 
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(actTime_);
@@ -267,8 +259,6 @@ namespace CoupledField {
       ptPDE_->WriteResultsInFile(actTimeStep_, actTime_ );
       resHandler->FinishStep( );
       
-      // only if precice is activated and used
-      preciceAdapter_->RegisterTimeStepWriteData();
 
       // write out re-start only in the last step
       if( actTimeStep_ == endStep_ || abortSimulation_  || writeAllSteps_ ) {

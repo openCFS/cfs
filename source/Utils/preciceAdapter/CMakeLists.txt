@@ -16,6 +16,7 @@ if(USE_PRECICE)
   NodeResult.cc
   ElementResult.cc
   CoefFunctionGridElemDefaultPrecice.cc
+  TransientDriverPrecice.cc
   )
 
   # Retrieve the interface include directories from the imported target
@@ -37,7 +38,8 @@ else()
   target_sources(preciceadapter PRIVATE 
                  DummyPreciceAdapter.cc
                  IPreciceAdapter.cc
-                 CoefFunctionGridElemDefaultPrecice.cc)
+                 CoefFunctionGridElemDefaultPrecice.cc
+                 TransientDriverPrecice.cc)
 endif()
 
 # Interface library for IPreciceAdapter
