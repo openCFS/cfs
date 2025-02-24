@@ -43,6 +43,11 @@ namespace CoupledField
 
                 enum Exchangetype {READ=0, WRITE=1};
 
+                virtual bool IsCouplingOngoing() override{ return this->participant_->isCouplingOngoing();}
+                virtual bool RequiresWritingCheckpoint() override{ return this->participant_->requiresWritingCheckpoint();}
+                virtual bool RequiresReadingCheckpoint()  override{ this->participant_->requiresReadingCheckpoint();}
+
+
         private:
 
         // --- Helper functions for initialize() ---

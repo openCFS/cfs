@@ -10,7 +10,6 @@ namespace CoupledField {
 
   //! forward class declarations
   class Timer;
-  class IPreciceAdapter;
 
   //! Class for transient simulations
   
@@ -35,6 +34,10 @@ namespace CoupledField {
     //! Default destructor
     virtual ~TransientDriver();
 
+    // Define pointer to transient driver instance, needed for the signal handler
+    // to communicate with
+    static TransientDriver * instance;
+    
     //! Initialization method
     void Init( bool restart);
 
@@ -120,7 +123,7 @@ namespace CoupledField {
     //! Timer for estimating remaining runtime 
     boost::shared_ptr<Timer> timer_;
 
-    IPreciceAdapter* preciceAdapter_;
+    
 
   };
 

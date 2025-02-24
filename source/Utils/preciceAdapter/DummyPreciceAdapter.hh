@@ -40,6 +40,18 @@ namespace CoupledField
             return Vector<Double>();
         }
         
+
+
+        virtual bool IsCouplingOngoing() override {
+            return true;
+        }
+        virtual bool RequiresWritingCheckpoint() override {
+            return true;
+        }
+        virtual bool RequiresReadingCheckpoint()  override {
+            return false;
+        }
+
         // Define a non-inline dummy function to force an object file to be generated.
         // void DummyPreciceAdapter_ForceBuild();
     };

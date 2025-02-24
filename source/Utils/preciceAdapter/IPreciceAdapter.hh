@@ -50,6 +50,13 @@ namespace CoupledField
          */
         virtual void RegisterTimeStepReadData() = 0;
 
+
+        virtual bool IsCouplingOngoing() = 0;
+        virtual bool RequiresWritingCheckpoint() = 0;
+        virtual bool RequiresReadingCheckpoint() = 0;
+
+
+
         virtual Vector<Double> GetElemResult(SolutionType solType, int elemNum) = 0;
         
         /**

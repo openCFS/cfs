@@ -12,12 +12,13 @@
  */
 //================================================================================================
 
-
-#ifdef USE_PRECICE
-
 #include "CoefFunctionGridElemDefaultPrecice.hh"
 #include "Utils/preciceAdapter/IPreciceAdapter.hh"
 #include "FeBasis/FeSpace.hh"
+
+#ifdef USE_PRECICE
+
+
 
 namespace CoupledField{
 
@@ -160,10 +161,9 @@ template class CoefFunctionGridElemDefaultPrecice<Complex>;
 
 } // namespace CoupledField
 
+
+
 #else
-
-
-#include "CoefFunctionGridElemDefaultPrecice.hh"
 
 namespace CoupledField {
 

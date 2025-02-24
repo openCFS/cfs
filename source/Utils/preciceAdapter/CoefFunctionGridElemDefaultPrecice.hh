@@ -17,6 +17,8 @@
 #ifndef COEFFUNCTIONGRIDELEMDEFAULTPRECICE_HH
 #define COEFFUNCTIONGRIDELEMDEFAULTPRECICE_HH
 
+#include "def_use_precice.hh"
+
 #include "Domain/CoefFunction/CoefFunctionGridElem.hh"
 
 namespace CoupledField{
