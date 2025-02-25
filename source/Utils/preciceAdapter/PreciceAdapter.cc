@@ -197,6 +197,7 @@ namespace CoupledField
                 runtimeReadResults_.push_back(std::make_unique<ElementResult>(config));
                 runtimeReadResults_.back()->allocateData(cfsElemNumsVec_.size());
             } else {
+                EXCEPTION("PreciceAdapter: reading nodal values is not tested!");
                 runtimeReadResults_.push_back(std::make_unique<NodeResult>(config));
                 runtimeReadResults_.back()->allocateData(cfsNodeNumsVec_.size());
             }
@@ -507,35 +508,6 @@ namespace CoupledField
    }
 
 
-   list = gridCFS->GetEntityList(EntityList::ListType::NODE_LIST, gridCFS->GetRegionName(regions[0]));
-   if(list){
-        // For each runtime quantity that is node-based
-        for(auto &result : runtimeReadResults_) {
-                // Create a new shallow result object.
-                shared_ptr<BaseResult> sol(new Result<Double>());
-                sol->SetEntityList(list);
-                
-                // Create a new ResultInfo to describe this element result.
-                shared_ptr<ResultInfo> ri(new ResultInfo());
-                ri->resultName = result->getConfig().cfsname;
-                ri->resultType = result->getConfig().solutiontype;
-                ri->definedOn  = ResultInfo::NODE;
-                // If the quantity has dimension 1 we use SCALAR; otherwise, we use VECTOR.
-                ri->entryType  = (result->getConfig().quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
-                ri->dofNames = "";
-                sol->SetResultInfo(ri);
-                
-                // Prepare additional parameters for registration.
-                StdVector<std::string> outDest;
-                outDest.Push_back("");
-                
-                // Register the result with the result handler.
-                // The parameters here (0,0,1,1,outDest,"",true,false) mimic the style in GridCFS::CreateGridInformation.
-                resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
-                                        domain_->GetSingleDriver()->GetNumSteps(),
-                                        outDest, "", true, false);
-        }
-   }
     #endif
     }
 

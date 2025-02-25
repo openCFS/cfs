@@ -89,8 +89,8 @@ void CoefFunctionGridElemDefaultPrecice<DATA_TYPE>::GetVector(Vector<DATA_TYPE>&
   }
 
   // handle this with the preciceAdapter_
-  std::cout<<"handle this with the preciceAdapter_"<<std::endl;
-  //this->GetElemSolution( CoefMat, sourceElem->elemNum);
+  elemSol = preciceAdapter_->GetElemResult(this->solType_, sourceElem->elemNum);
+  CoefMat[0] = elemSol[0];
 }
 
 template<typename DATA_TYPE>
