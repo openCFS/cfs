@@ -451,10 +451,6 @@ namespace CoupledField
             }
         }
 
-        double cfs_dt = dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT();
-        double precice_dt = participant_->getMaxTimeStepSize();
-        double dt = (cfs_dt <= precice_dt) ? cfs_dt : precice_dt;
-        participant_->advance(dt);
     }
 
 

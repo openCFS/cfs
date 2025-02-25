@@ -54,7 +54,8 @@ namespace CoupledField
         virtual bool IsCouplingOngoing() = 0;
         virtual bool RequiresWritingCheckpoint() = 0;
         virtual bool RequiresReadingCheckpoint() = 0;
-
+        virtual Double GetMaxTimeStepSize() = 0;
+        virtual void Advance(Double dt) = 0;
 
 
         virtual Vector<Double> GetElemResult(SolutionType solType, int elemNum) = 0;
