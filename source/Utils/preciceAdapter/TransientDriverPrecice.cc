@@ -80,24 +80,18 @@ namespace CoupledField {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
 
-    if(writeRestart_ || writeAllSteps_ || isPartOfSequence_ )
-      simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
+    simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
     
-    // Check for restart
-    ReadRestart();
-    
-    // correct numstep due to restart
-    numstep_ = numstep_ - restartStep_;
-    
-    UInt startStep = restartStep_ + 1;
-    endStep_ = numstep_ + restartStep_;
+    actTimeStep_ = 1;
+    UInt startStep = actTimeStep_;
+    endStep_ = numstep_ ;
     actTime_  = firstdt_ * startStep + initialTime_;
-    Double  dt = firstdt_;
-    Double timeStepPercent = (double)numstep_/10;
-    Double percentCounter = timeStepPercent;
+    Double  cfs_dt = firstdt_;
   
-    // init precice coupling adapter
-    //preciceAdapter_->initialize(domain_);
+    UInt checkpointStep = 0;
+    Double checkpointTime = 0.0;
+
+    // init precice coupling adapter...already done in SinglePDE.cc domain_->InitPreciceAdapter(this)
     // when using precice, we need direct access to the solvestep
     preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
 
@@ -107,22 +101,22 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
     
     //just initialize some variables
-    ptPDE_->GetSolveStep()->InitTimeStepping();
-    
-    // Ensure, that at least one step has to be computed, otherwise leave
-    if( numstep_ == 0 ) {
-     return;
-    }
-    
+    ptPDE_->GetSolveStep()->InitTimeStepping();    
     resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
     
 
+    // following the description of https://precice.org/couple-your-code-implicit-coupling.html
+    // but we do not explicitely save the state because we store all steps and overwrite
+    // actTimeStep_ is zero at this point (we do not consider restart when using precice ... currently. But it 
+    // is not a big deal, just handling the step values correctly, the functionality is there)
+    while(preciceAdapter_->IsCouplingOngoing()){
 
-    // Outer loop over all timesteps
-    UInt count = 0;
-    for (actTimeStep_ = startStep; 
-         actTimeStep_ <= endStep_; 
-         actTimeStep_ += 1) {
+      if(preciceAdapter_->RequiresWritingCheckpoint()){
+        LOG_DBG(trans_driverprecice) << "checkpointing timestep " << actTimeStep_;
+        checkpointStep = actTimeStep_;
+        checkpointTime = actTime_;
+      }
+
 
       LOG_DBG(trans_driverprecice) << "loop over timestep " << actTimeStep_;
       
@@ -131,38 +125,17 @@ namespace CoupledField {
       if( actTimeStep_ == startStep+1) {
         timer_->Start();
       }
-      
-      if((actTimeStep_ == 8) && (count == 0)){
-        count=1;
-        UInt checkstep = 2;
-        this->CheckpointingToTimestep(checkstep);
-        //actTimeStep_ = checkstep;
-      
-        // UInt startStep = checkstep + 1;
-        // endStep_ = numstep_;
-        // actTime_  = firstdt_ * startStep + initialTime_;
-        // Double  dt = firstdt_;
-        // Double timeStepPercent = (double)numstep_/10;
-        // Double percentCounter = timeStepPercent;
-      
-        // init precice coupling adapter
-        //preciceAdapter_->initialize(domain_);
-        // when using precice, we need direct access to the solvestep
-        preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
 
-        //ptPDE_->WriteGeneralPDEdefines();
-        ptPDE_->GetSolveStep()->SetStartStep( startStep );
-        ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
-        
-        //just initialize some variables
-        ptPDE_->GetSolveStep()->InitTimeStepping();
-   
 
-      }
+      cfs_dt = this->GetDeltaT();
+      double precice_dt =  preciceAdapter_->GetMaxTimeStepSize();
+      double dt = (cfs_dt <= precice_dt) ? cfs_dt : precice_dt;
 
-      // Set current value of timestep and time step size in the mathParser
+
+
+    // Set current value of timestep and time step size in the mathParser
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", actTime_ );
-      mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", dt );    
+      mathParser_->SetValue( MathParser::GLOB_HANDLER, "dt", cfs_dt );    
       mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", actTimeStep_ );    
       
 
@@ -195,9 +168,37 @@ namespace CoupledField {
         break;
       }
 
-      // increase current time step
-      actTime_+=dt;
+
+      preciceAdapter_->Advance(dt);
+
+
+      if(preciceAdapter_->RequiresReadingCheckpoint()){ // iteration did not converge
+        // ==========================================
+        // back rollback to checkpoint state
+        this->CheckpointingToTimestep(checkpointStep);
+        actTimeStep_ = checkpointStep;
+        actTime_ = checkpointTime;
+
+        // when using precice, we need direct access to the solvestep
+        preciceAdapter_->RegisterSolveStep(ptPDE_->GetSolveStep());
+
+        //ptPDE_->WriteGeneralPDEdefines();
+        ptPDE_->GetSolveStep()->SetStartStep( checkpointStep );
+        ptPDE_->GetSolveStep()->SetNumTimeSteps(numstep_);
+        
+        //just initialize some variables
+        ptPDE_->GetSolveStep()->InitTimeStepping();
+        // ==========================================
+      }
+      else{ // iteration converged
+        actTimeStep_ += 1;
+        actTime_ += cfs_dt;
+      }
+
+
     }
+
+    // precice finalize() is handled in top CFS.cc
 
     // notify resultHandler about finishing of current sequence step
     resHandler->FinishMultiSequenceStep();
