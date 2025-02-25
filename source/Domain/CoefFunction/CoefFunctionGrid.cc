@@ -89,6 +89,7 @@
 //element based version
 #include "CoefFunctionGridElemDefault.hh"
 #include "Utils/preciceAdapter/CoefFunctionGridElemDefaultPrecice.hh"
+#include "Utils/preciceAdapter/CoefFunctionGridNodalDefaultPrecice.hh"
 //#include "CoefFunctionGridHigherDefault.hh"
 //#include "CoefFunctionGridHigherInterp.hh"
 #include "Driver/BaseDriver.hh"
@@ -138,8 +139,15 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                 configNode->Get("defaultGrid"), tmpNode, regions,type));
         }
         else {
-          ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
+          if(!ptDomain->GetPreciceAdapter())
+          {
+            ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
                       configNode->Get("defaultGrid"), tmpNode, regions,type));
+          }else{
+            // precice case
+            ret.reset(new CoefFunctionGridNodalDefaultPrecice<Double>(ptDomain,
+                      configNode->Get("defaultGrid"), tmpNode, regions,type));
+          }
         }
       }
 
