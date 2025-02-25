@@ -40,6 +40,7 @@ namespace CoupledField
                 void RegisterTimeStepReadData() override;
                 void finalize() override;
                 Vector<Double> GetElemResult(SolutionType solType, int elemNum) override;
+                Vector<Double> GetNodeResult(SolutionType solType, int nodeNum) override;
 
                 enum Exchangetype {READ=0, WRITE=1};
 

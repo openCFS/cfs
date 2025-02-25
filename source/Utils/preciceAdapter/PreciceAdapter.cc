@@ -475,37 +475,67 @@ namespace CoupledField
     
 
    shared_ptr<EntityList> list = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, gridCFS->GetRegionName(regions[0]));
-   if(!list)
-       EXCEPTION("PreciceAdapter::RegisterElementResults: Could not create element entity list.");
+   if(list){
+        // For each runtime quantity that is element-based (i.e. does not have nodal results)
+        for(auto &result : runtimeReadResults_) {
+            // If nodal results are empty but we have element results, then we treat it as an element result.
+                // Create a new shallow result object.
+                shared_ptr<BaseResult> sol(new Result<Double>());
+                sol->SetEntityList(list);
+                
+                // Create a new ResultInfo to describe this element result.
+                shared_ptr<ResultInfo> ri(new ResultInfo());
+                ri->resultName = result->getConfig().cfsname;
+                ri->resultType = result->getConfig().solutiontype;
+                ri->definedOn  = ResultInfo::ELEMENT;
+                // If the quantity has dimension 1 we use SCALAR; otherwise, we use VECTOR.
+                ri->entryType  = (result->getConfig().quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
+                ri->dofNames = "";
+                sol->SetResultInfo(ri);
+                
+                // Prepare additional parameters for registration.
+                StdVector<std::string> outDest;
+                outDest.Push_back("");
+                
+                // Register the result with the result handler.
+                // The parameters here (0,0,1,1,outDest,"",true,false) mimic the style in GridCFS::CreateGridInformation.
+                resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
+                                        domain_->GetSingleDriver()->GetNumSteps(),
+                                        outDest, "", true, false);
+            
+        }
+   }
 
-    // For each runtime quantity that is element-based (i.e. does not have nodal results)
-    for(auto &result : runtimeReadResults_) {
-        // If nodal results are empty but we have element results, then we treat it as an element result.
-            // Create a new shallow result object.
-            shared_ptr<BaseResult> sol(new Result<Double>());
-            sol->SetEntityList(list);
-            
-            // Create a new ResultInfo to describe this element result.
-            shared_ptr<ResultInfo> ri(new ResultInfo());
-            ri->resultName = result->getConfig().cfsname;
-            ri->resultType = result->getConfig().solutiontype;
-            ri->definedOn  = ResultInfo::ELEMENT;
-            // If the quantity has dimension 1 we use SCALAR; otherwise, we use VECTOR.
-            ri->entryType  = (result->getConfig().quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
-            ri->dofNames = "";
-            sol->SetResultInfo(ri);
-            
-            // Prepare additional parameters for registration.
-            StdVector<std::string> outDest;
-            outDest.Push_back("");
-            
-            // Register the result with the result handler.
-            // The parameters here (0,0,1,1,outDest,"",true,false) mimic the style in GridCFS::CreateGridInformation.
-            resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
-                                       domain_->GetSingleDriver()->GetNumSteps(),
-                                       outDest, "", true, false);
-        
-    }
+
+   list = gridCFS->GetEntityList(EntityList::ListType::NODE_LIST, gridCFS->GetRegionName(regions[0]));
+   if(list){
+        // For each runtime quantity that is node-based
+        for(auto &result : runtimeReadResults_) {
+                // Create a new shallow result object.
+                shared_ptr<BaseResult> sol(new Result<Double>());
+                sol->SetEntityList(list);
+                
+                // Create a new ResultInfo to describe this element result.
+                shared_ptr<ResultInfo> ri(new ResultInfo());
+                ri->resultName = result->getConfig().cfsname;
+                ri->resultType = result->getConfig().solutiontype;
+                ri->definedOn  = ResultInfo::NODE;
+                // If the quantity has dimension 1 we use SCALAR; otherwise, we use VECTOR.
+                ri->entryType  = (result->getConfig().quantitydim == 1) ? ResultInfo::SCALAR : ResultInfo::VECTOR;
+                ri->dofNames = "";
+                sol->SetResultInfo(ri);
+                
+                // Prepare additional parameters for registration.
+                StdVector<std::string> outDest;
+                outDest.Push_back("");
+                
+                // Register the result with the result handler.
+                // The parameters here (0,0,1,1,outDest,"",true,false) mimic the style in GridCFS::CreateGridInformation.
+                resHandler->RegisterResult(sol, /*functor*/ nullptr, sequenceStep_, 0, 1,
+                                        domain_->GetSingleDriver()->GetNumSteps(),
+                                        outDest, "", true, false);
+        }
+   }
     #endif
     }
 
@@ -526,9 +556,26 @@ namespace CoupledField
             }
         }
         EXCEPTION("PreciceAdapter: no result with solution type " << solType << " found");
-
     }
 
+    Vector<Double> PreciceAdapter::GetNodeResult(SolutionType solType, int nodeNum)
+    {
+        for (const auto &result : runtimeReadResults_) {
+            if (result->getConfig().solutiontype == solType) {
+                if (result->getResultType() == ResultType::NODE) {
+                    NodeResult* er = dynamic_cast<NodeResult*>(result.get());
+                    if (er) {
+                        const auto& mapRef = er->getNodeResultMap();
+                        auto it = mapRef.find(nodeNum);
+                        if (it != mapRef.end()) {
+                            return it->second;
+                        }
+                    }
+                }
+            }
+        }
+        EXCEPTION("PreciceAdapter: no result with solution type " << solType << " found");
+    }
 
     void PreciceAdapter::finalize()
     {

@@ -39,7 +39,10 @@ namespace CoupledField
             // No-op
             return Vector<Double>();
         }
-        
+        Vector<Double> GetNodeResult(SolutionType solType, int nodeNum) override{
+            // No-op
+            return Vector<Double>();
+        }
 
 
         virtual bool IsCouplingOngoing() override {
