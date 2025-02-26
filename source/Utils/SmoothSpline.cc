@@ -31,7 +31,7 @@ namespace CoupledField
     nuMax_     = 1.0;
     if ( matType_ == MAG_PERMEABILITY_SCALAR ) {
       //define maximal reluctivity
-      nuMax_ = 7.9577e5;
+      nuMax_ = 7.9577e5;      
     }
   }
 
@@ -643,8 +643,8 @@ namespace CoupledField
     out_B.open(std::string(nlFileName_+std::string(".approxBH.dat")).c_str());
     out_B << "#H      B       nu       dnu/dB " << std::endl;
 
-    UInt numPoints = 500;
-    double maxH = xEnd_* 2.0; //extend the range of provided max. H-value by factor of 2
+    UInt numPoints = 100000;
+    double maxH = xEnd_* 1.0; //extend the range of provided max. H-value by factor of 2
     double dH = maxH / ( (double)numPoints );
     double actH, actB;
 
