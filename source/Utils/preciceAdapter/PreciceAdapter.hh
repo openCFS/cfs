@@ -43,12 +43,13 @@ namespace CoupledField
                 Vector<Double> GetNodeResult(SolutionType solType, int nodeNum) override;
 
                 enum Exchangetype {READ=0, WRITE=1};
-
+#ifdef USE_PRECICE
                 virtual bool IsCouplingOngoing() override{ return this->participant_->isCouplingOngoing();}
                 virtual bool RequiresWritingCheckpoint() override{ return this->participant_->requiresWritingCheckpoint();}
                 virtual bool RequiresReadingCheckpoint()  override{ return this->participant_->requiresReadingCheckpoint();}
                 virtual Double GetMaxTimeStepSize() override{ return this->participant_->getMaxTimeStepSize();}
                 virtual void Advance(Double dt) override{this->participant_->advance(dt);}
+#endif
 
         private:
 
