@@ -774,5 +774,100 @@ namespace CoupledField
     } // loop: coils
   }
 
+  void MagBasePDE::GenerateLorentzForceResults(CoupledField::StdVector<std::string> &vecComponents, boost::shared_ptr<CoupledField::CoefFunctionMulti> &tcdCoef,
+    CoupledField::PtrCoefFct &bFunc, CoupledField::Global::ComplexPart &part, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) {
+
+    if (analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC)
+    {
+      CoefXpr::OpType op_cr = isaxi_ ? CoefXpr::OP_CROSS_AXI : CoefXpr::OP_CROSS;
+
+      // === LORENTZ FORCE DENSITY HARMONIC CONSTANT ===
+      shared_ptr<ResultInfo> lfd_static(new ResultInfo);
+      lfd_static->resultType = MAG_FORCE_LORENTZ_DENSITY_STATIC;
+      lfd_static->dofNames = vecComponents;
+      lfd_static->unit = "N/m^3";
+      lfd_static->definedOn = ResultInfo::ELEMENT;
+      lfd_static->entryType = ResultInfo::VECTOR;
+
+      // assemble coefficient function F_L = 0.5 * (Re(J) X Re(B) + Im(J) X Im(B))  
+      PtrCoefFct tcdRe = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprUnaryOp( mp_, tcdCoef, CoefXpr::OP_RE ) );
+      PtrCoefFct bFuncRe = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprUnaryOp( mp_, bFunc, CoefXpr::OP_RE ) );
+      PtrCoefFct tcdIm = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprUnaryOp( mp_, tcdCoef, CoefXpr::OP_IM ) );
+      PtrCoefFct bFuncIm = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprUnaryOp( mp_, bFunc, CoefXpr::OP_IM ) );
+      
+      PtrCoefFct realCrossProd = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, tcdRe, bFuncRe, op_cr ) );
+      PtrCoefFct imagCrossProd = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, tcdIm, bFuncIm, op_cr ) );
+      
+      PtrCoefFct sumCrossProds = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, realCrossProd, imagCrossProd, CoefXpr::OP_ADD ) );
+      PtrCoefFct lfdFunc_static = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, "0.5", sumCrossProds, CoefXpr::OP_MULT ) ); 
+      
+      DefineFieldResult( lfdFunc_static, lfd_static);
+
+      // === LORENTZ FORCE DENSITY HARMONIC TIME ===
+      shared_ptr<ResultInfo> lfd_harmonic(new ResultInfo);
+      lfd_harmonic->resultType = MAG_FORCE_LORENTZ_DENSITY_HARMONIC;
+      lfd_harmonic->dofNames = vecComponents;
+      lfd_harmonic->unit = "N/m^3";
+      lfd_harmonic->definedOn = ResultInfo::ELEMENT;
+      lfd_harmonic->entryType = ResultInfo::VECTOR;
+
+      // assemble coefficient function F_L = 0.5 * (Re(J) X Re(B) - Im(J) X Im(B)) +
+      //                                     0.5j * (Im(J) X Re(B) + Re(J) X Im(B))
+      
+      PtrCoefFct ImJReBCrossProd = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, tcdIm, bFuncRe, op_cr ) );
+      PtrCoefFct ReJImBCrossProd = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, tcdRe, bFuncIm, op_cr ) );
+      
+      // 0.5 * (Re(J) X Re(B) - Im(J) X Im(B))
+      PtrCoefFct subReAmp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp ( mp_, realCrossProd, imagCrossProd, CoefXpr::OP_SUB ) );
+      subReAmp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, "0.5", subReAmp, CoefXpr::OP_MULT ));
+      
+      // 0.5j * (Im(J) X Re(B) + Re(J) X Im(B))
+      PtrCoefFct halfJ = CoefFunction::Generate( mp_, Global::COMPLEX, "0", "0.5");
+      PtrCoefFct sumImAmp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, ImJReBCrossProd, ReJImBCrossProd, CoefXpr::OP_ADD ) );
+      sumImAmp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, halfJ, sumImAmp, CoefXpr::OP_MULT ));
+
+      PtrCoefFct lfdFunc_harmonic = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp( mp_, subReAmp, sumImAmp, CoefXpr::OP_ADD));
+      
+      DefineFieldResult( lfdFunc_harmonic, lfd_harmonic);
+    }
+    else {
+      // === LORENTZ FORCE DENSITY - STATIC AND TRANSIENT ===
+      shared_ptr<ResultInfo> lfd(new ResultInfo);
+      lfd->resultType = MAG_FORCE_LORENTZ_DENSITY;
+      lfd->dofNames = vecComponents;
+      lfd->unit = "N/m^3";
+      lfd->definedOn = ResultInfo::ELEMENT;
+      lfd->entryType = ResultInfo::VECTOR;
+      availResults_.insert( lfd );
+
+      // assemble coefficient function F_L = J X B
+
+      // switch type of cross-product depending on dimensionality
+      CoefXpr::OpType op = isaxi_ ? CoefXpr::OP_CROSS_AXI : CoefXpr::OP_CROSS;
+      PtrCoefFct lfdFunc = CoefFunction::Generate( mp_, part,
+              CoefXprBinOp(mp_,  tcdCoef, bFunc, op) );
+      DefineFieldResult( lfdFunc, lfd);
+    
+      // === LORENTZ FORCE (TOTAL) ===
+      shared_ptr<ResultInfo> lf(new ResultInfo);
+      lf->resultType = MAG_FORCE_LORENTZ;
+      lf->dofNames = vecComponents;
+      lf->unit = "N";
+      lf->definedOn = ResultInfo::REGION;
+      lf->entryType = ResultInfo::VECTOR;
+      availResults_.insert( lf );
+
+      // build result functor for integration
+      shared_ptr<ResultFunctor> lfFunc;
+      if( isComplex_ ) {
+        lfFunc.reset(new ResultFunctorIntegrate<Complex>(lfdFunc, feFct, lf ) );
+      } else {
+        lfFunc.reset(new ResultFunctorIntegrate<Double>(lfdFunc, feFct, lf ) );
+      }
+      resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
+    }
+    
+  }
+
 } // end of namespace
 

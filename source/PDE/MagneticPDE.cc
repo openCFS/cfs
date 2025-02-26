@@ -1563,41 +1563,7 @@ namespace CoupledField {
             isComplex_));
     DefineFieldResult( tcdCoef, tcd );
 
-    // === LORENTZ FORCE DENSITY ===
-    shared_ptr<ResultInfo> lfd(new ResultInfo);
-    lfd->resultType = MAG_FORCE_LORENTZ_DENSITY;
-    lfd->dofNames = vecComponents;
-    lfd->unit = "N/m^3";
-    lfd->definedOn = ResultInfo::ELEMENT;
-    lfd->entryType = ResultInfo::VECTOR;
-    availResults_.insert( lfd );
-
-    // assemble coefficient function F_L = J X B
-
-    // switch type of cross-product depending on dimensionality
-    CoefXpr::OpType op = isaxi_ ? CoefXpr::OP_CROSS_AXI : CoefXpr::OP_CROSS;
-    PtrCoefFct lfdFunc = CoefFunction::Generate( mp_, part,
-            CoefXprBinOp(mp_,  tcdCoef, bFunc, op) );
-    DefineFieldResult( lfdFunc, lfd);
-
-    // === LORENTZ FORCE (TOTAL) ===
-    shared_ptr<ResultInfo> lf(new ResultInfo);
-    lf->resultType = MAG_FORCE_LORENTZ;
-    lf->dofNames = vecComponents;
-    lf->unit = "N";
-    lf->definedOn = ResultInfo::REGION;
-    lf->entryType = ResultInfo::VECTOR;
-    availResults_.insert( lf );
-
-    // build result functor for integration
-    shared_ptr<ResultFunctor> lfFunc;
-    if( isComplex_ ) {
-      lfFunc.reset(new ResultFunctorIntegrate<Complex>(lfdFunc, feFct, lf ) );
-    } else {
-      lfFunc.reset(new ResultFunctorIntegrate<Double>(lfdFunc, feFct, lf ) );
-    }
-    resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
-
+    GenerateLorentzForceResults(vecComponents, tcdCoef, bFunc, part, feFct);
 
  	// === MAXWELL FORCE DENSITY ===
 	shared_ptr<ResultInfo> mfd(new ResultInfo);

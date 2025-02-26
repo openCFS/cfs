@@ -557,6 +557,8 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       DefineMagFluxDensity();
     }
 
+    PtrCoefFct bFunc = this->GetCoefFct(MAG_FLUX_DENSITY); // we need it for Lorenz force and Maxwell force
+
     // === MAGNETIC ENERGY ===
     shared_ptr<ResultInfo> energy(new ResultInfo);
     energy->resultType = MAG_ENERGY;
@@ -603,6 +605,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       shared_ptr<CoefFunctionMulti> eddyFunc( new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1, isComplex_));
       DefineFieldResult( eddyFunc, eddy );
 
+      GenerateLorentzForceResults(vecComponents, eddyFunc, bFunc, part, feFct);
 
       // === EDDY CURRENT (SURFACE RESULT) ===
       shared_ptr<ResultInfo> ec(new ResultInfo());

@@ -374,6 +374,8 @@
       <xsd:enumeration value="magCoilCurrentDensity"/>
       <xsd:enumeration value="magTotalCurrentDensity"/>
       <xsd:enumeration value="magForceLorentzDensity"/>
+      <xsd:enumeration value="magForceLorentzDensityStatic"/>
+      <xsd:enumeration value="magForceLorentzDensityHarmonic"/>
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magElemReluctivity"/>

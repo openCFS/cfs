@@ -176,6 +176,9 @@ namespace CoupledField
 
     inline bool DoCoilOptimization() { return coilOptimization_; }
 
+    void GenerateLorentzForceResults(CoupledField::StdVector<std::string> &vecComponents, boost::shared_ptr<CoupledField::CoefFunctionMulti> &tcdCoef,
+      CoupledField::PtrCoefFct &bFunc, CoupledField::Global::ComplexPart &part, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) ;
+
   };
 } // end of namespace
 #endif
