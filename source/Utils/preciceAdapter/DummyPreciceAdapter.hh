@@ -55,8 +55,13 @@ namespace CoupledField
             return false;
         }
 
-        // Define a non-inline dummy function to force an object file to be generated.
-        // void DummyPreciceAdapter_ForceBuild();
+
+        virtual Double GetMaxTimeStepSize() override {
+            return 0.0;
+        }
+        virtual void Advance(Double dt) override {
+            return;
+        }
     };
 }
 
