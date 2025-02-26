@@ -1,7 +1,8 @@
 #include "ElementResult.hh"
-
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
+DEFINE_LOG(preciceAdapterElemRes, "preciceAdapterElemRes")
 
 ElementResult::ElementResult(const ResultConfig& config)
     : ResultBase(config)
@@ -17,6 +18,7 @@ void ElementResult::readData(const std::vector<int>& elemIndices, double deltaT)
             result[k] = flatData_[i * config_.quantitydim + k];
         }
         elementResultMap_[elemIndices[i]] = result;
+        LOG_DBG(preciceAdapterElemRes) << "Read result "<< config_.cfsname<< " for element "<< elemIndices[i]<< ": " << result.ToString();
     }
 }
 
