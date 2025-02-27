@@ -57,10 +57,18 @@ namespace CoupledField
 
 
         virtual Double GetMaxTimeStepSize() override {
-            return 0.0;
+            //return 0;
         }
         virtual void Advance(Double dt) override {
             return;
+        }
+
+        virtual bool IsPreciceDummy() override {
+            return true;
+        }
+
+        virtual UInt GetSequenceStep() override {
+            return 0;
         }
     };
 }

@@ -88,6 +88,7 @@
 #include "CoefFunctionGridNodalSource.hh"
 //element based version
 #include "CoefFunctionGridElemDefault.hh"
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
 #include "Utils/preciceAdapter/CoefFunctionGridElemDefaultPrecice.hh"
 // #include "Utils/preciceAdapter/CoefFunctionGridNodalDefaultPrecice.hh"
 //#include "CoefFunctionGridHigherDefault.hh"
@@ -139,7 +140,7 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                 configNode->Get("defaultGrid"), tmpNode, regions,type));
         }
         else {
-          if(!ptDomain->GetPreciceAdapter())
+          if(ptDomain->GetPreciceAdapter()->IsPreciceDummy())
           {
             ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
                       configNode->Get("defaultGrid"), tmpNode, regions,type));
@@ -183,7 +184,7 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                 configNode->Get("defaultGrid"), tmpNode, regions,type));
         }
         else {
-          if(!ptDomain->GetPreciceAdapter())
+          if(ptDomain->GetPreciceAdapter()->IsPreciceDummy())
           {
             ret.reset(new CoefFunctionGridElemDefault<Double>(ptDomain,
                       configNode->Get("defaultGrid"), tmpNode, regions,type));

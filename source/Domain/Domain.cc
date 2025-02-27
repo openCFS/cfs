@@ -120,7 +120,7 @@ Domain::Domain(
   multiSequenceDriver_ = NULL;
   param_ = rootNode;
   info_ = infoNode;
-  
+  preciceAdapter_ = NULL;
   ptMatHandler_ = ptMat;
   ptMatHandler_->SetDomain( this );
   

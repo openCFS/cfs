@@ -61,6 +61,10 @@ namespace CoupledField
         virtual Vector<Double> GetElemResult(SolutionType solType, int elemNum) = 0;
         virtual Vector<Double> GetNodeResult(SolutionType solType, int nodeNum) = 0;
 
+        virtual bool IsPreciceDummy() = 0;
+        virtual UInt GetSequenceStep() = 0;
+
+
         /**
          * Finalizes the PreCICE participant.
          *

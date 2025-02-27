@@ -51,6 +51,14 @@ namespace CoupledField
                 virtual void Advance(Double dt) override{this->participant_->advance(dt);}
 #endif
 
+                virtual bool IsPreciceDummy() override {
+                        return false;
+                }
+
+                virtual UInt GetSequenceStep() override{
+                        return this->sequenceStep_;
+                }
+                
         private:
 
         // --- Helper functions for initialize() ---

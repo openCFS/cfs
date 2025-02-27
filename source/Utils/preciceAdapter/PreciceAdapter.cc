@@ -9,7 +9,7 @@
 
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
-#include "Driver/TransientDriver.hh"
+#include "TransientDriverPrecice.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
@@ -151,7 +151,7 @@ namespace CoupledField
         }
 
         // add a check that we dont have a multidriver and that it's transient
-        if( !dynamic_cast<TransientDriver*>(domain_->GetSingleDriver()) )
+        if( !dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver()) )
         {
             EXCEPTION("PreciceAdapter: this only works when using a transient simulation")
         }
@@ -298,7 +298,14 @@ namespace CoupledField
     
     // maybe we are not yet in the correct sequence step, therefore,
     // continue
-    if( !(dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetActSequenceStep() == sequenceStep_) ){ return;}
+    TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
+    if(!tp){
+        return;
+    }else{
+        if(!(tp->GetActSequenceStep() == sequenceStep_)){
+            return;
+        }
+    }
 
     // Step 4: Create the PreCICE participant.
     if(!isInit_){
@@ -333,7 +340,14 @@ namespace CoupledField
 
     void PreciceAdapter::RegisterTimeStepReadData(){
         // could happen if we are not in the right sequencestep
-        if( !(dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetActSequenceStep() == sequenceStep_) ) return;
+        TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
+        if(!tp){
+            return;
+        }else{
+            if(!(tp->GetActSequenceStep() == sequenceStep_)){
+                return;
+            }
+        }
 
        
         //TODO handle nodal and element cases. Maybe handle it based on the particular result
@@ -351,21 +365,21 @@ namespace CoupledField
                 participant_->readData(result->getConfig().meshName,
                                         result->getConfig().precicename,
                                         preciceElemNumsVec_,
-                                        dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT(),
+                                        dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver())->GetDeltaT(),
                                         const_cast<std::vector<double>&>(result->getFlatData()));
                 // Let the result object convert the flat data into its internal map.
                 result->readData(cfsElemNumsVec_,
-                                dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT());
+                                dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver())->GetDeltaT());
             }
             else { // Node-based result
                 result->allocateData(cfsNodeNumsVec_.size());
                 participant_->readData(result->getConfig().meshName,
                                         result->getConfig().precicename,
                                         preciceNodeNumsVec_,
-                                        dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT(),
+                                        dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver())->GetDeltaT(),
                                         const_cast<std::vector<double>&>(result->getFlatData()));
                 result->readData(cfsNodeNumsVec_,
-                                dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetDeltaT());
+                                dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver())->GetDeltaT());
             }
         }
 
@@ -418,8 +432,14 @@ namespace CoupledField
 
 
     void PreciceAdapter::RegisterTimeStepWriteData(){
-        if (!(dynamic_cast<TransientDriver*>(domain_->GetSingleDriver())->GetActSequenceStep() == sequenceStep_))
+        TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
+        if(!tp){
             return;
+        }else{
+            if(!(tp->GetActSequenceStep() == sequenceStep_)){
+                return;
+            }
+        }
 
         // Get the result contexts from the OpenCFS result handler.
         ResultHandler* resHandler = domain_->GetResultHandler();
