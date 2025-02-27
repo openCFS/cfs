@@ -10,6 +10,8 @@
 #include "MultiHarmonicDriver.hh"
 #include "EigenFrequencyDriver.hh"
 #include "InverseSourceDriver.hh"
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
+#include "Utils/preciceAdapter/TransientDriverPrecice.hh"
 #include "BucklingDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/SinglePDE.hh"
@@ -228,10 +230,16 @@ DEFINE_LOG(msDriver, "msDriver")
         actDriver_ = new StaticDriver(sequenceStep, true, simState_, domain_, seqNode, info);
       }
       else if (analysisPerStep_[sequenceStep] == BasePDE::TRANSIENT) {
-        TransientDriver * tD = new TransientDriver( sequenceStep,true, simState_, domain_, seqNode, info  );
-        // pass accumulated time
-        tD->SetAccumulatedTime( accumulatedTime_ );
-        actDriver_ = tD;
+        if((!domain_->GetPreciceAdapter()->IsPreciceDummy()) && (domain_->GetPreciceAdapter()->GetSequenceStep() == sequenceStep)){
+          TransientDriverPrecice * tD = new TransientDriverPrecice( sequenceStep, false, simState_, domain_, seqNode, info );
+          actDriver_ = tD;
+        }else{
+          TransientDriver * tD = new TransientDriver( sequenceStep,true, simState_, domain_, seqNode, info  );
+          // pass accumulated time
+          tD->SetAccumulatedTime( accumulatedTime_ );
+          actDriver_ = tD;
+        }
+        
       }
       else if (analysisPerStep_[sequenceStep] == BasePDE::HARMONIC) {
         actDriver_ = new HarmonicDriver( sequenceStep, true, simState_, domain_, seqNode, info  );

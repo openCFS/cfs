@@ -6,6 +6,7 @@
 #include <string>
 
 #include "Utils/tools.hh"
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
 #include "Utils/preciceAdapter/TransientDriverPrecice.hh"
 #include "Utils/StdVector.hh"
 #include "General/Exception.hh"
@@ -75,7 +76,7 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
         break;
 
       case BasePDE::TRANSIENT:
-        if(myDom->GetPreciceAdapter()){
+        if(!myDom->GetPreciceAdapter()->IsPreciceDummy()){
           ptdriver = new TransientDriverPrecice( seqStep, false, state, myDom, seqNode, info );
           break;
         }else{
