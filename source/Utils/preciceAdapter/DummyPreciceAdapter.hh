@@ -70,6 +70,10 @@ namespace CoupledField
         virtual UInt GetSequenceStep() override {
             return 0;
         }
+
+        virtual void UpdateDomain(Domain* domain) override{
+            return;
+        }
     };
 }
 

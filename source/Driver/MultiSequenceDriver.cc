@@ -83,6 +83,9 @@ DEFINE_LOG(msDriver, "msDriver")
       // remember current sequence step
       sequenceStep_ = iStep;
       
+      // only update in the multisequence case
+      domain_->GetPreciceAdapter()->UpdateDomain(domain_);
+      
       // Solve Problem
       actDriver_->SolveProblem();
 
@@ -231,7 +234,7 @@ DEFINE_LOG(msDriver, "msDriver")
       }
       else if (analysisPerStep_[sequenceStep] == BasePDE::TRANSIENT) {
         if((!domain_->GetPreciceAdapter()->IsPreciceDummy()) && (domain_->GetPreciceAdapter()->GetSequenceStep() == sequenceStep)){
-          TransientDriverPrecice * tD = new TransientDriverPrecice( sequenceStep, false, simState_, domain_, seqNode, info );
+          TransientDriverPrecice * tD = new TransientDriverPrecice( sequenceStep, true, simState_, domain_, seqNode, info );
           actDriver_ = tD;
         }else{
           TransientDriver * tD = new TransientDriver( sequenceStep,true, simState_, domain_, seqNode, info  );

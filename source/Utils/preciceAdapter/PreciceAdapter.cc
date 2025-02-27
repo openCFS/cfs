@@ -339,6 +339,10 @@ namespace CoupledField
 
 
     void PreciceAdapter::RegisterTimeStepReadData(){
+        if(!singlePDE_->IsInitialized()){
+            // initial state case
+            return;
+        }
         // could happen if we are not in the right sequencestep
         TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
         if(!tp){
