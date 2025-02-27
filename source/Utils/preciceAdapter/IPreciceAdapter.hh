@@ -64,6 +64,7 @@ namespace CoupledField
         virtual bool IsPreciceDummy() = 0;
         virtual UInt GetSequenceStep() = 0;
 
+        virtual void UpdateDomain(Domain* domain) = 0;
 
         /**
          * Finalizes the PreCICE participant.

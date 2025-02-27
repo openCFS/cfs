@@ -257,6 +257,7 @@ namespace CoupledField
     /** identify this pde for logging debug purpose */
     std::string ToString() const;
 
+    bool IsInitialized(){return this->isInitialized_;}
   protected:
 
     //! Constructor

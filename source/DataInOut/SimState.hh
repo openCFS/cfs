@@ -140,6 +140,8 @@ namespace CoupledField {
     //! Update internally to given time / frequency step
     void UpdateToStep( UInt sequenceStep, UInt stepNum );
    
+    UInt GetSimStateSequenceStep(){return this->sequenceStep_;}
+    
     //! Finalize state (delete registered fefunctions etc.)
     void Finalize();
     

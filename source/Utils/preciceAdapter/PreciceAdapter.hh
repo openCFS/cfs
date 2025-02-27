@@ -59,6 +59,7 @@ namespace CoupledField
                         return this->sequenceStep_;
                 }
                 
+                virtual void UpdateDomain(Domain* domain) override { this->domain_ = domain;}
         private:
 
         // --- Helper functions for initialize() ---
