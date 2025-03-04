@@ -27,7 +27,7 @@ namespace CoupledField {
       void Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim);
 
       Double ComputeMaterialParameter(Vector<Double> E, Integer ElemNum);
-      Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> E, Integer ElemNum);
+      Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> B, Integer ElemNum);
 
       // just for the computation of the residual, we do not store anything here
       Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum);

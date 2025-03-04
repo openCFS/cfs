@@ -37,18 +37,23 @@ namespace CoupledField
   {
     if (nonLin_)
     {
+      std::cout << "StepTransNonLin()\n";
       StepTransNonLin();
     }
     else
     {
+      std::cout << "StepTransLin()\n";
       StepTransLin();
     }
   }
 
   void SolveStepEB::StepTransNonLin() {
- 
+
+    std::cout << "StepTransNonLin before iterationCounter\n"; 
     mParser_->SetExpr(MathParser::GLOB_HANDLER,"iterationCounter");
+    std::cout << "StepTransNonLin mid iterationCounter\n";
     mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", 0);
+    std::cout << "StepTransNonLin after iterationCounter\n";
 
     bool performOneMoreStep;
     bool isNewton = false;

@@ -16,6 +16,7 @@
 #include "Materials/BaseMaterial.hh"
 #include "Materials/Models/Jiles.hh"
 #include "Materials/Models/EBHysteresis.hh"
+#include "Materials/Models/invEBHysteresis.hh"
 #include "Materials/Models/Model.hh"
 
 namespace CoupledField  {

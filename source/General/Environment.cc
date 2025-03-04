@@ -515,6 +515,13 @@ namespace CoupledField {
     MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB");
     MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_EB, "mag_jacobian_method_EB");
 
+    // Magnetic inverse EB Hysteresis Parameters
+    MaterialTypeEnum.Add(MAG_JS_INVEB, "mag_Js_invEB");
+    MaterialTypeEnum.Add(MAG_A_INVEB, "mag_A_invEB");
+    MaterialTypeEnum.Add(MAG_NUMS_INVEB, "mag_numS_invEB");
+    MaterialTypeEnum.Add(MAG_CHI_FACTOR_INVEB, "mag_chi_factor_invEB");
+    MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_INVEB, "mag_jacobian_method_invEB");
+
     // -- Mechanical --
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "Mechanic_Stiffness_Tensor" );
     MaterialTypeEnum.Add( MECH_KMODULUS, "Mechanic_Bulk_Modulus" );

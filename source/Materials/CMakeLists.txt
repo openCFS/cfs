@@ -14,6 +14,7 @@ SET(MATERIALS_SRCS
   TestMaterial.cc
   Models/Hysteresis.cc
   Models/EBHysteresis.cc
+  Models/invEBHysteresis.cc
   Models/Jiles.cc
   Models/Model.cc
   Models/PiezoMicroModelBK.cc

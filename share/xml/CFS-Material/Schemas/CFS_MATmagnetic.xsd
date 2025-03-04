@@ -87,6 +87,7 @@
           <xsd:choice>
             <xsd:element name="JilesAthertonModel" type="DT_JilesAthertonModel"/>
             <xsd:element name="EBHysteresisModel" type="DT_EBHysteresisModel"/>
+            <xsd:element name="invEBHysteresisModel" type="DT_invEBHysteresisModel"/>
           </xsd:choice>
         </xsd:complexType>
       </xsd:element>

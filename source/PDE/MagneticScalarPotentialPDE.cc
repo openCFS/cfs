@@ -107,8 +107,7 @@ namespace CoupledField
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       // create new entity list
-      shared_ptr<ElemList> actSDList(new ElemList(ptGrid_)); // changed newSDList to actSDList
-      /* actSDList = newSDList; */
+      shared_ptr<ElemList> actSDList(new ElemList(ptGrid_));
       actSDList->SetRegion(actRegion);
 
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region", "name", regionName.c_str());

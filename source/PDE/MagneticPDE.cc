@@ -25,6 +25,7 @@
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/Models/Preisach.hh"
+#include "Materials/Models/invEBHysteresis.hh"
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
@@ -41,6 +42,7 @@
 
 #include "Driver/SolveSteps/SolveStepHyst.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/SolveSteps/SolveStepEB.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
 namespace CoupledField {
@@ -66,6 +68,11 @@ namespace CoupledField {
     mechanicPDE_ = NULL;
 
     anyRegionHasConductivity_ = false;
+
+    // Be aware that the hysteresis via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
+    matModelCoef_.reset(new CoefFunctionMaterialModel<Complex>());
+    // init the nonlinear_field_intensity_coef_
+    nonlinear_field_intensity_coef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
 
 //    isMixed_ = false;
 //    regionApproxSet_ = false;
@@ -156,6 +163,7 @@ namespace CoupledField {
 
     RegionIdType actRegion;
 	  BaseMaterial * actMat = NULL;
+    BaseMaterial * actSDMat = NULL;
 
 	  // determine tensor representation of the material parameters needed
 	  SubTensorType tensorType;
@@ -173,6 +181,13 @@ namespace CoupledField {
 	  shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
 	  shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
+    PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+    // Init material model for hysteretic transient analysis
+    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
+    {
+      matModelCoef_->Init(magFluxCoef, modelName_, dim_);
+    }
+
 	  double factor = 1.0;
 	  if ( isMagnetoStrictCoupled_ == true ){
 		  // similar to the piezoelectric case we have to multiply the magnetic pde in the magnetostrictive case with -1 to
@@ -189,6 +204,7 @@ namespace CoupledField {
 		  // Set current region and material
 		  actRegion = it->first;
 		  actMat = it->second;
+      actSDMat = materials_[actRegion];
 
 		  // Get current region name
 		  std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
@@ -225,88 +241,125 @@ namespace CoupledField {
 		  // ====================================================================
 		  //  NONLINEAR BH RELATION (NON-HYSTERETIC)
 		  // ====================================================================
+      std::cout << "nonLinTypes.Find(PERMEABILITY):" << nonLinTypes.Find(PERMEABILITY) << "\n"; 
 		  if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
-		    CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
-			  PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-			  PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, magFluxCoef);
+        if (modelName_ == "invEBHysteresisModel") { // uses inverse energy-based Hysteresis model
+          std::cout << "invEBHysteresisModel chosen\n";
+          // define needed variables
+          PtrCoefFct nu_nonlinear_eb = NULL;
+          PtrCoefFct field_intensity_eb = NULL;
+          BaseBDBInt * stiffInt = NULL;
 
-        if(domain->HasDesign())
-        {
-          cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, MAG_RELUCTIVITY_SCALAR,  this);
-          nuNl.reset(cfo);
+          // init. EB Material Model
+          std::map<std::string, double> ParameterMap;
+          actSDMat->GetScalar(ParameterMap["Js"], MAG_JS_INVEB, Global::REAL);
+          actSDMat->GetScalar(ParameterMap["A"], MAG_A_INVEB, Global::REAL);
+          actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_INVEB, Global::REAL);
+          actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_INVEB, Global::REAL);
+          actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
+          ParameterMap["isMH"] = 0;
+          matModelCoef_->InitModel(ParameterMap, actSDList);
+          nu_nonlinear_eb = matModelCoef_;
+          nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoef_);
+
+          PtrCoefFct curCoef;
+          curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR, tensorType, Global::REAL );
+
+          // define integrators
+          if( dim_ == 2) { // plane 2D case
+              stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), nu_nonlinear_eb, 1.0, updatedGeo_);
+          } else {
+            EXCEPTION("For Nodal elements, only 2D is possible!")
+          }
+          stiffInt->SetName("(dH/dB Q*grad A, Q*grad A',nonlinear case, nonlinear subregion)"); // Q is a rotation matrix to rotate the gradient into the curl in 2D.
+          BiLinFormContext * stiffContext = new BiLinFormContext(stiffInt, STIFFNESS );
+          stiffContext->SetEntities( actSDList, actSDList );
+          stiffContext->SetFeFunctions( myFct, myFct );
+          assemble_->AddBiLinearForm( stiffContext );
+
+        } else {
+          CoefFunctionOpt* cfo = NULL; // we might do optimization and then we have such a thing
+          PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+          PtrCoefFct nuNl = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, magFluxCoef);
+
+          if(domain->HasDesign())
+          {
+            cfo = new CoefFunctionOpt(domain->GetDesign(), nuNl, MAG_RELUCTIVITY_SCALAR,  this);
+            nuNl.reset(cfo);
+          }
+          
+          PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+          PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
+                  CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
+          matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+
+          BaseBDBInt * stiffInt = NULL;
+          if( dim_ == 2) {
+            if( isaxi_ ) {
+              // axisymmetric case
+              stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), nuNl,factor, updatedGeo_);
+            } else {
+              // plane 2D case
+              stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), nuNl, factor, updatedGeo_);
+            }
+          } else {
+            // 3D case
+            stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), nuNl, factor, updatedGeo_);
+          }
+          stiffInt->SetName("CurlCurlIntegrator-NL");
+          BiLinFormContext * stiffContext =
+                  new BiLinFormContext(stiffInt, STIFFNESS );
+          stiffContext->SetEntities( actSDList, actSDList );
+          stiffContext->SetFeFunctions( myFct, myFct );
+          assemble_->AddBiLinearForm( stiffContext );
+
+          // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
+          if(cfo)
+            cfo->SetForm(stiffInt);
+
+          // Important: Add bdb-integrator to global list, as we need them later
+          // for calculation of postprocessing results
+          bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
+          // add also material to global, distributed reluctivity coefficient function
+          //relucTensor_->AddRegion(actRegion, nuNl);
+
+          // ================================================
+          //  Nonlinear Stiffness Integrator (only Newton )
+          // ================================================
+          // Note: currently we set the nonlinear method hard-coded to NEWTON for
+          // testing purpose
+          if( nonLinMethod_ == NEWTON ) {
+            PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
+                    Global::REAL, magFluxCoef );
+
+            //create stiffness integrator
+            BiLinearForm* stiff2 = NULL;
+            //stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
+            if( dim_ == 2) {
+              if( isaxi_ ) {
+                // axisymmetric case
+                stiff2 = new BDBInt<>(new CurlOperatorAxi<Double>(), nuDeriv, factor, updatedGeo_);
+              } else {
+                // plane 2D case
+                stiff2 = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), nuDeriv, factor, updatedGeo_);
+              }
+            } else {
+              // 3D case
+              stiff2 = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), nuDeriv, factor, updatedGeo_);
+
+            }
+
+            stiff2->SetName("CurlCurlIntegrator-NL-Newton");
+            //! mark the bi-linear form to be a Newton part
+            stiff2->SetNewtonBilinearForm();
+
+            BiLinFormContext * stiffContext2 =
+                    new BiLinFormContext(stiff2, STIFFNESS );
+            stiffContext2->SetEntities( actSDList, actSDList );
+            stiffContext2->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( stiffContext2 );
+          }
         }
-        
-			  PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-			  PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL,
-                CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
-			  matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
-
-			  BaseBDBInt * stiffInt = NULL;
-			  if( dim_ == 2) {
-				  if( isaxi_ ) {
-					  // axisymmetric case
-					  stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), nuNl,factor, updatedGeo_);
-				  } else {
-					  // plane 2D case
-					  stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), nuNl, factor, updatedGeo_);
-				  }
-			  } else {
-				  // 3D case
-				  stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), nuNl, factor, updatedGeo_);
-			  }
-			  stiffInt->SetName("CurlCurlIntegrator-NL");
-			  BiLinFormContext * stiffContext =
-                new BiLinFormContext(stiffInt, STIFFNESS );
-			  stiffContext->SetEntities( actSDList, actSDList );
-			  stiffContext->SetFeFunctions( myFct, myFct );
-			  assemble_->AddBiLinearForm( stiffContext );
-
-        // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
-        if(cfo)
-          cfo->SetForm(stiffInt);
-
-			  // Important: Add bdb-integrator to global list, as we need them later
-			  // for calculation of postprocessing results
-			  bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
-			  // add also material to global, distributed reluctivity coefficient function
-			  //relucTensor_->AddRegion(actRegion, nuNl);
-
-			  // ================================================
-			  //  Nonlinear Stiffness Integrator (only Newton )
-			  // ================================================
-			  // Note: currently we set the nonlinear method hard-coded to NEWTON for
-			  // testing purpose
-			  if( nonLinMethod_ == NEWTON ) {
-				  PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
-                  Global::REAL, magFluxCoef );
-
-				  //create stiffness integrator
-				  BiLinearForm* stiff2 = NULL;
-				  //stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
-				  if( dim_ == 2) {
-					  if( isaxi_ ) {
-						  // axisymmetric case
-						  stiff2 = new BDBInt<>(new CurlOperatorAxi<Double>(), nuDeriv, factor, updatedGeo_);
-					  } else {
-						  // plane 2D case
-						  stiff2 = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), nuDeriv, factor, updatedGeo_);
-					  }
-				  } else {
-					  // 3D case
-					  stiff2 = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), nuDeriv, factor, updatedGeo_);
-
-				  }
-
-				  stiff2->SetName("CurlCurlIntegrator-NL-Newton");
-				  //! mark the bi-linear form to be a Newton part
-				  stiff2->SetNewtonBilinearForm();
-
-				  BiLinFormContext * stiffContext2 =
-                  new BiLinFormContext(stiff2, STIFFNESS );
-				  stiffContext2->SetEntities( actSDList, actSDList );
-				  stiffContext2->SetFeFunctions( myFct, myFct );
-				  assemble_->AddBiLinearForm( stiffContext2 );
-			  }
 		  } else {
 			  // ====================================================================
 			  //  HYSTERESIS + LINEAR CASE
@@ -317,29 +370,31 @@ namespace CoupledField {
         BaseBDBInt * stiffInt = NULL;
 
         if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
+          std::cout << "(HYSTERESIS) chosen\n";
           /* for both the delta material method as well as the std fixpoint method we have to know
            * which regions are affected by hysteresis
            */
           // NEW: coefFncHyst should already be created during DefinePostProcResults!
           curCoef = GenerateHystereticCoefFunctions(actRegion);
 
-//          PtrCoefFct hystPol = hysteresisCoefs_->GetRegionCoef(actRegion);
-//          curCoef = hystPol->GenerateMatCoefFnc("Reluctivity");
-//
-//          PtrCoefFct hystOutput = hystPol->GenerateOutputCoefFnc("MagPolarization");
-//          polarization_->AddRegion( actRegion, hystOutput);
-//
-//          PtrCoefFct hystOutput2 = hystPol->GenerateOutputCoefFnc("MagMagnetization");
-//          magnetization_->AddRegion( actRegion, hystOutput2);
-//
-//          PtrCoefFct hystOutput3 = hystPol->GenerateOutputCoefFnc("MagFieldIntensityHyst");
-//          fieldIntensity_->AddRegion( actRegion, hystOutput3);
+          //          PtrCoefFct hystPol = hysteresisCoefs_->GetRegionCoef(actRegion);
+          //          curCoef = hystPol->GenerateMatCoefFnc("Reluctivity");
+          //
+          //          PtrCoefFct hystOutput = hystPol->GenerateOutputCoefFnc("MagPolarization");
+          //          polarization_->AddRegion( actRegion, hystOutput);
+          //
+          //          PtrCoefFct hystOutput2 = hystPol->GenerateOutputCoefFnc("MagMagnetization");
+          //          magnetization_->AddRegion( actRegion, hystOutput2);
+          //
+          //          PtrCoefFct hystOutput3 = hystPol->GenerateOutputCoefFnc("MagFieldIntensityHyst");
+          //          fieldIntensity_->AddRegion( actRegion, hystOutput3);
 
           stiffInt = GeHystStiffInt( factor, curCoef );
 			  } else {
 				  // ====================================================================
 				  //  Standard Linear CASE (2D AND 3D)
 				  // ====================================================================
+          std::cout << "linear chosen\n";
 				  curCoef = actMat->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR, tensorType, Global::REAL );
 
 				  // for postprocessing
@@ -368,37 +423,37 @@ namespace CoupledField {
           }
           
           // shifted to DefineRHSLoadIntegrator!
-//          // check for fixed magnetization > defined in mat.xml
-//          int hasFixedMagnetization = 0;
-//          materials_[actRegion]->GetScalar(hasFixedMagnetization,PRESCRIBED_MAGNETIZATION);
-//
-//          // mRHSRegions_ gets filled in MagBasePDE.cc > InitMagnetization
-//          PtrCoefFct magFncSharedPtr = mRHSRegions_[actRegion];
-//            
-//          if(hasFixedMagnetization == 1){
-//            // add RHS integrator (compare rhsIntegrator flux)
-//            LinearForm * lin = NULL;
-//            bool coefUpdateGeo = true;
-//            
-//            if( dim_ == 2) {
-//              if( isaxi_ ) {
-//                // axisymmetric case
-//                lin = new BUIntegrator<Double>(new CurlOperatorAxi<Double>(), factor,  magFncSharedPtr,coefUpdateGeo);
-//              } else {
-//                lin = new BUIntegrator<Double>(new CurlOperator<FeH1,2,Double>(),factor, magFncSharedPtr,coefUpdateGeo);
-//              }
-//            } else {
-//              // 3D case
-//              lin = new BUIntegrator<Double>(new CurlOperator<FeH1,3,Double>(),factor, magFncSharedPtr,coefUpdateGeo);
-//            }
-//      
-//            lin->SetName("FixedMagnetizationIntegrator");
-//            LinearFormContext *ctx = new LinearFormContext( lin );
-//            ctx->SetEntities( actSDList );
-//            ctx->SetFeFunction(myFct);
-//            assemble_->AddLinearForm(ctx);
-//            //feFct->AddEntityList(ent[i]);
-//          }        
+          //          // check for fixed magnetization > defined in mat.xml
+          //          int hasFixedMagnetization = 0;
+          //          materials_[actRegion]->GetScalar(hasFixedMagnetization,PRESCRIBED_MAGNETIZATION);
+          //
+          //          // mRHSRegions_ gets filled in MagBasePDE.cc > InitMagnetization
+          //          PtrCoefFct magFncSharedPtr = mRHSRegions_[actRegion];
+          //            
+          //          if(hasFixedMagnetization == 1){
+          //            // add RHS integrator (compare rhsIntegrator flux)
+          //            LinearForm * lin = NULL;
+          //            bool coefUpdateGeo = true;
+          //            
+          //            if( dim_ == 2) {
+          //              if( isaxi_ ) {
+          //                // axisymmetric case
+          //                lin = new BUIntegrator<Double>(new CurlOperatorAxi<Double>(), factor,  magFncSharedPtr,coefUpdateGeo);
+          //              } else {
+          //                lin = new BUIntegrator<Double>(new CurlOperator<FeH1,2,Double>(),factor, magFncSharedPtr,coefUpdateGeo);
+          //              }
+          //            } else {
+          //              // 3D case
+          //              lin = new BUIntegrator<Double>(new CurlOperator<FeH1,3,Double>(),factor, magFncSharedPtr,coefUpdateGeo);
+          //            }
+          //      
+          //            lin->SetName("FixedMagnetizationIntegrator");
+          //            LinearFormContext *ctx = new LinearFormContext( lin );
+          //            ctx->SetEntities( actSDList );
+          //            ctx->SetFeFunction(myFct);
+          //            assemble_->AddLinearForm(ctx);
+          //            //feFct->AddEntityList(ent[i]);
+          //          }        
 			  }
 
 			  stiffInt->SetName("CurlCurlIntegrator");
@@ -433,17 +488,17 @@ namespace CoupledField {
 			  //  3D CASE (additional stiffness integrator)
 			  // ====================================================================
 			  if( dim_ == 3 ) {
-//          /*
-//           * This term is required to satisfy the coloumb gauge in 3d
-//           * According to "Finite Element Method in Magnetics" (Kuczmann, Ivanyi) this
-//           * term gets assembled with nu_0, i.e. in the hysteresis case, we have to return only nu_0 (no deltaMAT!)
-//           * > create another coeffunction for reluctivity here
-//           */
-//          if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
-//            WARN("Hysteresis in 3d not tested yet");
-//            PtrCoefFct hystPol = hysteresisCoefs_->GetRegionCoef(actRegion);
-//            curCoef = hystPol->GenerateMatCoefFnc("LinearReluctivity");
-//          }
+        //          /*
+        //           * This term is required to satisfy the coloumb gauge in 3d
+        //           * According to "Finite Element Method in Magnetics" (Kuczmann, Ivanyi) this
+        //           * term gets assembled with nu_0, i.e. in the hysteresis case, we have to return only nu_0 (no deltaMAT!)
+        //           * > create another coeffunction for reluctivity here
+        //           */
+        //          if ( nonLinTypes.Find(HYSTERESIS) != -1 ){
+        //            WARN("Hysteresis in 3d not tested yet");
+        //            PtrCoefFct hystPol = hysteresisCoefs_->GetRegionCoef(actRegion);
+        //            curCoef = hystPol->GenerateMatCoefFnc("LinearReluctivity");
+        //          }
 
           std::string nu0String = "795774.7155";
           PtrCoefFct nu0Scal = CoefFunction::Generate(mp_, Global::REAL, nu0String);
@@ -456,7 +511,7 @@ namespace CoupledField {
 
           BaseBDBInt * divInt = new BDBInt<>(new DivOperator<FeH1,3,Double>(), nu0, factor, updatedGeo_);
           // NACS version:
-//				  BaseBDBInt * divInt = new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
+          //				  BaseBDBInt * divInt = new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
 				  divInt->SetFeSpace( mySpace );
 				  divInt->SetName("DivDivIntegrator");
 				  BiLinFormContext * divIntDescr =
@@ -481,9 +536,9 @@ namespace CoupledField {
               materials_[actRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
 		  //                                         lexical_cast<std::string>(conductivity));
 		  // FROM NACS
-//      conduc_->AddRegion(actRegion, conducCoef);
+      //      conduc_->AddRegion(actRegion, conducCoef);
 
-//      if (!conducCoef->IsZero()) { // does not work if coupled to mechanics > test case failing due to EddyPower
+      //      if (!conducCoef->IsZero()) { // does not work if coupled to mechanics > test case failing due to EddyPower
       // > possible reason: EddyPower is calculated from/via mass integrators; if conductivity is zero, no mass integrator
       //    is defined on this region and thus the EddyPower will not be computed (see SinglePDE::FinalizePostProcResults);
       //    in the coupled mech-mag case, a mass integrator is defined from mechanics; thus CFS might try to compute the
@@ -591,14 +646,14 @@ namespace CoupledField {
 
         if( isComplex_ )
         {
-//          if(dim_ == 2)
-//          {
-//            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new CurlOperatorMag<FeH1,2,Double,Complex>(), coeff, 1.0, coefUpdateGeo);
-//          }
-//          else
-//          {
-//            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new CurlOperatorMag<FeH1,3,Double,Complex>(), coeff, 1.0, coefUpdateGeo);
-//          }
+          //          if(dim_ == 2)
+          //          {
+          //            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),new CurlOperatorMag<FeH1,2,Double,Complex>(), coeff, 1.0, coefUpdateGeo);
+          //          }
+          //          else
+          //          {
+          //            velocityStiff  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),new CurlOperatorMag<FeH1,3,Double,Complex>(), coeff, 1.0, coefUpdateGeo);
+          //          }
           EXCEPTION("VelocityStiffInt is not implemented for complex case!");
         }
         else
@@ -1041,6 +1096,7 @@ namespace CoupledField {
     } // for
 
   }
+
 
   void MagneticPDE::DefinePrimaryResults()
   {

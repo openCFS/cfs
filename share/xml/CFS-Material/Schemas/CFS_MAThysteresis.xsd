@@ -890,6 +890,27 @@
     </xsd:all>
   </xsd:complexType>  
 
+  <xsd:complexType name="DT_invEBHysteresisModel">
+     <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Parameters for Energy Based vectorhysteresis model;
+
+        jacobian_method:
+          1 ... Finite Differences
+          2 ... Broydens Method
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:all>
+      <xsd:element name="Js" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="A" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="numS" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="chi_factor" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="jacobian_method" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="deriv_A" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="deriv_Ps" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+    </xsd:all>
+  </xsd:complexType>  
+
 
   <xsd:complexType name="DT_VectorPreisachHystModelMayergoyzElec">
     <xsd:sequence>

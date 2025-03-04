@@ -983,6 +983,29 @@ namespace CoupledField {
             info.approxType = ANALYTIC;
             material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
           }
+          else if (perm->Get("model")->Get("isotropic")->Has("invEBHysteresisModel"))
+          {
+            model = perm->Get("model")->Get("isotropic")->Get("invEBHysteresisModel");
+
+            material->SetScalar(model->Get("Js")->As<Double>(), MaterialType(MAG_JS_INVEB), Global::REAL);
+            material->SetScalar(model->Get("A")->As<Double>(), MaterialType(MAG_A_INVEB), Global::REAL);
+            material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_INVEB), Global::REAL);
+            material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_INVEB), Global::REAL);
+            material->SetScalar(model->Get("jacobian_method")->As<Double>(), MaterialType(MAG_JACOBIAN_METHOD_INVEB), Global::REAL);
+
+            BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(model, material);
+            if (model->Has("deriv_A")) {
+              info.analyticExprDerivP1 = model->Get("deriv_A")->As<std::string>().c_str();
+            } else
+              info.analyticExprDerivP1 = "0.0";
+            if (model->Has("deriv_Ps")) {
+              info.analyticExprDerivP2 = model->Get("deriv_Ps")->As<std::string>().c_str();
+            } else
+              info.analyticExprDerivP2 = "0.0";
+
+            info.approxType = ANALYTIC;
+            material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
+          }
         }
       }
     } // end of permeability

@@ -9,6 +9,7 @@
 #include <set>
 #include "MagBasePDE.hh"
 #include "Utils/Coil.hh"
+#include <Domain/CoefFunction/CoefFunctionMaterialModel.hh>
 
 namespace CoupledField
 {
@@ -31,6 +32,9 @@ namespace CoupledField
     
     //!  Destructor
     virtual ~MagneticPDE();
+
+    //stores the field intensity for energy-based hystersis/nonlinear models
+    shared_ptr<CoefFunctionMulti> nonlinear_field_intensity_coef_;
     
     //! pass pointer to mechanicalPDE for later use in nonlinear material evaluation
     void SetMagnetoStrictCoupling(SinglePDE *mechanicPDE);
