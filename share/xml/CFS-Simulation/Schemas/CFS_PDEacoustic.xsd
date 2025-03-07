@@ -718,7 +718,7 @@
   </xsd:simpleType>
 
   <!-- Definition of field variables (union of nodal and element results) -->
-  <xsd:simpleType name="DT_AcousticSensorArrayResult">
+  <xsd:simpleType name="DT_AcousticFieldResult">
     <xsd:union memberTypes="DT_AcousticNodeResult DT_AcousticElemResult"/>
   </xsd:simpleType>
 
@@ -760,6 +760,17 @@
           </xsd:complexType>
         </xsd:element>
 
+        <!-- averaged Region result definition -->
+        <xsd:element name="regionAverageResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionAverageResult">
+                <xsd:attribute name="type" type="DT_AcousticFieldResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
         <!-- Surface result definition -->
         <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
@@ -787,7 +798,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SensorArrayResult">
-                <xsd:attribute name="type" type="DT_AcousticSensorArrayResult"/>
+                <xsd:attribute name="type" type="DT_AcousticFieldResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
