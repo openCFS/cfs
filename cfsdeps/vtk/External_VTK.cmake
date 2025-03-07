@@ -54,6 +54,7 @@ else()
 endif()
 
 set(DEPS_ARGS ${DEPS_ARGS}
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DBUILD_SHARED_LIBS:BOOL=OFF
   -DVTK_Group_Rendering:BOOL=OFF
   -DVTK_Group_StandAlone:BOOL=OFF

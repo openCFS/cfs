@@ -44,6 +44,7 @@ set_deps_args_default(ON) # set compiler flags
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DBUILD_DOC:BOOL=OFF
   -DBUILD_EXAMPLES:BOOL=OFF
   -DBUILD_C_BINDINGS:BOOL=OFF

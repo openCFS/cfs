@@ -41,6 +41,7 @@ endif()
 
 set(DEPS_ARGS
   ${DEPS_ARGS}
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DBUILD_SHARED_LIBS:BOOL=${MUPARSER_SHARED_LIBS}
   -DBUILD_TESTING:BOOL=OFF 
   # muParser 2.2.6.1 has issues with openMP. On Mac it does not find omp.h, on Linux "Could NOT find OpenMP_CXX (missing: OpenMP_CXX_FLAGS OpenMP_CXX_LIB_NAMES)"
