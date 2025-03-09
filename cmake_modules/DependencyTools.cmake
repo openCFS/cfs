@@ -21,8 +21,9 @@ macro(dump_depencency_variables)
   cmake_print_variables(DEPS_INSTALL) # with install_manifest.txt directly ${CMAKE_BINARY_DIR} otherwise ${DEPS_PREFIX}/install
   cmake_print_variables(DEPS_LIB_TYPE)# default "static", otherwise "dynamic" or "static-dynamic"
   # kind of internal "class attributes" of DependencyTools. Check with DepsPackaging*.cmake.in
-  cmake_print_variables(USE_C_CXX)    # use either C or C++ compiler. See set_compilers()
+  cmake_print_variables(USE_C_CXX)    # use either C or C++ compiler. See use_c_and_fortran()
   cmake_print_variables(USE_FORTRAN)
+  cmake_print_variables(FORCE_C_CXX)  # enforce the C/C++ label to overwrite the cfs compiler. See force_c_cxx_compiler()
   cmake_print_variables(PRECOMPILED_PCKG_FILE) # full patch to precompiled, e.g. /Users/fwein/code/cfsdepscache/precompiled/arpack_3.7.0_MACOSX_12.6_ARM64_F-GNU-11.2.0.zip
   cmake_print_variables(DEPS_BUILD_MESSAGE)    # message to be printed before building
   cmake_print_variables(LOCAL_PACKAGE_FILE)    # full path to local source 
@@ -54,6 +55,7 @@ macro(clear_depencency_variables)
   set(DEPS_LIB_TYPE "static") # default
   unset(USE_C_CXX)
   unset(USE_FORTRAN)
+  unset(FORCE_C_CXX)
   unset(PRECOMPILED_PCKG_FILE)
   unset(DEPS_BUILD_MESSAGE)
   unset(LOCAL_PACKAGE_FILE)
@@ -68,6 +70,18 @@ endmacro()
 macro(use_c_and_fortran IN_USE_C_CXX IN_USE_FORTRAN)
   set(USE_C_CXX ${IN_USE_C_CXX})
   set(USE_FORTRAN ${IN_USE_FORTRAN})
+endmacro()
+
+# variant of use_c_and_fortran where we enforce the given compiler name for C/C++ and don't use
+# CFSDEPS_C(XX)_FLAGS. We set USE_C_CXX to ON and USE_FORTRAN to OFF.
+# Usage is Win32 to use CL for boost and xerces for an intel cfs and vice versa for ginkgo
+macro(force_c_cxx_compiler IN_FORCE_C_CXX)
+  assert_unset(USE_C_CXX)
+  assert_unset(USE_FORTRAN)
+  
+  set(FORCE_C_CXX ${IN_FORCE_C_CXX})
+  set(USE_C_CXX ON)
+  set(USE_FORTRAN OFF) # simply not in the use case of currently boost, xerces, ginkgo
 endmacro()
 
 # set os sensitive static lib to given variable in cmake cache
@@ -189,7 +203,7 @@ macro(set_deps_args_default SET_COMPILER_FLAGS)
     endif()
   endif() 
 
-  if(USE_C_CXX)
+  if(USE_C_CXX AND NOT FORCE_C_CXX)
     list(APPEND DEPS_ARGS -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER})
     if(${SET_COMPILER_FLAGS} AND CFSDEPS_C_FLAGS)
       list(APPEND DEPS_ARGS -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS} )     
@@ -287,6 +301,13 @@ macro(set_precompiled_pckg_file)
   # DEPS_VER might be "" which is unset
   assert_unset(PRECOMPILED_PCKG_FILE)
   
+  if(FORCE_C_CXX)
+    set(_CXX_ID_VER "${FORCE_C_CXX}")
+  else()
+    set(_CXX_ID_VER "${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
+  endif()
+  
+  
   # first set variables
   if(USE_FORTRAN)
     if(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
@@ -306,15 +327,16 @@ macro(set_precompiled_pckg_file)
   if(NOT USE_C_CXX AND USE_FORTRAN)
     set(_TMP "${_TMP}_F-${CMAKE_Fortran_COMPILER_ID}-${_FORTRAN_COMPILER_VERSION}")
   elseif(USE_C_CXX AND NOT USE_FORTRAN)
-    set(_TMP "${_TMP}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
+    set(_TMP "${_TMP}_C-${_CXX_ID_VER}")
   elseif(USE_C_CXX AND USE_FORTRAN)
     assert_set(USE_C_CXX)
     assert_set(USE_FORTRAN)
     # combine C_F if same version
     if("${CMAKE_CXX_COMPILER_VERSION}" STREQUAL "${_FORTRAN_COMPILER_VERSION}")
+      assert_unset(FORCE_C_CXX)
       set(_TMP "${_TMP}_C_F-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
     else()
-      set(_TMP "${_TMP}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
+      set(_TMP "${_TMP}_C-${_CXX_ID_VER}")
       set(_TMP "${_TMP}_F-${CMAKE_Fortran_COMPILER_ID}-${_FORTRAN_COMPILER_VERSION}")
     endif()
   endif()
@@ -326,8 +348,6 @@ macro(set_precompiled_pckg_file)
     message(STATUS "will build ${PACKAGE_NAME}_${PACKAGE_VER}: cannot find ${PRECOMPILED_PCKG_FILE}")
   endif()
 endmacro()
-
-
 
 
 # generate packing script for install_manifest.txt cmake package.

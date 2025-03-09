@@ -582,7 +582,7 @@ PyObject* PythonOptimizer::Transfer(PyObject* args, bool derivative)
 
   int idx =  PyTuple_Size(args) == 2 ? PyLong_AsLong(PyTuple_GetItem(args,1)) : 0;
 
-  if(idx < 0 || idx > space->transfer.GetSize()-1)
+  if(idx < 0 || idx > (int) space->transfer.GetSize()-1)
     throw "invalid index for opt_(d_)_transfer() " + to_string(idx) + " range is 0 ... " + to_string(space->transfer.GetSize()-1);
 
   double val = PyFloat_AsDouble(PyTuple_GetItem(args,0));

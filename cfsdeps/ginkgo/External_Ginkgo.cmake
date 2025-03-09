@@ -15,8 +15,13 @@ set(PACKAGE_MIRRORS "https://github.com/ginkgo-project/ginkgo/archive/refs/tags/
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
-# pure C++17
-use_c_and_fortran(ON OFF)
+if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC" AND USE_OPENMP)
+  # msvc has even with /openmp:llvm not all necessary OpenMP features
+  force_c_cxx_compiler("icx") # will set FORCE_C_CXX and do NOT set the default compiler options!
+  assert_set(FORCE_C_CXX)
+else()
+  use_c_and_fortran(ON OFF)
+endif()  
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -28,7 +33,7 @@ endif()
 set_precompiled_pckg_file()
 
 # all executors (reference (=serial), omp, cuda,hip, dpcpp (sycl?!)) have empty default content in case
-set_package_library_list_lib_prefix("ginkgo;ginkgo_omp;ginkgo_cuda;ginkgo_reference;ginkgo_hip;ginkgo_dpcpp;ginkgo_device")
+set_package_library_list("ginkgo;ginkgo_omp;ginkgo_cuda;ginkgo_reference;ginkgo_hip;ginkgo_dpcpp;ginkgo_device")
 
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()
@@ -66,13 +71,18 @@ set(DEPS_ARGS
   -DINSTALL_GTEST=OFF
   -DMETIS_INCLUDE_DIR=${METIS_INCLUDE_DIR}
   -DMETIS_LIBRARY=${METIS_LIBRARY})
+  
+if(FORCE_C_CXX)
+  list(APPEND DEPS_ARGS -DCMAKE_CXX_COMPILER=${FORCE_C_CXX})
+endif()  
     
 # --- it follows generic final block for cmake packages w/o patch and no postinstall ---
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-assert_unset(PATCHES_SCRIPT)
+# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
+generate_patches_script() # sets PATCHES_SCRIPT
 
 # the forked metis insists onb bulding executables to bin. Sort them out automatically
 generate_packing_script_install_dir()
@@ -88,8 +98,8 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   create_external_unpack_precompiled()
 # if not, build newly and possibly pack the stuff
 else()
-  # standard cmake build w/o patch
-  create_external_cmake()  
+  # standard cmake build with patch
+  create_external_cmake_patched()  
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})

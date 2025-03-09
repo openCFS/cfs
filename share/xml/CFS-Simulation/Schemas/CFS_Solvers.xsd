@@ -1193,7 +1193,7 @@
          </xsd:restriction>
         </xsd:simpleType>
       </xsd:attribute>
-       <xsd:attribute name="precond" use="optional" default="amg">
+       <xsd:attribute name="precond" use="optional" default="jacobi">
         <xsd:simpleType>
          <xsd:restriction base="xsd:token">
             <xsd:enumeration value="amg">
@@ -1256,7 +1256,11 @@
           <xsd:documentation>Ignore the initial guess for the solution but start from a zero vecotr.</xsd:documentation>
         </xsd:annotation>
       </xsd:attribute>      
-
+      <xsd:attribute name="fp32" type="xsd:boolean" default="false" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>Solve the system as single precision</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>      
      </xsd:extension>
    </xsd:complexContent>
   </xsd:complexType>

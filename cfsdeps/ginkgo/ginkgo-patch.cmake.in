@@ -1,0 +1,9 @@
+include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+
+if(WIN32)
+  # this bug hits us only on Windows - fix install path 
+  set(PATCHES "ginkgo_win_install.patch")
+endif()
+
+apply_patches("${PATCHES}" "@CMAKE_SOURCE_DIR@/cfsdeps/@PACKAGE_NAME@")
+

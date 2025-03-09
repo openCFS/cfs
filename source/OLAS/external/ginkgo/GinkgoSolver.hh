@@ -15,6 +15,7 @@
 #include "OLAS/solver/BaseSolver.hh"
 #include "MatVec/CRS_Matrix.hh"
 #include "General/Enum.hh"
+#include <variant>
 
 
 namespace CoupledField
@@ -48,10 +49,10 @@ namespace CoupledField
 
   private:
     /** Ginkgo cannot make use of only half given symmetric matrices */
-    template <class T>
-    void Setup(CRS_Matrix<T>* mat);
+    template <typename CFS_T, typename GK_T>
+    void Setup(CRS_Matrix<CFS_T>* mat);
 
-    template <class T>
+    template <typename CFS_T, typename GK_T>
     void Solve(const BaseVector &rhs, BaseVector &sol);
 
     /** either OmpExecutor::create(), ReferenceExecutor::create() or the HIP (CUDA) variant in future */
@@ -60,10 +61,17 @@ namespace CoupledField
     std::shared_ptr<gko::LinOpFactory> precond;
     std::shared_ptr<gko::LinOp> solver;
 
+    /** for single precision we need a csr values array copy and cast from the double precision cfs matrix.
+        The double precision is not need for runtime but is there to avoid static asserts from std::get */
+    std::variant<std::vector<float>,std::vector<std::complex<float>>,std::vector<double>,std::vector<std::complex<double>>> values;
+
     GinkgoSolverType solver_type = NOSOLVER;
     GinkgoPrecondType precond_type = NOPRECOND;
     TolType tol_type = ABSOLUTE;
     gko::stop::mode tol_mode = gko::stop::mode::absolute;
+
+
+
 
     unsigned int max_iter = 10000;
     /** given to the solver */
@@ -74,7 +82,11 @@ namespace CoupledField
     /** json file name for precond/solver description via external file */
     std::string json;
 
+    /** ignore given solution on Solve() as initial guess */
     bool initial_zero = false;
+
+    /** solve single precision system */
+    bool fp32 = false;
   };
 }
 #endif // GINKGOSOLVER_HH_

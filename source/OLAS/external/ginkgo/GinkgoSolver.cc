@@ -1,13 +1,12 @@
 #include "GinkgoSolver.hh"
 // the header in extensions is not shipped with ginkgo.hpp
 #include <ginkgo/extensions/config/json_config.hpp>
-
-#include <string>
 #include "Domain/Domain.hh"
 #include "Driver/BaseDriver.hh"
 #include "MatVec/SparseOLASMatrix.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include <string>
 #include <sstream>
 #include <stdio.h>
 #include <boost/filesystem.hpp>
@@ -15,6 +14,7 @@
 using std::string;
 using std::to_string;
 using std::complex;
+using std::vector;
 
 Enum<GinkgoSolver::GinkgoSolverType>  GinkgoSolver::ginkgoSolverType;
 Enum<GinkgoSolver::GinkgoPrecondType> GinkgoSolver::ginkgoPrecondType;
@@ -56,6 +56,7 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
   max_iter = pn->Get("maxIter")->As<double>();
   tolerance = pn->Get("tolerance")->As<double>();
   min_tol = pn->Get("minimalTolerance")->As<double>();
+  fp32 = pn->Get("fp32")->As<bool>();
 
   tol_type = tolType.Parse(pn->Get("toleranceType")->As<string>());
   switch(tol_type)
@@ -85,11 +86,10 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
   }
 
   // to save space we configure these executors mutal exclusive in cfsdeps
-#ifdef USE_OPENMP
-  exec = gko::OmpExecutor::create();
-#else
-  exec = gko::ReferenceExecutor::create();
-#endif
+  if(UseOpenMP())
+    exec = gko::OmpExecutor::create();
+  else
+    exec = gko::ReferenceExecutor::create();
 }
 
 void GinkgoSolver::Setup(BaseMatrix &sysmat)
@@ -98,16 +98,32 @@ void GinkgoSolver::Setup(BaseMatrix &sysmat)
                   << " r=" << sysmat.GetNumRows() << " c=" << sysmat.GetNumCols();
 
   if(sysmat.GetStorageType() != BaseMatrix::SPARSE_NONSYM)
-    throw Exception("Ginkgo solver can only handle non-symmetric matrix storrage");
+    throw Exception("Ginkgo solver can only handle non-symmetric matrix storage");
 
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE)
-    Setup<double>(dynamic_cast<CRS_Matrix<double>*>(&sysmat));
+  {
+    auto mat = dynamic_cast<CRS_Matrix<double>*>(&sysmat);
+    if(fp32) {
+      values = vector<float>(); // we use this data to have the same templated csr values data in Setup() and Solve()
+      Setup<double, float>(mat);
+    }
+    else
+      Setup<double, double>(mat);
+  }
   else
-    Setup<complex<double>>(dynamic_cast<CRS_Matrix<complex<double>>*>(&sysmat));
+  {
+    auto mat = dynamic_cast<CRS_Matrix<complex<double>>*>(&sysmat);
+    if(fp32) {
+      values = vector<complex<float>>();
+      Setup<complex<double>,complex<float>>(mat);
+    }
+    else
+      Setup<complex<double>,complex<double>>(mat);
+  }
 }
 
-template <class T>
-void GinkgoSolver::Setup(CRS_Matrix<T>* m)
+template<typename CFS_T, typename GK_T>
+void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
 {
   assert(m != nullptr);
 
@@ -116,12 +132,26 @@ void GinkgoSolver::Setup(CRS_Matrix<T>* m)
   int nrow = (int) m->GetNumRows();
   int ncol = (int) m->GetNumCols();
 
-  // nice that we need no temporary data for the matrix
-  auto vv = gko::make_array_view(exec, nnz, m->GetDataPointer());
-  auto cv = gko::make_array_view(exec, nnz, (int*) m->GetColPointer());
-  auto rv = gko::make_array_view(exec, nrow + 1, (int*) m->GetRowPointer());
+  // nice that we need no temporary data for the matrix, when we are of same type
+  GK_T* vdp = nullptr;
+  // for 32fp we need a storage of the csr values data which also holds for Solve().
+  if(std::is_same<CFS_T, GK_T>::value)
+    vdp =  (GK_T*) m->GetDataPointer(); // the cast is only to please the compiler, not relevant in reality
+  else
+  {
+    auto& vdv = std::get<vector<GK_T>>(values); // throws bad_cast exception
+    vdv.resize(nnz);
+    for(unsigned int i = 0; i < nnz; i++)
+      vdv[i] = (GK_T) m->GetDataPointer()[i]; // from fp62 to fp32
+    vdp = (GK_T*) vdv.data();
 
-  auto csr = gko::share(gko::matrix::Csr<T, int>::create(exec, gko::dim<2>(nrow,ncol), vv, cv, rv));
+  }
+  auto vv = gko::make_const_array_view(exec, nnz, vdp);
+  auto cv = gko::make_const_array_view(exec, nnz, (int*) m->GetColPointer());
+  auto rv = gko::make_const_array_view(exec, nrow + 1, (int*) m->GetRowPointer());
+
+  // the std::move makes sure we don't call a copy constructor
+  auto csr = gko::share(gko::matrix::Csr<GK_T, int>::create_const(exec, gko::dim<2>(nrow,ncol), std::move(vv), std::move(cv), std::move(rv)));
   logger = gko::share(gko::log::Convergence<double>::create());
   std::shared_ptr<gko::LinOpFactory> factory;
 
@@ -138,7 +168,7 @@ void GinkgoSolver::Setup(CRS_Matrix<T>* m)
     // this code is copied from file-config-solver.cpp which also has some sample json config files
     auto config = gko::ext::config::parse_json_file(json);
     auto reg = gko::config::registry();
-    auto td = gko::config::make_type_descriptor<T, int>();
+    auto td = gko::config::make_type_descriptor<GK_T, int>();
     factory = gko::config::parse(config, reg, td).on(exec);
   }
   else
@@ -170,7 +200,7 @@ void GinkgoSolver::Setup(CRS_Matrix<T>* m)
       ip->Get("iterations")->SetValue((int) iter);
 
       precond = gko::solver::Multigrid::build()
-                  .with_mg_level(gko::multigrid::Pgm<T, int>::build().with_deterministic(true))
+                  .with_mg_level(gko::multigrid::Pgm<GK_T, int>::build().with_deterministic(true))
                   .with_criteria(gko::stop::Iteration::build().with_max_iters(iter)).on(exec);
       break;
     }
@@ -181,11 +211,16 @@ void GinkgoSolver::Setup(CRS_Matrix<T>* m)
     }
 
     auto iter_crit = gko::stop::Iteration::build().with_max_iters(max_iter);
-    const gko::remove_complex<T> tol = tolerance;
+    const gko::remove_complex<GK_T> tol = tolerance;
     auto norm_crit =  gko::stop::ResidualNorm<>::build().with_baseline(tol_mode).with_reduction_factor(tol);
     is->Get("max_iter")->SetValue(max_iter);
     is->Get("tolerance")->SetValue(tolerance);
     is->Get("mode")->SetValue(tolType.ToString(tol_type));
+
+    is->Get("cfs")->SetValue(boost::typeindex::type_id<CFS_T>().pretty_name());
+    is->Get("ginkgo")->SetValue(boost::typeindex::type_id<GK_T>().pretty_name());
+    is->Get("precision")->SetValue(fp32 ? 32 : 64);
+
     switch(solver_type)
     {
     case CG:
@@ -211,36 +246,46 @@ void GinkgoSolver::Setup(CRS_Matrix<T>* m)
 void GinkgoSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
 {
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE)
-    Solve<double>(rhs, sol);
+  {
+    if(fp32)
+      Solve<double, float>(rhs, sol);
+    else
+      Solve<double, double>(rhs, sol);
+  }
   else
-    Solve<complex<double>>(rhs, sol);
+  {
+    if(fp32)
+      Solve<complex<double>,complex<float>>(rhs, sol);
+    else
+      Solve<complex<double>,complex<double>>(rhs, sol);
+  }
 }
 
-template <class T>
+template <typename CFS_T, typename GK_T>
 void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
 {
   // the vectors seem to be possibly based on blocks and therefore are not necessarily just Vector
 
   // create a continuous vector and fill it
-  std::vector<T> rhs_tmp(rhs.GetSize());
-  T val;
+  vector<GK_T> rhs_tmp(rhs.GetSize());
+  CFS_T val;
   for(unsigned int i = 0; i < rhs.GetSize(); i++)
   {
     rhs.GetEntry(i, val);
-    rhs_tmp[i] = val;
+    rhs_tmp[i] = (GK_T) val;
   }
 
   // make a ginkgo right hand side view
   auto rsv = gko::make_array_view(exec, (int) rhs_tmp.size(), rhs_tmp.data()); // again, ginkgo has signed indices
   // make the ginkgo rhs based on the view
-  auto b = gko::matrix::Dense<T>::create(exec, gko::dim<2>((int) rhs.GetSize(), 1), rsv, 1);
+  auto b = gko::matrix::Dense<GK_T>::create(exec, gko::dim<2>((int) rhs.GetSize(), 1), rsv, 1);
 
   // our solution. cfs provides an initial guess
-  auto x = gko::matrix::Dense<T>::create(exec, gko::dim<2>(rhs.GetSize(), 1));
+  auto x = gko::matrix::Dense<GK_T>::create(exec, gko::dim<2>(rhs.GetSize(), 1));
   for(unsigned int i = 0; i < rhs.GetSize(); i++)
   {
     sol.GetEntry(i,val);
-    x->at(i) = initial_zero ? (T) 0.0 : val;
+    x->at(i) = initial_zero ? 0.0 : (GK_T) val;
   }
   double initial_sol_norm = initial_zero ? 0.0 : sol.NormL2();
 
@@ -250,7 +295,7 @@ void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
   // store solution slowly
   assert(x->get_num_stored_elements() == sol.GetSize());
   for(unsigned int i = 0; i < sol.GetSize(); i++)
-    sol.SetEntry(i, x->at(i));
+    sol.SetEntry(i, (CFS_T) x->at(i));
 
   assert(solver->get_loggers().size() == 1);
 
