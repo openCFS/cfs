@@ -13,6 +13,7 @@
 
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Domain.hh"
+#include "Driver/SolveSteps/SolveStepEB.hh"
 
 namespace CoupledField {
 
@@ -60,7 +61,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       } else {
         varHandle_="step";
       }
-      mu_0 = 1.256637061e-06;
+      mu_0 = 1.256637061435917e-06;
 
       Js_ = ParameterMap["Js"];
       A_ = ParameterMap["A"];
@@ -70,8 +71,8 @@ DEFINE_LOG(inveb, "invEBHysteresis")
 
       B0_.Resize(numElems_, StdVector<Double>(dim_));
       B1_.Resize(numElems_, StdVector<Double>(dim_));
-      J0_.Resize(numElems_, StdVector<Double>(dim_));
-      J1_.Resize(numElems_, StdVector<Double>(dim_));
+      H0_.Resize(numElems_, StdVector<Double>(dim_));
+      H1_.Resize(numElems_, StdVector<Double>(dim_));
 
       J_x_k_prev_.Resize(numElems_, StdVector<Double>(numS_));
       J_y_k_prev_.Resize(numElems_, StdVector<Double>(numS_));
@@ -82,8 +83,8 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       J_z_k_n_.Resize(numElems_, StdVector<Double>(numS_));
 
       J_x_k_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
-      J_x_k_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
-      J_x_k_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+      J_y_k_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+      J_z_k_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
 
       nu_.Resize(numElems_, Matrix<Double>(dim_,dim_));
 
@@ -96,6 +97,10 @@ DEFINE_LOG(inveb, "invEBHysteresis")
 
       mp_ = domain->GetMathParser();
       globalIter_ = 0;
+      solve_step_eb_ = dynamic_cast<SolveStepEB*>(domain->GetBasePDE()->GetSolveStep());
+      if ( !solve_step_eb_ ) {
+        EXCEPTION("Inverse Hysteresis needs solve_step_eb_");
+      }
 
       hasElemSolution_.Resize(numElems_, false);
     }
@@ -106,8 +111,12 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       UInt idx = ElemNum2Idx_[ElemNum];
 
       // compute H
-      H = Evaluate(BVec, false, idx);
-
+      if (this->solve_step_eb_->update_polarization_eb_ == true) {
+        H = Evaluate(BVec, true, idx);
+      } else {
+        H = Evaluate(BVec, false, idx);
+      }
+        
       // return
       return H;
     }
@@ -129,26 +138,24 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       }
       // define needed variables
       UInt idx = ElemNum2Idx_[ElemNum];
-      /* Vector<Double>     J;
-      Vector<Double>     J_dummy; */
       Matrix<Double>     nu(dim_,dim_); nu.InitValue(0.0);
-      /* StdVector<Double>& B0 = B0_[idx];
-      StdVector<Double>& J0 = J0_[idx];
-      StdVector<Double>  H_k(dim_);
-      StdVector<Double>  H_k_0(dim_);
-      StdVector<Double>  delta_H(dim_);
-      StdVector<Double>  delta_B(dim_); */
+      StdVector<Double>& B0 = B0_[idx];
+      StdVector<Double>& H0 = H0_[idx];
+      Vector<Double>  H(dim_);
+      StdVector<Double>  H_old(dim_);
+      Vector<Double>  H_dummy(dim_);
+      Vector<Double>  delta_H(dim_);
+      Vector<Double>  delta_B(dim_);
 
-      
-      /* // algorithm to determine nu = dH/dB;
+      // algorithm to determine nu = dH/dB;
       if(hasElemSolution_[idx] == true){ // nu of this element has already been computed
         return nu_[idx];
       }
-      if(timeStep_== 1 && globalIter_ == 1){ // starting value at nu = diag(1/mu0);
+      if( globalIter_ == 1){ // starting value at nu = diag(1/(mu0*1000));
         for(UInt i = 0; i < dim_; i++) {
           for(UInt j = 0; j < dim_; j++) {
             if (i == j) {
-              nu[i][j] = 1/mu_0;
+              nu[i][j] = 1/(mu_0*1000);
             } else {
               nu[i][j] = 0;
             }
@@ -158,30 +165,22 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         hasElemSolution_[idx] = true;
         return nu;
       }
-      J = Evaluate(BVec, false, idx); // get current J
+
+      H = Evaluate(BVec, false, idx); // get current H
       for(UInt i = 0; i < dim_; i++) { // get the values for H and M from the last timestep and get deltaH and deltaB
-        H_k[i] = (1/mu_0) * (BVec[i] - J[i]);
-        H_k_0[i] = (1/mu_0) * (B0[i] - J0[i]);
+        H_old[i] = H0[i]; // get old H
         delta_B[i] = BVec[i] - B0[i];
-        delta_H[i] = H_k[i] - H_k_0[i];
+        delta_H[i] = H[i] - H_old[i];
         B1_[idx][i] = BVec[i];
-        J1_[idx][i] = J[i];
+        H1_[idx][i] = H[i];
       }
       nu = EvaluateLocalNuBFGS(delta_H, delta_B, idx); // determine nu
-      J_dummy = Evaluate(BVec, true, idx); // just to update all J_k values
-      nu_[idx] = nu; // store all quantities
-      J0_[idx] = J1_[idx];
-      B0_[idx] = B1_[idx]; */
+      // nu = EvaluateLocalMuGBM(delta_B, delta_H, idx);
+      
+      nu_[idx] = nu; // store all quantities for next iteration step
+      H0_[idx] = H1_[idx];
+      B0_[idx] = B1_[idx];
 
-      for(UInt i = 0; i < dim_; i++) {
-        for(UInt j = 0; j < dim_; j++) {
-          if (i == j) {
-            nu[i][j] = 1/mu_0;
-          } else {
-            nu[i][j] = 0;
-          }
-        }
-      }
       nu_[idx] = nu;
       hasElemSolution_[idx] = true; // mark this element as computed
 
@@ -190,7 +189,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
     }
 
 
-    Matrix<Double> invEBHysteresis::EvaluateLocalNuBFGS(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+    Matrix<Double> invEBHysteresis::EvaluateLocalNuBFGS(Vector<Double> dH, Vector<Double> dB, UInt idx){
       // define needed variables
       Matrix<Double> yyT(dim_, dim_);
       Matrix<Double> BxBxT(dim_, dim_);
@@ -198,9 +197,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       Matrix<Double> B = nu_[idx];
       Double yTx;
       Double xTBx;
-      StdVector<Double> y = dH;
-      StdVector<Double> x = dB;
-      StdVector<Double> Bx;
+      Vector<Double> y = dH;
+      Vector<Double> x = dB;
+      Vector<Double> Bx(dim_);
 
       // update nu via BFGS formula
       if(dim_ == 2){
@@ -214,7 +213,6 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         // xTBx (inner product)
         Bx[0] = B[0][0]*x[0] + B[0][1]*x[1];
         Bx[1] = B[1][0]*x[0] + B[1][1]*x[1];
-        Bx[2] = B[2][0]*x[0] + B[2][1]*x[1];
         xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]);
 
         // BxBxT (outer product)
@@ -227,6 +225,19 @@ DEFINE_LOG(inveb, "invEBHysteresis")
 
         B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
         B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
+
+        if ( (std::isnan(B_k1[0][0])) || (std::isnan(B_k1[1][1])) || (std::isnan(B_k1[0][1])) || (std::isnan(B_k1[1][0])) ) {
+          B_k1[0][0] = 1/mu_0;
+          B_k1[1][1] = 0;
+          B_k1[0][1] = 0;
+          B_k1[1][0] = 1/mu_0;
+        }
+        if ( (std::isinf(B_k1[0][0])) || (std::isinf(B_k1[1][1])) || (std::isinf(B_k1[0][1])) || (std::isinf(B_k1[1][0])) ) {
+          B_k1[0][0] = 1/mu_0;
+          B_k1[1][1] = 0;
+          B_k1[0][1] = 0;
+          B_k1[1][0] = 1/mu_0;
+        }
       } else { // 3-D version
         // yyT (outer product)
         yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; yyT[0][2] = y[0]*y[2];
@@ -263,13 +274,91 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       return B_k1; // this is the new nu
     }
 
+    Matrix<Double> invEBHysteresis::EvaluateLocalMuGBM(Vector<Double> dH, Vector<Double> dB, UInt idx){
+      Matrix<Double> nu;
+      nu.Resize(dim_,dim_);
+
+      Vector<Double> dD_minus_epsilon_km1_times_dE(dim_);
+      Vector<Double> dHvec(dim_);
+      Matrix<Double> rightM(dim_,dim_);
+      double offset = 1e-13;
+
+      if(dim_ == 2){
+        dH[0] = dH[0] + offset; dH[1] = dH[1] + offset;
+        dB[0] = dB[0] + offset; dB[1] = dB[1] + offset;
+        dD_minus_epsilon_km1_times_dE[0] = dB[0] - (nu_[idx][0][0]*dH[0] + nu_[idx][0][1]*dH[1]);
+        dD_minus_epsilon_km1_times_dE[1] = dB[1] - (nu_[idx][1][0]*dH[0] + nu_[idx][1][1]*dH[1]);
+
+        dHvec[0] = dH[0];
+        dHvec[1] = dH[1];
+        dD_minus_epsilon_km1_times_dE.ScalarDiv(dHvec.NormL2_squared());
+        
+        rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dHvec);
+        
+        nu[0][0] = nu_[idx][0][0] + rightM[0][0];
+        nu[1][0] = nu_[idx][1][0] + rightM[1][0];
+        nu[0][1] = nu_[idx][0][1] + rightM[0][1];
+        nu[1][1] = nu_[idx][1][1] + rightM[1][1];
+                
+        LOG_DBG3(eb)<< "\n\t dD_minus_epsilon_km1_times_dE = " << dD_minus_epsilon_km1_times_dE.ToString()
+                    << "\n\t dHvec = " << dHvec.ToString()
+                    << "\n\t rightM = " << rightM.ToString();
+
+        for (UInt i = 0; i < dim_; i++){
+            if (std::isinf(nu[i][i]) || std::isnan(nu[i][i])){
+              Matrix<Double> e = nu_[idx];
+                nu[i][i] = e[i][i]; //mu_0; //e[i][i]; //mu_0;
+            } 
+        }
+      }else{ // 3D version
+        dD_minus_epsilon_km1_times_dE[0] = dB[0] - (nu_[idx][0][0]*dH[0] + nu_[idx][0][1]*dH[1] + nu_[idx][0][2]*dH[2]);
+        dD_minus_epsilon_km1_times_dE[1] = dB[1] - (nu_[idx][1][0]*dH[0] + nu_[idx][1][1]*dH[1] + nu_[idx][1][2]*dH[2]);
+        dD_minus_epsilon_km1_times_dE[2] = dB[2] - (nu_[idx][2][0]*dH[0] + nu_[idx][2][1]*dH[1] + nu_[idx][2][2]*dH[2]);
+
+        dHvec[0] = dH[0];
+        dHvec[1] = dH[1];
+        dHvec[2] = dH[2];
+        dD_minus_epsilon_km1_times_dE.ScalarDiv(dHvec.NormL2_squared());
+        
+        rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dHvec);
+        
+        nu[1][0] = nu_[idx][1][0] + rightM[1][0];
+        nu[0][1] = nu_[idx][0][1] + rightM[0][1];
+        nu[0][2] = nu_[idx][0][2] + rightM[0][2];
+        nu[2][0] = nu_[idx][2][0] + rightM[2][0];
+        nu[1][2] = nu_[idx][1][2] + rightM[1][2];
+        nu[2][1] = nu_[idx][2][1] + rightM[2][1];
+        nu[0][0] = nu_[idx][0][0] + rightM[0][0];
+        nu[1][1] = nu_[idx][1][1] + rightM[1][1];
+        nu[2][2] = nu_[idx][2][2] + rightM[2][2];
+
+        LOG_DBG3(eb)<< "\n\t dD_minus_epsilon_km1_times_dE = " << dD_minus_epsilon_km1_times_dE.ToString()
+                    << "\n\t dHvec = " << dHvec.ToString()
+                    << "\n\t rightM = " << rightM.ToString();
+
+        nu[0][1] = 0.0;
+        nu[1][0] = 0.0;
+        nu[2][0] = 0.0;
+        nu[0][2] = 0.0;
+        nu[1][2] = 0.0;
+        nu[2][1] = 0.0;
+        for (UInt i = 0; i < dim_; i++){
+            if (std::isinf(nu[i][i]) || std::isnan(nu[i][i])){
+              Matrix<Double> e = nu_[idx];
+                nu[i][i] = e[i][i]; //e[i][i]; //mu_0;
+            } 
+        }
+      }
+      return nu;  
+    }
+
 
 
 
     Vector<Double> invEBHysteresis::Evaluate(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx) {
       // define needed variables
       Vector<Double>     ret;
-      /* StdVector<Double>  weight(numS_);
+      StdVector<Double>  weight(numS_);
       UInt               num_pin;
       StdVector<Double>  chi(numS_);
       Matrix<Double>     J_k(2,numS_); // dim: (2,num_pin)
@@ -281,11 +370,10 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       Double             phi_der0, phi_der00, tolerance_newton, eps_newton; // line search / Newton parameter
       UInt               max_newton_iter;  // Newton parameter
       Vector<Double>     solution_linear_system(2*numS_);
-      StdVector<Double>  J_x_k_sol, J_y_k_sol; */
-      Vector<Double>     H_out(2);//, J_out(2);
+      StdVector<Double>  J_x_k_sol, J_y_k_sol;
+      Vector<Double>     H_out(2), J_out(2);
 
-
-      /* // init. variables
+      // init. variables
       weight.Init(1.0/numS_);  // hysteresis parameter
       num_pin = numS_;         // hysteresis parameter
       StdVector<Double>& J_x_k_prev = J_x_k_n_[idx]; // get J_k from previous time step
@@ -293,49 +381,46 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       for(int kdx = 1; kdx < num_pin; kdx++){ 
         J_k_prev[0][kdx] = J_x_k_prev[kdx];
         J_k_prev[1][kdx] = J_y_k_prev[kdx];
-        J_k[0][kdx] = 0;
-        J_k[1][kdx] = 0;
+        J_k[0][kdx] = 0.0;
+        J_k[1][kdx] = 0.0;
       }
       J_x_k_sol.Resize(numS_, 0.0);
       J_y_k_sol.Resize(numS_, 0.0);
+      max_newton_iter = 100; // some Newton cofigurations (should be accessible from the XML-File??)
+      tolerance_newton = 1e-12;
+      eps_newton = 1e-14;
 
-      // some Newton cofigurations (should be accessible from the XML-File??)
-      max_newton_iter = 5000;
-      tolerance_newton = 10^-12;
-      eps_newton = 10^-14;
-
-      
       // apply Newton method
-      for(int ndx = 0; ndx < max_newton_iter; ndx++){
+      for(int ndx = 0; ndx < max_newton_iter; ndx++){ // Newton method iterations
         // calculate the gradient of energy functional
         gradient = CalcGradientMagEnergy(B_n, J_k, J_k_prev);
         // calculate the hessian of energy functional
         hessian = CalcHessianMagEnergy(J_k, J_k_prev);
         // change sign of hessian matrix
-        for(int idx = 1; idx < 2*num_pin; idx++){
-          for(int jdx = 1; jdx < 2*num_pin; jdx++){
+        for(int idx = 0; idx < 2*num_pin; idx++){
+          for(int jdx = 0; jdx < 2*num_pin; jdx++){
             negative_hessian[idx][jdx] = -hessian[idx][jdx];
           }
         }
         // solve linear system
-        solution_linear_system = LUSolve(hessian,gradient);
-        for(int j = 1; j < num_pin; j++){ // arrange solution_linear_system to have a (2,num_pin) matrix
+        solution_linear_system = LUSolve(negative_hessian,gradient);
+        for(int j = 1; j <= num_pin; j++){ // arrange solution_linear_system to have a (2,num_pin) matrix
             delta_J_k[0][j-1] = solution_linear_system[2*j-1-1];
             delta_J_k[1][j-1] = solution_linear_system[2*j-1];
         }
-        // line search
+        // apply line search
         phi_der0 = 0;
-        for(int j = 1; j < num_pin; j++){ 
+        for(int j = 0; j < num_pin; j++){ 
           phi_der0 = phi_der0 + solution_linear_system[j]*gradient[j];
         }
         eta = LineSearchArmijoInvEB(phi_der0, B_n, J_k, delta_J_k, J_k_prev);
         // update solution J_k
-        for(int kdx = 1; kdx < num_pin; kdx++){ 
+        for(int kdx = 0; kdx < num_pin; kdx++){ 
           J_k[0][kdx] = J_k[0][kdx] + eta[0][kdx]*delta_J_k[0][kdx];
           J_k[1][kdx] = J_k[1][kdx] + eta[1][kdx]*delta_J_k[1][kdx];
         }
         // check stopping criterion
-        if (ndx == 1) {
+        if (ndx == 0) {
           phi_der00 = phi_der0;
         }
         if ( std::abs(phi_der0) < (tolerance_newton*std::abs(phi_der00) + eps_newton) ) {
@@ -344,7 +429,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       } // for loop end
       // store J_k for next time step
       if(saveTmpStageVecs){
-        for(int kdx = 1; kdx < num_pin; kdx++) {
+        for(int kdx = 0; kdx < num_pin; kdx++) {
           J_x_k_sol[kdx] = J_k[0][kdx];
           J_y_k_sol[kdx] = J_k[1][kdx];
         }
@@ -353,18 +438,26 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       }
 
       // compute total J
-      for(int kdx = 1; kdx < num_pin; kdx++) {
+      for(int kdx = 0; kdx < num_pin; kdx++) {
         J_out[0] = J_out[0] + weight[kdx]*J_k[0][kdx];
         J_out[1] = J_out[1] + weight[kdx]*J_k[1][kdx];
       }
 
       // compute H by general constitutive law
       H_out[0] = (1/mu_0)*(B_n[0] - J_out[0]);
-      H_out[1] = (1/mu_0)*(B_n[1] - J_out[1]); */
+      H_out[1] = (1/mu_0)*(B_n[1] - J_out[1]);
 
       //!! MAKE IT JUST LINEAR (FOR TESTING)!!
-      H_out[0] = (1/(mu_0*1))*B_n[0];
-      H_out[1] = (1/(mu_0*1))*B_n[1];
+      /* H_out[0] = (1/(mu_0*1))*B_n[0];
+      H_out[1] = (1/(mu_0*1))*B_n[1]; */
+
+      //!! MAKE IT JUST NONLINEAR (FOR TESTING)!!
+      /* Double norm_B_n;
+      Double p_0, p_1, p_2; // parameter
+      p_0 = 155.9; p_1 = 1.5; p_2 = 9.0;
+      norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
+      H_out[0] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[0];
+      H_out[1] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[1]; */
 
       // return value
       ret.Push_back(H_out[0]);
@@ -385,45 +478,43 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       Vector<Double>  J_sum(2);
       Vector<Double>  J(2);
       Double delta_J_x, delta_J_y,norm_delta_J, J_x, J_y;
-      int epsilon;
+      double epsilon;
 
       // init. variables
       weight.Init(1.0/numS_);
       num_pin = numS_;
       for(UInt i = 0; i < numS_; i++){ // hysteresis parameter
-        chi[i] = chi_factor_ * i / (numS_-1) + 1e-22;
-        chi[i] = chi_factor_ * i / (numS_-1) + 0.001;
-        chi[i] = chi_factor_ * i / (numS_-1) + 1e-22;
+        chi[i] = chi_factor_ * i / (numS_-1);
       }
-      J_sum[0] = 0.0; J_sum[1] = 0.0;
       epsilon = 1e-8;
 
       // pre-computations for the gradient
+      J_sum[0] = 0.0; J_sum[1] = 0.0;
       for(int kdx = 0; kdx < num_pin; kdx++){
         J_sum[0] = J_sum[0] + (weight[kdx]*J_k[0][kdx]);
         J_sum[1] = J_sum[1] + (weight[kdx]*J_k[1][kdx]);
       }
       
 
-      for(int kdx = 0; kdx < num_pin; kdx++){
+      for(int kdx = 1; kdx <= num_pin; kdx++){
         // get kth J from J_k
-        J_x = J_k[0][kdx]; J_y = J_k[1][kdx]; J[0] = J_x; J[1] = J_y;
+        J_x = J_k[0][kdx-1]; J_y = J_k[1][kdx-1]; J[0] = J_x; J[1] = J_y;
         // calc. differences
-        delta_J_x = J_k[0][kdx] - J_k_prev[0][kdx]; delta_J_y = J_k[1][kdx] - J_k_prev[1][kdx];
+        delta_J_x = J_k[0][kdx-1] - J_k_prev[0][kdx-1]; delta_J_y = J_k[1][kdx-1] - J_k_prev[1][kdx-1];
         norm_delta_J = std::sqrt(std::pow(delta_J_x,2) + std::pow(delta_J_y,2));
         // calc. all gradient parts
         // vacuum
-        gradient_vacuum[0] = -(weight[kdx]/mu_0)*(B_n[0] - J_sum[0]);
-        gradient_vacuum[1] = -(weight[kdx]/mu_0)*(B_n[1] - J_sum[1]);
+        gradient_vacuum[0] = -(weight[kdx-1]/mu_0)*(B_n[0] - J_sum[0]);
+        gradient_vacuum[1] = -(weight[kdx-1]/mu_0)*(B_n[1] - J_sum[1]);
         // anhysteresis
         gradient_internal_energy = CalcGradientInternalEnergy(J);
-        gradient_anhyst[0] = weight[kdx]*gradient_internal_energy[0];
-        gradient_anhyst[1] = weight[kdx]*gradient_internal_energy[1];
+        gradient_anhyst[0] = weight[kdx-1]*gradient_internal_energy[0];
+        gradient_anhyst[1] = weight[kdx-1]*gradient_internal_energy[1];
         // dissipation
-        gradient_dissipation[0] = weight[kdx]*chi[kdx]*delta_J_x/std::sqrt(std::pow(norm_delta_J,2) + epsilon);
-        gradient_dissipation[1] = weight[kdx]*chi[kdx]*delta_J_y/std::sqrt(std::pow(norm_delta_J,2) + epsilon);
-        gradient[2*kdx-1] = gradient_vacuum[0] + gradient_anhyst[0] + gradient_dissipation[0];
-        gradient[2*kdx] = gradient_vacuum[1] + gradient_anhyst[1] + gradient_dissipation[1];
+        gradient_dissipation[0] = weight[kdx-1]*chi[kdx-1]*delta_J_x/std::sqrt(std::pow(norm_delta_J,2) + epsilon);
+        gradient_dissipation[1] = weight[kdx-1]*chi[kdx-1]*delta_J_y/std::sqrt(std::pow(norm_delta_J,2) + epsilon);
+        gradient[2*kdx-1-1] = gradient_vacuum[0] + gradient_anhyst[0] + gradient_dissipation[0];
+        gradient[2*kdx-1] = gradient_vacuum[1] + gradient_anhyst[1] + gradient_dissipation[1];
       }
       return gradient;
     }
@@ -434,9 +525,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
     Vector<Double>  gradient_internal_energy_direction(2), gradient_internal_energy(2);
 
     // parameter (anhysteretic)
-    int Js = Js_;
-    int epsilon = 1e-8;
-    int A = A_;
+    double Js = Js_;
+    double epsilon = 1e-8;
+    double A = A_;
 
     // calc. magnitude
     norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0],2)+std::pow(J[1],2))),2) + epsilon);
@@ -465,53 +556,48 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       Matrix<Double>     hessian_dissipation_energy(2, 2);
       Double             J_x, J_y, delta_J_x, delta_J_y, norm_delta_J;
       Vector<Double>     J(2), delta_J(2);
-      int                row_hessian, column_hessian;
       UInt               chi;
 
       // init. variables
       weight.Init(1.0/numS_);
       num_pin = numS_;
       for(UInt i = 0; i < numS_; i++){ // hysteresis parameter
-        chi_k[i] = chi_factor_ * i / (numS_-1) + 1e-22;
-        chi_k[i] = chi_factor_ * i / (numS_-1) + 0.001;
-        chi_k[i] = chi_factor_ * i / (numS_-1) + 1e-22;
+        chi_k[i] = chi_factor_ * i / (numS_-1);
       }
 
-      for(int kdx = 0; kdx < num_pin; kdx++){
-        J_x = J_k[0][kdx]; J_y = J_k[1][kdx]; J[0] = J_x; J[1] = J_y; // get kth J from J_k
-        chi = chi_k[kdx]; // get kth chi from chi_k
+      for(int kdx = 1; kdx <= num_pin; kdx++){
+        J_x = J_k[0][kdx-1]; J_y = J_k[1][kdx-1]; J[0] = J_x; J[1] = J_y; // get kth J from J_k
+        chi = chi_k[kdx-1]; // get kth chi from chi_k
         // calc. differences
-        delta_J_x = J_k[0][kdx] - J_k_prev[0][kdx]; delta_J_y = J_k[1][kdx] - J_k_prev[1][kdx];
+        delta_J_x = J_k[0][kdx-1] - J_k_prev[0][kdx-1]; delta_J_y = J_k[1][kdx-1] - J_k_prev[1][kdx-1];
         delta_J[0] = delta_J_x; delta_J[1] = delta_J_y;
         norm_delta_J = std::sqrt(std::pow(delta_J_x,2) + std::pow(delta_J_y,2));
 
         // vacuum energy
-        for(int idx = 1; idx < num_pin; idx++){
-            hessian[2*kdx-1-1][2*idx-1-1] = hessian[2*kdx-1-1][2*idx-1-1] + (weight[idx-1]*weight[kdx-1]/mu_0);
-            hessian[2*kdx-1][2*idx-1] = hessian[2*kdx-1][2*idx-1] + (weight[idx-1]*weight[kdx-1]/mu_0);
+        for(int idx = 1; idx <= num_pin; idx++){
+          hessian[2*kdx-1-1][2*idx-1-1] = hessian[2*kdx-1-1][2*idx-1-1] + (weight[idx-1]*weight[kdx-1]/mu_0);
+          hessian[2*kdx-1][2*idx-1] = hessian[2*kdx-1][2*idx-1] + (weight[idx-1]*weight[kdx-1]/mu_0);
         }
 
         // internal energy
         hessian_internal_energy = CalcHessianInternalEnergy(J);
-        hessian_k[0][0] = weight[kdx]*hessian_internal_energy[0][0];
-        hessian_k[1][1] = weight[kdx]*hessian_internal_energy[1][1];
-        hessian_k[0][1] = weight[kdx]*hessian_internal_energy[0][1];
-        hessian_k[1][0] = weight[kdx]*hessian_internal_energy[1][0];
+        hessian_k[0][0] = weight[kdx-1]*hessian_internal_energy[0][0];
+        hessian_k[1][1] = weight[kdx-1]*hessian_internal_energy[1][1];
+        hessian_k[0][1] = weight[kdx-1]*hessian_internal_energy[0][1];
+        hessian_k[1][0] = weight[kdx-1]*hessian_internal_energy[1][0];
 
         // dissipative energy
         hessian_dissipation_energy = CalcHessianDissipationEnergy(delta_J, norm_delta_J, chi);
-        hessian_k[0][0] = hessian_k[0][0] + weight[kdx]*hessian_dissipation_energy[0][0];
-        hessian_k[1][1] = hessian_k[1][1] + weight[kdx]*hessian_dissipation_energy[1][1];
-        hessian_k[0][1] = hessian_k[0][1] + weight[kdx]*hessian_dissipation_energy[0][1];
-        hessian_k[1][0] = hessian_k[1][0] + weight[kdx]*hessian_dissipation_energy[1][0];
+        hessian_k[0][0] = hessian_k[0][0] + weight[kdx-1]*hessian_dissipation_energy[0][0];
+        hessian_k[1][1] = hessian_k[1][1] + weight[kdx-1]*hessian_dissipation_energy[1][1];
+        hessian_k[0][1] = hessian_k[0][1] + weight[kdx-1]*hessian_dissipation_energy[0][1];
+        hessian_k[1][0] = hessian_k[1][0] + weight[kdx-1]*hessian_dissipation_energy[1][0];
 
         // put everything together
-        row_hessian = 2*kdx;
-        column_hessian = 2*kdx;
-        for (int i = 1; i < 2; ++i) {
-          for (int j = 1; j < 2; ++j) {
-              hessian[row_hessian + i - 1][column_hessian + j - 1] += hessian_k[i][j];
-          }
+        for (int i = 0; i < 2; ++i) {
+            for (int j = 0; j < 2; ++j) {
+                hessian[2*kdx - 2 + i][2*kdx - 2 + j] += hessian_k[i][j];
+            }
         }
       }
       // return
@@ -526,9 +612,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       Double         norm_J, factor1, factor2, sec_factor; 
       
       // parameter (anhysteretic)
-      int Js = Js_;
-      int epsilon = 1e-8;
-      int A = A_;
+      double Js = Js_;
+      double epsilon = 1e-8;
+      double A = A_;
 
       // pre-computations for hessian
       norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0],2)+std::pow(J[1],2))),2) + epsilon);
@@ -537,10 +623,10 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       factor2 = (A*M_PI/2/Js)*std::pow(sec_factor,2); 
 
       // part 1
-      hessian1[0][0] =  factor1*(1./norm_J - J[0]*J[0]/(norm_J*norm_J*norm_J));
-      hessian1[1][1] =  factor1*(1./norm_J - J[1]*J[1]/(norm_J*norm_J*norm_J));
-      hessian1[0][1] = -factor1*(1./norm_J - J[0]*J[1]/(norm_J*norm_J*norm_J));
-      hessian1[1][0] = -factor1*(1./norm_J - J[1]*J[0]/(norm_J*norm_J*norm_J));
+      hessian1[0][0] =  factor1*(1/norm_J - J[0]*J[0]/(norm_J*norm_J*norm_J));
+      hessian1[1][1] =  factor1*(1/norm_J - J[1]*J[1]/(norm_J*norm_J*norm_J));
+      hessian1[0][1] = -factor1*J[0]*J[1]/(norm_J*norm_J*norm_J);
+      hessian1[1][0] = -factor1*J[1]*J[0]/(norm_J*norm_J*norm_J);
 
       // part 2
       hessian2[0][0] = factor2*J[0]*J[0]/(norm_J*norm_J);
@@ -566,7 +652,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       Double         factor1, factor2; 
 
       // parameter (dissipation)
-      int epsilon = 1e-8;
+      double epsilon = 1e-8;
 
       // part 1 of dissipation hessian
       factor1 = chi*(1/std::sqrt(std::pow(norm_delta_J,2) + epsilon));
@@ -596,7 +682,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       Matrix<Double> eta0(2,numS_);
       Matrix<Double> eta(2,numS_);
       double         phi0, energy; // energies
-      Matrix<Double> J_k_update;
+      Matrix<Double> J_k_update(2,numS_);
       UInt           num_pin;
 
       // init. variables
@@ -698,7 +784,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
 
     Vector<Double> invEBHysteresis::CalcInternalEnergy(Matrix<Double> J_k) {
       // define needed variables
-      int Js, A;
+      double Js, A;
       Vector<Double>  norm_J(numS_);
       Vector<Double>  internal_energy(numS_);
       UInt            num_pin;
@@ -730,13 +816,13 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       // define needed variables 
       int                    number_rows_A = 2*numS_;
       Vector<Double>         y, solution_linear_system(number_rows_A);
-      Matrix<Double>         L, U;
+      Matrix<Double>         L(number_rows_A,number_rows_A), U(number_rows_A,number_rows_A);
 
       // init. variables 
       // (see definitions)
 
       // solve the system by LU Decomposition
-      LUDecompose(A, L, U); // apply LU Decomposition
+      LUDecompose(A, L, U); // Step 1: apply LU Decomposition
       y = LUForwardSubstitution(L, b); // Step 2: Solve L * y = b using forward substitution
       solution_linear_system = LUBackwardSubstitution(U, y); // Step 3: Solve U * x = y using backward substitution
       
@@ -754,21 +840,21 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       // LU Decomposition
       for (int idx = 0; idx < number_rows_A; ++idx) {
         for (int jdx = idx; jdx < number_rows_A; ++jdx) { // Upper triangular matrix U
-            U[idx][jdx] = A[idx][jdx];
-            for (int kdx = 0; kdx < idx; ++kdx) {
-                U[idx][jdx] -= L[idx][kdx] * U[kdx][jdx];
-            }
+          U[idx][jdx] = A[idx][jdx];
+          for (int kdx = 0; kdx < idx; ++kdx) {
+              U[idx][jdx] -= L[idx][kdx] * U[kdx][jdx];
+          }
         }
         for (int jdx = idx; jdx < number_rows_A; ++jdx) { // Lower triangular matrix L
-            if (idx == jdx) {
-                L[idx][idx] = 1; // Diagonal elements of L are set to 1
-            } else {
-                L[jdx][idx] = A[jdx][idx];
-                for (int kdx = 0; kdx < idx; ++kdx) {
-                    L[jdx][idx] -= L[jdx][kdx] * U[kdx][idx];
-                }
-                L[jdx][idx] /= U[idx][idx];
-            }
+          if (idx == jdx) {
+              L[idx][idx] = 1; // Diagonal elements of L are set to 1
+          } else {
+              L[jdx][idx] = A[jdx][idx];
+              for (int kdx = 0; kdx < idx; ++kdx) {
+                  L[jdx][idx] -= L[jdx][kdx] * U[kdx][idx];
+              }
+              L[jdx][idx] /= U[idx][idx];
+          }
         }
       }
       return true;

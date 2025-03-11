@@ -48,6 +48,10 @@ public:
   virtual Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum){
     EXCEPTION( "Not implemented in base class");
   };
+
+  virtual Vector<Double> GetFieldIntensity(Vector<Double> B, Integer ElemNum){
+    EXCEPTION( "Not implemented in base class");
+  };
  
 };
 

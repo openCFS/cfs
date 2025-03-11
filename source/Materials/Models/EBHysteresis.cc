@@ -327,12 +327,6 @@ DEFINE_LOG(eb, "EBHysteresis")
           }
         }
       } 
-        /* if (idx == 1){
-          std::cout << "Hx: " << HVec[0] << ", Hy: " << HVec[1] << ", Hz: " << HVec[2] << std::endl;
-          std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-          std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-          std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-        } */
       return mu;
     }
 
@@ -744,14 +738,6 @@ DEFINE_LOG(eb, "EBHysteresis")
             } 
         }
       }
-      //################### just for checking some things #################
-/*       if (idx == 15){
-        std::cout << "Broyden" << std::endl;
-        std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-        std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-        std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-      } */
-      //############### delete as soon as it works #######################
       return mu;  
     }
 

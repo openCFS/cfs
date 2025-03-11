@@ -132,6 +132,9 @@ namespace CoupledField
     //! the grad-grad-term. We need it for the calculation of the eddy current
     //! density.
     std::set<shared_ptr<CoefFunctionFormBased> > mixedFormFunctor_;
+
+        //! Coefficient function, containing the overall permeability
+    shared_ptr<CoefFunctionMulti> reluc_;
     
   private:
     //! This coefficient function describes the velocity field.

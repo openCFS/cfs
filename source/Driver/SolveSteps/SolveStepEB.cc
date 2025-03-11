@@ -23,6 +23,7 @@ namespace CoupledField
   SolveStepEB::SolveStepEB(StdPDE &apde) : StdSolveStep(apde)
   {
     matModelCoef_ = apde.GetModelCoef();
+    update_polarization_eb_ = false;
   }
 
   SolveStepEB::~SolveStepEB()
@@ -30,11 +31,10 @@ namespace CoupledField
   }
 
   // ======================================================
-  // Solve Step Transient SECTION
+  // Solve Step static section
   // ======================================================
 
-  void SolveStepEB::SolveStepTrans()
-  {
+  void SolveStepEB::SolveStepStatic() {
     if (nonLin_)
     {
       std::cout << "StepTransNonLin()\n";
@@ -47,13 +47,26 @@ namespace CoupledField
     }
   }
 
-  void SolveStepEB::StepTransNonLin() {
+  // ======================================================
+  // Solve Step Transient section
+  // ======================================================
 
-    std::cout << "StepTransNonLin before iterationCounter\n"; 
+  void SolveStepEB::SolveStepTrans()
+  {
+    if (nonLin_)
+    {
+      StepTransNonLin();
+    }
+    else
+    {
+      StepTransLin();
+    }
+  }
+
+  void SolveStepEB::StepTransNonLin() {
+ 
     mParser_->SetExpr(MathParser::GLOB_HANDLER,"iterationCounter");
-    std::cout << "StepTransNonLin mid iterationCounter\n";
     mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", 0);
-    std::cout << "StepTransNonLin after iterationCounter\n";
 
     bool performOneMoreStep;
     bool isNewton = false;
@@ -63,6 +76,7 @@ namespace CoupledField
     SBM_Vector stageSol_temp(BaseMatrix::DOUBLE);
     SBM_Vector actRHS(BaseMatrix::DOUBLE);
     SBM_Vector actSol(BaseMatrix::DOUBLE);
+    update_polarization_eb_ = false;
     
     //obtain the number of stages
     UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
@@ -127,17 +141,17 @@ namespace CoupledField
 
         // apply line search
         Double etaLineSearch = 1.0;
-        if ( lineSearch_ == "none"){
+        if ( lineSearch_ == "none") {
           stageSol.Add(etaLineSearch, solInc);
-        }else if ( lineSearch_ == "minEnergy"){
+        }else if ( lineSearch_ == "minEnergy") {
           etaLineSearch = ExactLineSearch(solInc, stageSol);
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
-        }else if ( lineSearch_ == "Armijo"){
+        }else if ( lineSearch_ == "Armijo") {
           etaLineSearch = LineSearchArmijo(solInc, stageSol);
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
-        }else if ( lineSearch_ == "Inexact"){
+        }else if ( lineSearch_ == "Inexact") {
           etaLineSearch = InexactLineSearch(solInc, stageSol);
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
@@ -164,7 +178,12 @@ namespace CoupledField
 
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-        if ( performOneMoreStep == 0){
+        if ( performOneMoreStep == 0 || iterationCounter == 30){
+          this->solve_step_eb_->update_polarization_eb_ = true;
+          algsys_->InitRHS();
+          assemble_->AssembleLinRHS();
+          assemble_->AssembleNonLinRHS();  
+          algsys_->GetRHSVal( actRHS );
           break;
         }
         
@@ -210,9 +229,9 @@ namespace CoupledField
 
   double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol){
 
-    Double bottom_interval = 0.0 + 1e-15;
+    Double bottom_interval = 0.0 + 1e-3;
     Double top_interval = 1; 
-    Double gamma = 0;
+    Double gamma = 0.0;
     
     gamma = BrentMethod(solIncrement, actSol, bottom_interval, top_interval);
     return gamma;

@@ -88,8 +88,6 @@ namespace CoupledField
 		if(isHysteresis_){
 			solveStep_ = new SolveStepHyst(*this);
     } else if(nonLin_ && (modelName_ == "invEBHysteresisModel")){
-      std::cout << "use SolveStepEB\n";
-      //solveStep_ = new StdSolveStep(*this);
       solveStep_ = new SolveStepEB(*this); 
 		} else {
 			solveStep_ = new StdSolveStep(*this);

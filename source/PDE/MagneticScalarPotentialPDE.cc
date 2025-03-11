@@ -238,12 +238,12 @@ namespace CoupledField
                       (1.0), fluxDensityNL, coefUpdateGeo, false);
             }
           }
-        lin->SetName("(B,grad phi'): nonlinear problem; nonlinear subregion RHS");
-        lin->SetSolDependent();
-        LinearFormContext *ctx = new LinearFormContext( lin );
-        ctx->SetEntities( actSDList );
-        ctx->SetFeFunction(feFunc_reduced);
-        assemble_->AddLinearForm(ctx);
+          lin->SetName("(B,grad phi'): nonlinear problem; nonlinear subregion RHS");
+          lin->SetSolDependent();
+          LinearFormContext *ctx = new LinearFormContext( lin );
+          ctx->SetEntities( actSDList );
+          ctx->SetFeFunction(feFunc_reduced);
+          assemble_->AddLinearForm(ctx);
         }
         // ===============================================================================================
         // NONLINEAR CASE AND NONLINEAR REGION: \int B(H) \gradPhi' (end)
@@ -415,8 +415,9 @@ namespace CoupledField
     }
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
-
-    // === MAGNETIC FIELD INTENSITY ===
+    // =====================================================
+    // MAGNETIC_FIELD_INTENSITY (START)
+    // =====================================================
     shared_ptr<ResultInfo> ef(new ResultInfo);
     ef->resultType = MAG_FIELD_INTENSITY;
     ef->dofNames = vecDofNames;
@@ -424,17 +425,22 @@ namespace CoupledField
     ef->definedOn = ResultInfo::ELEMENT;
     ef->entryType = ResultInfo::VECTOR;
     ef->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
-    // The recipe about how to actually evaluate H, is defined in FinalizePostProcResults()
+    // The recipe how to actually evaluate H, is defined in FinalizePostProcResults()
     shared_ptr<CoefFunctionMulti> hIntensFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     DefineFieldResult(hIntensFunc, ef);
+    // =====================================================
+    // MAGNETIC_FIELD_INTENSITY (END)
+    // =====================================================
 
-    // === PERMEABILITY  ===
+    // =====================================================
+    // PERMEABILITY (START)
+    // =====================================================
     shared_ptr<ResultInfo> perm(new ResultInfo);
     perm->resultType = MAG_ELEM_PERMEABILITY;
     perm->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
     shared_ptr<CoefFunctionFormBased> perm_coef;
     shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
-    if(nonLin_ && (modelName_ == "EBHysteresisModel")){
+    if(nonLin_ && (modelName_ == "EBHysteresisModel")) {
       if(dim_ == 2){
         perm->dofNames = "xx", "yy","xy";
       } else {
@@ -446,13 +452,16 @@ namespace CoupledField
       perm_coef.reset(new CoefFunctionHomogenization<double, App::MAG>(feFct));
       DefineFieldResult(perm_coef , perm);
       stiffFormCoefs_.insert(perm_coef);
-    }else{
+    } else {
       perm->dofNames = "";
       perm->unit = "Vs/Am";
       perm->definedOn = ResultInfo::ELEMENT;
       perm->entryType = ResultInfo::SCALAR;
       DefineFieldResult( perm_, perm );
     }
+    // =====================================================
+    // PERMEABILITY (END)
+    // =====================================================
 
     // =====================================================
     // MAG_FLUX_DENSTIY (START)
@@ -464,7 +473,7 @@ namespace CoupledField
     bf->unit = "T";
     bf->definedOn = ResultInfo::ELEMENT;
     bf->entryType = ResultInfo::VECTOR;
-    // The recipe about how to actually evaluate B, is defined in FinalizePostProcResults()
+    // The recipe how to actually evaluate B, is defined in FinalizePostProcResults()
     shared_ptr<CoefFunctionMulti> bFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
     DefineFieldResult(bFunc, bf);
     // =====================================================
@@ -472,7 +481,7 @@ namespace CoupledField
     // =====================================================
 
     // =====================================================
-    // GRADIENT PHI (helper result) (START)
+    // GRADIENT PHI (MAG_POTENTIAL_DIV) (helper result) (START)
     // =====================================================
     shared_ptr<ResultInfo> hf(new ResultInfo);
     hf->resultType = MAG_POTENTIAL_DIV;
@@ -486,7 +495,7 @@ namespace CoupledField
     DefineFieldResult(hFunc, hf);
     stiffFormCoefs_.insert(hFunc);
     // =====================================================
-    // GRADIENT PHI (helper result) (END)
+    // GRADIENT PHI (MAG_POTENTIAL_DIV) (helper result) (END)
     // =====================================================
   }
 
@@ -503,18 +512,9 @@ namespace CoupledField
     // Initialize standard postprocessing results
     SinglePDE::FinalizePostProcResults();
 
-    // ============ MAGNETIC FIELD INTENSITY ============
-    // Assemble coefficient function for
-    // H = Hs - \grad \Phi
-    // whereas Hs is stored in a CoefFunction and typically read in from a previous sequence
-    // step as the solution of a curl curl type problem (magnetostatics)
-
-    // Hs
-    shared_ptr<CoefFunctionMulti> hIntensCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
+    shared_ptr<CoefFunctionMulti> hCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
     shared_ptr<CoefFunctionMulti> bCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FLUX_DENSITY]);
-    //shared_ptr<CoefFunctionMulti> mu = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_ELEM_PERMEABILITY]);
-    // We only need this to check which kind of nonlinearity is specified in the different regions
-    StdVector<RegionIdType>::iterator regIt = regions_.Begin();
+    StdVector<RegionIdType>::iterator regIt = regions_.Begin(); // check which kind of nonlinearity is specified in the different regions
     regIt = regions_.Begin();
 
     for (; regIt != regions_.End(); ++regIt){
@@ -528,10 +528,10 @@ namespace CoupledField
         hs = Hsmap_[*regIt];
         // result MAG_POTENTIAL_DIV is (grad(Phi))!!
         magIntens = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, hs, GetCoefFct(MAG_POTENTIAL_DIV), CoefXpr::OP_SUB));        
-        hIntensCoef->AddRegion(*regIt, magIntens);
+        hCoef->AddRegion(*regIt, magIntens);
       }else{
         // Hs is NOT prescribed in the region
-        hIntensCoef->AddRegion(*regIt, GetCoefFct(MAG_POTENTIAL_DIV));
+        hCoef->AddRegion(*regIt, GetCoefFct(MAG_POTENTIAL_DIV));
       }
       // =====================================================
       // MAG_FIELD_INTENSITY (END)

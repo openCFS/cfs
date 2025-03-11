@@ -33,6 +33,7 @@
 
 namespace CoupledField {
 
+  class SolveStepEB;
   class MathParser;
 
   class invEBHysteresis : public Model {
@@ -63,7 +64,10 @@ namespace CoupledField {
       // Matrix<Double> EvaluateLocalNuBroyden(StdVector<Double> H, StdVector<Double> B, UInt idx);
 
       // this methods is for the FE - Formulation and give the material tensor: BFGS update
-      Matrix<Double> EvaluateLocalNuBFGS(StdVector<Double> H, StdVector<Double> B, UInt idx);
+      Matrix<Double> EvaluateLocalNuBFGS(Vector<Double> dH, Vector<Double> dB, UInt idx);
+
+      // this methods is for the FE - Formulation and give the material tensor: Broyden update
+      Matrix<Double> EvaluateLocalMuGBM(Vector<Double> dH, Vector<Double> dB, UInt idx);
 
       // --------------- HELPER FUNCTIONS: evaluation of the hysteresis operator (START) --------------- //
 
@@ -126,8 +130,8 @@ namespace CoupledField {
       StdVector< StdVector<Double> > B0_;
       StdVector< StdVector<Double> > B1_;
 
-      StdVector< StdVector<Double> > J0_;
-      StdVector< StdVector<Double> > J1_;
+      StdVector< StdVector<Double> > H0_;
+      StdVector< StdVector<Double> > H1_;
 
       StdVector< StdVector<Double> > J_x_k_prev_;
       StdVector< StdVector<Double> > J_y_k_prev_;
@@ -158,5 +162,8 @@ namespace CoupledField {
       std::string varHandle_;
 
       StdVector<bool> hasElemSolution_;
+
+      SolveStepEB* solve_step_eb_;
+
     };
 } //end of namespace

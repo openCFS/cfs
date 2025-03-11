@@ -155,7 +155,14 @@ template<class T> void CoefFunctionMaterialModel<T>::GetVector(
   for(UInt i = 0 ; i < spaceDim_; ++i){
     RealDependentVec[i] = std::real(DependentVec[i]); 
   }
-  coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  if (modelName_ == "EBHysteresisModel") {
+    coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  } else if (modelName_ == "invEBHysteresisModel")  {
+    coefVector = matModel_->GetFieldIntensity(RealDependentVec, lpm.ptEl->elemNum);
+  } else {
+    coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  }
+  
   
   LOG_DBG(cfjc)
   << "NrElem = :" << lpm.ptEl->elemNum << std::endl;

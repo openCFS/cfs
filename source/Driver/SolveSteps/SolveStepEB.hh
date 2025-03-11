@@ -31,6 +31,9 @@ namespace CoupledField
     //! base method for solving one transient step 
     void SolveStepTrans();
 
+    //! base method for solving one static step 
+    void SolveStepStatic();
+
     //! solves for one linear transient step 
     //void StepTransLin(){}
 
@@ -44,12 +47,15 @@ namespace CoupledField
 
     double GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta);
 
-    double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, double a, double b);
+    double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b);
+
+    bool update_polarization_eb_;
 
   private:
 
     // Coefficient function for material model
     shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
+
 
   };
 } // end of namespace
