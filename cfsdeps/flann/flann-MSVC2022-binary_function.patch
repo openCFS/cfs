@@ -1,0 +1,10 @@
+--- src/cpp/flann/util/heap.h.orig	2016-08-05 01:20:50.000000000 +0200
++++ src/cpp/flann/util/heap.h	2024-05-15 10:39:36.109384520 +0200
+@@ -32,6 +32,7 @@
+ #define FLANN_HEAP_H_
+ 
+ #include <algorithm>
++#include <functional>
+ #include <vector>
+ 
+ namespace flann

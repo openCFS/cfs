@@ -164,7 +164,13 @@ namespace CoupledField {
                                                  SolutionType solType,
                                                  std::set<std::string> & regionNames,
                                                  PtrParamNode rootNode );
-    
+
+    //! Return the current time/frequency step
+    UInt GetCurrStepNum() {return actStep_;}
+
+    //! Return the total number of time/frequency steps
+    UInt GetNumSteps() {return numSteps_;}
+
     /** This dumps the content of the result handler for debugging */
     void Dump(); 
 

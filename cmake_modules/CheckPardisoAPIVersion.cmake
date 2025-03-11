@@ -10,9 +10,7 @@ IF(CFS_PARDISO STREQUAL MKL)
   ELSE()
     MESSAGE(STATUS "Using Intel MKL. Setting Pardiso API version to ${PARDISO_API_VER}.")
   ENDIF()
-ELSE(CFS_PARDISO STREQUAL MKL)
-
-
+ELSE()
 #-----------------------------------------------------------------------------
 # Set source code for testing API version of PARDISO.
 #-----------------------------------------------------------------------------
@@ -509,4 +507,4 @@ ELSE(NOT PARDISO_API_VER_3 AND
 ENDIF(NOT PARDISO_API_VER_3 AND
       NOT PARDISO_API_VER_4)
 
-ENDIF(CFS_PARDISO STREQUAL MKL)
+ENDIF() # the not MKL version - practivally dead!

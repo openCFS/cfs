@@ -199,7 +199,9 @@ namespace CoupledField {
                      const std::string& unit,
                      const StdVector<std::string>& dofNames,
                      const StdVector<std::string>& rFunctions,
-                     const StdVector<std::string>& iFunctions ); 
+                     const StdVector<std::string>& iFunctions,
+                     const StdVector<std::string>& variableNames,
+                     const PtrParamNode& postProcNode ); 
     
     //! Apply procedure
     void Apply( );
@@ -230,6 +232,15 @@ namespace CoupledField {
     //! function string of new result (imag part)
     StdVector<std::string> iFuncs_;
 
+    //! variable name for the result handling (will be used to evaluate the mathParser)
+    StdVector<std::string> variableNames_;
+
+    //! function string of new result (real part), matched to grid DOFs
+    StdVector<std::string> rFuncsSorted_;
+
+    //! function string of new result (real part), matched to grid DOFs, adapted to mathParser naming convetion of variables
+    StdVector<std::string> rFuncsSortedMp_;
+
     //! vector with related handles for math parser (real part)
     StdVector<unsigned int> rHandles_;
 
@@ -244,6 +255,9 @@ namespace CoupledField {
 
     //! Pointer to MathParser object
     MathParser * mParser_;
+
+    //! ParamNode
+    PtrParamNode postProcNode_;
   };
 
 // -------------------------------------------------------------------------
@@ -266,6 +280,7 @@ namespace CoupledField {
     void Initialize( const std::string& resultName,
                      const UInt& integrationOrder,
                      const std::string& mode,
+                     const std::string& computeSolutionSteps,
                      const StdVector<std::string>& dofNames,
                      const StdVector<std::string>& rFunctions,
                      const StdVector<std::string>& iFunctions ); 
@@ -276,7 +291,6 @@ namespace CoupledField {
     //! Finalize
     void Finalize( );
 
-    
   private:
 
     //! Templatized sub-routine
@@ -291,6 +305,10 @@ namespace CoupledField {
 
     //! mode how the L2 norm function shall operate (absolute/relative)
     std::string mode_;
+
+    //! defines which time/frequency steps should be considered for computing the postProc result
+    //! currently, this is only used in the L2Norm and can be "all" or "last"
+    std::string computeSolutionSteps_;
     
     //! dof names of new result
     StdVector<std::string> dofNames_;

@@ -337,7 +337,7 @@
   <!-- Definition of surface element result types of electrostatic PDE -->
   <xsd:simpleType name="DT_ElecSurfElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="elecChargeDensity"/>
+      <xsd:enumeration value="elecSurfaceChargeDensity"/>
       <xsd:enumeration value="elecForceDensity"/>
     </xsd:restriction>
   </xsd:simpleType>

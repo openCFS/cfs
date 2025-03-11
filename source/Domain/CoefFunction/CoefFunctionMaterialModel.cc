@@ -13,6 +13,7 @@
 #include <list>
 
 #include "MatVec/Vector.hh"
+#include "CoefFunctionMaterialModel.hh"
 
 namespace CoupledField {
 
@@ -83,30 +84,45 @@ template<class T> void CoefFunctionMaterialModel<T>::InitModel(
 
 }
 
-template<class T> void CoefFunctionMaterialModel<T>::GetScalar(
-    Double &coefScalar, const LocPointMapped &lpm) {
-  Vector<Complex> DependentVec;
+template <class TYPE>
+void CoefFunctionMaterialModel<TYPE>::UpdateHistoryValues()
+{
+  matModel_->UpdateStates();
+}
 
-  depCoef_->GetVector(DependentVec, lpm);
+template <class TYPE>
+void CoefFunctionMaterialModel<TYPE>::AllowUpdates(bool allow)
+{
+  matModel_->AllowUpdates(allow);
+}
 
-  //Can i do this in less codelines? Complex vector to Real Vector??
-  Vector<Double> RealDependentVec;
 
-  RealDependentVec.Resize(3);
-  RealDependentVec.Init(0);
+template <class T>
+void CoefFunctionMaterialModel<T>::GetScalar(
+    Double &coefScalar, const LocPointMapped &lpm)
+{
+    Vector<Complex> DependentVec;
 
-  RealDependentVec[0] = std::real(DependentVec[0]);
-  RealDependentVec[1] = std::real(DependentVec[1]);
-  RealDependentVec[2] = std::real(DependentVec[2]);
+    depCoef_->GetVector(DependentVec, lpm);
 
-  coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
+    // Can i do this in less codelines? Complex vector to Real Vector??
+    Vector<Double> RealDependentVec;
 
-  LOG_DBG(cfjc)
-  << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
-  LOG_DBG(cfjc)
-  << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
-  LOG_DBG(cfjc)
-  << "Epsilon = :" << coefScalar << std::endl;
+    RealDependentVec.Resize(3);
+    RealDependentVec.Init(0);
+
+    RealDependentVec[0] = std::real(DependentVec[0]);
+    RealDependentVec[1] = std::real(DependentVec[1]);
+    RealDependentVec[2] = std::real(DependentVec[2]);
+
+    coefScalar = matModel_->ComputeMaterialParameter(RealDependentVec, lpm.ptEl->elemNum);
+
+    LOG_DBG(cfjc)
+        << "NrElem = :" << lpm.ptEl->elemNum << std::endl;
+    LOG_DBG(cfjc)
+        << "E = :[" << RealDependentVec.ToString() << "]" << std::endl;
+    LOG_DBG(cfjc)
+        << "Epsilon = :" << coefScalar << std::endl;
 }
 
 template<class T> void CoefFunctionMaterialModel<T>::GetTensor(
@@ -147,7 +163,13 @@ template<class T> void CoefFunctionMaterialModel<T>::GetVector(
   for(UInt i = 0 ; i < spaceDim_; ++i){
     RealDependentVec[i] = std::real(DependentVec[i]); 
   }
-  coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  if(stressCoef_){
+    // multiscale version, which requires mechanical stress input
+    coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum, lpm, stressCoef_);
+  }else{
+    coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+  }
+
   
   LOG_DBG(cfjc)
   << "NrElem = :" << lpm.ptEl->elemNum << std::endl;

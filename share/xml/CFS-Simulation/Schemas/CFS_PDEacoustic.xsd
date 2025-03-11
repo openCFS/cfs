@@ -716,6 +716,7 @@
   <!-- Definition of surface element result types of acoustic PDE -->
   <xsd:simpleType name="DT_AcousticSurfElemResult">
     <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="acouSurfPressure"/>
       <xsd:enumeration value="acouSurfIntensity"/>
       <xsd:enumeration value="acouNormalIntensity"/>
       <xsd:enumeration value="acouNormalVelocity"/>

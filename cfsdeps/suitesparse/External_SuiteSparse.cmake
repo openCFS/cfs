@@ -59,6 +59,7 @@ set(DEPS_ARGS
   -DUSE_OPENMP:BOOL=${USE_OPENMP}
   -DALLOW_64BIT_BLAS:BOOL=ON
   -DALLOW_GPL_EXTENSIONS:BOOL=ON )
+
 if(UNIX AND USE_BLAS_LAPACK STREQUAL "OPENBLAS")
   list(APPEND DEPS_ARGS -DSUGGEST_BLAS_LIBRARIES=${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libopenblas.a)
 elseif(UNIX AND USE_BLAS_LAPACK STREQUAL "MKL") # we assume properly set up mkl for Windows
@@ -83,7 +84,6 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # if not, build newly and possibly pack the stuff
 else()
-
   create_external_cmake_patched()  
 
   # new data just built: shall we pack and store as precompiled?
@@ -91,7 +91,8 @@ else()
     # add custom step to zip a precompiled package to the cache.
     add_external_storage_step()
   else()
-    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually
+    # this will dump the unnecessary shared variants, but the precompiled package is clean  
     add_install_dir_to_binary_step()  
   endif()  
 endif()

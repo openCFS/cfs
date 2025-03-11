@@ -1,5 +1,5 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/core/include/numpy/arrayobject.h>
+#include <numpy/arrayobject.h>
 
 #include "Optimization/Design/SpaghettiDesign.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
@@ -39,8 +39,15 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
     orientation_ = orientation.Parse(pn->Get("orientation")->As<string>());
   }
 
+  order = pn->Get("order")->As<unsigned int>();
   transition = pn->Get("transition")->As<double>(); // make optional
   radius = pn->Get("radius")->As<double>();
+  if (pn->Has("q")){
+    q = pn->Get("q")->As<double>();
+  }
+  if (pn->Has("p")){
+    pen = pn->Get("p")->As<double>();
+  }
 
   if(pn->Get("gradplot")->As<bool>()) // todo: move to FeaturedDesign
    gradplot_.open((progOpts->GetSimName() + ".grad.dat").c_str()); // the auto destructor does the job.
@@ -155,7 +162,7 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   PyObject* func = PyObject_GetAttrString(module_, "cfs_init");
   PythonKernel::CheckPythonFunction(func, "cfs_init");
 
-  PyObject* arg = PyTuple_New(3);
+  PyObject* arg = PyTuple_New(4);
 
   Matrix<double> mm;
   domain->GetGrid()->CalcBoundingBoxOfRegion(GetRegionIds().First(), mm);
@@ -174,8 +181,12 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
   if(radius > 0)
     settings.Push_back(make_pair("radius", to_string(radius)));
   settings.Push_back(make_pair("boundary", boundary.ToString(boundary_)));
+  if(pen > 0)
+    settings.Push_back(make_pair("p", to_string(pen)));
+  settings.Push_back(make_pair("q", to_string(q)));
   settings.Push_back(make_pair("transition", to_string(transition)));
   settings.Push_back(make_pair("combine", combine.ToString(combine_)));
+  settings.Push_back(make_pair("order", to_string(order)));
   settings.Push_back(make_pair("n", "[" + to_string(nx_) + "," + to_string(ny_) + "," + to_string(nz_) + "]"));
   settings.Push_back(make_pair("dx", to_string(dx_)));
   settings.Push_back(make_pair("box_lower", box_lower));
@@ -188,7 +199,12 @@ void SpaghettiDesign::PythonInit(PtrParamNode pn)
     PyTuple_SetItem(des, i,  PyUnicode_FromString(DesignElement::type.ToString(design[i].design).c_str()));
   PyTuple_SetItem(arg, 1, des); // steals the reference, so no need to decref
 
-  PyTuple_SetItem(arg, 2, PythonKernel::CreatePythonDict(pyopts));
+  PyObject* opt_ind = PyTuple_New(opt_indices.GetSize());
+  for(unsigned int i = 0; i < opt_indices.GetSize(); i++)
+    PyTuple_SetItem(opt_ind, i,  PyLong_FromLong(opt_indices[i]));
+  PyTuple_SetItem(arg, 2, opt_ind); // steals the reference, so no need to decref
+
+  PyTuple_SetItem(arg, 3, PythonKernel::CreatePythonDict(pyopts));
 
   PyObject* ret = PyObject_CallObject(func, arg);
   PythonKernel::CheckPythonReturn(ret);
@@ -316,9 +332,10 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
 
   // we create a temporary vector for the gradient values such that we can use Export() - just for convenience.
   // With Python we expect no hpc performance anyway
-  Vector<double> drho(data.GetSize());
-  for(const DesignElement& de : data)
-    drho[de.GetIndex()] = de.GetPlainGradient(f);
+  //Vector<double> drho(nx_*ny_*nz_);
+  Vector<double> drho = Vector<double>(nx_*ny_*nz_*design.GetSize(), 0);
+  for(auto& item : map_)
+    drho[item.lexicographic_pos] = item.elemval->GetPlainGradient(f);
 
   // copy data to numpy array - does extensive range checks with good error message
   drho.Export(np_rho);
@@ -403,6 +420,7 @@ void SpaghettiDesign::AddVariable(Variable* var)
   if(!var->fixed)
   {
     assert(opt_shape_param_.HasSpace());
+    opt_indices[opt_shape_param_.GetSize()] = shape_param_.GetSize()-1;
     var->SetOptIndex(opt_shape_param_.GetSize());
     opt_shape_param_.Push_back(var);
   }
@@ -533,7 +551,9 @@ int SpaghettiDesign::ReadDesignFromExtern(const double* space_in, bool setAndWri
   // practically updates the Variable objects within spaghetti. Set's design_id
   FeaturedDesign::ReadDesignFromExtern(space_in, setAndWriteCurrent);
 
-  PythonUpdateSpaghetti();
+  if(mapped_design_ != design_id){
+    PythonUpdateSpaghetti();
+  }
 
   LOG_DBG(pasta) << "RDFE mid=" << mapped_design_ << " did=" << design_id;
 
@@ -609,6 +629,7 @@ void SpaghettiDesign::SetupDesign(PtrParamNode base)
 
   shape_param_.Reserve(total);
   opt_shape_param_.Reserve(opt);
+  opt_indices.Resize(opt);
 
   // the order is by noodles: nodes, profile, [alpha|, normals/radii
   // reading shall be transparent due to shape (noodle) idx.

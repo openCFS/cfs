@@ -25,6 +25,7 @@
 #include "Optimization/Function.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Tune.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/Timer.hh"
 #include "Utils/tools.hh"
@@ -135,11 +136,11 @@ void DesignStructure::SetFilter(PtrParamNode pn, bool skip_cfs_filtering)
   // while meeting other regions or designs we create new global filters based on this one.
   GlobalFilter* global = &filter.Last();
   LOG_DBG(ds) << "SF: initial global=" << global->ToString();
+  global->PostCopy(true); // register tunr
 
   // do we have to do something?
   // in case skip_cfs_filtering is true, we don't want cfs to apply filter but still assemble it for external (SGP) lib
   if(global->type == Filter::NO_FILTERING && !skip_cfs_filtering)
-
     return;
 
   // the initialization was separated!
@@ -189,8 +190,9 @@ void DesignStructure::SetFilter(PtrParamNode pn, bool skip_cfs_filtering)
       // append a new GlobalFilter which is a copy of the current one.
       if(filter.GetCapacity() <= filter.GetSize()) // resizing would destroy all pointer references
         throw Exception("DesignSpace::filter capacity too small: " + std::to_string(filter.GetCapacity()));
-      filter.Push_back(*global); // copy constructor magic
+      filter.Push_back(*global); // copy constructor magic - but handle math parser!
       global = &(filter.Last());
+      global->PostCopy(true); // register tune
       global->region = unit->regionId; // we need the region as one way to validate the change
       global->design = unit->design;
       global->SetNonLinCorrection(&(space->data[unit->base]));
@@ -367,15 +369,28 @@ GlobalFilter DesignStructure::Parse(PtrParamNode pn, const DesignElement* ref_de
   {
     if(!pn->Has("density/beta"))
       throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(global.density) + "' density filtering");
-    global.beta = pn->Get("density/beta")->As<double>();
+    string bv = pn->Get("density/beta")->As<string>();
+    if(pn->Get("density/beta")->As<string>() == "tune")
+    {
+      global.tune.Init(pn->Get("density/tune", ParamNode::PASS), Tune::BETA);
+      global.beta = global.tune.start;
+    }
+    else
+      global.beta = pn->Get("density/beta")->As<double>();
 
     assert(space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
 
-    if(global.density == Filter::TANH)
+    if(global.density == Filter::TANH || global.density == Filter::EXPRESSION)
     {
       if(!pn->Has("density/eta"))
-        throw Exception("Attribute 'eta' required for 'tanh' density filtering");
+        throw Exception("Attribute 'eta' required for '" + Filter::density.ToString(global.density) + "' density filtering");
       global.eta = pn->Get("density/eta")->As<double>();
+    }
+    if(global.density == Filter::EXPRESSION)
+    {
+      if(!pn->Has("density/expression"))
+        throw Exception("density filter 'expression' requires element 'expression'");
+      global.InitParser(pn->Get("density/expression/function")->As<string>(), pn->Get("density/expression/derivative")->As<string>());
     }
   }
 

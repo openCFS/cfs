@@ -1,265 +1,86 @@
-#-------------------------------------------------------------------------------
 # A Massively Spiffy Yet Delicately Unobtrusive Compression Library
-# Needed by Botan, HDF5 and libxml2.
-#
-# Project Homepage
-# http://www.zlib.net/
-#-------------------------------------------------------------------------------
+# boost needs this lib
+# https://github.com/madler/zlib
+# make sure not to uninetendently use another packages settings. Supports assert_set() checks. Is mandatory!
+clear_depencency_variables()
 
-#-------------------------------------------------------------------------------
-# Set prefix path and path to zlib sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(zlib_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/zlib")
-set(zlib_source  "${zlib_prefix}/src/zlib")
-set(zlib_install  "${CMAKE_CURRENT_BINARY_DIR}")
-
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-patch.cmake.in")
-SET(PFN "${zlib_prefix}/zlib-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# Set common CMake arguments
-#-------------------------------------------------------------------------------
-set(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${zlib_install}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  -DCMAKE_BUILD_TYPE:STRING=Release
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB} )
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "zlib")
+set(PACKAGE_VER "1.3")
+set(ZLIB_VER ${PACKAGE_VER}) # required by boost 
+set(PACKAGE_FILE "${PACKAGE_NAME}-${PACKAGE_VER}.tar.gz")
+set(PACKAGE_MD5 "60373b133d630f74f4a1f94c1185a53f")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 
-if(CFS_DISTRO STREQUAL "MACOSX")
-  set(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT} )
+set(PACKAGE_MIRRORS "https://github.com/madler/zlib/releases/download/v${PACKAGE_VER}/${PACKAGE_FILE}")
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
+
+# pure C
+use_c_and_fortran(ON OFF)
+
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
+
+# determine paths of libraries and make it visible (and editable) via ccmake
+# on macOS and Linux it is libz.a, on Windows zlibstatic.lib
+if(UNIX)
+  set_package_library_list("z")
+else()
+  set_package_library_list("zlibstatic")
+endif()
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_standard_variables()
+# we don't need the share/man stuff and the dynamic lib
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
+
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default(ON) # set compiler flags 
+# add the specific settings for the packge which comes in cmake style
+set(DEPS_ARGS
+  ${DEPS_ARGS}
+  # CMAKE_INSTALL_PREFIX is ignored!
+  -DINSTALL_BIN_DIR:PATH=${DEPS_INSTALL}/bin
+  -DINSTALL_INC_DIR:PATH=${DEPS_INSTALL}/include
+  -DINSTALL_LIB_DIR:PATH=${DEPS_INSTALL}/lib
+  -DINSTALL_MAN_DIR:PATH=${DEPS_INSTALL}/share/man
+  -DINSTALL_PKGCONFIG_DIR:PATH=${DEPS_INSTALL}/share/pkconfig )  
+  
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
+
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
+
+# no patch needed
+assert_unset(PATCHES_SCRIPT)
+
+# the forked metis insists onb bulding executables to bin. Sort them out automatically
+generate_packing_script_install_dir()
+
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
+
+#dump_depencency_variables()
+
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
+# if not, build newly and possibly pack the stuff
+else()
+  # standard cmake build without patch
+  create_external_cmake()  
+
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  else()  
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()      
+  endif() 
 endif()
 
-if(CMAKE_TOOLCHAIN_FILE)
-  list(APPEND CMAKE_ARGS -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE})
-endif()
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-patch.cmake.in")
-SET(PFN "${zlib_prefix}/zlib-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "https://www.zlib.net/fossils/${ZLIB_GZ}"
-  "https://sourceforge.net/projects/libpng/files/zlib/${ZLIB_VER}/${ZLIB_GZ}/download?use_mirror=vorboss&download="
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
-SET(MD5_SUM ${ZLIB_MD5})
-
-SET(DLFN "${zlib_prefix}/zlib-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
-
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/zlib/license/" DESTINATION "${CFS_BINARY_DIR}/license/zlib" )
-
-
-# After the installation we copy to zconf.h to zlib src
-set(PI "${zlib_prefix}/zlib-post_install.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cfsdeps/zlib/zlib-post_install.cmake.in" "${PI}" @ONLY) 
-
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "zlib" "${ZLIB_VER}")  
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${zlib_prefix}")
-
-SET(ZIPFROMCACHE "${zlib_prefix}/zlib-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
-
-SET(ZIPTOCACHE "${zlib_prefix}/zlib-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
-
-#-------------------------------------------------------------------------------
-# Determine paths to zlib libraries
-#-------------------------------------------------------------------------------
-IF(UNIX)
-  SET(ZLIB_LIB z)
-  SET(ZLIB_SHARED_LIB z)
-ELSE()
-  SET(ZLIB_LIB zlibstatic)
-  SET(ZLIB_SHARED_LIB zlib)
-  IF(DEBUG)
-    SET(ZLIB_LIB "${ZLIB_LIB}d")
-    SET(ZLIB_SHARED_LIB "${ZLIB_SHARED_LIB}d")
-  ENDIF()
-ENDIF()
-
-set(LD ${CFS_BINARY_DIR}/${LIB_SUFFIX})
-
-SET(ZLIB_LIBRARY ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX})
-SET(ZLIB_SHARED_LIBRARY ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
-SET(ZLIB_LIBRARY ${ZLIB_LIBRARY} CACHE FILEPATH "zlib library" FORCE)
-SET(ZLIB_SHARED_LIBRARY ${ZLIB_SHARED_LIBRARY} CACHE FILEPATH "zlib shared library" FORCE)
-SET(ZLIB_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "zlib include directory")
-
-MARK_AS_ADVANCED(ZLIB_LIBRARY)
-MARK_AS_ADVANCED(ZLIB_SHARED_LIBRARY)
-MARK_AS_ADVANCED(ZLIB_INCLUDE_DIR)
-
-#-------------------------------------------------------------------------------
-# The zlib external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(zlib
-    PREFIX "${zlib_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${ZLIB_LIBRARY} ${ZLIB_SHARED_LIBRARY}
-  )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  ExternalProject_Add(zlib
-    PREFIX ${zlib_prefix}
-    SOURCE_DIR ${zlib_source}
-    URL ${LOCAL_FILE}
-    URL_MD5 ${ZLIB_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-    BUILD_BYPRODUCTS ${ZLIB_LIBRARY} ${ZLIB_SHARED_LIBRARY}
-  )
-  
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(zlib cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${zlib_prefix}
-  )
-
-  #-------------------------------------------------------------------------------
-  # make boost_zlib been built
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(zlib post_install
-    COMMAND ${CMAKE_COMMAND} -P "${PI}"
-    DEPENDEES install )
-
-  #-------------------------------------------------------------------------------
-  # No zip to cache here but after minizip is built. See below.
-  #-------------------------------------------------------------------------------
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-IF(WIN32)
-  ExternalProject_Add_Step(zlib RenameZlib
-	  COMMAND ${CMAKE_COMMAND} -E copy ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${ZLIB_SHARED_LIB}.lib 
-                                           ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${ZLIB_SHARED_LIB}.dll
-  DEPENDEES install
-)
-ENDIF(WIN32)
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-LIST(APPEND CFSDEPS zlib)
-
-#-------------------------------------------------------------------------------
-# Determine Paths for minizip library
-#-------------------------------------------------------------------------------
-SET(MINIZIP_SHARED_LIB minizip)
-IF(WIN32)
-  SET(MINIZIP_SHARED_LIB minizipdll)
-ENDIF()
-
-SET(MINIZIP_LIBRARY 
-  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}minizip_static${CMAKE_STATIC_LIBRARY_SUFFIX}
-  CACHE FILEPATH "minizip library")
-SET(MINIZIP_SHARED_LIBRARY
-  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${MINIZIP_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
-SET(MINIZIP_SHARED_LIBRARY ${MINIZIP_SHARED_LIBRARY}
-  CACHE FILEPATH "minizip shared library")
-SET(MINIZIP_INCLUDE_DIR ${CFS_BINARY_DIR}/include/minizip
-  CACHE PATH "minizip include directory")
-
-MARK_AS_ADVANCED(MINIZIP_LIBRARY)
-MARK_AS_ADVANCED(MINIZIP_SHARED_LIBRARY)
-MARK_AS_ADVANCED(MINIZIP_INCLUDE_DIR)
-
-#-------------------------------------------------------------------------------
-# The minizip external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # Do nothing. The project is included in zlib, so we already unzipped the files!
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(minizip
-    PREFIX "${zlib_prefix}"
-    DOWNLOAD_COMMAND ""
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-  )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(minizip
-    DEPENDS zlib
-    PREFIX ${zlib_prefix}
-    SOURCE_DIR ${zlib_source}/contrib/minizip
-    DOWNLOAD_COMMAND ""
-    PATCH_COMMAND ""
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-      -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
-      -DZLIB_LIBRARY:PATH=${ZLIB_SHARED_LIBRARY}
-    BUILD_BYPRODUCTS ${MINIZIP_LIBRARY} ${MINIZIP_SHARED_LIBRARY}
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(minizip cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-LIST(APPEND CFSDEPS minizip)
-
-# Determine version of Minizip by reading its header.
-IF(EXISTS "${MINIZIP_INCLUDE_DIR}/zip.h")
-  FILE(STRINGS "${MINIZIP_INCLUDE_DIR}/zip.h" MINIZIP_VERSION REGEX "Version [0-9]")
-  STRING(STRIP "${MINIZIP_VERSION}" MINIZIP_VERSION)
-ELSE()
-  SET(MINIZIP_VERSION "N/A")
-ENDIF()
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

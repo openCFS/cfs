@@ -1,13 +1,24 @@
 // define name "cfs unittest" of test module
 #define BOOST_TEST_MODULE cfs unittest
-//defines test framework including function main,
-// wich will call the subsequently defined test cases
+
+// defines test framework including function main,
+// which will call the subsequently defined test cases
+
+#pragma clang diagnostic push
+#pragma GCC diagnostic push
+// boost 1.78: boost/test/impl/debug.ipp:674:25: warning: variable 'junk' set but not used
+#pragma clang diagnostic ignored "-Wunused-but-set-variable"
+#pragma GCC diagnostic ignored "-Wsign-compare"
+
 #include <boost/test/included/unit_test.hpp>
 
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/mpl/list.hpp>
 
-#undef max // prevet Windows issue
+#pragma clang diagnostic pop
+#pragma GCC diagnostic pop
+
+#undef max // prevent Windows issue
 #include "MatVec/Vector.hh"
 #include "MatVec/Matrix.hh"
 

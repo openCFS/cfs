@@ -4,6 +4,8 @@
 #=============================================================================
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(WIN32 "@WIN32@")
+set(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
+set(CMAKE_CXX_COMPILER_VERSION "@CMAKE_CXX_COMPILER_VERSION@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
@@ -25,6 +27,14 @@ list(APPEND patches
   # warning: ‘struct flann::anyimpl::base_any_policy’ has virtual functions
   # but non-virtual destructor 
   "flann-any.patch")
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 19.30)
+  # Fix for MSVC 2022, i.e. _MSC_VER >= 1930
+  # see https://learn.microsoft.com/en-us/cpp/overview/compiler-versions?view=msvc-170 for the cryptic MSVC version numbers
+  # 'std::binary_function' is now included in the header 'functional'
+  # see https://learn.microsoft.com/en-us/answers/questions/1348183/std-binary-function-is-missing-in-msvc-14-37-32822
+  list(APPEND patches "flann-MSVC2022-binary_function.patch")
+endif()
 
 # both cmake patches are almost the same and possibly could be merged?!  
 if(UNIX AND CMAKE_VERSION VERSION_GREATER "3.11")

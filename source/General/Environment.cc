@@ -136,7 +136,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_FORCE, "elecForce");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
-    SolutionTypeEnum.Add(ELEC_CHARGE_DENSITY, "elecChargeDensity");
+    SolutionTypeEnum.Add(ELEC_SURFACE_CHARGE_DENSITY, "elecSurfaceChargeDensity");
     SolutionTypeEnum.Add(ELEC_FLUX_DENSITY, "elecFluxDensity");
     SolutionTypeEnum.Add(ELEC_ENERGY, "elecEnergy");
     SolutionTypeEnum.Add(ELEC_ENERGY_DENSITY, "elecEnergyDensity");
@@ -187,6 +187,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY, "acouNormalIntensity");
     SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY_PLANEWAVE, "acouNormalIntensityPlaneWave");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
+    SolutionTypeEnum.Add(ACOU_SURFPRESSURE, "acouSurfPressure");
     SolutionTypeEnum.Add(ACOU_POT_ENERGY, "acouPotEnergy");
     SolutionTypeEnum.Add(ACOU_KIN_ENERGY, "acouKinEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
@@ -513,6 +514,14 @@ namespace CoupledField {
     MaterialTypeEnum.Add(MAG_MU0_EB, "mag_mu0_EB");
     MaterialTypeEnum.Add(MAG_NUMS_EB, "mag_numS_EB");
     MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB");
+    MaterialTypeEnum.Add(MAG_MSM_AS, "mag_msm_AS");
+    MaterialTypeEnum.Add(MAG_APPROX_TYPE, "mag_approx_type");
+    MaterialTypeEnum.Add(MAG_MSM_K1, "mag_msm_K1");
+    MaterialTypeEnum.Add(MAG_MSM_K2, "mag_msm_K2");
+    MaterialTypeEnum.Add(MAG_MSM_LAMBDA100, "mag_msm_lambda100");
+    MaterialTypeEnum.Add(MAG_MSM_LAMBDA111, "mag_msm_lambda111");
+    MaterialTypeEnum.Add(MAG_MSM_PS, "mag_msm_Ps");
+
     MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_EB, "mag_jacobian_method_EB");
 
     // -- Mechanical --
@@ -849,6 +858,19 @@ namespace CoupledField {
     NonLinMethodTypeEnum.Add( HYST_DEBUG, "HYST_debug" );
   }
 
+  void AddGenericSolution(std::string name, Domain* domain) {
+    // use the given name and assign a generic result based on the internal counter
+    // afterwards, return the new solutionType
+    SolutionTypeEnum.Add( (SolutionType) (GENERIC_RESULT_0 + domain->GetGenericResultIndex()), name);
+    // increment the counter
+    domain->IncrementGenericResultIndex();
+  }
+
+  std::string GetSolAsString(std::string name) {
+    SolutionType solType = SolutionTypeEnum.Parse(name);
+    return SolutionTypeEnum.ToString(solType);
+  }
+
   // SolutionType
   std::string MapSolTypeToUnit(SolutionType solType)
   {
@@ -889,6 +911,7 @@ namespace CoupledField {
         return "Ws";
         break;
 
+      case ACOU_NORMAL_INTENSITY_PLANEWAVE:
       case ACOU_INTENSITY:
       case ACOU_NORMAL_INTENSITY:
       case ACOU_SURFINTENSITY:
@@ -901,6 +924,10 @@ namespace CoupledField {
       case HEAT_FLUX_DENSITY:
       case HEAT_FLUX_INTENSITY:
         return "W/m^2";
+        break;
+
+      case HEAT_CONDUCTIVITY_TENSOR_HOM:
+        return "W/(mK)";
         break;
 
       case SPLIT_POT_ENERGY:
@@ -916,6 +943,7 @@ namespace CoupledField {
         return "m";
         break;
 
+      case ACOU_NORMAL_VELOCITY:
       case ACOU_VELOCITY:
       case ACOU_ELEM_SPEED_OF_SOUND:
       case FLUIDMECH_VELOCITY:
@@ -962,6 +990,7 @@ namespace CoupledField {
         break;
 
       case ACOU_PRESSURE:
+      case ACOU_SURFPRESSURE:
       case FLUIDMECH_STRESS:
       case FLUIDMECH_PRESSURE:
       case FLUIDMECH_COMP_STRESS:
@@ -1027,8 +1056,8 @@ namespace CoupledField {
         return "C";
         break;
 
-      case ELEC_CHARGE_DENSITY:
-        return "C/m^3";
+      case ELEC_SURFACE_CHARGE_DENSITY:
+        return "C/m^2";
         break;
 
       case ELEC_POLARIZATION:
@@ -1088,6 +1117,7 @@ namespace CoupledField {
         break;
 
       case FLUIDMECH_DENSITY:
+      case ELEM_DENSITY:
         return "kg/m^3";
         break;
 
@@ -1152,6 +1182,9 @@ namespace CoupledField {
 
       case MAG_ELEM_RELUCTIVITY:
         return "Am/Vs";
+
+      case ELEC_ELEM_PERMITTIVITY:
+        return "(As)/(Vm)";
 
       case ELEC_POTENTIAL:
       case COIL_VOLTAGE:

@@ -1,0 +1,26 @@
+# Include some convenient macros (e.g. for applying patches).
+include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+
+# we expect the original HSL source locally
+# obtain it with an appropriate license from https://licences.stfc.ac.uk/products/Software/HSL
+assert_not_empty(@COINHSL_VER@)
+set(COINHSL_ZIP "@CFS_DEPS_CACHE_DIR@/sources/@PACKAGE_NAME@/coinhsl-@COINHSL_VER@.tar.gz")
+
+# shall be provided e.g. by .cf_platform_defaults.cmake
+set(CFS_DOWNLOAD_HSL @CFS_DOWNLOAD_HSL@)
+
+if(NOT EXISTS COINHSL_ZIP)
+  if(DEFINED CFS_DOWNLOAD_HSL)
+    file(DOWNLOAD @CFS_FAU_MIRROR@/sources/${CFS_DOWNLOAD_HSL}/coinhsl-@COINHSL_VER@.tar.gz ${COINHSL_ZIP})
+  else()
+    message(FATAL_ERROR "provide ${COINHSL_ZIP} or adjust COINHSL_VER") 
+  endif()
+endif()     
+   
+# we follow the README.md of ThirdParty-HSL
+# "Inside the ThirdParty-HSL directory, unpack this tarball"
+file(ARCHIVE_EXTRACT INPUT ${COINHSL_ZIP} DESTINATION @DEPS_PREFIX@/src/@PACKAGE_NAME@)
+# "Rename the directory `coinhsl-x.y.z` to `coinhsl`"
+file(RENAME @DEPS_PREFIX@/src/@PACKAGE_NAME@/coinhsl-@COINHSL_VER@ @DEPS_PREFIX@/src/@PACKAGE_NAME@/coinhsl)
+
+# next the External_HSL will run configure on ThirdParty-HSL

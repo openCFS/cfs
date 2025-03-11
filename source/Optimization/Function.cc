@@ -430,6 +430,33 @@ string Function::ToString() const
   return os.str();
 }
 
+int Function::CountOscillations() const
+{
+   int cnt = 0;
+   for(unsigned int i = 2; i < history.GetSize(); i++)
+   {
+     double pp = history[i-2];
+     double p = history[i-1];
+     double c = history[i];
+     if((p-pp)*(c-p) < 0)
+       cnt++;
+   }
+   return cnt;
+}
+
+
+
+void Function::DescribeProperties(StdVector<std::pair<string,string> >& map) const
+{
+  map.Push_back(std::make_pair("name", ToString()));
+  map.Push_back(std::make_pair("type", type.ToString(type_)));
+  map.Push_back(std::make_pair("access", access.ToString(access_)));
+  map.Push_back(std::make_pair("value", std::to_string(value_)));
+  if(region != ALL_REGIONS)
+    map.Push_back(std::make_pair("region",domain->GetGrid()->GetRegion().ToString(region)));
+}
+
+
 Function::Access Function::DefaultAccess(Function::Type type) const
 {
   // filter_ needs to be set!!!
@@ -479,6 +506,7 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case PYTHON_FUNCTION:
   case LOCAL_PYTHON_FUNCTION:
   case ARC_OVERLAP:
+  case PYTHON_VOLUME:
     return PLAIN;
 
   // filtered stuff different for sensitivity filtering
@@ -626,6 +654,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case PYTHON_FUNCTION: // check in case!
   case LOCAL_PYTHON_FUNCTION:
   case ARC_OVERLAP:
+  case PYTHON_VOLUME:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;

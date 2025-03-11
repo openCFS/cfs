@@ -5,6 +5,10 @@
 # * check on https://cfs-dev.mdmt.tuwien.ac.at/ci/lint
 # * do not use a command `echo "warning: the : is not allowed in a string"`
 
+# include common stuff to make this file shorter
+include:
+  - local: .gitlab/ci/windows.yml
+
 # short manual section about tags (define which jobs can be run by which runners):
 # - docker: runners using docker, all is defined by the image, no other tags required (python, linux, ...)
 # - linux: generic linux
@@ -13,10 +17,12 @@
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
-  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_STRATEGY: recursive # by default clone the testsuite, switch to 'none' to save time if not required
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
+  CTEST_PROGRESS_OUTPUT: "ON" # makes the ctest output shorter, see https://cmake.org/cmake/help/latest/envvar/CTEST_PROGRESS_OUTPUT.html#envvar:CTEST_PROGRESS_OUTPUT
   # build options for the maximal config
   MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON"
+  MUSL_CONFIG_OPTIONS: "-DCMAKE_EXE_LINKER_FLAGS=-static -DMKL_THREADING=gnu_thread" # link statically
 
 # stages in the pipeline run in succession
 stages:
@@ -33,21 +39,56 @@ stages:
 # https://docs.gitlab.com/ee/ci/yaml/#workflowrules
 # https://docs.gitlab.com/ee/ci/jobs/job_control.html#common-if-clauses-for-rules
 # we create pipelines for merge requests, schedules, and the web-ui
+# se set the variable CFS_PIPELINE_TYPE to indicate which jobs should be run in which way
+#  - test : run a maximum amount of tests automatically
+#  - manual : create all tests but set them to manual (default)
+#  - release : create jobs for releases
+#  - nightly : regular tests for the CDash dashboard
 workflow:
+  name: "$CFS_PIPELINE_NAME"
   rules:
-  # run for merge requests
+  # put the most specific rules first - we have a release tag (in the correct format)
+  # tags with 20* should be protected in the GitLab repo settings
+  - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
+    variables:
+      CFS_PIPELINE_TYPE: "release"
+      CFS_PIPELINE_NAME: "Release for tag $CI_COMMIT_TAG"
+  # We need pipelines to deploy stuff -> set the 'release' type
+  # for tags on the default branch we create releases
+  # this will run for accepted merge requests
+  - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE !~ /schedule/
+    variables:
+      CFS_PIPELINE_TYPE: "release"
+      CFS_PIPELINE_NAME: "Release for ${CI_DEFAULT_BRANCH}: $CI_COMMIT_TITLE"
+  # We want pipelines to 'test' for merge requests
+  # set to manual if the merge request title start with Draft:
+  - if: $CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/
+    variables:
+      CFS_PIPELINE_TYPE: "manual"
+      CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
+  # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
-  # run for tags
-  - if: $CI_COMMIT_TAG
+    variables:
+      CFS_PIPELINE_TYPE: "test"
+      CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
   # do not run branch pipelines if a merge request is open (avoid duplicates)
-  - if: '$CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS'
+  - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
-  # automatically run if branch name starts with test
-  - if: '$CI_COMMIT_BRANCH =~ /^test.*$/'
-  # run for 'run pipeline' button on web-ui
-  - if: '$CI_PIPELINE_SOURCE == "web"'
-  # run for schedules
-  - if: '$CI_PIPELINE_SOURCE == "schedule"'
+  # run for schedules - this emulates a commit on a branch
+  - if: $CI_PIPELINE_SOURCE == "schedule"
+    variables:
+      CFS_PIPELINE_TYPE: "nightly"
+      CFS_PIPELINE_NAME: "Scheduled for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  # create a manual pipeline via the web interface (for any branch) by setting the variable CFS_PIPELINE_TYPE=manual
+  - if: $CI_PIPELINE_SOURCE == "web" && $CFS_PIPELINE_TYPE == "manual"
+    variables:
+      CFS_PIPELINE_NAME: "Manual for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  # automatically run if branch name starts or ends with test or is scheduled
+  - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
+    variables:
+      CFS_PIPELINE_TYPE: "test"
+      CFS_PIPELINE_NAME: "Test for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  # when no rule triggers, no pipeline is created
 
 #################################################
 # Check STAGE
@@ -56,28 +97,43 @@ workflow:
 # some only get created in certain cases (pipeline-changes) and then fail 
 # to generate a warning (they are allowed to fail)
 
-# Check the revision of the testsuite submodule
-testsuite-revision:
+.check:
   stage: check
   tags:
-    - docker
+    - saas-linux-small-amd64
+  # switch off cloning any code
+  variables:
+    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
+  cache: {} # disable
+
+# Check the revision of the testsuite submodule
+.Testsuite_changes: &Testsuite_changes
+      changes:
+        paths:
+          - Testsuite
+        compare_to: 'refs/heads/master'
+
+testsuite-revision:
+  extends: .check
   image: opencfs/fedora32
   variables:
     # we clone to make sure we have everything (including current names of the SHAs)
     GIT_STRATEGY: clone
+    GIT_SUBMODULE_STRATEGY: recursive
   rules:
-    # only run the job for merge requests if there are changes in the Testsuite submodule
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - Testsuite
-      when: always
-      allow_failure: true # it will pop up as warning (maintainers should not ignore)
-      # otherwise create it but set it to manual
-    - when: manual
-      allow_failure: true
+    # only create the job if there are changes in the Testsuite submodule
+    - if: $CFS_PIPELINE_TYPE == "test" 
+      <<: *Testsuite_changes
+      when: on_success
+      allow_failure: true # only for info
+    - if: $CFS_PIPELINE_TYPE != /test/
+      <<: *Testsuite_changes
+      when: manual
+      allow_failure: true # only for info
   before_script:
     - git --no-pager log -1 --pretty=tformat:'%h %D'
-    - echo "$CI_COMMIT_REF_NAME"
+    - echo "The Testsuite in $CI_COMMIT_REF_NAME has changes compared to master!"
   script:
     # check in Testsuite submodule
     - cd Testsuite
@@ -86,18 +142,21 @@ testsuite-revision:
     - git --no-pager log -1 --pretty=tformat:'%h %D' | egrep -w "(${CI_COMMIT_REF_NAME})|(master)"
   after_script:
     - pwd # debug
-  cache: {} # disable
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
-  stage: check
+  extends: .check
   image: 
-    name: ghcr.io/tcort/markdown-link-check # working label :3.9.2
+    name: ghcr.io/tcort/markdown-link-check # working label :3.12.2
     entrypoint: ["/bin/sh","-c"]
-  tags:
-    - docker
   variables:
-    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: fetch
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test"
+      allow_failure: true # do not prevent merge
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true # do not prevent merge
   script:
     - markdown-link-check README.md
     - markdown-link-check CONTRIBUTING.md
@@ -105,45 +164,47 @@ markdown-link-check:
     - find source -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
     - find share/doc/developer/build-dependencies -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
     - find .gitlab -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
-  allow_failure: true
-  cache: {} # disable
 
 # this job is intended as a warning if the pipeline has changed
 # it is running only if there are changes, and will always fail if there are some
+.pipeline_changes: &pipeline_changes
+      changes:
+        paths:
+        - .gitlab-ci.yml
+        - .gitlab/ci/*.yml
+        compare_to: 'refs/heads/master'
 pipeline-changes:
-  stage: check
-  tags:
-    - linux
+  extends: .check
   image: opencfs/fedora32
   # switch off cloning the Testsuite submodule
   variables:
-    GIT_SUBMODULE_STRATEGY: none
+    GIT_STRATEGY: none
   rules:
     # only run the job for merge requests if there are changes in the pipeline definition
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      changes:
-        - .gitlab-ci.yml
-      when: always
-      allow_failure: true
-    # otherwise create it but set it to manual
-    - when: manual
-      allow_failure: true
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *pipeline_changes
+      allow_failure: true # only for info, do not prevent merge
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *pipeline_changes
+      when: manual
+      allow_failure: true # only for info, do not prevent merge
   before_script:
     - echo $CI_MERGE_REQUEST_TARGET_BRANCH_NAME 
     - git diff remotes/origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME -- .gitlab-ci.yml || git diff HEAD~1 -- .gitlab-ci.yml
   script:
     - /the/pipeline/has/changed
-  cache: {} # disable
 
 runner-debug:
-  stage: check
+  extends: .check
   tags:
-    - linux
-  # switch off cloning any code
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
-    GIT_STRATEGY: none
+    - saas-linux-small-amd64
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
+      when: manual
+      allow_failure: true # only for info, do not prevent merge
   script:
+    - echo "$CFS_PIPELINE_NAME"
+    - echo "$CFS_PIPELINE_TYPE"
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
     - echo $GITLAB_USER_ID
@@ -151,6 +212,7 @@ runner-debug:
     - echo $CI_RUNNER_ID
     - echo $CI_RUNNER_SHORT_TOKEN
     - echo $CI_PROJECT_NAMESPACE
+    - echo $CI_PROJECT_DIR
     - echo $CI_PIPELINE_URL
     - echo $CI_PAGES_URL
     - echo $CI_MERGE_REQUEST_IID
@@ -159,23 +221,18 @@ runner-debug:
     - echo $CI_COMMIT_REF_NAME
     - echo $CI_PIPELINE_SOURCE
     - echo $CI_PIPELINE_IID
-  when: manual
-  allow_failure: true
-  cache: {} # disable
 
 # this job is created when there is a skip-build in the commit message
 skip-build:
-  stage: check
+  extends: .check
   tags:
-    - linux
-  # switch off cloning any code
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
-    GIT_STRATEGY: none
+    - saas-linux-small-amd64
   rules:
-    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/'
-      when: always
-      allow_failure: true
+    - if: $CI_COMMIT_MESSAGE =~ /skip-build/ && $CFS_PIPELINE_TYPE == "test"
+      allow_failure: true # only for info, do not prevent merge
+    - if: $CI_COMMIT_MESSAGE =~ /skip-build/ && $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true # only for info, do not prevent merge
   script:
     - /commit/message/contained/skip-build
 
@@ -190,20 +247,18 @@ skip-build:
     - source/**/*.{hh,cc,h,c}
     - Testsuite
 
-mr-with-code-changes:
-  stage: check
+cpp-code-changes:
+  extends: .check
   tags:
-    - linux
-  # switch off cloning any code
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
-    GIT_STRATEGY: none
+    - saas-linux-small-amd64
   rules:
-    # this job should match and ensure we build
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
-      when: always
-      allow_failure: true
+      allow_failure: true # only for info, do not prevent merge
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+      when: manual
+      allow_failure: true # only for info, do not prevent merge
   script:
     - /merge/request/ and /the/code/has/changed
 
@@ -215,18 +270,20 @@ mr-with-code-changes:
 # all jobs in the stage have no needs, and are manual (one can start them by the play-button)
 
 # Template for the platform builds
-.platform:image:
+.platform:
   stage: platform
   tags:
-    - docker
+    - saas-linux-small-amd64
+  image:
+    name: $IMAGE:$TAG
   after_script: []
   rules:
-    # set variable PLATFORM to activate the job
-    - if: $PLATFORM
+    # set variable PLATFORM to activate the job for test or nightly pipelines
+    - if: $PLATFORM  && ( $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "nightly" ) 
       when: on_success
-    - if: $CI_COMMIT_BRANCH || $CI_MERGE_REQUEST_IID # this should match always, setting the job to manual
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
       when: manual
-      allow_failure: true # maybe we need this to not stop the pipeline if the manual job is not triggered
+      allow_failure: true # we need this to not stop the pipeline if the manual job is not triggered
   # disable cache
   cache: {}
   # switch off cloning the Testsuite submodule
@@ -263,47 +320,42 @@ mr-with-code-changes:
 # fedora releases, see https://hub.docker.com/_/fedora
 # latest stable release
 fedora:latest:
-  extends: .platform:image
-  image:
-    name: fedora:latest
-    entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+  extends: .platform
   variables:
     IMAGE: "fedora"
     TAG: "latest"
+  image: # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/sh', '-c' ]
 
 # latest development release
 fedora:rawhide:
-  extends: .platform:image
-  image:
-    name: fedora:rawhide
-    entrypoint: [ '/bin/sh', '-c' ] # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+  extends: .platform
   variables:
     IMAGE: "fedora"
     TAG: "rawhide"
+  image: # workaround due to 'shell not found'-bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/sh', '-c' ]
 
 # ubuntu releases, see https://hub.docker.com/_/ubuntu
 # latest LTS release 
 ubuntu:latest:
-  extends: .platform:image
-  image: ubuntu:latest
+  extends: .platform
   variables:
     IMAGE: "ubuntu"
     TAG: "latest"
 
 # the latest stable release, regardless of LTS status
 ubuntu:rolling:
-  extends: .platform:image
-  image:
-    name: ubuntu:rolling
-    entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] # workaround due to bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+  extends: .platform
   variables:
     IMAGE: "ubuntu"
     TAG: "rolling"
+  image: # workaround due to bug: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/27614
+    entrypoint: [ '/bin/bash', '-c', 'ln -snf /bin/bash /bin/sh && /bin/bash -c $0' ] 
 
 # older LTS releases ...
 ubuntu:20.04:
-  extends: .platform:image
-  image: ubuntu:20.04
+  extends: .platform
   variables:
     IMAGE: "ubuntu"
     TAG: "20.04"
@@ -311,41 +363,36 @@ ubuntu:20.04:
 # debian releases, see https://hub.docker.com/_/debian
 # latest stable release (dynamic image name)
 debian:latest:
-  extends: .platform:image
-  image: debian:latest
+  extends: .platform
   variables:
     IMAGE: "debian"
     TAG: "latest"
 
-# older releases ...
-debian:10: # (buster)
-  extends: .platform:image
-  image: debian:10
+# older releases ... https://www.debian.org/releases/
+debian:11: # (bullseye)
+  extends: .platform
   variables:
     IMAGE: "debian"
-    TAG: "10"
+    TAG: "11"
 
 # RHEL derivatives
 # centos 7, see https://hub.docker.com/_/centos, probably not maintained any more
 rhel:7:
-  extends: .platform:image
-  image: centos:7
+  extends: .platform
   variables:
     IMAGE: "centos"
     TAG: "7"
 
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
 rhel:8:
-  extends: .platform:image
-  image: rockylinux:8
+  extends: .platform
   variables:
     IMAGE: "rockylinux"
     TAG: "8"
 
 # rockylinux 9, see https://hub.docker.com/_/rockylinux
 rhel:9:
-  extends: .platform:image
-  image: rockylinux:9
+  extends: .platform
   variables:
     IMAGE: "rockylinux"
     TAG: "9"
@@ -362,19 +409,72 @@ rhel:9:
 # it is stored as a zip archive and extracted before each stage - this takes time,
 # thus we combine the build and configure step
 # the key is used to define which cache is used for which job.
-.cache_cfsdeps: &cache_cfsdeps
+
+# requires disabling od seperate branches
+# see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+# we use one cache per compiler type, and one cache per branch
+# the master branch is used as a fallback key, it's cache is kept up to date by the nightly schedule
+.cache_cfsdeps-gcc7: &cache_cfsdeps-gcc7
   cache:
-    key: ${CI_COMMIT_REF_NAME}
-    paths:
-      - build/cfsdeps/cache
+    - key: cfsdeps-precompiled-gcc7-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        - cfsdeps-precompiled-gcc7-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
+.cache_cfsdeps-gcc12: &cache_cfsdeps-gcc12
+  cache:
+    - key: cfsdeps-precompiled-gcc12-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        - cfsdeps-precompiled-gcc12-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
 # seperate cache for intel, since shared runners need to save space
 .cache_cfsdeps-intel: &cache_cfsdeps-intel
   cache:
-    key: ${CI_COMMIT_REF_NAME}-intel
-    paths:
-      - build/cfsdeps/cache
+    - key: cfsdeps-precompiled-intel-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        # requires disabling od seperate branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-precompiled-intel-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        # requires disabling od seperate branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
+
+.cache_cfsdeps-alpine: &cache_cfsdeps-alpine
+  cache:
+    - key: cfsdeps-precompiled-alpine-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled/
+      fallback_keys:
+        # requires disabling od seperate branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-precompiled-alpine-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        # requires disabling od seperate branches
+        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
 
 .before-script-build: &before-script-build
+  - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
   # make sure the Testsuite submodule is OK
   - git status # debug
   - git diff -- Testsuite # debug
@@ -389,61 +489,85 @@ rhel:9:
   - rm -f CMakeCache.txt # clear old cache
   # show the contents of the cfsdeps cache
   - ls -l cfsdeps/cache/precompiled || ls #debug
-  # remove precompiled when we finde clear-cache in the commit message
-  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache/precompiled ) || echo "no clear-cache requested in commit message"
-  - ls -l cfsdeps/cache/sources || ls # debug
+  - ls -l cfsdeps/cache/sources || ls #debug
+  # remove precompiled when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
+  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache ) || echo "no clear-cache requested in commit message"
+  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache; else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
+  - ls -l cfsdeps || ls # debug
 
 # if testsuite_ignore is there, restore it
 .restore_Testsuite_ignore: &restore_Testsuite_ignore
   - (ls Testsuite_ignore && mv -T Testsuite_ignore Testsuite) || ls Testsuite
   - git status # debug
 
+# define when csdeps need to be rebuilt based on changes
+.cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
+  # changes that require the cfsdeps to be re-built
+  changes:
+    paths:
+      - "cfsdeps/**/*"
+      - "cmake_modules/FindCFSDEPS.cmake"
+    compare_to: 'refs/heads/master'
+
 .build_rules: &build_rules
   rules:
-    # activate builds in schedule (nightly builds)
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    # skip builds by commit message
-    - if: '$CI_COMMIT_MESSAGE =~ /skip-build/'
+    # there should be changes but a user has skipped the build
+    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
+      <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
       when: manual
-      allow_failure: true
-    # set to manual if the merge request title start with Draft:
-    - if: '$CI_MERGE_REQUEST_TITLE =~ /^Draft:.*/'
-      when: manual
-      allow_failure: false
-    # this job should match and ensure we build
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
       <<: *require-rebuild-changes
-      when: on_success
-      allow_failure: false
-    # set build jobs to manual if we do not have changes in source files
-    - when: manual
+      when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
+    # builds & tests are required
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *require-rebuild-changes
+    # all manual
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
+      when: manual
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+      when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
+    # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
+      when: manual
       allow_failure: true
+      needs: [] # allow to be triggered manually without cfsdeps
+    # nightly always builds
+    - if: $CFS_PIPELINE_TYPE == "nightly"
+    # otherwise no builds
 
 .release_build_rules: &release_build_rules
   rules:
-    # always activate this job for the default branch
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-      when: on_success
-      allow_failure: false
-    # always activate this job for tags on the default branch (releases)
-    - if: $CI_COMMIT_TAG && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: on_success
-      allow_failure: false
+    - if: $CFS_PIPELINE_TYPE == "release"
     - !reference [.build_rules, rules]
 
-.cfsdeps:default: &cfsdeps_default
+.cfsdeps: &cfsdeps
   stage: cfsdeps
   tags:
-    - docker
+    - saas-linux-small-amd64
   # switch off cloning the Testsuite submodule
-  variables:
+  variables: &cfsdeps-variables
     GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+  rules:
+    # include the cfsdeps stage even if there are no changes by setting this variable
+    - if: $BUILD_CFSDEPS == "manual" || ( $BUILD_CFSDEPS && $CFS_PIPELINE_TYPE == "manual" )
+      when: manual
+    - if: $BUILD_CFSDEPS
+    # only add cfsdeps jobs if there are changes
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *cfsdeps-rebuild-changes
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      <<: *cfsdeps-rebuild-changes
+      when: manual
   before_script:
     - pwd # debug
     - *before-script-build
   script:
-    - cmake ..
+    - cmake $CFS_CONFIG_OPTIONS ..
     - cmake .
     - make cfsdeps
   after_script:
@@ -452,38 +576,73 @@ rhel:9:
   needs: []
 
 cfsdeps:gcc7:
+  extends: .cfsdeps
   image: opencfs/centos6-gcc7
-  <<: *cfsdeps_default
-  <<: *cache_cfsdeps
-  <<: *release_build_rules
+  <<: *cache_cfsdeps-gcc7
   artifacts:
     paths:
-      - build/cfsdeps/cache/precompiled/*GNU_7*.zip
+      - build/cfsdeps/cache/precompiled/*GNU_7*-lib.zip # legacy
+      - build/cfsdeps/cache/precompiled/*GNU-7*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
 cfsdeps:gcc12:
+  extends: .cfsdeps
   image: opencfs/fedora37
-  <<: *cfsdeps_default
-  <<: *cache_cfsdeps
-  <<: *build_rules
+  <<: *cache_cfsdeps-gcc12
   artifacts:
     paths:
-      - build/cfsdeps/cache/precompiled/*GNU_12*.zip
+      - build/cfsdeps/cache/precompiled/*GNU_12*-lib.zip # legacy
+      - build/cfsdeps/cache/precompiled/*GNU-12*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
+  extends: .cfsdeps
   image: opencfs/centos7-intel
-  <<: *cfsdeps_default
   <<: *cache_cfsdeps-intel
-  <<: *build_rules
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*Intel*.zip
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
     expire_in: 6 hours
+
+cfsdeps:gcc13-musl:
+  extends: .cfsdeps
+  image: opencfs/alpine:2024.02
+  variables:
+    <<: *cfsdeps-variables
+    CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS # add the MUSL-options
+  <<: *cache_cfsdeps-alpine
+  artifacts:
+    paths:
+      - build/cfsdeps/cache/precompiled/*.zip
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    expire_in: 6 hours
+
+cfsdeps:MSVC2022-Ifort2021:
+  extends: .windows-shared-build
+  stage: cfsdeps
+  rules:
+    - !reference [.cfsdeps,rules]
+  variables:
+    # set the cache policy to pull-push to update the cache
+    INSTALL_POLICY: pull-push
+    CFSDEPS_SOURCES_POLICY: pull-push
+    CFSDEPS_PRECOMPILED_POLICY: pull-push
+    # define the build command
+    BUILD_COMMAND: "cmake --build . --target cfsdeps"
+  after_script:
+    # just debug
+    - !reference [.powershell_debug_dir_listing, script]
+  artifacts:
+    when: on_success
+    paths:
+      - build/cfsdeps/cache/precompiled/*.zip
+    expire_in: 2 days
+  # Set empty needs so that the jobs start immediately (not per stage)
+  needs: []
 
 #######################################################################
 # BUILD STAGE definitions
@@ -496,15 +655,25 @@ cfsdeps:intel:
   - ls -R Testing # debug
   - cat Testing/*/Done.xml # debug
   - grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml # debug
+  # get build ID from file
   - BUILD_ID=$( grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml )
-  - echo "Build on CDash - http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}"
-  - echo "Tests on CDash - http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}"
+  # save links as variables
+  - CDASH_BUILD_URL=$( echo "http://movm.mi.uni-erlangen.de/cdash/buildSummary.php?buildid=${BUILD_ID}" )
+  - CDASH_TEST_URL=$( echo "http://movm.mi.uni-erlangen.de/cdash/viewTest.php?buildid=${BUILD_ID}")
+  # output to annotations
+  # https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
+  - echo '{"CDash":[{"external_link":{"label":"CDash Build","url":"'$CDASH_BUILD_URL'"}},{"external_link":{"label":"CDash Tests","url":"'$CDASH_TEST_URL'"}}]}' > annotations.json
+  # output to job log
+  - echo "Build on CDash - $CDASH_BUILD_URL"
+  - echo "Tests on CDash - $CDASH_TEST_URL"
 
 .default_build_job: &default_build_job
+  stage: build
+  tags:
+    - saas-linux-small-amd64
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
-    CI_PIPELINE_USE_BUILDTESTS: "ON" # we define this variable to include additional build tests
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"
@@ -613,102 +782,94 @@ cfsdeps:intel:
 # BUILD STAGE
 #######################################################################
 
+
 # maximal build using as many options as possible
 linux:gcc7max-debug:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
-  <<: *max_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
-  needs: ["cfsdeps:gcc7"]
+  <<: [ *max_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+  needs: 
+    - job: cfsdeps:gcc7
+      optional: true
 
 # maximal build using as many options as possible
 linux:gcc7max:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
-  <<: *max_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
-  needs: ["cfsdeps:gcc7"]
+  <<: [ *max_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+  needs: 
+    - job: cfsdeps:gcc7
+      optional: true
 
 # this is the offcial release buils
 linux:gcc7:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7"
-  <<: *release_build_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
-  needs: ["cfsdeps:gcc7"]
+  <<: [ *release_build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+  needs: 
+    - job: cfsdeps:gcc7
+      optional: true
+
+linux:gcc13-musl:
+  extends: .default_build_job
+  image: opencfs/alpine:2024.02
+  variables:
+    BUILD_NAME: "GCC13-MUSL"
+    CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-alpine ]
+  needs: 
+    - job: cfsdeps:gcc13-musl
+      optional: true
 
 linux:gcc7min:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos6-gcc7
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC7 minimal"
-    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
-  <<: *build_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
-  needs: ["cfsdeps:gcc7"]
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+  needs:
+    - job: cfsdeps:gcc7
+      optional: true
 
 linux:gcc12:
   extends: .default_build_job
-  stage: build
   image: opencfs/fedora37
-  tags:
-    - docker
   variables:
     BUILD_NAME: "GCC12"
-  <<: *build_rules
-  <<: *gcc_before
-  <<: *cache_cfsdeps
-  needs: ["cfsdeps:gcc12"]
+  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc12 ]
+  needs: 
+    - job: cfsdeps:gcc12
+      optional: true
 
 # intel compiler builds
 linux:intel:
   extends: .default_build_job
-  stage: build
   image: opencfs/centos7-intel
-  tags:
-    - docker
   variables:
     BUILD_NAME: "Intel2021"
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
+      <<: *require-rebuild-changes
       when: manual
-      allow_failure: true
     - !reference [.build_rules, rules]
-  <<: *intel_before
-  <<: *cache_cfsdeps-intel
-  needs: ["cfsdeps:intel"]
+  <<: [ *intel_before,*cache_cfsdeps-intel ]
+  needs:
+    - job: cfsdeps:intel
+      optional: true
 
 # LLVM clang compiler builds
 linux:clang-debug:
   extends: .default_build_job
-  stage: build
   image: opencfs/fedora37-clang
-  tags:
-    - docker
   variables:
     BUILD_NAME: "Clang debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
@@ -723,16 +884,34 @@ linux:clang-debug:
     # general build before script
     - *before-script-build
   # artifacts are not needed long since no tests are done for this job
-  <<: *build_artifacs_short
-  <<: *cache_cfsdeps
+  <<: [ *build_artifacs_short ]
+  cache:
+    - key: cfsdeps-precompiled-Clang-${CI_COMMIT_REF_NAME}
+      paths:
+        - build/cfsdeps/cache/precompiled
+      fallback_keys:
+        - cfsdeps-precompiled-Clang-$CI_DEFAULT_BRANCH
+    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
+      paths:
+        - build/cfsdeps/cache/sources/
+      fallback_keys:
+        - cfsdeps-sources-$CI_DEFAULT_BRANCH
   needs: []
 
 # build with ninja
 linux:gcc12:ninja:
-  stage: build
+  extends: .default_build_job
   image: opencfs/fedora37
-  tags:
-    - docker
+  rules:
+    # this job is always manual (just for info)
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *require-rebuild-changes
+      when: manual
+      allow_failure: true # do not stop the pipeline for this info-job
+    # it is not useful for nightly builds since it has no cdash output
+    - if: $CFS_PIPELINE_TYPE == "nightly"
+      when: never
+    - !reference [.build_rules, rules]
   before_script:
      # general build before script
     - *before-script-build
@@ -748,10 +927,41 @@ linux:gcc12:ninja:
     - cpack -G TGZ
   after_script:
     - ls -la
-  when: manual
-  <<: *build_artifacs_short
-  <<: *cache_cfsdeps
-  needs: ["cfsdeps:gcc12"]
+  needs: 
+    - job: cfsdeps:gcc12
+      optional: true
+
+# windows build
+windows:MSVC2022-Ifort2021:
+  extends: .windows-shared-build
+  stage: build
+  <<: *release_build_rules
+  variables:
+    BUILD_NAME: "MSVC2022-Ifort2021"
+    # see https://yaml-multiline.info/ for multiline info
+    BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
+                    ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
+                    ctest -D ExperimentalConfigure --track $CDASH_TRACK -V &&
+                    ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
+                    ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.log &&
+                    ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
+                    ctest -D ExperimentalTest --track $CDASH_TRACK -V"
+  script:
+    # inherit the standard script, then extend by mv command
+    - !reference [.windows-shared-build, script]
+    # rename packaged file to branch-based name
+    - mv "CFS-$CI_COMMIT_SHA-win64.zip" "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
+  artifacts:
+    when: always
+    paths:
+      - build/CFS-*-Windows.zip
+      - build/logs.zip
+    expire_in: 1 days
+  needs:
+    # set the needs to 'optional' since the cfsdeps job might not be present
+    - job: cfsdeps:MSVC2022-Ifort2021
+      optional: true
+
 
 #######################################################################
 # TEST STAGE
@@ -783,19 +993,19 @@ linux:gcc12:ninja:
     - *cmake_test_or_install
     # CDash submit
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    # save buidid
+    # save buildid
     - *save_cdash_buildid
-    # create JUnit output from cdash data
-    - ../share/python/cdash2junit.py $BUILD_ID # run conversion/augmentation script
-    - cp "${BUILD_ID}.xml" "${CI_JOB_ID}_junit.xml" # save under expected name for artifacts
   artifacts:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
-      junit: build/${CI_JOB_ID}_junit.xml
+      junit: build/${CI_JOB_ID}.xml
+      annotations: build/annotations.json
     when: always
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
+  rules:
+    - !reference [.build_rules, rules]
   before_script:
     - mkdir -p build
     - cd build # descend in build
@@ -832,7 +1042,7 @@ linux:gcc12:ninja:
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     - echo "CTEST_OPTIONS="$CTEST_OPTIONS
     # configure and run the testsuite
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
@@ -846,13 +1056,11 @@ linux:gcc12:ninja:
     # show variables for debug
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     # configure and run the testsuite
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
+    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
     - ctest -D ExperimentalTest -LE "unstable|slow" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
-
-
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -860,11 +1068,11 @@ linux:gcc12:ninja:
 # Naming scheme for BUILD_NAME: build config / test-set parallelism
 stable_ser:gcc7min:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: gcc7 minimal / stable serial
+    BUILD_NAME: "GCC7 minimal / stable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -873,12 +1081,12 @@ stable_ser:gcc7min:linux:
 
 unstable_ser:gcc7min:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
     # is built without opnemp  
-    BUILD_NAME: gcc7 minimal / unstable serial
+    BUILD_NAME: "GCC7 minimal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -886,34 +1094,32 @@ unstable_ser:gcc7min:linux:
     - linux:gcc7min
 
 stable_par:gcc7max:linux:
+  extends: .test_generic
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   image: opencfs/centos6-gcc7
-  rules:
-    - !reference [.max_never_auto_rule, rules]
-    - when: on_success
+  rules: # overwrite rules given via extends: .test_generic
+    - !reference [.max_rules, rules]
   variables:
-    BUILD_NAME: gcc7 maximal / stable parallel
+    BUILD_NAME: "GCC7 maximal / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
-  <<: *test_generic
   needs:
     - linux:gcc7max
 
 unstable_ser:gcc7max:linux:
+  extends: .test_generic
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   image: opencfs/centos6-gcc7
-  rules:
-    - !reference [.max_never_auto_rule, rules]
-    - when: on_success
+  rules: # overwrite rules given via extends: .test_generic
+    - !reference [.max_rules, rules]
   variables:
-    BUILD_NAME: gcc7 maximal / unstable serial
+    BUILD_NAME: "GCC7 maximal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
   needs:
     - linux:gcc7max
 
@@ -922,26 +1128,26 @@ stable_par:gcc7closed:linux:
   stage: test
   image: opencfs/centos6-gcc7
   tags:
-    - docker
+    - saas-linux-small-amd64
   variables:
-    CI_PIPELINE_USE_BUILDTESTS: "ON" # we define this variable to include additional build tests
     BUILD_NAME: "GCC7 closed / stable opt parallel"
     # embedded_python is not closed but technically not that easy deployable
     CFS_CONFIG_OPTIONS: "-DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_SUITESPARSE=ON -DBUILD_CFSDAT=OFF" 
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF -DPIPELINE_TEST_STAGE_CONFIG=OFF"
     CTEST_OPTIONS: "-LE unstable|broken -R Opt"
   # ensure closed build is tested only when the keys are set
   rules:
     - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
       when: never
     - !reference [.build_rules, rules]
-  <<: *gcc_before
-  <<: *cache_cfsdeps
+  <<: [*gcc_before,*cache_cfsdeps-gcc7]
   script:
     ## BUILD STAGE
+    - echo "CFS_CONFIG_OPTIONS="$CFS_CONFIG_OPTIONS
+    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
+    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
     # configure once to have dashboard ready
-    - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DTESTSUITE_DIR="${CI_PROJECT_DIR}/Testsuite" -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ${TEST_CONFIG_OPTIONS} ..
     # start cdash dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     # update to current revision (gives link on CDash)
@@ -952,29 +1158,14 @@ stable_par:gcc7closed:linux:
     # build
     - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
-    # install test to create arifacts (first delete stuff to make space for packing)
+    # save some space by deleting stuff
     - df -h # debug
     - du -h --max-depth=1 . # debug
     - find cfsdeps/* -type d -not -wholename "*/cache" -not -wholename "*/cache/*" -prune -exec rm -rf {} + # delete cfsdeps (except cache)
     - find -name CMakeFiles -type d -exec rm -rf {} + # delete cmake directories
     - find -iregex ".*\(\([.]a\)\|\([.]hpp\)\)$" -delete # delete *.a and *.hpp files
     - du -h --max-depth=1 . # debug
-
-    ## TEST STAGE     
-    - ls # debug
-    # obtain the build config
-    - ./bin/cfs --dependencies config.cmake
-    # optionally install cmake if not present
-    - *cmake_test_or_install
-
-    # show variables for debug
-    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
-    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
-    # configure and run the testsuite
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
-    #- ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
-    #- ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
-    #- ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
+    # run the testsuite
     - ctest -D ExperimentalTest ${CTEST_OPTIONS} --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   after_script:
     - cd build
@@ -982,24 +1173,50 @@ stable_par:gcc7closed:linux:
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
     # save buildid
     - *save_cdash_buildid
-    # create JUnit output from cdash data
-    - ../share/python/cdash2junit.py $BUILD_ID # run conversion/augmentation script
-    - cp "${BUILD_ID}.xml" "${CI_JOB_ID}_junit.xml" # save under expected name for artifacts
   coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/' # regular expression that searches through the job output and extracts the matching line. (\s = whitespace, \d = digit, ? = match 0 or 1 of the preceeding character, % = % sign; see https://docs.gitlab.com/ee/ci/yaml/#coverage for coverage infos)
-  needs: ["cfsdeps:gcc7"]
+  needs:
+    - job: "cfsdeps:gcc7"
+      optional: true
   artifacts:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
-      junit: build/${CI_JOB_ID}_junit.xml
+      junit: build/${CI_JOB_ID}.xml
+      annotations: build/annotations.json
     when: always
+
+stable_ser:gcc13-musl:linux:
+  tags:
+    - saas-linux-small-amd64
+  image: opencfs/ubuntu22.04
+  stage: test
+  variables:
+    BUILD_NAME: "GCC13-MUSL / stable serial"
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-LE unstable|broken"
+  <<: *test_generic
+  needs:
+    - linux:gcc13-musl
+
+stable_par:gcc13-musl:linux:
+  tags:
+    - saas-linux-small-amd64
+  image: opencfs/ubuntu22.04
+  stage: test
+  variables:
+    BUILD_NAME: "GCC13-MUSL / stable parallel"
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-LE unstable|broken"
+  <<: *test_generic
+  needs:
+    - linux:gcc13-musl
 
 stable_par:gcc12:linux:
   image: opencfs/fedora37
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   variables:
-    BUILD_NAME: gcc12 default / stable parallel
+    BUILD_NAME: "GCC12 / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1009,10 +1226,10 @@ stable_par:gcc12:linux:
 unstable_ser:gcc12:linux:
   image: opencfs/fedora37
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   variables:
-    BUILD_NAME: gcc12 default / unstable serial
+    BUILD_NAME: "GCC12 / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1021,68 +1238,97 @@ unstable_ser:gcc12:linux:
 
 stable_par:intel:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 default / stable parallel
+    BUILD_NAME: Intel2021 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   needs:
     - linux:intel
 
 unstable_ser:intel:linux:
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 default / unstable serial
+    BUILD_NAME: Intel2021 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
   needs:
     - linux:intel
+
+# windows tests
+stable_ser:MSVC2022-Ifort2021:windows:
+  extends: .windows-shared-test
+  stage: test
+  variables:
+    BUILD_NAME: MSVC2022-Ifort2021 / stable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+  script: 
+    - !reference [.windows-test_stable, script]
+  needs:
+    - windows:MSVC2022-Ifort2021
+
+stable_par:MSVC2022-Ifort2021:windows:
+  extends: .windows-shared-test
+  stage: test
+  variables:
+    BUILD_NAME: MSVC2022-Ifort2021 / stable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+  script: 
+    - !reference [.windows-test_stable, script]
+  rules:
+    #make it optional since MSVC builds currently are not running in parallel
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      <<: *require-rebuild-changes
+      when: manual
+      allow_failure: true
+    - !reference [.ctest_default, rules]
+  needs:
+    - windows:MSVC2022-Ifort2021
+
+unstable_ser:MSVC2022-Ifort2021:windows:
+  extends: .windows-shared-test
+  stage: test
+  variables:
+    BUILD_NAME: MSVC2022-Ifort2021 / unstable serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+  script:
+    - !reference [.windows-test_unstable, script]
+  needs:
+    - windows:MSVC2022-Ifort2021
 
 python:linux:
   image: opencfs/ubuntu22.04
   extends: .ctest_default
   tags:
-    - docker
+    - saas-linux-small-amd64
   stage: test
   rules:
-    # activate in schedule (nightly builds)
-    - if: '$CI_PIPELINE_SOURCE == "schedule"'
-    # set to manual if 'skip-python-tests' is found in commit message
-    - if: $CI_COMMIT_MESSAGE =~ /skip-python-tests/
-      when: manual
-      allow_failure: true
+    # activate in schedule
+    - if: $CFS_PIPELINE_TYPE == "nightly"
     # run when we have changes in python files
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: $CFS_PIPELINE_TYPE == "test"
       changes:
         - "**/*.py"
-      when: on_success
-      allow_failure: false
-    # set build jobs to manual if we do not have changes in relevant files
-    - when: manual
-      allow_failure: true
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      changes:
+        - "**/*.py"
+      when: manual
   variables:
     TEST_NAME: "stable"
     EXCLUDE: ""
   before_script:
+    - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
     - mkdir -p build
     - cd build
     - *cmake_test_or_install # optionally install cmake if not present
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY=ON -DBUILD_TESTING=ON -DPIPELINE_TEST_STAGE_CONFIG=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
@@ -1090,157 +1336,186 @@ python:linux:
     - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
+  needs: [] # run as soon as possible
 
 
 #######################################################################
 # TEST_EXTRA STAGE - similar to before, but here we collect everything that is currently not working as intended (everything that is allowed to fail)
 #######################################################################
 
-broken_ser:gcc7min:linux:
-  tags:
-    - linux
-  image: opencfs/ubuntu22.04
+# the extra stage is irrelevant for the merge request (alloed to fail)
+# therefore we set it to manual by default
+# it should auto-run for nightly tests
+.test_extra:
+  <<: *test_generic
   stage: test_extra
+  # then overwrite rules
+  rules:
+    # Scheduled pipelines run all tests
+    - if: $CFS_PIPELINE_TYPE == "nightly"
+      allow_failure: true
+    # Set the tests to manual for test-pipelines
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true
+
+broken_ser:gcc7min:linux:
+  extends: .test_extra
+  tags:
+    - saas-linux-small-amd64
+  image: opencfs/ubuntu22.04
   variables:
     # is built without opnemp  
-    BUILD_NAME: gcc7 minimal / broken serial
+    BUILD_NAME: "GCC7 minimal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
-  <<: *test_generic
-  allow_failure: true
   needs:
     - linux:gcc7min
 
 # this test has the speciality that it shall run at an unspecified image 
 all_par:gcc7:any-linux:
+  extends: .test_extra
   tags:
-    - linux
-  stage: test_extra 
+    - saas-linux-small-amd64
   variables:
-    BUILD_NAME: gcc7 default / all parallel any-linux
+    BUILD_NAME: "GCC7 / all parallel any-linux"
     # no special options - we take all default (should be all tests & in parallel if NCPU>1)
-  <<: *test_generic
-  allow_failure: true # we know some tests will fail on multi-core runs, so this will not stop the pipeline
   needs:
     - linux:gcc7
 
 unstable_par:gcc7max:linux:
+  extends: .test_extra
   tags:
-    - docker
-  stage: test_extra
+    - saas-linux-small-amd64
   image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
-    - when: on_success
-      allow_failure: true
+    - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: gcc7 maximal / unstable parallel
+    BUILD_NAME: "GCC7 maximal / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"      
-  <<: *test_generic
   needs:
     - linux:gcc7max
 
 broken_ser:gcc7max:linux:
+  extends: .test_extra
   tags:
-    - docker
-  stage: test_extra
+    - saas-linux-small-amd64
   image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
-    - when: on_success
-      allow_failure: true
+    - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: gcc7 maximal / broken serial
+    BUILD_NAME: "GCC7 maximal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-L broken"      
-  <<: *test_generic
-  allow_failure: true
+    CTEST_OPTIONS: "-L broken"
   needs:
     - linux:gcc7max
 
 # debug is compiled without openmp
 no-slow_ser:gcc7max-debug:linux:
+  extends: .test_extra
+  <<: *test_no_slow
   tags:
-    - docker
-  stage: test_extra
+    - saas-linux-small-amd64
   image: opencfs/centos6-gcc7
+  # overwrite rules & variables
   rules:
     - !reference [.max_never_auto_rule, rules]
-    - when: on_success
-      allow_failure: true # should eventually become false (default) for debug tests as we skip unstable
+    - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: gcc maximal debug / no-slow serial
+    BUILD_NAME: "GCC7 maximal debug / no-slow serial"
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     # this special test_no_slow does -LE "unstable|slow"
-  <<: *test_no_slow
   needs:
     - linux:gcc7max-debug
 
 unstable_par:gcc12:linux:
+  extends: .test_extra
   image: opencfs/fedora37
   tags:
-    - docker
-  stage: test_extra
+    - saas-linux-small-amd64
   variables:
-    BUILD_NAME: gcc12 default / unstable parallel
+    BUILD_NAME: "GCC12 / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
-  allow_failure: true
   needs:
     - linux:gcc12
 
 broken_ser:gcc12:linux:
+  extends: .test_extra
   image: opencfs/fedora37
   tags:
-    - docker
-  stage: test_extra
+    - saas-linux-small-amd64
   variables:
-    BUILD_NAME: gcc12 default / broken serial
+    BUILD_NAME: "GCC12 / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
-  <<: *test_generic
-  allow_failure: true
   needs:
     - linux:gcc12
 
 unstable_par:intel:linux:
+  extends: .test_extra
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
-  stage: test_extra
   variables:
-    BUILD_NAME: Intel2021 default / unstable parallel
+    BUILD_NAME: Intel2021 / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
-  allow_failure: true
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-stable-tests/
   needs:
     - linux:intel
 
-broken_ser:intel:linux:
+unstable_par:gcc13-musl:linux:
+  extends: .test_extra
   tags:
-    - linux
+    - saas-linux-small-amd64
   image: opencfs/ubuntu22.04
-  stage: test_extra
   variables:
-    BUILD_NAME: Intel2021 default / broken serial
+    BUILD_NAME: GCC13-MUSL / unstable parallel
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
+    CTEST_OPTIONS: "-L unstable"
+  needs:
+    - linux:gcc13-musl
+
+broken_ser:gcc13-musl:linux:
+  extends: .test_extra
+  tags:
+    - saas-linux-small-amd64
+  image: opencfs/ubuntu22.04
+  variables:
+    BUILD_NAME: GCC13-MUSL / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
-  <<: *test_generic
-  allow_failure: true
-  except:
-    variables:
-      - $CI_COMMIT_MESSAGE =~ /skip-intel-builds/
-      - $CI_COMMIT_MESSAGE =~ /skip-testsuite-tests/
+  needs:
+    - linux:gcc13-musl
+
+broken_ser:intel:linux:
+  extends: .test_extra
+  tags:
+    - saas-linux-small-amd64
+  image: opencfs/ubuntu22.04
+  variables:
+    BUILD_NAME: Intel2021 / broken serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    CTEST_OPTIONS: "-L broken"
   needs:
     - linux:intel
+
+broken_ser:MSVC2022-Ifort2021:windows:
+  extends: .windows-shared-test
+  stage: test_extra
+  rules:
+    - !reference [.test_extra, rules]
+  variables:
+    BUILD_NAME: MSVC2022-Ifort2021 / broken serial
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+  script:
+    - !reference [.windows-test_broken, script]
+  needs:
+    - windows:MSVC2022-Ifort2021
 
 #######################################################################
 # DOCS STAGE - Documentation jobs
@@ -1251,9 +1526,14 @@ doxygen:
   stage: docs
   image: opencfs/fedora32
   tags:
-    - docker
+    - saas-linux-small-amd64
   variables:
     GIT_SUBMODULE_STRATEGY: none
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "release" && ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH )
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
   before_script:
     - mkdir -p build # create if it does not exist
     - cd build # descend in build
@@ -1280,11 +1560,17 @@ doxygen:
 cdash:report:
   stage: deploy
   tags: # add a tag since some runners refuse to run un-tagged jobsgit add .gi  
-    - linux
+    - saas-linux-small-amd64
   # switch off cloning any code
   variables:
     GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
+  rules:
+    - if: $CFS_PIPELINE_TYPE == "test"
+      allow_failure: true # only for info
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      allow_failure: true # only for info
   cache: {}
   after_script: []
   before_script: []
@@ -1295,7 +1581,6 @@ cdash:report:
     url: http://movm.mi.uni-erlangen.de/cdash/queryTests.php?project=CFS&filtercount=2&filtercombine=and&field1=buildname&compare1=65&value1=$CI_COMMIT_REF_SLUG&field2=status&compare2=61&value2=Failed
     auto_stop_in: 1 week
   dependencies: []
-  allow_failure: true # this is an infrmational job and should not stop us from merging
 
 .deploy_rules: &deploy_rules
   only:
@@ -1320,29 +1605,31 @@ cdash:report:
 pages:
   stage: deploy
   tags:
-    - linux
+    - saas-linux-small-amd64
   # switch off cloning any code
   variables:
     GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
+  rules:
+    # only for release pipelines in our namespace
+    - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAMESPACE == "openCFS"
   dependencies:
     - linux:gcc7
     - doxygen
   script:
-    - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
-    - mkdir -p public/doxygen
-    - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
+    - mkdir -p public # create public dir
+    # publish XML scheme
+    - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build (for XML schema)
     - cp -r "CFS-$CI_COMMIT_SHA-Linux/share/xml" "public/." # publish XML scheme
+    # publish the builds
+    - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
+    # - mv "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" "public/." # windows is too large
+    # publish doxygen
+    - mkdir -p public/doxygen
     - tar -xzf doxygen-html.tgz -C public/doxygen
   artifacts:
     paths:
       - public
-  only:
-    refs:
-      - master # only for refs pushed to master
-    variables:
-      # only deploy on gitlab.com
-      - $CI_PROJECT_NAMESPACE == "openCFS"
   cache: {}
   after_script: []
   before_script: []
@@ -1357,26 +1644,65 @@ pages:
     #                                                    projects/:id/packages/generic/:package_name/:package_version/:file_name
     PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/openCFS/${CI_COMMIT_TAG}"
     LINUX_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Linux.tar.gz"
+    WINDOWS_ARCHIVE: "CFS-${CI_COMMIT_TAG}-Windows.zip"
   rules:
-    - if: $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"  # Run this job when a tag is created
+    # Run this job when a tag is created
+    - if: ( $CFS_PIPELINE_TYPE == "release" ) && $CI_COMMIT_TAG && ( $CI_PROJECT_NAMESPACE == "openCFS" )
   cache: {}
   after_script: []
   before_script: []
-
-package:
-  <<: *package-release_common
-  image: curlimages/curl:latest
   needs:
     - linux:gcc7
+    - windows:MSVC2022-Ifort2021
+
+repack-release: # publish release packages (when a tag is pushed)
+  extends: .package-release_common
+  image: alpine
+  #rules:
+  #  # repack only for tags
+  #  - $CI_COMMIT_TAG && $CFS_PIPELINE_TYPE == "release" && $CI_PROJECT_NAMESPACE == "openCFS"
   script:
+    # debug
+    - echo "CI_COMMIT_TAG=$CI_COMMIT_TAG"
+    - echo "CI_COMMIT_REF_SLUG=$CI_COMMIT_REF_SLUG"
+    # linux
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build
     - mv "CFS-$CI_COMMIT_SHA-Linux" "CFS-$CI_COMMIT_TAG-Linux" # rename
-    - tar -czvf "${LINUX_ARCHIVE}" CFS-$CI_COMMIT_TAG-Linux # repack
+    - tar -czvf "build/${LINUX_ARCHIVE}" CFS-$CI_COMMIT_TAG-Linux # repack
+    # windows
+    - apk add --no-cache zip # install zip
+    - unzip "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" # extract
+    - mv "CFS-$CI_COMMIT_SHA-win64" "CFS-$CI_COMMIT_TAG-Windows" # rename
+    - zip -r -9 "build/${WINDOWS_ARCHIVE}" CFS-$CI_COMMIT_TAG-Windows # repack
+  artifacts:
+    paths:
+      - build/$LINUX_ARCHIVE
+      - build/$WINDOWS_ARCHIVE
+
+package: # publish package for default branch
+  extends: .package-release_common
+  image: curlimages/curl:latest
+  rules:
+    # if it is a tag, we repack the archives such that the top-level-directory is called CFS-<TAG>-<platform>.<ext> 
+    - if: ( $CFS_PIPELINE_TYPE == "release" ) && $CI_COMMIT_TAG && $CI_PROJECT_NAMESPACE == "openCFS"
+      needs: ['repack-release']
+    # otherwise we publish build artifacts directly (we edit the variable names to accept default artifacts)
+    - if: ( $CFS_PIPELINE_TYPE == "release" ) && ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH )  
+      variables:
+        LINUX_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz"
+        WINDOWS_ARCHIVE: "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
+        PACKAGE_REGISTRY_URL: "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/packages/generic/openCFS/${CI_COMMIT_REF_SLUG}"
+  script:
+    - echo "publishing ${LINUX_ARCHIVE} and ${WINDOWS_ARCHIVE} to ${PACKAGE_REGISTRY_URL}"
     - |
-      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "${LINUX_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "build/${LINUX_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
+    - echo "download Linux build at ${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}"
+    - |
+      curl --header "JOB-TOKEN: ${CI_JOB_TOKEN}" --upload-file "build/${WINDOWS_ARCHIVE}" "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
+    - echo "download Windows build at ${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}"
 
 release:
-  <<: *package-release_common
+  extends: .package-release_common
   image: registry.gitlab.com/gitlab-org/release-cli:latest
   needs:
     - package
@@ -1394,6 +1720,10 @@ release:
         - name: 'Linux binary (tar.gz)'
           url: "${PACKAGE_REGISTRY_URL}/${LINUX_ARCHIVE}" # uploaded by 'package' job before
           filepath: '/CFS-Linux.tar.gz' # optional, but required for 'latest', defines the URL (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
+          link_type: 'package' # optional, defines the section and icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
+        - name: 'Windows binary (zip)'
+          url: "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}" # uploaded by 'package' job before
+          filepath: '/CFS-Windows.zip' # optional, but required for 'latest', defines the URL (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
           link_type: 'package' # optional, defines the section and icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
 
 copy_to_draco:

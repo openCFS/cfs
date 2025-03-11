@@ -73,7 +73,7 @@ namespace CoupledField {
 
   //! Describes all possible solution types in a CFS simulation
   typedef enum{
-    NO_SOLUTION_TYPE,
+    NO_SOLUTION_TYPE, INVALID_SOLUTION_TYPE,
     // ============
     //  MECHANICAL
     // ============
@@ -110,7 +110,7 @@ namespace CoupledField {
     // ===============
     ELEC_POTENTIAL, ELEC_POTENTIAL_DERIV1, ELEC_FIELD_INTENSITY, ELEC_FIELD_INTENSITY_SURF,
     ELEC_FORCE , ELEC_FORCE_VWP, ELEC_FORCE_DENSITY,
-    ELEC_CHARGE, ELEC_CHARGE_DENSITY, ELEC_FLUX_DENSITY, ELEC_RHS_LOAD,
+    ELEC_CHARGE, ELEC_SURFACE_CHARGE_DENSITY, ELEC_FLUX_DENSITY, ELEC_RHS_LOAD,
     ELEC_ENERGY, ELEC_ENERGY_DENSITY, ELEC_POLARIZATION, ELEC_ELEM_PERMITTIVITY,
     ELEC_CURRENT_DENSITY, ELEC_FIELD_INTENSITY_TRANSVERSAL, ELEC_FIELD_INTENSITY_LONGITUDINAL,
 	  ELEC_GRAD_V_INT, ELEC_NORMAL_CURRENT_DENSITY, ELEC_CURRENT, ELEC_CURRENT_SURF, 
@@ -132,7 +132,7 @@ namespace CoupledField {
     // ==========
     //  ACOUSTIC
     // ==========
-    ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_PRESSURE_DERIV_1,
+    ACOU_POTENTIAL, ACOU_PRESSURE, ACOU_SURFPRESSURE, ACOU_PRESSURE_DERIV_1,
     ACOU_PRESSURE_DERIV_2,ACOU_VELOCITY,ACOU_POSITION, ACOU_NORMAL_VELOCITY,ACOU_ACCELERATION, ACOU_FORCE,
     ACOU_PSEUDO_DENSITY, ACOU_POWERDENSITY, ACOU_POWER, ACOU_INTENSITY, ACOU_NORMAL_INTENSITY,
     ACOU_POTENTIAL_DERIV_1, ACOU_POTENTIAL_DERIV_2, ACOU_RHS_LOAD, ACOU_RHS_LOAD_DENSITY, ACOU_RHS_LOAD_DENSITY_VECTOR,ACOU_RHS_LOAD_DENSITY_VECTOR_IN_NORMAL,
@@ -269,7 +269,16 @@ namespace CoupledField {
     LBM_PRESSURE, LBM_PHYSICAL_PSEUDO_DENSITY,
 
     // for hysteresis
-    MECH_IRR_STRESS, MECH_IRR_STRAIN
+    MECH_IRR_STRESS, MECH_IRR_STRAIN,
+
+    // ==========
+    //  GENERIC
+    // ==========
+    // these types can be used by generic postproc functions
+    // don't change the naming convention (_X has to be the last part of the name, where X is any integer number)
+    // if you need something else, adapt the code so that "resNr" is calculated correctly!!
+    GENERIC_RESULT_0, GENERIC_RESULT_1, GENERIC_RESULT_2, GENERIC_RESULT_3, GENERIC_RESULT_4,
+    GENERIC_RESULT_5, GENERIC_RESULT_6, GENERIC_RESULT_7, GENERIC_RESULT_8, GENERIC_RESULT_9,
 
   } SolutionType;
 
@@ -345,6 +354,7 @@ namespace CoupledField {
     MAG_BH_DATA_ACCURACY, MAG_BH_MAX_APPROX_VAL,
     // -- Magnetic EB Hysteresis Parameters
     MAG_PS_EB, MAG_A_EB, MAG_MU0_EB, MAG_NUMS_EB, MAG_CHI_FACTOR_EB, MAG_JACOBIAN_METHOD_EB,
+    MAG_APPROX_TYPE, MAG_MSM_AS, MAG_MSM_K1, MAG_MSM_K2, MAG_MSM_LAMBDA100, MAG_MSM_LAMBDA111, MAG_MSM_PS,
     
     // ============
     //  MECHANICAL
@@ -595,6 +605,7 @@ namespace CoupledField {
   //! - SYSTEM_DELTAMAT_JACOBIAN - as FD_JACOBIAN, but df_hyst/du is approximated using the deltaMat approach
   //!                    (i.e. no full FD_JACOBIAN but difference quotient between current and previous values)
   //! - GEOMETRIC_STIFFNESS - used in Buckling Analysis (also called stress stiffness matrix)
+  //! - BACKUP - currently unused? Will be now used to store a copy of the system matrix when we reduce the number of non-zero elements
 
   typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, DAMPING_AUX, CONVECTION, MASS, AUXILIARY, STIFFNESS_UPDATE, DAMPING_UPDATE , MASS_UPDATE,
     SYSTEM_HYSTFREE, SYSTEM_FIXPOINT, SYSTEM_FD_JACOBIAN, SYSTEM_DELTAMAT_JACOBIAN, BACKUP, GEOMETRIC_STIFFNESS}

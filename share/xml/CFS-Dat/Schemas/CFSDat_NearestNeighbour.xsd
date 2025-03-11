@@ -24,8 +24,30 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="numNeighbours" type="xsd:integer" default="20" use="optional"/>
-    <xsd:attribute name="globalFactor" type="xsd:double" default="1.0" use="optional"/>
+    <xsd:attribute name="numNeighbours" type="xsd:positiveInteger" default="20" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Specify the number n of closest points around the target that are included to the interpolation scheme
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="globalFactor" type="xsd:double" default="1.0" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Specify an overal factor that is multiplied to the target solution
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="maxDistance" type="xsd:double" default="-1.0" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Specify a maximum distance for the nearest neighbor interpolation. 
+          This option is intended for interpolation between domains of different size or domains that contact only on a part of the domain.
+          If all numNeighbors exceed the maxDistance, the solution will be set to zero for the target point or element, allowing to truncate the region of interpolation.
+          The maxDistance only affects the solution if it is a number >=0. A negative maxDistance will be ignored.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
   
 </xsd:schema>

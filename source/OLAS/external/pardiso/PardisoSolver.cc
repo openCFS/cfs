@@ -220,6 +220,13 @@ extern "C" {
 
   }
 
+  // ******************
+  // Set matrix pattern
+  // ******************
+  template<typename T>
+  void PardisoSolver<T>::SetNewMatrixPattern(void) {
+    newMatrixPattern_ = true;
+  }
 
   // *********
   //   Setup
@@ -254,10 +261,13 @@ extern "C" {
       //       and gets never changed elsewhere. A more intelligent
       //       test would ask the matrix if its pattern did change.
 
-      bool newMatrixPattern = false;
+      // Update 20230826: Now it makes a little more sense since we
+      // can actually change it now externally.
+      
+      //bool newMatrixPattern = false;
       // When the matrix pattern has changed, we need to re-do
       // both steps, also the symbolical one
-      if( newMatrixPattern ) {
+      if( newMatrixPattern_ ) {
         facSymbolic = true;
         facNumeric  = true;
       }
@@ -525,6 +535,15 @@ extern "C" {
       iparm_[10] = 1;
       iparm_[12] = 1;
     }
+
+    // Solve transpose (^T) or conjugate-transpose (^H) problem
+    // A^T x = b or A^H x = b
+    std::string adjoint = "no"; // Adjoint usually refers to conjugate-transpose, we also use it for transpose
+    xml_->GetValue("adjoint", adjoint, ParamNode::INSERT);
+    if ( adjoint == "transpose" ) { iparm_[11] = 2; }
+    else if ( adjoint == "conjugate-transpose" ) { iparm_[11] = 1; }
+    else if ( adjoint == "no" ) { iparm_[11] = 0; }
+    else { EXCEPTION("Please select 'no', 'transpose' or 'conjugate-transpose' for the tag 'adjoint'!") }
 
     // Pardiso keeps one factorisation in memory (and that is used for
     // the solution phase)

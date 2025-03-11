@@ -112,6 +112,7 @@ class Function
       LOCAL_BUCKLING_LOAD_FACTOR,/*!< microscopic load factor/ eigenvalue for two scale optimization*/
       GLOBAL_BUCKLING_LOAD_FACTOR,/*!< globalized microscopic load factor/ eigenvalue for two scale optimization*/
       ARC_OVERLAP,               /*!< prevents overlapping arc segments for spaghetti optimization */
+      PYTHON_VOLUME,             /*!< computes penalized volume constraint in python */
       PYTHON_FUNCTION,           /*!< python global function */
       LOCAL_PYTHON_FUNCTION,     /*!< python local function */
 
@@ -274,6 +275,9 @@ class Function
 
     /** is this a slack type function ? */
     bool IsSlackFunction() const;
+
+    /** checks the history - which contains only 0 for local functions */
+    int CountOscillations() const;
 
     /** to be overwritten in Condition */
     virtual bool HasDenseJacobian() const { return true; }
@@ -764,6 +768,9 @@ class Function
     /** We also store here the info ptr. When overload, call also this. */
     virtual void ToInfo(PtrParamNode info);
 
+    /** for the python function get_opt_function_properties() */
+    virtual void DescribeProperties(StdVector<std::pair<string,string> >& map) const;
+
     /** to export the (global) python functions to ErsatzMaterial.
      * The local functions are defined in Function::Local::Identifier::CalcLocalPython*()
      * @param eval if false the grad is called */
@@ -788,6 +795,9 @@ class Function
     /** the multiple sequence step we belong to.
      * @see ContextManager */
     Context* ctxt;
+
+    /** This vector stores the function values by iteration. Written in *Container::PushBackHistory() */
+    Vector<double> history;
 
   protected:
 

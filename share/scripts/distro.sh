@@ -118,6 +118,12 @@ elif [ "${OS}" = "Linux" ] ; then
         DIST=$DISTRIB_ID;
         REV=$DISTRIB_RELEASE;
         PSEUDONAME=$DISTRIB_CODENAME;
+    elif [ -f /etc/os-release ]; then
+        # probably Alpine Linux
+        . /etc/os-release;
+        DIST=$ID;
+        REV=$VERSION_ID;
+        PSEUDONAME=$PRETTY_NAME;
     elif [ -f /etc/redhat-release ] ; then
                 # On Mandrake/Mandriva/Fedora there exist also
                 # /etc/redhat-release, /etc/mandrake-release,

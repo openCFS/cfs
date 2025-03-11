@@ -101,6 +101,10 @@ namespace CoupledField
     //! needed in order to retrieve coupling quantities.
     void SetIterCoupledPDE( IterCoupledPDE* iterCplPde );
 
+    IterCoupledPDE* GetIterCoupledPDE() {
+      return iterCplPde_;
+    }
+
     //! set boundary condition
     void SetBCs();
 
@@ -134,6 +138,11 @@ namespace CoupledField
     /** Shortcut for DefineFieldResult() */
     void DefineFieldResult(SolutionType solType, ResultInfo::EntryType entryType, ResultInfo::EntityUnknownType definedOn, const std::string& dofNames, bool fromOptimization);
 
+    //! Manually set an entry to fieldCoefs_. This can be helpful when a result is defined
+    //! in the xml file (via postproc results), where DefineFieldResults() is skipped.
+    //! In such cases, the coefFunction is not available, which can be done later with this
+    //! function
+    void SetFieldCoef( PtrCoefFct coef, SolutionType resultType);
 
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
@@ -312,6 +321,13 @@ namespace CoupledField
     //! desired output quantities and translate their literal description into
     //! the internal format by setting the corresponding class attributes.
     void ReadStoreResults();
+
+    //! This function updates coefFunctions from previous definitions
+    //! We might have defined some generic results which depend on the feFunction.
+    //! Since they get initialized in stage 2, we had to pass the feFunction without
+    //! knowing the actual coefFunction. We collected these BCs and update their
+    //! coefFunction know accordingly
+    void UpdateCoefFuncsForPostProcResults();
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
@@ -524,6 +540,10 @@ namespace CoupledField
     //! result, i.e. a spatially varying result (in contrast to an integrated 
     //! result like e.g. energy) 
     std::map<SolutionType, PtrCoefFct > fieldCoefs_;
+
+    //! Vector of coefFunctions which need to be updated since they have been
+    //! initialized with a dummy function
+    StdVector<PtrCoefFct> coefsToUpdate_;
     
     //! Map for storing "material" parameters as coefficient functions
     

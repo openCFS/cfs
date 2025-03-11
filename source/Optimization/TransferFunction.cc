@@ -11,6 +11,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
+#include "Optimization/Tune.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/mathParser/mathParser.hh"
 
@@ -51,18 +52,32 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
   // initialize the static Enum the first time
   if(type.map.size() == 0)
     SetEnums();
-  this->type_ = type.Parse(pn->Get("type")->As<std::string>());
-  this->application_ = Optimization::application.Parse(pn->Get("application")->As<std::string>());
+  type_ = type.Parse(pn->Get("type")->As<std::string>());
+  application_ = Optimization::application.Parse(pn->Get("application")->As<std::string>());
   if(pn->Has("design"))
-    this->design_ = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
+    design_ = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
   else
   {
     if(default_design == DesignElement::NO_TYPE) 
       throw Exception("Set the 'design' attribute for 'transferFunction' when using multiple design variables.");
-    this->design_ = default_design;
+    design_ = default_design;
   }
-  this->param_ = pn->Has("param") ? pn->Get("param")->As<double>() : 1.0;
-  this->beta_ = pn->Has("beta") ? pn->Get("beta")->As<double>() : -1.0;
+
+  if(pn->Has("param"))
+  {
+    if(pn->Get("param")->As<string>() == "tune")
+    {
+      tune_.Init(pn->Get("tune", ParamNode::PASS), Tune::PENALTY);
+      param_ = tune_.start;
+    }
+    else
+      param_ = pn->Get("param")->As<double>();
+  }
+  else
+    param_ = 1.0;
+
+  // one could also tune beta - so implement to have two BETA for Tune
+  beta_ = pn->Has("beta") ? pn->Get("beta")->As<double>() : -1.0;
   
   // validate param
   if(!pn->Has("param") && (type_ == SIMP_TYPE || type_ == RAMP))
@@ -119,7 +134,6 @@ void TransferFunction::Copy(const TransferFunction& tf)
 {
   LOG_DBG(trans) << "TF::TF(tf) copy " << ToString();
 
-
   this->application_ = tf.application_;
   this->beta_ = tf.beta_;
   this->design_ = tf.design_;
@@ -128,7 +142,8 @@ void TransferFunction::Copy(const TransferFunction& tf)
   this->orgType_ = tf.orgType_;
   this->scaling_ = tf.scaling_;
   this->type_ = tf.type_;
-  this->parser_ = NULL;
+  this->parser_ = nullptr;
+  this->tune_ = tf.tune_;
 
   if(type_ == EXPRESSION) {
     InitParser(tf.parser_->GetExpr(tf.function_handle_), tf.parser_->GetExpr(tf.derivative_handle_));
@@ -155,6 +170,14 @@ void TransferFunction::InitParser(const string& func_expr, const string& deriv_e
   parser_->SetExpr(derivative_handle_, deriv_expr);
   LOG_DBG(trans) << "TF::IP fh=" << function_handle_ << " dh=" << derivative_handle_ << " vals: " << parser_->ToString(function_handle_);
 }
+
+void TransferFunction::RegisterTune(Optimization* opt)
+{
+  LOG_DBG(trans) << "RT set=" << tune_.IsSet();
+  if(tune_.IsSet())
+    tune_.Register(&param_, opt);
+}
+
 
 App::Type TransferFunction::Default(const Context* ctxt)
 {
@@ -252,7 +275,9 @@ void TransferFunction::ToInfo(PtrParamNode in, bool skip_relation) const
   case HEAVISIDE:
   case TANH:
   case EXPRESSION:
-    in->Get("beta")->SetValue(beta_);
+    in->Get("beta")->SetValue(tune_.IsSet() ? "tune" : std::to_string(beta_));
+    if(tune_.IsSet())
+      tune_.ToInfo(in->Get("tune"));
     // intentionally no break
   case SIMP_TYPE:
   case RAMP:
@@ -336,17 +361,22 @@ std::string TransferFunction::ToString()
 double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat) const
 {
   double value = de->GetValue(BaseDesignElement::DESIGN, access);
-
+  LOG_DBG2(trans) << "T de=" << de->elem->elemNum << " a=" << de->access.ToString(access) << " p=" << de->GetPlainValue(de->DESIGN) << " v=" << value;
   return this->Transform(value, lower_bimat, de);
 }
 
 
 
-double TransferFunction::Transform(double value, bool lower_bimat, const BaseDesignElement* de) const
+double TransferFunction::Transform(double value, bool lower_bimat, const BaseDesignElement* bde) const
 {
-  if(lower_bimat)
-    value = 1.0 - value;
+  LOG_DBG2(trans) << "T v=" << value << " lb=" << lower_bimat << " param=" << param_ << " bde=" << (bde ? "set" : "null");
 
+  if(lower_bimat)
+  {
+    value = 1.0 - value;
+    if(bde) // with design simp param tune and bimaterial we have rounding issues, where value is 1+1e16 -> becomes negative
+      value = std::max(bde->GetLowerBound(), value);
+  }
   double result = -1.0;
   switch(type_)
   {
@@ -377,8 +407,8 @@ double TransferFunction::Transform(double value, bool lower_bimat, const BaseDes
     break;
 
   case FULL:
-    assert(de != NULL);
-    result = de->GetUpperBound();
+    assert(bde != NULL);
+    result = bde->GetUpperBound();
     break;
 
   case HEAVISIDE:
@@ -417,7 +447,10 @@ double TransferFunction::Transform(double value, bool lower_bimat, const BaseDes
     break;
   }
 
-  //LOG_DBG3(trans) << "Transform de=" << (de != NULL ? (int) de->elem->elemNum : -1) << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
+  LOG_DBG2(trans) << "T v=" << value << " lbm=" << lower_bimat << " org=" << (lower_bimat ? 1.0-value : 88.88)
+                  << " type=" << type.ToString(type_) << " param=" << param_ << " (" << &param_ << ") -> " << result;
+  assert(!std::isnan(result));
+
   return result;
 }
 

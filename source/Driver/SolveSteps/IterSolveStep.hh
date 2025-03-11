@@ -87,7 +87,7 @@ namespace CoupledField
     //! Constructor for convergence criterion
     //! \param type Type of norm to be applied (none, absolute, relative)
     //! \param value Final value of norm to be reached
-    ConvCriterionAccu(NormType type, Double value );
+    ConvCriterionAccu(NormType type, Double value, bool overrideNumInt = false );
     
     //! Destructor
     ~ConvCriterionAccu();
@@ -97,22 +97,22 @@ namespace CoupledField
                      shared_ptr<CoefFunctionAccumulator> coefFct );
     
     //! \copydoc ConvCriterion::ResetValues
-    virtual void ResetValues();
+    virtual void ResetValues() override;
     
     //! \copydoc ConvCriterion::StartSampling
-    virtual void StartSampling();
+    virtual void StartSampling() override;
     
     //! \copydoc ConvCriterion::StopSampling
-    virtual void StopSampling();
+    virtual void StopSampling() override;
     
     //! \copydoc ConvCriterion::GetNorm
-    Double GetNorm();
+    Double GetNorm() override;
     
     //! \copydoc ConvCriterion::Converged
-    bool Converged();
+    bool Converged() override;
     
     //! \copydoc ConvCriterion::GetSupport
-    StdVector<shared_ptr<EntityList> > GetSupport();
+    StdVector<shared_ptr<EntityList> > GetSupport() override;
     
   private:
     //! Map for each entitylist / region (key) an coeffunction accumulator 
@@ -124,6 +124,9 @@ namespace CoupledField
     
     //! Old norm value for quantity
     Double oldNorm_;
+
+    //! Bool to override numerical integration if necessary (e.g. when lpm is not fully defined)
+    bool overrideNumInt_;
   };
   
   //! Special convergence criterion for displacement based values
@@ -158,22 +161,22 @@ namespace CoupledField
     void SetNormFlag( bool justNorm);
     
     //! \copydoc ConvCriterion::ResetValues
-    virtual void ResetValues();
+    virtual void ResetValues() override;
     
     //! \copydoc ConvCriterion::StartSampling
-    virtual void StartSampling();
+    virtual void StartSampling() override;
     
     //! \copydoc ConvCriterion::StopSampling
-    virtual void StopSampling();
+    virtual void StopSampling() override;
     
     //! \copydoc ConvCriterion::GetNorm
-    Double GetNorm();
+    Double GetNorm() override;
     
     //! \copydoc ConvCriterion::Converged
-    bool Converged();
+    bool Converged() override;
     
     //! \copydoc ConvCriterion::GetSupport
-    StdVector<shared_ptr<EntityList> > GetSupport();
+    StdVector<shared_ptr<EntityList> > GetSupport() override;
     
   protected:
     
@@ -233,66 +236,75 @@ namespace CoupledField
                                    const std::string& pdeName,
                                    bool& updatedGeo );
 
+    //! Function similar to GetCouplingCoefFct but only returns updatedGeo
+    void GetUpdateGeoForPDE( SolutionType type,
+                             shared_ptr<EntityList>  list,
+                             const std::string& pdeName,
+                             bool& updatedGeo );
+
     //----------------------- STATIC---------------------------------------
 
-    //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepStatic()  {;};
+    /** routine for initializations before execution the SolveStep-method.
+     * Is abstract in the BaseClass - it is poor design to enforce abstract methods,
+     * when they are not really necessary */
+    virtual void PreStepStatic() override {}
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic();
+    virtual void SolveStepStatic() override;
 
-    //! routine for acttions after the SolveStep-method
-    virtual void PostStepStatic() {;}
-
+    //! routine for actions after the SolveStep-method
+    virtual void PostStepStatic() override {}
 
     //----------------------- TRANSIENT---------------------------------------
 
     //! Initialize additional data-structures as needed for the glm
-    virtual void InitTimeStepping();
+    virtual void InitTimeStepping() override;
     
-    //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepTrans();
-
+    //! routine for initializations before execution the SolveStep-method
+    virtual void PreStepTrans() override;
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans();
+    virtual void SolveStepTrans() override;
     
     //! routine for actions after the SolveStep-method
-    virtual void PostStepTrans() {;};
+    virtual void PostStepTrans() override {}
 
     //----------------------- HARMONIC---------------------------------------
     
-    //! routine for initilizations befor execution the SolveStep-method
-    virtual void PreStepHarmonic();
+    //! routine for initializations before execution the SolveStep-method
+    virtual void PreStepHarmonic() override;
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic();
+    virtual void SolveStepHarmonic() override;
 
 
     //!  routine for actions after the SolveStep-method
-    virtual void PostStepHarmonic(  ) {;};
+    virtual void PostStepHarmonic() override {}
 
+
+    //----------------------- GetRidOfZeros-----------------------------------
+    void SetupGetRidOfZerosActive() override;
 
     //----------------------- SET/GET METHODS--------------------------------
     
     //! Set actual time
-    virtual void SetActTime( const Double actTime );
+    virtual void SetActTime( const Double actTime ) override;
 
     //! Set actual frequency
-    virtual void SetActFreq( const Double actFreq );
+    virtual void SetActFreq( const Double actFreq ) override;
 
     //! Set actual time / frequency step
-    virtual void SetActStep( const UInt actStep );
+    virtual void SetActStep( const UInt actStep ) override;
 
     //! Set the current time step value
     void SetTimeStep( Double dt );
 
     //! Set number of time steps
-    virtual void SetNumTimeSteps (UInt numTimeStep);
+    virtual void SetNumTimeSteps (UInt numTimeStep) override;
     
     //! Set restart time / frequency step
-    virtual void SetStartStep (const UInt startStep);
+    virtual void SetStartStep (const UInt startStep) override;
 
   protected:
 

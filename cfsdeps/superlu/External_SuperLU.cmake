@@ -1,197 +1,91 @@
-#-------------------------------------------------------------------------------
-# SuperLU is a general purpose library for the direct solution of large,
-# sparse, nonsymmetric systems of linear equations on high performance
-# machines.
-#
-# Project Homepage
-# http://crd-legacy.lbl.gov/~xiaoye/SuperLU/
-#-------------------------------------------------------------------------------
+# SuperLU - a direct solver
+# https://portal.nersc.gov/project/sparse/superlu/
+# this is the serial version, it is recommended to switch to the OpenMP version SuperLU-MT
+clear_depencency_variables()
 
-#-------------------------------------------------------------------------------
-# Set paths to SuperLU sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(superlu_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/superlu")
-set(superlu_source  "${superlu_prefix}/src/superlu")
-set(superlu_install  "${CMAKE_CURRENT_BINARY_DIR}")
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "superlu")
+set(PACKAGE_VER "6.0.1")
+set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
+set(PACKAGE_MD5 "d15c61705f4ddf0777731d3f388e287f")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-SET(SUPERLU_BLAS_LIBRARY "${BLAS_LIBRARY}")
+# this is the original version. There are variants on gitlab 
+set(PACKAGE_MIRRORS "https://github.com/xiaoyeli/superlu/archive/refs/tags/${PACKAGE_FILE}")
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
 
-IF(USE_BLAS_LAPACK STREQUAL "NETLIB")
-  LIST(APPEND SUPERLU_BLAS_LIBRARY "${CFS_FORTRAN_LIBS}")
-ELSEIF(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
-  LIST(APPEND SUPERLU_BLAS_LIBRARY "-lm")
-ENDIF()
+# pure C
+use_c_and_fortran(ON OFF)
 
-STRING(REPLACE ";" "^" SUPERLU_BLAS_LIBRARY "${SUPERLU_BLAS_LIBRARY}")
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
 
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${superlu_install}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_BUILD_TYPE:STRING=Release
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DBUILD_SHARED_LIBS:BOOL=OFF
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  -DSUPERLU_USE_BUNDLED_BLAS=OFF
-  -DBLAS_LIBRARIES:FILEPATH=${SUPERLU_BLAS_LIBRARY}
-  -DSUPERLU_ENABLE_TESTING=OFF
-  )
+# determine paths of libraries and make it visible (and editable) via ccmake
+set_package_library_default()
+# set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
+set_standard_variables()
+# we don't want executabls, so go for install_dir
+set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
-if(CMAKE_C_COMPILER_ID MATCHES "IntelLLVM" AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 2023) 
-  list(APPEND CMAKE_ARGS  "-DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS} -Wno-implicit-int -Wno-implicit-function-declaration")
+# set DEPS_ARG with defaults for a cmake project
+set_deps_args_default(ON) # set compiler flags 
+# add the specific settings for the packge which comes in cmake style
+set(DEPS_ARGS
+  ${DEPS_ARGS}
+  -Denable_complex16:BOOL=ON
+  -Denable_double:BOOL=ON
+  -Denable_complex:BOOL=OFF 
+  -Denable_doc:BOOL=OFF
+  -Denable_examples:BOOL=OFF
+  -Denable_fortran:BOOL=OFF
+  -Denable_internal_blaslib:BOOL=OFF
+  -Denable_matlabmex:BOOL=OFF
+  -Denable_single:BOOL=OFF
+  -Denable_tests:BOOL=OFF
+  -DBUILD_TESTING:BOOL=OFF,
+  -DTPL_ENABLE_METISLIB:BOOL=OFF)
+  
+if(UNIX AND USE_BLAS_LAPACK STREQUAL "OPENBLAS")
+  list(APPEND DEPS_ARGS -DTPL_BLAS_LIBRARIES=${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libopenblas.a)
+elseif(UNIX AND USE_BLAS_LAPACK STREQUAL "MKL") # we assume properly set up mkl for Windows
+  list(APPEND DEPS_ARGS -DTPL_BLAS_LIBRARIES=${MKL_LIB_DIR}/libmkl_intel_lp64.a) 
+endif()  
+
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
+
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
+
+# no pre-compile patch needed
+assert_unset(PATCHES_SCRIPT)
+
+# we need a post-install patch, so better no manifest
+generate_packing_script_install_dir()
+
+generate_postinstall_script()
+
+#dump_depencency_variables()
+
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
+
+# if not, build newly and possibly pack the stuff
 else()
-  list(APPEND CMAKE_ARGS  "-DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS}")
+  # standard cmake build without patch
+  create_external_cmake()  
+#  add_postinstall_step()
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  else()  
+    # without manifest (installs directly to binary dir) an without packing, we need to copy manually  
+    add_install_dir_to_binary_step()      
+  endif() 
 endif()
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_CXX_FLAGS:FILEPATH=${CFLAGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
-
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/superlu/superlu-patch.cmake.in")
-SET(PFN "${superlu_prefix}/superlu-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "http://crd-legacy.lbl.gov/~xiaoye/SuperLU/${SUPERLU_GZ}"
-  "${CFS_DS_SOURCES_DIR}/superlu/${SUPERLU_GZ}"
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/superlu/${SUPERLU_GZ}")
-SET(MD5_SUM ${SUPERLU_MD5})
-
-SET(DLFN "${superlu_prefix}/superlu-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
-
-# Since CMake may have problems with symlinks inside archives on Windows, we
-# have to unpack the archive using the GNU tar and gunzip utilities.
-SET(DLFN_UNTAR "${superlu_prefix}/superlu-download-untar.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cfsdeps/superlu/superlu-download-untar.cmake.in"
-  "${DLFN_UNTAR}"
-  @ONLY
-)
-
-#copy license
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/superlu/license/" DESTINATION "${CFS_BINARY_DIR}/license/superlu" )
-
-
-
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "superlu" "${SUPERLU_VER}")
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${superlu_prefix}")
-
-SET(ZIPFROMCACHE "${superlu_prefix}/superlu-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
-
-SET(ZIPTOCACHE "${superlu_prefix}/superlu-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
-
-#-----------------------------------------------------------------------------
-# Determine paths of SuperLU libraries.
-#-----------------------------------------------------------------------------
-set(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}")
-
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(SUPERLU_LIBRARY "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}")
-ELSE()
-  SET(SUPERLU_LIBRARY
-    "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}superlu${CMAKE_STATIC_LIBRARY_SUFFIX}"
-    CACHE FILEPATH "SuperLU library.")
-ENDIF()
-
-MARK_AS_ADVANCED(SUPERLU_LIBRARY)
-
-#-------------------------------------------------------------------------------
-# The superlu external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(superlu
-    PREFIX "${superlu_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${SUPERLU_LIBRARY}
-  )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(superlu
-    PREFIX "${superlu_prefix}"
-    URL ${LOCAL_FILE}
-    URL_MD5 ${SUPERLU_MD5}
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${DLFN_UNTAR}"
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    LIST_SEPARATOR "^"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-    BUILD_BYPRODUCTS ${SUPERLU_LIBRARY}
-  )
-  
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(superlu cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${superlu_prefix}
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(superlu cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  superlu
-)
-
-SET(SUPERLU_INCLUDE_DIR "${CFS_BINARY_DIR}/include/superlu")
-MARK_AS_ADVANCED(SUPERLU_INCLUDE_DIR)
-
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

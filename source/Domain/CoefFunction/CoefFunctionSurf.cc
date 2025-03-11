@@ -17,7 +17,12 @@ CoefFunctionSurf::CoefFunctionSurf( bool mapNormal,
   isComplex_ =  false;
   mapNormal_ = mapNormal;
   factor_ = factor;
-  dim_= 0;
+  // set the dimension based on the result (if possible)
+  if( surfInfo ) {
+    dim_= surfInfo->GetDimDof();
+  } else {
+    dim_ = 0;
+  }
   
   if( this->mapNormal_) {
     if( !surfInfo) {

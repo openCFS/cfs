@@ -207,10 +207,13 @@ void InputFilter::AdaptFilterResults(){
   
         bool allOK = true;
         for(;timeIter != curResInfo->timeLine->End();++timeIter){
-          allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-8) ) != fileResult.timeLine->End();
-            //std::cout<<*timeIter<<std::endl;
+          allOK &= std::find_if(fileResult.timeLine->Begin(),fileResult.timeLine->End(), time_cmp(startTime_+*timeIter, 1E-7) ) != fileResult.timeLine->End();
           if(!allOK)
-            EXCEPTION("The input filter cannot provide every timestep which is requested. Check the definition of input results:")
+            EXCEPTION("The input filter does not find a requested timestep." << std::endl << 
+                      "Check if the provided input results are consistent to the input file." << std::endl <<
+                      "The start time of the input file is: " << std::setprecision (10) << *fileResult.timeLine->Begin() << std::endl <<
+                      "Your start time is: " << std::setprecision (10) << startTime_ << std::endl <<
+                      "Your requested timestep is: " << std::setprecision (10) << startTime_+*timeIter << std::endl)
          }
       }
     }else{

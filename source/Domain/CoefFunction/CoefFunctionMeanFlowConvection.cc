@@ -79,7 +79,8 @@ DEFINE_LOG(coefMeanFlowConv, "CoefFunctionMeanFlowConvection")
     Vector<T> v;
     feFct_->GetVector(v,lpm);
     tensor.Resize(dim_);
-    tensor = gradV * v;
+    gradV.Mult(v, tensor);
+    // tensor = gradV * v;
   }
 
 

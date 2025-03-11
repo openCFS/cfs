@@ -1,0 +1,113 @@
+diff --color -Nuar org_src/sn87sopt.f src/sn87sopt.f
+--- org_src/sn87sopt.f	2007-12-16 01:29:17
++++ src/sn87sopt.f	2024-06-27 08:56:34
+@@ -880,7 +880,7 @@
+ 
+       subroutine s8solv
+      &   ( iExit, Solver, Start,
+-     &     fgwrap, fgcon, fgobj,
++     &     fgwrap, fgcon, fgobj, usrmjr,
+      &     MjrLog, MnrLog, snSTOP, gotR,
+      &     m, n, nb, nnCon, nnJac, nnObj,
+      &     nName, iObj, ObjAdd, fObj, ObjTru, nInf, sInf,
+@@ -893,7 +893,7 @@
+       implicit
+      &     none
+       external
+-     &     fgwrap, fgcon, fgobj, MjrLog, MnrLog, snSTOP
++     &     fgwrap, fgcon, fgobj, usrmjr, MjrLog, MnrLog, snSTOP
+       logical
+      &     gotR
+       integer
+@@ -1453,7 +1453,7 @@
+       call s1page( 1, iw, leniw )
+       call s1time( 2, 0, iw, leniw, rw, lenrw )
+       call s8SQP
+-     &   ( iExit, fgwrap, fgcon, fgobj,
++     &   ( iExit, fgwrap, fgcon, fgobj, usrmjr, 
+      &     MjrLog, MnrLog, snSTOP, gotR,
+      &     itn, lenR, m, maxS, mBS, n, nb, nS,
+      &     nnCon0, nnCon, nnObj0, nnObj, nnL0, nnL,
+@@ -1696,7 +1696,7 @@
+ *+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ 
+       subroutine s8SQP
+-     &   ( iExit, fgwrap, fgcon, fgobj,
++     &   ( iExit, fgwrap, fgcon, fgobj, usrmjr, 
+      &     MjrLog, MnrLog, snSTOP, gotR,
+      &     itn, lenR, m, maxS, mBS, n, nb, nS,
+      &     nnCon0, nnCon, nnObj0, nnObj, nnL0, nnL,
+@@ -1721,7 +1721,7 @@
+       implicit
+      &     none
+       external
+-     &     fgwrap, fgcon, fgobj, MjrLog, MnrLog, snSTOP
++     &     fgwrap, fgcon, fgobj, usrmjr, MjrLog, MnrLog, snSTOP
+       logical
+      &     gotR
+       integer
+@@ -2806,6 +2806,7 @@
+          end if
+ 
+          inform = 0
++         call usrmjr(nMajor)
+          nMajor = nMajor + 1
+          if ( centrl )
+      &   cdItns = cdItns + 1
+diff --color -Nuar org_src/snopta.f src/snopta.f
+--- org_src/snopta.f	2007-12-16 01:29:17
++++ src/snopta.f	2024-06-27 08:29:21
+@@ -8,7 +8,7 @@
+ 
+       subroutine snOptA
+      &   ( Start, nF, n, nxname, nFname,
+-     &     ObjAdd, ObjRow, Prob, usrfun,
++     &     ObjAdd, ObjRow, Prob, usrfun, usrmjr,
+      &     iAfun, jAvar, lenA, neA, A,
+      &     iGfun, jGvar, lenG, neG,
+      &     xlow, xupp, xnames, Flow, Fupp, Fnames,
+@@ -21,7 +21,7 @@
+       implicit
+      &     none
+       external
+-     &     usrfun
++     &     usrfun, usrmjr
+       integer
+      &     INFO, lenA, lencu, lencw, lenG, leniu, leniw, lenru, lenrw,
+      &     mincw, miniw, minrw, n, neA, neG, nF, nFname, nInf, nS,
+@@ -391,7 +391,7 @@
+       call snKerA
+      &   ( Start, nF, n, nxname, nFname,
+      &     ObjAdd, ObjRow, Prob,
+-     &     usrfun, snLog, snLog2, sqLog, snSTOP,
++     &     usrfun, usrmjr, snLog, snLog2, sqLog, snSTOP,
+      &     iAfun, jAvar, lenA, neA, A,
+      &     iGfun, jGvar, lenG, neG,
+      &     xlow, xupp, xnames, Flow, Fupp, Fnames,
+@@ -408,7 +408,7 @@
+       subroutine snKerA
+      &   ( Start, nF, n, nxname, nFname,
+      &     ObjAdd, ObjRow, Prob,
+-     &     usrfun, snLog, snLog2, sqLog, snSTOP,
++     &     usrfun, usrmjr, snLog, snLog2, sqLog, snSTOP,
+      &     iAfun, jAvar, lenA, neA, A,
+      &     iGfun, jGvar, lenG, neG,
+      &     xlow, xupp, xnames, Flow, Fupp, Fnames,
+@@ -421,7 +421,7 @@
+       implicit
+      &     none
+       external
+-     &     usrfun, snLog, snLog2, sqLog, snSTOP
++     &     usrfun, usrmjr, snLog, snLog2, sqLog, snSTOP
+       integer
+      &     INFO, lenA, lencu, lencw, lenG, leniu, leniw, lenru, lenrw,
+      &     mincw, miniw, minrw, n, neA, neG, nF, nFname, nInf, nS,
+@@ -806,7 +806,7 @@
+ 
+          call s8solv
+      &      ( INFO, Solver, iw(lvlSrt),
+-     &        s0fgA, usrfun, usrfun,
++     &        s0fgA, usrfun, usrfun, usrmjr, 
+      &        snLog, snLog2, snSTOP, gotR,
+      &        m, n, nb, nnCon, nnJac, nnObj,
+      &        nName, iObj, ObjAdd, fObj, ObjTru, nInf, sInf,

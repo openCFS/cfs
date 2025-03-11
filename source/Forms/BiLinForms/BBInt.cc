@@ -89,7 +89,6 @@ namespace CoupledField{
        LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " nu= " << fac;
 
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
-
 #ifdef NDEBUG
        bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
 #else
@@ -342,8 +341,8 @@ namespace CoupledField{
      for( UInt i = 0; i < numIntPts; ++i  ) {
 
        // Calculate for each integration point the LocPointMapped
-       lp1.Set( intPoints[i], esm1, volRegions_, weights[i] );
-       lp2.Set( intPoints[i], esm2, volRegions_, weights[i] );
+       lp1.SetWithSurface( intPoints[i], esm1, volRegions_, weights[i] );
+       lp2.SetWithSurface( intPoints[i], esm2, volRegions_, weights[i] );
 
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMatTransposed( bMatT_, lp1, ptFe1);

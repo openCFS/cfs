@@ -651,7 +651,7 @@ namespace CoupledField
     ParamNodeList nciList = nciListNode->GetList("ncInterface");
     UInt numNCIs = nciList.GetSize();
     ncInterfaces_.Reserve(numNCIs);
-
+    
     //loop twice to ensure that moving interfaces get added last
     for ( UInt i=0; i<numNCIs; ++i ) {
       if(!nciList[i]->Has("rotation") &&
@@ -710,6 +710,13 @@ namespace CoupledField
     for ( ; it != itEnd; ++it) {
       (*it)->UpdateInterface();
     }
+  }
+
+  bool Grid::HasNCI() {
+    if (!ncInterfaces_.IsEmpty())
+      return true;
+    else 
+      return false;
   }
 
 
@@ -935,7 +942,7 @@ namespace CoupledField
     StdVector<double> max(3);
     UInt dim = this->GetDim();
     min.Init(1e10);
-    max.Init(1e-10);
+    max.Init(-1e10);
 
     StdVector <Elem*> elems;
     this->GetElems(elems,region);
@@ -1364,6 +1371,7 @@ namespace CoupledField
     }
   }
 
+#ifdef USE_EIGEN
   void Grid::SetUpMongeForm(MongeForm& mongeForm, const UInt& degreePolynomFitting, const UInt& degreeMongeCoeffs, 
                         const std::vector<DPoint>& nodeCoordinates) {
     if (dim_ == 2)
@@ -1417,366 +1425,8 @@ namespace CoupledField
     } else
       EXCEPTION("No entries for conversion provided!");
   };
-
-//  void Grid::ComputeConservativeInterpolationWeights(const ElemList& destElemList,
-//          const NodeList& sourceNodeList,
-//          const std::string& coordSysId,
-//          ciTolerance& globalEpsilon,
-//          ciTolerance& localEpsilon,
-//          Double z,
-//          Double zEpsilon,
-//          std::vector< std::map<UInt, Double> >& consInterpWeights,
-//          StdVector<UInt> &unmapped_nodes)
-//  {
-//    EXCEPTION("Not yet adjusted to new implementation");
-//    Double xmin, ymin, xmax, ymax, zmin, zmax;
-//    Double globEps, locEps;
-//    UInt i;
-//    UInt dim = GetDim();
-//    UInt numSourceNodes = sourceNodeList.GetSize(); // number of nodes in source region
-//    UInt numActualSourceNodes = 0; // actual number of nodes to be interpolated
-//    CoordSystem* coordSys = domain->GetCoordSystem(coordSysId);
-//    Grid* source = sourceNodeList.GetGrid();
-//    UInt srcDim = source->GetDim();
-//    Point p;
-//    StdVector<UInt> sourceNodeNumbers, sourceNodeIndices;
-//    Vector<Double> point;
-//    Vector<Double> globPoint;
-//    std::vector< Vector<Double> > nodeCoords;
-//    std::vector<HandleBox> elemBoxes2;
-//
-//    // initialize memory of interpolation weights, if necessary
-//    if (consInterpWeights.empty())
-//      consInterpWeights.resize(numSourceNodes);
-//
-//    // initialize memory for coordinates of source nodes
-//    nodeCoords.resize(numSourceNodes);
-//    for (UInt i=0; i<numSourceNodes; ++i) {
-//      nodeCoords[i].Clear();
-//    }
-//
-//    // If we haven't initialized the gstd::crid bounding boxes yet, do so now!
-//    if (elemBoxes_.empty()) {
-//      
-//      elemBoxes_.reserve( destElemList.GetSize() );
-//      const Elem* elem = NULL;
-//
-//      for(UInt i = 0, m=destElemList.GetSize(); i < m; ++i)
-//      {
-//        elem = destElemList.GetElem(i);
-//        GetNodeCoordinate(p, elem->connect[0]);
-//
-//        xmin = xmax = p[0];
-//        ymin = ymax = p[1];
-//        zmin = zmax = p[2];
-//
-//        for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
-//        {
-//          GetNodeCoordinate(p, elem->connect[j]);
-//          xmin = p[0] < xmin ? p[0] : xmin;
-//          xmax = p[0]> xmax ? p[0] : xmax;
-//          ymin = p[1] < ymin ? p[1] : ymin;
-//          ymax = p[1]> ymax ? p[1] : ymax;
-//          zmin = p[2] < zmin ? p[2] : zmin;
-//          zmax = p[2]> zmax ? p[2] : zmax;
-//        }
-//
-//        elemBoxes_.push_back( HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
-//                              &elem->elemNum) );
-//
-//        //std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin
-//        //          << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", "
-//        //          << ymax << ", " << zmax << ")" << std::endl;
-//
-//      }
-//    }
-//
-//    // check that tolerances make sense
-//    if (globalEpsilon.end < globalEpsilon.start)
-//      globalEpsilon.end = globalEpsilon.start;
-//    if (globalEpsilon.inc == 0.0) {
-//      if (globalEpsilon.start == 0.0)
-//        globalEpsilon.inc = 1.0e-6;
-//      else
-//        globalEpsilon.inc = globalEpsilon.start;
-//    }
-//    if (localEpsilon.end < localEpsilon.start)
-//      localEpsilon.end = localEpsilon.start;
-//    if (localEpsilon.inc == 0.0) {
-//      if (localEpsilon.start == 0.0)
-//        localEpsilon.inc = 1.0e-3;
-//      else
-//        localEpsilon.inc = localEpsilon.start;
-//    }
-//
-//    // loop over tolerance ranges
-//    for (locEps = localEpsilon.start;
-//         locEps <= localEpsilon.end;
-//         locEps += localEpsilon.inc) {
-//
-//      // global tolerance is inner loop, because
-//      // it doesn't cause numerical errors
-//      for (globEps = globalEpsilon.start;
-//           globEps <= globalEpsilon.end;
-//           globEps += localEpsilon.inc) {
-//
-//        EntityIterator it = sourceNodeList.GetIterator();
-//        sourceNodeNumbers.Clear();
-//        sourceNodeIndices.Clear();
-//        elemBoxes2.clear();
-//        i=0;
-//
-//        // create a list of nodes that still need to be interpolated
-//        while (!it.IsEnd())
-//        {
-//          if (!consInterpWeights.empty())
-//          {
-//            if (consInterpWeights[i].empty())
-//            {
-//              // If the source grid is 3D and the destination grid is 2D
-//              // we have to map the global source coordinates into the
-//              // local source coordinate sys and only use those nodes
-//              // with given z.
-//              if ( srcDim == 3 && dim == 2)
-//              {
-//                source->GetNodeCoordinate(point, it.GetNode(), true);
-//                coordSys->Global2LocalCoord(globPoint, point);
-//
-//                if ( std::fabs(globPoint[2] - z) < zEpsilon )
-//                {
-//                  sourceNodeNumbers.Push_back(it.GetNode());
-//                  sourceNodeIndices.Push_back(it.GetPos());
-//                }
-//              }
-//              else
-//              {
-//                sourceNodeNumbers.Push_back(it.GetNode());
-//                sourceNodeIndices.Push_back(it.GetPos());
-//              }
-//            }
-//          }
-//          else
-//          {
-//            if ( srcDim == 3 && dim == 2)
-//            {
-//              source->GetNodeCoordinate(point, it.GetNode(), true);
-//              coordSys->Global2LocalCoord(globPoint, point);
-//
-//              if ( std::fabs(globPoint[2] - z) < zEpsilon )
-//              {
-//                sourceNodeNumbers.Push_back(it.GetNode());
-//                sourceNodeIndices.Push_back(it.GetPos());
-//              }
-//            }
-//            else
-//            {
-//              sourceNodeNumbers.Push_back(it.GetNode());
-//              sourceNodeIndices.Push_back(it.GetPos());
-//            }
-//
-//          }
-//
-//          it++;
-//          ++i;
-//        }
-//
-//        numActualSourceNodes = sourceNodeNumbers.GetSize();
-//
-//        if (numActualSourceNodes == 0)
-//          return;
-//
-//        // add global tolerance to bounding boxes
-//        for(UInt n=0; n<numActualSourceNodes; ++n)
-//        {
-//          source->GetNodeCoordinate(point, sourceNodeNumbers[n], true);
-//          coordSys->Global2LocalCoord(nodeCoords[sourceNodeIndices[n]], point);
-//
-//          // subtract origin here!
-//          if(dim == 3)
-//            elemBoxes2.push_back(HandleBox(
-//                BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globEps,
-//                       nodeCoords[sourceNodeIndices[n]][1]-globEps,
-//                       nodeCoords[sourceNodeIndices[n]][2]-globEps,
-//                       nodeCoords[sourceNodeIndices[n]][0]+globEps,
-//                       nodeCoords[sourceNodeIndices[n]][1]+globEps,
-//                       nodeCoords[sourceNodeIndices[n]][2]+globEps),
-//                  &sourceNodeIndices[n]));
-//          else
-//            elemBoxes2.push_back(HandleBox(
-//                BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globEps,
-//                       nodeCoords[sourceNodeIndices[n]][1]-globEps,
-//                       0.0,
-//                       nodeCoords[sourceNodeIndices[n]][0]+globEps,
-//                       nodeCoords[sourceNodeIndices[n]][1]+globEps,
-//                       0.0),
-//                  &sourceNodeIndices[n]));
-//        }
-//
-//        // run the intersection algorithm and store results in a vector
-//
-//        CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
-//                                  elemBoxes2.begin(), elemBoxes2.end(),
-//                                  GenConsInterpReportFunctor(destElemList,
-//                                      sourceNodeList,
-//                                      nodeCoords,
-//                                      locEps,
-//                                      consInterpWeights));
-//      }
-//    }
-//
-//    for (UInt i=0; i<numActualSourceNodes; ++i) {
-//      if (consInterpWeights[sourceNodeIndices[i]].empty()) {
-//        // just add the number of the unmapped node.
-//        // DO NOT CLEAR the vector before this loop,
-//        // because this function is called several times.
-//        unmapped_nodes.Push_back(sourceNodeNumbers[i]);
-//      }
-//    }
-
-//  }
-
-//  Grid::ConsInterpReportFunctor::ConsInterpReportFunctor(const ElemList& destElemList,
-//                                                         const NodeList& sourceNodeList,
-//                                                         const std::vector< Vector<Double> >& nodeCoords,
-//                                                         Double localEpsilon,
-//                                                         std::vector< std::map<UInt, Double> >& consInterpWeights)
-//      : //destElemList_(destElemList),
-//      //sourceNodeList_(sourceNodeList),
-//        nodeCoords_(nodeCoords),
-//        localEpsilon_(localEpsilon),
-//        consInterpWeights_(consInterpWeights),
-//        nodeCounter_(0),
-//        percentage_(0),
-//        oldPercentage_(9)
-//    {
-//      numSourceNodes_ = consInterpWeights_.size();
-//      connect_.resize(64);
-//
-//      sourceGrid_ = sourceNodeList.GetGrid();
-//      destGrid_ = destElemList.GetGrid();
-//
-//      StdVector<UInt> destNodeNumbers;
-//      NodeList destNodeList(destGrid_);
-//      destNodeList.SetNodesOfRegion(destElemList.GetRegion());
-//      EntityIterator it = destNodeList.GetIterator();
-//      while(!it.IsEnd())
-//      {
-//        destNodeNumToPosMap_[it.GetNode()] = it.GetPos();
-//        it++;
-//      }
-//
-//      destNodeNumbers = destNodeList.GetNodes();
-//    } // store iterator in object
-//
-//  void Grid::ConsInterpReportFunctor::operator()( const HandleBox& a,
-//                                                  const HandleBox& b) {
-//      UInt destElemNum = *a.handle();
-//      UInt sourceNodeIndex = *b.handle();
-//      UInt dim = destGrid_->GetDim();
-//      UInt localDim;
-//      UInt numElemNodes;
-//      Elem::FEType type;
-//      RegionIdType region;
-//      Matrix<Double> coordMat;
-//      Matrix<Double> globCoordMat;
-//      Matrix<Double> localCoords;
-//      Vector<Double> point;
-//      StdVector<bool> coordsInside;
-//      Vector<Double> locCoords;
-//      const Elem* elem = NULL;
-//
-//      //      std::cout << "Elem Number " << elemNum << " <- " << sourceNodeNum << std::endl;
-//
-//      // If source to destination node map already contains entries
-//      // for the source node, refuse to do any further calculations
-//      // because weights already exist for this node.
-//      if(!consInterpWeights_[sourceNodeIndex].empty())
-//      {
-//        //        std::cout << "Rejecting mapping from source node index " << sourceNodeIndex << " to element " << destElemNum << std::endl;
-//        return;
-//      }
-//      
-//
-//      // Fill coordinate matrix with node coords of destination element
-//      destGrid_->GetElemData(destElemNum, type, region, &connect_[0]);
-//      numElemNodes = Elem::GetNumElemNodes(type);
-//      coordMat.Resize(dim, numElemNodes);
-//      for(UInt i=0; i<numElemNodes; i++)
-//      {
-//        destGrid_->GetNodeCoordinate(point, connect_[i], true);
-//        for(UInt j=0; j<dim; j++) {
-//          coordMat[j][i] = point[j];
-//        }
-//      }
-//
-//      // Fill global coordinate matrix for node of source grid
-//      globCoordMat.Resize(dim, 1);
-//      for(UInt j=0; j<dim; j++) {
-//        globCoordMat[j][0] = nodeCoords_[sourceNodeIndex][j];
-//      }
-//
-//      // Get local coordinate of source node in respect to potential
-//      // destination element
-//      elem = destGrid_->GetElem(destElemNum);
-//      elem->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
-//      elem->ptElem->CoordsInsideElem(localCoords, localEpsilon_, coordsInside);
-//
-//      // If node is inside potential destination element, calculate
-//      // conservative interpolation weights.
-//      if(coordsInside[0])
-//      {
-//        localDim = localCoords.GetNumRows();
-//        locCoords.Resize(localDim);
-//
-//        for(UInt j=0; j<localDim; j++) {
-//          locCoords[j] = localCoords[j][0];
-//        }
-//
-//        // The vector S contains the values of the shape functions
-//        // at the local coordinate of the source node. These values
-//        // serve also as the interpolation weights.
-//        Vector<double> S;
-//        elem->ptElem->GetShFnc(S, locCoords, elem );
-//
-//        //        std::cout << "Local Coord: " << locCoords << std::endl;
-//        //        std::cout << "Shape functions: " << S << std::endl;
-//
-//        // Put weights into correct position of source -> destination
-//        // node map.
-//        for(UInt i=0; i<numElemNodes; i++)
-//        {
-//          UInt pos = destNodeNumToPosMap_[connect_[i]];
-//
-//          if(consInterpWeights_[sourceNodeIndex].find(pos) ==
-//             consInterpWeights_[sourceNodeIndex].end())
-//          {
-//            if(S[i] != 0.0)
-//            {
-//              consInterpWeights_[sourceNodeIndex][pos] = S[i];
-//            }
-//            //            std::cout << "Node: " << connect_[i] << ": " << S[i] << std::endl;
-//          }
-//        }
-//
-//        nodeCounter_++;
-//        percentage_ = (UInt)(100*(Double)nodeCounter_ / (Double)numSourceNodes_);
-//        if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
-//        {
-//          //std::cout << percentage_ << "% done... " << std::endl;
-//          std::cout << "."; // use a short status display
-//        }
-//        oldPercentage_ = percentage_;
-//      }
-//#if 0
-//      else
-//      {
-//        std::cout << sourceNodeNum << ": Local Coord: " << localCoords[0][0] << " " << localCoords[1][0] << std::endl;
-//      }
-//#endif
-//    }
-
+#endif // USE_EIGEN
 #elif USE_LIBFBI // USE_CGAL
-
 } // end namespace CoupledField
 
 

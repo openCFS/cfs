@@ -18,18 +18,10 @@ if __name__ == '__main__':
   import matplotlib
   import matplotlib.pyplot as plt
   from matplotlib.ticker import MaxNLocator
-  import snopt # our snopt.py helper fticklabel_formator process
-
-  # in case we have --dashed we use c_cms_y and c_cms_y2
-  # https://stackoverflow.com/questions/7358118/matplotlib-black-white-colormap-with-dashes-dots-etc
-  # probably to be combined with --black
-  from cycler import cycler
-  color_c = cycler('color', ['k'])
-  markr_c = cycler('marker', ['', '.', 'o'])
-  style_c_y = cycler('linestyle', ['-', '--', ':', '-.'])
-  style_c_y2 = cycler('linestyle', ['-.', ':','--', '-'])
-  c_cms_y = color_c * markr_c * style_c_y
-  c_cms_y2 = color_c * markr_c * style_c_y2
+  try:
+    import snopt # our snopt.py helper process
+  except ImportError:
+    print("warning: cannot load snopt, hopefully not needed")
 
 # having two y2-axis we need to handle colors manually, otherwise they repeat
 # https://matplotlib.org/stable/gallery/color/named_colors.html
@@ -37,13 +29,35 @@ if __name__ == '__main__':
 # in case of --black will be replaced below by all 'black'
 colors = ['tab:green','tab:red','tab:purple','tab:blue','tab:orange','black','tab:brown','tab:gray','tab:olive','blue','tab:cyan','tab:pink','cornflowerblue', 
           'gold','peru','blueviolet', 'coral','yellowgreen'] 
-colors += colors # repeat such that it should be really enough
-
 # this will cycle through different marker/line styles
 markers = [".","x","+","v","^","<",">","s","*"]
 lines = ["-","--",":","-."]
+colorcycler = cycle(colors)
 markercycler = cycle(markers)
 linecycler = cycle(lines)
+
+# this helper finds colors, markers and linestyle. Depending on data and command line setting
+# @param idx the i for the y or y2 loop
+# @param args to get number of files and style settings
+# @param axis 'x' or 'y'
+# @param data of current idx, here we decide if we want to use markers
+def find_style(idx, args, axis, data):
+  assert axis == 'x' or axis == 'y'
+  # we assume for multiple files and y+y2 that we have common data (e.g. compliance and greyness)
+  # we have same colors for the same file (by idx) but different linestyle  
+  if len(args.input) > 1:
+    color = colors[idx] if not args.black else 'black'
+    linestyle = '-' if axis == 'x' else ':'
+    marker = markers[i] if len(data) <= 40 else ' '
+  else:
+    color = next(colorcycler) if not args.black else 'black'
+    linestyle = next(linecycler) if not args.solid else '-'  
+    marker = next(markercycler) if len(data) <= 40 else ' '
+
+  if args.marker: # overwrite if the user wants to
+    marker = args.marker
+    
+  return color, linestyle, marker  
 
 # parses the header lines for the first hint on column names.
 # Tries to be smart!!
@@ -133,7 +147,6 @@ def header(data, comments):
 # print header in a nice way
 def print_header(meta,data,inputs):
   assert len(meta) == len(data) == len(inputs)
-  
   ml = max([len(max(m, key = len)) for m in meta]) # find largest meta key
   
   print('key: ' + 'label'.ljust(ml) + ' : first value         : file')
@@ -228,7 +241,8 @@ def check(format, test):
   try:
     time = datetime.datetime.strptime(test, format)
     #  8.9819 -> 9819-08-01 00:00:00 9819
-    if time.year == 0 or (time.year >= 2010 and time.year <= 2030):
+    # allow for checks with time only, then the year is 0 or default
+    if time.year in [0,1900] or (time.year >= 2010 and time.year <= 2030):
       return True
     else:
       return False
@@ -417,14 +431,15 @@ def process(input):
   comments = []
   body = [] 
  
-  # we assume first comments (and assume the last comment to be the header descriotion)
+  # we assume first comments (and assume the last comment to be the header description)
   # then the body. For comment/body/comment we ignore comments after body
   for l in lines:
     h = l.strip()
     # it seems excel creates utf-8 bom at file start, simply skip it
     if ord(h[0]) == 0xfeff:
       h = h[1:]
-    if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---'):
+    #if h.startswith('#') or h.startswith('iter') or h.startswith('Temp') or h.startswith('---') or (:
+    if h.startswith('---') or (len(h) > 0 and not h[0].isnumeric()): # take also text headers without prefix like DATE,PM2.5,...
       if len(body) == 0: # ignore comments after body 
         comments.append(h)
     else:
@@ -572,10 +587,10 @@ if __name__ == '__main__':
                                               Expressions are possible in single quotes (e.g. '0.5*compliance -$3/ 2') with references to columns prefixed with $.")
   parser.add_argument("-y2", nargs='*', help="optional indices or labels for the secondary ordinate")
   parser.add_argument("-z", nargs='*',  help="trigger 3D plots wich requires a single -x and -y component")
-  parser.add_argument("--range", help='range (day fractions for datetime) to be shown. negative for final range', type=float)
-  parser.add_argument("--irange", help='index-based range to be shown. negative for final range', type=int)
-  parser.add_argument("--shift", help='shift range (day fractions for datetime)', type=float)
-  parser.add_argument("--ishift", help='index-based shift range', type=int)
+  parser.add_argument("--range", help='value based range (day fractions for datetime). Negative for final range', type=float)
+  parser.add_argument("--irange", help='index based range to be shown. negative for final range', type=int)
+  parser.add_argument("--shift", help='value shift range (day fractions for datetime)', type=float)
+  parser.add_argument("--ishift", help='indec based shift range', type=int)
   parser.add_argument("--ylim", nargs=2, help='range for y-axis', type=float)
   parser.add_argument("--y2lim", nargs=2, help='range for y2-axis', type=float)
   parser.add_argument("--xlabel", help='optional label for the abscissa')
@@ -583,22 +598,23 @@ if __name__ == '__main__':
   parser.add_argument("--y2label", help='optional label for the secondary ordinate')
   parser.add_argument("--zlabel", help='optional label for the 3d data')
   parser.add_argument("--marker", help="optional matplotlib marker: e.g. . , o or ' ' to disable marker")
-  parser.add_argument("--linestyle", help='optional matplotlib linestyle: e.g. - dashed')
+  parser.add_argument("--solid", help="only solid - linestyle", action='store_true')
+  parser.add_argument("--black", help="change all line colors to black. Use with --dashed", action='store_true')
   parser.add_argument("--legend", nargs='*', help="(partially) overwrite labels in the legend as space separated list of strings")
-  parser.add_argument("--legend_loc", help="string for matplotlib.legend(loc)")
+  parser.add_argument("--legend_loc", help="string for matplotlib.legend(loc), e.g. 'upper left'")
   parser.add_argument("--legend_ncol", help="number of columns of legend", type=int, default=1)
   parser.add_argument("--title", help='optional title for the plot')
   parser.add_argument("--xscale", help="scaling type from choice, google matplotlib xscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--yscale", help="scaling type from choice, google matplotlib yscale", choices=["linear", "log", "symlog", "logit", "logrel", "percentage"],default='linear')
   parser.add_argument("--y2scale", help="like --yscale but for y2 axis", choices=["linear", "log", "symlog", "logit", "logrel", "percentage"],default='linear')
+  parser.add_argument("--zscale", help="scaling type from choice, google matplotlib xscale", choices=["linear", "log", "symlog", "logit"],default='linear')
   parser.add_argument("--bar", nargs='*', help="indices from y or y2 which are to displayed as bars instead of plots")
   parser.add_argument("--barwidth", help="barplots for datetime need manual adjustment", type=float, default=.8)
+  parser.add_argument("--ignore_day", help="overwrite any date with current day but keep time",action='store_true')
   parser.add_argument("--smooth", nargs='*', help="create new smoothed data for given fields")
   parser.add_argument("--smooth_window", help="window size of Savitzky–Golay filter", type=int, default = 7)
   parser.add_argument("--smooth_poly", help="polynomial order of Savitzky–Golay filter", type=int, default = 3)
   parser.add_argument("--grad", nargs='*', help="give finite difference gradients, you might want to smooth first")
-  parser.add_argument("--dashed", help="cylce through different line styles. Use with --black for b/w",action='store_true')
-  parser.add_argument("--black", help="change all line colors to black. Use with --dashed",action='store_true')
   parser.add_argument("--save", help='write to given filename using the extension')
   parser.add_argument("--noautocomplete", help='supress searching only for beginning of key',action='store_true')
   parser.add_argument("--noshow", help='supress popping up the image window', action='store_true')
@@ -608,17 +624,17 @@ if __name__ == '__main__':
   global noautocomplete 
   noautocomplete = args.noautocomplete
   
-  if args.black:
-    colors = ['black'] * 20
-  
   # array of headers per file
   meta = [] 
   # matrix of data per file
   data = []
-  
   # handle Windows and macOS debugging
   if len(args.input) == 1:
+    org = args.input
     args.input = glob.glob(args.input[0]) # replace with more content in case there are Wildcards
+  if len(args.input) == 0: # in case of a wrong filename we clob nothing, no args.input is not allowed
+    print('Error: cannot open', org[0])
+    sys.exit()
   for input in args.input:
     if not os.path.exists(input):
       print('Error: no valid .dat or .snopt file given', input)
@@ -635,7 +651,6 @@ if __name__ == '__main__':
       m, d = process(input)
     meta.append(m)
     data.append(d)  
-  
   # insert artificial index for linspace x-axis as 0th file
   #meta.insert(0,['index']) # for each file a list of header names
   # the index 'file' are row column lists
@@ -683,13 +698,24 @@ if __name__ == '__main__':
   
   fiz, z, zlabel = column(meta,data,args.z,args.bar) if args.z else ([],[],[])
   
+  print('meta',meta)
+  print('input',args.input)
+  print('fiy',fiy,'fiy2',fiy2)
+
+  
   for i in range(1,len(x)):
     if type(x[i][0]) != type(x[0][0]):
       print('Error: inconsisten data type for your x axis choice',fix,xlabel)
       sys.exit()      
   
   has_dt = type(x[0][0]) == datetime.datetime # we validated common type for all x before
-  
+
+  if args.ignore_day:
+    today = datetime.datetime.today()
+    for file_col in x:
+      for i in range(len(file_col)):
+        file_col[i] = file_col[i].replace(year=today.year, month=today.month, day=today.day)
+
   # now do restrictions
   # for restrictions, this is the start index and end index for the x array of columns
   # currently multiple input needs to be datetime
@@ -755,10 +781,13 @@ if __name__ == '__main__':
     x[i] = x[i][start_idx[i]:end_idx[i]]
     
   for i in range(len(y)):
-    yfactor = 100/(y[i][0])
+    yfactor = 100/(y[i][0]) if y[i][0] !=0 else np.nan
     idx = abs(fiy[i])-1 # 1-based and +/- to encode bar
     y[i] = y[i][start_idx[idx]:end_idx[idx]]
     if args.yscale == 'percentage':
+      if yfactor == np.nan:
+        print("0 in data range, cannot scale by 'percentage'")
+        sys.exit()
       for j in range(len(y[i])):
         y[i][j] *= yfactor
     # adjust to value above final value for relative logarithmic scale 'logrel'
@@ -771,23 +800,24 @@ if __name__ == '__main__':
     args.yscale = 'log'
 
   for i in range(len(y2)):
-    yfactor = 100/(y2[i][0])
+    yfactor = 100/(y2[i][0]) if y2[i][0] !=0 else np.nan
     idx = abs(fiy2[i])-1
     y2[i] = y2[i][start_idx[idx]:end_idx[idx]]
     if args.yscale == 'percentage':
-      for j in range(len(y[i])):
-        y[i][j] *= yfactor
+      if yfactor == np.nan:
+        print("0 in data range, cannot scale by 'percentage'")
+        sys.exit()
+      for j in range(len(y2[i])):
+        y2[i][j] *= yfactor
     # adjust to value above final value for relative logarithmic scale 'logrel'
-    if args.y2scale == 'logrel':
-      for j in range(len(y[i])):
-        y[i][j] = y[i][j] - y[i][-1]
+    if args.y2scale == 'logrel': 
+      for j in range(len(y2[i])):
+        y2[i][j] = y2[i][j] - y2[i][-1]
   if args.yscale == 'percentage':
     args.yscale = 'linear'
   if args.y2scale == 'logrel':
     args.y2scale = 'log'
   # finished with restrictions
-
-
 
   # now we can do smooth and grad, identified by the predix smooth_ and grad_ in the label
   y  = apply_smooth(y, ylabel, args.smooth_window, args.smooth_poly) 
@@ -797,9 +827,6 @@ if __name__ == '__main__':
   y2 = apply_grad(fiy2, y2, y2lbl, x)
   z  = apply_grad(fiz, z, zlabel, x)
   
-  if args.dashed:      
-    plt.rc('axes', prop_cycle=c_cms_y)
-
   # now plot the stuff on potentially in 1D by the y-axis or in 2D/3D (3d=warped)
   fig = None
   ax = None
@@ -810,22 +837,23 @@ if __name__ == '__main__':
     for i in range(len(y)):
       # y is a list of data. if fiy we know the current file index and take the x with the proper file index for you y columns
       # fiy(2) is 1-based and encodes bar with a negative value
+      col, ls, mrkr = find_style(i, args, 'x', y[i])
+
       if fiy[i] > 0:
-        lines.append(ax.plot(x[fiy[i]-1],y[i], color=colors[i], marker=args.marker if args.marker else next(markercycler), linestyle=args.linestyle if args.linestyle else next(linecycler))[0]) # returns multiple results and we want only the first
+        lines.append(ax.plot(x[fiy[i]-1],y[i], color=col, marker=mrkr, linestyle=ls)[0]) # returns multiple results and we want only the first
       else:
-        lines.append(ax.bar(x[-fiy[i]-1],y[i], width=args.barwidth, color=colors[i], linestyle=args.linestyle if args.linestyle else next(linecycler))) # has only one return
+        lines.append(ax.bar(x[-fiy[i]-1],y[i], width=args.barwidth, color=col, linestyle=ls)) # has only one return
     if args.ylim:
       ax.set_ylim(args.ylim)
 
     if args.y2:
-      if args.dashed:      
-        plt.rc('axes', prop_cycle=c_cms_y2)
       ax2 = ax.twinx()
       for i in range(len(y2)):
+        col, ls, mrkr = find_style(i, args, 'y', y2[i])
         if fiy2[i] > 0:
-          lines.append(ax2.plot(x[fiy2[i]-1],y2[i], color=colors[13+i], marker=args.marker if args.marker else next(markercycler), linestyle=args.linestyle)[0]) # start with gold
+          lines.append(ax2.plot(x[fiy2[i]-1],y2[i], color=col, marker=mrkr, linestyle=ls)[0]) # start with gold
         else:
-          lines.append(lines.append(ax2.bar(x[-fiy2[i]-1],y2[i], width=args.barwidth, color=colors[13+i], linestyle=args.linestyle)))
+          lines.append(lines.append(ax2.bar(x[-fiy2[i]-1],y2[i], width=args.barwidth, color=col, linestyle=ls)))
       if args.y2lim:
         ax2.set_ylim(args.y2lim)
 
@@ -886,7 +914,8 @@ if __name__ == '__main__':
     
     
   # common stuff for 2D and 3D
-  ax.set_xscale(args.xscale)  
+  if not has_dt:
+    ax.set_xscale(args.xscale) # would brake datetime with dates 
   ax.set_yscale(args.yscale)
   # ax.ticklabel_format(useOffset=False)  causes AttributeError: This method only works with the ScalarFormatter
   if args.y2:
@@ -923,7 +952,7 @@ if __name__ == '__main__':
  
   if args.save and not '.vtr' in args.save:
     print("write image to '" + args.save + "'")
-    plt.savefig(args.save)
+    plt.savefig(args.save, bbox_inches='tight')
     
   if not args.noshow:
     #print('show ' + str(len(x[0])) + ' of ' + str(len(data[0])) + ' datapoints')

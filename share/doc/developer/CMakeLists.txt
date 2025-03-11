@@ -34,7 +34,7 @@
 #
 # author Jan Woetzel 2004-2006
 # www.mip.informatik.uni-kiel.de/~jw
-cmake_minimum_required(VERSION 2.9)
+cmake_minimum_required(VERSION 3.12)
 
 message(STATUS "doc/develper with DOXYGEN=${DOXYGEN}")
 

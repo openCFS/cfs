@@ -64,7 +64,7 @@ void LocalElementCache::InitOrg()
 void LocalElementCache::InitShadow(DesignSpace::DesignRegion* dr)
 {
   assert(dr != NULL);
-  assert(dr->HasBiMaterial());
+  assert(dr->HasScndMaterial());
 
   MaterialClass mc = NO_CLASS;
   MaterialType  mt = NO_MATERIAL;
@@ -77,24 +77,24 @@ void LocalElementCache::InitShadow(DesignSpace::DesignRegion* dr)
     mc = MECHANIC;
     mt = MECH_STIFFNESS_TENSOR;
 
-    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
+    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetScndMaterial(mc, mt));
 
     if(ctxt->pde->GetAssemble()->HasBiLinForm("MassInt", dr->regionId))
-      Init(space_->ToForm(mc, DENSITY), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, DENSITY));
+      Init(space_->ToForm(mc, DENSITY), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetScndMaterial(mc, DENSITY));
     break;
   }
   case OptimizationMaterial::HEAT:
   {
     mc = THERMIC;
     mt = HEAT_CONDUCTIVITY_TENSOR;
-    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
+    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetScndMaterial(mc, mt));
     break;
   }
   case OptimizationMaterial::MAG:
   {
     mc = ELECTROMAGNETIC;
     mt = MAG_RELUCTIVITY_TENSOR;
-    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(mc, mt));
+    Init(space_->ToForm(mc, mt), dr->regionId, SHADOW, DesignElement::NO_DERIVATIVE, dr->GetScndMaterial(mc, mt));
     break;
   }
 

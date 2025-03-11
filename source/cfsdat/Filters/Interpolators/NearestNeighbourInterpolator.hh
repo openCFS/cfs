@@ -45,7 +45,8 @@ private:
 
   //! Number of neighbor points to include in interpolation.
   UInt numNeighbors_;
-
+  //! Maximum distance between source and target positions to include into the interpolation operation
+  Double maxSearchDist_;
 
 #ifdef USE_CGAL // clang otherwise complains about private field not used
   //! Global Factor for scaling the result

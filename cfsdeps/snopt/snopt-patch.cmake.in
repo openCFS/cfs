@@ -9,3 +9,9 @@ assert_set(DEPS_SOURCE)
 
 # Copy our own CMakeLists.txt. The manual generated DEPS_SOURCE needs to know the snopt7 where unzip extracts
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/CMakeLists.txt" DESTINATION "${DEPS_SOURCE}")
+
+# add the feature to snopt to add a callback for the current major iteration notification
+set(patches "add_usrmjr_callback.patch")
+
+apply_patches("${patches}" "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}")
+

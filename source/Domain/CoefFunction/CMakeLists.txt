@@ -9,6 +9,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionConst.cc
   CoefFunctionContactForceDensity.cc
   CoefFunctionDistance.cc
+  CoefFunctionDummy.cc
   CoefFunctionExpression.cc
   CoefFunctionGrid.cc
   CoefFunctionGridNodal.cc
@@ -34,13 +35,13 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionDiagTensorFromScalar.cc
   CoefFunctionMaterialModel.cc
   CoefFunctionConversion.hh
+  CoefFunctionSUPG.cc
+  CoefFunctionSUPG.hh
 )
 
 if(USE_EMBEDDED_PYTHON)
-  # see FindPrograms.cmake on how the PYTHON_ stuff is set
-  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
-  # required for numpy
-  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  # see FindPrograms.cmake on how the Python_* stuff is set
+  list(APPEND TARGET_LL ${Python_LIBRARIES})
   set(COEFFUNCTION_SRCS ${COEFFUNCTION_SRCS} CoefFunctionPython.cc)
 else()
   # empty definitions to please linker

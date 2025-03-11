@@ -131,7 +131,35 @@ protected:
                                   const Vector<Double>& point,
                                   const Elem* ptElem,
                                   UInt comp = 1 ) = 0;
-  
+
+  /*! mapping function that checks the orientation of quad elements.
+    The function is used in GetLocalIntPoints4Surface() for the Hex, Wedge and Pyra elements.
+    It is put here into the base class to avoid code duplication.
+    \param commonIndexMap (input) maps the vol elem indices of the surface to the unitary [1,2,3,4] indices
+    \param commonIndex (input) common indices
+    \param surfIntPoint (input) surface integration point
+    \param volIntPoint (output) volume integration point
+  */
+  void MapQuadSurfOrientation(const std::map<UInt, UInt>& commonIndexMap, 
+                              const StdVector<UInt>& commonIndex, 
+                              const LocPoint& surfIntPoint, 
+                              StdVector<Double>& volIntPoint);
+
+  /*! mapping function that checks the orientation of triangular elements.
+    The function is used in GetLocalIntPoints4Surface() for the Tet, Wedge and Pyra elements.
+    It is put here into the base class to avoid code duplication.
+    \param commonIndexMap (input) maps the vol elem indices of the surface to the unitary [1,2,3] indices
+    \param commonIndex (input) common indices
+    \param surfIntPoint (input) surface integration point
+    \param volIntPoint (output) volume integration point
+    \param isEquilateral (input) flag to indicate if the triangle is equilateral, as occurs in one of the tetrhedron faces
+  */
+  void MapTriaSurfOrientation(const std::map<UInt, UInt>& commonIndexMap, 
+                              const StdVector<UInt>& commonIndex, 
+                              const LocPoint& surfIntPoint, 
+                              StdVector<Double>& volIntPoint,
+                              bool isEquilateral = false);
+
   //! Polynomial order of the finite element
   UInt order_;
 };

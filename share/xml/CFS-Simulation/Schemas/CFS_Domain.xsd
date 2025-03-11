@@ -187,26 +187,46 @@
     <xsd:choice>
       <xsd:element name="plane" type="DT_GeometryPlane" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="cylinder" type="DT_GeometryCylinder" minOccurs="1" maxOccurs="1"/>
-      <xsd:element name="sphere" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="sphere" type="DT_GeometrySphere" minOccurs="1" maxOccurs="1"/>
     </xsd:choice>
   </xsd:complexType>
+
 
   <xsd:complexType name="DT_GeometryPlane">
     <xsd:annotation>
       <xsd:documentation>
         Type to specify that the surface geometry is planar and has a normal into the x, y or z direction
+        Also defines the center used for automatic layer generation
       </xsd:documentation>
     </xsd:annotation>
     <xsd:attribute name="normalDirection" type="DT_CartesianAxis" use="required"/>
+    <xsd:attribute name="origin_x" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_y" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_z" type="xsd:token" default="0" use="optional"/>
   </xsd:complexType>
 
   <xsd:complexType name="DT_GeometryCylinder">
     <xsd:annotation>
       <xsd:documentation>
-        Type to specify that the surface geometry is cylindric and either x, y or z is its height axis
+        Type to specify that the surface geometry is cylindric and either x, y or z is its height axis.
+        Also defines the center used for automatic layer generation
       </xsd:documentation>
     </xsd:annotation>
     <xsd:attribute name="axisDirection" type="DT_CartesianAxis" use="required"/>
+    <xsd:attribute name="origin_x" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_y" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_z" type="xsd:token" default="0" use="optional"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_GeometrySphere">
+    <xsd:annotation>
+      <xsd:documentation>
+        Defines the center used for automatic layer generation
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="origin_x" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_y" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_z" type="xsd:token" default="0" use="optional"/>
   </xsd:complexType>
 
   <xsd:simpleType name="DT_CartesianAxis">

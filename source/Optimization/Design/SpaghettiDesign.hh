@@ -147,6 +147,7 @@ public:
    * Within the noodles are all Variables referenced in FeaturedDesign::shape_param_ and FeaturedDesign::opt_shape_param_
    * @See SetupDesign(), also for ordering within (opt_)shape_param_ */
   StdVector<Noodle> spaghetti;
+  StdVector<int> opt_indices;
 
 private:
 
@@ -185,6 +186,11 @@ private:
 
   /** for boundary functions linear and poly this is the full transition zone 2*h -> move to FeaturedDesign */
   double transition = -1;
+
+  // penalty for smoothmax
+  double pen = -1;
+  // penalty for RAMP type inverse penalization of python_volume
+  double q = 0;
 
   /** the rhomin we use, extracted from the first density variable. */
   double rhomin = -1;

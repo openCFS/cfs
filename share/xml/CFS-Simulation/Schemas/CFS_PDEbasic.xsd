@@ -201,6 +201,7 @@
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
               <xsd:attribute name="pdeName" type="xsd:token" use="required"/>
+              <xsd:attribute name="dofs" type="xsd:token" use="optional" default="all"/>
             </xsd:complexType>
           </xsd:element>
 
@@ -841,6 +842,21 @@
     <xsd:sequence>
       <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
         <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="thinLayer" minOccurs="0" maxOccurs="1">
+              <xsd:annotation>
+                <xsd:documentation>
+                  Creates thin layer with non conforming formulation.
+                  Definition of layerThickness and layerMaterial is required.
+                  Currently only heatPDE is with Nitsche type interface supported.
+                </xsd:documentation>
+              </xsd:annotation>
+              <xsd:complexType>
+                <xsd:attribute name="layerThickness" type="xsd:double" use="optional" default="0.0"/>
+                <xsd:attribute name="layerMaterial" type="xsd:string" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
           <xsd:attribute name="name" type="xsd:token" use="required"/>
           <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional"
             default="Mortar"/>

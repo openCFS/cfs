@@ -253,6 +253,9 @@ namespace CoupledField {
       LagrangeMultType  lagrangeMultType;
       Double            nitscheFactor;
       Double            nitscheFactorDamp;
+      Double            layerThickness; // parameter for thin layer formulation with non conforming interface condition
+      string            layerMaterial; // material for thin layer formulation with non conforming interface condition
+      bool              thinLayer;
       bool              crossPointHandling;
       bool              movingMortarForm;
     };

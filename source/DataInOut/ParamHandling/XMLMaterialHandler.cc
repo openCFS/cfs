@@ -852,6 +852,7 @@ namespace CoupledField {
         // Classical case with just one permeability
         PtrParamNode perm = mag->Get("permeability");
         PtrParamNode model;
+        PtrParamNode anhystmodel;
 
         if (perm->Has("linear"))
         {
@@ -962,26 +963,41 @@ namespace CoupledField {
           if (perm->Get("model")->Get("isotropic")->Has("EBHysteresisModel"))
           {
             model = perm->Get("model")->Get("isotropic")->Get("EBHysteresisModel");
-
-            material->SetScalar(model->Get("Ps")->As<Double>(), MaterialType(MAG_PS_EB), Global::REAL);
-            material->SetScalar(model->Get("A")->As<Double>(), MaterialType(MAG_A_EB), Global::REAL);
-            material->SetScalar(model->Get("mu0")->As<Double>(), MaterialType(MAG_MU0_EB), Global::REAL);
+            if(model->Has("Anhysteresis_model/analytic_anhysteresis")){
+              material->SetAnhystMagModel("analytic_anhysteresis");
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/Ps")->As<Double>(), MaterialType(MAG_PS_EB), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/A")->As<Double>(), MaterialType(MAG_A_EB), Global::REAL);
+            }
+            if(model->Has("Anhysteresis_model/multiscale_anhysteresis")){
+              material->SetAnhystMagModel("multiscale_anhysteresis");
+              material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/AS")->As<Double>(), MaterialType(MAG_MSM_AS), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/K1")->As<Double>(), MaterialType(MAG_MSM_K1), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/K2")->As<Double>(), MaterialType(MAG_MSM_K2), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/lambda100")->As<Double>(), MaterialType(MAG_MSM_LAMBDA100), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/lambda111")->As<Double>(), MaterialType(MAG_MSM_LAMBDA111), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/Ps")->As<Double>(), MaterialType(MAG_MSM_PS), Global::REAL);
+            }
             material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_EB), Global::REAL);
             material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL);
-            material->SetScalar(model->Get("jacobian_method")->As<Double>(), MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
+            if(model->Get("Jacobian_type")->As<std::string>() == "FD"){
+              material->SetScalar(1, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
+            }else if(model->Get("Jacobian_type")->As<std::string>() == "Broyden"){
+              material->SetScalar(2, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
+            }else if(model->Get("Jacobian_type")->As<std::string>() == "SimpleFD"){
+              material->SetScalar(3, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
+            }else if(model->Get("Jacobian_type")->As<std::string>() == "BFGS"){
+              material->SetScalar(4, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
+            }else{
+              EXCEPTION("Jacobian_type of name "<<model->Get("Jacobian_type")->As<std::string>()<<" not implemented");
+            }
 
-            BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(model, material);
-            if (model->Has("deriv_A")) {
-              info.analyticExprDerivP1 = model->Get("deriv_A")->As<std::string>().c_str();
-            } else
-              info.analyticExprDerivP1 = "0.0";
-            if (model->Has("deriv_Ps")) {
-              info.analyticExprDerivP2 = model->Get("deriv_Ps")->As<std::string>().c_str();
-            } else
-              info.analyticExprDerivP2 = "0.0";
-
-            info.approxType = ANALYTIC;
-            material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
+            if(model->Get("Approx_type")->As<std::string>() == "fullEB"){
+              material->SetScalar(1, MaterialType(MAG_APPROX_TYPE), Global::REAL);
+            }else if(model->Get("Approx_type")->As<std::string>() == "approxVPM"){
+              material->SetScalar(2, MaterialType(MAG_APPROX_TYPE), Global::REAL);
+            }else{
+              EXCEPTION("Approx_type of name "<<model->Get("Approx_type")->As<std::string>()<<" not implemented");
+            }
           }
         }
       }

@@ -57,7 +57,7 @@ namespace CoupledField{
     void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
-    void DefineSurfaceIntegrators( );
+    void DefineSurfaceIntegrators();
     
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
@@ -153,8 +153,15 @@ namespace CoupledField{
 
     //! need wave-PDE for changing density
     bool complexFluidFormulation_;
-  };
 
+    //! Definition of convective integrators (Pierce Operator)
+    //! \param actRegion  region id
+    //! \param curRegNode current region node
+    //! \param actSDList  list of elements
+    //! \param coeffM     material coefficient of mass integrators
+    template <UInt DIM, bool IS_COMPLEX>
+    void DefineConvectiveIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, PtrCoefFct coeffM);
+  };
 }
 
 #endif

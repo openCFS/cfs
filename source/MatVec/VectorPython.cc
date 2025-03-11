@@ -1,7 +1,7 @@
 #define PY_SSIZE_T_CLEAN // https://docs.python.org/3/c-api/intro.html
 //#include <Python.h>
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
-#include <numpy/core/include/numpy/arrayobject.h>
+#include <numpy/arrayobject.h>
 #include <Python.h>
 
 #include "Vector.hh"

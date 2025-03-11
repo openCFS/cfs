@@ -207,7 +207,7 @@ else:
         vals.append(v)
         v *= f
    # 1.9000000000000001 to 1.9       
-   vals = [round(v,10) for v in vals]
+   vals = [round(v,3) for v in vals]
    # test if we have integers only
    if np.sum([abs(math.modf(v)[0]) for v in vals]) == 0:
      vals = [int(v) for v in vals] 

@@ -372,8 +372,8 @@ int FeaturedDesign::FindDesign(DesignElement::Type dt, bool throw_exception) con
   if(idx >= 0)
     return idx;
 
-  assert(dt == DesignElement::CP || dt == DesignElement::SPLINE_BOX || dt == DesignElement::SPAGHETTI
-      || dt == DesignElement::NODE || dt == DesignElement::PROFILE || dt == DesignElement::NORMAL);
+//  assert(dt == DesignElement::CP || dt == DesignElement::SPLINE_BOX || dt == DesignElement::SPAGHETTI
+//      || dt == DesignElement::NODE || dt == DesignElement::PROFILE || dt == DesignElement::NORMAL);
 
   if(dt == DesignElement::SPLINE_BOX)
     dt = DesignElement::CP; // return the node index

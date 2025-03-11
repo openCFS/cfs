@@ -166,6 +166,9 @@ namespace CoupledField {
     //! to solver which solves a system Ax=b. */
     void SetupPrecond();
 
+    //! Checks if a preconditioner has been defined
+    bool HasPrecond();
+
     //! Trigger setup of solution method.
     
     //! Calling this method will trigger the setup phase of the solver. This
@@ -801,6 +804,15 @@ namespace CoupledField {
     //! \note After assembling the dirichlet values, the preconditioner and
     //! the solver have to be set up again.
     void BuildInDirichlet();
+    
+    template <typename T>
+    void GetRidOfZeros(Double tol);
+
+    void SetSysMatBackup( SBM_Matrix* actMat );
+
+    SBM_Matrix* GetSysMatCopy(){return sysMat_[BACKUP];};
+
+    void RestoreSystemMatrixFromBackup();
 
     //! correct RHS according to inhomogeneous Dirichlet bcs
     void AddIDBCToRHS(bool deltaIDBC = false);
@@ -1398,6 +1410,7 @@ namespace CoupledField {
     bool distinctMatGraphs_;
     //@}
 
+
     // =======================================================================
     // AMG SECTION
     // =======================================================================
@@ -1460,6 +1473,8 @@ namespace CoupledField {
     //@}
   
   };
+
+  //extern template void AlgebraicSys::GetRidOfZeros<double>(double tol);
 
 } // namespace
 

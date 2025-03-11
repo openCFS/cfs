@@ -135,6 +135,15 @@ namespace CoupledField{
         DampingType actType;
         String2Enum( dampString, actType );
 
+        if( actType == RAYLEIGH ) {
+          // set data for Rayleigh damping
+          shared_ptr<RaylDampingData> actRaylDamp(new RaylDampingData());
+          actRaylDamp->alpha = "0.0"; // will be read from the material file in ComputeRayleighDamping()
+          actRaylDamp->beta = "0.0"; // will be read from the material file in ComputeRayleighDamping()
+          actRaylDamp->adjustDamping = false; // always false -> no adjusting of alpha and beta
+          idRaylData[actId] = actRaylDamp;        
+        }
+
         // store damping type string
         idDampType[actId] = actType;
 
@@ -163,7 +172,24 @@ namespace CoupledField{
       }
 
       dampingList_[actRegionId] = idDampType[actDampingId];
-      if(dampingList_[actRegionId] == PML &&
+      if ( dampingList_[actRegionId] == RAYLEIGH ){
+        RaylDampingData actRayl = *(idRaylData[actDampingId]);
+        Double dampFreq;
+
+        // Check if TanDelta was defined in mat file
+        if ( materials_[actRegionId]->IsSet(LOSS_TANGENS_DELTA) && materials_[actRegionId]->IsSet(RAYLEIGH_FREQUENCY) ){
+          EXCEPTION( "TangensDelta damping not implemented in WaterWavePDE" );
+        }
+        // ComputeRayleighDamping function is used to be consistent with other PDEs for later refactoring
+        // dampFreq is set as defined in mat file -> ComputeRayleighDamping sets alpha and beta as defined in mat file
+        materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
+        // Compute Rayleigh damping parameters
+        materials_[actRegionId]->
+        ComputeRayleighDamping( actRayl.alpha, actRayl.beta,
+                                dampFreq, actRayl.ratioDeltaF, 
+                                actRayl.adjustDamping, isComplex_ );
+        regionRaylDamping_[actRegionId] = actRayl;
+      } else if(dampingList_[actRegionId] == PML &&
           analysistype_ == BasePDE::TRANSIENT ) {
         isTimeDomPML_ = true;
       }
@@ -215,7 +241,8 @@ namespace CoupledField{
         if ( !(actDampingId == "") && curRegNode->Has("transforms")) { // dampingId and transform list
             EXCEPTION("dampingId and transformList cannot be used at the same time - check region '" <<regionName<<"'" );
         }
-        else if ( !(actDampingId == "") && !(curRegNode->Has("transforms")) ) {// only damping id set
+        else if ( !(actDampingId == "") && !(curRegNode->Has("transforms"))
+                  && !(dampingList_[actRegion] == RAYLEIGH)) {// only (non-rayleigh) damping id set
             LOG_TRACE(waterWavepde) << regionName<< ": id =" <<actDampingId<<"\n";
             //EXCEPTION("please use the new <transfromList>");
             std::cout << "please use the new <transfromList> to define a PML or mapping layer\n";
@@ -370,6 +397,12 @@ namespace CoupledField{
 
       BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 
+      //check for damping
+      if ( dampingList_[actRegion] == RAYLEIGH ) {
+        RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
+        stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
+      }
+
       feFunctions_[WATER_PRESSURE]->AddEntityList( actSDList );
 
       stiffIntDescr->SetEntities( actSDList, actSDList );
@@ -442,6 +475,12 @@ namespace CoupledField{
             }
             gravityInt->SetName("gravityWaveIntegrator");
             BiLinFormContext *gravityContext = new BiLinFormContext(gravityInt, MASS);
+
+            //check for damping
+            if ( dampingList_[volRegion] == RAYLEIGH ) {
+              RaylDampingData & actDamp = (regionRaylDamping_[volRegion]);
+              gravityContext->SetSecDestMat(DAMPING, actDamp.alpha );
+            }
 
             gravityContext->SetEntities( actSDList, actSDList );
             gravityContext->SetFeFunctions( feFunctions_[WATER_PRESSURE] , feFunctions_[WATER_PRESSURE]);

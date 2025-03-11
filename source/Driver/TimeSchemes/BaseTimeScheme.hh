@@ -49,6 +49,8 @@ class BaseTimeScheme{
      * 
      * \param[in] updatePredictor  Flag, if predictor values get re-calculated. In case of
      *                             nonlinear solution, this has to be set to false
+     * \param[in] storeInitialIterGlmVector Flag, if the initial iteration GLM vector should be stored.
+     *                                      This is used for the first iteration of a coupled problem or a nonlinear problem
      */
     virtual void BeginStep(bool updatePredictor = true, bool storeInitialIterGlmVector=false)=0;
 

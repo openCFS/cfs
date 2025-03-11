@@ -85,6 +85,11 @@
                     <xsd:documentation>Allows region to be a Perfectly Matched Layer</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="rayleigh" type="DT_DampingBasic">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Rayleigh damping (parameters have to be specified in material-xml-file)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <xsd:element name="mapping" type="DT_DampingMapping">
                   <xsd:annotation>
                     <xsd:documentation>Allows region to be a Mapping layer.</xsd:documentation>

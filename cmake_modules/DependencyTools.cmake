@@ -17,8 +17,8 @@ macro(dump_depencency_variables)
   cmake_print_variables(DEPS_ID)      # optional package id like "openmp" or "no_openmp"
   cmake_print_variables(DEPS_PREFIX)  # usuallay "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}"
   cmake_print_variables(DEPS_SOURCE)  # usuallay "${DEPS_PREFIX}/src/${PACKAGE_NAME}"
-  cmake_print_variables(DEPS_INSTALL) # with install_manifest.txt directly ${CMAKE_BINARY_DIR}
-
+  cmake_print_variables(DEPS_INSTALL) # with install_manifest.txt directly ${CMAKE_BINARY_DIR} otherwise ${DEPS_PREFIX}/install
+  cmake_print_variables(DEPS_LIB_TYPE)# default "static", otherwise "dynamic" or "static-dynamic"
   # kind of internal "class attributes" of DependencyTools. Check with DepsPackaging*.cmake.in
   cmake_print_variables(USE_C_CXX)    # use either C or C++ compiler. See set_compilers()
   cmake_print_variables(USE_FORTRAN)
@@ -49,6 +49,7 @@ macro(clear_depencency_variables)
   unset(DEPS_PREFIX)
   unset(DEPS_SOURCE)
   unset(DEPS_INSTALL)
+  set(DEPS_LIB_TYPE "static") # default
   unset(USE_C_CXX)
   unset(USE_FORTRAN)
   unset(PRECOMPILED_PCKG_FILE)
@@ -81,7 +82,7 @@ macro(set_package_library_default)
   assert_set(PACKAGE_NAME)
   assert_set(LIB_SUFFIX)
   assert_unset(PACKAGE_LIBRARY)
-  
+  # CMAKE_STATIC_LIBRARY_PREFIX is lib for Linux and macOS and empty for Windows
   set(PACKAGE_LIBRARY ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/${CMAKE_STATIC_LIBRARY_PREFIX}${PACKAGE_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX})
 endmacro()
 
@@ -90,7 +91,8 @@ macro(set_package_library_list IN_LIST)
   assert_set(PACKAGE_NAME)
   assert_set(LIB_SUFFIX)
   assert_unset(PACKAGE_LIBRARY)
-  
+  # CMAKE_STATIC_LIBRARY_PREFIX is lib for Linux and macOS and empty for Windows
+  # CMAKE_STATIC_LIBRARY_SUFFIX is .a for Linux and macOS and .lib for Windows
   foreach(ITEM ${IN_LIST})
     list(APPEND PACKAGE_LIBRARY ${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/${CMAKE_STATIC_LIBRARY_PREFIX}${ITEM}${CMAKE_STATIC_LIBRARY_SUFFIX})
   endforeach()   
@@ -133,12 +135,20 @@ macro(set_standard_variables)
   set(DEPS_PREFIX  "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}")
   set(DEPS_SOURCE  "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 
-  # the clean-<package> target deletes everything to allow a clean make <package>
+  # the clean-<package> target deletes the precompiled package, local cfsdeps and the lib.
+  # to allow a clean make <package>, however, it does not remove 
+  # the cached <package>_LIBRARY and <package>_INCLUDE_DIR which cannot be overwritten. 
+  # For this use overwrite-<package>  
   add_custom_target(clean-${PACKAGE_NAME} cmake -E remove_directory ${DEPS_PREFIX}
      COMMAND cmake -E remove ${PRECOMPILED_PCKG_FILE}
      COMMAND cmake -E remove ${PACKAGE_LIBRARY}
      COMMENT "delete cfsdeps/${PACKAGE_NAME}, the lib and precompiled")
-
+     
+  # deletes <package>_LIBRARY and <package>_INCLUDE_DIR, 
+  # note that this will directly trigger setting it with new values as it calls cmake!
+  # you might usually also want to call the clean-<package> target   
+  add_custom_target(overwrite-${PACKAGE_NAME} cmake . -U ${_UPPER_PACKAGE_NAME}_LIBRARY -U ${_UPPER_PACKAGE_NAME}_INCLUDE_DIR
+     COMMENT "delete cached ${PACKAGE_NAME}_LIBRARY and _INCLUDE_DIR")
 endmacro()
 
 
@@ -243,7 +253,7 @@ macro(generate_postinstall_script)
 endmacro()
 
 # generate ${PACKAGE_NAME}-patch.cmake script. Don't call when you don't want to patch
-#
+
 # sets PATCHES_SCRIPT
 macro(generate_patches_script)
  
@@ -264,7 +274,7 @@ macro(set_precompiled_pckg_file)
   assert_set(CFS_ARCH_STR)
   # DEPS_VER might be "" which is unset
   assert_unset(PRECOMPILED_PCKG_FILE)
-   
+  
   # first set variables
   if(USE_FORTRAN)
     if(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
@@ -293,7 +303,7 @@ macro(set_precompiled_pckg_file)
       set(_TMP "${_TMP}_C_F-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
     else()
       set(_TMP "${_TMP}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
-      set(_TMP "${_TMP}_F-${CMAKE_Fortran_COMPILER_ID}-${_FORTRAN}")
+      set(_TMP "${_TMP}_F-${CMAKE_Fortran_COMPILER_ID}-${_FORTRAN_COMPILER_VERSION}")
     endif()
   endif()
   
@@ -324,6 +334,7 @@ endmacro()
 macro(generate_packing_script_install_dir)
   assert_set(DEPS_INSTALL)
   assert_set(DEPS_PREFIX)
+  assert_set(DEPS_LIB_TYPE)
   # with DEPS_INSTALL == CMAKE_BINARY_DIR we would pack the whole lib and include for all current packages
   if(${DEPS_INSTALL} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "either DEPS_INSTALL is wrong or you want to call generate_packing_manifest")
@@ -340,6 +351,7 @@ macro(create_external_unpack_precompiled)
 
   assert_set(PACKAGE_NAME)
   assert_set(PRECOMPILED_PCKG_FILE)
+  assert_set(DEPS_PREFIX)
 
   ExternalProject_Add(${PACKAGE_NAME}
     PREFIX ${DEPS_PREFIX}
@@ -468,26 +480,41 @@ macro(create_external_encrypted_cmake_patched)
 endmacro()
 
 # packages witch are note cmake based but which use the configure command
+# auto patching when PATCHES_SCRIPT is set
 macro(create_external_configure)
 
   assert_set(PACKAGE_NAME)
   assert_set(DEPS_PREFIX)
   assert_set(PACKAGE_LIBRARY)
   assert_set(DEPS_CONFIGURE)
-  assert_unset(PATCHES_SCRIPT)
 
-  # we need to build the package - here in configur style
-  ExternalProject_Add("${PACKAGE_NAME}"
-    PREFIX "${DEPS_PREFIX}"
-    URL "${PACKAGE_MIRRORS}"
-    URL_MD5 "${PACKAGE_MD5}"
-    # DOWNLOAD_DIR is ignored, if URL contains not the file mirror
-    DOWNLOAD_DIR "${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}"
-    # in case the mirrors have different file names we always store to the same
-    DOWNLOAD_NAME "${PACKAGE_FILE}"
-    DOWNLOAD_NO_PROGRESS ON 
-    CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE} 
-    BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
+  if(PATCHES_SCRIPT)
+    # we need to build the package - here in configure style
+    ExternalProject_Add("${PACKAGE_NAME}"
+      PREFIX "${DEPS_PREFIX}"
+      URL "${PACKAGE_MIRRORS}"
+      URL_MD5 "${PACKAGE_MD5}"
+      # DOWNLOAD_DIR is ignored, if URL contains not the file mirror
+      DOWNLOAD_DIR "${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}"
+      # in case the mirrors have different file names we always store to the same
+      DOWNLOAD_NAME "${PACKAGE_FILE}"
+      DOWNLOAD_NO_PROGRESS ON 
+      CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE} 
+      BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} 
+      # now patch the unpacked source
+      PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}" )
+  
+  else()
+    ExternalProject_Add("${PACKAGE_NAME}"
+      PREFIX "${DEPS_PREFIX}"
+      URL "${PACKAGE_MIRRORS}"
+      URL_MD5 "${PACKAGE_MD5}"
+      DOWNLOAD_DIR "${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}"
+      DOWNLOAD_NAME "${PACKAGE_FILE}"
+      DOWNLOAD_NO_PROGRESS ON 
+      CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE} 
+      BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
+  endif()     
     
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
 endmacro()

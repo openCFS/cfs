@@ -10,7 +10,7 @@ set(PACKAGE_NAME "flann")
 set(PACKAGE_VER "1.9.1")
 set(PACKAGE_FILE "${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "4a6cc62db8ed09dd8a0c6537f6720f12")
-set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-c") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")

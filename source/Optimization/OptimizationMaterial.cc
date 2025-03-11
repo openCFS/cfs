@@ -247,7 +247,7 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
       assert(false);
     }
 
-    PtrCoefFct bimat = dr->GetBiMaterial(mc, mt);
+    PtrCoefFct bimat = dr->GetScndMaterial(mc, mt);
 
     LOG_DBG3(om) << "GEM: shadow=" << bimat->ToString();
 
@@ -287,7 +287,7 @@ const DenseMatrix& OptimizationMaterial::GetElementMatrix(OptimizationMaterial::
     DesignSpace::DesignRegion* dr = space->GetRegion(elem->regionId, id.mc, id.mt);
     assert(dr != NULL);
 
-    if(lec == NULL || !lec->HasCachedData(id.integrator, lec->SHADOW, DesignElement::NO_DERIVATIVE, dr->GetBiMaterial(id.mc, id.mt)))
+    if(lec == NULL || !lec->HasCachedData(id.integrator, lec->SHADOW, DesignElement::NO_DERIVATIVE, dr->GetScndMaterial(id.mc, id.mt)))
     {
       if(is_complex)
         return ComputeElementMatrix(id.calc_cplx.Mine(), id.integrator, elem, true);
@@ -297,9 +297,9 @@ const DenseMatrix& OptimizationMaterial::GetElementMatrix(OptimizationMaterial::
     else
     {
       if(is_complex)
-        return lec->CachedShadowElement<Complex>(id.integrator, elem, dr->GetBiMaterial(id.mc, id.mt));
+        return lec->CachedShadowElement<Complex>(id.integrator, elem, dr->GetScndMaterial(id.mc, id.mt));
       else
-        return lec->CachedShadowElement<double>(id.integrator, elem, dr->GetBiMaterial(id.mc, id.mt));
+        return lec->CachedShadowElement<double>(id.integrator, elem, dr->GetScndMaterial(id.mc, id.mt));
     }
   }
 

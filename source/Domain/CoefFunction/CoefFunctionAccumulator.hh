@@ -49,6 +49,10 @@ public:
 	  return fct_->GetDimType();
   }
 
+  void SetIntegrateFlag( bool integrate ) {
+    integrate_ = integrate;
+  }
+
   
   // ========================
   //  ACCESS METHODS
@@ -100,7 +104,7 @@ private:
   PtrCoefFct fct_;
   
   //! Flag, if coefFunction should be integrated
-  const bool integrate_;
+  bool integrate_;
   
   //! Squared total sum of accessed entries
   Double squaredSum_;

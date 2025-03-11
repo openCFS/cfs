@@ -174,6 +174,28 @@
 									<xsd:sequence>
 										<xsd:element name="system" type="DT_SystemSpec" minOccurs="1" maxOccurs="unbounded" />
 									</xsd:sequence>
+									<xsd:attribute name="getRidOfZeros" default="auto">
+										<xsd:annotation>
+											<xsd:documentation>
+												If this is set we loop over the system matrix and remove all zero entries. Auto (default) - for all the implemented scenarios, yes - force deletion of zeros, no - no deletion.
+											</xsd:documentation>
+										</xsd:annotation>
+										<xsd:simpleType>
+									  		<xsd:restriction base="xsd:token">
+										  		<xsd:enumeration value="auto"/>
+										  		<xsd:enumeration value="yes"/>
+										  		<xsd:enumeration value="no"/>
+											</xsd:restriction>
+										</xsd:simpleType>
+									</xsd:attribute> 
+									<xsd:attribute name="getRidOfZerosTolerance" type="xsd:double" default="1e-20">
+										<!-- If change default value here, also do it in C++ code - StdSolveStep::GetRidOfZerosActive()-->
+										<xsd:annotation>
+											<xsd:documentation>
+												The tolerance used to decide if an entry is considered zero or non-zero by GetRidOfZeros.
+											</xsd:documentation>
+										</xsd:annotation>
+									</xsd:attribute> 
 								</xsd:complexType>
 							</xsd:element>
 						</xsd:sequence>

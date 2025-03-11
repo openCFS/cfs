@@ -457,7 +457,7 @@ namespace CoupledField {
     res1->resultType = ELEC_POTENTIAL;
     
     res1->dofNames = "";
-    res1->unit = "V";
+    res1->unit = MapSolTypeToUnit(ELEC_POTENTIAL);
     res1->definedOn = ResultInfo::NODE;
     res1->entryType = ResultInfo::SCALAR;
     feFunctions_[ELEC_POTENTIAL]->SetResultInfo(res1);
@@ -506,7 +506,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> ef ( new ResultInfo );
     ef->resultType = ELEC_FIELD_INTENSITY;
     ef->SetVectorDOFs(dim_, isaxi_);
-    ef->unit = "V/m";
+    ef->unit = MapSolTypeToUnit(ELEC_FIELD_INTENSITY);
     ef->definedOn = ResultInfo::ELEMENT;
     ef->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> eFunc;
@@ -522,7 +522,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> flux ( new ResultInfo );
     flux->resultType = ELEC_CURRENT_DENSITY;
     flux->SetVectorDOFs(dim_, isaxi_);
-    flux->unit = "A/m^2";
+    flux->unit = MapSolTypeToUnit(ELEC_CURRENT_DENSITY);
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> fluxFunc;
@@ -541,7 +541,7 @@ namespace CoupledField {
     elecGradVInt->definedOn = ResultInfo::REGION;
     elecGradVInt->entryType = ResultInfo::SCALAR;
     elecGradVInt->dofNames = "";
-    elecGradVInt->unit = "A";
+    elecGradVInt->unit = MapSolTypeToUnit(ELEC_GRAD_V_INT);
     shared_ptr<CoefFunctionFormBased> sigmaElecGradVFunc;
     if( isComplex_ ) {
       sigmaElecGradVFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 1.0));
@@ -564,7 +564,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> fluxNormal ( new ResultInfo );
     fluxNormal->resultType = ELEC_NORMAL_CURRENT_DENSITY;
     fluxNormal->dofNames = "";
-    fluxNormal->unit = "A/m^2";
+    fluxNormal->unit = MapSolTypeToUnit(ELEC_NORMAL_CURRENT_DENSITY);
     fluxNormal->entryType = ResultInfo::SCALAR;
     fluxNormal->definedOn = ResultInfo::SURF_ELEM;
 
@@ -578,7 +578,7 @@ namespace CoupledField {
     current.reset(new ResultInfo);
     current->resultType = ELEC_CURRENT;
     current->dofNames = "";
-    current->unit = "A";
+    current->unit = MapSolTypeToUnit(ELEC_CURRENT);
     current->entryType = ResultInfo::SCALAR;
     current->definedOn = ResultInfo::SURF_REGION; /* cannot output to gmsh */
     // Current = \int \vec j \dot \vec n dA
@@ -598,7 +598,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> ed ( new ResultInfo );
     ed->resultType = ELEC_POWER_DENSITY;
     ed->dofNames = "";
-    ed->unit = "W/m^3";
+    ed->unit = MapSolTypeToUnit(ELEC_POWER_DENSITY);
     ed->definedOn = ResultInfo::ELEMENT;
     ed->entryType = ResultInfo::SCALAR;
     availResults_.insert( ed );
@@ -607,7 +607,7 @@ namespace CoupledField {
       /* for harmonic analysis, the effective value is 1/sqrt(2) \hat I \times 1/sqrt(2) \hat U */
       edFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
     } else {
-      edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 1.));
+      edFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 1));
     }
     DefineFieldResult( edFunc, ed );
     stiffFormCoefs_.insert(edFunc);
@@ -618,14 +618,14 @@ namespace CoupledField {
     energy->definedOn = ResultInfo::REGION;
     energy->entryType = ResultInfo::SCALAR;
     energy->dofNames = "";
-    energy->unit = "W";
+    energy->unit = MapSolTypeToUnit(ELEC_POWER);
     availResults_.insert( energy );
     shared_ptr<ResultFunctor> energyFunc;
     if( isComplex_ ) {
       /* for harmonic analysis, the effective value is 1/sqrt(2) \hat I \times 1/sqrt(2) \hat U */
       energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy,0.5));
     } else {
-      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy,1.));
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy, 1));
     }
     resultFunctors_[ELEC_POWER] = energyFunc;
     stiffFormFunctors_.insert(energyFunc);

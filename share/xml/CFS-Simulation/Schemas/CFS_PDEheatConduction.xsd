@@ -104,7 +104,7 @@
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="velocity" type="DT_BcInhomVector"/>
+                <xsd:element name="velocity" type="DT_BcInhomVector_stabilisation"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -471,6 +471,22 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_BcInhomVector_stabilisation">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcInhomVector">
+        <xsd:attribute name="stabilisation" use="optional" default="none">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:string">
+              <xsd:enumeration value="none"/>
+              <xsd:enumeration value="ArtificialDiffusion"/>
+              <xsd:enumeration value="SUPG"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
 
 </xsd:schema>

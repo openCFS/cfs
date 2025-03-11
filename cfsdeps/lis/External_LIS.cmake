@@ -9,7 +9,7 @@ set(LIS_VER "2.0.34") # for Dependencies.cc which cannot easily inlcude lis.h (f
 set(PACKAGE_VER ${LIS_VER})
 set(PACKAGE_FILE "lis-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "5a666ee5bd8af29d3d171771ead78a36")
-set(DEPS_VER "-a") # the -a fixes our 2.0.34 configuration (must not enable complex). Remove for newer lis version!
+set(DEPS_VER "-b") # the -a fixes our 2.0.34 configuration (must not enable complex). Remove for newer lis version!
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -42,6 +42,10 @@ endif()
 set_configure_default()
 if(USE_OPENMP) # don't combine with setting DEPS_ID - mixes up order of called macros.
   list(APPEND DEPS_CONFIGURE --enable-omp=yes)
+  if(APPLE)
+    assert_set(OpenMP_LIBDIR) # compiler.cmake, no system path on homebrew >= Oct 2022
+    list(APPEND DEPS_CONFIGURE_ENV LDFLAGS=-L${OpenMP_LIBDIR} CPPFLAGS=-I${OpenMP_C_INCLUDE_DIR})
+  endif()
 else()
   list(APPEND DEPS_CONFIGURE --enable-omp=no)
 endif()
@@ -55,7 +59,7 @@ if(WIN32)
   generate_patches_script() # for UNIX create_external_configure() asserts this not to be set
 endif()
 
-# generate package ceation script. 
+# generate package creation script. We do not get the files from an install_manifest.txt
 generate_packing_script_install_dir()
 
 # we have no postinstall, so don't call generate_postinstall_script()
@@ -80,6 +84,7 @@ else()
     if(CMAKE_C_COMPILER_ID MATCHES "Intel")
       list(APPEND WIN_CONFIGURE --enable-intelc) # for IntelLLVM we need to patch Makefile.in icl -> icx
     endif()
+    find_program(lis_make_program nmake)
     ExternalProject_Add("${PACKAGE_NAME}"
       PREFIX "${DEPS_PREFIX}"
       # Windows needs to have condigure.bat and successive nmake exececuted in <source>/win
@@ -91,6 +96,7 @@ else()
       DOWNLOAD_NO_PROGRESS ON 
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
       CONFIGURE_COMMAND ${DEPS_SOURCE}/win/configure.bat ${WIN_CONFIGURE}
+      BUILD_COMMAND ${lis_make_program}
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
   else()
     # standard configure works for macOS and Linux

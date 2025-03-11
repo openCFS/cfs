@@ -36,9 +36,12 @@ typedef CGAL::Exact_predicates_exact_constructions_kernel Kernel;
 typedef Kernel::Point_2 CGALPoint2;
 typedef CGAL::Polygon_2<Kernel> CGALPolygon2;
 typedef CGAL::Polygon_with_holes_2<Kernel> CGALPolygonWithHoles2;
-#endif
 
 #pragma GCC diagnostic pop
+
+#endif
+
+
 
 namespace CoupledField {
 

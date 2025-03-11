@@ -22,6 +22,7 @@ SET(OPTIMIZATION_SRCS
   Objective.cc
   Context.cc
   ParamMat.cc
+  Tune.cc
  )
 
 ADD_DEFINITIONS(-DUSE_4_CFS)
@@ -31,10 +32,7 @@ IF(MKL_INCLUDE_DIR)
 ENDIF(MKL_INCLUDE_DIR)
 
 if(USE_EMBEDDED_PYTHON)
-  # see FindPrograms.cmake on how the PYTHON_ stuff is set
-  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
-  # required for numpy
-  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  list(APPEND TARGET_LL ${Python_LIBRARIES})
   set(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} PythonFunction.cc)
 else()
   set(OPTIMIZATION_SRCS ${OPTIMIZATION_SRCS} NoPythonFunction.cc)

@@ -1,0 +1,16 @@
+include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+
+if(NOT WIN32)
+  message(FATAL_ERROR "this post-install is only for the precompiled Ipopt for Windows")
+endif()
+
+# remove Intel redistributable dll's from Ipopt distribution, we have them already from cfs 
+file(REMOVE "@DEPS_INSTALL@/bin/libifcoremd.dll")
+file(REMOVE "@DEPS_INSTALL@/bin/libiomp5md.dll")
+file(REMOVE "@DEPS_INSTALL@/bin/svml_dispmd.dll")
+file(REMOVE "@DEPS_INSTALL@/bin/libmmd.dll")
+
+# we don't need the ipopt executables within cfs
+file(REMOVE "@DEPS_INSTALL@/bin/ipopt.exe")
+file(REMOVE "@DEPS_INSTALL@/bin/ipopt_sens.exe")
+

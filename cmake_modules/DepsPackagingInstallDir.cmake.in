@@ -14,7 +14,7 @@ include(CMakePrintHelpers)
 assert_not_empty(@CFS_DEPS_CACHE_DIR@)
 assert_not_empty(@PRECOMPILED_PCKG_FILE@)
 assert_not_empty(@DEPS_INSTALL@)
-assert_not_empty(@LIB_SUFFIX@)
+assert_not_empty(@DEPS_LIB_TYPE@)
 
 set(CMAKE_BINARY_DIR @CMAKE_BINARY_DIR@)
 set(CFS_DEPS_CACHE_DIR @CFS_DEPS_CACHE_DIR@)
@@ -22,7 +22,7 @@ set(CFS_DEPS_CACHE_DIR @CFS_DEPS_CACHE_DIR@)
 set(PRECOMPILED_PCKG_FILE @PRECOMPILED_PCKG_FILE@)
 # e.g. /Users/fwein/code/master/refactor/cfsdeps/arpack
 set(DEPS_INSTALL @DEPS_INSTALL@)
-set(LIB_SUFFIX @LIB_SUFFIX@) # shall be "lib"
+set(DEPS_LIB_TYPE @DEPS_LIB_TYPE@) # "static", "dynamic" or "static-dynamic" # for WIN32 dynamic is in bin
 
 if(NOT IS_DIRECTORY "${CFS_DEPS_CACHE_DIR}/precompiled}")
   file(MAKE_DIRECTORY "${CFS_DEPS_CACHE_DIR}/precompiled")
@@ -33,26 +33,31 @@ endif()
 #cmake_print_variables(DEPS_INSTALL)
 
 # standard make or configure does not necessarily know about lib
-if(NOT IS_DIRECTORY "${DEPS_INSTALL}/${LIB_SUFFIX}")
-  FILE(MAKE_DIRECTORY "${DEPS_INSTALL}/${LIB_SUFFIX}")
+if(NOT IS_DIRECTORY "${DEPS_INSTALL}/lib")
+  FILE(MAKE_DIRECTORY "${DEPS_INSTALL}/lib")
 endif()
 
 # copy any posssible lib64 to lib. 
 if(EXISTS "${DEPS_INSTALL}/lib64")
-  message("copy from ${DEPS_INSTALL}/lib64 to ${DEPS_INSTALL}/${LIB_SUFFIX}")
-  file(COPY "${DEPS_INSTALL}/lib64/" DESTINATION "${DEPS_INSTALL}/${LIB_SUFFIX}")
+  message("copy from ${DEPS_INSTALL}/lib64 to ${DEPS_INSTALL}/lib")
+  file(COPY "${DEPS_INSTALL}/lib64/" DESTINATION "${DEPS_INSTALL}/lib")
 endif()
 
-# compress the directory but take only inlcude and lib/*.a or lib/*.lib (Windows)
-if(WIN32)
-  set(_LIBS ${DEPS_INSTALL}/${LIB_SUFFIX}/*.lib)
-else()
-  set(_LIBS ${DEPS_INSTALL}/${LIB_SUFFIX}/*.a)
+# compress the directory but take only inlcude and lib/*.a or lib/*.lib and/or dynamic libs
+if(DEPS_LIB_TYPE MATCHES "static")
+  set(_LIBS_S ${DEPS_INSTALL}/lib/*${CMAKE_STATIC_LIBRARY_SUFFIX})
 endif()
-
+if(DEPS_LIB_TYPE MATCHES "dynamic")
+  if(WIN32)
+    set(_LIBS_D ${DEPS_INSTALL}/bin/*${CMAKE_DYNAMIC_LIBRARY_SUFFIX})
+  else()  
+    set(_LIBS_D ${DEPS_INSTALL}/lib/*${CMAKE_DYNAMIC_LIBRARY_SUFFIX})
+  endif()  
+endif()
+  
 # somehow the cmake tar command fails for directories when executed by a script but works on 
 # command line. Hence work with a files list
-file(GLOB_RECURSE _FILES_TO_ZIP "${DEPS_INSTALL}/include/*" "${_LIBS}")
+file(GLOB_RECURSE _FILES_TO_ZIP "${DEPS_INSTALL}/include/*" "${_LIBS_S}" "${_LIBS_D}")
 # message(STATUS "found ${_FILES_TO_ZIP}")
 string(REPLACE ";" "\n" _FILES_TO_ZIP_N "${_FILES_TO_ZIP}")
 # message(STATUS "packing ${_FILES_TO_ZIP_N}")

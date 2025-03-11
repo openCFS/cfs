@@ -135,6 +135,9 @@ namespace CoupledField {
     //! reference.
     void Setup( BaseMatrix &sysmat);
 
+    //! Dummy method: Notify the solver that a new matrix pattern has been set
+    void SetNewMatrixPattern() {EXCEPTION("SetNewMatrixPattern not implemented for Lapack LU. GetRidOfZeros for NCIs will not work.");};
+
     //! Direct solution of the linear system
 
     //! The solve method takes care of the solution of the linear system.

@@ -8,7 +8,7 @@ set(PACKAGE_NAME "eigen")
 set(PACKAGE_VER "3.4.0")
 set(PACKAGE_FILE "eigen-${PACKAGE_VER}.tar.bz2")
 set(PACKAGE_MD5 "132dde48fe2b563211675626d29f1707")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://gitlab.com/libeigen/eigen/-/archive/${PACKAGE_VER}/${PACKAGE_FILE}") 
@@ -34,7 +34,7 @@ COMMENT "delete cfsdeps/${PACKAGE_NAME} and precompiled")
 set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default(OFF)
+set_deps_args_default(ON)
 
 # add flag for using only MPL2 or weaker-licenced parts of eigen
 set(EIGEN_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -DEIGEN_MPL2_ONLY")

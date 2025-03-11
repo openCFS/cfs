@@ -9,11 +9,6 @@ from itertools import product
 from operator import itemgetter
 import copy 
 
-# for automatic differentiation, replaced with normal numpy for testcase to work with cfs runners
-#  import autograd
-#  import autograd.numpy as agnp
-import numpy as agnp
-
 # for gradient check
 import scipy.optimize as sciopt
 from scipy.optimize import NonlinearConstraint
@@ -90,7 +85,7 @@ glob = Global()
 # @settings dict of key/string from openCFS or from command line
 # @design tupel with design names as strings, usually only 'density'
 # @dict dictionary transparently given from the xml file to python
-def cfs_init(settings, design, dict):
+def cfs_init(settings, design, opt_indices, dict):
   # non-zero value avoids divide by 0 in autograd. Seems to also work with 0 though
   glob.rhomin = float(settings['rhomin'])
   glob.rhomax = float(settings['rhomax']) if 'rhomax' in settings else 1.0
@@ -99,6 +94,7 @@ def cfs_init(settings, design, dict):
   glob.boundary = settings['boundary']
   glob.transition = float(settings['transition'])
   glob.combine =  settings['combine']
+  glob.opt_ind = np.array(opt_indices)
   if 'orientation' in settings:
     glob.orientation = settings['orientation']
   glob.n = np.array(eval(settings['n']),dtype=int)
@@ -421,13 +417,13 @@ def cfs_get_info_field(key):
     print("requested key '" + key + "' by cfs_get_info_field not valid list ", cfs_info_field_keys)
   return glob.info_field[key]
   
-# own autograd compatible norm as agnp.linalg.norm seems not to work
+# own autograd compatible norm as np.linalg.norm seems not to work
 def agnorm(X):
   sum = 0
   for e in X:
     sum += e * e
     
-  return agnp.sqrt(sum)
+  return np.sqrt(sum)
 
 # find the mininimum of (value, index) tuples, where only value is compared and value might contain None
 def idx_min(a,b):  
@@ -650,11 +646,11 @@ class Spaghetti:
             (self.sens['grad_t'][i+1][idx,:]-self.sens['grad_t'][i][idx,:])/(np.sin(alpha)*norm(tiplus1-ti))
             -np.cos(alpha)/(np.sin(alpha)**2)*self.sens['grad_alpha'][i][idx]*(tiplus1-ti)/norm(tiplus1-ti)
             -(tiplus1-ti)/(np.sin(alpha)*norm(tiplus1-ti)**3)*np.dot(tiplus1-ti,self.sens['grad_t'][i+1][idx,:]-self.sens['grad_t'][i][idx,:]))
-        scaling = r/agnp.sin(alpha) # would be r/sin(0)
+        scaling = r/np.sin(alpha) # would be r/sin(0)
         B = -ti + tiplus1
         B0 = B/agnorm(B)
       else:
-        B0 = agnp.array([ti[1], -ti[0]])
+        B0 = np.array([ti[1], -ti[0]])
         scaling = r
 
       # from function of hypotenuse of a right-angled triangle
@@ -850,8 +846,8 @@ class Spaghetti:
 
   # for gradient check only
   def func(self, var,args):
-    P = agnp.array(var[0:2])
-    Q = agnp.array(var[2:4])
+    P = np.array(var[0:2])
+    Q = np.array(var[2:4])
     p = var[4]
     a = var[5:]
     self.set(P, Q, a, p, reset_fields=False)
@@ -878,8 +874,8 @@ class Spaghetti:
 
   # for gradient check only
   def grad(self, var,args):
-    P = agnp.array(var[0:2])
-    Q = agnp.array(var[2:4])
+    P = np.array(var[0:2])
+    Q = np.array(var[2:4])
     p = var[4]
     a = var[5:]
     self.set(P, Q, a, p, reset_fields=False)
@@ -914,7 +910,7 @@ class Spaghetti:
   def fast_dist_ad(self,var,X,idx):
     # main changes for autograd
     # - use autograd.numpy (agnp)
-    # - any array for computation needs to be agnp.array, e.g. V = [-U[1],U[0]] cannot be differentiated
+    # - any array for computation needs to be np.array, e.g. V = [-U[1],U[0]] cannot be differentiated
 
     if idx == -1:
       return (-3 * glob.transition, np.zeros(self.num_optvar)) # return artificial gradient to conform with fast_dist()
@@ -924,8 +920,8 @@ class Spaghetti:
     # design variables
     assert len(var) == 4 + 1 + len(self.a)-2
    
-    P = agnp.array(var[0:2])
-    Q = agnp.array(var[2:4])
+    P = np.array(var[0:2])
+    Q = np.array(var[2:4])
     p = var[4]
     w = p/2.0
     a = var[5:]
@@ -944,18 +940,18 @@ class Spaghetti:
     i = idx if idx < n else idx - n
     assert i >= 0 and i < n 
     U = Q - P
-    V0 = agnp.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
+    V0 = np.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
     assert len(self.a) == n+1
  
     H_s = P if i == 0   else P + i/n * U + self.get_a(a, i) * V0    # summit of begin of segment
     H_e = Q if i >= n-1 else P + (i+1)/n * U + self.get_a(a, i+1) * V0  # summit of end of segment, which is Q for last segment
       
     T = H_e - H_s # segment as vector   
-    M = agnp.array([-T[1], T[0]]) / agnorm(T) # normal
+    M = np.array([-T[1], T[0]]) / agnorm(T) # normal
 
     # segments: abs((X-g) @ M) - w but instad of g we can use H_e
     if idx < n:
-      return (agnp.abs(agnp.dot((X-H_e), M)) - w, np.zeros(self.num_optvar))
+      return (np.abs(np.dot((X-H_e), M)) - w, np.zeros(self.num_optvar))
     
     # in the arc case, we need two segments and such three summits. we now use s(start=old s), c(center=old e), f(final, new)
     assert i >= 0 and i <= n-2
@@ -972,13 +968,13 @@ class Spaghetti:
     if agnorm(v1+v2) > 1e-12:
       B = v1 + v2
       B0 = B/agnorm(B)
-      cosa = agnp.dot(v1,v2)
+      cosa = np.dot(v1,v2)
       assert cosa >= -.99999999999999 and cosa <= .99999999999999
-      #cosa = agnp.clip(cosa,-1,1) 
-      alpha = agnp.arccos(cosa)
-      scaling = r/agnp.sin(alpha/2)
+      #cosa = np.clip(cosa,-1,1) 
+      alpha = np.arccos(cosa)
+      scaling = r/np.sin(alpha/2)
     else:
-      B0 = agnp.array([-v1[1], v1[0]])
+      B0 = np.array([-v1[1], v1[0]])
       scaling = r # this is the case when the v and B are aligned
 
     C = H_c + scaling * B0
@@ -1149,14 +1145,14 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
   # we quickly deal with elements inside of or far away from single shapes
   if idx1 == idx2 == idx3 == idx4 == -1:
     if derivative != True:
-      return agnp.ones((order*order)) * glob.rhomax
+      return np.ones((order*order)) * glob.rhomax
     else:
-      return (agnp.ones((order*order)), np.zeros((order*order,shape.num_optvar)))
+      return (np.ones((order*order)), np.zeros((order*order,shape.num_optvar)))
   elif idx1 == idx2 == idx3 == idx4 == -2:
     if derivative != True:
-      return glob.rhomin*agnp.ones((order*order))
+      return glob.rhomin*np.ones((order*order))
     else:
-      return (glob.rhomin*agnp.ones((order*order)), np.zeros((order*order,shape.num_optvar)))
+      return (glob.rhomin*np.ones((order*order)), np.zeros((order*order,shape.num_optvar)))
   
   # we take non-cropped indices as we need them for higher order integration 
   idx_field = glob.idx_field_shapes_only
@@ -1177,7 +1173,7 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
     if derivative == False:
       return np.array([boundary(shape.fast_dist(X,idx1)) for X in XX])
     elif derivative == 'autograd' or derivative == 'grad_check': # for gradient check derivative == False cannot be used as it only uses cached values! 
-      return agnp.array([boundary(shape.fast_dist_ad(optvar,X,idx1)) for X in XX])
+      return np.array([boundary(shape.fast_dist_ad(optvar,X,idx1)) for X in XX])
     else: # analytical derivative
       if glob.gradient_check:
         for X in XX:
@@ -1200,7 +1196,7 @@ def integrate_rho(var_all, shape, i, j, derivative = False):
     if derivative == False:
       return np.array([boundary(shape.dist(X, None, 'distance')) for X in XX])
     elif derivative == 'autograd' or derivative == 'grad_check':
-      return agnp.array([boundary(shape.fast_dist_ad(optvar,X,shape.dist(X, None, 'index'))) for X in XX])
+      return np.array([boundary(shape.fast_dist_ad(optvar,X,shape.dist(X, None, 'index'))) for X in XX])
     else:
       if glob.gradient_check:
         for X in XX:
@@ -1240,8 +1236,8 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=Fa
   if verbose:
     print("index: " + shape.nice_idx(idx))
   
-  P = agnp.array(var[0:2])
-  Q = agnp.array(var[2:4])
+  P = np.array(var[0:2])
+  Q = np.array(var[2:4])
   p = var[4]
   w = p/2.0
   a = var[5:]
@@ -1259,9 +1255,9 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=Fa
       idx = 0 # use orientation of first segment
     else: # should be 'rounded'
       XP = P-X
-      vec =  agnp.array([XP[1],-XP[0]])
+      vec =  np.array([XP[1],-XP[0]])
       if derivative != True:
-        return agnp.arctan2(vec[1],vec[0])
+        return np.arctan2(vec[1],vec[0])
       else:
         if verbose:
           print("vector P-X: ", vec, ' with norm ', nvec2)
@@ -1274,9 +1270,9 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=Fa
       idx = n-1 # use orientation of last segment
     else: # glob.orientation == 'rounded'
       XQ = Q-X
-      vec = agnp.array([XQ[1],-XQ[0]])
+      vec = np.array([XQ[1],-XQ[0]])
       if derivative != True:
-        return agnp.arctan2(vec[1],vec[0])
+        return np.arctan2(vec[1],vec[0])
       else:
         nvec2 = vec[0]**2+vec[1]**2
         datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2)) if nvec2 > 1e-15 else np.zeros((2)) # nondifferentiable if X=Q, but should be inside of spaghetti anyways
@@ -1291,7 +1287,7 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=Fa
   U = Q - P
   if norm(U) < 1e-20:
     U = [1e-20, 0]
-  V0 = agnp.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
+  V0 = np.array([-U[1],U[0]]) / agnorm(U) # normal to U and normalized
   
   H_s = P if idx_seg_or_arc == 1   else P + (idx_seg_or_arc-1)/n * U + shape.get_a(a, idx_seg_or_arc-1) * V0    # summit of begin of segment
   H_e = Q if idx_seg_or_arc >= n else P + idx_seg_or_arc/n * U + shape.get_a(a, idx_seg_or_arc) * V0  # summit of end of segment, which is Q for last segment
@@ -1302,7 +1298,7 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=Fa
   if idx < n:
     vec = t/norm(t)
     if derivative != True:
-      return agnp.arctan2(vec[1],vec[0])
+      return np.arctan2(vec[1],vec[0])
     else:
       nvec2 = vec[0]**2+vec[1]**2
       datan2 = np.array((-vec[1]/nvec2, vec[0]/nvec2)) if nvec2 > 1e-15 else np.zeros((2)) # nondifferentiable if segment has zero length
@@ -1310,7 +1306,7 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=Fa
 
   # arcs: perpendicular to X-C
   assert idx_seg_or_arc >= 1 and idx_seg_or_arc <= n-1
-  M = agnp.array([-t[1], t[0]]) / agnorm(t) # normal
+  M = np.array([-t[1], t[0]]) / agnorm(t) # normal
   r = shape.radius
   H_c = H_e
   H_f = Q if idx_seg_or_arc == n-1 else P + (idx_seg_or_arc+1)/n * U + shape.get_a(a, idx_seg_or_arc+1) * V0
@@ -1318,32 +1314,32 @@ def get_material_rotation(var_all, shape_num, i, j, derivative=False, verbose=Fa
   v1 = H_s - H_c
   v2 = H_f - H_c
   M1 = M
-  M2 = agnp.array([-v2[1],v2[0]]) / agnorm(v2)
+  M2 = np.array([-v2[1],v2[0]]) / agnorm(v2)
 
   B = (M1 + M2)/2
   B0 = B/agnorm(B)
 
-  nc = -1.0 if agnp.dot(M1, v2) < 0 else 1.0
+  nc = -1.0 if np.dot(M1, v2) < 0 else 1.0
 
   # the scaling is based on the angle between the M, If a=0 -> alpha = 0 and numerics goes crazy
   scaling = r # this is the case when the M and B are aligned
   if agnorm(M1-M2) > 1e-10:
-    cosa = agnp.dot(v1,v2)/(agnorm(v1) * agnorm(v2))
+    cosa = np.dot(v1,v2)/(agnorm(v1) * agnorm(v2))
     assert cosa >= -.99999999999999 and cosa <= .99999999999999
-    #cosa = agnp.clip(cosa,-1,1)
-    alpha = agnp.arccos(cosa)
-    scaling = r/agnp.sin(alpha/2)
+    #cosa = np.clip(cosa,-1,1)
+    alpha = np.arccos(cosa)
+    scaling = r/np.sin(alpha/2)
 
   C = H_c + nc*(scaling * B0)
   XC = C-X
-  vec = agnp.array([XC[1],-XC[0]])
+  vec = np.array([XC[1],-XC[0]])
   if derivative != True:
-    return agnp.arctan2(vec[1],vec[0])
+    return np.arctan2(vec[1],vec[0])
   else:
     nvec2 = vec[0]**2+vec[1]**2
     if nvec2 < 1e-15:
       nvec2 = 1e-15 # only happens when X=C, which should lie in void
-    return (agnp.arctan2(vec[1],vec[0]), (shape.sens['grad_C'][idx_seg_or_arc][:,1]*XC[0]-shape.sens['grad_C'][idx_seg_or_arc][:,0]*XC[1])/nvec2)
+    return (np.arctan2(vec[1],vec[0]), (shape.sens['grad_C'][idx_seg_or_arc][:,1]*XC[0]-shape.sens['grad_C'][idx_seg_or_arc][:,0]*XC[1])/nvec2)
 
 # compute average material rotation angle weighted by density field, if passed
 def combine_angles(angles, density=None, derivative=False):
@@ -1351,16 +1347,16 @@ def combine_angles(angles, density=None, derivative=False):
     grad_a = angles[1]
     angles = angles[0]
   # use polar coordinates
-  X = agnp.cos(angles)
-  Y = agnp.sin(angles)
+  X = np.cos(angles)
+  Y = np.sin(angles)
   # scale averaging importance using density
   if density is not None:
     if derivative == True:
       grad_dens = density[1]
       density = density[0]
     assert len(density) == len(angles)
-    X = agnp.multiply(density, X)
-    Y = agnp.multiply(density, Y)
+    X = np.multiply(density, X)
+    Y = np.multiply(density, Y)
   # get largest vector sum
   # 180° flips are allowed, as they don't change material properties
   # largest vector sum has least cancellations avoidable by 180° flips
@@ -1369,11 +1365,11 @@ def combine_angles(angles, density=None, derivative=False):
   for xx in iter:
     flip = list(xx)
     flip.append((1))
-    flip = agnp.array(flip)
-    flipped_X = agnp.multiply(flip,X)
-    flipped_Y = agnp.multiply(flip,Y)
-    sumvecX = agnp.sum(flipped_X)
-    sumvecY = agnp.sum(flipped_Y)
+    flip = np.array(flip)
+    flipped_X = np.multiply(flip,X)
+    flipped_Y = np.multiply(flip,Y)
+    sumvecX = np.sum(flipped_X)
+    sumvecY = np.sum(flipped_Y)
     # maximum of squared norm gives same vector as maximum of norm 
     n = sumvecX**2+sumvecY**2
     if n > m:
@@ -1385,7 +1381,7 @@ def combine_angles(angles, density=None, derivative=False):
       vec_max_sum_X = sumvecX
       vec_max_sum_Y = sumvecY
   if derivative != True:
-    return agnp.arctan2(vec_max_sum_Y,vec_max_sum_X)
+    return np.arctan2(vec_max_sum_Y,vec_max_sum_X)
   else:
     # derivative of [vec_max_sum_X, vec_max_sum_Y] is [-flipped_max_X[s], flipped_max_Y[s]], of atan2 [-vec_max_sum_Y/norm(vec), vec_max_sum_X/norm(vec)]
     nvec2 = vec_max_sum_X**2+vec_max_sum_Y**2
@@ -1413,7 +1409,7 @@ def combine_designs(var, i, j, derivative, verbose=False):
   order = glob.order
   # optvar needs to be passed for autograd to work 
   if derivative != True:
-    rho_shapes_ip = agnp.array([integrate_rho(var, s, i, j, derivative) for s in glob.shapes])
+    rho_shapes_ip = np.array([integrate_rho(var, s, i, j, derivative) for s in glob.shapes])
   else:
     rho_shapes_ip = []
     grad_shapes_ip = []
@@ -1424,24 +1420,24 @@ def combine_designs(var, i, j, derivative, verbose=False):
     rho_shapes_ip = np.array(rho_shapes_ip)
 
   if glob.combine == 'p-norm':
-    rho_shapes_ip_p = agnp.power(rho_shapes_ip,p)
-    rho_shape_weights = agnp.sum(rho_shapes_ip_p,1)/(order*order)
-    rho = agnp.sum(agnp.power(agnp.sum(rho_shapes_ip_p,0),(1/p)))/(order*order)
+    rho_shapes_ip_p = np.power(rho_shapes_ip,p)
+    rho_shape_weights = np.sum(rho_shapes_ip_p,1)/(order*order)
+    rho = np.sum(np.power(np.sum(rho_shapes_ip_p,0),(1/p)))/(order*order)
   elif glob.combine == 'softmax':
-    exp = agnp.exp(p*rho_shapes_ip)
-    sum_exp = agnp.sum(exp,0)
+    exp = np.exp(p*rho_shapes_ip)
+    sum_exp = np.sum(exp,0)
     rho_shape_weights = rho_shapes_ip*exp
-    rho_ip = agnp.sum(rho_shape_weights,0)/sum_exp
-    rho_shape_weights = agnp.sum(rho_shape_weights,1)/(order*order)
-    rho = agnp.sum(rho_ip)/(order*order)
+    rho_ip = np.sum(rho_shape_weights,0)/sum_exp
+    rho_shape_weights = np.sum(rho_shape_weights,1)/(order*order)
+    rho = np.sum(rho_ip)/(order*order)
   elif glob.combine == 'KS':
-    exp = agnp.exp(p*rho_shapes_ip)
-    sum_exp = agnp.sum(exp,0)
-    rho_shape_weights = agnp.sum(exp,1)/(order*order)-1
-    rho = agnp.sum(agnp.log(sum_exp))/(p*order*order)
+    exp = np.exp(p*rho_shapes_ip)
+    sum_exp = np.sum(exp,0)
+    rho_shape_weights = np.sum(exp,1)/(order*order)-1
+    rho = np.sum(np.log(sum_exp))/(p*order*order)
   else:
-    rho = agnp.sum(agnp.max(rho_shapes_ip,0))/(order*order)
-    #rho_ip = agnp.sum(rho_shapes)/(order*order)
+    rho = np.sum(np.max(rho_shapes_ip,0))/(order*order)
+    #rho_ip = np.sum(rho_shapes)/(order*order)
   if derivative == True:
     grad_dens = []
     grad_rho_shape_weights = []
@@ -1481,11 +1477,11 @@ def combine_designs(var, i, j, derivative, verbose=False):
   grad_a = np.zeros((len(var)))
   if len(glob.design) > 1:
     if glob.combine == 'max':
-      rho_shape_weights = agnp.sum(rho_shapes_ip,1)/(order*order) # weights for angle average
+      rho_shape_weights = np.sum(rho_shapes_ip,1)/(order*order) # weights for angle average
     # for angle average use only non-zero values
-    sidx = agnp.nonzero(rho_shape_weights > 1e-14)
+    sidx = np.nonzero(rho_shape_weights > 1e-14)
     if len(sidx[0]) != 0:
-      angles_shapes = agnp.array([get_material_rotation(var, idx, i, j, derivative) for idx in sidx[0]])
+      angles_shapes = [get_material_rotation(var, idx, i, j, derivative) for idx in sidx[0]]
       if derivative == True:
         ang, grad_ang = zip(*angles_shapes)
         if verbose:
@@ -1557,11 +1553,11 @@ def combine_designs(var, i, j, derivative, verbose=False):
             print("averaged angle in degrees: " + str(180*angle/np.pi))
     # else: void, set above
 
-  #X2_scaled = agnp.multiply(rho_shapes,agnp.cos(2*angles_shapes))
-  #Y2_scaled = agnp.multiply(rho_shapes,agnp.sin(2*angles_shapes))
-  #angle = 0.5*agnp.arctan2(agnp.sum(Y2_scaled,axis=0),agnp.sum(X2_scaled,axis=0))
+  #X2_scaled = np.multiply(rho_shapes,np.cos(2*angles_shapes))
+  #Y2_scaled = np.multiply(rho_shapes,np.sin(2*angles_shapes))
+  #angle = 0.5*np.arctan2(np.sum(Y2_scaled,axis=0),np.sum(X2_scaled,axis=0))
   if derivative != True:
-    return agnp.array([rho, angle])
+    return np.array([rho, angle])
   else:
     return np.concatenate((np.concatenate(grad_dens), grad_a))
 
@@ -1952,7 +1948,13 @@ def eval_l2(var_all, arg): # args = [density_track, save_figures]
   des = cfs_map_to_design()
   if arg[1]:
     ot.write_density_file('giffiles/dens' + str(glob.iter).zfill(4) + '.density.xml', np.reshape(des, (glob.n[0],glob.n[1]), 'F'))
-  return np.sum((des - arg[0].reshape(np.prod(glob.n), order='F'))**2)
+  dens_track = arg[0]
+  if len(glob.design) > 1:
+    angle = des[0]
+    des = des[1]
+    angletrack = np.sum(des*(1-(angle*args[0][1])**2))
+    dens_track = arg[0][0]
+  denstrack = np.sum((des - dens_track.reshape(np.prod(glob.n), order='F'))**2)
 
 # gradient for L2 tracking optimization
 def grad_l2(var_all, arg): # args = [density_track, save_figures]
@@ -2146,7 +2148,7 @@ if __name__ == '__main__':
   parser.add_argument('--track_iter', help="number of optimization iterations for tracking", type=int, default=30)
   parser.add_argument('--padnormals', help="pad normals with additional normals (zero-valued) so there is a total of x normals", type=int, default=0)
   parser.add_argument('--gray', help="plot grayscale image", action='store_true')
-  parser.add_argument('--noticks', help="omit axis tick labels", action='store_true')
+  parser.add_argument('--noaxis', help="dont plot axis and ticks", action='store_true')
 
   args = parser.parse_args()
   
@@ -2232,26 +2234,14 @@ if __name__ == '__main__':
       shapes, domain = read_xml(args.input, i, args.radius, args.cfseval)
       glob.shapes = shapes
       fig = plot_data(800,shapes,args.detail, domain)
-      if args.noticks:
-        plt.tick_params(
-          axis='both',          # changes apply to x-axis and y-axis
-          which='both',      # both major and minor ticks are affected
-          bottom=True,      # ticks along the bottom edge are off
-          top=False,         # ticks along the top edge are off
-          labelleft=False,   # labels along the left edge are off
-          labelbottom=False) # labels along the bottom edge are off
+      if args.noaxis:
+        plt.axis('off')
       fig.savefig('giffiles/' + str(i).zfill(4) + '.png')
       plt.close(fig)
 
   fig = plot_data(800,shapes,args.detail, domain)
-  if args.noticks:
-    plt.tick_params(
-        axis='both',          # changes apply to x-axis and y-axis
-        which='both',      # both major and minor ticks are affected
-        bottom=True,      # ticks along the bottom edge are off
-        top=False,         # ticks along the top edge are off
-        labelleft=False,   # labels along the left edge are off
-        labelbottom=False) # labels along the bottom edge are off
+  if args.noaxis:
+    plt.axis('off')
   if args.save:
     print("write '" + args.save + "'")
     fig.savefig(args.save)

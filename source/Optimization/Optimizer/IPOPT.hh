@@ -36,7 +36,7 @@ public:
   
   virtual ~IPOPT();
 
-  /** This is the actual initialzation. Might be called multiple times for restart */
+  /** This is the actual initialization. Might be called multiple times for restart */
   void Init();
 
   /** Solves the problem. All stuff, including evaluations of the state problem is done
@@ -85,7 +85,7 @@ public:
                       bool new_lambda, Index nele_hess, Index* iRow,
                       Index* jCol, Number* values);*/
 
-   /** This is called for each iteration and we use it to write the
+   /** This is called for each major iteration and we use it to write the
     * current state to the result files */
    bool intermediate_callback(AlgorithmMode mode,
                               Index iter, Number obj_value,
@@ -109,9 +109,13 @@ public:
   bool get_scaling_parameters(Number& obj_scaling, 
                               bool& use_x_scaling, Index n, Number* x_scaling,
                               bool& use_g_scaling, Index m, Number* g_scaling);
+
+  /** count objective evaluations, different from major iterations */
+  int nObj = 0;
+
 private:
   /** Reference to the problem. We could get it globally but this way it is more explicit */
-  Optimization* optimization_;
+  Optimization* opt_;
 
   /** our BaseOptimizer from which we would also inherit it there wouldn't be that SmartPtr stuff */
   BaseOptimizer* base_;
@@ -121,6 +125,7 @@ private:
   
   /** We handle the ipopt framework within this class */
   SmartPtr<IpoptApplication> app;
+
 
 };
 

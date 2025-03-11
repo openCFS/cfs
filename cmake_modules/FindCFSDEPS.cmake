@@ -9,107 +9,27 @@
 #=============================================================================
 
 include(ExternalProject) # cmake external project
-include("cmake_modules/DependencyTools.cmake") # or own helper
+include("cmake_modules/DependencyTools.cmake") # our own helper for cfsdeps handling (pseudo object oriented)
 
+set(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
+set(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 
-SET(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
-SET(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
+# CFSDEPS_*_FLAGS are set in compiler.cmake
 
-#-----------------------------------------------------------------------------
-# Set common CFLAGS (and CXXFLAGS) common for all external projects.
-#-----------------------------------------------------------------------------
-
-#-----------------------------------------------------------------------------
-# We do not want to see warnings from external projects, since they would
-# show up on CDash.
-#-----------------------------------------------------------------------------
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  if(NOT CFS_OPT_FLAGS)
-    message(STATUS "CFS_OPT_FLAGS not set, check order with compile.cmake")
-  endif()
-  set(CFSDEPS_C_FLAGS "${CFS_OPT_FLAGS} -w")
-  set(CFSDEPS_CXX_FLAGS "${CFS_OPT_FLAGS} -w ${CFSDEPS_CXX_FLAGS}")
-  if(USE_CGAL) # remove when we use header only CGAL
-    set(CFSDEPS_C_FLAGS "-frounding-math ${CFSDEPS_C_FLAGS}")
-    set(CFSDEPS_CXX_FLAGS "-frounding-math ${CFSDEPS_CXX_FLAGS}")
-  endif()
-endif()
-if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Flang") # not sure if Flang and LLVMFlang is used?!
-  set(CFSDEPS_Fortran_FLAGS "${CFS_OPT_FLAGS} -w")
-endif()  
-
-# TODO: Intel is missing but there is a lot CFSDEPS_ stuff for intel in compiler.cmake
-#message(STATUS "CFS_OPT_FLAGS = ${CFS_OPT_FLAGS}")
-#message(STATUS "CMAKE_COMPILER_IS_GNUCXX = ${CMAKE_COMPILER_IS_GNUCXX}")
-#message(STATUS "CMAKE_CXX_COMPILER_ID = ${CMAKE_CXX_COMPILER_ID}")
-#message(STATUS "CMAKE_Fortran_COMPILER_ID = ${CMAKE_Fortran_COMPILER_ID}")
-#message(STATUS "CFSDEPS_CXX_FLAGS = ${CFSDEPS_CXX_FLAGS}")
-if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM" OR CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
-  if(USE_SUPERLU)
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-function-declaration -Wno-implicit-int")
-  endif()
-  if(USE_VTK)
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -Wno-implicit-function-declaration")
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-function-declaration")
-  endif()
-endif()
-
-# handle gfortran flags depending on version
-# these flags allow an argument mismatch when building
-if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10.0)) # gfortran version >= 10 (gcc10+)
-  # was once --std=legacy
-  # see https://github.com/Reference-LAPACK/lapack/issues/353
-  set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -fallow-argument-mismatch")
-elseif(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSION VERSION_LESS 10.0)) # gfortran <10 (gcc7), this is required to build FEAST with gcc7
-  set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -Wno-argument-mismatch")
-endif()  
-
-if(MSVC)
-  STRING(REPLACE "/W3" "/w" CFSDEPS_C_FLAGS "${CMAKE_C_FLAGS_INIT}")
-  STRING(REPLACE "/W3" "/w" CFSDEPS_CXX_FLAGS "${CMAKE_CXX_FLAGS_INIT}")
-  STRING(REPLACE "/W3" "/w" CFSDEPS_Fortran_FLAGS "${CMAKE_Fortran_FLAGS_INIT}")
-endif()
-
-#-----------------------------------------------------------------------------
-# On Mac OS X we want to build the external libs for the same SDK and 
-# architecture as openCFS.
-#-----------------------------------------------------------------------------
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
-  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
-
-  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
-  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
-
-  IF(CXX_HAS_SYSROOT_FLAG)
-    SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
-    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
-  ENDIF()
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
-
-#-----------------------------------------------------------------------------
 # If user has set environment variables use them. If not use defaults
-#-----------------------------------------------------------------------------
-SET(CFS_DEPS_CD_DUMMY "$ENV{CFS_DEPS_CACHE_DIR}")
-IF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
-  SET(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CD_DUMMY}" CACHE PATH
-    "Directory for CFSDEPS sources and prebuilt binaries.")
-ELSE(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
-  SET(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CACHE_DIR_DEFAULT}" CACHE PATH
-    "Directory for CFSDEPS sources and prebuilt binaries.")
-ENDIF(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
+set(CFS_DEPS_CD_DUMMY "$ENV{CFS_DEPS_CACHE_DIR}")
+if(NOT ${CFS_DEPS_CD_DUMMY} STREQUAL "")
+  set(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CD_DUMMY}" CACHE PATH "Directory for CFSDEPS sources and prebuilt binaries.")
+else()
+  set(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CACHE_DIR_DEFAULT}" CACHE PATH "Directory for CFSDEPS sources and prebuilt binaries.")
+endif()
 
-#-----------------------------------------------------------------------------
 # Check if cache directory is present
-#-----------------------------------------------------------------------------
-IF(NOT CFS_DEPS_CACHE_DIR)
-  MESSAGE(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. 
-This dirctory is used to store downloaded sources, 
-which can be reused for other openCFS builds.
-This directory may even be located on a network share.")
-ENDIF(NOT CFS_DEPS_CACHE_DIR)
+if(NOT CFS_DEPS_CACHE_DIR)
+  message(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. This dirctory is used to stor depenency source and compiles.") 
+endif()
 
-FILE(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
+file(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
 
 # for configure projectes we may not use ninja but need make
 if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
@@ -119,66 +39,31 @@ else()
 endif()
 mark_as_advanced(CONFIGURE_MAKE_PROGRAM)
 
-# The Python lib stuff is not built but found on the system when we embedd python
+# The Python lib stuff is not built but linked with the system python when we embedd python
 if(USE_EMBEDDED_PYTHON)
-  # see find_package(PythonInterp) in FindPrograms.cmake
-  
-  # sets PYTHON_LIBRARY and PYTHON_INCLUDE_DIR, which can be also set via -D
-  find_package(PythonLibs)
-
-  # it might happen, when configured first w/o USE_EMBEDDED_PYTHON, that the cachend two variables are empty
-  # and not overwritten by find_package - cmake is such a mess :( Setting via ccmake helps  
-  # message(STATUS "PYTHON_INCLUDE_DIR = ${PYTHON_INCLUDE_DIR}")
-  # message(STATUS "PYTHON_LIBRARY = ${PYTHON_LIBRARY}")
-  
-  # PYTHON_SITE_PACKAGES_DIR needs to be set to /usr/lib64/python3.8/site-packages
-  # PYTHON_LIBRARY is /usr/lib64/libpython3.8.so, so it does not help
-  # there is no uniform cmake python support. There are several FindPythonModule.cmake on the web but not in the standard distribution
-  # here we extract the core from https://git.trustedfirmware.org/TF-M/trusted-firmware-m.git/tree/cmake/FindPythonModules.cmake
-  # you need to include like #include <numpy/core/include/numpy/arrayobject.h>
-  execute_process(
-      COMMAND ${PYTHON_EXECUTABLE} -c "import numpy; print(numpy.__file__);"
-      RESULT_VARIABLE PY_NUMPY_STATUS # 0 is good, 1 is bad
-      OUTPUT_VARIABLE PY_NUMPY_PATH # shall be /usr/lib64/python3.8/site-packages/numpy/__init__.py
-      ERROR_QUIET
-      OUTPUT_STRIP_TRAILING_WHITESPACE)
-
-  if(NOT PY_NUMPY_STATUS) # 0 is good
-    get_filename_component(PY_NUMPY_DIR ${PY_NUMPY_PATH} DIRECTORY) #  /usr/lib64/python3.8/site-packages/numpy  
-    get_filename_component(PY_SITE_DIR ${PY_NUMPY_DIR} DIRECTORY) # /usr/lib64/python3.8/site-packages
+  # we don't need the executable for embedded python - the testsuite finds it's own executale
+  # use -DPython_ROOT_DIR=... to help in case or check cmake's FindPython for other hints
+  find_package(Python COMPONENTS Development NumPy)  
+  #dump_variables("Python")
+  if(NOT Python_Development_FOUND OR NOT Python_NumPy_FOUND)
+    message(FATAL_ERROR "cannot find Python environment for USE_EMBEDDED_PYTHON, probably set Python_ROOT_DIR") 
   endif()
+  message(STATUS "will link to embedded python ${Python_VERSION} using NumPy ${Python_NumPy_VERSION}")
 
-  # ignored if already set manually  
-  set(PYTHON_SITE_PACKAGES_DIR ${PY_SITE_DIR} CACHE PATH "base for python site-packages")     
-  mark_as_advanced(PYTHON_SITE_PACKAGES_DIR)
-
-  # fun stuff: If you encounter the error message Pyhton.h not found, uncomment the message and try again :)
-  # message(STATUS "add include_directories(${PYTHON_INCLUDE_DIR})")
-  include_directories(${PYTHON_INCLUDE_DIR})
-
-  if(NOT PYTHON_SITE_PACKAGES_DIR)
-    message(FATAL_ERROR "cannot determine numpy for ${PYTHON_EXECUTABLE} required for USE_EMBEDDED_PYTHON. Possibly set advanced PYTHON_SITE_PACKAGES_DIR")
-  endif()
+  # we make use of these three variables
+  assert_set(Python_INCLUDE_DIRS)
+  assert_set(Python_NumPy_INCLUDE_DIRS)
+  assert_set(Python_LIBRARIES) # e.g. /opt/homebrew/opt/python@3.11/Frameworks/Python.framework/Versions/3.11/lib/libpython3.11.dylib
+  #cmake_print_variables(Python_INCLUDE_DIRS Python_NumPy_INCLUDE_DIRS Python_LIBRARIES)
+  include_directories(${Python_INCLUDE_DIRS})
+  include_directories(${Python_NumPy_INCLUDE_DIRS})
 endif()
 
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
-SET(ZLIB_VER "1.2.8")
-SET(ZLIB_GZ "zlib-${ZLIB_VER}.tar.gz")
-SET(ZLIB_MD5 "44d667c142d7cda120332623eab69f40")
+include("${CFSDEPS_DIR}/zlib/External_zlib.cmake")
 
-INCLUDE("${CFSDEPS_DIR}/zlib/External_zlib.cmake")
-
-#-------------------------------------------------------------------------------
-# Build bzip2 library
-#-------------------------------------------------------------------------------
-SET(BZIP2_URL "${CFS_DS_SOURCES_DIR}/bzip2")
-SET(BZIP2_VER "1.0.8")
-SET(BZIP2_GZ "bzip2-${BZIP2_VER}.tar.gz")
-SET(BZIP2_MD5 "67e051268d0c475ea773822f7500d0e5")
-
-INCLUDE("${CFSDEPS_DIR}/bzip2/External_bzip2.cmake")
 
 #-------------------------------------------------------------------------------
 # Search for HDF5 library
@@ -188,13 +73,9 @@ include("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 #-------------------------------------------------------------------------------
 # Search for CGNS library
 #-------------------------------------------------------------------------------
-IF(USE_CGNS)
-  SET(CGNS_VER "4.3.0")
-  SET(CGNS_GZ "v${CGNS_VER}.zip")
-  SET(CGNS_MD5 "37512acaac66c368b454658dc8a806ff")
-
-  INCLUDE("${CFSDEPS_DIR}/cgns/External_CGNS.cmake")
-ENDIF(USE_CGNS)
+if(USE_CGNS)
+  include("${CFSDEPS_DIR}/cgns/External_CGNS.cmake")
+endif(USE_CGNS)
 
 if(USE_METIS)
   include("${CFSDEPS_DIR}/metis/External_METIS.cmake")
@@ -231,10 +112,13 @@ endif()
 # Find Intel Math Kernel library
 # see NETLIB comment
 #-----------------------------------------------------------------------------
+
+
 if(USE_BLAS_LAPACK STREQUAL "MKL")
   include("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
 endif()
 
+# Apple's Accelerate Framework is a system lib - nothing to build
 if(USE_BLAS_LAPACK STREQUAL "ACCELERATE")
   include("${CFS_SOURCE_DIR}/cmake_modules/FindAppleAccelerate.cmake")
 endif()
@@ -272,18 +156,11 @@ endif()
 # Find Library of Iterative Solvers
 if(USE_LIS)
   include("${CFSDEPS_DIR}/lis/External_LIS.cmake")
-endif(USE_LIS)
+endif()
 
-#-------------------------------------------------------------------------------
-# Find SuperLU
-#-------------------------------------------------------------------------------
-IF(USE_SUPERLU)
-  SET(SUPERLU_VER "4.3")
-  SET(SUPERLU_GZ "superlu_${SUPERLU_VER}.tar.gz")
-  SET(SUPERLU_MD5 "b72c6309f25e9660133007b82621ba7c")
-  
-  INCLUDE("${CFSDEPS_DIR}/superlu/External_SuperLU.cmake")
-ENDIF(USE_SUPERLU)
+if(USE_SUPERLU)
+  include("${CFSDEPS_DIR}/superlu/External_SuperLU.cmake")
+endif()
 
 #-------------------------------------------------------------------------------
 # Find Boost
@@ -293,15 +170,7 @@ include("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 #-------------------------------------------------------------------------------
 # Build MuParser library
 #-------------------------------------------------------------------------------
-# https://github.com/beltoforion/muparser/archive/v2.2.6.1.tar.gz
-# revision 388b3f9 contains a necessary feature request not available in 2.2.6.1
-# someone shall switch to a real revision once strfunc4-5 are there
-# https://codeload.github.com/beltoforion/muparser/zip/388b3f9
-SET(MUPARSER_VER "2.2.6.1")
-SET(MUPARSER_TGZ "v${MUPARSER_VER}.tar.gz") 
-SET(MUPARSER_MD5 "410d29b4c58d1cdc2fc9ed1c1c7f67fe") # 2.2.6.1
-
-INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
+include("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
 # Xerces library or libxml2, triggered by CFS_XML_READER
@@ -320,12 +189,9 @@ endif()
 #-----------------------------------------------------------------------------
 # Find VTK - used for Ensight only
 #-----------------------------------------------------------------------------
-IF(USE_VTK)
-  SET(VTK_TAR "VTK-7.1.1.tar.gz")
-  SET(VTK_VERSION "7.1") # must be 2 digits for include-dir to be correct
-  SET(VTK_MD5 "daee43460f4e95547f0635240ffbc9cb")
-  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/vtk/External_VTK.cmake")
-ENDIF(USE_VTK)
+if(USE_VTK)
+  include("${CFS_SOURCE_DIR}/cfsdeps/vtk/External_VTK.cmake")
+endif(USE_VTK)
 
 #-----------------------------------------------------------------------------
 # Find CGAL
@@ -335,7 +201,6 @@ IF(USE_CGAL)
   SET(MSG "${MSG} It is configure-based and therefore requires a shell")
   SET(MSG "${MSG} interpreter like bash from MSYS. If you need CGAL, you need")
   SET(MSG "${MSG} to use an MSYS environment or cross compile from Linux.")     
-
   IF(WIN32)
     MESSAGE(FATAL_ERROR "${MSG}")
    ENDIF()
@@ -403,10 +268,18 @@ if(USE_SNOPT)
 endif()
 
 #-----------------------------------------------------------------------------
-# Find IPOPT - A general purpose open source optimizer 
+# Find Ipopt - A general purpose open source optimizer 
 #-----------------------------------------------------------------------------
 if(USE_IPOPT)
-  include("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
+  if(WIN32)
+    include("${CFSDEPS_DIR}/ipopt/External_IPOPT_Win.cmake")
+  else()
+    include("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
+    # if no MKL is available, use HSL via ThirdParty-HSL. creates dynamic coinlib for Ipopt
+    if(NOT(USE_BLAS_LAPACK STREQUAL "MKL"))
+      include("${CFSDEPS_DIR}/hsl/External_HSL.cmake")
+    endif()
+  endif()
 endif()
 
 #-----------------------------------------------------------------------------
@@ -417,6 +290,12 @@ if(USE_SGP)
   include("${CFSDEPS_DIR}/sgp/External_SGP.cmake")
 endif()
 
+#-----------------------------------------------------------------------------
+# C++ implementations for the topology optimiter MMA (dumas_mma) and a glonalized variant (dumas_gcmma)
+#-----------------------------------------------------------------------------
+if(USE_DUMAS)
+  include("${CFSDEPS_DIR}/dumas/External_Dumas.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Find SGPP - A toolbox for sparse grid interpolation 

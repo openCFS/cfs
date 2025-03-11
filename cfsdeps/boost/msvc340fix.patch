@@ -1,0 +1,11 @@
+--- tools/build/src/tools/msvc_orig.jam
++++ tools/build/src/tools/msvc.jam
+@@ -1113,7 +1113,7 @@
+         }
+         else
+         {
+-            if [ MATCH "(14.3)" : $(version) ]
++            if [ MATCH "(14.[34])" : $(version) ]
+             {
+                 if $(.debug-configuration)
+                 {

@@ -15,7 +15,25 @@ import six
 import math
 import os
 import string
-import numpy
+import numpy as np
+import collections
+
+# helper to print a (numpy) array with commas such that the output can be copied as python code
+def nice(array, round_digits = 10):
+  if array is None:
+    return str(None)
+  txt = '['
+  for i, v in enumerate(array):
+    if isinstance(v, collections.abc.Iterable):
+      v = nice(v,round_digits)
+    else:
+      v = str(round(v,round_digits))
+    txt += v
+    if i < len(array)-1:
+      txt += ', '
+  txt += ']'
+  return txt
+
 
 # helper to write values and coordinates to a csv (comma separated values) file
 # see element_to_node_2d in hdf5_tools
@@ -95,6 +113,7 @@ def remove(xml, path, unique = True):
 # example '//cfs:materialData/@file' for any materialData element;
 # to get text inside a xml tag, e.g. material tensor from .info.xml:
 # xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") gives a string
+# the manulal operation with namespaces would be xml.xpath("//cfs:cfsSimulation", namespaces={"cfs": "http://www.cfs++.org/simulation"})
 def xpath(xml, path):
   # assume lxml first
   try:
@@ -331,7 +350,7 @@ def getDim(data, get4dims = False):
     return x, y, z, d
 
 ## helps to clean an array with repeated entries as it happens hen nodes and elements are defined in cfs with a too small inc value
-# @param data array which is a history file read by numpy.loadtxt()
+# @param data array which is a history file read by np.loadtxt()
 def cleanOversampledArray(data):
   assert(len(data.shape) == 2)
   assert(data.shape[0] > 1)  
@@ -347,7 +366,7 @@ def cleanOversampledArray(data):
   
   # copy unique data
   columns = data.shape[1]
-  result = numpy.zeros((len(unique), columns))
+  result = np.zeros((len(unique), columns))
   for i in range(len(unique)):
     for c in range(columns):
       val = data[unique[i], c]
@@ -358,7 +377,7 @@ def cleanOversampledArray(data):
 
 ## convert a list to a numpy array 
 def listToNDArray(data):
-  ret = numpy.zeros((len(data)))
+  ret = np.zeros((len(data)))
   
   for i in range(len(data)):
     ret[i] = data[i]

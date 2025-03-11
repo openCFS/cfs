@@ -103,7 +103,7 @@ class Data:
         out[j,i] = s
 
     img = Image.fromarray(out)
-    #img.resize((600,600), Image.ANTIALIAS)
+    #img.resize((600,600), Image.ANTIALIAS / LANCZOS
     img.show()
 
 

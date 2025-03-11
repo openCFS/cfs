@@ -11,7 +11,8 @@ set(PACKAGE_FILE "xerces-c-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "f84488fc2b8f62c4afca2f9943a42c00")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-set(PACKAGE_MIRRORS "https://dlcdn.apache.org//xerces/c/3/sources/${PACKAGE_FILE}") 
+set(PACKAGE_MIRRORS "https://archive.apache.org/dist/xerces/c/3/sources/${PACKAGE_FILE}"
+                    "https://dlcdn.apache.org/xerces/c/3/sources/${PACKAGE_FILE}") 
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
@@ -51,7 +52,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${
 
 generate_patches_script() # sets PATCHES_SCRIPT
 
-# generate package ceation script. We want to skip bin and share and therefore use no manifest
+# generate package creation script. We want to skip bin and share and therefore use no manifest
 generate_packing_script_install_dir()
 
 # we have no postinstall, so don't call generate_postinstall_script()

@@ -17,10 +17,7 @@ SET(UTILS_SRCS
   tools.cc)
 
 if(USE_EMBEDDED_PYTHON)
-  # see FindPrograms.cmake on how the PYTHON_ stuff is set
-  set(TARGET_LL ${TARGET_LL} ${PYTHON_LIBRARY})
-  # already in FindCFSDEPS.cmake: include_directories(${PYTHON_INCLUDE_DIR})
-  include_directories(${PYTHON_SITE_PACKAGES_DIR})
+  list(APPEND TARGET_LL ${Python_LIBRARIES})
   set(UTILS_SRCS ${UTILS_SRCS} PythonKernel.cc PythonKernelFunctions.cc)
 endif()
 

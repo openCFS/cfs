@@ -99,7 +99,6 @@ DEFINE_LOG(MagEdgeMixedSFGPDE, "MagEdgeMixedSFGPDE")
     shared_ptr<BaseFeFunction> ScaFeFunc = feFunctions_[LAGRANGE_MULT];
     shared_ptr<FeSpace> VecFeSpace = VecFeFunc->GetFeSpace();
     shared_ptr<FeSpace> ScaFeSpace = ScaFeFunc->GetFeSpace();
-    PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
 
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
       // set current region and materials

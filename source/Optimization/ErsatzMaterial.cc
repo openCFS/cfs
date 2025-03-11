@@ -164,7 +164,7 @@ ErsatzMaterial::ErsatzMaterial() :
     if((   dt == DesignElement::MECH_TRACE || dt == DesignElement::MECH_ALL
         || dt == DesignElement::DIELEC_TRACE || dt == DesignElement::DIELEC_ALL
         || dt == DesignElement::PIEZO_ALL || dt == DesignElement::ALL_DESIGNS)
-       && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
+       && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT || method_ == SPAGHETTI_PARAM_MAT))
       continue;
 
     if(dt != DesignElement::DEFAULT && design->FindDesign(g->GetDesignType(), false) == -1)
@@ -1375,6 +1375,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::SHAPE_INF:
     case Function::LOCAL_PYTHON_FUNCTION:
     case Function::ARC_OVERLAP:
+    case Function::PYTHON_VOLUME:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;
@@ -2143,11 +2144,12 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
   // surface normal
   Vector<double> normal;
   // traverse our surface elements
+  /* FIXME
   EntityIterator it = sel->GetIterator();
   for(it.Begin(); !it.IsEnd(); it++)
   {
     assert(false);
-    /* FIXME
+
     const SurfElem* se = it.GetSurfElem();
     const Elem* vol = se->ptVolElem1 != NULL && se->ptVolElem1->regionId == vol_neigh ? se->ptVolElem1 : se->ptVolElem2;
     assert(vol->regionId == vol_neigh);
@@ -2200,8 +2202,8 @@ void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<doubl
       }
       LOG_DBG3(em) << "SEFV: vol=" << vol->elemNum << " node=" << node << " eqn_nr=" << eqn_nr << " count=" << count[eqn_idx] << " sum=" << sum;
     }
-    */
   }
+  */ // FIXME
   // LOG_DBG2(em) << "SEFV: q_u_glob=" << q_u_glob.ToString(TS_INFO);
   // LOG_DBG2(em) << "SEFV: count=" << count.ToString(TS_INFO);
 // normalize Q*u^*
@@ -3813,10 +3815,11 @@ double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
         counter++;
       }
     }
-    LOG_DBG3(conditions) << Condition::type.ToString(g->GetType())
+    LOG_DBG3(conditions) << Condition::type.ToString(g->GetType()) << " a=" << g->access.ToString(g->GetAccess())
     << " derive=" << derivative << " relevant=" << relevant
-    << " elem " << de->elem->elemNum << " des_value: " << de->GetDesign(DesignElement::PLAIN)
-    << " value = " << org_value
+    << " elem=" << de->elem->elemNum << " pv=" << de->GetDesign(DesignElement::PLAIN)
+    << " sv=" << de->GetDesign(DesignElement::SMART)
+    << " ov= " << org_value << " lb=" << " ub=" << ub
     << " -> " << value << " grad=" << grad << " eval=" << eval
     << " fraction=" << fraction << " counter=" << counter;
 
@@ -3949,7 +3952,7 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
       context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
 
     if(context->DoLBM()) {
-      // in autoscale case we are still in the BaseOptimizer constructor
+      // in scale case we are still in the BaseOptimizer constructor
       boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
       if(eval_timer)
         eval_timer->Stop();

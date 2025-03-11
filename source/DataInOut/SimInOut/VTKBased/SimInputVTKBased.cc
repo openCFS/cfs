@@ -22,6 +22,10 @@
 
 //VTK Includes
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Winconsistent-missing-override"
+#pragma clang diagnostic ignored "-Warray-parameter"
+
 #include "vtkMultiBlockDataSet.h"
 #include "vtkUnstructuredGrid.h"
 #include "vtkCell.h"
@@ -29,6 +33,8 @@
 #include "vtkMergePoints.h"
 #include "vtkSMPMergePoints.h"
 #include "vtkInformation.h"
+
+#pragma clang diagnostic pop
 
 #include <unordered_map>
 

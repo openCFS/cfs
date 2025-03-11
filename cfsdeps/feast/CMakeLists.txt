@@ -28,5 +28,5 @@ add_library(feast STATIC ${FEAST_SRCS})
 
 # set special CMAKE_Fortran_FLAGS flags like -cpp and for gfortran -ffree-line-length-none -ffixed-line-length-none -fallow-argument-mismatch
 
-install(TARGETS feast ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(TARGETS feast ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(FILES ${FEAST_HEADERS} DESTINATION ${CMAKE_INSTALL_PREFIX}/include)

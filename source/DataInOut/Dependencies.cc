@@ -3,6 +3,7 @@
 #include <def_use_blas.hh>
 #include <def_use_cgal.hh>
 #include <def_use_cgns.hh>
+#include <def_use_dumas.hh>
 #include <def_use_embedded_python.hh>
 #include <def_use_ensight.hh>
 #include <def_use_feast.hh>
@@ -11,7 +12,6 @@
 #include <def_use_gidpost.hh>
 #include <def_use_hwloc.hh>
 #include <def_use_ipopt.hh>
-#include <def_use_knitro.hh>
 #include <def_use_libfbi.hh>
 #include <def_use_libxml2.hh>
 #include <def_use_lis.hh>
@@ -47,7 +47,6 @@
 #include <openblas/openblas_config.h>
 #endif
 
-#include <bzlib.h>
 #include <zlib.h>
 
 #include <H5public.h>
@@ -396,6 +395,12 @@ void Dependencies::ReadSetting()
 
   // optimizers
 
+  Dependency dumas("dumas", "USE_DUMAS", MIT);
+#ifdef USE_DUMAS
+  dumas.SetVersion(DUMAS_VER);
+#endif
+  data.Push_back(dumas);
+
   Dependency scpip("SCPIP", "USE_SCPIP",CLOSED);
 #ifdef USE_SCPIP
   scpip.SetVersion(SCPIP_VER);
@@ -415,15 +420,7 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(ipopt);
 
-  // knitro is a commercial optimizer which failed to be effective for topology optimization
-  // To use knitro organize it yourself, provide the lib and set USE_KNITRO
-  Dependency knitro("KNITRO", "USE_KNITRO", COMMERCIAL);
-#ifdef USE_KNITRO
-  knitro.active(true)
-#endif
-  data.Push_back(knitro);
-
-  // requires simply python on the system set by PYTHON_INCLUDE_DIR and PYTHON_LIBRARY
+  // requires a system python to be linked to
   Dependency python("Python", "USE_EMBEDDED_PYTHON", EASY);
 #ifdef USE_EMBEDDED_PYTHON
   python.SetVersion(PY_VERSION);
@@ -476,9 +473,6 @@ void Dependencies::ReadSetting()
 
   // https://de.wikipedia.org/wiki/Zlib-Lizenz
   data.Push_back(Dependency("zlib", "", zlibVersion(), EASY));
-
-  // https://spdx.org/licenses/bzip2-1.0.6.html
-  data.Push_back(Dependency("bzip2", "", BZ2_bzlibVersion(), EASY));
 
   // https://github.com/beltoforion/muparser
   data.Push_back(Dependency("muparser", "", MUP_VERSION, BSD, ""));

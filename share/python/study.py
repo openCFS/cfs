@@ -99,7 +99,6 @@ if (args.var3 and not (args.range3 or args.choice3)) or (not args.var3 and (args
   print('Error: optional most outer loop with --var3 and either --range3 or --choice3')
   sys.exit()
 
-
 cmd = args.executable 
 if args.mesh:
   cmd += ' -m ' + args.mesh
@@ -133,7 +132,7 @@ try:
         
       for v1 in r1: # cannot be None
         problem = p2 + '-' + l1 + '_' + v1
-        replace(xml, args.var, v1, False)
+        replace(xml, args.var, v1)
         #replace(xml, '//cfs:constraint[@type="globalBucklingLoadFactor"]/@parameter', v1, False)
 
         xml.write(problem + '.xml')
@@ -141,7 +140,6 @@ try:
         # setting the innermost variable as id allows easy sorting with postproc.py
         # if id is not set, we cannot simply replace(xml, ..) it
         c = cmd + problem + ' --id ' + v1
-        c = cmd + '-x ' + problem[0:6] + problem[12:] + '.density.xml ' + problem + ' --id ' + v1
         
         if args.redirect_output:
           c = c + ' > ' + problem + '.txt 2>&1'

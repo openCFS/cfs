@@ -2,6 +2,9 @@ set(CMAKE_SOURCE_DIR "@CMAKE_SOURCE_DIR@")
 include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 set(PATCHES "xerces_no_tests.patch" ) # don't build test binaries
+if(WIN32)
+  list(APPEND PATCHES  "timezone_win.patch")
+endif()
 
 apply_patches("${PATCHES}" "${CMAKE_SOURCE_DIR}/cfsdeps/xerces")
 

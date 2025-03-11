@@ -706,7 +706,7 @@ bool SCPIPBase::EvaluateGradients()
   if(m > 0)
   {
     ok = eval_jac_g(n, x.GetPointer(), m, nnz_jac_g, jac_g.GetPointer());
-    if(!ok) return false; // might be scaling violation for autoscale stuff
+    if(!ok) return false; // might be scaling violation for scale stuff
   }
 
   // the constraint scaling has nothing to do with the normalization

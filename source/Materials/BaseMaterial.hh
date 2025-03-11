@@ -411,6 +411,11 @@ namespace CoupledField {
     virtual void GetVectorHystVal( UInt nrElem, Vector<Double>& Val ) {
       EXCEPTION( "ComputeVectorHystVal not implemented" );
     };
+
+    //! Set an anhysteretic material model
+    virtual void SetAnhystMagModel( const std::string name );
+    std::string GetAnhystMagModel(){return anhystereticModel_;};
+
     //@}
 
     // ======================================================================
@@ -535,6 +540,12 @@ namespace CoupledField {
 
     //! map storing the temperature-dependent nonlinear material parameters
     NonLinIsoMapTempDependBHcurves nonlinIsoTempDependBHParams_;
+
+    //! name of anhysteretic model version
+    std::string anhystereticModel_;
+
+    //! name of anhysteretic model version
+    std::string hessiantype_;
 
     // ========================================================
     //  New coefficient based material representation

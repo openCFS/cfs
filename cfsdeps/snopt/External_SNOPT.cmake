@@ -16,7 +16,7 @@ set(SNOPT_VER "7.2.8") # for def_use_snopt.hh.in
 set(PACKAGE_VER ${SNOPT_VER})
 set(PACKAGE_FILE "snopt-${PACKAGE_VER}-cfsdeps.zip")
 set(PACKAGE_MD5 "9e75be8400eb878b9cb3d489084af196")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # -a for the usrmjr patch!
 
 # with CFS_DOWNLOAD_SNOPT the encrypted file can be found
 # when we need to download, the key needs to be set from local .cfs_platform_defaults.cmake, environment or cmake -DCFS_DOWNLOAD_SNOPT=...
@@ -53,7 +53,7 @@ set(DEPS_ARGS
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"  DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-# generate package ceation script. Somehow the install_manifest.txt fails for snopt. It is not unacked to lib. Possibly EOL issue?!
+# generate package creation script. Somehow the install_manifest.txt fails for snopt. It is not unacked to lib. Possibly EOL issue?!
 generate_packing_script_install_dir()
 
 # copy CMakeLists.txt

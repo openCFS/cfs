@@ -11,13 +11,13 @@
 #include <boost/filesystem/exception.hpp>
 
 #if defined(WIN32)
-#include <shlobj.h>
+  #include <shlobj.h>
 #else
-#if defined(__APPLE__) // OSX
-#include <mach-o/dyld.h>
-#else // Linux
-#include <unistd.h>
-#endif
+  #if defined(__APPLE__) // OSX
+    #include <mach-o/dyld.h>
+  #else // Linux
+    #include <unistd.h>
+  #endif
 #endif
 
 namespace fs = boost::filesystem;

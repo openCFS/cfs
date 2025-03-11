@@ -726,7 +726,14 @@ namespace CoupledField {
     //assert(i<size_);
     val = data_[i];
   }
-  
+
+  template<typename T>
+  T Vector<T>::Last() const
+  {
+    assert(size_ > 0);
+    return data_[size_-1];
+  }
+
 
   // ********************
   //   Get several entries

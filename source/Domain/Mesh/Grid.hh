@@ -2,6 +2,7 @@
 #define FILE_SCFE_GRID_2001
 
 #include <def_use_cgal.hh>
+#include <def_use_eigen.hh>
 #include <def_use_libfbi.hh>
 
 #include <set>
@@ -21,11 +22,13 @@
 #include <CGAL/Cartesian.h>
 #include <CGAL/Polygon_2_algorithms.h>
 #include <CGAL/Simple_cartesian.h>
+#ifdef USE_EIGEN
 #include <CGAL/Monge_via_jet_fitting.h>
 #include <CGAL/Eigen_svd.h>
 #include <CGAL/Eigen_matrix.h>
 #include <CGAL/Eigen_vector.h>
-#endif
+#endif // USE_EIGEN
+#endif // USE_CGAL
 
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
@@ -1037,6 +1040,8 @@ namespace CoupledField
     //! Triggers calculation of node offsets for moving interfaces
     void MoveNcInterfaces();
 
+    bool HasNCI();
+
 
   protected:
     
@@ -1290,7 +1295,6 @@ namespace CoupledField
   protected:
 
 #ifdef USE_CGAL
-
   public:
     //! Define 3-dimensional bounding box
     typedef CGAL::Bbox_3 BBox3D;
@@ -1302,25 +1306,6 @@ namespace CoupledField
     //! Define box handler just with an ID
     typedef CGAL::Box_intersection_d
         ::Box_d<double,3> IdBox;
-
-    // typedefs to use CGAL for geometry computation (principal directions, curvatures, normal vectors)
-    // implemented for use in the curvilinear PML formulation
-    //! data type used in the data kernel
-    typedef Double                                     DFT;
-    //! cartesian data kernel to represent the geometric objects
-    typedef CGAL::Simple_cartesian<DFT>                DataKernel;
-    //! cartesian local data kernel to represent the geometric objects
-    typedef CGAL::Simple_cartesian<DFT>                LocalKernel;
-    //! define algebra type to solve linear system
-    typedef CGAL::Eigen_svd                            SVD;
-    //! representation of a point in 3D Euclidean space
-    typedef DataKernel::Point_3                        DPoint;
-    //! representation of a vector in 3D Euclidean space
-    typedef DataKernel::Vector_3                       DVector;
-    //! class to estimate local differential quantities at a given point
-    typedef CGAL::Monge_via_jet_fitting<DataKernel, LocalKernel, SVD>    MongeViaJetFitting;
-    //! class to store the Monge coordinate system
-    typedef MongeViaJetFitting::Monge_form             MongeForm;
 
   protected:
     //! Return list of potential elements containing global points
@@ -1344,6 +1329,27 @@ namespace CoupledField
                                   UInt *id,
                                   Double tol = 0.0 );
 
+#ifdef USE_EIGEN
+  public:
+    // typedefs to use CGAL for geometry computation (principal directions, curvatures, normal vectors)
+    // implemented for use in the curvilinear PML formulation
+    //! data type used in the data kernel
+    typedef Double                                     DFT;
+    //! cartesian data kernel to represent the geometric objects
+    typedef CGAL::Simple_cartesian<DFT>                DataKernel;
+    //! cartesian local data kernel to represent the geometric objects
+    typedef CGAL::Simple_cartesian<DFT>                LocalKernel;
+    //! define algebra type to solve linear system
+    typedef CGAL::Eigen_svd                            SVD;
+    //! representation of a point in 3D Euclidean space
+    typedef DataKernel::Point_3                        DPoint;
+    //! representation of a vector in 3D Euclidean space
+    typedef DataKernel::Vector_3                       DVector;
+    //! class to estimate local differential quantities at a given point
+    typedef CGAL::Monge_via_jet_fitting<DataKernel, LocalKernel, SVD>    MongeViaJetFitting;
+    //! class to store the Monge coordinate system
+    typedef MongeViaJetFitting::Monge_form             MongeForm;
+  protected:
     //! Function that instantiates a MongeForm, i.e., a surface description of the form z = F(x,y)
     //! The MongeForm can then be used to compute surface parameters, e.g. normal vectors, 
     //! principal directions, or principal curvatures
@@ -1366,16 +1372,14 @@ namespace CoupledField
     //! \param pointsAsCfsVectors (out) representation as Point_3 
     //! \param pointsAsPoint_3Format (in) representation as CFS Vector
     void ConvertVectorFromPoint_3Format(StdVector<Vector<Double>>& pointsAsCfsVectors, std::vector<DPoint>& pointsAsPoint_3Format);
-
+#endif // USE_EIGEN
 #elif USE_LIBFBI // USE_CGAL
-
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
                                    const StdVector<shared_ptr<EntityList> >& srcEntities =
                                    StdVector<shared_ptr<EntityList> >(),
                                    Double tol = 1e-3,
                                    bool updatedGeo = false );
-
-#else
+#else // USE_CGAL
     //! Return list of potential elements containing global points (slow version)
 
     //! This method returns for every global coordinate a list
@@ -1393,19 +1397,10 @@ namespace CoupledField
     
     //! Define for each dimension type (key) bounding boxes (value)
     std::map<UInt, StdVector<BoxType> > elemBoxes_;
-
 #endif // USE_CGAL
-
   private:
-
     /** Here the result from CalcGridBoundingBox() is stored and reused. */
     Matrix<double> grid_bounding_box_;
-
-
-
-    ///
   };
-
-
 } // end of namespace
 #endif // FILE_GRID

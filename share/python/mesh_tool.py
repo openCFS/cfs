@@ -362,6 +362,7 @@ def calc_min_max_coords(mesh, dummy_z = None):
   assert len(min) == 2 or len(min) == 3
   max = np.amax(mesh.nodes,axis=0)
   
+  print("mesh.nz:",mesh.nz)
   if mesh.nz <= 0:
     if dummy_z is None:
       return min[0], min[1], max[0], max[1]
@@ -1102,16 +1103,27 @@ def set_cfs_mesh(opt):
 
 # creates a mesh from hdf5 file
 def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_support=None, threshold=0.):
+  import h5py
   hdf5_file = h5py.File(hdf5_f, 'r')
-  all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
-  # assume that region[0] is design, region[1] is non-design or void
   reg_elements_region = []
-  for reg in region:
-    reg_elements_region.append(hdf5_file['/Mesh/Regions/' + reg + '/Elements'].value)
+  tmp = None
+  if h5py.__version__ >= "2.1":
+    all_elements = hdf5_file['/Mesh/Elements/Connectivity'][()]
+    # assume that region[0] is design, region[1] is non-design or void
+    for reg in region:
+      reg_elements_region.append(hdf5_file['/Mesh/Regions/' + reg + '/Elements'][()])
+    types = hdf5_file['/Mesh/Elements/Types'][()]
+    all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'][()]
+    length = len(hdf5_file['/Mesh/Regions/' + region[0] + '/Nodes'][()])
+  else:
+    all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
+    # assume that region[0] is design, region[1] is non-design or void
+    for reg in region:
+      reg_elements_region.append(hdf5_file['/Mesh/Regions/' + reg + '/Elements'].value)
+    types = hdf5_file['/Mesh/Elements/Types'].value
+    all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
+    length = len(hdf5_file['/Mesh/Regions/' + region[0] + '/Nodes'].value)
 
-  types = hdf5_file['/Mesh/Elements/Types'].value
-  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
-  length = len(hdf5_file['/Mesh/Regions/' + region[0] + '/Nodes'].value)
   #reg_nodes = [[0 for col in range(len(region))] for row in range(length)]
   #for i in range(len(region)):
   #  reg_nodes[i][:] = hdf5_file['/Mesh/Regions/' + region[i] + '/Nodes']
@@ -1139,11 +1151,12 @@ def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_s
 
   # counter for regions
   idx = np.zeros(len(region))
-  for el in all_elements:
+  for i,el in enumerate(all_elements):
     e = Element()
     e.nodes = el - 1
     #e.density = design_var[i]
-    for j, regcount in idx:
+    regcount = 0
+    for j in range(len(idx)):
       if regcount < len(reg_elements_region[j]):
         if i + 1 == reg_elements_region[j][regcount]:
           #if e.density >= threshold:

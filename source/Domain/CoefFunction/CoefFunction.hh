@@ -831,10 +831,34 @@ public:
     EXCEPTION("CoefFuncion::InitModel not overwritten by " << GetName());
   }
 
+  virtual void RegisterStressDependence(PtrCoefFct stressCoef){
+    EXCEPTION("CoefFuncion::RegisterStressDependence not overwritten by " << GetName());
+  }
+  
+  virtual void UpdateHistoryValues(){
+    EXCEPTION("CoefFuncion::UpdateHistoryValues not overwritten by " << GetName());
+  }
+  virtual void AllowUpdates(){
+    EXCEPTION("CoefFuncion::UpdateHistoryValues not overwritten by " << GetName());
+  }
+
   //! return volume regionId being the correct neighbor of a surface region id
   virtual RegionIdType GetVolNeighborRegionId(RegionIdType surfId) {
 	  return neighborRegionId_[surfId];
   }
+
+  //! helper functions needed by coefFunctionDummy
+
+  //! Get all information necessary to get the coefFunction afterwards
+  virtual void GetCoefInfo(SolutionType &type, shared_ptr<EntityList> &list, std::string &pdeName) {
+    EXCEPTION("CoefFuncion::GetCoefInfo not overwritten by " << GetName());
+  }
+
+  //! Set the coefFunction used to evaluate the dummy coefFunction
+  virtual void SetCoef(PtrCoefFct coef){
+    EXCEPTION("CoefFuncion::SetCoef not overwritten by " << GetName());
+  }
+  
   //@}
 
   //@}
