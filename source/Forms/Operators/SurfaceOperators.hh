@@ -1107,56 +1107,37 @@ void SurfaceNormalOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMat,
   assert(D == ptFe->shape_.dim);
 
   UInt numFncs = ptFe->GetNumFncs();
-  FE *fe = (static_cast<FE*>(ptFe));
-
-  UInt numCol;
-  UInt numRows;
-
-  if (fe->GetFeSpaceName() == "HCurl") {
-    numCol = 3;
-    numRows = numFncs;
-  }
-  else {
-    numCol = DIM_DOF;
-    numRows = numFncs * DIM_DOF;
-  }
-
   // Set correct size of matrix B and initialise with zeros
-  bMat.Resize(numCol, numRows);
+  // Set correct size of matrix B and initialise with zeros
+  bMat.Resize( 3, numFncs);
   bMat.Init();
 
-  if(fe->GetFeSpaceName() == "HCurl"){
-    Matrix<Double> v;
-    // normal vector
-    Vector<Double> n = lp.normal;
+  Matrix<Double> v;
+  FE *fe = (static_cast<FE*>(ptFe));
 
-    FeHCurl *feHC = (static_cast<FeHCurl*>(ptFe));
-    feHC->GetShFnc( v, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+  if(fe->GetFeSpaceName() != "HCurl"){
+    EXCEPTION("SurfaceNormalOperator only for HCurl function space");
+  }
 
-    Vector<Double> tmp, curl;
-    Vector<Double> transNormal ;
-    for(UInt sh = 0; sh < numFncs ; sh ++){
-      v.GetCol(tmp, sh);
-      transNormal = lp.normal;
-      tmp.CrossProduct( transNormal ,curl);
-      for(UInt d = 0; d < 3; d ++){
-        bMat[d][sh] = curl[d];
-      }
+  // normal vector
+  Vector<Double> n = lp.normal;
+
+  FeHCurl *feHC = (static_cast<FeHCurl*>(ptFe));
+  feHC->GetShFnc( v, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+
+
+
+  Vector<Double> tmp, curl;
+  Vector<Double> transNormal ;
+  for(UInt sh = 0; sh < numFncs ; sh ++){
+    v.GetCol(tmp, sh);
+    transNormal = lp.normal;
+    tmp.CrossProduct( transNormal ,curl);
+    for(UInt d = 0; d < 3; d ++){
+      bMat[d][sh] = curl[d];
     }
   }
-  else {
-    Vector<Double> s;
-    // normal vector
-    Vector<Double> n = lp.normal;
-    Vector<Double> tmp;
-    for(UInt d = 0; d < DIM_DOF ; d ++){
-      fe->GetShFnc( s, lp.lpmVol->lp, lp.lpmVol->shapeMap->GetElem() , d);
-      tmp = s * n[d];
-      for(UInt sh = 0; sh < numFncs; sh ++){
-        bMat[d][sh*DIM_DOF + d] = tmp[sh];
-      }
-    }
-  }
+
 }
 
 template<class FE,  UInt D, UInt D_DOF, class TYPE>
