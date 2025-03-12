@@ -87,6 +87,7 @@ using std::string;
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
+#include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 
 // used for getting coils from the pde
 #include "MagEdgePDE.hh"
@@ -4193,8 +4194,8 @@ namespace CoupledField {
         // an extra term for MechPDE thinLayer
         if (isThinLayer && solType == MECH_DISPLACEMENT) {
           penalty_v1_u1_extra = new SurfaceNitscheABInt<Double,Double> 
-            (new SurfaceNormalOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceNormalOperator<FeH1,DIM,D_DOF>(),
+            (new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+            new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
               factor, alphaThinLayerExtraMech, curcpl, updatedGeo_, true, isPenalty);
         }
       }
@@ -4316,8 +4317,8 @@ namespace CoupledField {
         // extra term for MechPDE - nn
         if (isThinLayer && solType == MECH_DISPLACEMENT){
           penalty_v1_u2_extra = new SurfaceNitscheABInt<Double,Double> 
-                                (new SurfaceNormalOperator<FeH1,DIM,D_DOF>(),
-                                new SurfaceNormalOperator<FeH1,DIM,D_DOF>(),
+                                (new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+                                new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
                                 factor, alphaThinLayerExtraMech * -1.0, curcpl, updatedGeo_, true, isPenalty);
         }
       }
@@ -4399,8 +4400,8 @@ namespace CoupledField {
                         factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         if (isThinLayer && solType == MECH_DISPLACEMENT){
           penalty_v2_u2_extra = new SurfaceNitscheABInt<Double,Double> 
-                                (new SurfaceNormalOperator<FeH1,DIM,D_DOF>(),
-                                new SurfaceNormalOperator<FeH1,DIM,D_DOF>(),
+                                (new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+                                new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
                                 factor, alphaThinLayerExtraMech, curcpl, updatedGeo_, true, isPenalty);
         }
       }
@@ -4439,9 +4440,9 @@ namespace CoupledField {
     penalty_v1_u1_Context->SetMotion(updatedGeo_);
     penalty_v2_u2_Context->SetMotion(updatedGeo_);
     penalty_v1_u2_Context->SetMotion(updatedGeo_);
-    if (penalty_v1_u1_extra_Context) {penalty_v1_u1_extra_Context->SetMotion(true);}
-    if (penalty_v2_u2_extra_Context) {penalty_v2_u2_extra_Context->SetMotion(true);}
-    if (penalty_v1_u2_extra_Context) {penalty_v1_u2_extra_Context->SetMotion(true);}
+    if (penalty_v1_u1_extra_Context) {penalty_v1_u1_extra_Context->SetMotion(updatedGeo_);}
+    if (penalty_v2_u2_extra_Context) {penalty_v2_u2_extra_Context->SetMotion(updatedGeo_);}
+    if (penalty_v1_u2_extra_Context) {penalty_v1_u2_extra_Context->SetMotion(updatedGeo_);}
     if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetMotion(updatedGeo_);}
     if (flux_v1_du1_Context){ flux_v1_du1_Context->SetMotion(updatedGeo_);}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetMotion(updatedGeo_);}
