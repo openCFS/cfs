@@ -4084,9 +4084,9 @@ namespace CoupledField {
     BiLinearForm *penalty_v1_u1 = nullptr;
     BiLinearForm *penalty_v1_u2 = nullptr;
     BiLinearForm *penalty_v2_u2 = nullptr;
-    BiLinearForm *penalty_v1_u1_extra = nullptr;
-    BiLinearForm *penalty_v1_u2_extra = nullptr;
-    BiLinearForm *penalty_v2_u2_extra = nullptr;
+    BiLinearForm *penalty_v1_u1_normalMech = nullptr;
+    BiLinearForm *penalty_v1_u2_normalMech = nullptr;
+    BiLinearForm *penalty_v2_u2_normalMech = nullptr;
     //now bilinear forms related to the normal derivatives
     //du1 refers to the normal derivative directing from 1 to 2
     BiLinearForm *flux_dv1_u1 = nullptr;
@@ -4193,7 +4193,7 @@ namespace CoupledField {
                         factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         // an extra term for MechPDE thinLayer
         if (isThinLayer && solType == MECH_DISPLACEMENT) {
-          penalty_v1_u1_extra = new SurfaceNitscheABInt<Double,Double> 
+          penalty_v1_u1_normalMech = new SurfaceNitscheABInt<Double,Double> 
             (new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
             new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
               factor, alphaThinLayerExtraMech, curcpl, updatedGeo_, true, isPenalty);
@@ -4316,7 +4316,7 @@ namespace CoupledField {
                         factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         // extra term for MechPDE - nn
         if (isThinLayer && solType == MECH_DISPLACEMENT){
-          penalty_v1_u2_extra = new SurfaceNitscheABInt<Double,Double> 
+          penalty_v1_u2_normalMech = new SurfaceNitscheABInt<Double,Double> 
                                 (new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
                                 new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
                                 factor, alphaThinLayerExtraMech * -1.0, curcpl, updatedGeo_, true, isPenalty);
@@ -4399,7 +4399,7 @@ namespace CoupledField {
                         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                         factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         if (isThinLayer && solType == MECH_DISPLACEMENT){
-          penalty_v2_u2_extra = new SurfaceNitscheABInt<Double,Double> 
+          penalty_v2_u2_normalMech = new SurfaceNitscheABInt<Double,Double> 
                                 (new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
                                 new IdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
                                 factor, alphaThinLayerExtraMech, curcpl, updatedGeo_, true, isPenalty);
@@ -4415,34 +4415,34 @@ namespace CoupledField {
 
     // now the BOperators are set, so define the contexts...
     SurfaceBiLinFormContext *penalty_v1_u1_Context = nullptr;
-    SurfaceBiLinFormContext *penalty_v1_u1_extra_Context = nullptr;
+    SurfaceBiLinFormContext *penalty_v1_u1_normalMech_Context = nullptr;
     SurfaceBiLinFormContext *flux_dv1_u1_Context   = nullptr;
     SurfaceBiLinFormContext *flux_v1_du1_Context   = nullptr;
     SurfaceBiLinFormContext *penalty_v2_u2_Context = nullptr;
-    SurfaceBiLinFormContext *penalty_v2_u2_extra_Context = nullptr;
+    SurfaceBiLinFormContext *penalty_v2_u2_normalMech_Context = nullptr;
     SurfaceBiLinFormContext *penalty_v1_u2_Context = nullptr;
-    SurfaceBiLinFormContext *penalty_v1_u2_extra_Context = nullptr;
+    SurfaceBiLinFormContext *penalty_v1_u2_normalMech_Context = nullptr;
     SurfaceBiLinFormContext *flux_dv1_u2_Context   = nullptr;
     curcpl = BiLinearForm::PRIM_PRIM;
     penalty_v1_u1_Context = new SurfaceBiLinFormContext(penalty_v1_u1, targetMatrix, curcpl);
-    if (penalty_v1_u1_extra) {penalty_v1_u1_extra_Context = new SurfaceBiLinFormContext(penalty_v1_u1_extra, targetMatrix, curcpl);}
+    if (penalty_v1_u1_normalMech) {penalty_v1_u1_normalMech_Context = new SurfaceBiLinFormContext(penalty_v1_u1_normalMech, targetMatrix, curcpl);}
     if (flux_dv1_u1){ flux_dv1_u1_Context = new SurfaceBiLinFormContext(flux_dv1_u1  , targetMatrix, curcpl);}
     if (flux_v1_du1){ flux_v1_du1_Context = new SurfaceBiLinFormContext(flux_v1_du1  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SEC_SEC;
     penalty_v2_u2_Context = new SurfaceBiLinFormContext(penalty_v2_u2, targetMatrix, curcpl);
-    if (penalty_v2_u2_extra) {penalty_v2_u2_extra_Context = new SurfaceBiLinFormContext(penalty_v2_u2_extra, targetMatrix, curcpl);}
+    if (penalty_v2_u2_normalMech) {penalty_v2_u2_normalMech_Context = new SurfaceBiLinFormContext(penalty_v2_u2_normalMech, targetMatrix, curcpl);}
     curcpl = BiLinearForm::PRIM_SEC;
     penalty_v1_u2_Context = new SurfaceBiLinFormContext(penalty_v1_u2, targetMatrix, curcpl);
-    if (penalty_v1_u2_extra) {penalty_v1_u2_extra_Context = new SurfaceBiLinFormContext(penalty_v1_u2_extra, targetMatrix, curcpl);}
+    if (penalty_v1_u2_normalMech) {penalty_v1_u2_normalMech_Context = new SurfaceBiLinFormContext(penalty_v1_u2_normalMech, targetMatrix, curcpl);}
     if (flux_dv1_u2){ flux_dv1_u2_Context = new SurfaceBiLinFormContext(flux_dv1_u2  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SEC_PRIM;
     // assign motion to the contexts
     penalty_v1_u1_Context->SetMotion(updatedGeo_);
     penalty_v2_u2_Context->SetMotion(updatedGeo_);
     penalty_v1_u2_Context->SetMotion(updatedGeo_);
-    if (penalty_v1_u1_extra_Context) {penalty_v1_u1_extra_Context->SetMotion(updatedGeo_);}
-    if (penalty_v2_u2_extra_Context) {penalty_v2_u2_extra_Context->SetMotion(updatedGeo_);}
-    if (penalty_v1_u2_extra_Context) {penalty_v1_u2_extra_Context->SetMotion(updatedGeo_);}
+    if (penalty_v1_u1_normalMech_Context) {penalty_v1_u1_normalMech_Context->SetMotion(updatedGeo_);}
+    if (penalty_v2_u2_normalMech_Context) {penalty_v2_u2_normalMech_Context->SetMotion(updatedGeo_);}
+    if (penalty_v1_u2_normalMech_Context) {penalty_v1_u2_normalMech_Context->SetMotion(updatedGeo_);}
     if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetMotion(updatedGeo_);}
     if (flux_v1_du1_Context){ flux_v1_du1_Context->SetMotion(updatedGeo_);}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetMotion(updatedGeo_);}
@@ -4450,9 +4450,9 @@ namespace CoupledField {
     penalty_v2_u2->SetName("penalty_v2_u2");
     penalty_v1_u2->SetName("penalty_v1_u2");
     penalty_v1_u1->SetName("penalty_v1_u1");
-    if (penalty_v2_u2_extra) {penalty_v2_u2_extra->SetName("penalty_v2_u2_extra");}
-    if (penalty_v1_u2_extra) {penalty_v1_u2_extra->SetName("penalty_v1_u2_extra");}
-    if (penalty_v1_u1_extra) {penalty_v1_u1_extra->SetName("penalty_v1_u1_extra");}
+    if (penalty_v2_u2_normalMech) {penalty_v2_u2_normalMech->SetName("penalty_v2_u2_extra");}
+    if (penalty_v1_u2_normalMech) {penalty_v1_u2_normalMech->SetName("penalty_v1_u2_extra");}
+    if (penalty_v1_u1_normalMech) {penalty_v1_u1_normalMech->SetName("penalty_v1_u1_extra");}
     if (flux_dv1_u1){ flux_dv1_u1->SetName("flux_dv1_u1");}
     if (flux_v1_du1){ flux_v1_du1->SetName("flux_v1_du1");}
     if (flux_dv1_u2){ flux_dv1_u2->SetName("flux_dv1_u2");}
@@ -4461,9 +4461,9 @@ namespace CoupledField {
     penalty_v1_u1_Context->SetEntities(actSDList,actSDList);
     penalty_v2_u2_Context->SetEntities(actSDList,actSDList);
     penalty_v1_u2_Context->SetEntities(actSDList,actSDList);
-    if (penalty_v1_u1_extra_Context) {penalty_v1_u1_extra_Context->SetEntities(actSDList,actSDList);}
-    if (penalty_v2_u2_extra_Context) {penalty_v2_u2_extra_Context->SetEntities(actSDList,actSDList);}
-    if (penalty_v1_u2_extra_Context) {penalty_v1_u2_extra_Context->SetEntities(actSDList,actSDList);}
+    if (penalty_v1_u1_normalMech_Context) {penalty_v1_u1_normalMech_Context->SetEntities(actSDList,actSDList);}
+    if (penalty_v2_u2_normalMech_Context) {penalty_v2_u2_normalMech_Context->SetEntities(actSDList,actSDList);}
+    if (penalty_v1_u2_normalMech_Context) {penalty_v1_u2_normalMech_Context->SetEntities(actSDList,actSDList);}
     if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetEntities(actSDList,actSDList);}
     if (flux_v1_du1_Context){ flux_v1_du1_Context->SetEntities(actSDList,actSDList);}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetEntities(actSDList,actSDList);}    
@@ -4471,23 +4471,23 @@ namespace CoupledField {
     penalty_v1_u1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_v2_u2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_v1_u2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
-    if (penalty_v1_u1_extra_Context) {penalty_v1_u1_extra_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
-    if (penalty_v2_u2_extra_Context) {penalty_v2_u2_extra_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
-    if (penalty_v1_u2_extra_Context) {penalty_v1_u2_extra_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (penalty_v1_u1_normalMech_Context) {penalty_v1_u1_normalMech_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (penalty_v2_u2_normalMech_Context) {penalty_v2_u2_normalMech_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (penalty_v1_u2_normalMech_Context) {penalty_v1_u2_normalMech_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
     if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
     if (flux_v1_du1_Context){ flux_v1_du1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
 
     penalty_v1_u2_Context->SetCounterPart(true);
-    if (penalty_v1_u2_extra_Context) {penalty_v1_u2_extra_Context->SetCounterPart(true);}
+    if (penalty_v1_u2_normalMech_Context) {penalty_v1_u2_normalMech_Context->SetCounterPart(true);}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetCounterPart(true);}
 
     assemble_->AddBiLinearForm( penalty_v1_u1_Context );
     assemble_->AddBiLinearForm( penalty_v2_u2_Context );
     assemble_->AddBiLinearForm( penalty_v1_u2_Context );
-    if (penalty_v1_u1_extra_Context) {assemble_->AddBiLinearForm( penalty_v1_u1_extra_Context );}
-    if (penalty_v2_u2_extra_Context) {assemble_->AddBiLinearForm( penalty_v2_u2_extra_Context );}
-    if (penalty_v1_u2_extra_Context) {assemble_->AddBiLinearForm( penalty_v1_u2_extra_Context );}
+    if (penalty_v1_u1_normalMech_Context) {assemble_->AddBiLinearForm( penalty_v1_u1_normalMech_Context );}
+    if (penalty_v2_u2_normalMech_Context) {assemble_->AddBiLinearForm( penalty_v2_u2_normalMech_Context );}
+    if (penalty_v1_u2_normalMech_Context) {assemble_->AddBiLinearForm( penalty_v1_u2_normalMech_Context );}
     if (flux_dv1_u1_Context){ assemble_->AddBiLinearForm( flux_dv1_u1_Context );}
     if (flux_v1_du1_Context){ assemble_->AddBiLinearForm( flux_v1_du1_Context );}
     if (flux_dv1_u2_Context){ assemble_->AddBiLinearForm( flux_dv1_u2_Context );}
@@ -4495,9 +4495,9 @@ namespace CoupledField {
     ncIf->RegisterIntegrator( penalty_v1_u1_Context );
     ncIf->RegisterIntegrator( penalty_v2_u2_Context );
     ncIf->RegisterIntegrator( penalty_v1_u2_Context );
-    if (penalty_v1_u1_extra_Context) {ncIf->RegisterIntegrator( penalty_v1_u1_extra_Context );}
-    if (penalty_v2_u2_extra_Context) {ncIf->RegisterIntegrator( penalty_v2_u2_extra_Context );}
-    if (penalty_v1_u2_extra_Context) {ncIf->RegisterIntegrator( penalty_v1_u2_extra_Context );}
+    if (penalty_v1_u1_normalMech_Context) {ncIf->RegisterIntegrator( penalty_v1_u1_normalMech_Context );}
+    if (penalty_v2_u2_normalMech_Context) {ncIf->RegisterIntegrator( penalty_v2_u2_normalMech_Context );}
+    if (penalty_v1_u2_normalMech_Context) {ncIf->RegisterIntegrator( penalty_v1_u2_normalMech_Context );}
     if (flux_dv1_u1_Context){ ncIf->RegisterIntegrator( flux_dv1_u1_Context );}
     if (flux_v1_du1_Context){ ncIf->RegisterIntegrator( flux_v1_du1_Context );}
     if (flux_dv1_u2_Context){ ncIf->RegisterIntegrator( flux_dv1_u2_Context );}
