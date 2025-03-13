@@ -4450,9 +4450,9 @@ namespace CoupledField {
     penalty_v2_u2->SetName("penalty_v2_u2");
     penalty_v1_u2->SetName("penalty_v1_u2");
     penalty_v1_u1->SetName("penalty_v1_u1");
-    if (penalty_v2_u2_normalMech) {penalty_v2_u2_normalMech->SetName("penalty_v2_u2_extra");}
-    if (penalty_v1_u2_normalMech) {penalty_v1_u2_normalMech->SetName("penalty_v1_u2_extra");}
-    if (penalty_v1_u1_normalMech) {penalty_v1_u1_normalMech->SetName("penalty_v1_u1_extra");}
+    if (penalty_v2_u2_normalMech) {penalty_v2_u2_normalMech->SetName("penalty_v2_u2_normalMech");}
+    if (penalty_v1_u2_normalMech) {penalty_v1_u2_normalMech->SetName("penalty_v1_u2_normalMech");}
+    if (penalty_v1_u1_normalMech) {penalty_v1_u1_normalMech->SetName("penalty_v1_u1_normalMech");}
     if (flux_dv1_u1){ flux_dv1_u1->SetName("flux_dv1_u1");}
     if (flux_v1_du1){ flux_v1_du1->SetName("flux_v1_du1");}
     if (flux_dv1_u2){ flux_dv1_u2->SetName("flux_dv1_u2");}
