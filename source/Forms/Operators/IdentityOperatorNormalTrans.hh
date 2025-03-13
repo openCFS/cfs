@@ -83,7 +83,7 @@ namespace CoupledField{
     }
 
     virtual void CalcOpMat(Matrix<Double> & bMat,
-                           const LocPointMapped& lp, BaseFE* ptFe);
+                           const LocPointMapped& lp, BaseFE* ptFe );
 
     virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                      const LocPointMapped& lp, BaseFE* ptFe );
@@ -135,7 +135,6 @@ namespace CoupledField{
     // ensure, that the surface information (i.e. normal direction)
     // is set at the mapped local point
     assert(lp.isSurface);
-
     const UInt numFncs = ptFe->GetNumFncs();
 
     // Set correct size of matrix B and initialize with zeros
@@ -145,7 +144,7 @@ namespace CoupledField{
     Vector<Double> s;
     FE *fe = (static_cast<FE*>(ptFe));
     for(UInt d = 0; d < DIM_SPACE; d ++){
-      fe->GetShFnc( s, lp.lpmVol->lp, lp.lpmVol->shapeMap->GetElem() , d);
+      fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh ++){
         bMat[0][DIM_SPACE*sh+d] = s[sh] * lp.normal[d];
       }
@@ -170,7 +169,7 @@ namespace CoupledField{
     Vector<Double> s;
     FE *fe = (static_cast<FE*>(ptFe));
     for(UInt d = 0; d < DIM_SPACE; d ++){
-      fe->GetShFnc( s, lp.lpmVol->lp, lp.lpmVol->shapeMap->GetElem() , d);
+      fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh ++){
         bMat[DIM_SPACE*sh+d][0] = s[sh] * lp.normal[d];
       }
