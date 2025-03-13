@@ -16,8 +16,9 @@ wget.exe --quiet https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37
 # install in two steps. We are Administrator, see https://learn.microsoft.com/de-de/archive/blogs/virtual_pc_guy/a-self-elevating-powershell-script
 # inspired by https://github.com/oneapi-src/oneapi-ci/blob/master/scripts/install_windows.bat
 # note that $CI_PROJECT_DIR is the current dir C:\GitLab-Runner\builds\openCFS\cfs
+# find components via oneapi_offline.exe --list-components (in gui, not via ssh)
 Start-Process -FilePath "./oneapi_offline.exe" -ArgumentList "-s -x -f oneapi_extracted --log extract.log" -NoNewWindow -Wait
-Start-Process -FilePath "./oneapi_extracted/bootstrapper.exe" -ArgumentList "-s --action install --install-dir=$CI_PROJECT_DIR\cache\oneAPI --log-dir=$CI_PROJECT_DIR\oneapilog  --components=intel.oneapi.win.ifort-compiler:intel.oneapi.win.mkl.devel --eula=accept -p=NEED_VS2019_INTEGRATION=0 -p=NEED_VS2022_INTEGRATION=0 " -NoNewWindow -Wait
+Start-Process -FilePath "./oneapi_extracted/bootstrapper.exe" -ArgumentList "-s --action install --install-dir=$CI_PROJECT_DIR\cache\oneAPI --log-dir=$CI_PROJECT_DIR\oneapilog  --components=intel.oneapi.win.cpp-dpcpp-common:intel.oneapi.win.ifort-compiler:intel.oneapi.win.mkl.devel --eula=accept -p=NEED_VS2019_INTEGRATION=0 -p=NEED_VS2022_INTEGRATION=0 " -NoNewWindow -Wait
 
 # clean up temporary files
 Remove-Item oneapi_offline.exe -Force 
