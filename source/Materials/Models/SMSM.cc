@@ -28,7 +28,8 @@ DEFINE_LOG(smsm, "SMSM")
     if(dim_ == 3){
       // Define the file path
       // std::string filePath = "/home/klaus/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
-      std::string filePath = "/Users/kroppert/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
+      //std::string filePath = "/Users/kroppert/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
+      std::string filePath = "/home/lukas/Devel/CFS_SRC/cfs/source/Materials/Models/TABSPHEREI4S4_2562.txt";
       std::ifstream file(filePath);
 
       // Check if the file was successfully opened

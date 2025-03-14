@@ -379,8 +379,8 @@ namespace CoupledField
         factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
         factor3 = (2*Ps_*t3)/(M_PI*t0);
 
-        for (int i = 0; i < dim_; ++i){
-          for (int j = 0; j < dim_; ++j){
+        for (UInt i = 0; i < dim_; ++i){
+          for (UInt j = 0; j < dim_; ++j){
               identity[i][j] = (i == j) ? 1 : 0;
               T2[i][j] = HVec[i]*HVec[j];
               chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
@@ -401,8 +401,8 @@ namespace CoupledField
         factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
         factor3 = (2*Ps_*t3)/(M_PI*t0);
 
-        for (int i = 0; i < dim_; ++i){
-          for (int j = 0; j < dim_; ++j){
+        for (UInt i = 0; i < dim_; ++i){
+          for (UInt j = 0; j < dim_; ++j){
               identity[i][j] = (i == j) ? 1 : 0;
               T2[i][j] = HVec[i]*HVec[j];
               chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
@@ -544,49 +544,88 @@ namespace CoupledField
 
 Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
 
-    Matrix<Double> yyT(dim_, dim_);
-    Matrix<Double> BxBxT(dim_, dim_);
-    Matrix<Double> B_k1(dim_, dim_);
-    Matrix<Double> B = mu_[idx];
-    Double yTx;
-    Double xTBx;
-    StdVector<Double> y = dB;
-    StdVector<Double> x = dH;
-    StdVector<Double> Bx;
+      // define needed variables
+      Matrix<Double> yyT(dim_, dim_);
+      Matrix<Double> BxBxT(dim_, dim_);
+      Matrix<Double> B_k1(dim_, dim_);
+      Matrix<Double> B = mu_[idx];
+      Double yTx;
+      Double xTBx;
+      StdVector<Double> y = dB;
+      StdVector<Double> x = dH;
+      Vector<Double> Bx(dim_);
 
-    // yyT (outer product)
-    yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; yyT[0][2] = y[0]*y[2];
-    yyT[1][0] = y[1]*y[0]; yyT[1][1] = y[1]*y[1]; yyT[1][2] = y[1]*y[2];
-    yyT[2][0] = y[2]*y[0]; yyT[2][1] = y[2]*y[1]; yyT[2][2] = y[2]*y[2];
+      // update nu via BFGS formula
+      if(dim_ == 2){
+        // yyT (outer product)
+        yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; 
+        yyT[1][0] = y[1]*y[0]; yyT[1][1] = y[1]*y[1]; 
 
-    // yTx (inner product)
-    yTx = (y[0]*x[0]) + (y[1]*x[1]) + (y[2]*x[2]);
+        // yTx (inner product)
+        yTx = (y[0]*x[0]) + (y[1]*x[1]);
 
-    // xTBx (inner product)
-    Bx[0] = B[0][0]*x[0] + B[0][1]*x[1] + B[0][2]*x[2];
-    Bx[1] = B[1][0]*x[0] + B[1][1]*x[1] + B[1][2]*x[2];
-    Bx[2] = B[2][0]*x[0] + B[2][1]*x[1] + B[2][2]*x[2];
-    xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]) + (x[2]*Bx[2]);
+        // xTBx (inner product)
+        Bx[0] = B[0][0]*x[0] + B[0][1]*x[1];
+        Bx[1] = B[1][0]*x[0] + B[1][1]*x[1];
+        xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]);
 
-    // BxBxT (outer product)
-    BxBxT[0][0] = Bx[0]*Bx[0]; BxBxT[0][1] = Bx[0]*Bx[1]; BxBxT[0][2] = Bx[0]*Bx[2];
-    BxBxT[1][0] = Bx[1]*Bx[0]; BxBxT[1][1] = Bx[1]*Bx[1]; BxBxT[1][2] = Bx[1]*Bx[2];
-    BxBxT[2][0] = Bx[2]*Bx[0]; BxBxT[2][1] = Bx[2]*Bx[1]; BxBxT[2][2] = Bx[2]*Bx[2];
+        // BxBxT (outer product)
+        BxBxT[0][0] = Bx[0]*Bx[0]; BxBxT[0][1] = Bx[0]*Bx[1];
+        BxBxT[1][0] = Bx[1]*Bx[0]; BxBxT[1][1] = Bx[1]*Bx[1];
+        
+        // construct everything
+        B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
+        B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
 
-    // construct everything
-    B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
-    B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
-    B_k1[0][2] = B[0][2] + yyT[0][2]/yTx - BxBxT[0][2]/xTBx;
+        B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
+        B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
 
-    B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
-    B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
-    B_k1[1][2] = B[1][2] + yyT[1][2]/yTx - BxBxT[1][2]/xTBx;
+        if ( (std::isnan(B_k1[0][0])) || (std::isnan(B_k1[1][1])) || (std::isnan(B_k1[0][1])) || (std::isnan(B_k1[1][0])) ) {
+          B_k1[0][0] = mu0_;
+          B_k1[1][1] = 0;
+          B_k1[0][1] = 0;
+          B_k1[1][0] = mu0_;
+        }
+        if ( (std::isinf(B_k1[0][0])) || (std::isinf(B_k1[1][1])) || (std::isinf(B_k1[0][1])) || (std::isinf(B_k1[1][0])) ) {
+          B_k1[0][0] = mu0_;
+          B_k1[1][1] = 0;
+          B_k1[0][1] = 0;
+          B_k1[1][0] = mu0_;
+        }
+      } else { // 3-D version
+        // yyT (outer product)
+        yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; yyT[0][2] = y[0]*y[2];
+        yyT[1][0] = y[1]*y[0]; yyT[1][1] = y[1]*y[1]; yyT[1][2] = y[1]*y[2];
+        yyT[2][0] = y[2]*y[0]; yyT[2][1] = y[2]*y[1]; yyT[2][2] = y[2]*y[2];
 
-    B_k1[2][0] = B[2][0] + yyT[2][0]/yTx - BxBxT[2][0]/xTBx; 
-    B_k1[2][1] = B[2][1] + yyT[2][1]/yTx - BxBxT[2][1]/xTBx;
-    B_k1[2][2] = B[2][2] + yyT[2][2]/yTx - BxBxT[2][2]/xTBx;
+        // yTx (inner product)
+        yTx = (y[0]*x[0]) + (y[1]*x[1]) + (y[2]*x[2]);
 
-    return B_k1;
+        // xTBx (inner product)
+        Bx[0] = B[0][0]*x[0] + B[0][1]*x[1] + B[0][2]*x[2];
+        Bx[1] = B[1][0]*x[0] + B[1][1]*x[1] + B[1][2]*x[2];
+        Bx[2] = B[2][0]*x[0] + B[2][1]*x[1] + B[2][2]*x[2];
+        xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]) + (x[2]*Bx[2]);
+
+        // BxBxT (outer product)
+        BxBxT[0][0] = Bx[0]*Bx[0]; BxBxT[0][1] = Bx[0]*Bx[1]; BxBxT[0][2] = Bx[0]*Bx[2];
+        BxBxT[1][0] = Bx[1]*Bx[0]; BxBxT[1][1] = Bx[1]*Bx[1]; BxBxT[1][2] = Bx[1]*Bx[2];
+        BxBxT[2][0] = Bx[2]*Bx[0]; BxBxT[2][1] = Bx[2]*Bx[1]; BxBxT[2][2] = Bx[2]*Bx[2];
+
+        // construct everything
+        B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
+        B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
+        B_k1[0][2] = B[0][2] + yyT[0][2]/yTx - BxBxT[0][2]/xTBx;
+
+        B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
+        B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
+        B_k1[1][2] = B[1][2] + yyT[1][2]/yTx - BxBxT[1][2]/xTBx;
+
+        B_k1[2][0] = B[2][0] + yyT[2][0]/yTx - BxBxT[2][0]/xTBx; 
+        B_k1[2][1] = B[2][1] + yyT[2][1]/yTx - BxBxT[2][1]/xTBx;
+        B_k1[2][2] = B[2][2] + yyT[2][2]/yTx - BxBxT[2][2]/xTBx;
+      }
+      return B_k1; // this is the new nu
 
 
   }
@@ -852,14 +891,6 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
             } 
         }
       }
-      //################### just for checking some things #################
-/*       if (idx == 15){
-        std::cout << "Broyden" << std::endl;
-        std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-        std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-        std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-      } */
-      //############### delete as soon as it works #######################
       return mu;  
   }
 

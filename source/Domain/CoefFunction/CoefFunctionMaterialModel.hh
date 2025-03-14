@@ -16,6 +16,7 @@
 #include "Materials/BaseMaterial.hh"
 #include "Materials/Models/Jiles.hh"
 #include "Materials/Models/EBHysteresis.hh"
+#include "Materials/Models/invEBHysteresis.hh"
 #include "Materials/Models/Model.hh"
 
 namespace CoupledField  {
@@ -82,7 +83,7 @@ public:
     stressCoef_ = stressCoef;
   };
 
-  // Currently only used in EBHysteresis to update values for hysteretic computations and save the new values for the next timestep
+  // Currently only used in EBHysteresis and invEBHysteresis to update values for hysteretic computations and save the new values for the next timestep
   void UpdateHistoryValues();
   void AllowUpdates(bool allow);
 

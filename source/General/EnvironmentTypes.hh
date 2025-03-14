@@ -355,6 +355,8 @@ namespace CoupledField {
     // -- Magnetic EB Hysteresis Parameters
     MAG_PS_EB, MAG_A_EB, MAG_MU0_EB, MAG_NUMS_EB, MAG_CHI_FACTOR_EB, MAG_JACOBIAN_METHOD_EB,
     MAG_APPROX_TYPE, MAG_MSM_AS, MAG_MSM_K1, MAG_MSM_K2, MAG_MSM_LAMBDA100, MAG_MSM_LAMBDA111, MAG_MSM_PS,
+    // -- Magnetic inverse EB Hysteresis Parameters
+    MAG_JS_INVEB, MAG_A_INVEB, MAG_NUMS_INVEB, MAG_CHI_FACTOR_INVEB, MAG_JACOBIAN_METHOD_INVEB,
     
     // ============
     //  MECHANICAL

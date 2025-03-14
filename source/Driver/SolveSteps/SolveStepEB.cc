@@ -79,10 +79,7 @@ namespace CoupledField
         stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),fncId);
         fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
       }
-      stageSol.SetOwnership(false);
-
-      // now that we have reached our convergence threshold for this timestep, let's save the states in our model
-      matModelCoef_->UpdateHistoryValues();   
+      stageSol.SetOwnership(false); 
 
       LOG_DBG2(solvestepeb) << "stageSol before while:" << stageSol.ToString();
 
@@ -108,7 +105,7 @@ namespace CoupledField
         LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
         LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
-        matModelCoef_->AllowUpdates(true);
+        // matModelCoef_->AllowUpdates(true);
 
         // set up RHS
         algsys_->InitRHS();
@@ -156,7 +153,7 @@ namespace CoupledField
         LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
 
-        matModelCoef_->AllowUpdates(false);
+        // matModelCoef_->AllowUpdates(false);
 
         // apply line search
         Double etaLineSearch = 1.0;
@@ -215,6 +212,9 @@ namespace CoupledField
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
         if ( performOneMoreStep == 0){
+          // now that we have reached our convergence threshold for this timestep, let's save the states in our model
+          matModelCoef_->UpdateHistoryValues();  
+          matModelCoef_->AllowUpdates(false);
           break;
         }
         
@@ -226,7 +226,6 @@ namespace CoupledField
                   << "\n ==> residual error: " << residualErr);
         }
       }
- 
     } //stages
     
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
@@ -261,8 +260,8 @@ namespace CoupledField
 
   double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol){
 
-    Double bottom_interval = 0.0 + 1e-5;
-    Double top_interval = 2; 
+    Double bottom_interval = 0.0 + 1e-3;
+    Double top_interval = 1; 
     Double gamma = 0;
     
     gamma = BrentMethod(solIncrement, stageSol, bottom_interval, top_interval);

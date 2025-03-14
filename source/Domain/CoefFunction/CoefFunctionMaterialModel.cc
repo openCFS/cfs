@@ -61,10 +61,19 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
     matModel_ = &EBHysteresisModel;
 
     std::cout << "Initialized Model: " << modelName_ << std::endl;
+  } else if(modelName_ == "invEBHysteresisModel"){
+    dimType_ = TENSOR;
+
+    static invEBHysteresis invEBHysteresisModel;
+    matModel_ = &invEBHysteresisModel;
+
+    std::cout << "Initialized Model: " << modelName_ << std::endl;
+
   } else {
 
     EXCEPTION("Model not implemented! ("<< modelName_<<")")
   }
+
 }
 
 template<class TYPE> CoefFunctionMaterialModel<TYPE>::~CoefFunctionMaterialModel() {
@@ -163,12 +172,19 @@ template<class T> void CoefFunctionMaterialModel<T>::GetVector(
   for(UInt i = 0 ; i < spaceDim_; ++i){
     RealDependentVec[i] = std::real(DependentVec[i]); 
   }
-  if(stressCoef_){
-    // multiscale version, which requires mechanical stress input
-    coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum, lpm, stressCoef_);
-  }else{
+  if (modelName_ == "EBHysteresisModel") {
+    if(stressCoef_){
+      // multiscale version, which requires mechanical stress input
+      coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum, lpm, stressCoef_);
+    }else{
+      coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
+    }
+  } else if (modelName_ == "invEBHysteresisModel")  {
+    coefVector = matModel_->GetFieldIntensity(RealDependentVec, lpm.ptEl->elemNum);
+  } else {
     coefVector = matModel_->GetFluxDensity(RealDependentVec, lpm.ptEl->elemNum);
   }
+
 
   
   LOG_DBG(cfjc)

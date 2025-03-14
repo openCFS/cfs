@@ -998,6 +998,25 @@ namespace CoupledField {
             }else{
               EXCEPTION("Approx_type of name "<<model->Get("Approx_type")->As<std::string>()<<" not implemented");
             }
+          } 
+          else if (perm->Get("model")->Get("isotropic")->Has("invEBHysteresisModel")) 
+          {
+            model = perm->Get("model")->Get("isotropic")->Get("invEBHysteresisModel");
+
+            if(model->Has("Anhysteresis_model/analytic_anhysteresis")){
+              material->SetAnhystMagModel("analytic_anhysteresis");
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/Js")->As<Double>(), MaterialType(MAG_JS_INVEB), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/A")->As<Double>(), MaterialType(MAG_A_INVEB), Global::REAL);
+            }
+            material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_INVEB), Global::REAL);
+            material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_INVEB), Global::REAL);
+            if(model->Get("Jacobian_type")->As<std::string>() == "Broyden"){
+              material->SetScalar(2, MaterialType(MAG_JACOBIAN_METHOD_INVEB), Global::REAL);
+            }else if(model->Get("Jacobian_type")->As<std::string>() == "BFGS"){
+              material->SetScalar(4, MaterialType(MAG_JACOBIAN_METHOD_INVEB), Global::REAL);
+            }else{
+              EXCEPTION("Jacobian_type of name "<<model->Get("Jacobian_type")->As<std::string>()<<" not implemented");
+            }
           }
         }
       }
