@@ -21,6 +21,8 @@ DEFINE_LOG(obj, "objective")
 
 Enum<StoppingRule::Type>       StoppingRule::type;
 Enum<StoppingRule::Condition>  StoppingRule::condition;
+Enum<Objective::Term>          Objective::term;
+
 
 Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
  : Function(pn_type)
@@ -28,9 +30,31 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
   // multiple excitation is handled in Optimization itself!
 
   // the current value -> check <Get/Set>Value() when altering the presets!
-  this->index_       = idx;
+  index_       = idx;
 
-  this->scale_ = pn_type->Has("scale") ? pn_type->Get("scale")->As<Double>() : 1.0;
+  // a tune scale increases the scale parameter automatically, depending on the tune configuration
+  if(pn_type->Has("scale"))
+  {
+    if(pn_type->Get("scale")->As<string>() == "tune")
+    {
+      tune.Init(pn_type->Get("tune", ParamNode::PASS), Tune::FUNC_SCALE);
+      scale = tune.start;
+      assert(tune.IsSet());
+    }
+    else
+      scale = pn_type->Get("scale")->As<double>();
+  }
+  else
+    scale = 1.0;
+
+  term_ = pn_type->Has("term") ? term.Parse(pn_type->Get("term")->As<string>()) : LINEAR;
+
+  if(term_ == PENALTY || term_ == POWER)
+  {
+    string msg = term_ == PENALTY ? "penalty (scale * max(0, func-parameter)^2)" : "power (scale * func^parameter)";
+    if(!pn_type->Has("parameter")) // read by Function.cc
+      throw Exception("objective attribute 'term' " + msg + " requires 'parameter'");
+  }
 
   get<0>(coord) = -1;
   get<1>(coord) = -1;
@@ -51,7 +75,7 @@ Objective::Objective(Type type, double parameter, Access acc)
   this->type_ = type;
   this->parameter_ = parameter;
   this->access_ = acc;
-  this->scale_ = 1.0;
+  this->scale = 1.0;
 }
 
 
@@ -63,9 +87,17 @@ std::string Objective::GetName() const
     return type.ToString(type_) + "E" + lexical_cast<std::string>(get<0>(coord)) + lexical_cast<std::string>(get<1>(coord));
 }
 
+
 void Objective::ToInfo(PtrParamNode info)
 {
   Function::ToInfo(info);
+  info->Get("term")->SetValue(term.ToString(term_));
+
+  if(tune.IsSet())
+    tune.ToInfo(info->Get("scale"));
+  else
+    info->Get("scale")->SetValue(scale);
+
   if(tensor_.GetNumRows() > 1)
     info->Get("tensor")->SetValue(tensor_);
 }
@@ -241,16 +273,16 @@ void ObjectiveContainer::Read(PtrParamNode obj_node)
 
 void ObjectiveContainer::PostProc(DesignSpace* space, DesignStructure* structure, MultipleExcitation* me)
 {
-  for(unsigned int i = 0; i < data.GetSize(); i++)
+  for(Objective* o : data)
   {
-    assert(data[i]->HasDenseJacobian());
-    data[i]->SetDenseSparsityPattern(space);
-
-    data[i]->SetElements(space, data[i]->region); // before Function::PostProc() !
-    data[i]->PostProc(space, structure);
-    data[i]->SetExcitation(me);
+    assert(o->HasDenseJacobian());
+    if(o->tune.IsSet())
+      o->tune.Register(&(o->scale), domain->GetOptimization());
+    o->SetDenseSparsityPattern(space);
+    o->SetElements(space, o->region); // before Function::PostProc() !
+    o->PostProc(space, structure);
+    o->SetExcitation(me);
   }
-
 }
 
 void ObjectiveContainer::ToInfo(PtrParamNode in)
@@ -262,15 +294,14 @@ void ObjectiveContainer::ToInfo(PtrParamNode in)
     {
       PtrParamNode o = m->Get("objective", ParamNode::APPEND);
       Objective* f = data[i];
-      f->ToInfo(o);
-      o->Get("scale")->SetValue(f->scale_); // always for multiobjective
+      f->ToInfo(o); // has scale with sensitivity to tune
     }
   }
   else
   {
     data[0]->ToInfo(in);
-    if(data[0]->GetScale() != 1.0) // only when it is set
-      in->Get("scale")->SetValue(data[0]->GetScale());
+    if(data[0]->scale != 1.0) // only when it is set
+      in->Get("scale")->SetValue(data[0]->scale);
   }
 
   in->Get("task")->SetValue(minimize_ ? "minimize" : "maximize");
@@ -321,7 +352,7 @@ double ObjectiveContainer::GetHistoryValue(bool penalty, int index)
   for(unsigned int i = 0; i < data.GetSize(); i++)
   {
     double val = data[i]->history[idx];
-    vals[i] = (penalty ? data[i]->scale_ : 1.0) * val;
+    vals[i] = (penalty ? data[i]->scale : 1.0) * val;
     result += vals[i];
   }
 

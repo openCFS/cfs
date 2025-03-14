@@ -282,6 +282,8 @@ namespace CoupledField
         /** Get the combination of functions in multi objective case and write beta */
         Objective::MultiObjType GetMOType(double& beta) const { beta = this->multiObjectiveBeta_; return multiObjectiveType_; }
 
+        bool IsMultiObjective() const { return isMultiObjective_; }
+
         bool CalcObjectiveCalled() { return calcObjIteration_ == this->GetCurrentIteration(); }
 
         /** This tells the driver to store the last solved problem (gid, ...). Called in

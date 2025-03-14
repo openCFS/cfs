@@ -408,7 +408,7 @@ void ErsatzMaterial::PostInit()
         idx = order[idx];
       }
       if(idx > 0)
-        log.AddToHeader("mode_" + boost::lexical_cast<std::string>(idx));
+        log.AddToHeader("mode_" + std::to_string(idx));
     }
   }
 
@@ -3784,101 +3784,77 @@ double ErsatzMaterial::CalcFilteringGap(Condition* g, bool derivative) {
 
 double ErsatzMaterial::CalcGreyness(Function* f, bool derivative)
 {
+  // the basic grayness idea is: 
+  // g(x)=4*x*(1-x) with x in [0,1] such that 0 <= g <= 1
+  // we normalize the design variables to [0,1] and calculate the greyness 
+  // x(rho) = (rho-lb)/(ub-lb)
+  // for the physical case we have 
+  // g(x)=s * x**3 * (1-x)**3 and NOT x**3 * (1-x**3) (make a plot to see the difference) 
+  // s is found by CalcGraynessScaling()
+  
+  // non-physical case: d/dr 4* (r-l)/(u-l)*(1-(r-l)/(u-l))
+  // g' = 4 * (l+u-2*rho)/(u-l)**2
+
+  // physical case: d/dr s * t(x(r)) * t(1-x(r))
+  // g' = s * x'(r) * (t(1 - x(r)) * t'(x(r)) - t(x(r)) * t'(1 - x(r))) with x'(r) = 1/(u-l)
+  // I don't believe wolfram alpha for the insterted variant!
+  // d/dr(t((r - l)/(u - l)) t(1 - (r - l)/(u - l))) = (t((l - r)/(l - u)) t'((r - u)/(l - u)) - t((r - u)/(l - u)) t'((l - r)/(l - u)))/(l - u)
+
   double greyness = 0.0; // element greyness
-  int counter = 0;// to make it sure for different design variables!
-  double lb = 0, ub = 0, span = 0, grad = 0, eval = 0; // lb and ub are the transformed bounds in the physical case
-  double x = -1.0; // plain or filtered design. Not normalized (not necessarily within [0,1])
-  double org_value = -2.0; // x^3 in the pyhsical case or x - but not normalized 
-  double value = -3.0; // org_value normalized to [0,1]
+  double lb = 0, ub = 0, span = 0, grad = 0, eval = 0; // lb and ub original bounds, span = ub-lb
+  double rho = -1.0; // plain or filtered design. Not normalized (not necessarily within [0,1])
+  double x   = -1.0; // plain or filtered design normalized to [0,1]
+  double s   = f->CalcGraynessScaling(); // scaling factor - 4 in the non-physical case
+  assert(!(!f->IsPhysical() && s != 4.0)); // only 4.0 is allowed for the non-physical case
+  
+  //double x = -1.0; // plain or filtered design. Not normalized (not necessarily within [0,1])
+  //double org_value = -2.0; // x^3 in the pyhsical case or x - but not normalized 
+  //double value = -3.0; // org_value normalized to [0,1]
   // we have to divide the gradients by their relative volume = fraction
-  double fraction = f->GetDesignType() == DesignElement::DEFAULT ? design->data.GetSize() : design->GetNumberOfElements();
-  // do we want the physical value?
   TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), App::MECH) : NULL;
+  unsigned int N = f->GetDesignType() == DesignElement::DEFAULT ? f->elements.GetSize() : design->GetNumberOfElements();
+  unsigned int cnt = 0; // to check N
   // go over the complete design space to set gradients of other types to 0
   for(unsigned int i = 0; i < f->elements.GetSize(); i++)
   {
     DesignElement* de = f->elements[i];
     // e.g. skip slack
-    bool relevant = f->GetDesignType() == DesignElement::DEFAULT || f->GetDesignType() == de->GetType();
-    if(relevant)
+    if(f->GetDesignType() == DesignElement::DEFAULT || f->GetDesignType() == de->GetType())
     {
-      x = de->GetDesign(f->GetAccess() == Function::PLAIN ? DesignElement::PLAIN : DesignElement::SMART);
-      if(f->IsPhysical())
+      rho = de->GetDesign(f->GetAccess() == Function::PLAIN ? DesignElement::PLAIN : DesignElement::SMART);
+      lb = de->GetLowerBound();
+      ub = de->GetUpperBound();
+      span = ub-lb;
+      x = (rho - lb) / span;
+      if(span < 0.01) 
+        throw Exception("cannot calculate grayness with almost equal design bounds");
+      cnt++;
+        
+      if(!derivative)  
       {
-        lb = tf->Transform(de->GetLowerBound());
-        ub = tf->Transform(de->GetUpperBound());
-        org_value = tf->Transform(x);
+        if(f->GetAccess() == Function::PHYSICAL)
+          eval = s * tf->Transform(x) * tf->Transform(1-x); 
+        else
+          eval = s * x * (1-x);
+        greyness += eval;
       }
       else
       {
-        lb = de->GetLowerBound();
-        ub = de->GetUpperBound();
-        org_value = x; // PLAIN or FILTERED
-      }
-
-      span = ub-lb;
-
-      if(span < 0.01) 
-        throw Exception("cannot calculate grayness with almost equal design bounds");
-
-      // We normalize for a design variable from [0;1]
-      // this has minor effect on density [0.001;1] but is important
-      // for polarization[-1;1]
-      value = (org_value - lb) / span;
-    }
-
-    if(derivative)
-    {
-      if(relevant)
-      {
-        // standard greyness without parameters! times 4 so we have 1 for maximum greyness
-        // Note that we transformed to [0,1]
-        if(f->IsPhysical())
-        {
-          assert(tf);
-          // x is plain or filtered design 
-          // org_value = t(x), e.g. x^3 
-          // value = (t(x)-lb)/(ub-lb) = v in [0,1] note that lb and ub are subject to t(x)
-          // f(x) = 4 * 1/N * sum v * (1-v)
-          // f'(y) = 4 * 1/N * 1/(ub-lb)^2 * t'(x)(lb+ub-2*t(x))
-          double dt = tf->Derivative(x); // t'(x)
-          grad = 4/(span*span) * dt * (lb + ub - 2*org_value);
-          // LOG_DBG3(conditions) << "CG: " << " v=" << value << " t=" << org_value << " dt=" << dt << " -> " << grad;
-        }
+        if(f->GetAccess() == Function::PHYSICAL)
+          grad = s / span * (tf->Transform(1-x) * tf->Derivative(x) - tf->Transform(x) * tf->Derivative(1-x)) / N;
         else
-        {
-          // f(x)=4*(1-x)x * 4 = 4*(-x^2+x+1)
-          // f'(x)= 4*(-2x+1)
-          grad = (-8.0 * value + 4.0)/span;
-        }
+          grad = 4 * (lb+ub-2*rho)/(span*span) / N;
+        de->AddGradient(f, grad);
       }
-      // divide by fraction which only works, if fraction == counter
-      // the gradient of non-relevant is 0
-      grad = relevant ? grad / fraction : 0.0;
-
-      // set 0.0 if not relevant
-      design->data[i].AddGradient(f, grad);
+      LOG_DBG3(conditions) << "CG: de=" << de->elem->elemNum << " a=" << f->access.ToString(f->GetAccess()) << " d=" << derivative
+          << " rho=" << rho << " x=" << x << " lb=" << lb << " ub=" << ub << " s=" << span << " t(x)=" << (tf ? tf->Transform(x) : -1.0)
+          << " t(1-x)=" << (tf ? tf->Transform(1-x) : -1.0) << " -> eval=" << eval << " grad=" << grad;
     }
-    else // not derivative but function evaluation
-    {
-      // we normalized the greyness to value from [0;1]
-      if(relevant)
-      {
-        eval = 4.0* (1-value) * (value);
-        greyness += eval;
-        counter++;
-      }
-    }
-    LOG_DBG3(conditions) << "CG: " << " a=" << f->access.ToString(f->GetAccess())
-    << " derive=" << derivative << " relevant=" << relevant
-    << " elem=" << de->elem->elemNum << " pv=" << de->GetDesign(DesignElement::PLAIN)
-    << " sv=" << de->GetDesign(DesignElement::SMART)
-    << " ov= " << org_value << " lb=" << lb << " ub=" << ub << " s=" << span
-    << " -> value=" << value << " grad=" << grad << " eval=" << eval
-    << " fraction=" << fraction << " counter=" << counter;
-
   }
-  return greyness / (double)(counter);
+  LOG_DBG(conditions) << "CG: a=" << f->access.ToString(f->GetAccess()) << " d=" << derivative << " cnt=" << cnt << " N=" << N << " -> eval=" << eval;
+  
+  assert(cnt == N);
+  return greyness / N;
 }
 
 double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)

@@ -551,11 +551,10 @@ private:
    * The adjoint system is \f$Kv = phi^T \frac{\partial G(u)}{\partial u} phi\f$. */
   void ConstructAdjointRHSBuckling(Function* f, Vector<Complex>& mode, Vector<Complex>& rhs);
 
-  /** Calculates the Greyness.
-   * @param derivative if false the return value is calculated. Otherwise the value in
-   *                   the design element is set. Optionally also grad_out
-   * @param grad_out if derivative is set and grad_out is not null it is set.
-   * @return invalid in derivative case*/
+  /** Calculates the Grayness. Works as constraint extremely poor, is more for observation or penalty in multi objective.
+   * non physical: g(x) = 4 * x * (1 - x) with x = (rho-lb) / (ub-lb)
+   * physical: g(x) = s * t(x) * t(1-x) 
+   * g(0.5) := 1, s is accordingly found (see gray_scale in .info.xml) */
   double CalcGreyness(Function* f, bool derivative);
 
   /** Calculates the difference between filtered and non-filtered stiffness tensor.

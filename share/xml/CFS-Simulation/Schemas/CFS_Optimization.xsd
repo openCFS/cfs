@@ -342,7 +342,8 @@
           <!-- The design is optional. If not given it is for all -->
           <xsd:attribute name="design" use="optional" type="DT_Design"/>
 
-          <!-- A constraint value is either 'slack' or a scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
+          <!-- A constraint value is 
+           'slack' or a scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
           <xsd:attribute name="value" use="optional">
             <xsd:simpleType>
               <!-- either 'slack' or a float or a math parser expression, hence everything -->
@@ -670,10 +671,19 @@
               <xsd:attribute name="verbose_dual_vars" use="optional" default="false" type="xsd:boolean"/>
              
               <!-- is not described in the original Svanberg '87 paper, see the GCMMA KTU manuscripts --> 
-              <xsd:attribute name="move_limit" default="0.5" use="optional" type="xsd:token">
+              <xsd:attribute name="move_limit" default="0.5" use="optional">
                 <xsd:annotation>
                   <xsd:documentation>either a fixed move_limit or 'tuned' for density projection beta tune</xsd:documentation>
                 </xsd:annotation>
+                <xsd:simpleType>
+                  <xsd:union memberTypes="xsd:float">
+                    <xsd:simpleType>
+                      <xsd:restriction base="xsd:token">
+                        <xsd:enumeration value="tuned"/>
+                      </xsd:restriction>
+                    </xsd:simpleType>
+                  </xsd:union>
+                </xsd:simpleType>          
               </xsd:attribute>
               
               <!-- write a problem.mma text log file -->
@@ -897,10 +907,19 @@
                 <!-- how excact the constraint is reached -->
                 <xsd:attribute name="feasibility" use="optional" default="1e-6" type="xsd:float" />
                 <xsd:attribute name="damping" use="optional" default="0.5" type="xsd:float" />
-              <xsd:attribute name="move_limit" default="0.2" use="optional" type="xsd:token">
+              <xsd:attribute name="move_limit" default="0.2" use="optional">
                 <xsd:annotation>
                   <xsd:documentation>either a fixed move_limit or 'tuned' for density projection beta tune</xsd:documentation>
                 </xsd:annotation>
+                <xsd:simpleType>
+                  <xsd:union memberTypes="xsd:float">
+                    <xsd:simpleType>
+                      <xsd:restriction base="xsd:token">
+                        <xsd:enumeration value="tuned"/>
+                      </xsd:restriction>
+                    </xsd:simpleType>
+                  </xsd:union>
+                </xsd:simpleType>            
               </xsd:attribute>
                 <xsd:attribute name="lambda_min" use="optional" default="1e-8" type="xsd:float" />
                 <!-- exceeding this value for fumble actually means that upper or lower are reached -->
@@ -1448,11 +1467,20 @@
                   </xsd:simpleType>
                 </xsd:attribute>
 
-                <xsd:attribute name="initial" use="required" type="xsd:token">
+                <xsd:attribute name="initial" use="required">
                   <xsd:annotation>
-                    <xsd:documentation>Either the string 'random' or a float</xsd:documentation>
+                    <xsd:documentation>Either the string 'random' or a float or an formula</xsd:documentation>
                   </xsd:annotation>
-                </xsd:attribute>
+                  <xsd:simpleType>
+                    <xsd:union memberTypes="xsd:token">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:string">
+                          <xsd:enumeration value="random"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:union>
+                  </xsd:simpleType>          
+               </xsd:attribute>
                 <!-- The lower bound which is the physical lower bound when adapt_lower is set. Not to be set when pyhsical_lower is set -->
                 <xsd:attribute name="lower" use="optional" type="xsd:float" />
                 <!-- Instead of lower one can set physical_lower, then lower is determined by the transfer function. Redundant to adapt_lower -->
@@ -1857,7 +1885,7 @@
     <xsd:sequence>
       <xsd:element name="tune" minOccurs="0" maxOccurs="1" type="DT_Tune">
         <xsd:annotation>
-          <xsd:documentation>vary parama by definable continuation scheme</xsd:documentation>
+          <xsd:documentation>vary 'param' by definable continuation scheme</xsd:documentation>
         </xsd:annotation>
       </xsd:element>
       <!-- the interpolation function with rho as input, param as p and beta as b in muParser syntax, e.g. rho^p  -->
@@ -2586,11 +2614,21 @@
           </xsd:attribute>
 
           <!-- Continuation for Heaviside filter and steepness of tanh -->
-          <xsd:attribute name="beta" type="xsd:token" use="optional" >
+          <xsd:attribute name="beta" use="optional" >
             <xsd:annotation>
               <xsd:documentation>Either a float or 'tune'/'tunded'. Smoothing parameter for heaviside, tanh and expression.
               'tune' requires a child 'tune'. 'tuned' only for second and third filter in the robust case</xsd:documentation>
             </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:union memberTypes="xsd:float">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="tune"/>
+                    <xsd:enumeration value="tuned"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:union>
+            </xsd:simpleType>          
           </xsd:attribute>
 
           <!-- Switching position for tanh. -->
@@ -2671,10 +2709,19 @@
         </xsd:annotation>
         <xsd:complexType>
           <xsd:attribute name="dof" use="required" type="DT_Axis" />
-          <xsd:attribute name="initial" type="xsd:token" use="optional" default="interpolated">
+          <xsd:attribute name="initial" use="optional" default="interpolated">
             <xsd:annotation>
               <xsd:documentation>Either the string 'interpolated' or a float</xsd:documentation>
             </xsd:annotation>
+            <xsd:simpleType>
+               <xsd:union memberTypes="xsd:float">
+                  <xsd:simpleType>
+                     <xsd:restriction base="xsd:token">
+                       <xsd:enumeration value="interpolated"/>
+                     </xsd:restriction>
+                   </xsd:simpleType>
+               </xsd:union>
+            </xsd:simpleType>            
           </xsd:attribute>
           <xsd:attribute name="lower" type="xsd:token" use="optional" />
           <xsd:attribute name="upper" type="xsd:token" use="optional" />
@@ -2932,10 +2979,19 @@
       </xsd:element>
     </xsd:sequence>
     <!-- is not described in the original Svanberg '87 paper, see the GCMMA KTU manuscripts --> 
-    <xsd:attribute name="move_limit" default="0.5" use="optional" type="xsd:token">
+    <xsd:attribute name="move_limit" default="0.5" use="optional">
       <xsd:annotation>
         <xsd:documentation>either a fixed move_limit or 'tuned' for density projection beta tune</xsd:documentation>
       </xsd:annotation>
+      <xsd:simpleType>
+        <xsd:union memberTypes="xsd:float">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="tuned"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+       </xsd:union>
+     </xsd:simpleType>            
     </xsd:attribute>
     <xsd:attribute name="asyminit" default="0.5" use="optional" type="xsd:token" />
     <xsd:attribute name="asymdec"  default="0.7" use="optional" type="xsd:token" />
@@ -3035,7 +3091,7 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="obj" >
             <xsd:annotation>
-              <xsd:documentation>multiply 'grow' based on objective change factor</xsd:documentation>
+              <xsd:documentation>multiply 'grow' based on objective change factor.</xsd:documentation>
             </xsd:annotation>
           </xsd:enumeration>
           <xsd:enumeration value="mult" >
@@ -3068,12 +3124,12 @@
     </xsd:attribute>
     <xsd:attribute name="grow" type="xsd:float" use="optional">
       <xsd:annotation>
-        <xsd:documentation>We have different default values, depending on method. See info.xml</xsd:documentation>
+        <xsd:documentation>For mult choose greater 1. We have different default values, depending on method. See info.xml</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="obj_max_grow" type="xsd:float" use="optional" default="0.2">
       <xsd:annotation>
-        <xsd:documentation>Only for method is 'obj'</xsd:documentation>
+        <xsd:documentation>Only for method 'obj'</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="stride" type="xsd:unsignedInt" use="optional" default="1">
@@ -3424,16 +3480,63 @@
             <xsd:element name="local" type="DT_Local" minOccurs="0" maxOccurs="1" />
             <!-- local and global python function -->
             <xsd:element name="python" type="DT_PythonFunction" minOccurs="0" maxOccurs="1" />
+            <!--  -->
+            <xsd:element name="tune" minOccurs="0" maxOccurs="1" type="DT_Tune">
+              <xsd:annotation>
+                <xsd:documentation>vary 'scale' by definable continuation scheme</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+            
           </xsd:all>
           <xsd:attribute name="type" type="DT_Objective" use="required" />
           <!-- when type is slackFunction we need to give function -->
           <xsd:attribute name="function" use="optional" type="DT_SlackFunction" default="no_function"/>
-  
-          <xsd:attribute name="scale" type="xsd:float" use="optional" default="1.0">
+ 
+          <xsd:attribute name="scale" use="optional" default="1.0">
             <xsd:annotation>
-              <xsd:documentation>Contributution to the summed multi objecitve value</xsd:documentation>
+              <xsd:documentation>Factor of the summed multi objective value additional to term with 'tune' as special value</xsd:documentation>
             </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:union memberTypes="xsd:float">
+                <xsd:simpleType>
+                  <xsd:restriction base="xsd:token">
+                    <xsd:enumeration value="tune"/>
+                  </xsd:restriction>
+                </xsd:simpleType>
+              </xsd:union>
+            </xsd:simpleType>          
           </xsd:attribute>
+
+          <xsd:attribute name="term" use="optional" default="linear">
+            <xsd:annotation>
+              <xsd:documentation>Linear or nonlinear contribution of the function</xsd:documentation>
+            </xsd:annotation>
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="linear">
+                  <xsd:annotation>
+                    <xsd:documentation>simply add scale * function</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="penalty">
+                  <xsd:annotation>
+                    <xsd:documentation>penalty method: add scale * max(0, function - parameter)**2</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="ln1p">
+                  <xsd:annotation>
+                    <xsd:documentation>scale * sign(function) * ln(abs(function) + 1) for better ln() damping for small and negative values</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="power">
+                  <xsd:annotation>
+                    <xsd:documentation>scale * function**parameter, e.g. for damping (parameter smaller 1)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+
   
           <xsd:attribute name="coord" use="optional" type="DT_HomTensorEntries"/>
           <!-- only the globalSlope has a value and only within multiObjective -->

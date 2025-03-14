@@ -792,8 +792,6 @@ void SnOpt::SetIntegerValue(const std::string& key, int32_t value)
   else if(key == "verify_level")
   {
     option = "Verify level";
-    if(value > -1 && domain->GetOptimization()->GetDesign()->elementCache != NULL)
-      info_->Get(ParamNode::HEADER)->SetWarning("SNOPT's gradient check might not work with LocalElementCache.");
   }
   else if(key == "major_print_level")
   {

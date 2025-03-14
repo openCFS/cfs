@@ -27,12 +27,14 @@
 #include "Utils/Point.hh"
 #include "Utils/tools.hh"
 #include "boost/date_time/posix_time/posix_time.hpp"
+#include "boost/math/special_functions/sign.hpp"
 #include "boost/lexical_cast.hpp"
 
 
 using namespace CoupledField;
 
 using std::string;
+using boost::math::sign;
 using boost::posix_time::ptime;
 using boost::posix_time::second_clock;
 using boost::posix_time::microsec_clock;
@@ -263,27 +265,57 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
   assert(f == NULL || g == NULL);
   LOG_DBG3(desel) << "AddGradient: f=" << (f == NULL ? "null" : f->type.ToString(f->GetType()))
                 << " g=" << (g == NULL ? "null" : g->ToString()) << " val=" << value
-                << " penalty=" << (f != NULL ? boost::lexical_cast<string>(f->GetScale()) : "-")
+                << " penalty=" << (f != NULL ? std::to_string(f->scale) : "-")
                 << " old= " <<  (f != NULL ? costGradient[f->GetIndex()] : constraintGradient[g->GetIndex()])
-                << " add=" << (f != NULL ? value * f->GetScale() : value)
-                << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->GetScale() : constraintGradient[g->GetIndex()] + value);
+                << " add=" << (f != NULL ? value * f->scale : value)
+                << " -> " << (f != NULL ? costGradient[f->GetIndex()] + value * f->scale : constraintGradient[g->GetIndex()] + value);
   if(f != NULL)
-    costGradient[f->GetIndex()] += value * f->GetScale();
+    costGradient[f->GetIndex()] += value * f->scale;
   else
     constraintGradient[g->GetIndex()] += value;
 }
 
-void BaseDesignElement::AddGradient(const Function* f, double value)
+void BaseDesignElement::AddGradient(const Function* f, double d_value)
 {
-  assert(!std::isnan(value));
-  assert(!std::isinf(value));
+  assert(!std::isnan(d_value));
+  assert(!std::isinf(d_value));
   assert(( f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL)
       || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL) );
 
   if(f->IsObjective())
-    costGradient[f->GetIndex()] += value * static_cast<const Objective*>(f)->GetScale();
+  {
+    const Objective* c = static_cast<const Objective*>(f);
+    // we need to differentiate between c->GetValue() and c->GetOrgValue() -> See Optimization::CalcObjective()
+    // there we have c->SetValue(weight * tov), therefore we need for all term but LINEAR the c->GetOrgValue()
+    // but in that case we also need to add the weight manually
+    //double weight =
+    double res;
+
+    switch(c->GetTerm())
+    {
+     case Objective::LINEAR:
+       res =  c->scale * d_value;
+       break;
+     case Objective::PENALTY:
+       // scale * max(0, value - parameter)^2
+       res = c->scale * 2.0 * std::max(0.0, c->GetOrgValue() - c->GetParameter()) * d_value;
+       break;
+     case Objective::LN1P:
+       // f = scale * sign(v(x)) * ln(1 + |v(x)|)
+       res = c->scale * (sign(c->GetOrgValue()) * d_value) / (1 + std::abs(c->GetOrgValue()));
+       break;
+     case Objective::POWER:
+       // scale * value^parameter
+       res = c->scale * c->GetParameter() * std::pow(c->GetOrgValue(), c->GetParameter()-1.0) * d_value;
+       break;
+    }
+    LOG_DBG3(desel) << "AG: i=" << this->index_ << " o=" << c->type.ToString(f->GetType()) << " dv="  << d_value << " v=" << c->GetValue()
+                    << " s=" << c->scale << " t=" << c->term.ToString(c->GetTerm()) << " -> " << res;
+    costGradient[f->GetIndex()] += res;
+
+  }
   else
-    constraintGradient[f->GetIndex()] += value;
+    constraintGradient[f->GetIndex()] += d_value;
 }
 
 void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)

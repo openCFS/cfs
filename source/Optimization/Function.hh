@@ -208,11 +208,17 @@ class Function
     /** Get the parameter, if it was set */
     double GetParameter() const { return parameter_;  }
 
-    /** The evaluated function value. -1.0 if not set. */
+    /** The evaluated function to process value. In the multiple objective case this contains weight and term handling! -1.0 if not set.
+     * @see GetOrgValue() */
     virtual double GetValue() const { return value_; }
 
     /** overloaded in LocalCondition */
     virtual void SetValue(double val) { value_ = val; }
+
+    /** the real function value without scaling and term handling for the multiple objective case (e.g. penalty max(0, v - parameter)^2. */
+    double GetOrgValue() const { return org_value_; }
+    void   SetOrgValue(double v) { org_value_ = v; }
+
 
     /** Access of the design variable in (local) functions. Both sensitivity and density.
      * There is no filtered sensitivity value, only gradient.
@@ -337,6 +343,9 @@ class Function
     
     /** index within all objectives for design element gradient */
     int GetIndex() const { return index_; }
+
+    /** Grayness scaling for a normalized variables is 4 in the non-physical case as 4 * 0.5 * (1-0.5) = 1 */
+    double CalcGraynessScaling() const;
 
     /** Read the tensor if it is given, otherwise sets to 1.1
      * @param f_ctxt we call this during the constructor an therefore cannot use Function::ctxt
@@ -701,7 +710,6 @@ class Function
       /** Multiple designs on several elements for paramMat*/
       void SetupMultDesignsVirtualElementMap(const Function* f = NULL);
 
-
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
       struct NeighborhoodStructure
@@ -840,6 +848,9 @@ class Function
 
     /** The current function value */
     double value_ = 0.0;
+
+    /** for the multiple objecitve case where we set to value_ something complex in Optimization::CalcObjective() */
+    double org_value_ = -1.0;
 
     /** Some special functions use a parameter: slope constraint and penalized volume */
     double parameter_;

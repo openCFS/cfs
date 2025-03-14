@@ -27,6 +27,7 @@ void Tune::Init(PtrParamNode pn, Usage use)
     usage.SetName("Tune::Usage");
     usage.Add(BETA, "beta");
     usage.Add(PENALTY, "penalty");
+    usage.Add(FUNC_SCALE, "fscale");  
   }
 
   this->usage_ = use;
@@ -41,7 +42,10 @@ void Tune::Init(PtrParamNode pn, Usage use)
   stride =  pn->Get("stride")->As<unsigned int>();
   stopping_greyness_ = pn->Get("stopping_greyness")->As<bool>();
 
-  LOG_DBG(tune) << "I " << usage.ToString(usage_) << " opt=" << opt << " value=" << value;
+  // if we start from +/- 0.* we cannot grow (in magnitude) by multiplications
+  one_scale = method_ != ADD && start > -1 && start < 1.0;
+
+  LOG_DBG(tune) << "I " << usage.ToString(usage_) << " opt=" << opt << " method=" << method.ToString(method_) << " value=" << value << " start=" << start << " one_scale=" << one_scale;
 }
 
 void Tune::Register(double* value, Optimization* opt, GlobalFilter* f)
@@ -126,8 +130,13 @@ void Tune::ToInfo(PtrParamNode info) const
   in->Get("grow")->SetValue(grow);
   if(method_ == OBJ)
     in->Get("max_grow_rate")->SetValue(max_grow_rate);
+  in->Get("one_scale")->SetValue(one_scale);
   in->Get("stride")->SetValue(stride);
   in->Get("stopping")->SetValue(grayness ? grayness->function : "-");
+
+  if(method_ == MULT && grow <= 1)
+    in->SetWarning("when using tune method 'mult' the attribute 'grow' shall be greater 1");
+
 }
 
 void Tune::Update(unsigned int iter)
@@ -140,6 +149,9 @@ void Tune::Update(unsigned int iter)
     return;
 
   double cand = *value;
+  if(one_scale)
+    cand = (1-start) + ((end-(1-start))/end) * cand;
+
   switch(method_)
   {
   case NO_METHOD:
@@ -166,31 +178,37 @@ void Tune::Update(unsigned int iter)
     break;
   }
 
-  LOG_DBG(tune) << "U: iter=" << iter << " m=" << method.ToString(method_) << " old=" << *value << " cand=" << cand << " end=" << end << " SG=" << SufficientlyGray() << " v=" << value;
+  double rescaled = cand;
+  if(one_scale)
+    rescaled = (cand - (1-start))*end / (end-(1-start));
 
-  if(cand > end)
+
+  LOG_DBG(tune) << "U: iter=" << iter << " m=" << method.ToString(method_) << " old=" << *value << " rescaled=" << rescaled << " end=" << end
+                << " SG=" << SufficientlyGray() << " v=" << value << " cand=" << cand << " os=" << one_scale;
+
+  if(rescaled > end)
   {
     once_stopped_ = true;
 
-    LOG_DBG(tune) << "U: cand=" << cand << " end=" << end << " SG=" << SufficientlyGray() << " -> once_stopped_=true";
+    LOG_DBG(tune) << "U: rescaled=" << rescaled << " end=" << end << " SG=" << SufficientlyGray() << " -> once_stopped_=true";
     return;
   }
 
   if(SufficientlyGray() && iter > 2) // small initial density can lead to too small grayness in the beginning
   {
-    LOG_DBG(tune) << "U: cand=" << cand << " SG=" << SufficientlyGray() << " iter=" << iter << " -> once_stopped_=true";
-    if(minimal == OFF || cand > minimal)
+    LOG_DBG(tune) << "U: rescaled=" << rescaled << " SG=" << SufficientlyGray() << " iter=" << iter << " -> once_stopped_=true";
+    if(minimal == OFF || rescaled > minimal)
     {
       once_stopped_ = true;
-      LOG_DBG(tune) << "U: SG=" << SufficientlyGray() << " minimal=" << minimal << " cand=" << cand << " -> once_stopped_=true";
+      LOG_DBG(tune) << "U: SG=" << SufficientlyGray() << " minimal=" << minimal << " rescaled=" << rescaled << " -> once_stopped_=true";
       return;
     }
   }
 
   // do it: set the candidate to the value
-  *value = cand;
+  *value = rescaled;
   for(double* ptr : external)
-    *ptr = cand;
+    *ptr = rescaled;
 
   for(GlobalFilter* f : gf)
   {

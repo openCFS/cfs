@@ -45,6 +45,9 @@ DumasMMA::DumasMMA(Optimization* optimization, PtrParamNode pn, Optimization::Op
   xmin.Resize(n);
   xmax.Resize(n);
 
+  if(m == 0)
+    throw Exception("dumas requires at least one constraint");
+
   if(dumas == Optimization::DUMAS_MMA)
   {
     mma = new MMASolver(n,m, ai_lin_aux_z, c_lin_aux_y, d_quad_aux_y);
@@ -158,6 +161,9 @@ void DumasMMA::SolveProblem()
       xmax[i] = std::min(de->GetUpperBound(), xval[i] + move_limit);
       xmin[i] = std::max(de->GetLowerBound(), xval[i] - move_limit);
     }
+
+    assert(dfdx.GetSize() > 0);
+    assert(g.GetSize() > 0 && dgdx.GetSize() > 0);
 
     if(mma)
       mma->Update(xval.GetPointer(),dfdx.GetPointer(),g.GetPointer(),dgdx.GetPointer(),xmin.GetPointer(),xmax.GetPointer());

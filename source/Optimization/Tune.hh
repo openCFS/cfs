@@ -26,7 +26,8 @@ public:
   typedef enum {
     NO_USAGE,
     BETA,            /** beta for density projection */
-    PENALTY } Usage; /** param for transfer function */
+    PENALTY,         /** param for transfer function */
+    FUNC_SCALE } Usage; /** scale for function in multio objective case (0 tolerant!) */
 
   /** empty constructor to allow instances. We have with GlobalFilter and TransferFunction
    * objects which are copied. Use Init() to init and Register() to activate. */
@@ -70,6 +71,7 @@ public:
 
   static Enum<Usage> usage;
 
+  /** we need the start value to properly scale for multiplicative grow with start < 1 */
   double start = -1;
 
   // <tune method="obj/mult/add" start="1" end="256" grow="1e-4" obj_max_grow="0.2" stride="1" stopping_greyness="true" />
@@ -102,6 +104,9 @@ private:
 
   /** only for OBJ */
   double max_grow_rate = 0.2;
+
+  /** OBJ and ADD are multiplicative, this fails for values < 1. Therefore we conditionally scale the value in a range [1, end] */
+  bool one_scale = false;
 
   /** when we want to stop for grayness, this is the corresponding rule */
   StoppingRule* grayness = nullptr;

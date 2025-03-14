@@ -369,6 +369,9 @@ void Function::ToInfo(PtrParamNode info) {
   if(pn->Has("parameter") || IsLocal(type_))
     info->Get("parameter")->SetValue(parameter_);
 
+  if(type_ == GREYNESS)
+    info->Get("gray_scale")->SetValue(CalcGraynessScaling());
+
   // We might have non-standard stresses
   if(type_ == GLOBAL_STRESS  || type_ == LOCAL_STRESS)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
@@ -1178,7 +1181,17 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
       preInfo_->Get(ParamNode::WARNING)->SetValue("consider setting 'design' for function '" + ToString() + "'");
 }
 
-Function::Local* Function::InitLocal(DesignSpace* space) {
+double Function::CalcGraynessScaling() const
+{
+  DesignSpace* design = domain->GetDesign();
+  assert(design != nullptr); // when called in Optimization constructor
+  TransferFunction* tf = IsPhysical() ? design->GetTransferFunction(GetDesignType(), App::MECH) : nullptr;
+
+  return tf ? (1.0/std::pow(tf->Transform(0.5),2)) : 4.0;
+}
+
+Function::Local* Function::InitLocal(DesignSpace* space)
+{
   if (local == NULL)
   {
     local = new Local(this, space);
@@ -1187,7 +1200,8 @@ Function::Local* Function::InitLocal(DesignSpace* space) {
   return local;
 }
 
-Function::Local::Local(Function* func, DesignSpace* space) {
+Function::Local::Local(Function* func, DesignSpace* space)
+{
   this->space = space;
   this->func_ = func;
   this->structure_ = NULL;
