@@ -556,7 +556,21 @@ namespace CoupledField {
     MaterialTypeEnum.Add(MAG_MU0_EB, "mag_mu0_EB");
     MaterialTypeEnum.Add(MAG_NUMS_EB, "mag_numS_EB");
     MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB");
+    MaterialTypeEnum.Add(MAG_MSM_AS, "mag_msm_AS");
+    MaterialTypeEnum.Add(MAG_APPROX_TYPE, "mag_approx_type");
+    MaterialTypeEnum.Add(MAG_MSM_K1, "mag_msm_K1");
+    MaterialTypeEnum.Add(MAG_MSM_K2, "mag_msm_K2");
+    MaterialTypeEnum.Add(MAG_MSM_LAMBDA100, "mag_msm_lambda100");
+    MaterialTypeEnum.Add(MAG_MSM_LAMBDA111, "mag_msm_lambda111");
+    MaterialTypeEnum.Add(MAG_MSM_PS, "mag_msm_Ps");
+    // Magnetic inverse EB Hysteresis Parameters
+    MaterialTypeEnum.Add(MAG_JS_INVEB, "mag_Js_invEB");
+    MaterialTypeEnum.Add(MAG_A_INVEB, "mag_A_invEB");
+    MaterialTypeEnum.Add(MAG_NUMS_INVEB, "mag_numS_invEB");
+    MaterialTypeEnum.Add(MAG_CHI_FACTOR_INVEB, "mag_chi_factor_invEB");
+
     MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_EB, "mag_jacobian_method_EB");
+    MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_INVEB, "mag_jacobian_method_invEB");
 
     // -- Mechanical --
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "Mechanic_Stiffness_Tensor" );

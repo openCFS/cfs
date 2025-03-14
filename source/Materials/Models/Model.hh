@@ -54,6 +54,10 @@ public:
     EXCEPTION( "Not implemented in base class");
   };
 
+  virtual Vector<Double> GetFieldIntensity(Vector<Double> B, Integer ElemNum){
+    EXCEPTION( "Not implemented in base class");
+  };
+
   virtual void UpdateStates(){
     EXCEPTION( "Not implemented in base class");
   }

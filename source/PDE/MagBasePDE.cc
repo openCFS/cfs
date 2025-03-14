@@ -7,6 +7,7 @@
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
 #include "Driver/SolveSteps/SolveStepHyst.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+#include "Driver/SolveSteps/SolveStepEB.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -86,10 +87,13 @@ namespace CoupledField
     // isHysteresis_ is set in SinglePDE.cc during InitNonLin
 		if(isHysteresis_){
 			solveStep_ = new SolveStepHyst(*this);
+    } else if(nonLin_ && (modelName_ == "invEBHysteresisModel")){
+      solveStep_ = new SolveStepEB(*this); 
 		} else {
 			solveStep_ = new StdSolveStep(*this);
 		}
   }
+
 
   void MagBasePDE::InitNonLin() {
     SinglePDE::InitNonLin();

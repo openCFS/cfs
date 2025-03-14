@@ -350,14 +350,14 @@ DEFINE_LOG(eb, "EBHysteresis")
   */
   Matrix<Double> EBHysteresis::EvaluateLocalMuAnhystersisOnly(Vector<Double> HVec, UInt idx)
   {
-    Matrix<Double> mu;
-    mu.Resize(dim_, dim_);
-    Matrix<Double> chi;
-    chi.Resize(dim_, dim_);
-    Matrix<Double> T2;
-    T2.Resize(dim_, dim_);
-    Matrix<Double> identity;
-    identity.Resize(dim_, dim_);
+    Matrix<Double> mu; 
+    mu.Resize(dim_,dim_);
+    Matrix<Double> chi; 
+    chi.Resize(dim_,dim_);
+    Matrix<Double> T2; 
+    T2.Resize(dim_,dim_);
+    Matrix<Double> identity; 
+    identity.Resize(dim_,dim_); 
 
     Double t0, t1, t3, factor1,factor2,factor3;
     Double mu0 = 1.256637061e-06;;
@@ -371,15 +371,15 @@ DEFINE_LOG(eb, "EBHysteresis")
       factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
       factor3 = (2*Ps_*t3)/(M_PI*t0);
 
-      for (int i = 0; i < dim_; ++i){
-        for (int j = 0; j < dim_; ++j){
-            identity[i][j] = (i == j) ? 1 : 0;
-            T2[i][j] = HVec[i]*HVec[j];
-            chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
-            if (std::isnan(chi[i][j])){
-              chi[i][j] = 0;
-            }
-            mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
+      for (UInt i = 0; i < dim_; ++i){
+        for (UInt j = 0; j < dim_; ++j){
+          identity[i][j] = (i == j) ? 1 : 0;
+          T2[i][j] = HVec[i]*HVec[j];
+          chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
+          if (std::isnan(chi[i][j])){
+            chi[i][j] = 0;
+          }
+          mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
         }
       }
     }else{ // 3D case (x,y,z)
@@ -393,20 +393,19 @@ DEFINE_LOG(eb, "EBHysteresis")
       factor2 = (2*Ps_*t3)/(M_PI*t0*t0*t0);
       factor3 = (2*Ps_*t3)/(M_PI*t0);
 
-      for (int i = 0; i < dim_; ++i){
-        for (int j = 0; j < dim_; ++j){
-            identity[i][j] = (i == j) ? 1 : 0;
-            T2[i][j] = HVec[i]*HVec[j];
-            chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
-            if (std::isnan(chi[i][j])){
-              chi[i][j] = 0;
-            }
-            mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
+      for (UInt i = 0; i < dim_; ++i){
+        for (UInt j = 0; j < dim_; ++j){
+          identity[i][j] = (i == j) ? 1 : 0;
+          T2[i][j] = HVec[i]*HVec[j];
+          chi[i][j] = factor1*T2[i][j] - factor2*T2[i][j] + factor3*identity[i][j];
+          if (std::isnan(chi[i][j])){
+            chi[i][j] = 0;
+          }
+          mu[i][j] = mu0*(identity[i][j] + chi[i][j]);
         }
       }
-    } 
+    }
     return mu;
-
   }
 
   Matrix<Double> EBHysteresis::EvaluateLocalMuFiniteDifferences(Vector<Double> HVec, StdVector<Double> B_k, UInt idx){
@@ -532,7 +531,97 @@ DEFINE_LOG(eb, "EBHysteresis")
     return mu;
   }
 
-  Matrix<Double> EBHysteresis::EvaluateLocalMuDFP(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
+
+      // define needed variables
+      Matrix<Double> yyT(dim_, dim_);
+      Matrix<Double> BxBxT(dim_, dim_);
+      Matrix<Double> B_k1(dim_, dim_);
+      Matrix<Double> B = mu_[idx];
+      Double yTx;
+      Double xTBx;
+      StdVector<Double> y = dB;
+      StdVector<Double> x = dH;
+      Vector<Double> Bx(dim_);
+
+      // update nu via BFGS formula
+      if(dim_ == 2){
+        // yyT (outer product)
+        yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; 
+        yyT[1][0] = y[1]*y[0]; yyT[1][1] = y[1]*y[1]; 
+
+        // yTx (inner product)
+        yTx = (y[0]*x[0]) + (y[1]*x[1]);
+
+        // xTBx (inner product)
+        Bx[0] = B[0][0]*x[0] + B[0][1]*x[1];
+        Bx[1] = B[1][0]*x[0] + B[1][1]*x[1];
+        xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]);
+
+        // BxBxT (outer product)
+        BxBxT[0][0] = Bx[0]*Bx[0]; BxBxT[0][1] = Bx[0]*Bx[1];
+        BxBxT[1][0] = Bx[1]*Bx[0]; BxBxT[1][1] = Bx[1]*Bx[1];
+        
+        // construct everything
+        B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
+        B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
+
+        B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
+        B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
+
+        if ( (std::isnan(B_k1[0][0])) || (std::isnan(B_k1[1][1])) || (std::isnan(B_k1[0][1])) || (std::isnan(B_k1[1][0])) ) {
+          B_k1[0][0] = mu0_;
+          B_k1[1][1] = 0;
+          B_k1[0][1] = 0;
+          B_k1[1][0] = mu0_;
+        }
+        if ( (std::isinf(B_k1[0][0])) || (std::isinf(B_k1[1][1])) || (std::isinf(B_k1[0][1])) || (std::isinf(B_k1[1][0])) ) {
+          B_k1[0][0] = mu0_;
+          B_k1[1][1] = 0;
+          B_k1[0][1] = 0;
+          B_k1[1][0] = mu0_;
+        }
+      } else { // 3-D version
+        // yyT (outer product)
+        yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; yyT[0][2] = y[0]*y[2];
+        yyT[1][0] = y[1]*y[0]; yyT[1][1] = y[1]*y[1]; yyT[1][2] = y[1]*y[2];
+        yyT[2][0] = y[2]*y[0]; yyT[2][1] = y[2]*y[1]; yyT[2][2] = y[2]*y[2];
+
+        // yTx (inner product)
+        yTx = (y[0]*x[0]) + (y[1]*x[1]) + (y[2]*x[2]);
+
+        // xTBx (inner product)
+        Bx[0] = B[0][0]*x[0] + B[0][1]*x[1] + B[0][2]*x[2];
+        Bx[1] = B[1][0]*x[0] + B[1][1]*x[1] + B[1][2]*x[2];
+        Bx[2] = B[2][0]*x[0] + B[2][1]*x[1] + B[2][2]*x[2];
+        xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]) + (x[2]*Bx[2]);
+
+        // BxBxT (outer product)
+        BxBxT[0][0] = Bx[0]*Bx[0]; BxBxT[0][1] = Bx[0]*Bx[1]; BxBxT[0][2] = Bx[0]*Bx[2];
+        BxBxT[1][0] = Bx[1]*Bx[0]; BxBxT[1][1] = Bx[1]*Bx[1]; BxBxT[1][2] = Bx[1]*Bx[2];
+        BxBxT[2][0] = Bx[2]*Bx[0]; BxBxT[2][1] = Bx[2]*Bx[1]; BxBxT[2][2] = Bx[2]*Bx[2];
+
+        // construct everything
+        B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
+        B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
+        B_k1[0][2] = B[0][2] + yyT[0][2]/yTx - BxBxT[0][2]/xTBx;
+
+        B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
+        B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
+        B_k1[1][2] = B[1][2] + yyT[1][2]/yTx - BxBxT[1][2]/xTBx;
+
+        B_k1[2][0] = B[2][0] + yyT[2][0]/yTx - BxBxT[2][0]/xTBx; 
+        B_k1[2][1] = B[2][1] + yyT[2][1]/yTx - BxBxT[2][1]/xTBx;
+        B_k1[2][2] = B[2][2] + yyT[2][2]/yTx - BxBxT[2][2]/xTBx;
+      }
+      return B_k1; // this is the new nu
+
+
+  }
+
+
+  Matrix<Double> EBHysteresis::EvaluateLocalMuDFP(StdVector<Double> dH, StdVector<Double> dB, UInt idx)
+  {
     Matrix<Double> mu;
     mu.Resize(dim_,dim_);
 
@@ -828,21 +917,13 @@ DEFINE_LOG(eb, "EBHysteresis")
       mu[1][2] = 0.0;
       mu[2][1] = 0.0;
       for (UInt i = 0; i < dim_; i++){
-          if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-            Matrix<Double> e = mu_[idx];
-              mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
-          } 
+        if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
+          Matrix<Double> e = mu_[idx];
+            mu[i][i] = e[i][i]; //e[i][i]; //mu_0;
+        } 
       }
     }
-    //################### just for checking some things #################
-/*       if (idx == 15){
-      std::cout << "Broyden" << std::endl;
-      std::cout << "mu[0][0]: " << mu[0][0] << ", mu[0][1]: " << mu[0][1] << ", mu[0][2]: " << mu[0][2] << std::endl;
-      std::cout << "mu[1][0]: " << mu[1][0] << ", mu[1][1]: " << mu[1][1] << ", mu[1][2]: " << mu[1][2] << std::endl;
-      std::cout << "mu[2][0]: " << mu[2][0] << ", mu[2][1]: " << mu[2][1] << ", mu[2][2]: " << mu[2][2] << std::endl;
-    } */
-    //############### delete as soon as it works #######################
-    return mu;
+    return mu;  
   }
 
 
