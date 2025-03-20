@@ -86,7 +86,6 @@ int main(int argc, const char **argv)
 #else
 int main(int argc, const char **argv)
 {
-  //start of program
   try
   {
     CFS cfs(argc, argv);
