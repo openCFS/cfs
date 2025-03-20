@@ -131,7 +131,7 @@
         - name:                 (required) specifies the name of the newly created region
         Child elements:
         - sourceSurfRegion:     (required) specifies the surface where the layer will be built onto; 
-                                           should be the the outer boundary of the propagation domain or a part of it;
+                                           should be the outer boundary of the propagation domain or a part of it;
         - extrusionParameters:  (required) specifies the height of the generated elements in m and the number of extrusions
         - surfGeometry:         (required) specify a geometry type or input file or CGAL surface approximation parameters
         - outputFile:           (optional) allows to specify a path to a file where the computed geometry should be
@@ -200,12 +200,16 @@
         - sphere:   the surface is spherical
         - cylinder: the surface is cylindric
         - plane:    the surface is planar
+        - circle:   the surface is circular
+        - ellipse:  the surface is elliptic
       </xsd:documentation>
     </xsd:annotation>
     <xsd:choice>
       <xsd:element name="plane" type="DT_GeometryPlane" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="cylinder" type="DT_GeometryCylinder" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="sphere" type="DT_GeometrySphere" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="circle" type="DT_GeometryCircle" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="ellipse" type="DT_GeometryEllipse" minOccurs="1" maxOccurs="1"/>
     </xsd:choice>
   </xsd:complexType>
 
@@ -245,6 +249,26 @@
     <xsd:attribute name="origin_x" type="xsd:token" default="0" use="optional"/>
     <xsd:attribute name="origin_y" type="xsd:token" default="0" use="optional"/>
     <xsd:attribute name="origin_z" type="xsd:token" default="0" use="optional"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_GeometryCircle">
+    <xsd:annotation>
+      <xsd:documentation>
+        Defines the center used for automatic layer generation
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="origin_x" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_y" type="xsd:token" default="0" use="optional"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_GeometryEllipse">
+    <xsd:annotation>
+      <xsd:documentation>
+        Defines the center used for automatic layer generation
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="origin_x" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_y" type="xsd:token" default="0" use="optional"/>
   </xsd:complexType>
 
   <xsd:simpleType name="DT_CartesianAxis">
