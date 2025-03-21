@@ -192,6 +192,12 @@ namespace CoupledField
     void GetNodesByRegion( StdVector<UInt> & nodeList,
                            const RegionIdType regionId) override;
     
+    //! Returns a list of all elements, which are contained in a
+    //! volume- or surface-region.
+    //! \param elementList (out) list with element numbers
+    //! \param regionId (in) region identifier
+    void GetElementsByRegion( StdVector<UInt>& elementList, const RegionIdType regionId ) override;
+
     //! \see Grid::GetNodeCoordinate
     void GetNodeCoordinate( Vector<Double> & rfPoint,
                             const UInt inode,

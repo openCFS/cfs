@@ -443,8 +443,8 @@ namespace CoupledField{
 
       if (pmlFormul == "classic") {
         // here we only have a diagonal Jacobi matrix, so we store values as vector
-        coeffPMLVector.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, true));
-        coeffPMLDeterminant.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, false));
+        coeffPMLVector.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, CoefFunction::CoefDimType::VECTOR));
+        coeffPMLDeterminant.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, CoefFunction::CoefDimType::SCALAR));
         // store pml factor for the postprocessing result
         matCoefs_[PML_DAMP_FACTOR]->AddRegion(actRegion, coeffPMLVector);
         // compute factors for the integrators
@@ -465,13 +465,13 @@ namespace CoupledField{
         }
 
         // pointer to object that handles the computation of the curvilinear PML damping tensor
-        coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::TENSOR));
-        coeffPMLDeterminant.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DETERMINANT));
+        coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::TENSOR, CoefFunction::CoefDimType::SCALAR));
+        coeffPMLDeterminant.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DETERMINANT, CoefFunction::CoefDimType::SCALAR));
 
         // create some more CoefFunctionCurvilinearPMLs to store info about the PML parameters
         PtrCoefFct coeffPMLDampFactor, coeffPMLDistance;
-        coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DAMP_FACTOR));
-        coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DISTANCE));
+        coeffPMLDampFactor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DAMP_FACTOR, CoefFunction::CoefDimType::SCALAR));
+        coeffPMLDistance.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::DISTANCE, CoefFunction::CoefDimType::SCALAR));
 
         // assign the coefFunctions to the matCoefs_ to make them available in the DefinePostProcResults()
         matCoefs_[PML_TENSOR]->AddRegion(actRegion, coeffPMLTensor);

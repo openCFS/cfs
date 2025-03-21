@@ -26,6 +26,7 @@ namespace CoupledField{
                                     CoefFunction() {
 
     isAnalytic_ = false;
+    isActive_ = false;
     isComplex_ =  std::is_same<T,Complex>::value;
     dependType_ = GENERAL;
     this->entities_.Push_back(EntList);
@@ -108,9 +109,9 @@ namespace CoupledField{
   //================================================================================================
   template<typename T>
   CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct matCoef,
-              shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains, CoefFunction::coefDimType dimType) : 
+              shared_ptr<EntityList> EntList, StdVector<RegionIdType> pdeDomains, CoefFunction::CoefDimType dimType) : 
                   CoefFunctionPMLBase<T>(pmlDef, matCoef, EntList, pdeDomains, dimType) {
-                    
+
     this->name_ = "CoefFunctionPML";
     //prepare dimenstions of propagation region
     innerMinMaxComp_.Resize(3,2);
@@ -135,6 +136,8 @@ namespace CoupledField{
 
     tensor.Resize(this->dim_, this->dim_);
     tensor.Init();
+    Vector<Complex> sFactors(this->dim_);
+    sFactors.Init();
     Double locThick=0.0;
     Double position=0.0;
     Complex one(1.0,0.0);
@@ -155,10 +158,17 @@ namespace CoupledField{
         }
       } 
       
-      // removed isActive_ as it was always false!
-      tensor[0][0] = sFactors[1]*sFactors[2] / sFactors[0];
-      tensor[1][1] = sFactors[0]*sFactors[2] / sFactors[1];
-      tensor[2][2] = sFactors[0]*sFactors[1] / sFactors[2];
+      if(this->isActive_){
+        tensor[0][0] = sFactors[0] / (sFactors[1]*sFactors[2]);
+        tensor[1][1] = sFactors[1] / (sFactors[0]*sFactors[2]);
+        tensor[2][2] = sFactors[2] / (sFactors[0]*sFactors[1]);
+      }
+      else{
+        tensor[0][0] = sFactors[1]*sFactors[2] / sFactors[0];
+        tensor[1][1] = sFactors[0]*sFactors[2] / sFactors[1];
+        tensor[2][2] = sFactors[0]*sFactors[1] / sFactors[2];
+      }
+      
     }
     else{
       for(UInt i=0;i<this->dim_;++i){
@@ -234,11 +244,6 @@ namespace CoupledField{
       }
     }
   }
-
-template<typename T>
-void CoefFunctionPML<T>::UpdateOmega(){
-  omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
-}
 
   template<typename T>
   void CoefFunctionPML<T>::GetScalar(Complex& val,

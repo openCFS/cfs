@@ -244,10 +244,10 @@ class DampFunction{
   class CoefFunctionPMLBase : public CoefFunction{
   public:
     //! base constructor
-    CoefFunctionPMLBase(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+    CoefFunctionPMLBase(PtrParamNode pmlDef, PtrCoefFct matCoef,
                     shared_ptr<EntityList> EntList,
                     StdVector<RegionIdType> pdeDomains,
-                    CoefFunction::coefDimType dimType);
+                    CoefFunction::CoefDimType dimType);
 
     //! destructor
     virtual ~CoefFunctionPMLBase();
@@ -360,10 +360,10 @@ class DampFunction{
   class CoefFunctionPML : public CoefFunctionPMLBase<T> {
 
   public:
-    CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+    CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct matCoef,
                     shared_ptr<EntityList> EntList,
                     StdVector<RegionIdType> pdeDomains,
-                    coefDimType dimType);
+                    CoefFunction::CoefDimType dimType);
 
     virtual ~CoefFunctionPML();
 
@@ -421,7 +421,7 @@ class DampFunction{
 
   public:
 
-  CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+  CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct matCoef, shared_ptr<EntityList> EntList,
                          StdVector<RegionIdType> pdeDomains, CoefFunction::CoefDimType dimType);
 
     virtual ~CoefFunctionShiftedPML();

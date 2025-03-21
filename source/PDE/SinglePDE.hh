@@ -442,6 +442,16 @@ namespace CoupledField
       //! Damping parameters used for MASS and STIFFNESS integrator, respectively.
       //! The parameters are stored as strings that contain mathParser expressions.
       std::string alpha, beta;
+
+      //! Ratio for calculation of deltaF
+      Double ratioDeltaF;
+      
+      //! Target frequency, for which alpha and beta should get computed
+      Double freq;
+      
+      //! Use damping adjustment to achieve constant tanDelta
+      bool adjustDamping;
+      
     };
 
   protected:

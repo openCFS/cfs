@@ -23,8 +23,9 @@ namespace CoupledField{
   //================================================================================================
 
   template<typename T>
-  CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                        StdVector<RegionIdType> pdeDomains, OutputType outputType) : CoefFunctionPMLBase<T>(pmlDef, speedOfSound, EntList, pdeDomains) {
+  CoefFunctionCurvilinearPML<T>::CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct matCoef, shared_ptr<EntityList> EntList,
+                        StdVector<RegionIdType> pdeDomains, OutputType outputType, 
+                        CoefFunction::CoefDimType dimType) : CoefFunctionPMLBase<T>(pmlDef, matCoef, EntList, pdeDomains, dimType) {
     // set name and type
     this->name_ = "CoefFunctionCurvilinearPML";
     this->formulationType_ = CURVILINEAR;
@@ -153,11 +154,11 @@ namespace CoupledField{
         Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(d[0], layerThickness_);
 
         // get speed of sound at current lpm
-        Double sos;
-        this->speedOfSound_->GetScalar(sos,lpm);
+        Double waveSpeed;
+        this->matCoef_->GetScalar(waveSpeed,lpm);
 
         // compute the current wave number
-        Double K = this->omega_ / sos;
+        Double K = this->omega_ / waveSpeed;
 
         // compute helper functions
         Vector<Double> h = Vector<Double>(this->dim_);
@@ -248,11 +249,11 @@ namespace CoupledField{
           Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(d[0], layerThickness_);
 
           // get speed of sound at current lpm
-          Double sos;
-          this->speedOfSound_->GetScalar(sos,lpm);
+          Double waveSpeed;
+          this->matCoef_->GetScalar(waveSpeed,lpm);
 
           // compute the current wave number
-          Double K = this->omega_ / sos;
+          Double K = this->omega_ / waveSpeed;
 
           // compute helper funcions
           Vector<Double> h = Vector<Double>(3);
@@ -389,11 +390,11 @@ namespace CoupledField{
           Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(d[0], layerThickness_);
 
           // get speed of sound at current lpm
-          Double sos;
-          this->speedOfSound_->GetScalar(sos,lpm);
+          Double waveSpeed;
+          this->matCoef_->GetScalar(waveSpeed,lpm);
 
           // compute the current wave number
-          Double K = this->omega_ / sos;
+          Double K = this->omega_ / waveSpeed;
 
           // resize output vector
           val.Resize(this->dim_);

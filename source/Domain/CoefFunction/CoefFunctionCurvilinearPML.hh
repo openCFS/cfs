@@ -48,12 +48,12 @@ namespace CoupledField{
   public:
     //! constructor
     //! \param pmlDef (in) param node that holds the PML parameters defined in the XML
-    //! \param speedOfSound (in) coef function with the speed of sound (gets assigned to member speedOfSound in the base class)
+    //! \param matCoef (in) coef function with the speed of wave (gets assigned to member matCoef_ in the base class)
     //! \param EntList (in) entity list containing all entities of the assigned PML region
     //! \param pdeDomains (in) StdVector holding all domains of the current PDE
     //! \param outputType (in) enum to set which output should be computed
-    CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
-                          StdVector<RegionIdType> pdeDomains, OutputType outputType);
+    CoefFunctionCurvilinearPML(PtrParamNode pmlDef, PtrCoefFct matCoef, shared_ptr<EntityList> EntList,
+                          StdVector<RegionIdType> pdeDomains, OutputType outputType, CoefFunction::CoefDimType dimType);
 
     //! destructor
     virtual ~CoefFunctionCurvilinearPML();

@@ -2122,9 +2122,10 @@ namespace CoupledField {
     
   }
 
-  void GridCFS::GetElementsByRegion( StdVector<UInt> & elementList,
-                                  const RegionIdType regionId ) {
-    
+  void GridCFS::GetElementsByRegion(StdVector<UInt> &elementList,
+                                    const RegionIdType regionId)
+  {
+
     Integer index = 0;
 
     // make sure the list is cleared
@@ -2132,34 +2133,39 @@ namespace CoupledField {
 
     // look in volume regions
     index = volRegionIds_.Find(regionId);
-    if ( index != -1 ) {
+    if (index != -1)
+    {
       UInt numElems = volElems_[index].GetSize();
       // allocate memory for the vector
       elementList.Reserve(numElems);
       // loop over all elements and insert them in the list
-      for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
+      for (UInt iElem = 0; iElem < numElems; ++iElem)
+      {
         elementList.Push_back(volElems_[index][iElem]->elemNum);
       }
-      
-    } else {
+    }
+    else
+    {
       // look in surface regions
       index = surfRegionIds_.Find(regionId);
-      if ( index != -1 ) {
+      if (index != -1)
+      {
         UInt numElems = volElems_[index].GetSize();
         // allocate memory for the vector
         elementList.Reserve(numElems);
         // loop over all elements and insert them in the list
-        for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
+        for (UInt iElem = 0; iElem < numElems; ++iElem)
+        {
           elementList.Push_back(surfElems_[index][iElem]->elemNum);
         }
-      } else {
-        EXCEPTION( "GridCFS: The region with id '" << regionId
-                   << "' was not found in the grid!" ); 
+      }
+      else
+      {
+        EXCEPTION("GridCFS: The region with id '" << regionId
+                                                  << "' was not found in the grid!");
       }
     }
   }
-
-
 
   void GridCFS::GetNodeCoordinate( Vector<Double> & rfPoint,
                                    const UInt inode,
