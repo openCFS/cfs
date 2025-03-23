@@ -2115,7 +2115,7 @@ namespace CoupledField {
       availResults_.insert( presTens );
       PtrCoefFct presFnc = this->GetCoefFct( FLUIDMECH_PRESSURE );
       StdVector<PtrCoefFct> presTensDiagValues;
-      PtrCoefFct zeroPres = CoefFunction::Generate( mp_,  part,
+      PtrCoefFct zeroPres = CoefFunction::Generate( mp_, part,
           CoefXprBinOp(mp_, presFnc, CoefFunction::Generate( mp_, part, "0"), CoefXpr::OP_MULT));
       if( subType_ == "axi" ) {
         presTensDiagValues = StdVector<PtrCoefFct>(2*dim_);
