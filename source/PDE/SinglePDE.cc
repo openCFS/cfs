@@ -4194,8 +4194,8 @@ namespace CoupledField {
         // an extra term for MechPDE thinLayer
         if (isThinLayer && solType == MECH_DISPLACEMENT) {
           penalty_v1_u1_normalMech = new SurfaceNitscheABInt<Double,Double> 
-            (new IdentityOperatorNormalTransNci<FeH1,DIM,D_DOF>(),
-            new IdentityOperatorNormalTransNci<FeH1,DIM,D_DOF>(),
+            (new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
               factor, alphaThinLayerExtraMech, curcpl, updatedGeo_, true, isPenalty);
         }
       }
@@ -4317,8 +4317,8 @@ namespace CoupledField {
         // extra term for MechPDE - nn
         if (isThinLayer && solType == MECH_DISPLACEMENT){
           penalty_v1_u2_normalMech = new SurfaceNitscheABInt<Double,Double> 
-                                (new IdentityOperatorNormalTransNci<FeH1,DIM,D_DOF>(),
-                                new IdentityOperatorNormalTransNci<FeH1,DIM,D_DOF>(),
+                                (new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+                                new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
                                 factor, alphaThinLayerExtraMech * -1.0, curcpl, updatedGeo_, true, isPenalty);
         }
       }
@@ -4400,8 +4400,8 @@ namespace CoupledField {
                         factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
         if (isThinLayer && solType == MECH_DISPLACEMENT){
           penalty_v2_u2_normalMech = new SurfaceNitscheABInt<Double,Double> 
-                                (new IdentityOperatorNormalTransNci<FeH1,DIM,D_DOF>(),
-                                new IdentityOperatorNormalTransNci<FeH1,DIM,D_DOF>(),
+                                (new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+                                new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
                                 factor, alphaThinLayerExtraMech, curcpl, updatedGeo_, true, isPenalty);
         }
       }

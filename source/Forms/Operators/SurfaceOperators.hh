@@ -1614,7 +1614,7 @@ void SurfaceTangentialHollowIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::
 }
 
 template <class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
-class IdentityOperatorNormalTransNci : public BaseBOperator
+class SurfaceIdentityOperatorNormalTrans : public BaseBOperator
 {
   //! Calculates the transposed normal-projected identity operator for vector functions for NCIs
   //! This class implements the transposed identity operator for vectorial shape
@@ -1641,30 +1641,30 @@ public:
   static const UInt DIM_SPACE = D;
 
   //! Dimension of the finite element
-  static const UInt DIM_ELEM = D - 1;
+  static const UInt DIM_ELEM = D;
 
   //! Dimension of the related material
   static const UInt DIM_D_MAT = 1;
   //@}
 
-  IdentityOperatorNormalTransNci()
+  SurfaceIdentityOperatorNormalTrans()
   {
     return;
   }
 
   //! Copy constructor
-  IdentityOperatorNormalTransNci(const IdentityOperatorNormalTransNci &other)
+  SurfaceIdentityOperatorNormalTrans(const SurfaceIdentityOperatorNormalTrans &other)
       : BaseBOperator(other)
   {
   }
 
   //! \copydoc BaseBOperator::Clone()
-  virtual IdentityOperatorNormalTransNci *Clone()
+  virtual SurfaceIdentityOperatorNormalTrans *Clone()
   {
-    return new IdentityOperatorNormalTransNci(*this);
+    return new SurfaceIdentityOperatorNormalTrans(*this);
   }
 
-  virtual ~IdentityOperatorNormalTransNci()
+  virtual ~SurfaceIdentityOperatorNormalTrans()
   {
     return;
   }
@@ -1719,7 +1719,7 @@ protected:
 };
 
 template <class FE, UInt D, UInt D_DOF, class TYPE>
-void IdentityOperatorNormalTransNci<FE, D, D_DOF, TYPE>::
+void SurfaceIdentityOperatorNormalTrans<FE, D, D_DOF, TYPE>::
     CalcOpMat(Matrix<Double> &bMat,
               const LocPointMapped &lp, BaseFE *ptFe)
 {
@@ -1727,26 +1727,26 @@ void IdentityOperatorNormalTransNci<FE, D, D_DOF, TYPE>::
   // ensure, that the surface information (i.e. normal direction)
   // is set at the mapped local point
   assert(lp.isSurface);
+  assert(D == ptFe->shape_.dim);
   const UInt numFncs = ptFe->GetNumFncs();
 
   // Set correct size of matrix B and initialize with zeros
-  bMat.Resize(1, DIM_SPACE * numFncs);
+  bMat.Resize(1, DIM_DOF * numFncs);
   bMat.Init();
-
   Vector<Double> s;
   FE *fe = (static_cast<FE *>(ptFe));
-  for (UInt d = 0; d < DIM_SPACE; d++)
+  for (UInt d = 0; d < DIM_DOF; d++)
   {
     fe->GetShFnc( s, lp.lpmVol->lp, lp.lpmVol->shapeMap->GetElem() , d);
     for (UInt sh = 0; sh < numFncs; sh++)
     {
-      bMat[0][DIM_SPACE * sh + d] = s[sh] * lp.normal[d];
+      bMat[0][DIM_DOF * sh + d] = s[sh] * lp.normal[d];
     }
   }
 }
 
 template <class FE, UInt D, UInt D_DOF, class TYPE>
-void IdentityOperatorNormalTransNci<FE, D, D_DOF, TYPE>::
+void SurfaceIdentityOperatorNormalTrans<FE, D, D_DOF, TYPE>::
     CalcOpMatTransposed(Matrix<Double> &bMat,
                         const LocPointMapped &lp, BaseFE *ptFe)
 {
@@ -1757,17 +1757,17 @@ void IdentityOperatorNormalTransNci<FE, D, D_DOF, TYPE>::
 
   const UInt numFncs = ptFe->GetNumFncs();
   // Set correct size of matrix B and initialize with zeros
-  bMat.Resize(DIM_SPACE * numFncs, 1);
+  bMat.Resize(DIM_DOF * numFncs, 1);
   bMat.Init();
 
   Vector<Double> s;
   FE *fe = (static_cast<FE *>(ptFe));
-  for (UInt d = 0; d < DIM_SPACE; d++)
+  for (UInt d = 0; d < DIM_DOF; d++)
   {
     fe->GetShFnc( s, lp.lpmVol->lp, lp.lpmVol->shapeMap->GetElem() , d);
     for (UInt sh = 0; sh < numFncs; sh++)
     {
-      bMat[DIM_SPACE * sh + d][0] = s[sh] * lp.normal[d];
+      bMat[DIM_DOF * sh + d][0] = s[sh] * lp.normal[d];
     }
   }
 }
