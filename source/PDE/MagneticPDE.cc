@@ -1344,6 +1344,21 @@ namespace CoupledField {
       idbcSolNameMap_[ELEC_POTENTIAL] = "elecPotential";
     }
 
+    // === ELECTRIC NETWORK POTENTIAL ===
+    if (hasLEM_) {
+      shared_ptr<BaseFeFunction> networkFeFct = feFunctions_[ELEC_NETWORK_POTENTIAL];
+      shared_ptr<ResultInfo> resNetwork(new ResultInfo);
+      resNetwork->resultType = ELEC_NETWORK_POTENTIAL;
+      resNetwork->dofNames = "";
+      resNetwork->unit = "V";
+      resNetwork->definedOn = ResultInfo::NODE;
+      resNetwork->entryType = ResultInfo::SCALAR;
+      availResults_.insert( resNetwork );
+      networkFeFct->SetResultInfo(resNetwork);
+      DefineFieldResult( networkFeFct, resNetwork );
+
+    }
+
     // === COIL CURRENT ===
     if( hasVoltCoils_ ){
       shared_ptr<ResultInfo> currentInfo(new ResultInfo);
@@ -2278,6 +2293,12 @@ namespace CoupledField {
       if( isMixed_ ) {
         crSpaces[ELEC_POTENTIAL] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
         crSpaces[ELEC_POTENTIAL]->Init(solStrat_);
+      }
+
+      // 3) check for network coupling
+      if( hasLEM_ ) {
+        crSpaces[ELEC_NETWORK_POTENTIAL] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+        crSpaces[ELEC_NETWORK_POTENTIAL]->Init(solStrat_);
       }
 
     } else {

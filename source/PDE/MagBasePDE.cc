@@ -34,6 +34,7 @@ namespace CoupledField
   : SinglePDE( aGrid, paramNode, infoNode, simState, domain) {
 
     isMixed_ = false;
+    hasLEM_ = false;
     regionApproxSet_ = false;
     anyRegionHasConductivity_ = false;
     formulation_ = MagBasePDE::BASE;

@@ -160,6 +160,9 @@ namespace CoupledField
     //! an additional scalar potential to ensure HCurl compatibility (A-V-formulation)
     bool isMixed_;
 
+    //! When coupling to a network, we need some additional integrators
+    bool hasLEM_;
+
     //! in mixed case, we have to check if there are any regions with conductivity at all
     bool anyRegionHasConductivity_;
 
