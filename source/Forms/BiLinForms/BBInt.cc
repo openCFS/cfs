@@ -99,6 +99,41 @@ namespace CoupledField{
 #endif
      }
    }
+
+
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+  void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+  CalcElementMatrixLpm( Matrix<MAT_DATA_TYPE>& elemMat,
+                      BaseFE* ptFe, 
+                      LocPointMapped& lp ) {
+    
+    Matrix<MAT_DATA_TYPE> bMat;
+    MAT_DATA_TYPE fac = 0.0;
+
+    const UInt nrFncs = ptFe->GetNumFncs();
+
+    elemMat.Resize( nrFncs * bOperator_->GetDimDof() );
+    elemMat.Init();
+
+
+    // Call the CalcBMat()-method
+    this->bOperator_->CalcOpMat( bMat, lp, ptFe);
+    LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " bMat= " << bMat;
+
+    // Calculate scalar factor
+    this->coefScalar_->GetScalar(fac, lp);
+    LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " nu= " << fac;
+
+    fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
+
+#ifdef NDEBUG
+    bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
+#else
+    elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
+    LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << fac << " bmat=" << bMat.ToString();
+    LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " -> K_" << i << "=" << elemMat.ToString();
+#endif
+   }
    
    // ===============
    //  Apply ElemMat
