@@ -135,7 +135,7 @@ namespace CoupledField{
     // ensure, that the surface information (i.e. normal direction)
     // is set at the mapped local point
     assert(lp.isSurface);
-    
+
     const UInt numFncs = ptFe->GetNumFncs();
 
     // Set correct size of matrix B and initialize with zeros
