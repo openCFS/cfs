@@ -986,7 +986,7 @@ namespace CoupledField{
 
     // Nitsche coupling matrix is a type of stiffness matrix
     FEMatrixType targetMatrix;
-    if (updatedGeo_) {
+    if (ncIf->IsMoving()) {
       targetMatrix = STIFFNESS_UPDATE;
     } else {
       targetMatrix = STIFFNESS;
@@ -1000,12 +1000,12 @@ namespace CoupledField{
     SurfaceBiLinFormContext *flux_v1_du1_Context = new SurfaceBiLinFormContext(flux_v1_du1, targetMatrix, BiLinearForm::PRIM_PRIM);
     SurfaceBiLinFormContext *flux_dv1_u2_Context = new SurfaceBiLinFormContext(flux_dv1_u2, targetMatrix, BiLinearForm::PRIM_SEC);
     // assign motion to the contexts
-    penalty_v1_u1_Context->SetMotion(updatedGeo_);
-    penalty_v2_u2_Context->SetMotion(updatedGeo_);
-    penalty_v1_u2_Context->SetMotion(updatedGeo_);
-    flux_dv1_u1_Context->SetMotion(updatedGeo_);
-    flux_v1_du1_Context->SetMotion(updatedGeo_);
-    flux_dv1_u2_Context->SetMotion(updatedGeo_);
+    penalty_v1_u1_Context->SetMotion(ncIf->IsMoving());
+    penalty_v2_u2_Context->SetMotion(ncIf->IsMoving());
+    penalty_v1_u2_Context->SetMotion(ncIf->IsMoving());
+    flux_dv1_u1_Context->SetMotion(ncIf->IsMoving());
+    flux_v1_du1_Context->SetMotion(ncIf->IsMoving());
+    flux_dv1_u2_Context->SetMotion(ncIf->IsMoving());
     // assign names to the operators
     penalty_v1_u1->SetName("penalty_v1_u1");
     penalty_v2_u2->SetName("penalty_v2_u2");

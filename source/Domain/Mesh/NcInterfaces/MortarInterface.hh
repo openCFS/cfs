@@ -42,8 +42,8 @@ class MortarInterface : public BaseNcInterface {
     virtual ~MortarInterface();
     
     // getters for surface regions
-    RegionIdType GetMasterSurfRegion() const { return primarySurfRegion_; }
-    RegionIdType GetSlaveSurfRegion() const { return secondarySurfRegion_; }
+    RegionIdType GetPrimarySurfRegion() const { return primarySurfRegion_; }
+    RegionIdType GetSecondarySurfRegion() const { return secondarySurfRegion_; }
     // getters for volume regions
     RegionIdType GetPrimaryVolRegion() const { return primaryVolRegion_; }
     RegionIdType GetSecondaryVolRegion() const { return secondaryVolRegion_; }
