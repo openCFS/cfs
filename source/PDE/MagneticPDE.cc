@@ -669,6 +669,12 @@ namespace CoupledField {
 	  // COIL INTEGRATORS
 	  // ============================
     DefineCoilIntegrators(factor);
+
+    // ============================
+	  // LEM INTEGRATORS
+	  // ============================
+    DefineLemIntegrators();
+    
   }
 
 
@@ -1286,6 +1292,88 @@ namespace CoupledField {
       feFct->AddEntityList(ent[i]);
     } // for
 
+  }
+
+  void MagneticPDE::DefineLemIntegrators()
+  {
+    // Integrators stemming from the FEM LEM coupling
+    // we define them separately since the regions we have to loop over are given by each LEM element
+    
+    // search for LEM definition
+    
+
+
+
+
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_NETWORK_POTENTIAL];
+    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+
+
+    //  Loop over all regions
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+
+    for(UInt iRegion = 0; iRegion < regionsLEM_.GetSize() ; iRegion++){
+      actRegion = regionsLEM_[iRegion];
+      //actMat    = materials_[actRegion];
+
+		  // Get current region name
+		  std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+
+		  shared_ptr<ElemList> actSDList;
+
+		  // --- Set the approximation for the current region ---
+      mySpace->SetRegionApproximation(actRegion, "default", "default");
+      
+      shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+      myFct->AddEntityList( actSDList );
+
+      // check what type of element we have by looping over the input and defining the corresponding values
+      ParamNodeList regionNodesLEM = myParam_->Get("network")->GetList("networkElement");
+      
+      for( UInt i = 0; i < regionNodes.GetSize(); i++ )
+      {
+        PtrParamNode in_ = list->Get("region");
+        std::string name = regionNodesLEM[i]->Get("name")->As<std::string>();
+        in_->Get("name")->SetValue(name);
+      }
+
+
+      // define main integrators (LEM part)
+      if( networkElementType=="resistor" )
+        // conductance value
+        PtrCoefFct coefG;
+
+        if( dim_ == 2) {
+          if( isaxi_ ) {
+            // axisymmetric case
+            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+          } else {
+            // we don't consider any geometry update, hence, we set the last bool to false
+            // the identityOperatorLem inside a BBInt creates the following matrix:
+            //  1  -1
+            // -1   1
+            // we multiply this matrix with the conductance in order to get the correct element matrix
+            resistorInt = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>(), coefG, 1.0, false);
+          }
+        } else {
+          EXCEPTION("3D FEM-LEM coupling is not supported!");
+        }
+        resistorInt->SetName("ResistorIntegrator");
+        BiLinFormContext * resistorContext = new BiLinFormContext(resistorInt, STIFFNESS );
+        resistorContext->SetEntities( actSDList, actSDList );
+        resistorContext->SetFeFunctions( myFct, myFct );
+        assemble_->AddBiLinearForm( resistorContext );
+
+        // insert mass integrator to list of defined mass integrators
+        bdbInts_[actRegion] = resistorInt;
+
+
+        // define coupling integrators (LEM-FEM)
+
+
+
+    }
   }
 
   void MagneticPDE::DefinePrimaryResults()

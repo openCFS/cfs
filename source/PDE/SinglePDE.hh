@@ -517,6 +517,10 @@ namespace CoupledField
     //! true, if analysistype is multiharmonic
     bool isMultHarm_;
 
+    //! true of network elements are present
+    //! When coupling to a network, we need some additional integrators
+    bool hasLEM_ = false;
+
     // -----------------------------------------------------------------------
     //  Result Handling
     // -----------------------------------------------------------------------

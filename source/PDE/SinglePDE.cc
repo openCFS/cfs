@@ -244,6 +244,32 @@ namespace CoupledField {
       complexMatData_[actRegionId] = complexMat;
     }
 
+    // output and set LEM regins
+
+    // Obtain regions the pde is defined on
+    ParamNodeList regionNodesLEM = myParam_->Get("network")->GetList("networkElement");
+
+    if( regionNodesLEM.GetSize()>0 ){
+      hasLEM_ = true;
+    }
+
+    for( UInt i = 0; i < regionNodesLEM.GetSize(); i++ )
+    {
+      PtrParamNode in_ = list->Get("region");
+      std::string name = regionNodesLEM[i]->Get("name")->As<std::string>();
+      in_->Get("name")->SetValue(name);
+      
+      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(name);
+      
+      // Check, if region was already defined an issue a warning otherwise
+      if( std::find(resistorRegions_.Begin(), resistorRegions_.End(), actRegionId )!= resistorRegions_.End() )
+        WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
+              << "' was already defined for PDE '" << pdename_ 
+              << "'. Please remove duplicate entries." );
+          
+      regionsLEM_.Push_back(actRegionId);
+    }
+
 
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
