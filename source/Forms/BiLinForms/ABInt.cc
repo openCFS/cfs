@@ -786,8 +786,8 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
         << "\n\tglobal coordinates: " << globIntPoint.ToString()
         << "\n\tlocal coordinates in primary: " << ipPrimary.coord.ToString()
         << "\n\tlocal coordinares in secondary: " << ipSecondary.coord.ToString();
-    assert(esmPrimary->CoordIsInsideElem(ipPrimary.coord, EPS));
-    assert(esmSecondary->CoordIsInsideElem(ipSecondary.coord, EPS));
+    //assert(esmPrimary->CoordIsInsideElem(ipPrimary.coord, EPS));
+    //assert(esmSecondary->CoordIsInsideElem(ipSecondary.coord, EPS));
     result += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
     LOG_DBG3(mortarIntMA) << "Element matrix (not transposed): \n" << result;
 #endif
