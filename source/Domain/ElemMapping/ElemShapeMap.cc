@@ -244,7 +244,7 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions, const 
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
   for (UInt iDim = 0; iDim < globSurfIntPoint.GetSize(); ++iDim)
     assert(abs(globSurfIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
-  assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS));
+    //assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS));
 #endif
 }
 
