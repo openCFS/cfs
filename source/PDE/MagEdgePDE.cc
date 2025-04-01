@@ -857,6 +857,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     } else {
       if( ptGrid_->IsAxi() ) {
         vecDofNames = "r", "z";
+        if (myParam_->Get("formulation")->As<std::string>() == "A-V") {
+          WARN("No implementation for axi-symmetric model in the MagEdge Case");
+        };
       } else {
         vecDofNames = "x", "y";
       }

@@ -560,28 +560,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
   */
 
   void MagEdgeMixedAVPDE::DefinePrimaryResults() {
-
-    StdVector<std::string> vecComponents;
-    vecComponents = "x", "y", "z";
-
-    // === MAGNETIC VECTOR POTENTIAL ===
-    shared_ptr<ResultInfo> potInfo(new ResultInfo);
-    potInfo->resultType = MAG_POTENTIAL;
-    potInfo->dofNames = vecComponents;
-    potInfo->unit = "Vs/m";
-    potInfo->definedOn = ResultInfo::ELEMENT;
-    potInfo->entryType = ResultInfo::VECTOR;
-    potInfo->SetFeFunction(feFunctions_[MAG_POTENTIAL]);
-
-    feFunctions_[MAG_POTENTIAL]->SetResultInfo(potInfo);
-    DefineFieldResult( feFunctions_[MAG_POTENTIAL], potInfo );
-
-    // -----------------------------------
-    //  Define xml-names of Dirichlet BCs
-    // -----------------------------------
-    hdbcSolNameMap_[MAG_POTENTIAL] = "fluxParallel";
-    idbcSolNameMap_[MAG_POTENTIAL] = "potential";
-
+    MagEdgePDE::DefinePrimaryResults();
 
     // === ELECTRIC SCALAR POTENTIAL ===
     shared_ptr<BaseFeFunction> scalFct = feFunctions_[ELEC_POTENTIAL];
@@ -603,46 +582,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     //hdbcSolNameMap_[ELEC_POTENTIAL] = "fluxParallel";
     idbcSolNameMap_[ELEC_POTENTIAL] = "elecPotential";
 
-
-    // === PERMEABILITY ===
-    shared_ptr<ResultInfo> permeability ( new ResultInfo );
-    permeability->resultType = MAG_ELEM_PERMEABILITY;
-    permeability->dofNames = "";
-    permeability->unit = "Vs/Am";
-    permeability->definedOn = ResultInfo::ELEMENT;
-    permeability->entryType = ResultInfo::SCALAR;
-    shared_ptr<CoefFunctionMulti> permFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1, false));
-    matCoefs_[MAG_ELEM_PERMEABILITY] = permFct;
-    DefineFieldResult(permFct, permeability);
-
-
-    //creates the velocity
-    StdVector<std::string> vecDofNames;
-    if( ptGrid_->GetDim() == 3 ) {
-      vecDofNames = "x", "y", "z";
-    } else {
-      if( ptGrid_->IsAxi() ) {
-        WARN("No implementation for axi-symmetric model in the MagEdge Case");
-        //vecDofNames = "r", "z";
-      } else {
-        vecDofNames = "x", "y";
-      }
-    }
-
-    //// === VELOCITY ===
-    shared_ptr<ResultInfo> velocity( new ResultInfo);
-    velocity->resultType = MEAN_FLUIDMECH_VELOCITY;
-    velocity->dofNames = vecDofNames;
-    velocity->unit = "m/s";
-
-    velocity->definedOn = ResultInfo::NODE;
-    velocity->entryType = ResultInfo::VECTOR;
-
-    VelocityCoef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
-    DefineFieldResult( VelocityCoef_, velocity );
-
-    results_.Push_back( velocity );
-    availResults_.insert( velocity );
   }
 
   void MagEdgeMixedAVPDE::DefinePostProcResults() {
