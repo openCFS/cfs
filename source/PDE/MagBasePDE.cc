@@ -869,5 +869,21 @@ namespace CoupledField
     
   }
 
+  void MagBasePDE::ReadRegionVelocityField(std::string velocityId, shared_ptr<ElemList> actSDList, RegionIdType actRegion, bool coefUpdateGeo){
+    // Get result info object for flow
+    shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
+
+    // Add the region information
+    PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+
+    // Read velocity coefficient function for this region and add it to velocity functor
+    PtrCoefFct regionMoving;
+    std::set<UInt> definedDofs;
+
+    //we assume that velocity is real
+    ReadUserFieldValues( actSDList, velNode, velInfo->dofNames, velInfo->entryType, isComplex_, regionMoving, definedDofs, coefUpdateGeo );
+    VelocityCoef_->AddRegion( actRegion, regionMoving );
+  }
+
 } // end of namespace
 

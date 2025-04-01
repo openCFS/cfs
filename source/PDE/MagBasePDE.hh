@@ -181,6 +181,9 @@ namespace CoupledField
 
     //! This coefficient function describes the velocity field.
     shared_ptr<CoefFunctionMulti> VelocityCoef_;
+    
+    //! Function to get the velocity field of each region defined in the xml-Script for all childs of the base PDE
+    void ReadRegionVelocityField(std::string velocityId, shared_ptr<ElemList> actSDList, RegionIdType actRegion, bool coefUpdateGeo);
 
   };
 } // end of namespace
