@@ -375,7 +375,7 @@ namespace CoupledField{
           }
           else {
             stiffInt = new BBInt<Double>(new GradientOperator<FeH1, 3>(), coeffK, 1.0, updatedGeo_);
-            massInt = new BBInt<Double>(new IdentityOperator<FeH1, 3, 1, Double>(), coeffM, 1.0, updatedGeo_);
+            massInt = new BBInt<Double>(new IdentityOperator<FeH1, 3, 1, Double>(), coeffM, 1.0, updatedGeo_)
           }
         }
         else {

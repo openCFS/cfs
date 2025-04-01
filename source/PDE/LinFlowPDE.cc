@@ -265,7 +265,7 @@ namespace CoupledField {
       meanVelFct->AddEntityList( actSDList );
 
 
-      // Lagrange multiplier
+      // Lagrange multiplier !!
       if ( useLagrangeMultVec_ ) {
         lagrangeMultFct->AddEntityList( actSDList );
         lagrangeMultSpace->SetRegionApproximation(actRegion, lagrangeMultPolyId_, lagrangeMultIntegId_);
