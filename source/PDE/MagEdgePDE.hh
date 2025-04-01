@@ -138,9 +138,6 @@ namespace CoupledField
     shared_ptr<CoefFunction> multiHarmCoef_;
 
   private:
-    //! This coefficient function describes the velocity field.
-    shared_ptr<CoefFunctionMulti> VelocityCoef_;
-
     //! Use gradient fields in shape functions (Edge elements of second kind)
     bool useGradFields_;
 

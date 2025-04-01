@@ -129,9 +129,6 @@ namespace CoupledField
     //! Define integrators for classical cylindrical coils
     //void DefineCylindricalCoilIntegrator();
 
-    //! This coefficient function describes the velocity field.
-    shared_ptr<CoefFunctionMulti> VelocityCoef_;
-
     //! Use gradient fields in shape functions (Edge elements of second kind)
     bool useGradFields_;
 
