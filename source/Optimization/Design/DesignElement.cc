@@ -287,9 +287,8 @@ void BaseDesignElement::AddGradient(const Function* f, double d_value)
     const Objective* c = static_cast<const Objective*>(f);
     // we need to differentiate between c->GetValue() and c->GetOrgValue() -> See Optimization::CalcObjective()
     // there we have c->SetValue(weight * tov), therefore we need for all term but LINEAR the c->GetOrgValue()
-    // but in that case we also need to add the weight manually
-    //double weight =
-    double res;
+    // but in that case we also need to add the weight manually -> so check if you need to implement it!
+    double res = 0.0;
 
     switch(c->GetTerm())
     {

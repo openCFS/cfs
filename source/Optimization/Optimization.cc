@@ -1120,7 +1120,7 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
 
       double ov = CalcFunction(excite, o, false); // this is virtual!
       o->SetOrgValue(ov);
-      double tov;
+      double tov = 0.0;
       switch(o->GetTerm())
       {
         case Objective::LINEAR:

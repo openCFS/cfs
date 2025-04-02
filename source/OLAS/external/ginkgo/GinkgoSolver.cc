@@ -141,7 +141,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
   {
     auto& vdv = std::get<vector<GK_T>>(values); // throws bad_cast exception
     vdv.resize(nnz);
-    for(unsigned int i = 0; i < nnz; i++)
+    for(unsigned int i = 0; i < (unsigned int) nnz; i++)
       vdv[i] = (GK_T) m->GetDataPointer()[i]; // from fp62 to fp32
     vdp = (GK_T*) vdv.data();
 

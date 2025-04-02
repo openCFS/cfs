@@ -2211,11 +2211,11 @@ namespace CoupledField{
     }
 
     // get list of parameter nodes for region definitions
-    UInt i,numRegions;
+    unsigned int numRegions = 0;
     ParamNodeList regionNodes;
     PtrParamNode regionListNode = domain_->GetParamRoot()->Get("domain")->Get("regionList",ParamNode::PASS );
 
-    if( regionListNode) {
+    if(regionListNode) {
       regionNodes = regionListNode->GetList("region");
       numRegions = regionNodes.GetSize();
     }
@@ -2226,7 +2226,7 @@ namespace CoupledField{
 
     std::string regionNameDomain, refMaterial;
     // iterate over all regions
-    for( i = 0; i < numRegions; ++i ) {
+    for(unsigned int i = 0; i < numRegions; ++i ) {
       // get data from node
       regionNodes[i]->GetValue("name", regionNameDomain);
 
@@ -2242,7 +2242,7 @@ namespace CoupledField{
       regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       
-      for( i = 0; i < numRegions; ++i ) {
+      for(unsigned int i = 0; i < numRegions; ++i ) {
         // get data from node
         regionNodes[i]->GetValue("name", regionNameDomain);
 
