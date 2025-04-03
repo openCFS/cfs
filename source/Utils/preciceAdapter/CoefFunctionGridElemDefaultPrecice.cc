@@ -45,7 +45,7 @@ CoefFunctionGridElemDefaultPrecice<DATA_TYPE>::CoefFunctionGridElemDefaultPrecic
   this->DetermineResult(this->inputId_,this->aSeqStep_);
   this->dimDof_ = this->resultInfo_->dofNames.GetSize();
   // Determine which steps are available
-  this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
+  //this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
 
   this->SetRegions(regions);
   this->InitSolVec();

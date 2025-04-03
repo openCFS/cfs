@@ -24,6 +24,7 @@ namespace CoupledField
     DEFINE_LOG(preciceAdapter, "preciceAdapter")
 
     PreciceAdapter::PreciceAdapter(boost::shared_ptr<ParamNode> paramNode)
+   
      : paramNode_(paramNode),
 #ifdef USE_PRECICE
       participant_(nullptr),
@@ -310,6 +311,34 @@ namespace CoupledField
     // Step 4: Create the PreCICE participant.
     if(!isInit_){
         createPreciceParticipant();
+        
+        // This is such a DIRTY HACK!!!! This should actually be set by precice!!!!!!!!!
+        // This ONLY WORKS for initializing the "Temperature"
+        if(participant_->requiresInitialData()){
+            for (auto &result : runtimeWriteResults_) {
+                if(result->getConfig().precicename == "Temperature"){
+                    if (result->getResultType() == ResultType::NODE) {
+                        NodeResult* nr = dynamic_cast<NodeResult*>(result.get());
+                        if (nr) {
+                            std::vector<double> initVec(nr->getFlatData().size());
+                            std::fill(initVec.begin(), initVec.end(), 293.15);
+                            participant_->writeData(nr->getConfig().meshName, nr->getConfig().precicename,
+                                                    preciceNodeNumsVec_, initVec);
+                        }
+                    } else { // ELEMENT-based result.
+                        ElementResult* er = dynamic_cast<ElementResult*>(result.get());
+                        if (er) {
+                            std::vector<double> initVec(er->getFlatData().size());
+                            std::fill(initVec.begin(), initVec.end(), 293.15);
+                            participant_->writeData(er->getConfig().meshName, er->getConfig().precicename,
+                                                    preciceElemNumsVec_, initVec);
+                        }
+                    }
+                }
+            }
+        }
+
+
         participant_->initialize();
         isInit_ = true;
     }

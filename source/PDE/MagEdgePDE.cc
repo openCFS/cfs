@@ -1485,7 +1485,7 @@ for( ; regIt != regions_.End(); ++regIt ) {
   RegionIdType actRegion = *regIt;
   // J_total * E = J_total * dA/dt
   PtrCoefFct partTmp = CoefFunction::Generate( mp_, part,
-  CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY), GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), CoefXpr::OP_MULT ) );
+  CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY), GetCoefFct(MAG_EDDY_CURRENT_DENSITY), CoefXpr::OP_MULT ) );
   //PtrCoefFct partT = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, "t", partTmp, CoefXpr::OP_MULT ) );
 
   eddyLossCoef->AddRegion(actRegion, partTmp);
