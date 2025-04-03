@@ -19,6 +19,7 @@
 #include <def_use_metis.hh>
 #include <def_use_mpi.hh>
 #include <def_use_openmp.hh>
+#include <def_use_cuda.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_petsc.hh>
 #include <def_use_phist_cg.hh>
@@ -200,6 +201,12 @@ void Dependencies::ReadSetting()
   omp.comment = ss.str();
 #endif
   data.Push_back(omp);
+
+  Dependency cuda("cuda", "USE_CUDA", EASY);
+#ifdef USE_CUDA
+  cuda.SetVersion(CUDA_COMPILER_VERSION_STRING);
+#endif
+  data.Push_back(cuda);
 
   Dependency mpi("mpi", "USE_MPI", NOT_KNOWN);
 #ifdef USE_MPI

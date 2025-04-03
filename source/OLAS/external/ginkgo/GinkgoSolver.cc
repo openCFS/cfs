@@ -19,6 +19,7 @@ using std::vector;
 Enum<GinkgoSolver::GinkgoSolverType>  GinkgoSolver::ginkgoSolverType;
 Enum<GinkgoSolver::GinkgoPrecondType> GinkgoSolver::ginkgoPrecondType;
 Enum<GinkgoSolver::TolType>           GinkgoSolver::tolType;
+Enum<GinkgoSolver::CudaChoice>        GinkgoSolver::cudaChoice;
 
 namespace CoupledField
 {
@@ -45,6 +46,11 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
   tolType.Add(ABSOLUTE, "absolute");
   tolType.Add(INITIAL_RESNORM, "initial_resnorm");
   tolType.Add(RHS_NORM, "rhs_norm");
+
+  cudaChoice.SetName("GinkgoSolver::CudaChoice");
+  cudaChoice.Add(ON, "on");
+  cudaChoice.Add(OFF, "off");
+  cudaChoice.Add(AUTO, "auto");
 
   infoNode_ =  olasInfo->Get("ginko");
   xml_ = pn;
@@ -85,11 +91,27 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
     precond_type = PT_JSON;
   }
 
-  // to save space we configure these executors mutal exclusive in cfsdeps
-  if(UseOpenMP())
+  CudaChoice cuda = cudaChoice.Parse(pn->Get("cuda")->As<string>());
+
+  if(UseCuda() && (cuda == ON || cuda == AUTO))
+  {
+    int cdi = pn->Get("cuda_devide_id")->As<int>();
+    exec = gko::CudaExecutor::create(cdi, UseOpenMP() ? gko::OmpExecutor::create() : gko::ReferenceExecutor::create());
+    infoNode_->Get("exec")->SetValue("cuda");
+  }
+  if(cuda == ON && !UseCuda())
+    throw Exception("cfs is compiled w/o cuda. Set ginkgo/cudo to 'off' or 'auto'");
+  if(!exec && UseOpenMP())
+  {
     exec = gko::OmpExecutor::create();
-  else
+    infoNode_->Get("exec")->SetValue("openmp");
+  }
+  if(!exec)
+  {
     exec = gko::ReferenceExecutor::create();
+    infoNode_->Get("exec")->SetValue("reference");
+  }
+  infoNode_->Get("cuda_available")->SetValue(UseCuda());
 }
 
 void GinkgoSolver::Setup(BaseMatrix &sysmat)
@@ -280,8 +302,9 @@ void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
   // make the ginkgo rhs based on the view
   auto b = gko::matrix::Dense<GK_T>::create(exec, gko::dim<2>((int) rhs.GetSize(), 1), rsv, 1);
 
-  // our solution. cfs provides an initial guess
-  auto x = gko::matrix::Dense<GK_T>::create(exec, gko::dim<2>(rhs.GetSize(), 1));
+  // our solution. cfs provides an initial guess. 
+  // in the cuda case, we create the data on the CPU to be able to set it. It seems to be automatically copied to GPU when solving
+  auto x = gko::matrix::Dense<GK_T>::create(exec->get_master(), gko::dim<2>(rhs.GetSize(), 1));
   for(unsigned int i = 0; i < rhs.GetSize(); i++)
   {
     sol.GetEntry(i,val);
@@ -301,9 +324,10 @@ void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
 
   bool conv = logger->has_converged();
   size_t iters = logger->get_num_iterations();
+  // in the cuda case we live on the GPU and need to copy to CPU
   auto grn = gko::as<gko::matrix::Dense<double>>(logger->get_residual_norm());
-  double res_norm = ((complex<double>) grn->at(0,0)).real();
-
+  auto grn_host = gko::clone(exec->get_master(), grn);
+  double res_norm = ((complex<double>) grn_host->at(0,0)).real();
   LOG_DBG(ginkgo) << "Solve: converged=" << conv << " iters=" << iters << " residual=" << res_norm << " sol=" << sol.NormL2() << " inital=" << initial_sol_norm;
 
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;

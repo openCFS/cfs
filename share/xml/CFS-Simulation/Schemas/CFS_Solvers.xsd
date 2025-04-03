@@ -1256,6 +1256,23 @@
           <xsd:documentation>Ignore the initial guess for the solution but start from a zero vecotr.</xsd:documentation>
         </xsd:annotation>
       </xsd:attribute>      
+      <xsd:attribute name="cuda" use="optional" default="auto">
+        <xsd:annotation>
+          <xsd:documentation>Use GPU via CUDA. See cfs --version if cfs is compiled with CUDA.</xsd:documentation>
+        </xsd:annotation>
+       <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+         <xsd:enumeration value="on"/>
+         <xsd:enumeration value="off"/>
+         <xsd:enumeration value="auto"/>
+        </xsd:restriction>
+       </xsd:simpleType>
+      </xsd:attribute>
+      <xsd:attribute name="cuda_devide_id" use="optional" type="xsd:integer" default="0">
+        <xsd:annotation>
+          <xsd:documentation>Usually the default (0) shall be sufficient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>
       <xsd:attribute name="fp32" type="xsd:boolean" default="false" use="optional">
         <xsd:annotation>
           <xsd:documentation>Solve the system as single precision</xsd:documentation>

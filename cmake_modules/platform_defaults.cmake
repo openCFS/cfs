@@ -60,6 +60,7 @@ set(USE_LIBFBI_DEFAULT OFF)
 set(USE_FLANN_DEFAULT ON)
 
 set(USE_OPENMP_DEFAULT ON) # for Debug usually OFF
+set(USE_CUDA_DEFAULT OFF) 
 
 # ----------------------------------------------------------------------
 # by the following specific platform_defaults values can be overwritten

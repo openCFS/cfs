@@ -29,6 +29,10 @@ else()
   set(DEPS_ID "NO-OPENMP")
 endif()
 
+if(USE_CUDA)
+  set(DEPS_ID "${DEPS_ID}_CUDA")
+endif()
+
 # sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
 set_precompiled_pckg_file()
 
@@ -54,7 +58,7 @@ set(DEPS_ARGS
   -DBUILD_SHARED_LIBS=OFF
   -DBUILD_TESTING=OFF
   -DGINKGO_BUILD_BENCHMARKS=OFF
-  -DGINKGO_BUILD_CUDA=OFF
+  -DGINKGO_BUILD_CUDA=${USE_CUDA}
   -DGINKGO_BUILD_EXAMPLES=OFF
   -DGINKGO_BUILD_REFERENCE=${_NOT_OMP}
   -DGINKGO_BUILD_OMP=${USE_OPENMP}

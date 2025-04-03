@@ -15,6 +15,7 @@
   #define M_PI boost::math::constants::pi<double>()
 #endif
 
+#include <def_use_cuda.hh>
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -419,6 +420,15 @@ namespace CoupledField {
   inline bool UseOpenMP()
   {
     #ifdef USE_OPENMP
+      return true;
+    #else
+      return false;
+    #endif
+  }
+
+  inline bool UseCuda()
+  {
+    #ifdef USE_CUDA
       return true;
     #else
       return false;

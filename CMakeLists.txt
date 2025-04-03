@@ -130,12 +130,12 @@ option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_
 set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, (Apple) ACCELERATE")
 # we set convenience USE_MKL, USE_OPENBLAS, USE_NETLIB, USE_ACCELERATE in openmp_blas.cmake
 set_property(CACHE USE_BLAS_LAPACK PROPERTY STRINGS OPENBLAS MKL NETLIB ACCELERATE)
+# requires working cuda on the local machine (Ginkgo and to be added cholmod)
+option(USE_CUDA "Use Ginkgo with CUDA" ${USE_CUDA_DEFAULT})
 option(USE_OPENMP "Enable support for OpenMP" ${USE_OPENMP_DEFAULT})
-option(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
-# USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
-option(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
 option(USE_EMBEDDED_PYTHON "External Python Optimizer" ${USE_EMBEDDED_PYTHON_DEFAULT})
-option(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
+
+# --- linear system and eigenvalue problem solvers ----
 option(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)" ${USE_PARDISO_DEFAULT})
 option(USE_ARPACK "Use the ARPACK eigensolver library. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_ARPACK_DEFAULT})
 option(USE_FEAST "Use the FEAST eigenvalue solver (commumity edition)." ${USE_FEAST_DEFAULT})
@@ -147,8 +147,8 @@ option(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi instal
 option(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
 option(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 option(USE_METIS "Use Metis Graph partitioning." ${USE_METIS_DEFAULT})
-# CGNS - CFD General Notation System
-option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
+
+# --- free and closed optimizers -----
 # SCPIP optimizer library.
 option(USE_SCPIP "Use the external academic SCPIP optimizer." ${USE_SCPIP_DEFAULT})
 # MMA/GCMMA optimizer library.
@@ -159,6 +159,15 @@ option(USE_SNOPT "Use the external commercial SNOPT optimizer." ${USE_SNOPT_DEFA
 option(USE_IPOPT "Use the external open source IPOPT optimizer." ${USE_IPOPT_DEFAULT})
 # open source SGP optimizer library.
 option(USE_SGP "Use the external open source SGP optimizer." ${USE_SGP_DEFAULT})
+option(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
+
+# --- optional file reading/writing stuff ------
+# USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
+option(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
+# CGNS - CFD General Notation System
+option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
+option(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
+
 option(USE_CGAL "Activate fast element mapping using CGAL library." ${USE_CGAL_DEFAULT})
 option(USE_EIGEN "Eigen is a C++ template library for linear algebra: matrices, vectors, numerical solvers, and related algorithms." ${USE_EIGEN_DEFAULT})
 # Use libfbi toggles the inclusion of the Fast Box Intersection library.
@@ -175,6 +184,13 @@ if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 else()
   set(USE_STREAMING ON)
 endif()    
+
+if(USE_CUDA)
+  if(NOT USE_GINKGO)
+    message(STATUS "USE_CUDA set but not USE_GINKO which is currently the only CUDA aware dependency") 
+  endif()
+  enable_language(CUDA)
+endif()
 
 #-----------------------------------------------------------------------------
 # Do sanitiy checks after all the settings are done

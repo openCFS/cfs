@@ -23,16 +23,6 @@ namespace CoupledField
   class GinkgoSolver : public BaseIterativeSolver
   {
   public:
-    /** see CFS_Solvers.xsd or Ginkgo for a description of the types */
-    typedef enum {NOSOLVER = 0, ST_JSON, CG, BICGSTAB, GMRES} GinkgoSolverType;
-    static Enum<GinkgoSolverType> ginkgoSolverType;
-
-    typedef enum {NOPRECOND = 0, PT_JSON, JACOBI, ILU, IC, AMG} GinkgoPrecondType;
-    static Enum<GinkgoPrecondType> ginkgoPrecondType;
-
-    typedef enum {ABSOLUTE = 0, INITIAL_RESNORM, RHS_NORM} TolType;
-    static Enum<TolType> tolType;
-
     GinkgoSolver(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type);
 
     virtual ~GinkgoSolver() {};
@@ -48,6 +38,19 @@ namespace CoupledField
     void SetNewMatrixPattern() override {EXCEPTION("SetNewMatrixPattern not implemented for Ginkgo. GetRidOfZeros for NCIs will not work.");};
 
   private:
+    /** see CFS_Solvers.xsd or Ginkgo for a description of the types */
+    typedef enum {NOSOLVER = 0, ST_JSON, CG, BICGSTAB, GMRES} GinkgoSolverType;
+    static Enum<GinkgoSolverType> ginkgoSolverType;
+
+    typedef enum {NOPRECOND = 0, PT_JSON, JACOBI, ILU, IC, AMG} GinkgoPrecondType;
+    static Enum<GinkgoPrecondType> ginkgoPrecondType;
+
+    typedef enum {ABSOLUTE = 0, INITIAL_RESNORM, RHS_NORM} TolType;
+    static Enum<TolType> tolType;
+
+    typedef enum {ON = 0, OFF, AUTO} CudaChoice;
+    static Enum<CudaChoice> cudaChoice;
+
     /** Ginkgo cannot make use of only half given symmetric matrices */
     template <typename CFS_T, typename GK_T>
     void Setup(CRS_Matrix<CFS_T>* mat);
