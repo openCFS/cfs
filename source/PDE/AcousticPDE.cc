@@ -281,22 +281,8 @@ namespace CoupledField{
       matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->AddRegion(actRegion, c0);
 
       // if pde couples with mechanic, we have to multiply the density by -1
-      PtrCoefFct factor;
-      PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
-      if (isMechCoupled_ == true && formulation_ != ACOU_PRESSURE) {
-        if (complexFluidFormulation_)
-          EXCEPTION("Complex fluid and coupled mechanical-acoustic simulation not allowed");
-
-        // Important: In case of a general / quadratic EV problem, we must
-        // ensure to have a "positive definite" matrix, i.e. we are not allowed
-        // to multiply all matrices by -1!
-        std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
-
-        factor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT));
-      }
-      else {
-        factor = constOne;
-      }
+      PtrCoefFct mechAcouFactor;
+      CalcMechAcouFac(mechAcouFactor, dens);
 
       // basic coeff-functions for mass and stiffness matrix
       PtrCoefFct coeffM, coeffK;
@@ -314,12 +300,12 @@ namespace CoupledField{
           // in this case c0 is actually 1/c0^2!!
           //! coeffM: 1/compressionModulus
           //! coeffK = 1/density
-          coeffM = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, blk, CoefXpr::OP_DIV));
+          coeffM = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, mechAcouFactor, blk, CoefXpr::OP_DIV));
           /// coeffM: 1/density
-          coeffK = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV));
+          coeffK = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, mechAcouFactor, dens, CoefXpr::OP_DIV));
         }
         else {
-          coeffK = factor;
+          coeffK = mechAcouFactor;
           // build coefficient for mass matrix as (factor / (c0*c0))
           PtrCoefFct constValOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
           PtrCoefFct coeffa, coeffb;
@@ -514,16 +500,7 @@ namespace CoupledField{
     PtrCoefFct one = CoefFunction::Generate(mp_, Global::REAL, "1.0");
 
     PtrCoefFct mechAcouFactor;
-    if (isMechCoupled_ == true && formulation_ != ACOU_PRESSURE) {
-      // Important: In case of a general / quadratic EV problem, we must
-      // ensure to have a "positive definite" matrix, i.e. we are not allowed
-      // to multiply all matrices by -1!
-      std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
-      mechAcouFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT));
-    }
-    else {
-      mechAcouFactor = CoefFunction::Generate(mp_, Global::REAL, "1.0");
-    }
+    CalcMechAcouFac(mechAcouFactor);
 
     PtrCoefFct regionTemp;
     std::set<UInt> definedDofs;
@@ -1167,6 +1144,7 @@ namespace CoupledField{
         // the following part was missing which is why abc did not function for acouPotential + mechanic
 	  // if pde couples with mechanic, we have to multiply the density by -1
 	  PtrCoefFct factor;
+    // TODO
 	  if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
 	    // Important: In case of a general / quadratic EV problem, we must
 	    // ensure to have a "positive definite" matrix, i.e. we are not allowed
@@ -1435,6 +1413,7 @@ namespace CoupledField{
         EXCEPTION("Normal velocity can only be defined on surface elements");
       }
       PtrCoefFct exValue;
+      // TODO
       if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
         scalFactor = -1.0;
         exValue = 
@@ -1528,6 +1507,7 @@ namespace CoupledField{
       }
 
       PtrCoefFct exValue;
+      // TODO
       if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
         scalFactor = -1.0;
         exValue = 
@@ -1669,6 +1649,7 @@ namespace CoupledField{
           EXCEPTION("Pressure can only be defined on surface elements");
         }
         PtrCoefFct exValue;
+        // TODO
         if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
           scalFactor = -1.0;
           exValue = 
@@ -2867,6 +2848,22 @@ namespace CoupledField{
       cSQR = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV) );
     }
   }
+
+  void AcousticPDE::CalcMechAcouFac( PtrCoefFct& mechAcouFactor, PtrCoefFct dens, surfDens ){
+
+    if (isMechCoupled_ == true && formulation_ != ACOU_PRESSURE) {
+      // Important: In case of a general / quadratic EV problem, we must
+      // ensure to have a "positive definite" matrix, i.e. we are not allowed
+      // to multiply all matrices by -1!
+      std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
+      mechAcouFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT));
+    }
+    else {
+      mechAcouFactor = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+    }
+
+  }
+
   } // namespace CoupledField
 
 template void AcousticPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string,

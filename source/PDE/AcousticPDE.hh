@@ -150,6 +150,9 @@ namespace CoupledField{
     void ComputeSOS_SQR(PtrCoefFct& sosPML, PtrCoefFct dens, PtrCoefFct blk,
     		            PtrCoefFct regionTemp, std::string tempId);
 
+    //! compute mech acou factor
+    void CalcMechAcouFac(PtrCoefFct& coef, PtrCoefFct dens);
+
     //! override from Single PDE due to convective operators
     virtual void FinalizePostProcResults();
 
