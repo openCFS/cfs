@@ -425,8 +425,7 @@ namespace CoupledField{
               WARN("Curvilinear PML in combination with complex fluid is not "
                    "tested yet!\n Please check your results and consider "
                    "adding a testcase to the testsuite.")
-            if (dim_ == 2)
-              EXCEPTION("Curvilinear PML currently works only in 3D!");
+
             // pointer to object that handles the computation of the curvilinear
             // PML damping tensor here we need the full Jacobi matrix
             coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(
@@ -504,7 +503,10 @@ namespace CoupledField{
             stiffInt->SetBCoefFunctionOpB(coeffPMLVector);
           } else if (pmlFormul == "curvilinear") {
             // define integrators for curvilinear PML in 2D
-            EXCEPTION("Curvilinear PML currently only implemented in 3D!");
+            stiffInt = new BBInt<Complex>(
+                new TensorScaledGradientOperator<FeH1, 2, Complex>(),
+                coeffPMLStiff, 1.0, updatedGeo_);
+            stiffInt->SetBCoefFunctionOpB(coeffPMLTensor);
           } else // we should never reach here, but just to be sure
             EXCEPTION("Unknown PML-formulation '" << pmlFormul
                                                   << "' for AcousticPDE. ")
@@ -575,12 +577,10 @@ namespace CoupledField{
 
       if (dim_ == 2) {
         if (harmonicPML) {
-          if (pmlFormul == "classic")
-            massInt =
-                new BBInt<Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
-                                   coeffPMLMass, 1.0, updatedGeo_);
-          else if (pmlFormul == "curvilinear") {
-            EXCEPTION("Curvilinear PML currently only implemented in 3D!");
+          if (pmlFormul == "classic" || "curvilinear")
+          {
+            massInt =  new BBInt<Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
+                                          coeffPMLMass, 1.0, updatedGeo_);
           } else // we should never reach here, but just to be sure
             EXCEPTION("Unknown PML-formulation '" << pmlFormul
                                                   << "' for AcousticPDE. ")
