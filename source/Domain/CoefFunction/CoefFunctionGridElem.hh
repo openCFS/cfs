@@ -4,17 +4,17 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 //================================================================================================
 /*!
- *       \file     CoefFunctionGridNodal.hh 
- *       \brief    Coefficient function which obtains and interpolates values from another Grid
- *                 Specialized for nodal Results from the other grid
+ *       \file     CoefFunctionGridElem.hh 
+ *       \brief    Coefficient function which obtains and interpolates values from another grid
+ *                 Specialized for element Results from the other grid
  *
- *       \date     11/21/2012
- *       \author   Andreas Hueppe
+ *       \date     20/09/2024
+ *       \author   Dominik Mayrhofer
  */
 //================================================================================================
 
-#ifndef COEFFUNCTIONGRIDNODAL_HH
-#define COEFFUNCTIONGRIDNODAL_HH
+#ifndef COEFFUNCTIONGRIDELEM_HH
+#define COEFFUNCTIONGRIDELEM_HH
 
 #include "CoefFunctionGrid.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -30,24 +30,24 @@ namespace CoupledField{
 /*! \class CoefFunctionGridBase
  *     \brief Coefficient function which obtains and interpolates values from another Grid
  *     \tparam DATA_TYPE Can be Complex or Double
- *     @author A. Hueppe
- *     @date 11/2012
+ *     @author Dominik Mayrhofer
+ *     @date 09/2024
  *     
- *     This CoefFunction handels nodal resutls from another Grid. 
- *     The Implementation is specializied thus beeing quite efficient but inflexible wrt 
- *     to higher order results. The class CoefFunctionGridHigher will cope with this. 
+ *     This CoefFunction handels element resutls from another Grid. 
+ *     Currently, only the default grid is supported. 
+ *     Nevertheless, the implementation is designed similarly to the nodal one to make future implementations easier.
  */
 template<class DATA_TYPE>
-class CoefFunctionGridNodal : public CoefFunctionGrid{
+class CoefFunctionGridElem : public CoefFunctionGrid{
   public:
 
     ///Constructor with the configuration xml node reading the type of interpolation
-    CoefFunctionGridNodal(Domain* ptDomain, PtrParamNode configNode, shared_ptr<RegionList> regions);
+    CoefFunctionGridElem(Domain* ptDomain, PtrParamNode configNode, shared_ptr<RegionList> regions);
 
     ///Destructor freeing al used data strutures
-    virtual ~CoefFunctionGridNodal();
+    virtual ~CoefFunctionGridElem();
 
-    virtual string GetName() const { return "CoefFunctionGridNodal"; }
+    virtual string GetName() const { return "CoefFunctionGridElem"; }
 
     // ========================
     //  ACCESS METHODS
@@ -76,81 +76,33 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     	}
     }
 
-    //! \copydoc CoefFunction::SetDerivativeOperation
-    virtual void SetDerivativeOperation(CoefDerivativeType type){
-      this->derivType_ = type;
-
-      //make some checks here!
-      switch(dimType_){
-      case SCALAR:
-        //only NONE is valid right now
-        //if extended to gradient, this would be fine too
-        if(type==VECTOR_DIVERGENCE){
-          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
-        }
-        break;
-      case VECTOR:
-        //this is fine in all cases right now
-        if(type==VECTOR_DIVERGENCE){
-          //change dim type to scalar
-          this->dimType_ = SCALAR;
-          UInt gDim = this->domain_->GetGrid()->GetDim();
-          UInt dDim = this->resultInfo_->dofNames.GetSize();
-          this->CreateDivOperator(gDim,dDim);
-        }
-        break;
-      case TENSOR:
-        if(type==VECTOR_DIVERGENCE){
-          EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
-        }
-        break;
-      default:
-        break;
-      }
-      return;
-    }
 
   protected:
 
     //=======================================================================================
-    // Interpolation operator for nodal results
-    //=======================================================================================
-    //!Create the interpolation operator
-    //!and sets the corresponding class variable
-    void CreateOperator(UInt spaceDim, UInt dofDim);
-
-    //!Creates a divergence operator in case we want the divergence of an
-    //! external vector field
-    void CreateDivOperator(UInt spaceDim, UInt dofDim);
-
-    //! BOperator to map solutions to arbitrary points
-    //! Right now, hardcoded identity operator
-    shared_ptr<BaseBOperator > myOperator_;
-
-    //=======================================================================================
-    // Functions and structure for nodal grid result handling 
+    // Functions and structure for element grid result handling 
     //=======================================================================================
 
-    //! initalize region nodes
-    void InitRegionNodes();
+    //! initalize region elements
+    void InitRegionElements();
     
-    //! stores if region nodes have been initialized
-    bool initializedRegionNodes_;
+    //! stores if region elements have been initialized
+    bool initializedRegionElements_;
     
-    //! cached data of nodes per region
-    StdVector< StdVector<UInt> > regionNodes_;
+    //! cached data of elements per region
+    StdVector< StdVector<UInt> > regionElements_;
+
+    //! initialize used region elements for evaluting the sum
+    void InitUsedRegionElementsForSum();
+
+    //! stores if the elements needes for evaluating the sum for each source are initialized
+    bool initializedUsedRegionElementsForSum_;
     
-    //! initialize used region nodes for evaluting the sum
-    void InitUsedRegionNodesForSum();
+    //! stores, if all region elements should be used for evaluating the sum
+    bool useAllRegionElementsForSum_;
     
-    //! stores if the nodes needes for evaluating the sum for each source are initialized
-    bool initializedUsedRegionNodesForSum_;
-    
-    //! stores, if all region nodes should be used for evaluating the sum
-    bool useAllRegionNodesForSum_;
-    
-    //! stores the nodes to take into account for evaluating the sum of sources
-    StdVector< std::vector<bool> > usedRegionNodesForSum_;
+    //! stores the elements to take into account for evaluating the sum of sources
+    StdVector< std::vector<bool> > usedRegionElementsForSum_;
     
     //! Read solution from sourceFile according to the given stepnumber and stepvalue
     void ReadSolution(UInt step, Double stepValue, Vector<DATA_TYPE> & sol);
@@ -160,27 +112,17 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     
     //! Updates the solution vector
     bool UpdateSolution();
-    
-    //! Perform a simple equation mapping for nodal grids
-    //! to make solution access simpler
-    void MapEqns();
 
 #ifdef USE_OPENMP
     //! thread locking for UpdateSolution function
     omp_lock_t updateSolutionLock_;
 #endif
     
+    //! Extract the solution for a source element
+    void GetElemSolution(Vector<DATA_TYPE> & sol, UInt eNum);
+    
     //! Initialize the solution vector solVec_;
     void InitSolVec();
-
-    //! Extract the solution for a source element in order to apply the interpolation operator
-    void GetElemSolution(Vector<DATA_TYPE> & sol, UInt eNum);
-
-    //! Associate node numbers to equations
-    std::map<UInt,UInt> nodeIdxMap_;
-
-    //! the equation Numbers, for each node, dimDOF equation numbers  
-    StdVector< StdVector<UInt> > eqnNumbers_;
 
     //! Stores the current solution vector
     Vector<DATA_TYPE> solVec_;
@@ -197,6 +139,9 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! stores the a second solution vector for temporal interpolation
     Vector<DATA_TYPE> solVecInterpolationB_;
 
+    //! Total number of elements
+    UInt numElements_;
+    
     //! Total number of nodes
     UInt numNodes_;
     
@@ -228,21 +173,21 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     // Functions and structure for global factor handling
     //=======================================================================================
 
-    //! initalize region node coordinates
-    void InitRegionNodeCoordinates();
+    //! initalize region element coordinates
+    void InitRegionElementCoordinates();
     
-    //! clear region node coordinates
-    void ClearRegionNodeCoordinates();
+    //! clear region element coordinates
+    void ClearRegionElementCoordinates();
     
-    //! stores if region nodes have been initalized
-    bool initializedRegionNodeCoordinates_;
+    //! stores if region elements have been initalized
+    bool initializedRegionElementCoordinates_;
     
-    //! cached region node coordinates
-    StdVector<StdVector<Vector<Double> > > regionNodeCoordinates_;
+    //! cached region element coordinates
+    StdVector<StdVector<Vector<Double> > > regionElementCoordinates_;
     
     //! function to create on string of global factors from multiple strings
     std::string OneFactorStringFromMultipleFactors(StdVector<std::string>& factors);
-
+    
     //! create one factor function from one factor string 
     shared_ptr<CoefFunction> CreateFactorFunction(std::string factorString);
     
@@ -310,7 +255,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     StdVector< Vector< DATA_TYPE > > constantInput_;
 
     //=======================================================================================
-    // Functions and structure for copying the nodal grid result
+    // Functions and structure for copying the element-based grid result
     //=======================================================================================
     
     //! struct needed for creation of typedef to template function for copying the result vector
@@ -333,20 +278,20 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
               bool countSum, bool countAllValues, UInt dimDof>
     static void CopyResult(Vector<DATA_TYPE>& sol,
                           Vector<DATA_TYPE>& res,
-                          StdVector<UInt>& nodeNums, 
+                          StdVector<UInt>& elemNums, 
                           StdVector<DATA_TYPE>& spaceFactorA, 
                           StdVector<DATA_TYPE>& spaceFactorB,
                           const DATA_TYPE constFactor,
                           StdVector<DATA_TYPE>& sum, 
                           StdVector<DATA_TYPE>& factorSum,
-                          std::vector<bool>& countNodes);
+                          std::vector<bool>& countElems);
     
     //! Function for getting the right implementation of CopyResult function for the given problem
     //! recursively resolving all parameters into template parameters
     template<bool useSpaceFactorA, bool useSpaceFactorB, bool useConstFactor, 
         bool countSum, bool countAllValues, UInt dimDof>
-    static typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction() {
-      return &CoefFunctionGridNodal<DATA_TYPE>::CopyResult<
+    static typename CoefFunctionGridElem<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction() {
+      return &CoefFunctionGridElem<DATA_TYPE>::CopyResult<
           useSpaceFactorA,useSpaceFactorB,useConstFactor,countSum,countAllValues,dimDof>;
     }
     
@@ -354,7 +299,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! recursively resolving all parameters into template parameters
     template<bool useSpaceFactorA, bool useSpaceFactorB, bool useConstFactor, 
         bool countSum, bool countAllValues>
-    static typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(const UInt dimDof) {
+    static typename CoefFunctionGridElem<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(const UInt dimDof) {
       if (dimDof == 1) { // scalar
         return GetCopyResultFunction<useSpaceFactorA,useSpaceFactorB,useConstFactor,countSum,countAllValues,1>();
       } else if (dimDof == 2) { // 2D vector
@@ -372,14 +317,14 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
       } else if (dimDof == 27) { // 3D tesnor 3rd order 
         return GetCopyResultFunction<useSpaceFactorA,useSpaceFactorB,useConstFactor,countSum,countAllValues,27>();
       }
-      EXCEPTION("Cannot find CopyResult function for dimension " << dimDof << " in CoefFunctionGridNodal::GetCopyResultFunction");
+      EXCEPTION("Cannot find CopyResult function for dimension " << dimDof << " in CoefFunctionGridElem::GetCopyResultFunction");
       return GetCopyResultFunction<useSpaceFactorA,useSpaceFactorB,useConstFactor,countSum,countAllValues,1>();
     }
     
     //! Function for getting the right implementation of CopyResult function for the given problem
     //! recursively resolving all parameters into template parameters
     template<bool useSpaceFactorA, bool useSpaceFactorB, bool useConstFactor>
-    static typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(
+    static typename CoefFunctionGridElem<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(
         const bool countSum, const bool countAllValues, const UInt dimDof) {
       if (countSum) {
         if (countAllValues) {
@@ -394,7 +339,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! Function for getting the right implementation of CopyResult function for the given problem
     //! recursively resolving all parameters into template parameters
     template<bool useSpaceFactorA, bool useSpaceFactorB>
-    static typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(
+    static typename CoefFunctionGridElem<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(
         const bool useConstFactor, const bool countSum, const bool countAllValues, const UInt dimDof) {
       if (useConstFactor) {
         return GetCopyResultFunction<useSpaceFactorA,useSpaceFactorB,true>(countSum, countAllValues, dimDof);
@@ -405,7 +350,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     //! Function for getting the right implementation of CopyResult function for the given problem
     //! recursively resolving all parameters into template parameters
     template<bool useSpaceFactorA>
-    static typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(
+    static typename CoefFunctionGridElem<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(
         const bool useSpaceFactorB, const bool useConstFactor, 
         const bool countSum, const bool countAllValues, const UInt dimDof) {
       if (useSpaceFactorB) {
@@ -416,7 +361,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     
     //! Function for getting the right implementation of CopyResult function for the given problem
     //! recursively resolving all parameters into template parameters
-    static typename CoefFunctionGridNodal<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(
+    static typename CoefFunctionGridElem<DATA_TYPE>::CopyResultFunction::Ptr GetCopyResultFunction(
         const bool useSpaceFactorA, const bool useSpaceFactorB, const bool useConstFactor, 
         const bool countSum, const bool countAllValues, const UInt dimDof) {
       if (useSpaceFactorA) {
