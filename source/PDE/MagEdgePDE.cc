@@ -171,7 +171,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           bool nL = (nonLinTypes.GetSize() > 0)? true : false;
           nuNl = multiHarmCoef_->GenerateMatCoefFnc(iRegion, "Reluctivity", nL, actSDList);
         }else{
-          if( nonLinTypes.Find(PERMEABILITY) != -1 && matDepenTypes.Find(PERMEABILITY) != -1){
+          if( (nonLinTypes.Find(PERMEABILITY) != -1) && (matDepenTypes.Find(PERMEABILITY) != -1)){
             // case of temperature-dependent BH-curves (solution-dependent BH curve AND temperature-dependency!)
             // ========================================
             //  Temperature dependent BH curves - Nonlinear Stiffness Integrator
@@ -299,8 +299,22 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             curCoef = mu0;
             permeability = mu0;
           }else{
-            curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL ); //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
-            permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
+            if(matDepenTypes.Find(PERMEABILITY) != -1){
+              // case of temperature-dependent BH-curves (linear mu but temperature-dependent)
+              //get coeff-Fnc to evaluate the temperature
+              StdVector<std::string> dispDofNames = feFunc->GetResultInfo()->dofNames;
+              shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+              PtrCoefFct tempcoef = NULL;
+              ReadMaterialDependency( "permeability", dispDofNames, ResultInfo::SCALAR, false,
+                                      ent, tempcoef, updatedGeo_ ); 
+              
+              permeability = actMat->GetScalCoefFncPureMatDepend( MAG_RELUCTIVITY_SCALAR, Global::REAL, tempcoef);
+              curCoef = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, permeability, CoefXpr::OP_DIV ) );
+            }else{
+
+              curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL ); //actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
+              permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV ) );
+            }
           }
           matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
 

@@ -771,6 +771,63 @@ namespace CoupledField
 //  }
 //
 
+  PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncPureMatDepend( MaterialType matType,
+                                              Global::ComplexPart matDataType,
+                                              PtrCoefFct tempCoef ){
+      
+    PtrCoefFct ret;
+    // -----------
+    // RELUCTIVITY
+    // -----------
+    // check if material is isotropic or anisotropic
+    if( nonlinIsoParams_.find(MAG_PERMEABILITY_SCALAR) != nonlinIsoParams_.end() ) {
+      EXCEPTION("Purely temperature dependent permeability can only be isotropic");
+    }
+    // ---------------------------
+    // ISOTROPIC TEMP-DEPEND BH CURVES VERSION: here we allow for different BH-curves as a function of temperature!
+    // ---------------------------
+    StdVector<MatDescriptorNl> & matlin = linIsoTempDependPermParam_[MAG_PERMEABILITY_SCALAR];
+    UInt numCurves = matlin.GetSize();
+    StdVector<Double> temperatures(numCurves);
+    StdVector<shared_ptr<CoefFunction> > approx(numCurves);
+    Double startValAveraged = 0.0;
+
+    // Loop over all entries
+    for( UInt i = 0; i < matlin.GetSize(); ++i ) {
+      MatDescriptorNl & actlin = matlin[i];
+      temperatures[i] = actlin.temperature;
+      
+      //store in array
+      approx[i] = CoefFunction::Generate( mp_, Global::REAL, actlin.analyticExpr);
+    }
+    // -------------------------
+    // Insertion sort algorithm: we sort the permeabilities starting with the smallest temperature
+    // ------------------------
+    Double compTemperature;
+    shared_ptr<CoefFunction> compApprox;
+    UInt j;
+    for( UInt i = 1; i < numCurves; i++ ) {
+      compTemperature = temperatures[i];
+      compApprox = approx[i];
+      j = i;
+      while( ( j > 0 ) && ( temperatures[j - 1] > compTemperature ) ) {
+        temperatures[j] = temperatures[j - 1];
+        approx[j] = approx[j - 1];
+        j = j - 1;
+      }
+      temperatures[j] = compTemperature;
+      approx[j] = compApprox;
+    }
+
+    shared_ptr<CoefFunctionApproxIsotropicTemperatureDependent> coef( new CoefFunctionApproxIsotropicTemperatureDependent());
+    // initialize the coef function not only with the flux density but also with the temperature
+    coef->Init( startValAveraged, approx, temperatures, NULL, tempCoef ); 
+    baseCoefIsoTempDependBH_ = coef;
+    return coef;
+  
+    
+  }
+
 
   PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                            Global::ComplexPart matDataType,

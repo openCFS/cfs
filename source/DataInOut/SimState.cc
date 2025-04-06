@@ -138,6 +138,9 @@ class MaterialHandler;
     LOG_TRACE(simState) << "Generating domain";
     domain_ = new Domain( gridInputs, resHandler, matHandler, shared_from_this(),
                           rootNode, infoNode, false );
+    // Indicate to the domain object that it is an external domain read in by a function
+    // and not created by a simulation run
+    domain_->SetIsExternalDomain();
     LOG_DBG(simState) << "\t=> Generated new Domain (address: " << domain_ << ")";
     // Provide external grid map if non-empty
     if( map.size() > 0 ) {

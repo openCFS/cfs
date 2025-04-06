@@ -444,6 +444,14 @@ namespace CoupledField
     nonlinIsoTempDependBHParams_[matType] = data;
   }
 
+  void BaseMaterial::SetLinMatIsoTempDependPerm( MaterialType matType, StdVector<MatDescriptorNl>& data ) {
+    if( linIsoTempDependPermParam_.find(matType) != linIsoTempDependPermParam_.end() ) {
+      EXCEPTION( "Material parameter '" << MaterialTypeEnum.ToString(matType)
+                 << "' was already set");
+    }
+    linIsoTempDependPermParam_[matType] = data;
+  }
+
   void BaseMaterial::SetCoefFct( MaterialType matType, PtrCoefFct coef ) {
     
     // check, if material type is allowed
@@ -1446,6 +1454,12 @@ namespace CoupledField
      mFunct->SetCoordinateSystem(this->coosy_);
      return mFunct;
    }
+
+   PtrCoefFct BaseMaterial::GetScalCoefFncPureMatDepend( MaterialType matType,
+                                               Global::ComplexPart matDataType,
+                                               PtrCoefFct dependency ){
+        EXCEPTION("Not implemented in base class");
+    }
 
    PtrCoefFct BaseMaterial::GetSubTensorCoefFnc( MaterialType matType, 
                                                  SubTensorType tensorType,

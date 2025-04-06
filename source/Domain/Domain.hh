@@ -238,6 +238,16 @@ namespace CoupledField
       genResId_ += 1;
     }
 
+    //! Set flag when using external domains (e.g. read in from external simulation)
+    //! We need this flag to know if we can read sequence step definitions within the read in simulation (if applicable)
+    void SetIsExternalDomain() {
+      isExternalDomain_ = true;
+    }
+
+    //! Get method for the isExternalDomain_ flag
+    bool GetIsExternalDomain() {
+      return isExternalDomain_;
+    }
 
   protected:
 
@@ -382,6 +392,11 @@ namespace CoupledField
     //! Since these Enums can not be created on the fly, we have to keep
     //! track of them here and assign them individually to avoid redefinition */
     int genResId_ = 0;
+
+    //! Flag to indicate if the domain is an external domain (e.g. read in by the flag external simulation)
+    //! Used to stop ReadUserFieldValues to initialize sequenceStep dependencies that can not function
+    //! since we only initialize a specific sequence step in such a scenario
+    bool isExternalDomain_ = false;
   };
 
 }

@@ -84,6 +84,7 @@ namespace CoupledField {
     typedef std::map<MaterialType, MatDescriptorNl> NonLinIsoMap;
     typedef std::map<MaterialType, StdVector<MatDescriptorNl> > NonLinAnisoMap;
     typedef std::map<MaterialType, StdVector<MatDescriptorNl> > NonLinIsoMapTempDependBHcurves;
+    typedef std::map<MaterialType, StdVector<MatDescriptorNl> > LinTempDependPerm;
 
     //! Denote the symmetry type 
     typedef enum {
@@ -164,6 +165,11 @@ namespace CoupledField {
                                                Global::ComplexPart matDataType,
                                                PtrCoefFct dependency );
     
+    //! Return scalar-valued coefficient function for linear but dependent (e.g., from previous sequence step) parameters
+    virtual PtrCoefFct GetScalCoefFncPureMatDepend( MaterialType matType,
+                                               Global::ComplexPart matDataType,
+                                               PtrCoefFct dependency );
+
     //! Return scalar-valued coefficient function for a matrial model
     //virtual PtrCoefFct GetScalCoefFncModel(shared_ptr<CoefFunction> matModel);
 
@@ -252,7 +258,9 @@ namespace CoupledField {
     
     //! Set a nonlinear isotropic approximation for temperature dependent BH-curves
     virtual void SetNonLinMatIsoTempDependBH( MaterialType matType, StdVector<MatDescriptorNl>& data );
+    virtual void SetLinMatIsoTempDependPerm( MaterialType matType, StdVector<MatDescriptorNl>& data );
     
+
     //! get a string material parameter
     virtual void GetString( std::string& param, MaterialType matType) const;
     
@@ -523,6 +531,7 @@ namespace CoupledField {
 
     //! map storing the temperature-dependent nonlinear material parameters
     NonLinIsoMapTempDependBHcurves nonlinIsoTempDependBHParams_;
+    LinTempDependPerm linIsoTempDependPermParam_;
 
     // ========================================================
     //  New coefficient based material representation

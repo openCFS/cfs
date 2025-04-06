@@ -767,7 +767,10 @@ namespace CoupledField {
         tempDependBH_ = true;
         StdVector<BaseMaterial::MatDescriptorNl> nlData;
         nlData.Resize(numPermNodes);
+        StdVector<BaseMaterial::MatDescriptorNl> linData;
+        linData.Resize(numPermNodes);
         // loop over every permeability node and extract relevant data
+        StdVector<PtrCoefFct> lincoefs;
         for (UInt i = 0; i < numPermNodes; i++)
         {
           // Let's start with some checks
@@ -805,9 +808,17 @@ namespace CoupledField {
           info.temperature = 0.0;
           info.analyticExpr = "";
           info.analyticExprDeriv = "";
+          
+          BaseMaterial::MatDescriptorNl &infolin = linData[i];
+          infolin = ReadNonlinDescriptor(permNodes[i]->Get("linear/isotropic"), material);
+          infolin.temperature = permNodes[i]->Get("temperature")->As<Double>();
+          infolin.analyticExpr = "";
+          infolin.analyticExprDeriv = "";
+          infolin.analyticExpr = permNodes[i]->Get("linear/isotropic/real")->As<std::string>();
 
           // read temperature for which the current BH curve is defined
           info.temperature = permNodes[i]->Get("temperature")->As<Double>();
+          infolin.temperature = permNodes[i]->Get("temperature")->As<Double>();
           // read analytic function of material parameter
           if(permNodes[i]->Has("nonlinear/isotropic/nuExpr")){
             info.analyticExpr = permNodes[i]->Get("nonlinear/isotropic/nuExpr")->As<std::string>().c_str();
@@ -818,6 +829,7 @@ namespace CoupledField {
           }
         }
         material->SetNonLinMatIsoTempDependBH(MAG_PERMEABILITY_SCALAR, nlData);
+        material->SetLinMatIsoTempDependPerm(MAG_PERMEABILITY_SCALAR, linData);
       }
       else
       {
