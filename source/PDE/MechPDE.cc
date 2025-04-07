@@ -1443,16 +1443,30 @@ namespace CoupledField {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
                   Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
-                  1.0, coef[i], coefUpdateGeo);
+          if(coef[i]->IsComplex()){
+            // rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(), Complex(1.0), coef[i], coefUpdateGeo, true, coef[i]->IsComplex() );
+            WARN("<forceDensity> has complex-valued input. "
+              "Only the real part is used. This is typically intended for mean values "
+              "from harmonic analyses. Please verify if this behavior is appropriate for your use case.");
+          }else{
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(), 1.0, coef[i], coefUpdateGeo, true, coef[i]->IsComplex() );
+          }
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1,3,3>(),
                   Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
-                  1.0, coef[i], coefUpdateGeo);
+          if(coef[i]->IsComplex()){
+            // rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(), Complex(1.0), coef[i], coefUpdateGeo, true, coef[i]->IsComplex() );
+            WARN("<forceDensity> has complex-valued input. "
+              "Only the real part is used. This is typically intended for mean values "
+              "from harmonic analyses. Please verify if this behavior is appropriate for your use case.");
+          }else{
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(), 1.0, coef[i], coefUpdateGeo, true, coef[i]->IsComplex() );
+          }
         }
       }
       lin->SetName("ForceDensityInt");
