@@ -1,0 +1,69 @@
+undo on
+undo on
+reset
+
+create cylinder height 1 radius 0.2
+create cylinder height 1 radius 0.001
+subtract body 2 from body 1 keep
+delete volume 1
+merge volume 2 3
+
+block 1 add volume 3
+block 1 name "V_air"
+block 2 add volume 2
+block 2 name "V_coil"
+
+
+
+
+nodeset 1 add surface 8
+nodeset 1 name "S_air_out"
+
+
+nodeset 2 add surface 9
+nodeset 2 name "S_z_neg"
+nodeset 3 add surface 10
+nodeset 3 name "S_z_pos"
+
+
+nodeset 4 add surface 5
+nodeset 4 name "S_sigma_plus"
+nodeset 5 add surface 6
+nodeset 5 name "S_sigma_minus"
+nodeset 6 add surface 4  
+nodeset 6 name "S_gamma_c"
+
+
+surface 6  size auto factor 8
+mesh surface 6
+volume 2  scheme Sweep  source surface 6    target surface 5   sweep transform translate propagate bias 
+volume 2   size 4e-2
+mesh volume 2
+
+volume  3 size 4e-2
+mesh volume  3
+
+
+
+
+export ansys cdb "/home/kroppert/Documents/Induction-Heating/ImplementationTests/excitation/BoundaryAVExcitation/meshCylAir.cdb" overwrite
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

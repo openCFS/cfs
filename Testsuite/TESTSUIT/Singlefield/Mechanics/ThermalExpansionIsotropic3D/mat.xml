@@ -1,0 +1,32 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="ortho">
+    <mechanical>
+      <density>
+        <linear>
+          <real>1.0</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1e+9</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.25</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <thermalExpansion>
+        <isotropic>
+          <real>1e-6</real>
+        </isotropic>
+        <refTemperature>
+          <real>0</real>
+        </refTemperature>
+      </thermalExpansion>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation"> 
+
+   <fileFormats>
+     
+      <input>
+        <hdf5 fileName="../mesh/srcMesh.h5" id="default" gridId="default"/>
+      </input>
+
+      <output>
+        <hdf5 id="hdf5"/>
+        <text id="txt"/>
+      </output>
+
+     <materialData file="air.xml"/>
+   </fileFormats>
+
+  <domain geometryType="plane">
+      <regionList>
+        <region name="fluid"      material="air_20deg"/>
+      </regionList>
+  </domain>
+
+    <sequenceStep>
+      <analysis>
+        <transient>
+          <numSteps>5</numSteps>
+          <deltaT>0.1</deltaT>
+        </transient>           
+      </analysis>
+
+      <pdeList>
+        <acoustic>
+
+          <regionList>
+            <region name="fluid"/>
+          </regionList>
+
+          <bcsAndLoads>
+            <rhsValues name="fluid" value="t*(cos((x)^2+(y)^2))">  </rhsValues>
+          </bcsAndLoads>
+          
+          <storeResults>
+            <nodeResult type="acouRhsLoad">
+              <allRegions outputIds="hdf5"/>
+            </nodeResult>         
+          </storeResults>
+
+        </acoustic>
+      </pdeList>
+
+
+      <linearSystems>
+        <system>
+
+          <solutionStrategy>
+            <standard>
+              <matrix reordering="noReordering" storage="sparseSym"/>
+              <solver id="pardiso"/> <!--used solver-->
+            </standard>
+          </solutionStrategy>
+
+          <solverList>
+            <cg id="cg">
+              <maxIter>1</maxIter>
+              <logging>yes</logging>
+            </cg>
+
+            <pardiso id="pardiso">
+            </pardiso>
+
+            <lis id="lis">
+              <precond>
+                <iluk fill="1"/>
+              </precond>
+
+              <solver>
+                <CGS/>
+              </solver> 
+
+              <maxIter>1000</maxIter>
+              <tolerance>1.0E-7</tolerance>
+              <logging>true</logging>             
+            </lis>
+          </solverList>
+
+        </system>
+      </linearSystems>
+    </sequenceStep>
+</cfsSimulation>

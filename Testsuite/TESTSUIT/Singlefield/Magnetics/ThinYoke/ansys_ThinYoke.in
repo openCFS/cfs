@@ -1,0 +1,174 @@
+! ===========================================================================
+!  ANSYS input script for flat, anisotropic structure with central magnet
+! ===========================================================================
+!
+fini
+/clear
+
+
+
+!/prep7
+!/uis,msgpop,2
+
+
+
+! -----------------------
+!  geometric properties
+! -----------------------
+
+! length of yoke
+l=4
+
+! width of yoke 1
+w=1
+
+! side length of magnet
+m=0.5
+
+! size of air (upper, lower)
+a=0.5
+
+! aspect ratio 
+ar=1000
+
+! ========================
+!  NORMAL DISCRETIZATION
+! ======================== 
+! element size (in-plane)
+! normal size
+!h = 0.5
+
+! coarse size
+h=2
+
+! number of elements in depth direction
+nElemsDepth= 0
+
+! depth of setup = nElemsDepts * eSize / ar
+depth=nElemsDepth*h/ar
+
+! generate file name
+!/filname,thin-yoke-ar-%ar%-n-%nElemsDepth%
+/filname,ThinYoke
+
+/prep7
+/uis,msgpop,2
+init
+! -----------------------
+!  geometry creation
+! -----------------------
+tmp=l-w-m
+rectng,0,m,0,m
+rectng,m,m+tmp,0,m
+rectng,l-w,l,0,m
+rectng,0,m,m,m+tmp
+rectng,m,m+tmp,m,m+tmp
+
+rectng,0,m,l-w,l
+
+!allsel
+nummrg,kp
+
+k,30,l,l
+
+a,7,11,30,19
+a,15,19,30,23
+
+
+! create area mesh
+setelems,'quadr'
+esize,h
+
+mshkey,1
+amesh,all
+
+! exctrude mesh in thickness direction
+setelems,'brick'
+esize,,nElemsDepth
+
+vext,all,,,,,depth  ! height of setup
+
+asel,s,loc,z,depth
+vext,all,,,,,a  ! air (on top)
+
+asel,s,loc,z,0
+vext,all,,,,,-a  ! air (on bottom)
+
+
+! clear volume mesh
+allsel
+aclear,all
+
+! -----------------------
+!  component creation
+! -----------------------
+allsel
+vsel,s,loc,x,l-w,l,m
+vsel,r,loc,y,0,m
+vsel,r,loc,z,0,depth
+cm,magnet_v,volume
+
+allsel
+vsel,s,loc,x,l-w,l,m
+vsel,r,loc,y,m,l
+vsel,r,loc,z,0,depth
+cmsel,u,magnet_v
+cm,yoke_right_v,volume
+vsel,r,loc,z,0,depth
+
+allsel
+vsel,s,loc,y,l-m,l
+vsel,r,loc,z,0,depth
+cm,yoke_upper_v,volume
+
+allsel
+cmsel,u,magnet_v
+cmsel,u,yoke_upper_v
+cmsel,u,yoke_right_v
+cm,air_v,volume
+
+
+! side areas
+asel,s,loc,x,l
+asel,a,loc,y,l
+asel,a,loc,z,-a
+asel,a,loc,z,depth+a
+cm,bound_a,area
+
+! create surface mesh
+cmsel,s,bound_a
+setelems,'quadr'
+amesh,all
+
+
+! compress element numbers
+allsel
+numcmp,elem
+
+! -----------------------
+!  write mesh
+! -----------------------
+allsel
+wnodes
+
+cmsel,s,yoke_upper_v
+eslv
+welems,'yoke_upper'
+
+cmsel,s,yoke_right_v
+eslv
+welems,'yoke_right'
+
+cmsel,s,magnet_v
+eslv
+welems,'magnet'
+
+cmsel,s,air_v
+eslv
+welems,'air'
+
+cmsel,s,bound_a
+esla
+welems,'bound'
+
+mkmesh

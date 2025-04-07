@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsdat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>timeDerivative_analytical</title>
+    <authors>
+      <author>cjunger</author>
+    </authors>
+    <date>2017-09-21</date>
+    <keywords>
+      <keyword>cfsdat</keyword>
+      <keyword>derivative</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+      Computing the time derivative of the pressure on a 2D square.
+    </description>
+  </documentation>
+  <pipeline>
+    <stepValueDefinition>
+      <startStop>
+        <startStep value="0"/>
+        <numSteps value="628"/>
+	<startTime value="0.01"/>
+        <delta  value="0.01"/>
+        <deleteOffset value="no"/>
+      </startStop>
+    </stepValueDefinition>
+    
+    <meshInput id="input1" gridType="fullGrid">
+      <inputFile>
+        <hdf5 fileName="srcData/results_hdf5/generateAnalyticalField.cfs"/>
+      </inputFile>
+    </meshInput>
+    
+    <timeDeriv1 id="deriv" inputFilterIds="input1">
+      <singleResult>
+        <inputQuantity resultName="acouRhsLoad"/>
+        <outputQuantity resultName="fluidMechPressure_timeDeriv1"/>
+      </singleResult>
+    </timeDeriv1>
+
+    <meshOutput id="timeDerivative_analytical" inputFilterIds="deriv">
+      <outputFile>
+        <hdf5 extension="h5" compressionLevel="1" externalFiles="no"/>
+      </outputFile>
+      <saveResults>
+        <result resultName="fluidMechPressure_timeDeriv1">
+          <allRegions/>
+        </result>
+      </saveResults>
+    </meshOutput>
+  </pipeline>
+</cfsdat>
+
+

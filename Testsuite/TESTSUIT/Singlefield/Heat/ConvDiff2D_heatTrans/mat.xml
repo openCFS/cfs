@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="iron">
+    <heatConduction>
+      <density>
+        <linear>
+          <real>7860</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>452</real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>48</real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>5.0E6</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 2.704E-3 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+</cfsMaterialDataBase>

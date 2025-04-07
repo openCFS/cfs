@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/material ../../../../../share/xml/CFS-Material/CFS_Material.xsd" xmlns="http://www.cfs++.org/material">
+    <material name="refAlu">
+        <mechanical>
+            <density>
+                <linear>
+                    <real>2696</real>
+                </linear>
+            </density>
+            <elasticity>
+                <linear>
+                    <isotropic>
+                        <elasticityModulus>
+                            <real>70.0e+9</real>
+                        </elasticityModulus>
+                        <poissonNumber>
+                            <real>0.3</real>
+                        </poissonNumber>
+                    </isotropic>
+                </linear>
+            </elasticity>
+            <damping>
+                <rayleigh>
+                    <coefficients>
+                        <alpha>30</alpha>
+                        <beta>0.00002</beta>
+                        <!-- <measuredFreq>1000</measuredFreq> -->
+                    </coefficients>
+                </rayleigh>
+            </damping>
+        </mechanical>
+    </material>
+</cfsMaterialDataBase>

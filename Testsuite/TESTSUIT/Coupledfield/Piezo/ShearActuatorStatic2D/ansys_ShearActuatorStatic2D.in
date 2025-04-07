@@ -1,0 +1,131 @@
+! ===========================================================================
+!  2D model of a piezoelectric shear actuator.
+!  The model is taken from
+!  A. Piefort, "FE Modeling of Piezoelectric Active Structures",
+!  Phd Thesis, 2001
+! ===========================================================================
+
+fini
+/clear
+/filname,ShearActuatorStatic2D,1
+/prep7
+
+! initialize mesh interface
+init
+
+
+! ===========================
+!  GEOMETRIC DEFINITIONS
+! ===========================
+
+eps=1e-6
+
+! length of structure
+l=100e-3
+
+! thickness of core
+t_c=2e-3
+
+! thickness of skin material
+t_s=8e-3
+
+! define element size
+esz=4e-3
+
+! ===========================
+!  CREATE GEOMETRY
+! ===========================
+rect,0,l,0,t_s
+rect,0,l,t_s,t_s+t_c
+rect,0,l,t_s+t_c,2*t_s+t_c
+
+allsel
+aglue,all
+
+! ===========================
+!  CREATE COMPONENTS
+! ===========================
+asel,s,,,1
+asel,a,,,5
+cm,skin,area
+
+asel,s,,,4
+cm,core,area
+
+! mechanical boundaries
+lsel,s,loc,x,0
+cm,left,line
+
+lsel,s,loc,x,l
+cm,right,line
+
+! elecrical boundaries
+lsel,s,loc,y,t_s+t_c
+cm,piezo-top,line
+
+lsel,s,loc,y,t_s
+cm,piezo-bot,line
+
+! keypoint for history node
+ksel,s,loc,x,l
+ksel,r,loc,y,2*t_s+t_c
+cm,hist,kp
+
+! ===========================
+!  CREATE MESH
+! ===========================
+
+setelems,'quadr'
+esize,esz
+mshkey,2
+allsel
+amesh,all
+
+! create surface mesh
+setelems,'2d-line'
+cmsel,s,left
+cmsel,a,right
+cmsel,a,piezo-top
+cmsel,a,piezo-bot
+lmesh,all
+
+! compress element numbers
+allsel
+numcmp,elem
+
+! ===========================
+!  WRITE MESH
+! ===========================
+
+allsel
+wnodes
+
+cmsel,s,skin
+esla
+welems,'skin'
+
+cmsel,s,core
+esla
+welems,'core'
+
+cmsel,s,left
+esll
+welems,'left'
+
+cmsel,s,right
+esll
+welems,'right'
+
+cmsel,s,piezo-top
+esll
+welems,'piezo-top'
+
+cmsel,s,piezo-bot
+esll
+welems,'piezo-bot'
+
+cmsel,s,hist
+nslk
+wnodbc,'hist'
+
+mkmesh

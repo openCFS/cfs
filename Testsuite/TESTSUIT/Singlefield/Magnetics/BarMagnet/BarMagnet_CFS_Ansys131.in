@@ -1,0 +1,244 @@
+finish
+/clear
+
+/filename,BarMagnet
+/prep7
+init
+
+!### Ansys mesh script for simulation of a barmagnet in air
+!### dimensions of bar-magnet: length_bar x height_bar
+!### dimensions of air-domain: length_outer x height_outer
+!### meshsizes: dx_bar, dx_outer
+length_bar = 0.05
+height_bar = 0.01
+dx_bar = height_bar/4
+edge_bar = dx_bar/5
+
+length_outer = 5*length_bar
+height_outer = 10*height_bar
+dx_outer = dx_bar
+
+tol = dx_bar/20
+elemOrder = 'quad'
+
+!### Setup of geometry
+!### Create magnet from three parts due to postprocessing;
+!### issue in postprocessing: streamtracer for H-field will collect at edges of magnet
+!### to avoid this mess, we make separate regions at the edges which we then can exclude from visualization
+h1 = height_outer/2
+h2 = height_bar/2
+rectng,-length_outer/2,-length_bar/2,h1,h2
+rectng,-length_bar/2,-length_bar/2+edge_bar,h1,h2
+rectng,-length_bar/2+edge_bar,length_bar/2-edge_bar,h1,h2
+rectng,length_bar/2-edge_bar,length_bar/2,h1,h2
+rectng,length_bar/2,length_outer/2,h1,h2
+
+h1 = height_bar/2
+h2 = height_bar/2-edge_bar
+rectng,-length_outer/2,-length_bar/2,h1,h2
+rectng,-length_bar/2,-length_bar/2+edge_bar,h1,h2
+rectng,-length_bar/2+edge_bar,length_bar/2-edge_bar,h1,h2
+rectng,length_bar/2-edge_bar,length_bar/2,h1,h2
+rectng,length_bar/2,length_outer/2,h1,h2
+
+h1 = height_bar/2-edge_bar
+h2 = -height_bar/2+edge_bar
+rectng,-length_outer/2,-length_bar/2,h1,h2
+rectng,-length_bar/2,-length_bar/2+edge_bar,h1,h2
+rectng,-length_bar/2+edge_bar,length_bar/2-edge_bar,h1,h2
+rectng,length_bar/2-edge_bar,length_bar/2,h1,h2
+rectng,length_bar/2,length_outer/2,h1,h2
+
+h1 = -height_bar/2+edge_bar
+h2 = -height_bar/2
+rectng,-length_outer/2,-length_bar/2,h1,h2
+rectng,-length_bar/2,-length_bar/2+edge_bar,h1,h2
+rectng,-length_bar/2+edge_bar,length_bar/2-edge_bar,h1,h2
+rectng,length_bar/2-edge_bar,length_bar/2,h1,h2
+rectng,length_bar/2,length_outer/2,h1,h2
+
+h1 = -height_bar/2
+h2 = -height_outer/2
+rectng,-length_outer/2,-length_bar/2,h1,h2
+rectng,-length_bar/2,-length_bar/2+edge_bar,h1,h2
+rectng,-length_bar/2+edge_bar,length_bar/2-edge_bar,h1,h2
+rectng,length_bar/2-edge_bar,length_bar/2,h1,h2
+rectng,length_bar/2,length_outer/2,h1,h2
+
+asel,all
+aglue,all
+
+!### Define components
+asel,s,loc,x,-length_bar/2,length_bar/2
+asel,r,loc,y,-height_bar/2,height_bar/2
+cm,magnet,area
+
+asel,s,loc,x,-length_bar/2+edge_bar,length_bar/2-edge_bar
+asel,r,loc,y,-height_bar/2+edge_bar,height_bar/2-edge_bar
+cm,magnet_inner,area
+
+asel,s,loc,x,-length_bar/2,-length_bar/2+edge_bar
+asel,r,loc,y,-height_bar/2+edge_bar,height_bar/2-edge_bar
+cm,magnet_leftDom,area
+
+asel,s,loc,x,length_bar/2-edge_bar,length_bar/2
+asel,r,loc,y,-height_bar/2+edge_bar,height_bar/2-edge_bar
+cm,magnet_rightDom,area
+
+asel,s,loc,x,-length_bar/2+edge_bar,length_bar/2-edge_bar
+asel,r,loc,y,height_bar/2-edge_bar,height_bar/2
+cm,magnet_topDom,area
+
+asel,s,loc,x,-length_bar/2+edge_bar,length_bar/2-edge_bar
+asel,r,loc,y,-height_bar/2,-height_bar/2+edge_bar
+cm,magnet_botDom,area
+
+asel,s,loc,x,-length_bar/2,-length_bar/2+edge_bar
+asel,r,loc,y,height_bar/2-edge_bar,height_bar/2
+cm,magnet_topleftCorner,area
+
+asel,s,loc,x,length_bar/2-edge_bar,length_bar/2
+asel,r,loc,y,height_bar/2-edge_bar,height_bar/2
+cm,magnet_toprightCorner,area
+
+asel,s,loc,x,-length_bar/2,-length_bar/2+edge_bar
+asel,r,loc,y,-height_bar/2,-height_bar/2+edge_bar
+cm,magnet_botleftCorner,area
+
+asel,s,loc,x,length_bar/2-edge_bar,length_bar/2
+asel,r,loc,y,-height_bar/2,-height_bar/2+edge_bar
+cm,magnet_botrightCorner,area
+
+lsel,s,loc,x,-length_bar/2-tol,-length_bar/2+tol
+cm,bar_left,line
+lsel,s,loc,x,length_bar/2-tol,length_bar/2+tol
+cm,bar_right,line
+lsel,s,loc,y,height_bar/2-tol,height_bar/2+tol
+cm,bar_top,line
+lsel,s,loc,y,-height_bar/2-tol,-height_bar/2+tol
+cm,bar_bot,line
+
+asel,all
+cmsel,u,magnet
+cm,air,area
+
+lsel,s,loc,x,-length_outer/2-tol,-length_outer/2+tol
+cm,outer_left,line
+lsel,s,loc,x,length_outer/2-tol,length_outer/2+tol
+cm,outer_right,line
+lsel,s,loc,y,height_outer/2-tol,height_outer/2+tol
+cm,outer_top,line
+lsel,s,loc,y,-height_outer/2-tol,-height_outer/2+tol
+cm,outer_bot,line
+
+!### Setup meshsize and element types
+cmsel,s,magnet
+lsla,all
+lesize,all,dx_bar
+
+cmsel,s,air
+lsla,all
+lesize,all,dx_outer
+
+cmsel,s,bar_left
+cmsel,a,bar_right
+cmsel,a,bar_top
+cmsel,a,bar_bot
+cmsel,a,outer_left
+cmsel,a,outer_right
+cmsel,a,outer_top
+cmsel,a,outer_bot
+setelems,'2d-line',elemOrder
+lmesh,all
+
+!### Specifiy how mesh is allowed to expands towards the interior
+!mopt,expnd,1.5
+!mopt,trans,1.5 
+
+cmsel,s,magnet
+setelems,'quadr',elemOrder
+amesh,all
+
+cmsel,s,air
+setelems,'quadr',elemOrder
+!setelems,'triangle',elemOrder
+amesh,all
+
+!### Write out mesh
+cmsel,s,magnet_inner
+esla,s
+welems,'magnet_inner'
+
+cmsel,s,magnet_leftDom
+esla,s
+welems,'magnet_leftDom'
+
+cmsel,s,magnet_rightDom
+esla,s
+welems,'magnet_rightDom'
+
+cmsel,s,magnet_topDom
+esla,s
+welems,'magnet_topDom'
+
+cmsel,s,magnet_botDom
+esla,s
+welems,'magnet_botDom'
+
+cmsel,s,magnet_topleftCorner
+esla,s
+welems,'magnet_topleftCorner'
+
+cmsel,s,magnet_toprightCorner
+esla,s
+welems,'magnet_toprightCorner'
+
+cmsel,s,magnet_botleftCorner
+esla,s
+welems,'magnet_botleftCorner'
+
+cmsel,s,magnet_botrightCorner
+esla,s
+welems,'magnet_botrightCorner'
+
+
+cmsel,s,bar_left
+esll,s 
+welems,'magnet_left'
+
+cmsel,s,bar_right
+esll,s 
+welems,'magnet_right'
+
+cmsel,s,bar_top
+esll,s 
+welems,'magnet_top'
+
+cmsel,s,bar_bot
+esll,s 
+welems,'magnet_bot'
+
+cmsel,s,air
+esla,s
+welems,'air'
+
+cmsel,s,outer_left
+esll,s 
+welems,'outer_left'
+
+cmsel,s,outer_right
+esll,s 
+welems,'outer_right'
+
+cmsel,s,outer_top
+esll,s 
+welems,'outer_top'
+
+cmsel,s,outer_bot
+esll,s 
+welems,'outer_bot'
+
+allsel
+wnodes
+mkmesh
+!mkhdf5

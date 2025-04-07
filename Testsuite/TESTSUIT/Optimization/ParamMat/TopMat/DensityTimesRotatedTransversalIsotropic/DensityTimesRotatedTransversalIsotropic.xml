@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>simultaneous optimization of topology and transversely isotropic material
+    </title>
+    <authors>
+      <author>Jannis Greifenstein</author>
+    </authors>
+    <date>2015-05-07</date>
+    <keywords>
+      <keyword>optimization</keyword>
+    </keywords>
+    <references>eam_svn:publications/regularization
+    </references>
+    <isVerified>no</isVerified>
+        <description> orthotropic tensor formula is modified to have box constraints for positive definiteness. 
+        2D Tensor formula (designs emodul-iso = E_x, emodul = E_y, poisson = theta):  
+                     [E_x/(1-theta), sqrt(E_y*theta*E_x)/(1-theta), 0
+                                           E_y/(1-theta),           0
+                             sym                                    G] </description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="iso1" />
+    </regionList>
+    <nodeList>
+      <nodes name="load2">
+        <coord x="1.0" y="0.0" z="0.0" />
+      </nodes>
+      <nodes name="load1">
+        <coord x="1.0" y="1.0" z="0.0" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <static />
+    </analysis>
+
+
+    <pdeList>
+      <mechanic subType="planeStress">
+
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="fixed">
+            <comp dof="x" />
+            <comp dof="y" />
+          </fix>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechTensor">
+            <allRegions />
+          </elemResult>
+          <elemResult type="mechStress">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_5">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_6">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_7">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_8">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_9">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_10">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_11">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_12">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+
+  <loadErsatzMaterial file="DensityTimesRotatedTransversalIsotropic.warm.density.xml" set="last"/>
+
+  <optimization>
+    <costFunction type="compliance" multiple_excitation="true">
+      <multipleExcitation>
+        <excitations>
+          <excitation>
+            <force name="load1">
+              <comp dof="y" value="-1" />
+            </force>
+          </excitation>
+          <excitation>
+            <force name="load2">
+              <comp dof="y" value="1" />
+            </force>
+          </excitation>
+        </excitations>
+      </multipleExcitation>
+    </costFunction>
+
+    <constraint type="sumModuli" design="allDesigns" bound="upperBound" value="15.0" notation="hill_mandel" />
+    <constraint type="volume" design="density" bound="upperBound" value="0.6" />
+    <constraint type="slope" design="rotAngle" value="0.17453" bound="upperBound" />
+
+    <optimizer type="snopt" maxIterations="5">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon"/>
+    </optimizer>
+    <ersatzMaterial method="paramMat" material="mechanic">
+      <regions>
+        <region name="mech" />
+      </regions>
+      <filters>
+        <filter type="density" design="density" neighborhood="maxEdge" value="1.4">
+          <sensitivity type="sharp_plain" />
+        </filter>
+        <filter type="density" design="emodul-iso" neighborhood="maxEdge" value="1.6">
+          <sensitivity type="sharp_plain" />
+        </filter>
+        <filter type="density" design="emodul" neighborhood="maxEdge" value="1.6">
+          <sensitivity type="sharp_plain" />
+        </filter>
+        <filter type="density" design="gmodul" neighborhood="maxEdge" value="1.6">
+          <sensitivity type="sharp_plain" />
+        </filter>
+        <filter type="density" design="poisson" neighborhood="maxEdge" value="1.6">
+          <sensitivity type="sharp_plain" />
+        </filter>
+      </filters>
+      <paramMat>
+        <designMaterials>
+          <designMaterial type="density-times-rotated-transversal-isotropic-boxed" isoplane="xz"/>
+        </designMaterials>  
+      </paramMat>
+      <design name="density" initial=".8" lower="0.05" upper="1.0" />
+      <design name="poisson" initial="0.09" lower="0.001" upper="1.0" />
+      <design name="emodul-iso" initial="6.5" lower=".1" upper="15.0" constant="false" scale="false" />
+      <design name="emodul" initial="6.5" lower=".1" upper="15.0" constant="false" scale="false" />
+      <design name="gmodul" initial="0.05" lower=".05" upper="7.5" constant="false" scale="false" />
+      <design name="rotAngle" initial=".7854" lower="-1.0" upper="4.0" />
+      <transferFunction design="density" type="simp" application="mech" param="3" /> 
+      <result value="design" design="density" id="optResult_1" />
+      <result value="design" design="emodul-iso" id="optResult_2" />
+      <result value="design" design="emodul" id="optResult_3" />
+      <result value="design" design="gmodul" id="optResult_4" />
+      <result value="design" design="rotAngle" id="optResult_5" />
+      <result value="design" design="poisson" id="optResult_6" />
+      <result value="design" design="density" id="optResult_7" access="smart" />
+      <result value="design" design="emodul-iso" id="optResult_8" access="smart" />
+      <result value="design" design="emodul" id="optResult_9" access="smart" />
+      <result value="design" design="gmodul" id="optResult_10" access="smart" />
+      <result value="design" design="rotAngle" id="optResult_11" access="smart" />
+      <result value="design" design="poisson" id="optResult_12" access="smart" />
+      <export save="last" write="finally" />
+    </ersatzMaterial>
+    <commit stride="100" />
+  </optimization>
+</cfsSimulation>

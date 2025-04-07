@@ -1,0 +1,52 @@
+reset
+#{ l = 1 }
+#{ h_gap=0.2}
+#{ h_electrodes=0.1}
+#{ x_air=1e-1}
+#{ x_electrodes=1e-1}
+#
+brick x {l} y {h_gap} z {l}
+brick x {l} y {h_electrodes} z {l}
+move volume 2 y {0.5*(h_gap+h_electrodes)}
+brick x {l} y {h_electrodes} z {l}
+move volume 3 y {-0.5*(h_gap+h_electrodes)}
+brick x {l} y {l**2} z {l}
+move volume 4 y {0.5*(h_gap+2*h_electrodes+l**2)}
+imprint volume all
+merge volume all
+nodeset 1 add surface 5
+nodeset 1 name "S_upper_electrode"
+nodeset 2 add surface 3
+nodeset 2 name "S_lower_electrode"
+nodeset 4 add surface 7
+nodeset 4 name "S_guide"
+nodeset 5 add vertex 2
+nodeset 5 name "sensor"
+nodeset 6 add vertex 26 10
+nodeset 6 name "P_springdamper_1"
+nodeset 7 add vertex 29 13
+nodeset 7 name "P_springdamper_2"
+nodeset 8 add vertex 32 16
+nodeset 8 name "P_springdamper_3"
+nodeset 9 add vertex 27 11
+nodeset 9 name "P_springdamper_4"
+nodeset 10 add surface 11
+nodeset 10 name "S_springdamper"
+nodeset 11 add surface 23
+nodeset 11 name "S_fix"
+block 1 add volume 1
+block 1 name "V_air"
+block 2 add volume 2
+block 2 name "V_upper_electrode"
+block 3 add volume 3
+block 3 name "V_lower_electrode"
+block 4 add volume 4
+block 4 name "V_spring"
+volume 1 size {x_air}
+volume 2 3 4 size {x_electrodes}
+mesh volume all
+volume all scale 1e-2
+#
+export ansys cdb "./ElecForcesCapacitorHarmonic3D.cdb" overwrite
+
+

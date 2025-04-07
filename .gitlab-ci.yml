@@ -20,14 +20,10 @@ include:
       - if: $CI_COMMIT_MESSAGE =~ /clear-cache/
       - if: $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
       - if: $CACHE_POLICY == "push" # effectively just add the info job
-  # include the testsuite trigger job (if there are changes in the Testsuite)
-  #- local: .gitlab/ci/testsuite.yml
-
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
-  GIT_SUBMODULE_STRATEGY: recursive # by default clone the testsuite, switch to 'none' to save time if not required
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   CTEST_PROGRESS_OUTPUT: "ON" # makes the ctest output shorter, see https://cmake.org/cmake/help/latest/envvar/CTEST_PROGRESS_OUTPUT.html#envvar:CTEST_PROGRESS_OUTPUT
   # build options for the maximal config
@@ -51,7 +47,6 @@ variables:
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
   CCACHE_MAXSIZE: 200M
   # default ref for artifacts in downstream (Testsuite) pipelines
-  CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_COMMIT_REF_NAME # for the testsuite submodule check
   CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_COMMIT_REF_NAME # for the build artifacts
   # set the pipeline type via variable, see https://docs.gitlab.com/ee/ci/yaml/#variablesoptionsq
   CFS_PIPELINE_TYPE:
@@ -154,7 +149,6 @@ workflow:
     - saas-linux-small-amd64
   # switch off cloning any code
   variables:
-    GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
   cache: {} # disable
 
@@ -164,7 +158,7 @@ workflow:
 .Testsuite_changes: &Testsuite_changes
       changes:
         paths:
-          - Testsuite
+          - "Testsuite/**/*"
         compare_to: $COMPARE_CHANGES_TO
 
 # changes that require the c++ builds to run
@@ -178,74 +172,6 @@ workflow:
       - "**/*.cmake.in"
       - source/**/*.{hh,cc,h,c}
     compare_to: $COMPARE_CHANGES_TO
-
-testsuite-revision:
-  extends: .check
-  image:
-    name: alpine/git:2.47.1
-    entrypoint: ["/bin/sh","-c"]
-  variables:
-    # we clone to make sure we have everything (including current names of the SHAs)
-    GIT_STRATEGY: clone
-    GIT_SUBMODULE_STRATEGY: none
-  rules:
-    # this job must run and pass whenever we need to trigger the testsuite
-    # if we have cpp code changes
-    - if: $CFS_PIPELINE_TYPE == "test"
-      <<: *require-rebuild-changes
-      variables: # debug
-        RULE: 'test + require-rebuild-changes'
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *require-rebuild-changes
-      when: manual
-      variables: # debug
-        RULE: 'manual + require-rebuild-changes'
-    # create the job if there are changes in the Testsuite submodule
-    - if: $CFS_PIPELINE_TYPE == "test"
-      <<: *Testsuite_changes
-      variables: # debug
-        RULE: 'test + Testsuite_changes'
-    - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *Testsuite_changes
-      when: manual
-      variables: # debug
-        RULE: 'manual + Testsuite_changes'
-    # run if triggered by Testsuite - this ensures a MR is open in CFS
-    - if: $CFS_PIPELINE_TYPE == "testsuite" && $CI_OPEN_MERGE_REQUESTS
-      variables: # debug
-        RULE: 'testsuite'
-    # or do the check for nightly & release no matter if there are changes or not (-> this makes sure testsuite merge was done)
-    - if: $CFS_PIPELINE_TYPE == "nightly" || $CFS_PIPELINE_TYPE == "release"
-      variables: # debug
-        RULE: 'nightly or release'
-    # if there are no changes, the job should be created but allowed to fail - it is just informational then
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      when: manual
-      allow_failure: true
-      variables: # debug
-        RULE: 'info'
-  before_script:
-    - echo "This job is in the pipeline because of the rule '$RULE'"
-    - export DEBUG_SECTION_TITLE='Environment variables'
-    - !reference [.linux-debug-start_collapsed, script]
-    - env # debug
-    - !reference [.linux-debug-end, script]
-    - git --no-pager log -1 --pretty=tformat:'%h %D'
-  script:
-    # obtain the testsuite reference
-    - git submodule status # debug
-    # save the Testsuite submodule SHA
-    - export CFS_TESTSUITE_SHA=$( git submodule status | grep Testsuite | sed 's/[\+-]\([0-9a-z]\+\).\+/\1/g' ) 
-    - echo "The 'testsuite' submodule in CFS refers to ..." && echo "CFS_TESTSUITE_SHA=$CFS_TESTSUITE_SHA" | tee -a dot.env
-    # check if the SHAs match only if this pipeline was triggered by the Testsuite the variable TESTSUITE_SHA will be set
-    - if [ -n  "${TESTSUITE_SHA+set}" ]; then echo "Checking if 'testsuite' submodule in CFS is equal to latest Testsuite ..."; echo "  head of branch $TESTSUITE_BRANCH in $TESTSUITE_PROJECT gave TESTSUITE_SHA=$TESTSUITE_SHA"; echo "  is it equal to CFS_TESTSUITE_SHA?"; echo $CFS_TESTSUITE_SHA | grep $TESTSUITE_SHA; else echo "variable TESTSUITE_SHA is not set -> no check"; fi
-    # save the pipeline URL
-    - echo "CFS_PIPELINE_URL=$CI_PIPELINE_URL" | tee -a dot.env
-  after_script:
-    - cat dot.env || ls # debug
-  artifacts:
-    reports:
-      dotenv: dot.env
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
@@ -282,9 +208,6 @@ pipeline-changes:
   image:
     name: alpine/git:2.47.1
     entrypoint: ["/bin/sh","-c"]
-  # switch off cloning the Testsuite submodule
-  variables:
-    GIT_STRATEGY: none
   rules:
     # only run the job for merge requests if there are changes in the pipeline definition
     - if: $CFS_PIPELINE_TYPE == "test"
@@ -390,9 +313,6 @@ cpp-code-changes:
       allow_failure: true # we need this to not stop the pipeline if the manual job is not triggered
   # disable cache
   cache: {}
-  # switch off cloning the Testsuite submodule
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
   # install dependencies in the docker image
   before_script:
     # ensure build does not exist
@@ -507,10 +427,6 @@ rhel:9:
     - export DEBUG_SECTION_TITLE='git repository info'
     - !reference [.linux-debug-start_collapsed, script]
     - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
-    # make sure the Testsuite submodule is OK
-    - git status # debug
-    - git diff -- Testsuite # debug
-    - git diff --exit-code -- Testsuite || (mv Testsuite Testsuite_ignore && git checkout Testsuite)
     - git status # debug
     - !reference [.linux-debug-end, script]
     # report disk space
@@ -534,11 +450,6 @@ rhel:9:
     - ccache --verbose --zero-stats || ccache -z || true
     - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
     - !reference [.linux-debug-end, script]
-
-# if testsuite_ignore is there, restore it
-.restore_Testsuite_ignore: &restore_Testsuite_ignore
-  - (ls Testsuite_ignore && mv -T Testsuite_ignore Testsuite) || ls Testsuite
-  - git status # debug
 
 # define when csdeps need to be rebuilt based on changes
 .cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
@@ -573,7 +484,6 @@ rhel:9:
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     - if: $CFS_PIPELINE_TYPE == "manual"
-      <<: *Testsuite_changes
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
     # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
@@ -596,9 +506,7 @@ rhel:9:
   image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
-  # switch off cloning the Testsuite submodule
   variables: &cfsdeps-variables
-    GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
   rules:
     # include the cfsdeps stage even if there are no changes by setting the variable BUILD_CFSDEPS or merge request label "build-cfsdeps"
@@ -629,7 +537,6 @@ rhel:9:
   after_script:
     # show the contents of the caches
     - !reference [.linux_list_cache, script]
-    - *restore_Testsuite_ignore
   artifacts:
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
@@ -725,7 +632,7 @@ cfsdeps:msvc2022:
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
+    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
     # start cdash dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     # update to current revision (gives link on CDash)
@@ -753,8 +660,6 @@ cfsdeps:msvc2022:
     - export DEBUG_SECTION_TITLE='debug information and cleanup'
     - !reference [.linux-debug-start_collapsed, script]
     - git status # debug
-    # restore testsuite
-    - *restore_Testsuite_ignore
     - ls -la # debug
     - df -h # debug
     - du -h --max-depth=1 $CI_PROJECT_DIR # debug
@@ -902,7 +807,7 @@ linux:gcc9min:
   variables:
     IMAGE: centos7-gcc9
     BUILD_NAME: "GCC9 minimal"
-    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_GINKGO=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_GINKGO=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   <<: [ *build_rules, *gcc_before ]
@@ -946,7 +851,6 @@ linux:intel:
       <<: *require-rebuild-changes
       when: manual
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
-      <<: *Testsuite_changes
       when: manual
     - !reference [.build_rules, rules]
   <<: [ *intel_before ]

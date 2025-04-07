@@ -1,0 +1,68 @@
+reset
+undo on
+
+set logging errors on file 'mesh_log.txt'
+
+#{h_el = 1e-4}; # element size
+#{b1 = 3*h_el}; # width of the plate
+#{b2 = 10*h_el}; # widht of the channel air
+#{h = 10*h_el}; # height of the channel
+
+#{tol = 1e-6}
+merge tolerance {tol}
+
+
+# geometry
+
+create surface rectangle width {b1} height {h} zplane
+move surface 1 x {b1/2} y 0 z 0 
+
+create surface rectangle width {b2} height {h} zplane
+move surface 2 x {b1+b2/2} y 0 z 0
+
+
+# merge
+
+imprint tolerant volume all
+merge volume all
+
+
+# mesh
+
+surface all size {h_el}
+mesh surface all
+
+
+# blocks and nodesets
+
+block 1 add surface 1
+block 1 name "plate"
+
+block 2 add surface 2
+block 2 name "Air"
+
+nodeset 1 add curve 1 
+nodeset 1 name 'Fix_t'
+
+nodeset 2 add curve 2
+nodeset 2 name "ExcPre"
+
+nodeset 3 add curve 3
+nodeset 3 name "Fix_b"
+
+nodeset 4 add curve 4
+nodeset 4 name "PlateAirCoupling"
+
+nodeset 5 add curve 5
+nodeset 5 name "Fix_Air_t"
+
+nodeset 6 add curve 7
+nodeset 6 name "Fix_Air_b"
+
+nodeset 7 add curve 8
+nodeset 7 name "Fix_Air_r"
+
+export ansys cdb "mech_Channel_mesh.cdb" overwrite
+
+
+

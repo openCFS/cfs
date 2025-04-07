@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+   <documentation>    
+    <title>mutiple objective functions with penalty method</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2025-03-26</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>no</references>
+    <isVerified>yes</isVerified>
+    <description>The penalty method combines an addition function to the objective via scale * max(0, func(x)-bound)^2.
+    Where scale is increased by continuation. We use here the grayness constraint which is usually very hard to solve as it is concave.
+    We increase scale based on the objective function (no change means large increment and vice versa).
+    
+    Meshes can be created via create_mesh.py --type cantilever2d --res 60
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <hdf5 fileName="penalty_method.h5ref"/>
+    </input>  
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center_upper">
+        <coord x="1.5" y="2"/>
+      </nodes>
+      <nodes name="center_lower">
+        <coord x="1.5" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="bottom_left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="bottom_right"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="top_left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="top_right"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="center_upper">
+            <comp dof="y" value="1"/>
+          </force>
+          <force name="center_lower">
+            <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>             
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="multiObjective" task="minimize" sequence="1" linear="false" multiple_excitation="true">
+      <multiObjective>
+        <objective type="compliance" />
+        <!-- plain allows close to grayness, filtered has the interface grayness. penalty method is scale * max(0,g(x) - 0.001)^2 --> 
+        <objective type="greyness" access="plain" scale="tune" term="penalty" parameter=".001">
+           <!-- We slowly (but something like exponentially) increase scale depending on the objective change (see Dunning, Wein; 2025)
+                When using mult, set grow larger 1.
+                Internally the scaling is rescaled to [1,end] for increasing and then downscaled - such multiplications work also with start smaller 1 -->
+           <tune method="obj" start="0" end="1000" grow=".1" obj_max_grow="2" stopping_greyness="true" />
+        </objective>
+      </multiObjective>
+      <stopping value="0.001" type="relativeCostChange" queue="2" />
+      <stopping value="0.1" type="belowFunction" function="greyness" />
+    </costFunction>
+
+    <constraint type="volume" bound="upperBound" value="0.4" />
+    <constraint type="greyness" access="filtered" mode="observation" />
+
+    <optimizer type="dumas_mma" maxIterations="50" />
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+          <filter neighborhood="maxEdge" value="1.5" type="density"/>
+      </filters>
+
+      <design name="density" initial="0.4" lower="1e-3" upper="1.0" />
+      <!-- intentionally no penalization to let grayness do the job -->
+      <transferFunction type="simp" application="mech" param="1" />
+      <export write="iteration" save="last" />
+    </ersatzMaterial>
+
+    <!-- visualize both load cases -->    
+    <commit mode="each_forward" stride="100" />
+  </optimization>
+  
+</cfsSimulation>
+
+

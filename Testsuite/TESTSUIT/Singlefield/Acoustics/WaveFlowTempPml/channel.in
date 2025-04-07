@@ -1,0 +1,72 @@
+fini
+/clear
+/filname,channel,1
+/prep7
+init
+! switch warnings popups off (for "shpp,off")
+/uis,msgpop,3
+shpp,off
+! switch warnings popups again on
+/uis,msgpop,2
+
+
+! PARAMETER DEFINITION =====================================
+cAir   = 340
+freq   = 340
+lamAir = cAir / freq  ! wavelength in fluid
+nrEl   = 20             ! nr elements per lambda in the wafer
+elSize = lamAir / nrEl
+
+hAir  = elSize
+eps   = 1e-7
+
+! DEFINE AREAS =============================================
+rectng,0,2*lamAir,0,hAir
+rectng,2*lamAir,2*lamAir+lamAir/4,0,hAir
+nummrg,kp,all
+
+! ELEMENT GROUP DEFINITION =================================
+setelems,'quadr','quad'
+
+
+! MESH DEFINITION ==========================================
+mshkey,1           ! use mapped meshing
+esize,elSize
+asel,all
+amesh,all
+
+setelems,'2d-line','quad'
+allsel
+lsel,s,loc,x,-eps,eps
+lmesh,all
+
+allsel
+lsel,s,loc,x,-eps+2*lamAir,2*lamAir+eps
+lmesh,all
+
+! Write mesh
+allsel
+asel,s,loc,x,-eps,2*lamAir+eps
+esla
+welems,'airEl'
+
+allsel
+asel,s,loc,x,2*lamAir-eps,2*lamAir+lamAir/4+eps
+esla
+welems,'dampEl'
+
+! BOUNDARY CONDITIONS ====================================
+allsel
+lsel,s,loc,x,-eps,eps
+esll
+welems,'bcLeft'
+allsel
+lsel,s,loc,x,-eps+2*lamAir,2*lamAir+eps
+esll
+welems,'bcRight'
+
+allsel
+wnodes
+
+mkhdf5
+

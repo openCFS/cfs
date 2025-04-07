@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>ShapeMap tanh max overlapping</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2016-04-29</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Fabian Wein</references>
+    <isVerified>no</isVerified>
+    <description>Most effort overlapping variant: limits the sum tanh(shape) vian tanh_l( sum(tanh(shape)) )</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines"/>
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.5" y="0.5" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+         <fix name="west">
+           <comp dof="x"/> <comp dof="y"/>
+         </fix>
+         <force name="right_lower">
+           <comp dof="y" value="-1"/>
+         </force>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping queue="999" value="0.001" type="designChange"/>
+    </costFunction>
+
+    <constraint type="slope" bound="upperBound" value="1.1/nx" design="node" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.2/nx" design="node" linear="true"/>
+
+    <optimizer type="snopt" maxIterations="20">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
+      <shapeMap beta="100" overlap="tanh_sum" enforce_bounds="true">
+        <node dof="y" lower="0" upper="1" initial="0.5"/>
+        <node dof="x" lower="0" upper="1" initial="0.5"/>
+        <profile fixed="0.075"/>
+      </shapeMap>
+    
+      <design name="density" initial="1.0" lower="1e-3" upper="1.0" />
+      
+      <transferFunction type="identity" application="mech"/>
+      <result value="shapeMapGrad" id="optResult_1" design="density" detail="node"/>
+      <result value="shapeMapGrad" id="optResult_2" design="density" detail="profile"/>
+      <result value="costGradient" id="optResult_3" design="density" />
+      <export write="iteration" save="all"/>
+    </ersatzMaterial>
+    <commit stride="99"/>
+  </optimization> 
+</cfsSimulation>
+
+

@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="FluidMat">
+    <flow>
+      <!-- 
+      Material according to PhD thesis of  Gerhard Link: A Finite Element  Scheme for 
+      Fluid-Solid-Acoustics Interactions and its Application to Human Phonation. pages 61 ff.
+     -->
+      <!-- Density: \rho -->
+      <density>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </density>
+      <!-- Dynamic viscosity: \mu -->
+      <dynamicViscosity>
+        <linear>
+          <real> 0.002 </real>
+        </linear>
+      </dynamicViscosity>
+      <!-- Kinematic viscosity: \nu = \frac{\mu}{\rho} -->
+    </flow>
+  </material>
+</cfsMaterialDataBase>

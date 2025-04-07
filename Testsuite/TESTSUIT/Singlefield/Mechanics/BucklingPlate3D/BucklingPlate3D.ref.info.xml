@@ -1,0 +1,312 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="14" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.798s" wall="0.798" cpu="0.8" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="291.27" peak="312.48"/>
+  </summary>
+  <header id="">
+    <environment started="2020-Apr-10 11:47:41" host="nb14.mdmt.tuwien.ac.at"/>
+    <progOpts problem="BucklingPlate3D" parameterFile="/home/ftoth/cfs/CFS/Testsuite/TESTSUIT/Singlefield/Mechanics/BucklingPlate3D/BucklingPlate3D.xml" schemaPath="/opt/cfs/master/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="18.03" name="AMGme" build="Release" git_commit="6f0a7c97b1fd3142520d6bef6d50247084940d47" git_branch="testing" exe="/opt/cfs/master/bin/../bin/LINUX_X86_64/cfsbin"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="3" elements="244" nodes="933"/>
+      </grids>
+      <regions>
+        <region name="plate" id="0" type="volume" regular="no" hom="yes" nodes="933" elems="144" isQuadratic="yes"/>
+        <region name="BC_fix_xy" id="1" type="surface" regular="no" hom="yes" nodes="138" elems="32" isQuadratic="yes"/>
+        <region name="BC_fix_xy_left" id="2" type="surface" regular="yes" hom="yes" nodes="69" elems="16" isQuadratic="yes"/>
+        <region name="BC_fix_yz" id="3" type="surface" regular="no" hom="yes" nodes="154" elems="36" isQuadratic="yes"/>
+        <region name="reference_Load_x" id="4" type="surface" regular="yes" hom="yes" nodes="69" elems="16" isQuadratic="yes"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser E="1e+05" E_11="1.3462e+05" a_11="7.4286e-06" a_22="0" a_33="0" dt="0" eigenValue="2216.9" f="0" nu="0.3" step="0" t="0" t0="0" tempLoad="1"/>
+    </domain>
+    <update_results>
+      <timer wall-clock="0s" wall="0" cpu="0" calls="9"/>
+    </update_results>
+    <finish_step>
+      <timer wall-clock="0.012s" wall="0.012" cpu="0.01" calls="6"/>
+    </finish_step>
+  </header>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="plate" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="1.3461538e+05 5.7692308e+04 5.7692308e+04 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e+04 1.3461538e+05 5.7692308e+04 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e+04 5.7692308e+04 1.3461538e+05 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04
+"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" region="plate">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="ThermalStrainInt" region="plate">
+                <entities name="plate" size="144" region="plate"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="orthoTemp">
+          <regionList>
+            <region name="plate"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor" value="1.3461538e+05 5.7692308e+04 5.7692308e+04 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e+04 1.3461538e+05 5.7692308e+04 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e+04 5.7692308e+04 1.3461538e+05 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04
+"/>
+          <property name="Mechanic_ThermalExpansionTensor" value="(7.42857e-06,0) (0,0) (0,0) (0,0) (0,0) (0,0)"/>
+          <property name="refTemperature" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <plate/>
+                <default order="2"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+          </writeResults>
+        </summary>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="BC_fix_xy" dofs="x y"/>
+            <surfElemList name="BC_fix_yz" dofs="y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="2235" totalNumFreeEqns="2235" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="2235" lastFreeEqn="2235" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="2235" lastFreeIndex="2235"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.046s" wall="0.046" cpu="0.05" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.03" wall="0.032" peakMem="5185" permanentMem="5029"/>
+                <numfact cpu="0.02" wall="0.014" peakMem="5926"/>
+              </call>
+            </process>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.034s" wall="0.034" cpu="0.03" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.05s" wall="0.05" cpu="0.04" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+  <sequenceStep sequence="2">
+    <buckling/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="plate" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="1.3461538e+05 5.7692308e+04 5.7692308e+04 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e+04 1.3461538e+05 5.7692308e+04 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e+04 5.7692308e+04 1.3461538e+05 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04
+"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" region="plate">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="preStressInt" type="BDBInt" complex="no" BOp="preStressOp" region="plate">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="geometric_stiffness" feMatrixMapped="geometric_stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="orthoTemp">
+          <regionList>
+            <region name="plate"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor" value="1.3461538e+05 5.7692308e+04 5.7692308e+04 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e+04 1.3461538e+05 5.7692308e+04 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e+04 5.7692308e+04 1.3461538e+05 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e+04
+"/>
+          <property name="Mechanic_ThermalExpansionTensor" value="(7.42857e-06,0) (0,0) (0,0) (0,0) (0,0) (0,0)"/>
+          <property name="refTemperature" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <plate/>
+                <default order="2"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <Prestressing>
+          <ComputedLHS inputSequenceStep="1" inputStepNumber="1"/>
+        </Prestressing>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="BC_fix_xy" dofs="x y"/>
+            <surfElemList name="BC_fix_yz" dofs="y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="5"/>
+          </writeResults>
+        </summary>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="2235" totalNumFreeEqns="2235" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="2235" lastFreeEqn="2235" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="2235" lastFreeIndex="2235"/>
+          </sbmBlocks>
+        </setup>
+        <solve_eigen>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.061s" wall="0.061" cpu="0.06" calls="2" sub="true"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.034s" wall="0.034" cpu="0.07" calls="35" sub="true"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="1">
+                <symbfact cpu="0.04" wall="0.034" peakMem="5185" permanentMem="5029"/>
+                <numfact cpu="0.01" wall="0.013" peakMem="5926"/>
+              </call>
+            </process>
+          </pardiso>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="2" sub="true"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+              </precond>
+            </summary>
+          </idPrecond>
+          <header frequencies="2229" type="LA" shift="4.7278e-311" computeMode="buckling" tol="1e-08" maxIter="5000" arnoldiVectors="4470" scaling="1" logging="no" generalized="yes" quadratic="no" bloch="no"/>
+          <arpack analysis_id="">
+            <timer wall-clock="0.136s" wall="0.136" cpu="0.13" calls="1"/>
+            <rci solve_x="1" solve_B_x="34" matvec_B_x="110" total="146"/>
+          </arpack>
+        </solve_eigen>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.084s" wall="0.084" cpu="0.09" calls="1"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.06s" wall="0.06" cpu="0.06" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+</cfsInfo>

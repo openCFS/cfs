@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+<documentation>
+  <title>Nonlinear Electrostatic</title>
+  <authors>
+      <author>apapst</author>
+  </authors>
+  <date>2021-02-10</date>
+  <keywords>
+    <keyword>electrostatic</keyword>
+    <keyword>nonlinear</keyword>
+  </keywords>
+  <references></references>
+  <isVerified>yes</isVerified>
+  <description>
+  A simple cube, with different applied potential on top and bottom. Material is nonliner: Isotropic nonlinear permittivity.
+  For material law and validation see jupyter-notebook. 
+  </description>
+</documentation>
+
+  <fileFormats>
+    <input>
+    	<cdb fileName="cyl.cdb"/>
+<!--     	<cdb fileName="cyl.cdb"/> -->
+    </input>
+
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="V_all" material="PZT-4"/>
+    </regionList>
+    <nodeList>
+      <nodes name="S_mantle"/>
+      <nodes name="L_mid" />
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+	<analysis>
+		<multiharmonic>
+			<baseFreq>1</baseFreq>
+            <numHarmonics_N>7</numHarmonics_N>
+            <numFFTPoints>1024</numFFTPoints>
+            <fullSystem>true</fullSystem>
+		</multiharmonic>
+	</analysis>
+    <pdeList>
+      <electrostatic>
+        <regionList>
+          <region name="V_all" nonLinIds="perm"/>
+        </regionList>
+        
+        <nonLinList>
+        	<elecPermittivity id="perm"/>
+        </nonLinList>   
+
+        <bcsAndLoads>
+          <ground name="S_mantle"/>         
+		  <potential name="L_mid" value="2000" harmonic="1"/>
+        </bcsAndLoads>
+        
+		<storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions/>
+          </nodeResult>
+          
+          <elemResult type="elecFieldIntensity">
+            <allRegions/>
+          </elemResult>
+          
+<!--           <elemResult type="elecElemPermittivity"> -->
+<!--           	<allRegions/> -->
+<!--           </elemResult> -->
+          
+        </storeResults>
+      </electrostatic>
+    </pdeList>
+
+	<linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                    	<setup idbcHandling="elimination"/>
+                        <matrix reordering="noReordering" storage="sparseNonSym" />
+                        <nonLinear method="fixPoint">
+                            <lineSearch/>
+                            <incStopCrit>1e-3</incStopCrit>
+                            <resStopCrit>1e-5</resStopCrit>
+                            <maxNumIters>100</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso id="pardiso"/>
+                    <gmres>
+                        <stoppingRule type="absNorm"/>
+                        <tol>1e-16</tol>
+                        <maxIter>15</maxIter>
+                        <maxKrylovDim>5</maxKrylovDim>
+                        <logging>yes</logging>
+                        <consoleConvergence>yes</consoleConvergence>
+                    </gmres>
+                </solverList>
+                <precondList>
+                    <SBMDiag>
+                        <precond block="1" id="def"/>
+                        <precond block="2" id="def"/>
+                        <precond block="3" id="def"/>
+                        <precond block="4" id="def"/>
+                        <precond block="5" id="def"/>
+                        <precond block="6" id="def"/>
+                        <precond block="7" id="def"/>
+                        <precond block="8" id="def"/>
+                        <precond block="9" id="def"/>
+                        <precond block="10" id="def"/>
+                        <precond block="11" id="def"/>
+                        <precond block="12" id="def"/>
+                        <precond block="13" id="def"/>
+                        <precond block="14" id="def"/>
+                        <precond block="15" id="def"/>
+                        <precond block="16" id="def"/>
+                        <precond block="17" id="def"/>
+                        <precond block="18" id="def"/>
+                        <precond block="19" id="def"/>
+                        <precond block="20" id="def"/>
+                        <precond block="21" id="def"/>
+                        <precond block="22" id="def"/>
+                        <precond block="23" id="def"/>
+                        <precond block="24" id="def"/>
+                        <precond block="25" id="def"/>
+                        <precond block="26" id="def"/>
+                        <precond block="27" id="def"/>
+                        <precond block="28" id="def"/>
+                        <precond block="29" id="def"/>
+                        <precond block="30" id="def"/>
+                        <precond block="31" id="def"/>
+                        <precond block="32" id="def"/>
+                        <precond block="33" id="def"/>
+                        <precond block="34" id="def"/>
+                        <precond block="35" id="def"/>
+                        <precond block="36" id="def"/>
+                        <precond block="37" id="def"/>
+                        <precond block="38" id="def"/>
+                        <precond block="39" id="def"/>
+                        <precond block="40" id="def"/>
+                        <precond block="41" id="def"/>
+                        <precond block="42" id="def"/>
+                        <precond block="43" id="def"/>
+                    </SBMDiag>
+                    <pardiso id="def"/>
+                </precondList>
+            </system>
+        </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

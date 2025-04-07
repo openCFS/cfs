@@ -1,0 +1,36 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="iso">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+             Reference(s) : "www.matweb.com"
+             Remarks : "Alluminium Alloy" -->
+      <density>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 3e7 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.2 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>30</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.1</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

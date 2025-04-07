@@ -1,0 +1,2720 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="aborted" infoWriteCounter="4936" infoRejectCounter="0" error="
+Could not create subgroup Elements for result physicalPseudoDensity on region mech. Maybe the group already exists.
+This happens e.g. if you optimize a multisequence problem with same storeResults in different steps.:
+H5Gcreate2 failed
+In file '/home/daniel/code/cfs_wien/source/DataInOut/SimInOut/hdf5/SimOutputHDF5.cc' at line 450
+">
+  <summary>
+    <timer wall-clock="1m 24.64s" wall="84.635" cpu="104.485" calls="1"/>
+  </summary>
+  <header id="">
+    <environment started="2020-Jun-19 12:48:22" host="mo42"/>
+    <progOpts problem="eigen_stiffness" parameterFile="/home/daniel/code/cfs_wien/Testsuite/TESTSUIT/Optimization/MultiSequence/eigen_stiffness/eigen_stiffness.xml" schemaPath="/home/daniel/code/cfs_wien/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="18.03" name="AMGme" build="Release" git_commit="75f1c59737348f10cc28f2e2e6ccbb3fd0f36bde" git_branch="fix-periodic-bcs" exe="cfswien.rel"/>
+      <openmp CFS_NUM_THREADS="4" MKL_NUM_THREADS="4" OMP_NUM_THREADS="4"/>
+    </progOpts>
+    <domain nx="12" ny="12" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="144" nodes="169"/>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="169" elems="144" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="13"/>
+        <nodes name="north" count="13"/>
+        <nodes name="west" count="13"/>
+        <nodes name="east" count="13"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+        <nodes name="center" count="1" coord="(0.5,0.5)"/>
+      </namedNodes>
+      <namedElements/>
+    </domain>
+    <update_results>
+      <timer wall-clock="0s" wall="0" cpu="0.028493" calls="14379"/>
+    </update_results>
+    <finish_step>
+      <timer wall-clock="57.15s" wall="57.149" cpu="59.4684" calls="4793"/>
+    </finish_step>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <eigenFrequency>
+      <result id="iter:133_excite:s_1-0">
+        <mode nr="1" frequency="11965.1261343872" errorbound="1.9877e-20"/>
+        <mode nr="2" frequency="12395.2632702976" errorbound="1.9192e-20"/>
+        <mode nr="3" frequency="12395.2698535292" errorbound="1.6774e-20"/>
+        <mode nr="4" frequency="12919.3105523585" errorbound="1.9467e-20"/>
+        <mode nr="5" frequency="13233.9533251759" errorbound="4.4563e-20"/>
+        <mode nr="6" frequency="13233.9807184075" errorbound="1.7478e-20"/>
+        <mode nr="7" frequency="14490.7182554325" errorbound="3.6823e-18"/>
+        <mode nr="8" frequency="14549.6835182241" errorbound="1.4061e-18"/>
+        <mode nr="9" frequency="14701.5349994147" errorbound="2.0458e-14"/>
+      </result>
+    </eigenFrequency>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="CoefFunctionOpt"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="north" dofs="x y"/>
+            <nodeList name="east" dofs="x y"/>
+            <nodeList name="south" dofs="x y"/>
+            <nodeList name="west" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="0.030318" calls="4788"/>
+          </writeResults>
+        </summary>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="242" totalNumFreeEqns="242" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="242" lastFreeEqn="242" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="242" lastFreeIndex="242"/>
+          </sbmBlocks>
+        </setup>
+        <solve_eigen>
+          <summary>
+            <setup>
+              <timer label="setup_arpack" wall-clock="0s" wall="0" cpu="0.10357" calls="134"/>
+            </setup>
+            <solve>
+              <timer label="solve_arpack" wall-clock="0.543s" wall="0.543" cpu="1.45635" calls="134"/>
+            </solve>
+          </summary>
+          <cholmod>
+            <header>
+              <parameters>
+                <factorization>
+                  <nmethods default="0"/>
+                  <postorder default="1"/>
+                  <dbound default="0"/>
+                </factorization>
+                <supernodal>
+                  <method default="auto"/>
+                  <switch default="40"/>
+                </supernodal>
+                <output>
+                  <level default="3"/>
+                  <precise default="0"/>
+                </output>
+              </parameters>
+            </header>
+            <summary>
+              <setup>
+                <timer label="setup_cholmod" wall-clock="0s" wall="0" cpu="0.000735" calls="2" sub="true"/>
+              </setup>
+              <solve>
+                <timer label="solve_cholmod" wall-clock="0s" wall="0" cpu="0.000671" calls="51" sub="true"/>
+              </solve>
+            </summary>
+            <process>
+              <setup selected_factorization_method="1" ll_flop_count="99009" nz_in_L="4559" nz_in_triA="2043" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
+                <method id="1" lnz="4559" fl="99009"/>
+              </setup>
+              <solver/>
+            </process>
+          </cholmod>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="0.000353" calls="268" sub="true"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+              </precond>
+            </summary>
+          </idPrecond>
+          <header frequencies="9" type="LM" shift="0" computeMode="shift_and_invert" tol="1e-08" maxIter="5000" arnoldiVectors="484" scaling="1" logging="no" generalized="yes" quadratic="no" bloch="no"/>
+          <arpack analysis_id="iter:133_excite:s_1-0">
+            <rci solve_x="1" solve_B_x="50" matvec_B_x="156" total="208"/>
+          </arpack>
+        </solve_eigen>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="1.689s" wall="1.689" cpu="3.09134" calls="134"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.014s" wall="0.014" cpu="0.036023" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+  <sequenceStep sequence="2">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="CoefFunctionOpt"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="8e-06" calls="5"/>
+          </writeResults>
+        </summary>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="center" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="286" totalNumFreeEqns="286" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="286" lastFreeEqn="286" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="286" lastFreeIndex="286"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <cholmod>
+            <header>
+              <parameters>
+                <factorization>
+                  <nmethods default="0"/>
+                  <postorder default="1"/>
+                  <dbound default="0"/>
+                </factorization>
+                <supernodal>
+                  <method default="auto"/>
+                  <switch default="40"/>
+                </supernodal>
+                <output>
+                  <level default="3"/>
+                  <precise default="0"/>
+                </output>
+              </parameters>
+            </header>
+            <summary>
+              <setup>
+                <timer label="setup_cholmod" wall-clock="5.413s" wall="5.413" cpu="10.5687" calls="134"/>
+              </setup>
+              <solve>
+                <timer label="solve_cholmod" wall-clock="0.016s" wall="0.016" cpu="0.063677" calls="402"/>
+              </solve>
+            </summary>
+            <process>
+              <setup selected_factorization_method="1" ll_flop_count="5.0142e+05" nz_in_L="10493" nz_in_triA="2701" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
+                <method id="1" lnz="10493" fl="5.0142e+05"/>
+              </setup>
+              <solver/>
+            </process>
+          </cholmod>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="0.000178" calls="134"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="2.36s" wall="2.36" cpu="5.47206" calls="804"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.012s" wall="0.012" cpu="0.028433" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+  <optimization haltopt_file="/home/daniel/code/cfs_wien/Testsuite/TESTSUIT/Optimization/MultiSequence/eigen_stiffness/HALTOPT">
+    <header>
+      <objective type="slack" name="slack" linear="yes" filtered="no" task="maximize"/>
+      <multipleExcitations type="homogenizationTestStrains"/>
+      <constraints>
+        <constraint type="youngsModulusE1" name="youngsModulusE1" linear="no" filtered="yes" bound_value="0.33" bound="lowerBound" design="default" excitation="s_2-xy"/>
+        <constraint type="homTensor" name="homTensor_p11_m22" linear="no" filtered="yes" bound_value="0" bound="equal" tensor_entry="p11_m22" design="default" excitation="s_2-xy"/>
+        <constraint type="homTensor" name="homTensor_p13" linear="no" filtered="yes" bound_value="0" bound="equal" tensor_entry="p13" design="default" excitation="s_2-xy"/>
+        <constraint type="homTensor" name="homTensor_p23" linear="no" filtered="yes" bound_value="0" bound="equal" tensor_entry="p23" design="default" excitation="s_2-xy"/>
+        <constraint type="eigenfrequency" name="eigenfrequency_1" ev="1" linear="no" filtered="yes" bound_value="slack" bound="lowerBound" design="default" excitation="always within sequence"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes">
+        <gradient_chain_rule>
+          <timer label="gradient_chain_rule" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+        </gradient_chain_rule>
+        <filters use_mat_filt="yes"/>
+        <ersatzMaterialFile file="circular_2d-v_0.5-o_6_12.density.xml" source="problem file"/>
+        <transferFunctions>
+          <transferFunction type="simp" application="mech" design="density" param="1"/>
+          <transferFunction type="identity" application="mass" design="density"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="145" modelVariables="144" modelElements="144">
+          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
+          <design type="slack" upperBound="1e+06" lowerBound="0"/>
+        </designVariables>
+        <localElementCache org="3" shadow="0" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="144" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="2" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="yes"/>
+      <sequence step="1" complex="yes" harmonic="no" eigenvalue="yes" bloch="no" material="mechanic" homogenization="no"/>
+      <filters periodic="no">
+        <filter type="maxEdge" value="1.6" contribution="linear" design="allDesigns" avg_radius="0.13333" avg_neighbors="7.0278">
+          <timer wall-clock="0.034s" wall="0.034" cpu="0.074653" calls="1"/>
+        </filter>
+      </filters>
+      <excitations>
+        <excitation index="0" meta_idx="0" sequence="1" label="s_1-0" weight="1" normalized_weight="1"/>
+        <excitation index="1" meta_idx="0" sequence="2" label="s_2-x" weight="0" normalized_weight="0" load="mech"/>
+        <excitation index="2" meta_idx="0" sequence="2" label="s_2-y" weight="0" normalized_weight="0" load="mech"/>
+        <excitation index="3" meta_idx="0" sequence="2" label="s_2-xy" weight="1" normalized_weight="1" load="mech"/>
+      </excitations>
+      <snopt/>
+    </header>
+    <commit mode="each_forward" stride="999"/>
+    <optimizer>
+      <summary snopt_outputfile="eigen_stiffness.snopt">
+        <snopt>
+          <timer wall-clock="1m 2.853s" wall="62.853" cpu="62.6849" calls="539"/>
+        </snopt>
+        <snopt_exit exit="0" info="1"/>
+        <evaluations f_evals="135" g_evals="134"/>
+      </summary>
+    </optimizer>
+    <summary problem="SNOPT: finished successfully - optimality conditions satisfied" snopt_exit="1">
+      <eval_objective>
+        <timer wall-clock="7.702s" wall="7.702" cpu="14.41" calls="1074"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0.738s" wall="0.738" cpu="1.76135" calls="135"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0s" wall="0" cpu="0.005198" calls="134"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="1.08s" wall="1.08" cpu="2.76989" calls="134"/>
+      </eval_grad_constraints>
+      <break converged="yes"/>
+    </summary>
+    <process>
+      <iteration number="0" duration="1.561" slack="2500" youngsModulusE1="0.42186" homTensor_p11_m22="-4.0523e-15" homTensor_p13="-2.1088e-15" homTensor_p23="-8.3221e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="2500" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="2.9411e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="1" duration="0.473" slack="2512.04159457879" youngsModulusE1="0.42186" homTensor_p11_m22="-4.3299e-15" homTensor_p13="-2.2691e-15" homTensor_p23="-8.2121e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="2512" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="3.0903e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="2" duration="0.338" slack="2524.08318915758" youngsModulusE1="0.42186" homTensor_p11_m22="-3.4417e-15" homTensor_p13="-2.0137e-15" homTensor_p23="-6.7495e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="2524.1" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="2.6886e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="3" duration="0.7" slack="2512.04159457879" youngsModulusE1="0.42186" homTensor_p11_m22="-4.3854e-15" homTensor_p13="-2.2413e-15" homTensor_p23="-5.0256e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="2512" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="2.7439e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="4" duration="0.471" slack="2536.12478373638" youngsModulusE1="0.42186" homTensor_p11_m22="-4.3299e-15" homTensor_p13="-2.2691e-15" homTensor_p23="-8.2121e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="2536.1" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="3.0903e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="5" duration="0.163" slack="2596.33275663034" youngsModulusE1="0.42186" homTensor_p11_m22="-3.4417e-15" homTensor_p13="-2.0137e-15" homTensor_p23="-6.7495e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="2596.3" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="2.6886e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="6" duration="0.516" slack="4101.53207897937" youngsModulusE1="0.42186" homTensor_p11_m22="-4.3299e-15" homTensor_p13="-2.2691e-15" homTensor_p23="-8.2121e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="4101.5" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="3.0903e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="7" duration="0.489" slack="7740.3327515942" youngsModulusE1="0.42186" homTensor_p11_m22="-4.3854e-15" homTensor_p13="-2.2413e-15" homTensor_p23="-5.0256e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="7740.3" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="2.7439e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="8" duration="0.422" slack="2524.08318915758" youngsModulusE1="0.42186" homTensor_p11_m22="-4.3299e-15" homTensor_p13="-2.2691e-15" homTensor_p23="-8.2121e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="2524.1" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="3.0903e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="9" duration="0.599" slack="11235.8517294467" youngsModulusE1="0.34169" homTensor_p11_m22="7.9259e-13" homTensor_p13="-9.874e-14" homTensor_p23="-5.3564e-13" eigenfrequency_1="11579">
+        <excitation index="0" objective="11236" objective_weight="1" eigenfrequency_1="11579"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.50583" trace="0.76227">
+          <isotropy E="0.34169" v="0.15964" G="0.14733" err="0.086303"/>
+          <orthotropy E_1="0.34169" E_2="0.34169" v_21="0.15964" v_12="0.15964" G_12="0.061023" err="6.3438e-13"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.506254e-01  5.597465e-02  0.000000e+00
+               5.597465e-02  3.506254e-01 -5.356435e-13
+               0.000000e+00 -5.356435e-13  6.102275e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="10" duration="0.515" slack="2536.12478373638" youngsModulusE1="0.42186" homTensor_p11_m22="-3.4417e-15" homTensor_p13="-2.0137e-15" homTensor_p23="-6.7495e-16" eigenfrequency_1="9325.7">
+        <excitation index="0" objective="2536.1" objective_weight="1" eigenfrequency_1="9325.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.66622" trace="1.0272">
+          <isotropy E="0.42186" v="0.24509" G="0.16941" err="0.039881"/>
+          <orthotropy E_1="0.42186" E_2="0.42186" v_21="0.24509" v_12="0.24509" G_12="0.12953" err="2.6886e-15"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.488185e-01  1.099987e-01  0.000000e+00
+               1.099987e-01  4.488185e-01  0.000000e+00
+               0.000000e+00  0.000000e+00  1.295286e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="11" duration="0.484" slack="11593.1759762988" youngsModulusE1="0.34114" homTensor_p11_m22="-1.0455e-07" homTensor_p13="4.1793e-13" homTensor_p23="4.092e-14" eigenfrequency_1="11593">
+        <excitation index="0" objective="11593" objective_weight="1" eigenfrequency_1="11593"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.50492" trace="0.76075">
+          <isotropy E="0.34114" v="0.15931" G="0.14713" err="0.086434"/>
+          <orthotropy E_1="0.34114" E_2="0.34114" v_21="0.15931" v_12="0.15931" G_12="0.060697" err="4.5885e-13"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.500256e-01  5.576389e-02  4.179275e-13
+               5.576389e-02  3.500257e-01  0.000000e+00
+               4.179275e-13  0.000000e+00  6.069671e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="12" duration="0.432" slack="12632.6917538323" youngsModulusE1="0.2487" homTensor_p11_m22="-7.2149e-05" homTensor_p13="0.00077834" homTensor_p23="0.00080717" eigenfrequency_1="4480.7">
+        <excitation index="0" objective="12633" objective_weight="1" eigenfrequency_1="4480.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.36413" trace="0.54271">
+          <isotropy E="0.24869" v="0.1409" G="0.10899" err="0.077054"/>
+          <orthotropy E_1="0.2487" E_2="0.24877" v_21="0.1409" v_12="0.14086" G_12="0.035174" err="0.0015855"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.537311e-01  3.575148e-02  7.783369e-04
+               3.575148e-02  2.538032e-01  8.071749e-04
+               7.783369e-04  8.071749e-04  3.517847e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="13" duration="0.333" slack="11855.1445793706" youngsModulusE1="0.32931" homTensor_p11_m22="-0.00020926" homTensor_p13="0.00010167" homTensor_p23="0.00010419" eigenfrequency_1="10745">
+        <excitation index="0" objective="11855" objective_weight="1" eigenfrequency_1="10745"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48843" trace="0.73674">
+          <isotropy E="0.3293" v="0.16234" G="0.14166" err="0.08218"/>
+          <orthotropy E_1="0.32931" E_2="0.32951" v_21="0.16234" v_12="0.16223" G_12="0.060098" err="0.00020586"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.382176e-01  5.490458e-02  1.016712e-04
+               5.490458e-02  3.384268e-01  1.041919e-04
+               1.016712e-04  1.041919e-04  6.009796e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="14" duration="0.42" slack="11617.2306378857" youngsModulusE1="0.34047" homTensor_p11_m22="-1.6355e-05" homTensor_p13="9.4699e-06" homTensor_p23="9.5581e-06" eigenfrequency_1="11612">
+        <excitation index="0" objective="11617" objective_weight="1" eigenfrequency_1="11612"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.50408" trace="0.75966">
+          <isotropy E="0.34047" v="0.15981" G="0.14678" err="0.085968"/>
+          <orthotropy E_1="0.34047" E_2="0.34048" v_21="0.15981" v_12="0.1598" G_12="0.060863" err="1.9028e-05"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.493891e-01  5.583563e-02  9.469879e-06
+               5.583563e-02  3.494055e-01  9.558141e-06
+               9.469879e-06  9.558141e-06  6.086306e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="15" duration="0.415" slack="12651.6496500128" youngsModulusE1="0.22311" homTensor_p11_m22="-0.0020916" homTensor_p13="0.0062787" homTensor_p23="0.0059462" eigenfrequency_1="4079.2">
+        <excitation index="0" objective="12652" objective_weight="1" eigenfrequency_1="4079.2"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.32463" trace="0.48111">
+          <isotropy E="0.22308" v="0.11488" G="0.10005" err="0.099705"/>
+          <orthotropy E_1="0.22311" E_2="0.22518" v_21="0.11488" v_12="0.11383" G_12="0.026589" err="0.012225"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.260682e-01  2.597141e-02  6.278749e-03
+               2.597141e-02  2.281599e-01  5.946156e-03
+               6.278749e-03  5.946156e-03  2.688458e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="16" duration="0.487" slack="11659.6625209956" youngsModulusE1="0.33834" homTensor_p11_m22="-5.3783e-05" homTensor_p13="0.00022987" homTensor_p23="0.00023539" eigenfrequency_1="11103">
+        <excitation index="0" objective="11660" objective_weight="1" eigenfrequency_1="11103"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.50121" trace="0.75563">
+          <isotropy E="0.33834" v="0.16062" G="0.14576" err="0.085761"/>
+          <orthotropy E_1="0.33834" E_2="0.33839" v_21="0.16062" v_12="0.1606" G_12="0.06098" err="0.00046525"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.472974e-01  5.578405e-02  2.298664e-04
+               5.578405e-02  3.473511e-01  2.353862e-04
+               2.298664e-04  2.353862e-04  6.098015e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="17" duration="0.517" slack="11620.6078286654" youngsModulusE1="0.3404" homTensor_p11_m22="-1.581e-05" homTensor_p13="1.1487e-05" homTensor_p23="1.1664e-05" eigenfrequency_1="11616">
+        <excitation index="0" objective="11621" objective_weight="1" eigenfrequency_1="11616"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.50405" trace="0.75964">
+          <isotropy E="0.3404" v="0.16003" G="0.14672" err="0.085859"/>
+          <orthotropy E_1="0.3404" E_2="0.34042" v_21="0.16003" v_12="0.16002" G_12="0.060925" err="2.3151e-05"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.493511e-01  5.590740e-02  1.148675e-05
+               5.590740e-02  3.493669e-01  1.166388e-05
+               1.148675e-05  1.166388e-05  6.092492e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="18" duration="0.356" slack="11626.3501092846" youngsModulusE1="0.34021" homTensor_p11_m22="-1.5999e-05" homTensor_p13="2.4542e-05" homTensor_p23="2.5174e-05" eigenfrequency_1="11620">
+        <excitation index="0" objective="11626" objective_weight="1" eigenfrequency_1="11620"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.50384" trace="0.75937">
+          <isotropy E="0.34021" v="0.16028" G="0.14661" err="0.085738"/>
+          <orthotropy E_1="0.34021" E_2="0.34023" v_21="0.16028" v_12="0.16027" G_12="0.060987" err="4.9717e-05"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.491841e-01  5.596557e-02  2.454226e-05
+               5.596557e-02  3.492001e-01  2.517438e-05
+               2.454226e-05  2.517438e-05  6.098677e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="19" duration="0.277" slack="12577.5628390394" youngsModulusE1="0.23637" homTensor_p11_m22="-0.0094135" homTensor_p13="-0.0053258" homTensor_p23="-0.0061546" eigenfrequency_1="5979.2">
+        <excitation index="0" objective="12578" objective_weight="1" eigenfrequency_1="5979.2"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.35094" trace="0.52459">
+          <isotropy E="0.23622" v="0.12756" G="0.10475" err="0.1022"/>
+          <orthotropy E_1="0.23637" E_2="0.24564" v_21="0.12756" v_12="0.12274" G_12="0.03468" err="0.01148"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.401294e-01  3.062984e-02 -5.325836e-03
+               3.062984e-02  2.495429e-01 -6.154562e-03
+              -5.325836e-03 -6.154562e-03  3.491989e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="20" duration="0.291" slack="11672.7786065871" youngsModulusE1="0.33816" homTensor_p11_m22="-3.3666e-05" homTensor_p13="-0.0004864" homTensor_p23="-0.00042715" eigenfrequency_1="11644">
+        <excitation index="0" objective="11673" objective_weight="1" eigenfrequency_1="11644"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.50089" trace="0.75532">
+          <isotropy E="0.33816" v="0.16036" G="0.14571" err="0.086465"/>
+          <orthotropy E_1="0.33816" E_2="0.3382" v_21="0.16036" v_12="0.16035" G_12="0.061109" err="0.00091355"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.470876e-01  5.565933e-02 -4.863996e-04
+               5.565933e-02  3.471212e-01 -4.271473e-04
+              -4.863996e-04 -4.271473e-04  6.111018e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="21" duration="0.312" slack="12667.8785971124" youngsModulusE1="0.23635" homTensor_p11_m22="-0.0002405" homTensor_p13="-0.0056036" homTensor_p23="-0.00060821" eigenfrequency_1="5481.5">
+        <excitation index="0" objective="12668" objective_weight="1" eigenfrequency_1="5481.5"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.34474" trace="0.51408">
+          <isotropy E="0.23635" v="0.13029" G="0.10455" err="0.084246"/>
+          <orthotropy E_1="0.23635" E_2="0.23659" v_21="0.13029" v_12="0.13016" G_12="0.032841" err="0.0062118"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.404317e-01  3.132576e-02 -5.603551e-03
+               3.132576e-02  2.406722e-01 -6.082147e-04
+              -5.603551e-03 -6.082147e-04  3.297143e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="22" duration="0.259" slack="11819.3646045078" youngsModulusE1="0.32935" homTensor_p11_m22="-0.0018913" homTensor_p13="-0.00093841" homTensor_p23="-0.00056589" eigenfrequency_1="11639">
+        <excitation index="0" objective="11819" objective_weight="1" eigenfrequency_1="11639"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48906" trace="0.73762">
+          <isotropy E="0.3293" v="0.16021" G="0.14191" err="0.087048"/>
+          <orthotropy E_1="0.32935" E_2="0.33119" v_21="0.16021" v_12="0.15932" G_12="0.059764" err="0.0015043"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.379789e-01  5.414922e-02 -9.384129e-04
+               5.414922e-02  3.398702e-01 -5.658938e-04
+              -9.384129e-04 -5.658938e-04  5.976665e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="23" duration="0.242" slack="11753.1572205486" youngsModulusE1="0.33395" homTensor_p11_m22="-0.0011072" homTensor_p13="-0.00071597" homTensor_p23="-0.00053077" eigenfrequency_1="11688">
+        <excitation index="0" objective="11753" objective_weight="1" eigenfrequency_1="11688"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.49553" trace="0.74742">
+          <isotropy E="0.33393" v="0.16086" G="0.14383" err="0.086709"/>
+          <orthotropy E_1="0.33395" E_2="0.33503" v_21="0.16086" v_12="0.16034" G_12="0.060717" err="0.0012467"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.427962e-01  5.514171e-02 -7.159687e-04
+               5.514171e-02  3.439034e-01 -5.307697e-04
+              -7.159687e-04 -5.307697e-04  6.071897e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="24" duration="0.412" slack="13104.1341086772" youngsModulusE1="0.21298" homTensor_p11_m22="-0.0051946" homTensor_p13="-0.00419" homTensor_p23="-0.0071998" eigenfrequency_1="5521.6">
+        <excitation index="0" objective="13104" objective_weight="1" eigenfrequency_1="5521.6"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.31204" trace="0.46259">
+          <isotropy E="0.21291" v="0.11421" G="0.095544" err="0.09757"/>
+          <orthotropy E_1="0.21298" E_2="0.21811" v_21="0.11421" v_12="0.11152" G_12="0.02566" err="0.01139"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.157250e-01  2.463774e-02 -4.190005e-03
+               2.463774e-02  2.209196e-01 -7.199827e-03
+              -4.190005e-03 -7.199827e-03  2.594805e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="25" duration="0.364" slack="11877.3135352849" youngsModulusE1="0.32902" homTensor_p11_m22="-0.00040165" homTensor_p13="-0.0010316" homTensor_p23="-0.00073995" eigenfrequency_1="11717">
+        <excitation index="0" objective="11877" objective_weight="1" eigenfrequency_1="11717"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48829" trace="0.73712">
+          <isotropy E="0.32901" v="0.16264" G="0.14149" err="0.084609"/>
+          <orthotropy E_1="0.32902" E_2="0.32941" v_21="0.16264" v_12="0.16245" G_12="0.060822" err="0.0017716"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.379448e-01  5.496306e-02 -1.031623e-03
+               5.496306e-02  3.383464e-01 -7.399498e-04
+              -1.031623e-03 -7.399498e-04  6.082651e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="26" duration="0.255" slack="12626.2524718238" youngsModulusE1="0.25192" homTensor_p11_m22="-0.01846" homTensor_p13="-0.0018401" homTensor_p23="-0.0016109" eigenfrequency_1="8325.9">
+        <excitation index="0" objective="12626" objective_weight="1" eigenfrequency_1="8325.9"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.3816" trace="0.57241">
+          <isotropy E="0.25159" v="0.13851" G="0.11049" err="0.094912"/>
+          <orthotropy E_1="0.25192" E_2="0.27005" v_21="0.13851" v_12="0.12921" G_12="0.04092" err="0.003451"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.565067e-01  3.552760e-02 -1.840107e-03
+               3.552760e-02  2.749666e-01 -1.610895e-03
+              -1.840107e-03 -1.610895e-03  4.093999e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="27" duration="0.317" slack="11922.8778944487" youngsModulusE1="0.32776" homTensor_p11_m22="-0.00097731" homTensor_p13="-0.0009517" homTensor_p23="-0.00071041" eigenfrequency_1="11743">
+        <excitation index="0" objective="11923" objective_weight="1" eigenfrequency_1="11743"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48705" trace="0.73564">
+          <isotropy E="0.32773" v="0.16334" G="0.14086" err="0.083932"/>
+          <orthotropy E_1="0.32776" E_2="0.32871" v_21="0.16334" v_12="0.16287" G_12="0.061224" err="0.0016621"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.367155e-01  5.499927e-02 -9.516957e-04
+               5.499927e-02  3.376928e-01 -7.104066e-04
+              -9.516957e-04 -7.104066e-04  6.122767e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="28" duration="0.691" slack="12639.1839823907" youngsModulusE1="0.24668" homTensor_p11_m22="0.0058574" homTensor_p13="-0.0061605" homTensor_p23="-0.0063365" eigenfrequency_1="2124.8">
+        <excitation index="0" objective="12639" objective_weight="1" eigenfrequency_1="2124.8"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.35374" trace="0.52166">
+          <isotropy E="0.24677" v="0.11979" G="0.11018" err="0.11424"/>
+          <orthotropy E_1="0.24668" E_2="0.24091" v_21="0.11979" v_12="0.12266" G_12="0.026512" err="0.012497"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.503595e-01  2.999108e-02 -6.160520e-03
+               2.999108e-02  2.445021e-01 -6.336501e-03
+              -6.160520e-03 -6.336501e-03  2.679385e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="29" duration="0.365" slack="11953.9680658059" youngsModulusE1="0.32708" homTensor_p11_m22="-0.00061878" homTensor_p13="-0.00096448" homTensor_p23="-0.00073428" eigenfrequency_1="11777">
+        <excitation index="0" objective="11954" objective_weight="1" eigenfrequency_1="11777"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48625" trace="0.73428">
+          <isotropy E="0.32706" v="0.16517" G="0.14035" err="0.083171"/>
+          <orthotropy E_1="0.32708" E_2="0.32768" v_21="0.16517" v_12="0.16487" G_12="0.061191" err="0.0016988"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.362351e-01  5.553755e-02 -9.644775e-04
+               5.553755e-02  3.368539e-01 -7.342822e-04
+              -9.644775e-04 -7.342822e-04  6.119442e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="30" duration="0.26" slack="12420.9245922167" youngsModulusE1="0.27709" homTensor_p11_m22="0.00022001" homTensor_p13="0.00087357" homTensor_p23="0.00057577" eigenfrequency_1="11495">
+        <excitation index="0" objective="12421" objective_weight="1" eigenfrequency_1="11495"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.40277" trace="0.59477">
+          <isotropy E="0.27709" v="0.12828" G="0.12279" err="0.094374"/>
+          <orthotropy E_1="0.27709" E_2="0.27687" v_21="0.12828" v_12="0.12838" G_12="0.031535" err="0.0014493"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.817264e-01  3.613886e-02  8.735651e-04
+               3.613886e-02  2.815064e-01  5.757663e-04
+               8.735651e-04  5.757663e-04  3.153886e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="31" duration="0.344" slack="12144.4151962899" youngsModulusE1="0.31839" homTensor_p11_m22="-0.00033335" homTensor_p13="-0.00033324" homTensor_p23="-0.00023182" eigenfrequency_1="11925">
+        <excitation index="0" objective="12144" objective_weight="1" eigenfrequency_1="11925"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47055" trace="0.70658">
+          <isotropy E="0.31838" v="0.15691" G="0.1376" err="0.085657"/>
+          <orthotropy E_1="0.31839" E_2="0.31872" v_21="0.15691" v_12="0.15675" G_12="0.053407" err="0.00056505"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.264202e-01  5.121841e-02 -3.332368e-04
+               5.121841e-02  3.267535e-01 -2.318161e-04
+              -3.332368e-04 -2.318161e-04  5.340742e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="32" duration="0.343" slack="12307.8829310472" youngsModulusE1="0.29422" homTensor_p11_m22="-0.003181" homTensor_p13="-0.00053929" homTensor_p23="0.0013412" eigenfrequency_1="7838.7">
+        <excitation index="0" objective="12308" objective_weight="1" eigenfrequency_1="7838.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.43431" trace="0.65339">
+          <isotropy E="0.29415" v="0.14441" G="0.12852" err="0.086079"/>
+          <orthotropy E_1="0.29422" E_2="0.29733" v_21="0.14441" v_12="0.14289" G_12="0.049371" err="0.0018805"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.004147e-01  4.338152e-02 -5.392903e-04
+               4.338152e-02  3.035958e-01  1.341192e-03
+              -5.392903e-04  1.341192e-03  4.937921e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="33" duration="0.296" slack="12236.0830425466" youngsModulusE1="0.31205" homTensor_p11_m22="-0.0013864" homTensor_p13="-0.00046486" homTensor_p23="0.0001461" eigenfrequency_1="11603">
+        <excitation index="0" objective="12236" objective_weight="1" eigenfrequency_1="11603"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.46167" trace="0.69544">
+          <isotropy E="0.31202" v="0.15462" G="0.13512" err="0.083"/>
+          <orthotropy E_1="0.31205" E_2="0.31341" v_21="0.15462" v_12="0.15395" G_12="0.054726" err="0.00061096"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.196631e-01  4.942628e-02 -4.648620e-04
+               4.942628e-02  3.210495e-01  1.460990e-04
+              -4.648620e-04  1.460990e-04  5.472706e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="34" duration="0.286" slack="12157.5826923841" youngsModulusE1="0.31891" homTensor_p11_m22="-0.00031645" homTensor_p13="-0.00033046" homTensor_p23="-0.00022721" eigenfrequency_1="11941">
+        <excitation index="0" objective="12158" objective_weight="1" eigenfrequency_1="11941"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47162" trace="0.70892">
+          <isotropy E="0.3189" v="0.15783" G="0.13772" err="0.08464"/>
+          <orthotropy E_1="0.31891" E_2="0.31922" v_21="0.15783" v_12="0.15767" G_12="0.054507" err="0.00055767"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.270472e-01  5.161631e-02 -3.304561e-04
+               5.161631e-02  3.273637e-01 -2.272130e-04
+              -3.304561e-04 -2.272130e-04  5.450752e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="35" duration="0.399" slack="12163.0172087303" youngsModulusE1="0.30809" homTensor_p11_m22="0.0057751" homTensor_p13="-0.0013797" homTensor_p23="-0.00102" eigenfrequency_1="5089.6">
+        <excitation index="0" objective="12163" objective_weight="1" eigenfrequency_1="5089.6"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.44862" trace="0.67265">
+          <isotropy E="0.30821" v="0.14547" G="0.13454" err="0.096434"/>
+          <orthotropy E_1="0.30809" E_2="0.30244" v_21="0.14547" v_12="0.14819" G_12="0.048668" err="0.0023997"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.148764e-01  4.580433e-02 -1.379691e-03
+               4.580433e-02  3.091013e-01 -1.020012e-03
+              -1.379691e-03 -1.020012e-03  4.867667e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="36" duration="0.357" slack="12789.1880890835" youngsModulusE1="0.32518" homTensor_p11_m22="0.022761" homTensor_p13="-0.0012595" homTensor_p23="-0.00018821" eigenfrequency_1="4601.7">
+        <excitation index="0" objective="12789" objective_weight="1" eigenfrequency_1="4601.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.46723" trace="0.71112">
+          <isotropy E="0.32578" v="0.15711" G="0.14078" err="0.10061"/>
+          <orthotropy E_1="0.32518" E_2="0.30302" v_21="0.15711" v_12="0.16859" G_12="0.065816" err="0.0014477"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.340290e-01  5.247799e-02 -1.259459e-03
+               5.247799e-02  3.112676e-01 -1.882110e-04
+              -1.259459e-03 -1.882110e-04  6.582083e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="37" duration="0.381" slack="38502.0357958508" youngsModulusE1="0.5363" homTensor_p11_m22="0.051068" homTensor_p13="-0.00080823" homTensor_p23="-0.00013582" eigenfrequency_1="6746.8">
+        <excitation index="0" objective="38502" objective_weight="1" eigenfrequency_1="6746.8"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.83781" trace="1.295">
+          <isotropy E="0.5403" v="0.26725" G="0.21318" err="0.083752"/>
+          <orthotropy E_1="0.5363" E_2="0.48923" v_21="0.26725" v_12="0.29296" G_12="0.18238" err="0.00094405"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               5.818580e-01  1.555008e-01 -8.082264e-04
+               1.555008e-01  5.307900e-01 -1.358204e-04
+              -8.082264e-04 -1.358204e-04  1.823827e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="38" duration="0.346" slack="10290.1586736766" youngsModulusE1="0.49562" homTensor_p11_m22="-0.087619" homTensor_p13="-0.019833" homTensor_p23="-0.016654" eigenfrequency_1="8680.6">
+        <excitation index="0" objective="10290" objective_weight="1" eigenfrequency_1="8680.6"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.83821" trace="1.2833">
+          <isotropy E="0.49109" v="0.24582" G="0.19709" err="0.20733"/>
+          <orthotropy E_1="0.49562" E_2="0.5787" v_21="0.24582" v_12="0.21052" G_12="0.14937" err="0.036487"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               5.226678e-01  1.284803e-01 -1.983285e-02
+               1.284803e-01  6.102870e-01 -1.665372e-02
+              -1.983285e-02 -1.665372e-02  1.503590e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="39" duration="0.563" slack="10506.8995183592" youngsModulusE1="0.55916" homTensor_p11_m22="0.044314" homTensor_p13="-0.035995" homTensor_p23="-0.030445" eigenfrequency_1="7698.8">
+        <excitation index="0" objective="10507" objective_weight="1" eigenfrequency_1="7698.8"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.84813" trace="1.3031">
+          <isotropy E="0.56166" v="0.22861" G="0.22858" err="0.24364"/>
+          <orthotropy E_1="0.55916" E_2="0.51735" v_21="0.22861" v_12="0.24709" G_12="0.15899" err="0.066439"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               5.926364e-01  1.354845e-01 -3.599468e-02
+               1.354845e-01  5.483226e-01 -3.044463e-02
+              -3.599468e-02 -3.044463e-02  1.621270e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="40" duration="0.42" slack="10400.959767102" youngsModulusE1="0.5686" homTensor_p11_m22="-0.0123" homTensor_p13="-0.023816" homTensor_p23="-0.021091" eigenfrequency_1="8434.7">
+        <excitation index="0" objective="10401" objective_weight="1" eigenfrequency_1="8434.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.91206" trace="1.4053">
+          <isotropy E="0.56784" v="0.25224" G="0.22673" err="0.14866"/>
+          <orthotropy E_1="0.5686" E_2="0.58014" v_21="0.25224" v_12="0.24723" G_12="0.17886" err="0.044907"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               6.064212e-01  1.529634e-01 -2.381618e-02
+               1.529634e-01  6.187209e-01 -2.109070e-02
+              -2.381618e-02 -2.109070e-02  1.801857e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="41" duration="0.341" slack="10062.253902443" youngsModulusE1="0.494" homTensor_p11_m22="0.18979" homTensor_p13="-0.022284" homTensor_p23="-0.01684" eigenfrequency_1="7056.2">
+        <excitation index="0" objective="10062" objective_weight="1" eigenfrequency_1="7056.2"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.61667" trace="0.91569">
+          <isotropy E="0.49969" v="0.13709" G="0.21972" err="0.4008"/>
+          <orthotropy E_1="0.494" E_2="0.3099" v_21="0.13709" v_12="0.21853" G_12="0.085376" err="0.039124"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               5.092610e-01  6.981451e-02 -2.228387e-02
+               6.981451e-02  3.194681e-01 -1.684041e-02
+              -2.228387e-02 -1.684041e-02  8.696442e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="42" duration="0.668" slack="10296.5405504949" youngsModulusE1="0.56672" homTensor_p11_m22="0.009109" homTensor_p13="-0.019415" homTensor_p23="-0.016868" eigenfrequency_1="8837.7">
+        <excitation index="0" objective="10297" objective_weight="1" eigenfrequency_1="8837.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.89482" trace="1.3798">
+          <isotropy E="0.5673" v="0.25028" G="0.22687" err="0.13"/>
+          <orthotropy E_1="0.56672" E_2="0.55819" v_21="0.25028" v_12="0.25411" G_12="0.17766" err="0.036282"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               6.052068e-01  1.514734e-01 -1.941481e-02
+               1.514734e-01  5.960977e-01 -1.686769e-02
+              -1.941481e-02 -1.686769e-02  1.785451e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="43" duration="0.385" slack="10018.2277124627" youngsModulusE1="0.46649" homTensor_p11_m22="0.056069" homTensor_p13="0.013084" homTensor_p23="0.016052" eigenfrequency_1="7696.3">
+        <excitation index="0" objective="10018" objective_weight="1" eigenfrequency_1="7696.3"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.68471" trace="1.0521">
+          <isotropy E="0.46932" v="0.21117" G="0.19375" err="0.18238"/>
+          <orthotropy E_1="0.46649" E_2="0.41325" v_21="0.21117" v_12="0.23837" G_12="0.12493" err="0.029136"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.912200e-01  1.037286e-01  1.308416e-02
+               1.037286e-01  4.351511e-01  1.605219e-02
+               1.308416e-02  1.605219e-02  1.257023e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="44" duration="0.427" slack="10193.4765164118" youngsModulusE1="0.55598" homTensor_p11_m22="0.01512" homTensor_p13="-0.011109" homTensor_p23="-0.0091421" eigenfrequency_1="8729.8">
+        <excitation index="0" objective="10193" objective_weight="1" eigenfrequency_1="8729.8"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.87285" trace="1.3466">
+          <isotropy E="0.55694" v="0.24904" G="0.22295" err="0.10441"/>
+          <orthotropy E_1="0.55598" E_2="0.54182" v_21="0.24904" v_12="0.25555" G_12="0.17387" err="0.020251"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               5.937646e-01  1.478736e-01 -1.110898e-02
+               1.478736e-01  5.786451e-01 -9.142079e-03
+              -1.110898e-02 -9.142079e-03  1.741532e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="45" duration="0.448" slack="10257.2398964547" youngsModulusE1="0.56531" homTensor_p11_m22="0.0095353" homTensor_p13="-0.016535" homTensor_p23="-0.014281" eigenfrequency_1="8904.3">
+        <excitation index="0" objective="10257" objective_weight="1" eigenfrequency_1="8904.3"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.89293" trace="1.3773">
+          <isotropy E="0.56592" v="0.25129" G="0.22613" err="0.11859"/>
+          <orthotropy E_1="0.56531" E_2="0.55638" v_21="0.25129" v_12="0.25532" G_12="0.17807" err="0.030816"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               6.040632e-01  1.517939e-01 -1.653547e-02
+               1.517939e-01  5.945279e-01 -1.428086e-02
+              -1.653547e-02 -1.428086e-02  1.787083e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="46" duration="0.623" slack="10195.9762526409" youngsModulusE1="0.30579" homTensor_p11_m22="-0.04897" homTensor_p13="0.0035149" homTensor_p23="0.00058898" eigenfrequency_1="7466.7">
+        <excitation index="0" objective="10196" objective_weight="1" eigenfrequency_1="7466.7"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48791" trace="0.737">
+          <isotropy E="0.30467" v="0.16301" G="0.13098" err="0.1261"/>
+          <orthotropy E_1="0.30579" E_2="0.35364" v_21="0.16301" v_12="0.14095" G_12="0.062019" err="0.0041039"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.129835e-01  5.101863e-02  3.514931e-03
+               5.101863e-02  3.619537e-01  5.889844e-04
+               3.514931e-03  5.889844e-04  6.205839e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="47" duration="0.513" slack="10219.4786129837" youngsModulusE1="0.44616" homTensor_p11_m22="-0.0092918" homTensor_p13="-0.0056126" homTensor_p23="-0.005886" eigenfrequency_1="9340.3">
+        <excitation index="0" objective="10219" objective_weight="1" eigenfrequency_1="9340.3"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.69666" trace="1.0702">
+          <isotropy E="0.44571" v="0.22191" G="0.18238" err="0.091302"/>
+          <orthotropy E_1="0.44616" E_2="0.455" v_21="0.22191" v_12="0.2176" G_12="0.12325" err="0.011499"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.687929e-01  1.040318e-01 -5.612580e-03
+               1.040318e-01  4.780847e-01 -5.885958e-03
+              -5.612580e-03 -5.885958e-03  1.233677e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="48" duration="0.595" slack="11230.3574912273" youngsModulusE1="0.37272" homTensor_p11_m22="0.054929" homTensor_p13="-0.0047639" homTensor_p23="-0.0020872" eigenfrequency_1="9813.9">
+        <excitation index="0" objective="11230" objective_weight="1" eigenfrequency_1="9813.9"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.51522" trace="0.77877">
+          <isotropy E="0.37417" v="0.15065" G="0.16259" err="0.16325"/>
+          <orthotropy E_1="0.37272" E_2="0.31924" v_21="0.15065" v_12="0.17589" G_12="0.06791" err="0.0068511"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.828602e-01  5.767940e-02 -4.763904e-03
+               5.767940e-02  3.279308e-01 -2.087183e-03
+              -4.763904e-03 -2.087183e-03  6.797524e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="49" duration="0.532" slack="12330.1585341378" youngsModulusE1="0.38998" homTensor_p11_m22="-0.018802" homTensor_p13="-0.029808" homTensor_p23="-0.022898" eigenfrequency_1="7578">
+        <excitation index="0" objective="12330" objective_weight="1" eigenfrequency_1="7578"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.60861" trace="0.93417">
+          <isotropy E="0.38928" v="0.19733" G="0.16256" err="0.18151"/>
+          <orthotropy E_1="0.38998" E_2="0.40808" v_21="0.19733" v_12="0.18858" G_12="0.10236" err="0.052706"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.050541e-01  7.992933e-02 -2.980837e-02
+               7.992933e-02  4.238558e-01 -2.289761e-02
+              -2.980837e-02 -2.289761e-02  1.052644e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="50" duration="0.403" slack="11367.1506685922" youngsModulusE1="0.38975" homTensor_p11_m22="0.046939" homTensor_p13="-0.0044115" homTensor_p23="-0.00071352" eigenfrequency_1="9862.8">
+        <excitation index="0" objective="11367" objective_weight="1" eigenfrequency_1="9862.8"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.54986" trace="0.83584">
+          <isotropy E="0.39116" v="0.16315" G="0.16815" err="0.14627"/>
+          <orthotropy E_1="0.38975" E_2="0.34422" v_21="0.16315" v_12="0.18473" G_12="0.079019" err="0.005125"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.018570e-01  6.556411e-02 -4.411508e-03
+               6.556411e-02  3.549175e-01 -7.135210e-04
+              -4.411508e-03 -7.135210e-04  7.906746e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="51" duration="1.102" slack="11314.564642008" youngsModulusE1="0.38442" homTensor_p11_m22="0.049818" homTensor_p13="-0.0044144" homTensor_p23="-0.0010928" eigenfrequency_1="9916">
+        <excitation index="0" objective="11315" objective_weight="1" eigenfrequency_1="9916"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.53863" trace="0.81732">
+          <isotropy E="0.38586" v="0.15903" G="0.16646" err="0.1519"/>
+          <orthotropy E_1="0.38442" E_2="0.33605" v_21="0.15903" v_12="0.18193" G_12="0.07534" err="0.0055072"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.958764e-01  6.295805e-02 -4.414361e-03
+               6.295805e-02  3.460583e-01 -1.092842e-03
+              -4.414361e-03 -1.092842e-03  7.538948e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="52" duration="0.381" slack="13206.4732253621" youngsModulusE1="0.45126" homTensor_p11_m22="0.0017514" homTensor_p13="-0.032624" homTensor_p23="-0.045293" eigenfrequency_1="6828">
+        <excitation index="0" objective="13206" objective_weight="1" eigenfrequency_1="6828"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.72297" trace="1.1182">
+          <isotropy E="0.45137" v="0.25146" G="0.18034" err="0.18162"/>
+          <orthotropy E_1="0.45126" E_2="0.44962" v_21="0.25146" v_12="0.25238" G_12="0.15104" err="0.077918"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.818398e-01  1.211632e-01 -3.262417e-02
+               1.211632e-01  4.800884e-01 -4.529346e-02
+              -3.262417e-02 -4.529346e-02  1.563091e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="53" duration="0.465" slack="11573.0598212518" youngsModulusE1="0.4224" homTensor_p11_m22="0.01762" homTensor_p13="-0.0078011" homTensor_p23="-0.0044865" eigenfrequency_1="9947.6">
+        <excitation index="0" objective="11573" objective_weight="1" eigenfrequency_1="9947.6"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.63268" trace="0.96933">
+          <isotropy E="0.42313" v="0.20034" G="0.17626" err="0.11315"/>
+          <orthotropy E_1="0.4224" E_2="0.40551" v_21="0.20034" v_12="0.20868" G_12="0.10514" err="0.012288"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               4.408273e-01  8.831389e-02 -7.801136e-03
+               8.831389e-02  4.232073e-01 -4.486472e-03
+              -7.801136e-03 -4.486472e-03  1.053004e-01
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="54" duration="0.465" slack="11892.0712239343" youngsModulusE1="0.29904" homTensor_p11_m22="0.0099267" homTensor_p13="0.0026267" homTensor_p23="0.0021362" eigenfrequency_1="9890.4">
+        <excitation index="0" objective="11892" objective_weight="1" eigenfrequency_1="9890.4"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.43042" trace="0.63983">
+          <isotropy E="0.29924" v="0.13779" G="0.1315" err="0.11125"/>
+          <orthotropy E_1="0.29904" E_2="0.28931" v_21="0.13779" v_12="0.14243" G_12="0.039667" err="0.0047629"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.050300e-01  4.203046e-02  2.626691e-03
+               4.203046e-02  2.951033e-01  2.136178e-03
+               2.626691e-03  2.136178e-03  3.970013e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="55" duration="0.61" slack="11780.8891057355" youngsModulusE1="0.35652" homTensor_p11_m22="0.0082573" homTensor_p13="-0.0012009" homTensor_p23="-0.00017883" eigenfrequency_1="10660">
+        <excitation index="0" objective="11781" objective_weight="1" eigenfrequency_1="10660"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.52955" trace="0.80451">
+          <isotropy E="0.3568" v="0.18007" G="0.15118" err="0.086937"/>
+          <orthotropy E_1="0.35652" E_2="0.34854" v_21="0.18007" v_12="0.1842" G_12="0.075252" err="0.0013798"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.687545e-01  6.640294e-02 -1.200920e-03
+               6.640294e-02  3.604972e-01 -1.788303e-04
+              -1.200920e-03 -1.788303e-04  7.525574e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="56" duration="0.642" slack="12024.5596097355" youngsModulusE1="0.28958" homTensor_p11_m22="-0.018739" homTensor_p13="0.0014969" homTensor_p23="-0.002405" eigenfrequency_1="7602.6">
+        <excitation index="0" objective="12025" objective_weight="1" eigenfrequency_1="7602.6"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.43836" trace="0.65672">
+          <isotropy E="0.2892" v="0.14698" G="0.12607" err="0.10581"/>
+          <orthotropy E_1="0.28958" E_2="0.30794" v_21="0.14698" v_12="0.13821" G_12="0.046778" err="0.0039019"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.955880e-01  4.344453e-02  1.496876e-03
+               4.344453e-02  3.143272e-01 -2.404998e-03
+               1.496876e-03 -2.404998e-03  4.680758e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="57" duration="0.578" slack="11917.4545295937" youngsModulusE1="0.33053" homTensor_p11_m22="-0.0012596" homTensor_p13="-0.00020392" homTensor_p23="-0.00072977" eigenfrequency_1="11221">
+        <excitation index="0" objective="11917" objective_weight="1" eigenfrequency_1="11221"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.49358" trace="0.74637">
+          <isotropy E="0.3305" v="0.17121" G="0.14109" err="0.080067"/>
+          <orthotropy E_1="0.33053" E_2="0.33176" v_21="0.17121" v_12="0.17058" G_12="0.064151" err="0.00093369"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.404780e-01  5.829225e-02 -2.039185e-04
+               5.829225e-02  3.417375e-01 -7.297680e-04
+              -2.039185e-04 -7.297680e-04  6.415249e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="58" duration="0.435" slack="12605.5930334676" youngsModulusE1="0.29956" homTensor_p11_m22="-0.0043186" homTensor_p13="0.0032066" homTensor_p23="0.0049922" eigenfrequency_1="8903.4">
+        <excitation index="0" objective="12606" objective_weight="1" eigenfrequency_1="8903.4"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.44218" trace="0.66046">
+          <isotropy E="0.29947" v="0.1433" G="0.13097" err="0.10704"/>
+          <orthotropy E_1="0.29956" E_2="0.30379" v_21="0.1433" v_12="0.14131" G_12="0.044543" err="0.0081988"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.057469e-01  4.381470e-02  3.206621e-03
+               4.381470e-02  3.100655e-01  4.992151e-03
+               3.206621e-03  4.992151e-03  4.464450e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="59" duration="0.529" slack="12333.4722384528" youngsModulusE1="0.31856" homTensor_p11_m22="-0.0033725" homTensor_p13="0.0010885" homTensor_p23="0.0014221" eigenfrequency_1="11525">
+        <excitation index="0" objective="12333" objective_weight="1" eigenfrequency_1="11525"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4741" trace="0.71393">
+          <isotropy E="0.31847" v="0.16103" G="0.13715" err="0.088889"/>
+          <orthotropy E_1="0.31856" E_2="0.32185" v_21="0.16103" v_12="0.15939" G_12="0.056648" err="0.0025106"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.269519e-01  5.264967e-02  1.088541e-03
+               5.264967e-02  3.303244e-01  1.422101e-03
+               1.088541e-03  1.422101e-03  5.665634e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="60" duration="0.459" slack="12477.1396938164" youngsModulusE1="0.29213" homTensor_p11_m22="-0.017284" homTensor_p13="0.0025243" homTensor_p23="0.0018666" eigenfrequency_1="11212">
+        <excitation index="0" objective="12477" objective_weight="1" eigenfrequency_1="11212"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.44182" trace="0.6657">
+          <isotropy E="0.29177" v="0.14811" G="0.12707" err="0.10134"/>
+          <orthotropy E_1="0.29213" E_2="0.30906" v_21="0.14811" v_12="0.14" G_12="0.051759" err="0.0043909"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               2.983149e-01  4.418342e-02  2.524301e-03
+               4.418342e-02  3.155991e-01  1.866627e-03
+               2.524301e-03  1.866627e-03  5.178806e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="61" duration="0.401" slack="12383.3962341336" youngsModulusE1="0.3174" homTensor_p11_m22="-0.0045071" homTensor_p13="0.0012419" homTensor_p23="0.001231" eigenfrequency_1="11689">
+        <excitation index="0" objective="12383" objective_weight="1" eigenfrequency_1="11689"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47326" trace="0.71385">
+          <isotropy E="0.31729" v="0.16078" G="0.13667" err="0.088185"/>
+          <orthotropy E_1="0.3174" E_2="0.32179" v_21="0.16078" v_12="0.15858" G_12="0.057929" err="0.0024729"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.257045e-01  5.236630e-02  1.241878e-03
+               5.236630e-02  3.302116e-01  1.230985e-03
+               1.241878e-03  1.230985e-03  5.793709e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="62" duration="0.51" slack="12580.6903416542" youngsModulusE1="0.31731" homTensor_p11_m22="4.9975e-05" homTensor_p13="0.0012916" homTensor_p23="-0.00017456" eigenfrequency_1="11493">
+        <excitation index="0" objective="12581" objective_weight="1" eigenfrequency_1="11493"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.46683" trace="0.70002">
+          <isotropy E="0.31731" v="0.14934" G="0.13804" err="0.090059"/>
+          <orthotropy E_1="0.31731" E_2="0.31726" v_21="0.14934" v_12="0.14936" G_12="0.050959" err="0.0014661"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.245502e-01  4.846675e-02  1.291571e-03
+               4.846675e-02  3.245002e-01 -1.745634e-04
+               1.291571e-03 -1.745634e-04  5.096477e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="63" duration="0.757" slack="12456.2584744619" youngsModulusE1="0.32041" homTensor_p11_m22="-0.0026338" homTensor_p13="0.0010489" homTensor_p23="0.00082106" eigenfrequency_1="11923">
+        <excitation index="0" objective="12456" objective_weight="1" eigenfrequency_1="11923"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47576" trace="0.71689">
+          <isotropy E="0.32034" v="0.15835" G="0.13828" err="0.087565"/>
+          <orthotropy E_1="0.32041" E_2="0.32298" v_21="0.15835" v_12="0.15709" G_12="0.05708" err="0.00187"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.285841e-01  5.203115e-02  1.048895e-03
+               5.203115e-02  3.312179e-01  8.210556e-04
+               1.048895e-03  8.210556e-04  5.708480e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="64" duration="0.591" slack="12222.2262997268" youngsModulusE1="0.30671" homTensor_p11_m22="-0.0112" homTensor_p13="-0.0021842" homTensor_p23="-0.001263" eigenfrequency_1="9861.9">
+        <excitation index="0" objective="12222" objective_weight="1" eigenfrequency_1="9861.9"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.45978" trace="0.69174">
+          <isotropy E="0.30646" v="0.15223" G="0.13298" err="0.097987"/>
+          <orthotropy E_1="0.30671" E_2="0.31766" v_21="0.15223" v_12="0.14698" G_12="0.053074" err="0.0034472"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.137265e-01  4.775860e-02 -2.184179e-03
+               4.775860e-02  3.249266e-01 -1.262973e-03
+              -2.184179e-03 -1.262973e-03  5.309173e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="65" duration="0.42" slack="12366.7368142728" youngsModulusE1="0.3205" homTensor_p11_m22="-0.003321" homTensor_p13="0.00050219" homTensor_p23="0.00046758" eigenfrequency_1="11877">
+        <excitation index="0" objective="12367" objective_weight="1" eigenfrequency_1="11877"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47678" trace="0.71876">
+          <isotropy E="0.32041" v="0.15993" G="0.13812" err="0.08559"/>
+          <orthotropy E_1="0.3205" E_2="0.32373" v_21="0.15993" v_12="0.15833" G_12="0.057786" err="0.00096977"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.288233e-01  5.258976e-02  5.021939e-04
+               5.258976e-02  3.321443e-01  4.675801e-04
+               5.021939e-04  4.675801e-04  5.778765e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="66" duration="0.569" slack="12431.021208976" youngsModulusE1="0.32111" homTensor_p11_m22="-0.0025122" homTensor_p13="0.00092986" homTensor_p23="0.00073555" eigenfrequency_1="11942">
+        <excitation index="0" objective="12431" objective_weight="1" eigenfrequency_1="11942"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47699" trace="0.71894">
+          <isotropy E="0.32104" v="0.15938" G="0.13845" err="0.086687"/>
+          <orthotropy E_1="0.32111" E_2="0.32355" v_21="0.15938" v_12="0.15817" G_12="0.057608" err="0.0016654"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.294097e-01  5.249979e-02  9.298576e-04
+               5.249979e-02  3.319219e-01  7.355508e-04
+               9.298576e-04  7.355508e-04  5.761143e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="67" duration="1.235" slack="12120.7915532818" youngsModulusE1="0.30626" homTensor_p11_m22="-0.0072767" homTensor_p13="0.0021213" homTensor_p23="0.0042427" eigenfrequency_1="5273.2">
+        <excitation index="0" objective="12121" objective_weight="1" eigenfrequency_1="5273.2"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.45525" trace="0.6814">
+          <isotropy E="0.30611" v="0.14856" G="0.13326" err="0.10517"/>
+          <orthotropy E_1="0.30626" E_2="0.31338" v_21="0.14856" v_12="0.14519" G_12="0.048026" err="0.0063641"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.130162e-01  4.650320e-02  2.121334e-03
+               4.650320e-02  3.202929e-01  4.242737e-03
+               2.121334e-03  4.242737e-03  4.809010e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="68" duration="0.647" slack="12426.964356289" youngsModulusE1="0.32121" homTensor_p11_m22="-0.0024839" homTensor_p13="0.00091874" homTensor_p23="0.00072718" eigenfrequency_1="11944">
+        <excitation index="0" objective="12427" objective_weight="1" eigenfrequency_1="11944"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47718" trace="0.71921">
+          <isotropy E="0.32115" v="0.15959" G="0.13847" err="0.086614"/>
+          <orthotropy E_1="0.32121" E_2="0.32363" v_21="0.15959" v_12="0.1584" G_12="0.057633" err="0.0016459"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.295424e-01  5.259308e-02  9.187436e-04
+               5.259308e-02  3.320263e-01  7.271822e-04
+               9.187436e-04  7.271822e-04  5.763682e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="69" duration="0.816" slack="12409.3426512169" youngsModulusE1="0.32148" homTensor_p11_m22="-0.0024343" homTensor_p13="0.00089035" homTensor_p23="0.00071618" eigenfrequency_1="11953">
+        <excitation index="0" objective="12409" objective_weight="1" eigenfrequency_1="11953"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4777" trace="0.71989">
+          <isotropy E="0.32142" v="0.16028" G="0.13851" err="0.086497"/>
+          <orthotropy E_1="0.32148" E_2="0.32385" v_21="0.16028" v_12="0.15911" G_12="0.057657" err="0.0016065"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.298956e-01  5.287693e-02  8.903462e-04
+               5.287693e-02  3.323300e-01  7.161755e-04
+               8.903462e-04  7.161755e-04  5.766019e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="70" duration="0.634" slack="12080.499159021" youngsModulusE1="0.31895" homTensor_p11_m22="-0.0059861" homTensor_p13="0.00057417" homTensor_p23="0.00043064" eigenfrequency_1="8289.8">
+        <excitation index="0" objective="12080" objective_weight="1" eigenfrequency_1="8289.8"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47319" trace="0.70849">
+          <isotropy E="0.31882" v="0.14944" G="0.13869" err="0.096383"/>
+          <orthotropy E_1="0.31895" E_2="0.32481" v_21="0.14944" v_12="0.14675" G_12="0.050297" err="0.0010048"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.261041e-01  4.873293e-02  5.741693e-04
+               4.873293e-02  3.320902e-01  4.306443e-04
+               5.741693e-04  4.306443e-04  5.029846e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="71" duration="0.62" slack="12249.459991013" youngsModulusE1="0.3233" homTensor_p11_m22="-0.0025937" homTensor_p13="0.00061098" homTensor_p23="0.00050242" eigenfrequency_1="11980">
+        <excitation index="0" objective="12249" objective_weight="1" eigenfrequency_1="11980"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47947" trace="0.72075">
+          <isotropy E="0.32323" v="0.15717" G="0.13967" err="0.089166"/>
+          <orthotropy E_1="0.3233" E_2="0.32583" v_21="0.15717" v_12="0.15595" G_12="0.055319" err="0.0011134"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.314200e-01  5.208790e-02  6.109799e-04
+               5.208790e-02  3.340137e-01  5.024162e-04
+               6.109799e-04  5.024162e-04  5.532018e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="72" duration="0.536" slack="12059.6538535504" youngsModulusE1="0.32536" homTensor_p11_m22="0.0010803" homTensor_p13="7.2118e-05" homTensor_p23="-0.00017735" eigenfrequency_1="11737">
+        <excitation index="0" objective="12060" objective_weight="1" eigenfrequency_1="11737"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47764" trace="0.71522">
+          <isotropy E="0.32538" v="0.14841" G="0.14167" err="0.092369"/>
+          <orthotropy E_1="0.32536" E_2="0.3243" v_21="0.14841" v_12="0.1489" G_12="0.050876" err="0.00024946"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.327101e-01  4.937827e-02  7.211755e-05
+               4.937827e-02  3.316298e-01 -1.773471e-04
+               7.211755e-05 -1.773471e-04  5.087645e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="73" duration="0.848" slack="12153.8373750015" youngsModulusE1="0.32557" homTensor_p11_m22="-0.00095533" homTensor_p13="0.00031132" homTensor_p23="0.00019032" eigenfrequency_1="11965">
+        <excitation index="0" objective="12154" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48107" trace="0.72219">
+          <isotropy E="0.32555" v="0.15493" G="0.14094" err="0.088772"/>
+          <orthotropy E_1="0.32557" E_2="0.32651" v_21="0.15493" v_12="0.15449" G_12="0.054126" err="0.00050164"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.335565e-01  5.167810e-02  3.113186e-04
+               5.167810e-02  3.345118e-01  1.903195e-04
+               3.113186e-04  1.903195e-04  5.412605e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="74" duration="0.528" slack="12209.8647175429" youngsModulusE1="0.3245" homTensor_p11_m22="-0.0019745" homTensor_p13="0.00048376" homTensor_p23="0.00038524" eigenfrequency_1="11982">
+        <excitation index="0" objective="12210" objective_weight="1" eigenfrequency_1="11982"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48069" trace="0.72227">
+          <isotropy E="0.32445" v="0.15673" G="0.14025" err="0.088909"/>
+          <orthotropy E_1="0.3245" E_2="0.32643" v_21="0.15673" v_12="0.1558" G_12="0.055048" err="0.000869"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.326220e-01  5.213152e-02  4.837604e-04
+               5.213152e-02  3.345965e-01  3.852441e-04
+               4.837604e-04  3.852441e-04  5.504865e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="75" duration="0.531" slack="12063.7964420636" youngsModulusE1="0.31518" homTensor_p11_m22="-0.0093725" homTensor_p13="0.00058818" homTensor_p23="0.0006508" eigenfrequency_1="8070.8">
+        <excitation index="0" objective="12064" objective_weight="1" eigenfrequency_1="8070.8"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47069" trace="0.70587">
+          <isotropy E="0.31496" v="0.15223" G="0.13668" err="0.096907"/>
+          <orthotropy E_1="0.31518" E_2="0.32434" v_21="0.15223" v_12="0.14793" G_12="0.051618" err="0.001239"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.224367e-01  4.908370e-02  5.881808e-04
+               4.908370e-02  3.318092e-01  6.508032e-04
+               5.881808e-04  6.508032e-04  5.161996e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="76" duration="0.865" slack="12201.0983263674" youngsModulusE1="0.32478" homTensor_p11_m22="-0.0018906" homTensor_p13="0.00045737" homTensor_p23="0.00036541" eigenfrequency_1="11986">
+        <excitation index="0" objective="12201" objective_weight="1" eigenfrequency_1="11986"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48104" trace="0.72275">
+          <isotropy E="0.32473" v="0.15675" G="0.14036" err="0.088857"/>
+          <orthotropy E_1="0.32478" E_2="0.32662" v_21="0.15675" v_12="0.15586" G_12="0.055041" err="0.00082278"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.329096e-01  5.218315e-02  4.573719e-04
+               5.218315e-02  3.348002e-01  3.654070e-04
+               4.573719e-04  3.654070e-04  5.504190e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="77" duration="0.619" slack="12020.2853297396" youngsModulusE1="0.32203" homTensor_p11_m22="-0.00082827" homTensor_p13="-0.00060982" homTensor_p23="-0.00085132" eigenfrequency_1="11639">
+        <excitation index="0" objective="12020" objective_weight="1" eigenfrequency_1="11639"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.47555" trace="0.71547">
+          <isotropy E="0.32201" v="0.15308" G="0.13963" err="0.088216"/>
+          <orthotropy E_1="0.32203" E_2="0.32284" v_21="0.15308" v_12="0.15269" G_12="0.055163" err="0.0014611"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.297400e-01  5.047586e-02 -6.098195e-04
+               5.047586e-02  3.305683e-01 -8.513238e-04
+              -6.098195e-04 -8.513238e-04  5.516639e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="78" duration="0.804" slack="12102.5487438361" youngsModulusE1="0.32525" homTensor_p11_m22="-0.0011419" homTensor_p13="4.8655e-05" homTensor_p23="-7.4022e-05" eigenfrequency_1="11967">
+        <excitation index="0" objective="12103" objective_weight="1" eigenfrequency_1="11967"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48129" trace="0.72399">
+          <isotropy E="0.32522" v="0.15647" G="0.14061" err="0.085917"/>
+          <orthotropy E_1="0.32525" E_2="0.32636" v_21="0.15647" v_12="0.15593" G_12="0.056081" err="0.00012268"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.333846e-01  5.216381e-02  4.865510e-05
+               5.216381e-02  3.345265e-01 -7.402165e-05
+               4.865510e-05 -7.402165e-05  5.608092e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="79" duration="0.869" slack="12171.4705906972" youngsModulusE1="0.32541" homTensor_p11_m22="-0.0016099" homTensor_p13="0.00037003" homTensor_p23="0.00028371" eigenfrequency_1="11988">
+        <excitation index="0" objective="12171" objective_weight="1" eigenfrequency_1="11988"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48192" trace="0.72443">
+          <isotropy E="0.32537" v="0.15714" G="0.14059" err="0.087896"/>
+          <orthotropy E_1="0.32541" E_2="0.32698" v_21="0.15714" v_12="0.15638" G_12="0.055612" err="0.00065375"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.336031e-01  5.242172e-02  3.700340e-04
+               5.242172e-02  3.352130e-01  2.837129e-04
+               3.700340e-04  2.837129e-04  5.561237e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="80" duration="0.664" slack="12009.3429192471" youngsModulusE1="0.32663" homTensor_p11_m22="-0.00084817" homTensor_p13="5.3497e-05" homTensor_p23="4.7358e-05" eigenfrequency_1="11736">
+        <excitation index="0" objective="12009" objective_weight="1" eigenfrequency_1="11736"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48285" trace="0.72557">
+          <isotropy E="0.32661" v="0.15574" G="0.1413" err="0.087069"/>
+          <orthotropy E_1="0.32663" E_2="0.32745" v_21="0.15574" v_12="0.15535" G_12="0.055277" err="0.00010085"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.347244e-01  5.213054e-02  5.349680e-05
+               5.213054e-02  3.355725e-01  4.735767e-05
+               5.349680e-05  4.735767e-05  5.527739e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="81" duration="0.605" slack="12142.2578714155" youngsModulusE1="0.32612" homTensor_p11_m22="-0.0013268" homTensor_p13="0.0003079" homTensor_p23="0.00023688" eigenfrequency_1="11985">
+        <excitation index="0" objective="12142" objective_weight="1" eigenfrequency_1="11985"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48286" trace="0.72581">
+          <isotropy E="0.32609" v="0.15741" G="0.14087" err="0.087556"/>
+          <orthotropy E_1="0.32612" E_2="0.32742" v_21="0.15741" v_12="0.15679" G_12="0.055731" err="0.00054479"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.343756e-01  5.263318e-02  3.079047e-04
+               5.263318e-02  3.357024e-01  2.368829e-04
+               3.079047e-04  2.368829e-04  5.573135e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="82" duration="0.767" slack="11951.0774529666" youngsModulusE1="0.32991" homTensor_p11_m22="-2.1611e-05" homTensor_p13="-1.9148e-05" homTensor_p23="-2.0295e-05" eigenfrequency_1="11949">
+        <excitation index="0" objective="11951" objective_weight="1" eigenfrequency_1="11949"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4878" trace="0.73338">
+          <isotropy E="0.32991" v="0.1582" G="0.14242" err="0.085924"/>
+          <orthotropy E_1="0.32991" E_2="0.32993" v_21="0.1582" v_12="0.15819" G_12="0.056601" err="3.9443e-05"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383793e-01  5.353073e-02 -1.914789e-05
+               5.353073e-02  3.384009e-01 -2.029472e-05
+              -1.914789e-05 -2.029472e-05  5.660097e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="83" duration="0.592" slack="11955.2994809313" youngsModulusE1="0.32998" homTensor_p11_m22="-4.2258e-06" homTensor_p13="-2.1355e-07" homTensor_p23="9.8413e-07" eigenfrequency_1="11955">
+        <excitation index="0" objective="11955" objective_weight="1" eigenfrequency_1="11955"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48772" trace="0.73306">
+          <isotropy E="0.32998" v="0.15762" G="0.14253" err="0.086253"/>
+          <orthotropy E_1="0.32998" E_2="0.32998" v_21="0.15762" v_12="0.15762" G_12="0.056278" err="1.1977e-06"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383874e-01  5.333714e-02 -2.135484e-07
+               5.333714e-02  3.383916e-01  9.841313e-07
+              -2.135484e-07  9.841313e-07  5.627842e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="84" duration="1.008" slack="11958.6961875544" youngsModulusE1="0.32999" homTensor_p11_m22="-2.7876e-06" homTensor_p13="-2.0658e-06" homTensor_p23="-1.4292e-06" eigenfrequency_1="11958">
+        <excitation index="0" objective="11959" objective_weight="1" eigenfrequency_1="11958"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48761" trace="0.73274">
+          <isotropy E="0.32999" v="0.15722" G="0.14258" err="0.086554"/>
+          <orthotropy E_1="0.32999" E_2="0.32999" v_21="0.15722" v_12="0.15721" G_12="0.056034" err="3.4951e-06"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383499e-01  5.319370e-02 -2.065825e-06
+               5.319370e-02  3.383527e-01 -1.429240e-06
+              -2.065825e-06 -1.429240e-06  5.603354e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="85" duration="0.891" slack="11959.6223448996" youngsModulusE1="0.32999" homTensor_p11_m22="1.2239e-06" homTensor_p13="-6.7888e-07" homTensor_p23="-9.452e-07" eigenfrequency_1="11960">
+        <excitation index="0" objective="11960" objective_weight="1" eigenfrequency_1="11960"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48756" trace="0.73259">
+          <isotropy E="0.32999" v="0.15702" G="0.14261" err="0.086696"/>
+          <orthotropy E_1="0.32999" E_2="0.32999" v_21="0.15702" v_12="0.15702" G_12="0.055914" err="1.6241e-06"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383367e-01  5.312626e-02 -6.788761e-07
+               5.312626e-02  3.383354e-01 -9.451996e-07
+              -6.788761e-07 -9.451996e-07  5.591359e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="86" duration="0.585" slack="11961.1800602931" youngsModulusE1="0.32999" homTensor_p11_m22="1.1798e-06" homTensor_p13="-5.095e-07" homTensor_p23="-1.9551e-06" eigenfrequency_1="11961">
+        <excitation index="0" objective="11961" objective_weight="1" eigenfrequency_1="11961"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48748" trace="0.73236">
+          <isotropy E="0.32999" v="0.15679" G="0.14263" err="0.086886"/>
+          <orthotropy E_1="0.32999" E_2="0.32999" v_21="0.15679" v_12="0.15679" G_12="0.055751" err="2.4646e-06"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383042e-01  5.304185e-02 -5.094995e-07
+               5.304185e-02  3.383030e-01 -1.955104e-06
+              -5.094995e-07 -1.955104e-06  5.575095e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="87" duration="0.588" slack="11961.5885487301" youngsModulusE1="0.33" homTensor_p11_m22="-1.1024e-06" homTensor_p13="-3.1337e-07" homTensor_p23="-2.1046e-07" eigenfrequency_1="11962">
+        <excitation index="0" objective="11962" objective_weight="1" eigenfrequency_1="11962"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48748" trace="0.73233">
+          <isotropy E="0.33" v="0.15675" G="0.14264" err="0.08693"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15675" v_12="0.15675" G_12="0.055711" err="5.2382e-07"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383102e-01  5.303084e-02 -3.133664e-07
+               5.303084e-02  3.383113e-01 -2.104551e-07
+              -3.133664e-07 -2.104551e-07  5.571143e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="88" duration="0.543" slack="11962.4198716793" youngsModulusE1="0.33" homTensor_p11_m22="1.072e-06" homTensor_p13="-2.1865e-07" homTensor_p23="9.3011e-08" eigenfrequency_1="11962">
+        <excitation index="0" objective="11962" objective_weight="1" eigenfrequency_1="11962"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48751" trace="0.7324">
+          <isotropy E="0.33" v="0.15689" G="0.14262" err="0.086866"/>
+          <orthotropy E_1="0.33" E_2="0.32999" v_21="0.15689" v_12="0.15689" G_12="0.055758" err="3.1166e-07"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383240e-01  5.308051e-02 -2.186473e-07
+               5.308051e-02  3.383229e-01  9.301124e-08
+              -2.186473e-07  9.301124e-08  5.575755e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="89" duration="0.704" slack="11964.3395561823" youngsModulusE1="0.32998" homTensor_p11_m22="-3.6284e-06" homTensor_p13="-8.2726e-07" homTensor_p23="2.488e-07" eigenfrequency_1="11964">
+        <excitation index="0" objective="11964" objective_weight="1" eigenfrequency_1="11964"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48758" trace="0.73257">
+          <isotropy E="0.32998" v="0.15721" G="0.14257" err="0.086689"/>
+          <orthotropy E_1="0.32998" E_2="0.32998" v_21="0.15721" v_12="0.15721" G_12="0.05589" err="1.0761e-06"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383395e-01  5.319196e-02 -8.272553e-07
+               5.319196e-02  3.383431e-01  2.488045e-07
+              -8.272553e-07  2.488045e-07  5.589033e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="90" duration="0.737" slack="11963.9797250857" youngsModulusE1="0.33" homTensor_p11_m22="6.4531e-07" homTensor_p13="-3.2717e-08" homTensor_p23="3.3236e-08" eigenfrequency_1="11964">
+        <excitation index="0" objective="11964" objective_weight="1" eigenfrequency_1="11964"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48761" trace="0.73264">
+          <isotropy E="0.33" v="0.15721" G="0.14258" err="0.086672"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15721" v_12="0.15721" G_12="0.055913" err="6.5953e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383618e-01  5.319329e-02 -3.271727e-08
+               5.319329e-02  3.383612e-01  3.323580e-08
+              -3.271727e-08  3.323580e-08  5.591283e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="91" duration="0.592" slack="11964.6086118513" youngsModulusE1="0.32999" homTensor_p11_m22="3.097e-06" homTensor_p13="6.6818e-08" homTensor_p23="7.643e-07" eigenfrequency_1="11964">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11964"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48758" trace="0.73261">
+          <isotropy E="0.32999" v="0.15713" G="0.14259" err="0.086673"/>
+          <orthotropy E_1="0.32999" E_2="0.32999" v_21="0.15713" v_12="0.15713" G_12="0.055923" err="8.3111e-07"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383466e-01  5.316475e-02  6.681786e-08
+               5.316475e-02  3.383435e-01  7.642969e-07
+               6.681786e-08  7.642969e-07  5.592260e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="92" duration="0.876" slack="11964.3659416468" youngsModulusE1="0.33" homTensor_p11_m22="1.6319e-07" homTensor_p13="2.8019e-08" homTensor_p23="3.1696e-08" eigenfrequency_1="11964">
+        <excitation index="0" objective="11964" objective_weight="1" eigenfrequency_1="11964"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73263">
+          <isotropy E="0.33" v="0.15715" G="0.14259" err="0.086669"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15715" v_12="0.15715" G_12="0.055923" err="5.9716e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383556e-01  5.317180e-02  2.801944e-08
+               5.317180e-02  3.383555e-01  3.169613e-08
+               2.801944e-08  3.169613e-08  5.592316e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="93" duration="0.656" slack="11964.6744740143" youngsModulusE1="0.33" homTensor_p11_m22="3.8163e-06" homTensor_p13="-2.9068e-07" homTensor_p23="1.2897e-07" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48759" trace="0.73259">
+          <isotropy E="0.33" v="0.15716" G="0.14259" err="0.086702"/>
+          <orthotropy E_1="0.33" E_2="0.32999" v_21="0.15716" v_12="0.15716" G_12="0.055891" err="4.1965e-07"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383532e-01  5.317551e-02 -2.906784e-07
+               5.317551e-02  3.383493e-01  1.289674e-07
+              -2.906784e-07  1.289674e-07  5.589138e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="94" duration="0.592" slack="11964.8286177432" youngsModulusE1="0.32999" homTensor_p11_m22="3.7712e-08" homTensor_p13="1.3924e-06" homTensor_p23="1.1991e-06" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48758" trace="0.73259">
+          <isotropy E="0.32999" v="0.15712" G="0.14259" err="0.086698"/>
+          <orthotropy E_1="0.32999" E_2="0.32999" v_21="0.15712" v_12="0.15712" G_12="0.0559" err="2.5915e-06"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383475e-01  5.316133e-02  1.392382e-06
+               5.316133e-02  3.383474e-01  1.199134e-06
+               1.392382e-06  1.199134e-06  5.589998e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="95" duration="0.698" slack="11964.7856586226" youngsModulusE1="0.33" homTensor_p11_m22="5.5868e-06" homTensor_p13="-5.3684e-07" homTensor_p23="-6.1185e-07" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48759" trace="0.73264">
+          <isotropy E="0.33" v="0.15715" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.32999" v_21="0.15715" v_12="0.15715" G_12="0.055937" err="1.1487e-06"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383541e-01  5.317097e-02 -5.368418e-07
+               5.317097e-02  3.383485e-01 -6.118548e-07
+              -5.368418e-07 -6.118548e-07  5.593736e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="96" duration="0.822" slack="11964.8819208365" youngsModulusE1="0.32999" homTensor_p11_m22="-3.7944e-06" homTensor_p13="-1.2162e-06" homTensor_p23="-1.2753e-06" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.32999" v="0.15717" G="0.14259" err="0.086663"/>
+          <orthotropy E_1="0.32999" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055932" err="2.4916e-06"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383520e-01  5.317866e-02 -1.216219e-06
+               5.317866e-02  3.383558e-01 -1.275340e-06
+              -1.216219e-06 -1.275340e-06  5.593205e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="97" duration="0.58" slack="11964.7957093739" youngsModulusE1="0.33" homTensor_p11_m22="3.6373e-07" homTensor_p13="-1.3519e-08" homTensor_p23="-1.8054e-07" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48759" trace="0.73262">
+          <isotropy E="0.33" v="0.15713" G="0.14259" err="0.086683"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15713" v_12="0.15713" G_12="0.055911" err="1.9406e-07"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383530e-01  5.316695e-02 -1.351903e-08
+               5.316695e-02  3.383527e-01 -1.805367e-07
+              -1.351903e-08 -1.805367e-07  5.591073e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="98" duration="0.895" slack="11964.8238407415" youngsModulusE1="0.33" homTensor_p11_m22="5.0957e-07" homTensor_p13="4.4241e-08" homTensor_p23="4.6963e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48758" trace="0.7326">
+          <isotropy E="0.33" v="0.1571" G="0.1426" err="0.086703"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.1571" v_12="0.1571" G_12="0.055895" err="9.1204e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383502e-01  5.315442e-02  4.424128e-08
+               5.315442e-02  3.383497e-01  4.696268e-08
+               4.424128e-08  4.696268e-08  5.589541e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="99" duration="0.781" slack="11964.9427180682" youngsModulusE1="0.33" homTensor_p11_m22="2.0905e-06" homTensor_p13="3.3113e-08" homTensor_p23="1.1336e-07" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48756" trace="0.73255">
+          <isotropy E="0.33" v="0.15704" G="0.1426" err="0.086743"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15704" v_12="0.15704" G_12="0.055864" err="1.4648e-07"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383439e-01  5.313480e-02  3.311328e-08
+               5.313480e-02  3.383418e-01  1.133649e-07
+               3.311328e-08  1.133649e-07  5.586400e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="100" duration="0.584" slack="11964.9510277546" youngsModulusE1="0.33" homTensor_p11_m22="2.4188e-07" homTensor_p13="-3.8738e-08" homTensor_p23="-3.0566e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48756" trace="0.73254">
+          <isotropy E="0.33" v="0.15702" G="0.14261" err="0.086752"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15702" v_12="0.15702" G_12="0.055855" err="6.9305e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383420e-01  5.312802e-02 -3.873830e-08
+               5.312802e-02  3.383417e-01 -3.056640e-08
+              -3.873830e-08 -3.056640e-08  5.585538e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="101" duration="0.584" slack="11964.9691134328" youngsModulusE1="0.33" homTensor_p11_m22="-1.6405e-07" homTensor_p13="1.6241e-08" homTensor_p23="1.8987e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48757" trace="0.73256">
+          <isotropy E="0.33" v="0.15705" G="0.1426" err="0.086737"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15705" v_12="0.15705" G_12="0.055868" err="3.5228e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383445e-01  5.313629e-02  1.624064e-08
+               5.313629e-02  3.383446e-01  1.898690e-08
+               1.624064e-08  1.898690e-08  5.586769e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="102" duration="0.644" slack="11965.0016823159" youngsModulusE1="0.33" homTensor_p11_m22="-2.1375e-07" homTensor_p13="-2.1147e-08" homTensor_p23="-3.2187e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48758" trace="0.73258">
+          <isotropy E="0.33" v="0.15708" G="0.1426" err="0.086713"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15708" v_12="0.15708" G_12="0.055887" err="5.3335e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383483e-01  5.314869e-02 -2.114736e-08
+               5.314869e-02  3.383485e-01 -3.218730e-08
+              -2.114736e-08 -3.218730e-08  5.588672e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="103" duration="0.835" slack="11965.0140558895" youngsModulusE1="0.33" homTensor_p11_m22="-2.1899e-07" homTensor_p13="-3.2117e-08" homTensor_p23="-2.5032e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48758" trace="0.73258">
+          <isotropy E="0.33" v="0.15708" G="0.1426" err="0.086718"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15708" v_12="0.15708" G_12="0.055882" err="5.7149e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383478e-01  5.314692e-02 -3.211720e-08
+               5.314692e-02  3.383480e-01 -2.503188e-08
+              -3.211720e-08 -2.503188e-08  5.588250e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="104" duration="0.688" slack="11965.0217343558" youngsModulusE1="0.33" homTensor_p11_m22="-1.0927e-08" homTensor_p13="1.6096e-08" homTensor_p23="1.6902e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48758" trace="0.73257">
+          <isotropy E="0.33" v="0.15708" G="0.1426" err="0.086722"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15708" v_12="0.15708" G_12="0.055879" err="3.2998e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383480e-01  5.314659e-02  1.609630e-08
+               5.314659e-02  3.383480e-01  1.690183e-08
+               1.609630e-08  1.690183e-08  5.587889e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="105" duration="0.732" slack="11965.0386033001" youngsModulusE1="0.33" homTensor_p11_m22="-3.3493e-08" homTensor_p13="-8.4187e-09" homTensor_p23="3.7376e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48758" trace="0.73258">
+          <isotropy E="0.33" v="0.15709" G="0.1426" err="0.086715"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15709" v_12="0.15709" G_12="0.055884" err="1.2156e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383493e-01  5.315108e-02 -8.418722e-09
+               5.315108e-02  3.383493e-01  3.737569e-09
+              -8.418722e-09  3.737569e-09  5.588409e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="106" duration="0.669" slack="11965.0662151177" youngsModulusE1="0.33" homTensor_p11_m22="8.6152e-08" homTensor_p13="-3.5142e-08" homTensor_p23="-1.9643e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48759" trace="0.7326">
+          <isotropy E="0.33" v="0.15711" G="0.1426" err="0.086697"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15711" v_12="0.15711" G_12="0.055899" err="5.4784e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383516e-01  5.315920e-02 -3.514151e-08
+               5.315920e-02  3.383515e-01 -1.964298e-08
+              -3.514151e-08 -1.964298e-08  5.589908e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="107" duration="0.612" slack="11965.0839439289" youngsModulusE1="0.33" homTensor_p11_m22="2.6393e-07" homTensor_p13="6.9541e-09" homTensor_p23="8.8362e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73263">
+          <isotropy E="0.33" v="0.15714" G="0.14259" err="0.086673"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15714" v_12="0.15714" G_12="0.05592" err="1.579e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383552e-01  5.317057e-02  6.954107e-09
+               5.317057e-02  3.383550e-01  8.836226e-09
+               6.954107e-09  8.836226e-09  5.591980e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="108" duration="0.716" slack="11965.0873407398" youngsModulusE1="0.33" homTensor_p11_m22="1.8055e-08" homTensor_p13="1.4389e-08" homTensor_p23="1.699e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15716" G="0.14259" err="0.086666"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15716" v_12="0.15716" G_12="0.055925" err="3.1379e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383568e-01  5.317524e-02  1.438927e-08
+               5.317524e-02  3.383568e-01  1.698995e-08
+               1.438927e-08  1.698995e-08  5.592472e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="109" duration="0.791" slack="11965.1065590066" youngsModulusE1="0.33" homTensor_p11_m22="-6.7301e-08" homTensor_p13="-1.5554e-08" homTensor_p23="9.1205e-10" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73265">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086657"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055932" err="1.6466e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383583e-01  5.318065e-02 -1.555436e-08
+               5.318065e-02  3.383583e-01  9.120473e-10
+              -1.555436e-08  9.120473e-10  5.593201e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="110" duration="0.769" slack="11965.1035671632" youngsModulusE1="0.33" homTensor_p11_m22="-7.9841e-09" homTensor_p13="-8.4774e-10" homTensor_p23="7.9882e-10" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48761" trace="0.73266">
+          <isotropy E="0.33" v="0.15718" G="0.14259" err="0.086651"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15718" v_12="0.15718" G_12="0.055937" err="1.6466e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383594e-01  5.318368e-02 -8.477365e-10
+               5.318368e-02  3.383594e-01  7.988204e-10
+              -8.477365e-10  7.988204e-10  5.593686e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="111" duration="1.192" slack="11965.1113621201" youngsModulusE1="0.33" homTensor_p11_m22="-1.231e-08" homTensor_p13="2.4223e-09" homTensor_p23="5.843e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48761" trace="0.73266">
+          <isotropy E="0.33" v="0.15719" G="0.14259" err="0.086644"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15719" v_12="0.15719" G_12="0.055942" err="8.2653e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383604e-01  5.318699e-02  2.422319e-09
+               5.318699e-02  3.383604e-01  5.842958e-09
+               2.422319e-09  5.842958e-09  5.594229e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="112" duration="1.164" slack="11965.1144810969" youngsModulusE1="0.33" homTensor_p11_m22="2.7458e-08" homTensor_p13="2.8263e-09" homTensor_p23="4.0533e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48761" trace="0.73266">
+          <isotropy E="0.33" v="0.15719" G="0.14259" err="0.086646"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15719" v_12="0.15719" G_12="0.055941" err="6.8796e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383605e-01  5.318697e-02  2.826284e-09
+               5.318697e-02  3.383604e-01  4.053332e-09
+               2.826284e-09  4.053332e-09  5.594094e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="113" duration="1.235" slack="11965.1193736973" youngsModulusE1="0.33" homTensor_p11_m22="-8.4512e-09" homTensor_p13="2.0285e-09" homTensor_p23="3.1981e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48761" trace="0.73266">
+          <isotropy E="0.33" v="0.15718" G="0.14259" err="0.086652"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15718" v_12="0.15718" G_12="0.055936" err="5.2266e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383598e-01  5.318492e-02  2.028521e-09
+               5.318492e-02  3.383598e-01  3.198100e-09
+               2.028521e-09  3.198100e-09  5.593561e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="114" duration="0.683" slack="11965.119713337" youngsModulusE1="0.33" homTensor_p11_m22="1.2156e-09" homTensor_p13="1.6481e-09" homTensor_p23="1.3242e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.48761" trace="0.73265">
+          <isotropy E="0.33" v="0.15718" G="0.14259" err="0.086652"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15718" v_12="0.15718" G_12="0.055935" err="2.9722e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383596e-01  5.318414e-02  1.648080e-09
+               5.318414e-02  3.383596e-01  1.324165e-09
+               1.648080e-09  1.324165e-09  5.593543e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="115" duration="0.781" slack="11965.1244272529" youngsModulusE1="0.33" homTensor_p11_m22="-9.6929e-09" homTensor_p13="2.0379e-08" homTensor_p23="1.8229e-08" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73265">
+          <isotropy E="0.33" v="0.15718" G="0.14259" err="0.086655"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15718" v_12="0.15718" G_12="0.055934" err="3.8608e-08"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383588e-01  5.318185e-02  2.037913e-08
+               5.318185e-02  3.383588e-01  1.822884e-08
+               2.037913e-08  1.822884e-08  5.593391e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="116" duration="0.952" slack="11965.1230067043" youngsModulusE1="0.33" homTensor_p11_m22="6.8116e-09" homTensor_p13="3.4339e-09" homTensor_p23="1.85e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73265">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086658"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.05593" err="5.2839e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383587e-01  5.318109e-02  3.433929e-09
+               5.318109e-02  3.383587e-01  1.849978e-09
+               3.433929e-09  1.849978e-09  5.593047e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="117" duration="0.808" slack="11965.1235508722" youngsModulusE1="0.33" homTensor_p11_m22="4.0579e-09" homTensor_p13="1.3889e-09" homTensor_p23="7.4909e-10" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73265">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.08666"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055929" err="2.1379e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383586e-01  5.318081e-02  1.388853e-09
+               5.318081e-02  3.383586e-01  7.490910e-10
+               1.388853e-09  7.490910e-10  5.592854e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="118" duration="0.928" slack="11965.1241499867" youngsModulusE1="0.33" homTensor_p11_m22="4.1435e-09" homTensor_p13="9.4468e-10" homTensor_p23="8.7701e-10" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055927" err="1.8217e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383584e-01  5.318016e-02  9.446788e-10
+               5.318016e-02  3.383584e-01  8.770138e-10
+               9.446788e-10  8.770138e-10  5.592667e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="119" duration="0.8" slack="11965.1244162692" youngsModulusE1="0.33" homTensor_p11_m22="5.867e-09" homTensor_p13="2.6109e-10" homTensor_p23="5.1932e-10" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086664"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055925" err="7.8041e-10"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383580e-01  5.317901e-02  2.610919e-10
+               5.317901e-02  3.383580e-01  5.193183e-10
+               2.610919e-10  5.193183e-10  5.592548e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="120" duration="1.016" slack="11965.1259106904" youngsModulusE1="0.33" homTensor_p11_m22="3.3469e-08" homTensor_p13="2.4207e-09" homTensor_p23="1.9376e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15716" G="0.14259" err="0.086669"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15716" v_12="0.15716" G_12="0.055922" err="4.3583e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383571e-01  5.317603e-02  2.420669e-09
+               5.317603e-02  3.383571e-01  1.937588e-09
+               2.420669e-09  1.937588e-09  5.592163e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="121" duration="0.781" slack="11965.1254563094" youngsModulusE1="0.33" homTensor_p11_m22="1.5353e-09" homTensor_p13="8.2051e-11" homTensor_p23="-1.1191e-10" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15716" G="0.14259" err="0.086669"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15716" v_12="0.15716" G_12="0.055921" err="1.9397e-10"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383570e-01  5.317574e-02  8.205124e-11
+               5.317574e-02  3.383570e-01 -1.119150e-10
+               8.205124e-11 -1.119150e-10  5.592123e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="122" duration="0.814" slack="11965.1260035991" youngsModulusE1="0.33" homTensor_p11_m22="6.7296e-09" homTensor_p13="-1.3274e-10" homTensor_p23="-1.2758e-09" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15716" G="0.14259" err="0.086668"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15716" v_12="0.15716" G_12="0.055922" err="1.4085e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383572e-01  5.317643e-02 -1.327386e-10
+               5.317643e-02  3.383572e-01 -1.275768e-09
+              -1.327386e-10 -1.275768e-09  5.592222e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="123" duration="0.918" slack="11965.1259716721" youngsModulusE1="0.33" homTensor_p11_m22="1.3478e-09" homTensor_p13="-1.1862e-11" homTensor_p23="-1.5547e-10" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15716" G="0.14259" err="0.086666"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15716" v_12="0.15716" G_12="0.055924" err="1.6733e-10"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383577e-01  5.317781e-02 -1.186159e-11
+               5.317781e-02  3.383577e-01 -1.554665e-10
+              -1.186159e-11 -1.554665e-10  5.592434e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="124" duration="0.796" slack="11965.1260953498" youngsModulusE1="0.33" homTensor_p11_m22="1.2393e-09" homTensor_p13="8.242e-11" homTensor_p23="-1.0103e-12" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055927" err="8.3431e-11"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383583e-01  5.317984e-02  8.242046e-11
+               5.317984e-02  3.383583e-01 -1.010339e-12
+               8.242046e-11 -1.010339e-12  5.592742e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="125" duration="0.852" slack="11965.1260715826" youngsModulusE1="0.33" homTensor_p11_m22="4.3471e-11" homTensor_p13="2.7819e-12" homTensor_p23="6.4202e-12" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055928" err="9.2021e-12"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383583e-01  5.317995e-02  2.781858e-12
+               5.317995e-02  3.383583e-01  6.420212e-12
+               2.781858e-12  6.420212e-12  5.592768e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="126" duration="0.976" slack="11965.1262272" youngsModulusE1="0.33" homTensor_p11_m22="3.5968e-09" homTensor_p13="1.0471e-09" homTensor_p23="9.0546e-10" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73265">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086661"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055928" err="1.9525e-09"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383585e-01  5.318040e-02  1.047067e-09
+               5.318040e-02  3.383584e-01  9.054628e-10
+               1.047067e-09  9.054628e-10  5.592832e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="127" duration="1.036" slack="11965.1261179275" youngsModulusE1="0.33" homTensor_p11_m22="3.4975e-10" homTensor_p13="9.4892e-11" homTensor_p23="8.4883e-11" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086661"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055928" err="1.7977e-10"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383584e-01  5.318008e-02  9.489156e-11
+               5.318008e-02  3.383584e-01  8.488250e-11
+               9.489156e-11  8.488250e-11  5.592787e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="128" duration="0.86" slack="11965.1261338289" youngsModulusE1="0.33" homTensor_p11_m22="5.4231e-10" homTensor_p13="7.1504e-11" homTensor_p23="5.2973e-11" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055927" err="1.2448e-10"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383584e-01  5.318011e-02  7.150371e-11
+               5.318011e-02  3.383584e-01  5.297345e-11
+               7.150371e-11  5.297345e-11  5.592731e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="129" duration="1.024" slack="11965.126125761" youngsModulusE1="0.33" homTensor_p11_m22="-4.7705e-11" homTensor_p13="1.1724e-11" homTensor_p23="1.8089e-11" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055927" err="2.9812e-11"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383583e-01  5.317987e-02  1.172355e-11
+               5.317987e-02  3.383583e-01  1.808879e-11
+               1.172355e-11  1.808879e-11  5.592735e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="130" duration="0.922" slack="11965.1261385156" youngsModulusE1="0.33" homTensor_p11_m22="-1.8013e-10" homTensor_p13="2.3302e-11" homTensor_p23="4.2045e-11" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055927" err="6.5347e-11"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383582e-01  5.317959e-02  2.330201e-11
+               5.317959e-02  3.383582e-01  4.204489e-11
+               2.330201e-11  4.204489e-11  5.592729e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="131" duration="1.158" slack="11965.126129801" youngsModulusE1="0.33" homTensor_p11_m22="-5.0662e-11" homTensor_p13="1.0346e-11" homTensor_p23="1.6575e-11" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055927" err="2.6921e-11"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383583e-01  5.317978e-02  1.034582e-11
+               5.317978e-02  3.383583e-01  1.657541e-11
+               1.034582e-11  1.657541e-11  5.592733e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="132" duration="1.032" slack="11965.1261314625" youngsModulusE1="0.33" homTensor_p11_m22="-2.6825e-11" homTensor_p13="-1.8107e-11" homTensor_p23="-2.1049e-11" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055927" err="3.9156e-11"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383583e-01  5.317978e-02 -1.810684e-11
+               5.317978e-02  3.383583e-01 -2.104899e-11
+              -1.810684e-11 -2.104899e-11  5.592715e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+      <iteration number="133" duration="1.102" slack="11965.1261359028" youngsModulusE1="0.33" homTensor_p11_m22="4.2049e-11" homTensor_p13="-1.0617e-11" homTensor_p23="-9.3149e-12" eigenfrequency_1="11965">
+        <excitation index="0" objective="11965" objective_weight="1" eigenfrequency_1="11965"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.4876" trace="0.73264">
+          <isotropy E="0.33" v="0.15717" G="0.14259" err="0.086662"/>
+          <orthotropy E_1="0.33" E_2="0.33" v_21="0.15717" v_12="0.15717" G_12="0.055927" err="1.9932e-11"/>
+          <tensor dim1="3" dim2="3">
+            <real>
+               3.383583e-01  5.317987e-02 -1.061697e-11
+               5.317987e-02  3.383583e-01 -9.314902e-12
+              -1.061697e-11 -9.314902e-12  5.592712e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+    </process>
+  </optimization>
+</cfsInfo>

@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial infoWriteCounter="0" infoRejectCounter="0">
+  <header>
+    <mesh x="3" y="3" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.3" name="density" physical_lower="1e-4" region="mech" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <transferFunction application="heat" param="4.0" type="simp"/>
+    <filters periodic="enable">
+      <filter contribution="linear" design="allDesigns" neighborhood="maxEdge" type="density" value="1.7"/>
+    </filters>
+  </header>
+  <set id="3">
+    <element nr="1" type="density" design="0.10000000002" physical="0.00010000000008"/>
+    <element nr="2" type="density" design="0.10000000003" physical="0.00010000000008"/>
+    <element nr="3" type="density" design="0.10000000002" physical="0.00010000000008"/>
+    <element nr="4" type="density" design="0.10000000001" physical="0.00010000000007"/>
+    <element nr="5" type="density" design="0.10000000001" physical="0.00010000000007"/>
+    <element nr="6" type="density" design="0.10000000001" physical="0.00010000000007"/>
+    <element nr="7" type="density" design="0.10000000002" physical="0.00010000000008"/>
+    <element nr="8" type="density" design="0.10000000003" physical="0.00010000000008"/>
+    <element nr="9" type="density" design="0.10000000002" physical="0.00010000000008"/>
+  </set>
+</cfsErsatzMaterial>

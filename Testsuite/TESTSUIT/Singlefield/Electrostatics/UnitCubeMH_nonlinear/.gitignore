@@ -1,0 +1,4 @@
+.ipynb_checkpoints/
+results_hdf5/
+*.info.xml
+*.py

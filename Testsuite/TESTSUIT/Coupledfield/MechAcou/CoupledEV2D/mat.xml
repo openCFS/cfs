@@ -1,0 +1,47 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="steel">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2000.0 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 100000000.0 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>  0.4 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>1e3</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.01</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+  <material name="water">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1000.0 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2250000000.0 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

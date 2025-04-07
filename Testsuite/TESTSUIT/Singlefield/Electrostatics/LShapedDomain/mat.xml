@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="air">
+    <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            1 0 0
+            0 1 0
+            0 0 1
+          </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+</cfsMaterialDataBase>

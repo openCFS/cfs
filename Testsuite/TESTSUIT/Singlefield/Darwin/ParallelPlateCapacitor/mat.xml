@@ -1,0 +1,227 @@
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/material file:/home/kroppert/Devel/CFS_SRC/newest_trunkGit/CFS/share/xml/CFS-Material/CFS_Material.xsd">
+ 
+<material name="air">
+    <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            8.85600E-12 0.00000E+00 0.00000E+00
+            0.00000E+00 8.85600E-12 0.00000E+00
+            0.00000E+00 0.00000E+00 8.85600E-12
+	  </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <elecConduction>
+    	<electricConductivity>
+    		<linear>
+    			<isotropic>
+    				<real>0.0</real>
+    			</isotropic>
+    		</linear>
+    	</electricConductivity>
+    </elecConduction>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0.0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <!-- Permeability: http://www.ee.surrey.ac.uk/Workshop/advice/coils/mu/#mu0"
+           Remarks : "Name: K0.5Na0.5Nb03, air fired" -->
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+      <permittivity>
+      	<linear>
+          <isotropic>
+            <real> 8.856E-12 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </magnetic>
+  </material>
+
+    
+    <material name="dielec">
+    <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            8.85600E-10 0.00000E+00 0.00000E+00
+            0.00000E+00 8.85600E-10 0.00000E+00
+            0.00000E+00 0.00000E+00 8.85600E-10
+	  </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+        <elecConduction>
+    	<electricConductivity>
+    		<linear>
+    			<isotropic>
+    				<real>0.0</real>
+    			</isotropic>
+    		</linear>
+    	</electricConductivity>
+    </elecConduction>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0.0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+      <permittivity>
+      	<linear>
+          <isotropic>
+            <real> 8.856E-8 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </magnetic>
+  </material>
+  
+  
+    <material name="steel">
+        <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            8.85600E-12 0.00000E+00 0.00000E+00
+            0.00000E+00 8.85600E-12 0.00000E+00
+            0.00000E+00 0.00000E+00 8.85600E-12
+	  </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+        <elecConduction>
+    	<electricConductivity>
+    		<linear>
+    			<isotropic>
+    				<real>2.17e6</real>
+    			</isotropic>
+    		</linear>
+    	</electricConductivity>
+    </elecConduction>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>2.17e6</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-04 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+      <permittivity>
+      	<linear>
+          <isotropic>
+            <real> 8.856E-12 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </magnetic>
+  </material>
+  
+  
+  
+    <material name="copper">
+        <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            8.85600E-12 0.00000E+00 0.00000E+00
+            0.00000E+00 8.85600E-12 0.00000E+00
+            0.00000E+00 0.00000E+00 8.85600E-12
+	  </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+        <elecConduction>
+    	<electricConductivity>
+    		<linear>
+    			<isotropic>
+    				<real>58e6</real>
+    			</isotropic>
+    		</linear>
+    	</electricConductivity>
+    </elecConduction>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>58e6</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+      <permittivity>
+      	<linear>
+          <isotropic>
+            <real> 8.856E-12 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </magnetic>
+  </material>
+  
+  
+  
+    <material name="polyimide">
+        <electric>
+            <permittivity>
+            	<linear>
+            		<tensor dim2="3" dim1="3">
+	            		<real>
+	                        3.01042385778e-11 0 0
+	                        0 3.01042385778e-11 0
+	                        0 0 3.01042385778e-11
+	                    </real>
+            		</tensor>
+            	</linear>
+            	
+<!--             	<linear> -->
+<!-- 	            	<isotropic> -->
+<!-- 	                     <real>3.01042385778e-11</real>  -->
+<!-- 	                </isotropic> -->
+<!--             	</linear> -->
+            </permittivity>
+        </electric>
+    </material>
+    
+</cfsMaterialDataBase>

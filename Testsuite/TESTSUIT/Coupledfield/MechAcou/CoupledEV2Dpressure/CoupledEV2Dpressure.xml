@@ -1,0 +1,139 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+ 
+  
+ <documentation>
+   <title>2D Mechanic-Acoustic Eigenvalue Problem</title>
+   <authors>
+     <author>ftoth</author>
+   </authors>
+   <date>2018-09-26</date>
+   <keywords>
+     <keyword>mechanic-acoustic</keyword>
+   </keywords>
+   <references>Ansys Verification Example </references>
+   <isVerified>yes</isVerified>
+   <description>
+      This test problem demonstrates the capability of a coupled
+      mechanic-acoustic eigenvalue problem.
+      The original reference solution was checked against ANSYS.
+        
+      This testcase is equivalent to CoupledEV2D but uses the pressure formulation.
+      The resulting real valued, unsymmetric, generalised EVP is solved with FEAST.     
+   </description>
+ </documentation>
+
+   
+  <fileFormats>
+    <input>
+      <hdf5 fileName="CoupledEV2Dpressure.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+
+    <regionList>
+      <region name="solid" material="steel"/>
+      <region name="fluid" material="water"/>
+    </regionList>
+
+    <surfRegionList>
+      <surfRegion name="fsi"/>
+      <surfRegion name="outer"/>
+    </surfRegionList>
+  </domain>
+
+  
+  <sequenceStep>
+
+    <analysis>
+      
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <minVal>0</minVal>
+        <maxVal>50e+6</maxVal><!-- corresponds to (2*pi*f)^2 -->
+        <writeModes> yes </writeModes>
+      </eigenFrequency>
+    </analysis>
+
+    <pdeList>
+
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="solid"/> 
+        </regionList>
+        
+        <bcsAndLoads>
+          <fix name="fixdis">
+            <comp dof="x"/>
+          </fix>
+          <fix name="fixdis">
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+      
+      
+    <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="fluid"/>
+        </regionList>
+        <bcsAndLoads>
+          <soundSoft name="fixpot"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+
+    </pdeList>
+
+    <couplingList>
+      <direct>
+        <acouMechDirect>
+          <surfRegionList>
+            <surfRegion name="fsi"/>
+          </surfRegionList>
+        </acouMechDirect>
+      </direct>
+    </couplingList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <exportLinSys mass="true" stiffness="true"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <eigenSolver id="feast"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <feast id="feast">
+            <logging>true</logging>
+            <m0>20</m0> <!-- help feast a bit with a good estimate -->
+          </feast>
+        </eigenSolverList>
+         <solverList>
+           <pardiso>
+             <logging>yes</logging>
+           </pardiso>
+         </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+</cfsSimulation>

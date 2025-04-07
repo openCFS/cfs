@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="acouTanDeltaConst">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </compressionModulus>
+      <damping>
+        <adaptedLossTangensDelta value="1.8"/>
+      </damping>
+    </acoustic>
+  </material>
+  <material name="acouTanDeltaFile">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </compressionModulus>
+      <damping>
+        <adaptedLossTangensDelta value="sample1D('./frequencyDamping.txt',f,1)"/>
+      </damping>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

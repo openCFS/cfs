@@ -1,0 +1,53 @@
+finish
+/clear
+/filname,Periodic3d,1
+/prep7
+init
+
+eps = 1e-6
+rad_inner = 0.2
+rad_outer = 1.0
+height = 0.4
+elemsize = 0.07
+
+cylind,rad_inner,rad_outer,0,height,0,36
+
+setelems,'brick'
+mshkey,1
+esize,elemsize
+vmesh,all
+eslv,s
+welems,'sector'
+
+setelems,'quadr'
+amesh,all
+
+asel,s,loc,z,0
+esla,s
+welems,'bottom'
+
+asel,s,loc,z,height
+esla,s
+welems,'top'
+
+csys,1
+asel,s,loc,x,rad_inner
+esla,s
+welems,'inner'
+
+asel,s,loc,x,rad_outer
+esla,s
+welems,'outer'
+
+asel,s,loc,y,0
+esla,s
+welems,'right'
+
+asel,s,loc,y,36
+esla,s
+welems,'left'
+csys,0
+
+allsel
+wnodes
+mkhdf5

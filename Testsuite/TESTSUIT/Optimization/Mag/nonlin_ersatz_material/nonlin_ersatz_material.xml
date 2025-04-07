@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://www.cfs++.org/simulation">
+    <fileFormats>
+        <input>
+            <gmsh fileName="grid2D-coarse.msh"/>   
+        </input>        
+        <output>
+            <hdf5 directory="."/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="plane">
+        <variableList>
+            <var name="i" value="20.0"/>
+            <var name="N" value="100"/>
+        </variableList>
+        <regionList>
+            <region name="spule1_in" material="AIR" />
+            <region name="spule2_out" material="AIR"></region>
+            <region name="joch" material="iron"></region>
+            <region name="anker" material="iron"></region>
+            <region name="OptimierungY" material="iron"></region>
+            <region name="air" material="AIR"></region>
+        </regionList>
+    </domain>    
+    <sequenceStep index="1">
+        <analysis>
+            <static>
+            </static>
+        </analysis>
+        <pdeList>
+            <magnetic>
+                <regionList>
+                    <region name="spule1_in" />
+                    <region name="spule2_out"/>
+                    <region name="joch" nonLinIds="nonLin"/>
+                    <region name="anker" nonLinIds="nonLin"/>
+                    <region name="air"/>
+                    <region name="OptimierungY" nonLinIds="nonLin"/>
+                </regionList>
+                <nonLinList>
+                    <permeability id="nonLin"/>
+                </nonLinList>
+                <bcsAndLoads>
+                    <fluxParallel name="FluxParallel_V">
+                        <comp dof="y"/>
+                    </fluxParallel>
+                    <fluxParallel name="FluxParallel_h">
+                        <comp dof="x"/>
+                    </fluxParallel>
+                </bcsAndLoads>
+                <coilList>
+                    <coil id="Spule1">
+                        <source type="current" value="i*N"/>
+                        <part id="1">
+                            <regionList>
+                                <region name="spule1_in"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="500e-6"/>
+                        </part>
+                        <part id="2">
+                            <regionList>
+                                <region name="spule2_out"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="-1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="500e-6"/>
+                        </part>
+                    </coil>
+                </coilList>
+                <storeResults>
+                    <elemResult type="magElemPermeability">
+                      <regionList> 
+                       <region name="joch"/>
+                      </regionList>
+                    </elemResult>
+                </storeResults>
+            </magnetic>
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <matrix reordering="noReordering"/>
+                        <nonLinear logging="yes" method="fixPoint">
+                            <lineSearch type="minEnergy"/>
+                            <incStopCrit>1E-2</incStopCrit>
+                            <resStopCrit>1E-1</resStopCrit>
+                            <maxNumIters>50</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso></pardiso>
+                </solverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+    
+    <loadErsatzMaterial file="lin_flux_dens_1_elem.density.xml" />
+    
+
+     
+    
+</cfsSimulation>

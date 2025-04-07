@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>MagVecPotAvg</title>
+    <authors>
+      <author>Dominik Mayrhofer</author>
+    </authors>
+    <date>2025-01-14</date>
+    <keywords>
+      <keyword>magneticNodal</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+   	  Simple testcase where we set the boundary conditions such that a linear distribution of the magnetic vector potential is present. We test the result magFluxAvg and verify it analytically.
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <hdf5 fileName="MagVecPotAvg.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="Chamber" material="NdFeB"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="C_Exc"/>
+      <surfRegion name="C_Side"/>
+      <surfRegion name="C_Fix"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+       <static/> 
+    </analysis>
+
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="Chamber"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <potential name="C_Fix" value="0"/>
+          <potential name="C_Exc" value="1"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="magPotential">
+            <allRegions outputIds="h5"/>
+          </nodeResult>
+          <elemResult type="magFluxDensity">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <regionAverageResult type="magPotential">
+            <allRegions outputIds="txt,h5"/>
+          </regionAverageResult>
+       </storeResults>
+      </magnetic>   
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,53 @@
+! test example to demonstrate the use of the .mesh interface
+!
+!
+fini
+/uis,msgpop,3        ! disable warning popups
+/clear
+/filname,coil2d,1        ! important: define name of the model: 't1'
+/prep7
+!/pnum,kp,1
+!/pnum,line,1
+!/pnum,area,1
+!!shpp,off
+/uis,msgpop,2        ! enable warning popups
+
+! initialize macros for .mesh-interface
+init
+
+RECTNG,0,10,0,5
+RECTNG,5,6,0,1
+aovlap,all
+
+esize,1
+setelems,'quadr'
+
+
+! ------ area ------
+amesh,3
+amesh,2
+
+! write elements
+!esla
+asel,s,,,3
+esla
+welems,'air'
+
+asel,s,,,2
+esla
+welems,'coil'
+
+
+! write all nodes
+allsel
+lsel,s,,,2,4
+nsll,s,1
+! write nodal bc
+wnodbc,'az-fix'
+
+! write all nodes
+allsel
+wnodes
+
+! make .mesh file
+!mkmesh

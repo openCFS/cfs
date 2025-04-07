@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>demonstrates usage of CoefFunctionPython</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2022-02-19</date>
+    <keywords>
+      <keyword>input</keyword>
+    </keywords>
+    <references>no</references>
+    <isVerified>yes</isVerified>
+    <description>Variant of NodalForceExpression with a python function called instead of math parser.
+    Has no own python script (like python mesh reader) but uses the python kernel script.
+    See also the PythonCallbacks test.
+    </description>
+  </documentation>
+  
+  <!-- The cfs global kernel python script which holds the function for CoefFunctionPython. -->
+  <python file="coef.py" path="."/>
+  
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="outer_nodes"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <!-- Ihe inclusion nodes are circular around the center (0.5, 0.5). -->
+           <force name="inclusion_nodes">
+              <python function="coef_eval" init="coef_init">
+                <option key="center" value="[.5, .5]"/>
+              </python>
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="mechRhsLoad">
+            <allRegions/>
+          </nodeResult>
+          <regionResult type="mechDeformEnergy">
+            <allRegions/>
+          </regionResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+</cfsSimulation>

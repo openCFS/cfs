@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <!-- ==================================================================== -->
+  <!-- Direct Magnetostrictive simulation of a magnetostrictive bimorph     -->
+  <!-- ==================================================================== -->
+  <!-- Coupling type: direct coupling using material tensor for small-      -->
+  <!--                  signal behavior                                     -->
+  <!-- Changing magnetic field: coil around probe; field in positive x-dir. --> 
+  <!-- Half-Model utilized, i.e. right hand side is line of symmetry        -->
+  <!-- Magnetization: upper half in pos x-dir; lower half in neg x-dir      -->
+  <!--    > expexted bending: downwards                                     -->  
+  <!-- ==================================================================== -->
+
+  <!--  Define I/O file and format definitions  -->
+  <fileFormats>
+    <input>
+      <hdf5/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <!-- Specify geometry and material information -->
+  <!-- 'geometryType' must be one of plane/axi/3d -->
+  <domain geometryType="plane">
+
+    <!-- List of regions -->
+    <regionList>
+      <region name="upper_coil" material="air"/>
+      <region name="lower_coil" material="air"/>
+      <!-- upper part of probe magnetized in +x direction -->
+      <region name="upper_probe" material="FeCo">
+        <matRotation beta="90"/>
+      </region>
+      <!-- lower part of probe magnetized in -x direction -->
+      <region name="lower_probe" material="FeCo">
+        <matRotation beta="-90"/>
+      </region>
+      <region name="air_inner" material="air"/>
+      <region name="air_outer" material="air"/>
+    </regionList>
+
+    <!-- List of surface / boundary regions -->
+    <surfRegionList>
+      <surfRegion name="left"/>
+      <surfRegion name="right_probe"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bot"/>
+    </surfRegionList>
+
+    <!-- List of named nodes -->
+    <nodeList>
+      <nodes name="observer"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>50</numSteps>
+        <deltaT>0.01</deltaT>
+      </transient>
+    </analysis>
+   
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="upper_coil"/>
+          <region name="lower_coil"/>
+          <region name="upper_probe"/>
+          <region name="lower_probe"/>
+          <region name="air_inner"/>
+          <region name="air_outer"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <fluxParallel name="left">
+            <comp dof="y"/>
+          </fluxParallel>
+          <fluxParallel name="top">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxParallel name="bot">
+            <comp dof="x"/>
+          </fluxParallel>
+          <!-- flux normal on line of symmetry -->
+        </bcsAndLoads>
+        
+        <coilList>
+          <coil id="1">
+            <source type="current" value="2500000*sin(2*pi*1*t)"/>
+            <part id="1">
+              <regionList>
+                <region name="upper_coil"/>
+              </regionList>
+              <direction orientation="1">
+                <analytic>
+                  <comp dof="z" value="1"/>
+                </analytic>
+              </direction>
+              <wireCrossSection area="0.0025"/>
+            </part>
+            <part>
+              <regionList>
+                <region name="lower_coil"/>
+              </regionList>
+              <direction orientation="-1">
+                <analytic>
+                  <comp dof="z" value="1"/>
+                </analytic>
+              </direction>
+              <wireCrossSection area="0.0025"/>
+            </part>
+          </coil>
+        </coilList>
+        
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </magnetic>
+      
+      <mechanic>
+        <regionList>
+          <region name="upper_probe"/>
+          <region name="lower_probe"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <!-- fix probe at line of symmetry -->
+          <fix name="right_probe">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+            <nodeList>
+              <nodes name="observer" outputIds="txt"/>
+            </nodeList>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <magnetoStrictDirect>
+          <regionList>
+            <region name="upper_probe"/>
+            <region name="lower_probe"/>
+          </regionList>
+        </magnetoStrictDirect>
+      </direct>
+    </couplingList>
+    
+  </sequenceStep>
+  
+</cfsSimulation>

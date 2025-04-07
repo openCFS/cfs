@@ -1,0 +1,159 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="Core">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>10000.0</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="Coil">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0.0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1E-03</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="iso-9">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>9</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1.0</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="iso-4">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>4</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1.0</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="iso-1">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>1</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1.0</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="aniso-19">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+              1 0 0
+              0 9 0
+              0 0 1
+            </real>
+          </tensor>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1.0</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="aniso-49">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+              4 0 0
+              0 9 0
+              0 0 1
+            </real>
+          </tensor>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1.0</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="aniso-99">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+              9 0 0
+              0 9 0
+              0 0 1
+            </real>
+          </tensor>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1.0</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+</cfsMaterialDataBase>

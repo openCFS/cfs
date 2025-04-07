@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Heat PDE with Dirichlet BC's</title>
+    <authors>
+      <author>kroppert</author>
+    </authors>
+    <date>2017-10-15</date>
+    <keywords>
+      <keyword>heatConduction</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>yes</isVerified>
+    <description> Transent solution of 2D (quasi 1D) diffusion PDE on [0,1] with Dirichlet BC's
+      on the left and right end by means of an eigenvalue expansion from
+      Analytic solutions of a two-dimensional rectangular heat equation with a heat source,
+      Srivastava, H. M.; Kung, K. Y. and Wang, K. J.
+      Russian Journal of Mathematical Physics, 2008, 15, 542-547
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <hdf5 fileName="mesh/mesh.h5"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_inner" material="iron"/>
+    </regionList> 
+    <surfRegionList>
+      <surfRegion name="left"/>
+      <surfRegion name="right"/>
+      <surfRegion name="bottom"/>
+      <surfRegion name="top"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="source">
+        <coord x="0" y="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  
+  <sequenceStep index="1">
+    <analysis>
+<!--      <static/>-->
+      <transient>
+        <numSteps>10</numSteps>
+        <deltaT>0.1</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>    
+      <heatConduction>
+        <regionList>
+          <region name="S_inner"/> 
+        </regionList>
+
+        <bcsAndLoads>
+          <heatFlux name="bottom" value="0"/>
+          <heatFlux name="top" value="0"/>
+          <heatFlux name="right" value="0"/>
+          <temperature name="left" value="1"/>          
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="heatFluxDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList>
+    
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+              <pardiso/>
+                </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>
+

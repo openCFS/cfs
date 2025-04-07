@@ -1,0 +1,40 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="steel">
+    <mechanical>
+      <density>
+        <linear>
+          <real>  7.84709e3 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+            2.74400E+11 1.08400E+11 1.08400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+            1.08400E+11 2.74400E+11 1.08400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+            1.08400E+11 1.08400E+11 2.74400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10
+          </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="water">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.0 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.25e6 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

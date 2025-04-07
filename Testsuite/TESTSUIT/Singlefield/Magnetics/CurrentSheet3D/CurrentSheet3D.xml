@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <documentation>
+        <title>Simple Current Sheet</title>
+        <authors>
+            <author>ftoth</author>
+        </authors>
+        <date>2018-09-15</date>
+        <keywords>
+            <keyword>magneticEdge</keyword>
+        </keywords>
+        <references>http://web.mit.edu/viz/EM/visualizations/coursenotes/modules/guide09.pdf</references>
+        <isVerified>no</isVerified>
+        <description> 
+We condiser an infinite current sheet with uniform current density J in a unit-cube.
+The current density is applied in y direction, thus we assume flux-parallel on the boundaries
+parallel to the x-z plane (S_S and S_N, south and north). Furthermore, we set fluxParallel on
+the top, x-y parallel plane (S_T), and leave the bottom plane free. This implies B=0 
+at the bottom face z=0 (S_B) and is, thus, a symmetry BC.
+
+The H field is then linearly distributed as
+H(z) = J*z
+
+Thus, we can test any non-linear BH-curve simply by looking at the resulting B-field:
+
+Assume 
+B = sqrt(H),
+we get
+nu = H/B = B^2/B = B,
+and 
+nu' = 1,
+which is speciefied in the material definition.
+
+For a comparison with the analysic solution see the iPython notebook.
+        </description>
+    </documentation>
+    <fileFormats>
+        <input>
+            <hdf5 fileName="CurrentSheet3D.h5ref"/>
+<!--            <gmsh fileName="UnitCube.msh"/>-->
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="3d" printGridInfo="no">
+        <variableList>
+            <var name="J" value="1.0"/>
+        </variableList>
+        <regionList>
+            <region name="V" material="SimpleCore"/>
+        </regionList>
+        <surfRegionList> </surfRegionList>
+    </domain>
+    
+    <fePolynomialList>
+        <Legendre id="Hcurl">
+            <isoOrder>0</isoOrder>
+        </Legendre>
+    </fePolynomialList>
+    
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+        
+        <pdeList>
+            <magneticEdge>
+                <regionList>
+                    <region name="V" polyId="Hcurl" nonLinIds="perm"/>
+                </regionList>
+                
+                <nonLinList>
+                    <permeability id="perm"/>
+                </nonLinList>
+                
+                <bcsAndLoads>
+                    <fluxParallel name="S_S"/>
+                    <fluxParallel name="S_N"/>
+                    <fluxParallel name="S_T"/>
+                </bcsAndLoads>
+                
+                <coilList>
+                    <coil id="coil">
+                        <source type="current" value="J"/>
+                        <part id="1">
+                            <regionList>
+                                <region name="V"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="y" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1.0"/>
+                        </part>
+                    </coil>
+                </coilList>
+                
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magFieldIntensity">
+                        <allRegions/>
+                    </elemResult>
+                    <!--<elemResult type="magElemPermeability">
+                        <allRegions/>
+                    </elemResult>-->
+                    <!--
+                    <elemResult type="magEddyCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magCoilCurrentDensity">
+                        <allRegions/>
+                    </elemResult>-->
+                    <elemResult type="magPotential">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </magneticEdge>
+            
+            
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <nonLinear method="newton">
+                            <lineSearch/>
+                            <incStopCrit>1e-3</incStopCrit>
+                            <resStopCrit>1e-3</resStopCrit>
+                            <maxNumIters>15</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+</cfsSimulation>

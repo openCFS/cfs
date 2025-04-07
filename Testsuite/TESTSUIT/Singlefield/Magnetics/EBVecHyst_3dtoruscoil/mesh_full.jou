@@ -1,0 +1,58 @@
+reset
+undo on
+
+create torus major radius 1 minor radius 0.2
+create cylinder height 0.8 radius 0.7
+
+brick x 5 y 5 z 3
+
+subtract volume 1 2 from volume 3 keep
+
+delete volume 3
+
+merge all
+imprint all
+
+volume all scheme tetmesh
+volume all tetmesh growth_factor 4
+set trimesher volume gradation 4
+set tetmesher interior points off
+set tetmesher optimize level 2
+volume 2 size 0.2
+volume 1 size 0.2
+volume all except volume 2 size 2
+mesh volume 1
+mesh volume all
+
+block 1 add volume 4
+block 1 name "V_air"
+
+block 2 add volume 1
+block 2 name "V_coil"
+
+block 3 add volume 2
+block 3 name "V_core"
+
+
+nodeset 1 add surface 11 12
+nodeset 1 name "S_z"
+
+nodeset 2 add surface 13 15
+nodeset 2 name "S_y"
+
+nodeset 3 add surface 14 16
+nodeset 3 name "S_x"
+
+nodeset 4 add surface 11 12 13 15 14 16
+nodeset 4 name "S_outer"
+
+nodeset 5 add surface 1
+nodeset 5 name "S_coil"
+
+nodeset 6 add surface 2 3 4
+nodeset 6 name "S_core"
+
+nodeset 7 add vertex 12
+nodeset 7 name "N_gauge"
+
+export ansys cdb "mesh.cdb" overwrite

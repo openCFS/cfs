@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+    xmlns="http://www.cfs++.org">
+    
+    <documentation>
+        <title>Fluid Mechanic</title>
+        <authors>
+            <author>ftoth</author>
+        </authors>
+        <date>2019-08-02</date>
+        <keywords>
+            <keyword>flow</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>no</isVerified>
+        <description>
+Modes of an rectangular cavity
+        </description>
+    </documentation>
+    <fileFormats>
+        <input>
+            <cdb fileName="rectangle.cdb"/>
+            <!--<hdf5 fileName="PlaneWave2DBulkViscosity.h5ref"/>-->
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    
+    <domain geometryType="plane">
+        <variableList>
+            <var name="P" value="1"/>
+        </variableList>
+        <regionList>
+            <region name="S_rect" material="FluidMat"/>
+        </regionList> 
+    </domain>
+     <fePolynomialList>
+        
+        <Legendre id="velPolyId">
+            <isoOrder>2</isoOrder> 
+        </Legendre>
+        
+        <Legendre id="presPolyId">
+            <isoOrder>1</isoOrder> 
+        </Legendre>
+    </fePolynomialList>   
+    
+    <sequenceStep index="1"> 
+        <analysis>
+		<eigenValue>
+        	<valuesAround>
+        	<shiftPoint>
+        	<Real>0.0</Real>
+        	<Imag>-500</Imag>
+        	</shiftPoint>
+        	<number>5</number>
+        	</valuesAround>
+        	<eigenVectors normalization="none" side="right"/>
+        	<problemType>
+	        	<Generalized>
+		        	<aMatrix>stiffness</aMatrix>
+		        	<bMatrix>damping</bMatrix>
+	        	</Generalized>
+        	</problemType>
+         </eigenValue>
+        </analysis>
+        <pdeList>
+            <fluidMechLin formulation="compressible" presPolyId="presPolyId" velPolyId="velPolyId">
+                <regionList>
+                    <region name="S_rect"/>
+                </regionList>
+                
+                <bcsAndLoads>
+                    <noSlip name="L_wall">
+                        <comp dof="x"/>
+                        <comp dof="y"/>
+                    </noSlip>
+                </bcsAndLoads>
+                
+                <storeResults >
+                    <nodeResult  type="fluidMechPressure">
+                        <allRegions/>   
+                    </nodeResult>
+                    <nodeResult type="fluidMechVelocity">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </fluidMechLin>
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>                        
+                        <eigenSolver id="arpack"/>
+                    </standard>
+                </solutionStrategy>
+                <eigenSolverList>
+                    <feast id="feast">
+                    	<maxRefinementLoops>500</maxRefinementLoops>
+                        <logging>true</logging>
+                        <m0>30</m0>
+                        <stopCrit>6</stopCrit>
+                    </feast>
+                    <arpack id="arpack">
+                    <tolerance>1e-9</tolerance>
+                    	<which>LI</which>
+                    </arpack>
+                </eigenSolverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+    
+    
+    <!--  <sequenceStep index="1"> 
+        <analysis>
+	         <eigenFrequency>
+	          <isQuadratic>no</isQuadratic>
+	          <numModes>10</numModes>
+	          <freqShift>24</freqShift>
+	          <writeModes>yes</writeModes>
+	        </eigenFrequency>
+        </analysis>
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_rect"/>
+                </regionList>
+                <bcsAndLoads>
+                </bcsAndLoads>
+                
+                <storeResults >
+                    <nodeResult  type="acouPressure">
+                        <allRegions/>   
+                    </nodeResult>
+                    <elemResult  type="acouVelocity">
+                        <allRegions/>   
+                    </elemResult>
+                </storeResults>
+		</acoustic>
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>                        
+                        <matrix storage="sparseSym"/>
+                        <eigenSolver id="arpack"/>
+                    </standard>
+                </solutionStrategy>
+                <eigenSolverList>
+                    <feast id="feast">
+                    	<maxRefinementLoops>500</maxRefinementLoops>
+                        <logging>true</logging>
+                        <m0>30</m0>
+                        <stopCrit>5</stopCrit>
+                    </feast>
+                    <arpack id="arpack">
+                        <which>LM</which>
+                    </arpack>
+                </eigenSolverList>
+            </system>
+        </linearSystems>
+    </sequenceStep> -->
+    
+</cfsSimulation>
+
+

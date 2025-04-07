@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title></title>
+    <authors>
+      <author>F. Toth</author>
+    </authors>
+    <date></date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>eigenFrequency</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+This is actually a copy of the real-symmetric case, solved with un-symmetric matrix storage.
+
+The folowing things were checked:
+ + Real part of the eigenvalues correspond to the symmetric case 
+ + Imag parts are zero
+ + The complex modes look similar to the ones from the real-symmetric case
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <gmsh fileName="Rectangle.msh"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType='plane' >
+    <regionList>
+      <region material="rho1K1" name="surf"/>
+    </regionList>
+  </domain>
+  
+  <sequenceStep index="1">
+    <analysis>
+        <eigenFrequency>
+          <isQuadratic>no</isQuadratic>
+          <minVal>8</minVal>
+          <maxVal>275</maxVal>
+          <writeModes>yes</writeModes>
+        </eigenFrequency>
+    </analysis>  
+    
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="surf"/>
+        </regionList>
+        <bcsAndLoads></bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <exportLinSys mass="true" stiffness="true" system="true"/>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <eigenSolver id="feast"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <feast id="feast">
+            <Ne> 100 </Ne>
+            <logging>true</logging>
+            <stopCrit>12</stopCrit>
+            <m0>15</m0><!-- initial subspace size : approximate number of EVs expected in search interval -->
+            <maxRefinementLoops>10</maxRefinementLoops>
+          </feast>
+          <arpack id="arpack"></arpack>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

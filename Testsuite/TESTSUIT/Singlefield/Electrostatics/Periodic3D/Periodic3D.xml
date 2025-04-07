@@ -1,0 +1,94 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+    
+    <fileFormats>
+        <input>
+            <gmsh fileName="Periodic3D.msh" scaleFac="1"></gmsh>
+        </input>
+        <output>
+            <hdf5/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    
+    <domain geometryType="3d">
+        <!-- i.e. physical surfaces from gmsh-file -->
+        <regionList>
+            <region name="mat" material="air"/>            
+        </regionList>
+        <!-- nodes list - if the b.c. are given in specific nodes -->
+        <!-- surfRegions - b.c. are given on specific surfaces (lines) -->
+        <surfRegionList>
+            <surfRegion name="bottom"/>
+            <surfRegion name="top"/>
+            <surfRegion name="left"/>
+            <surfRegion name="right"/>
+        </surfRegionList>
+        <!-- interfaces for periodic boundary conditions -->
+        <ncInterfaceList>
+            <ncInterface name="pbcElec1" primarySide="right" secondarySide="left" mutualProjection="yes"/>
+            <ncInterface name="pbcElec2" primarySide="top" secondarySide="bottom" mutualProjection="yes"/>
+        </ncInterfaceList>
+        <nodeList>
+            <nodes name="c1">
+                <coord x="0.0" y="0.0" z="0.0"/>
+            </nodes>
+            <nodes name="c2">
+                <coord x="0.0" y="0.0" z="-0.2"/>
+            </nodes>
+        </nodeList>
+    </domain>
+  
+    <sequenceStep>
+        <analysis>
+            <!--static></static-->
+            <harmonic>
+                <frequencyList>
+                    <freq value="0"/>
+                </frequencyList>                
+            </harmonic>          
+        </analysis>
+        
+        <pdeList>            
+            <electrostatic subType="none">
+                <regionList>
+                    <region name="mat"/>
+                </regionList>
+                <bcsAndLoads>
+                    <potential value="1" phase="0" name="c1"/>
+                    <potential value="-1" phase="0" name="c2"/>
+                    <blochPeriodic factor_value="1.0" factor_phase="0.25*pi" formulation="Mortar">
+                        <region name="pbcElec1"/>
+                    </blochPeriodic>
+                    <blochPeriodic factor_value="-1.0" factor_phase="0.0" formulation="Nitsche">
+                        <region name="pbcElec2"/>
+                    </blochPeriodic>                    
+                </bcsAndLoads>
+                
+                <storeResults>                    
+                    <nodeResult type="elecPotential">
+                        <regionList>
+                            <region name="mat"/>
+                        </regionList>                        
+                    </nodeResult>
+                </storeResults>
+            </electrostatic>            
+        </pdeList>        
+
+	<linearSystems>
+		<system>
+            <solutionStrategy>
+          		<standard/>          		
+        	</solutionStrategy>
+		    <solverList>
+		        <pardiso id="default">
+		            <IterRefineSteps>50</IterRefineSteps>
+		        </pardiso>
+		    </solverList>
+	      </system>
+    	</linearSystems>
+        
+    </sequenceStep>
+</cfsSimulation>    

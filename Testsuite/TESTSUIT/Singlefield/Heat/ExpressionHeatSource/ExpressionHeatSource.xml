@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <documentation>
+      <title>Demonstrate expressions for heat boundary conditions (temp and source)</title>
+      <authors>
+          <author>Fabian Wein</author>
+      </authors>
+      <date>2022-02-05</date>
+      <keywords>
+        <keyword>SIMP</keyword>
+      </keywords>
+      <references>
+          none
+      </references>
+      <isVerified>yes</isVerified>
+      <description>Use muparser for boundary conditions. Note that the source function is normalized by number of node. 
+      See also forms in info.xml, possibly run with -d (for detail)
+      </description>
+  </documentation>
+  
+  
+  <fileFormats>
+    <output>
+      <hdf5 />
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="Iron"/>
+    </regionList>
+    <nodeList>
+      <!-- we want all region nodes as named nodal source, so generate it -->
+      <nodes name="source">
+        <allNodesInRegion regName="mech"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+                
+        <bcsAndLoads>
+          <!-- function for inhomogeneous dirichlet b.c. -->
+          <temperature name="left" value="1 + .1 * sin(pi*y)"/>
+          <!-- heat source is a hat function centered in the right lower corner. We compensate normalization by number of nodes.
+               Note that source is not from the mesh but generatet in the the domain part from the region  -->
+          <heatSource name="source" value="nx^2*max(.75-sqrt((.75-x)^2 + (.25-y)^2),0)"/>
+        </bcsAndLoads>
+                
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="heatRhsLoad">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </heatConduction>
+          
+    </pdeList>
+  </sequenceStep>
+  
+  
+</cfsSimulation>

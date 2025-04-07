@@ -1,0 +1,63 @@
+# ======================================
+#  GiD geometry script for verification
+#  Example vm-177 (submerged ring) in 2D
+# ======================================
+#submerged steel ring
+
+#clear database 
+clear
+
+#define variables 
+
+set a 25.4
+set b 76.2
+set t 0.635
+set scale 1e-2
+
+
+#creat geometry
+line  $a,0 [expr $a+$t],0 $b,0
+
+crlay ringLay
+rotate lines 1 "0,0,0 0,0,1" surface 45
+rotate lines 3 "0,0,0 0,0,1" surface 45
+
+crlay waterLay
+rotate lines 2  "0,0,0 0,0,1" surface 90
+
+collapse
+
+#define regions
+crdomreg ring ringLay
+crdomreg water waterLay
+
+
+#define boundary 
+crbndreg outer lines 11 elements 
+crbndreg coupleEl lines 5 8 elements 
+
+#define boundary nodes
+crbndreg load1 points 1 nodes 
+crbndreg load2 points 6 nodes
+crbndreg fix1 lines 1 2 nodes
+crbndreg fix2 lines 6 9 nodes
+crbndreg observer1 points 2 nodes
+crbndreg observer2 points 9 nodes
+crbndreg observer3 points 7 nodes
+
+#create mesh 
+strsurf [getall surfaces]
+lnelem 8  11
+lnelem 6  2 9
+#lnelem 16  4 7
+#lesize 4 2 4 5 7 8 9 11
+#lesize 0.6 1 3 6 
+lnelem 2 1 3 6
+#lesize $h [getall lines]
+
+meshtype quad
+mesh 
+writemesh RingHarm2d.mesh $scale
+
+
+

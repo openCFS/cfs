@@ -1,0 +1,110 @@
+/COM,ANSYS RELEASE 15.0
+! Exported from Trelis 17.1
+! on 03/26/2021 01:40:51 
+/PREP7
+/TITLE,
+*IF,_CDRDOFF,EQ,1,THEN
+_CDRDOFF= 
+*ELSE
+NUMOFF,NODE,        8
+NUMOFF,ELEM,        1
+NUMOFF,TYPE,        1
+*ENDIF
+DOF,DELETE
+ET,       1,185
+NBLOCK,6,SOLID,         8,         8
+(3i9,6e20.13)
+        1        0        0-5.0000000000000e-01-5.0000000000000e-01 5.0000000000000e-01
+        2        0        0-5.0000000000000e-01-5.0000000000000e-01-5.0000000000000e-01
+        3        0        0-5.0000000000000e-01 5.0000000000000e-01-5.0000000000000e-01
+        4        0        0-5.0000000000000e-01 5.0000000000000e-01 5.0000000000000e-01
+        5        0        0 5.0000000000000e-01-5.0000000000000e-01 5.0000000000000e-01
+        6        0        0 5.0000000000000e-01-5.0000000000000e-01-5.0000000000000e-01
+        7        0        0 5.0000000000000e-01 5.0000000000000e-01-5.0000000000000e-01
+        8        0        0 5.0000000000000e-01 5.0000000000000e-01 5.0000000000000e-01
+N,R5.3,LOC, -1
+EBLOCK, 19, SOLID
+(19i9)
+        1        1        1        1        0        0        0        0        8        0        1        1        2        3        4        5        6        7        8
+       -1
+CMBLOCK,Vol     ,ELEM,       1
+(8i10)
+         1
+CMBLOCK,S_E     ,NODE,       4
+(8i10)
+         5         6         7         8
+CMBLOCK,S_N     ,NODE,       4
+(8i10)
+         3         4         7         8
+CMBLOCK,S_T     ,NODE,       4
+(8i10)
+         1         4         5         8
+CMBLOCK,S_W     ,NODE,       4
+(8i10)
+         1         2         3         4
+CMBLOCK,S_S     ,NODE,       4
+(8i10)
+         1         2         5         6
+CMBLOCK,S_B     ,NODE,       4
+(8i10)
+         2         3         6         7
+CMBLOCK,L_NE    ,NODE,       2
+(8i10)
+         7         8
+CMBLOCK,L_EB    ,NODE,       2
+(8i10)
+         6         7
+CMBLOCK,L_ET    ,NODE,       2
+(8i10)
+         5         8
+CMBLOCK,L_NT    ,NODE,       2
+(8i10)
+         4         8
+CMBLOCK,L_NB    ,NODE,       2
+(8i10)
+         3         7
+CMBLOCK,L_NW    ,NODE,       2
+(8i10)
+         3         4
+CMBLOCK,L_WT    ,NODE,       2
+(8i10)
+         1         4
+CMBLOCK,L_ST    ,NODE,       2
+(8i10)
+         1         5
+CMBLOCK,L_SB    ,NODE,       2
+(8i10)
+         2         6
+CMBLOCK,L_WB    ,NODE,       2
+(8i10)
+         2         3
+CMBLOCK,L_SW    ,NODE,       2
+(8i10)
+         1         2
+CMBLOCK,L_SE    ,NODE,       2
+(8i10)
+         5         6
+CMBLOCK,P_SET   ,NODE,       1
+(8i10)
+         5
+CMBLOCK,P_NET   ,NODE,       1
+(8i10)
+         8
+CMBLOCK,P_NWT   ,NODE,       1
+(8i10)
+         4
+CMBLOCK,P_SWT   ,NODE,       1
+(8i10)
+         1
+CMBLOCK,P_SEB   ,NODE,       1
+(8i10)
+         6
+CMBLOCK,P_NEB   ,NODE,       1
+(8i10)
+         7
+CMBLOCK,P_NWB   ,NODE,       1
+(8i10)
+         3
+CMBLOCK,P_SWB   ,NODE,       1
+(8i10)
+         2

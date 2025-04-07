@@ -1,0 +1,220 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Micro-scale sensor structure embedded into a full chip.</title>
+    <authors>
+      <author>Manfred Kaltenbacher</author>
+    </authors>
+    <date>2016-01-15</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+      <keyword>static</keyword>
+      <keyword>thermo-mechanic</keyword>
+    </keywords>
+    <references>
+      Ph.D. thesis of Sebastian Eiser; An Extension to Nitsche-type
+      Mortaring for Non-conforming Finite Elements
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Micro-scale sensor structure embedded into a full chip
+      microelectronic device model by means of non-conforming grid
+      technique. We perform just a static analysis based on a static
+      analysis of the temperature distribution.
+    </description>
+  </documentation>
+
+    <fileFormats>
+        <input>
+            <hdf5 fileName="ElTh_Static.h5"/>
+        </input>
+        
+        <output>
+            <hdf5 id="hdf5"/>           
+            <text id="txt"/>
+        </output>
+        
+        <materialData file="IRmat_NL.xml"/>
+    </fileFormats>
+    
+    <domain geometryType="3d">
+        <regionList>
+            <region name="Vol_poly_A1" material="Si8res"/>
+            <region name="Vol_poly_F1" material="Al1"/>
+            <region name="Vol_poly_C1" material="Si8"/>
+            <region name="Vol_bpsg_B1" material="SiO2"/>
+            <region name="Vol_bpsg_F1" material="Al1"/>
+            <region name="Vol_bpsg_C1" material="Si8"/>
+            <region name="Vol_pm_G1" material="Cu1"/>
+            <region name="Vol_pm_F1" material="Al1"/>
+            <region name="Vol_pm_C1" material="Si8"/>
+            <region name="Vol_sub_C1" material="Si8"/>
+            <region name="Vol_sub_C2" material="Si8"/>
+            <region name="Vol_sub_C3" material="Si8"/>
+            <region name="Vol_bond_F1" material="Al1"/>
+        </regionList>
+        
+        <nodeList>
+              <nodes name="N_Tsink" />
+              <nodes name="Vleft" />
+              <nodes name="Vright" />
+          </nodeList>
+    </domain>
+    
+   <sequenceStep index="1">
+        <analysis>
+           <static>
+           </static>                
+        </analysis>
+        
+        <pdeList>
+            <mechanic subType="3d" systemId="mechPDE">
+                <regionList>
+                    <region name="Vol_poly_A1" />
+                   <region name="Vol_poly_F1" />
+                   <region name="Vol_poly_C1" />
+                   <region name="Vol_bpsg_B1" />
+                   <region name="Vol_bpsg_F1" />
+                   <region name="Vol_bpsg_C1" />
+                   <region name="Vol_pm_G1"   />
+                   <region name="Vol_pm_F1"   />
+                  <region name="Vol_pm_C1"   />
+                  <region name="Vol_sub_C1"  />
+                  <region name="Vol_sub_C2"  />
+                  <region name="Vol_sub_C3"  />
+                  <region name="Vol_bond_F1" />
+                </regionList>
+
+
+                <bcsAndLoads>
+                    <thermalStrain name="Vol_poly_A1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_poly_F1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_poly_C1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_bpsg_B1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_bpsg_F1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_bpsg_C1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_pm_G1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_pm_F1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_pm_C1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_sub_C1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_sub_C2">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_sub_C3">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_bond_F1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" sequenceStep="1">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                </bcsAndLoads>
+
+                <storeResults>
+                    <elemResult type="mechStress">                   
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechThermalStress">                   
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechStrain">                   
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechThermalStrain">                   
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="vonMisesStress">                   
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </mechanic>            
+        </pdeList>
+        
+    <linearSystems>
+       <system id="mechPDE">
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+        
+    </sequenceStep>
+    
+
+</cfsSimulation>

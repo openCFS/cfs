@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+      <documentation>
+    <title></title>
+    <authors>
+      <author>M. Strondl</author>
+    </authors>
+    <date></date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>eigenValue</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+	Mechanic 1D Oscillator coupled to an acoustic region in pressure formulation.
+	The pressure formulation results in an unsymmetric system matrix.
+	Due to the damping the EVP is quadratic.
+    </description>
+  </documentation>
+  
+    <!-- define which files are needed for simulation input & output-->
+    <fileFormats>
+        <input>
+            <hdf5 fileName="quadraticEVP-real-general.h5ref"/>
+        </input>
+        <output>
+            <hdf5/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <!-- material assignment -->
+    <domain geometryType="plane">
+        <regionList>
+            <region name="S_acou" material="mat_acou"/>
+            <region name="S_spring" material="mat_spring"/>
+            <region name="S_mass" material="mat_mass"/>
+        </regionList>
+    </domain>
+
+    <!-- full system -->
+    <sequenceStep index="1">
+    	<analysis>
+      		<eigenValue>
+      			<inInterval max="-0.55" min="-0.6"/>
+        		<eigenVectors normalization="unit" side="left"/>
+        		<problemType>
+          			<Quadratic>
+            			<quadratic>mass</quadratic>
+            			<linear>damping</linear>
+            			<constant>stiffness</constant>
+          			</Quadratic>
+        		</problemType>
+      		</eigenValue>
+    	</analysis>
+    	
+    	<pdeList>
+    		<mechanic subType="planeStress">
+    			<regionList>
+    				<region name="S_spring"/>
+    				<region name="S_mass"/>
+    			</regionList>
+    			<bcsAndLoads>
+    				<fix name="L_fix">
+    					<comp dof="x"/>
+    					<comp dof="y"/>
+    				</fix>
+    				<fix name="L_guide">
+    					<comp dof="y"/>
+    				</fix>
+    				<concentratedElem name="P_mid" dof="x" dampingValue="3000"/>
+    			</bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="mechDisplacement">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+    		</mechanic>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_acou"/>
+                </regionList>
+                <bcsAndLoads>
+                	<absorbingBCs name="L_abc" volumeRegion="S_acou"/>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </acoustic>
+    	</pdeList>
+    	
+        <couplingList>
+            <direct>
+                <acouMechDirect>
+                    <surfRegionList>
+                        <surfRegion name="L_ma"/>
+                    </surfRegionList>
+                </acouMechDirect>
+            </direct>
+        </couplingList>
+        
+    	<linearSystems>
+      		<system>
+        		<solutionStrategy>
+          			<standard>
+            			<setup idbcHandling="elimination" />
+            			<matrix storage="sparseNonSym" reordering="default"/>
+          			</standard>
+        		</solutionStrategy>
+        		<eigenSolverList>
+          			<feast>
+            			<logging> true </logging>
+            			<stopCrit> 7 </stopCrit>
+            			<m0> 4 </m0>
+          			</feast>
+        		</eigenSolverList>
+      		</system>
+    	</linearSystems>
+	</sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>PmlCurvilinear3dSimpleGeomQuarterCylinderXL2Norm</title>
+    <authors>
+      <author>pheidegger</author>
+    </authors>
+    <date>2023-09-11</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>pml</keyword>
+      <keyword>harmonic</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      A harmonically pulsating cylinder (mantle) in a cylindrical propagation domain, surrounded by a 
+      (curvilinear) PML. The cylinder's z axis is in X direction.
+      The PML domain is automatically generated and the required nodal geometry 
+      is given using the 'simpleGeometry="cylinderX"' tag. 
+      The testexample compares the L2 Norm w.r.t. the analytical solution and the computed acouPressure.
+      Note: a non-physical material is used here for simplicity.
+    </description>
+  </documentation>
+
+  <!--***************************    INPUTs and OUTPUTs    ***********************-->
+  <fileFormats> 
+    <input>
+      <cdb fileName="./PmlCurvilinear3dSimpleGeomQuarterCylinderXL2Norm.cdb"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <!--***************************  REGIONSs, SURFACEs and NODEs  ***********************-->
+  <domain geometryType="3d">
+    <variableList>
+      <var name="r0" value="0.5"/>  <!-- radius of the inner cylinder -->
+      <var name="c" value="1"/>     <!-- speed of sound -->
+      <var name="p" value="1"/>     <!-- pressure on the inner cylinder -->
+      <var name="rho" value="1"/>   <!-- density -->
+      <var name="x0" value="0.456395"/>
+      <var name="y0" value="1.394827"/>
+      <var name="z0" value="-0.384756"/>
+    </variableList>
+    <regionList> 
+      <region name="prop" material="fakefluid"/>
+      <region name="PML"    material="fakefluid"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="src"/>
+      <surfRegion name="ifPML"/>
+    </surfRegionList>
+    <layerGenerationList>
+      <newRegion name="PML">
+        <sourceSurfRegion name="ifPML" />
+        <extrusionParameters elemHeight="0.4" numLayers="1" />
+        <surfGeometry>
+          <analyticApproximation>
+            <cylinder origin_x="x0" origin_y="y0" origin_z="z0" axisDirection="x" />
+          </analyticApproximation>
+        </surfGeometry>
+      </newRegion>
+    </layerGenerationList>
+  </domain>
+  <!--***************************  ANALYSIS  ***********************-->
+  <sequenceStep>    
+    <analysis>
+      <harmonic>
+        <frequencyList>
+           <freq value="0.1"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>    
+    <!--***************************  PDE LISTs  ***********************-->
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="prop" />
+          <region name="PML"  dampingId="PMLdamp"/>
+        </regionList>
+        <dampingList>
+          <pml id="PMLdamp" formulation="curvilinear">
+            <type>
+              inverseDist
+            </type>
+            <dampFactor>
+              1.0
+            </dampFactor>
+          </pml>
+        </dampingList>
+        <!-- ************************************************************ BCS / SOURCES ****************************************************** -->
+        <bcsAndLoads>
+          <pressure name="src" value="p"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <regionList>
+              <region name="prop" outputIds="hdf5" postProcId="L2"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    <postProcList>
+      <!-- Here we calulcate the analytical solution as given in THE BOOK on
+        p. 187, formula (5.172)
+        
+        p = p(R_0) * H_0^(2) (kr) / H_0^(2) (kR_0)
+        H_0^(2) (x) = J(x) - i*Y(x)
+        
+        where H is the Hankel function, r the current position and R_0 the
+        radius of the cylinder. J and Y are the cylindric bessel functions.
+      -->
+      <postProc id="L2">
+        <L2Norm resultName="L2" outputIds="hdf5,txt" integrationOrder="5" mode="relative">
+          <dof name="" realFunc="p*(besselCylJ(sqrt((y-y0)^2+(z-z0)^2)*2*pi*f/c,0)*besselCylJ(r0*2*pi*f/c,0) +
+          besselCylY(sqrt((y-y0)^2+(z-z0)^2)*2*pi*f/c,0)*besselCylY(r0*2*pi*f/c,0)) / 
+         (besselCylJ(r0*2*pi*f/c,0)^2+
+          besselCylY(r0*2*pi*f/c,0)^2)"
+                        imagFunc="-p*(besselCylJ(r0*2*pi*f/c,0)           *besselCylY(sqrt((y-y0)^2+(z-z0)^2)*2*pi*f/c,0) -
+                        besselCylJ(sqrt((y-y0)^2+(z-z0)^2)*2*pi*f/c,0) *besselCylY(r0*2*pi*f/c,0)) / 
+                       (besselCylJ(r0*2*pi*f/c,0)^2 +
+                        besselCylY(r0*2*pi*f/c,0)^2)"/>
+        </L2Norm>
+      </postProc>
+    </postProcList>
+  </sequenceStep>
+</cfsSimulation>

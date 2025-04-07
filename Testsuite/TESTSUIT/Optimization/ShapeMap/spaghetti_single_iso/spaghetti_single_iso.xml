@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title> feature mapping using a single linear spline ("spaghetti")
+    </title>
+    <authors>
+      <author>Jannis Greifenstein</author>
+    </authors>
+    <date>2022-06-01</date>
+    <keywords>
+      <keyword>optimization</keyword>
+    </keywords>
+    <references>
+    </references>
+    <isVerified>no</isVerified>
+        <description> optimization using isotropic material </description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="weak" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1.0" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <force name="load" >
+             <comp dof="x" value=".1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_5">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_6">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechTensor">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod/> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" sequence="1" linear="false">
+      <stopping queue="55" value="0.0001" type="relativeCostChange" />
+    </costFunction>
+
+    <optimizer type="snopt" maxIterations="6">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option name="major_optimality_tolerance" type="real" value="1e-8"/>
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="spaghetti">
+      <spaghetti combine="p-norm" boundary="poly" transition=".1" radius=".25"  gradplot="false">
+        <python file="spaghetti.py" path="cfs:share:python" >
+          <!-- silent disables command line output from pythons-->
+          <option key="silent" value="1"/>
+          <option key="order" value="3"/>
+        </python> 
+        <noodle segments="1">
+          <node dof="x" initial="0.05" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.45" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial=".95" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.65" upper="1" lower="0" tip="end"/>
+          <profile fixed=".17"  />
+<!--           <normal initial="-.05" lower="-.2" upper=".2" /> -->
+        </noodle>
+      </spaghetti>
+    
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+      <transferFunction type="identity" application="mech" design="density" />
+            
+       <result value="costGradient" id="optResult_1" design="density" />
+       <result value="genericElem" generic="d_compliance_density_by_d_s0_px" id="optResult_3" design="density"/>
+       <result value="genericElem" generic="d_compliance_density_by_d_s0_py" id="optResult_4" design="density"/>
+       <result value="genericElem" generic="d_compliance_density_by_d_s0_qx" id="optResult_5" design="density"/>
+       <result value="genericElem" generic="d_compliance_density_by_d_s0_qy" id="optResult_6" design="density"/>
+      <export save="all" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

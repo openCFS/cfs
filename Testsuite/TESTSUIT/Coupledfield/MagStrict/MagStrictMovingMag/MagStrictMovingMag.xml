@@ -1,0 +1,177 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <!-- ==================================================================== -->
+  <!-- Magnetostrictive simulation of a probe under changing magnetic field -->
+  <!-- ==================================================================== -->
+  <!-- Coupling type: direct coupling using material tensor for small-      -->
+  <!--                  signal behavior                                     -->
+  <!-- Changing magnetic field: permanent magnet moving in form of a        --> 
+  <!--                  coordinate-depending fluxDensity boundary condition -->
+  <!-- Using multisequence to get steady state befor start moving           -->
+  <!-- Half-Model utilized, i.e. right hand side is line of symmetry        -->
+  <!-- ==================================================================== -->
+
+  <!--  Define I/O file and format definitions  -->
+  <fileFormats>
+    <input>
+      <hdf5/>
+    </input>
+    <output>
+	  <text id="txt"/>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+
+    <!-- List of regions -->
+    <regionList>
+      <region name="magnet" material="NdFeB"/>
+      <region name="probe" material="FeCo-neg"/>
+      <region name="air" material="air"/>
+    </regionList>
+
+    <!-- List of surface / boundary regions -->
+    <surfRegionList>
+      <surfRegion name="left"/>
+      <surfRegion name="right"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bot"/>
+    </surfRegionList>
+
+    <!-- List of named elements -->
+    <elemList>
+      <elems name="observer"/>
+    </elemList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static></static>
+    </analysis>
+    
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="magnet"/>
+          <region name="probe"/>
+          <region name="air"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <!-- flux normal on right -->
+          <fluxParallel name="left">
+            <comp dof="y"/>
+          </fluxParallel>
+          <fluxParallel name="top">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxParallel name="bot">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxDensity name="magnet">
+            <comp dof="x" value="sample1D('sig.txt',y,1)"/>
+          </fluxDensity>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="observer" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+        </storeResults>
+      </magnetic>
+      
+    </pdeList>
+  </sequenceStep>
+  
+  <sequenceStep index="2">
+    <analysis>
+      <transient>
+        <numSteps>48</numSteps>
+        <deltaT>0.125</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="magnet"/>
+          <region name="probe"/>
+          <region name="air"/>
+        </regionList>
+        
+        <initialValues>
+          <initialState>
+            <sequenceStep index="1"/>
+          </initialState>
+        </initialValues>
+        
+        <bcsAndLoads>
+          <!-- flux normal on right -->
+          <fluxParallel name="left">
+            <comp dof="y"/>
+          </fluxParallel>
+          <fluxParallel name="top">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxParallel name="bot">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxDensity name="magnet">
+            <comp dof="x" value="sample1D('sig.txt',y+0.01*t,1)"/>
+          </fluxDensity>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="observer"/>
+            </elemList>
+          </elemResult>
+        </storeResults>
+      </magnetic>
+
+      <mechanic>
+        <regionList>
+          <region name="probe"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <!-- line of symmetry + clamping -->
+          <fix name="probe_right">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStrain">
+            <allRegions/>
+            <elemList>
+              <elems name="observer" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <magnetoStrictDirect>
+          <regionList>
+            <region name="probe"/>
+          </regionList>
+        </magnetoStrictDirect>
+      </direct>
+    </couplingList>
+  </sequenceStep>
+</cfsSimulation>

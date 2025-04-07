@@ -1,0 +1,222 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="55" index="1">
+  <summary>
+    <timer wall="0" cpu="0.104965" calls="1"/>
+    <memory final="88328" peak="88980"/>
+  </summary>
+  <header id="">
+    <environment started="2015-May-05 16:09:09" host="eamc071"/>
+    <progOpts problem="TransversalIsotropic" parameterFile="/home/jgreif/code/shared-test/TESTSUIT/Optimization/ParamMat/Material/TransversalIsotropic/TransversalIsotropic.xml" schemaPath="/home/jgreif/code/shared/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="2">
+      <cfs version="15.02" name="Maximale Verwirrung" build="Release" svn_revision="13734 modified"/>
+    </progOpts>
+    <domain dimensions="2" elements="16" nodes="25">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="25" elems="16" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="fixed" count="5"/>
+        <nodes name="force1" count="1" coord="(0,0)"/>
+        <nodes name="force2" count="1" coord="(0,2.5)"/>
+        <nodes name="force3" count="1" coord="(0,5)"/>
+        <nodes name="force4" count="1" coord="(0,7.5)"/>
+        <nodes name="force5" count="1" coord="(0,10)"/>
+      </namedNodes>
+      <namedElements/>
+    </domain>
+  </header>
+  <sequenceStep>
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="force5" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="force4" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="force3" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="force2" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="optim">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 4.000000e+04  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  4.000000e+04  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  4.000000e+04  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  2.000000e+04  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  2.000000e+04  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  2.000000e+04
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="40000"/>
+          <property name="Mechanic_PoissonRation" value="0"/>
+          <property name="Mechanic_LameMu" value="(20000,0)"/>
+          <property name="Mechanic_LameLambda" value="(0,0)"/>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="fixed" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="40" totalNumFreeEqns="40" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="40" lastFreeEqn="40" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="40" lastFreeIndex="40"/>
+          </sbmBlocks>
+          <setupTime wall="0" cpu="0.000811" calls="1"/>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="40" totalNumCols="40" totalNumNonZeros="520" totalFillLevelPerCent="32.5" totalMemory="0.0039673">
+              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="40" numCols="40" numNonZeros="520" fillLevelPerCent="32.5" memory="0.0039673" upperBandWidth="37" lowerBandWidth="37" avgBandWidth="24" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="0.000909" calls="25"/>
+              </setup>
+              <solve>
+                <timer wall="0" cpu="0.000785" calls="25"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="6e-06" calls="25"/>
+              </setup>
+              <precond>
+                <timer wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="0" cpu="0.004725" calls="25"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_directory="/home/jgreif/code/shared-test/TESTSUIT/Optimization/ParamMat/Material/TransversalIsotropic">
+    <header complex="no" harmonic="no" eigenvalue="no" bloch="no" homogenization="no" material="mechanic">
+      <objective type="compliance" linear="no" task="minimize"/>
+      <constraints>
+        <constraint type="volume" linear="yes" mode="constraint" design="mech_trace" bound="upperBound" bound_value="5e+05" delta_logging="no" notation="voigt"/>
+      </constraints>
+      <designSpace pamping="0">
+        <transferFunctions>
+          <transferFunction type="identity" application="no_app" design="default"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="80" modelVariables="80" modelElements="16">
+          <design type="emodul-iso" upperBound="1.5e+05" lowerBound="10" physicalLowerBound="10"/>
+          <design type="poisson-iso" upperBound="0.49" lowerBound="0" physicalLowerBound="0"/>
+          <design type="emodul" upperBound="1.5e+05" lowerBound="10" physicalLowerBound="10"/>
+          <design type="poisson" upperBound="0.49" lowerBound="0" physicalLowerBound="0"/>
+          <design type="gmodul" upperBound="1.5e+05" lowerBound="10" physicalLowerBound="10"/>
+        </designVariables>
+        <regions>
+          <region name="mech" elements="16" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <scpip>
+        <icntl i1="2" i2="1" i3="500" i4="1" i5="10" i6="1" i7="0" i8="0" i9="0" i10="0" i11="0" i12="0" i13="1"/>
+        <rcntl r1="1e-07" r2="1e+30" r3="1e+30" r4="1e-05" r5="100" r6="100" r7="0"/>
+      </scpip>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <designSpace/>
+    <optimizer>
+      <summary>
+        <timer wall="0" cpu="0.034987" calls="166"/>
+      </summary>
+    </optimizer>
+    <process>
+      <iteration number="0" compliance="7.7031" volume_mech_trace="30000"/>
+      <iteration number="1" compliance="1.1476" volume_mech_trace="1.3472e+05"/>
+      <iteration number="2" compliance="0.82922" volume_mech_trace="1.865e+05"/>
+      <iteration number="3" compliance="0.50645" volume_mech_trace="3.1442e+05"/>
+      <iteration number="4" compliance="0.4997" volume_mech_trace="3.2539e+05"/>
+      <iteration number="5" compliance="0.45903" volume_mech_trace="4.3029e+05"/>
+      <iteration number="6" compliance="0.45894" volume_mech_trace="4.3099e+05"/>
+      <iteration number="7" compliance="0.45816" volume_mech_trace="4.6088e+05"/>
+      <iteration number="8" compliance="0.45719" volume_mech_trace="4.7141e+05"/>
+      <iteration number="9" compliance="0.45717" volume_mech_trace="4.7146e+05"/>
+      <iteration number="10" compliance="0.45676" volume_mech_trace="4.8194e+05"/>
+      <iteration number="11" compliance="0.45674" volume_mech_trace="4.8417e+05"/>
+      <iteration number="12" compliance="0.45671" volume_mech_trace="4.8572e+05"/>
+      <iteration number="13" compliance="0.4567" volume_mech_trace="4.8758e+05"/>
+      <iteration number="14" compliance="0.45669" volume_mech_trace="4.9124e+05"/>
+    </process>
+    <summary problem="solution obtained">
+      <break converged="yes"/>
+    </summary>
+  </optimization>
+</cfsInfo>

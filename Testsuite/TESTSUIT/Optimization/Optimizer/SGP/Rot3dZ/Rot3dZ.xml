@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>SGPRot3dZ</title>
+    <authors>
+      <author>Bich Ngoc Vu</author>
+    </authors>
+    <date>2022-07-05</date>
+    <keywords>
+      <keyword>optimization</keyword>
+    </keywords>    
+    <references>
+      None
+    </references>
+    <isVerified>yes</isVerified>
+    <description> 
+       Test 3D SGP optimization (rotation about z-axis only) based on 1 FE. Verified with simulation in CFS  
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="Rot3dZ.h5ref"/>
+    </input>
+    <output>
+      <hdf5 />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+  
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="bottom">
+              <comp dof="x"/>
+              <comp dof="y"/>
+              <comp dof="z"/>
+           </fix>
+           <force name="top">
+             <comp dof="y" value="4"/>
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions />
+          </elemResult>
+          <elemResult type="mechTensor">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechRhsLoad">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+
+  <optimization log="">
+    <costFunction type="compliance" task="minimize" multiple_excitation="false">
+      <stopping queue="999" value="0.001" type="designChange"/>
+    </costFunction>
+
+    <optimizer type="sgp" maxIterations="1">
+      <sgp precomputeTensors="false" generatePlotData="true">
+        <!-- value can be 'exact' or 'asymptotes' (=0) -->
+        <option name="approximation" type="string" value="asymptotes"/>
+        <!-- number of levels of hierarichal grid for subproblem -->
+        <option name="levels" type="integer" value="1"/>
+        <!-- number of samples per level on hierarichal grid -->
+        <option name="samples_per_level" type="integer" value="181"/>
+        <!-- number of max. bisection steps for volume multiplier -->
+        <option name="max_bisections" type="integer" value="1"/>
+        <!-- globalization parameters -->
+        <option name="tau_init" type="real" value="1e-9"/>
+        <option name="tau_factor" type="real" value="1.01"/>
+        <!-- filter type: 'linear' or 'non_linear' -->
+        <option name="filtering" type="string" value="linear"/>
+        <!-- penalty value for regularization term -->
+        <option name="p_filt_density" type="real" value="0"/>
+        <option name="p_filt_angle" type="real" value="0"/>
+        <!-- lower and upper bounds for volume multiplier (default: 0 and 500) -->
+        <option name="pmin_vol" type="real" value="0"/>
+        <option name="pmax_vol" type="real" value="0"/>
+        <!-- tolerance of stopping criterion for optimization problem (default=1e-6) -->
+        <option name="tolerance" type="real" value="1e-4"/>
+        <!-- tolerance of stopping criterion for volume bisection (default=1e-6) -->
+        <option name="volume_tolerance" type="real" value="1e-3"/>
+      </sgp>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="paramMat" >
+      <paramMat>
+        <designMaterials>
+          <designMaterial type="density-times-rotated-transversal-isotropic" isoplane="yz" rotationtype="xyz">
+            <!-- define mechanical properties of core material  -->
+            <param name="emodul" value="10" />
+            <param name="emodul-iso" value="1" />
+            <param name="gmodul" value="0.5" />
+            <param name="poisson" value="0.06" />
+            <param name="poisson-iso" value="0.3" />
+            <!-- transversal isotropic: third angle (around x-axis) = 0  -->
+            <param name="rotAngleThird" value="0"/>
+            <!-- rotation about y-axis  -->
+            <param name="rotAngleSecond" value="0"/>
+            <param name="density" value="1.0"/>
+          </designMaterial>
+        </designMaterials>
+      </paramMat>
+
+      <!-- allow rotation about z-axis only  -->
+      <design name="rotAngleFirst" initial="0" lower="0" upper="3.141592653589793"/>
+
+      <transferFunction design="density" type="simp" application="mech" param="1.0"/>
+      <result value="design" design="density" id="optResult_1"/>
+      <result value="design" design="rotAngleFirst" id="optResult_2"/>
+      <result value="design" design="rotAngleSecond" id="optResult_3"/>
+      <result value="design" design="rotAngleThird" id="optResult_4"/>
+      <export save="all" write="iteration"/>
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>
+
+

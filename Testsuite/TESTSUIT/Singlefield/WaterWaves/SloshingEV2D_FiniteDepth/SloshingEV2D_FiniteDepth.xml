@@ -1,0 +1,97 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+ 
+  <documentation>
+    <title>SloshingEV2D_FiniteDepth</title>
+    <authors>
+      <author>F. Toth</author>
+    </authors>
+    <date>2016-07-19</date>
+    <keywords>
+      <keyword>waterWaves</keyword>
+      <keyword>eigenFrequency</keyword>
+    </keywords>
+    <references>
+      Toth, F., and Kaltenbacher, M. (2015) Fully coupled linear modelling of incompressible free-surface flow, compressible air and flexible structures. Int. J. Numer. Meth. Engng, http://dx.doi.org/10.1002/nme.5194
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+The sloshing modes in a rectangular tank are computed. The tank hast a length l of 150m and a depth h of 30m.
+The fundamental wave number can be computed analytically by $ k = \frac{n\pi}{l} $.
+The natural frequencies then follow from the dispersion relation $ \omega^2 = gk tanh(kh) $, where $g$ denotes the acceleration of gravity.
+Analytically the first 10 modes have the natural frequencies:
+ 1: 0.053836 Hz
+ 2: 0.094068 Hz
+ 3: 0.122104 Hz
+ 4: 0.143339 Hz
+ 5: 0.161012 Hz
+ 6: 0.176615 Hz
+ 7: 0.190839 Hz
+ 8: 0.204038 Hz
+ 9: 0.216421 Hz
+10: 0.228130 Hz
+We numerically compute the first 10 natural frequencies (the first one is always zero, rigid body mode?). 
+The frequency shift parameter is adapted such that the zero-frequecy-mode is not computed.
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <gmsh fileName="SloshingEV2D_FiniteDepth.msh"></gmsh>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="FLUID" material="water"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="SURFACE"/>
+    </surfRegionList>
+  </domain> 
+
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>10</numModes>
+        <freqShift>0.17</freqShift>
+        <writeModes>yes</writeModes>
+      </eigenFrequency>
+    </analysis>
+    <pdeList>
+      <waterWave> 
+        <regionList>
+          <region name="FLUID"/>
+        </regionList>
+        <bcsAndLoads>
+          <freeSurfaceCondition name="SURFACE" volumeRegion="FLUID"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="waterPressure" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </waterWave>     
+    </pdeList>
+    <linearSystems>
+      <system>
+      <solutionStrategy>
+        <standard>
+<!--         This is required since the default behavior of reordering has changed inside CFS and the test cases were designed with -->
+<!--         reordering -->
+          <matrix reordering="Metis"/>    
+        </standard>
+      </solutionStrategy>
+        <eigenSolverList>
+          <arpack>
+          </arpack>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,120 @@
+!====== initialization ======
+finish
+/clear
+/filname,Mortar2dCurved,1
+/prep7
+init
+/uis,msgpop,3
+shpp,off
+/uis,msgpop,2
+
+!====== geometry parameters ======
+eps      = 1e-6
+radInner = 0.05
+radOuter = 0.125
+radMech  = 0.075
+
+!====== create geometry ======
+
+! create keypoints
+k, 1,        0,        0
+k, 2, radInner,        0
+k, 3,        0, radInner
+k, 4,  radMech,        0
+k, 5,        0,  radMech
+k, 6,  radMech,        0
+k, 7,        0,  radMech
+k, 8, radOuter,        0
+k, 9,        0, radOuter
+
+! create arc lines
+larc, 2, 3, 1, radInner
+larc, 4, 5, 1, radMech
+larc, 6, 7, 1, radMech
+larc, 8, 9, 1, radOuter
+
+! create mech area
+a, 2, 4, 5, 3
+
+! create acou area
+a, 6, 8, 9, 7
+
+!====== meshing ======
+mshkey,1
+
+! master interface
+ksel,s,,,4,5
+lslk,s,1
+lesize,all,,,41
+setelems,'2d-line'
+lmesh,all
+esll,s
+welems,'master'
+
+! mech area
+asel,s,,,1
+esize,,15
+setelems,'quadr'
+amesh,all
+esla,s
+welems,'inner'
+
+! slave interface
+ksel,s,,,6,7
+lslk,s,1
+lesize,all,,,29
+setelems,'2d-line'
+lmesh,all
+esll,s
+welems,'slave'
+
+! acou area
+ksel,s,,,6,8,2
+lslk,s,1
+lesize,all,0.01
+setelems,'quadr'
+asel,s,,,2
+amesh,all
+esla,s
+welems,'outer'
+
+!====== boundary conditions ======
+
+! absorbing BCs
+ksel,s,,,8,9
+lslk,s,1
+setelems,'2d-line'
+lmesh,all
+esll,s
+welems,'abc'
+
+! excitation
+ksel,s,,,2,3
+lslk,s,1
+setelems,'2d-line'
+lmesh,all
+esll,s
+welems,'excite'
+
+! mech. fixation
+allsel
+asel,s,,,1
+nsla,s,1
+nsel,r,loc,x,-eps,eps
+nsel,r,loc,y,radInner,mechLen
+wnodbc,'sym_left'
+
+nsla,s,1
+nsel,r,loc,x,radInner,mechLen
+nsel,r,loc,y,-eps,eps
+wnodbc,'sym_bottom'
+
+! history node
+nsel,all
+nsel,s,,,node(0.6222,0.6222,0)
+wsavnod,'histnode'
+
+!====== write mesh file ======
+allsel
+wnodes
+mkhdf5

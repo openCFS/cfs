@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Beta tuned move_limits for ocm/mma</title>
+    <authors><author>Fabian Wein</author></authors>
+    <date>2024-08-09</date>
+    <references>Dunning and Wein 2024</references>
+    <isVerified>yes</isVerified>
+    <description>For a three field topology optimization with tuned beta, we dynamically
+    adapt the move_limits of ocm/mma based on beta depending transitzon zone of projection.
+    There is also a python implementation.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="bottom_right" >
+             <comp dof="y" value="-1" />
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <regionResult type="mechTotalEnergy">
+            <allRegions/>
+          </regionResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping value="0.05" type="belowFunction" function="greyness" condition="necessary" />
+      <stopping value="1e-3" type="relativeCostChange" queue="1" condition="necessary" />
+      <stopping value="300" type="oscillations" condition="sufficient" />
+    </costFunction>
+
+    <constraint type="volume" access="filtered" value=".5" bound="upperBound" linear="false"/>
+    <constraint type="greyness" access="filtered" mode="observation"/>
+    
+    <optimizer type="ocm" maxIterations="30">
+       <!-- 'tuned' as value optionally depends on density projection beta tune -->
+       <ocm move_limit="tuned" >
+          <!-- default max is .2 for ocm and .5 for mma. 
+               move_limit is transition_zone(beta) / divider. -->
+          <tuned max=".2" min="1e-4" transition_divider="5" />
+      </ocm>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp" >
+      <filters>
+        <filter neighborhood="maxEdge" value="3" type="density" >
+          <density type="tanh" beta="tune" eta="0.5">
+             <tune method="obj" start="1" end="256" grow="1e-1" obj_max_grow="0.2" stride="1" stopping_greyness="true" />
+          </density>
+        </filter>
+     </filters>
+     <design name="density" initial=".5" physical_lower="1e-9" upper="1.0" />
+     <transferFunction type="simp" application="mech" param="3" />
+      <result value="design" access="smart" id="optResult_1"/>
+      <export save="last" write="iteration" />
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Test example for heat conduction evaluation with given ersatzmaterial file</title>
+    <authors>
+      <author>Bich Ngoc Vu</author>
+    </authors>
+    <date>2016-03-09</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>
+      none
+    </references>
+    <isVerified> yes </isVerified>
+    <description> none </description>
+  </documentation>
+    
+  <fileFormats>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+    
+  <domain geometryType="plane">
+		<regionList>
+			<region name="mech" material="Iron" />
+		</regionList>
+	  <nodeList>
+	    <nodes name="source">
+	      <allNodesInRegion regName="mech"/>
+	    </nodes>
+	  </nodeList>
+  </domain>
+    
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+                
+        <bcsAndLoads>
+          <temperature name="west" value="1"/>
+          <heatSource name="source" value="10"/>
+        </bcsAndLoads>
+                
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList>
+        
+  </sequenceStep>
+  
+  <loadErsatzMaterial file="testDensity.density.xml" set="last"/>
+    
+	 <optimization>
+	   <costFunction type="temperature" task="minimize" > 
+	     <stopping queue="999" value="0.002" type="designChange"/>
+	   </costFunction>
+	   <constraint type="volume" bound="lowerBound" value="0.5"/>
+	   
+	    <optimizer type="evaluate"  maxIterations="0">
+	     <snopt>
+	       <option name="major_optimality_tolerance" type="real" value="1e-9"/>
+	       <option name="verify_level" type="integer" value="3"/>
+	     </snopt>
+	     
+	   </optimizer>
+	   
+	   <ersatzMaterial region="mech" material="heat" method="simp">
+	
+	    <design name="density" initial="0.5" lower="0.0" upper="1.0" />
+	    <transferFunction type="simp" application="heat" param="3.0" />
+	     
+	    <export write="iteration" save="last"/>
+	     
+	   </ersatzMaterial>
+	   <commit mode="forward" stride="1"/>
+	 </optimization>  
+
+
+</cfsSimulation>

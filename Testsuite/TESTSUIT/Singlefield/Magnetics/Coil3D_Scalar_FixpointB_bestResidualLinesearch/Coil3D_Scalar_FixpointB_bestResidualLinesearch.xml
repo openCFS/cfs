@@ -1,0 +1,241 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  
+  <documentation>
+    <title>3D cylindrical coil with hysteretic core material</title>
+    <authors>
+      <author>Michael Nierla</author>
+    </authors>
+    <date>2019-07-09</date>
+    <keywords>
+      <keyword>magneticNodal</keyword>
+      <keyword>hysteresis</keyword>
+      <keyword>linesearch</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      Geometry:
+	  3D-eigth model of a cylindrical copper coil with iron/FeCo core
+	  surrounded by air; same setup as in Magnetic testcases Coil3DEdge***
+	  
+      Sketch of x-z-crosssection:
+      
+      z-axis
+      |
+      | air
+      |________ _
+	  |        | | 
+ 	  |  core  |coil 
+  	  |        | | 
+ 	  |        | | 
+	  |        | | 
+	  |________|_|_________ x-axis
+      
+	  Idea behind testcase:
+	  - application of (scalar) hysteresis models to 3D geometry
+	  - test hysteresis for 3D magneticNodal formulation 
+	  (note: flux parallel boundary conditions not yet implemented correctly for nodal 3D)
+	  - test hysteresis operator in combination with higher order shape functions
+	
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="CylindricCoil.h5"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d" printGridInfo="yes">
+    <variableList>
+      <var name="depth" value="50e-3*2"/>
+      <var name="radius" value="5e-3"/>
+    </variableList>
+    
+    <!-- now we have both jumps in conductivity and permeability 
+	this case is known to be problematic for nodal elements -->
+    <regionList>
+      <region name="air"  material="Air"/>
+      <region name="coil" material="Copper"/>
+      <region name="core" material="FECO_SCALAR_EVERETTINVERSION"/>
+    </regionList>
+    
+    <!-- Cylindric coordinate system for coil current -->
+    <coordSysList>
+      <cylindric id="mid"> 
+        <origin x="0" y="0" z="0"/>
+        <zAxis z="1" />
+        <rAxis x="1" />
+      </cylindric>
+    </coordSysList>
+  </domain>
+  
+  <fePolynomialList>
+    <Lagrange>
+      <isoOrder>2</isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+  
+  <!-- ================================= -->
+  <!--  N O D A L   F O R M U L A T I O N  -->
+  <!-- ================================= -->
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>2</numSteps>
+        <deltaT>1e-3</deltaT>
+      </transient>
+    </analysis>
+    <pdeList>
+      <magnetic systemId="default">
+        <regionList>
+          <region name="air"/>
+          <region name="coil"/>
+          <region name="core" nonLinIds="p"/>
+        </regionList>
+
+		<nonLinList>
+			<hysteresis id="p"/>
+        </nonLinList>
+
+<!-- in the current version of cfs one has to specify the components per hand which
+          obviously is not working so well with carteesian coordinates for angular geometries;
+          in NACS the normal vector is computed internally and the proper components are then set -->
+        <bcsAndLoads>
+          <fluxParallel name="x-inner">
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fluxParallel>
+          <!-- outer radial boundary -->
+          <fluxParallel name="x-outer">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fluxParallel>
+          <fluxParallel name="y-inner">
+            <comp dof="x"/>
+            <comp dof="z"/>
+          </fluxParallel>
+          <fluxParallel name="z-outer">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fluxParallel>
+        </bcsAndLoads>
+        
+        <coilList>
+          <coil id="myCoil">
+            <source type="current" value="3750*sample1D('inputCurrent2.txt',t,1)"/>
+              <part>
+                <regionList>
+                  <region name="coil"/>
+                </regionList>
+                <direction>
+                  <analytic coordSysId="mid">
+                    <comp dof="phi" value="1"/>
+                  </analytic>
+                </direction>
+                <wireCrossSection area="1e-6"/>
+                <resistance value="0"/> 
+              </part>
+            </coil>
+          </coilList>
+        
+        <storeResults>
+          <nodeResult type="magPotential">
+            <allRegions/>
+          </nodeResult>
+
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="center" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+		 
+		        <elemResult type="magFieldIntensity">
+            <allRegions/>
+            <elemList>
+              <elems name="center" outputIds="txt"/>
+            </elemList>
+		        </elemResult>
+          
+          <elemResult type="magPolarization">
+            <allRegions/>
+            <elemList>
+              <elems name="center" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+          
+<!-- Currently not working; there is some issue with Hex-Elements and the
+	integrators; see MagneticPDE.cc for more details -->
+<!--		 
+	  <elemResult type="magEddyCurrentDensity">
+	      <allRegions/>
+	      <elemList>
+	      <elems name="hist" outputIds="txt"/>
+	      </elemList>
+	   </elemResult>
+-->		  
+          <regionResult type="magEnergy">
+            <allRegions outputIds="txt"/>
+          </regionResult>
+         
+        </storeResults>
+        
+      </magnetic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <!-- setup solution process for non-linear, hysteretic system -->
+            <!-- minLoggingToTerminal = 0 > disable direct output of non-linear iterations;
+              = 1 > write incremental, residual error, linesearch factor etc. to cout
+              after each iteration	
+              = 2 > as 1 but write out overview over all iterations at end of a timestep -->
+            <hysteretic loggingToFile="yes" loggingToTerminal="2">
+              <solutionMethod>
+			  <!-- for this particular setup, the contraction factor has to be higher than 1 (which would typically suffice for
+			  Fixpoint_Global_B; by starting the backtracking linesearch larger 1.0 (and by allowing overrelaxation) we can still
+			  get some useful longer steps -->
+                <Fixpoint_Global_B ContractionFactor="1.075"/>
+              </solutionMethod>
+              <!-- for detailled info, please check tooltips provided via oxygen editor -->
+              <lineSearch selectionCriterionForMultipleLS="1">
+                <Backtracking_SmallestResidual>
+                  <maxIterLS>6</maxIterLS>
+		 <!-- overrelaxation by using eta > 1 should not be too large; residual criterion does not guarantee stability
+			so that an overrelaxation larger than the contraction factor above might cause non-convergence -->
+                  <etaStart>8</etaStart>
+                  <etaMin>1.0E-3</etaMin>
+                  <decreaseFactor>0.5</decreaseFactor>
+                  <residualDecreaseForSuccess>1.0E-3</residualDecreaseForSuccess>
+                  <stoppingTol>1.0E-6</stoppingTol>
+                  <allowNegativeSteps>no</allowNegativeSteps>
+                  <testOverrelaxation>no</testOverrelaxation>
+                </Backtracking_SmallestResidual>
+              </lineSearch>
+              <stoppingCriteria>
+<!--                <increment_relative value="1.0E-4" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>-->
+                <residual_relative value="20E-6" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>
+              </stoppingCriteria>
+              <evaluationDepth>
+                <evaluateAtIntegrationPoints_OneOperatorPerElement></evaluateAtIntegrationPoints_OneOperatorPerElement>
+              </evaluationDepth>
+              <maxIter>80</maxIter>
+            </hysteretic>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+   </sequenceStep>
+   
+  </cfsSimulation>

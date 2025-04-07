@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Normal Stiffness, Damping and Mass in 3D</title>
+    <authors>
+      <author>Florian Toth</author>
+    </authors>
+    <date>2019-09-20</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>yes</isVerified>
+    <description>
+      Assume a stiffness in normal direction of the boundary, thereby modelling a linear bedding.
+      
+      We consider a quater of a unit sphere and use a unit material denisty.
+      The stiffness of the sphere is high, thus, it can be considered as "rigid".
+      
+      The volume is V=r^3*pi/3, which equals the mass for unit density.
+      On the cut surfaces (y=0,z=0) we apply a high (penalty) normal stiffness.
+      
+      On the outer surface (r=1) we apply the normal stiffness.
+      Integrating the normal stiffness over the surface of the sphere on can determine an equivalent spring stiffness for the setup:
+      F_x = \int_0^pi k_r u_x cos(a)^2 2 r pi sin(a) r da = k_r*r^2*pi/3 u_x = k u_x
+      
+      The natural frequency is computed analytically by
+      w = sqrt( k / m ) = sqrt( k_r / (rho*r) )
+      For the chosen parameters we obtain w = 1.
+      
+      In step #1 we check the stiffness on the sphere surface by applying a unit force (via a uniform force density).
+      In setp #2 we check the damped natural frequency, we obtain f = w/2/pi and damping ratio = -d_r/2.
+      In step #3 we compute the transient time history and fit damping and frequency from the time signal, confirming the values of the eigenvalue analysis.
+    </description>
+      
+  </documentation>
+  <fileFormats>
+    <input>
+      <!--<cdb fileName="sphere.cdb"/>-->
+      <hdf5 fileName="NormalSurfaceOscillatingSphere.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <domain geometryType='3d'  printGridInfo="yes">
+    <variableList>
+      <var name="r" value="1"/>
+      
+      <var name="F_i" value="1"/><!-- target value of static u -->
+      <var name="g_i" value="F_i/(pi/3)"/> <!-- force density for unit force per component -->
+      <!-- projected area in direction i -->
+      <var name="A_x" value="2*r*r*pi/4"/>
+      <var name="A_y" value="r*r*pi/2"/>
+      <var name="A_z" value="r*r*pi/2"/>
+      
+      <var name="k_y" value="100"/>
+      <var name="k_z" value="100"/>
+      <!--<var name="k_r" value="4*pi*pi/3"/>-->
+      <var name="k_r" value="1"/>
+      <var name="d_r" value="0.1"/>
+    </variableList>
+    <regionList>
+      <region name="V_sphere" material="myOne" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0" y="0" z="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+        <static/>
+    </analysis>  
+    <pdeList>
+      <mechanic subType='3d'>
+        <regionList>
+          <region name="V_sphere"/>
+        </regionList>        
+        <bcsAndLoads>
+          <normalStiffness name="S_y" value="k_y" volumeRegion="V_sphere"/>
+          <normalStiffness name="S_z" value="k_z" volumeRegion="V_sphere"/>
+          <fix name="S_y">
+            <comp dof="y"/>
+          </fix>
+          <fix name="S_z">
+            <comp dof="z"/>
+          </fix>
+          <normalStiffness name="S_r" value="1.0" volumeRegion="V_sphere"/>
+          <forceDensity name="V_sphere">
+            <comp dof="y" value="g_i"/>
+            <comp dof="z" value="g_i"/>
+            <comp dof="x" value="g_i"/>
+          </forceDensity>
+        </bcsAndLoads>      
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStrain">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <!--<exportLinSys system="true" solution="true" rhs="true"/>-->
+            <matrix reordering="noReordering"/>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <sequenceStep index="2">
+    <analysis>
+        <eigenFrequency>
+          <isQuadratic>yes</isQuadratic>
+          <!--<minVal>-5</minVal>
+          <maxVal>5</maxVal>-->
+          <numModes>10</numModes>
+          <freqShift>0</freqShift>
+          <writeModes normalization="max">yes</writeModes>
+        </eigenFrequency>
+    </analysis>  
+    <pdeList>
+      <mechanic subType='3d'>
+        <regionList>
+          <region name="V_sphere"/>
+        </regionList>        
+        <bcsAndLoads>
+          <normalStiffness name="S_y" value="k_y" volumeRegion="V_sphere"/>
+          <normalStiffness name="S_z" value="k_z" volumeRegion="V_sphere"/>
+          <normalMass name="S_y" value="k_y/9" volumeRegion="V_sphere"/>
+          <normalStiffness name="S_r" value="k_r" volumeRegion="V_sphere" isComplex="false"/>
+          <normalDamping name="S_r" value="d_r" volumeRegion="V_sphere"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseSym"/>
+            <eigenSolver id="arpack"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <arpack id="arpack">
+            <logging>true</logging>
+          </arpack>
+          <feast id="feast">
+            <logging>true</logging>
+            <Ne>24</Ne>
+            <stopCrit>5</stopCrit>
+            <maxRefinementLoops>20</maxRefinementLoops>
+            <m0>20</m0>
+          </feast>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <sequenceStep index="3">
+    <analysis>
+       <transient>
+         <numSteps>100</numSteps>
+         <deltaT>0.2</deltaT>
+       </transient>
+    </analysis>  
+    <pdeList>
+      <mechanic subType='3d'>
+        <regionList>
+          <region name="V_sphere"/>
+        </regionList>        
+        <bcsAndLoads>
+          <normalStiffness name="S_y" value="k_y" volumeRegion="V_sphere"/>
+          <normalStiffness name="S_z" value="k_z" volumeRegion="V_sphere"/>
+          <normalStiffness name="S_r" value="k_r" volumeRegion="V_sphere"/>
+          <normalDamping name="S_r" value="d_r" volumeRegion="V_sphere"/>
+          <forceDensity name="V_sphere">
+            <comp dof="x" value="g_i"/>
+          </forceDensity>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+            <nodeList>
+              <nodes name="center"/>
+            </nodeList>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseSym"/>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+</cfsSimulation>

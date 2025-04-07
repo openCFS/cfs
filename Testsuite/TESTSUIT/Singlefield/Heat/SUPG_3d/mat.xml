@@ -1,0 +1,28 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/material 
+https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd" >
+
+  <material name="iron">
+    <heatConduction>
+      <density>
+        <linear>
+          <real>1</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>1</real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>0.002</real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+</cfsMaterialDataBase>

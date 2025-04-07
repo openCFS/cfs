@@ -1,0 +1,69 @@
+! ===========================================================================
+!  Axisymmetric model of a cyldinric capacitance, filled with two
+!  different dielectrica.
+! ===========================================================================
+
+fini
+/clear
+/filname,CylCapAxi
+/prep7
+! initialize macros for .mesh-interface
+init
+
+! ===========================
+!  GEOMETRIC DEFINITIONS
+! ===========================
+l = 5e-2   ! length of capacitor
+r1 = 1e-3  ! inner radius
+r2 = 2e-3  ! middle radius
+r3 = 5e-3  ! outer radius
+
+! ===========================
+!  CREATE GEOMETRY
+! ===========================
+rectng,r1,r2,0,l
+rectng,r2,r3,0,l
+allsel
+nummrg,kp,all
+
+! ===========================
+!  CREATE MESH
+! ===========================
+! area mesh
+esize,h
+setelems,'quadr'
+amesh,1
+setelems,'triangle'
+amesh,2
+
+! generate surface mesh
+lsel,s,loc,x,r1
+lsel,a,loc,x,r3
+setelems,'2d-line'
+lmesh,all
+
+! ===========================
+!  CREATE MESH
+! ===========================
+asel,s,loc,x,r1,r2
+esla
+welems,'dielec-1'
+
+asel,s,loc,x,r2,r3
+esla
+welems,'dielec-2'
+
+lsel,s,loc,x,r1
+esll
+welems,'inner'
+
+lsel,s,loc,x,r3
+esll
+welems,'outer'
+
+! write all nodes
+allsel
+wnodes
+
+! make .hdf5 file
+mkhdf5

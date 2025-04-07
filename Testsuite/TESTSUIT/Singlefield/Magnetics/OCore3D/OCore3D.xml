@@ -1,0 +1,126 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  <fileFormats>
+    <input>
+      <cdb fileName="OCore3D.cdb"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <variableList>
+      <!-- GEOMETRY (same as in the mesh file)-->
+      <var name="r_core_outer" value="40.0e-3"/>
+      <var name="r_core_inner" value= "20.0e-3"/>
+      <var name="r_wire" value="1.5e-3"/>
+      <var name="core_thickness" value = "20.0e-3"/>
+      <var name="r_domain" value="2*r_core_outer"/>
+      <var name="A_wire" value="r_wire*r_wire*pi"/>  <!-- = w -->
+      <!-- EXCITATION PROPERTIES -->
+      <var name="I_exc" value="1.0"/>
+      <!-- IMPORTANT: coil windings and cross section are already considered in the coil definition-->
+      <var name="excitation_fun" value="I_exc"/>
+    </variableList>
+    
+    <regionList>
+      <region name="air" material="air"/>
+      <region name="wire" material="air"/>
+      <region name="core" material="090_27DR_X"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="fluxParallel"/>
+      <surfRegion name="S_Core_XZ"/>
+      <surfRegion name="S_Core_YZ"/>
+    </surfRegionList>
+  </domain>
+
+ 
+<sequenceStep index="1">
+  <analysis>
+    <static></static>
+  </analysis>
+  
+  <pdeList>
+    <magneticEdge>
+      <regionList>
+        <region name="air" />
+        <region name="wire" />
+        <region name="core"/>
+      </regionList>
+      
+      <bcsAndLoads>
+        <fluxParallel name="fluxParallel"/>
+      </bcsAndLoads>
+      
+      <coilList>
+        <!-- COIL U -->
+        <coil id="W">
+          <source type="current" value="excitation_fun"/>
+          <part>
+            <regionList>
+              <region name="wire"/>
+            </regionList>
+            <direction orientation="+1">
+              <analytic>
+                <comp dof="z" value="1.0"/>
+              </analytic>
+            </direction>
+            <wireCrossSection area="A_wire"/>
+          </part>
+        </coil>
+      </coilList>
+
+      <storeResults>
+        <surfRegionResult type="magFlux" complexFormat="realImag">
+          <surfRegionList>
+            <surfRegion name="S_Core_XZ"/>
+            <surfRegion name="S_Core_YZ"/>
+          </surfRegionList>
+        </surfRegionResult>        
+        <elemResult type="magFluxDensity">
+          <allRegions outputIds="hdf5"/>
+        </elemResult>
+        <elemResult type="magFieldIntensity">
+          <allRegions/>
+        </elemResult>
+        <elemResult type="magEddyCurrentDensity">
+          <allRegions/>
+        </elemResult>
+        <elemResult type="magTotalCurrentDensity">
+          <allRegions/>
+        </elemResult>
+        <elemResult type="magCoilCurrentDensity">
+          <regionList>
+            <region name="wire"/>
+          </regionList>
+        </elemResult>
+        <sensorArray type="magFluxDensity" fileName="history/B.csv" csv="yes">
+          <coordinateFile fileName="sensor_arrays.csv"/>         
+        </sensorArray>
+        <sensorArray type="magFieldIntensity" fileName="history/H.csv" csv="yes">
+          <coordinateFile fileName="sensor_arrays.csv"/>         
+        </sensorArray>   
+        <!--<coilResult type="coilCurrent">
+          <coilList>
+            <coil id="wire" outputIds="txt"/>
+          </coilList>
+        </coilResult>
+        <coilResult type="coilInducedVoltage">
+          <coilList>
+            <coil id="wire" outputIds="txt"/>
+          </coilList>
+        </coilResult>-->
+      </storeResults>        
+    </magneticEdge>
+  </pdeList>
+</sequenceStep>
+  
+</cfsSimulation>

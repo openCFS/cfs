@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+   <title>1D Piston Complex Fluid Mech-Acou Coupling</title>
+   <authors>
+     <author>chg, hjk</author>
+   </authors>
+   <date>2023-01-20</date>
+   <keywords>
+     <keyword>mechanic-acoustic</keyword>
+   </keywords>
+   <references>A_non‐conforming_FE_formulation_for modeling_viscous_solid_interaction_Hassanpour_2022</references>
+   <isVerified>no</isVerified>
+   <description>
+     A solid block is coupled to a fluid domain. Harmonic displacement excites the block on one side.
+     This excitation travels through the block and is transferred to the fluid.
+     The waves travel through the fluid and get reflected at the end of fluid domain.
+     This example should demonstrate the working of the complex fluid formulation.
+     As the fluid has complex density and compression modulus, damping is visible.
+   </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <!--<cdb fileName="PistonComplex1D.cdb"/>-->
+      <hdf5 fileName="PistonComplex1D.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="solidEl" material="steel"/>
+      <region name="waterEl" material="fluid"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="coupleEl"/>      
+    </surfRegionList>
+    <nodeList>
+      <nodes name="bottomEl"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>1</numFreq>
+        <frequencyList>
+          <freq value="1000"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+      
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="waterEl" complexFluid="yes"/>
+        </regionList>
+
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="acouVelocity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </acoustic>
+      
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="solidEl"/>
+        </regionList>
+        <bcsAndLoads>
+          <displacement name="bottomEl">
+            <comp dof="x" value="1"/>
+          </displacement>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <acouMechDirect>
+          <surfRegionList>
+            <surfRegion name="coupleEl"/>
+          </surfRegionList>
+        </acouMechDirect>
+      </direct>
+    </couplingList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+    
+    
+  </sequenceStep>
+
+</cfsSimulation>

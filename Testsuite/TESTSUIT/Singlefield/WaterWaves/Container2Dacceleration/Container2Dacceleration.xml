@@ -1,0 +1,102 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+ 
+  <documentation>
+    <title>container</title>
+    <authors>
+      <author>ascharner</author>
+    </authors>
+    <date>2023-07-17</date>
+    <keywords>
+      <keyword>transient</keyword>
+    </keywords>
+    <references>
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      This Testcase checks the acceleration boundary condition in the WaterWave PDE.
+      The acceleration is applied at the boundary "L_coupling".
+      The results are compared to Container2Dacceleration_waterWaveMech.xml, where the acceleration is applied in the
+      mechanic PDE (WaterWaveMech Coupling).
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <!--cdb fileName="RectangularContainer.cdb"/-->
+      <hdf5 fileName="Container2Dacceleration.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <variableList>
+      <var name="time_step" value="1e-2"/>
+      <var name="sim_time" value="0.2"/>
+      <var name="fade_time" value="0.5"/>
+      <var name="sim_steps" value="rint(sim_time/time_step)"/>
+    </variableList>
+    <regionList>
+      <region name="S_water" material="water"/>
+    </regionList>
+  </domain> 
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>sim_steps</numSteps>
+        <deltaT>time_step</deltaT>
+      </transient>
+    </analysis>
+    <pdeList>
+      <waterWave timeStepAlpha="-0.3">
+        <regionList>
+          <region name="S_water"/>
+        </regionList>
+        <bcsAndLoads>
+          <freeSurfaceCondition name="L_surface" volumeRegion="S_water"/>
+          <acceleration name="L_coupling">
+            <!-- Produces an acceleration fade-in to 1 and subsequent fade-out to zero -->
+            <comp dof="x" value="(t lt 2*fade_time)? ((fadeIn(fade_time,1,t)- (t lt fade_time)? (fadeIn(fade_time,1,t-fade_time): 0)): 0)" />
+            <comp dof="y" value="0.0" />
+          </acceleration>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="waterPressure" complexFormat="realImag">
+            <allRegions/>
+            <nodeList>
+              <nodes name="P_left-surf" outputIds="txt,hdf5" />
+            </nodeList>
+          </nodeResult>
+          <elemResult type="waterPressureTensor">
+            <allRegions />
+          </elemResult>
+          <surfElemResult type="waterSurfaceTraction">
+            <surfRegionList>
+              <surfRegion name="L_coupling"/>
+            </surfRegionList>
+          </surfElemResult>
+          <surfElemResult type="waterSurfaceTorqueDensity">
+            <surfRegionList>
+              <surfRegion name="L_coupling"/>
+            </surfRegionList>
+          </surfElemResult>
+          <surfRegionResult type="waterSurfaceForce">
+            <surfRegionList>
+              <surfRegion name="L_coupling" outputIds="txt,hdf5"/>
+            </surfRegionList>
+          </surfRegionResult>
+          <surfRegionResult type="waterSurfaceTorque">
+            <surfRegionList>
+              <surfRegion name="L_coupling" outputIds="txt,hdf5"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </waterWave>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

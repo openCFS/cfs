@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsdat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+  <pipeline>
+    <stepValueDefinition>
+      <startStop>
+        <startStep value="0"/>
+        <numSteps value="1"/>
+        <!--numSteps value="4400"/-->
+        <startTime value="0.00000"/>
+        <delta value="4e-5"/>
+        <deleteOffset value="no"/>
+      </startStop>
+      <!--dynamic></dynamic-->
+    </stepValueDefinition>
+
+    <meshInput id="input" gridType="fullGrid">
+      <inputFile>
+        <ensight fileName="testcase/block_3x3x3poly.case" readFVMesh="yes" fixFVPyramids="yes">
+            <variableList>
+            <variable CFSVarName="fluidMechVelocity" EnsightVarName="Centroid"/>
+          </variableList>
+        </ensight>
+      </inputFile>
+    </meshInput>
+
+   <gaussDerivative id="gaussA" inputFilterIds="input" zeroBC="yes" useFvVolume="yes">
+      <singleResult>
+        <inputQuantity resultName="fluidMechVelocity"/>
+        <outputQuantity resultName="ThreeScalar"/>
+      </singleResult>
+    </gaussDerivative>
+  
+   <gaussDerivative id="gaussB" type="Gradient" inputFilterIds="input" zeroBC="no" useFvVolume="no">
+      <singleResult>
+        <inputQuantity resultName="fluidMechVelocity"/>
+        <outputQuantity resultName="OneDiagTensor"/>
+      </singleResult>
+    </gaussDerivative>
+     
+
+
+
+    <meshOutput id="GaussDerivative" inputFilterIds="gaussA,gaussB">
+      <outputFile>
+        <hdf5 extension="h5" compressionLevel="0" externalFiles="no"/>
+      </outputFile>
+      <saveResults>
+        <result resultName="ThreeScalar">
+          <allRegions/>
+        </result>
+        <result resultName="OneDiagTensor">
+          <allRegions/>
+        </result>
+      </saveResults>
+    </meshOutput>
+
+
+  </pipeline>
+</cfsdat>

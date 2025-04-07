@@ -1,0 +1,3 @@
+when you use the Ansys scripts, mesh-files are generated; 
+these mesh files have to be converted by the cfstool 
+to h5 files in order that the NMG is working!

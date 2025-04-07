@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+    
+    <documentation>
+        <title>Periodic acoustic box</title>
+        <authors>
+            <author>Jens Grabinger</author>
+        </authors>
+        <date>2013-07-16</date>
+        <keywords>
+            <keyword>acoustic</keyword>
+        </keywords>
+        <references>none</references>
+        <isVerified>yes</isVerified>
+        <description>
+            The domain is a unit square with all four edges as a periodic boundary.
+            A point source is placed off-centered and radiates a single sin burst,
+            so one can easily discriminate the periodic BC behaviour from total
+            reflection. The "fixedCoords" attributes are deliberately left empty
+            to test the implementation of the general case.
+        </description>
+    </documentation>
+    
+    <fileFormats>
+        <input>
+            <hdf5 fileName="Periodic2d.h5"/>
+        </input>
+        <output>
+            <hdf5 compressionLevel="9"/>
+        </output>
+        <materialData/>
+    </fileFormats>
+    
+    <domain geometryType="plane">
+
+        <regionList>
+            <region name="fluid" material="air"/>
+        </regionList>
+        
+        <surfRegionList>
+            <surfRegion name="bottom"/>
+            <surfRegion name="left"/>
+            <surfRegion name="right"/>
+            <surfRegion name="top"/>
+        </surfRegionList>
+        
+        <nodeList>
+            <nodes name="src">
+                <coord x="0.25" y="0.25"/>
+            </nodes>
+        </nodeList>
+
+    </domain>
+    
+    <fePolynomialList>
+        <Lagrange>
+            <gridOrder/>
+        </Lagrange>
+    </fePolynomialList>
+    
+    <sequenceStep>
+        
+        <analysis>
+            <transient>
+                <numSteps>100</numSteps>
+                <deltaT>5e-5</deltaT>
+            </transient>
+        </analysis>
+        
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                
+                <regionList>
+                    <region name="fluid"/>
+                </regionList>
+                
+                <bcsAndLoads>
+                    <periodic primary="bottom" secondary="top" quantity="acouPressure"/>
+                    <periodic primary="left" secondary="right" quantity="acouPressure"/>
+                    <pressure value="sinBurst(1000,1,0,0,t)" name="src"/>
+                </bcsAndLoads>
+                
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </acoustic>
+            
+        </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+
+    </sequenceStep>
+
+</cfsSimulation>

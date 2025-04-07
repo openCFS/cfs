@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsdat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+  <pipeline>
+    <stepValueDefinition>
+      <startStop>
+        <startStep value="2"/>
+        <numSteps value="5"/>
+        <startTime value="1.11100e-01"/>
+        <delta  value="0.0001"/>
+        <deleteOffset value="yes"/>
+      </startStop>
+<!--      <dynamic></dynamic>-->
+    </stepValueDefinition>
+    <meshInput id="id1" gridType="fullGrid">
+      <inputFile>
+        <ensight fileName="cfd/testExport.encas">
+          <variableList>
+            <variable CFSVarName="fluidMechPressure" EnsightVarName="pressure"/>
+            <variable CFSVarName="fluidMechPressure_deriv2" EnsightVarName="velocity"/>
+          </variableList>
+        </ensight>
+      </inputFile>
+    </meshInput>
+    
+    <timeDeriv1 id="dt" inputFilterIds="id1">
+      <singleResult>
+        <inputQuantity resultName="fluidMechPressure"/>
+        <outputQuantity resultName="pressureDeriv"/>
+      </singleResult>
+    </timeDeriv1>
+    
+    <binaryOperation opType="plus" id="plus" inputFilterIds="dt,id1">
+      <quantity1 resultName="pressureDeriv"/>
+      <quantity2 resultName="fluidMechPressure_deriv2"/>
+      <output resultName="substDT"/>
+    </binaryOperation>
+    
+    <!--substantialDeriv id="substDt" inputFilterIds="id1">
+      <pressure resultName="fluidMechPressure"/>
+      <presGrad resultName="fluidMechPressure_deriv1"/>
+      <outputQuantity resultName="substDt"/>
+      <rotatingDomain rpm="0">
+        <cylinder>
+          <p1 x="0" y="-1" z="-1"/>
+          <p2 x="0" y="1" z="1"/>
+          <radius value="0.1"/>
+        </cylinder>
+      </rotatingDomain> 
+    </substantialDeriv-->
+    
+    <interpolation type="FieldInterpolation_Conservative_CutCell" id="interp" inputFilterIds="plus">
+      <targetMesh>
+        <hdf5 fileName="mesh.h5"/>
+      </targetMesh>
+      <singleResult>
+        <inputQuantity resultName="substDT"/>
+        <outputQuantity resultName="acouRhsLoad"/>
+      </singleResult>
+      <regions>
+        <sourceRegions>
+          <region name="fluid" />
+        </sourceRegions>
+        <targetRegions>
+          <region name="CYL"/>
+        </targetRegions>
+      </regions>
+    </interpolation>
+    
+  <!--  <CellExtraction id="extractRot" inputFilterIds="id1">
+      <cube>
+        <x min="2" max="asd" x0=""/>
+        <y min="2" max="asd" y0=""/>
+        <y min="2" max="asd" z0=""/>
+      </cube>
+      <cylinder>
+        <center x="" y="" z=""/>
+        <axis x="" y="" z=""/>
+        r
+        phi
+        z
+      </cylinder>
+    </CellExtraction>-->
+    <!--timeDeriv1 id="id2" inputFilterIds="id1">
+      <singleResult>
+        <inputQuantity resultName="acouPressure"/>
+        <outputQuantity resultName="acouPressureD1"/>
+      </singleResult>
+    </timeDeriv1-->
+    <meshOutput id="conservCutCell_binary_2D_Ensight" inputFilterIds="interp">
+      <outputFile>
+        <hdf5 extension="h5"/>
+      </outputFile>
+      <saveResults>
+        <result resultName="acouRhsLoad">
+          <allRegions/>
+        </result>
+      </saveResults>
+    </meshOutput>
+  </pipeline>
+</cfsdat>

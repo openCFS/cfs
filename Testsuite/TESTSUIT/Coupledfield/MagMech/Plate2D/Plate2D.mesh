@@ -1,0 +1,90 @@
+[Info]
+Version 1
+Dimension 2
+NumNodes 9
+Num3DElements 0
+Num2DElements 4
+Num1DElements 0
+NumNodeBC 10
+NumSaveNodes 0
+NumSaveElements 0
+NumElemType0 0
+NumElemType1 0
+NumElemType2 0
+NumElemType3 0
+NumElemType4 0
+NumElemType5 0
+NumElemType6 4
+NumElemType7 0
+NumElemType8 0
+NumElemType9 0
+NumElemType10 0
+NumElemType11 0
+NumBaseElemType0 0
+NumBaseElemType1 0
+NumBaseElemType2 0
+NumBaseElemType3 0
+NumBaseElemType4 0
+NumBaseElemType5 0
+NumBaseElemType6 4
+NumBaseElemType7 0
+NumBaseElemType8 0
+NumBaseElemType9 0
+NumBaseElemType10 0
+NumBaseElemType11 0
+NumBaseElemType12 0
+NumBaseElemType13 0
+NumBaseElemType14 0
+NumBaseElemType15 0
+
+[Nodes]
+#NodeNr x-coord y-coord z-coord
+       1  0.0000000000000e+00  0.0000000000000e+00  0.0000000000000e+00
+       2  1.0000000000000e+00  0.0000000000000e+00  0.0000000000000e+00
+       3  2.0000000000000e+00  0.0000000000000e+00  0.0000000000000e+00
+       4  0.0000000000000e+00  1.0000000000000e+00  0.0000000000000e+00
+       5  1.0000000000000e+00  1.0000000000000e+00  0.0000000000000e+00
+       6  2.0000000000000e+00  1.0000000000000e+00  0.0000000000000e+00
+       7  0.0000000000000e+00  2.0000000000000e+00  0.0000000000000e+00
+       8  1.0000000000000e+00  2.0000000000000e+00  0.0000000000000e+00
+       9  2.0000000000000e+00  2.0000000000000e+00  0.0000000000000e+00
+
+[3D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+
+[2D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+1 6 4 coil
+1 2 5 4
+2 6 4 air
+2 3 6 5
+3 6 4 air
+5 6 9 8 
+4 6 4 plate
+4 5 8 7 
+
+[1D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+
+[Node BC]
+#NodeNr Level
+       3 az-fix
+       6 az-fix
+       7 az-fix
+       8 az-fix
+       9 az-fix
+       4 ux-fix
+       7 ux-fix
+       8 ux-fix
+       7 uy-fix
+       8 uy-fix
+
+[Save Nodes]
+#NodeNr Level
+
+[Save Elements]
+#ElemNr Level
+

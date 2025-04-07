@@ -1,0 +1,172 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+    <title>Air-Filled Cylindric Coil (Edge Formulation)</title>
+    <authors>
+      <author>ahauck</author>
+    </authors>
+    <date>2011-12-11</date>
+    <keywords>
+      <keyword>magneticEdge</keyword>
+      <keyword>static condensation</keyword>
+      <keyword>coil</keyword>
+    </keywords>
+    <references>
+      M. Albach, Grundlagen der Elektrotechnik 1, 
+      2nd Edition, p. 224.
+      
+      http://de.wikipedia.org/wiki/Zylinderspule
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      This is an eighth-symmetric model of an air-filled, cylindric coil.
+      
+      The model consists of quadratic elements to represent the geometry 
+      accurately. As the model itself is very coarse, we use higher order
+      polynomials.
+      
+      We compare the flux density distribution along the center line,
+      as well as the total energy / inductance of the setup.
+
+      Analytical formulas and comparisons with the simulated solution
+      can be found in the calc.py script.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+      <text id="txt2" fileCollect="timeFreq"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d" printGridInfo="yes">
+    <variableList>
+      <var name="depth" value="50e-3*2"/>
+      <var name="radius" value="5e-3"/>
+    </variableList>
+    
+    <regionList>
+      <region name="air"  material="air"/>
+      <region name="coil" material="air"/>
+      <region name="core" material="air"/>
+    </regionList>
+    
+    <!-- Cylindric coordinate system for coil current -->
+    <coordSysList>
+      <cylindric id="mid"> 
+        <origin x="0" y="0" z="0"/>
+        <zAxis z="1" />
+        <rAxis x="1" />
+      </cylindric>
+    </coordSysList>
+  </domain>
+  
+  <!-- Very Important: We use a higher order polynomial to model the
+       smooth variation of the magnetic flux density -->
+  <fePolynomialList>
+    <Legendre>
+      <isoOrder>2</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+  
+  <!-- ================================= -->
+  <!--  E D G E   F O R M U L A T I O N  -->
+  <!-- ================================= -->
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <magneticEdge systemId="default">
+        <regionList>
+          <region name="air"/>
+          <region name="coil"/>
+          <region name="core"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fluxParallel name="x-inner"/>
+          <fluxParallel name="x-outer"/>
+          <fluxParallel name="y-inner"/>
+          <fluxParallel name="z-outer"/>
+        </bcsAndLoads>
+        
+        <coilList>
+          <coil id="myCoil">
+            <source type="current" value="1"/>
+              <part>
+                <regionList>
+                  <region name="coil"/>
+                </regionList>
+                <direction>
+                  <analytic coordSysId="mid">
+                    <comp dof="phi" value="1"/>
+                  </analytic>
+                </direction>
+                <wireCrossSection area="2e-6"/>
+                <resistance value="0"/> 
+              </part>
+            </coil>
+          </coilList>
+        
+        <storeResults>
+          <elemResult type="magPotential">
+            <allRegions/>
+          </elemResult>
+
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="hist" outputIds="txt2"/>
+            </elemList>
+          </elemResult>
+          <regionResult type="magEnergy">
+            <allRegions outputIds="txt"/>
+          </regionResult>
+         
+         <!-- Note: In case CFS is compiled with USE_INTERPOLATION,
+              we can write out the B-field along the center z-line.
+              The results are compared witin the script calc.py. -->
+          <!--<sensorArray fileName="pot-line.txt" type="magPotential">
+            <parametric>
+            <list comp="x" start="radius/10" stop="radius/10" inc="0"/>
+            <list comp="y" start="radius/10" stop="radius/10" inc="0"/>
+            <list comp="z" start="0" stop="depth" inc="depth/100"/>
+            </parametric>
+          </sensorArray>
+          
+          <sensorArray fileName="b-line.txt" type="magFluxDensity">
+          <parametric>
+            <list comp="x" start="1.1e-3" stop="1.1e-3" inc="0"/>
+            <list comp="y" start="1.1e-3" stop="1.1e-3" inc="0"/>
+            <list comp="z" start="0" stop="depth" inc="depth/100"/>
+            </parametric>
+            </sensorArray>-->
+        </storeResults>
+        
+      </magneticEdge>
+    </pdeList>
+    <linearSystems>
+      <system id="default">
+        <solutionStrategy>
+          <standard>
+            <setup staticCondensation="no"/>
+            <solver id="default"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <directLDL id="default"/>
+        </solverList>
+      </system>
+    </linearSystems>
+   </sequenceStep>
+   
+  </cfsSimulation>

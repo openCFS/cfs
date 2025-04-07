@@ -130,12 +130,12 @@ option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_
 set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, (Apple) ACCELERATE")
 # we set convenience USE_MKL, USE_OPENBLAS, USE_NETLIB, USE_ACCELERATE in openmp_blas.cmake
 set_property(CACHE USE_BLAS_LAPACK PROPERTY STRINGS OPENBLAS MKL NETLIB ACCELERATE)
-# requires working cuda on the local machine (Ginkgo and to be added cholmod)
-option(USE_CUDA "Use Ginkgo with CUDA" ${USE_CUDA_DEFAULT})
 option(USE_OPENMP "Enable support for OpenMP" ${USE_OPENMP_DEFAULT})
+option(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
+# USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
+option(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
 option(USE_EMBEDDED_PYTHON "External Python Optimizer" ${USE_EMBEDDED_PYTHON_DEFAULT})
-
-# --- linear system and eigenvalue problem solvers ----
+option(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
 option(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)" ${USE_PARDISO_DEFAULT})
 option(USE_ARPACK "Use the ARPACK eigensolver library. Required for Pade Approximation Linearization Method (PALM) solver." ${USE_ARPACK_DEFAULT})
 option(USE_FEAST "Use the FEAST eigenvalue solver (commumity edition)." ${USE_FEAST_DEFAULT})
@@ -147,8 +147,8 @@ option(USE_PETSC "Suite of MPI parallel linear solver, requires local mpi instal
 option(USE_PHIST_EV "phist eigensolver library from sppexa." ${USE_PHIST_EV_DEFAULT})
 option(USE_PHIST_CG "phist linear library from sppexa." ${USE_PHIST_CG_DEFAULT})
 option(USE_METIS "Use Metis Graph partitioning." ${USE_METIS_DEFAULT})
-
-# --- free and closed optimizers -----
+# CGNS - CFD General Notation System
+option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
 # SCPIP optimizer library.
 option(USE_SCPIP "Use the external academic SCPIP optimizer." ${USE_SCPIP_DEFAULT})
 # MMA/GCMMA optimizer library.
@@ -159,15 +159,6 @@ option(USE_SNOPT "Use the external commercial SNOPT optimizer." ${USE_SNOPT_DEFA
 option(USE_IPOPT "Use the external open source IPOPT optimizer." ${USE_IPOPT_DEFAULT})
 # open source SGP optimizer library.
 option(USE_SGP "Use the external open source SGP optimizer." ${USE_SGP_DEFAULT})
-option(USE_SGPP    "Enable support for sparse grid interpolation."   ${USE_SGPP_DEFAULT})
-
-# --- optional file reading/writing stuff ------
-# USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
-option(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
-# CGNS - CFD General Notation System
-option(USE_CGNS "Enable support for the CFD General Notation System." ${USE_CGNS_DEFAULT})
-option(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
-
 option(USE_CGAL "Activate fast element mapping using CGAL library." ${USE_CGAL_DEFAULT})
 option(USE_EIGEN "Eigen is a C++ template library for linear algebra: matrices, vectors, numerical solvers, and related algorithms." ${USE_EIGEN_DEFAULT})
 # Use libfbi toggles the inclusion of the Fast Box Intersection library.
@@ -184,13 +175,6 @@ if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 else()
   set(USE_STREAMING ON)
 endif()    
-
-if(USE_CUDA)
-  if(NOT USE_GINKGO)
-    message(STATUS "USE_CUDA set but not USE_GINKO which is currently the only CUDA aware dependency") 
-  endif()
-  enable_language(CUDA)
-endif()
 
 #-----------------------------------------------------------------------------
 # Do sanitiy checks after all the settings are done
@@ -367,24 +351,28 @@ endif(PIPELINE_TEST_STAGE_CONFIG) # this is the end of the non indent else() for
 # message(FATAL_ERROR ...) commands are invoked (???) and after the languages
 # for the project have been defined since CMake needs to know about the 
 # language-specific build tools.
-# Switch support for testing ON if the default testsuite dir is used, i.e.
-# the git submodule 'Testing'
+cmake_print_variables(BUILD_TESTING)
+message("ENV{CI_PIPELINE_USE_BUILDTESTS}=" $ENV{CI_PIPELINE_USE_BUILDTESTS})
+message("ENV{CI_PIPELINE_NO_TESTSUITE}=" $ENV{CI_PIPELINE_NO_TESTSUITE})
+
 if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
   # check if TESTSUITE_DIR is correct (contains TESTSUIT)
   if(BUILD_TESTING AND NOT DEFINED ENV{CI_PIPELINE_NO_TESTSUITE})
     if(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      find_package(Git) # having it optional will make a fail only in the pipeline
+      cmake_print_variables(GIT_EXECUTABLE)
+      set(CTEST_GIT_COMMAND ${GIT_EXECUTABLE}) # required before include(CTest) to make cdash publishing work (especially in the pipeline)
+      message(STATUS "Testsuite from ${TESTSUITE_DIR} will be placed in ${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+      include(CTest)
       add_subdirectory(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-      message(STATUS "including testsuite via ${CMAKE_CURRENT_BINARY_DIR}/testsuite")
     else()
-      set(MSG "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'.\n")
-      set(MSG "${MSG}Please specify a proper location!\n")
-      set(MSG "${MSG}Did you clone with 'git clone --recurse-submodules'?\n")
-      set(MSG "${MSG}If not go to your source directory and do\n")
-      set(MSG "${MSG}   'git submodule update --init --recursive'\n")
-      set(MSG "${MSG}   'git pull --recurse-submodules'\n")
-      message(FATAL_ERROR "${MSG}")
+      message(FATAL_ERROR "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'")
     endif()
   endif()
+  # set a build name
+  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" CACHE STRING "Name of build on the dashboard")
+  message(STATUS "set BUILDNAME ${BUILDNAME} and call enable_testing()")
+  mark_as_advanced(BUILDNAME)
   enable_testing()
 endif(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
 if(NOT PIPELINE_TEST_STAGE_CONFIG)

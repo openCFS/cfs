@@ -1,0 +1,52 @@
+Journal Off
+reset
+undo off
+
+
+# Define mesh intervall
+#{ELB = 12}
+#{ELL = 25}
+
+# Define beam size
+#{b = 3}
+#{l = 100}
+
+
+# create plane
+create surface rectangle width {l} height {b} zplane 
+
+# mesh plane
+curve 1  interval {ELL}
+curve 1  scheme equal 
+
+curve 2  interval {ELB}
+curve 2  scheme equal 
+mesh curve 1 2
+
+surface 1  scheme map
+mesh surface 1 
+
+# define regions
+block 1 add surface all
+block 1 name "beam"
+
+
+nodeset 1 add node all with x_coord={- l/2}
+nodeset 1 name "BC_fix"
+
+nodeset 2 add node all with x_coord={l/2}
+nodeset 2 name "reference_Load"
+
+export ansys cdb "./mesh_lin.cdb"  overwrite 
+export abaqus "./mesh_lin.inp"  partial overwrite  everything 
+
+block 1 element type quad8
+
+nodeset 1 add node all with x_coord={- l/2}
+nodeset 2 add node all with x_coord={l/2}
+
+sideset 1 add curve all with x_coord={l/2}
+sideset 1 name "reference_Load_surface"
+
+export ansys cdb "./mesh_quad.cdb"  overwrite 
+export abaqus "./mesh_quad.inp"  partial overwrite  everything 

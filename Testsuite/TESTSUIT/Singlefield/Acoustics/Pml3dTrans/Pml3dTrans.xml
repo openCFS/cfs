@@ -1,0 +1,103 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+    
+  <documentation>
+     <title>3D acoustic pulse propagtion</title>
+     <authors>
+         <author>Manfred Kaltenbacher</author>
+     </authors>
+     <date>2013-07-11</date>
+     <keywords>
+         <keyword>acoustic</keyword>
+         <keyword>pml</keyword>
+     </keywords>
+     <references>none</references>
+     <isVerified>yes</isVerified>
+     <description>
+        The domain is a box and at the center a pressure pulse
+        excitation is performed. The whole box is surrouned by
+        a PML. Time domain simulation!
+     </description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <gmsh fileName="pmlBox.msh"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="prop" material="air_approx"/>
+      <region name="damp" material="air_approx"/>
+    </regionList>
+    <nodeList>
+      <nodes name="excite">
+        <coord x="0.0" y="0.0" z="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+<integrationSchemeList>
+  <scheme>
+    <method>GaussEco</method>
+    <order>4</order>
+    <mode>absolute</mode>
+  </scheme>
+  
+</integrationSchemeList>
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>80</numSteps>
+        <deltaT>0.025</deltaT>
+      </transient>
+    </analysis>
+    
+    
+    
+    <pdeList>
+      <acoustic>
+        <regionList>
+          <region name="prop"/>
+          <region name="damp" dampingId="myPML"/>
+        </regionList>
+
+        <dampingList>
+          <pml  id="myPML">
+            <type>inverseDist</type>
+            <dampFactor>1</dampFactor>
+          </pml>
+        </dampingList>
+
+        <bcsAndLoads>
+          <pressure name="excite" value="4*3.41*3.41*(2*t-1)*exp(-3.41*3.41*(2*t-1)*(2*t-1))"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="acouPressure"> 
+            <allRegions  saveBegin="40" saveEnd="120"/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    
+    <linearSystems>
+      <system id="default">
+        <solverList>
+          <pardiso>
+            <IterRefineSteps>10</IterRefineSteps>
+            <logging>yes</logging>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+  
+</cfsSimulation>
