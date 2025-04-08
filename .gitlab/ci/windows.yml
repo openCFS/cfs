@@ -75,6 +75,7 @@
     INSTALL_POLICY: "pull" # only pull the install, the cfsdeps step has done it (fresh if necessary)
     # see https://docs.gitlab.com/ee/ci/caching/index.html#use-a-variable-to-control-a-jobs-cache-policy
     #BUILD_COMMAND: $CI_PROJECT_DIR\.gitlab\ci\dashboard-build.bat
+    RUNNER_SCRIPT_TIMEOUT: 100m # set a script timeout lower than the job timeout (seems 120m in hosted windows runners) to ensure there is time for artifact and cache upload
   # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
   # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
   # setvars.bat scripts might not work. The remedy is to install to the default location.
@@ -107,6 +108,7 @@
       policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-precompiled-windows-$CI_DEFAULT_BRANCH
+      when: always # there is a zip file only if the dependency is built correctly, so this saves the progress up to a failing cfsdeps
     - key: ccache-windows-$CI_COMMIT_REF_NAME
       paths:
         - ccache
@@ -156,6 +158,15 @@
     - ccache.exe --verbose --cleanup; $null
     # do the CDash submission
     - !reference [.windwos_cdash,after_script]
+  # set a timeout for the job (increasing the project-level setting) https://docs.gitlab.com/ci/yaml/#timeout
+  # it must not exceed the runner timeout (seems to be 2h for GitLab hosted windows runners)
+  timeout: 120m
+  # define retry on timeout. A retry should make use of a cache from the previous job
+  retry:
+    max: 2
+    when:
+      - stuck_or_timeout_failure
+      - job_execution_timeout
 
 ### TESTS ###
 

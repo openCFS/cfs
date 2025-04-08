@@ -508,6 +508,7 @@ rhel:9:
     - saas-linux-small-amd64
   variables: &cfsdeps-variables
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+    RUNNER_SCRIPT_TIMEOUT: 150m # set a script timeout lower than the job timeout to ensure there is time for artifact and cache upload
   rules:
     # include the cfsdeps stage even if there are no changes by setting the variable BUILD_CFSDEPS or merge request label "build-cfsdeps"
     # manual
@@ -543,6 +544,15 @@ rhel:9:
       - build/cfsdeps/cache/sources/
     name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
     expire_in: 12 hours
+  # set a timeout for the job (increasing the project-level setting) https://docs.gitlab.com/ci/yaml/#timeout
+  # it must not exceed the runner timeout (3h for gitlab hosted runners, https://docs.gitlab.com/ci/runners/hosted_runners/#gitlabcom-hosted-runner-workflow)
+  timeout: 170m
+  # define retry on timeout. A retry should make use of a cache from the previous job
+  retry:
+    max: 2
+    when:
+      - stuck_or_timeout_failure
+      - job_execution_timeout
   needs: []
 
 cfsdeps:gcc9:
