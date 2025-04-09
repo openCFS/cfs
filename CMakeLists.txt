@@ -131,6 +131,8 @@ set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK impleme
 # we set convenience USE_MKL, USE_OPENBLAS, USE_NETLIB, USE_ACCELERATE in openmp_blas.cmake
 set_property(CACHE USE_BLAS_LAPACK PROPERTY STRINGS OPENBLAS MKL NETLIB ACCELERATE)
 option(USE_OPENMP "Enable support for OpenMP" ${USE_OPENMP_DEFAULT})
+# requires working cuda on the local machine (Ginkgo and to be added cholmod)
+option(USE_CUDA "Use Ginkgo with CUDA" ${USE_CUDA_DEFAULT})
 option(USE_GIDPOST "Use the GiD library for simulation output."  ${USE_GIDPOST_DEFAULT})
 # USE_ENSIGHT will we mirrored to USE_VTK which is only used for Ensight
 option(USE_ENSIGHT "Support for Ensight Gold file format for input.." ${USE_ENSIGHT_DEFAULT})
@@ -175,6 +177,15 @@ if(WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
 else()
   set(USE_STREAMING ON)
 endif()    
+if(USE_CUDA)
+  find_package(CUDAToolkit)
+  if(NOT CUDAToolkit_FOUND)
+     message(FATAL_ERROR "CUDAToolkit not found, disable USE_CUDA or set CUDAToolkit_ROOT")
+  endif()
+  if(NOT USE_GINKGO)
+    message(STATUS "USE_CUDA set but not USE_GINKO which is currently the only CUDA aware dependency") 
+  endif()
+endif()
 
 #-----------------------------------------------------------------------------
 # Do sanitiy checks after all the settings are done

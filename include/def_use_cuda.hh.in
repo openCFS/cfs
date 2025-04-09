@@ -1,5 +1,4 @@
 #cmakedefine USE_CUDA
 
-// As suggestet by cmake, we don't do find_package(CUDA) but do enable_language(CUDA)
-// Thus the informative variables are not that nice :(
-#define CUDA_COMPILER_VERSION_STRING "@CMAKE_CUDA_COMPILER_VERSION@"
+// we do find_package(CUDAToolkit)
+#define CUDAToolkit_VERSION "@CUDAToolkit_VERSION@"

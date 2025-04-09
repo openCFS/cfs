@@ -204,7 +204,7 @@ void Dependencies::ReadSetting()
 
   Dependency cuda("cuda", "USE_CUDA", EASY);
 #ifdef USE_CUDA
-  cuda.SetVersion(CUDA_COMPILER_VERSION_STRING);
+  cuda.SetVersion(CUDAToolkit_VERSION);
 #endif
   data.Push_back(cuda);
 
