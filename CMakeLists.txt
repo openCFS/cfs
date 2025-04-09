@@ -75,7 +75,7 @@ include("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date. 
 # It is good practice to keep this up to date, independent on the significance of the change (CFS_NAME can stay)
 set(CFS_VERSION_YEAR "25")
-set(CFS_VERSION_MONTH "03")
+set(CFS_VERSION_MONTH "04")
 set(CFS_VERSION "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 # Version Name. Every major release gets a label/name
@@ -103,6 +103,9 @@ set(CFS_PARDISO ${CFS_PARDISO_DEFAULT} CACHE STRING "Pardiso implementation for 
 set_property(CACHE CFS_PARDISO PROPERTY STRINGS MKL SCHENK)
 # Switch on/off usage of cfsdepscache
 option(CFS_DEPS_PRECOMPILED "Use (create) precompiled cfsdeps packages" ${CFS_DEPS_PRECOMPILED_DEFAULT})
+include(ProcessorCount)
+ProcessorCount(AVAILABLE_CORES)
+set(CFS_DEPS_BUILD_THREADS ${AVAILABLE_CORES} CACHE STRING "Parallel build threads for cfsdeps") # default is local machine value
 option(DEBUG "Build debug version of the code which allows debugging, logging and has asserts - up to 10 times slower." ${DEBUG_DEFAULT})
 option(CFS_NATIVE "Compile for native CPU for speed, might not be transferable" ${CFS_NATIVE_DEFAULT})
 option(CFS_PROFILING "Set profiling compiler options for Release for vtune and valgrind (-g)." OFF)

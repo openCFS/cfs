@@ -11,6 +11,10 @@
 include(ExternalProject) # cmake external project
 include("cmake_modules/DependencyTools.cmake") # our own helper for cfsdeps handling (pseudo object oriented)
 
+if(NOT CMAKE_GENERATOR MATCHES "NMake Makefiles")
+  message(STATUS "Most cfsdeps will be build with ${CFS_DEPS_BUILD_THREADS} threads.")
+endif()
+
 set(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
 set(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
 
@@ -24,10 +28,7 @@ else()
   set(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CACHE_DIR_DEFAULT}" CACHE PATH "Directory for CFSDEPS sources and prebuilt binaries.")
 endif()
 
-# Check if cache directory is present
-if(NOT CFS_DEPS_CACHE_DIR)
-  message(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. This dirctory is used to stor depenency source and compiles.") 
-endif()
+assert_set(CFS_DEPS_CACHE_DIR)
 
 file(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
 
