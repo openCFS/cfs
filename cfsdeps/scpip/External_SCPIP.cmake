@@ -14,7 +14,7 @@ set(SCPIP_VER "2009.01") # for def_use_scpip.hh.in
 set(PACKAGE_VER ${SCPIP_VER})
 set(PACKAGE_FILE "scpip-cfsdeps.zip")
 set(PACKAGE_MD5 "a2767521596ed925e53b9fea6df4d77e")
-set(DEPS_VER "-b") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-c") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # with CFS_DOWNLOAD_SCPIP the encrypted file can be found
 # when we need to download, the key needs to be set from local .cfs_platform_defaults.cmake, environment or cmake -DCFS_DOWNLOAD_SCPIP=...
