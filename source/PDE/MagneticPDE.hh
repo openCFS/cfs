@@ -89,7 +89,12 @@ namespace CoupledField
     LinearForm* GetRHSMagnetizationInt( Double factor, PtrCoefFct rhsMag, bool fullEvaluation );
 
     BaseBDBInt* GeHystStiffInt( Double factor, PtrCoefFct tensorReluctivity );
-    
+
+    // =======================================================================
+    //   NETWORK
+    // =======================================================================
+    void DefineLemIntegrators( void );
+
     //! Map containing the remanence (B excitation on RHS)
     //! needed for calculating H field
     std::map<RegionIdType,PtrCoefFct> bRHSRegions_;

@@ -1371,6 +1371,11 @@ namespace CoupledField {
 
         // define coupling integrators (LEM-FEM)
 
+        // get the correct entities involved in the coupling based on the terminal definition
+
+        // for FEM we get a surface (here we can pass the entity directly)
+        // for LEM we get a node --> we might have to search for that one explicitely
+
 
 
     }
@@ -1445,6 +1450,18 @@ namespace CoupledField {
       networkFeFct->SetResultInfo(resNetwork);
       DefineFieldResult( networkFeFct, resNetwork );
 
+      // -----------------------------------
+      //  Define xml-names of Dirichlet BCs
+      // -----------------------------------
+      hdbcSolNameMap_[ELEC_NETWORK_POTENTIAL] = "elecNetworkGround";
+      idbcSolNameMap_[ELEC_NETWORK_POTENTIAL] = "elecNetworkPotential";
+
+
+      // the current could either be evaluated with a separate operator or maybe even with a coefFunctionFormBased
+
+      // === ELECTRIC NETWORK CURRENT ===
+
+      // TODO
     }
 
     // === COIL CURRENT ===
