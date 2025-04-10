@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsdat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <pipeline>
+    <stepValueDefinition>
+      <startStop>
+        <startStep value="0"/>
+        <numSteps value="1"/>
+        <startTime value="0.01"/>
+        <delta value="0.01"/>
+        <deleteOffset value="no"/>
+      </startStop>
+    </stepValueDefinition>
+    <meshInput id="input1" gridType="fullGrid">
+      <inputFile>
+        <ensight fileName="cfd/dummy_2DflowData_Ensight/source_DATA.case">
+          <variableList>
+            <variable CFSVarName="fluidMechStress" EnsightVarName="scalarDataY" dof="y"/>
+            <variable CFSVarName="fluidMechStress" EnsightVarName="scalarDataX" dof="x"/>
+            <variable CFSVarName="meanFluidMechVelocity" EnsightVarName="vectorData"/>
+          </variableList>
+        </ensight>
+      </inputFile>
+    </meshInput>
+
+    <interpolation id="interp1" inputFilterIds="input1" type="FieldInterpolation_NearestNeighbour">
+      <IntSchemeNN interpolationExponent="5" numNeighbours="15"/>
+      <targetMesh>
+        <hdf5 fileName="mesh/mesh.h5"/>
+      </targetMesh>
+      <singleResult>
+        <inputQuantity resultName="meanFluidMechVelocity"/>
+        <outputQuantity resultName="meanFluidMechVelocity"/>
+      </singleResult>
+      <regions>
+        <sourceRegions>
+          <region name="fluid"/>
+        </sourceRegions>
+        <targetRegions>
+          <region name="fluid"/>
+          <!-- interploation on surface-->
+          <region name="bottom"/>
+          <region name="top"/>
+          <region name="inlet"/>
+          <region name="outlet"/>
+        </targetRegions>
+      </regions>
+    </interpolation>
+
+    <interpolation id="interp2" inputFilterIds="input1" type="FieldInterpolation_NearestNeighbour">
+      <IntSchemeNN interpolationExponent="5" numNeighbours="15"/>
+      <targetMesh>
+        <hdf5 fileName="mesh/mesh.h5"/>
+      </targetMesh>
+      <singleResult>
+        <inputQuantity resultName="fluidMechStress"/>
+        <outputQuantity resultName="fluidMechStress"/>
+      </singleResult>
+      <regions>
+        <sourceRegions>
+          <region name="fluid"/>
+        </sourceRegions>
+        <targetRegions>
+          <region name="fluid"/>
+          <!-- interploation on surface-->
+          <region name="bottom"/>
+          <region name="top"/>
+          <region name="inlet"/>
+          <region name="outlet"/>
+        </targetRegions>
+      </regions>
+    </interpolation>
+
+    <meshOutput id="NearestNeighbour_2D_Ensight_vector" inputFilterIds="interp1 interp2">
+      <outputFile>
+        <hdf5 extension="cfs" compressionLevel="1" externalFiles="no"/>
+      </outputFile>
+      <saveResults>
+        <result resultName="meanFluidMechVelocity">
+          <allRegions/>
+        </result>
+        <result resultName="fluidMechStress">
+          <allRegions/>
+        </result>
+      </saveResults>
+    </meshOutput>
+  </pipeline>
+</cfsdat>

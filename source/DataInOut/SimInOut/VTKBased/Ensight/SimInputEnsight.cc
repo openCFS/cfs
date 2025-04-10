@@ -107,45 +107,69 @@ void SimInputEnsight::GetTimeValues(){
   numAvailSteps_ = timeValues_.size();
 }
 
-void SimInputEnsight::CreateReader(){
+void SimInputEnsight::CreateReader()
+{
   // Create new EnSight reader
-  vtkGenericEnSightReader* reader = vtkEnSightReader::New();
+  vtkGenericEnSightReader *reader = vtkEnSightReader::New();
   reader->SetCaseFileName(this->fileName_.c_str());
-  if(reader->DetermineEnSightVersion(1)==-1){
-    EXCEPTION("Can not open EnSight case file: "<< this->fileName_.c_str());
+  if (reader->DetermineEnSightVersion(1) == -1) {
+    EXCEPTION("Can not open EnSight case file: " << this->fileName_.c_str());
   }
   reader_ = reader;
   reader->ReadAllVariablesOn();
   this->SetTimeValue(-1.0);
   reader_->Modified();
   reader_->Update();
-
   this->dim_ = GetDim();
 
-  //now Fill the basic CFS_result definition
+  // now Fill the basic CFS_result definition
   FillResultMap();
 
-  //fill the user supplied result names
-  //and figure out how the result is definied
+  // fill the user supplied result names and figure out how the result is definied
   ParamNodeList variableDef = this->myParam_->Get("variableList")->GetList("variable");
-  for(UInt aNode = 0; aNode < variableDef.GetSize(); aNode++){
-    //try to parse the element name to a result name
-    //extract the string, fill the names
+  for (UInt aNode = 0; aNode < variableDef.GetSize(); aNode++) {
+    // try to parse the element name to a result name
+    // extract the string, fill the names
     PtrParamNode varNode = variableDef[aNode];
     std::string cfsVarName = varNode->Get("CFSVarName")->As<std::string>();
-    std::string varNames = varNode->Get("EnsightVarName")->As<std::string>();
+    std::string varName = varNode->Get("EnsightVarName")->As<std::string>();
     bool staticVar = varNode->Get("static")->As<bool>();
-    boost::char_separator<char> sep(" ,");
-    boost::tokenizer<boost::char_separator<char> > varTok(varNames, sep);
     SolutionType cfsSol = SolutionTypeEnum.Parse(cfsVarName);
-
-    this->cfsEnsightResMap_[cfsSol].multByCellVol = false;
     this->cfsEnsightResMap_[cfsSol].isComplex = false;
     this->cfsEnsightResMap_[cfsSol].isStatic = staticVar;
-    for(boost::tokenizer<boost::char_separator<char> >::iterator beg=varTok.begin(); beg!=varTok.end();++beg){
-      reader->SetPointArrayStatus(beg->c_str(), 1);
-      this->cfsEnsightResMap_[cfsSol].dofNameMap.Push_back(beg->c_str());
+    std::string dofName = varNode->Get("dof")->As<std::string>();
+
+    if (dofName == "") {
+      reader->SetPointArrayStatus(varName.c_str(), 1);
+      this->cfsEnsightResMap_[cfsSol].dofNameMap.Push_back(varName);
       this->cfsEnsightResMap_[cfsSol].isValid_.Push_back(false);
+    }
+    else {
+      if (this->cfsEnsightResMap_[cfsSol].dofNameMap.GetSize() == 0) {
+        this->cfsEnsightResMap_[cfsSol].dofNameMap.Resize(this->dim_);
+        this->cfsEnsightResMap_[cfsSol].isValid_.Resize(this->dim_);
+      }
+      if (dofName == "x") {
+        reader->SetPointArrayStatus(varName.c_str(), 1);
+        this->cfsEnsightResMap_[cfsSol].dofNameMap[0] = varName;
+        this->cfsEnsightResMap_[cfsSol].isValid_[0] = false;
+      }
+      else if (dofName == "y") {
+        reader->SetPointArrayStatus(varName.c_str(), 1);
+        this->cfsEnsightResMap_[cfsSol].dofNameMap[1] = varName;
+        this->cfsEnsightResMap_[cfsSol].isValid_[1] = false;
+      }
+      else if (dofName == "z") {
+        if (this->dim_ == 2) {
+          EXCEPTION("You passed a z dof for an Ensight file for a 2D mesh");
+        }
+        reader->SetPointArrayStatus(varName.c_str(), 1);
+        this->cfsEnsightResMap_[cfsSol].dofNameMap[2] = varName;
+        this->cfsEnsightResMap_[cfsSol].isValid_[2] = false;
+      }
+      else {
+        EXCEPTION("Unknown dof name: " << dofName << " detected for Ensight variable: " << varName);
+      }
     }
   }
   ValidateResultDefinition();
@@ -163,55 +187,69 @@ void SimInputEnsight::ValidateResultDefinition(){
     // in case of vectorial results we need to check if every component is defined
     StdVector<std::string>& aVec = resIter->second.dofNameMap;
     StdVector<bool>& aValid = resIter->second.isValid_;
-    if(aVec.GetSize() == 0){
+
+    unsigned int numDofNames = aVec.GetSize();
+    if (numDofNames == 0) {
       resIter++;
       continue;
     }
+    else {
+      // check if there are the same names occurring in different dofs
+      for (UInt iDof1 = 0; iDof1 < numDofNames; ++iDof1) {
+        for (UInt iDof2 = iDof1+1; iDof2 < numDofNames; ++iDof2) {
+          if (aVec[iDof1] == aVec[iDof2]) {
+            EXCEPTION("The same variable name " << aVec[iDof1] << " is used for different dofs of the same vector!");
+          }
+        }
+      }
+    }
 
-    for(UInt k=0;k< aVec.GetSize();k++){
-
+    for (UInt k = 0; k < numDofNames; k++) {
       bool wasVector = false;
-      //for each user supplied string we look through the ensight file
-      for(UInt aVar = 0; aVar < numVTKResults;aVar++ ){
+      // for each user supplied string we look through the ensight file
+      for (UInt aVar = 0; aVar < numVTKResults; aVar++) {
         int varType = reader->GetVariableType(aVar);
         std::string ensightName = reader->GetDescription(aVar);
-        if(aVec[k] == ensightName){
+        if (aVec[k] == ensightName) {
           aValid[k] = true;
-          //determine if element or node result
-          switch(varType){
+          // determine if element or node result
+          switch (varType) {
           case vtkEnSightReader::COMPLEX_VECTOR_PER_NODE:
             resIter->second.isComplex = true;
+            continue;
           case vtkEnSightReader::VECTOR_PER_NODE:
             resIter->second.res->definedOn = ResultInfo::NODE;
             wasVector = true;
-            break;
+            continue;
           case vtkEnSightReader::COMPLEX_SCALAR_PER_NODE:
             resIter->second.isComplex = true;
           case vtkEnSightReader::SCALAR_PER_NODE:
             resIter->second.res->definedOn = ResultInfo::NODE;
-            if(wasVector)
-              EXCEPTION("May not mix SCALAR_PER_ELEMENT and VECTOR_PER_ELEMENT in one result. VarName: "  << ensightName);
-            break;
+            if (wasVector)
+              EXCEPTION("May not mix SCALAR_PER_ELEMENT and VECTOR_PER_ELEMENT in one result. VarName: " << ensightName);
+            continue;
           case vtkEnSightReader::COMPLEX_VECTOR_PER_ELEMENT:
             resIter->second.isComplex = true;
+            continue;
           case vtkEnSightReader::VECTOR_PER_ELEMENT:
             resIter->second.res->definedOn = ResultInfo::ELEMENT;
             wasVector = true;
-            break;
+            continue;
           case vtkEnSightReader::COMPLEX_SCALAR_PER_ELEMENT:
             resIter->second.isComplex = true;
+            continue;
           case vtkEnSightReader::SCALAR_PER_ELEMENT:
             resIter->second.res->definedOn = ResultInfo::ELEMENT;
-            if(wasVector)
+            if (wasVector)
               EXCEPTION("May not mix SCALAR_PER_ELEMENT and VECTOR_PER_ELEMENT in one result. VarName: " << ensightName);
-            break;
+            continue;
           default:
             EXCEPTION("VTK variable type not supported. Must be (COMPLEX)_(SCALAR|VECTOR)_PER_(NODE|ELEMENT).");
           }
         }
       }
     }
-    if(aValid.Find(false) == -1){
+    if (aValid.Find(false) == -1) {
       availResults_.insert(resIter->first);
     }
     resIter++;
@@ -266,6 +304,7 @@ void SimInputEnsight::FillResultMap(){
   FillResultMap(FLUIDMECH_PRESSURE_DERIV_1, ResultInfo::VECTOR);
   FillResultMap(FLUIDMECH_VORTICITY, ResultInfo::VECTOR);
   FillResultMap(MEAN_FLUIDMECH_VELOCITY, ResultInfo::VECTOR);
+  FillResultMap(FLUIDMECH_STRESS, ResultInfo::VECTOR);
   FillResultMap(FLUIDMECH_DENSITY, ResultInfo::SCALAR);
   FillResultMap(FLUIDMECH_TEF, ResultInfo::SCALAR);
   FillResultMap(FLUIDMECH_TEMP, ResultInfo::SCALAR);
@@ -411,7 +450,7 @@ void SimInputEnsight::GetElemResult( UInt sequenceStep,
 
   vtkCellData* cellData = NULL;
   vtkDataSet* ds = NULL;
-  bool scalarForVector;
+  bool scalarForVector = false;
   StdVector< vtkDataArray * > CurArrays;
 
   //obtain ensight reader
@@ -442,17 +481,18 @@ void SimInputEnsight::GetElemResult( UInt sequenceStep,
     std::cerr << "No cell arrays are defined for step #" << stepValue << std::endl;
     return;
   }
-  if(numDofs>1 && cellData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-    scalarForVector = false;
-  }else{
-    scalarForVector = true;
-  }
 
-  //get grip of VTK arrays
+  // get grip of VTK arrays
   CurArrays.Resize(numNodeArrays);
   StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
-  for (UInt array=0; array < numNodeArrays; array++,nameIter++){
+  for (UInt array = 0; array < numNodeArrays; array++, nameIter++) {
     CurArrays[array] = cellData->GetArray(nameIter->c_str());
+  }
+
+  // check if we have a vector result that is passed by multiple Ensight scalar results
+  if (numDofs > 1 && cfsEnsightResMap_[solT].dofNameMap.GetSize() == numDofs) {
+    // Ensight scalar results and CFS vector result
+    scalarForVector = true;
   }
 
   //fill index of cell arrays
@@ -490,7 +530,6 @@ void SimInputEnsight::GetResult( UInt sequenceStep,
 
   SolutionType solT = result->GetResultInfo()->resultType;
   StdVector<std::string>& actVTKVar = cfsEnsightResMap_[solT].dofNameMap;
-  //bool multByCell = cfsEnsightResMap_[solT].multByCellVol;
 
   //activate only the desired quantities
 
@@ -515,12 +554,6 @@ void SimInputEnsight::GetResult( UInt sequenceStep,
   reader_->Modified();
   reader_->Update();
 
-
-  //UInt numDofs = result->GetResultInfo()->dofNames.GetSize();
-  //UInt numEntities = result->GetEntityList()->GetSize();
-  //UInt resVecSize =  numEntities * numDofs;
-
-
   if( result->GetEntryType() == BaseMatrix::DOUBLE ) {
     if(elemResult){
       GetElemResult<Double>(sequenceStep,stepValue,result);
@@ -529,148 +562,9 @@ void SimInputEnsight::GetResult( UInt sequenceStep,
     }
   }else{
     EXCEPTION("Complex valued results are not supported");
-    //if(elemResult){
-    //  GetElemResult<Complex>(sequenceStep,stepValue,result);
-    //}else{
-    //  GetNodeResult<Complex>(sequenceStep,stepValue,result);
-    //}
   }
-//  //flag indicating if vector components are stored in 2 or 3 scalar arrays
-//  bool scalarForVector = false;
-//
-//  UInt resIdx = 0;
-//  shared_ptr<EntityList> resList = result->GetEntityList();
-//  EntityIterator iter = resList->GetIterator();
-//  vtkCellData* cellData = NULL;
-//  vtkPointData* pointData = NULL;
-//  vtkDataSet* ds = NULL;
-//  //vtkDataArray* data = NULL;
-//  RegionIdType lastReadRegion = 999999;
-//  bool regionUpdate = false;
-//  StdVector< vtkDataArray * > CurArrays;
-//  while(!iter.IsEnd()){
-//    if(elemResult){
-//      const Elem* curE = iter.GetElem();
-//      //obtain block id
-//      UInt blockId = this->regionAssoc_[curE->regionId];
-//      if(lastReadRegion != curE->regionId){
-//        ds = vtkDataSet::SafeDownCast(reader_->GetOutput()->GetBlock(blockId));
-//        cellData = ds->GetCellData();
-//        lastReadRegion = curE->regionId;
-//        regionUpdate = true;
-//      }else{
-//        regionUpdate = false;
-//      }
-//      UInt numCellArrays = cellData->GetNumberOfArrays();
-//      Double volume = 1;
-//      if(multByCell){
-//        if(elemVolumes_.find(curE->elemNum) == elemVolumes_.end()){
-//          shared_ptr<ElemShapeMap> esm = mi_->GetElemShapeMap(curE,false);
-//          elemVolumes_[curE->elemNum] = esm->CalcVolume();
-//        }
-//        volume = elemVolumes_[curE->elemNum];
-//      }
-//
-//      if(numDofs>1 && cellData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-//        scalarForVector = true;
-//      }else{
-//        scalarForVector = false;
-//      }
-//      //UInt lastArray = 999999;
-//      if(numCellArrays > 0){
-//        if(cfsEnsightResMap_[solT].dofNameMap.GetSize() != numCellArrays){
-//          EXCEPTION("Inconsitent variable definition detected. Check the definition in the XML. ")
-//        }
-//        if(regionUpdate){
-//          CurArrays.Resize(numCellArrays);
-//          StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
-//          for (UInt array=0; array < numCellArrays; array++,nameIter++){
-//            CurArrays[array] = cellData->GetArray(nameIter->c_str());
-//          }
-//        }
-//
-//        UInt locIdx = this->globElemLocElem_[curE->elemNum-1];
-//        //COPY VALUES
-//        //THIS DOES IT FOR VECTOR VALUES AND SCALARS
-//
-//        if(!scalarForVector){
-//          StdVector<double> myValues(numDofs);
-//          myValues.Init();
-//          CurArrays[0]->GetTuple(locIdx,myValues.GetPointer());
-//          for(UInt j=0; j<numDofs; j++) {
-//            result->GetSingleVector()->SetEntry(locIdx*numDofs+j,myValues[j]*std::abs(volume));
-//          }
-//        }else{
-//          double myVal=0;
-//          for(UInt j=0; j<numDofs; j++) {
-//            CurArrays[j]->GetTuple(locIdx,&myVal);
-//            result->GetSingleVector()->SetEntry(locIdx*numDofs+j,myVal*std::abs(volume));
-//          }
-//
-//        }
-//
-//         //switch(data->GetDataType()){
-//         //case VTK_FLOAT:
-//         //  EXTRACT_DATA_ARRAY(float)
-//         //  break;
-//         //case VTK_DOUBLE:
-//         //  EXTRACT_DATA_ARRAY(double)
-//         //  break;
-//         //default:
-//         //  EXCEPTION("Unsupported datatype in ensight file. Expected float or double.");
-//         //}
-//
-//      }
-//    }else{
-//
-//      RegionIdType id = mi_->GetRegion().Parse(resList->GetName());
-//      //obtain block id
-//      UInt blockId = this->regionAssoc_[id];
-//      if(lastReadRegion != id){
-//
-//        lastReadRegion = id;
-//        regionUpdate = true;
-//      }else{
-//        regionUpdate = false;
-//      }
-//      UInt numNodeArrays = pointData->GetNumberOfArrays();
-//      if(numDofs>1 && pointData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-//        scalarForVector = false;
-//      }else{
-//        scalarForVector = true;
-//      }
-//      if(numNodeArrays > 0){
-//        if(cfsEnsightResMap_[solT].dofNameMap.GetSize() != numNodeArrays){
-//          EXCEPTION("Inconsitent variable definition detected. Check the definition in the XML. ")
-//        }
-//        if(regionUpdate){
-//          CurArrays.Resize(numNodeArrays);
-//          StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
-//          for (UInt array=0; array < numNodeArrays; array++,nameIter++){
-//            CurArrays[array] = pointData->GetArray(nameIter->c_str());
-//          }
-//        }
-//        if(!scalarForVector){
-//          StdVector<double> myValues(numDofs);
-//          myValues.Init();
-//          CurArrays[0]->GetTuple(iter.GetPos(),myValues.GetPointer());
-//          for(UInt j=0; j<numDofs; j++) {
-//            result->GetSingleVector()->SetEntry(iter.GetPos()*numDofs+j,myValues[j]);
-//          }
-//        }else{
-//          double myVal=0;
-//          for(UInt j=0; j<numDofs; j++) {
-//            CurArrays[j]->GetTuple(iter.GetPos(),&myVal);
-//            result->GetSingleVector()->SetEntry(iter.GetPos()*numDofs+j,myVal);
-//          }
-//
-//        }
-//      }
-//    }
-//    iter++;
-//    resIdx++;
-//  }
 }
+
 void SimInputEnsight::DisableAllArrays(){
   vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
   UInt numArray = 0;

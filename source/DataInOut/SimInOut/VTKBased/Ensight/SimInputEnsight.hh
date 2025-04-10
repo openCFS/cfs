@@ -44,8 +44,6 @@ public:
     bool isComplex;
     
     bool isStatic;
-
-    bool multByCellVol;
   };
 
   SimInputEnsight(std::string fileName, PtrParamNode inputNode, PtrParamNode infoNode );

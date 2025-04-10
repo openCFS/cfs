@@ -197,7 +197,7 @@ int main(int argc, const char** argv)
     allFinished = true;
     outIter =  outputs.begin();
     for(;outIter != outputs.end();++outIter){
-      //std::cout << "\t     Filter ID: " << (*outIter)->GetId() << std::endl;
+      std::cout << "\t     Filter ID: " << (*outIter)->GetId() << std::endl;
       allFinished &= (*outIter)->Run();
     }
   } while(!allFinished);

@@ -451,40 +451,45 @@
               <xsd:sequence>
                 <xsd:element name="variable" minOccurs="0" maxOccurs="unbounded">
                   <xsd:complexType>
-                    <xsd:attribute name="CFSVarName" use="required" type="xsd:token"/>
-                    <!--xsd:annotation >
+                    <xsd:attribute name="CFSVarName" use="required" type="xsd:token">
+                      <xsd:annotation >
                         <xsd:documentation xml:lang="en">
-                         CFS++ compliant variable name. May be one of fluidMechPressure | fluidMechVelocity |
+                         CFS compliant variable name. May be one of
+                         fluidMechVelocity
+                         fluidMechPressure
+                         fluidMechPressure_timeDeriv1
                          fluidMechPressure_deriv2
+                         fluidMechPressure_deriv1
+                         fluidMechVorticity
+                         meanFluidMechVelocity
+                         fluidMechStress
+                         fluidMechDensity
+                         fluidMechTEF
+                         fluidMechTemp
+                         fluidMechTKE
+                         fluidMechTDR
+                         optResult_1 ... optResult_20
                         </xsd:documentation>
-                      </xsd:annotation-->
-                    <xsd:attribute name="EnsightVarName" use="required" type="xsd:token"/>
-                    <!--xsd:annotation >
+                      </xsd:annotation>
+                    </xsd:attribute>
+                    <xsd:attribute name="EnsightVarName" use="required" type="xsd:token">
+                      <xsd:annotation >
                         <xsd:documentation xml:lang="en">
-                          Name of variable as given in case file
+                          Name of variable as given in case file.
                         </xsd:documentation>
-                      </xsd:annotation-->
-                    <!--xsd:attribute name="multByCellVolume" use="optional"  type="xsd:boolean" default="false"/-->
-                    <!--xsd:annotation >
-                        <xsd:documentation xml:lang="en">
-                          If this is true, the value at node/cellCenter is multiplied by the cell volume
-                          during read. 
-                        </xsd:documentation>
-                      </xsd:annotation-->
-                    <!--xsd:attribute name="type">
-                      <xsd:simpleType>
-                        <xsd:restriction>
-                          <xsd:enumeration value="vector"/>
-                          <xsd:enumeration value="scalar"/>                          
-                        </xsd:restriction>                        
-                      </xsd:simpleType>
-                    </xsd:attribute-->
-                    <xsd:attribute name="static" type="DT_CFSBool" default="no"/>
-                    <xsd:attribute name="dof" use="optional" type="xsd:token">
+                      </xsd:annotation>
+                    </xsd:attribute>
+                    <xsd:attribute name="static" type="DT_CFSBool" default="no">
                       <xsd:annotation>
                         <xsd:documentation xml:lang="en">
-                          In case of vectors (e.g. velocity) which are stored component wise as scalar results we can give the 
-                          target dof for CFS here.
+                          If set to yes, the variable is assumed to be static and only the first time value is used.
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:attribute>
+                    <xsd:attribute name="dof" use="optional" type="DT_DOF" default="">
+                      <xsd:annotation>
+                        <xsd:documentation xml:lang="en">
+                          In case of vectors (e.g. velocity) which are stored component wise as scalar results we can give the target dof for CFS here.
                         </xsd:documentation>
                       </xsd:annotation>
                     </xsd:attribute>
@@ -503,6 +508,15 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+  <xsd:simpleType name="DT_DOF">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="x" />
+      <xsd:enumeration value="y" />
+      <xsd:enumeration value="z" />
+      <xsd:enumeration value="" />
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <!-- ******************************************************************** -->
   <!--   Definition of the python mesh input type -->

@@ -117,10 +117,6 @@ void CentroidInterpolator::PrepareCalculation(){
 
   std::cout << "\t\t\t Interpolator is dealing with " << allSrcElems.size() <<
                " source element centroids" << std::endl;
-  //Get the coverage of target elements that have a scr point
-  Vector<int > coverage;
-  coverage.Resize(allTrgElems.size());
-  coverage.Init();
 
   std::cout << "\t\t 2/3 Creating interpolation matrix " << std::endl;
 //  CreateCRS(inGrid, trgGrid_);
@@ -168,6 +164,9 @@ void CentroidInterpolator::PrepareCalculation(){
   StdVector<UInt> sElemEq;
   UInt foundCounter = 0;
 
+  //Get the coverage of target elements that have a scr point
+  Vector<unsigned int> coverage(trgElements.GetSize());
+
   //make connectivity unique //TODO for all CFD values ...
   for(UInt aInfo=0;aInfo<trgElements.GetSize();++aInfo){
     if(trgElements[aInfo]!= NULL){
@@ -181,7 +180,6 @@ void CentroidInterpolator::PrepareCalculation(){
           connecting[tNodeEq[aDOF]].insert(sElemEq[aDOF]);
         }
       }
-
       coverage[aInfo] = 1;
       ++foundCounter;
     }
@@ -189,11 +187,13 @@ void CentroidInterpolator::PrepareCalculation(){
 
   //count NNZ
   UInt nnz = 0;
+  std::cout << "\t\t\t\t Count NNZ..." << std::endl;
   for(UInt aC=0;aC<connecting.GetSize();++aC){
     nnz += connecting[aC].size();
   }
 
   //fill container and convert to CRS
+  std::cout << "\t\t\t\t Fill container and convert to CRS..." << std::endl;
   CoordFormat<Double>* myContainer = new CoordFormat<Double>(numRows,numCols,nnz,false);
   for(UInt aC=0;aC<connecting.GetSize();++aC){
     std::set<UInt>::iterator aIter = connecting[aC].begin();
@@ -201,7 +201,7 @@ void CentroidInterpolator::PrepareCalculation(){
       myContainer->AddEntry(aC,*aIter,0.0);
     }
   }
-
+  std::cout << "\t\t\t\t Finalize Assembly..." << std::endl;
   myContainer->FinaliseAssembly();
 
   //create CRS
@@ -256,10 +256,11 @@ void CentroidInterpolator::PrepareCalculation(){
         Double curval  = shFnc[aNode] * vol;
         if(shFnc[aNode] < 0){
           negativeCounter++;
+          curval = 0.0;
         }
         if(std::isnan(shFnc[aNode]) || std::isinf(shFnc[aNode])){
           nanInfCounter++;
-          shFnc[aNode] = 0.0;
+          curval = 0.0;
         }
         for(UInt aDOF = 0; aDOF < tNodeEq.GetSize(); ++aDOF){
           InterpolationMatrix->AddToMatrixEntry(tNodeEq[aDOF],sElemEq[aDOF],curval);
@@ -268,10 +269,10 @@ void CentroidInterpolator::PrepareCalculation(){
     }
 }
     if(negativeCounter > 0){
-      std::cerr << "Detected " << negativeCounter << " negative weights. This could indicate errors. Check your results!" << std::endl;
+      WARN("Detected " << negativeCounter << " negative weights. This could indicate errors. Check your results!" << std::endl);
     }
     if(nanInfCounter > 0){
-      std::cerr << "Detected " << nanInfCounter << " nan/inf weights. This indicate errors. Setting those contributions to Zero!" << std::endl;
+      WARN("Detected " << nanInfCounter << " nan/inf weights. This indicate errors. Setting those contributions to Zero!" << std::endl);
     }
   }
 
