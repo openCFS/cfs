@@ -104,6 +104,20 @@ class BiLinearForm : public CfsCopyable{
         EXCEPTION("BiLinearForm::CalcElementMatrix called, this must not happen!");
       }
 
+      //! Integration point specific version
+      //! Compute element matrix associated to BDB form for a specific lpm
+      virtual void CalcElementMatrixLpm( Matrix<Double>& elemMat,
+                                         BaseFE* ptFe,
+                                         const LocPointMapped& lp ){
+        EXCEPTION("BiLinearForm::CalcElementMatrixLpm called, this must not happen!");
+      }
+
+      virtual void CalcElementMatrixLpm( Matrix<Complex>& elemMat,
+                                         BaseFE* ptFe,
+                                         const LocPointMapped& lp ){
+        EXCEPTION("BiLinearForm::CalcElementMatrixLpm called, this must not happen!");
+      }
+
       //! Set finite element space in cases of mixed spaces
       //! To remain generality, each subclass needs this function too
       virtual void SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2)=0;

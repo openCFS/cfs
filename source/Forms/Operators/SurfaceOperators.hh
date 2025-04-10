@@ -18,6 +18,7 @@
 #define SURFACEOPERATORS_HH
 
 #include "BaseBOperator.hh"
+#include "Forms/BiLinForms/ADBInt.hh"
 
 namespace CoupledField{
 
@@ -1702,7 +1703,7 @@ public:
   }
   //@}
 
-  virtual SetBBint( BaseBDBInt * bbInt ) {
+  virtual void SetBBint( BaseBDBInt* bbInt ) {
     bbInt_ = bbInt;
   }
 
@@ -1715,7 +1716,9 @@ template<class FE, UInt D, UInt D_DOF, class TYPE>
 void SurfaceBBintOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
 {
   // Call the integrator and calcualte the bMat for the given lp
-  bbInt_->CalcElementMatrixLpm(bMat, ptFe, lp);
+  Matrix<Double> bMat2;
+  bbInt_->CalcElementMatrixLpm(bMat2, ptFe, lp);
+  bMat = bMat2;
 }
 
 template<class FE, UInt D, UInt D_DOF, class TYPE>

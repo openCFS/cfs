@@ -584,7 +584,7 @@ namespace CoupledField{
       Matrix<Double> xiDx;
       FeH1 *fe = (static_cast<FeH1*>(ptFe));
       if (this->isSurfOpt_)
-        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        fe->GetGlobDerivShFnc(xiDx, *lpm.lpmVol, lpm.lpmVol->shapeMap->GetElem(), 1);
       else
         fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
 
@@ -610,7 +610,7 @@ namespace CoupledField{
       Matrix<Double> xiDx;
       FeH1 *fe = (static_cast<FeH1*>(ptFe));
       if (this->isSurfOpt_)
-        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        fe->GetGlobDerivShFnc(xiDx, *lpm.lpmVol, lpm.lpmVol->shapeMap->GetElem(), 1);
       else
         fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
       

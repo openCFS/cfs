@@ -105,7 +105,7 @@ namespace CoupledField{
   void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
   CalcElementMatrixLpm( Matrix<MAT_DATA_TYPE>& elemMat,
                       BaseFE* ptFe, 
-                      LocPointMapped& lp ) {
+                      const LocPointMapped& lp ) {
     
     Matrix<MAT_DATA_TYPE> bMat;
     MAT_DATA_TYPE fac = 0.0;
@@ -118,20 +118,21 @@ namespace CoupledField{
 
     // Call the CalcBMat()-method
     this->bOperator_->CalcOpMat( bMat, lp, ptFe);
-    LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " bMat= " << bMat;
+    LOG_DBG3(bbint) << "point " << lp.lp.coord << " bMat= " << bMat;
 
     // Calculate scalar factor
     this->coefScalar_->GetScalar(fac, lp);
-    LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " nu= " << fac;
+    LOG_DBG3(bbint) << "point " << lp.lp.coord << " nu= " << fac;
 
-    fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
+    
+    fac *= MAT_DATA_TYPE(lp.jacDet *lp.weight); 
 
 #ifdef NDEBUG
     bMat.Mult_Blas(bMat, elemMat, true, false, this->factor_ * fac, 1.0);
 #else
     elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
-    LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " ip=" << i << " fac=" << fac << " factor_=" << fac << " bmat=" << bMat.ToString();
-    LOG_DBG3(bbint) << "CEM e=" << ptElem->elemNum << " -> K_" << i << "=" << elemMat.ToString();
+    LOG_DBG3(bbint) << "CEM point " << lp.lp.coord << " ip=" << " fac=" << fac << " factor_=" << fac << " bmat=" << bMat.ToString();
+    LOG_DBG3(bbint) << "CEM point " << lp.lp.coord << " -> K_" << "=" << elemMat.ToString();
 #endif
    }
    
