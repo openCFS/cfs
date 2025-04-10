@@ -149,6 +149,18 @@
                   </xsd:annotation>
                 </xsd:element>
 
+                <!-- Network BCs -->
+                <xsd:element name="elecNetworkGround" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Sets a node of the network to ground</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="elecNetworkPotential" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Prescribes the electric potential for the network at a node</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity" type="DT_BcInhomVector">
                   <xsd:annotation>
