@@ -528,6 +528,16 @@ macro(create_external_configure)
   assert_set(PACKAGE_LIBRARY)
   assert_set(DEPS_CONFIGURE)
     
+  # there are potentielly the cmake generators make, nmake (Windows) and ninja. Probably also msvc.
+  # for configure we enforce make and nmake
+  if(UNIX) # Linux, macOS
+    # cannot be in one variable
+    set(BUILD_COMMAND_ "make")
+    set(BUILD_OPTIONS_ "-j${CFS_DEPS_BUILD_THREADS}")
+  else()
+    set(BUILD_COMMAND_ "nmake") # it does not harm to have no BUILD_OPTIONS_
+  endif()
+
   if(PATCHES_SCRIPT)
     # we need to build the package - here in configure style
     ExternalProject_Add("${PACKAGE_NAME}"
@@ -540,10 +550,10 @@ macro(create_external_configure)
       DOWNLOAD_NAME "${PACKAGE_FILE}"
       DOWNLOAD_NO_PROGRESS ON 
       CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE}
+      BUILD_COMMAND ${BUILD_COMMAND_} ${BUILD_OPTIONS_}
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} 
       # now patch the unpacked source
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}" )
-  
   else()
     ExternalProject_Add("${PACKAGE_NAME}"
       PREFIX "${DEPS_PREFIX}"
@@ -553,6 +563,7 @@ macro(create_external_configure)
       DOWNLOAD_NAME "${PACKAGE_FILE}"
       DOWNLOAD_NO_PROGRESS ON 
       CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE}
+      BUILD_COMMAND ${BUILD_COMMAND_} ${BUILD_OPTIONS_}
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
   endif()     
     
