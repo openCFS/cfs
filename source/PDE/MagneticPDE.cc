@@ -25,6 +25,8 @@
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/BaseBOperator.hh"
+#include "Forms/Operators/ConvectiveOperator.hh"
+#include "Forms/Operators/IdentityOperatorLem.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Materials/Models/Hysteresis.hh"
@@ -32,7 +34,6 @@
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
-#include "Forms/Operators/ConvectiveOperator.hh"
 #include "Domain/CoefFunction/CoefFunctionDiagTensorFromScalar.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
@@ -1314,59 +1315,62 @@ namespace CoupledField {
     //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
 
     for(UInt iRegion = 0; iRegion < regionsLEM_.GetSize() ; iRegion++){
+      RegionIdType actRegion;
       actRegion = regionsLEM_[iRegion];
       //actMat    = materials_[actRegion];
 
 		  // Get current region name
 		  std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
-		  shared_ptr<ElemList> actSDList;
-
 		  // --- Set the approximation for the current region ---
       mySpace->SetRegionApproximation(actRegion, "default", "default");
       
-      shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
+      shared_ptr<EntityList> actSDList;
+      actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
       myFct->AddEntityList( actSDList );
 
       // check what type of element we have by looping over the input and defining the corresponding values
       ParamNodeList regionNodesLEM = myParam_->Get("network")->GetList("networkElement");
       
-      for( UInt i = 0; i < regionNodes.GetSize(); i++ )
+      for( UInt i = 0; i < regionNodesLEM.GetSize(); i++ )
       {
-        PtrParamNode in_ = list->Get("region");
         std::string name = regionNodesLEM[i]->Get("name")->As<std::string>();
-        in_->Get("name")->SetValue(name);
-      }
+        std::string networkElementType = regionNodesLEM[i]->Get("type")->As<std::string>();
 
 
-      // define main integrators (LEM part)
-      if( networkElementType=="resistor" )
-        // conductance value
-        PtrCoefFct coefG;
+        // define main integrators (LEM part)
+        if( networkElementType=="resistor" ){
+          // conductance value
+          PtrCoefFct coefG;
+          BaseBDBInt *resistorInt = nullptr;
 
-        if( dim_ == 2) {
-          if( isaxi_ ) {
-            // axisymmetric case
-            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+          if( dim_ == 2) {
+            if( isaxi_ ) {
+              // axisymmetric case
+              EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+            } else {
+              // we don't consider any geometry update, hence, we set the last bool to false
+              // the identityOperatorLem inside a BBInt creates the following matrix:
+              //  1  -1
+              // -1   1
+              // we multiply this matrix with the conductance in order to get the correct element matrix
+              resistorInt = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, coefG, 1.0, false);
+            }
           } else {
-            // we don't consider any geometry update, hence, we set the last bool to false
-            // the identityOperatorLem inside a BBInt creates the following matrix:
-            //  1  -1
-            // -1   1
-            // we multiply this matrix with the conductance in order to get the correct element matrix
-            resistorInt = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>(), coefG, 1.0, false);
+            EXCEPTION("3D FEM-LEM coupling is not supported!");
           }
-        } else {
-          EXCEPTION("3D FEM-LEM coupling is not supported!");
-        }
-        resistorInt->SetName("ResistorIntegrator");
-        BiLinFormContext * resistorContext = new BiLinFormContext(resistorInt, STIFFNESS );
-        resistorContext->SetEntities( actSDList, actSDList );
-        resistorContext->SetFeFunctions( myFct, myFct );
-        assemble_->AddBiLinearForm( resistorContext );
+          resistorInt->SetName("ResistorIntegrator");
+          BiLinFormContext * resistorContext = new BiLinFormContext(resistorInt, STIFFNESS );
+          resistorContext->SetEntities( actSDList, actSDList );
+          resistorContext->SetFeFunctions( myFct, myFct );
+          assemble_->AddBiLinearForm( resistorContext );
 
-        // insert mass integrator to list of defined mass integrators
-        bdbInts_[actRegion] = resistorInt;
+          // insert resistor integrator to list of defined stiffness integrators
+          bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, resistorInt));
+
+        } else {
+          EXCEPTION("Only resistors are currently implemented!");
+        }
 
 
         // define coupling integrators (LEM-FEM)
@@ -1378,6 +1382,7 @@ namespace CoupledField {
 
 
 
+      }
     }
   }
 

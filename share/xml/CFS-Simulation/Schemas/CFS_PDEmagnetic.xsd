@@ -212,8 +212,8 @@
               <xsd:sequence>
                 <xsd:element name="networkElement" minOccurs="0" maxOccurs="unbounded">
                   <xsd:complexType>
-                    <xsd:attribute name="Name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="Type" use="required">
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="type" use="required">
                       <xsd:simpleType>
                         <xsd:restriction base="xsd:token">
                           <xsd:enumeration value="Resistor"/>

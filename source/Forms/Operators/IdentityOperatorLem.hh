@@ -70,7 +70,7 @@ namespace CoupledField{
     virtual ~IdentityOperatorLem(){
       return;
     }
-.
+
     //! \param bMat (out) the output matrix
     //! \param lp (in) the local point mapped
     //! \param ptFe (in) pointer to the Fe function space
@@ -137,10 +137,10 @@ namespace CoupledField{
     //  1  -1
     // -1   1
     //matrix
-    bMat[0,0] = 1/sqrt(2);
-    bMat[0,1] = -1/sqrt(2);
-    bMat[1,0] = -1/sqrt(2);
-    bMat[1,1] = 1/sqrt(2);
+    bMat[0][0] = 1/sqrt(2);
+    bMat[0][1] = -1/sqrt(2);
+    bMat[1][0] = -1/sqrt(2);
+    bMat[1][1] = 1/sqrt(2);
    }
 
   template<class FE,  UInt D, UInt D_DOF, class TYPE>
@@ -160,10 +160,10 @@ namespace CoupledField{
     //  1  -1
     // -1   1
     //matrix
-    bMat[0,0] = 1/sqrt(2);
-    bMat[0,1] = -1/sqrt(2);
-    bMat[1,0] = -1/sqrt(2);
-    bMat[1,1] = 1/sqrt(2);
+    bMat[0][0] = 1/sqrt(2);
+    bMat[0][1] = -1/sqrt(2);
+    bMat[1][0] = -1/sqrt(2);
+    bMat[1][1] = 1/sqrt(2);
 
   }
  

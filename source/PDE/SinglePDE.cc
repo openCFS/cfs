@@ -244,7 +244,7 @@ namespace CoupledField {
       complexMatData_[actRegionId] = complexMat;
     }
 
-    // output and set LEM regins
+    // output and set LEM regions
 
     // Obtain regions the pde is defined on
     ParamNodeList regionNodesLEM = myParam_->Get("network")->GetList("networkElement");
@@ -262,7 +262,7 @@ namespace CoupledField {
       RegionIdType actRegionId = ptGrid_->GetRegion().Parse(name);
       
       // Check, if region was already defined an issue a warning otherwise
-      if( std::find(resistorRegions_.Begin(), resistorRegions_.End(), actRegionId )!= resistorRegions_.End() )
+      if( std::find(regionsLEM_.Begin(), regionsLEM_.End(), actRegionId )!= regionsLEM_.End() )
         WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
               << "' was already defined for PDE '" << pdename_ 
               << "'. Please remove duplicate entries." );

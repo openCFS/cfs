@@ -295,6 +295,9 @@ namespace CoupledField {
     
     //! Vector containing all regions the PDE is defined on
     StdVector<RegionIdType> regions_;
+
+    //! Vector containing all LEM regionsn
+    StdVector<RegionIdType> regionsLEM_;
     
     //@}
     
