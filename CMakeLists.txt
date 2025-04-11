@@ -103,9 +103,10 @@ set(CFS_PARDISO ${CFS_PARDISO_DEFAULT} CACHE STRING "Pardiso implementation for 
 set_property(CACHE CFS_PARDISO PROPERTY STRINGS MKL SCHENK)
 # Switch on/off usage of cfsdepscache
 option(CFS_DEPS_PRECOMPILED "Use (create) precompiled cfsdeps packages" ${CFS_DEPS_PRECOMPILED_DEFAULT})
-include(ProcessorCount)
-ProcessorCount(AVAILABLE_CORES)
+
+cmake_host_system_information(RESULT AVAILABLE_CORES QUERY NUMBER_OF_LOGICAL_CORES) # hyperthreading can be used to compile
 set(CFS_DEPS_BUILD_THREADS ${AVAILABLE_CORES} CACHE STRING "Parallel build threads for cfsdeps") # default is local machine value
+
 option(DEBUG "Build debug version of the code which allows debugging, logging and has asserts - up to 10 times slower." ${DEBUG_DEFAULT})
 option(CFS_NATIVE "Compile for native CPU for speed, might not be transferable" ${CFS_NATIVE_DEFAULT})
 option(CFS_PROFILING "Set profiling compiler options for Release for vtune and valgrind (-g)." OFF)

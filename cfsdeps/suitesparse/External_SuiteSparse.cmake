@@ -12,7 +12,7 @@ set(PACKAGE_VER "7.0.1")
 set(PACKAGE_FILE "v${PACKAGE_VER}.tar.gz")
 set(PACKAGE_MD5 "d31bbe2a26dced338b23e71f7c9b541a")
 set(PACKAGE_MIRRORS "https://github.com/DrTimothyAldenDavis/SuiteSparse/archive/refs/tags/${PACKAGE_FILE}")  
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
@@ -53,12 +53,16 @@ set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 # set DEPS_ARG with defaults for a cmake project
 set_deps_args_default(ON) # set compiler flags 
 
+# we potentiall build the suitesparse subprojects in parallel but we need to process them sequentially
+set(DEPS_BUILD_THREADS 1)
+
 set(DEPS_ARGS
   ${DEPS_ARGS}
   -DBUILD_STATIC:BOOL=ON
   -DUSE_OPENMP:BOOL=${USE_OPENMP}
   -DALLOW_64BIT_BLAS:BOOL=ON
-  -DALLOW_GPL_EXTENSIONS:BOOL=ON )
+  -DALLOW_GPL_EXTENSIONS:BOOL=ON 
+  -DBUILD_THREADS=${CFS_DEPS_BUILD_THREADS}) # the global number of build threads (default is system threads)
 
 if(UNIX AND USE_BLAS_LAPACK STREQUAL "OPENBLAS")
   list(APPEND DEPS_ARGS -DSUGGEST_BLAS_LIBRARIES=${CMAKE_BINARY_DIR}/${LIB_SUFFIX}/libopenblas.a)

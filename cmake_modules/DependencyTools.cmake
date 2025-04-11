@@ -12,6 +12,7 @@ macro(dump_depencency_variables)
   cmake_print_variables(PACKAGE_KEY)   # for encrypted closed source
   # DEPS variables for building the package. Most important is DEPS_ARGS for cmake packages
   cmake_print_variables(DEPS_ARGS)    # for cmake projects, see set_deps_args_default(ON)
+  cmake_print_variables(DEPS_BUILD_THREADS) # locally overwrite the global CFS_DEPS_BUILD_THREADS variable
   cmake_print_variables(DEPS_CONFIGURE) # for configure projects, see set_configure_default()
   cmake_print_variables(DEPS_VER)     # either "" or "-a", ... to trigger new precompiles when PACKAGE_VER does not change
   cmake_print_variables(DEPS_ID)      # optional package id like "openmp" or "no_openmp"
@@ -45,6 +46,7 @@ macro(clear_depencency_variables)
   unset(PACKAGE_MIRRORS)
   unset(PACKAGE_KEY)
   unset(DEPS_ARGS)
+  unset(DEPS_BUILD_THREADS)
   unset(DEPS_CONFIGURE)
   unset(DEPS_VER)
   unset(DEPS_ID)
@@ -63,6 +65,20 @@ macro(clear_depencency_variables)
   unset(POSTINSTALL_SCRIPT)
   unset(ZIPTOCACHE_SCRIPT)
 endmacro()
+
+# create -j<threads> where threads is the global CFS_DEPS_BUILD_THREADS or the local DEPS_BUILD_THREADS if set
+# if the generator is NMake we return the empty string
+function(set_parallel_build_option BUILD_OUTPUT)
+  if(${CMAKE_GENERATOR} STREQUAL "NMake Makefiles")
+    set(${BUILD_OUTPUT} "" PARENT_SCOPE)
+  else()
+    if(DEFINED DEPS_BUILD_THREADS)
+      set(${BUILD_OUTPUT} "-j${DEPS_BUILD_THREADS}" PARENT_SCOPE)
+    else()
+      set(${BUILD_OUTPUT} "-j${CFS_DEPS_BUILD_THREADS}" PARENT_SCOPE)
+    endif()
+  endif()  
+endfunction()
 
 # indicate if C/C++ and/or Fortran is used. 
 # Triggers package name, DEPS_ARGS compiler settings 
@@ -183,7 +199,7 @@ endmacro()
 # The idea is to not set settings, the package complains about not known.
 macro(set_deps_args_default SET_COMPILER_FLAGS)
 
-  assert_unset(DEPS_ARGS) # shall be cleared by clear_depencency_variables()
+  assert_unset(DEPS_ARGS) # shall be cleared by clear_dependency_variables()
   assert_set(DEPS_INSTALL)
 
   set(DEPS_ARGS
@@ -419,6 +435,8 @@ macro(create_external_cmake_patched)
   # file means, that we have the source already in the cfsdeps cache. If not, we store there
   # see add_standard_mirrors()
 
+  set_parallel_build_option(BUILD_OPTIONS_) # usually -j<threads> but empty for nmake
+
   # we need to build the package - here in cmake style
   ExternalProject_Add("${PACKAGE_NAME}"
     PREFIX "${DEPS_PREFIX}"
@@ -431,7 +449,7 @@ macro(create_external_cmake_patched)
     DOWNLOAD_NO_PROGRESS ON
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
     CMAKE_ARGS ${DEPS_ARGS}
-    BUILD_COMMAND ${CMAKE_COMMAND} --build . -j${CFS_DEPS_BUILD_THREADS} 
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${BUILD_OPTIONS_}
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
@@ -451,6 +469,8 @@ macro(create_external_cmake)
     set(_SOURCE_SUBDIR ".")
   endif()    
 
+  set_parallel_build_option(BUILD_OPTIONS_) # usually -j<threads> but empty for nmake
+
   # URL can take a list of mirrors but when there is a file, it needs to be the only one.
   # file means, that we have the source already in the cfsdeps cache. If not, we store there
   # see add_standard_mirrors()
@@ -466,7 +486,7 @@ macro(create_external_cmake)
     DOWNLOAD_NAME "${PACKAGE_FILE}"
     DOWNLOAD_NO_PROGRESS ON
     CMAKE_ARGS ${DEPS_ARGS}
-    BUILD_COMMAND ${CMAKE_COMMAND} --build . -j${CFS_DEPS_BUILD_THREADS} 
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${BUILD_OPTIONS_}
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
@@ -489,6 +509,8 @@ macro(create_external_encrypted_cmake_patched)
   # file means, that we have the source already in the cfsdeps cache. If not, we store there
   # see add_standard_mirrors()
   
+  set_parallel_build_option(BUILD_OPTIONS_) # usually -j<threads> but empty for nmake
+
   # we need to build the package - here in cmake style
   ExternalProject_Add("${PACKAGE_NAME}"
     PREFIX "${DEPS_PREFIX}"
@@ -513,7 +535,7 @@ macro(create_external_encrypted_cmake_patched)
     LOG_CONFIGURE 1
     LOG_BUILD 1
     LOG_INSTALL 1 
-    BUILD_COMMAND ${CMAKE_COMMAND} --build . -j${CFS_DEPS_BUILD_THREADS} 
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${BUILD_OPTIONS_} 
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
@@ -528,12 +550,12 @@ macro(create_external_configure)
   assert_set(PACKAGE_LIBRARY)
   assert_set(DEPS_CONFIGURE)
     
-  # there are potentielly the cmake generators make, nmake (Windows) and ninja. Probably also msvc.
-  # for configure we enforce make and nmake
+  # there are potentially the cmake generators make, nmake (Windows) and ninja. 
+  # for configure (usually autotools) we enforce make and nmake
   if(UNIX) # Linux, macOS
     # cannot be in one variable
     set(BUILD_COMMAND_ "make")
-    set(BUILD_OPTIONS_ "-j${CFS_DEPS_BUILD_THREADS}")
+    set_parallel_build_option(BUILD_OPTIONS_) # usually -j<threads> but empty for nmake
   else()
     set(BUILD_COMMAND_ "nmake") # it does not harm to have no BUILD_OPTIONS_
   endif()
