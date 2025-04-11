@@ -27,6 +27,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
+#include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -253,7 +254,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
           CoefXprVecScalOp uVec = CoefXprVecScalOp(mp_, eJscaled, conduccoef, CoefXpr::OP_MULT);
           PtrCoefFct sigma_gradV = CoefFunction::Generate(mp_, part, uVec);
 
-          // === UPPER RIGHT PART ===
+          // === UPPER RIGHT PART (coupling) ===
           LinearForm* upperInt;
           if( isComplex_ ) {
             upperInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
@@ -272,16 +273,14 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
           currCoilContext->SetCounterPart(true);
           assemble_->AddBiLinearForm( currCoilContext );
 
-          CoefXprBinOp sigmaIntgVgV = CoefXprBinOp(mp_, lexical_cast<std::string>(gradVsource_[partIt->second]), conduccoef, CoefXpr::OP_MULT);
-          PtrCoefFct totR = CoefFunction::Generate( mp_, part, sigmaIntgVgV );
-          LinearForm* totRint = new SingleEntryInt( totR );
-          totRint->SetName( "LowerDiagIntegrator" );
-          // could we use SingleEntryBiLinInt here?
-          BiLinearForm* totRBiLin = new BiLinWrappedLinForm( totRint );
+          // === Lower Diagonal PART (single line per coil) ===
+          // compute coefficient: gamma*Gard(V).Grad(V') where Gard(V).Grad(V') is read from the first step
+          PtrCoefFct totR = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, lexical_cast<std::string>(gradVsource_[partIt->second]), conduccoef, CoefXpr::OP_MULT) );
+          SingleEntryBiLinInt * totRBiLin = new SingleEntryBiLinInt(1, totR, mp_);
+          totRBiLin->SetName( "LowerDiagIntegrator" );
           BiLinFormContext* totRcontext = new BiLinFormContext( totRBiLin, DAMPING );
           totRcontext->SetEntities( singleCoilList, singleCoilList );
           totRcontext->SetFeFunctions( feFunctions_[COIL_VOLTAGE_INTEGRAL], feFunctions_[COIL_VOLTAGE_INTEGRAL] );
-          totRcontext->SetCounterPart(false);
           assemble_->AddBiLinearForm( totRcontext );
 
         } // loop: parts
