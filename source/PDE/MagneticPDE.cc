@@ -674,7 +674,9 @@ namespace CoupledField {
     // ============================
 	  // LEM INTEGRATORS
 	  // ============================
-    DefineLemIntegrators();
+    if( hasLEM_ ) {
+      DefineLemIntegrators();
+    }
     
   }
 
@@ -1339,10 +1341,16 @@ namespace CoupledField {
 
 
         // define main integrators (LEM part)
-        if( networkElementType=="resistor" ){
+        if( networkElementType=="Resistor" ){
           // conductance value
+          PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
           PtrCoefFct coefG;
           BaseBDBInt *resistorInt = nullptr;
+
+          // read in the resistor value
+          std::string resValue = regionNodesLEM[i]->Get("Value")->As<std::string>();
+          PtrCoefFct coefR = CoefFunction::Generate( mp_, Global::REAL, resValue);
+          coefG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, coefR, CoefXpr::OP_DIV));
 
           if( dim_ == 2) {
             if( isaxi_ ) {
@@ -1365,8 +1373,8 @@ namespace CoupledField {
           resistorContext->SetFeFunctions( myFct, myFct );
           assemble_->AddBiLinearForm( resistorContext );
 
-          // insert resistor integrator to list of defined stiffness integrators
-          bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, resistorInt));
+          // TODO insert resistor integrator to list of defined stiffness integrators
+          //bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, resistorInt));
 
         } else {
           EXCEPTION("Only resistors are currently implemented!");
@@ -2408,6 +2416,9 @@ namespace CoupledField {
       // 3) check for network coupling
       if( hasLEM_ ) {
         crSpaces[ELEC_NETWORK_POTENTIAL] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+        // we have no volume element, so we have to state that this space only lives on the surface
+        // (since here the surface is actually a real element, just in 1D)
+        crSpaces[ELEC_NETWORK_POTENTIAL]->SetLagrSurfSpace();
         crSpaces[ELEC_NETWORK_POTENTIAL]->Init(solStrat_);
       }
 

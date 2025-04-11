@@ -46,7 +46,7 @@ namespace CoupledField{
     static const UInt DIM_SPACE = D;
 
     //! Dimension of the finite element
-    static const UInt DIM_ELEM = D;
+    static const UInt DIM_ELEM = 1;
 
     //! Dimension of the related material 
     static const UInt DIM_D_MAT = 1; 

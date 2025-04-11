@@ -247,7 +247,11 @@ namespace CoupledField {
     // output and set LEM regions
 
     // Obtain regions the pde is defined on
-    ParamNodeList regionNodesLEM = myParam_->Get("network")->GetList("networkElement");
+    ParamNodeList regionNodesLEM;
+    PtrParamNode networkNode = myParam_->Get("network", ParamNode::PASS);
+    if( networkNode ){
+      regionNodesLEM = myParam_->Get("network")->GetList("networkElement");
+    }
 
     if( regionNodesLEM.GetSize()>0 ){
       hasLEM_ = true;

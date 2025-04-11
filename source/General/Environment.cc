@@ -304,6 +304,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(COIL_INDUCTANCE, "coilInductance");
     SolutionTypeEnum.Add(COIL_LINKED_FLUX, "coilLinkedFlux");
 
+    // magnetic - network coupling
+    SolutionTypeEnum.Add(ELEC_NETWORK_POTENTIAL, "elecNetworkPotential");
+
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
     SolutionTypeEnum.Add(HEAT_MEAN_TEMPERATURE, "heatMeanTemperature");

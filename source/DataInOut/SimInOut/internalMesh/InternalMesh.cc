@@ -158,6 +158,14 @@ void InternalMesh::ReadMeshNetwork(Grid *mi)
 
   // parse the file and get all the info from the xml
 
+  // TODO: We assume that the internal mesh is the first one and that we do not
+  // have to consider any already existing elements.
+  UInt baseNodeNum = mi_->GetNumNodes() + 1;
+  UInt baseElemNum = mi_->GetNumElems() + 1;
+  if (baseNodeNum > 1 || baseElemNum > 1) {
+    EXCEPTION("There are already some nodes defined in the grid. Please specify the network grid before all other grid inputs!");
+  }
+
   // get the node list
   PtrParamNode nodeListNode = networkNode_->Get("nodeList",
                                                  ParamNode::PASS);
@@ -264,7 +272,7 @@ void InternalMesh::ReadMeshNetwork(Grid *mi)
     }
 
     // add the one region and directly set regular to true?
-    regionIds[curElem] = mi_->AddRegion(regionNames_[curElem], false);  
+    regionIds[curElem] = mi_->AddRegion(regionNames_[curElem], true);  
 
     // we only have line 2 elements
     elemTypes[curElem].Push_back(Elem::ET_LINE2);
