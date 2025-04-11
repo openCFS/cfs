@@ -1316,6 +1316,9 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
 
+    PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    PtrCoefFct constMinusOne = CoefFunction::Generate( mp_, Global::REAL, "-1.0");
+    
     for(UInt iRegion = 0; iRegion < regionsLEM_.GetSize() ; iRegion++){
       RegionIdType actRegion;
       actRegion = regionsLEM_[iRegion];
@@ -1332,65 +1335,150 @@ namespace CoupledField {
       myFct->AddEntityList( actSDList );
 
       // check what type of element we have by looping over the input and defining the corresponding values
-      ParamNodeList regionNodesLEM = myParam_->Get("network")->GetList("networkElement");
+      ParamNodeList regionNodesLEM = myParam_->Get("network")->GetList("passiveNetworkElement");
       
       for( UInt i = 0; i < regionNodesLEM.GetSize(); i++ )
       {
         std::string name = regionNodesLEM[i]->Get("name")->As<std::string>();
-        std::string networkElementType = regionNodesLEM[i]->Get("type")->As<std::string>();
+
+        if( name==regionName ){
+          std::string networkElementType = regionNodesLEM[i]->Get("type")->As<std::string>();
 
 
-        // define main integrators (LEM part)
-        if( networkElementType=="Resistor" ){
-          // conductance value
-          PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-          PtrCoefFct coefG;
-          BaseBDBInt *resistorInt = nullptr;
+          // define main integrators (LEM part)
+          if( networkElementType=="Resistor" ){
+            // conductance value
+            PtrCoefFct coefG;
+            BaseBDBInt *resistorInt = nullptr;
 
-          // read in the resistor value
-          std::string resValue = regionNodesLEM[i]->Get("Value")->As<std::string>();
-          PtrCoefFct coefR = CoefFunction::Generate( mp_, Global::REAL, resValue);
-          coefG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, coefR, CoefXpr::OP_DIV));
+            // read in the resistor value
+            std::string resValue = regionNodesLEM[i]->Get("value")->As<std::string>();
+            PtrCoefFct coefR = CoefFunction::Generate( mp_, Global::REAL, resValue);
+            coefG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, coefR, CoefXpr::OP_DIV));
 
-          if( dim_ == 2) {
-            if( isaxi_ ) {
-              // axisymmetric case
-              EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+            if( dim_ == 2) {
+              if( isaxi_ ) {
+                // axisymmetric case
+                EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+              } else {
+                // we don't consider any geometry update, hence, we set the last bool to false
+                // the identityOperatorLem inside a BBInt creates the following matrix:
+                //  1  -1
+                // -1   1
+                // we multiply this matrix with the conductance in order to get the correct element matrix
+                resistorInt = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, coefG, 1.0, false);
+              }
             } else {
-              // we don't consider any geometry update, hence, we set the last bool to false
-              // the identityOperatorLem inside a BBInt creates the following matrix:
-              //  1  -1
-              // -1   1
-              // we multiply this matrix with the conductance in order to get the correct element matrix
-              resistorInt = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, coefG, 1.0, false);
+              EXCEPTION("3D FEM-LEM coupling is not supported!");
             }
+            resistorInt->SetName("ResistorIntegrator");
+            BiLinFormContext * resistorContext = new BiLinFormContext(resistorInt, STIFFNESS );
+            resistorContext->SetEntities( actSDList, actSDList );
+            resistorContext->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( resistorContext );
+
+            // TODO insert resistor integrator to list of defined stiffness integrators
+            //bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, resistorInt));
+
           } else {
-            EXCEPTION("3D FEM-LEM coupling is not supported!");
+            EXCEPTION("Only resistors are currently implemented!");
           }
-          resistorInt->SetName("ResistorIntegrator");
-          BiLinFormContext * resistorContext = new BiLinFormContext(resistorInt, STIFFNESS );
-          resistorContext->SetEntities( actSDList, actSDList );
-          resistorContext->SetFeFunctions( myFct, myFct );
-          assemble_->AddBiLinearForm( resistorContext );
-
-          // TODO insert resistor integrator to list of defined stiffness integrators
-          //bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, resistorInt));
-
-        } else {
-          EXCEPTION("Only resistors are currently implemented!");
         }
-
-
-        // define coupling integrators (LEM-FEM)
-
-        // get the correct entities involved in the coupling based on the terminal definition
-
-        // for FEM we get a surface (here we can pass the entity directly)
-        // for LEM we get a node --> we might have to search for that one explicitely
-
-
-
       }
+
+
+      // check what type of element we have by looping over the input and defining the corresponding values
+      ParamNodeList regionNodesLemSource = myParam_->Get("network")->GetList("networkSource");
+      
+      for( UInt i = 0; i < regionNodesLEM.GetSize(); i++ )
+      {
+        std::string name = regionNodesLEM[i]->Get("name")->As<std::string>();
+
+        if( name==regionName ){
+          std::string networkElementType = regionNodesLEM[i]->Get("type")->As<std::string>();
+
+
+          // define main integrators (LEM part)
+          if( networkElementType=="CurrentSource" ){
+            // we already have the correct circuit, just add a resistor integrator based on the
+            // the internal resistance and then add the source as a RHS integrator
+
+            // conductance value
+            PtrCoefFct coefG;
+            BaseBDBInt *resistorInt = nullptr;
+
+            // read in the resistor value
+            std::string resValue = regionNodesLEM[i]->Get("internalResistance")->As<std::string>();
+            PtrCoefFct coefR = CoefFunction::Generate( mp_, Global::REAL, resValue);
+            coefG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, coefR, CoefXpr::OP_DIV));
+
+            if( dim_ == 2) {
+              if( isaxi_ ) {
+                // axisymmetric case
+                EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+              } else {
+                // we don't consider any geometry update, hence, we set the last bool to false
+                // the identityOperatorLem inside a BBInt creates the following matrix:
+                //  1  -1
+                // -1   1
+                // we multiply this matrix with the conductance in order to get the correct element matrix
+                resistorInt = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, coefG, 1.0, false);
+              }
+            } else {
+              EXCEPTION("3D FEM-LEM coupling is not supported!");
+            }
+            resistorInt->SetName("ResistorIntegrator");
+            BiLinFormContext * resistorContext = new BiLinFormContext(resistorInt, STIFFNESS );
+            resistorContext->SetEntities( actSDList, actSDList );
+            resistorContext->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( resistorContext );
+
+
+            // ==================
+            //  RHS NODAL VALUES
+            // ==================
+
+            // get value
+            std::string curValue = regionNodesLEM[i]->Get("value")->As<std::string>();
+            PtrCoefFct coefSource = CoefFunction::Generate( mp_, Global::REAL, curValue);
+            PtrCoefFct coefSourceNeg;
+            coefG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constMinusOne, coefSource, CoefXpr::OP_MULT));
+
+            
+            // get direction
+            std::string directionValue = regionNodesLEM[i]->Get("direction")->As<std::string>();
+            
+            // get the node for terminal A based on the connectivity
+            shared_ptr<EntityList> entA, entB;
+
+            if( directionValue=="AB" ){
+              this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSource, entA);
+              this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSourceNeg, entB);
+            } else if( directionValue=="BA" ){
+              this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSourceNeg, entA);
+              this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSource, entB);
+            } else {
+              EXCEPTION("Unknown direction for LEM source!");
+            }
+
+          } else if( networkElementType=="VoltageSource" ){
+            EXCEPTION("Voltage source is not implemented yet!");
+          } else {
+            EXCEPTION("Unknown source defined!");
+          }
+        }
+      }
+
+
+
+
+      // define coupling integrators (LEM-FEM)
+
+      // get the correct entities involved in the coupling based on the terminal definition
+
+      // for FEM we get a surface (here we can pass the entity directly)
+      // for LEM we get a node --> we might have to search for that one explicitely
+
     }
   }
 
@@ -1582,6 +1670,18 @@ namespace CoupledField {
       phiDot->entryType = ResultInfo::SCALAR;
       availResults_.insert( phiDot );
       DefineTimeDerivResult( ELEC_POTENTIAL_DERIV_1, 1, ELEC_POTENTIAL );
+    }
+
+    if (hasLEM_) {
+      // === NETWORK RHS ===
+      shared_ptr<ResultInfo> rhs(new ResultInfo);
+      rhs->resultType = MECH_RHS_LOAD;
+      rhs->dofNames = dispDofNames;
+      rhs->unit = "N";
+      rhs->entryType = ResultInfo::VECTOR;
+      rhs->definedOn = ResultInfo::NODE;
+      rhsFeFunctions_[MECH_DISPLACEMENT]->SetResultInfo(rhs);
+      DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
     }
 
     // === MAGNETIC RHS ===

@@ -210,7 +210,7 @@
             </xsd:annotation>
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element name="networkElement" minOccurs="0" maxOccurs="unbounded">
+                <xsd:element name="passiveNetworkElement" minOccurs="0" maxOccurs="unbounded">
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="type" use="required">
@@ -219,12 +219,33 @@
                           <xsd:enumeration value="Resistor"/>
                           <xsd:enumeration value="Inductor"/>
                           <xsd:enumeration value="Capacitor"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
+                    <xsd:attribute name="value" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+                <xsd:element name="networkSource" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="type" use="required">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
                           <xsd:enumeration value="VoltageSource"/>
                           <xsd:enumeration value="CurrentSource"/>
                         </xsd:restriction>
                       </xsd:simpleType>
                     </xsd:attribute>
-                    <xsd:attribute name="Value" type="xsd:token" use="required"/>
+                    <xsd:attribute name="value" type="xsd:token" use="required"/>
+                    <xsd:attribute name="internalResistance" type="xsd:token" use="required"/>
+                    <xsd:attribute name="direction" use="required">
+                      <xsd:simpleType>
+                        <xsd:restriction base="xsd:token">
+                          <xsd:enumeration value="AB"/>
+                          <xsd:enumeration value="BA"/>
+                        </xsd:restriction>
+                      </xsd:simpleType>
+                    </xsd:attribute>
                   </xsd:complexType>
                 </xsd:element>
                 <xsd:element name="terminal" minOccurs="0" maxOccurs="unbounded">
@@ -406,6 +427,7 @@
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="elecPotential"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
+      <xsd:enumeration value="elecNetworkPotential"/>
     </xsd:restriction>
   </xsd:simpleType>
 

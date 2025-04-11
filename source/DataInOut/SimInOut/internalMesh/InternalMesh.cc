@@ -221,7 +221,7 @@ void InternalMesh::ReadMeshNetwork(Grid *mi)
   // each region has just one element
   // init
   regionNodes_.Resize(maxNumElems_);
-  UInt elemNum(0);
+  //UInt elemNum(0);
   regionNames_.Resize(maxNumElems_);
 
   StdVector<StdVector<UInt> > elems;
@@ -292,6 +292,18 @@ void InternalMesh::ReadMeshNetwork(Grid *mi)
       mi_->SetElemData(elemNums[j][i], elemTypes[j][i], regionIds[j], &elems[j][n]);
       n += Elem::shapes[elemTypes[j][i]].numNodes;
     }
+  }
+
+  // add nodes
+
+  // Get Named Nodes
+  StdVector<UInt> index;
+  index.Resize(1);
+
+  for(UInt i = 0, ss = nodeNameVec.GetSize(); i < ss; ++i){
+    // seems a bit weird, but we need to pass a vector
+    index[0] = i+1;
+    mi_->AddNamedNodes(nodeNameVec[i], index);
   }
 
 }

@@ -924,6 +924,10 @@ namespace CoupledField {
       // otherwise check, if result is to be saved on "allRegions"
       if( actResultNode->Has("allRegions" ) ) {
         ptGrid_->GetRegion().ToString(regions_,regionNames);
+        // manually add LEM regions for the evaluation process
+        StdVector<std::string> regionNamesLem;
+        ptGrid_->GetRegion().ToString(regions_,regionNamesLem);
+        regionNames.Append(regionNamesLem);
 
         PtrParamNode allRegionsNode = actResultNode->Get("allRegions");
 
