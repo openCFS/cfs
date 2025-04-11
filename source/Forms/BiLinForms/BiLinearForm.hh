@@ -45,7 +45,6 @@ class BiLinearForm : public CfsCopyable{
         coordUpdate_ = coordUpdate;
         isSymmetric_ = false;
         isNewtonBiLinearForm_ = false;
-        isSymmetric_ = false;
         isSolDependent_ = false;
 
         useVolEqnA_ = false;
