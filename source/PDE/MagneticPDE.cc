@@ -27,6 +27,7 @@
 #include "Forms/Operators/BaseBOperator.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/IdentityOperatorLem.hh"
+#include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Materials/Models/Hysteresis.hh"
@@ -1520,6 +1521,33 @@ namespace CoupledField {
 
       // for FEM we get a surface (here we can pass the entity directly)
       // for LEM we get a node --> we might have to search for that one explicitely
+
+
+      // Nots:
+      // Maybe we have to combine all entities in one big list 
+
+      BaseBDBInt *stiffnessCouplingInt = nullptr;
+
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+        } else {
+          // we don't consider any geometry update, hence, we set the last bool to false
+          // the identityOperatorLem inside a BBInt creates the following matrix:
+          //  1  -1
+          // -1   1
+          // we multiply this matrix with the conductance in order to get the correct element matrix
+          stiffnessCouplingInt = new ABInt<Double>(new IdentityOperatorLem<FeH1>(), new SurfaceBBintOperator<FeH1>(), coefG, 1.0, false);
+        }
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      stiffnessCouplingInt->SetName("StiffnessFemLemCouplingInt");
+      BiLinFormContext * stiffnessCouplingContext = new BiLinFormContext(stiffnessCouplingInt, STIFFNESS );
+      TODO stiffnessCouplingContext->SetEntities( actSDList, actSDList );
+      stiffnessCouplingContext->SetFeFunctions( myFct, myFct );
+      assemble_->AddBiLinearForm( stiffnessCouplingContext );
 
     }
   }
