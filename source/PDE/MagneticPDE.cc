@@ -1390,12 +1390,12 @@ namespace CoupledField {
       // check what type of element we have by looping over the input and defining the corresponding values
       ParamNodeList regionNodesLemSource = myParam_->Get("network")->GetList("networkSource");
       
-      for( UInt i = 0; i < regionNodesLEM.GetSize(); i++ )
+      for( UInt i = 0; i < regionNodesLemSource.GetSize(); i++ )
       {
-        std::string name = regionNodesLEM[i]->Get("name")->As<std::string>();
+        std::string name = regionNodesLemSource[i]->Get("name")->As<std::string>();
 
         if( name==regionName ){
-          std::string networkElementType = regionNodesLEM[i]->Get("type")->As<std::string>();
+          std::string networkElementType = regionNodesLemSource[i]->Get("type")->As<std::string>();
 
 
           // define main integrators (LEM part)
@@ -1408,7 +1408,7 @@ namespace CoupledField {
             BaseBDBInt *resistorInt = nullptr;
 
             // read in the resistor value
-            std::string resValue = regionNodesLEM[i]->Get("internalResistance")->As<std::string>();
+            std::string resValue = regionNodesLemSource[i]->Get("internalResistance")->As<std::string>();
             PtrCoefFct coefR = CoefFunction::Generate( mp_, Global::REAL, resValue);
             coefG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, coefR, CoefXpr::OP_DIV));
 
@@ -1439,32 +1439,74 @@ namespace CoupledField {
             // ==================
 
             // get value
-            std::string curValue = regionNodesLEM[i]->Get("value")->As<std::string>();
+            std::string curValue = regionNodesLemSource[i]->Get("value")->As<std::string>();
             PtrCoefFct coefSource = CoefFunction::Generate( mp_, Global::REAL, curValue);
             PtrCoefFct coefSourceNeg;
-            coefG = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constMinusOne, coefSource, CoefXpr::OP_MULT));
+            coefSourceNeg = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constMinusOne, coefSource, CoefXpr::OP_MULT));
 
             
             // get direction
-            std::string directionValue = regionNodesLEM[i]->Get("direction")->As<std::string>();
+            std::string directionValue = regionNodesLemSource[i]->Get("direction")->As<std::string>();
             
-            // get the node for terminal A based on the connectivity
+            PtrParamNode networkNode = myParam_->GetParent()
+              ->GetParent()->GetParent()->Get("fileFormats",ParamNode::INSERT)
+              ->Get("input",ParamNode::INSERT)->Get("internal",ParamNode::INSERT)
+              ->Get("network",ParamNode::INSERT);
+
+            //ParamNodeList inputList = internalNode->GetList("network");
+  
+            //if (inputList.GetSize()>0) {
+            //  if (inputList[0]->GetName()=="network") {
+            
+            //if (inputList.GetSize()>0) {
+            //  if (inputList[0]->GetName()=="network") {
+            //    readNetwork_ = true;
+            //networkNode_ = inputList[0];
+
+
+            // get the element list
+            PtrParamNode elemListNode = networkNode->Get("elementList",
+              ParamNode::PASS);
+            
+            // read all elements
+            ParamNodeList elemListNodeList = elemListNode->GetChildren();
+
+            
+            // get the node for terminal A and B based on the connectivity
             shared_ptr<EntityList> entA, entB;
 
+            std::string terminalA, terminalB;
+            // loop over elements and find the current one
+            for( UInt iElem = 0; iElem < elemListNodeList.GetSize(); iElem++ ){
+              std::string elemName;
+              elemListNodeList[iElem]->GetValue( "Name", elemName );
+
+              if( regionName==elemName ){
+                // we found a match, extract terminal A and B
+
+                // get the names
+                elemListNodeList[iElem]->GetValue( "TerminalA", terminalA );
+                elemListNodeList[iElem]->GetValue( "TerminalB", terminalB );
+                
+                // get the entities
+                entA = ptGrid_->GetEntityList( EntityList::NODE_LIST,terminalA );
+                entB = ptGrid_->GetEntityList( EntityList::NODE_LIST,terminalB );
+              }
+            }
+
+            //TODO define entA entB
+
             if( directionValue=="AB" ){
-              this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSource, entA);
-              this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSourceNeg, entB);
-            } else if( directionValue=="BA" ){
               this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSourceNeg, entA);
               this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSource, entB);
+            } else if( directionValue=="BA" ){
+              this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSource, entA);
+              this->rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->AddLoadCoefFunction(coefSourceNeg, entB);
             } else {
               EXCEPTION("Unknown direction for LEM source!");
             }
-
           } else if( networkElementType=="VoltageSource" ){
             EXCEPTION("Voltage source is not implemented yet!");
-          } else {
-            EXCEPTION("Unknown source defined!");
           }
         }
       }
@@ -1544,7 +1586,7 @@ namespace CoupledField {
       shared_ptr<ResultInfo> resNetwork(new ResultInfo);
       resNetwork->resultType = ELEC_NETWORK_POTENTIAL;
       resNetwork->dofNames = "";
-      resNetwork->unit = "V";
+      resNetwork->unit = MapSolTypeToUnit(resNetwork->resultType);
       resNetwork->definedOn = ResultInfo::NODE;
       resNetwork->entryType = ResultInfo::SCALAR;
       availResults_.insert( resNetwork );
@@ -1675,13 +1717,13 @@ namespace CoupledField {
     if (hasLEM_) {
       // === NETWORK RHS ===
       shared_ptr<ResultInfo> rhs(new ResultInfo);
-      rhs->resultType = MECH_RHS_LOAD;
-      rhs->dofNames = dispDofNames;
-      rhs->unit = "N";
-      rhs->entryType = ResultInfo::VECTOR;
+      rhs->resultType = ELEC_NETWORK_RHS_LOAD;
+      rhs->dofNames = "";
+      rhs->unit = MapSolTypeToUnit(rhs->resultType);
+      rhs->entryType = ResultInfo::SCALAR;
       rhs->definedOn = ResultInfo::NODE;
-      rhsFeFunctions_[MECH_DISPLACEMENT]->SetResultInfo(rhs);
-      DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
+      rhsFeFunctions_[ELEC_NETWORK_POTENTIAL]->SetResultInfo(rhs);
+      DefineFieldResult( rhsFeFunctions_[ELEC_NETWORK_POTENTIAL], rhs );
     }
 
     // === MAGNETIC RHS ===

@@ -247,27 +247,49 @@ namespace CoupledField {
     // output and set LEM regions
 
     // Obtain regions the pde is defined on
-    ParamNodeList regionNodesLEM;
+    ParamNodeList passiveRegionNodesLEM, sourceRegionNodesLEM;
     PtrParamNode networkNode = myParam_->Get("network", ParamNode::PASS);
     if( networkNode ){
-      regionNodesLEM = myParam_->Get("network")->GetList("networkElement");
+      passiveRegionNodesLEM = myParam_->Get("network")->GetList("passiveNetworkElement");
+    }
+    if( networkNode ){
+      sourceRegionNodesLEM = myParam_->Get("network")->GetList("networkSource");
     }
 
-    if( regionNodesLEM.GetSize()>0 ){
+    if( passiveRegionNodesLEM.GetSize()>0 || sourceRegionNodesLEM.GetSize()>0 ){
       hasLEM_ = true;
     }
 
-    for( UInt i = 0; i < regionNodesLEM.GetSize(); i++ )
+    // add all passive elements
+    for( UInt i = 0; i < passiveRegionNodesLEM.GetSize(); i++ )
     {
       PtrParamNode in_ = list->Get("region");
-      std::string name = regionNodesLEM[i]->Get("name")->As<std::string>();
+      std::string name = passiveRegionNodesLEM[i]->Get("name")->As<std::string>();
       in_->Get("name")->SetValue(name);
       
       RegionIdType actRegionId = ptGrid_->GetRegion().Parse(name);
       
       // Check, if region was already defined an issue a warning otherwise
       if( std::find(regionsLEM_.Begin(), regionsLEM_.End(), actRegionId )!= regionsLEM_.End() )
-        WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
+        WARN( "The region '" << passiveRegionNodesLEM[i]->Get("name")->As<std::string>()
+              << "' was already defined for PDE '" << pdename_ 
+              << "'. Please remove duplicate entries." );
+          
+      regionsLEM_.Push_back(actRegionId);
+    }
+
+    // add all sources
+    for( UInt i = 0; i < sourceRegionNodesLEM.GetSize(); i++ )
+    {
+      PtrParamNode in_ = list->Get("region");
+      std::string name = sourceRegionNodesLEM[i]->Get("name")->As<std::string>();
+      in_->Get("name")->SetValue(name);
+      
+      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(name);
+      
+      // Check, if region was already defined an issue a warning otherwise
+      if( std::find(regionsLEM_.Begin(), regionsLEM_.End(), actRegionId )!= regionsLEM_.End() )
+        WARN( "The region '" << sourceRegionNodesLEM[i]->Get("name")->As<std::string>()
               << "' was already defined for PDE '" << pdename_ 
               << "'. Please remove duplicate entries." );
           

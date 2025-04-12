@@ -306,6 +306,7 @@ namespace CoupledField {
 
     // magnetic - network coupling
     SolutionTypeEnum.Add(ELEC_NETWORK_POTENTIAL, "elecNetworkPotential");
+    SolutionTypeEnum.Add(ELEC_NETWORK_RHS_LOAD, "elecNetworkRhsLoad");
 
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
@@ -1169,6 +1170,7 @@ namespace CoupledField {
       case ELEC_CURRENT:
       case MAG_TOTAL_POTENTIAL:
       case MAG_REDUCED_POTENTIAL:
+      case ELEC_NETWORK_RHS_LOAD:
         return "A";
         break;
         
@@ -1203,6 +1205,7 @@ namespace CoupledField {
 
       case ELEC_POTENTIAL:
       case COIL_VOLTAGE:
+      case ELEC_NETWORK_POTENTIAL:
         return "V";
         break;
 

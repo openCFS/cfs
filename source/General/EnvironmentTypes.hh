@@ -124,7 +124,7 @@ namespace CoupledField {
     // ===============
     //  ELECTRIC NETWORK
     // ===============
-    ELEC_NETWORK_POTENTIAL, 
+    ELEC_NETWORK_POTENTIAL, ELEC_NETWORK_RHS_LOAD,
 
     // -- optimization properties
     ELEC_PSEUDO_POLARIZATION, ELEC_PHYSICAL_PSEUDO_DENSITY, ELEC_TENSOR_TRACE, ELEC_TENSOR,
