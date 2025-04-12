@@ -841,11 +841,14 @@ extern "C" {
 
     // Finish log report
     if(!mSolver_) {
-      if ( iparm_[7] > 0 && iparm_[6] == iparm_[7] ) {
-        WARN( "PARDISO reached the maximum number of iterative refinement steps ("
-              << iparm_[7] << ").\n This could indicate that the solution is incorrect!\n"
-              << " You may need to increase the iterRefineSteps parameter in"
-              << " order to obtain\n a correct solution." );
+      // oneAPI 2025 changed some tolerances such that we always get this warning for the same result and time as before. 
+      // don't spoil the conosole output with WARN()
+      if (iparm_[7] > 0 && iparm_[6] == iparm_[7])
+      { // according to Dominik the tolerace might be to small since oneAPI 2025 (1e-20)
+        if(iparm_[6] ==2) 
+          infoNode_->Get("refinement")->Get("hint")->SetValue("PARDISO reached the maximum number of iterative refinement steps (" + std::to_string(iparm_[7]) + ") probably the tolerance is too small.");
+        else // also print a warning to the console as with the WARN macro
+          infoNode_->Get("refinement")->SetWarning("PARDISO completed without reaching maximum iterative refinement steps (" + std::to_string(iparm_[7]) + ").");
       }
       LOG_TRACE(pardisoSolver) << " number of iterative refinement steps: " << iparm_[6];
       LOG_TRACE(pardisoSolver) << " number of perturbed pivots: " << iparm_[13];
