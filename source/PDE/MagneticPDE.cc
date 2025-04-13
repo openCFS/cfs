@@ -27,6 +27,7 @@
 #include "Forms/Operators/BaseBOperator.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/IdentityOperatorLem.hh"
+#include "Forms/Operators/NetworkOperators.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
@@ -1526,29 +1527,53 @@ namespace CoupledField {
       // Nots:
       // Maybe we have to combine all entities in one big list 
 
-      BaseBDBInt *stiffnessCouplingInt = nullptr;
+      // get the terminal definition and entity lists
+      ParamNodeList lemTerminalList = myParam_->Get("network")->GetList("terminal");
+      
+      for( UInt i = 0; i < lemTerminalList.GetSize(); i++ ){
 
-      if( dim_ == 2) {
-        if( isaxi_ ) {
-          // axisymmetric case
-          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+        // get the FE function of the magnetic part
+        shared_ptr<BaseFeFunction> vecFct = feFunctions_[MAG_POTENTIAL];
+
+        // get the connecting entities
+        std::string femTerminal, networkTerminal;
+        lemTerminalList[i]->GetValue( "FEMTerminal", femTerminal );
+        lemTerminalList[i]->GetValue( "NetworkTerminal", networkTerminal );
+
+        shared_ptr<EntityList> entFem, entNetwork;
+        entFem = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,femTerminal );
+        //entNetwork = ptGrid_->GetEntityList( EntityList::NODE_LIST,networkTerminal );
+        entNetwork = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,networkTerminal );
+
+        
+        // mass integrator
+
+        
+        // stiffness integrator
+        BaseBDBInt *stiffnessCouplingInt = nullptr;
+
+        if( dim_ == 2) {
+          if( isaxi_ ) {
+            // axisymmetric case
+            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+          } else {
+            // we don't consider any geometry update, hence, we set the last bool to false
+            // the identityOperatorLem inside a BBInt creates the following matrix:
+            //  1  -1
+            // -1   1
+            // we multiply this matrix with the conductance in order to get the correct element matrix
+            stiffnessCouplingInt = new ABInt<Double>(new FemLemAllocationOperator<FeH1>(), new SurfaceBBintOperator<FeH1>(), constOne, 1.0, false);
+          }
         } else {
-          // we don't consider any geometry update, hence, we set the last bool to false
-          // the identityOperatorLem inside a BBInt creates the following matrix:
-          //  1  -1
-          // -1   1
-          // we multiply this matrix with the conductance in order to get the correct element matrix
-          stiffnessCouplingInt = new ABInt<Double>(new IdentityOperatorLem<FeH1>(), new SurfaceBBintOperator<FeH1>(), coefG, 1.0, false);
+          EXCEPTION("3D FEM-LEM coupling is not supported!");
         }
-      } else {
-        EXCEPTION("3D FEM-LEM coupling is not supported!");
-      }
-      stiffnessCouplingInt->SetName("StiffnessFemLemCouplingInt");
-      BiLinFormContext * stiffnessCouplingContext = new BiLinFormContext(stiffnessCouplingInt, STIFFNESS );
-      TODO stiffnessCouplingContext->SetEntities( actSDList, actSDList );
-      stiffnessCouplingContext->SetFeFunctions( myFct, myFct );
-      assemble_->AddBiLinearForm( stiffnessCouplingContext );
+        stiffnessCouplingInt->SetName("StiffnessFemLemCouplingInt");
+        BiLinFormContext * stiffnessCouplingContext = new BiLinFormContext(stiffnessCouplingInt, STIFFNESS );
+        stiffnessCouplingContext->SetEntities( entNetwork, entFem );
+        stiffnessCouplingContext->SetFeFunctions( myFct, vecFct );
+        assemble_->AddBiLinearForm( stiffnessCouplingContext );
 
+      }
     }
   }
 

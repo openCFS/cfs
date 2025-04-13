@@ -123,6 +123,7 @@ void SurfaceMagneticStiffnessMatrixH1<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Doub
   const UInt numFncs = ptFe->GetNumFncs();
       
   // Set correct size of matrix B and initialize with zeros
+  Matrix<Double>& bMatIntermed;
   bMatIntermed.Resize( 2, numFncs );
 
   // Get derivatives of local shape functions with respect to global
@@ -132,7 +133,7 @@ void SurfaceMagneticStiffnessMatrixH1<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Doub
   if (this->isSurfOpt_)
     fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
   else
-    fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
 
   UInt iFunc = 0;
   for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
@@ -142,7 +143,8 @@ void SurfaceMagneticStiffnessMatrixH1<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Doub
     bMatIntermed[1][iFunc] = -xiDx[iFunc][0];
   }
 
-  bMat = bMatIntermed.Transpose * this->coef_ * bMatIntermed
+  EXCEPTION("SurfaceMagneticStiffnessMatrixH1 not fully implmeneted yet");
+  //bMat = bMatIntermed.Transpose * this->coef_ * bMatIntermed
 }
 
 template<class FE, UInt D, UInt D_DOF, class TYPE>
