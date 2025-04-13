@@ -65,6 +65,11 @@
   <<: *windows-shared_tags
   variables:
     INTEL_INSTALL_DIR: $CI_PROJECT_DIR\cache\oneAPI
+    # we build cfsdeps and cfs with Ninja to be in parallel. For cfs we need to build the cfsdeps target first serially
+    CMAKE_GENERATOR: Ninja
+    # with the Ninja generator the default C/C++ compiler would be icx
+    CC: cl
+    CXX: cl
     FC: ifx
     #CI_DEBUG_TRACE: "true"
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building

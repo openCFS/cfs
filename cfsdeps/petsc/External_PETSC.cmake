@@ -98,7 +98,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # CC, .. shall be mpicc to be verified in mpi.cmake. Unfortunately there is no assert() in cmake :(
     #Coudn't avoid copy paste for configure command as the configure command messes up things quotes
     CONFIGURE_COMMAND python2 ${PETSC_SOURCE}/configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=${PETSC_DEBUG} COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 --with-blas-lapack-dir=${MKL_ROOT_DIR}
-    INSTALL_COMMAND ${CONFIGURE_MAKE_PROGRAM} install
+    INSTALL_COMMAND make install
     BUILD_BYPRODUCTS ${PETSC_LIBRARY}
   )
 

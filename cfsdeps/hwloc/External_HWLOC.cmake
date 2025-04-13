@@ -90,7 +90,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     PATCH_COMMAND ""
     # disable some stuff we probably don't need  
     CONFIGURE_COMMAND ${HWLOC_SOURCE}/configure --prefix=${HWLOC_INSTALL} --libdir=${HWLOC_INSTALL}/${LIB_SUFFIX} --enable-static --disable-libxml2 --disable-cairo
-    INSTALL_COMMAND ${CONFIGURE_MAKE_PROGRAM} -f Makefile install
+    INSTALL_COMMAND make -f Makefile install
     BUILD_BYPRODUCTS ${HWLOC_LIBRARY}
   )
 

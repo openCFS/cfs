@@ -1,6 +1,6 @@
-# SuiteSparse contains the directl solvers CHOLMOD (extremely fast!) and UMFPACK
+# SuiteSparse contains the direct solvers CHOLMOD (extremely fast!) and UMFPACK
 # https://github.com/DrTimothyAldenDavis/SuiteSparse
-# we configure for GLP. Without choldmod is quite slow for 3D
+# we configure for GLP. Without, cholmod is quite slow for 3D
 clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
@@ -44,7 +44,7 @@ foreach(ITEM ${LIBS})
   endif()  
 endforeach()   
 
-# creates SUITESPARSE_LIBARAY as CACHE variable, hence it will not be overwritten once in cache!
+# creates SUITESPARSE_LIBRAY as CACHE variable, hence it will not be overwritten once in cache!
 set_standard_variables() 
 
 # we have no trustworthy install_manifest.txt, hence use install dir
@@ -53,7 +53,7 @@ set(DEPS_INSTALL "${DEPS_PREFIX}/install")
 # set DEPS_ARG with defaults for a cmake project
 set_deps_args_default(ON) # set compiler flags 
 
-# we potentiall build the suitesparse subprojects in parallel but we need to process them sequentially
+# we potentially build the suitesparse subprojects in parallel but we need to process them sequentially
 set(DEPS_BUILD_THREADS 1)
 
 set(DEPS_ARGS

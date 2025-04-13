@@ -1,12 +1,4 @@
-#============================================================================
-#
-# Find locations of external binary libs (e.g. MKL) and build additional
-# external libs from source.
-# 
-# This module finds and builds libs that openCFS depends upon and determines
-# where the include files and libraries are. 
-#
-#=============================================================================
+# This module finds and builds libs that openCFS depends from source with individual configuration
 
 include(ExternalProject) # cmake external project
 include("cmake_modules/DependencyTools.cmake") # our own helper for cfsdeps handling (pseudo object oriented)
@@ -32,17 +24,9 @@ assert_set(CFS_DEPS_CACHE_DIR)
 
 file(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
 
-# for configure projectes we may not use ninja but need make
-if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-  find_program(CONFIGURE_MAKE_PROGRAM make)
-else()
-  set(CONFIGURE_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build configure projects")
-endif()
-mark_as_advanced(CONFIGURE_MAKE_PROGRAM)
-
-# The Python lib stuff is not built but linked with the system python when we embedd python
+# The Python lib stuff is not built but linked with the system python when we embed python
 if(USE_EMBEDDED_PYTHON)
-  # we don't need the executable for embedded python - the testsuite finds it's own executale
+  # we don't need the executable for embedded python - the testsuite finds it's own executable
   # use -DPython_ROOT_DIR=... to help in case or check cmake's FindPython for other hints
   find_package(Python COMPONENTS Development NumPy)  
   #dump_variables("Python")
@@ -61,7 +45,7 @@ if(USE_EMBEDDED_PYTHON)
 endif()
 
 # these are optional external blas/lapack libs. 
-# MKL and Apple's Accellerate is set in openmp_blas.cmake to have it before compile.cmake
+# MKL and Apple's Accelerate is set in openmp_blas.cmake to have it before compile.cmake
 if(USE_BLAS_LAPACK STREQUAL "NETLIB")
   set(USE_NETLIB 1)
   include("${CFSDEPS_DIR}/netlib/External_Netlib.cmake")

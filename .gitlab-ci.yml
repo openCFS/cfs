@@ -587,7 +587,8 @@ cfsdeps:msvc2022:
   rules:
     - !reference [.cfsdeps,rules]
   variables:
-    BUILD_COMMAND: "cmake --build . --target cfsdeps"
+    # we build with ninja and each cfsdeps is build in parallel, so build the deps themselves serially  
+    BUILD_COMMAND: "cmake --build . --target cfsdeps --parallel 1"
     RUNNER_SCRIPT_TIMEOUT: 100m # set a script timeout lower than the job timeout (seems 120m in hosted windows runners) to ensure there is time for artifact and cache upload
   after_script:
     # just debug
@@ -648,6 +649,10 @@ cfsdeps:msvc2022:
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+    # using the Unix Makefile generator (every Linux but gcc14-musl), this variable builds cfs parallel.
+    # the cfsdeps will be build in sequence but automatically with the availabe number of cores.
+    # currently (04.2025) all gitlab runners seem to run with 2 threads
+    CMAKE_BUILD_PARALLEL_LEVEL: 2
   cache: !reference [.cache_linux_build-job, cache ]
   script:
     # configure once to have dashboard ready
@@ -661,6 +666,8 @@ cfsdeps:msvc2022:
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
     # build
+    # --parallel 1 beats the environment variable CMAKE_BUILD_PARALLEL_LEVEL
+    - cmake --build . --target cfsdeps --parallel 1
     - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
     # install test to create arifacts (first delete stuff to make space for packing)
@@ -911,10 +918,12 @@ windows:msvc2022:
   <<: *release_build_rules
   variables:
     # see https://yaml-multiline.info/ for multiline info
+    # building cfs with ninja we need to make sure to build cfsdeps serially first (practically all from precompiled cfsdeps)
     BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalConfigure --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
+                    cmake --build . --target cfsdeps --parallel 1 &&
                     ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.log &&
                     ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
                     ctest -D ExperimentalTest --track $CDASH_TRACK -R Pipeline_Build -V"
