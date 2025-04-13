@@ -1009,6 +1009,30 @@ ApproxOrder::ApproxOrder(UInt dim ) {
             << ptSurfEl->elemNum << " in region "
             << ptGrid_->GetRegion().ToString( ptSurfEl->regionId ) << "." );
       }
+    } else if( elemDim==0 ) {
+      // we have to handle points separately
+      StdVector<UInt> curNodeList = ptElem->connect;
+      LocPoint locCoord;
+      std::set<RegionIdType> srcRegions;
+      //const Elem* volElem = ptGrid_->GetElemAtNode(curNodeList[0], locCoord, srcRegions);
+      //const StdVector<Elem*> volElemList = ptGrid_->GetElemsByNode(curNodeList[0]);
+      RegionIdType regionId = ALL_REGIONS;
+      StdVector<Elem*> elems;
+      ptGrid_->GetElems(elems, regionId);
+      const Elem* curElem;
+      for (UInt i = 0; i < elems.GetSize(); i++) {
+        // only search for line elements
+        if (elems[i]->connect.GetSize()==2) {
+          if (elems[i]->connect[0] == curNodeList[0]) {
+            curElem = ptGrid_->GetElem(elems[i]->elemNum);
+          } else if (elems[i]->connect[1] == curNodeList[0]) {
+            curElem = ptGrid_->GetElem(elems[i]->elemNum);
+          }
+        }
+      }
+      
+      ret = curElem;
+
     } else {
       // 3) 1D element in 3D simulation
       

@@ -193,6 +193,11 @@ private:
     // ======================================================================
     //@{ \name Element Shape Specific Integration Rule Methods
     
+    //! Define integration points / weights for points
+    void DefinePointPoints( IntegMethod method, const IntegOrder& order,
+      StdVector<LocPoint>& points, 
+      StdVector<Double>& weights );
+    
     //! Define integration points / weights for line elements
     void DefineLinePoints( IntegMethod method, const IntegOrder& order,
                            StdVector<LocPoint>& points, 

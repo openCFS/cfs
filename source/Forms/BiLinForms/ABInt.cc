@@ -50,7 +50,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   IntegOrder order1, order2;
   IntScheme::IntegMethod method1, method2;
   BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
-  BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent1, method2, order2 );
+  BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent2, method2, order2 );
 
   const UInt nrFncsA = ptFeA->GetNumFncs();
   const UInt nrFncsB = ptFeB->GetNumFncs();

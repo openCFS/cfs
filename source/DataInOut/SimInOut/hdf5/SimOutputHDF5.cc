@@ -838,7 +838,7 @@ namespace CoupledField {
     std::vector<UInt> connect (nElems * maxNumNodes);
     std::vector<UInt> elConnect;
     std::vector<Integer> feTypes (nElems);
-    std::vector< UInt > numElemsOfDim ( 3 );
+    std::vector< UInt > numElemsOfDim ( 4 );
 
     // Fill connectivity array
     std::fill( connect.begin(), connect.end(), 0 );
@@ -852,7 +852,7 @@ namespace CoupledField {
       std::fill(elConnect.begin(), elConnect.end(),
                 0 );
       ptGrid_->GetElemData( i+1, eType, region, &elConnect[0] );
-      numElemsOfDim[(Elem::shapes[eType].dim)-1]++;
+      numElemsOfDim[(Elem::shapes[eType].dim)]++;
       feTypes[i] = eType;
 
       // insert connectivity into global array
@@ -881,9 +881,9 @@ namespace CoupledField {
                           ptGrid_->IsQuadratic() );
 
     // number of elements per dimension
-    for(UInt i=0; i<3; i++) {
+    for(UInt i=0; i<4; i++) {
       std::stringstream attrName;
-      attrName << "Num" << (i+1) << "DElems";
+      attrName << "Num" << (i) << "DElems";
       H5IO::WriteAttribute( elemGroup, attrName.str(), numElemsOfDim[i] );
     }
 

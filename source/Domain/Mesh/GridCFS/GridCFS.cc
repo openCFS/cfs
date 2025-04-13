@@ -782,6 +782,11 @@ namespace CoupledField {
       UInt elemDim = Elem::shapes[type].dim;
       bool isSurfElem = (dim_ - elemDim) == 1 ? true : false; 
 
+      // special case for point elements used in networks
+      if( elemDim==0 ) {
+        isSurfElem = true;
+      }
+
       // decide, what to do with the element
       if( isSurfElem ) {
         surfElems.Push_back( el );
@@ -2938,6 +2943,8 @@ namespace CoupledField {
           }
         }
         mappedNodeToElems_ = true;
+        std::cout << nodeElemMap_.ToString() << std::endl;
+        std::cout << nodeElemMapIndices_.ToString() << std::endl;
       }
     }
   }

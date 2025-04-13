@@ -405,6 +405,58 @@ namespace CoupledField {
   }
 
   // ========================================================================
+  //  Lagrangian Elements of 0th order
+  // ========================================================================
+  
+  // --- Point 0th order ---
+  
+  FeH1LagrangePoint::FeH1LagrangePoint() {
+    feType_ = Elem::ET_POINT;
+    completeType_ = TENSOR_TYPE;
+    shape_ = Elem::shapes[feType_];
+    actNumFncs_ = 1;
+    order_ = 0;
+  }
+  FeH1LagrangePoint::~FeH1LagrangePoint() {
+    
+  }
+  
+  void FeH1LagrangePoint::CalcShFnc( Vector<Double>& shape,
+                                     const Vector<Double>& point,
+                                     const Elem* ptElem,
+                                     UInt comp ) {
+     shape.Resize( 1 );
+     shape[0] = 1;
+  }
+  
+  void FeH1LagrangePoint::CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                                             const Vector<Double>& point,
+                                             const Elem* ptElem,
+                                             UInt comp ) {
+
+    deriv.Resize(1,1);
+    deriv[0][0] = 1;
+  }
+  
+  
+  bool FeH1LagrangePoint::CoordIsInsideElem( const Vector<Double>& point,
+                                            Double tolerance )  {
+   const Double & xi = point[0];
+   return (xi >= (- tolerance) &&
+           xi <= (tolerance));
+  }
+  
+  void FeH1LagrangePoint::
+  GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                            const StdVector<UInt> & volConnect,
+                            const LocPoint & surfIntPoint,
+                            LocPoint & volIntPoint,
+                            Vector<Double>& locNormal ) {
+    EXCEPTION("Not implemented");
+  }
+
+  
+  // ========================================================================
   //  Lagrangian Elements of 1st order
   // ========================================================================
   

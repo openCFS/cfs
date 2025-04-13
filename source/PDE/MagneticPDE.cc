@@ -1562,7 +1562,25 @@ namespace CoupledField {
             //  1  -1
             // -1   1
             // we multiply this matrix with the conductance in order to get the correct element matrix
-            stiffnessCouplingInt = new ABInt<Double>(new FemLemAllocationOperator<FeH1>(), new SurfaceBBintOperator<FeH1>(), constOne, 1.0, false);
+            std::set< RegionIdType > volRegion;
+            std::map<RegionIdType, BaseMaterial*>::iterator it, end;
+            it = materials_.begin();
+            end = materials_.end();
+            for( ; it != end; it++ ) {
+              RegionIdType volRegId = it->first;
+              volRegion.insert(volRegId);
+            }
+            BaseBOperator* bOp;
+            bOp = new SurfaceBBintOperator<FeH1>();
+
+
+            // access bdbint
+            bdbInts_
+            // write to special coeffunction
+
+            //bOp->SetBBint();
+            stiffnessCouplingInt = new ABInt<Double>(new FemLemAllocationOperator<FeH1>(), bOp, constOne, 1.0, false);
+            //stiffnessCouplingInt = new ABInt<Double>(new FemLemAllocationOperator<FeH1>(), new SurfaceBBintOperator<FeH1>(), constOne, 1.0, volRegion, false);
           }
         } else {
           EXCEPTION("3D FEM-LEM coupling is not supported!");

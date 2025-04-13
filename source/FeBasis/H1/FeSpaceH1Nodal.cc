@@ -269,6 +269,7 @@ namespace CoupledField{
       
       if( refElems_[region].empty() ) 
       {
+        refElems_[region][Elem::ET_POINT]  = new FeH1LagrangePoint();
         refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
         refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
         refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();

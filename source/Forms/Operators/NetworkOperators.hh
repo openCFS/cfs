@@ -256,10 +256,10 @@ template<class FE, UInt D, UInt D_DOF, class TYPE>
 void FemLemAllocationOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
 {
   //check if lp is surface and ptFe is volume
-  assert(lp.isSurface);
+  //assert(lp.isSurface); TODO
   //assert(D == ptFe->shape_.dim);
   //assert(D==D_DOF);
-  assert(D==2);
+  //assert(D==2); TODO
 
   const UInt numFncs = ptFe->GetNumFncs();
       

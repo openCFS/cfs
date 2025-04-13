@@ -169,6 +169,54 @@ protected:
 // Common base classes for elements of 1st and 2nd order
 // ========================================================================
 
+//! Lagrangian point element
+class FeH1LagrangePoint : public FeH1LagrangeExpl {
+
+  public:
+  
+    //! Constructor 
+    FeH1LagrangePoint();
+  
+    //! Copy Constructor
+    FeH1LagrangePoint(const FeH1LagrangePoint& other)
+     : FeH1LagrangeExpl(other){
+    }
+  
+    //! Destructor
+    virtual ~FeH1LagrangePoint();
+
+    //! Create deep copy
+    virtual FeH1LagrangePoint* Clone(){
+      return new FeH1LagrangePoint(*this);
+    }
+  
+  protected:
+  
+    //! @copydoc FeH1::CalcShFnc
+    void CalcShFnc( Vector<Double>& shape,
+                    const Vector<Double>& point,
+                    const Elem* ptElem,
+                    UInt comp = 1 );
+  
+    //! @copydoc FeH1::CalcLocDerivShFnc
+    void CalcLocDerivShFnc( Matrix<Double> & deriv, 
+                            const Vector<Double>& point,
+                            const Elem* ptElem,
+                            UInt comp = 1 );
+    
+    //! @copydoc FeH1LagrangeExpl::CoordIsInsideElem
+    bool CoordIsInsideElem( const Vector<Double>& point,
+                            Double tolerance );
+    
+    //! @copydoc FeH1LagrangeExpl::GetLocalIntPoints4Surface
+    void GetLocalIntPoints4Surface(const StdVector<UInt> & surfConnect,
+                                   const StdVector<UInt> & volConnect,
+                                   const LocPoint & surfIntPoint,
+                                   LocPoint & volIntPoint,
+                                   Vector<Double>& locNormal );
+  };
+
+
 //! Lagrangian line element
 class FeH1LagrangeLine : public FeH1LagrangeExpl {
 

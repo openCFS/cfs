@@ -206,6 +206,9 @@ void IntScheme::DefineIntPoints( Elem::ShapeType shapeType,
                                  bool saveInternal ) {
   // switch depending on shape type
   switch( shapeType ) {
+    case Elem::ST_POINT:
+      DefinePointPoints(method, order, points, weights);
+      break;
     case Elem::ST_LINE:
       DefineLinePoints(method, order, points, weights);
       break;
@@ -255,6 +258,19 @@ void IntScheme::DefineIntPoints( Elem::ShapeType shapeType,
 //================================================================
 void IntScheme::FillInitialIntegPoints(UInt maxOrder){
 
+  // Define poing integrations points
+  IntegMethod  methods0D[3] = {GAUSS, GAUSS_ECO, LOBATTO };
+  for( UInt iMethod = 0; iMethod < 3; ++iMethod ) {
+    IntegMethod method = methods0D[iMethod];
+    for( UInt isoOrder = 1; isoOrder <= maxOrder; ++isoOrder) {
+      IntegOrder order;
+      order.SetIsoOrder( isoOrder );
+      DefineIntPoints( Elem::ST_POINT, method, order, 
+                       intPoints_[method][order][Elem::ST_POINT],
+                       intWeights_[method][order][Elem::ST_POINT], true );
+    }
+  }
+  
   // Define line integrations points
   IntegMethod  methods1D[3] = {GAUSS, GAUSS_ECO, LOBATTO };
   for( UInt iMethod = 0; iMethod < 3; ++iMethod ) {
@@ -506,6 +522,27 @@ std::string IntScheme::PrintList( bool detailed ) const {
 // ======================================================================
 //  Element Shape Specific Integration Points
 // ======================================================================
+
+void IntScheme::DefinePointPoints( IntegMethod method, const IntegOrder& order,
+                                   StdVector<LocPoint>& points, 
+                                   StdVector<Double>& weights ) {
+  StdVector<Double> points1D;
+
+  if ( method == LOBATTO || method == GAUSS  || method == GAUSS_ECO ) {
+    // everything is the same for a point
+    points.Resize(1);
+    Vector<Double> point1D(1);
+    point1D[0] = 0;
+    points[0] = point1D;
+    
+    weights.Resize(1);
+    weights[0] = 1;
+  } else {
+    EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
+    << " not defined for 1D line elements" );
+  }
+}
+
 
 void IntScheme::DefineLinePoints( IntegMethod method, const IntegOrder& order,
                                   StdVector<LocPoint>& points, 

@@ -213,7 +213,7 @@ void InternalMesh::ReadMeshNetwork(Grid *mi)
   }
 
   // loop over all elements (and therefore regions) and assign the nodes correspondingly
-  maxNumElems_ = elemListNodeList.GetSize();
+  maxNumElems_ = elemListNodeList.GetSize()+maxNumNodes_;
 
   mi_->AddElems(maxNumElems_);
 
@@ -235,51 +235,76 @@ void InternalMesh::ReadMeshNetwork(Grid *mi)
 
   
   // loop
+  UInt curNode;
   for(UInt curElem = 0; curElem < maxNumElems_; ++curElem)  
   {
-    // read the element definition
-    std::string elemName;
-    elemListNodeList[curElem]->GetValue( "Name", elemName );
+    if( curElem<elemListNodeList.GetSize() ){
+      // line elements
 
-    std::string TerminalA;
-    elemListNodeList[curElem]->GetValue( "TerminalA", TerminalA );
+      // read the element definition
+      std::string elemName;
+      elemListNodeList[curElem]->GetValue( "Name", elemName );
 
-    std::string TerminalB;
-    elemListNodeList[curElem]->GetValue( "TerminalB", TerminalB );
+      std::string TerminalA;
+      elemListNodeList[curElem]->GetValue( "TerminalA", TerminalA );
 
-    // insert to region name vector
-    regionNames_[curElem] = elemName;
+      std::string TerminalB;
+      elemListNodeList[curElem]->GetValue( "TerminalB", TerminalB );
+
+      // insert to region name vector
+      regionNames_[curElem] = elemName;
 
 
-    // define the nodes per set
-    for(UInt curNode = 0; curNode < maxNumNodes_; ++curNode)
-    {
-      if(TerminalA==nodeNameVec[curNode]){
-        // define nodes per region
-        regionNodes_[curElem].insert(curNode+1);
-        // define element connectivity
-        elems[curElem].Push_back(curNode+1);
-      } 
+      // define the nodes per set
+      for(UInt curNode = 0; curNode < maxNumNodes_; ++curNode)
+      {
+        if(TerminalA==nodeNameVec[curNode]){
+          // define nodes per region
+          regionNodes_[curElem].insert(curNode+1);
+          // define element connectivity
+          elems[curElem].Push_back(curNode+1);
+        } 
+      }
+      for(UInt curNode = 0; curNode < maxNumNodes_; ++curNode)
+      {
+        if(TerminalB==nodeNameVec[curNode]){
+          // define nodes per region
+          regionNodes_[curElem].insert(curNode+1);
+          // define element connectivity
+          elems[curElem].Push_back(curNode+1);
+        } 
+      }
+
+      // add the one region and directly set regular to true?
+      regionIds[curElem] = mi_->AddRegion(regionNames_[curElem], true);  
+
+      // we only have line 2 elements
+      elemTypes[curElem].Push_back(Elem::ET_LINE2);
+      
+      // region and elem number are the same, but elements start at 1
+      elemNums[curElem].Push_back(curElem+1);
+    } else {
+      // point elements
+      curNode = curElem-elemListNodeList.GetSize();
+
+      // insert to region name vector
+      regionNames_[curElem] = nodeNameVec[curNode];
+
+      // define nodes per region
+      regionNodes_[curElem].insert(curNode+1);
+      // define element connectivity
+      elems[curElem].Push_back(curNode+1);
+
+      // add the one region and directly set regular to true?
+      regionIds[curElem] = mi_->AddRegion(regionNames_[curElem], true);  
+
+      // we only have points
+      elemTypes[curElem].Push_back(Elem::ET_POINT);
+      
+      // region and elem number are the same, but elements start at 1
+      elemNums[curElem].Push_back(curElem+1);
+
     }
-    for(UInt curNode = 0; curNode < maxNumNodes_; ++curNode)
-    {
-      if(TerminalB==nodeNameVec[curNode]){
-        // define nodes per region
-        regionNodes_[curElem].insert(curNode+1);
-        // define element connectivity
-        elems[curElem].Push_back(curNode+1);
-      } 
-    }
-
-    // add the one region and directly set regular to true?
-    regionIds[curElem] = mi_->AddRegion(regionNames_[curElem], true);  
-
-    // we only have line 2 elements
-    elemTypes[curElem].Push_back(Elem::ET_LINE2);
-    
-    // region and elem number are the same, but elements start at 1
-    elemNums[curElem].Push_back(curElem+1);
-
   }
 
   
@@ -296,7 +321,7 @@ void InternalMesh::ReadMeshNetwork(Grid *mi)
 
   // add nodes
 
-  // Get Named Nodes
+  /* // Get Named Nodes
   StdVector<UInt> index;
   index.Resize(1);
 
@@ -304,7 +329,10 @@ void InternalMesh::ReadMeshNetwork(Grid *mi)
     // seems a bit weird, but we need to pass a vector
     index[0] = i+1;
     mi_->AddNamedNodes(nodeNameVec[i], index);
-  }
+  } */
+
+
+  // add nodes as point elements
 
 }
 

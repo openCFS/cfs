@@ -9,6 +9,8 @@ namespace CoupledField{
 //! Basic Class for differential operators. These classes are passed as a 
 //! template parameter to the forms object. Thereby a PDE rather specifies
 //! an operator than a specific form.
+
+class BaseBDBInt;
 class BaseBOperator : public CfsCopyable{
 public:
   
@@ -158,6 +160,8 @@ public:
   virtual void SetOperator2SurfOperator() {
     isSurfOpt_ = true;
   }
+
+  virtual void SetBBint( BaseBDBInt* bbInt );
   
 protected:
 
@@ -169,6 +173,7 @@ protected:
 
   //! if true, then it is a surface operator
   bool isSurfOpt_;
+
 };
 }
 #endif

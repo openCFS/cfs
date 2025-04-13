@@ -466,6 +466,7 @@ LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton() {
   //obtain thread local copy this method will only be called once in the program!
   for(UInt aT = 0; aT<feMap_.GetNumSlots();++aT){
     std::map<Elem::FEType, FeH1LagrangeExpl* >& tMap = feMap_.Mine(aT);
+    tMap[Elem::ET_POINT]   = new FeH1LagrangePoint();
     tMap[Elem::ET_LINE2]   = new FeH1LagrangeLine1();
     tMap[Elem::ET_LINE3]   = new FeH1LagrangeLine2();
     tMap[Elem::ET_TRIA3]   = new FeH1LagrangeTria1();
