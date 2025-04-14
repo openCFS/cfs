@@ -88,6 +88,7 @@ using std::string;
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
+#include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 
 // used for getting coils from the pde
 #include "MagEdgePDE.hh"
@@ -3941,28 +3942,55 @@ namespace CoupledField {
     //we set here the penalty factor
     Double beta = iface.nitscheFactor;
 
+    // IMPORTANT!
+    // TODO(Vladimir Filkin (TU Wien), 2025.10.02): thinLayer/NCI handling is not optimal.
+    // Current implementation collapses material properties and layer thickness into a single Double
+    // coefficient. This only works for spatially uniform data.
+    // For spatially varying properties or thickness, switch to CoefFunction (properties, thickness
+    // as functions of space). Do NOT copy-paste this implementation to other PDEs.
+    // Action: refactor thinLayer to CoefFunction before reuse. To refactor, thin layer coeffitient
+    // shall enter bilinear forms not as a Double, but as a CoefFunction!
     Double assignedFactor = 0.0; // used to set beta / factors within integrator definition below
-    Double alphaHeat = 0.0;
+    Double alphaThinLayer = 0.0;
+    Double alphaThinLayerExtraMech = 0.0;
     bool isPenalty = true;
+
+    // Helper to read a constant scalar from a coefficient function
+    auto coefToScalar = [](const PtrCoefFct& f) -> Double {
+      return std::stod(f->ToString());
+    };
 
     // check if thin layer formulation is set, read and calculate parameters
     bool isThinLayer = false;
     if (iface.thinLayer){
       isThinLayer = true;
-      Double layerThickness = iface.layerThickness; // not yet used
-      string layerMaterial = iface.layerMaterial; // not yet used
+      const Double layerThickness = iface.layerThickness;
+      if (layerThickness <= 0.0) {
+        Exception("Thin layer thickness must be positive");
+      }
+      const std::string& layerMaterial = iface.layerMaterial;
+      MaterialHandler* const matLoader = domain->GetMaterialHandler();
       if (solType == HEAT_TEMPERATURE){
-        // Read material data
-        MaterialHandler* matLoader = domain->GetMaterialHandler();
-        BaseMaterial* mat = matLoader->LoadMaterial(layerMaterial, THERMIC);
-        std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > tl_materials;
-        tl_materials[THERMIC][HEAT_CONDUCTIVITY_SCALAR] = mat->GetScalCoefFnc( HEAT_CONDUCTIVITY_SCALAR, Global::REAL );
-        double tl_heatConductivity = std::stod(tl_materials[THERMIC][HEAT_CONDUCTIVITY_SCALAR]->ToString());
-        alphaHeat = tl_heatConductivity / layerThickness; // calculated value for heat transfer coefficient
-        //WARN("Thin layer formulation used with alphaHeat = " << alphaHeat);
+        BaseMaterial* const mat = matLoader->LoadMaterial(layerMaterial, THERMIC);
+        const PtrCoefFct kcoef = mat->GetScalCoefFnc(HEAT_CONDUCTIVITY_SCALAR, Global::REAL);
+        const Double k = coefToScalar(kcoef);
+        alphaThinLayer = k / layerThickness;
+      }
+      else if (solType == MECH_DISPLACEMENT)
+      {
+        if (isMaterialComplex_) {
+          Exception("Complex material is not implemented for ThinLayer NCI");
+        }
+        BaseMaterial* const mat = matLoader->LoadMaterial(layerMaterial, MECHANIC);
+        const PtrCoefFct muCoef = mat->GetScalCoefFnc(MECH_LAME_MU, Global::REAL);
+        const PtrCoefFct lambdaCoef = mat->GetScalCoefFnc(MECH_LAME_LAMBDA, Global::REAL);
+        const Double G = coefToScalar(muCoef);
+        const Double lambda = coefToScalar(lambdaCoef);
+        alphaThinLayer = G / layerThickness;
+        alphaThinLayerExtraMech = lambda / layerThickness + alphaThinLayer;
       }
       else
-        EXCEPTION("Thin layer is currently implemented only for HeatPDE"); // Handle not implemented formulation
+        Exception("Thin layer is currently implemented only for HeatPDE and MechPDE"); // Handle not implemented formulation
     }
 
 
@@ -4067,6 +4095,9 @@ namespace CoupledField {
     BiLinearForm *penalty_v1_u1 = nullptr;
     BiLinearForm *penalty_v1_u2 = nullptr;
     BiLinearForm *penalty_v2_u2 = nullptr;
+    BiLinearForm *penalty_v1_u1_normalMech = nullptr;
+    BiLinearForm *penalty_v1_u2_normalMech = nullptr;
+    BiLinearForm *penalty_v2_u2_normalMech = nullptr;
     //now bilinear forms related to the normal derivatives
     //du1 refers to the normal derivative directing from 1 to 2
     BiLinearForm *flux_dv1_u1 = nullptr;
@@ -4160,8 +4191,8 @@ namespace CoupledField {
                           factor, beta, curcpl, updatedGeo_, true, true);
         }
       } else {
-        if(isThinLayer) { // Nitsche term with thinLayer formulaiton
-          assignedFactor = alphaHeat; 
+        if(isThinLayer){ // Nitsche term with thinLayer formulaiton
+          assignedFactor = alphaThinLayer; 
           isPenalty = false;
         } else {
           assignedFactor = beta;
@@ -4171,15 +4202,21 @@ namespace CoupledField {
                        (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                         factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+        // an extra term for MechPDE thinLayer
+        if (isThinLayer && solType == MECH_DISPLACEMENT) {
+          penalty_v1_u1_normalMech = new SurfaceNitscheABInt<Double,Double> 
+            (new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+            new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+              factor, alphaThinLayerExtraMech, curcpl, updatedGeo_, true, isPenalty);
+        }
       }
     }
     // primary-primary of the symmetrization term, (dv1/dn*u1)
     if ( solType == MECH_DISPLACEMENT ) {
-      flux_dv1_u1 = new SurfaceNitscheABInt<Double,Double>
-                   (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
-                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    factor, -1.0, curcpl, updatedGeo_, true);
-                    flux_dv1_u1->SetBCoefFunctionOpA(coefMech);
+      if (!isThinLayer){
+        flux_dv1_u1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false), new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(), factor, -1.0, curcpl, updatedGeo_, true);
+        flux_dv1_u1->SetBCoefFunctionOpA(coefMech);
+      }
     } else {
       if (isMaterialComplex_) {
         flux_dv1_u1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4213,11 +4250,10 @@ namespace CoupledField {
 
     // primary-primary part of the flux term, (v1*du1/dn)
     if ( solType == MECH_DISPLACEMENT ) {
-      flux_v1_du1 = new SurfaceNitscheABInt<Double,Double>
-                   (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
-                    factor, -1.0, curcpl, updatedGeo_, true);
-      flux_v1_du1->SetBCoefFunctionOpB(coefMech);
+      if (!isThinLayer){
+        flux_v1_du1 = new SurfaceNitscheABInt<Double,Double>(new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(), new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false), factor, -1.0, curcpl, updatedGeo_, true);
+        flux_v1_du1->SetBCoefFunctionOpB(coefMech);
+      }
     } else {
       if ( isMaterialComplex_) {
         flux_v1_du1 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4272,8 +4308,8 @@ namespace CoupledField {
                 factor, beta * -1.0, curcpl, updatedGeo_, true, true);
         }
       } else {
-        if(isThinLayer) {
-          assignedFactor = alphaHeat * -1.0; // thin layer formulation
+        if(isThinLayer){ 
+          assignedFactor = alphaThinLayer * -1.0; // thin layer formulation
           isPenalty = false;
         } else {
           assignedFactor = beta * -1.0;
@@ -4283,15 +4319,21 @@ namespace CoupledField {
                        (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                         factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+        // extra term for MechPDE - nn
+        if (isThinLayer && solType == MECH_DISPLACEMENT){
+          penalty_v1_u2_normalMech = new SurfaceNitscheABInt<Double,Double> 
+                                (new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+                                new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+                                factor, alphaThinLayerExtraMech * -1.0, curcpl, updatedGeo_, true, isPenalty);
+        }
       }
     }
     // mixed part of symmetrization term (dv1/dn*u2)
     if ( solType == MECH_DISPLACEMENT ) {
-      flux_dv1_u2 = new SurfaceNitscheABInt<Double,Double>
-                   (new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false),
-                    new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-                    factor, 1.0, curcpl, updatedGeo_, true);
-      flux_dv1_u2->SetBCoefFunctionOpA(coefMech);
+      if (!isThinLayer){
+        flux_dv1_u2 = new SurfaceNitscheABInt<Double,Double>(new SurfaceNormalStressOperator<FeH1,DIM,D_DOF>(subType_, false), new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(), factor, 1.0, curcpl, updatedGeo_, true);
+        flux_dv1_u2->SetBCoefFunctionOpA(coefMech);
+      }
     } else {
       if ( isMaterialComplex_) {
         flux_dv1_u2 = new SurfaceNitscheABInt<Complex,Complex>
@@ -4347,8 +4389,8 @@ namespace CoupledField {
                           factor, beta, curcpl, updatedGeo_, true, true);
         }
       } else {
-        if (isThinLayer) {
-          assignedFactor = alphaHeat; //thin layer formulation
+        if( isThinLayer){
+          assignedFactor = alphaThinLayer; //thin layer formulation
           isPenalty = false;
         } else {
           assignedFactor = beta;
@@ -4358,6 +4400,12 @@ namespace CoupledField {
                        (new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                         new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
                         factor, assignedFactor, curcpl, updatedGeo_, true, isPenalty);
+        if (isThinLayer && solType == MECH_DISPLACEMENT){
+          penalty_v2_u2_normalMech = new SurfaceNitscheABInt<Double,Double> 
+                                (new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+                                new SurfaceIdentityOperatorNormalTrans<FeH1,DIM,D_DOF>(),
+                                factor, alphaThinLayerExtraMech, curcpl, updatedGeo_, true, isPenalty);
+        }
       }
     }
 
@@ -4369,19 +4417,25 @@ namespace CoupledField {
 
     // now the BOperators are set, so define the contexts...
     SurfaceBiLinFormContext *penalty_v1_u1_Context = nullptr;
+    SurfaceBiLinFormContext *penalty_v1_u1_normalMech_Context = nullptr;
     SurfaceBiLinFormContext *flux_dv1_u1_Context   = nullptr;
     SurfaceBiLinFormContext *flux_v1_du1_Context   = nullptr;
     SurfaceBiLinFormContext *penalty_v2_u2_Context = nullptr;
+    SurfaceBiLinFormContext *penalty_v2_u2_normalMech_Context = nullptr;
     SurfaceBiLinFormContext *penalty_v1_u2_Context = nullptr;
+    SurfaceBiLinFormContext *penalty_v1_u2_normalMech_Context = nullptr;
     SurfaceBiLinFormContext *flux_dv1_u2_Context   = nullptr;
     curcpl = BiLinearForm::PRIM_PRIM;
     penalty_v1_u1_Context = new SurfaceBiLinFormContext(penalty_v1_u1, targetMatrix, curcpl);
+    if (penalty_v1_u1_normalMech) {penalty_v1_u1_normalMech_Context = new SurfaceBiLinFormContext(penalty_v1_u1_normalMech, targetMatrix, curcpl);}
     if (flux_dv1_u1){ flux_dv1_u1_Context = new SurfaceBiLinFormContext(flux_dv1_u1  , targetMatrix, curcpl);}
     if (flux_v1_du1){ flux_v1_du1_Context = new SurfaceBiLinFormContext(flux_v1_du1  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SEC_SEC;
     penalty_v2_u2_Context = new SurfaceBiLinFormContext(penalty_v2_u2, targetMatrix, curcpl);
+    if (penalty_v2_u2_normalMech) {penalty_v2_u2_normalMech_Context = new SurfaceBiLinFormContext(penalty_v2_u2_normalMech, targetMatrix, curcpl);}
     curcpl = BiLinearForm::PRIM_SEC;
     penalty_v1_u2_Context = new SurfaceBiLinFormContext(penalty_v1_u2, targetMatrix, curcpl);
+    if (penalty_v1_u2_normalMech) {penalty_v1_u2_normalMech_Context = new SurfaceBiLinFormContext(penalty_v1_u2_normalMech, targetMatrix, curcpl);}
     if (flux_dv1_u2){ flux_dv1_u2_Context = new SurfaceBiLinFormContext(flux_dv1_u2  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SEC_PRIM;
     // assign motion to the contexts
@@ -4391,10 +4445,16 @@ namespace CoupledField {
     if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetMotion(ncIf->IsMoving());}
     if (flux_v1_du1_Context){ flux_v1_du1_Context->SetMotion(ncIf->IsMoving());}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetMotion(ncIf->IsMoving());}
+    if (penalty_v1_u1_normalMech_Context) {penalty_v1_u1_normalMech_Context->SetMotion(ncIf->IsMoving());}
+    if (penalty_v2_u2_normalMech_Context) {penalty_v2_u2_normalMech_Context->SetMotion(ncIf->IsMoving());}
+    if (penalty_v1_u2_normalMech_Context) {penalty_v1_u2_normalMech_Context->SetMotion(ncIf->IsMoving());}
     // assign names to the operators
     penalty_v2_u2->SetName("penalty_v2_u2");
     penalty_v1_u2->SetName("penalty_v1_u2");
     penalty_v1_u1->SetName("penalty_v1_u1");
+    if (penalty_v2_u2_normalMech) {penalty_v2_u2_normalMech->SetName("penalty_v2_u2_normalMech");}
+    if (penalty_v1_u2_normalMech) {penalty_v1_u2_normalMech->SetName("penalty_v1_u2_normalMech");}
+    if (penalty_v1_u1_normalMech) {penalty_v1_u1_normalMech->SetName("penalty_v1_u1_normalMech");}
     if (flux_dv1_u1){ flux_dv1_u1->SetName("flux_dv1_u1");}
     if (flux_v1_du1){ flux_v1_du1->SetName("flux_v1_du1");}
     if (flux_dv1_u2){ flux_dv1_u2->SetName("flux_dv1_u2");}
@@ -4402,6 +4462,9 @@ namespace CoupledField {
     penalty_v1_u1_Context->SetEntities(actSDList,actSDList);
     penalty_v2_u2_Context->SetEntities(actSDList,actSDList);
     penalty_v1_u2_Context->SetEntities(actSDList,actSDList);
+    if (penalty_v1_u1_normalMech_Context) {penalty_v1_u1_normalMech_Context->SetEntities(actSDList,actSDList);}
+    if (penalty_v2_u2_normalMech_Context) {penalty_v2_u2_normalMech_Context->SetEntities(actSDList,actSDList);}
+    if (penalty_v1_u2_normalMech_Context) {penalty_v1_u2_normalMech_Context->SetEntities(actSDList,actSDList);}
     if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetEntities(actSDList,actSDList);}
     if (flux_v1_du1_Context){ flux_v1_du1_Context->SetEntities(actSDList,actSDList);}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetEntities(actSDList,actSDList);}
@@ -4409,16 +4472,23 @@ namespace CoupledField {
     penalty_v1_u1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_v2_u2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_v1_u2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
+    if (penalty_v1_u1_normalMech_Context) {penalty_v1_u1_normalMech_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (penalty_v2_u2_normalMech_Context) {penalty_v2_u2_normalMech_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
+    if (penalty_v1_u2_normalMech_Context) {penalty_v1_u2_normalMech_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
     if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
     if (flux_v1_du1_Context){ flux_v1_du1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );}
 
     penalty_v1_u2_Context->SetCounterPart(true);
+    if (penalty_v1_u2_normalMech_Context) {penalty_v1_u2_normalMech_Context->SetCounterPart(true);}
     if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetCounterPart(true);}
 
     assemble_->AddBiLinearForm( penalty_v1_u1_Context );
     assemble_->AddBiLinearForm( penalty_v2_u2_Context );
     assemble_->AddBiLinearForm( penalty_v1_u2_Context );
+    if (penalty_v1_u1_normalMech_Context) {assemble_->AddBiLinearForm( penalty_v1_u1_normalMech_Context );}
+    if (penalty_v2_u2_normalMech_Context) {assemble_->AddBiLinearForm( penalty_v2_u2_normalMech_Context );}
+    if (penalty_v1_u2_normalMech_Context) {assemble_->AddBiLinearForm( penalty_v1_u2_normalMech_Context );}
     if (flux_dv1_u1_Context){ assemble_->AddBiLinearForm( flux_dv1_u1_Context );}
     if (flux_v1_du1_Context){ assemble_->AddBiLinearForm( flux_v1_du1_Context );}
     if (flux_dv1_u2_Context){ assemble_->AddBiLinearForm( flux_dv1_u2_Context );}
@@ -4426,6 +4496,9 @@ namespace CoupledField {
     ncIf->RegisterIntegrator( penalty_v1_u1_Context );
     ncIf->RegisterIntegrator( penalty_v2_u2_Context );
     ncIf->RegisterIntegrator( penalty_v1_u2_Context );
+    if (penalty_v1_u1_normalMech_Context) {ncIf->RegisterIntegrator( penalty_v1_u1_normalMech_Context );}
+    if (penalty_v2_u2_normalMech_Context) {ncIf->RegisterIntegrator( penalty_v2_u2_normalMech_Context );}
+    if (penalty_v1_u2_normalMech_Context) {ncIf->RegisterIntegrator( penalty_v1_u2_normalMech_Context );}
     if (flux_dv1_u1_Context){ ncIf->RegisterIntegrator( flux_dv1_u1_Context );}
     if (flux_v1_du1_Context){ ncIf->RegisterIntegrator( flux_v1_du1_Context );}
     if (flux_dv1_u2_Context){ ncIf->RegisterIntegrator( flux_dv1_u2_Context );}
