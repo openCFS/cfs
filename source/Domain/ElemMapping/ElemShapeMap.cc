@@ -2301,6 +2301,9 @@ Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac,
       jacDet = sqrt( jac[0][0] * jac[0][0]
                     + jac[1][0] * jac[1][0]
                     + jac[2][0] * jac[2][0]);
+    } else if (jac.GetNumRows() == 2 && jac.GetNumCols() == 1) {
+      // 0D elements in 2D
+      jacDet = 1;
     } else if (jac.GetNumRows() == 2) {
       // 1D elements in 2D
       //see kaltenbacher, p.23, eq.(2.122)

@@ -11,11 +11,11 @@ namespace CoupledField {
 //class BiLinearForm;
 
 /* Can be used to pass a bilinear form as a coefFunction for evalaution besides the assembly class */
-class CoefFunctionBop : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionBop>
+class CoefFunctionBop : public CoefFunction
 {
 public:
 
-  CoefFunctionBop(shared_ptr<BaseFeFunction> fct1);
+  CoefFunctionBop();
 
   virtual ~CoefFunctionBop() { }
 
@@ -31,13 +31,10 @@ public:
     return form_;
   }
 
-protected:
-
   template <class T>
-  void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm);
+  void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm, BaseFE* ptFe);
 
-  template <class T>
-  void CalcElementMatrixLpm(Matrix<T>& elemMat, const LocPointMapped& lpm);
+  virtual void CalcElementMatrixLpm(Matrix<Double>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe);
 
   template <class T>
   void GetScalar(T& scal, const LocPointMapped& lpm);
@@ -45,8 +42,7 @@ protected:
   template <class T>
   void GetVector(Vector<T>& scal, const LocPointMapped& lpm);
 
-  /** the pde we work on */
-  shared_ptr<BaseFeFunction> feFct_;
+protected:
 
   /** we store the form such that we can identify the proper transfer function */
   BiLinearForm* form_;

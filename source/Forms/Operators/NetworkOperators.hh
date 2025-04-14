@@ -238,7 +238,7 @@ public:
 
   //! \copydoc BaseBOperator::GetDimElem()
   virtual UInt GetDimElem() const {
-    return DIM_ELEM;
+    return 0; // this one is only used for points
   }
 
   //! \copydoc BaseBOperator::GetDimDMat()

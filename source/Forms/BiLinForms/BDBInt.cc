@@ -139,6 +139,48 @@ namespace CoupledField{
     //LOG_DBG3(bdbint) << "CEM e=" << ptElem->elemNum << " elemMat=" << elemMat.ToString();
   }
 
+
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE> 
+  void BDBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
+  CalcElementMatrixLpm( Matrix<MAT_DATA_TYPE>& elemMat,
+                      BaseFE* ptFe, 
+                      const LocPointMapped& lp ) {
+    
+    MAT_DATA_TYPE fac = 0.0;
+
+    const UInt nrFncs = ptFe->GetNumFncs();
+
+    elemMat.Resize( nrFncs * bOperator_->GetDimDof() );
+    elemMat.Init();
+
+
+    // Call the CalcBMat()-method
+    this->bOperator_->CalcOpMat( bMat_, lp, ptFe);
+    LOG_DBG3(bdbint) << "point " << lp.lp.coord << " bMat= " << bMat_;
+
+    // Calculate D-Mat
+    dData_->GetTensor(dMat_,lp);
+    assert(dMat_.IsSymmetric(1e-8));
+    LOG_DBG3(bdbint) << "point " << lp.lp.coord << " dMat=" << dMat_.ToString();
+    
+    fac = MAT_DATA_TYPE(lp.jacDet *lp.weight); 
+
+    LOG_DBG3(bdbint) << "point " << lp.lp.coord << " factor_=" << factor_ << " jacDet=" << lp.jacDet << " weight=" << lp.weight;
+
+    dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
+
+#ifdef NDEBUG
+    dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0); // dbMat_ = 1.0 * dMat_ * bMat_ + 0.0 * dbMat_
+    bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex; elemMat = factor_*fac * bMat_^H * dbMat_ + 1.0 * elemMat
+#else
+    dbMat_ = (dMat_ * bMat_) * fac;
+    elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
+    LOG_DBG3(bdbint) << "CEM point " << lp.lp.coord << " fac=" << fac << " factor_=" << factor_ << " bmat=" << bMat_.ToString();
+    LOG_DBG3(bdbint) << "CEM point " << lp.lp.coord << " -> K_" << "=" << elemMat.ToString();
+#endif
+   }
+   
+
   // ===============
   //  Apply ElemMat
   // ===============

@@ -78,6 +78,50 @@ namespace CoupledField {
 
   //! general class for calculation of AB-Forms
   template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
+    class ABIntLem : public ABInt<COEF_DATA_TYPE,B_DATA_TYPE>{
+  public:
+
+    //! Define data type for matrix entries, derived by type trait
+    typedef PROMOTE(B_DATA_TYPE, COEF_DATA_TYPE) MAT_DATA_TYPE;
+    
+    //! Constructor with pointer to CoefFunction for surface itself
+    ABIntLem( BaseBOperator * aOp, BaseBOperator * bOp,
+                  PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                  bool coordUpdate = false);
+
+    //! Constructor with CoefFunctions for a number of volume regions
+    ABIntLem( BaseBOperator * aOp, BaseBOperator * bOp,
+                  const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
+                  MAT_DATA_TYPE factor,
+                  bool coordUpdate = false);
+
+    //! Copy constructor
+    ABIntLem(const ABIntLem& right)
+      : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(right){
+      //here we would also need to create a new operator
+      this->regionCoefs_ = right.regionCoefs_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual ABIntLem* Clone(){
+      return new ABIntLem( *this );
+    }
+
+    //! Destructor
+    virtual ~ABIntLem() {}
+
+    //! Compute element matrix associated to AB form
+    void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2 );
+  protected:
+    //! Map containing all coefficient functions for volume regions for operator A
+    std::map< RegionIdType, PtrCoefFct > regionCoefs_;
+  };
+
+
+  //! general class for calculation of AB-Forms
+  template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
     class SurfaceABInt : public ABInt<COEF_DATA_TYPE,B_DATA_TYPE>{
   public:
 

@@ -1716,17 +1716,17 @@ void SurfaceBBintOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, c
 {
   // Call the integrator and calcualte the bMat for the given lp
   Matrix<Double> bMat2;
-  //coef_->CalcElementMatrixLpm(bMat2, ptFe, lp);
+  coef_->CalcElementMatrixLpm(bMat2, lp, ptFe);
   bMat = bMat2;
 }
 
 template<class FE, UInt D, UInt D_DOF, class TYPE>
 void SurfaceBBintOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
 {
-  Matrix<Double> dummyMat;
-  CalcOpMat(dummyMat, lp, ptFe);
-
-  dummyMat.Transpose(bMat);
+  // Call the integrator and calcualte the bMat for the given lp
+  Matrix<Double> bMat2;
+  coef_->CalcElementMatrixLpm(bMat2, lp, ptFe);
+  bMat2.Transpose(bMat);
 }
 
 

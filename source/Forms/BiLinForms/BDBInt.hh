@@ -190,9 +190,7 @@ public:
     //! Compute element matrix associated to BDB form for a specific lpm
     virtual void CalcElementMatrixLpm( Matrix<MAT_DATA_TYPE>& elemMat,
                             BaseFE* ptFe,
-                            const LocPointMapped& lp ){
-      EXCEPTION("CalcElementMatrixLpm not overwritten!");
-    }
+                            const LocPointMapped& lp );
 
     //@{
     void ApplyElemMat( Vector<Double>&ret,

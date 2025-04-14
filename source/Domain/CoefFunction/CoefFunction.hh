@@ -810,6 +810,15 @@ public:
     EXCEPTION("CoefFuncion::GetOutputSaturation not overwritten by " << GetName());
   }
 
+  //! functions required for FEM-LEM coupling
+  virtual void CalcElementMatrixLpm(Matrix<Double>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe){
+    EXCEPTION("CoefFuncion::CalcElementMatrixLpm not overwritten by " << GetName());
+  }
+
+  virtual void CalcElementMatrixLpm(Matrix<Complex>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe){
+    EXCEPTION("CoefFuncion::CalcElementMatrixLpm not overwritten by " << GetName());
+  }
+
 
   //! set volume regionId being the correct neighbor of a surface region id
   virtual void SetVolNeighborRegionId(RegionIdType surfId, RegionIdType volId) {

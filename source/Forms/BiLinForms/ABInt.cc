@@ -93,6 +93,114 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   }
 }
 
+
+template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  ABIntLem<COEF_DATA_TYPE, B_DATA_TYPE>::
+    ABIntLem(BaseBOperator * aOp, BaseBOperator * bOp, 
+          PtrCoefFct scalCoef, MAT_DATA_TYPE factor, bool coordUpdate ): 
+          ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate) {
+  this->type_ = BiLinearForm::AB_INT;
+  this->name_ = "ABIntLem"; 
+  this->aOperator_ = aOp;
+  this->solDependent_ = false;
+
+  // Note: In general the AB-Integrator is not symmetric, as is should 
+  // get only used, if the A- and B differential operators are distinct.
+  this->isSymmetric_ = false;
+}
+
+
+
+template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void ABIntLem<COEF_DATA_TYPE, B_DATA_TYPE>::
+    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
+                       EntityIterator& ent1,
+                       EntityIterator& ent2 ) {
+  // Extract physical element
+  const Elem* ptElem1 = ent1.GetElem();
+  const Elem* ptElem2 = ent2.GetElem();
+
+  MAT_DATA_TYPE fac(0.0);
+
+  // Obtain FE element from feSpace and integration scheme
+  IntegOrder order1, order2;
+  IntScheme::IntegMethod method1, method2;
+  BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
+  BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent2, method2, order2 );
+
+  const UInt nrFncsA = ptFeA->GetNumFncs();
+  const UInt nrFncsB = ptFeB->GetNumFncs();
+  
+
+  StdVector<LocPoint> intPoints;
+  StdVector<Double> weights;
+  shared_ptr<ElemShapeMap> esm;
+
+  // for LEM coupling we have a special operator that passes us the element matrix from
+  // an integrator from the FEM side
+  // we search for that one and use it for the evaluation of said integrator
+  bool aOpIsAllocOp = false;
+  if (this->aOperator_->GetDimElem()==0){
+    // if aOp is the alloc operator, then we use the integration points from the B side
+    aOpIsAllocOp = true;
+    // Get shape map from grid
+    esm = ent2.GetGrid()->GetElemShapeMap( ptElem2, this->coordUpdate_ );
+    // Get integration points
+    this->intScheme_->GetIntPoints( Elem::GetShapeType(ptElem2->type), 
+        method2, order2, intPoints, weights );
+  } else if (this->bOperator_->GetDimElem()==0){
+    // if bOp is the alloc operator, then we use the integration points from the A side
+    aOpIsAllocOp = false;
+    // Get shape map from grid
+    esm = ent1.GetGrid()->GetElemShapeMap( ptElem1, this->coordUpdate_ );
+    // Get integration points
+    this->intScheme_->GetIntPoints( Elem::GetShapeType(ptElem1->type), 
+        method1, order1, intPoints, weights );
+  } else {
+    EXCEPTION("ABIntLem shall only be used with a FEM allocation operator");
+  }
+  
+  
+  elemMat.Resize( nrFncsA * this->aOperator_->GetDimDof(), nrFncsB * this->bOperator_->GetDimDof() );
+  elemMat.Init();
+
+  // Loop over all integration points
+  LocPointMapped lpm;
+  const UInt numIntPts = intPoints.GetSize();
+  for( UInt iIntPts = 0; iIntPts < numIntPts; ++iIntPts  ) {
+
+    // Calculate for each integration point the LocPointMapped
+    lpm.Set( intPoints[iIntPts], esm, weights[iIntPts] );
+
+    // Decide which FE function to pass (we always need the one of the FEM part for the correct number of equations)
+    if( aOpIsAllocOp ){
+      // Calculate A-matrix (first differential operator)
+      this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeB );
+
+      // Calculate B-matrix (second differential operator)
+      this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeB );
+    } else {
+      // Calculate A-matrix (first differential operator)
+      this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeA );
+
+      // Calculate B-matrix (second differential operator)
+      this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeA );
+    }
+
+    std::cout << "A mat " << this->aMat_.ToString() << std::endl;
+    std::cout << "B mat " << this->bMat_.ToString() << std::endl;
+    // Calculate scalar factor
+    this->coefScalar_->GetScalar(fac, lpm);
+    fac *= MAT_DATA_TYPE(lpm.jacDet * weights[iIntPts]); 
+
+#ifdef NDEBUG
+    aMat_.Mult_Blas(this->bMat_,elemMat,true,false,this->factor_*fac,1.0);
+#else
+    elemMat += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
+#endif
+  }
+}
+
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>::
     SurfaceABInt( BaseBOperator * aOp, BaseBOperator * bOp,
@@ -839,6 +947,10 @@ template class ABInt<Double,Double>;
 template class ABInt<Double,Complex>;
 template class ABInt<Complex,Double>;
 template class ABInt<Complex,Complex>;
+template class ABIntLem<Double,Double>;
+template class ABIntLem<Double,Complex>;
+template class ABIntLem<Complex,Double>;
+template class ABIntLem<Complex,Complex>;
 template class SurfaceABInt<Double,Double>;
 template class SurfaceABInt<Double,Complex>;
 template class SurfaceABInt<Complex,Double>;

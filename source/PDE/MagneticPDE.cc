@@ -1402,9 +1402,12 @@ namespace CoupledField {
 
 
           // define main integrators (LEM part)
-          if( networkElementType=="CurrentSource" ){
+          if( networkElementType=="CurrentSource" || networkElementType=="VoltageSource" ){
+            // current source:
             // we already have the correct circuit, just add a resistor integrator based on the
             // the internal resistance and then add the source as a RHS integrator
+            // voltage source:
+            // just calculate U/R_i to get the equivalent current source, the rest is as above
 
             // conductance value
             PtrCoefFct coefG;
@@ -1443,7 +1446,16 @@ namespace CoupledField {
 
             // get value
             std::string curValue = regionNodesLemSource[i]->Get("value")->As<std::string>();
-            PtrCoefFct coefSource = CoefFunction::Generate( mp_, Global::REAL, curValue);
+            PtrCoefFct coefSource;
+            if( networkElementType=="VoltageSource" ) {
+              PtrCoefFct coefSourceTemp;
+              coefSourceTemp = CoefFunction::Generate( mp_, Global::REAL, curValue);
+              coefSource = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, coefSourceTemp, coefR, CoefXpr::OP_DIV));
+            } else if( networkElementType=="CurrentSource" ) {
+              coefSource = CoefFunction::Generate( mp_, Global::REAL, curValue);
+            }
+            
+            
             PtrCoefFct coefSourceNeg;
             coefSourceNeg = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constMinusOne, coefSource, CoefXpr::OP_MULT));
 
@@ -1610,12 +1622,12 @@ namespace CoupledField {
 
             // write to special coeffunction
             shared_ptr<CoefFunctionBop> coefFunctionStiff;
-            coefFunctionStiff.reset(new CoefFunctionBop(vecFct));
+            coefFunctionStiff.reset(new CoefFunctionBop());
             coefFunctionStiff->SetForm(bdb);
             bOp->SetCoefFunction(coefFunctionStiff);
 
             //bOp->SetBBint();
-            stiffnessCouplingInt = new ABInt<Double>(new FemLemAllocationOperator<FeH1>(), bOp, constOne, 1.0, false);
+            stiffnessCouplingInt = new ABIntLem<Double,Double>(new FemLemAllocationOperator<FeH1>(), bOp, constOne, 1.0, false);
             //stiffnessCouplingInt = new ABInt<Double>(new FemLemAllocationOperator<FeH1>(), new SurfaceBBintOperator<FeH1>(), constOne, 1.0, volRegion, false);
           }
         } else {
