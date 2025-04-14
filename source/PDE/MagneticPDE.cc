@@ -36,6 +36,7 @@
 #include "Domain/CoefFunction/CoefFunctionHyst.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Domain/CoefFunction/CoefFunctionBop.hh"
 #include "Domain/CoefFunction/CoefFunctionDiagTensorFromScalar.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
@@ -1536,9 +1537,10 @@ namespace CoupledField {
         shared_ptr<BaseFeFunction> vecFct = feFunctions_[MAG_POTENTIAL];
 
         // get the connecting entities
-        std::string femTerminal, networkTerminal;
-        lemTerminalList[i]->GetValue( "FEMTerminal", femTerminal );
-        lemTerminalList[i]->GetValue( "NetworkTerminal", networkTerminal );
+        std::string femTerminal, networkTerminal, volRegionName;
+        lemTerminalList[i]->GetValue( "femTerminal", femTerminal );
+        lemTerminalList[i]->GetValue( "networkTerminal", networkTerminal );
+        lemTerminalList[i]->GetValue( "volRegion", volRegionName );
 
         shared_ptr<EntityList> entFem, entNetwork;
         entFem = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,femTerminal );
@@ -1574,9 +1576,43 @@ namespace CoupledField {
             bOp = new SurfaceBBintOperator<FeH1>();
 
 
+            // get the volume region
+            RegionIdType curFemVolRegion, curFemVolRegionDummy;
+            bool foundVolRegion = false;
+            for(UInt femRegion = 0; femRegion < regions_.GetSize() ; femRegion++){
+              curFemVolRegionDummy = regions_[femRegion];
+              // Get current region name
+              std::string regionName = ptGrid_->GetRegion().ToString(curFemVolRegionDummy);
+              
+              if( regionName==volRegionName ){
+                curFemVolRegion = curFemVolRegionDummy;
+                foundVolRegion = true;
+              }
+            }
+            
+            if( !foundVolRegion ){
+              EXCEPTION("Did not find a suitable volume region for getting the integrator");
+            }
+            
+            
             // access bdbint
-            bdbInts_
+            BaseBDBInt* bdb;
+            std::multimap<RegionIdType, BaseBDBInt*>::iterator stiffIt = bdbInts_.begin();
+            for(; stiffIt != bdbInts_.end(); ++stiffIt ) {
+              RegionIdType region = stiffIt->first;
+              if( region==curFemVolRegion ){
+                bdb = stiffIt->second;
+              }
+            }
+              
+            if( !bdb)
+              EXCEPTION("Could not find BDB integrator for region " << curFemVolRegion);
+
             // write to special coeffunction
+            shared_ptr<CoefFunctionBop> coefFunctionStiff;
+            coefFunctionStiff.reset(new CoefFunctionBop(vecFct));
+            coefFunctionStiff->SetForm(bdb);
+            bOp->SetCoefFunction(coefFunctionStiff);
 
             //bOp->SetBBint();
             stiffnessCouplingInt = new ABInt<Double>(new FemLemAllocationOperator<FeH1>(), bOp, constOne, 1.0, false);

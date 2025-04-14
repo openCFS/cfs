@@ -10,7 +10,6 @@ namespace CoupledField{
 //! template parameter to the forms object. Thereby a PDE rather specifies
 //! an operator than a specific form.
 
-class BaseBDBInt;
 class BaseBOperator : public CfsCopyable{
 public:
   
@@ -161,7 +160,6 @@ public:
     isSurfOpt_ = true;
   }
 
-  virtual void SetBBint( BaseBDBInt* bbInt );
   
 protected:
 

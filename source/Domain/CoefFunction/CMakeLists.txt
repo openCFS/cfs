@@ -3,6 +3,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunction.cc
   CoefFunctionAccumulator.cc
   CoefFunctionApprox.cc
+  CoefFunctionBop.cc
   CoefFunctionFormBased.cc
   CoefFunctionCache.cc
   CoefFunctionCompound.cc

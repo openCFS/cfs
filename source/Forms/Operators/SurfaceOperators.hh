@@ -18,7 +18,6 @@
 #define SURFACEOPERATORS_HH
 
 #include "BaseBOperator.hh"
-//#include "Forms/BiLinForms/BDBInt.hh"
 
 namespace CoupledField{
 
@@ -1703,8 +1702,8 @@ public:
   }
   //@}
 
-  virtual void SetBBint( BaseBDBInt* bbInt ) {
-    bbInt_ = bbInt;
+  void SetCoefFunction(PtrCoefFct coef){
+    coef_ = coef;
   }
 
 
@@ -1717,7 +1716,7 @@ void SurfaceBBintOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, c
 {
   // Call the integrator and calcualte the bMat for the given lp
   Matrix<Double> bMat2;
-  bbInt_->CalcElementMatrixLpm(bMat2, ptFe, lp);
+  //coef_->CalcElementMatrixLpm(bMat2, ptFe, lp);
   bMat = bMat2;
 }
 

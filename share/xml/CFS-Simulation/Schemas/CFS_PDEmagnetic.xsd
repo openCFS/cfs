@@ -257,8 +257,9 @@
                     </xsd:documentation>
                   </xsd:annotation>
                   <xsd:complexType>
-                    <xsd:attribute name="FEMTerminal" type="xsd:token" use="required"/>
-                    <xsd:attribute name="NetworkTerminal" type="xsd:token" use="required"/>
+                    <xsd:attribute name="femTerminal" type="xsd:token" use="required"/>
+                    <xsd:attribute name="networkTerminal" type="xsd:token" use="required"/>
+                    <xsd:attribute name="volRegion" type="xsd:token" use="required"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
