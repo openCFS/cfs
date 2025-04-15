@@ -527,6 +527,11 @@ rhel:9:
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes
       when: manual
+    # for the release, do not compare to master but to the previous commit
+    - if: $CFS_PIPELINE_TYPE == "release"
+      changes:
+        paths:
+          - !reference [.cfsdeps-rebuild-changes, changes, paths]
   cache: !reference [.cache_linux_cfsdeps-job, cache]
   before_script:
     - pwd # debug
