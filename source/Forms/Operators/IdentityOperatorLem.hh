@@ -137,10 +137,12 @@ namespace CoupledField{
     //  1  -1
     // -1   1
     //matrix
-    bMat[0][0] = 1/sqrt(2);
-    bMat[0][1] = -1/sqrt(2);
-    bMat[1][0] = -1/sqrt(2);
-    bMat[1][1] = 1/sqrt(2);
+
+    // we also have to divide everything by 1/sqrt(2) since we have a line element with two integration points
+    bMat[0][0] = 0.5;
+    bMat[0][1] = -0.5;
+    bMat[1][0] = -0.5;
+    bMat[1][1] = 0.5;
    }
 
   template<class FE,  UInt D, UInt D_DOF, class TYPE>
@@ -160,10 +162,12 @@ namespace CoupledField{
     //  1  -1
     // -1   1
     //matrix
-    bMat[0][0] = 1/sqrt(2);
-    bMat[0][1] = -1/sqrt(2);
-    bMat[1][0] = -1/sqrt(2);
-    bMat[1][1] = 1/sqrt(2);
+
+    // we also have to divide everything by two since we have a line element with two integration points
+    bMat[0][0] = 0.5;
+    bMat[0][1] = -0.5;
+    bMat[1][0] = -0.5;
+    bMat[1][1] = 0.5;
 
   }
  
