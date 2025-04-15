@@ -531,7 +531,8 @@ rhel:9:
     - if: $CFS_PIPELINE_TYPE == "release"
       changes:
         paths:
-          - !reference [.cfsdeps-rebuild-changes, changes, paths]
+          - "cfsdeps/**/*"
+          - "cmake_modules/FindCFSDEPS.cmake"
   cache: !reference [.cache_linux_cfsdeps-job, cache]
   before_script:
     - pwd # debug
