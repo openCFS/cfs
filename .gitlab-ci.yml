@@ -1214,6 +1214,10 @@ python:linux:
           - "**/*.py"
         compare_to: $COMPARE_CHANGES_TO
       when: manual
+    # add a manual job if there were no changes
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      allow_failure: true
+      when: manual
   before_script:
     - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
     - mkdir -p build
