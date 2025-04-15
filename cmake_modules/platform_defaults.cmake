@@ -10,7 +10,7 @@
 # - on Windows/Mac from platform_defaults_win/mac.cmake (read at the end)
 # - simply manually via ccmake
 
-set(BUILD_TESTING_DEFAULT OFF)
+set(CFS_TESTSUITE_DEFAULT ON)
 set(BUILD_CFSTOOL_DEFAULT ON)
 set(BUILD_CFSDAT_DEFAULT ON)
 set(BUILD_UNIT_TESTS_DEFAULT ON)

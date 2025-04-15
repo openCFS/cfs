@@ -532,7 +532,7 @@ rhel:9:
     - pwd # debug
     - !reference [.before-script-build, script]
   script:
-    - cmake $CFS_CONFIG_OPTIONS ..
+    - cmake -DCFS_TESTSUITE=OFF $CFS_CONFIG_OPTIONS ..
     - cmake .
     - cmake --build . --target cfsdeps --parallel 1
   after_script:
@@ -652,7 +652,7 @@ cfsdeps:msvc2022:
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
+    - cmake -DCFS_TESTSUITE=OFF ${CFS_CONFIG_OPTIONS} ..
     # start cdash dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     # update to current revision (gives link on CDash)
@@ -674,7 +674,7 @@ cfsdeps:msvc2022:
     - du -h --max-depth=1 . # debug
     - df -h # debug
     - !reference [.linux-debug-end, script]
-    - ctest -D ExperimentalTest --track $CDASH_TRACK # test build and install
+    - ctest -D ExperimentalTest --track $CDASH_TRACK -R Pipeline_Build # test build and install
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
   after_script:
     - export DEBUG_SECTION_TITLE='debug information and cleanup'
@@ -771,7 +771,6 @@ linux:gcc9max-debug:
   extends: .default_build_job
   variables:
     IMAGE: centos7-gcc9
-    BUILD_NAME: "GCC9 maximal debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
@@ -785,7 +784,6 @@ linux:gcc9max:
   extends: .default_build_job
   variables:
     IMAGE: centos7-gcc9
-    BUILD_NAME: "GCC9 maximal"
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
@@ -798,7 +796,6 @@ linux:gcc9:
   extends: .default_build_job
   variables:
     IMAGE: centos7-gcc9
-    BUILD_NAME: "GCC9"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache    
   <<: [ *build_rules, *gcc_before ]
@@ -811,7 +808,6 @@ linux:gcc14-musl:
   extends: .default_build_job
   variables:
     IMAGE: alpine
-    BUILD_NAME: "GCC14-MUSL"
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
@@ -826,7 +822,6 @@ linux:gcc9min:
   extends: .default_build_job
   variables:
     IMAGE: centos7-gcc9
-    BUILD_NAME: "GCC9 minimal"
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_GINKGO=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
@@ -840,7 +835,6 @@ linux:gcc9closed:
   extends: .default_build_job
   variables:
     IMAGE: centos7-gcc9
-    BUILD_NAME: "GCC9 closed"
     # embedded_python is not closed but technically not that easy deployable
     CFS_CONFIG_OPTIONS: "-DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_SUITESPARSE=ON -DBUILD_CFSDAT=OFF" 
     # use ccache
@@ -863,7 +857,6 @@ linux:intel:
   extends: .default_build_job
   variables:
     IMAGE: rhel8-intel
-    BUILD_NAME: "Intel2025"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
   rules:
@@ -883,7 +876,6 @@ linux:clang-debug:
   extends: .default_build_job
   variables:
     IMAGE: rhel8-llvm
-    BUILD_NAME: "Clang debug"
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache
@@ -918,7 +910,6 @@ windows:msvc2022:
   stage: build
   <<: *release_build_rules
   variables:
-    BUILD_NAME: "msvc2022"
     # see https://yaml-multiline.info/ for multiline info
     BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
@@ -926,7 +917,7 @@ windows:msvc2022:
                     ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
                     ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.log &&
                     ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
-                    ctest -D ExperimentalTest --track $CDASH_TRACK -V"
+                    ctest -D ExperimentalTest --track $CDASH_TRACK -R Pipeline_Build -V"
     # use ccache
     CMAKE_CXX_COMPILER_LAUNCHER: ccache.exe
   script:
@@ -980,8 +971,8 @@ windows:msvc2022:
     - cd build
     # optionally install cmake if not present
     - !reference [.cmake_test_or_install,script]
-    # CDash submit
-    - ctest -VV -D ExperimentalSubmit --track $CDASH_TRACK || true # very-verbose output, do not stop after script on fail
+    # CDash submit, quiet, but do not fail
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log || echo "submit fail, not even submit.log written"
     # save buildid
     - !reference [.save_cdash_buildid,script]
   artifacts:
@@ -1032,7 +1023,7 @@ windows:msvc2022:
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     - echo "CTEST_OPTIONS="$CTEST_OPTIONS
     # configure and run the testsuite
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_DIR=$(pwd)/../Testsuite ${TEST_CONFIG_OPTIONS} .. # multicore = default
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
@@ -1046,7 +1037,7 @@ windows:msvc2022:
     # show variables for debug
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     # configure and run the testsuite
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_DIR=$(pwd)/../Testsuite ${TEST_CONFIG_OPTIONS} .. # multicore = default
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
@@ -1054,15 +1045,14 @@ windows:msvc2022:
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
-# Naming scheme for ci-jobs: <test-set_parallelism>:<build-name>:<system>
-# Naming scheme for BUILD_NAME: build config / test-set parallelism
+# Naming scheme for CI_JOB_NAME: <test-set_parallelism>:<build-name>:<system>
+# The BUILDNAME (for DCash will be inferred from CI_JOB_NAME in CMakeLists of the Testsuite)
 stable_ser:gcc9min:linux:
   tags:
     - saas-linux-small-amd64
   stage: test
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: "GCC9 minimal / stable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1076,7 +1066,6 @@ unstable_ser:gcc9min:linux:
   variables:
     IMAGE: ubuntu22.04
     # is built without opnemp  
-    BUILD_NAME: "GCC9 minimal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1092,7 +1081,6 @@ stable_par:gcc9max:linux:
     - !reference [.max_rules, rules]
   variables:
     IMAGE: centos7-gcc9
-    BUILD_NAME: "GCC9 maximal / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   needs:
@@ -1107,13 +1095,12 @@ unstable_ser:gcc9max:linux:
     - !reference [.max_rules, rules]
   variables:
     IMAGE: centos7-gcc9
-    BUILD_NAME: "GCC9 maximal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   needs:
     - linux:gcc9max
 
-stable_par:gcc9closed:linux:
+stable_par_opt:gcc9closed:linux:
   extends: .test_generic
   tags:
     - saas-linux-small-amd64
@@ -1122,7 +1109,6 @@ stable_par:gcc9closed:linux:
     - !reference [linux:gcc9closed, rules]
   variables:
     IMAGE: centos7-gcc9
-    BUILD_NAME: "GCC9 closed / stable opt parallel"
     TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF "
     CTEST_OPTIONS: "-LE unstable|broken -R Opt"
   needs:
@@ -1134,7 +1120,6 @@ stable_ser:gcc14-musl:linux:
   stage: test
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: "GCC14-MUSL / stable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1147,7 +1132,6 @@ stable_par:gcc14-musl:linux:
   stage: test
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: "GCC14-MUSL / stable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1160,7 +1144,6 @@ stable_par:intel:linux:
   stage: test
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: Intel2025 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1173,7 +1156,6 @@ unstable_ser:intel:linux:
   stage: test
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: Intel2025 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1185,7 +1167,6 @@ stable_ser:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: msvc2022 / stable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script: 
     - !reference [.windows-test_stable, script]
@@ -1196,7 +1177,6 @@ stable_par:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: msvc2022 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
   script: 
     - !reference [.windows-test_stable, script]
@@ -1207,7 +1187,6 @@ unstable_ser:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: msvc2022 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_unstable, script]
@@ -1235,14 +1214,12 @@ python:linux:
           - "**/*.py"
         compare_to: $COMPARE_CHANGES_TO
       when: manual
-  variables:
-    TEST_NAME: "stable"
   before_script:
     - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
     - mkdir -p build
     - cd build
     - !reference [.cmake_test_or_install,script] # optionally install cmake if not present
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
+    - cmake -DTESTSUITE_CFS=OFF -DCFS_INSTALL_DIR=$CI_PROJECT_DIR/build $CI_PROJECT_DIR/Testsuite # switch off CFS
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
@@ -1280,20 +1257,17 @@ broken_ser:gcc9min:linux:
   variables:
     IMAGE: ubuntu22.04
     # is built without opnemp  
-    BUILD_NAME: "GCC9 minimal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
     - linux:gcc9min
 
-# this test has the speciality that it shall run at an unspecified image 
-all_par:gcc14-musl:any-linux:
+all_par:gcc14-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   variables:
-    BUILD_NAME: "GCC14-MUSL / all parallel any-linux"
-    # no special options - we take all default (should be all tests & in parallel if NCPU>1)
+    IMAGE: ubuntu24.04
   needs:
     - linux:gcc14-musl
 
@@ -1306,7 +1280,6 @@ unstable_par:gcc9max:linux:
     - !reference [.test_extra, rules]
   variables:
     IMAGE: centos7
-    BUILD_NAME: "GCC9 maximal / unstable parallel"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1321,7 +1294,6 @@ broken_ser:gcc9max:linux:
     - !reference [.test_extra, rules]
   variables:
     IMAGE: centos7
-    BUILD_NAME: "GCC9 maximal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1339,7 +1311,6 @@ no-slow_ser:gcc9max-debug:linux:
     - !reference [.test_extra, rules]
   variables:
     IMAGE: centos7
-    BUILD_NAME: "GCC9 maximal debug / no-slow serial"
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     # this special test_no_slow does -LE "unstable|slow"
@@ -1352,7 +1323,6 @@ unstable_par:intel:linux:
     - saas-linux-small-amd64
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: Intel2025 / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1364,7 +1334,6 @@ unstable_par:gcc14-musl:linux:
     - saas-linux-small-amd64
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: GCC14-MUSL / unstable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
@@ -1376,7 +1345,6 @@ broken_ser:gcc14-musl:linux:
     - saas-linux-small-amd64
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: GCC14-MUSL / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1388,7 +1356,6 @@ broken_ser:intel:linux:
     - saas-linux-small-amd64
   variables:
     IMAGE: ubuntu22.04
-    BUILD_NAME: Intel2025 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
@@ -1400,7 +1367,6 @@ broken_ser:msvc2022:windows:
   rules:
     - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: msvc2022 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_broken, script]

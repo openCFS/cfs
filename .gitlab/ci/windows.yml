@@ -70,7 +70,7 @@
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
     # define config by variable # cfsdat leads to build error on Windows?
-    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON"
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCFS_TESTSUITE=OFF"
     # set the default cache policy (for build jobs) to pull
     INSTALL_POLICY: "pull" # only pull the install, the cfsdeps step has done it (fresh if necessary)
     # see https://docs.gitlab.com/ee/ci/caching/index.html#use-a-variable-to-control-a-jobs-cache-policy
@@ -202,7 +202,7 @@
     # debug output
     - echo "TEST_CONFIG_OPTIONS=$TEST_CONFIG_OPTIONS"
     # configure first
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE="$env:CI_PROJECT_DIR\build\config.cmake" -DTESTSUITE_DIR="$env:CI_PROJECT_DIR\Testsuite" -DTESTSUITE_PYTHON=OFF -DTESTSUITE_INFO_XML=OFF $env:TEST_CONFIG_OPTIONS ..
+    - cmake -DCFS_TESTSUITE=ON -DTESTSUITE_PYTHON=OFF -DTESTSUITE_INFO_XML=OFF $env:TEST_CONFIG_OPTIONS $env:CI_PROJECT_DIR\Testsuite
     # now start dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash

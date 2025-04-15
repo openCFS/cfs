@@ -489,16 +489,10 @@ void Dependencies::ReadSetting()
   data.Push_back(cfsdat);
 
   Dependency cfstool("cfstool", "BUILD_CFSTOOL", CFS);
-#ifdef BUILD_TOOL
+#ifdef BUILD_CFSTOOL
   cfstool.active = true;
 #endif
   data.Push_back(cfstool);
-
-  Dependency testing("TESTING", "BUILD_TESTING", CFS);
-#ifdef BUILD_TESTING
-  testing.active = true;
-#endif
-  data.Push_back(testing);
 
   Dependency unittests("Unit-Tests", "BUILD_UNIT_TESTS", CFS);
 #ifdef BUILD_UNIT_TESTS

@@ -7,7 +7,8 @@
 cmake_minimum_required(VERSION 3.16)
 
 # check if we run from within cfs (i.e. testsuite is included)
-if(NOT PROJECT_NAME)
+if(NOT PROJECT_NAME) # we are in standalone mode
+  message(STATUS "Configuring Testsuite in standalone mode")
   set(CMAKE_MAKE_PROGRAM "none") # we do not need any
   project(TESTSUITE NONE)
   set(CFS_INSTALL_DIR "${CMAKE_BINARY_DIR}" CACHE PATH "location of cfs installation to test")
@@ -35,9 +36,27 @@ if(NOT PROJECT_NAME)
       message(ERROR "res=${res}, fail: ${out}")
     endif()
   else() # could not find executable
-	  message(FATAL_ERROR "cannot find cfs binary at ${CFS_EXECUTABLE}: correct CFS_INSTALL_DIR !")
+    message(STATUS "cannot find cfs binary at ${CFS_EXECUTABLE}: is CFS_INSTALL_DIR correct?")
+    if(TESTSUITE_CFS) # we want to test CFS but cannot find it
+	    message(FATAL_ERROR "  with TESTSUITE_CFS=ON we want to test CFS but did not find it!")
+    else() # we do not need to test CFS
+      message(STATUS "  since TESTSUITE_CFS=OFF we do not need a CFS binary, what else is in ${CFS_INSTALL_DIR} ?")
+      if(EXISTS "${CFS_INSTALL_DIR}/share")
+        message(STATUS "    testing the scripts in ${CFS_INSTALL_DIR}/share")
+      else()
+        message(STATUS "    testing python scripts from the source directory ${CMAKE_SOURCE_DIR}/../share")
+        set(CFS_INSTALL_DIR "${CMAKE_SOURCE_DIR}/..")
+      endif()
+    endif()
+    set(TESTSUITE_DIR ${CMAKE_SOURCE_DIR})
   endif()
-else()
+  # include the common config file
+  include("ctest_settings.cmake")
+  # ctest must be included from the top level CMakeLists
+  include(CTest)
+  enable_testing()
+  mark_as_advanced(BUILD_TESTING) # hide this CTests internal option
+else() # included from within CFS
   set(CFS_INSTALL_DIR "${CMAKE_BINARY_DIR}")
 endif(NOT PROJECT_NAME)
 
@@ -58,8 +77,6 @@ set(CFS_BINARY_DIR ${CFS_INSTALL_DIR})
 # can we use CMAKE_BINARY_DIR for both options (testsuite incuded from cfs or standalone)? 
 set(TESTSUITE_BIN_DIR "${CMAKE_BINARY_DIR}/testsuite")
 
-message(STATUS "Testsuite will be testing: ${CFS_INSTALL_DIR}/bin/cfs")
-
 # CFS_BUILD_CONFIG_FILE can be set
 #  a) above if Testsuite is used standalone
 #  b) via -D if one wants to override defaults for testing.
@@ -67,9 +84,6 @@ if(CFS_BUILD_CONFIG_FILE)
   message(STATUS "Testsuite is loading CFS build config from file '${CFS_BUILD_CONFIG_FILE}' to define tests")
   include("${CFS_BUILD_CONFIG_FILE}")
 endif()
-
-# Include CMake module for testing support
-include(CTest)
 
 # configure the testsuite
 
@@ -94,25 +108,10 @@ mark_as_advanced(TESTSUITE_TIMEOUT)
 
 # check options
 # check if we have dependent options set correctly
-# In order to perform tests we need the CFSTOOL and HDF5!
-if(NOT BUILD_CFSTOOL)
-#    message(FATAL_ERROR "BUILD_TESTING=ON requires BUILD_CFSTOOL=ON.")
+# In order to perform tests we need CFSTOOL!
+if(CFS_TESTSUITE AND NOT BUILD_CFSTOOL)
+    message(FATAL_ERROR "CFS_TESTSUITE=ON requires BUILD_CFSTOOL=ON.")
 endif()
-
-# Switch on support for testing
-enable_testing()
-
-# configure the dashboard and include config
-# write the variables in DartConfiguration.tcl which is used by `ctest -D` or `make Experimental`
-# https://github.com/Kitware/CMake/blob/master/Modules/DartConfiguration.tcl.in
-set(DROP_SITE "movm.mi.uni-erlangen.de" CACHE STRING "URL of the CDash dashboard to submit test results")
-mark_as_advanced(DROP_SITE)
-set(DROP_LOCATION "/cdash/submit.php?project=CFS")
-set(DROP_METHOD "http")
-set(NIGHTLY_START_TIME "00:00:00 CET")
-set(SUBMIT_URL "${DROP_METHOD}://${DROP_SITE}${DROP_LOCATION}") # for recent cmake versions
-message(STATUS "submitting tests to: ${SUBMIT_URL}")
-include(CTest) # to actually write DartConfiguration.tcl (again?)
 
 # enbale some custom ctest settings
 configure_file("CTestCustom.cmake.in" "${CMAKE_BINARY_DIR}/CTestCustom.cmake" @ONLY)
@@ -122,7 +121,6 @@ configure_file("CTestCustom.cmake.in" "${CMAKE_BINARY_DIR}/CTestCustom.cmake" @O
 # directory names.
 #-------------------------------------------------------------------------------
 include("TestMacros.cmake")
-#include("${CFS_SOURCE_DIR}/cmake_modules/distro.cmake") # TODO: check if this is necessary for something
 
 # Set file name for configured version of CFS++ standard test macro (there is a .in version)
 # * cfstool for comparisson of h5 files (default)
@@ -143,19 +141,29 @@ set(BASECELL_PY "${CFS_BINARY_DIR}/share/python/basecell.py")
 # Checks matviz.py results
 set(COMPARE_IMAGES "${CMAKE_CURRENT_SOURCE_DIR}/compare_images.py")
 
+include(CMakeDependentOption)
 # Enables tests of Python scripts e.g. via doctest
-set(TESTSUITE_PYTHON ON CACHE BOOL "testing of python modules")
+cmake_dependent_option(TESTSUITE_PYTHON "testing of python modules" ON "CFS_TESTSUITE OR ${PROJECT_NAME} MATCHES TESTSUITE" OFF)
+mark_as_advanced(TESTSUITE_PYTHON)
+
 # option to use tests which need 'compare_info_xml.py'
-set(TESTSUITE_INFO_XML ON CACHE BOOL "Include tests which need 'compare_info_xml.py'")
+#set(TESTSUITE_INFO_XML ON CACHE BOOL "Include tests which need 'compare_info_xml.py'")
+cmake_dependent_option(TESTSUITE_INFO_XML "Include tests which need 'compare_info_xml.py'" ON "CFS_TESTSUITE OR ${PROJECT_NAME} MATCHES TESTSUITE" OFF)
 mark_as_advanced(TESTSUITE_INFO_XML)
 
+# Enables tests of Python scripts e.g. via doctest
+cmake_dependent_option(TESTSUITE_CFS "testing of CFS (the usual tests in TESTSUITE)" ON "CFS_TESTSUITE OR ${PROJECT_NAME} MATCHES TESTSUITE" OFF)
+mark_as_advanced(TESTSUITE_CFS)
+
 # check for python
-if(TESTSUITE_PYTHON OR TESTSUITE_INFO_XML)
+if((TESTSUITE_PYTHON OR TESTSUITE_INFO_XML) AND NOT "$ENV{CI_JOB_STAGE}" MATCHES "build" )
   # in case of USE_EMBEDDED_PYTHON, cfs also searched for Python -> see FindCFSDEPS.cmake
   # use -DPython_ROOT_DIR=... to help in case or check cmake's FindPython for other hints
   find_package(Python MODULE REQUIRED COMPONENTS Interpreter)
   if(NOT Python_Interpreter_FOUND OR NOT Python_EXECUTABLE)
     message(FATAL_ERROR "cannot find Python for testsuite - set Python_ROOT_DIR or Python_EXECUTABLE")
+  else()
+    message(STATUS "using ${Python_EXECUTABLE} for python related tests")
   endif()
 
   # check for required python modules
@@ -178,18 +186,36 @@ if(TESTSUITE_PYTHON OR TESTSUITE_INFO_XML)
   mark_as_advanced(PythonModules_DIR)
 endif()
 
-# there are no hysteresis tests?!
-# set(TESTSUITE_HYSTERESIS ON CACHE BOOL "Include hysteresis tests (some may take long)")
 #-------------------------------------------------------------------------------
 # Set default tolerance for scalar difference tests using cfstool.
 #-------------------------------------------------------------------------------
 set(CFS_DEFAULT_EPSILON "1e-6")
 
+# add packing and build test
+#  - only used in CI pipeline
+if("$ENV{CI_JOB_STAGE}" MATCHES "build")
+  message(STATUS "running in CI pipeline 'build' stage detected -> creating build and pack tests")
+  # Create distributable binary via cpack running ctest, alternatively use create_binary_archive.py
+  if(UNIX) # pack to a tar.gz archive
+    add_test(NAME Pipeline_Build_cpack-TGZ COMMAND cpack -G TGZ --verbose WORKING_DIRECTORY "${CFS_BINARY_DIR}")
+  else() # probably windows, we do zip
+    add_test(NAME Pipeline_Build_cpack-ZIP COMMAND cpack -G ZIP --verbose WORKING_DIRECTORY "${CFS_BINARY_DIR}")
+  endif()
+  # Use an additional test during the build stage to grep the compiler errors
+  add_test(NAME Pipeline_Build_check-compiler-errors COMMAND grep "0 Compiler errors" "${CFS_BINARY_DIR}/build.log")
+  message(STATUS "submitting tests to: ${SUBMIT_URL}")
+endif()
+
 # Subdirectory for normal test suite
-add_subdirectory("TESTSUIT")
+if(TESTSUITE_CFS)
+  message(STATUS "Testsuite will be testing: ${CFS_EXECUTABLE}")
+  add_subdirectory("TESTSUIT")
+endif()
 
 # Subdirectory for pypthon doctest, matviz visualization test suite and basecell
-add_subdirectory("PYTHON")
+if(TESTSUITE_PYTHON)
+  add_subdirectory("PYTHON")
+endif()
 
 # Configure CFS++ standard test macro.
 configure_file("StandardTest.cmake.in" "${CFS_STANDARD_TEST}" @ONLY)

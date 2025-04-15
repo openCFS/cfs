@@ -21,7 +21,7 @@ echo "CFS_CONFIG_OPTIONS=%CFS_CONFIG_OPTIONS%"
 echo "CDASH_TRACK=%CDASH_TRACK%"
 
 :::: configure (for the first time)
-cmake -G "NMake Makefiles" -DBUILDNAME="%CI_COMMIT_REF_SLUG% / %BUILD_NAME%" %CFS_CONFIG_OPTIONS% ..
+cmake -G "NMake Makefiles" %CFS_CONFIG_OPTIONS% ..
 
 :::: now do the build (defined by an environment variable)
 echo "%BUILD_COMMAND%"

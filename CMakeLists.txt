@@ -26,29 +26,6 @@ endif()
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
 # as ${CFS_BINARY_DIR}. We use C, C++ and Fortran as languages.
-if("$ENV{CI_JOB_STAGE}" MATCHES "test(_extra)?")
-  message(STATUS "detected running in CI pipeline 'test' or 'test_extra' stage via environment variable CI_JOB_STAGE=$ENV{CI_JOB_STAGE}")
-  # just some debug/info output
-  if(DEFINED PIPELINE_TEST_STAGE_CONFIG) # check if the variable is already set
-    message(WARNING "PIPELINE_TEST_STAGE_CONFIG does not need to be set any more, we use environment variables to do it automatically")
-    if(PIPELINE_TEST_STAGE_CONFIG)
-      message(STATUS "variable PIPELINE_TEST_STAGE_CONFIG set to ON in the test-stage")
-    else()
-      message(WARNING "why is PIPELINE_TEST_STAGE_CONFIG=OFF in the test stage? maybe the closed build")
-    endif()
-  else() # set the variable to get easy if statements
-    set(PIPELINE_TEST_STAGE_CONFIG ON)  
-  endif()  
-endif()
-if(PIPELINE_TEST_STAGE_CONFIG)
-  message(STATUS "No compiler check due to PIPELINE_TEST_STAGE_CONFIG variable (=${PIPELINE_TEST_STAGE_CONFIG})")
-  if(NOT DEFINED ENV{CI_SERVER}) # only issue a warning if we're not on a CI server
-    message(WARNING "No compiler check - this should only occur in the testing stage of the gitlab pipeline")
-  endif()
-  set(CMAKE_MAKE_PROGRAM "none")
-  project(CFS NONE)
-else()
-# this else part is has no indent and goes for almost 400 lines. Search for PIPELINE_TEST_STAGE_CONFIG
 project(CFS C CXX Fortran) 
 
 # most early identification of detected compilers with their variables to support coding cmake files
@@ -128,7 +105,7 @@ option(BUILD_CFSTOOL "Build openCFS converter and testing tool (cfstool)."  ${BU
 option(BUILD_CFSDAT "Build openCFS data analysis tool (cfsdat)."  ${BUILD_CFSDAT_DEFAULT})
 option(BUILD_UNIT_TESTS "Build openCFS unit tests (cfstest)."  ${BUILD_UNIT_TESTS_DEFAULT})
 
-option(BUILD_TESTING "Build the testsuite tree, required BUILD_CFSTOOL" ${BUILD_TESTING_DEFAULT}) 
+option(CFS_TESTSUITE "Build the testsuite tree, required BUILD_CFSTOOL" ${CFS_TESTSUITE_DEFAULT}) 
 
 # USE_* triggers more or less optional external dependencies.
 set(USE_BLAS_LAPACK ${USE_BLAS_LAPACK_DEFAULT} CACHE STRING "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB, (Apple) ACCELERATE")
@@ -224,12 +201,12 @@ if(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   endif()
 endif()
 
-if(BUILD_TESTING AND NOT EXISTS ${TESTSUITE_DIR}/TESTSUIT AND NOT DEFINED ENV{CI_PIPELINE_NO_TESTSUITE})
-  message(WARNING "BUILD_TESTING is on but TESTSUITE_DIR seems invalid, deactivate BUILD_TESTING")
+if(CFS_TESTSUITE AND NOT EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+  message(WARNING "CFS_TESTSUITE=ON but TESTSUITE_DIR seems invalid.")
 endif()
 
-if(BUILD_TESTING AND NOT BUILD_CFSTOOL)
-  message(FATAL_ERROR "BUILD_CFSTOOL required for BUILD_TESTING")
+if(CFS_TESTSUITE AND NOT BUILD_CFSTOOL)
+  message(FATAL_ERROR "BUILD_CFSTOOL required for CFS_TESTSUITE")
 endif()
 
 if(USE_SGP AND NOT USE_BLAS_LAPACK STREQUAL "MKL")
@@ -360,58 +337,28 @@ TODAY(CFS_CONF_DATE)
 # determine CFS_GIT_COMMIT (might end with -modified) and CFS_GIT_BRANCH
 include("cmake_modules/git_commit.cmake")
 
-endif(PIPELINE_TEST_STAGE_CONFIG) # this is the end of the non indent else() for the if(PIPELINE_TEST_STAGE_CONFIG) case
-
 # Configure Dart testing support.  This should be done before any
 # message(FATAL_ERROR ...) commands are invoked (???) and after the languages
 # for the project have been defined since CMake needs to know about the 
 # language-specific build tools.
-cmake_print_variables(BUILD_TESTING)
-message("ENV{CI_PIPELINE_USE_BUILDTESTS}=" $ENV{CI_PIPELINE_USE_BUILDTESTS})
-message("ENV{CI_PIPELINE_NO_TESTSUITE}=" $ENV{CI_PIPELINE_NO_TESTSUITE})
-
-if(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
-  # check if TESTSUITE_DIR is correct (contains TESTSUIT)
-  if(BUILD_TESTING AND NOT DEFINED ENV{CI_PIPELINE_NO_TESTSUITE})
-    if(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-      find_package(Git) # having it optional will make a fail only in the pipeline
-      cmake_print_variables(GIT_EXECUTABLE)
-      set(CTEST_GIT_COMMAND ${GIT_EXECUTABLE}) # required before include(CTest) to make cdash publishing work (especially in the pipeline)
-      message(STATUS "Testsuite from ${TESTSUITE_DIR} will be placed in ${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-      include(CTest)
-      add_subdirectory(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
-    else()
-      message(FATAL_ERROR "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'")
-    endif()
-  endif()
-  # set a build name
-  set(BUILDNAME "${CFS_WC_REVISION} on ${DIST} ${REV} with ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION}" CACHE STRING "Name of build on the dashboard")
-  message(STATUS "set BUILDNAME ${BUILDNAME} and call enable_testing()")
-  mark_as_advanced(BUILDNAME)
-  enable_testing()
-endif(BUILD_TESTING OR DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS})
-if(NOT PIPELINE_TEST_STAGE_CONFIG)
-
-# add packing and build test
-#  - only used in CI pipeline
-if(DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS} OR "$ENV{CI_JOB_STAGE}" MATCHES "build")
-  message(STATUS "running in CI pipeline 'build' stage detected -> creating build and pack tests")
+if(CFS_TESTSUITE OR "$ENV{CI_JOB_STAGE}" MATCHES "build")
+  # ctest must be included from the top level cmake lists, before including the testsuite
+  include("Testsuite/ctest_settings.cmake")
   include(CTest)
-  # Create distributable binary via cpack running ctest, alternatively use create_binary_archive.py
-  if(UNIX) # pack to a tar.gz archive
-    add_test(Pipeline_Build_cpack-TGZ cpack -G TGZ --verbose)
-  else() # probably windows, we do zip
-    add_test(Pipeline_Build_cpack-ZIP cpack -G ZIP --verbose)
-  endif()
-  # Use an additional test during the build stage to grep the compiler errors
-  add_test(Pipeline_Build_check-compiler-errors grep "0 Compiler errors" build.log)
   enable_testing()
-  message(STATUS "submitting tests to: ${CTEST_SUBMIT_URL}")
+  mark_as_advanced(BUILD_TESTING) # hide this CTests internal option
+  # check if TESTSUITE_DIR is correct (contains TESTSUIT)  
+  if(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
+      message(STATUS "Testsuite from ${TESTSUITE_DIR} will be placed in ${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+      add_subdirectory(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+  else()
+      message(FATAL_ERROR "TESTSUITE_DIR '${TESTSUITE_DIR}' does not contain a directoy 'TESTSUIT'")
+  endif()
 endif()
 
-if(NOT DEFINED ENV{CI_PIPELINE_USE_BUILDTESTS} AND NOT BUILD_TESTING)
+if(NOT BUILD_TESTING)
   # remove Ctest config if testing is off
-  # will probably not be necessay any mode with https://gitlab.kitware.com/cmake/cmake/-/merge_requests/258
+  # will probably not be necessay any more with https://gitlab.kitware.com/cmake/cmake/-/merge_requests/258
   file(REMOVE "${CFS_BINARY_DIR}/CTestTestfile.cmake")
 endif()
 
@@ -540,7 +487,6 @@ endif()
 
 # Build the actual headers with defines from templates.
 include("cmake_modules/configure_def_headers.cmake")
-endif(NOT PIPELINE_TEST_STAGE_CONFIG)
 # all copy/configure only targets
 add_subdirectory(share/doc) #building documentation (see 'make help')
 add_subdirectory(share/scripts)
