@@ -97,11 +97,16 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   ABIntLem<COEF_DATA_TYPE, B_DATA_TYPE>::
     ABIntLem(BaseBOperator * aOp, BaseBOperator * bOp, 
-          PtrCoefFct scalCoef, MAT_DATA_TYPE factor, bool coordUpdate ): 
+          PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+          const std::set<RegionIdType>& volRegions,
+          bool overrideSurfaceInt,
+          bool coordUpdate ): 
           ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate) {
   this->type_ = BiLinearForm::AB_INT;
   this->name_ = "ABIntLem"; 
   this->aOperator_ = aOp;
+  this->volRegions_ = volRegions;
+  this->overrideSurfaceInt_ = overrideSurfaceInt;
   this->solDependent_ = false;
 
   // Note: In general the AB-Integrator is not symmetric, as is should 
@@ -120,13 +125,56 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   const Elem* ptElem1 = ent1.GetElem();
   const Elem* ptElem2 = ent2.GetElem();
 
+
+  const SurfElem *sElem1 = nullptr;
+  const SurfElem *sElem2 = nullptr;
+  const Elem *ptVolElem1 = nullptr;
+  const Elem *ptVolElem2 = nullptr;
+
+
+  BaseFE* ptFeA;
+  BaseFE* ptFeB;
+
   MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order1, order2;
   IntScheme::IntegMethod method1, method2;
-  BaseFE* ptFeA = this->ptFeSpace1_->GetFe( ent1, method1, order1 );
-  BaseFE* ptFeB = this->ptFeSpace2_->GetFe( ent2, method2, order2 );
+  
+  // Check if we have to evaluate the volume or surface element in the case of special conditions for the surface
+  if ( this->GetUseVolEqnA() )
+  {
+    // get surface element
+    sElem1 = ent1.GetSurfElem();
+    // get volume element
+    ptVolElem1 = sElem1->ptVolElems[0];
+
+    ptFeA = this->ptFeSpace1_->GetFe(ptVolElem1->elemNum);
+    
+    this->ptFeSpace1_->GetIntegration(ptFeA, ptVolElem1->regionId, method1, order1);
+  }
+  else
+  {
+    ptFeA = this->ptFeSpace1_->GetFe(ent1, method1, order1);
+  }
+
+  if ( this->GetUseVolEqnB() )
+  {
+    // get surface element
+    sElem2 = ent2.GetSurfElem();
+    // get volume element
+    ptVolElem2 = sElem2->ptVolElems[0];
+
+    ptFeB = this->ptFeSpace2_->GetFe(ptVolElem2->elemNum);
+
+    this->ptFeSpace2_->GetIntegration(ptFeB, ptVolElem2->regionId, method2, order2);
+  }
+  else
+  {
+    ptFeB = this->ptFeSpace2_->GetFe(ent2, method2, order2);
+  }
+
+
 
   const UInt nrFncsA = ptFeA->GetNumFncs();
   const UInt nrFncsB = ptFeB->GetNumFncs();
@@ -170,21 +218,43 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   for( UInt iIntPts = 0; iIntPts < numIntPts; ++iIntPts  ) {
 
     // Calculate for each integration point the LocPointMapped
-    lpm.Set( intPoints[iIntPts], esm, weights[iIntPts] );
+    lpm.SetWithSurface( intPoints[iIntPts], esm, this->volRegions_, weights[iIntPts] );
 
     // Decide which FE function to pass (we always need the one of the FEM part for the correct number of equations)
     if( aOpIsAllocOp ){
+      // if we are dealing with network coupling, we might evaluate a surface within an
+      // volume element integrator
+      // therefore, we have the ability to manually override the integrator and tell it
+      // to be a surface integrator
+      
+      // set bOp to be a surface operator
+      this->bOperator_->OverrideIsSurfOperator(this->overrideSurfaceInt_);
+
       // Calculate A-matrix (first differential operator)
       this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeB );
 
       // Calculate B-matrix (second differential operator)
       this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeB );
+
+      // reset it
+      this->bOperator_->OverrideIsSurfOperator(false);
+
     } else {
+      // if we are dealing with network coupling, we might evaluate a surface within an
+      // volume element integrator
+      // therefore, we have the ability to manually override the integrator and tell it
+      // to be a surface integrator
+      
+      this->aOperator_->OverrideIsSurfOperator(this->overrideSurfaceInt_);
+
       // Calculate A-matrix (first differential operator)
       this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeA );
 
       // Calculate B-matrix (second differential operator)
       this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeA );
+
+      // reset it
+      this->bOperator_->OverrideIsSurfOperator(false);
     }
 
     std::cout << "A mat " << this->aMat_.ToString() << std::endl;

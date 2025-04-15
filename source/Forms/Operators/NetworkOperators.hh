@@ -264,13 +264,13 @@ void FemLemAllocationOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMa
   const UInt numFncs = ptFe->GetNumFncs();
       
   // Set correct size of matrix B and initialize with zeros
-  bMat.Resize( 1, numFncs );
+  bMat.Resize( numFncs, 1 );
 
   // the allocation vector only consists of ones since we only consier elements that actually have a contribution
   // the sign is governed by the integrator based on the network element definition.
   UInt iFunc = 0;
   for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
-    bMat[0][iFunc] =  1;
+    bMat[iFunc][0] =  1;
   }
 }
 

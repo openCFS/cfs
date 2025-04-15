@@ -34,7 +34,7 @@ public:
   template <class T>
   void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm, BaseFE* ptFe);
 
-  virtual void CalcElementMatrixLpm(Matrix<Double>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe);
+  virtual void CalcElementMatrixLpm(Matrix<Double>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe, bool overrideIsSurfOpt);
 
   template <class T>
   void GetScalar(T& scal, const LocPointMapped& lpm);

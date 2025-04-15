@@ -87,19 +87,25 @@ namespace CoupledField {
     //! Constructor with pointer to CoefFunction for surface itself
     ABIntLem( BaseBOperator * aOp, BaseBOperator * bOp,
                   PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+                  const std::set<RegionIdType>& volRegions,
+                  bool overrideSurfaceInt,
                   bool coordUpdate = false);
 
     //! Constructor with CoefFunctions for a number of volume regions
     ABIntLem( BaseBOperator * aOp, BaseBOperator * bOp,
                   const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
                   MAT_DATA_TYPE factor,
+                  const std::set<RegionIdType>& volRegions,
+                  bool overrideSurfaceInt,
                   bool coordUpdate = false);
 
     //! Copy constructor
     ABIntLem(const ABIntLem& right)
       : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(right){
       //here we would also need to create a new operator
+      this->volRegions_ = right.volRegions_;
       this->regionCoefs_ = right.regionCoefs_;
+      this->overrideSurfaceInt_ = right.overrideSurfaceInt_;
     }
 
     //! \copydoc BiLinearForm::Clone
@@ -115,8 +121,14 @@ namespace CoupledField {
                             EntityIterator& ent1,
                             EntityIterator& ent2 );
   protected:
+    //! Set containing all volume regions for surface integrators
+    std::set<RegionIdType> volRegions_;
+
     //! Map containing all coefficient functions for volume regions for operator A
     std::map< RegionIdType, PtrCoefFct > regionCoefs_;
+
+    //! 
+    bool overrideSurfaceInt_;
   };
 
 

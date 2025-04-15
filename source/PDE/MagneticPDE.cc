@@ -1620,15 +1620,21 @@ namespace CoupledField {
             if( !bdb)
               EXCEPTION("Could not find BDB integrator for region " << curFemVolRegion);
 
-            // write to special coeffunction
+            // create the set of volume regions
+            std::set<RegionIdType> volRegionForInt;
+            volRegionForInt.insert(curFemVolRegion);
+            
+              // write to special coeffunction
             shared_ptr<CoefFunctionBop> coefFunctionStiff;
             coefFunctionStiff.reset(new CoefFunctionBop());
             coefFunctionStiff->SetForm(bdb);
             bOp->SetCoefFunction(coefFunctionStiff);
 
-            //bOp->SetBBint();
-            stiffnessCouplingInt = new ABIntLem<Double,Double>(new FemLemAllocationOperator<FeH1>(), bOp, constOne, 1.0, false);
-            //stiffnessCouplingInt = new ABInt<Double>(new FemLemAllocationOperator<FeH1>(), new SurfaceBBintOperator<FeH1>(), constOne, 1.0, volRegion, false);
+            // we override the integrator to act as a surface integrator since we take the standard one
+            // and just use it as a surface integrator
+            bool overrideSurfaceInt = true;
+            stiffnessCouplingInt = new ABIntLem<Double,Double>(new FemLemAllocationOperator<FeH1>(), bOp, constOne, 1.0, volRegionForInt, overrideSurfaceInt, false);
+            stiffnessCouplingInt->SetUseVolEqnB( true );
           }
         } else {
           EXCEPTION("3D FEM-LEM coupling is not supported!");

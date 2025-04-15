@@ -811,11 +811,11 @@ public:
   }
 
   //! functions required for FEM-LEM coupling
-  virtual void CalcElementMatrixLpm(Matrix<Double>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe){
+  virtual void CalcElementMatrixLpm(Matrix<Double>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe, bool overrideIsSurfOpt){
     EXCEPTION("CoefFuncion::CalcElementMatrixLpm not overwritten by " << GetName());
   }
 
-  virtual void CalcElementMatrixLpm(Matrix<Complex>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe){
+  virtual void CalcElementMatrixLpm(Matrix<Complex>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe, bool overrideIsSurfOpt){
     EXCEPTION("CoefFuncion::CalcElementMatrixLpm not overwritten by " << GetName());
   }
 

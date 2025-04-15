@@ -1716,7 +1716,7 @@ void SurfaceBBintOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, c
 {
   // Call the integrator and calcualte the bMat for the given lp
   Matrix<Double> bMat2;
-  coef_->CalcElementMatrixLpm(bMat2, lp, ptFe);
+  coef_->CalcElementMatrixLpm(bMat2, lp, ptFe, this->overrideIsSurfOpt_);
   bMat = bMat2;
 }
 
@@ -1725,7 +1725,7 @@ void SurfaceBBintOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Matrix<Double
 {
   // Call the integrator and calcualte the bMat for the given lp
   Matrix<Double> bMat2;
-  coef_->CalcElementMatrixLpm(bMat2, lp, ptFe);
+  coef_->CalcElementMatrixLpm(bMat2, lp, ptFe, this->overrideIsSurfOpt_);
   bMat2.Transpose(bMat);
 }
 

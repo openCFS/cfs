@@ -160,6 +160,16 @@ public:
     isSurfOpt_ = true;
   }
 
+  //! set operator to rurface operator
+  virtual void OverrideIsSurfOperator(bool overrideIsSurfOpt) {
+    overrideIsSurfOpt_ = overrideIsSurfOpt;
+  }
+
+  //! set operator to rurface operator
+  virtual void ResetOperator2SurfOperator() {
+    isSurfOpt_ = false;
+  }
+
   
 protected:
 
@@ -171,6 +181,9 @@ protected:
 
   //! if true, then it is a surface operator
   bool isSurfOpt_;
+
+  //! if true, evaluate as surface operator regardless of actual definition
+  bool overrideIsSurfOpt_ = false;
 
 };
 }

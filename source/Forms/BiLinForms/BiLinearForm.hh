@@ -108,13 +108,15 @@ class BiLinearForm : public CfsCopyable{
       //! Compute element matrix associated to BDB form for a specific lpm
       virtual void CalcElementMatrixLpm( Matrix<Double>& elemMat,
                                          BaseFE* ptFe,
-                                         const LocPointMapped& lp ){
+                                         const LocPointMapped& lp, 
+                                         bool overrideIsSurfOpt ){
         EXCEPTION("BiLinearForm::CalcElementMatrixLpm called, this must not happen!");
       }
 
       virtual void CalcElementMatrixLpm( Matrix<Complex>& elemMat,
                                          BaseFE* ptFe,
-                                         const LocPointMapped& lp ){
+                                         const LocPointMapped& lp, 
+                                         bool overrideIsSurfOpt ){
         EXCEPTION("BiLinearForm::CalcElementMatrixLpm called, this must not happen!");
       }
 

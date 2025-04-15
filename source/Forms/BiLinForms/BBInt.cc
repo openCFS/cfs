@@ -105,7 +105,8 @@ namespace CoupledField{
   void BBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
   CalcElementMatrixLpm( Matrix<MAT_DATA_TYPE>& elemMat,
                       BaseFE* ptFe, 
-                      const LocPointMapped& lp ) {
+                      const LocPointMapped& lp, 
+                      bool overrideIsSurfOpt ) {
     
     Matrix<MAT_DATA_TYPE> bMat;
     MAT_DATA_TYPE fac = 0.0;

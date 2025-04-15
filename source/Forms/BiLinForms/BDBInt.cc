@@ -144,7 +144,8 @@ namespace CoupledField{
   void BDBInt<COEF_DATA_TYPE, B_DATA_TYPE>::
   CalcElementMatrixLpm( Matrix<MAT_DATA_TYPE>& elemMat,
                       BaseFE* ptFe, 
-                      const LocPointMapped& lp ) {
+                      const LocPointMapped& lp, 
+                      bool overrideIsSurfOpt ) {
     
     MAT_DATA_TYPE fac = 0.0;
 
@@ -153,10 +154,19 @@ namespace CoupledField{
     elemMat.Resize( nrFncs * bOperator_->GetDimDof() );
     elemMat.Init();
 
+    // if we are dealing with network coupling, we might evaluate a surface within an
+    // volume element integrator
+    // therefore, we have the ability to manually override the integrator and tell it
+    // to be a surface integrator
+    
+    this->bOperator_->OverrideIsSurfOperator(overrideIsSurfOpt);
 
     // Call the CalcBMat()-method
     this->bOperator_->CalcOpMat( bMat_, lp, ptFe);
     LOG_DBG3(bdbint) << "point " << lp.lp.coord << " bMat= " << bMat_;
+
+    // reset it
+    this->bOperator_->OverrideIsSurfOperator(false);
 
     // Calculate D-Mat
     dData_->GetTensor(dMat_,lp);

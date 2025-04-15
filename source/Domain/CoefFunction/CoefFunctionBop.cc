@@ -12,9 +12,9 @@ CoefFunctionBop::CoefFunctionBop() : CoefFunction()
 }
 
 
-void CoefFunctionBop::CalcElementMatrixLpm(Matrix<Double>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe){
+void CoefFunctionBop::CalcElementMatrixLpm(Matrix<Double>& elemMat, const LocPointMapped& lpm, BaseFE* ptFe, bool overrideIsSurfOpt){
   Matrix<Double> curElemMat;
-  this->form_->CalcElementMatrixLpm(curElemMat, ptFe, lpm);
+  this->form_->CalcElementMatrixLpm(curElemMat, ptFe, lpm, overrideIsSurfOpt);
   elemMat = curElemMat;
 }
 

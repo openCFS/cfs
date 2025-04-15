@@ -82,7 +82,8 @@ namespace CoupledField {
       //! Compute element matrix associated to BDB form for a specific lpm
       void CalcElementMatrixLpm( Matrix<MAT_DATA_TYPE>& elemMat,
                               BaseFE* ptFe,
-                              const LocPointMapped& lp );
+                              const LocPointMapped& lp, 
+                              bool overrideIsSurfOpt );
 
       //@{
       void ApplyElemMat( Vector<Double>&ret, 
