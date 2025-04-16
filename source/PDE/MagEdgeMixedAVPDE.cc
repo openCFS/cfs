@@ -22,6 +22,7 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionSUPG.hh"
 
 // forms
 #include "Forms/BiLinForms/BDBInt.hh"
@@ -170,7 +171,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
             "Mostly c&p form MagEdgePDE.");
       }
 
-      //check if a veloctyId is assigned
+      //check if a veloctyId is assigned 
       std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
 
       if ( nonLinTypes.GetSize() > 0 ){
@@ -280,9 +281,13 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       // check for velocity
       // ====================================================================
       if(velocityId != "")
-      {
+      { 
         bool coefUpdateGeo;
         ReadRegionVelocityField(velocityId,actSDList,actRegion,coefUpdateGeo);
+        // Get the stablisation method
+        PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
+        StabilisationType stabilisation = BasePDE::stabilisationType.Parse(velNode->Get("stabilisation")->As<std::string>());
+
 
         /* ==============================================
          * Upper VELOCITY part:
@@ -292,7 +297,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         // Create the integrators
         BaseBDBInt   *velocityStiff = NULL;
 
-        // ConvectiveOperator doesn't work with FeHCurl, works at the moment just with FeH1, I am working on it
+        // CurlOperatorMag doesn't work with FeH1
         if( isComplex_ )
         {
           EXCEPTION("MagEdgePDE: VelocityStiffInt not implemented for complex case!");
@@ -322,7 +327,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         */
         BaseBDBInt   *velocityStiff2 = NULL;
 
-        // ConvectiveOperator doesn't work with FeHCurl, works at the moment just with FeH1, I am working on it
+        // CurlOperatorMag doesn't work with FeH1
         if( isComplex_ )
         {
           EXCEPTION("MagEdgePDE: VelocityStiffInt2 not implemented for complex case!");
@@ -334,7 +339,7 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         }
         assert(velocityStiff2 != NULL);
 
-        //Gets the Velocity Vector, and using this Vector in CurlOperatorMag
+        // Gets the Velocity Vector, and using this Vector in CurlOperatorMag
         velocityStiff2->SetBCoefFunctionOpB(VelocityCoef_);
         velocityStiff2->SetName("VelocityStiffInt2");
         velocityInts_2[actRegion] = velocityStiff2;
@@ -343,7 +348,84 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         VelocityContextStiff2->SetEntities( actSDList, actSDList );
         VelocityContextStiff2->SetFeFunctions( elecScalPotFeFunc, magVecPotFeFunc);
         assemble_->AddBiLinearForm( VelocityContextStiff2 );
+
+        // Upwinding/Stabilisation Terms
+        switch (stabilisation)
+        { 
+          case StabilisationType::NO_STABILISATION:
+          {
+            break;
+          }
+          case StabilisationType::SUPG:
+          {
+            PtrCoefFct StabilizationFactor;
+            // Get the Stabilization factor
+            // Magnetic Peclet number is P = conductivity*permeability*abs(velocity)*lElm/2
+            // The material coefficient for the peclet number is conductivity*permeability, but in CoefFunctionSUPG
+            // the Peclet number is defined as lElm*abs(velocity)/(2*material_coefficient). Therefore we need the 1/(conductivity*permeability)
+            PtrCoefFct one  = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+            PtrCoefFct materialUpwind = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_,permeability, conducCoef ,CoefXpr::OP_MULT));
+            PtrCoefFct peclet_material_coef = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_,one, materialUpwind , CoefXpr::OP_DIV));
+            StabilizationFactor.reset(new CoefFunctionSUPG(VelocityCoef_, peclet_material_coef, elecScalPotFeFunc));
+
+            // scalar for Upwind-Terms
+            PtrCoefFct coeffUpwindingFactor = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_,StabilizationFactor,conducCoef,CoefXpr::OP_MULT));
+            
+            // Create the first upwind term
+            BaseBDBInt   *UpwindingInt1 = NULL;
+
+            // CurlOperatorMagUpwind doesn't work with FeH1
+            if( isComplex_ )
+            {
+              EXCEPTION("MagEdgePDE: The stablilisation with SUPG is not implemented for the complex case!");
+            } else {
+              if(dim_ == 2)
+                UpwindingInt1  = new ABInt<>(new CurlOperatorMag<FeHCurl,2,Double>(), new CurlOperatorMag<FeHCurl,2,Double>(),coeffUpwindingFactor, 1.0, coefUpdateGeo);
+              else
+                UpwindingInt1  = new ABInt<>(new CurlOperatorMag<FeHCurl,3,Double>(), new CurlOperatorMag<FeHCurl,3,Double>(),coeffUpwindingFactor, 1.0, coefUpdateGeo);
+            }
+            assert(UpwindingInt1 != NULL);
+            UpwindingInt1->SetBCoefFunctionOpA(VelocityCoef_);
+            UpwindingInt1->SetBCoefFunctionOpB(VelocityCoef_);
+            UpwindingInt1->SetName("UpwindingInt1");
+            UpwindingInt1_1[actRegion] = UpwindingInt1;
+
+            BiLinFormContext *UpwindingContextStiff1 =  new BiLinFormContext(UpwindingInt1, STIFFNESS );
+            UpwindingContextStiff1->SetEntities( actSDList, actSDList );
+            UpwindingContextStiff1->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc);
+            assemble_->AddBiLinearForm( UpwindingContextStiff1 );
+
+            // Create the second upwind term
+            BaseBDBInt   *UpwindingInt2 = NULL;
+            // CurlOperatorMagUpwind doesn't work with FeH1
+            if( isComplex_ )
+            {
+              EXCEPTION("MagEdgePDE: The stablilisation with SUPG is not implemented for the complex case!");
+            } else {
+              if(dim_ == 2)
+                UpwindingInt2  = new ABInt<>(new CurlOperatorMag<FeHCurl,2,Double>(),new GradientOperator<FeH1,2,1>(),coeffUpwindingFactor, -1.0, coefUpdateGeo);
+              else
+                UpwindingInt2  = new ABInt<>(new CurlOperatorMag<FeHCurl,3,Double>(),new GradientOperator<FeH1,3,1>(),coeffUpwindingFactor, -1.0, coefUpdateGeo);
+            }
+            assert(UpwindingInt2 != NULL);
+
+            UpwindingInt2->SetBCoefFunctionOpA(VelocityCoef_);
+            UpwindingInt2->SetName("UpwindingInt2");
+            UpwindingInt2_1[actRegion] = UpwindingInt2;
+
+            BiLinFormContext *UpwindingContextStiff2 =  new BiLinFormContext(UpwindingInt2, STIFFNESS );
+            UpwindingContextStiff2->SetEntities( actSDList, actSDList );
+            UpwindingContextStiff2->SetFeFunctions( magVecPotFeFunc, elecScalPotFeFunc);
+            assemble_->AddBiLinearForm( UpwindingContextStiff2 );
+            break;
+          }
+          default:
+            {
+              EXCEPTION("MagEdgeMixedAVPDE: Stabilisation method is not implemented!");
+            }
+        } // end Stabilisation
       } // end velocityId
+
 
         // =================================================================================
         //  LINEAR MASS SECTION
