@@ -81,7 +81,6 @@
                     <xsd:attribute name="lagrangeMultIntegId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="isConducRegion" type="xsd:boolean" use="optional" default="true"/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="useUpwinding" type="xsd:string" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -135,7 +134,7 @@
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="velocity" type="DT_BcInhomVector"/>
+                <xsd:element name="velocity" type="DT_BcInhomVector_stabilisation"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

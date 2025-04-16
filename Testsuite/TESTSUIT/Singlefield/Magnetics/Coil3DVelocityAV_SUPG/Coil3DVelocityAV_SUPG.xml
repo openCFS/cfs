@@ -102,7 +102,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
         <pdeList>
             <magneticEdge formulation="A-V">
                 <regionList>
-                    <region name="Rail" magVecPolyId="Hcurl" elecScalPolyId="H1" isConducRegion="true" velocityId="velId1" useUpwinding="COTH"/>
+                    <region name="Rail" magVecPolyId="Hcurl" elecScalPolyId="H1" isConducRegion="true" velocityId="velId1"/>
                     <region name="Core" magVecPolyId="Hcurl" elecScalPolyId="H1" isConducRegion="false"/>
                     <region name="Coil1" magVecPolyId="Hcurl" elecScalPolyId="H1" isConducRegion="false" />
                     <region name="Coil2" magVecPolyId="Hcurl" elecScalPolyId="H1" isConducRegion="false"/>
@@ -110,7 +110,7 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
                     <region name="Air_Fine" magVecPolyId="Hcurl" elecScalPolyId="H1" isConducRegion="false"/>                    
                 </regionList>
                 <velocityList>
-                    <velocity name="velId1">
+                    <velocity name="velId1" stabilisation="SUPG">
                         <comp dof="x" value="0"/>
                         <comp dof="y" value="0"/>
                         <comp dof="z" value="100"/>
