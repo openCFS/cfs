@@ -33,7 +33,7 @@ if args.type in ['bulk2d', 'cantilever2d', 'mbb2d']:
       args.height = 0.5 
   # create_2d_mesh(x_res, y_res = None, width = 1.0, height = None, pfem=False, row_major=True, triangles = False):
   mesh = create_2d_mesh(args.res, args.y_res, args.width, args.height, pfem=args.pfem, row_major = args.numbering == 'row_major', triangles = args.type == 'triangles')
-elif args.type in ['bulk3d', 'cantilver3d']:
+elif args.type in ['bulk3d', 'cantilever3d']:
   if args.type == 'cantilever3d':
     if args.y_res is not None or args.z_res is not None or args.height is not None or args.depth is not None:
       print('Error: when using predefined geometry, set only --res or use bulk3d')

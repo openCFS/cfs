@@ -1,5 +1,5 @@
 /** this file contains the embedded python specific implementations for Function, ErsatzMaterial, ... */
-
+#include "def_use_dumas.hh"
 #include "General/Exception.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/ErsatzMaterial.hh"
@@ -7,8 +7,11 @@
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/MMA.hh"
 #include "Optimization/Optimizer/DumasMMA.hh"
-#include <MMASolver.h>
-#include <GCMMASolver.h>
+#ifdef USE_DUMAS
+  #include <MMASolver.h>
+  #include <GCMMASolver.h>
+#endif
+
 #include "Utils/PythonKernel.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -102,6 +105,7 @@ void MMA::PythonSetProperty(PyObject* args)
     throw "Unknown property " + ss.first + " for 'MMA'";
 }
 
+#ifdef USE_DUMAS
 void DumasMMA::PythonSetProperty(PyObject* args)
 {
   auto ss = ParseStringString(args);
@@ -121,6 +125,7 @@ void DumasMMA::PythonSetProperty(PyObject* args)
   else
     gcmma->SetAsymptotes(asyminit, asymdec, asyminc);
 }
+#endif
 
 void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
 {
