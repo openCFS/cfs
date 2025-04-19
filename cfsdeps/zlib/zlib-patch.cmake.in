@@ -1,0 +1,10 @@
+include("@CMAKE_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+set(DEBUG "@DEBUG@")
+
+if(WIN32 AND DEBUG)
+  # have same filename for debug as in release for boost
+  set(PATCHES "zlib_win_debug.patch")
+endif()
+
+apply_patches("${PATCHES}" "@CMAKE_SOURCE_DIR@/cfsdeps/@PACKAGE_NAME@")
+

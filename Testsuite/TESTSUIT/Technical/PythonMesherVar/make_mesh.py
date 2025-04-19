@@ -1,9 +1,8 @@
 # this script will be executed by embedded python from within cfs
 
-from mesh_tool import *
 import numpy as np
 
-print('make_mesh.py from PythonMesherInclusion test')
+from mesh_tool import *
 
 # distance of two coordinates given as 2D tutples
 def dist(x1, x2):

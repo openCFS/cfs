@@ -23,7 +23,11 @@ use_c_and_fortran(ON OFF)
 set_precompiled_pckg_file()
 
 if(WIN32)
-  set_package_library_list("xerces-c_3") # whyever?!
+  if(WIN32 AND DEBUG)
+    set_package_library_list("xerces-c_3D") 
+  else()
+    set_package_library_list("xerces-c_3") 
+  endif()
 else()
   set_package_library_list("xerces-c") # add -c to package name
 endif()

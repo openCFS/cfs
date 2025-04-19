@@ -24,8 +24,11 @@ use_c_and_fortran(ON OFF)
 set_precompiled_pckg_file()
 
 # generates PACKAGE_LIBARAY with lib<package>.a/.dll - on Windows also the prefix lib is used, what is uncommon.
-set_package_library_list_lib_prefix("hdf5_hl_cpp;hdf5_cpp;hdf5_hl;hdf5")
-
+if(UNIX OR NOT DEBUG) # Linux, macOS and (Windows in release mode) are the same
+  set_package_library_list_lib_prefix("hdf5_hl_cpp;hdf5_cpp;hdf5_hl;hdf5")
+else() # WIN32 AND DEBUG: on Windows we have the debug libraries with a D suffix
+  set_package_library_list_lib_prefix("hdf5_hl_cpp_D;hdf5_cpp_D;hdf5_hl_D;hdf5_D") # the libhdf5... comes from the macro
+endif()
 # creates HDF5_LIBARAY as CACHE variable, hence it will not be overwritten once in cache!
 set_standard_variables()
 

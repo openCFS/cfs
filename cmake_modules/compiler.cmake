@@ -194,6 +194,11 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   # issue: https://discourse.cmake.org/t/linking-on-windows-requires-versioned-boost-libraries/7119/3
   set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /DBOOST_ALL_NO_LIB")
 
+  # prevent GinkgoSolver.cc : fatal error C1128: number of sections exceeded object file format limit: compile with /bigobj
+  # https://stackoverflow.com/questions/15110580/penalty-of-the-msvs-compiler-flag-bigobj
+  set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /bigobj")
+
+
   # Disable some warnings. For details google for 'MSDN C/C++ Build Errors'.
 
   # For details google for 'MSDN Checked Iterators', '_SCL_SECURE_NO_WARNINGS'

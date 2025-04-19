@@ -202,13 +202,20 @@ macro(set_deps_args_default SET_COMPILER_FLAGS)
   assert_unset(DEPS_ARGS) # shall be cleared by clear_dependency_variables()
   assert_set(DEPS_INSTALL)
 
+  # as we usually not debug from cfs into a lib, we build everything as Release on Linux/macOS
+  # Windows (cl and icx) needs debug libs for a debug build, otherwise we have linker errors (missmatch ITERATOR_DEBUG_LEVEL and RuntimeLibrary)
+  if(DEBUG AND WIN32)
+    set(_BUILD "Debug")
+  else()
+    set(_BUILD "Release")
+  endif()
+
   set(DEPS_ARGS
     -DCMAKE_INSTALL_PREFIX:PATH=${DEPS_INSTALL}
     # some packages complain about non-used, but e.g. arpack has lib64 on centos6
     -DCMAKE_INSTALL_LIBDIR:PATH=${DEPS_INSTALL}/${LIB_SUFFIX}
     -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-    # as we usually not debug from cfs into a lib, we build everything as Release
-    -DCMAKE_BUILD_TYPE:STRING=Release
+    -DCMAKE_BUILD_TYPE:STRING=${_BUILD}
     -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB} )
    
   if(USE_FORTRAN)
@@ -323,7 +330,6 @@ macro(set_precompiled_pckg_file)
     set(_CXX_ID_VER "${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
   endif()
   
-  
   # first set variables
   if(USE_FORTRAN)
     if(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
@@ -339,7 +345,12 @@ macro(set_precompiled_pckg_file)
   if(DEPS_ID)
     set(_TMP "${_TMP}_${DEPS_ID}")
   endif()
-    
+  # only on Windows we need to have debug deps for debug builds to prevent linker errors (icx and cl)
+  # cmake deps are compiled properly, boost needs special care, almost nothing remains (and nothing essential)
+  if(DEBUG AND WIN32)
+    set(_TMP "${_TMP}_DEBUG")
+  endif()
+  
   if(NOT USE_C_CXX AND USE_FORTRAN)
     set(_TMP "${_TMP}_F-${CMAKE_Fortran_COMPILER_ID}-${_FORTRAN_COMPILER_VERSION}")
   elseif(USE_C_CXX AND NOT USE_FORTRAN)

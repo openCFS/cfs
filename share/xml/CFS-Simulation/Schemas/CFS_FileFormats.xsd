@@ -539,8 +539,26 @@
          </xsd:element>
         </xsd:sequence>
         <!-- fileName is from DT_InputBasic -->
-        <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
-        <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
+        <xsd:attribute name="path" type="xsd:string" use="optional" default="">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Optional path to the python script. If not given, the script is searched in the
+              current working directory. 'cfs:share:python' is a special key for the cfs python directory.
+              This path will be added first in sys.path, you could also set the PYTHONPATH environment variable.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="preload_numpy" type="xsd:boolean" use="optional" default="true">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              In some cases import numpy makes problems. With this flag we do it prior loading the given python file.
+              Disable when you do not need numpy (not that common). With --detailed you get some output.
+              We do 'import numpy as np'.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+
+        
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

@@ -640,8 +640,9 @@ PyModuleDef PythonKernel::cfs_modules = {
 
 PyObject* PythonKernel::SetModulFunctions(void)
 {
+  LOG_DBG(pkf) << "SMF execute import_array and PyModule_Create(&PythonKernel::cfs_modules);";
   // https://stackoverflow.com/questions/37943699/crash-when-calling-pyarg-parsetuple-on-a-numpy-array
-  //import_array();
+  import_array();
 
   return PyModule_Create(&PythonKernel::cfs_modules);
 }

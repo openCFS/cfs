@@ -108,6 +108,15 @@ else()
     set(DEFINE "define=BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX") 
   endif()    
 
+  # Windows (cl and icx) needs matching deps to prevent linker errors
+  if(DEBUG AND WIN32)
+    set(_BUILD "debug")
+    set(_DS "on")
+  else()
+    set(_BUILD "release")
+    set(_DS "off")
+  endif()
+
   # some patches are required
   generate_patches_script()
 
@@ -128,7 +137,7 @@ else()
     CONFIGURE_COMMAND ${BOOTSTRAP} 
     # on Windows calling b2 might result in security issues (access violation)
     # --threading=multi seems to work even with USE_OPENMP=OFF on all systems?!
-    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} ${B2_ARGS} link=static address-model=64 threading=multi runtime-link=shared variant=release install
+    BUILD_COMMAND ./b2 --user-config=user-config.jam ${WITHOUT} --layout=system --prefix=${DEPS_INSTALL} ${TARGET} ${DEFINE} ${B2_ARGS} link=static address-model=64 threading=multi runtime-link=shared variant=${_BUILD} debug-symbols=${_DS} install
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY}
     # Wrap build step in script to log output, since it's super long and clutters the pipeline

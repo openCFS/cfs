@@ -25,11 +25,13 @@ set_precompiled_pckg_file()
 
 # determine paths of libraries and make it visible (and editable) via ccmake
 # on macOS and Linux it is libz.a, on Windows zlibstatic.lib
+# originally the windows debug libs have a tailing "d" but we patch it away because of boost and it's annoying bjam :(
 if(UNIX)
   set_package_library_list("z")
 else()
   set_package_library_list("zlibstatic")
 endif()
+
 # set hidden cache variables *_LIBRARY = PACKAGE_LIBRARY, *_INCLUDE and some defaults
 set_standard_variables()
 # we don't need the share/man stuff and the dynamic lib
@@ -52,8 +54,8 @@ set(DEPS_ARGS
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-# no patch needed
-assert_unset(PATCHES_SCRIPT)
+# Generate ${PACKAGE_NAME}-patch.cmake we use for our external project
+generate_patches_script() # sets PATCHES_SCRIPT
 
 # the forked metis insists onb bulding executables to bin. Sort them out automatically
 generate_packing_script_install_dir()
@@ -69,8 +71,8 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   create_external_unpack_precompiled()
 # if not, build newly and possibly pack the stuff
 else()
-  # standard cmake build without patch
-  create_external_cmake()  
+# standard cmake build with patch
+create_external_cmake_patched()  
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})

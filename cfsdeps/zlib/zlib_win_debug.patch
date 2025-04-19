@@ -1,0 +1,11 @@
+--- CMakeLists.txt.org	2025-04-29 13:19:33.284792100 +0200
++++ CMakeLists.txt	2025-04-29 13:19:57.784958900 +0200
+@@ -59,7 +59,7 @@
+ check_include_file(unistd.h Z_HAVE_UNISTD_H)
+ 
+ if(MSVC)
+-    set(CMAKE_DEBUG_POSTFIX "d")
++    set(CMAKE_DEBUG_POSTFIX "")
+     add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
+     add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
+     include_directories(${CMAKE_CURRENT_SOURCE_DIR})

@@ -95,15 +95,19 @@ public:
     PyObject* module = NULL;
     /** the actually used path. But module loading might mess this up. Save is to start with empty PYTHONPATH */
     std::string full_file;
-    /** the actually used system path. The path of the current script is set first */
+    /** the actually used system path. This includes the additions from LoadPythonModule() */
     StdVector<std::string> sys_path;
+    /** have we preloaded numpy? */
+    bool preloaded_numpy = false;
   };
 
   /** Loads a python module (script) into the running interpreter. Conditionally initializes the interpreter
    * The interpreter got it's cfs_modules (functions to be called from python) when initializing the interpreter.
-   * @param file the python module to be loaded. Can include a full path if attribute path is empty
-   * @param path optional path (leave empty if not given). "cfs:share:python" is a special key which uses ProgramOption->GetSchemaPath() + "../python" */
-  LoadStatus LoadPythonModule(const std::string& file, std::string path = "");
+   * We insert path first to  sys.path and append share/python at the end.
+   * @param file the python module to be loaded (python file with extension). Can include a full path if attribute path is empty
+   * @param path optional path (leave empty if not given, this implicitly loads the cwd). "cfs:share:python" is a special key which uses ProgramOption->GetSchemaPath() + "../python" 
+   * @param preload_numpy import numpy as np before modifying sys.path - prevents segfaults for some tests with Python 3.12*/
+  LoadStatus LoadPythonModule(const std::string& file, std::string path = "", bool preload_numpy = true);
 
   /** Convenience function which extracts file and possibly path */
   LoadStatus LoadPythonModule(PtrParamNode pn);
@@ -251,9 +255,6 @@ private:
   };
 
   std::map<Hook, HookParam> hooks_;
-
-  /** not initialized when not compiled with USE_EMBEDDED_PYTHON */
-  bool initialized_ = false;
 
   /** This is the kernel module (python script) if loaded. Not that mesh reader, python optimizer, ... have their
    * own modules (files) */

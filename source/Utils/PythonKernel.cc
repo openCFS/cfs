@@ -10,7 +10,6 @@
 #include "DataInOut/SimInOut/python/SimInputPython.hh"
 #include "Optimization/Optimizer/PythonOptimizer.hh"
 
-
 // declare class specific logging stream
 DEFINE_LOG(pykernel, "pykernel")
 
@@ -20,6 +19,7 @@ namespace CoupledField
 using std::string;
 using std::to_string;
 using std::pair;
+namespace fs = boost::filesystem;
 
 // the external definition of PythonKernel* python is in tools.cc as we don't compile and link this file w/o USE_EMBEDDED_PYTHON
 
@@ -81,21 +81,39 @@ void PythonKernel::Init(PtrParamNode pn, PtrParamNode info)
 /** actual destructor */
 void PythonKernel::Release()
 {
-  if(initialized_)
+  if(Py_IsInitialized())
   {
     Py_XDECREF(kernel_); // can be NULL
-    kernel_ = NULL;
-    Py_Finalize();
+    kernel_ = nullptr;
+    Py_Finalize(); // note that we may not re-initialize the interpreter as numpy would not load
   }
-  python = NULL; // reset the global object pointer
+  python = nullptr; // reset the global object pointer
 }
 
 void PythonKernel::InitInterpreter()
 {
-  assert(!initialized_); // run once!
+  assert(!Py_IsInitialized()); // run once!
 
-  PyImport_AppendInittab("cfs", SetModulFunctions);
-  Py_Initialize();
+  char* pp = std::getenv("PYTHONPATH");
+  char* ph = std::getenv("PYTHONHOME");
+  LOG_DBG(pykernel) << "II: PYTHONPATH=" << (pp ? string(pp) : "NULL") << " PYTHONHOME=" << (ph ? string(ph) : "NULL");
+  
+  PyImport_AppendInittab("cfs", &SetModulFunctions);
+
+  PyConfig config;
+  PyConfig_InitPythonConfig(&config);
+  // here config could be modified
+
+  LOG_DBG(pykernel) << "II: home=" << (config.home ? "set" : "NULL");
+ 
+  PyStatus status = Py_InitializeFromConfig(&config);
+  assert(!PyStatus_IsError(status));
+  if(PyStatus_Exception(status)) // checks the status struct if exist reason was exception
+  {
+    PyConfig_Clear(&config);
+    throw Exception("error initializing python interpreter: " + string(status.err_msg));
+  }
+  PyConfig_Clear(&config);
 
   PyObject* version = PySys_GetObject("version");
   if(!version)
@@ -108,66 +126,99 @@ void PythonKernel::InitInterpreter()
   boost::replace_all(str, "\n"," ");
   info_->Get("python/version")->SetValue(str);
   Py_XDECREF(version);
-
-  initialized_ = true;
 }
 
-PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, const string opt_path)
+PythonKernel::LoadStatus PythonKernel::LoadPythonModule(const string& file, const string opt_path, bool preload_numpy)
 {
-  if(!initialized_)
+  LOG_DBG(pykernel) << "LPM: f=" << file << "op=" << opt_path << " i=" << Py_IsInitialized();
+
+  if(!Py_IsInitialized())
     InitInterpreter(); // we assume no critical threadding issue
 
-  LoadStatus ret;
+  assert(Py_IsInitialized());
 
-  // our share/python
-  boost::filesystem::path share = progOpts->GetSchemaPath().parent_path().append("python");
+  LoadStatus ls;
 
-  boost::filesystem::path givenname(file); // default
+  // file (e.g. make_mesh.py) is loaded as module (more complicated than running a file)
+  // for this the extension will be removed and the module will be imported by it's name in all sys.path
+
+  // we add the path to sys.path. I empty this is cwd, otherwise the special c:s:p or a given path
+
+  // we check the existence of the file manually to get a better error message than C-API
+  // to this end, we construct the absolute path as it might contain cf:share:python
+
+  fs::path share = progOpts->GetSchemaPath().parent_path().append("python");  // /home/fwein/code/cfs/share/xml -> share/python
+  fs::path givenname(file); // default
   if(opt_path != "")
-  {
-    if(opt_path == "cfs:share:python")
-      givenname = share.append(file);
-    else
-      givenname = boost::filesystem::path(opt_path).append(file);
-  }
-  ret.full_file = givenname.string();
-
+    givenname = opt_path == "cfs:share:python" ? share / file : fs::path(opt_path) / file;
+  ls.full_file = givenname.string();
   if(!boost::filesystem::exists(givenname))
     throw Exception("cannot find python file '" + givenname.string() + "' for python optimizer");
-  boost::filesystem::path absolute = boost::filesystem::absolute(givenname.parent_path());
+  LOG_DBG(pykernel) << "LPM: gn=" << givenname.string();
 
-  // add to PYTHONPATH to make it more realistic to load the module :)
+  // determine the path to be added to sys.path
+  fs::path fs_path;
+  if(opt_path == "" || opt_path == ".")
+    fs_path = fs::current_path();
+  else
+    fs_path = opt_path == "cfs:share:python" ? share : fs::path(opt_path);
+  LOG_DBG(pykernel) << "LPM: fs_path=" << fs_path.string() << " share=" << share.string();
+
+  // up to now we did not change anything
+  // with Python 3.12 vs 3.11 we have issues loading numpy (segfault in many test cases) and
+  // this seams to to help. Ususally we need numpy anyway.
+  #ifndef NDEBUG
+    bool verb = true;
+  #else
+    bool verb = progOpts->DoDetailedInfo();
+  #endif
+  // PyRun_SimpleString("import sys;print('python sys.path', sys.path, flush=True)");
+  if(preload_numpy)
+  {
+    if(verb) PyRun_SimpleString("print('++ pre-load numpy ... ',flush=True, end='')");
+    PyRun_SimpleString("import numpy as np");
+    if(verb) PyRun_SimpleString("print(np.__version__,flush=True)");
+  }
+  ls.preloaded_numpy = preload_numpy;
+
+  // we insert first to sys.path such that we "overwrite" files in the search path
+  // note that sys.path contains also PYTHONPATH
   PyObject* sysPath = PySys_GetObject((char*) "path"); // must not decref after append - note the difference to the attribute syspath!
-  LOG_DBG(pykernel) << "IPM: original sysPath=" << ConvertPythonList<string>(sysPath).ToString();
-  // first add share
-  PyList_Insert(sysPath, 0, PyUnicode_FromString(share.string().c_str()));
-  // then add as second our module (might be doubled)
-  PyList_Insert(sysPath, 1, PyUnicode_FromString(absolute.string().c_str()));
-  LOG_DBG(pykernel) << "IPM: final sysPath=" << ConvertPythonList<string>(sysPath).ToString();
+  LOG_DBG(pykernel) << "LPM: original sysPath=" << ConvertPythonList<string>(sysPath).ToString();
+  // insert path
+  PyList_Insert(sysPath, 0, PyUnicode_FromString(fs_path.string().c_str()));
+  // add share/python to have the cfs stuff available
+  if(opt_path != "cfs:share:python")
+    PyList_Append(sysPath, PyUnicode_FromString(share.string().c_str()));
+  LOG_DBG(pykernel) << "LPM: final sysPath=" << ConvertPythonList<string>(sysPath).ToString();
   // return the new sysPath
-  ConvertPythonList<string>(ret.sys_path, sysPath); // again copy constructor magic :)
+  ConvertPythonList<string>(ls.sys_path, sysPath); // again copy constructor magic :)
+  
+  // PyRun_SimpleString("import sys;print('python sys.path', sys.path, flush=True)");
 
-  // now load the module
-  boost::filesystem::path name = boost::filesystem::change_extension(givenname.filename(), "");
-  ret.module = PyImport_ImportModule(name.string().c_str());
+  // now load the module which is the python file without extension
+  fs::path name = fs::change_extension(givenname.filename(), "");
+  LOG_DBG(pykernel) << "LPM: name=" << name.string();
 
-  if(!ret.module)
+  ls.module = PyImport_ImportModule(name.string().c_str());
+
+  if(!ls.module)
   {
     throw Exception("Cannot load '" + givenname.string() + "' as embbeded python module: " + PyErr());
   }
 
-  return ret;
+  return ls;
 }
 
 PythonKernel::LoadStatus PythonKernel::LoadPythonModule(PtrParamNode pn)
 {
+  LOG_DBG(pykernel) << "LPM: pn";
+  bool pre = pn->Has("preload_numpy") ? pn->Get("preload_numpy")->As<bool>() : true;
   if(pn->Has("path"))
-    return LoadPythonModule(pn->Get("file")->As<string>(), pn->Get("path")->As<string>());
+    return LoadPythonModule(pn->Get("file")->As<string>(), pn->Get("path")->As<string>(), pre);
   else
-    return LoadPythonModule(pn->Get("file")->As<string>());
+    return LoadPythonModule(pn->Get("file")->As<string>(), "", pre);
 }
-
-
 
 void PythonKernel::CallHook(Hook key)
 {

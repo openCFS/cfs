@@ -99,26 +99,69 @@ static PyObject* PyInit_cfs(void)
   return PyModule_Create(&cfs_modules);
 }
 
+void CheckPythonInit(PyStatus& status, PyConfig& config)
+{
+  if(PyStatus_Exception(status)) // checks the status struct if exist reason was exception
+  {
+    PyConfig_Clear(&config);
+    Py_ExitStatusException(status); // exit with an error message
+  }
+}
 
 BOOST_AUTO_TEST_CASE(embedded_python)
 {
+#if defined(WIN32)
+  _CrtSetDbgFlag(0);  // prevents memory leak detection for debug in MSVC which spoils the terminal
+#endif
+
+  // we my not Py_Finalize() and then initialize again - this fails in the second to loading numpy but is well known
+  BOOST_CHECK(!Py_IsInitialized());
+
   // needs to be done before Py_Initialize
-  PyImport_AppendInittab("cfs", &PyInit_cfs);
+  int ret = PyImport_AppendInittab("cfs", &PyInit_cfs);
+  BOOST_CHECK(ret >= 0);
 
-  Py_Initialize();
+  PyConfig config;
+  PyConfig_InitPythonConfig(&config);
+  // here config could be modified
 
-  PyRun_SimpleString("import os; print('embedded python: runs in ' + os.getcwd())");
+  // not that we may not initialize the interpreter twice in the process lifetime as numpy would not load
+  PyStatus status = Py_InitializeFromConfig(&config); 
+  BOOST_CHECK(!PyStatus_IsError(status));
+  PyConfig_Clear(&config);
 
   // test system
   PyObject* version = PySys_GetObject("version");
-  std::cout << "pyobject version=" << version << std::endl;
   if(!version)
     PyErr_Print();
-
-  const char* c_str = PyUnicode_AsUTF8(version);
-  std::cout << "version c_str=" << c_str << std::endl;
-
+  std::cout << "embedded python version: " << PyUnicode_AsUTF8(version) << std::endl; // const char*
   Py_XDECREF(version);
+  
+  ret = PyRun_SimpleString("import site;import os; print('embedded python: runs in', os.getcwd())");
+  BOOST_CHECK(ret >= 0);
+  PyRun_SimpleString("print('PYTHONPATH',os.environ.get('PYTHONPATH'))");
+  PyRun_SimpleString("print('PATH',os.environ.get('PATH'))");
+  // now comes the challenging part: numpy
+  ret = PyRun_SimpleString("import numpy as np; print('embedded python imports numpy', np.__version__)");
+  BOOST_CHECK(ret >= 0);
+
+  PyRun_SimpleString("import sys;sys.path.append(os.getcwd());print('system path with added cwd',sys.path)");
+
+  // create test file in cwd
+  std::ofstream("cfstest_local_python.py") << "import os; print('cfstest_local_python.py runs in', os.getcwd())";
+  PyObject* mod_clp = PyImport_ImportModule("cfstest_local_python");
+  if (!mod_clp) 
+    PyErr_Print();
+  BOOST_CHECK(mod_clp);
+  Py_DecRef(mod_clp);
+
+  // now a module with numpy
+  std::ofstream("cfstest_local_numpy.py") << "import numpy; print('cfstest_local_numpy.py loads', numpy.__version__)";
+  PyObject* mod_cln = PyImport_ImportModule("cfstest_local_numpy");
+  if (!mod_cln) 
+    PyErr_Print();
+  BOOST_CHECK(mod_cln);
+  Py_DecRef(mod_cln);
 
   // assume we are in the build directory
   boost::filesystem::path test = boost::filesystem::path("../source/unittests/embeddedpython.py");
@@ -128,8 +171,6 @@ BOOST_AUTO_TEST_CASE(embedded_python)
   std::cout << "test absolute path=" << path  << std::endl;
   std::cout << "test no extension=" << boost::filesystem::change_extension(test.filename(), "") << std::endl;
 
-
-
   // add it to the system path
   if(boost::filesystem::is_directory(path))
   {
@@ -137,7 +178,7 @@ BOOST_AUTO_TEST_CASE(embedded_python)
     PyList_Append(sysPath, PyUnicode_FromString(path.string().c_str()));
   }
   else
-    std::cout << "WARNING: not running in build directory, make sure */source/unittest is in PYTHONPATH" << std::endl;
+    std::cout << "WARNING: not running in build directory, make sure ../source/unittest is in PYTHONPATH" << std::endl;
 
   // https://docs.python.org/3.8/extending/embedding.html
   PyObject* pModule = PyImport_ImportModule("embeddedpython");
@@ -262,5 +303,6 @@ BOOST_AUTO_TEST_CASE(embedded_python)
     assert(false);
   }
 
-  Py_Finalize();
+  ret = Py_FinalizeEx();
+  assert(ret == 0);
 }

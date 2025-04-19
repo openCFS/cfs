@@ -64,7 +64,6 @@ namespace CoupledField
     /** either OmpExecutor::create(), ReferenceExecutor::create() or the HIP (CUDA) variant in future */
     std::shared_ptr<gko::Executor> exec;
     std::variant<std::shared_ptr<gko::log::Convergence<float>>,std::shared_ptr<gko::log::Convergence<double>>> logger;
-    //std::shared_ptr<gko::log::Convergence<double>>   logger;
     std::shared_ptr<gko::LinOpFactory> precond;
     std::shared_ptr<gko::LinOp> solver;
 
