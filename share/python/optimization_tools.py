@@ -9,8 +9,8 @@ import os
 import sys
 try:
   import scipy.io
-except ImportError:
-  print("warning: could not import scipy, let's hope, it is not needed.")
+except (ImportError, ValueError) as ex:
+  print("warning: could not import scipy, let's hope, it is not needed.",ex)
   
 import xml.sax
 from lxml import etree
