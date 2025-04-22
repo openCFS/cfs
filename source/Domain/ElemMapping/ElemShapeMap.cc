@@ -1801,10 +1801,9 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     Vector<Double> diff;
     diff = c2 - c1;
     normal.Resize(2,0.0);
-    Double len = diff.NormL2();
 
-    normal[0] = diff[1]/len;
-    normal[1] = -diff[0]/len;
+    normal[0] = diff[1];
+    normal[1] = -diff[0];
 
     success = true;
   }else{
@@ -1840,15 +1839,12 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     success = true;
   }
 
-  //just determine the direction, i.e. does the normal point in direction of the center or not
-  //if this is the case, the following vector will be shorter than the normal...
-  //funny thing, it does not really matter as long as we do the same shit for every
-  //surface
-  Vector<Double> test;
-  test = (lp.coord - shape.midPointCoord) + normal;
-  if(test.NormL2() < normal.NormL2()){
-    normal *= -1.0;
-  }
+  // make sure the normal vector points outside of the element
+  // the inner product of normal vector and center_to_surface vector is negative if they point into different directions
+  // multiplying with it will flop the direction of the normal vector
+  Vector<Double> center_to_surface;
+  center_to_surface = lp.coord - shape.midPointCoord;
+  normal *= normal * center_to_surface;
 
   if(!success){
     WARN("could not determine surface normal.. to be checked!")
