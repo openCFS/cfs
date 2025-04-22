@@ -10,6 +10,7 @@
 #include <sstream>
 #include <stdio.h>
 #include <boost/filesystem.hpp>
+#include <boost/predef.h>
 
 using std::string;
 using std::to_string;
@@ -112,6 +113,14 @@ GinkgoSolver::GinkgoSolver(PtrParamNode pn, PtrParamNode olasInfo, BaseMatrix::E
     infoNode_->Get("exec")->SetValue("reference");
   }
   infoNode_->Get("cuda_available")->SetValue(UseCuda());
+  if(pn->Get("dump_profiling")->As<bool>())
+  {
+#if BOOST_OS_LINUX
+    infoNode_->SetWarning("'dump_profiling' currently not possible on Linux"); // we get a vtune linker error
+#else
+    exec->add_logger(gko::log::ProfilerHook::create_nested_summary());
+#endif
+  }
 }
 
 void GinkgoSolver::Setup(BaseMatrix &sysmat)
@@ -127,24 +136,24 @@ void GinkgoSolver::Setup(BaseMatrix &sysmat)
     auto mat = dynamic_cast<CRS_Matrix<double>*>(&sysmat);
     if(fp32) {
       values = vector<float>(); // we use this data to have the same templated csr values data in Setup() and Solve()
-      Setup<double, float>(mat);
+      Setup<double, float, float>(mat);
     }
     else
-      Setup<double, double>(mat);
+      Setup<double, double, double>(mat);
   }
   else
   {
     auto mat = dynamic_cast<CRS_Matrix<complex<double>>*>(&sysmat);
     if(fp32) {
       values = vector<complex<float>>();
-      Setup<complex<double>,complex<float>>(mat);
+      Setup<complex<double>,complex<float>,float>(mat);
     }
     else
-      Setup<complex<double>,complex<double>>(mat);
+      Setup<complex<double>,complex<double>,double>(mat);
   }
 }
 
-template<typename CFS_T, typename GK_T>
+template<typename CFS_T, typename GK_T, typename GK_REAL_T>
 void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
 {
   assert(m != nullptr);
@@ -174,7 +183,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
 
   // the std::move makes sure we don't call a copy constructor
   auto csr = gko::share(gko::matrix::Csr<GK_T, int>::create_const(exec, gko::dim<2>(nrow,ncol), std::move(vv), std::move(cv), std::move(rv)));
-  logger = gko::share(gko::log::Convergence<double>::create());
+  logger = gko::share(gko::log::Convergence<GK_REAL_T>::create());
   std::shared_ptr<gko::LinOpFactory> factory;
 
   // we set this information every time as we handle the options here in detail
@@ -203,7 +212,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
       if(xml_->Has("jacobi"))
         mbs = xml_->Get("jacobi/max_block_size")->As<unsigned int>();
       ip->Get("max_block_size")->SetValue(mbs);
-      precond = gko::preconditioner::Jacobi<>::build().with_max_block_size(mbs).on(exec);
+      precond = gko::preconditioner::Jacobi<GK_T>::build().with_max_block_size(mbs).on(exec);
       break;
     }
     case ILU:
@@ -234,7 +243,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
 
     auto iter_crit = gko::stop::Iteration::build().with_max_iters(max_iter);
     const gko::remove_complex<GK_T> tol = tolerance;
-    auto norm_crit =  gko::stop::ResidualNorm<>::build().with_baseline(tol_mode).with_reduction_factor(tol);
+    auto norm_crit =  gko::stop::ResidualNorm<GK_T>::build().with_baseline(tol_mode).with_reduction_factor(tol);
     is->Get("max_iter")->SetValue(max_iter);
     is->Get("tolerance")->SetValue(tolerance);
     is->Get("mode")->SetValue(tolType.ToString(tol_type));
@@ -246,13 +255,13 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
     switch(solver_type)
     {
     case CG:
-      factory = gko::solver::Cg<>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
+      factory = gko::solver::Cg<GK_T>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
       break;
     case BICGSTAB:
-      factory = gko::solver::Bicgstab<>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
+      factory = gko::solver::Bicgstab<GK_T>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
       break;
     case GMRES:
-      factory = gko::solver::Gmres<>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
+      factory = gko::solver::Gmres<GK_T>::build().with_criteria(iter_crit.on(exec),norm_crit.on(exec)).with_preconditioner(precond).on(exec);
       break;
     case NOSOLVER:
     case ST_JSON:
@@ -262,7 +271,7 @@ void GinkgoSolver::Setup(CRS_Matrix<CFS_T>* m)
   }
 
   solver = factory->generate(csr);
-  solver->add_logger(logger);
+  solver->add_logger(std::get<std::shared_ptr<gko::log::Convergence<GK_REAL_T>>>(logger)); // C++ is so ugly :()
 }
 
 void GinkgoSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol)
@@ -270,20 +279,20 @@ void GinkgoSolver::Solve(const BaseMatrix &sysmat, const BaseVector &rhs, BaseVe
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE)
   {
     if(fp32)
-      Solve<double, float>(rhs, sol);
+      Solve<double, float, float>(rhs, sol);
     else
-      Solve<double, double>(rhs, sol);
+      Solve<double, double, double>(rhs, sol);
   }
   else
   {
     if(fp32)
-      Solve<complex<double>,complex<float>>(rhs, sol);
+      Solve<complex<double>,complex<float>,float>(rhs, sol);
     else
-      Solve<complex<double>,complex<double>>(rhs, sol);
+      Solve<complex<double>,complex<double>,double>(rhs, sol);
   }
 }
 
-template <typename CFS_T, typename GK_T>
+template <typename CFS_T, typename GK_T, typename GK_REAL_T>
 void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
 {
   // the vectors seem to be possibly based on blocks and therefore are not necessarily just Vector
@@ -310,7 +319,7 @@ void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
     sol.GetEntry(i,val);
     x->at(i) = initial_zero ? 0.0 : (GK_T) val;
   }
-  double initial_sol_norm = initial_zero ? 0.0 : sol.NormL2();
+  double initial_sol_norm = initial_zero ? 0.0 : (double) sol.NormL2();
 
   // solve S x = b for x
   solver->apply(b, x);
@@ -321,13 +330,13 @@ void GinkgoSolver::Solve(const BaseVector &rhs, BaseVector &sol)
     sol.SetEntry(i, (CFS_T) x->at(i));
 
   assert(solver->get_loggers().size() == 1);
-
-  bool conv = logger->has_converged();
-  size_t iters = logger->get_num_iterations();
+  auto mylogger = std::get<std::shared_ptr<gko::log::Convergence<GK_REAL_T>>>(logger);
+  bool conv = mylogger->has_converged();
+  size_t iters = mylogger->get_num_iterations();
   // in the cuda case we live on the GPU and need to copy to CPU
-  auto grn = gko::as<gko::matrix::Dense<double>>(logger->get_residual_norm());
+  auto grn = gko::as<gko::matrix::Dense<GK_REAL_T>>(mylogger->get_residual_norm());
   auto grn_host = gko::clone(exec->get_master(), grn);
-  double res_norm = ((complex<double>) grn_host->at(0,0)).real();
+  double res_norm = (double) ((complex<GK_REAL_T>) grn_host->at(0,0)).real();
   LOG_DBG(ginkgo) << "Solve: converged=" << conv << " iters=" << iters << " residual=" << res_norm << " sol=" << sol.NormL2() << " inital=" << initial_sol_norm;
 
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;

@@ -1278,7 +1278,12 @@
           <xsd:documentation>Solve the system as single precision</xsd:documentation>
         </xsd:annotation>
       </xsd:attribute>      
-     </xsd:extension>
+      <xsd:attribute name="dump_profiling" type="xsd:boolean" default="false" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>Enable the console output of a tablular profiling sheet on cfs exit</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>      
+    </xsd:extension>
    </xsd:complexContent>
   </xsd:complexType>
   

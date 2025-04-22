@@ -51,16 +51,20 @@ namespace CoupledField
     typedef enum {ON = 0, OFF, AUTO} CudaChoice;
     static Enum<CudaChoice> cudaChoice;
 
-    /** Ginkgo cannot make use of only half given symmetric matrices */
-    template <typename CFS_T, typename GK_T>
+    /** Ginkgo cannot make use of only half given symmetric matrices.
+     * CFS_T is either double or complex<double>  
+     * GK_T is either float/complex<float>, or double/complex<double>.
+     * GK_REAL_T is either float or double. */
+    template <typename CFS_T, typename GK_T, typename GK_REAL_T>
     void Setup(CRS_Matrix<CFS_T>* mat);
 
-    template <typename CFS_T, typename GK_T>
+    template <typename CFS_T, typename GK_T, typename GK_REAL_T>
     void Solve(const BaseVector &rhs, BaseVector &sol);
 
     /** either OmpExecutor::create(), ReferenceExecutor::create() or the HIP (CUDA) variant in future */
-    std::shared_ptr<const gko::Executor> exec;
-    std::shared_ptr<gko::log::Convergence<double>> logger;
+    std::shared_ptr<gko::Executor> exec;
+    std::variant<std::shared_ptr<gko::log::Convergence<float>>,std::shared_ptr<gko::log::Convergence<double>>> logger;
+    //std::shared_ptr<gko::log::Convergence<double>>   logger;
     std::shared_ptr<gko::LinOpFactory> precond;
     std::shared_ptr<gko::LinOp> solver;
 
@@ -72,9 +76,6 @@ namespace CoupledField
     GinkgoPrecondType precond_type = NOPRECOND;
     TolType tol_type = ABSOLUTE;
     gko::stop::mode tol_mode = gko::stop::mode::absolute;
-
-
-
 
     unsigned int max_iter = 10000;
     /** given to the solver */
