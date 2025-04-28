@@ -130,10 +130,6 @@ namespace CoupledField {
     // Getting the analysis id because it contains information about the current step.
     AnalysisID& id = domain->GetDriver()->GetAnalysisId();
 
-    // Getting the current time/step
-    if(id.step != -1)
-      step_ = std::to_string(id.step);
-
     if(exportMatrix_)
     {
       // Before creating the default filenames and export the system matrix, the matrix-file from the previous step has to be deleted,
@@ -171,6 +167,9 @@ namespace CoupledField {
       exportTimer_->Stop();
     }
     timeFreq_ = FormatedTimeFreq(formatString_);
+
+    // update the step
+    step_ = std::to_string( domain->GetDriver()->GetAnalysisId().step );
 
     // Assembling the command string
     std::string cmd = cmd_;
