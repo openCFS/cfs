@@ -160,6 +160,13 @@
                 <xsd:element name="force" type="DT_BcInhomVector"/>
                 <xsd:element name="forceDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomVector"/>
+
+                <xsd:element name="volumeAcceleration" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Applies a RHS based on a specified acceleration vector. Can be used, for example, to apply gravity in a static simulation by specifying the gravitational constant g = 9.80665 m/s^2 in the desired direction.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+
                 <!-- for iterative coupling to magnetostrictive material -->
                 <xsd:element name="magFluxDensity"      type="DT_BcInhomVector"    />
 

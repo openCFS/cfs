@@ -1476,11 +1476,75 @@ namespace CoupledField {
       assemble_->AddLinearForm(ctx);
       myFct->AddEntityList(ent[i]);
     } // for
-    
-    
+
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-    
-    
+
+    // ===============
+    //  VOLUME ACCELERATION
+    // ===============
+    LOG_DBG(mechpde) << "Reading volume acceleration";
+
+    ReadRhsExcitation("volumeAcceleration", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
+    for (UInt i = 0; i < ent.GetSize(); ++i) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Volume acceleration must be defined on elements")
+      }
+      // get the material density
+      RegionIdType curRegionId = ent[i]->GetRegion();
+      BaseMaterial *curMaterial = materials_[curRegionId];
+      PtrCoefFct density;
+      if (this->IsMaterialComplex()) {
+        // complex material definition
+        EXCEPTION("Volume acceleration is not implemented for complex-valued materials");
+      }
+      else {
+        density = curMaterial->GetScalCoefFnc(DENSITY, part);
+      }
+      // multiply by the acceleration to get the force density
+      PtrCoefFct forceDens = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], density, CoefXpr::OP_MULT));
+
+      if (isComplex_) {
+        // frequency domain or eigenvalue analysis
+        EXCEPTION("This feature is untested. Consider adding a test case before activating it.");
+        if (dim_ == 2) {
+          lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1, 2, 2>(), Complex(1.0), forceDens, coefUpdateGeo);
+        }
+        else {
+          lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1, 3, 3>(), Complex(1.0), forceDens, coefUpdateGeo);
+        }
+      }
+      else {
+        if (coef[i]->IsComplex()) {
+          // rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
+          EXCEPTION("This feature is untested. Consider adding a test case before activating it.");
+          WARN("<volumeAcceleration> has complex-valued input. "
+               "Only the real part is used. This is typically intended for mean values "
+               "from harmonic analyses. Please verify if this behavior is appropriate for your use case.");
+          if (dim_ == 2) {
+            lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1, 2, 2>(), Complex(1.0), forceDens, coefUpdateGeo);
+          }
+          else {
+            lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1, 3, 3>(), Complex(1.0), forceDens, coefUpdateGeo, true, forceDens->IsComplex());
+          }
+        }
+        else {
+          if (dim_ == 2) {
+            lin = new BUIntegrator<Double>(new IdentityOperator<FeH1, 2, 2>(), 1.0, forceDens, coefUpdateGeo, true, forceDens->IsComplex());
+          }
+          else {
+            lin = new BUIntegrator<Double>(new IdentityOperator<FeH1, 3, 3>(), 1.0, forceDens, coefUpdateGeo, true, forceDens->IsComplex());
+          }
+        }
+      }
+      lin->SetName("VolumeAccelerationInt");
+      LinearFormContext *ctx = new LinearFormContext(lin);
+      ctx->SetEntities(ent[i]);
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    } // for
+
     // ===============
     //  magneticFluxDensity (couples in case of magnetostrictive material)
     // ===============
