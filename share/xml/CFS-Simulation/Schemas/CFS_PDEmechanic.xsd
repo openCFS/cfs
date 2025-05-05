@@ -188,6 +188,11 @@
                     <xsd:documentation>Defines a stiffness in normal-direction of the boundary.</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="directionalStiffness" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>An adaptation to normalStiffness that allows to apply a stiffness into specified directional components (x,y,z).</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <!-- Damping at surface -->
                 <xsd:element name="normalDamping" type="DT_BcInhomScalar">
                   <xsd:annotation>

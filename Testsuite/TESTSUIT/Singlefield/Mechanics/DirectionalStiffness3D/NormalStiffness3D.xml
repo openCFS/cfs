@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Normal Stiffness (Bedding) in 3D</title>
+    <authors>
+      <author>Florian Toth</author>
+    </authors>
+    <date>2019-09-20</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>yes</isVerified>
+    <description> Assume a stiffness in normal direction of the boundary, thereby modelling a linear bedding. We consider a unit cube and apply different stiffnesses on the S, W and B faces. The cube is loaded on the S and W fases by unit pressure, thus remains stress free, but the bedding gets activated. We also load the cube by a pressure load on the T face, thereby activating the bedding and straining the cube. The first step is a static analysis: The used stiffnesses and loadings lead to a displacement of 2/sqrt(3) in y-direction, 0.1 in z direction and a strain of 0.2. The eigenvalue step has easily computable EVs defined by the stiffnesses (due to unit mass): 4, 9, and 25 for the translational modes. </description>
+
+  </documentation>
+  <fileFormats>
+    <input>
+      <!--<gmsh fileName="UnitCube_quad.msh"/>-->
+      <hdf5 fileName="NormalStiffness3D.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <domain geometryType="3d" printGridInfo="yes">
+    <regionList>
+      <region name="SOLID" material="myOne"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="SOLID"/>
+        </regionList>
+        <bcsAndLoads>
+          <normalStiffness name="S" value="1" volumeRegion="SOLID"/>
+          <normalStiffness name="W" value="sqrt(3)" volumeRegion="SOLID"/>
+          <normalStiffness name="B" value="2e+9" volumeRegion="SOLID"/>
+          <pressure name="T" value="-2e+8"/>
+          <pressure name="S" value="1"/>
+          <pressure name="W" value="1"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+            <nodeList>
+              <nodes name="NOT"/>
+              <nodes name="SWB" outputIds="txt"/>
+            </nodeList>
+          </nodeResult>
+          <elemResult type="mechStrain">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <exportLinSys system="true" solution="true" rhs="true"/>
+            <matrix reordering="noReordering"/>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <sequenceStep index="2">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <!-- arapack gives a bad_cast error ... -->
+        <minVal>0</minVal>
+        <maxVal>50</maxVal>
+        <!--<numModes>10</numModes>
+          <freqShift>0</freqShift>-->
+        <writeModes normalization="max">yes</writeModes>
+      </eigenFrequency>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="SOLID"/>
+        </regionList>
+        <bcsAndLoads>
+          <directionalStiffness name="S">
+            <comp dof="x" value="-4"/>
+            <comp dof="y" value="4"/>
+            <comp dof="z" value="0"/>
+          </directionalStiffness>
+          <directionalStiffness name="W">
+            <comp dof="x" value="9"/>
+            <comp dof="y" value="9"/>
+            <comp dof="z" value="0"/>
+          </directionalStiffness>
+          <directionalStiffness name="B" value="25">
+            <comp dof="x" value="0"/>
+            <comp dof="y" value="0"/>
+            <comp dof="z" value="25"/>
+          </directionalStiffness>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+            <nodeList>
+              <nodes name="NOT"/>
+            </nodeList>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <eigenSolver/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <feast>
+            <logging>true</logging>
+            <Ne>8</Ne>
+            <stopCrit>6</stopCrit>
+            <m0>10</m0>
+          </feast>
+          <!--<arpack>
+            <logging>true</logging>
+          </arpack>-->
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+</cfsSimulation>
