@@ -322,7 +322,7 @@ void FeaturedDesign::SetupMapping()
                  << " coord=" << domain->GetGrid()->GetElemNodesCoord(item.elemval->elem).ToString();
   }
 
-  assert(!(n_.size() == 0));
+  assert(!(n_.GetSize() == 0));
   // #designElems can be smaller nx_*ny_*ny_ -> see comment in SetupMeshStructure()
   assert(!(designElems.GetSize() > n_.Product()));
   assert(elements == designElems.GetSize());
