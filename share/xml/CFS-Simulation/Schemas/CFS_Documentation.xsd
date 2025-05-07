@@ -204,6 +204,7 @@
       <xsd:enumeration value="mixed fem"/>
       <xsd:enumeration value="spectral fem"/>
       <xsd:enumeration value="p-FEM-Legendre"/>
+      <xsd:enumeration value="incompatible modes"/>
       
       <!-- ========================================================== -->
       <!--  Optimization Related Keywords                             -->

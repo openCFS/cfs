@@ -3,6 +3,9 @@
 <cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
 
   <fileFormats>
+    <input>
+      <hdf5 fileName="ICModes2DBar.h5ref"/>
+    </input>
     <output>
       <hdf5/>
     </output>

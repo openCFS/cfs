@@ -1,0 +1,328 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title> PreStress3d_Harm_HigherOrder_ICModes </title>
+    <authors>
+      <author>pheidegger</author>
+    </authors>
+    <date>2050-05-02</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+      <keyword>prestress</keyword>
+      <keyword>incompatible modes</keyword>
+    </keywords>
+    <references> none just functionality test </references>
+    <isVerified> yes </isVerified>
+    <description> This example computes the mechanical vibration of a long beam under pre-stress, with varying accuracy: 1st order, 1st order + ICModes, 2nd order, and 3rd order. The computation is done in two sequence steps each. The first step computes the pre-stress, where the beam is fixed on one side and an axial force density is applied to the opposite side. In a second step, the beam is set under the computed pre-stress and the clamped side is displaced periodically in perpendicular direction.</description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <!-- <cdb fileName="brick.cdb"/> -->
+      <hdf5 fileName="PreStress3d_Harm_HigherOrder_ICModes.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <domain geometryType="3d">
+    <regionList>
+      <region name="brick" material="myMaterial"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="x_normal_1"/>
+      <surfRegion name="x_normal_2"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange id="firstOrder">
+      <isoOrder serendipity="false"> 1 </isoOrder>
+    </Lagrange>
+    <Lagrange id="secondOrder">
+      <isoOrder serendipity="false"> 2 </isoOrder>
+    </Lagrange>
+    <Lagrange id="thirdOrder">
+      <isoOrder serendipity="false"> 3 </isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="integFirstOrder">
+      <method>Gauss</method>
+      <order>2</order>
+      <mode>absolute</mode>
+    </scheme>
+    <scheme id="integIcm">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+    <scheme id="integSecondOrder">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+    <scheme id="integThirdOrder">
+      <method>Gauss</method>
+      <order>9</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+
+  <!-- 1st order-->
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" integId="integFirstOrder" polyId="firstOrder"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="x_normal_1">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <forceDensity name="x_normal_2">
+            <comp dof="x" value="1e6"/>
+          </forceDensity>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+  <sequenceStep index="2">
+    <analysis>
+      <harmonic>
+        <numFreq> 1 </numFreq>
+        <startFreq> 50 </startFreq>
+        <stopFreq> 50 </stopFreq>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" integId="integFirstOrder" polyId="firstOrder"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="x_normal_1">
+            <comp dof="x"/>
+            <comp dof="z"/>
+          </fix>
+          <displacement name="x_normal_1">
+            <comp dof="y" value="1e-6"/>
+          </displacement>
+          <preStress region="brick">
+            <computeLHS/>
+          </preStress>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+  <!-- 1st order + ICM -->
+  <sequenceStep index="3">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" integId="integIcm" polyId="firstOrder" softeningId="icm"/>
+        </regionList>
+        <softeningList>
+          <icModesTW id="icm"/>
+        </softeningList>
+        <bcsAndLoads>
+          <fix name="x_normal_1">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <forceDensity name="x_normal_2">
+            <comp dof="x" value="1e6"/>
+          </forceDensity>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+  <sequenceStep index="4">
+    <analysis>
+      <harmonic>
+        <numFreq> 1 </numFreq>
+        <startFreq> 50 </startFreq>
+        <stopFreq> 50 </stopFreq>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" integId="integIcm" polyId="firstOrder" softeningId="icm"/>
+        </regionList>
+        <softeningList>
+          <icModesTW id="icm"/>
+        </softeningList>
+        <bcsAndLoads>
+          <fix name="x_normal_1">
+            <comp dof="x"/>
+            <comp dof="z"/>
+          </fix>
+          <displacement name="x_normal_1">
+            <comp dof="y" value="1e-6"/>
+          </displacement>
+          <preStress region="brick">
+            <computeLHS/>
+          </preStress>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+  <!-- 2nd order -->
+  <sequenceStep index="5">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" integId="integSecondOrder" polyId="secondOrder"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="x_normal_1">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <forceDensity name="x_normal_2">
+            <comp dof="x" value="1e6"/>
+          </forceDensity>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+  <sequenceStep index="6">
+    <analysis>
+      <harmonic>
+        <numFreq> 1 </numFreq>
+        <startFreq> 50 </startFreq>
+        <stopFreq> 50 </stopFreq>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" integId="integSecondOrder" polyId="secondOrder"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="x_normal_1">
+            <comp dof="x"/>
+            <comp dof="z"/>
+          </fix>
+          <displacement name="x_normal_1">
+            <comp dof="y" value="1e-6"/>
+          </displacement>
+          <preStress region="brick">
+            <computeLHS/>
+          </preStress>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+  <!-- 3rd order-->
+  <sequenceStep index="7">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" integId="integThirdOrder" polyId="thirdOrder"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="x_normal_1">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <forceDensity name="x_normal_2">
+            <comp dof="x" value="1e6"/>
+          </forceDensity>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+  <sequenceStep index="8">
+    <analysis>
+      <harmonic>
+        <numFreq> 1 </numFreq>
+        <startFreq> 50 </startFreq>
+        <stopFreq> 50 </stopFreq>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" integId="integThirdOrder" polyId="thirdOrder"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="x_normal_1">
+            <comp dof="x"/>
+            <comp dof="z"/>
+          </fix>
+          <displacement name="x_normal_1">
+            <comp dof="y" value="1e-6"/>
+          </displacement>
+          <preStress region="brick">
+            <computeLHS/>
+          </preStress>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

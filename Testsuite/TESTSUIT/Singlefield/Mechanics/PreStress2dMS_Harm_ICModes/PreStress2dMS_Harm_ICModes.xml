@@ -3,36 +3,31 @@
 <cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
 
   <documentation>
-    <title>harmonic analysis of prestressed 2D cantilever </title>
+    <title>harmonic analysis of prestressed 2D cantilever with incompatible modes</title>
     <authors>
-      <author>kaltenbacher, ahauck</author>
+      <author>pheidegger, kaltenbacher, ahauck</author>
     </authors>
-    <date>2011-03-16</date>
+    <date>2025-05-07</date>
     <keywords>
+      <keyword>mechanic</keyword>
       <keyword>prestress</keyword>
+      <keyword>incompatible modes</keyword>
     </keywords>
     <references>NACS example</references>
     <isVerified>no</isVerified>
-    <description>
-      This is a 2D model of a cantilever, clamped on one side. 
-      In a first sequence step, a constant pressure is a applied to one surface
-      of the cantilever.
-      
-      In a second step we use the displacements of the first step to calculate
-      a prestressing of the structure, within a harmonic analysis.
-    </description>
+    <description> This is a 2D model of a cantilever, clamped on one side. In a first sequence step, a constant pressure is a applied to one surface of the cantilever. In a second step we use the displacements of the first step to calculate a prestressing of the structure, within a harmonic analysis. This test is computed with ICModes activated, to check the combination of preStress with ICModes.</description>
   </documentation>
-  
+
   <fileFormats>
     <input>
-      <hdf5 fileName="PreStress2dMS_Harm.h5ref"/>
+      <hdf5 fileName="PreStress2dMS_Harm_ICModes.h5ref"/>
     </input>
     <output>
       <hdf5/>
     </output>
     <materialData file="mat.xml" format="xml"/>
   </fileFormats>
-  
+
   <domain geometryType="plane">
     <regionList>
       <region name="cantilev" material="steel"/>
@@ -45,17 +40,19 @@
       <nodes name="uy-dof"/>
     </nodeList>
   </domain>
-  
+
   <sequenceStep index="1">
     <analysis>
       <static/>
     </analysis>
-
     <pdeList>
       <mechanic subType="planeStrain">
         <regionList>
-          <region name="cantilev"/>
+          <region name="cantilev" softeningId="icm"/>
         </regionList>
+        <softeningList>
+          <icModesTW id="icm"/>
+        </softeningList>
         <bcsAndLoads>
           <fix name="ux-dof">
             <comp dof="x"/>
@@ -74,34 +71,25 @@
           </elemResult>
         </storeResults>
       </mechanic>
-      
     </pdeList>
-
-    <linearSystems>
-      <system>
-        <solverList>
-          <directLU/>
-        </solverList>
-      </system>
-    </linearSystems>
-
-    
   </sequenceStep>
 
   <sequenceStep index="2">
     <analysis>
       <harmonic>
-        <numFreq>    1   </numFreq>
-        <startFreq>  10 </startFreq>
-        <stopFreq>   10 </stopFreq>
+        <numFreq> 1 </numFreq>
+        <startFreq> 10 </startFreq>
+        <stopFreq> 10 </stopFreq>
       </harmonic>
     </analysis>
-
     <pdeList>
       <mechanic subType="planeStrain">
         <regionList>
-          <region name="cantilev"/>
+          <region name="cantilev" softeningId="icm"/>
         </regionList>
+        <softeningList>
+          <icModesTW id="icm"/>
+        </softeningList>
         <bcsAndLoads>
           <fix name="ux-dof">
             <comp dof="x"/>
@@ -111,7 +99,7 @@
           </fix>
           <pressure name="surf" value="-1e4"/>
           <preStress region="cantilev">
-            <computeLHS/>
+            <computeLHS sequenceStep="1"/>
           </preStress>
         </bcsAndLoads>
         <storeResults>
@@ -120,17 +108,6 @@
           </nodeResult>
         </storeResults>
       </mechanic>
-      
     </pdeList>
-
-    <linearSystems>
-      <system>
-        <solverList>
-          <directLU/>
-        </solverList>
-      </system>
-    </linearSystems>
-
-    
   </sequenceStep>
 </cfsSimulation>

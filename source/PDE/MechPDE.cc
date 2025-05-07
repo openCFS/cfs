@@ -2214,59 +2214,87 @@ namespace CoupledField {
     
     return integ;
   }
-  
-  BaseBDBInt* MechPDE::GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, Double factor)
+
+  BaseBDBInt *MechPDE::GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, Double factor)
   {
-    BaseBDBInt *preStressInt = NULL;
-    if(dim_==2 && subType_ != "2.5d"){
-      if( regionSoftening_[regionId] == "icModesTW") {
-        if(isComplex){
-          preStressInt = new ICModesInt<Complex>(new PiolaStressOperator<FeH1,2,Complex>(true),
-                  new PiolaStressOperator<FeH1,2,Complex>(true),preStressFct,factor);
-        }else{
-          preStressInt = new ICModesInt<Double>(new PiolaStressOperator<FeH1,2,Double>(true),
-                  new PiolaStressOperator<FeH1,2,Double>(true),preStressFct,factor);
+    bool doSoftening = (regionSoftening_[regionId] == "icModesTW");
+    BaseBDBInt *preStressInt = nullptr;
+    // 2D case
+    if (dim_ == 2 && subType_ != "2.5d") {
+      if (doSoftening) {
+        if (isComplex) {
+          BaseBOperator *bOp = new PiolaStressOperator<FeH1, 2, Complex>(false);
+          BaseBOperator *gOp = new PiolaStressOperator<FeH1, 2, Complex>(true);
+          preStressInt = new ICModesInt<Complex>(bOp, gOp, preStressFct, factor);
         }
-      }else{
-        if(isComplex){
-          preStressInt = new BDBInt<Complex, Complex>(new PiolaStressOperator<FeH1,2,Complex>(false),preStressFct,factor);
-        }else{
-          preStressInt = new BDBInt<Double, Double>(new PiolaStressOperator<FeH1,2,Double>(false),preStressFct,factor);
-        }
-      }
-    }else if (dim_==2 && subType_ == "2.5d"){
-      if( regionSoftening_[regionId] == "icModesTW") {
-        if(isComplex){
-          preStressInt = new ICModesInt<Complex>(new PreStressOperator2p5D<FeH1,2,3,Complex>(true),
-                  new PreStressOperator2p5D<FeH1,2,3,Complex>(true),preStressFct,factor);
-        }else{
-          preStressInt = new ICModesInt<Double>(new PreStressOperator2p5D<FeH1,2,3,Double>(true),
-                  new PreStressOperator2p5D<FeH1,2,3,Double>(true),preStressFct,factor);
-        }
-      }else{
-        if(isComplex){
-          preStressInt = new BDBInt<Complex, Complex>(new PreStressOperator2p5D<FeH1,2,3,Complex>(false),preStressFct,factor);
-        }else{
-          preStressInt = new BDBInt<Double, Double>(new PreStressOperator2p5D<FeH1,2,3,Double>(false),preStressFct,factor);
+        else {
+          BaseBOperator *bOp = new PiolaStressOperator<FeH1, 2, Double>(false);
+          BaseBOperator *gOp = new PiolaStressOperator<FeH1, 2, Double>(true);
+          preStressInt = new ICModesInt<Double>(bOp, gOp, preStressFct, factor);
         }
       }
-    }else{
-      if( regionSoftening_[regionId] == "icModesTW") {
-        if(isComplex){
-          preStressInt = new ICModesInt<Complex>(new PiolaStressOperator<FeH1,3,Complex>(true),
-                  new PiolaStressOperator<FeH1,3,Complex>(true),preStressFct,factor);
-        }else{
-          preStressInt = new ICModesInt<Double>(new PiolaStressOperator<FeH1,3,Double>(true),
-                  new PiolaStressOperator<FeH1,3,Double>(true),preStressFct,factor);
+      else {
+        if (isComplex) {
+          BaseBOperator *bOp = new PiolaStressOperator<FeH1, 2, Complex>(false);
+          preStressInt = new BDBInt<Complex, Complex>(bOp, preStressFct, factor);
         }
-      }else{
-        if(isComplex){
-          preStressInt = new BDBInt<Complex, Complex>(new PiolaStressOperator<FeH1,3,Complex>(false),preStressFct,factor);
-        }else{
-          preStressInt = new BDBInt<Double, Double>(new PiolaStressOperator<FeH1,3,Double>(false),preStressFct,factor);
+        else {
+          BaseBOperator *bOp = new PiolaStressOperator<FeH1, 2, Double>(false);
+          preStressInt = new BDBInt<Double, Double>(bOp, preStressFct, factor);
         }
       }
     }
+    // 2.5D case
+    else if (dim_ == 2 && subType_ == "2.5d") {
+      if (doSoftening) {
+        if (isComplex) {
+          BaseBOperator *bOp = new PreStressOperator2p5D<FeH1, 2, 3, Complex>(false);
+          BaseBOperator *gOp = new PreStressOperator2p5D<FeH1, 2, 3, Complex>(true);
+          preStressInt = new ICModesInt<Complex>(bOp, gOp, preStressFct, factor);
+        }
+        else {
+          BaseBOperator *bOp = new PreStressOperator2p5D<FeH1, 2, 3, Double>(false);
+          BaseBOperator *gOp = new PreStressOperator2p5D<FeH1, 2, 3, Double>(true);
+          preStressInt = new ICModesInt<Double>(bOp, gOp, preStressFct, factor);
+        }
+      }
+      else {
+        if (isComplex) {
+          BaseBOperator *bOp = new PreStressOperator2p5D<FeH1, 2, 3, Complex>(false);
+          preStressInt = new BDBInt<Complex, Complex>(bOp, preStressFct, factor);
+        }
+        else {
+          BaseBOperator *bOp = new PreStressOperator2p5D<FeH1, 2, 3, Double>(false);
+          preStressInt = new BDBInt<Double, Double>(bOp, preStressFct, factor);
+        }
+      }
+    }
+    // 3D case
+    else {
+      if (doSoftening) {
+        if (isComplex) {
+          BaseBOperator *bOp = new PiolaStressOperator<FeH1, 3, Complex>(false);
+          BaseBOperator *gOp = new PiolaStressOperator<FeH1, 3, Complex>(true);
+          preStressInt = new ICModesInt<Complex>(bOp, gOp, preStressFct, factor);
+        }
+        else {
+          BaseBOperator *bOp = new PiolaStressOperator<FeH1, 3, Double>(false);
+          BaseBOperator *gOp = new PiolaStressOperator<FeH1, 3, Double>(true);
+          preStressInt = new ICModesInt<Double>(bOp, gOp, preStressFct, factor);
+        }
+      }
+      else {
+        if (isComplex) {
+          BaseBOperator *bOp = new PiolaStressOperator<FeH1, 3, Complex>(false);
+          preStressInt = new BDBInt<Complex, Complex>(bOp, preStressFct, factor);
+        }
+        else {
+          BaseBOperator *bOp = new PiolaStressOperator<FeH1, 3, Double>(false);
+          preStressInt = new BDBInt<Double, Double>(bOp, preStressFct, factor);
+        }
+      }
+    }
+    assert(preStressInt != nullptr);
 
     // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
     if (domain->HasDesign())
@@ -2274,7 +2302,7 @@ namespace CoupledField {
 
     return preStressInt;
   }
-  
+
   BaseBDBInt* MechPDE::GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor)
   {
     BaseBDBInt* integ = NULL;
@@ -3580,16 +3608,19 @@ namespace CoupledField {
         else if(stressNode->Has("referenceStress"))
           inputNode = stressNode->Get("referenceStress",ParamNode::PASS);
 
+        // redefine if user passes the argument
         UInt aSStep = 0;
+        if (inputNode->Get("sequenceStep", ParamNode::PASS))
+          aSStep = inputNode->Get("sequenceStep", ParamNode::PASS)->As<UInt>();
 
-        //redefine if user passes the argument
-        if( inputNode->Get("sequenceStep",ParamNode::PASS) )
-          aSStep = inputNode->Get("sequenceStep",ParamNode::PASS)->As<UInt>();
-
-        if(aSStep < 1) {
-          // GetPreceeding sequence step
-          aSStep = domain_->GetDriver()->GetActSequenceStep();
-          aSStep--;
+        // GetPreceeding sequence step
+        UInt currSStep = domain_->GetDriver()->GetActSequenceStep();
+        if (aSStep >= currSStep) {
+          EXCEPTION("PreStress needs to have a previous sequence step!");
+        }
+        else if (aSStep == 0) {
+          aSStep = --currSStep;
+          WARN("PreStress has no sequence step provided. Using the previous sequence step: " << aSStep);
         }
 
         stressVec = GetStressCoefFromSeqStep(aSStep);

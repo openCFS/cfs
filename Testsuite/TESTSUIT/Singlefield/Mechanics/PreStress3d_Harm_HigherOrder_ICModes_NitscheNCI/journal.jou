@@ -1,0 +1,35 @@
+undo on 
+reset
+
+# Create volume
+brick x 0.5 y 0.1 z 0.1
+brick x 0.5 y 0.1 z 0.1
+move volume 1 x 0.25 include_merged
+move volume 2 x -0.25 include_merged
+
+# mesh
+volume 1 size 0.05
+volume 2 size 0.1
+mesh volume 1 2
+
+block 1 add volume 1
+block 1 name "brick_2"
+
+block 2 add volume 2
+block 2 name "brick_1"
+
+nodeset 1 add surface 6
+nodeset 1 name "x_normal_2"
+
+nodeset 2 add surface 10
+nodeset 2 name "x_normal_1"
+
+nodeset 3 add surface 4
+nodeset 3 name "if_2"
+
+nodeset 4 add surface 12
+nodeset 4 name "if_1"
+
+export ansys cdb "brick.cdb"  overwrite 
+
+

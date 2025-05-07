@@ -1,0 +1,1128 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="34" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.549s" wall="0.549" cpu="0.547326" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="244" peak="264"/>
+  </summary>
+  <header id="">
+    <environment started="2025-May-08 13:46:43" host="T14" estimatedEnd="2025-May-08 13:46:44" remainingTime="0" timePerStep="0"/>
+    <progOpts problem="PreStress3d_Harm_HigherOrder_ICModes" parameterFile="/home/patrick/Devel/CFS/CFS_SRC/cfs/Testsuite/TESTSUIT/Singlefield/Mechanics/PreStress3d_Harm_HigherOrder_ICModes/PreStress3d_Harm_HigherOrder_ICModes.xml" schemaPath="/home/patrick/Devel/CFS/CFS_SRC/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="25.04" name="Ideal Implementation" build="RELEASE" git_commit="c1aee8b9cc427eb4ad27c19b7d065da0e5a6699a-modified" git_branch="pheidegger_fix_preStress_with_ICM" compiled="May  7 2025" exe="/home/patrick/Devel/CFS/CFS_BIN/build_opt/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002018" calls="1"/>
+        <grid gridId="default" dimensions="3" elements="114" nodes="44"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="brick" id="0" type="volume" regular="yes" hom="yes" nodes="44" elems="10" isQuadratic="no"/>
+        <region name="x_normal_1" id="1" type="surface" regular="yes" hom="yes" nodes="4" elems="1" isQuadratic="no"/>
+        <region name="x_normal_2" id="2" type="surface" regular="yes" hom="yes" nodes="4" elems="1" isQuadratic="no"/>
+        <region name="y_normal" id="3" type="surface" regular="no" hom="yes" nodes="44" elems="51" isQuadratic="no"/>
+        <region name="z_normal" id="4" type="surface" regular="no" hom="yes" nodes="44" elems="51" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser dt="0" f="50" step="1" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.002s" wall="0.002" cpu="0.006096" calls="32"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="brick" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="ForceDensityInt">
+                <entities name="x_normal_2" size="1" region="x_normal_2"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="myMaterial">
+          <regionList>
+            <region name="brick"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+09  5.769231e+08  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  1.346154e+09  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  5.769231e+08  1.346154e+09  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1e+09,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(10000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <brick order="1" polyMapType="tensor"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="44">
+                <FACE numEntitiies="51" numVirtualNodes="0"/>
+                <EDGE numEntitiies="84" numVirtualNodes="0"/>
+                <VERTEX numEntitiies="44" numVirtualNodes="44"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="x_normal_1" dofs="x y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="120" totalNumFreeEqns="120" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="120" lastFreeEqn="120" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="120" lastFreeIndex="120"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000621" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.00011" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.000493" wall="0" peakMem="241" permanentMem="239"/>
+                <numfact cpu="8.7e-05" wall="0" peakMem="52"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0s" wall="0" cpu="0.000361" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.002s" wall="0.002" cpu="0.001353" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="2">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="50" end="50" numFreq="1"/>
+    </harmonic>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="brick" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="brick">
+                <coef type="CoefFunctionConst" value="10000"/>
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="PreStressInt" type="BDBInt" complex="no" BOp="preStressOp" coef="CoefFunctionCompound_double" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="myMaterial">
+          <regionList>
+            <region name="brick"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+09  5.769231e+08  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  1.346154e+09  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  5.769231e+08  1.346154e+09  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1e+09,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(10000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <brick order="1" polyMapType="tensor"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="44">
+                <FACE numEntitiies="51" numVirtualNodes="0"/>
+                <EDGE numEntitiies="84" numVirtualNodes="0"/>
+                <VERTEX numEntitiies="44" numVirtualNodes="44"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <Prestressing>
+          <ComputedLHS inputSequenceStep="1" inputStepNumber="1"/>
+        </Prestressing>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="x_normal_1" dofs="x z"/>
+          </homDirichletBC>
+          <inhomDirichletBC>
+            <surfElemList name="x_normal_1" dofs="y" value="[0+0j, 1e-06+0j, 0+0j]"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="124" totalNumFreeEqns="120" totalNumDirichlet="4">
+            <function id="0" name="mechDisplacement" numEqns="124" lastFreeEqn="120" numDirichlet="4">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="124" lastFreeIndex="120"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000396" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="6.1e-05" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.000283" wall="0" peakMem="241" permanentMem="239"/>
+                <numfact cpu="8.9e-05" wall="0" peakMem="103"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0s" wall="0" cpu="0.000438" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0s" wall="0" cpu="0.000695" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="3">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="brick" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="ICModesInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="ForceDensityInt">
+                <entities name="x_normal_2" size="1" region="x_normal_2"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="myMaterial">
+          <regionList>
+            <region name="brick"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+09  5.769231e+08  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  1.346154e+09  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  5.769231e+08  1.346154e+09  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1e+09,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(10000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <brick order="1" polyMapType="tensor"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="44">
+                <FACE numEntitiies="51" numVirtualNodes="0"/>
+                <EDGE numEntitiies="84" numVirtualNodes="0"/>
+                <VERTEX numEntitiies="44" numVirtualNodes="44"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <softeningList>
+          <region name="brick" type="icModesTW"/>
+        </softeningList>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="x_normal_1" dofs="x y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="120" totalNumFreeEqns="120" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="120" lastFreeEqn="120" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="120" lastFreeIndex="120"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000338" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="3.7e-05" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.000275" wall="0" peakMem="241" permanentMem="239"/>
+                <numfact cpu="4e-05" wall="0" peakMem="52"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0s" wall="0" cpu="0.000463" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0s" wall="0" cpu="0.000427" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="4">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="50" end="50" numFreq="1"/>
+    </harmonic>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="brick" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="ICModesInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="PreStressInt" type="ICModesInt" complex="no" BOp="preStressOp" coef="CoefFunctionCompound_double" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="brick">
+                <coef type="CoefFunctionConst" value="10000"/>
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="myMaterial">
+          <regionList>
+            <region name="brick"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+09  5.769231e+08  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  1.346154e+09  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  5.769231e+08  1.346154e+09  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1e+09,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(10000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <brick order="1" polyMapType="tensor"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="44">
+                <FACE numEntitiies="51" numVirtualNodes="0"/>
+                <EDGE numEntitiies="84" numVirtualNodes="0"/>
+                <VERTEX numEntitiies="44" numVirtualNodes="44"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <softeningList>
+          <region name="brick" type="icModesTW"/>
+        </softeningList>
+        <Prestressing>
+          <ComputedLHS inputSequenceStep="3" inputStepNumber="1"/>
+        </Prestressing>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="x_normal_1" dofs="x z"/>
+          </homDirichletBC>
+          <inhomDirichletBC>
+            <surfElemList name="x_normal_1" dofs="y" value="[0+0j, 1e-06+0j, 0+0j]"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="124" totalNumFreeEqns="120" totalNumDirichlet="4">
+            <function id="0" name="mechDisplacement" numEqns="124" lastFreeEqn="120" numDirichlet="4">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="124" lastFreeIndex="120"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000366" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="5.3e-05" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.000287" wall="0" peakMem="241" permanentMem="239"/>
+                <numfact cpu="5.7e-05" wall="0" peakMem="103"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0s" wall="0" cpu="0.000629" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.001s" wall="0.001" cpu="0.001585" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="5">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="brick" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="ForceDensityInt">
+                <entities name="x_normal_2" size="1" region="x_normal_2"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="myMaterial">
+          <regionList>
+            <region name="brick"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+09  5.769231e+08  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  1.346154e+09  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  5.769231e+08  1.346154e+09  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1e+09,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(10000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <brick order="2" polyMapType="tensor"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="189">
+                <INTERIOR numEntitiies="10" numVirtualNodes="10"/>
+                <FACE numEntitiies="51" numVirtualNodes="51"/>
+                <EDGE numEntitiies="84" numVirtualNodes="84"/>
+                <VERTEX numEntitiies="44" numVirtualNodes="44"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="x_normal_1" dofs="x y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="540" totalNumFreeEqns="540" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="540" lastFreeEqn="540" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="540" lastFreeIndex="540"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.002s" wall="0.002" cpu="0.002886" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.000184" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.002539" wall="0.002" peakMem="1228" permanentMem="1220"/>
+                <numfact cpu="0.000308" wall="0" peakMem="579"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002745" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.001s" wall="0.001" cpu="0.001134" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="6">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="50" end="50" numFreq="1"/>
+    </harmonic>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="brick" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="brick">
+                <coef type="CoefFunctionConst" value="10000"/>
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="PreStressInt" type="BDBInt" complex="no" BOp="preStressOp" coef="CoefFunctionCompound_double" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="myMaterial">
+          <regionList>
+            <region name="brick"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+09  5.769231e+08  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  1.346154e+09  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  5.769231e+08  1.346154e+09  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1e+09,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(10000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <brick order="2" polyMapType="tensor"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="189">
+                <INTERIOR numEntitiies="10" numVirtualNodes="10"/>
+                <FACE numEntitiies="51" numVirtualNodes="51"/>
+                <EDGE numEntitiies="84" numVirtualNodes="84"/>
+                <VERTEX numEntitiies="44" numVirtualNodes="44"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <Prestressing>
+          <ComputedLHS inputSequenceStep="5" inputStepNumber="1"/>
+        </Prestressing>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="x_normal_1" dofs="x z"/>
+          </homDirichletBC>
+          <inhomDirichletBC>
+            <surfElemList name="x_normal_1" dofs="y" value="[0+0j, 1e-06+0j, 0+0j]"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="549" totalNumFreeEqns="540" totalNumDirichlet="9">
+            <function id="0" name="mechDisplacement" numEqns="549" lastFreeEqn="540" numDirichlet="9">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="549" lastFreeIndex="540"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.003s" wall="0.003" cpu="0.003387" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.000323" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.002595" wall="0.002" peakMem="1228" permanentMem="1220"/>
+                <numfact cpu="0.000751" wall="0" peakMem="1158"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.003523" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.006s" wall="0.006" cpu="0.006012" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="7">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="brick" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="ForceDensityInt">
+                <entities name="x_normal_2" size="1" region="x_normal_2"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="myMaterial">
+          <regionList>
+            <region name="brick"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+09  5.769231e+08  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  1.346154e+09  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  5.769231e+08  1.346154e+09  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1e+09,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(10000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <brick order="3" polyMapType="tensor"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="496">
+                <INTERIOR numEntitiies="10" numVirtualNodes="80"/>
+                <FACE numEntitiies="51" numVirtualNodes="204"/>
+                <EDGE numEntitiies="84" numVirtualNodes="168"/>
+                <VERTEX numEntitiies="44" numVirtualNodes="44"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="x_normal_1" dofs="x y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="1440" totalNumFreeEqns="1440" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="1440" lastFreeEqn="1440" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="1440" lastFreeIndex="1440"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.02s" wall="0.02" cpu="0.020203" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001131" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.017708" wall="0.017" peakMem="6163" permanentMem="6141"/>
+                <numfact cpu="0.002353" wall="0.002" peakMem="3542"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.014s" wall="0.014" cpu="0.014596" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.014s" wall="0.014" cpu="0.014594" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <sequenceStep sequence="8">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="50" end="50" numFreq="1"/>
+    </harmonic>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="brick" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="PreStressInt" type="BDBInt" complex="no" BOp="preStressOp" coef="CoefFunctionCompound_double" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="brick">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="brick">
+                <coef type="CoefFunctionConst" value="10000"/>
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="myMaterial">
+          <regionList>
+            <region name="brick"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+09  5.769231e+08  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  1.346154e+09  5.769231e+08  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+08  5.769231e+08  1.346154e+09  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+08
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1e+09,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(10000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <brick order="3" polyMapType="tensor"/>
+              </regionList>
+              <virtualNodes numVirtualNodes="496">
+                <INTERIOR numEntitiies="10" numVirtualNodes="80"/>
+                <FACE numEntitiies="51" numVirtualNodes="204"/>
+                <EDGE numEntitiies="84" numVirtualNodes="168"/>
+                <VERTEX numEntitiies="44" numVirtualNodes="44"/>
+              </virtualNodes>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <Prestressing>
+          <ComputedLHS inputSequenceStep="7" inputStepNumber="1"/>
+        </Prestressing>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="x_normal_1" dofs="x z"/>
+          </homDirichletBC>
+          <inhomDirichletBC>
+            <surfElemList name="x_normal_1" dofs="y" value="[0+0j, 1e-06+0j, 0+0j]"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="1456" totalNumFreeEqns="1440" totalNumDirichlet="16">
+            <function id="0" name="mechDisplacement" numEqns="1456" lastFreeEqn="1440" numDirichlet="16">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="1456" lastFreeIndex="1440"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="6" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.024s" wall="0.024" cpu="0.024371" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.00182" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.018102" wall="0.018" peakMem="6163" permanentMem="6141"/>
+                <numfact cpu="0.006136" wall="0.006" peakMem="7084"/>
+              </call>
+            </process>
+            <refinement hint="PARDISO reached the maximum number of iterative refinement steps (2) probably the tolerance is too small."/>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.018s" wall="0.018" cpu="0.017977" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.059s" wall="0.059" cpu="0.059281" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <init_multiSequence>
+    <timer wall-clock="0s" wall="0" cpu="1e-05" calls="1"/>
+  </init_multiSequence>
+  <warning lineNum="3623" fileName="/home/patrick/Devel/CFS/CFS_SRC/cfs/source/PDE/MechPDE.cc" message="PreStress has no sequence step provided. Using the previous sequence step: 7"/>
+</cfsInfo>
