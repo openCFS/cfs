@@ -17,6 +17,7 @@ add_standard_mirrors_or_set_local()
 
 if(WIN32 AND CMAKE_CXX_COMPILER_ID MATCHES "MSVC" AND USE_OPENMP)
   # msvc has even with /openmp:llvm not all necessary OpenMP features
+  # possible compilers are clang from MSVC, icx from oneAPI and and gcc from minwg shall work, too.
   force_c_cxx_compiler("icx") # will set FORCE_C_CXX and do NOT set the default compiler options!
   assert_set(FORCE_C_CXX)
 else()
