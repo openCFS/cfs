@@ -3692,10 +3692,10 @@ namespace CoupledField {
 
               // get the coordinates of the connected nodes
               Vector<Double> prevNodeCoords;
+              Vector<Double> nextNodeCoords;
               int prevId = connectedNodeIds[0] != nodeIds[iNodes] ? connectedNodeIds[0] : connectedNodeIds[1];
               int nextId = connectedNodeIds[2] != nodeIds[iNodes] ? connectedNodeIds[2] : connectedNodeIds[1];
               this->GetNodeCoordinate(prevNodeCoords, prevId, false);
-              Vector<Double> nextNodeCoords;
               this->GetNodeCoordinate(nextNodeCoords, nextId, false);
               
               // approx tangential vector through diffrence of neighboring nodes
