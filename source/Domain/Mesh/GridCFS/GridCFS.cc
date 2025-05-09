@@ -3671,22 +3671,55 @@ namespace CoupledField {
     {
       if (geomType == "smooth_convex") 
       {
+          StdVector<UInt> connectedNodeIds;
+          StdVector<const Elem*> currElemsNextToNode;
+          StdVector<RegionIdType> searchRegionIds;
+          searchRegionIds.Push_back(surfRegionId);
           for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) 
           {
-              UInt prev = (iNodes == 0) ? numNodes - 1 : iNodes - 1;
-              UInt next = (iNodes == numNodes - 1) ? 0 : iNodes + 1;
+              connectedNodeIds.Clear();
+              connectedNodeIds.Push_back(nodeIds[iNodes]); //assign current node
 
+              // get elements connected to the node
+              this->GetElemsNextToNodes(currElemsNextToNode, connectedNodeIds, searchRegionIds);
+              // get node ids of connected elements
+              this->GetNodesOfElemList(connectedNodeIds, currElemsNextToNode);
+
+              if(connectedNodeIds.GetSize() != 3)
+              {
+                  EXCEPTION("The number of connected nodes is not equal to 3. Please check the geometry.");
+              }
+
+              // get the coordinates of the connected nodes
+              Vector<Double> prevNodeCoords;
+              int prevId = connectedNodeIds[0] != nodeIds[iNodes] ? connectedNodeIds[0] : connectedNodeIds[1];
+              int nextId = connectedNodeIds[2] != nodeIds[iNodes] ? connectedNodeIds[2] : connectedNodeIds[1];
+              this->GetNodeCoordinate(prevNodeCoords, prevId, false);
+              Vector<Double> nextNodeCoords;
+              this->GetNodeCoordinate(nextNodeCoords, nextId, false);
+              
               // approx tangential vector through diffrence of neighboring nodes
-              Double tx = nodeCoords[next][0] - nodeCoords[prev][0];
-              Double ty = nodeCoords[next][1] - nodeCoords[prev][1];
+              Double tx = nextNodeCoords[0] - prevNodeCoords[0];
+              Double ty = nextNodeCoords[1] - prevNodeCoords[1];
 
               Double tLength = sqrt( pow( tx, 2 ) + pow( ty, 2 ));
               tx /= tLength;
               ty /= tLength;
 
               // Calculate the normal vector
-              Double nx = -ty;
-              Double ny = tx;
+              Double nx = ty;
+              Double ny = -tx;
+
+              // Vector from origin to node
+              Double vx = nodeCoords[iNodes][0] - origin[0];
+              Double vy = nodeCoords[iNodes][1] - origin[1];
+
+              // Flip normal if it points inward
+              Double dot = vx * nx + vy * ny;
+              if (dot < 0.0) {
+                  nx = -nx;
+                  ny = -ny;
+              }
 
               // Assign normal and tangential vectors
               geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
@@ -3702,8 +3735,8 @@ namespace CoupledField {
               geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = ty;
 
               // Approximate curvature by the change of the tangential vector
-              Double dTangentialX = nodeCoords[next][0] - 2 * nodeCoords[iNodes][0] + nodeCoords[prev][0];
-              Double dTangentialY = nodeCoords[next][1] - 2 * nodeCoords[iNodes][1] + nodeCoords[prev][1];
+              Double dTangentialX = nextNodeCoords[0] - 2 * nodeCoords[iNodes][0] + prevNodeCoords[0];
+              Double dTangentialY = nextNodeCoords[1] - 2 * nodeCoords[iNodes][1] + prevNodeCoords[1];
 
               Double curvature = fabs(dTangentialX * ny - dTangentialY * nx) / pow( tLength, 2 );
 

@@ -99,7 +99,7 @@ namespace CoupledField{
         {
           // Initialize stacked geometry tensors
           Vector<Double> normMats(numElemNodes * pow(this->dim_,2));
-          Vector<Double> tmaxMats(numElemNodes * pow(this->dim_,2));
+          Vector<Double> tMats(numElemNodes * pow(this->dim_,2));
 
           // Scalar quantities
           Vector<Double> maxPrincCurv(numElemNodes);
@@ -107,7 +107,7 @@ namespace CoupledField{
 
           // Interpolated tensor storage
           Vector<Double> N(this->dim_);
-          Vector<Double> Tmax(this->dim_);
+          Vector<Double> Tmin(this->dim_);
 
           // Scalars for interpolation
           Vector<Double> kmax(1);
@@ -126,7 +126,7 @@ namespace CoupledField{
                   {
                       vecIdx = iCol + this->dim_ * iRow + pow(this->dim_, 2) * iNodes;
                       normMats[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->normalVectors_[nodeIdxIface][iCol];
-                      tmaxMats[vecIdx] = ptrNodeGeom_->maxPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->maxPrincipalVectors_[nodeIdxIface][iCol];
+                      tMats[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iCol];
                   }
               }
 
@@ -137,7 +137,7 @@ namespace CoupledField{
 
           // Perform interpolation
           this->tensorMappingOperator_->ApplyOp(N, lpm, ptrFe, normMats);
-          this->tensorMappingOperator_->ApplyOp(Tmax, lpm, ptrFe, tmaxMats);
+          this->tensorMappingOperator_->ApplyOp(Tmin, lpm, ptrFe, tMats);
           this->scalarMappingOperator_->ApplyOp(kmax, lpm, ptrFe, maxPrincCurv);
           this->scalarMappingOperator_->ApplyOp(d, lpm, ptrFe, dist);
 
@@ -168,7 +168,7 @@ namespace CoupledField{
           for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
               for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
                   vecIdx = iCol + this->dim_ * iRow;
-                  tensor[iRow][iCol] = s[0] * N[vecIdx] + s[1] * Tmax[vecIdx];
+                  tensor[iRow][iCol] = s[0] * N[vecIdx] + s[1] * Tmin[vecIdx];
               }
           }
         }
@@ -435,7 +435,7 @@ namespace CoupledField{
         for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
           nodeIdx = GetIdxByNodeId(nodeIds[iNodes],0);
           dist[iNodes] = thicknessOnNodes_[nodeIdx];
-          //std::cout << dist[iNodes];
+          //std::cout << "dist:" << dist[iNodes] << std::endl;
         }
         // create 1 element vector for scalar because ApplyOp only takes Vectors
         Vector<Double> d(1);
@@ -520,7 +520,6 @@ namespace CoupledField{
           h[1] = intDampFunc * kmax[0] / (1.0 + d[0] * kmax[0]);
 
           // the eigenvalues are of the form s_i = (1 + 1i/K * h[i])
-          //TODO CO isnt there a minus sign missing in the imaginary part?
           val.Resize(this->dim_);
           for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
             val[iDim] = Complex(1, h[iDim] / K);
