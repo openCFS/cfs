@@ -1039,7 +1039,7 @@ windows:msvc2022:
     - ctest -D ExperimentalTest ${CTEST_OPTIONS} -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 
-# we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
+# we were not able to assign -LE "broken|unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
 .test_no_slow: &test_no_slow
   <<: *ctest_default
   script:
@@ -1050,7 +1050,7 @@ windows:msvc2022:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -LE "unstable|slow" -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalTest -LE "broken|unstable|slow" -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -1108,6 +1108,23 @@ unstable_ser:gcc9max:linux:
     CTEST_OPTIONS: "-L unstable"
   needs:
     - linux:gcc9max
+
+# debug is compiled without openmp
+no-slow_ser:gcc9max-debug:linux:
+  extends: .test_generic
+  <<: *test_no_slow
+  tags:
+    - saas-linux-small-amd64
+  # overwrite rules & variables
+  rules:
+    - !reference [.max_rules, rules]
+  variables:
+    IMAGE: centos7-gcc9
+    # debug is compiled without openmp, we could set the threads to anything and it would be ignored
+    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
+    # this special test_no_slow does -LE "broken|unstable|slow"
+  needs:
+    - linux:gcc9max-debug
 
 stable_par_opt:gcc9closed:linux:
   extends: .test_generic
@@ -1311,24 +1328,6 @@ broken_ser:gcc9max:linux:
     CTEST_OPTIONS: "-L broken"
   needs:
     - linux:gcc9max
-
-# debug is compiled without openmp
-no-slow_ser:gcc9max-debug:linux:
-  extends: .test_extra
-  <<: *test_no_slow
-  tags:
-    - saas-linux-small-amd64
-  # overwrite rules & variables
-  rules:
-    - !reference [.max_never_auto_rule, rules]
-    - !reference [.test_extra, rules]
-  variables:
-    IMAGE: centos7
-    # debug is compiled without openmp, we could set the threads to anything and it would be ignored
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    # this special test_no_slow does -LE "unstable|slow"
-  needs:
-    - linux:gcc9max-debug
 
 unstable_par:intel:linux:
   extends: .test_extra
