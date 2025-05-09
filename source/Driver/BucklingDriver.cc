@@ -402,7 +402,6 @@ void BucklingDriver::CalcValues(unsigned int recursionCount) {
 }
 
 void BucklingDriver::StoreMode(unsigned int index) {
-  std::cout << "hello" << std::endl;
   Vector<Double> loadFactorsRealPart = GetRealPartOfVector(loadFactors_);
   Double currentLoadFactor = loadFactorsRealPart[modeOrder_[index]];
 
