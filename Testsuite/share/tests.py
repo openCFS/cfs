@@ -5,7 +5,7 @@ import os
 import numpy as np
 
 # known lables we work with
-known_labels = ['fast', 'slow', 'unstable']
+known_labels = ['fast', 'slow', 'unstable', 'broken']
 
 # parsed information form a log file by test
 class Test:
@@ -321,6 +321,10 @@ print_list(slow_property)
 unstable_property = [x for x in tests if x.path and 'unstable' in x.label]
 print("CMakeLists.txt with property 'unstable':",len(unstable_property))
 print_list(unstable_property, 'path')
+
+broken_property = [x for x in tests if x.path and 'broken' in x.label]
+print("CMakeLists.txt with property 'broken':",len(broken_property))
+print_list(broken_property, 'path')
 
 no_test_labels_property = [x for x in tests if x.path and '${TEST_LABELS}' not in x.unknown]
 print("CMakeLists.txt with no property '${TEST_LABELS}':",len(no_test_labels_property))
