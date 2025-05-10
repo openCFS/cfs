@@ -957,7 +957,7 @@ windows:msvc2022:
 # We have the following different test configurations
 # * stable - runs the Testsuite on a single thread and disabling some unstable tests via -LE unstable (and python tests)
 # * testsuite - runs the Testsuite on all available cores (disabling python tests) with two threads (multicore_all)
-# * no-slow - run debug builds and skip unstable and slow (bow by label) and no python tests
+# * no-slow - run serial debug builds and skip broken and slow (set by label) and no python tests
 #             the tool tests.py in the Testsuite can be used for setting and checking the slow label for the tests.
 # * python - runs the Python-Tests of the testsuite, independent of the c++ build
 # Both _stable_ and _testsuite_ are run for all build configs (GCCx),
@@ -1039,7 +1039,7 @@ windows:msvc2022:
     - ctest -D ExperimentalTest ${CTEST_OPTIONS} -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 
-# we were not able to assign -LE "broken|unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
+# we were not able to assign -LE "broken|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
 .test_no_slow: &test_no_slow
   <<: *ctest_default
   script:
@@ -1050,7 +1050,7 @@ windows:msvc2022:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -LE "broken|unstable|slow" -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalTest -LE "broken|slow" -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
@@ -1122,7 +1122,7 @@ no-slow_ser:gcc9max-debug:linux:
     IMAGE: centos7-gcc9
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    # this special test_no_slow does -LE "broken|unstable|slow"
+    # this special test_no_slow does -LE "broken|slow"
   needs:
     - linux:gcc9max-debug
 
