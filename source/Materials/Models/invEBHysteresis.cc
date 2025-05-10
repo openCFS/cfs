@@ -109,7 +109,7 @@ if (ParameterMap.size() < 5)
       // in one element and since we only use ONE hysteresis operator for one element, this is correct).
       if(iterTracker4Nu_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
         iterTracker4Nu_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
-        LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
+        LOG_DBG3(inveb) << "\n\t Trigger new iteration"<< std::endl;
         alreadyHasNu_.Init(false);
       }
       if( (timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_))){
