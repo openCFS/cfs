@@ -16,8 +16,8 @@
   </documentation>
   <fileFormats>
     <input>
-      <cdb fileName="brick.cdb"/>
-      <!-- <hdf5 fileName="VolumeAccelerationRhs3D.h5ref"/> -->
+      <!-- <cdb fileName="brick.cdb"/> -->
+      <hdf5 fileName="VolumeAccelerationRhs3D.h5ref"/>
     </input>
     <output>
       <hdf5/>
