@@ -476,6 +476,7 @@ endif(USE_FEAST)
 add_subdirectory(Singlefield/Mechanics/RayleighDamping3D)
 add_subdirectory(Singlefield/Mechanics/AdaptedLossTanDelta3D)
 add_subdirectory(Singlefield/Mechanics/VolumeAccelerationRhs3D)
+add_subdirectory(Singlefield/Mechanics/VolumeAccelerationRhs3D_NitscheNCI)
 add_subdirectory(Singlefield/Mechanics/PreStress2dMS_Harm_ICModes)
 add_subdirectory(Singlefield/Mechanics/PreStress3d_Harm_HigherOrder_ICModes_NitscheNCI)
 

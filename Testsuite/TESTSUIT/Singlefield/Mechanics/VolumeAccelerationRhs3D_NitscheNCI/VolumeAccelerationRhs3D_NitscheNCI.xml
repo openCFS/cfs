@@ -10,15 +10,18 @@
     <date>2025-05-02</date>
     <keywords>
       <keyword>mechanic</keyword>
+      <keyword>nonmatching grids</keyword>
+      <keyword>volumeSrc</keyword>
+      <keyword>static</keyword>
     </keywords>
     <references></references>
     <isVerified>yes</isVerified>
-    <description> Here we test the volume acceleration RHS in a 3D brick element that is connected to the ground. The acceleration is applied as a gravity in the positive x direction, which is the ground-normal direction. In this case, the normal stress on the ground surface should be $\sigma_n \approx - \rho g h$. In this example, $g=1$, $h=1$, and $\rho=1e10$. A dense and stiff material with a low Poisson ratio is chosen to reduce the effect of shear stresses, so that the solution follows the analytical approximation. </description>
+    <description> Here we test the volume acceleration RHS in a 3D 2 brick elements connected by a Nitsche interface and connected to the ground. The acceleration is applied as a gravity in the positive x direction, which is the ground-normal direction. In this case, the normal stress on the ground surface should be $\sigma_n \approx - \rho g h$. In this example, $g=1$, $h=1$, and $\rho=1e10$. A dense and stiff material with a low Poisson ratio is chosen to reduce the effect of shear stresses, so that the solution follows the analytical approximation. </description>
   </documentation>
   <fileFormats>
     <input>
       <!-- <cdb fileName="brick.cdb"/> -->
-      <hdf5 fileName="VolumeAccelerationRhs3D.h5ref"/>
+      <hdf5 fileName="VolumeAccelerationRhs3D_NitscheNCI.h5ref"/>
     </input>
     <output>
       <hdf5/>
@@ -28,13 +31,21 @@
   </fileFormats>
   <domain geometryType="3d">
     <regionList>
-      <region name="brick" material="myMaterial"/>
+      <region name="brick_1" material="myMaterial"/>
+      <region name="brick_2" material="myMaterial"/>
     </regionList>
     <surfRegionList>
       <surfRegion name="ground"/>
-      <surfRegion name="y_normal"/>
-      <surfRegion name="z_normal"/>
+      <surfRegion name="y_normal_1"/>
+      <surfRegion name="z_normal_1"/>
+      <surfRegion name="y_normal_2"/>
+      <surfRegion name="z_normal_2"/>
+      <surfRegion name="if_1"/>
+      <surfRegion name="if_2"/>
     </surfRegionList>
+    <ncInterfaceList>
+      <ncInterface primarySide="if_1" secondarySide="if_2" name="nci_1"/>
+    </ncInterfaceList>
   </domain>
 
   <fePolynomialList>
@@ -50,21 +61,38 @@
     <pdeList>
       <mechanic subType="3d">
         <regionList>
-          <region name="brick" polyId="mechanicPolyId"/>
+          <region name="brick_1" polyId="mechanicPolyId"/>
+          <region name="brick_2" polyId="mechanicPolyId"/>
         </regionList>
+        <ncInterfaceList>
+          <ncInterface formulation="Nitsche" name="nci_1" nitscheFactor="1000"/>
+        </ncInterfaceList>
         <bcsAndLoads>
           <fix name="ground">
             <comp dof="x"/>
           </fix>
-          <fix name="y_normal">
+          <fix name="y_normal_1">
             <comp dof="y"/>
             <comp dof="z"/>
           </fix>
-          <fix name="z_normal">
+          <fix name="y_normal_2">
             <comp dof="y"/>
             <comp dof="z"/>
           </fix>
-          <volumeAcceleration name="brick">
+          <fix name="z_normal_1">
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <fix name="z_normal_2">
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <volumeAcceleration name="brick_1">
+            <comp dof="x" value="1"/>
+            <comp dof="y" value="0"/>
+            <comp dof="z" value="0"/>
+          </volumeAcceleration>
+          <volumeAcceleration name="brick_2">
             <comp dof="x" value="1"/>
             <comp dof="y" value="0"/>
             <comp dof="z" value="0"/>
