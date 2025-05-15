@@ -1559,8 +1559,6 @@ namespace CoupledField {
         //entNetwork = ptGrid_->GetEntityList( EntityList::NODE_LIST,networkTerminal );
         entNetwork = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,networkTerminal );
 
-        
-        // mass integrator
 
         
         // stiffness integrator
@@ -1644,6 +1642,92 @@ namespace CoupledField {
         stiffnessCouplingContext->SetEntities( entNetwork, entFem );
         stiffnessCouplingContext->SetFeFunctions( myFct, vecFct );
         assemble_->AddBiLinearForm( stiffnessCouplingContext );
+
+
+        // mass integrator
+
+        // currently disabled due to a small bug
+
+        /* BaseBDBInt *massCouplingInt = nullptr;
+
+        if( dim_ == 2) {
+          if( isaxi_ ) {
+            // axisymmetric case
+            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+          } else {
+            // we don't consider any geometry update, hence, we set the last bool to false
+            // the identityOperatorLem inside a BBInt creates the following matrix:
+            //  1  -1
+            // -1   1
+            // we multiply this matrix with the conductance in order to get the correct element matrix
+            std::set< RegionIdType > volRegion;
+            std::map<RegionIdType, BaseMaterial*>::iterator it, end;
+            it = materials_.begin();
+            end = materials_.end();
+            for( ; it != end; it++ ) {
+              RegionIdType volRegId = it->first;
+              volRegion.insert(volRegId);
+            }
+            BaseBOperator* bOp;
+            bOp = new SurfaceBBintOperator<FeH1>();
+
+
+            // get the volume region
+            RegionIdType curFemVolRegion, curFemVolRegionDummy;
+            bool foundVolRegion = false;
+            for(UInt femRegion = 0; femRegion < regions_.GetSize() ; femRegion++){
+              curFemVolRegionDummy = regions_[femRegion];
+              // Get current region name
+              std::string regionName = ptGrid_->GetRegion().ToString(curFemVolRegionDummy);
+              
+              if( regionName==volRegionName ){
+                curFemVolRegion = curFemVolRegionDummy;
+                foundVolRegion = true;
+              }
+            }
+            
+            if( !foundVolRegion ){
+              EXCEPTION("Did not find a suitable volume region for getting the integrator");
+            }
+            
+            
+            // access bdbint
+            BaseBDBInt* bdb;
+            std::multimap<RegionIdType, BaseBDBInt*>::iterator massIt = massInts_.begin();
+            for(; massIt != massInts_.end(); ++massIt ) {
+              RegionIdType region = massIt->first;
+              if( region==curFemVolRegion ){
+                bdb = massIt->second;
+              }
+            }
+              
+            if( !bdb)
+              EXCEPTION("Could not find mass integrator for region " << curFemVolRegion);
+
+            // create the set of volume regions
+            std::set<RegionIdType> volRegionForInt;
+            volRegionForInt.insert(curFemVolRegion);
+            
+              // write to special coeffunction
+            shared_ptr<CoefFunctionBop> coefFunctionMass;
+            coefFunctionMass.reset(new CoefFunctionBop());
+            coefFunctionMass->SetForm(bdb);
+            bOp->SetCoefFunction(coefFunctionMass);
+
+            // we override the integrator to act as a surface integrator since we take the standard one
+            // and just use it as a surface integrator
+            bool overrideSurfaceInt = true;
+            massCouplingInt = new ABIntLem<Double,Double>(bOp, new FemLemAllocationOperator<FeH1>(), constOne, -1.0, volRegionForInt, overrideSurfaceInt, false);
+            massCouplingInt->SetUseVolEqnA( true );
+          }
+        } else {
+          EXCEPTION("3D FEM-LEM coupling is not supported!");
+        }
+        massCouplingInt->SetName("MassFemLemCouplingInt");
+        BiLinFormContext * massCouplingContext = new BiLinFormContext(massCouplingInt, STIFFNESS );
+        massCouplingContext->SetEntities( entFem, entNetwork );
+        massCouplingContext->SetFeFunctions( vecFct, myFct );
+        assemble_->AddBiLinearForm( massCouplingContext ); */
 
       }
     }

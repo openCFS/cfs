@@ -131,6 +131,23 @@ public:
   }
   //@}
 
+
+  //@{
+  //! Compute element matrix associated to BDB form for a specific lpm
+  virtual void CalcElementMatrixLpm( Matrix<Double>& elemMat,
+                                     BaseFE* ptFe,
+                                     const LocPointMapped& lp, 
+                                     bool overrideIsSurfOpt ) {
+    EXCEPTION("BaseBDBInt: CalcElementMatrixLpm not implemented");
+  }
+
+  virtual void CalcElementMatrixLpm( Matrix<Complex>& elemMat,
+                                     BaseFE* ptFe,
+                                     const LocPointMapped& lp, 
+                                     bool overrideIsSurfOpt ) {
+    EXCEPTION("BaseBDBInt: CalcElementMatrixLpm not implemented");
+    }
+  //@}
   
 };
 

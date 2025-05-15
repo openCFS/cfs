@@ -133,7 +133,6 @@ namespace CoupledField
     //! the grad-grad-term. We need it for the calculation of the eddy current
     //! density.
     std::set<shared_ptr<CoefFunctionFormBased> > mixedFormFunctor_;
-    
   private:
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;
