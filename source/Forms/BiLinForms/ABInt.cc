@@ -254,7 +254,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeA );
 
       // reset it
-      this->bOperator_->OverrideIsSurfOperator(false);
+      this->aOperator_->OverrideIsSurfOperator(false);
     }
 
     std::cout << "A mat " << this->aMat_.ToString() << std::endl;

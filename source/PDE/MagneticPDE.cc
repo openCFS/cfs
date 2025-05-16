@@ -543,7 +543,7 @@ namespace CoupledField {
       //    in the coupled mech-mag case, a mass integrator is defined from mechanics; thus CFS might try to compute the
       //    EddyPower for regions without conductivity and then fail?
       {
-			  BaseBDBInt *massInt = NULL;
+			  /* BaseBDBInt *massInt = NULL;
 			  if( dim_ == 2 ) {
 				  massInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef,factor, updatedGeo_);
 			  } else {
@@ -553,11 +553,27 @@ namespace CoupledField {
 			  BiLinFormContext * massContext = new BiLinFormContext(massInt, DAMPING );
 			  massContext->SetEntities( actSDList, actSDList );
 			  massContext->SetFeFunctions( myFct, myFct );
+			  assemble_->AddBiLinearForm( massContext ); */
+
+
+        // V2 for testing
+        PtrCoefFct conducCoef2 =
+              materials_[actRegion]->GetTensorCoefFnc(MAG_CONDUCTIVITY_SCALAR,tensorType,Global::REAL);
+        BaseBDBInt *massInt = NULL;
+			  if( dim_ == 2 ) {
+				  massInt = new BDBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef2,factor, updatedGeo_);
+			  } else {
+				  massInt = new BDBInt<>(new IdentityOperator<FeH1,3,3>(), conducCoef2,factor, updatedGeo_ );
+			  }
+			  massInt->SetName("MassIntegrator");
+			  BiLinFormContext * massContext = new BiLinFormContext(massInt, DAMPING );
+			  massContext->SetEntities( actSDList, actSDList );
+			  massContext->SetFeFunctions( myFct, myFct );
 			  assemble_->AddBiLinearForm( massContext );
 
 			  // insert mass integrator to list of defined mass integrators
         massInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,massInt) );
-			  //massInts_[actRegion] = dynamic_cast<BaseBDBInt*>(massInt);
+			  massInts2_[actRegion] = massInt;
 		  }
 
       // ====================================================================
