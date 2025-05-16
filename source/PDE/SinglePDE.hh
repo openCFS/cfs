@@ -514,6 +514,8 @@ namespace CoupledField
     //! calculating spatial derivatives, fluxes and energy.
     std::map<RegionIdType, BaseBDBInt*> massInts_;
 
+    std::map<RegionIdType, BiLinearForm*> massInts2_;
+
     //! true, if analysistype is multiharmonic
     bool isMultHarm_;
 

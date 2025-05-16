@@ -556,7 +556,8 @@ namespace CoupledField {
 			  assemble_->AddBiLinearForm( massContext );
 
 			  // insert mass integrator to list of defined mass integrators
-			  massInts_[actRegion] = massInt;
+        massInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,massInt) );
+			  //massInts_[actRegion] = dynamic_cast<BaseBDBInt*>(massInt);
 		  }
 
       // ====================================================================
@@ -1648,7 +1649,7 @@ namespace CoupledField {
 
         // currently disabled due to a small bug
 
-        /* BaseBDBInt *massCouplingInt = nullptr;
+        BaseBDBInt *massCouplingInt = nullptr;
 
         if( dim_ == 2) {
           if( isaxi_ ) {
@@ -1727,7 +1728,7 @@ namespace CoupledField {
         BiLinFormContext * massCouplingContext = new BiLinFormContext(massCouplingInt, STIFFNESS );
         massCouplingContext->SetEntities( entFem, entNetwork );
         massCouplingContext->SetFeFunctions( vecFct, myFct );
-        assemble_->AddBiLinearForm( massCouplingContext ); */
+        assemble_->AddBiLinearForm( massCouplingContext );
 
       }
     }
