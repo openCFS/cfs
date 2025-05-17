@@ -557,8 +557,12 @@ namespace CoupledField {
 
 
         // V2 for testing
-        PtrCoefFct conducCoef2 =
-              materials_[actRegion]->GetTensorCoefFnc(MAG_CONDUCTIVITY_SCALAR,tensorType,Global::REAL);
+        StdVector<PtrCoefFct> diagValuesCond = StdVector<PtrCoefFct>(dim_);
+        for(UInt i = 0; i < dim_; i++){
+          diagValuesCond[i] = conducCoef;
+        }
+
+        shared_ptr<CoefFunction> conducCoef2 (new CoefFunctionDiagTensorFromScalar(diagValuesCond));
         BaseBDBInt *massInt = NULL;
 			  if( dim_ == 2 ) {
 				  massInt = new BDBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef2,factor, updatedGeo_);
