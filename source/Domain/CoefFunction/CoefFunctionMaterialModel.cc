@@ -52,23 +52,16 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
 
     static Jiles JilesModel;
     matModel_ = &JilesModel;
-
-    std::cout << "Initialized Model: " << modelName_ << std::endl;
   } else if(modelName_ == "EBHysteresisModel"){
     dimType_ = TENSOR;
 
     static EBHysteresis EBHysteresisModel;
     matModel_ = &EBHysteresisModel;
-
-    std::cout << "Initialized Model: " << modelName_ << std::endl;
   } else if(modelName_ == "invEBHysteresisModel"){
     dimType_ = TENSOR;
 
     static invEBHysteresis invEBHysteresisModel;
     matModel_ = &invEBHysteresisModel;
-
-    std::cout << "Initialized Model: " << modelName_ << std::endl;
-
   } else {
 
     EXCEPTION("Model not implemented! ("<< modelName_<<")")

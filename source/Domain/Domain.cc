@@ -128,6 +128,9 @@ Domain::Domain(
   
   // register variables defined in "variableList" element
   RegisterVariables();
+
+  //set region ID for hyst operator to -1
+  actRegion4Hyst_ = NO_REGION_ID;
 }
 
 void Domain::CreateGrid()

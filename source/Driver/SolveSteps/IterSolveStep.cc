@@ -681,10 +681,10 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     uncoupledPdes.insert(rPDE_.singlePDEs_.Begin(), 
                          rPDE_.singlePDEs_.End() );
 
-    std::set<SinglePDE*>::iterator     it = uncoupledPdes.begin();
-    for( ; it != uncoupledPdes.end(); ++it ) {
-        std::cout << "Name PDE: " << (*it)->GetName() << std::endl;
-    }
+    // std::set<SinglePDE*>::iterator     it = uncoupledPdes.begin();
+    // for( ; it != uncoupledPdes.end(); ++it ) {
+    //     std::cout << "Name PDE: " << (*it)->GetName() << std::endl;
+    // }
     
     // loop over all coupled SinglePDEs and remove involved
     // SinglePDEs
@@ -842,12 +842,13 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         << pdeName << "' on entityList '" << list->GetName() << "'");
     }
 
+    // wrap the return coefficient function in a CoefFunctionAccumulator
+    shared_ptr<CoefFunctionAccumulator> acc(new CoefFunctionAccumulator(coef, true));
+    
     if ( type == MAG_MAGNETIZATION ) {
       return coef;
     }
     else {
-      // wrap the return coefficient function in a CoefFunctionAccumulator
-      shared_ptr<CoefFunctionAccumulator> acc(new CoefFunctionAccumulator(coef, true));
       
       // If this is a density quantity (e.g. force density), a possible convergence
       // criterion might be defined in terms of the absolute force (e.g. force), so we initially try

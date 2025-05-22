@@ -130,11 +130,12 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
   }
 
   // Loop over all integration points
-  VEC_DATA_TYPE vol = 0.0;
+  VEC_DATA_TYPE vol = 0.0; //for volume normalization
   for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+    
     // Calculate for each integration point the LocPointMapped
     if (SURFACE) {
-      lp.Set( intPoints[i], esm, volRegions_, weights[i] );
+      lp.SetWithSurface( intPoints[i], esm, volRegions_, weights[i] );
     } else {
       lp.Set( intPoints[i], esm, weights[i] );
     }
@@ -177,6 +178,7 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
     }  
     elemVec += bMat * cVec * fac;    
   }  
+  //normalize to volume
   if ( normalizeToVol_) {
     elemVec /= vol;    
   }

@@ -146,14 +146,17 @@ namespace CoupledField
       //     }
       //     moreThan1HystRegion = true;
           
-      //     std::map<std::string, double> ParameterMap;
-      //     actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
-      //     actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
-      //     actSDMat->GetScalar(ParameterMap["mu0"], MAG_MU0_EB, Global::REAL);
-      //     actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
-      //     actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
-      //     ParameterMap["isMH"] = 0;
-      //     matModelCoef_->InitModel(ParameterMap, actSDList);
+      std::map<std::string, double> ParameterMap;
+      if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
+        EXCEPTION("Multiscale model in MagneticScalarPotentialAdjPDE not yet implemented");
+      }
+      // actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
+      // actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
+      // actSDMat->GetScalar(ParameterMap["mu0"], MAG_MU0_EB, Global::REAL);
+      // actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
+      // actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
+      // ParameterMap["isMH"] = 0;
+      // matModelCoef_->InitModel(ParameterMap, actSDList);
 
       //     muNL = matModelCoef_; //actSDMat->GetTensorCoefFncModel(matModelCoef_);
       //     flux = matModelCoef_; //actSDMat->GetVectorCoefFncModel(matModelCoef_);
@@ -194,10 +197,13 @@ namespace CoupledField
         coef = iterCplPde_->GetCouplingCoefFct(MAG_FIELD_INTENSITY, actSDList, "magneticScalarPotential", updatedGeo_);
         hPostprocParam_[actRegion] = coef;
         
-        //get the material model (hysteresis): in matModelCoef_
+        //get the material model (hysteresis): in matModelCoef_ 
+        domain_->SetRegion4Hyst(actRegion);        
         mu = iterCplPde_->GetCouplingCoefFct(MAG_MAGNETIZATION, actSDList, "magneticScalarPotential", updatedGeo_);  
-        std::cout << "Get Hyst-Operator for region: " << regionName << std::endl;  
-        nlFluxCoef_->AddRegion(actRegion, mu);
+
+        nlFluxCoefm_[actRegion].reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true)); 
+        nlFluxCoefm_[actRegion]->AddRegion(actRegion, mu);
+        domain->SetRegion4Hyst(NO_REGION_ID);
 
         //coeff-Function for derivations of nu w.r.t. parameters
         PtrCoefFct derivParam1 = actSDMat->GetScalCoefFncNonLinDerivParam(MAG_ANHYST_DERIV_P1, Global::REAL, coef);

@@ -1124,6 +1124,19 @@ namespace CoupledField {
             }else{
               EXCEPTION("Approx_type of name "<<model->Get("Approx_type")->As<std::string>()<<" not implemented");
             }
+
+            BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(model, material);
+            if (model->Has("deriv_A")) {
+              info.analyticExprDerivP1 = model->Get("deriv_A")->As<std::string>().c_str();
+            } else
+              info.analyticExprDerivP1 = "0.0";
+            if (model->Has("deriv_Ps")) {
+              info.analyticExprDerivP2 = model->Get("deriv_Ps")->As<std::string>().c_str();
+            } else
+              info.analyticExprDerivP2 = "0.0";
+
+            info.approxType = ANALYTIC;
+            material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
           } 
           else if (perm->Get("model")->Get("isotropic")->Has("invEBHysteresisModel")) 
           {
@@ -1143,6 +1156,19 @@ namespace CoupledField {
             }else{
               EXCEPTION("Jacobian_type of name "<<model->Get("Jacobian_type")->As<std::string>()<<" not implemented");
             }
+
+            BaseMaterial::MatDescriptorNl info = ReadNonlinDescriptor(model, material);
+            if (model->Has("deriv_A")) {
+              info.analyticExprDerivP1 = model->Get("deriv_A")->As<std::string>().c_str();
+            } else
+              info.analyticExprDerivP1 = "0.0";
+            if (model->Has("deriv_Ps")) {
+              info.analyticExprDerivP2 = model->Get("deriv_Ps")->As<std::string>().c_str();
+            } else
+              info.analyticExprDerivP2 = "0.0";
+
+            info.approxType = ANALYTIC;
+            material->SetNonLinMatIso(MAG_PERMEABILITY_SCALAR, info);  
           }
         }
       }

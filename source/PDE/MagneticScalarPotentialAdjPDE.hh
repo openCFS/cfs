@@ -85,6 +85,7 @@ namespace CoupledField
    
     //stores the flux for hystersis and nonlinear models
     shared_ptr<CoefFunctionMulti> nlFluxCoef_;
+    std::map<RegionIdType, shared_ptr<CoefFunctionMulti> >  nlFluxCoefm_;
 
     //! map containing the magnetic field intensity of forward simulation, in case of design parameters
     std::map<RegionIdType, PtrCoefFct> hPostprocParam_;
