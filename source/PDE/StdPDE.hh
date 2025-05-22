@@ -180,6 +180,7 @@ namespace CoupledField {
       EXCEPTION("Not implemented in base class");
     }
 
+
     std::map<RegionIdType, StdVector<NonLinType> >& GetNonLinRegionTypes()
     { return regionNonLinTypes_;};
 
@@ -374,7 +375,12 @@ namespace CoupledField {
     
     // Coefficient function for material model
     shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
+
+    // Coefficient function for material model
+    std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >  matModelCoefm_;
+   
     //@}
+
     
     
     // -----------------------------------------------------------------------

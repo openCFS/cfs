@@ -118,7 +118,6 @@ namespace CoupledField {
     PtrParamNode ls = myParam_->GetParent()
         ->GetParent()->Get("linearSystems",ParamNode::INSERT);
     olasNode_ = ls->GetByVal("system", "id", systemId, ParamNode::INSERT);
-    
   }
 
   // **************
@@ -1343,8 +1342,10 @@ namespace CoupledField {
     
     PtrCoefFct ret;
     // HACK!!!!!!!!!!!!!!!!!
-    if ( type == MAG_MAGNETIZATION )
-      ret = matModelCoef_;
+    if ( type == MAG_MAGNETIZATION ) {
+      if ( domain_->GetRegion4Hyst() != NO_REGION_ID )
+        ret = matModelCoefm_[domain_->GetRegion4Hyst()];
+    }
 
     // 1) look in fieldCoefs
     if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {

@@ -238,6 +238,17 @@ namespace CoupledField
       genResId_ += 1;
     }
 
+    //set region ID for hyst operator
+    void SetRegion4Hyst(RegionIdType regionId) {
+      actRegion4Hyst_ = regionId;
+    }
+         
+    //get region id for hyst operator
+    RegionIdType GetRegion4Hyst() {
+      return actRegion4Hyst_;
+    }
+
+
 
   protected:
 
@@ -382,6 +393,9 @@ namespace CoupledField
     //! Since these Enums can not be created on the fly, we have to keep
     //! track of them here and assign them individually to avoid redefinition */
     int genResId_ = 0;
+
+    //! actual region id, where hysteresis is present
+    RegionIdType actRegion4Hyst_;
   };
 
 }

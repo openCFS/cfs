@@ -647,13 +647,14 @@ namespace CoupledField
     void DefineNitscheCoupling( SolutionType solType,
                                 NcInterfaceInfo &iface,
                                 shared_ptr<CoefFunctionMulti> additionalCoef = NULL);
-    
+                                   
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;
     
     //@}
 
   private:
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

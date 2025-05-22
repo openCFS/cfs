@@ -55,7 +55,6 @@ namespace CoupledField
     pdename_ = "magneticScalarPotential";
     pdematerialclass_ = ELECTROMAGNETIC;
   
-    std::cout << "PDE name: " << pdename_ << std::endl;
     nonLin_ = false;
     nonLinMaterial_ = false;
 
@@ -87,11 +86,6 @@ namespace CoupledField
     std::map<RegionIdType, BaseMaterial *>::iterator it;
 
     PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
-    // Init material model for hysteretic transient analysis
-    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
-    {
-      matModelCoef_->Init(magFieldCoef, modelName_, dim_);
-    }
 
     // currently we are only allowed to have one hysteresis region
     bool moreThan1HystRegion = false;
@@ -103,7 +97,7 @@ namespace CoupledField
       actRegion = regions_[iRegion];
       actSDMat = materials_[actRegion];
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
-
+      
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
 
@@ -135,9 +129,19 @@ namespace CoupledField
         }
         else if (modelName_ == "EBHysteresisModel")
         {
-          if(moreThan1HystRegion){
-            EXCEPTION("Currently only ONE hysteretic region is allowed!");
+          // if(moreThan1HystRegion){
+          //   EXCEPTION("Currently only ONE hysteretic region is allowed!");
+          // }
+    
+          
+          // Init material model for hysteretic transient analysis
+          if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
+          {
+            matModelCoef_->Init(magFieldCoef, modelName_, dim_);
+            matModelCoefm_[actRegion].reset(new CoefFunctionMaterialModel<Complex>()); // = matModelCoef_;
+            matModelCoefm_[actRegion]->Init(magFieldCoef, modelName_, dim_); // = matModelCoef_;
           }
+
           //TODO kroppert: I do not like that, we should pass the actSDMat instead of these ParameterMap-stuff
           moreThan1HystRegion = true;
           std::map<std::string, double> ParameterMap;
@@ -159,7 +163,10 @@ namespace CoupledField
           actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["approx_type"], MAG_APPROX_TYPE, Global::REAL);
           ParameterMap["isMH"] = 0;
-          matModelCoef_->InitModel(ParameterMap, actSDList);
+          
+          //matModelCoef_->InitModel(ParameterMap, actSDList);          
+          matModelCoefm_[actRegion]->InitModel(ParameterMap, actSDList);
+
           if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
             // check if we have a dependency of the anhysteretic curve with mechanical stress
             PtrCoefFct stresscoef;
@@ -171,8 +178,12 @@ namespace CoupledField
             matModelCoef_->RegisterStressDependence(stresscoef);
           }
 
-          muNL = matModelCoef_;
-          nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
+          //muNL = matModelCoef_;          
+          //nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
+          muNL = matModelCoefm_[actRegion];
+          nlFluxCoefm_[actRegion].reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true)); //= nlFluxCoef_;
+          nlFluxCoefm_[actRegion]->AddRegion(actRegion, matModelCoefm_[actRegion]);
+          //nlFluxCoef_->AddRegion(actRegion, matModelCoefm_[actRegion]);
 
           if (dim_ == 2)
           {
@@ -604,7 +615,7 @@ namespace CoupledField
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[*regIt];
       if( nonLinTypes.Find(PERMEABILITY) != -1 ){
         // hysteretic case
-        bCoef->AddRegion(*regIt, nlFluxCoef_);
+        bCoef->AddRegion(*regIt, nlFluxCoefm_[*regIt]);
       }else{
         // classical nonlinear case and linear case
         PtrCoefFct b = CoefFunction::Generate( mp_, part, CoefXprVecScalOp(mp_, hIntensCoef, perm_, CoefXpr::OP_MULT));

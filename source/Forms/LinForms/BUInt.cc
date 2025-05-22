@@ -130,6 +130,7 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
   }
 
      // Loop over all integration points
+     VEC_DATA_TYPE vol = 0.0; //for volume normalization
      for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
 
        // Calculate for each integration point the LocPointMapped
@@ -141,7 +142,10 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
 
        //calc factor
        fac = VEC_DATA_TYPE(lp.jacDet * weights[i]);
-       fac *= factor_;
+       vol += fac; //computes the volume
+       
+       fac *= factor_;     
+
        // Call the CalcBMat()-method
        bOperator_->CalcOpMatTransposed( bMat, lp, ptFe);
 
@@ -175,6 +179,10 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
     }  
     elemVec += bMat * cVec * fac;    
   }  
+  //normalize to volume
+  if ( normalizeToVol_) {
+    elemVec /= vol;    
+  }
 }
 
 }
