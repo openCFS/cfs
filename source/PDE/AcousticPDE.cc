@@ -281,22 +281,8 @@ namespace CoupledField{
       matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->AddRegion(actRegion, c0);
 
       // if pde couples with mechanic, we have to multiply the density by -1
-      PtrCoefFct factor;
-      PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
-      if (isMechCoupled_ == true && formulation_ != ACOU_PRESSURE) {
-        if (complexFluidFormulation_)
-          EXCEPTION("Complex fluid and coupled mechanical-acoustic simulation not allowed");
-
-        // Important: In case of a general / quadratic EV problem, we must
-        // ensure to have a "positive definite" matrix, i.e. we are not allowed
-        // to multiply all matrices by -1!
-        std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
-
-        factor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT));
-      }
-      else {
-        factor = constOne;
-      }
+      PtrCoefFct mechAcouFactor;
+      CalcMechAcouFac(mechAcouFactor, dens);
 
       // basic coeff-functions for mass and stiffness matrix
       PtrCoefFct coeffM, coeffK;
@@ -306,7 +292,7 @@ namespace CoupledField{
           EXCEPTION("A complex fluid and sosAtLaplace-formulation not allowed!!");
 
         // pressure formulation with temperature depend speed of sound
-        coeffM = constOne;
+        coeffM = CoefFunction::Generate(mp_, Global::REAL, "1.0");;
         coeffK = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, c0, c0, CoefXpr::OP_MULT));
       }
       else {
@@ -314,18 +300,18 @@ namespace CoupledField{
           // in this case c0 is actually 1/c0^2!!
           //! coeffM: 1/compressionModulus
           //! coeffK = 1/density
-          coeffM = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, blk, CoefXpr::OP_DIV));
+          coeffM = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, mechAcouFactor, blk, CoefXpr::OP_DIV));
           /// coeffM: 1/density
-          coeffK = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, dens, CoefXpr::OP_DIV));
+          coeffK = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, mechAcouFactor, dens, CoefXpr::OP_DIV));
         }
         else {
-          coeffK = factor;
+          coeffK = mechAcouFactor;
           // build coefficient for mass matrix as (factor / (c0*c0))
           PtrCoefFct constValOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
           PtrCoefFct coeffa, coeffb;
           coeffa = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constValOne, c0, CoefXpr::OP_DIV));
           coeffb = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, coeffa, coeffa, CoefXpr::OP_MULT));
-          coeffM = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, factor, coeffb, CoefXpr::OP_MULT));
+          coeffM = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, mechAcouFactor, coeffb, CoefXpr::OP_MULT));
         }
       }
 
@@ -514,16 +500,7 @@ namespace CoupledField{
     PtrCoefFct one = CoefFunction::Generate(mp_, Global::REAL, "1.0");
 
     PtrCoefFct mechAcouFactor;
-    if (isMechCoupled_ == true && formulation_ != ACOU_PRESSURE) {
-      // Important: In case of a general / quadratic EV problem, we must
-      // ensure to have a "positive definite" matrix, i.e. we are not allowed
-      // to multiply all matrices by -1!
-      std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
-      mechAcouFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT));
-    }
-    else {
-      mechAcouFactor = CoefFunction::Generate(mp_, Global::REAL, "1.0");
-    }
+    CalcMechAcouFac(mechAcouFactor,dens);
 
     PtrCoefFct regionTemp;
     std::set<UInt> definedDofs;
@@ -1165,33 +1142,24 @@ namespace CoupledField{
 
 
         // the following part was missing which is why abc did not function for acouPotential + mechanic
-	  // if pde couples with mechanic, we have to multiply the density by -1
-	  PtrCoefFct factor;
-	  if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
-	    // Important: In case of a general / quadratic EV problem, we must
-	    // ensure to have a "positive definite" matrix, i.e. we are not allowed
-	    // to multiply all matrices by -1!
-	    std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
-
-	    factor = CoefFunction::Generate( mp_, Global::REAL,
-	 					    CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT ) );
-	  } else {
-	    factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-	  }
-	  LOG_DBG(acousticpde) << "Def Surface Integrator: factor =" << factor->ToString() << "\n";
+        // if pde couples with mechanic, we have to multiply the density by -1
+        PtrCoefFct mechAcouFactor;
+        CalcMechAcouFac(mechAcouFactor,dens);
+  
+        LOG_DBG(acousticpde) << "Def Surface Integrator: mechAcouFactor =" << mechAcouFactor->ToString() << "\n";
 
         PtrCoefFct coeffDamp;
         if ( sosAtLaplace_ ) {
-          // factor for damping matrix: factor * c0
+          // factor for damping matrix: mechAcouFactor * c0
           coeffDamp = CoefFunction::Generate( mp_, Global::REAL,
-                         			CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_MULT ) );
+                         			CoefXprBinOp(mp_, mechAcouFactor, c0, CoefXpr::OP_MULT ) );
         }
         else {
-          // factor for damping matrix: factor / c0
+          // factor for damping matrix: mechAcouFactor / c0
          if (complexFluidFormulation_ )
-           coeffDamp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+           coeffDamp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, mechAcouFactor, c0, CoefXpr::OP_DIV ) );
          else
-           coeffDamp = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
+           coeffDamp = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, mechAcouFactor, c0, CoefXpr::OP_DIV ) );
 
         }
         LOG_DBG(acousticpde) << "Define Surface Integrator: coeffDamp =" << coeffDamp->ToString() << "\n";
@@ -1435,14 +1403,8 @@ namespace CoupledField{
         EXCEPTION("Normal velocity can only be defined on surface elements");
       }
       PtrCoefFct exValue;
-      if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
-        scalFactor = -1.0;
-        exValue = 
-            CoefFunction::Generate( mp_, part,
-                                   CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
-      } else {
-        exValue = coef[i];
-      }
+      CalcMechAcouFacWithCoef(exValue,coef[i],surfDens,scalFactor,part);
+      
       
       if( formulation_ == ACOU_POTENTIAL ) {
         if( dim_ == 2) {
@@ -1472,13 +1434,13 @@ namespace CoupledField{
     	if ( complexFluidFormulation_ ) {
     		//do not need multiplication with density
     		exValue = CoefFunction::Generate( mp_, part,
-                    CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+                                          CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
     	}
     	else {
     		PtrCoefFct tmp2 = CoefFunction::Generate( mp_, part,
-                                 CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
-    		exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp2,surfDens,
-                                              CoefXpr::OP_MULT) );
+                                                  CoefXprBinOp(mp_, tmp, exValue, CoefXpr::OP_MULT) );
+        exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, tmp2, surfDens,
+                                          CoefXpr::OP_MULT) );
     	}
 
         if( dim_ == 2) {
@@ -1528,14 +1490,8 @@ namespace CoupledField{
       }
 
       PtrCoefFct exValue;
-      if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
-        scalFactor = -1.0;
-        exValue = 
-            CoefFunction::Generate( mp_, part,
-                                   CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
-      } else {
-        exValue = coef[i];
-      }
+      CalcMechAcouFacWithCoef( exValue,coef[i],surfDens,scalFactor,part);
+  
       if( formulation_ == ACOU_POTENTIAL ) {
         if( dim_ == 2) {
           if(isComplex_) {
@@ -1659,7 +1615,7 @@ namespace CoupledField{
                        ent, coef, coefUpdateGeo );
     if( formulation_ == ACOU_POTENTIAL && isComplex_ ) { 
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
-         if ( sosAtLaplace_)
+        if ( sosAtLaplace_)
           EXCEPTION("RHS and speed of sound at Laplace operator currently not possible");
 
         // ensure that list contains only surface elements
@@ -1669,30 +1625,23 @@ namespace CoupledField{
           EXCEPTION("Pressure can only be defined on surface elements");
         }
         PtrCoefFct exValue;
-        if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
-          scalFactor = -1.0;
-          exValue = 
-              CoefFunction::Generate( mp_, part,
-                                     CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
-        } else {
-          exValue = coef[i];
-        }
+        CalcMechAcouFacWithCoef( exValue,coef[i],surfDens,scalFactor,part);
+
         // psi_n = j * 1 / (omega*rho) * p
-        PtrCoefFct tmp = 
-             CoefFunction::Generate( mp_, Global::COMPLEX, "0","1/(2*pi*f)");
-         PtrCoefFct tmp2 = 
-             CoefFunction::Generate( mp_, Global::COMPLEX,
-                                    CoefXprBinOp(mp_, tmp, surfDens, CoefXpr::OP_DIV ) );
-         exValue = CoefFunction::Generate( mp_, part, 
+        PtrCoefFct tmp = CoefFunction::Generate( mp_, Global::COMPLEX, "0","1/(2*pi*f)");
+        PtrCoefFct tmp2 = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                                  CoefXprBinOp(mp_, tmp, surfDens, 
+                                                  CoefXpr::OP_DIV ) );
+        exValue = CoefFunction::Generate( mp_, part, 
                                           CoefXprBinOp(mp_, exValue, tmp2, 
-                                                       CoefXpr::OP_MULT) );
-         shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
-         actBc->entities = ent[i];
-         actBc->result = myFct->GetResultInfo();
-         actBc->value = exValue;
-         actBc->dofs.insert(0);
-         actBc->updatedGeo = coefUpdateGeo;
-         myFct->AddInhomDirichletBc(actBc);
+                                          CoefXpr::OP_MULT) );
+        shared_ptr<InhomDirichletBc> actBc ( new InhomDirichletBc );
+        actBc->entities = ent[i];
+        actBc->result = myFct->GetResultInfo();
+        actBc->value = exValue;
+        actBc->dofs.insert(0);
+        actBc->updatedGeo = coefUpdateGeo;
+        myFct->AddInhomDirichletBc(actBc);
       } // loop entities
     } // if
 
@@ -2211,11 +2160,11 @@ namespace CoupledField{
     }
 
     // get list of parameter nodes for region definitions
-    unsigned int numRegions = 0;
+    UInt numRegions;
     ParamNodeList regionNodes;
     PtrParamNode regionListNode = domain_->GetParamRoot()->Get("domain")->Get("regionList",ParamNode::PASS );
 
-    if(regionListNode) {
+    if( regionListNode ) {
       regionNodes = regionListNode->GetList("region");
       numRegions = regionNodes.GetSize();
     }
@@ -2226,23 +2175,23 @@ namespace CoupledField{
 
     std::string regionNameDomain, refMaterial;
     // iterate over all regions
-    for(unsigned int i = 0; i < numRegions; ++i ) {
+    for( UInt i = 0; i < numRegions; ++i ) {
       // get data from node
       regionNodes[i]->GetValue("name", regionNameDomain);
 
-      if( regionNameDomain==regionName) {
+      if( regionNameDomain==regionName ) {
         regionNodes[i]->GetValue("material", refMaterial);
       }
     }
 
     std::string actMaterial;
     // start by 1 and not 0 because 0 is the reference region
-    for (UInt iRegion = 1; iRegion < regions_.GetSize(); iRegion++) {
+    for ( UInt iRegion = 1; iRegion < regions_.GetSize(); iRegion++ ) {
       actRegion = regions_[iRegion];
       regionName = ptGrid_->GetRegion().ToString(actRegion);
 
       
-      for(unsigned int i = 0; i < numRegions; ++i ) {
+      for( UInt i = 0; i < numRegions; ++i ) {
         // get data from node
         regionNodes[i]->GetValue("name", regionNameDomain);
 
@@ -2867,6 +2816,31 @@ namespace CoupledField{
       cSQR = CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV) );
     }
   }
+
+  void AcousticPDE::CalcMechAcouFac( PtrCoefFct& mechAcouFactor, PtrCoefFct dens){
+
+    if (isMechCoupled_ == true && formulation_ == ACOU_POTENTIAL) {
+      // Important: In case of a general / quadratic EV problem, we must
+      // ensure to have a "positive definite" matrix, i.e. we are not allowed
+      // to multiply all matrices by -1!
+      std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
+      mechAcouFactor = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT));
+    }
+    else {
+      mechAcouFactor = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+    }
+  }
+
+  void AcousticPDE::CalcMechAcouFacWithCoef( PtrCoefFct& exValue, PtrCoefFct coef, PtrCoefFct surfDens, Double& scalFactor, Global::ComplexPart part){
+    scalFactor = 1.0;
+    if ( isMechCoupled_ == true && formulation_ ==  ACOU_POTENTIAL ) {
+      scalFactor = -1.0;
+      exValue = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, coef,surfDens, CoefXpr::OP_MULT) );
+    } else {
+      exValue = coef;
+    }
+  }
+
   } // namespace CoupledField
 
 template void AcousticPDE::DefineTransientPMLInts<2>(shared_ptr<ElemList>, std::string,
