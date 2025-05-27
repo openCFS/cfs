@@ -268,6 +268,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 #else
     elemMat += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
 #endif
+    std::cout << "Elem mat " << elemMat.ToString() << std::endl;
   }
 }
 
