@@ -266,11 +266,31 @@ void FemLemAllocationOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMa
   // Set correct size of matrix B and initialize with zeros
   bMat.Resize( numFncs, 1 );
 
-  // the allocation vector only consists of ones since we only consier elements that actually have a contribution
+  StdVector<UInt> lpSurfCon = lp.ptEl->connect;
+  StdVector<UInt> lpVolCon = lp.lpmVol->ptEl->connect;
+
+  // the allocation vector only consists of ones (where a node of the surface element is located) 
+  // and zeros (other nodes of the volume element )since we only consider elements that actually 
+  // have a contribution
   // the sign is governed by the integrator based on the network element definition.
-  UInt iFunc = 0;
+  UInt iFunc= 0;
+  UInt iSurf= 0;
+  bool isInSurf = false;
   for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
-    bMat[iFunc][0] =  1;
+    isInSurf = false;
+    for( iSurf = 0; iSurf < lpSurfCon.size(); ++iSurf ) {
+      if( lpSurfCon[iSurf] == lpVolCon[iFunc] ) {
+        // we found the same node in the surface element and the volume element
+        isInSurf = true;
+      }  
+    }
+    // if the element node is also in the surface element, we set the value to one, otherwise it will be zero
+    if( isInSurf ) {
+      bMat[iFunc][0] =  1;
+    } else {
+      bMat[iFunc][0] =  0;
+    }
+    
   }
 }
 
