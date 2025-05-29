@@ -277,6 +277,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
     SolutionTypeEnum.Add(COIL_CURRENT_DERIV1, "coilCurrentD1");
     SolutionTypeEnum.Add(COIL_VOLTAGE, "coilVoltage");
+    SolutionTypeEnum.Add(COIL_VOLTAGE_INTEGRAL, "coilVoltageIntegral");
 
     SolutionTypeEnum.Add(COIL_INDUCED_VOLTAGE, "coilInducedVoltage");
     SolutionTypeEnum.Add(COIL_INDUCTANCE, "coilInductance");
@@ -1170,6 +1171,7 @@ namespace CoupledField {
 
       case MAG_FLUX:
       case COIL_LINKED_FLUX:
+      case COIL_VOLTAGE_INTEGRAL:
         return "Vs";
         break;
 
