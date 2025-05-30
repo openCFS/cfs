@@ -122,7 +122,6 @@ def cfs_init(settings, design, opt_indices, dict):
   glob.gradient_check = False
   if 'gradient_check' in dict:
     glob.gradient_check = dict['gradient_check'] == '1'
-  
   if not glob.silent:
     print('cfs_init designs:',glob.design)
     print('cfs_init called: ', glob.n, dict) 
@@ -1083,7 +1082,7 @@ def fast_rho(X, idx):
    
 # ad differentiate fast_rho_ad, does some convience for the return type
 def drho(var, X, idx):   
-  t = grad_fast_rho(var, X,idx)
+  t = grad_fast_rho(var,X,idx)
   assert len(var) == len(t)
 
   # t is a tuple of unshaped np.arrays - these are strange to extract    
@@ -1983,10 +1982,17 @@ def grad_l2(var_all, arg): # args = [density_track, save_figures]
   return sens
 
 # write distance values and that stuff
-def write_vtk(name,N, detailed, derivative):
+# @paran N is vtk_res
+def write_vtk(name, N, detailed, derivative):
   from pyevtk.hl import gridToVTK
   
+  if detailed or derivative:
+    print('WARNING: --vtk_detail and --vtk_sens broken.')
+    print('use  <option key="gradvtk" value="1"/> and <option key="silent" value="0"/> in cfs')
+
   shapes = glob.shapes
+  if not 'dx' in dir(glob):
+    glob.dx = N/glob.n[0]
   
   none_distance = 1.1
   

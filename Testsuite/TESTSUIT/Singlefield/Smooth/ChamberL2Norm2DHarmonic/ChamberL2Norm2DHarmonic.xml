@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>ChamberL2Norm2DHarmonic</title>
+    <authors>
+      <author>dmayrhof</author>
+    </authors>
+    <date>2023-03-27</date>
+    <keywords>
+      <keyword>smooth</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Harmonic computation of a chamber that gets compressed to half its size. We evaluate the L2Norm postprocessing result which uses the integrated function instead of the nodal L2 norm. Similar to the rotated version but here we have an harmonic computation.
+      In essence we stretch the chamber in y-direction (in x-direction everything is clamped) and evaluate two cases:
+      Non-zero excitation and zero-reference
+      Zero-excitation and non-zero reference
+      For both cases we basically integrate over either the displacement field or the analytical solution (since the other one is zero) and evaluate the L2-norm. The L2-norm has to be equivalent for both cases.
+      We do not evaluate the case for the non-zero excitation and non-zero reference since this gives us a L2-norm of (almost) zero for the correct integration order which leads to numerical problems in the test, hence we perform this splitting of tests.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="ChamberL2Norm2DHarmonic.h5ref"/>
+      <!--<cdb fileName="Chamber.cdb"/>--> 
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+  	<variableList>
+      <var name="d" value="1e-1"/>
+  	  <var name="f_exc" value="100"/>
+  	  <var name="amp" value="d/2"/>
+    </variableList>
+  
+    <regionList>
+      <region name="Chamber" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="C_Exc"/>
+      <surfRegion name="C_Side"/>
+      <surfRegion name="C_Fix"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep index="1"> <!-- Correct integration order, 0 solution reference -->
+    <analysis>
+      <harmonic>
+        <numFreq>    1   </numFreq>
+        <startFreq>  100 </startFreq>
+        <stopFreq>   100 </stopFreq>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <smooth subType="planeStrain">
+        <regionList>
+          <region name="Chamber"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <displacement name="C_Exc">
+            <comp dof="x" value="0"/>
+            <comp dof="y" value="amp"/>
+          </displacement>
+          <fix name="C_Fix">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <allRegions outputIds="h5" postProcId="L2"/>
+          </nodeResult>
+        </storeResults>
+      </smooth>   
+    </pdeList>
+    
+    <postProcList>
+      <postProc id="L2">
+        <L2Norm resultName="L2" outputIds="txt,h5" integrationOrder="2" mode="absolute">
+          <dof name="x" realFunc="0" imagFunc="0"/>
+          <dof name="y" realFunc="0" imagFunc="0"/>
+        </L2Norm>
+      </postProc>
+    </postProcList>
+  </sequenceStep>
+
+  <sequenceStep index="2"> <!-- Correct integration order, real solution reference, 0 excitation -->
+    <analysis>
+      <harmonic>
+        <numFreq>    1   </numFreq>
+        <startFreq>  100 </startFreq>
+        <stopFreq>   100 </stopFreq>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <smooth subType="planeStrain">
+        <regionList>
+          <region name="Chamber"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <displacement name="C_Exc">
+            <comp dof="x" value="0"/>
+            <comp dof="y" value="0"/>
+          </displacement>
+          <fix name="C_Fix">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <allRegions outputIds="h5" postProcId="L2sol"/>
+          </nodeResult>
+        </storeResults>
+      </smooth>   
+    </pdeList>
+    
+    <postProcList>
+      <postProc id="L2sol">
+        <L2Norm resultName="L2sol" outputIds="txt,h5" integrationOrder="2" mode="absolute">
+          <dof name="x" realFunc="0" imagFunc="0"/>
+          <dof name="y" realFunc="amp*y/d" imagFunc="0"/>
+        </L2Norm>
+      </postProc>
+    </postProcList>
+  </sequenceStep>
+</cfsSimulation>

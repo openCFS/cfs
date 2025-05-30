@@ -1,0 +1,37 @@
+reset
+undo on
+
+#{d_disc = 1e-1};
+#{h_el = 0.5e-2};
+
+#{tol = 1e-6}
+
+merge tolerance {tol}
+
+
+# geom
+
+create surface circle radius {d_disc/2} zplane
+
+
+# mesh
+
+surface all scheme circle size {h_el}
+mesh surface all
+
+
+# blocks and nodesets
+
+block 1 add surface 1
+block 1 name "Disc"
+
+
+nodeset 1 add curve 1
+nodeset 1 name "Exc_outer"
+
+
+
+Echo on
+Warning on
+
+export ansys cdb "RotatingDiscMesh.cdb" overwrite

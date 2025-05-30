@@ -436,11 +436,18 @@ namespace CoupledField {
     //@}
     //========================== micro-piezoelectric-model:end ===================
 
+    //! Set the mathParser strings for the Rayleigh damping coefficients alpha and beta
+    //! Takes care of the different cases of computing the Rayleigh damping coefficients depending on
+    //! the material parameters set in the material xml
+    //! \param alpha String for the Rayleigh damping coefficient alpha
+    //! \param beta String for the Rayleigh damping coefficient beta
+    void GetRayleighCoeffStrings(std::string &alpha, std::string &beta);
 
-    //! Compute Rayleigh parameters
-    void ComputeRayleighDamping( std::string& alpha, std::string& beta,
-                                 Double dampFreq, Double RatioDeltaF,
-                                 bool adjustDamping, bool isHarmonic );
+    //! Create and return the mathParser strings for the Rayleigh damping coefficients alpha and beta,
+    //! when the damping is specified in terms of a frequency-adapted or frequency-constant lossTangensDelta.
+    //! \param alpha String for the Rayleigh damping coefficient alpha
+    //! \param beta String for the Rayleigh damping coefficient beta
+    void GetFreqAdaptedRayleighCoeffStrings(std::string &alpha, std::string &beta);
 
     /** converts MaterialClass to the corresponding MaterialType tensor. Extend for your needs */
     static MaterialType ConvertMaterialClass(MaterialClass mc);
@@ -594,6 +601,12 @@ namespace CoupledField {
     //! object for piezo-micro-modeling
     PiezoMicroModelBK* piezoMicroModel_;
 
+  public:
+    typedef enum {ALPHA_BETA, ADAPTED_LOSS_TANGENS} RayleighDampType;
+    void SetRayleighType(RayleighDampType raylDampType) {raylDampType_ = raylDampType;};
+
+  private:
+    RayleighDampType raylDampType_;
   };
 
 } // end of namespace

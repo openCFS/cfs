@@ -1,0 +1,172 @@
+finish
+/clear
+/filname,MagStrictIterMeshUpdate,1
+/prep7
+init
+
+!						width
+!			<------------------------------>
+!			_______________________________
+!   	^	|								             | ^ d2  
+!   	|	|		 _______________________ | v
+!   	|	|		|_______________________|| h_coil
+!   	|	|							               | ^ d3
+!   	|	|		      __________________ | v
+!height	|		     |__________________|| 2*h_probe
+!   	|	|		     |__________________||
+!   	|	|					              		 | ^d3
+!   	|	|		 _______________________ | v
+!   	|	|		|_______________________|| h_coil
+!   	|	|								             | ^
+!		v	|______________________________| v d2
+!			 <--d1-><--------l_coil--------->
+!						 <---l_probe-------->	
+!
+
+! Parameter
+
+d1 = 0.5
+l_coil = 1.
+l_probe = 0.5
+width = d1+l_coil
+
+d2 = 0.25
+d3 = 0.125
+h_probe = 0.125
+h_coil = 0.25
+height = 2*(d2+h_coil+d3+h_probe)
+
+dx = h_probe
+tol = dx/5
+
+! Create geometry
+! Probe
+rectng,width-l_probe,width,0,h_probe
+rectng,width-l_probe,width,-h_probe,0
+! Coil
+rectng,width-l_coil,width,h_probe+d3,h_probe+d3+h_coil
+rectng,width-l_coil,width,-(h_probe+d3+h_coil),-(h_probe+d3)
+! Air
+rectng,0,width-l_coil,0,height/2
+rectng,0,width-l_coil,-height/2,0
+rectng,width-l_coil,width,0,height/2
+rectng,width-l_coil,width,-height/2,0
+
+asel,all
+aovlap,all
+
+! Create components
+asel,s,loc,x,width-l_probe,width
+asel,r,loc,y,0,h_probe
+cm,upper_probe,area
+
+asel,s,loc,x,width-l_probe,width
+asel,r,loc,y,-h_probe,0
+cm,lower_probe,area
+
+asel,s,loc,x,width-l_coil,width
+asel,r,loc,y,h_probe+d3,h_probe+d3+h_coil
+cm,upper_coil,area
+
+asel,s,loc,x,width-l_coil,width
+asel,r,loc,y,-(h_probe+d3+h_coil),-(h_probe+d3)
+cm,lower_coil,area
+
+asel,s,loc,x,width-l_coil,width
+asel,r,loc,y,-h_probe-d3,h_probe+d3
+cmsel,u,upper_probe
+cmsel,u,lower_probe
+cmsel,u,upper_coil
+cmsel,u,lower_coil
+cm,air_inner,area
+
+asel,all
+cmsel,u,upper_probe
+cmsel,u,lower_probe
+cmsel,u,upper_coil
+cmsel,u,lower_coil
+cmsel,u,air_inner
+cm,air_outer,area
+
+lsel,s,loc,x,-tol,tol
+cm,left,line
+
+lsel,s,loc,y,height/2-tol,height/2+tol
+cm,top,line
+
+lsel,s,loc,y,-height/2-tol,-height/2+tol
+cm,bot,line
+
+lsel,s,loc,x,width-tol,width+tol
+lsel,r,loc,y,-h_probe,h_probe
+cm,right_probe,line
+
+! Create mesh
+lsel,all
+lesize,all,dx
+
+setelems,'quadr',''
+asel,all
+amesh,all
+
+setelems,'2d-line',''
+cmsel,s,left
+cmsel,a,right_probe
+cmsel,a,top
+cmsel,a,bot
+lmesh,all
+
+! Create observer
+nsel,s,loc,x,width-l_probe-tol,width-l_probe+tol
+nsel,r,loc,y,-tol,tol
+cm,observer,node
+
+!!! Write out mesh !!!
+cmsel,s,upper_coil
+esla,s
+welems,'upper_coil'
+
+cmsel,s,lower_coil
+esla,s
+welems,'lower_coil'
+
+cmsel,s,upper_probe
+esla,s
+welems,'upper_probe'
+
+cmsel,s,lower_probe
+esla,s
+welems,'lower_probe'
+
+cmsel,s,air_inner
+esla,s
+welems,'air_inner'
+
+cmsel,s,air_outer
+esla,s
+welems,'air_outer'
+
+cmsel,s,left
+esll,s
+welems,'left'
+
+cmsel,s,right_probe
+esll,s
+welems,'right_probe'
+
+cmsel,s,top
+esll,s
+welems,'top'
+
+cmsel,s,bot
+esll,s
+welems,'bot'
+
+!cmsel,s,observer
+wsavnod,'observer'
+
+allsel
+wnodes
+!mkmesh
+mkhdf5
+

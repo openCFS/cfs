@@ -1,0 +1,113 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  
+  
+  <material name="cfrp_iso_lower">
+    <mechanical>
+      <density>
+        <linear> 
+          <real>1e-8</real>
+        </linear>
+      </density>
+      <!-- Data as in the 99-lines code by Sigmund -->
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>42.389469291017683</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.3</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>1000</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.03</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+    
+  
+  <material name="cfrp_iso_upper">
+    <mechanical>
+      <density>
+        <linear> 
+          <real>1e-8</real>
+        </linear>
+      </density>
+      <!-- Data as in the 99-lines code by Sigmund -->
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>113.6</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.3</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>1000</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.03</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+  
+  <material name="cfrp_0_degrees">
+    <mechanical>
+      <density>
+        <linear>
+          <real>1000</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim2="3" dim1="3">
+            <real>
+              114.076       3.23689      0.0
+              3.23689      9.69141       0.0
+              0.0      0.0     5.96835
+            </real>
+          </tensor>
+        </linear> 
+      </elasticity>
+    </mechanical>
+  </material>
+
+  <material name="weak">
+    <mechanical>
+      <density>
+        <linear> 
+          <real>1e-9</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1e-3</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.3</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  
+</cfsMaterialDataBase>

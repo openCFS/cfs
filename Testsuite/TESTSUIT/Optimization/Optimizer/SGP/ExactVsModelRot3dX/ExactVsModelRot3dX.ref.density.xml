@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <mesh x="1" y="1" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0" lower="0" name="rotAngleThird" region="all" relative_bound="-1.0" scale="false" upper="3.141592653589793"/>
+    <transferFunction application="mech" design="density" param="1.0" type="simp"/>
+  </header>
+  <set id="0">
+    <element nr="1" type="rotAngleThird" design="0.01745329252"/>
+  </set>
+  <set id="1">
+    <element nr="1" type="rotAngleThird" design="1.5707963268"/>
+  </set>
+</cfsErsatzMaterial>

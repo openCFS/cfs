@@ -1,0 +1,317 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.411s" wall="0.411" cpu="0.699812" calls="1"/>
+  </summary>
+  <header id="">
+    <environment started="2023-Apr-06 13:54:51" host="faustaff-010-020-040-123.pool.uni-erlangen.de"/>
+    <python version="3.9.10 (main, Jan 15 2022, 11:40:53)  [Clang 13.0.0 (clang-1300.0.29.3)]" file="./heatsource.py">
+      <callback hook="assemble_rhs" function="assemble_rhs"/>
+    </python>
+    <progOpts problem="HeatNLPythonSource" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Singlefield/Heat/HeatNLPythonSource/HeatNLPythonSource.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="23.03" name="Heavy Headache" build="Release" git_commit="ea06aa71dca31930b63d7a19e46231630a3adf3e" git_branch="solar_heater2" compiled="Apr  6 2023" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" MKL_NUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="10" ny="10" nz="1">
+      <grids>
+        <timer wall-clock="0.004s" wall="0.004" cpu="0.005937" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="140" nodes="121"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="bottom_surf" id="0" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="left_surf" id="1" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="mech" id="2" type="volume" regular="yes" hom="yes" nodes="121" elems="100" isQuadratic="no"/>
+        <region name="right_surf" id="3" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+        <region name="top_surf" id="4" type="surface" regular="yes" hom="yes" nodes="11" elems="10" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="11"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(1,0)"/>
+        <nodes name="center" count="1" coord="(0.5,0.5)"/>
+        <nodes name="left" count="11"/>
+        <nodes name="right" count="11"/>
+        <nodes name="source" count="121"/>
+        <nodes name="top" count="11"/>
+        <nodes name="top_left" count="1" coord="(0,1)"/>
+        <nodes name="top_right" count="1" coord="(1,1)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="10" ny="10" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.004s" wall="0.004" cpu="0.008469" calls="5"/>
+    </results>
+  </header>
+  <calculation>
+    <process>
+      <sequence step="0">
+        <result data="heatTemperature" location="source" definedOn="node">
+          <item step="1" step_val="0" value="1" unit="K" id="1"/>
+          <item step="1" step_val="0" value="12.651" unit="K" id="2"/>
+          <item step="1" step_val="0" value="23.868" unit="K" id="3"/>
+          <item step="1" step_val="0" value="34.176" unit="K" id="4"/>
+          <item step="1" step_val="0" value="43.088" unit="K" id="5"/>
+          <item step="1" step_val="0" value="50.225" unit="K" id="6"/>
+          <item step="1" step_val="0" value="55.452" unit="K" id="7"/>
+          <item step="1" step_val="0" value="58.922" unit="K" id="8"/>
+          <item step="1" step_val="0" value="60.988" unit="K" id="9"/>
+          <item step="1" step_val="0" value="62.039" unit="K" id="10"/>
+          <item step="1" step_val="0" value="62.356" unit="K" id="11"/>
+          <item step="1" step_val="0" value="1" unit="K" id="12"/>
+          <item step="1" step_val="0" value="12.855" unit="K" id="13"/>
+          <item step="1" step_val="0" value="24.314" unit="K" id="14"/>
+          <item step="1" step_val="0" value="34.889" unit="K" id="15"/>
+          <item step="1" step_val="0" value="44.023" unit="K" id="16"/>
+          <item step="1" step_val="0" value="51.238" unit="K" id="17"/>
+          <item step="1" step_val="0" value="56.37" unit="K" id="18"/>
+          <item step="1" step_val="0" value="59.626" unit="K" id="19"/>
+          <item step="1" step_val="0" value="61.472" unit="K" id="20"/>
+          <item step="1" step_val="0" value="62.373" unit="K" id="21"/>
+          <item step="1" step_val="0" value="62.639" unit="K" id="22"/>
+          <item step="1" step_val="0" value="1" unit="K" id="23"/>
+          <item step="1" step_val="0" value="13.419" unit="K" id="24"/>
+          <item step="1" step_val="0" value="25.589" unit="K" id="25"/>
+          <item step="1" step_val="0" value="37.065" unit="K" id="26"/>
+          <item step="1" step_val="0" value="46.99" unit="K" id="27"/>
+          <item step="1" step_val="0" value="54.512" unit="K" id="28"/>
+          <item step="1" step_val="0" value="59.249" unit="K" id="29"/>
+          <item step="1" step_val="0" value="61.732" unit="K" id="30"/>
+          <item step="1" step_val="0" value="62.826" unit="K" id="31"/>
+          <item step="1" step_val="0" value="63.272" unit="K" id="32"/>
+          <item step="1" step_val="0" value="63.391" unit="K" id="33"/>
+          <item step="1" step_val="0" value="1" unit="K" id="34"/>
+          <item step="1" step_val="0" value="14.171" unit="K" id="35"/>
+          <item step="1" step_val="0" value="27.425" unit="K" id="36"/>
+          <item step="1" step_val="0" value="40.575" unit="K" id="37"/>
+          <item step="1" step_val="0" value="52.712" unit="K" id="38"/>
+          <item step="1" step_val="0" value="60.905" unit="K" id="39"/>
+          <item step="1" step_val="0" value="64.607" unit="K" id="40"/>
+          <item step="1" step_val="0" value="65" unit="K" id="41"/>
+          <item step="1" step_val="0" value="64.702" unit="K" id="42"/>
+          <item step="1" step_val="0" value="64.43" unit="K" id="43"/>
+          <item step="1" step_val="0" value="64.342" unit="K" id="44"/>
+          <item step="1" step_val="0" value="1" unit="K" id="45"/>
+          <item step="1" step_val="0" value="14.826" unit="K" id="46"/>
+          <item step="1" step_val="0" value="29.108" unit="K" id="47"/>
+          <item step="1" step_val="0" value="44.646" unit="K" id="48"/>
+          <item step="1" step_val="0" value="58.257" unit="K" id="49"/>
+          <item step="1" step_val="0" value="66.798" unit="K" id="50"/>
+          <item step="1" step_val="0" value="69.603" unit="K" id="51"/>
+          <item step="1" step_val="0" value="68.577" unit="K" id="52"/>
+          <item step="1" step_val="0" value="66.37" unit="K" id="53"/>
+          <item step="1" step_val="0" value="65.407" unit="K" id="54"/>
+          <item step="1" step_val="0" value="65.128" unit="K" id="55"/>
+          <item step="1" step_val="0" value="1" unit="K" id="56"/>
+          <item step="1" step_val="0" value="15.086" unit="K" id="57"/>
+          <item step="1" step_val="0" value="29.821" unit="K" id="58"/>
+          <item step="1" step_val="0" value="46.317" unit="K" id="59"/>
+          <item step="1" step_val="0" value="60.582" unit="K" id="60"/>
+          <item step="1" step_val="0" value="69.786" unit="K" id="61"/>
+          <item step="1" step_val="0" value="71.625" unit="K" id="62"/>
+          <item step="1" step_val="0" value="69.997" unit="K" id="63"/>
+          <item step="1" step_val="0" value="67.062" unit="K" id="64"/>
+          <item step="1" step_val="0" value="65.788" unit="K" id="65"/>
+          <item step="1" step_val="0" value="65.432" unit="K" id="66"/>
+          <item step="1" step_val="0" value="1" unit="K" id="67"/>
+          <item step="1" step_val="0" value="14.826" unit="K" id="68"/>
+          <item step="1" step_val="0" value="29.108" unit="K" id="69"/>
+          <item step="1" step_val="0" value="44.646" unit="K" id="70"/>
+          <item step="1" step_val="0" value="58.257" unit="K" id="71"/>
+          <item step="1" step_val="0" value="66.798" unit="K" id="72"/>
+          <item step="1" step_val="0" value="69.603" unit="K" id="73"/>
+          <item step="1" step_val="0" value="68.577" unit="K" id="74"/>
+          <item step="1" step_val="0" value="66.37" unit="K" id="75"/>
+          <item step="1" step_val="0" value="65.407" unit="K" id="76"/>
+          <item step="1" step_val="0" value="65.128" unit="K" id="77"/>
+          <item step="1" step_val="0" value="1" unit="K" id="78"/>
+          <item step="1" step_val="0" value="14.171" unit="K" id="79"/>
+          <item step="1" step_val="0" value="27.425" unit="K" id="80"/>
+          <item step="1" step_val="0" value="40.575" unit="K" id="81"/>
+          <item step="1" step_val="0" value="52.712" unit="K" id="82"/>
+          <item step="1" step_val="0" value="60.905" unit="K" id="83"/>
+          <item step="1" step_val="0" value="64.607" unit="K" id="84"/>
+          <item step="1" step_val="0" value="65" unit="K" id="85"/>
+          <item step="1" step_val="0" value="64.702" unit="K" id="86"/>
+          <item step="1" step_val="0" value="64.43" unit="K" id="87"/>
+          <item step="1" step_val="0" value="64.342" unit="K" id="88"/>
+          <item step="1" step_val="0" value="1" unit="K" id="89"/>
+          <item step="1" step_val="0" value="13.419" unit="K" id="90"/>
+          <item step="1" step_val="0" value="25.589" unit="K" id="91"/>
+          <item step="1" step_val="0" value="37.065" unit="K" id="92"/>
+          <item step="1" step_val="0" value="46.99" unit="K" id="93"/>
+          <item step="1" step_val="0" value="54.512" unit="K" id="94"/>
+          <item step="1" step_val="0" value="59.249" unit="K" id="95"/>
+          <item step="1" step_val="0" value="61.732" unit="K" id="96"/>
+          <item step="1" step_val="0" value="62.826" unit="K" id="97"/>
+          <item step="1" step_val="0" value="63.272" unit="K" id="98"/>
+          <item step="1" step_val="0" value="63.391" unit="K" id="99"/>
+          <item step="1" step_val="0" value="1" unit="K" id="100"/>
+          <item step="1" step_val="0" value="12.855" unit="K" id="101"/>
+          <item step="1" step_val="0" value="24.314" unit="K" id="102"/>
+          <item step="1" step_val="0" value="34.889" unit="K" id="103"/>
+          <item step="1" step_val="0" value="44.023" unit="K" id="104"/>
+          <item step="1" step_val="0" value="51.238" unit="K" id="105"/>
+          <item step="1" step_val="0" value="56.37" unit="K" id="106"/>
+          <item step="1" step_val="0" value="59.626" unit="K" id="107"/>
+          <item step="1" step_val="0" value="61.472" unit="K" id="108"/>
+          <item step="1" step_val="0" value="62.373" unit="K" id="109"/>
+          <item step="1" step_val="0" value="62.639" unit="K" id="110"/>
+          <item step="1" step_val="0" value="1" unit="K" id="111"/>
+          <item step="1" step_val="0" value="12.651" unit="K" id="112"/>
+          <item step="1" step_val="0" value="23.868" unit="K" id="113"/>
+          <item step="1" step_val="0" value="34.176" unit="K" id="114"/>
+          <item step="1" step_val="0" value="43.088" unit="K" id="115"/>
+          <item step="1" step_val="0" value="50.225" unit="K" id="116"/>
+          <item step="1" step_val="0" value="55.452" unit="K" id="117"/>
+          <item step="1" step_val="0" value="58.922" unit="K" id="118"/>
+          <item step="1" step_val="0" value="60.988" unit="K" id="119"/>
+          <item step="1" step_val="0" value="62.039" unit="K" id="120"/>
+          <item step="1" step_val="0" value="62.356" unit="K" id="121"/>
+        </result>
+      </sequence>
+    </process>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.006741" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <heatConduction>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="mech">
+                <coef type="CoefFunctionConst" value="[[0.024, 0],[0, 0.024]]"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NonLinNodalHeatInt">
+                <entities name="source" size="121" region="no_region"/>
+                <coef type="CoefFunctionPython" value="coef_eval"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="yes"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 2.400000e-02  0.000000e+00  0.000000e+00
+                 0.000000e+00  2.400000e-02  0.000000e+00
+                 0.000000e+00  0.000000e+00  2.400000e-02
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(0.024,0)"/>
+          <property name="Heat_Capacity" value="1005"/>
+          <property name="Density" value="1.29"/>
+        </material>
+        <feSpaces>
+          <heatTemperature>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </heatTemperature>
+        </feSpaces>
+        <feFunctions>
+          <heatTemperature/>
+          <homDirichletBC/>
+          <inhomDirichletBC>
+            <nodeList name="left" dofs="" value="1"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </heatConduction>
+    </PDE>
+    <OLAS>
+      <heatConduction>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="121" totalNumFreeEqns="110" totalNumDirichlet="11">
+            <function id="0" name="heatTemperature" numEqns="121" lastFreeEqn="110" numDirichlet="11">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="121" lastFreeIndex="110"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="7.2e-05" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.000275" calls="10"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="2e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </heatConduction>
+      <graph_setup>
+        <timer wall-clock="0s" wall="0" cpu="0.000643" calls="1" sub="true"/>
+      </graph_setup>
+      <reorder_Sloan>
+        <timer wall-clock="0s" wall="0" cpu="2.7e-05" calls="1" sub="true"/>
+      </reorder_Sloan>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0s" wall="0" cpu="0.01585" calls="20"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <timer wall-clock="0.008s" wall="0.008" cpu="0.017296" calls="1" sub="true"/>
+      <setup method="fixedPointSimple" lineSearch="none" maxIter="40" incStopCrit="1e-06" residualStopCrit="0.001" logging="yes"/>
+      <implementation method="fixedPointSimple" linesearch="none"/>
+      <solStep value="1" analysis="">
+        <iteration pdeName="heatConduction" nr="1" incrementalErr="0.32559"/>
+        <iteration pdeName="heatConduction" nr="2" incrementalErr="0.057945"/>
+        <iteration pdeName="heatConduction" nr="3" incrementalErr="0.013521"/>
+        <iteration pdeName="heatConduction" nr="4" incrementalErr="0.0013477"/>
+        <iteration pdeName="heatConduction" nr="5" incrementalErr="0.00021816"/>
+        <iteration pdeName="heatConduction" nr="6" incrementalErr="2.3579e-05"/>
+        <iteration pdeName="heatConduction" nr="7" incrementalErr="7.8827e-06"/>
+        <iteration pdeName="heatConduction" nr="8" incrementalErr="4.7175e-06"/>
+        <iteration pdeName="heatConduction" nr="9" incrementalErr="4.2549e-07"/>
+      </solStep>
+    </nonlinearConvergence>
+  </sequenceStep>
+</cfsInfo>

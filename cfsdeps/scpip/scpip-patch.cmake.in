@@ -4,4 +4,10 @@ include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 # patches fix F77 stuff
 set(PATCHES "scpip-gfortran.patch" "scpip-dum2.patch")
+
+if(@CMAKE_Fortran_COMPILER_ID@ MATCHES "IntelLLVM")
+  # legacy code from the 1974!! to determine machine precission fails - set hard coded eps
+  list(APPEND PATCHES "scpip-ifx.patch")
+endif()
+
 apply_patches("${PATCHES}" "${CMAKE_SOURCE_DIR}/cfsdeps/scpip")

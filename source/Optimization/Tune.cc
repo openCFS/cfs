@@ -27,6 +27,7 @@ void Tune::Init(PtrParamNode pn, Usage use)
     usage.SetName("Tune::Usage");
     usage.Add(BETA, "beta");
     usage.Add(PENALTY, "penalty");
+    usage.Add(FUNC_SCALE, "fscale");  
   }
 
   this->usage_ = use;
@@ -35,22 +36,27 @@ void Tune::Init(PtrParamNode pn, Usage use)
   method_ = method.Parse(pn->Get("method")->As<string>());
   start = pn->Get("start")->As<double>();
   end  = pn->Has("end")  ? pn->Get("end")->As<double>()  : (use == BETA ? 256 : 6);
+  minimal  = pn->Has("minimal")  ? pn->Get("minimal")->As<double>() : OFF;
   grow = pn->Has("grow") ? pn->Get("grow")->As<double>() : (method_ == OBJ ? 1e-4 : (method_ == MULT ? 2 : 0.1));
   max_grow_rate = pn->Get("obj_max_grow")->As<double>();
   stride =  pn->Get("stride")->As<unsigned int>();
   stopping_greyness_ = pn->Get("stopping_greyness")->As<bool>();
 
-  LOG_DBG(tune) << "I " << usage.ToString(usage_) << " opt=" << opt << " value=" << value;
+  // if we start from +/- 0.* we cannot grow (in magnitude) by multiplications
+  one_scale = method_ != ADD && start > -1 && start < 1.0;
+
+  LOG_DBG(tune) << "I " << usage.ToString(usage_) << " opt=" << opt << " method=" << method.ToString(method_) << " value=" << value << " start=" << start << " one_scale=" << one_scale;
 }
 
-void Tune::Register(double* value, Optimization* opt, GlobalFilter* gf)
+void Tune::Register(double* value, Optimization* opt, GlobalFilter* f)
 {
-  assert(!(gf != nullptr && usage_ != BETA));
+  assert(!(f != nullptr && usage_ != BETA));
   assert(value != nullptr && opt != nullptr);
   assert(!IsRegistered());
   this->value = value;
   this->opt = opt;
-  this->gf = gf; // might be null
+  if(f != nullptr)
+    this->gf.Push_back(f);
 
   // tries to find a greyness stopping rule, if not found, a warning is issued
   if(stopping_greyness_)
@@ -79,6 +85,29 @@ bool Tune::IsRegistered() const
   return false;
 }
 
+void Tune::Append(double* value, GlobalFilter* f)
+{
+  LOG_DBG(tune) << "A " << value << " f=" << f << " e=" << external.ToString(TS_PYTHON) << " gf=" << gf.ToString(TS_PYTHON);
+
+  assert(!external.Contains(value));
+  external.Push_back(value);
+  *value = *(this->value);
+
+  assert(!gf.Contains(f));
+  gf.Push_back(f);
+}
+
+void Tune::Remove(double* value, GlobalFilter* f)
+{
+  int vi = external.Find(value, true); // quiet - somehow debugging shows unknown beta adress in the robust case?!
+  int fi = gf.Find(f, true);
+  LOG_DBG(tune) << "R " << value << " f=" << f << " vi=" << vi << " fi=" << fi << " e=" << external.ToString(TS_PYTHON) << " gf=" << gf.ToString(TS_PYTHON);
+  if(vi >= 0)
+    external.Erase((size_t) vi);
+  if(fi >= 0)
+    gf.Erase((size_t) fi);
+}
+
 double Tune::CalcTransistionZone(double y) const
 {
   assert(usage_ == BETA);
@@ -97,11 +126,17 @@ void Tune::ToInfo(PtrParamNode info) const
   in->Get("method")->SetValue(method.ToString(method_));
   in->Get("start")->SetValue(start);
   in->Get("end")->SetValue(end);
+  in->Get("minimal")->SetValue(minimal == OFF ? "-" : std::to_string(minimal));
   in->Get("grow")->SetValue(grow);
   if(method_ == OBJ)
     in->Get("max_grow_rate")->SetValue(max_grow_rate);
+  in->Get("one_scale")->SetValue(one_scale);
   in->Get("stride")->SetValue(stride);
   in->Get("stopping")->SetValue(grayness ? grayness->function : "-");
+
+  if(method_ == MULT && grow <= 1)
+    in->SetWarning("when using tune method 'mult' the attribute 'grow' shall be greater 1");
+
 }
 
 void Tune::Update(unsigned int iter)
@@ -114,6 +149,9 @@ void Tune::Update(unsigned int iter)
     return;
 
   double cand = *value;
+  if(one_scale)
+    cand = (1-start) + ((end-(1-start))/end) * cand;
+
   switch(method_)
   {
   case NO_METHOD:
@@ -140,27 +178,46 @@ void Tune::Update(unsigned int iter)
     break;
   }
 
-  LOG_DBG(tune) << "U: iter=" << iter << " m=" << method.ToString(method_) << " old=" << *value << " cand=" << cand << " end=" << end << " SG=" << SufficientlyGray() << " v=" << value;
+  double rescaled = cand;
+  if(one_scale)
+    rescaled = (cand - (1-start))*end / (end-(1-start));
 
-  if(cand > end || SufficientlyGray())
+
+  LOG_DBG(tune) << "U: iter=" << iter << " m=" << method.ToString(method_) << " old=" << *value << " rescaled=" << rescaled << " end=" << end
+                << " SG=" << SufficientlyGray() << " v=" << value << " cand=" << cand << " os=" << one_scale;
+
+  if(rescaled > end)
   {
     once_stopped_ = true;
-    LOG_DBG(tune) << "U: cand=" << cand << " end=" << end << " SG=" << SufficientlyGray() << " -> once_stopped_=true";
+
+    LOG_DBG(tune) << "U: rescaled=" << rescaled << " end=" << end << " SG=" << SufficientlyGray() << " -> once_stopped_=true";
+    return;
   }
-  else
+
+  if(SufficientlyGray() && iter > 2) // small initial density can lead to too small grayness in the beginning
   {
-    *value = cand;
-
-    if(gf)
+    LOG_DBG(tune) << "U: rescaled=" << rescaled << " SG=" << SufficientlyGray() << " iter=" << iter << " -> once_stopped_=true";
+    if(minimal == OFF || rescaled > minimal)
     {
-      DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(gf->region, gf->design);
-      gf->SetNonLinCorrection(&(opt->GetDesign()->data[dr->base]));
-      LOG_DBG(tune) << "U ref=" << dr->base << " SetNonLinCorrection -> scale=" << gf->non_lin_scale << " offset=" << gf->non_lin_offset;
-
+      once_stopped_ = true;
+      LOG_DBG(tune) << "U: SG=" << SufficientlyGray() << " minimal=" << minimal << " rescaled=" << rescaled << " -> once_stopped_=true";
+      return;
     }
-
-    opt->SetAuxLogValue(usage.ToString(usage_), *value);
   }
+
+  // do it: set the candidate to the value
+  *value = rescaled;
+  for(double* ptr : external)
+    *ptr = rescaled;
+
+  for(GlobalFilter* f : gf)
+  {
+    DesignSpace::DesignRegion* dr = opt->GetDesign()->GetRegion(f->region, f->design);
+    f->SetNonLinCorrection(&(opt->GetDesign()->data[dr->base]));
+    LOG_DBG(tune) << "U ref=" << dr->base << " b=" << f->beta << " e=" << f->eta << " SNLC -> scale=" << f->non_lin_scale << " offset=" << f->non_lin_offset << " f=" << f << " gf=" << gf.ToString(TS_PYTHON);
+  }
+
+  opt->SetAuxLogValue(usage.ToString(usage_), *value);
 }
 
 void Tune::FindGraynessStoppingRule()

@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="air_approx">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.0 - y+x</real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.156e5  </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

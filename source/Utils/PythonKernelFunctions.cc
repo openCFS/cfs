@@ -72,23 +72,30 @@ PyObject* opt_getDims(PyObject *self, PyObject *args)
 
 PyObject* get_opt_design_size(PyObject *self, PyObject *args)
 {
-  return PythonKernel::CheckOpt() ? PythonOptimizer::GetNumDesign(args) : NULL;
+  // this is including the slack variable
+  return PythonKernel::CheckOpt() ? PyLong_FromLong(domain->GetOptimization()->GetDesign()->GetNumberOfVariables()) : nullptr;
+}
+
+PyObject* get_num_pseudo_density(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetNumDesign(args) : nullptr;
 }
 
 PyObject* get_opt_design_value(PyObject *self, PyObject *args)
 {
-  return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValue(args) : NULL;
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValue(args) : nullptr;
 }
 
 PyObject* get_opt_design_values(PyObject *self, PyObject *args)
 {
-  return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValues(args) : NULL;
+  return PythonKernel::CheckOpt() ? PythonOptimizer::GetDesignValues(args) : nullptr;
 }
 
 PyObject* get_opt_iteraton(PyObject *self, PyObject *args)
 {
   return PythonKernel::CheckOpt() ? PyLong_FromLong(domain->GetOptimization()->GetCurrentIteration()) : NULL;
 }
+
 
 PyObject* get_opt_stopping_rules(PyObject *self, PyObject *args)
 {
@@ -146,14 +153,27 @@ PyObject* opt_initialdesign(PyObject *self, PyObject *args)
 /** cfs.evalobj(x) returns a float) */
 PyObject* opt_evalobj(PyObject *self, PyObject *args)
 {
-  return python->CheckPyOpt() ? PyFloat_FromDouble(python->GetPyOpt()->EvalObjective(args)) : NULL;
+  return python->CheckPyOpt() ? PyFloat_FromDouble(python->GetPyOpt()->EvalObjective(args)) : nullptr;
+}
+
+/** evaluate the transfer function. The first argument is double (extend for array on need), the second
+ * optional argument is the index of the transfer function */
+PyObject* opt_transfer(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? python->GetPyOpt()->Transfer(args, false) : nullptr;
+}
+
+/** evaluate the derivatrive of the transfer function. See opt_transfer() */
+PyObject* opt_d_transfer(PyObject *self, PyObject *args)
+{
+  return PythonKernel::CheckOpt() ? python->GetPyOpt()->Transfer(args, true) : nullptr;
 }
 
 /** cfs.cfs_commitIteration() commits iteration to cfs */
 PyObject* opt_commitIteration(PyObject *self, PyObject *args)
 {
   if(!python->CheckPyOpt())
-    return NULL;
+    return nullptr;
 
   python->GetPyOpt()->CommitIteration(); // return paramnode ignored;
   Py_RETURN_NONE;
@@ -581,14 +601,17 @@ PyMethodDef PythonKernel::cfs_methods[] =
   {"optimizer_get_properties", optimizer_get_properties, METH_VARARGS, "get properties / infos about the actual optimizer used in optimization as string/string dict"},
   {"optimizer_set_property", optimizer_set_property, METH_VARARGS, "set name:string and value:string for the current optimizer, only a few implement this."},
   {"get_opt_design_size", get_opt_design_size, METH_VARARGS, "Returns number of design variables"},
-  {"get_opt_design_value", get_opt_design_value, METH_VARARGS, "Give single DesignSpace::GetDesignValue() for 0-based index with optional access (default plain)"},
-  {"get_opt_design_values", get_opt_design_values, METH_VARARGS, "Call DesignElement::GetValues() with attributes numpy array and optional access"},
+  {"get_num_pseudo_density", get_num_pseudo_density, METH_VARARGS, "Returns number of pseudo densities (DesignSpace::data), != design_size for slack case."},
+  {"get_opt_design_value", get_opt_design_value, METH_VARARGS, "Give single DesignSpace::GetDesignValue() for 0-based index with optional Function::Access (int or string). Default plain. For slack, ... silently plain"},
+  {"get_opt_design_values", get_opt_design_values, METH_VARARGS, "attribute is numpy array and optional Function::Access. See get_opt_design_value()"},
   {"get_opt_stopping_rules", get_opt_stopping_rules, METH_VARARGS, "return the stoppping rules"},
   {"get_opt_iteraton", get_opt_iteraton, METH_VARARGS, "Return Optimization->GetCurrentIteration()"},
   {"get_opt_function_values", get_opt_function_values, METH_VARARGS, "return two string/string maps with name an value for objective functions and constraints as in .info.xml"},
   {"get_opt_function_properties", get_opt_function_properties, METH_VARARGS, "return string/string maps with with property of objective/constraint/observation"},
   {"get_opt_filter_values", get_opt_filter_values, METH_VARARGS, "return string/string map for given filter index with filter properties. Check total_filter property!"},
   {"set_opt_filter_values", set_opt_filter_values, METH_VARARGS, "set optimization filter idx, beta, eta, scale, offset where idx and beta is required. No keywords allowed!"},
+  {"opt_transfer", opt_transfer, METH_VARARGS, "evaluate transfer function, first argument double, optional second argument index of transfer function"},
+  {"opt_d_transfer", opt_d_transfer, METH_VARARGS, "evaluate derivative of transfer function, first argument double, optional second argument index of transfer function"},
 
   /* feature mapping optimization design */
   {"feature_mapping_num_parameters", feature_mapping_num_parameters, METH_VARARGS, "Return the number of feature mapping parameters including fixed variables"},

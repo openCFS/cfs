@@ -30,6 +30,10 @@ public:
   /** set design variables to provided numpy array of proper size + optional acesss */
   static PyObject* GetDesignValues(PyObject* args);
 
+  /** evaluate transfer function.
+   * @param args first argument index, optional second argument is index */
+  static PyObject* Transfer(PyObject* args, bool derivative);
+
   /** expects two 1Dim Arrays for design bounds and two 1Dim arrays for constraint bounds. Not normalized, equal is both the same */
   void GetBounds(PyObject* args);
 

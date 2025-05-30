@@ -1,0 +1,17 @@
+# this file contains common linux definitions (no running jobs)
+
+# collapsible sections
+# see https://docs.gitlab.com/ee/ci/jobs/job_logs.html#custom-collapsible-sections
+
+# start a debug section like this
+#   - export DEBUG_SECTION_TITLE='my title for info about the collapsed section'
+#   - !reference [.linux-debug-start_collapsed, script]
+.linux-debug-start_collapsed:
+  script:
+    - export DEBUG_SECTION_INDEX="${DEBUG_SECTION_INDEX}i" && echo "DEBUG_SECTION_INDEX=${DEBUG_SECTION_INDEX}" >> $GITLAB_ENV  
+    - echo -e "\e[0Ksection_start:`date +%s`:debug_section_${DEBUG_SECTION_INDEX}[collapsed=true]\r\e[0K${DEBUG_SECTION_TITLE} (click to expand)"
+# do not forget to end it again with
+#   - !reference [.linux-debug-end, script]
+.linux-debug-end:
+  script:
+    - echo -e "\e[0Ksection_end:`date +%s`:debug_section_${DEBUG_SECTION_INDEX}\r\e[0K"

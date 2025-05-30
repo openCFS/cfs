@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>non-conforming parallel plate capacitor</title>
+    <authors>
+      <author>Jens Grabinger, Manfred Kaltenbacher</author>
+    </authors>
+    <date>2013-05-28</date>
+    <keywords>
+      <keyword>electrostatic</keyword>
+      <keyword>lagrange multiplier</keyword>
+      <keyword>mortar fem</keyword>
+      <keyword>nonmatching grids</keyword>
+      <keyword>static</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>
+      This is a simple parallel plate capacitor in air. The air is
+      discretized in the upper half by quadrilaterals and in the lower
+      half by triangles. Both regions are connected by a Mortar
+      interface. The voltage applied on the upper electrode is 1 V, so
+      we expect to get a constant electric field of 1 V/m.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <cdb fileName="Cube2d_mesh.cdb"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="matTensor.xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="quads" material="unitMat"/>
+      <region name="trias" material="unitMat"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="iface_upper"/>
+      <surfRegion name="iface_lower"/>
+      <surfRegion name="Electrode1"/>
+      <surfRegion name="Electrode2"/>
+    </surfRegionList>
+    <ncInterfaceList>
+      <ncInterface name="iface" primarySide="iface_upper"
+        secondarySide="iface_lower" storeIntegrationGrid="yes"/>
+    </ncInterfaceList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange>
+      <gridOrder/>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>1</numFreq>
+        <startFreq>1</startFreq>
+        <stopFreq>1</stopFreq>
+      </harmonic>
+    </analysis>
+
+    <pdeList>
+       <elecQuasistatic>
+        <regionList>
+          <region name="quads"/>
+          <region name="trias"/>
+        </regionList>
+
+        <ncInterfaceList>
+          <ncInterface name="iface" nitscheFactor="2000" formulation="Nitsche"/>
+        </ncInterfaceList>
+
+        <bcsAndLoads>
+          <ground name="Electrode2"/>
+          <potential name="Electrode1" value="1.0"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <elemResult type="elecFieldIntensity">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="elecPotential">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </elecQuasistatic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

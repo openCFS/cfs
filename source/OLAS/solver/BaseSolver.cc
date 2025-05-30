@@ -30,6 +30,7 @@ namespace CoupledField {
     EnumTuple( BaseSolver::UMFPACK, "umfpack" ),
     EnumTuple( BaseSolver::CHOLMOD, "cholmod"),
     EnumTuple( BaseSolver::LIS, "lis"),
+    EnumTuple( BaseSolver::GINKGO, "ginkgo"),
     EnumTuple( BaseSolver::PETSC, "petsc"),
     EnumTuple( BaseSolver::SUPERLU, "superlu" ),
     EnumTuple( BaseSolver::PHIST, "phist_linSolv"),
@@ -143,18 +144,6 @@ namespace CoupledField {
      this->Solve(sysmat, r, z);
    }
    
-
-  void BaseSolver::CheckParameter(PtrParamNode out, char** val, const char* param_name)
-  {
-    PtrParamNode tmp = out->Get(param_name);
-    tmp->Get("default")->SetValue(*val);
-    if (xml_ != NULL && xml_->Has(param_name))
-    {
-      *val = const_cast<char*> (xml_->Get(param_name)->As<std::string>().c_str());
-      tmp->Get("set")->SetValue(*val);
-    }
-  }
-
   void BaseSolver::CheckParameter(PtrParamNode out, double* val, const char* param_name)
   {
     PtrParamNode tmp = out->Get(param_name);

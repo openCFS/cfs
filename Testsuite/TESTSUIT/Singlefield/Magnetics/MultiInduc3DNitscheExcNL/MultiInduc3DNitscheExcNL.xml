@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+    <documentation>
+        <title>3D straight inductor with global excitation and multiple coils</title>
+        <authors>
+            <author>kroppert</author>
+        </authors>
+        <date>2020-06-20</date>
+        <keywords>
+            <keyword>magneticEdge</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>no</isVerified>
+        <description> Between the sheet and air, a NC Nitsche interface is located
+            and we use global-current excitation with multiple coils</description>
+    </documentation>
+    
+    <fileFormats>
+        <input>
+            <hdf5 fileName="convert_mesh.cfs" id="i1"/>
+            <hdf5 fileName="small_air_sheet.cfs" id="i2"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <domain printGridInfo="yes" geometryType="3d">
+        <variableList>
+            <var name="coilCurrent" value="600"/>
+            <var name="vx_sheet" value="0.01667"/>  <!--0.01667-->
+            <var name="wireCross" value="1"/>
+        </variableList>
+        
+        <regionList>
+            <region name="V_Air" material="air"/>
+            <region name="V_Inductor1" material="copper"/>
+            <region name="V_Inductor2" material="copper"/>
+            <region name="V_Inductor3" material="copper"/>
+            <region name="V_Water" material="air"/>
+            <region name="V_air" material="air"/>
+            <region name="V_sheet" material="bandMat"/>
+        </regionList>
+        
+        <surfRegionList>
+            <surfRegion name="S_Air_Y-"/>
+            <surfRegion name="NC_air_yP1"/>
+            <surfRegion name="NC_air_yP2"/>
+        </surfRegionList>
+        
+        <ncInterfaceList>
+            <ncInterface name="nc1" primarySide="NC_air_yP1" secondarySide="S_Air_Y-" minRelSideLength="1e-10"/>
+            <ncInterface name="nc2" primarySide="NC_air_yP2" secondarySide="S_Air_Y-" minRelSideLength="1e-10"/>
+        </ncInterfaceList>
+    </domain>
+    
+   
+    
+    <fePolynomialList>
+        <Legendre id="HCurl">
+            <isoOrder>0</isoOrder>
+        </Legendre>
+        <Lagrange id="H1_curr" spectral="false">
+            <isoOrder>1</isoOrder>
+        </Lagrange>
+        <Lagrange id="H1" spectral="false">
+            <isoOrder>1</isoOrder>
+        </Lagrange>
+    </fePolynomialList>
+  
+  
+  
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+        <pdeList>
+            <elecConduction>
+                <regionList>
+                    <region name="V_Inductor1" polyId="H1_curr"/>
+                    <region name="V_Inductor2" polyId="H1_curr"/>
+                    <region name="V_Inductor3" polyId="H1_curr"/>
+                </regionList>
+                <bcsAndLoads>
+                    <potential name="S_Inductor1_profile1" value="1"/>
+                    <potential name="S_Inductor2_profile1" value="1"/>
+                    <potential name="S_Inductor3_profile1" value="1"/>
+                    <potential name="S_Inductor1_profile3" value="0"/>
+                    <potential name="S_Inductor2_profile3" value="0"/>
+                    <potential name="S_Inductor3_profile3" value="0"/>
+                </bcsAndLoads>
+                <storeResults>
+                    <elemResult type="elecCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <nodeResult type="elecPotential">
+                        <allRegions/>
+                    </nodeResult>
+                    <regionResult type="elecGradVInt">
+                        <regionList>
+                            <region name="V_Inductor1"/>
+                            <region name="V_Inductor2"/>
+                            <region name="V_Inductor3"/>
+                        </regionList>
+                    </regionResult>
+                </storeResults>
+            </elecConduction>
+        </pdeList>
+    </sequenceStep>
+  
+  
+  
+  
+  
+    <sequenceStep index="2">
+        <analysis>
+            <transient>
+                <numSteps>10</numSteps>
+                <deltaT>0.01</deltaT>
+            </transient>
+        </analysis>
+        <pdeList>
+            <magneticEdge formulation="specialA-V">
+                <regionList>
+                    <region name="V_Air" polyId="HCurl"/>
+                    <region name="V_Inductor1" polyId="HCurl"/>
+                    <region name="V_Inductor2" polyId="HCurl"/>
+                    <region name="V_Inductor3" polyId="HCurl"/>
+                    <region name="V_Water" polyId="HCurl"/>
+                    <region name="V_air" polyId="HCurl"/>
+                    <region name="V_sheet" polyId="HCurl"/>
+                </regionList>
+                
+                <ncInterfaceList>
+                    <ncInterface name="nc1" formulation="Nitsche" nitscheFactor="1500"/>
+                    <ncInterface name="nc2" formulation="Nitsche" nitscheFactor="1500"/>
+                </ncInterfaceList>
+                
+                <nonLinList>
+                    <permeability id="id1"/>
+                </nonLinList>
+                
+                <bcsAndLoads>
+                    <fluxParallel name="S_Air_Y+"/>
+                    <fluxParallel name="S_Air_X-"/>
+                    <fluxParallel name="S_Air_X+"/>
+                    <fluxParallel name="S_Air_Z-"/>
+                    <fluxParallel name="S_Air_Z+"/>
+
+                    <fluxParallel name="S_Water_front"/>
+
+                    <fluxParallel name="S_Inductor1_profile1"/>
+                    <fluxParallel name="S_Inductor2_profile1"/>
+                    <fluxParallel name="S_Inductor3_profile1"/>
+                    <fluxParallel name="S_Inductor1_profile3"/>
+                    <fluxParallel name="S_Inductor2_profile3"/>
+                    <fluxParallel name="S_Inductor3_profile3"/>
+                    
+                    <fluxParallel name="S_air_xN"/>
+                    <fluxParallel name="S_air_xP"/>
+                    <fluxParallel name="S_air_yN"/>
+                    <fluxParallel name="S_air_zN1"/>
+                    <fluxParallel name="S_air_zN2"/>
+                    <fluxParallel name="S_air_zP"/>
+                    
+                    <fluxParallel name="S_sheet_in"/>
+                    <fluxParallel name="S_sheet_out"/>
+                    <fluxParallel name="S_sheet_zN"/>
+                </bcsAndLoads>
+                
+                
+                <coilList>
+                    <coil id="coil_1">
+                        <source type="specialcurrent" value="coilCurrent*sin(2*pi*10*t)"/>
+                        <part id="c1">
+                            <regionList>
+                                <region name="V_Inductor1"/>
+                            </regionList>
+                            <direction>
+                                <external normalise="no">
+                                    <sequenceStep index="1">
+                                        <quantity name="elecCurrentDensity" pdeName="elecConduction"/>
+                                        <timeFreqMapping>
+                                            <constant/>
+                                        </timeFreqMapping>
+                                    </sequenceStep>
+                                </external>
+                            </direction>
+                            <gradV_in_gradV>
+                                <external>
+                                    <sequenceStep>
+                                        <quantity name="elecGradVInt" pdeName="elecConduction"/>
+                                        <timeFreqMapping>
+                                            <constant/>
+                                        </timeFreqMapping>
+                                    </sequenceStep>
+                                </external>
+                            </gradV_in_gradV>
+                            <wireCrossSection area="wireCross"/>
+                        </part>
+                    </coil>
+                    
+                    <coil id="coil_2">
+                        <source type="specialcurrent" value="coilCurrent*sin(2*pi*10*t)"/>
+                        <part id="c2">
+                            <regionList>
+                                <region name="V_Inductor2"/>
+                            </regionList>
+                            <direction>
+                                <external normalise="no">
+                                    <sequenceStep index="1">
+                                        <quantity name="elecCurrentDensity" pdeName="elecConduction"/>
+                                        <timeFreqMapping>
+                                            <constant/>
+                                        </timeFreqMapping>
+                                    </sequenceStep>
+                                </external>
+                            </direction>
+                            <gradV_in_gradV>
+                                <external>
+                                    <sequenceStep index="1">
+                                        <quantity name="elecGradVInt" pdeName="elecConduction"/>
+                                        <timeFreqMapping>
+                                            <constant/>
+                                        </timeFreqMapping>
+                                    </sequenceStep>
+                                </external>
+                            </gradV_in_gradV>
+                            <wireCrossSection area="wireCross"/>
+                        </part>
+                    </coil>  
+                    
+                    <coil id="coil_3">
+                        <source type="specialcurrent" value="coilCurrent*sin(2*pi*10*t)"/>
+                        <part id="c3">
+                            <regionList>
+                                <region name="V_Inductor3"/>
+                            </regionList>
+                            <direction>
+                                <external normalise="no">
+                                    <sequenceStep index="1">
+                                        <quantity name="elecCurrentDensity" pdeName="elecConduction"/>
+                                        <timeFreqMapping>
+                                            <constant/>
+                                        </timeFreqMapping>
+                                    </sequenceStep>
+                                </external>
+                            </direction>
+                            <gradV_in_gradV>
+                                <external>
+                                    <sequenceStep>
+                                        <quantity name="elecGradVInt" pdeName="elecConduction"/>
+                                        <timeFreqMapping>
+                                            <constant/>
+                                        </timeFreqMapping>
+                                    </sequenceStep>
+                                </external>
+                            </gradV_in_gradV>
+                            <wireCrossSection area="wireCross"/>
+                        </part>
+                    </coil>  
+                    
+                </coilList>
+                
+                <storeResults>
+                    <elemResult type="magPotential" complexFormat="realImag">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magFluxDensity" complexFormat="realImag">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magFieldIntensity" complexFormat="realImag">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity" complexFormat="realImag">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magCoilCurrentDensity" complexFormat="realImag">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magEddyCurrentDensity" complexFormat="realImag"> 
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magJouleLossPowerDensity" complexFormat="realImag">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="elecFieldIntensity" complexFormat="realImag">
+                        <allRegions/>
+                    </elemResult>
+                  <!--  <coilResult type="coilVoltage">
+                        <coilList>
+                            <coil id="coil_1"/>
+                            <coil id="coil_2"/>
+                            <coil id="coil_3"/>
+                        </coilList>
+                    </coilResult> -->
+                    <elemResult type="magJouleLossPowerDensity">
+                        <allRegions/>
+                    </elemResult>
+                   <!--- <surfRegionResult type="magEddyCurrent">
+                        <surfRegionList>
+                            <surfRegion name="S_Inductor1_profile1"/>
+                            <surfRegion name="S_Inductor1_profile3"/>
+                            <surfRegion name="S_Inductor2_profile1"/>
+                            <surfRegion name="S_Inductor2_profile3"/>
+                            <surfRegion name="S_Inductor3_profile1"/>
+                            <surfRegion name="S_Inductor3_profile3"/>
+                        </surfRegionList>
+                    </surfRegionResult>-->
+                </storeResults>
+              </magneticEdge>
+        </pdeList>
+
+
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <nonLinear logging="yes" method="fixPoint">
+                            <lineSearch/>
+                            <incStopCrit> 1e-4 </incStopCrit>
+                            <resStopCrit>1e-4</resStopCrit>
+                            <maxNumIters> 150 </maxNumIters>
+                            <abortOnMaxNumIters>yes</abortOnMaxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso/>
+                </solverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+    
+    
+    
+    
+    
+    
+    
+</cfsSimulation>

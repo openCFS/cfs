@@ -124,7 +124,7 @@ else()
     BUILD_IN_SOURCE 1
     PATCH_COMMAND ""
     CMAKE_ARGS ${CMAKE_ARGS}
-    INSTALL_COMMAND ${CONFIGURE_MAKE_PROGRAM} -f Makefile install
+    INSTALL_COMMAND make -f Makefile install
     BUILD_BYPRODUCTS ${GHOST_LIBRARY})
 
   #-------------------------------------------------------------------------------

@@ -249,8 +249,8 @@ void LinFlowMechCoupling::DefineIntegrators() {
         } else {
           EXCEPTION("Nitsche method is only implemented for harmonic simulation"); 
         }
-        RegionIdType surfMasterId = nitscheIf->GetMasterSurfRegion();
-        RegionIdType surfSlaveId = nitscheIf->GetSlaveSurfRegion();
+        RegionIdType surfMasterId = nitscheIf->GetPrimarySurfRegion();
+        RegionIdType surfSlaveId = nitscheIf->GetSecondarySurfRegion();
 
         shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
                                  elSlave(new SurfElemList(ptGrid_));
@@ -622,8 +622,8 @@ void LinFlowMechCoupling::DefineIntegrators() {
         MortarInterface * mortarIf = dynamic_cast<MortarInterface*>(ncIf.get());
         assert(mortarIf);
 
-        RegionIdType surfMasterId = mortarIf->GetMasterSurfRegion();
-        RegionIdType surfSlaveId = mortarIf->GetSlaveSurfRegion();
+        RegionIdType surfMasterId = mortarIf->GetPrimarySurfRegion();
+        RegionIdType surfSlaveId = mortarIf->GetSecondarySurfRegion();
 
         // create ElemLists for master & slave surfaces
         shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),

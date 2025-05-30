@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial infoWriteCounter="0" infoRejectCounter="0">
+  <header>
+    <mesh x="5" y="5" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.5" lower="1e-3" name="density" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <transferFunction application="mech" param="3" type="simp"/>
+<!--     <filters> -->
+<!--       <filter contribution="linear" design="allDesigns" neighborhood="maxEdge" type="density" value="1.5"/> -->
+<!--     </filters> -->
+  </header>
+  <set id="0">
+    <element nr="1" type="density" design="0.5" physical="0.125"/>
+    <element nr="2" type="density" design="0.5" physical="0.125"/>
+    <element nr="3" type="density" design="0.5" physical="0.125"/>
+    <element nr="4" type="density" design="0.5" physical="0.125"/>
+    <element nr="5" type="density" design="0.5" physical="0.125"/>
+    <element nr="6" type="density" design="0.5" physical="0.125"/>
+    <element nr="7" type="density" design="0.5" physical="0.125"/>
+    <element nr="8" type="density" design="0.5" physical="0.125"/>
+    <element nr="9" type="density" design="0.5" physical="0.125"/>
+    <element nr="10" type="density" design="0.5" physical="0.125"/>
+    <element nr="11" type="density" design="0.5" physical="0.125"/>
+    <element nr="12" type="density" design="0.5" physical="0.125"/>
+    <element nr="13" type="density" design="0.5" physical="0.125"/>
+    <element nr="14" type="density" design="0.5" physical="0.125"/>
+    <element nr="15" type="density" design="0.5" physical="0.125"/>
+    <element nr="16" type="density" design="0.5" physical="0.125"/>
+    <element nr="17" type="density" design="0.5" physical="0.125"/>
+    <element nr="18" type="density" design="0.5" physical="0.125"/>
+    <element nr="19" type="density" design="0.5" physical="0.125"/>
+    <element nr="20" type="density" design="0.5" physical="0.125"/>
+    <element nr="21" type="density" design="0.5" physical="0.125"/>
+    <element nr="22" type="density" design="0.5" physical="0.125"/>
+    <element nr="23" type="density" design="0.5" physical="0.125"/>
+    <element nr="24" type="density" design="0.5" physical="0.125"/>
+    <element nr="25" type="density" design="0.5" physical="0.125"/>
+  </set>
+</cfsErsatzMaterial>

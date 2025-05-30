@@ -38,6 +38,7 @@
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/MagSIMP.hh"
+#include "Optimization/AcouSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
@@ -131,13 +132,17 @@ Optimization::Optimization()
 
   // might read a multiObjective problem
   objectives.Read(optParamNode->Get("costFunction"));
-  objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
+  PtrParamNode ino = optInfoNode->Get(ParamNode::HEADER)->Get("objective");
+  // postoine objectives.ToInfo(ino) to PostInit()
 
   isMultiObjective_ = Objective::type.Parse(optParamNode->Get("costFunction/type")->As<std::string>()) == Objective::MULTI_OBJECTIVE;
   if(isMultiObjective_)
   {
     multiObjectiveType_ = Objective::multiObjType.Parse(optParamNode->Get("costFunction/multiObjective/type")->As<std::string>());
     multiObjectiveBeta_ = optParamNode->Get("costFunction/multiObjective/beta")->As<double>();
+    ino->Get("multiObjective/type")->SetValue(Objective::multiObjType.ToString(multiObjectiveType_));
+    if(multiObjectiveType_ != Objective::WEIGHTED_SUM)
+      ino->Get("multiObjective/beta")->SetValue(multiObjectiveBeta_);
   }
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
@@ -184,6 +189,10 @@ Optimization::~Optimization()
 
 void Optimization::PostInit()
 {
+  // CalcGraynessScaling() cannot be called within constructor
+  objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
+
+
   // during Optimization construction there were no pdes (at least for multi sequence), now in PostInit() we need to read them
   for(unsigned int i = 1; i < manager.context.GetSize(); i++) // 0 is set below
     manager.SwitchContext(i); // driver and pdes are created once and then stored
@@ -200,18 +209,41 @@ void Optimization::PostInitSecond()
   if(manager.any().harmonic)
     log.AddToHeader("freq");
 
+  // this is Daniel specific
   if(isMultiObjective_)
     log.AddToHeader("multiObjectiveValue");
 
+  LOG_DBG(opt) << "PIS: me=" << me->IsEnabled() << " #me=" << me->excitations.GetSize() << " #obj=" << objectives.data.GetSize();
+
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
-    const Objective* f = dynamic_cast<Objective*>(objectives.data[i]);
-    log.AddToHeader(f->GetType() == Function::SLACK_FNCT ? Function::slackFnct.ToString(f->GetSlackFnct()) : f->ToString());
-    if(f->GetType() == Function::BANDGAP) {
-      log.AddToHeader("max_ef_" + lexical_cast<string>(f->bandgap.lower_ev) + "_wv");
-      log.AddToHeader("min_ef_" + lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
+    const Objective* o = dynamic_cast<Objective*>(objectives.data[i]);
+    log.AddToHeader(o->GetType() == Function::SLACK_FNCT ? Function::slackFnct.ToString(o->GetSlackFnct()) : o->ToString());
+    if(o->GetType() == Function::BANDGAP)
+    {
+      log.AddToHeader("max_ef_" + to_string(o->bandgap.lower_ev) + "_wv");
+      log.AddToHeader("min_ef_" + to_string(o->bandgap.upper_ev) + "_wv");
+    }
+    switch(o->GetTerm())
+    {
+    case Objective::PENALTY:
+      log.AddToHeader(o->ToString() + "_penalty");
+      break;
+    case Objective::LN1P:
+      log.AddToHeader(o->ToString() + "_ln1p");
+      break;
+    case Objective::POWER:
+      log.AddToHeader(o->ToString() + "_power");
+      break;
+    case Objective::LINEAR:
+      break; // no need to add
     }
   }
+
+  if(me->IsEnabled() && me->excitations.GetSize() > 1)
+    for(Excitation& ex : me->excitations)
+      log.AddToHeader("objective_" + ex.GetFullLabel());
+
   log.AddToHeader("duration");
 
   if(design->HasAlphaVariable())
@@ -370,6 +402,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::OUTPUT, "output");
   Function::type.Add(Function::SQUARED_OUTPUT, "squaredOutput");
   Function::type.Add(Function::DYNAMIC_OUTPUT, "dynamicOutput");
+  Function::type.Add(Function::REFLECTED_WAVE, "reflectedWave");
   Function::type.Add(Function::ABS_OUTPUT, "absOutput");
   Function::type.Add(Function::GLOBAL_DYNAMIC_COMPLIANCE, "globalDynamicCompliance");
   Function::type.Add(Function::CONJUGATE_COMPLIANCE, "conjugateCompliance");
@@ -452,7 +485,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::LOSS_MAG_FLUX_RZ, "lossMagFluxRZ");
   Function::type.Add(Function::MAG_COUPLING,"magCoupling");
   Function::type.Add(Function::ARC_OVERLAP,"arc_overlap");
-  Function::type.Add(Function::PYTHON_VOLUME, "python_volume");
   Function::type.Add(Function::PYTHON_FUNCTION,"python");
   Function::type.Add(Function::LOCAL_PYTHON_FUNCTION,"localPython");
 
@@ -505,6 +537,12 @@ void Optimization::SetEnums()
   Function::stressType.Add(Function::MECH, "mech");
   Function::stressType.Add(Function::PIEZO, "piezo");
   Function::stressType.Add(Function::ONLY_COUPLING, "only_coupling");
+
+  Objective::term.SetName("Objective::Term");
+  Objective::term.Add(Objective::LINEAR, "linear");
+  Objective::term.Add(Objective::PENALTY, "penalty");
+  Objective::term.Add(Objective::LN1P, "ln1p");
+  Objective::term.Add(Objective::POWER, "power");
 
   Condition::bound.SetName("Condition::Bound");
   Condition::bound.Add(Condition::EQUAL, "equal");
@@ -740,11 +778,14 @@ Optimization* Optimization::CreateInstance()
     switch(material)
     {
     case OptimizationMaterial::MECH:
-    case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
     case OptimizationMaterial::ELEC:
     case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
+      break;
+
+    case OptimizationMaterial::ACOUSTIC:
+      opt = new AcouSIMP();
       break;
 
     case OptimizationMaterial::PIEZOCOUPLING:
@@ -986,6 +1027,17 @@ Function* Optimization::GetFunction(const std::string& name, bool throw_exceptio
   return f;
 }
 
+Tune* Optimization::SearchTune(Tune::Usage usage, bool silent)
+{
+  for(Tune* t : tunes)
+    if(t->GetUsage() == usage)
+      return t;
+
+  if(!silent)
+    throw Exception("none of the " + std::to_string(tunes.GetSize()) + " registered tunes is of usage " + Tune::usage.ToString(usage));
+  return nullptr;
+}
+
 double Optimization::CalcSymmetry(DesignElement::Type de, DesignElement::ValueSpecifier vs, DesignElement::Access access)
 {
   // the symmetry works only for squared models with a horizontal symmetry axis
@@ -1038,8 +1090,10 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
 
   double result = 0.0;
 
-  StdVector<double> ovp; // objective value * penalty
-  StdVector<double> ovpw; // objective value * penalty * weight
+  // term = linear -> function value, penalty max(value - parameter)^2, ...
+  // the smooth max (from Daniel) want both approaches
+  StdVector<double> s_t_ov;   //  scale * term(objective value)
+  StdVector<double> w_s_t_ov; // weight * scale * term(objective value)
 
   // the multiple excitation case is a special case - for all other cases this is executed once
   for(unsigned int e = 0; e < (ev_only_excite != NULL ? 1 : me->excitations.GetSize()); e++)
@@ -1050,54 +1104,70 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
 
     if(isMultiObjective_ && multiObjectiveType_ != Objective::WEIGHTED_SUM)
     {
-      ovp.Resize(objectives.data.GetSize());
-      ovpw.Resize(objectives.data.GetSize());
-      ovp.Init();
-      ovpw.Init();
+      s_t_ov.Resize(objectives.data.GetSize());
+      w_s_t_ov.Resize(objectives.data.GetSize());
+      s_t_ov.Init();
+      w_s_t_ov.Init();
     }
 
-    for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
+    for(unsigned int oi = 0; oi < objectives.data.GetSize(); oi++)
     {
-      Objective* f = objectives.data[o];
+      Objective* o = objectives.data[oi];
 
       // some objectives are only to be evaluated for the last excitation
-      if(!f->DoEvaluate(&excite))
+      if(!o->DoEvaluate(&excite))
         continue;
 
-      //double ov = CalcObjective(excite, f); // this is virtual!
-      double ov = CalcFunction(excite, f, false); // this is virtual!
-      excite.cost += ov * f->GetPenalty();
+      double ov = CalcFunction(excite, o, false); // this is virtual!
+      o->SetOrgValue(ov);
+      double tov = 0.0;
+      switch(o->GetTerm())
+      {
+        case Objective::LINEAR:
+          tov = ov;
+          break;
+        case Objective::PENALTY:
+          tov = o->CalcPenalty(ov);
+          break;
+        case Objective::LN1P:
+          tov = o->CalcLn1p(ov);
+          break;
+        case Objective::POWER:
+          tov = std::pow(ov, o->GetParameter());
+          break;
+      }
+      excite.cost += o->scale * tov;
 
       // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
-      double weight = !f->DoEvaluateAlways(excite.sequence) ? 1.0 : excite.normalized_weight;
+      double weight = !o->DoEvaluateAlways(excite.sequence) ? 1.0 : excite.normalized_weight;
 
-      f->AddValue(ov * weight);
+      o->AddValue(tov * weight);
 
-      result += ov * f->GetPenalty() * weight;
+      result += weight * o->scale * tov;
 
       // if multiobjective, store function values
-      if(isMultiObjective_ && multiObjectiveType_ != Objective::WEIGHTED_SUM)
+      if(isMultiObjective_ && (multiObjectiveType_ == Objective::SMOOTH_MAX || multiObjectiveType_ == Objective::SMOOTH_MIN))
       {
-        ovp[o] = ov * f->GetPenalty();
-        ovpw[o] = ov * f->GetPenalty() * weight;
+        s_t_ov[oi] = o->scale * tov;
+        w_s_t_ov[oi] = weight * s_t_ov[oi];
       }
 
-      LOG_DBG(opt) << "CalcObjective: ex=" << e << " obj=" << f->type.ToString(f->GetType()) << " ov=" << ov
-          << " penalty" << f->GetPenalty() << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
-          << " wei=" << weight << " f->val=" << f->GetValue() << " result=" << result;
+      LOG_DBG(opt) << "CO: ex=" << e << " obj=" << o->type.ToString(o->GetType()) << " ov=" << ov << " tov=" << tov << " param=" << o->GetParameter()
+          << " term=" << o->term.ToString(o->GetTerm()) <<" scale=" << o->scale << " ex.cost=" << excite.cost << " nw=" << excite.normalized_weight
+          << " weight=" << weight << " f->val=" << o->GetValue() << " result=" << result;
     }
 
     // if multiobjective, combine stored function values and overwrite results
     // case WEIGHTED_SUM has already been handled -> no overwrite necessary
     if(isMultiObjective_ && multiObjectiveType_ == Objective::SMOOTH_MIN)
     {
-      excite.cost = SmoothMin(ovp, multiObjectiveBeta_);
-      result = SmoothMin(ovpw, multiObjectiveBeta_);
+      excite.cost = SmoothMin(s_t_ov, multiObjectiveBeta_);
+      result = SmoothMin(w_s_t_ov, multiObjectiveBeta_); // whyever we overwrite and do not sum up?! - Fabian
     }
     if(isMultiObjective_ && multiObjectiveType_ == Objective::SMOOTH_MAX)
     {
-      excite.cost = SmoothMax(ovp, multiObjectiveBeta_);
-      result = SmoothMax(ovpw, multiObjectiveBeta_);
+      excite.cost = SmoothMax(s_t_ov, multiObjectiveBeta_);
+      result = SmoothMax(w_s_t_ov, multiObjectiveBeta_);
     }
   }
   calcObjIteration_ = this->GetCurrentIteration();
@@ -1125,7 +1195,7 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out, Excitation
         continue;
       excite->Apply(true); // set the correct context
 
-      CalcFunction(*excite, cost, true);
+      CalcFunction(*excite, cost, true); // calls BaseDesignElement::AddGradient() which handles scale and term
     }
   }
 
@@ -1395,15 +1465,26 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 
     for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
     {
-      Function* f = objectives.data[i];
-      *out << " \t" << f->GetValue();
-      if(f->GetType() == Function::BANDGAP)
+      Objective* c = objectives.data[i];
+      *out << " \t" << c->GetOrgValue();
+      if(c->GetType() == Function::BANDGAP)
       {
         // we search with the wave vectors for minimun and maximum
-        *out << " \t" << f->bandgap.lower.col;
-        *out << " \t" << f->bandgap.upper.col;
+        *out << " \t" << c->bandgap.lower.col;
+        *out << " \t" << c->bandgap.upper.col;
       }
+      if(c->GetTerm() == Objective::PENALTY)
+        *out << " \t" << c->CalcPenalty(c->GetOrgValue());
+      if(c->GetTerm() == Objective::LN1P)
+        *out << " \t" << c->CalcLn1p(c->GetOrgValue());
+      if(c->GetTerm() == Objective::POWER)
+        *out << " \t" << std::pow(c->GetOrgValue(),c->GetParameter());
     }
+
+    // more details are written to .info.xml in ErsatzMaterial::LogFileLine()
+    if(me->IsEnabled() && me->excitations.GetSize() > 1)
+      for(Excitation& ex : me->excitations)
+        *out << " \t" << ex.cost;
 
     *out << " \t" << duration;
     if(design->HasAlphaVariable())
@@ -1434,19 +1515,25 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
-    Function* f = objectives.data[i];
+    Objective* c = objectives.data[i];
 
     // set the precision for the output of objective function values
     std::stringstream ss;
-    ss << std::setprecision(15) << f->GetValue();
+    ss << std::setprecision(15) << c->GetOrgValue();
 
-    iteration->Get(f->ToString())->SetValue(ss.str());
-    if(f->GetType() == Function::BANDGAP)
+    iteration->Get(c->ToString())->SetValue(ss.str());
+    if(c->GetType() == Function::BANDGAP)
     {
       // we search with the wave vectors for minimun and maximum
-      iteration->Get("max_ef_" + boost::lexical_cast<string>(f->bandgap.lower_ev) + "_wv")->SetValue(f->bandgap.lower.col);
-      iteration->Get("min_ef_" + boost::lexical_cast<string>(f->bandgap.upper_ev) + "_wv")->SetValue(f->bandgap.upper.col);
+      iteration->Get("max_ef_" + to_string(c->bandgap.lower_ev) + "_wv")->SetValue(c->bandgap.lower.col);
+      iteration->Get("min_ef_" + to_string(c->bandgap.upper_ev) + "_wv")->SetValue(c->bandgap.upper.col);
     }
+    if(c->GetTerm() == Objective::PENALTY)
+      iteration->Get(c->ToString() + "_penalty")->SetValue(c->CalcPenalty(c->GetOrgValue()));
+    if(c->GetTerm() == Objective::LN1P)
+      iteration->Get(c->ToString() + "_ln1p")->SetValue(c->CalcLn1p(c->GetOrgValue()));
+    if(c->GetTerm() == Objective::POWER)
+      iteration->Get(c->ToString() + "_power")->SetValue(std::pow(c->GetOrgValue(),c->GetParameter()));
   }
 
   // we might have bloch information calculated int ErsatzMaterial::CommitIteration()
@@ -1568,7 +1655,7 @@ DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
   if(pde->GetName() == "electrostatic") return DesignElement::POLARIZATION;
   if(pde->GetName() == "LatticeBoltzmann") return DesignElement::DENSITY;
   if(pde->GetName() == "mechanic") return DesignElement::DENSITY;
-  if(pde->GetName() == "acoustic") return DesignElement::ACOU_DENSITY;
+  if(pde->GetName() == "acoustic") return DesignElement::DENSITY;
 
   throw Exception("invalid");
 }
@@ -1579,7 +1666,7 @@ DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
 //  {
 //  case DesignElement::DENSITY:
 //      return App::MECH; // wrong for buckling
-//  case DesignElement::ACOU_DENSITY:
+//  case DesignElement::DENSITY:
 //    return App::ACOUSTIC;
 //  case DesignElement::POLARIZATION:
 //    return App::ELEC;

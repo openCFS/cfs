@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="2" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.199s" wall="0.199" cpu="0.198988" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="269.86" peak="271.87"/>
+  </summary>
+  <header id="">
+    <environment started="2022-Dec-05 15:44:17" host="filkin"/>
+    <progOpts problem="cdb2cfs_2D" parameterFile="/home/FilkinVM/projects/Devel/CFS_SRC/CFS/Testsuite/TESTSUIT/Technical/cdb2cfs_2D/cdb2cfs_2D.xml" schemaPath="/home/FilkinVM/projects/Devel/CFS_SRC/CFS/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="22.11" name="Welcome World" build="Debug" git_commit="e318a283c2398f747c0ff2d6e47299d5d6e18ca4" git_branch="FilkinPlayground" exe="/home/FilkinVM/projects/Devel/CFS_BIN/build/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain nx="2" ny="2" nz="1">
+      <grids>
+        <timer wall-clock="0.019s" wall="0.019" cpu="0.019487" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="6" nodes="9"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="V_plane" id="0" type="volume" regular="yes" hom="yes" nodes="9" elems="4" isQuadratic="no"/>
+        <region name="L_low" id="1" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser nx="2" ny="2" nz="1"/>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+</cfsInfo>

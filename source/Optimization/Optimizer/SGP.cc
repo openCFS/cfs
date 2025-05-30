@@ -1022,7 +1022,9 @@ void SGP::SetBounds() //TODO: avoid repetitions of code to make it less prone to
   gu.Resize(n_constraints);
 
   if (n_constraints > 0)
+  {
     LOG_TRACE(sgpopt) << "SB: volume bound = " << gu[0];
+  }
 
   // we get bounds for each design element type
   StdVector<double> xl, xu;

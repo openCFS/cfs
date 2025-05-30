@@ -176,6 +176,15 @@ namespace CoupledField
 
     inline bool DoCoilOptimization() { return coilOptimization_; }
 
+    void GenerateLorentzForceResults(CoupledField::StdVector<std::string> &vecComponents, boost::shared_ptr<CoupledField::CoefFunctionMulti> &tcdCoef,
+      CoupledField::PtrCoefFct &bFunc, CoupledField::Global::ComplexPart &part, boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) ;
+
+    //! This coefficient function describes the velocity field.
+    shared_ptr<CoefFunctionMulti> VelocityCoef_;
+    
+    //! Function to get the velocity field of each region defined in the xml-Script for all childs of the base PDE
+    void ReadRegionVelocityField(std::string velocityId, shared_ptr<ElemList> actSDList, RegionIdType actRegion, bool& coefUpdateGeo);
+
   };
 } // end of namespace
 #endif

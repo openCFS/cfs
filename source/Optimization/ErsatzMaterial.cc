@@ -18,6 +18,7 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
@@ -69,6 +70,7 @@
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
+#include "PDE/AcousticPDE.hh"
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
@@ -267,6 +269,7 @@ void ErsatzMaterial::PostInit()
       break;
 
     case Function::DYNAMIC_OUTPUT:
+    case Function::REFLECTED_WAVE:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
       if(!f->ctxt->IsComplex())
         throw Exception(func + " is only for harmonic state problems");
@@ -287,6 +290,7 @@ void ErsatzMaterial::PostInit()
     case Function::OUTPUT:
     case Function::SQUARED_OUTPUT:
     case Function::DYNAMIC_OUTPUT:
+    case Function::REFLECTED_WAVE:
     case Function::ABS_OUTPUT:
     {
       if(!f->pn->Has("output"))
@@ -305,10 +309,17 @@ void ErsatzMaterial::PostInit()
       if(output->Has("elecPotential"))
         pde->ReadRhsExcitation("elecPotential", pde->GetDofNames(ELEC_POTENTIAL), ResultInfo::SCALAR, context->IsComplex(), ent, coef, geo, output);
 
+      // Check if acouPressure formulation is selected as PDE
+      assert(context != nullptr);
+      assert(context->mat != nullptr);
+      if(context->mat->GetSystem() == OptimizationMaterial::ACOUSTIC){
+        const AcousticPDE* apde = dynamic_cast<const AcousticPDE*>(context->ToPDE(App::ACOUSTIC));
+        assert(apde != nullptr);
+        if(apde->GetFormulation() != ACOU_PRESSURE)
+          throw Exception("Acoustic optimization only for acouPressure formulation.");
+      }
       if(output->Has("acoustic"))
-        assert(false);
-
-        //domain->GetSinglePDE("acoustic")->ReadLoads(output->GetList("acoustic"), f->output_nodes);
+        pde->ReadRhsExcitation("acoustic", pde->GetDofNames(ACOU_PRESSURE), ResultInfo::SCALAR, context->IsComplex(), ent, coef, geo, output);
 
       // we store the loads in forms of linear forms
       for(unsigned int i = 0; i < ent.GetSize(); ++i )
@@ -317,12 +328,19 @@ void ErsatzMaterial::PostInit()
 
         if(ent[i]->GetSize() > 1 ) { // MechPDE.cc -> "force"
           Global::ComplexPart part = context->IsComplex() ? Global::COMPLEX : Global::REAL;
-          coef[i] = CoefFunction::Generate(domain->GetMathParser(), part, CoefXprVecScalOp(domain->GetMathParser(), coef[i], boost::lexical_cast<std::string>(ent[i]->GetSize()), CoefXpr::OP_DIV));
+          // Check for Vector or Scalar
+          if(coef[i]->GetDimType() == CoefFunction::VECTOR){
+            coef[i] = CoefFunction::Generate(domain->GetMathParser(), part, CoefXprVecScalOp(domain->GetMathParser(), coef[i], std::to_string(ent[i]->GetSize()), CoefXpr::OP_DIV));
+          }
+          if(coef[i]->GetDimType() == CoefFunction::SCALAR){
+            // this divides the given value by the total number of elements
+            coef[i] = CoefFunction::Generate(domain->GetMathParser(), part, CoefXprBinOp(domain->GetMathParser(), coef[i], std::to_string(ent[i]->GetSize()), CoefXpr::OP_DIV));
+          } 
         }
 
         LinearForm* lin = new SingleEntryInt(coef[i]);
         lin->SetName("NodalForceInt");
-        LinearFormContext *ctx = new LinearFormContext( lin );
+        LinearFormContext* ctx = new LinearFormContext(lin);
         ctx->SetEntities( ent[i] );
         ctx->SetFeFunction(pde->GetFeFunction(pde->GetNativeSolutionType()));
 
@@ -390,7 +408,7 @@ void ErsatzMaterial::PostInit()
         idx = order[idx];
       }
       if(idx > 0)
-        log.AddToHeader("mode_" + boost::lexical_cast<std::string>(idx));
+        log.AddToHeader("mode_" + std::to_string(idx));
     }
   }
 
@@ -485,7 +503,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
     iteration->Get(boost::get<0>(log.bloch_info[i]))->SetValue(boost::get<1>(log.bloch_info[i]));
 
-  // add our multiple excitation stuff here (only in info.xml, this would be to complex for dat
+  // add our multiple excitation stuff here.
+  // the .plot.dat already has a simplified output in Optimization.cc
   if(me->IsEnabled())
   {
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
@@ -863,7 +882,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
   assert(!(design_dependend && tf->GetDesign() == DesignElement::DEFAULT));
   int base_lower = design_dependend ? design->FindDesign(tf->GetDesign()) * elements : 0;
   int base_upper = design_dependend ? base_lower + elements : design->data.GetSize();
-  LOG_DBG2(em) << "CalcU1KU2: elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
+  LOG_DBG2(em) << "CalcU1KU2: elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper << " f=" << f->ToString() << " fctxt=" << f->ctxt->context_idx << "/" << manager.context.GetSize() << " ex=" << context->GetExcitation()->frequency;
 
   // create an element list to gain the iterator in the loop
   ElemList elemList(grid);
@@ -893,7 +912,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       // u1^T (K' u2 - f') -> find "K'"
       SetElementK(f, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
 
-      LOG_DBG3(em) << "CalcU1KU2: mat=" << mat.ToString() << "; u2_vec=" << u2_vec.ToString() << "; u1_vec= " << u1_vec.ToString();
+      LOG_DBG3(em) << "CalcU1KU2: e=" << e << " mat=" << mat.ToString() << "; u2_vec=" << u2_vec.ToString() << "; u1_vec= " << u1_vec.ToString();
 
       // We generally solve u1^T (K' u2 - f')
       // u1^T (K' u2 - f') -> calc "K' u2"
@@ -927,6 +946,7 @@ double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>&
       if(f->ctxt->DoBuckling() && f->ctxt->GetBucklingDriver()->IsInverseProblem())
         this_value *= -1.0/pow(ev,2);
 
+      // e.g. for multiload, in normal case just one gradient
       de->AddGradient(f, this_value);
 
       LOG_DBG3(em) << "CalcU1KU2: e=" << e << "->" << de->GetIndex() << " de=" << de->ToString() << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
@@ -975,13 +995,15 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
   Matrix<complex<double> >& S = K_in_S_out;
   LOG_DBG3(em) << "AMTS: 1. e=" << de->elem->elemNum << " ev=" << ev << " m_factor=" << m_factor << " K_in_S_out=" << S.ToString();
   // find alpha, beta and omega. We have no omega for the eigenvalue case and 1.0 eliminates it
-  double omega = mode != EIGENFREQ ? 2.0 * M_PI * ctxt->pde->GetSolveStep()->GetActFreq() : 1.0 ;  // todo: check with multiple excitation frequencies!
+  // omega was from pde ctxt->pde->GetSolveStep()->GetActFreq() before but this is not current for multiple excitations 
+  double omega = mode != EIGENFREQ ? 2.0 * M_PI * context->GetExcitation()->frequency : 1.0 ;
+  LOG_DBG3(em) << "AMTS: e=" << de->elem->elemNum << " fpde=" << ctxt->pde->GetSolveStep()->GetActFreq() << " fex=" << context->GetExcitation()->frequency;
   double alpha_k = 0.0;
   double alpha_m  = 0.0;
   double pamping_m = 0.0; // add on without omega
   // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
   RegionIdType regionId = de->elem->regionId;
-  if(ctxt->pde->GetDamping(regionId) == RAYLEIGH)
+  if(ctxt->pde->GetDamping(regionId) == RAYLEIGH || ctxt->pde->GetDamping(regionId) == ADAPTED_LOSS_TANGENS_DELTA || ctxt->pde->GetDamping(regionId) == GLOBAL_RAYLEIGH)
   {
     assert(mode != EIGENFREQ);
     SinglePDE* pde = ctxt->pde;
@@ -1030,7 +1052,7 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
     Add<Complex, double>(S, damp_mass, M);
     LOG_DBG3(em) << "AMTS: 3. real e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();
   }
-  LOG_DBG2(em) << "AddMassToStiffness: d=" << de->elem->elemNum << " der=" << derivative << " bm=" << bimaterial << " mode="  << mode << " ev=" << ev
+  LOG_DBG2(em) << "AMTS: e=" << de->elem->elemNum << " der=" << derivative << " bm=" << bimaterial << " mode="  << mode << " ev=" << ev
                  << " m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m << " pamping_m:" << pamping_m
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
   LOG_DBG3(em) << "AMTS: 4. e=" << de->elem->elemNum << " S -> " << S.ToString();
@@ -1314,8 +1336,7 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
       break;
 
     case Function::GREYNESS:
-      assert(c == NULL);
-      result = CalcGreyness(g, derivative);
+      result = CalcGreyness(f, derivative);
       break;
 
     case Function::FILTERING_GAP:
@@ -1375,7 +1396,6 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::SHAPE_INF:
     case Function::LOCAL_PYTHON_FUNCTION:
     case Function::ARC_OVERLAP:
-    case Function::PYTHON_VOLUME:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;
@@ -1423,11 +1443,12 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::OUTPUT:
     case Function::SQUARED_OUTPUT:
     case Function::DYNAMIC_OUTPUT:
+    case Function::REFLECTED_WAVE:
     case Function::CONJUGATE_COMPLIANCE:
     case Function::ABS_OUTPUT:
       assert(!derivative);
       if(f->ctxt->IsComplex())
-        result = CalcOutput<complex<double> >(excite, f);
+        result = CalcOutput<complex<double>>(excite, f);
       else
         result = CalcOutput<double>(excite, f);
       break;
@@ -1496,9 +1517,9 @@ double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool deriva
     case Function::ISO_ORTHOTROPY:
     case Function::ORTHOTROPY:
     case Function::MULTI_OBJECTIVE:
+    case Function::NO_TYPE:
       assert(false);// no valid function
       break;
-
     // no default, gcc warns
   }
   LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
@@ -1889,7 +1910,7 @@ double ErsatzMaterial::CalcCompliance(Excitation& excite, Objective* f, Conditio
       double sp = 0.0;
       u.Inner(rhs, sp);
       result += sp * excite.GetFactor(func) * GetStepWeight(ts);
-      LOG_DBG(em) << "CC: result=" << result << " sp=" << sp << " u=" << u.ToString() << " func=" << func->ToString();
+      LOG_DBG(em) << "CC: result=" << result << " sp=" << sp << " func=" << func->ToString();
     }
   }
   return result;
@@ -1960,6 +1981,7 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
   LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(TS_INFO);
   LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString();
   double result = 0.0;
+  Complex z(0,0);
   switch(f->GetType())
   {
     case Function::OUTPUT:
@@ -1994,11 +2016,19 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
       break;
     }
 
+    // Set z value for later computation
+    case Objective::REFLECTED_WAVE:
+      if (f->ctxt->mat->GetSystem() != OptimizationMaterial::ACOUSTIC)
+        throw Exception("reflectedWave only works for acoustic optimization.");
+      z = GetExcitationPressure(f);
+      // intentionally no break
+
     case Objective::DYNAMIC_OUTPUT:
     case Objective::CONJUGATE_COMPLIANCE:
     {
       // this is <u,L conj(u)> and only defined for the harmonic case!
-      if(!f->ctxt->IsComplex()) throw Exception("'" + f->type.ToString(f->GetType()) + "' is only defined for harmonic!");
+      if(!f->ctxt->IsComplex()) 
+        throw Exception("'" + f->type.ToString(f->GetType()) + "' is only defined for harmonic!");
 
       // we loop over the vectors and do the scalar product by hand as we have
       // no diagonal matrix version of l
@@ -2007,6 +2037,11 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
         if(l[i] == 0.0) continue; // we skip this so we can make output for the real cases
 
         complex<double> u_val = (complex<double>) u[i];
+
+        // substract z (this is just nonzero for REFLECTED WAVE)
+        if (f->GetType() == Function::REFLECTED_WAVE)
+          u_val -= z;
+
         // make sure we have no penalization stuff!
         assert(std::abs(u_val) < 1e15);
 
@@ -2018,7 +2053,6 @@ double ErsatzMaterial::CalcOutput(Excitation& excite, Function* f)
       result *= excite.GetFactor(f);
       break;
     }
-
     default: EXCEPTION("Not handled");
     break;
   }
@@ -3748,83 +3782,79 @@ double ErsatzMaterial::CalcFilteringGap(Condition* g, bool derivative) {
   return result;
 }
 
-double ErsatzMaterial::CalcGreyness(Condition* g, bool derivative)
+double ErsatzMaterial::CalcGreyness(Function* f, bool derivative)
 {
+  // the basic grayness idea is: 
+  // g(x)=4*x*(1-x) with x in [0,1] such that 0 <= g <= 1
+  // we normalize the design variables to [0,1] and calculate the greyness 
+  // x(rho) = (rho-lb)/(ub-lb)
+  // for the physical case we have 
+  // g(x)=s * x**3 * (1-x)**3 and NOT x**3 * (1-x**3) (make a plot to see the difference) 
+  // s is found by CalcGraynessScaling()
+  
+  // non-physical case: d/dr 4* (r-l)/(u-l)*(1-(r-l)/(u-l))
+  // g' = 4 * (l+u-2*rho)/(u-l)**2
+
+  // physical case: d/dr s * t(x(r)) * t(1-x(r))
+  // g' = s * x'(r) * (t(1 - x(r)) * t'(x(r)) - t(x(r)) * t'(1 - x(r))) with x'(r) = 1/(u-l)
+  // I don't believe wolfram alpha for the insterted variant!
+  // d/dr(t((r - l)/(u - l)) t(1 - (r - l)/(u - l))) = (t((l - r)/(l - u)) t'((r - u)/(l - u)) - t((r - u)/(l - u)) t'((l - r)/(l - u)))/(l - u)
+
   double greyness = 0.0; // element greyness
-  int counter = 0;// to make it sure for different design variables!
-  double lb, ub, span, org_value, value, grad, eval;
-  lb = ub = value = grad = eval = span = 0.0;
+  double lb = 0, ub = 0, span = 0, grad = 0, eval = 0; // lb and ub original bounds, span = ub-lb
+  double rho = -1.0; // plain or filtered design. Not normalized (not necessarily within [0,1])
+  double x   = -1.0; // plain or filtered design normalized to [0,1]
+  double s   = f->CalcGraynessScaling(); // scaling factor - 4 in the non-physical case
+  assert(!(!f->IsPhysical() && s != 4.0)); // only 4.0 is allowed for the non-physical case
+  
+  //double x = -1.0; // plain or filtered design. Not normalized (not necessarily within [0,1])
+  //double org_value = -2.0; // x^3 in the pyhsical case or x - but not normalized 
+  //double value = -3.0; // org_value normalized to [0,1]
   // we have to divide the gradients by their relative volume = fraction
-  double fraction = g->GetDesignType() == DesignElement::DEFAULT ? design->data.GetSize() : design->GetNumberOfElements();
-  // do we want the physical value?
-  TransferFunction* tf = g->IsPhysical() ? design->GetTransferFunction(g->GetDesignType(), App::MECH) : NULL;
+  TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), App::MECH) : NULL;
+  unsigned int N = f->GetDesignType() == DesignElement::DEFAULT ? f->elements.GetSize() : design->GetNumberOfElements();
+  unsigned int cnt = 0; // to check N
   // go over the complete design space to set gradients of other types to 0
-  for(unsigned int i = 0; i < g->elements.GetSize(); i++)
+  for(unsigned int i = 0; i < f->elements.GetSize(); i++)
   {
-    DesignElement* de = g->elements[i];
-    bool relevant = g->GetDesignType() == DesignElement::DEFAULT || g->GetDesignType() == de->GetType();
-    if(relevant)
+    DesignElement* de = f->elements[i];
+    // e.g. skip slack
+    if(f->GetDesignType() == DesignElement::DEFAULT || f->GetDesignType() == de->GetType())
     {
-      if(g->IsPhysical())
+      rho = de->GetDesign(f->GetAccess() == Function::PLAIN ? DesignElement::PLAIN : DesignElement::SMART);
+      lb = de->GetLowerBound();
+      ub = de->GetUpperBound();
+      span = ub-lb;
+      x = (rho - lb) / span;
+      if(span < 0.01) 
+        throw Exception("cannot calculate grayness with almost equal design bounds");
+      cnt++;
+        
+      if(!derivative)  
       {
-        lb = tf->Transform(de->GetLowerBound());
-        ub = tf->Transform(de->GetUpperBound());
-        org_value = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
+        if(f->GetAccess() == Function::PHYSICAL)
+          eval = s * tf->Transform(x) * tf->Transform(1-x); 
+        else
+          eval = s * x * (1-x);
+        greyness += eval;
       }
       else
       {
-        lb = de->GetLowerBound();
-        ub = de->GetUpperBound();
-        org_value = de->GetDesign(g); // PLAIN or FILTERED
+        if(f->GetAccess() == Function::PHYSICAL)
+          grad = s / span * (tf->Transform(1-x) * tf->Derivative(x) - tf->Transform(x) * tf->Derivative(1-x)) / N;
+        else
+          grad = 4 * (lb+ub-2*rho)/(span*span) / N;
+        de->AddGradient(f, grad);
       }
-
-      span = ub-lb;
-
-      if(span < 0.01) EXCEPTION("cannot calculate grayness with almost equal design bounds");
-
-      // We normalize for a design variable from [0;1]
-      // this has minor effect on density [0.001;1] but is important
-      // for polarization[-1;1]
-      value = (org_value - lb) / span;
+      LOG_DBG3(conditions) << "CG: de=" << de->elem->elemNum << " a=" << f->access.ToString(f->GetAccess()) << " d=" << derivative
+          << " rho=" << rho << " x=" << x << " lb=" << lb << " ub=" << ub << " s=" << span << " t(x)=" << (tf ? tf->Transform(x) : -1.0)
+          << " t(1-x)=" << (tf ? tf->Transform(1-x) : -1.0) << " -> eval=" << eval << " grad=" << grad;
     }
-
-    if(derivative)
-    {
-      if(relevant)
-      {
-        // standard greyness without parameters! times 4 so we have 1 for maximum greyness
-        // Note that we transformed to [0,1]
-        // f(x)=4*(1-x)x * 4 = 4*(-x^2+x+1)
-        // f'(x)= 4*(-2x+1)
-        grad = (-8.0 * value + 4.0)/span;
-      }
-      // divide by fraction
-      // the gradient of non-relevant is 0
-      grad = relevant ? grad / fraction : 0.0;
-
-      // set 0.0 if not relevant
-      design->data[i].AddGradient(NULL, g, grad);
-    }
-    else // not derivative but function evaluation
-    {
-      // we normalized the greyness to value from [0;1]
-      if(relevant)
-      {
-        eval = 4.0* (1-value) * (value);
-        greyness += eval;
-        counter++;
-      }
-    }
-    LOG_DBG3(conditions) << Condition::type.ToString(g->GetType()) << " a=" << g->access.ToString(g->GetAccess())
-    << " derive=" << derivative << " relevant=" << relevant
-    << " elem=" << de->elem->elemNum << " pv=" << de->GetDesign(DesignElement::PLAIN)
-    << " sv=" << de->GetDesign(DesignElement::SMART)
-    << " ov= " << org_value << " lb=" << " ub=" << ub
-    << " -> " << value << " grad=" << grad << " eval=" << eval
-    << " fraction=" << fraction << " counter=" << counter;
-
   }
-  return greyness / (double)(counter);
+  LOG_DBG(conditions) << "CG: a=" << f->access.ToString(f->GetAccess()) << " d=" << derivative << " cnt=" << cnt << " N=" << N << " -> eval=" << eval;
+  
+  assert(cnt == N);
+  return greyness / N;
 }
 
 double ErsatzMaterial::CalcLocalConstraint(Condition* g, bool derivative)
@@ -3908,6 +3938,8 @@ double ErsatzMaterial::CalcGlobalFunction(Excitation& excite, Function* f, bool 
 
 void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 {
+  LOG_DBG(em) << "SSP";
+
   assert(!baseOptimizer_ || baseOptimizer_->ValidateTimers());
   // if ev_only_excite is set we use the given excitation
   // -> it shall not coincide
@@ -4017,6 +4049,8 @@ void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_excite)
 
 void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_excite)
 {
+  LOG_DBG(em) << "SAPs ev=" << (ev_only_excite ? ev_only_excite->GetFullLabel() : "null");
+
   assert(!baseOptimizer_ || baseOptimizer_->ValidateTimers());
   // solve all adjoints needed for gradient calculation
   assert(!(ev_only_excite != NULL && me->IsEnabled()));
@@ -4196,6 +4230,8 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 template<class T>
 void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
 {
+  LOG_DBG(em) << "SAP f=" << f->ToString();
+
   boost::shared_ptr<Timer> eval_timer = baseOptimizer_ != NULL ? baseOptimizer_->GetRunningEvalTimer() : boost::shared_ptr<Timer>();
   if(eval_timer)
     eval_timer->Stop();
@@ -4237,6 +4273,7 @@ void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
     case Function::ABS_OUTPUT:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
     case Function::DYNAMIC_OUTPUT:
+    case Function::REFLECTED_WAVE:
     case Function::ELEC_ENERGY:
     case Function::ENERGY_FLUX:
     case Function::GLOBAL_STRESS: // LOCAL_STRESS is handled below
@@ -4547,19 +4584,34 @@ void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   LOG_DBG2(em) << "ts: " << ts << " f: " << f->ToString();
   Vector<Complex>& u = forward.Get(excite, NULL, ts)->GetComplexVector(StateSolution::RAW_VECTOR);
   Vector<Complex>& l = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::SEL_VECTOR);
-  LOG_DBG2(em) << "ConstructComplexAdjointRHS: u = " << u.ToString();
-  LOG_DBG2(em) << "ConstructComplexAdjointRHS: l = " << l.ToString();
+  LOG_DBG2(em) << "CCARHS: u = " << u.ToString();
+  LOG_DBG2(em) << "CCARHS: l = " << l.ToString();
+  LOG_DBG(em) << "CCARHS: #u=" << u.GetSize() << " #l=" << l.GetSize();
+  assert(u.GetSize() > 0); // should actually also hold for l!
+
 
   // create a OLAS vector
   Vector<Complex>& rhs = adjoint.Get(excite, f, ts)->GetComplexVector(StateSolution::RHS_VECTOR);
   rhs.Resize(u.GetSize());
   rhs.Init();
+  Complex z(0,0);
   switch(f->GetType())
   {
+    // Statement without break to set a nonzero z value for later computation
+    case Objective::REFLECTED_WAVE:
+      z = GetExcitationPressure(f);
+      // intentionally no break
+
     case Function::DYNAMIC_OUTPUT: // rhs is from "output loads" and set in adjoint...rhs
-      // the correct conjugate_output case is -L * u*, always complex!
+      // substract z (this is just nonzero for REFLECTED WAVE)
+      // the correct conjugate_output case is -L * (u - z)*, always complex,
+      // where z is just nonzero for REFLECTED WAVE!
       for(unsigned int i = 0; i < rhs.GetSize(); i++)
-        rhs[i] = -1.0 * l[i] * std::conj(u[i]);
+        if (f->GetType() == Function::REFLECTED_WAVE)
+          // substract z here
+          rhs[i] = -1.0 * l[i] * std::conj(u[i] - z);
+        else
+          rhs[i] = -1.0 * l[i] * std::conj(u[i]);
       break;
 
     case Function::ABS_OUTPUT:

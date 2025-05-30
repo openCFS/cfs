@@ -1,0 +1,40 @@
+reset
+#{ l = 1 }
+#{ h_gap=0.2}
+#{ h_electrodes=0.1}
+#{ x_air=2e-1}
+#{ x_electrodes=2e-1}
+#
+brick x {l} y {h_gap} z {l}
+brick x {l} y {h_electrodes} z {l}
+move volume 2 y {0.5*(h_gap+h_electrodes)}
+brick x {l} y {h_electrodes} z {l}
+move volume 3 y {-0.5*(h_gap+h_electrodes)}
+brick x {l} y {l**2} z {l}
+move volume 4 y {0.5*(h_gap+2*h_electrodes+l**2)}
+imprint volume all
+merge volume all
+nodeset 1 add surface 5
+nodeset 1 name "S_upper_electrode"
+nodeset 2 add surface 3
+nodeset 2 name "S_lower_electrode"
+nodeset 3 add surface 23
+nodeset 3 name "S_fix"
+nodeset 4 add surface 7
+nodeset 4 name "S_guide"
+nodeset 5 add vertex 2
+nodeset 5 name "sensor"
+block 1 add volume 1
+block 1 name "V_air"
+block 2 add volume 2
+block 2 name "V_upper_electrode"
+block 3 add volume 3
+block 3 name "V_lower_electrode"
+block 4 add volume 4
+block 4 name "V_spring"
+volume 1 size {x_air}
+volume 2 3 4 size {x_electrodes}
+mesh volume all
+#
+export ansys cdb "./ElecForcesCapacitorStatic3D.cdb" overwrite
+

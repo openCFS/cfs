@@ -128,18 +128,18 @@ namespace CoupledField
 
        /** The scaling is evaluated for external optimizers, not in OC!
         * This is the manual set scaling value - in objective_scaling_ case this value is ignored! */
-       double manual_scaling_value;
+       double manual_scaling_value = 0.0;
 
        /**The penalty formulation allows to add constraints via this penalty term to the objective.
         * Actually a penelty method finds iteratively the right value, in practice it is a given
         * parameter. Currently this is *only* implemented for the *Level-Set* method! */
-       double penalty;
+       double penalty = 0.0;
        
        /** Shall delta constraints be printed? Is only true if a value is given! */
-       bool delta_logging;
+       bool delta_logging = false;
 
        /** Used for caching 1.0 / complete_volume per region */
-       double volume_fraction;
+       double volume_fraction = -1.0;
 
        /** For the homogenization tensor constraint this gives the actual position within the matrix_.
         * The first entry is for homogenization always set.
@@ -162,7 +162,7 @@ namespace CoupledField
        static double ALPHA_PLUS_SLACK_VALUE;
 
        // number of displacement constraints realized by multiple output constraints
-       UInt output_multiple_nodes;
+       UInt output_multiple_nodes = 0;
 
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
@@ -182,22 +182,23 @@ namespace CoupledField
       Condition* AppendSubCondition(StdVector<Condition*>& list, int pos_x, int pos_y);
 
       /** Bound stuff for condition and globalSlope also for objective */
-      Bound bound_;
+      Bound bound_ = EQUAL;
 
       /** the bound value, the value_ attribute contains the function value */
-      double boundValue_;
+      double boundValue_ = 0.0;
 
       bool delta_logging_ignored_ = false;
 
-      bool objective_scaling_;
+      /** shall we scale the condition with the objective scaling? */
+      bool objective_scaling_ = false;
 
       /** Is this an observation constraint only. */
-      bool observation_;
+      bool observation_ = false;
 
       /** Some special constraints are automatically blown up - like isotropy. But
        * even then the first of the entries is NOT blown up!
        * Set by AppendSubCondition() */
-      bool blown_up_;
+      bool blown_up_ = false;
 
       /** This is only needed for biisotropy constraints, meaning that both permittitvity and permeability shall be isotropic
        *  biisotropy == true indicates isotropy constraints on the permeability  */
@@ -209,7 +210,7 @@ namespace CoupledField
 
       /** this is the virtual base index of this condition w.r.t. all conditions.
        * For normal condition this is simple the virtual index, for local conditions this is the base*/
-      int virtual_base_index_;
+      int virtual_base_index_ = -1;
 
     private:
 
@@ -237,7 +238,7 @@ namespace CoupledField
       static void AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
 
       /** In the bloch case shall we have a constraint for every wave vector or search for the extremal */
-      bool bloch_extremal_;
+      bool bloch_extremal_ = false;
 
    };
 

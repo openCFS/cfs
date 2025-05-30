@@ -1,17 +1,21 @@
-cmake_minimum_required (VERSION 3.6)
+cmake_minimum_required (VERSION 3.16)
 
 include(ExternalProject)
 include(CMakePrintHelpers) # cmake_print_variables()
 
 project (SuiteSparse LANGUAGES C )
 
-# we expecitly set here a default, as for MSVC unset results in Debug and for all other system it is Release
 option(BUILD_STATIC "build static libraries" ON)
 option(USE_OPENMP "enable OpenMP" ON)
+
+# we build the subprojects in parallel, default is local machine value. Exectute this project serial
+cmake_host_system_information(RESULT NCORES QUERY NUMBER_OF_LOGICAL_CORES) # hyperthreading can be used to compile
+set(BUILD_THREADS ${NCORES} CACHE STRING "Parallel build threads for subprojects") 
+
 # inspired by https://github.com/sergiud/SuiteSparse
 option(ALLOW_GPL_EXTENSIONS "let the solvers use optional GPL features" ON)
 option(ALLOW_64BIT_BLAS "look for 32-bit BLAS only or concurrent 32- and 64-bit BLAS" OFF)
-set(SUGGEST_BLAS_LIBRARIES "" CACHE STRING "override autodetection by suggeting lib(s) for BLAS_LIBRARIES")
+set(SUGGEST_BLAS_LIBRARIES "" CACHE STRING "override auto detection by suggesting lib(s) for BLAS_LIBRARIES")
 
 option(ENABLE_AMD "routines for pre-ordering sparse matrices prior to factorization" ON)
 option(ENABLE_CAMD "routines for permuting sparse matrices prior to factorization" ON)
@@ -20,8 +24,9 @@ option(ENABLE_COLAMD "column approximate minimum degree ordering" ON)
 option(ENABLE_CHOLMOD "sparse CHOLesky MODification package" ON)
 option(ENABLE_UMFPACK "routines solving sparse linear systems via LU factorization" ON)
 
-# this are the common arguments for all individual cmake projects. On Windows default build type is Debug
+# this are the common arguments for all individual cmake projects. On Windows, the system default build type is Debug
 set(CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})
+
 if(BUILD_STATIC)
   list(APPEND CMAKE_ARGS -DNSTATIC:BOOL=OFF)
 else()
@@ -39,6 +44,12 @@ if(NOT SUGGEST_BLAS_LIBRARIES STREQUAL "")
   set(BLAS_LIB -DBLAS_LIBRARIES=${SUGGEST_BLAS_LIBRARIES} -DLAPACK_LIBRARIES=${SUGGEST_BLAS_LIBRARIES})
 endif()
 
+# we control how parallel we build the subprojects for make and ninja
+if(${CMAKE_GENERATOR} STREQUAL "Unix Makefiles" OR ${CMAKE_GENERATOR} STREQUAL "Ninja")
+  set(PARALLEL_BUILD_OPTIONS "-j${BUILD_THREADS}") # empty for NMake
+endif()  
+
+
 # the CMAKE_SOURCE_DIR points to the root directory, independent from where it's CMakeLists.txt is called
 # the add the desired subpackages. Via DEPENDS the proper order is guaranteed
 set(ARGS ${CMAKE_ARGS} ${OPENMP})
@@ -50,10 +61,11 @@ ExternalProject_Add(SuiteSparse_config
   SOURCE_DIR "${CMAKE_SOURCE_DIR}/SuiteSparse_config"
   BINARY_DIR "${CMAKE_SOURCE_DIR}/SuiteSparse_config/build"
   INSTALL_COMMAND "" # we disable instant install and perform install later via INSTALL_LIST 
+  BUILD_COMMAND ${CMAKE_COMMAND} --build . ${PARALLEL_BUILD_OPTIONS} 
   CMAKE_ARGS ${ARGS} -DALLOW_64BIT_BLAS=${ALLOW_64BIT_BLAS})
 
 # here we collect install targets. Via INSTALL_COMMAND "" in the ExternalProject_Add() we prevent
-# instant installation. Via this list a make install install in the build directory performes this
+# instant installation. Via this list a make install install in the build directory performs this
 # by calling make install in all modules build directories. The install target is set via CMAKE_INSTALL_PREFIX
 # in ExternalProject_Add()
 set(INSTALL_LIST ${CMAKE_SOURCE_DIR}/SuiteSparse_config/build)
@@ -69,6 +81,7 @@ if (ENABLE_AMD OR ENABLE_CHOLMOD OR ENABLE_UMFPACK)
     BINARY_DIR "${CMAKE_SOURCE_DIR}/AMD/build"
     DEPENDS SuiteSparse_config
     INSTALL_COMMAND ""
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${PARALLEL_BUILD_OPTIONS}
     CMAKE_ARGS ${CMAKE_ARGS} )
   list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/AMD/build)   
 endif()
@@ -83,6 +96,7 @@ if (ENABLE_CAMD OR ENABLE_CHOLMOD)
     BINARY_DIR "${CMAKE_SOURCE_DIR}/CAMD/build"
     DEPENDS SuiteSparse_config
     INSTALL_COMMAND ""    
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${PARALLEL_BUILD_OPTIONS}
     CMAKE_ARGS ${CMAKE_ARGS} )
   list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/CAMD/build)    
 endif()
@@ -97,6 +111,7 @@ if (ENABLE_CCOLAMD OR ENABLE_CHOLMOD)
     BINARY_DIR "${CMAKE_SOURCE_DIR}/CCOLAMD/build"
     DEPENDS SuiteSparse_config
     INSTALL_COMMAND ""    
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${PARALLEL_BUILD_OPTIONS}
     CMAKE_ARGS ${CMAKE_ARGS} )
   list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/CCOLAMD/build)    
 endif()
@@ -111,6 +126,7 @@ if (ENABLE_COLAMD OR ENABLE_CHOLMOD)
     BINARY_DIR "${CMAKE_SOURCE_DIR}/COLAMD/build"
     DEPENDS SuiteSparse_config
     INSTALL_COMMAND ""    
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${PARALLEL_BUILD_OPTIONS}
     CMAKE_ARGS ${CMAKE_ARGS} )
   list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/COLAMD/build)    
 endif()
@@ -128,6 +144,7 @@ if (ENABLE_CHOLMOD)
     SOURCE_DIR "${CMAKE_SOURCE_DIR}/CHOLMOD"
     BINARY_DIR "${CMAKE_SOURCE_DIR}/CHOLMOD/build"
     DEPENDS SuiteSparse_config COLAMD CCOLAMD AMD
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${PARALLEL_BUILD_OPTIONS}
     INSTALL_COMMAND ""    
     CMAKE_ARGS ${ARGS} -DALLOW_64BIT_BLAS=${ALLOW_64BIT_BLAS} )
   list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/CHOLMOD/build)    
@@ -145,6 +162,7 @@ if (ENABLE_UMFPACK)
     BINARY_DIR "${CMAKE_SOURCE_DIR}/UMFPACK/build"
     DEPENDS SuiteSparse_config 
     INSTALL_COMMAND ""    
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${PARALLEL_BUILD_OPTIONS}
     CMAKE_ARGS ${ARGS} -DALLOW_64BIT_BLAS=${ALLOW_64BIT_BLAS} )
   list(APPEND INSTALL_LIST ${CMAKE_SOURCE_DIR}/UMFPACK/build)      
 endif()

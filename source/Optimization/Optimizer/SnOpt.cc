@@ -122,7 +122,8 @@ void SnOpt::Init()
   cw.Resize(8*mincw);
   rw.Resize(minrw);
   iw.Resize(miniw);
-  sninit(&iPrint, &iSumm, &cw[0], &mincw, &iw[0], &miniw, &rw[0], &minrw, 8*mincw);
+  LOG_DBG2(snopt) << "I: sninit iPrint=" << iPrint << " iSumm=" << iSumm << " mincw=" << mincw << " miniw=" << miniw << " minrw=" << minrw;
+  sninit(&iPrint, &iSumm, &cw[0], &mincw, &iw[0], &miniw, &rw[0], &minrw, 8*mincw); // what the hell is 8*mincw?
 
   // set the file for snopt, formerly fort.1
   setSnoptOutputFiles();
@@ -791,8 +792,6 @@ void SnOpt::SetIntegerValue(const std::string& key, int32_t value)
   else if(key == "verify_level")
   {
     option = "Verify level";
-    if(value > -1 && domain->GetOptimization()->GetDesign()->elementCache != NULL)
-      info_->Get(ParamNode::HEADER)->SetWarning("SNOPT's gradient check might not work with LocalElementCache.");
   }
   else if(key == "major_print_level")
   {

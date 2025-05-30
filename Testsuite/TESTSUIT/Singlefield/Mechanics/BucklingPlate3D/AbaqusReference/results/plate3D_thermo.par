@@ -1,0 +1,9 @@
+*PARAMETER
+tempLoad = 1.0 <= 1.0>
+E = 100e03 <= 100000.0>
+nu = 0.3 <= 0.3>
+E_11 = E*(1-nu)/(1-nu-nu*nu*2) <= 134615.38461538462>
+a_11 = 7.4285714e-06 <= 7.4285714e-06>
+***a_11 = 1/E_11 <ABAQUS comment>
+***************** <ABAQUS comment>
+**** MATERIAL *** <ABAQUS comment>

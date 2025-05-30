@@ -596,9 +596,8 @@ namespace CoupledField {
     
     WriteColoredString(out, trim_size, "CFS_BUILD_HOST", CFS_BUILD_HOST);
     WriteColoredString(out, trim_size, "CFS_BUILD_DISTRO", CFS_BUILD_DISTRO);
-    WriteColoredString(out, trim_size, "CFS_GIT_COMMIT", CFS_GIT_COMMIT);
     WriteColoredString(out, trim_size, "CFS_GIT_BRANCH", CFS_GIT_BRANCH);
-    WriteColoredString(out, trim_size, "CFS_WC_REVISION", CFS_WC_REVISION);
+    WriteColoredString(out, trim_size, "CFS_GIT_COMMIT", CFS_GIT_COMMIT);
     out << endl;
 
     WriteColoredString(out, trim_size, "CMAKE_BUILD_TYPE", CMAKE_BUILD_TYPE);
@@ -748,7 +747,7 @@ namespace CoupledField {
     else
     {
       // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
-      string git_ref(CFS_WC_REVISION); // "591da40ea0b41e336e169ee632618fd63313231f (modified)"
+      string git_ref(CFS_GIT_COMMIT); // "591da40ea0b41e336e169ee632618fd63313231f (modified)"
       string git_short = git_ref.substr(0,6); // first 6 characters
       if(git_ref.find(' ') != string::npos) // re-add a potential " (modified)"
         git_short += git_ref.substr(git_ref.find(' '));

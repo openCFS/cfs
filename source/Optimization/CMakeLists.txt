@@ -15,6 +15,7 @@ SET(OPTIMIZATION_SRCS
   SIMP.cc
   PiezoSIMP.cc
   MagSIMP.cc
+  AcouSIMP.cc
   PiezoParamMat.cc
   ShapeGrad.cc
   TransferFunction.cc

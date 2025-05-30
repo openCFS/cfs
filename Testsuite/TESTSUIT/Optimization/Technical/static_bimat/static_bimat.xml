@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>    
+    <title>opt_result output</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-02-24</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>standard</references>
+    <isVerified>yes</isVerified>
+    <description>Simple bimaterial optimization which allows zero as lower bound
+    The function is rho^3 * E_0 + (1-rho)^3 * E_bimat</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center_upper">
+        <coord x="0.5" y="0.5"/>
+      </nodes>
+      <nodes name="center_lower">
+        <coord x="0.5" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+          <force name="right_lower">
+              <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>             
+          <regionResult type="mechDeformEnergy">
+            <allRegions/>
+          </regionResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" multiple_excitation="false">
+      <stopping queue="999" value="0.002" type="designChange" />
+    </costFunction>
+
+    <constraint type="volume" bound="upperBound" value="0.5" />
+
+    <optimizer type="ocm" maxIterations="20">
+      <snopt> 
+        <option name="verify_level" type="integer" value="0"/>
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.2" type="density"/>
+      </filters>
+      <design name="density" initial="0.5" lower="0" upper="1.0" bimaterial="soft" />
+
+      <transferFunction type="simp" application="mech" param="3" />
+
+      <export write="iteration" save="all" />
+
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="1" />
+  </optimization>
+ 
+  
+</cfsSimulation>
+
+

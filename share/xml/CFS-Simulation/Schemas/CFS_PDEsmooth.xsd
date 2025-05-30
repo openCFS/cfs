@@ -267,7 +267,7 @@
   <!-- Definition of element result types of smooth PDE -->
   <xsd:simpleType name="DT_SmoothElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value=""/>
+      <xsd:enumeration value="smoothDeformEnergyDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -275,6 +275,13 @@
   <xsd:simpleType name="DT_SmoothSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothContactForceDensity"/> 
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!-- Definition of region result types of smooth PDE -->
+  <xsd:simpleType name="DT_SmoothRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="smoothDeformEnergy"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -333,6 +340,17 @@
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
                 <xsd:attribute name="type" type="DT_SmoothSurfRegionResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
+        <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_SmoothRegionResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

@@ -54,6 +54,7 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     SET(GFORTRAN_SEARCH_DIRS "")
   ENDIF(NOT RETVAL EQUAL 0)
 
+  # message(STATUS "using GFORTRAN_SEARCH_DIRS=${GFORTRAN_SEARCH_DIRS}")
   #---------------------------------------------------------------------------
   # Let's find the shared version of the gfortran runtime lib.
   #---------------------------------------------------------------------------
@@ -67,6 +68,15 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     NO_CMAKE_SYSTEM_PATH)
   MARK_AS_ADVANCED(GFORTRAN_LIBRARY)
 
+  find_library(QUADMATH_LIBRARY
+    NAMES quadmath
+    PATHS ${GFORTRAN_SEARCH_DIRS}
+    NO_DEFAULT_PATH
+    NO_CMAKE_ENVIRONMENT_PATH
+    NO_CMAKE_PATH
+    NO_SYSTEM_ENVIRONMENT_PATH
+    NO_CMAKE_SYSTEM_PATH)
+  mark_as_advanced(QUADMATH_LIBRARY)
   #---------------------------------------------------------------------------
   # Now, let's see if we can also find the static runtime libs.
   #---------------------------------------------------------------------------
@@ -102,30 +112,37 @@ if(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
     NO_CMAKE_SYSTEM_PATH)
   mark_as_advanced(GFORTAN_LIBGCC_STATIC)
 
-  # Prefer static runtime libs over shared ones.
-  if(NOT GFORTRAN_LIBRARY_STATIC MATCHES "NOTFOUND" AND NOT QUADMATH_LIBRARY_STATIC MATCHES "NOTFOUND")
-    # both libs are found
-    list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}" "${QUADMATH_LIBRARY_STATIC}")
-
+  # add gfortran
+  if(NOT GFORTRAN_LIBRARY_STATIC MATCHES "NOTFOUND")
+    list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY_STATIC}")
     # for apple add libgcc.a, if you have the above missing link issues, check this option also for other systems
     if(APPLE AND NOT GFORTAN_LIBGCC_STATIC MATCHES "NOTFOUND")
       list(APPEND CFS_FORTRAN_LIBS "${GFORTAN_LIBGCC_STATIC}")
-    endif() 
-    
+    endif()
     # clang complains about -static-libgfortran"
     if(NOT(CMAKE_CXX_COMPILER_ID MATCHES "Clang"))
       list(APPEND CFS_FORTRAN_LIBS "-static-libgfortran") 
-    endif()  
-  else()
-    #neither lib is found
-    # make not message(WARING ...) as it either does not happen or cannot be prevented (easily)
-    message(STATUS "Warnig: no static Fortran library found - this build might not run on systems missing compatible Fortran runtime libs!")
-    list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}")
-    if(CFS_ARCH MATCHES "X86_64")
-      # gfortan for arm64 seems to not know 128 bits https://github.com/Homebrew/homebrew-core/issues/73949
-      list(APPEND CFS_FORTRAN_LIBS "-lquadmath") 
     endif()
+  elseif(NOT GFORTRAN_LIBRARY MATCHES "NOTFOUND")
+    message(STATUS "Warnig: no static 'gfortran' library found - this build might not run on systems missing compatible Fortran runtime libs!")
+    list(APPEND CFS_FORTRAN_LIBS "${GFORTRAN_LIBRARY}")
+  else()
+    message(FATAL_ERROR "neiter static nor dynmaic 'gfrotran' library found in GFORTRAN_SEARCH_DIRS=${GFORTRAN_SEARCH_DIRS}")
   endif()
+
+  # now add quadmath
+  if(NOT QUADMATH_LIBRARY_STATIC MATCHES "NOTFOUND")
+    list(APPEND CFS_FORTRAN_LIBS "${QUADMATH_LIBRARY_STATIC}")
+  elseif(NOT QUADMATH_LIBRARY MATCHES "NOTFOUND")
+    message(STATUS "Warnig: no static 'quadmath' library found - this build might not run on systems missing compatible Fortran runtime libs!")
+    if(CFS_ARCH MATCHES "X86_64")
+    # gfortan for arm64 seems to not know 128 bits https://github.com/Homebrew/homebrew-core/issues/73949
+      list(APPEND CFS_FORTRAN_LIBS "${QUADMATH_LIBRARY}")
+    endif()
+  else()
+    message(FATAL_ERROR "neiter static nor dynmaic 'quadmath' library found in GFORTRAN_SEARCH_DIRS=${GFORTRAN_SEARCH_DIRS}")
+  endif()
+
   set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES "") # disable dynamic linking of gfortran and quadmath caused by this variable
 endif(CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
 

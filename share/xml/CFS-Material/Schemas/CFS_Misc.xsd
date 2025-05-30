@@ -165,19 +165,63 @@
   <!-- ******************************************************************* -->
   <!--   Definition of rayleigh damping for mechanics and acoustics        -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_RayleighDamping">
+  <xsd:complexType name="DT_RayleighDampingClassic">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Specifies a "local", i.e. region based, damping matrix computed from the mass and stiffness bilinear forms. This is either done by specifying the frequency-independent alpha and beta coefficients, or by specifying the loss tangent delta at specific frequencies, so that the alpha and beta coefficients are computed from the loss tangent. The relationship for the damping is lossTangensDelta=2*damping_ratio=alpha/omega+beta*omega. The loss tangent is required to be known at two frequencies in order to compute the constants.</xsd:documentation>
+    </xsd:annotation>
+    <xsd:choice>
+      <xsd:element name="computeFromTwoPoints" type="DT_RayleighTanDeltaFromTwoPoints" maxOccurs="1"/>
+      <xsd:element name="computeFromTanDeltaAtFrequency" type="DT_RayleighTanDeltaAtFrequency" maxOccurs="1"/>
+      <xsd:element name="coefficients" type="DT_RayleighCoefficients" maxOccurs="1"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_RayleighTanDeltaFromTwoPoints">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Provide two points that specify a 'frequency' and a 'lossTangensDelta so that CFS can compute the Rayleigh coefficients from it</xsd:documentation>
+    </xsd:annotation>
     <xsd:sequence>
-      <xsd:choice>
-        <xsd:sequence>
-          <xsd:element name="alpha" type="xsd:token"/>
-          <xsd:element name="beta" type="xsd:token"/>
-        </xsd:sequence>
-        <xsd:element name="lossTangensDelta" type="xsd:token"/>
-      </xsd:choice>
-      <xsd:element name="measuredFreq" type="DT_NonNegFloat"/>
+      <xsd:element name="point1" type="DT_RayleighTanDeltaPoint" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="point2" type="DT_RayleighTanDeltaPoint" minOccurs="1" maxOccurs="1"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
+  <xsd:complexType name="DT_RayleighTanDeltaAtFrequency">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Provide a point with a center frequency 'centerFreq' and a corresponding 'lossTangensDelta' along with a 'ratioDeltaF', so that lossTangensDelta(centerFreq+ratioDeltaF*centerFreq/2)=lossTangensDelta(centerFreq-ratioDeltaF*centerFreq/2). </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="centerFreq" type="DT_NonNegFloat" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="ratioDeltaF" type="DT_NonNegFloat" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="lossTangensDelta" type="DT_NonNegFloat" minOccurs="1" maxOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_RayleighCoefficients">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Provide 'alpha' and 'beta' directly.</xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="alpha" type="xsd:float" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="beta" type="xsd:float" minOccurs="1" maxOccurs="1"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_RayleighAdaptedLossTangensDelta">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Only applicable in the frequency domain. Recomputes 'alpha' and 'beta' in every frequency step to meet a desired lossTangensDelta. Can be a non-negative float to define a constant damping over all frequencies. Alternatively, can be a sampling mathParser command to link an external file containing freuqencies and corresponding lossTangensDeltas, e.g., sample1D('filename',f,1) </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="value" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_RayleighTanDeltaPoint">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Provide 'frequency' and corresponding 'lossTangensDelta' </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="frequency" type="xsd:token" use="required"/>
+    <xsd:attribute name="lossTangensDelta" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
   <!-- ******************************************************************* -->
   <!--  Data type for specifying flow direction (directly)                 -->
   <!-- ******************************************************************* -->
@@ -188,7 +232,7 @@
       <xsd:enumeration value="3"/>
     </xsd:restriction>
   </xsd:simpleType>
-  
+
   <!-- ************************************************************ -->
   <!--  Definition of a general nonlinearity                         -->
   <!--  Can be extended with PDE-specific properties                 -->

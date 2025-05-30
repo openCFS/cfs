@@ -342,6 +342,8 @@
       <xsd:enumeration value="magCoilCurrentDensity"/>
       <xsd:enumeration value="magTotalCurrentDensity"/>
       <xsd:enumeration value="magForceLorentzDensity"/>
+      <xsd:enumeration value="magForceLorentzDensityStatic"/>
+      <xsd:enumeration value="magForceLorentzDensityHarmonic"/>
       <xsd:enumeration value="magEddyPowerDensity"/>
       <xsd:enumeration value="magEnergyDensity"/>
       <xsd:enumeration value="fluxIndStrain"/>
@@ -372,9 +374,8 @@
     </xsd:restriction>
   </xsd:simpleType>
 
-
   <!-- Definition of field variables (union of nodal and element results) -->
-  <xsd:simpleType name="DT_MagneticSensorArrayResult">
+  <xsd:simpleType name="DT_MagneticFieldResult">
     <xsd:union memberTypes="DT_MagneticNodeResult DT_MagneticElemResult"/>
   </xsd:simpleType>
 
@@ -456,6 +457,17 @@
           </xsd:complexType>
         </xsd:element>
 
+        <!-- averaged Region result definition -->
+        <xsd:element name="regionAverageResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionAverageResult">
+                <xsd:attribute name="type" type="DT_MagneticFieldResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
         <!-- Coil result definition -->
         <xsd:element name="coilResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
@@ -472,7 +484,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SensorArrayResult">
-                <xsd:attribute name="type" type="DT_MagneticSensorArrayResult"/>
+                <xsd:attribute name="type" type="DT_MagneticFieldResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

@@ -1,0 +1,32 @@
+# cubit file that creates an ellipsoid with a spherical hole
+reset
+
+# set variables
+#{meshSize = 0.2};  # mesh size
+#{ro = 1.0};        # larger ellipsoid radius
+#{ri = ro*3/4};     # smaller ellipsoid radius
+#{r = ro/2};        # source radius
+
+# create body
+sphere radius {ro}
+Volume 1  scale X {ri/ro} Y 1.0 Z 1.0
+sphere radius {r}
+subtract body 2 from body 1
+
+# mesh
+volume 3 size {meshSize}
+volume 3 scheme tetmesh
+mesh volume 3
+
+# set blocks
+block 1 add volume 3
+block 1 name "prop"
+
+# set nodesets
+nodeset 1 add surface 3
+nodeset 1 name "src"
+nodeset 2 add surface 1
+nodeset 2 name "ifPML"
+
+# save mesh
+export ansys cdb "./PmlCurvilinear3dCgalEllipsoid.cdb" overwrite

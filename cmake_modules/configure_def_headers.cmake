@@ -25,6 +25,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_lis.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ginkgo.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ginkgo.hh")
   
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_petsc.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_petsc.hh")
@@ -117,6 +120,10 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_unv.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_openmp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_openmp.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cuda.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_cuda.hh")
+
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_sgpp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_sgpp.hh")

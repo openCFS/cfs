@@ -74,7 +74,7 @@ public:
                  MULTIMATERIAL, NO_MULTIMATERIAL, INTERPOLATION,
                  NO_DERIVATIVE = -3, DEFAULT = -2, NO_TYPE = -1,
                  // real design types
-                 DENSITY = 0, POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
+                 DENSITY = 0, POLARIZATION, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                  GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA = 12,
                  MECH_11, MECH_12, MECH_13, MECH_14, MECH_15, MECH_16,
                  MECH_22, MECH_23, MECH_24, MECH_25, MECH_26,
@@ -123,7 +123,6 @@ public:
   /** checks if this is a physical solution type where we filter and penalize */
   static bool IsPhysical(SolutionType soltype);
 
-
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
 
@@ -131,7 +130,11 @@ public:
    * In the derived DesignElement() the instance is overloaded and invalidated! */
   virtual double GetDesign() const { return(this->design); }
 
-  virtual double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
+  /** Overwritten in DesignElement.
+   * Note the difference between BaseDesignElement::Access and Function::Access.
+   * Due to C++ and cyclic inclusions we cannot have the Function::Access option here :(
+   * @see DesignElement::GetDesign(Function*) and DesignElement::GetPhysicalDesign() */
+  virtual double GetDesign(BaseDesignElement::Access access) const { return GetDesign(); };
 
   /** The index of this element within the design space - 0 based.
    * @see GetOptIndex()*/

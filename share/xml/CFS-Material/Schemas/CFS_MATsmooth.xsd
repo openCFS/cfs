@@ -18,7 +18,6 @@
   <xsd:complexType name="DT_MatSmooth">
     <xsd:sequence>
       <xsd:element name="elasticity" type="DT_SmoothElasticityLinNonlin"/>
-      <xsd:element name="damping" type="DT_SmoothDamping" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
   
@@ -171,15 +170,4 @@
       </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
-
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of smooth damping                                  -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_SmoothDamping">
-    <xsd:sequence>
-      <xsd:element name="rayleigh" type="DT_RayleighDamping" minOccurs="0"/>
-    </xsd:sequence>
-  </xsd:complexType>
-
 </xsd:schema>

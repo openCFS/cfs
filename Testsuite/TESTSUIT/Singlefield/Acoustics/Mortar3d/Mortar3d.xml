@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Monopole on L-shaped domain using nonmatching grids</title>
+    <authors>
+      <author>Simon Triebenbacher</author>
+    </authors>
+    <date>2010-02-01</date>
+    <keywords>
+      <keyword>mortar fem</keyword>
+      <keyword>nonmatching grids</keyword>
+      <keyword>lagrange multiplier</keyword>
+      <keyword>pml</keyword>
+    </keywords>
+    <references>
+      Rossing, Handbook of Acoustics, 2007, page 65ff.
+      Morse and Ingard, Theoretical Acoustics, 1986, page 332ff.
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      In this example the radiation from a spherical source is simulated in
+      a L-shaped 3D domain. The inner cube (0.5 x 0.5 x 0.5 m^3) volume of the domain
+      is discretized with second order tetras. The outer L-shaped 
+      subdomain extends the inner square by 0.5 metres in each direction. In
+      every direction we discretize with 10 trilinear elements. The interface
+      between the subdomains is of mortar type and the standard lagrange
+      multiplier is used. For free-field radiation we apply a PML layer.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <gmsh fileName="l3d_inner.msh" id="inner"/>
+      <gmsh fileName="l3d_outer.msh" id="outer"/>
+    </input>
+    
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    
+    <materialData file="mat.xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+
+    <regionList>
+      <region name="inner" material="air"/>
+      <region name="pml" material="air"/>
+    </regionList>
+    
+    <!--  LIST OF SURFACE surfRegion -->
+    <surfRegionList>
+      <surfRegion name="inner_iface1"/>
+      <surfRegion name="outer_iface1"/>
+      <surfRegion name="inner_iface2"/>
+      <surfRegion name="outer_iface2"/>
+      <surfRegion name="inner_iface3"/>
+      <surfRegion name="outer_iface3"/>
+      <surfRegion name="absbc"/>
+    </surfRegionList>
+
+    <!--  LIST OF NON CONFORMING INTERFACES -->
+    <ncInterfaceList>
+      <ncInterface name="ncIface1" primarySide="outer_iface1" secondarySide="inner_iface1" minRelSideLength="0"/>
+      <ncInterface name="ncIface2" primarySide="outer_iface2" secondarySide="inner_iface2" minRelSideLength="0"/>
+      <ncInterface name="ncIface3" primarySide="outer_iface3" secondarySide="inner_iface3" minRelSideLength="0"/>
+    </ncInterfaceList>
+    
+    <!-- LIST OF NODES -->
+    <nodeList>
+      <nodes name="load">
+        <coord x="0.0" y="0.0" z="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <fePolynomialList>
+    <Lagrange>
+      <gridOrder/>
+    </Lagrange>
+  </fePolynomialList>
+  
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>    1   </numFreq>
+        <startFreq>  119.3662 </startFreq>
+        <stopFreq>   119.3662 </stopFreq>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <acoustic formulation="acouPotential">
+
+        <regionList>
+          <region name="inner"/>
+          <region name="pml" dampingId="myPML"/>
+        </regionList>
+
+        <ncInterfaceList>
+          <ncInterface name="ncIface1" formulation="Mortar"/>
+          <ncInterface name="ncIface2" formulation="Mortar"/>
+          <ncInterface name="ncIface3" formulation="Mortar"/>
+        </ncInterfaceList>
+        
+        <dampingList>
+          <pml id="myPML">
+            <type>inverseDist</type>
+            <dampFactor> 1 </dampFactor>
+          </pml>          
+        </dampingList>
+        
+        <bcsAndLoads>
+          <potential name="load" value="1"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="acouPotential">
+            <regionList>
+              <region name="inner"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="penalty"/>
+            <matrix reordering="noReordering" storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <umfpack/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

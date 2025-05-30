@@ -1,0 +1,105 @@
+# When added as test case you need to set the following argumens via -D...
+#-DCURRENT_TEST_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+#-DTEST:STRING=${TEST_FILE_BASENAME}_dxlaminates_pdf
+#-DPYTHON_ARGS:STRING="--save ${TEST_FILE_BASENAME}_dxlaminates.pdf --res 1500 --scale .8 --show hom_rot_cross --hom_grad none --sampling 20 ${CMAKE_CURRENT_SOURCE_DIR}/../dxlaminates.h5ref"
+
+# the following arguments are optional
+#-DNO_COMPARE="TRUE" # skip cleanup, copying reference file and performing validation of results
+#-DEPSION # optional parameter for validation
+
+# Path to CFS++ source directory.
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+
+# Path to CFS++ binary directory.
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+
+# Path to testsuite source directory.
+SET(TESTSUITE_SRC_DIR "@TESTSUITE_DIR@")
+
+# Path to testsuite output directory.
+SET(TESTSUITE_BIN_DIR "@TESTSUITE_BIN_DIR@")
+
+# Python tests contains matviz and basecell tests
+# matviz is from cfs and what is to be tested
+SET(MATVIZ_PY "@MATVIZ_PY@")
+SET(BASECELL_PY "@BASECELL_PY@")
+SET(Python_EXECUTABLE "@Python_EXECUTABLE@")
+
+# compare_images.py tests matviz results and is fron the test-suite
+SET(COMPARE_IMAGES "@COMPARE_IMAGES@")
+
+# basecell tests use only compare_info_xml.py
+SET(COMPARE_INFO_XML "@COMPARE_INFO_XML@")
+
+# compare_hist_file.py tests hist results in the test-suite
+SET(COMPARE_HIST_FILE "@COMPARE_HIST_FILE@")
+
+# used for homogenization in basecell tests
+SET(CFS_BINARY "${CFS_BINARY_DIR}/bin/cfs")
+
+#-------------------------------------------------------------------------------
+# Include some macros. Especially the one for generating test names out of
+# directory names.
+#-------------------------------------------------------------------------------
+INCLUDE("${TESTSUITE_SRC_DIR}/TestMacros.cmake")
+
+#-------------------------------------------------------------------------------
+# Perform matziz.py operations and use compare_images.py to compare the results
+#-------------------------------------------------------------------------------
+MACRO(PYTHON_TEST)
+  # Generate test names
+  GENERATE_TEST_NAME_AND_FILE("${CURRENT_TEST_DIR}")
+
+  # MESSAGE("TARGET=${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.png")
+  # MESSAGE("REF=${CURRENT_TEST_DIR}/${TEST}.ref.png")
+  
+  IF (MATVIZ_ARGS)
+    IF(NO_COMPARE)
+      MESSAGE("skip clean up and copying reference file on request by NO_COMPARE")
+    ELSE()  
+      # matviz generates exactly one output, we don't have the complex situations as with cfs
+      # remove eventually already existing output file
+      FILE(REMOVE "${CMAKE_CURRENT_SOURCE_DIR}/${TEST}.png")
+      
+      # in some test cases, this file does not exist
+      IF(EXISTS "${CURRENT_TEST_DIR}/${TEST}.ref.png")
+        # copy reference file for compare_images  
+        FILE(COPY "${CURRENT_TEST_DIR}/${TEST}.ref.png" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+      ENDIF(EXISTS "${CURRENT_TEST_DIR}/${TEST}.ref.png")  
+    ENDIF()  
+  ENDIF()
+  
+  # copy reference file for compare_images
+  IF (BASECELL_ARGS)  
+    FILE(COPY "${CURRENT_TEST_DIR}/${TEST}.ref.info.xml" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+  ENDIF()
+  
+  IF (CFS_HOMOGENIZE_ARGS)
+    # in some test cases, these two files don't exist
+    IF(EXISTS "${CURRENT_TEST_DIR}/${TEST}.ref.stl")
+      FILE(COPY "${CURRENT_TEST_DIR}/${TEST}.ref.stl" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+    ENDIF()
+    IF(EXISTS "${CURRENT_TEST_DIR}/${TEST}.ref.mesh")
+      FILE(COPY "${CURRENT_TEST_DIR}/${TEST}.ref.mesh" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+    ENDIF()
+    FILE(COPY "${CURRENT_TEST_DIR}/mat.xml" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+    IF(EXISTS "${CURRENT_TEST_DIR}/${TEST}_homogenize.xml")
+      FILE(COPY "${CURRENT_TEST_DIR}/${TEST}_homogenize.xml" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+    ENDIF()
+    IF(EXISTS "${CURRENT_TEST_DIR}/${TEST}_homogenize.ref.info.xml")
+      FILE(COPY "${CURRENT_TEST_DIR}/${TEST}_homogenize.ref.info.xml" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+    ENDIF()
+  ENDIF()  
+  
+  IF (INTERPRETATION_ARGS)
+    FILE(COPY "${CURRENT_TEST_DIR}/mat.xml" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+    FILE(COPY "${CURRENT_TEST_DIR}/${TEST}.xml" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+    FILE(COPY "${CURRENT_TEST_DIR}/${TEST}.ref.info.xml" DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+  ENDIF()
+  
+  # no cfs but matviz.py run and checked by compare_images.py
+  RUN_AND_TEST_PYTHON("${EPSILON}" "${NO_COMPARE}")
+    
+ENDMACRO(PYTHON_TEST)
+
+PYTHON_TEST()

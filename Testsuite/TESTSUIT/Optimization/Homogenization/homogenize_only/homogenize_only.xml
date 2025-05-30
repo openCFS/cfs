@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>homogenize_only</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-07-15</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Ole Sigmund; Design of material structures using topology optimization; 1994, PhD thesis</references>
+    <isVerified>yes</isVerified>
+    <description>Originally this was a copy of the legacy test case honeycomb to find the tensor of a material via homogenization.
+      Unfortunately the mesh is too large and refused by ctest. Therefore the orignial stuff is copied to the large_honeycomb files in this directory.
+      Instead we use the final restul from max_e11_iso_orthotropic. 
+      
+      Worked for plane strain to evaluate but now only plane stress works any more for homogenization.
+    
+     Note that currently cfstool cannot compare the results as due to the 'optimization algorithm' 'evaluateInitialDesign' the result step is 0 which is not recognized currently
+    by cfstool.</description>
+  </documentation>  
+  
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines"/>
+      <region name="void" material="soft"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+          <region name="void" />
+        </regionList>
+
+        <bcsAndLoads>
+           <periodic secondary="right" primary="left" dof="x" quantity="mechDisplacement"/>
+           <periodic secondary="right" primary="left" dof="y" quantity="mechDisplacement"/>
+           <periodic primary="top"  secondary="bottom" dof="x"  quantity="mechDisplacement" />
+           <periodic primary="top"  secondary="bottom" dof="y"  quantity="mechDisplacement" />
+
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/> 
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+
+  <optimization log="">
+    <costFunction type="homTensor" task="minimize" multiple_excitation="true">
+      <multipleExcitation type="homogenizationTestStrains" />
+    </costFunction>
+    <optimizer type="evaluate" maxIterations="1"/>
+    <ersatzMaterial method="simp" material="mechanic">
+      <regions>
+        <region name="mech"/>
+        <region name="void"/>
+      </regions>
+      <design name="density" initial="1" lower="1e-3" upper="1" region="mech"/>
+      <design name="density" initial="1e-6" lower="1e-6" upper="1" region="void"/>
+      <transferFunction type="identity" application="mech" design="density"/>
+    </ersatzMaterial>
+    <commit mode="each_forward"/>
+  </optimization>  
+</cfsSimulation>

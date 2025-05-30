@@ -1,0 +1,95 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	       xmlns="http://www.cfs++.org/simulation">
+  
+  <!--
+    This XML file accompanies the nonmatching grid version of this testsuite
+    as a reference simulation on a matching grid since no analytic results are
+    available. It also uses the HEXA27 and QUAD9 elements. 
+  -->
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="torque3d_conform.h5" linearizeEntities="none"/>
+    </input>
+    <output>
+      <hdf5/>
+      <!--gmv binaryFormat="no"/-->
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="mech_elem" material="Aluminium"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="top"/>
+      <surfRegion name="bottom"/>
+    </surfRegionList>
+		
+    <coordSysList>
+      <cylindric id="cylCoordSys">
+	<origin x="0.0" y="0.0" z="3.0"/>
+	<zAxis x="0.0" y="0.0" z="4.0"/>
+	<rAxis x="1.0" y="0.0" z="3.0"/>
+      </cylindric>
+    </coordSysList>
+  </domain>
+  
+
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="3d">
+	<regionList>
+	  <region name="mech_elem"/>
+	</regionList>
+	
+	<bcsAndLoads>
+	  <dirichletHom name="bottom" dof="x"/>
+	  <dirichletHom name="bottom" dof="y"/>
+	  <dirichletHom name="bottom" dof="z"/>
+	  
+	  <load value="y*1e5" name="top" dof="x"/>
+	  <load value="-x*1e5" name="top" dof="y"/>
+	  <load value="1e5" name="top" dof="z"/>
+	</bcsAndLoads>
+	
+	<storeResults>
+	  <nodeResult type="mechRhsLoad">
+	    <regionList>
+	      <region name="top"/>
+	    </regionList>
+	  </nodeResult>
+	  <nodeResult type="mechDisplacement">
+	    <allRegions/>
+	  </nodeResult>
+	  <elemResult type="mechStress">
+	    <allRegions/>
+	  </elemResult>
+	</storeResults>
+      </mechanic>
+      
+    </pdeList>
+    
+    <linearSystems>
+      <system name="mechanic">
+	<setup idbcHandling="penalty"/>
+	<matrix storage="sparseNonSym"/>
+	<solver type="pardiso" precond="noPrecond"/>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+
+  <integRules>
+    <type>Gauss_standard</type>
+    <order>6</order>
+  </integRules>
+  
+</cfsSimulation>

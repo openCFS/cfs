@@ -3567,8 +3567,6 @@ namespace CoupledField {
     }
   }
 
-
-
   // ======================================================
   // GET /SET  METHODS
   // ======================================================
@@ -3841,8 +3839,8 @@ namespace CoupledField {
     // create ElemLists for slave surface and intersection
     shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
                              elSlave(new SurfElemList(ptGrid_));
-    elMaster->SetRegion(mortarIf->GetMasterSurfRegion());
-    elSlave->SetRegion(mortarIf->GetSlaveSurfRegion());
+    elMaster->SetRegion(mortarIf->GetPrimarySurfRegion());
+    elSlave->SetRegion(mortarIf->GetSecondarySurfRegion());
     shared_ptr<NcSurfElemList> elMortar = mortarIf->GetElemList();
     
     // make sure there are appropriate FeFunctions for both unknowns
@@ -3879,7 +3877,7 @@ namespace CoupledField {
     std::string polyId = slaveRegNode->Get("polyId")->As<std::string>();
     std::string integId = slaveRegNode->Get("integId")->As<std::string>();
     
-    mortarSpace->SetRegionApproximation( mortarIf->GetSlaveSurfRegion(),
+    mortarSpace->SetRegionApproximation( mortarIf->GetSecondarySurfRegion(),
                                          polyId, integId);
 
     // create a mass integrator on the slave surface (conforming grid)
@@ -3912,7 +3910,7 @@ namespace CoupledField {
     ncContext->SetCounterPart(true);
     assemble_->AddBiLinearForm(ncContext);
     ncIf->RegisterIntegrator(ncContext);
-    ncContext->SetMotion(updatedGeo_);
+    ncContext->SetMotion(ncIf->IsMoving());
 
     // check for eulerian formulation of moving grid
     DefineEulerianSystem<DIM, D_DOF>(solType, iface);
@@ -4362,7 +4360,7 @@ namespace CoupledField {
 
     // Nitsche coupling matrix is a type of stiffness matrix
     FEMatrixType targetMatrix = STIFFNESS;
-    if(updatedGeo_){
+    if(ncIf->IsMoving()){
       targetMatrix = STIFFNESS_UPDATE;
     }
 
@@ -4384,12 +4382,12 @@ namespace CoupledField {
     if (flux_dv1_u2){ flux_dv1_u2_Context = new SurfaceBiLinFormContext(flux_dv1_u2  , targetMatrix, curcpl);}
     curcpl = BiLinearForm::SEC_PRIM;
     // assign motion to the contexts
-    penalty_v1_u1_Context->SetMotion(updatedGeo_);
-    penalty_v2_u2_Context->SetMotion(updatedGeo_);
-    penalty_v1_u2_Context->SetMotion(updatedGeo_);
-    if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetMotion(updatedGeo_);}
-    if (flux_v1_du1_Context){ flux_v1_du1_Context->SetMotion(updatedGeo_);}
-    if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetMotion(updatedGeo_);}
+    penalty_v1_u1_Context->SetMotion(ncIf->IsMoving());
+    penalty_v2_u2_Context->SetMotion(ncIf->IsMoving());
+    penalty_v1_u2_Context->SetMotion(ncIf->IsMoving());
+    if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetMotion(ncIf->IsMoving());}
+    if (flux_v1_du1_Context){ flux_v1_du1_Context->SetMotion(ncIf->IsMoving());}
+    if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetMotion(ncIf->IsMoving());}
     // assign names to the operators
     penalty_v2_u2->SetName("penalty_v2_u2");
     penalty_v1_u2->SetName("penalty_v1_u2");
@@ -4397,14 +4395,13 @@ namespace CoupledField {
     if (flux_dv1_u1){ flux_dv1_u1->SetName("flux_dv1_u1");}
     if (flux_v1_du1){ flux_v1_du1->SetName("flux_v1_du1");}
     if (flux_dv1_u2){ flux_dv1_u2->SetName("flux_dv1_u2");}
-    
 
     penalty_v1_u1_Context->SetEntities(actSDList,actSDList);
     penalty_v2_u2_Context->SetEntities(actSDList,actSDList);
     penalty_v1_u2_Context->SetEntities(actSDList,actSDList);
     if (flux_dv1_u1_Context){ flux_dv1_u1_Context->SetEntities(actSDList,actSDList);}
     if (flux_v1_du1_Context){ flux_v1_du1_Context->SetEntities(actSDList,actSDList);}
-    if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetEntities(actSDList,actSDList);}    
+    if (flux_dv1_u2_Context){ flux_dv1_u2_Context->SetEntities(actSDList,actSDList);}
 
     penalty_v1_u1_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );
     penalty_v2_u2_Context->SetFeFunctions( feFunctions_[solType], feFunctions_[solType] );

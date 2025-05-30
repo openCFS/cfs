@@ -366,7 +366,7 @@
       </xsd:documentation>
     </xsd:annotation>
     <xsd:sequence>
-       <xsd:element name="option" minOccurs="0" maxOccurs="unbounded" type="DT_PythonOption"/>
+      <xsd:element name="option" minOccurs="0" maxOccurs="unbounded" type="DT_PythonOption"/>
     </xsd:sequence>
     <xsd:attribute name="init" type="xsd:token" use="optional" >
       <xsd:annotation>
@@ -532,6 +532,7 @@
           <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
 
         </xsd:choice>
+        <xsd:attribute name="volumeRegion" type="xsd:token" use="optional"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -856,9 +857,38 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="id" type="xsd:token" use="required"/>
-        <!--xsd:attribute name="aPML" type="DT_CFSBool" use="optional" default="no"/-->
       </xsd:restriction>
     </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of rayleigh damping -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_DampingRayleigh">
+    <xsd:complexContent>
+      <xsd:extension base="DT_DampingBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_DampingAdaptedLossTangensDelta">
+    <xsd:complexContent>
+      <xsd:extension base="DT_DampingBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_DampingRayleighGlobal">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Specify alpha and beta to compute a global damping matrix from the assembled global MASS and STIFFNESS matrices. All other Rayleigh damping types should be deactivated when this damping is used. </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en"> Provide 'alpha' and 'beta' </xsd:documentation>
+      </xsd:annotation>
+      <xsd:element name="alpha" type="xsd:float"/>
+      <xsd:element name="beta" type="xsd:float"/>
+    </xsd:sequence>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -1665,7 +1695,6 @@ The result is divided by the total volume of the region, yielding the volume ave
             </xsd:element>
 
 
-
             <!--Specify the reading of grad(V)*grad(V) (needed in special A-V formulation) -->
             <xsd:element name="gradV_in_gradV" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
@@ -1699,7 +1728,7 @@ The result is divided by the total volume of the region, yielding the volume ave
                 </xsd:complexType>
               </xsd:element>
             </xsd:choice>
-            
+
             <!-- Resistance of coil (given explicitly) -->
             <xsd:element name="resistance" minOccurs="0">
               <xsd:complexType>
@@ -1715,6 +1744,23 @@ The result is divided by the total volume of the region, yielding the volume ave
 
     <!-- Identifier string to address the coil for results -->
     <xsd:attribute name="id" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+  <!-- Options for stabilisation of a convective term-->
+  <xsd:complexType name="DT_BcInhomVector_stabilisation">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcInhomVector">
+        <xsd:attribute name="stabilisation" use="optional" default="none">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:string">
+              <xsd:enumeration value="none"/>
+              <xsd:enumeration value="ArtificialDiffusion"/>
+              <xsd:enumeration value="SUPG"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
 
 </xsd:schema>

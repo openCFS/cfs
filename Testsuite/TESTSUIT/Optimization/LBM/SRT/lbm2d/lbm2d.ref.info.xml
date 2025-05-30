@@ -1,0 +1,284 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="85" infoRejectCounter="0">
+  <summary>
+    <timer wall="2" cpu="10.4108" calls="1"/>
+    <LBMSolver>
+      <timer label="adjColl" wall="0" cpu="0" calls="0" sub="true"/>
+      <timer label="adjProp" wall="0" cpu="0" calls="0" sub="true"/>
+    </LBMSolver>
+    <memory final="687220" peak="752756"/>
+  </summary>
+  <header id="">
+    <environment started="2016-Apr-07 17:48:16" host="eamc072"/>
+    <progOpts problem="lbm2d" parameterFile="/home/bvu/code/cfs-test/TESTSUIT/Optimization/LBM/SRT/lbm2d/lbm2d.xml" schemaPath="/home/bvu/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1">
+      <cfs version="15.11" name="Back To The Future" build="Release" svn_revision="14699 modified"/>
+    </progOpts>
+    <domain dimensions="2" elements="100" nodes="121">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="boundary" id="0" type="volume" regular="yes" hom="yes" nodes="72" elems="36" isQuadratic="no"/>
+        <region name="design" id="1" type="volume" regular="yes" hom="yes" nodes="81" elems="64" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+      </namedNodes>
+      <namedElements>
+        <elements name="inlet" count="3"/>
+        <elements name="outlet" count="3"/>
+      </namedElements>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <LatticeBoltzmann>
+        <header>
+          <region name="boundary" damping="none"/>
+          <region name="design" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="StiffnessIntegrator" region="boundary">
+                <row pde="LatticeBoltzmann" functionId="0" result="testDof"/>
+                <column pde="LatticeBoltzmann" functionId="0" result="testDof"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+          <LBM omega_nu="1.9" Re="1" maxIter="1000000" maxWallTime="1e+06" convergence="1e-08" iface="internal" u_max_x="0.002924" u_max_y="0" u_max_z="0"/>
+        </header>
+        <material name="99mod">
+          <regionList>
+            <region name="design"/>
+            <region name="boundary"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+12  5.769231e+11  5.769231e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+11  1.346154e+12  5.769231e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+11  5.769231e+11  1.346154e+12  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1e+12"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_Kmodulus" value="(8.3333e+11,0)"/>
+          <property name="Mechanic_LameMu" value="(3.8462e+11,0)"/>
+          <property name="Mechanic_LameLambda" value="(5.7692e+11,0)"/>
+          <property name="Rayleigh_Alpha" value="1e2"/>
+          <property name="Rayleigh_Beta" value="1e-4"/>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+12  5.769231e+11  5.769231e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+11  1.346154e+12  5.769231e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+11  5.769231e+11  1.346154e+12  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1e+12"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_Kmodulus" value="(8.3333e+11,0)"/>
+          <property name="Mechanic_LameMu" value="(3.8462e+11,0)"/>
+          <property name="Mechanic_LameLambda" value="(5.7692e+11,0)"/>
+          <property name="Rayleigh_Alpha" value="1e2"/>
+          <property name="Rayleigh_Beta" value="1e-4"/>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <testDof>
+            <regionList>
+              <boundary/>
+              <default/>
+            </regionList>
+          </testDof>
+        </feSpaces>
+        <summary>
+          <sensitvityAnalysis>
+            <timer label="forwardSim" wall="1" cpu="8.69466" calls="5"/>
+            <timer label="backwardSim" wall="0" cpu="0" calls="0"/>
+            <timer label="setupAdjoint" wall="0" cpu="0.245671" calls="6"/>
+            <timer label="setupPardiso" wall="0" cpu="0.282493" calls="6"/>
+            <timer label="solveLSE" wall="0" cpu="0.411603" calls="6"/>
+            <timer label="dprop" wall="0" cpu="0.114245" calls="6" sub="true"/>
+            <timer label="dcoll" wall="0" cpu="0.048338" calls="6" sub="true"/>
+            <timer label="dPressureDrop" wall="0" cpu="0.004782" calls="6" sub="true"/>
+            <timer label="rhsSetup" wall="0" cpu="0" calls="0" sub="true"/>
+            <timer label="delSing" wall="0" cpu="0.078053" calls="6" sub="true"/>
+          </sensitvityAnalysis>
+          <stateProblem original_pressure_drop="0.00068495" prop_step_pressure_drop="0.00068495">
+            <totalTimer cpu="8.6948" wall="1" calls="5"/>
+          </stateProblem>
+        </summary>
+        <process>
+          <stateProblem original_pressure_drop="0.00068476" prop_step_pressure_drop="0.00068495">
+            <LBM converged="running" iterations="2100" residuum="9.3405e-09" memory="0.013733">
+              <process>
+                <forward number="0" iterations="601" residuum="4.951e-09" converged="yes" wall="0" cpu="0.24725" MFLUP_s="inf"/>
+                <forward number="1" iterations="401" residuum="9.4709e-10" converged="yes" wall="0" cpu="0.16342" MFLUP_s="inf"/>
+                <forward number="2" iterations="901" residuum="4.2439e-09" converged="yes" wall="0" cpu="0.34018" MFLUP_s="inf"/>
+                <forward number="3" iterations="1801" residuum="7.6724e-09" converged="yes" wall="0" cpu="0.59186" MFLUP_s="inf"/>
+                <forward number="4" iterations="2101" residuum="9.3405e-09" converged="yes" wall="1" cpu="7.2474" MFLUP_s="0.17018"/>
+              </process>
+            </LBM>
+          </stateProblem>
+        </process>
+        <feFunctions>
+          <testDof/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </LatticeBoltzmann>
+    </PDE>
+    <OLAS>
+      <LatticeBoltzmann>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="36" totalNumFreeEqns="36" totalNumDirichlet="0">
+            <function id="0" name="testDof" numEqns="36" lastFreeEqn="36" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="36" lastFreeIndex="36"/>
+          </sbmBlocks>
+          <setupTime wall="0" cpu="0.00065" calls="1"/>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="36" totalNumCols="36" totalNumNonZeros="36" totalFillLevelPerCent="2.7778" totalMemory="0.00027466">
+              <matrix blockRow="0" blockCol="0" storageType="sparseNonSym" numRows="36" numCols="36" numNonZeros="36" fillLevelPerCent="2.7778" memory="0.00027466" upperBandWidth="0" lowerBandWidth="0" avgBandWidth="1" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="11" solver="direct">
+            <summary>
+              <setup>
+                <timer wall="0" cpu="0.281044" calls="6"/>
+              </setup>
+              <solve>
+                <timer wall="0" cpu="0.038943" calls="6"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.19766" wall="0" peakMem="567" permanentMem="435"/>
+                <numfact cpu="0.014154" wall="0" peakMem="492"/>
+              </call>
+              <solver numIter="-1" finalNorm="-1"/>
+              <call number="1">
+                <numfact cpu="0.012646" wall="0" peakMem="506"/>
+                <symbfact peakMem="567" permanentMem="435"/>
+              </call>
+              <call number="1">
+                <numfact cpu="0.013412" wall="0" peakMem="506"/>
+                <symbfact peakMem="567" permanentMem="435"/>
+              </call>
+              <call number="1">
+                <numfact cpu="0.01285" wall="0" peakMem="506"/>
+                <symbfact peakMem="567" permanentMem="435"/>
+              </call>
+              <call number="1">
+                <numfact cpu="0.012967" wall="0" peakMem="506"/>
+                <symbfact peakMem="567" permanentMem="435"/>
+              </call>
+              <call number="1">
+                <numfact cpu="0.013661" wall="0" peakMem="506"/>
+                <symbfact peakMem="567" permanentMem="435"/>
+              </call>
+            </process>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond/>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </LatticeBoltzmann>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="0" cpu="0" calls="0"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_file="/home/bvu/code/cfs-test/TESTSUIT/Optimization/LBM/SRT/lbm2d/HALTOPT">
+    <header>
+      <objective type="pressureDrop" linear="no" filtered="yes" task="minimize"/>
+      <constraints>
+        <constraint type="volume" linear="yes" filtered="yes" name="volume_(density)" design="density" bound="lowerBound" bound_value="0.5"/>
+      </constraints>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="lbm" homogenization="no"/>
+      <filters periodic="no">
+        <filter type="maxEdge" value="0.09" contribution="linear" design="allDesigns" avg_radius="0.009" avg_neighbors="0">
+          <timer wall="0" cpu="7.4e-05" calls="1"/>
+        </filter>
+      </filters>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
+      </excitations>
+      <designSpace pamping="0">
+        <transferFunctions>
+          <transferFunction type="simp" application="lbm" design="density" param="3"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="64" modelVariables="64" modelElements="64">
+          <design type="density" upperBound="1" lowerBound="0" physicalLowerBound="0"/>
+        </designVariables>
+        <regions>
+          <region name="design" elements="64" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <scpip>
+        <icntl i1="1" i2="1" i3="4" i4="1" i5="10" i6="0" i7="0" i8="0" i9="0" i10="0" i11="0" i12="0" i13="1"/>
+        <rcntl r1="1e-07" r2="1e+30" r3="1e+30" r4="0.01" r5="0.01" r6="0.01" r7="0"/>
+      </scpip>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <designSpace/>
+    <optimizer>
+      <summary>
+        <timer wall="0" cpu="0.684323" calls="49"/>
+      </summary>
+    </optimizer>
+    <eval>
+      <timer wall="0" cpu="0.000421" calls="16"/>
+    </eval>
+    <process>
+      <iteration number="0" pressureDrop="0.0052805" volume_density="0.5" scale="462.1" opt_scale="462.1" active_set="1"/>
+      <iteration number="1" pressureDrop="0.0034197" volume_density="0.5394" scale="462.1" opt_scale="1336.6" active_set="1"/>
+      <iteration number="2" pressureDrop="0.0018185" volume_density="0.52728" scale="462.1" opt_scale="1569.2" active_set="1"/>
+      <iteration number="3" pressureDrop="0.00096355" volume_density="0.53331" scale="462.1" opt_scale="2226.9" active_set="1"/>
+      <iteration number="4" pressureDrop="0.00068495" volume_density="0.51632" scale="462.1" opt_scale="7439.4" active_set="1"/>
+    </process>
+    <summary problem="maximum number of iterations reached (4)">
+      <break converged="no">
+        <reason msg="SCPIP: maximum number of iterations reached (4)"/>
+      </break>
+    </summary>
+  </optimization>
+  <warning lineNum="546" fileName="/home/bvu/code/cfs/source/FeBasis/FeFunctions.cc" message="The interpolation operator for FeSpaceConst is not initialized."/>
+</cfsInfo>

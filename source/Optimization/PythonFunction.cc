@@ -1,5 +1,5 @@
 /** this file contains the embedded python specific implementations for Function, ErsatzMaterial, ... */
-
+#include "def_use_dumas.hh"
 #include "General/Exception.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/ErsatzMaterial.hh"
@@ -7,12 +7,15 @@
 #include "Optimization/Optimizer/OptimalityCondition.hh"
 #include "Optimization/Optimizer/MMA.hh"
 #include "Optimization/Optimizer/DumasMMA.hh"
-#include <MMASolver.h>
-#include <GCMMASolver.h>
+#ifdef USE_DUMAS
+  #include <MMASolver.h>
+  #include <GCMMASolver.h>
+#endif
+
 #include "Utils/PythonKernel.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
-EXTERN_LOG(func)
+EXTERN_LOG(func) // opt_func
 EXTERN_LOG(em)
 EXTERN_LOG(designSpace)
 
@@ -102,6 +105,7 @@ void MMA::PythonSetProperty(PyObject* args)
     throw "Unknown property " + ss.first + " for 'MMA'";
 }
 
+#ifdef USE_DUMAS
 void DumasMMA::PythonSetProperty(PyObject* args)
 {
   auto ss = ParseStringString(args);
@@ -121,6 +125,7 @@ void DumasMMA::PythonSetProperty(PyObject* args)
   else
     gcmma->SetAsymptotes(asyminit, asymdec, asyminc);
 }
+#endif
 
 void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
 {
@@ -136,14 +141,16 @@ void Function::InitPythonFunction(PtrParamNode pn, DesignSpace* design)
 
   py_name_= ppn->Get("name")->As<string>();
 
-
-
-  // we have as kernel either kernel or design
+  // we have as kernel either kernel or design or it is possibly not set
   PyObject* kernel = ppn->Get("script")->As<string>() == "kernel" ? python->GetKernel() : design->GetPythonModule();
+  if(kernel == nullptr)
+    throw Exception("No python file set. Possibly set it via the global python element");
 
-  // the options are flattened and contain everything
-  StdVector<std::pair<std::string, std::string> > list;
-  pn->ToStringList(list);
+  // the options are flattened and contain the function and the python element. Going deeper is ugly
+  auto list = pn->ToStringList(2);
+  // possibly there are options
+  auto optlist = PythonKernel::ParseOptions(pn->Get("python")->GetList("option"));
+  list.Append(optlist);
 
   PyObject* opt = PythonKernel::CreatePythonDict(list);
   assert(opt != NULL);

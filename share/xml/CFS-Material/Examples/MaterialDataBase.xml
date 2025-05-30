@@ -96,8 +96,11 @@
       </elasticity>
       <damping>
         <rayleigh>
-          <lossTangensDelta>0.01</lossTangensDelta>
-          <measuredFreq>1e3</measuredFreq>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>1e3</centerFreq>
+            <ratioDeltaF> 1e-3</ratioDeltaF>
+            <lossTangensDelta>0.01</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
         </rayleigh>
       </damping>
     </mechanical>
@@ -1577,9 +1580,11 @@
       </elasticity>
       <damping>
         <rayleigh>
-          <alpha> 1E+04 </alpha>
-          <beta> 1E-08 </beta>
-          <measuredFreq> 1E6 </measuredFreq>
+          <coefficients>
+            <alpha> 1E+04 </alpha>
+            <beta> 1E-08 </beta>
+            <!-- <measuredFreq> 1E6 </measuredFreq> -->
+          </coefficients>
         </rayleigh>
       </damping>
     </mechanical>
@@ -1596,9 +1601,11 @@
       </compressionModulus>
       <damping>
         <rayleigh>
-          <alpha> 1E+04 </alpha>
-          <beta> 1E-08 </beta>
-          <measuredFreq> 1E6 </measuredFreq>
+          <coefficients>
+            <alpha> 1E+04 </alpha>
+            <beta> 1E-08 </beta>
+            <!-- <measuredFreq> 1E6 </measuredFreq> -->
+          </coefficients>
         </rayleigh>
       </damping>
     </acoustic>

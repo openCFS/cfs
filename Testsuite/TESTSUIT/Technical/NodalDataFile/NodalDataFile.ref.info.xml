@@ -1,0 +1,176 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="1">
+  <summary>
+    <timer wall-clock="0.335s" wall="0.335" cpu="0.335108" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="232.44" peak="235.07"/>
+  </summary>
+  <header id="">
+    <environment started="2022-Feb-14 13:40:14" host="mojo.mi.uni-erlangen.de"/>
+    <progOpts problem="NodalDataFile" parameterFile="/home/fwein/code/cfs/Testsuite/TESTSUIT/Technical/NodalDataFile/NodalDataFile.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no" openmp="compiled without">
+      <cfs version="22.02" name="Frohes Fensterln" build="Debug" git_commit="4361fb8dfcf421a9978851d05f1ceb67ec88575c" git_branch="external_rhs" exe="cfs"/>
+    </progOpts>
+    <domain nx="15" ny="15" nz="1">
+      <grids>
+        <timer wall-clock="0.026s" wall="0.026" cpu="0.026219" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="225" nodes="256"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="204" elems="156" isQuadratic="no"/>
+        <region name="inclusion" id="1" type="volume" regular="yes" hom="yes" nodes="88" elems="69" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="16"/>
+        <nodes name="north" count="16"/>
+        <nodes name="west" count="16"/>
+        <nodes name="east" count="16"/>
+        <nodes name="south_west" count="1" coord="(0,0)"/>
+        <nodes name="south_east" count="1" coord="(1,0)"/>
+        <nodes name="north_west" count="1" coord="(0,1)"/>
+        <nodes name="north_east" count="1" coord="(1,1)"/>
+        <nodes name="inclusion_nodes" count="24"/>
+        <nodes name="outer_nodes" count="60"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="15" ny="15" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.001s" wall="0.001" cpu="0.001544" calls="5"/>
+    </results>
+  </header>
+  <calculation>
+    <process>
+      <sequence step="0">
+        <result data="mechDeformEnergy" location="mech" definedOn="region">
+          <item step="1" step_val="0" value="0.0048898" unit="Ws"/>
+        </result>
+      </sequence>
+    </process>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.1s" wall="0.1" cpu="0.099988" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionConst" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="inclusion_nodes" size="24" region="no_region"/>
+                <coef type="CoefFunctionFileData" value="nodal.dat"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="outer_nodes" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="288" totalNumFreeEqns="288" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="288" lastFreeEqn="288" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="288" lastFreeIndex="288"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer label="setup_directLDL" wall-clock="0.001s" wall="0.001" cpu="0.001066" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.000499" calls="1"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="2e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.026s" wall="0.026" cpu="0.026243" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.033s" wall="0.033" cpu="0.034759" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

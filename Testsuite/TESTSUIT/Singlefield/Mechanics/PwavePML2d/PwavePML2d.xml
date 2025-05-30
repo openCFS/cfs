@@ -1,0 +1,92 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  <documentation>
+    <title>PwavePML2d</title>
+    <authors>
+      <author>Florian Toth</author>
+    </authors>
+    <date></date>
+    <keywords>
+      <keyword>mechanic</keyword>
+      <keyword>pml</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+      Model a P-wave in 2D with plane-strain state.
+
+      The performance of the PML is not great, but the results look OK.
+
+      It the speed of sound differs from 1.0, one has to set "dampFactor" to the speed of sound.
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <gmsh fileName="domain.msh" scaleFac="1" />
+    </input>
+    <output>
+      <hdf5 />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+  <domain geometryType="plane">
+    <regionList>
+      <region name="outside" material="C1" />
+      <region name="pml" material="C1" />
+    </regionList>
+  </domain>
+  <sequenceStep index="1">
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="1.0" />
+        </frequencyList>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="outside" />
+          <region name="pml" dampingId="myPML" />
+        </regionList>
+        <dampingList>
+          <pml id="myPML">
+            <type>inverseDist</type>
+            <dampFactor>1.0</dampFactor><!-- should be set to wave speed -->
+          </pml>
+        </dampingList>
+        <bcsAndLoads>
+          <pressure name="excitation_circle" value="1.0" />
+          <fix name="x">
+            <comp dof="y" />
+          </fix>
+          <fix name="y">
+            <comp dof="x" />
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <!-- <exportLinSys system="true"/> -->
+            <matrix storage="sparseNonSym" reordering="noReordering" />
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso>
+            <posDef>no</posDef>
+            <symStruct>no</symStruct>
+            <IterRefineSteps>100</IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

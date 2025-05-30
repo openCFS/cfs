@@ -5,13 +5,15 @@
 set(MKL_LINK "static") # when we are static, we do not need to copy/install mkl dlls.
 set(MKL_INTERFACE "lp64") # lp64 = 4 bytes integer, ilp64 = 8 bytes integer - the wrong setting makes cfs randomly crash. Default seems to change
 if(NOT USE_OPENMP)
-  set(MKL_THREADING "sequential" CACHE STRING "The OpenMP implemention we want to use")
-elseif(WIN32 OR OpenMP_iomp5_LIBRARY) # /opt/intel/oneapi/compiler/2021.4.0/linux/compiler/lib/intel64_lin/libiomp5.so
-  # Intel OpenMP - for Windows or when intel compilers are used
-  set(MKL_THREADING "intel_thread" CACHE STRING "The OpenMP implemention we want to use")   
+  set(MKL_THREADING "sequential" CACHE STRING "The OpenMP implementation we want to use")
+elseif(WIN32 OR OpenMP_iomp5_LIBRARY OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # Intel OpenMP - for Windows or for Intel compilers or with clang on Linux (not AppleClang!) are used
+  # OpenMP_iomp5_LIBRARY is e.g. /opt/intel/oneapi/compiler/2021.4.0/linux/compiler/lib/intel64_lin/libiomp5.so
+  # Using Clang on Linux with gnu_thread links libomp.so and libgomp.so and segfaults in parallel mode
+  set(MKL_THREADING "intel_thread" CACHE STRING "The OpenMP implementation we want to use")
 else()
-  # standard Linux case with gcc/gfortran
-  set(MKL_THREADING "gnu_thread" CACHE STRING "The OpenMP implemention we want to use")
+  # standard Linux case with gcc/gfortran - strictly necessary for the musl build, in practice one can also use intel_thread on Linux with gcc
+  set(MKL_THREADING "gnu_thread" CACHE STRING "The OpenMP implementation we want to use")
 endif()  
 set_property(CACHE MKL_THREADING PROPERTY STRINGS gnu_thread intel_thread sequential)
 
@@ -32,6 +34,18 @@ if(MKL_FOUND)
   set(MKL_BLAS_LIB "$<LINK_ONLY:MKL::MKL>") # used in TARGET_LL of all openCFS targets
   set(BLAS_LIBRARY "${MKL_BLAS_LIB}")
   cmake_print_variables(MKL_LINK_LINE)
+  # generate a resolved MKL-link-line for cfsdeps
+  set(MKL_LIBRARIES "${MKL_LINK_LINE}")
+  list(FILTER MKL_LIBRARIES INCLUDE REGEX "MKL::") # only keep parts called MKL::
+  # now replace all targets with the full paths
+  set(MKL_LINK_LINE_CFSDEPS "${MKL_LINK_LINE} ${MKL_THREAD_LIB} ${MKL_SUPP_LINK}")
+  foreach(lib ${MKL_LIBRARIES})
+    get_target_property(loc ${lib} IMPORTED_LOCATION)
+    # message(STATUS "  ${lib} -> ${loc}")
+    string(REPLACE "${lib}" "${loc}" MKL_LINK_LINE_CFSDEPS "${MKL_LINK_LINE_CFSDEPS}")
+  endforeach()
+  string(REPLACE ";" " " MKL_LINK_LINE_CFSDEPS "${MKL_LINK_LINE_CFSDEPS}")
+  cmake_print_variables(MKL_LINK_LINE_CFSDEPS)
 else()
   # this is the legacy case - probably only for centos6-gcc runner - remove if possible!
   include("${CFS_SOURCE_DIR}/cmake_modules/legacy_mkl.cmake")

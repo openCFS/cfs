@@ -1,0 +1,143 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../../share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>LinFlow intensity and power test (pressure only version) - reference</title>
+    <authors>
+      <author>Dominik Mayrhofer</author>
+    </authors>
+    <date>2023-08-17</date>
+    <keywords>
+      <keyword>flow</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+        This test consists of a channel where a wave propagates through.
+        We evaluate the intensity, surafce intensity, normal surface intensity as well as the power passin through a surface.
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <cdb fileName="Channel.cdb"/>      
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+  	<variableList>
+      <var name="sf" value="50"/>
+      <var name="dt1" value="2.5e-4/sf"/>
+      <var name="steps" value="15*sf"/>
+  	  <var name="f_exc" value="100"/>
+    </variableList>
+  
+    <regionList>
+      <region name="Channel_1" material="FluidMat"/>
+      <region name="Channel_2" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="Exc_LF"/>
+      <surfRegion name="Slip_Bot"/>
+      <surfRegion name="Slip_Top"/>
+      <surfRegion name="NoPenetration_End"/>
+      <surfRegion name="IF"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="orderVel">
+      <isoOrder>2</isoOrder> 
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="orderPres">
+      <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+  
+  <integrationSchemeList>
+    <scheme id="integVel">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="integPres">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>steps</numSteps>
+        <deltaT>dt1</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="Channel_1" polyId="orderVel" integId="integVel"/>
+          <region name="Channel_2" polyId="orderVel" integId="integVel"/>
+        </regionList>
+
+        <bcsAndLoads> 
+          <normalVelocity name="Exc_LF" value="(1-cos(2*pi*f_exc*t)^2)^2*sin(2*pi*f_exc*t)"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="acouPotential">
+            <allRegions outputIds="h5"/>
+          </nodeResult>
+          <nodeResult type="acouPotentialD1">
+            <allRegions outputIds="h5"/>
+          </nodeResult>
+          <elemResult type="acouVelocity">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <elemResult type="acouIntensity">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <surfElemResult type="acouSurfIntensity">
+            <surfRegionList>
+              <surfRegion name="Exc_LF" outputIds="h5,txt"/>
+              <surfRegion name="IF" outputIds="h5,txt"/>
+            </surfRegionList>
+          </surfElemResult>
+          <surfElemResult type="acouNormalIntensity">
+            <surfRegionList>
+              <surfRegion name="Exc_LF" outputIds="h5,txt"/>
+              <surfRegion name="IF" outputIds="h5,txt"/>
+            </surfRegionList>
+          </surfElemResult>
+          <surfRegionResult type="acouPower">
+            <surfRegionList>
+              <surfRegion name="Exc_LF" outputIds="h5,txt"/>
+              <surfRegion name="IF" outputIds="h5,txt"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

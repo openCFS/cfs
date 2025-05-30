@@ -7,29 +7,23 @@
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 
-namespace CoupledField
-{
+namespace CoupledField {
 
   // ***********************
   //   Default Constructor
   // ***********************
-  AcousticMaterial::AcousticMaterial(MathParser* mp,
-                                     CoordSystem * defaultCoosy) 
-  : BaseMaterial(ACOUSTIC, mp, defaultCoosy)
+  AcousticMaterial::AcousticMaterial(MathParser *mp, CoordSystem *defaultCoosy) : BaseMaterial(ACOUSTIC, mp, defaultCoosy)
   {
-    //set the allowed material parameters
-    isAllowed_.insert( DENSITY );
-    isAllowed_.insert( ACOU_BULK_MODULUS );
-    isAllowed_.insert( ACOU_SOUND_SPEED );
-    isAllowed_.insert( FLUID_ADIABATIC_EXPONENT );
-    isAllowed_.insert( FLUID_KINEMATIC_VISCOSITY );
-//    isAllowed_.insert( ACOU_ALPHA );
-//    isAllowed_.insert( FRACTIONAL_EXPONENT );
-    isAllowed_.insert( RAYLEIGH_ALPHA );
-    isAllowed_.insert( RAYLEIGH_BETA );
-    isAllowed_.insert( RAYLEIGH_FREQUENCY);
-    isAllowed_.insert( LOSS_TANGENS_DELTA);
-    isAllowed_.insert( ACOU_BOVERA );
+    // set the allowed material parameters
+    isAllowed_.insert(DENSITY);
+    isAllowed_.insert(ACOU_BULK_MODULUS);
+    isAllowed_.insert(ACOU_SOUND_SPEED);
+    isAllowed_.insert(FLUID_ADIABATIC_EXPONENT);
+    isAllowed_.insert(FLUID_KINEMATIC_VISCOSITY);
+    isAllowed_.insert(RAYLEIGH_ALPHA);
+    isAllowed_.insert(RAYLEIGH_BETA);
+    isAllowed_.insert(LOSS_TANGENS_DELTA);
+    isAllowed_.insert(ACOU_BOVERA);
   }
 
   AcousticMaterial::~AcousticMaterial() {
@@ -52,4 +46,4 @@ namespace CoupledField
     }
   }
 
-}
+  } // namespace CoupledField

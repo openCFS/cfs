@@ -110,7 +110,6 @@ class NrfCommon(object):
                    ('acouEnergy', 7),
                    ('acouPmlAuxVec', 1),
                    ('acouPmlAuxScalar', 1),
-                   ('acouPseudoDensity', 4),
                    ('meanFluidVelocity', 1)]    
     elecResults = [('elecPotential', 1),
                    ('elecPotentialD1', 1),

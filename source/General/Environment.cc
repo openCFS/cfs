@@ -158,6 +158,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_STRAIN, "smoothStrain");
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE_DENSITY, "smoothContactForceDensity");
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE, "smoothContactForce");
+    SolutionTypeEnum.Add(SMOOTH_DEFORM_ENERGY_DENS, "smoothDeformEnergyDensity");
+    SolutionTypeEnum.Add(SMOOTH_DEFORM_ENERGY, "smoothDeformEnergy");
+    
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
     SolutionTypeEnum.Add(ACOU_ACCELERATION, "acouAcceleration");
@@ -192,7 +195,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_KIN_ENERGY, "acouKinEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
-    SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
 
     SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
     SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
@@ -242,6 +244,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_JOULE_LOSS_POWER, "magJouleLossPower");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
+    SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY_STATIC, "magForceLorentzDensityStatic");
+    SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY_HARMONIC, "magForceLorentzDensityHarmonic");    
     SolutionTypeEnum.Add(MAG_FORCE_MAXWELL_DENSITY, "magForceMaxwellDensity");
     SolutionTypeEnum.Add(MAG_NORMALFORCE_MAXWELL_DENSITY, "magNormalForceMaxwellDensity");
     SolutionTypeEnum.Add(MAG_TANGENTIALFORCE_MAXWELL_DENSITY, "magTangentialForceMaxwellDensity");
@@ -258,6 +262,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT1, "magEddyCurrent1");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT2, "magEddyCurrent2");
+    SolutionTypeEnum.Add(MAG_TOTAL_CURRENT, "magTotalCurrent");
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
     SolutionTypeEnum.Add(MAG_ELEM_RELUCTIVITY, "magElemReluctivity");
     SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
@@ -574,7 +579,6 @@ namespace CoupledField {
     // Rayleigh Damping
     MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" );
     MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" );
-    MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" );
     MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" );
 
     // General Material Nonlinearity
@@ -880,6 +884,7 @@ namespace CoupledField {
       case MECH_KIN_ENERGY:
       case MECH_DEFORM_ENERGY:
       case MECH_TOTAL_ENERGY:
+      case SMOOTH_DEFORM_ENERGY:
         return "Ws";
         break;
 
@@ -904,6 +909,7 @@ namespace CoupledField {
 
       case SPLIT_POT_ENERGY:
       case ELEC_ENERGY_DENSITY:
+      case SMOOTH_DEFORM_ENERGY_DENS:
         return "Ws/m^3";
         break;
 
@@ -1235,6 +1241,7 @@ namespace CoupledField {
       case MECH_ELEM_VOL:
       case MECH_ELEM_POROSITY:
       case MECH_PSEUDO_DENSITY:
+      case PSEUDO_DENSITY:
       case PHYSICAL_PSEUDO_DENSITY:
         return "";
         break;
@@ -1768,80 +1775,104 @@ namespace CoupledField {
     }
   }
 
-  template<>
-  void String2Enum<DampingType>( const std::string &in, DampingType &out ) {
-
-    if( in == "none" ) {
+  template <>
+  void String2Enum<DampingType>(const std::string &in, DampingType &out)
+  {
+    if (in == "none") {
       out = NONE;
-    } else if( in == "rayleigh" ) {
+    }
+    else if (in == "rayleigh") {
       out = RAYLEIGH;
-    } else if( in == "abc") {
+    }
+    else if (in == "abc") {
       out = ABCDAMP;
-    } else if( in == "thermoViscous") {
+    }
+    else if (in == "thermoViscous") {
       out = THERMOVISCOUS;
-    } else if( in == "fractional") {
+    }
+    else if (in == "fractional") {
       out = FRACTIONAL;
-    } else if( in == "fractiona_gl") {
+    }
+    else if (in == "fractiona_gl") {
       out = FRACTIONAL_GL;
-    } else if( in == "fractional_blank") {
+    }
+    else if (in == "fractional_blank") {
       out = FRACTIONAL_BLANK;
-    } else if( in == "fractional_gl_int") {
+    }
+    else if (in == "fractional_gl_int") {
       out = FRACTIONAL_GL_INT;
-    } else if( in == "fractional_blank_int") {
+    }
+    else if (in == "fractional_blank_int") {
       out = FRACTIONAL_BLANK_INT;
-    } else if( in == "pml" ) {
+    }
+    else if (in == "pml") {
       out = PML;
-    } else if( in == "dampLayer" ) {
+    }
+    else if (in == "dampLayer") {
       out = DAMPLAYER;
-    } else if( in == "mapping" ) {
+    }
+    else if (in == "mapping") {
       out = MAPPING;
-    } else {
-      EXCEPTION( "'" << in << "' cannot be converted into an "
-                 << "'DampingType' item!" );
+    }
+    else if (in == "adaptedLossTangensDelta") {
+      out = ADAPTED_LOSS_TANGENS_DELTA;
+    }
+    else if (in == "globalRayleigh") {
+      out = GLOBAL_RAYLEIGH;
+    }
+    else {
+      EXCEPTION("'" << in << "' cannot be converted into a 'DampingType' item!");
     }
   }
 
-  template<>
-  void Enum2String<DampingType>( const DampingType &in, std::string& out ) {
-    switch(in) {
-      case NONE:
-        out = "none";
-        break;
-      case RAYLEIGH:
-        out = "rayleigh";
-        break;
-      case ABCDAMP:
-        out = "abc";
-        break;
-      case THERMOVISCOUS:
-        out = "thermoViscous";
-        break;
-      case FRACTIONAL:
-        out = "fractional";
-        break;
-      case FRACTIONAL_GL:
-        out = "fractiona_gl";
-        break;
-      case FRACTIONAL_BLANK:
-        out = "fractional_blank";
-        break;
-      case FRACTIONAL_GL_INT:
-        out = "fractional_gl_int";
-        break;
-      case FRACTIONAL_BLANK_INT:
-        out = "fractional_blank_int";
-        break;
-      case PML:
-        out = "pml";
-        break;
-      case DAMPLAYER:
-        out = "dampLayer";
-        break;
-      case MAPPING:
-        out = "mapping";
-        break;
-      default:
-        EXCEPTION( "No conversion found for 'DapmingType' " << in );
+  template <>
+  void Enum2String<DampingType>(const DampingType &in, std::string &out)
+  {
+    switch (in) {
+    case NONE:
+      out = "none";
+      break;
+    case RAYLEIGH:
+      out = "rayleigh";
+      break;
+    case ABCDAMP:
+      out = "abc";
+      break;
+    case THERMOVISCOUS:
+      out = "thermoViscous";
+      break;
+    case FRACTIONAL:
+      out = "fractional";
+      break;
+    case FRACTIONAL_GL:
+      out = "fractiona_gl";
+      break;
+    case FRACTIONAL_BLANK:
+      out = "fractional_blank";
+      break;
+    case FRACTIONAL_GL_INT:
+      out = "fractional_gl_int";
+      break;
+    case FRACTIONAL_BLANK_INT:
+      out = "fractional_blank_int";
+      break;
+    case PML:
+      out = "pml";
+      break;
+    case DAMPLAYER:
+      out = "dampLayer";
+      break;
+    case MAPPING:
+      out = "mapping";
+      break;
+    case ADAPTED_LOSS_TANGENS_DELTA:
+      out = "adaptedLossTangensDelta";
+      break;
+    case GLOBAL_RAYLEIGH:
+      out = "globalRayleigh";
+      break;
+    default:
+      EXCEPTION("No conversion found for 'DapmingType' " << in);
     }
   }
 
@@ -2151,21 +2182,6 @@ namespace CoupledField {
     using std::cout;
 
     CFS_NUM_THREADS = cfs; // this is a global int variable
-
-#if defined(_MSC_VER) && (!defined(__INTEL_COMPILER)) && (!defined(__INTEL_LLVM_COMPILER))
-    if(!quiet && cfs > 1)
-    {
-      cout << "==================================================================================" << std::endl;
-      cout << "  WARNING:This version of openCFS has been compiled using Microsoft C++ compilers." << std::endl;
-      cout << "  Due to limited support for OpenMP (Version 2.0), the number of parallel CFS threads is limited to 1." << std::endl;
-      cout << "  The number of CFS threads for this run has been specified to " << cfs << ", either" << std::endl;
-      cout << "  by using command line argument \"-t " << cfs << "\", or by environment variable CFS_NUM_THREADS." << std::endl;
-      cout << "  Due to these compiler limitations, this has been reset to a single thread." << std::endl;
-      cout << "  Note that the settings for OMP_NUM_THREADS and/or MKL_NUM_THREADS are not involved." << std::endl;
-      cout << "==================================================================================" << std::endl;
-    }
-    CFS_NUM_THREADS=1;
-#endif
 
     // on almost all Linux and Windows systems this is MKL_NUM_THREADS.
     const char* otherenv = GetBlasThreadsEnvVariable(true); // DUMMY_NUM_THREADS for openblas and netlib

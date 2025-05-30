@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <mesh x="6" y="4" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.3" lower="1e-3" name="density" region="all" relative_bound="-1.0" scale="false" upper="1"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.22" lower="0" name="rotAngleFirst" region="all" relative_bound="-1.0" scale="false" upper="3.141592653589793"/>
+    <transferFunction application="mech" design="density" param="3.0" type="simp"/>
+    <filters pass_to_external="true" periodic="enable" write_mat_filt="false">
+      <filter contribution="linear" design="density" neighborhood="maxEdge" type="density" value="1.1"/>
+      <filter contribution="linear" design="rotAngleFirst" neighborhood="maxEdge" type="density" value="1.1"/>
+    </filters>
+  </header>
+  <set id="0">
+    <element nr="1" type="density" design="0.1" physical="0.001"/>
+    <element nr="2" type="density" design="0.1" physical="0.001"/>
+    <element nr="3" type="density" design="0.1" physical="0.001"/>
+    <element nr="4" type="density" design="0.3" physical="0.027"/>
+    <element nr="5" type="density" design="0.3" physical="0.027"/>
+    <element nr="6" type="density" design="0.3" physical="0.027"/>
+    <element nr="7" type="density" design="0.1" physical="0.001"/>
+    <element nr="8" type="density" design="0.1" physical="0.001"/>
+    <element nr="9" type="density" design="0.1" physical="0.001"/>
+    <element nr="10" type="density" design="0.3" physical="0.027"/>
+    <element nr="11" type="density" design="0.3" physical="0.027"/>
+    <element nr="12" type="density" design="0.3" physical="0.027"/>
+    <element nr="13" type="density" design="0.1" physical="0.001"/>
+    <element nr="14" type="density" design="0.1" physical="0.001"/>
+    <element nr="15" type="density" design="0.1" physical="0.001"/>
+    <element nr="16" type="density" design="0.3" physical="0.027"/>
+    <element nr="17" type="density" design="0.3" physical="0.027"/>
+    <element nr="18" type="density" design="0.3" physical="0.027"/>
+    <element nr="19" type="density" design="0.1" physical="0.001"/>
+    <element nr="20" type="density" design="0.1" physical="0.001"/>
+    <element nr="21" type="density" design="0.1" physical="0.001"/>
+    <element nr="22" type="density" design="0.3" physical="0.027"/>
+    <element nr="23" type="density" design="0.3" physical="0.027"/>
+    <element nr="24" type="density" design="0.3" physical="0.027"/>
+    <element nr="1" type="rotAngleFirst" design="0"/>
+    <element nr="2" type="rotAngleFirst" design="0"/>
+    <element nr="3" type="rotAngleFirst" design="0"/>
+    <element nr="4" type="rotAngleFirst" design="1.5707"/>
+    <element nr="5" type="rotAngleFirst" design="1.5707"/>
+    <element nr="6" type="rotAngleFirst" design="1.5707"/>
+    <element nr="7" type="rotAngleFirst" design="0"/>
+    <element nr="8" type="rotAngleFirst" design="0"/>
+    <element nr="9" type="rotAngleFirst" design="0"/>
+    <element nr="10" type="rotAngleFirst" design="1.5707"/>
+    <element nr="11" type="rotAngleFirst" design="1.5707"/>
+    <element nr="12" type="rotAngleFirst" design="1.5707"/>
+    <element nr="13" type="rotAngleFirst" design="0"/>
+    <element nr="14" type="rotAngleFirst" design="0"/>
+    <element nr="15" type="rotAngleFirst" design="0"/>
+    <element nr="16" type="rotAngleFirst" design="1.5707"/>
+    <element nr="17" type="rotAngleFirst" design="1.5707"/>
+    <element nr="18" type="rotAngleFirst" design="1.5707"/>
+    <element nr="19" type="rotAngleFirst" design="0"/>
+    <element nr="20" type="rotAngleFirst" design="0"/>
+    <element nr="21" type="rotAngleFirst" design="0"/>
+    <element nr="22" type="rotAngleFirst" design="1.5707"/>
+    <element nr="23" type="rotAngleFirst" design="1.5707"/>
+    <element nr="24" type="rotAngleFirst" design="1.5707"/>
+  </set>
+</cfsErsatzMaterial>

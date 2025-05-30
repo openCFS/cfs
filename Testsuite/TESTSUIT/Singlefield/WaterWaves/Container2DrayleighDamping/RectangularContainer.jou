@@ -1,0 +1,38 @@
+reset
+# variables
+#{w = 0.10} # width
+#{h = 0.07} # height
+#{t = 0.01} # wall thickness
+
+# create surfaces
+create surface rectangle width {w} height {h} zplane
+create surface rectangle width {w+2*t} height {h+t} zplane
+# move such that surface is at y=0
+move surface 1 y {-h/2} include_merged
+move surface 2 y {-t/2-h/2} include_merged
+# cut out water from box
+subtract surface 1 from surface 2 imprint keep_tool
+merge curve all
+
+# regions
+block 1 add surface 1
+block 1 name "S_water"
+block 2 add surface 3
+block 2 name "S_box"
+nodeset 1 add curve 1
+nodeset 1 name "L_surface"
+nodeset 2 add curve 2 3 4
+nodeset 2 name "L_coupling"
+nodeset 3 add curve 7
+nodeset 3 name "L_bottom"
+nodeset 4 add vertex 2
+nodeset 4 name "P_left-surf"
+nodeset 5 add vertex 3
+nodeset 5 name "P_left-bottom"
+nodeset 6 add vertex 4
+nodeset 6 name "P_right-bottom"
+
+# mesh
+surface all size 0.01
+mesh surface all
+export ansys cdb "RectangularContainer.cdb" geometry overwrite

@@ -1,0 +1,35 @@
+undo on 
+reset
+
+# Create volume
+brick x 1 y 0.2 z 0.2
+
+# rotate
+#rotate Volume 1 angle 45  about X include_merged 
+#rotate Volume 1 angle 45  about Z include_merged 
+
+# mesh
+volume 1 size 0.1
+mesh volume 1
+
+block 1 add volume 1
+block 1 name "brick"
+
+nodeset 1 add surface 6
+nodeset 1 name "ground"
+
+nodeset 2 add surface 4
+nodeset 2 name "top"
+
+nodeset 3 add surface 1 2
+nodeset 3 name "z_normal"
+
+nodeset 4 add surface 3 5
+nodeset 4 name "y_normal"
+
+export ansys cdb "brick.cdb"  overwrite 
+
+
+
+
+

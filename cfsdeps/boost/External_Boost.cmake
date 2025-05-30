@@ -151,3 +151,10 @@ set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
 # we depend on zlib
 add_dependencies(boost zlib)
 
+# with old boost 1.78.0 we have issue with C++17 with the following workaround. Remove with more recent boost! 
+if(APPLE)
+  # https://stackoverflow.com/questions/77133361/no-template-named-unary-function-in-namespace-std-did-you-mean-unary-fun
+  add_compile_definitions(_LIBCPP_ENABLE_CXX17_REMOVED_UNARY_BINARY_FUNCTION)
+endif()
+# boost 1.78 by default still uses std::unary_function which is removed in C++17 
+add_compile_definitions(BOOST_NO_CXX98_FUNCTION_BASE) 

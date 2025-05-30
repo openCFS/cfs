@@ -1,0 +1,580 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="88" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="1.969s" wall="1.969" cpu="2.53061" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="65"/>
+  </summary>
+  <header id="">
+    <environment started="2025-Mar-05 16:56:21" host="MacBookPro.fritz.box"/>
+    <progOpts problem="multi_dynamic_out_pml" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Acou/multi_dynamic_out_pml/multi_dynamic_out_pml.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="25.02" name="Ideal Implementation" build="RELEASE" git_commit="5976489da86128ba338f25eac30b38ac1a5f7e1a-modified" git_branch="linearAcousticTopOpt" compiled="Mar  4 2025" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="20" ny="87" nz="1">
+      <grids>
+        <timer wall-clock="0.034s" wall="0.034" cpu="0.032306" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="1760" nodes="1848"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="L_exc_surf" id="0" type="surface" regular="yes" hom="yes" nodes="21" elems="20" isQuadratic="no"/>
+        <region name="S_pml_in" id="1" type="volume" regular="yes" hom="yes" nodes="105" elems="80" isQuadratic="no"/>
+        <region name="S_acou" id="2" type="volume" regular="yes" hom="yes" nodes="626" elems="526" isQuadratic="no"/>
+        <region name="S_opt" id="3" type="volume" regular="yes" hom="yes" nodes="828" elems="765" isQuadratic="no"/>
+        <region name="void" id="4" type="volume" regular="yes" hom="yes" nodes="396" elems="357" isQuadratic="no"/>
+        <region name="S_pml_out" id="5" type="volume" regular="yes" hom="yes" nodes="20" elems="12" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="21"/>
+        <nodes name="top" count="21"/>
+        <nodes name="left" count="88"/>
+        <nodes name="right" count="88"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(0.115,0)"/>
+        <nodes name="top_left" count="1" coord="(0,0.501)"/>
+        <nodes name="top_right" count="1" coord="(0.115,0.501)"/>
+        <nodes name="L_exc" count="21"/>
+        <nodes name="L_out" count="3"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="420" nx="20" ny="87" nz="1" step="2" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.218s" wall="0.218" cpu="0.241537" calls="1476"/>
+    </results>
+  </header>
+  <calculation>
+    <process>
+      <sequence step="0">
+        <result data="acouPressure" location="L_out" definedOn="node">
+          <item step="0" step_val="0" value="(624.51,-153.36)" unit="Pa" id="1555"/>
+          <item step="0" step_val="0" value="(624.51,-153.36)" unit="Pa" id="1556"/>
+          <item step="0" step_val="0" value="(624.51,-153.36)" unit="Pa" id="1557"/>
+          <item step="1" step_val="1" value="(784.56,506.64)" unit="Pa" id="1555"/>
+          <item step="1" step_val="1" value="(784.56,506.64)" unit="Pa" id="1556"/>
+          <item step="1" step_val="1" value="(784.56,506.64)" unit="Pa" id="1557"/>
+          <item step="2" step_val="2" value="(1206.1,21.877)" unit="Pa" id="1555"/>
+          <item step="2" step_val="2" value="(1206.1,21.877)" unit="Pa" id="1556"/>
+          <item step="2" step_val="2" value="(1206.1,21.877)" unit="Pa" id="1557"/>
+          <item step="3" step_val="3" value="(1197.8,-235.2)" unit="Pa" id="1555"/>
+          <item step="3" step_val="3" value="(1197.8,-235.2)" unit="Pa" id="1556"/>
+          <item step="3" step_val="3" value="(1197.8,-235.2)" unit="Pa" id="1557"/>
+          <item step="4" step_val="4" value="(1279.2,-164.43)" unit="Pa" id="1555"/>
+          <item step="4" step_val="4" value="(1279.2,-164.43)" unit="Pa" id="1556"/>
+          <item step="4" step_val="4" value="(1279.2,-164.43)" unit="Pa" id="1557"/>
+          <item step="5" step_val="5" value="(1335.9,-73.74)" unit="Pa" id="1555"/>
+          <item step="5" step_val="5" value="(1335.9,-73.74)" unit="Pa" id="1556"/>
+          <item step="5" step_val="5" value="(1335.9,-73.74)" unit="Pa" id="1557"/>
+          <item step="6" step_val="6" value="(1325.6,-204.71)" unit="Pa" id="1555"/>
+          <item step="6" step_val="6" value="(1325.6,-204.71)" unit="Pa" id="1556"/>
+          <item step="6" step_val="6" value="(1325.6,-204.71)" unit="Pa" id="1557"/>
+          <item step="7" step_val="7" value="(1346.9,-3.0196)" unit="Pa" id="1555"/>
+          <item step="7" step_val="7" value="(1346.9,-3.0195)" unit="Pa" id="1556"/>
+          <item step="7" step_val="7" value="(1346.9,-3.0193)" unit="Pa" id="1557"/>
+          <item step="8" step_val="8" value="(1347.7,-53.824)" unit="Pa" id="1555"/>
+          <item step="8" step_val="8" value="(1347.7,-53.824)" unit="Pa" id="1556"/>
+          <item step="8" step_val="8" value="(1347.7,-53.824)" unit="Pa" id="1557"/>
+          <item step="9" step_val="9" value="(1347.5,-65.178)" unit="Pa" id="1555"/>
+          <item step="9" step_val="9" value="(1347.5,-65.178)" unit="Pa" id="1556"/>
+          <item step="9" step_val="9" value="(1347.5,-65.178)" unit="Pa" id="1557"/>
+          <item step="10" step_val="10" value="(1347.9,-59.579)" unit="Pa" id="1555"/>
+          <item step="10" step_val="10" value="(1347.9,-59.579)" unit="Pa" id="1556"/>
+          <item step="10" step_val="10" value="(1347.9,-59.579)" unit="Pa" id="1557"/>
+          <item step="11" step_val="11" value="(1347.8,-60.899)" unit="Pa" id="1555"/>
+          <item step="11" step_val="11" value="(1347.8,-60.899)" unit="Pa" id="1556"/>
+          <item step="11" step_val="11" value="(1347.8,-60.899)" unit="Pa" id="1557"/>
+          <item step="12" step_val="12" value="(1347.6,-69.774)" unit="Pa" id="1555"/>
+          <item step="12" step_val="12" value="(1347.6,-69.774)" unit="Pa" id="1556"/>
+          <item step="12" step_val="12" value="(1347.6,-69.774)" unit="Pa" id="1557"/>
+          <item step="13" step_val="13" value="(1348,-68.804)" unit="Pa" id="1555"/>
+          <item step="13" step_val="13" value="(1348,-68.804)" unit="Pa" id="1556"/>
+          <item step="13" step_val="13" value="(1348,-68.803)" unit="Pa" id="1557"/>
+          <item step="14" step_val="14" value="(1348.8,-64.602)" unit="Pa" id="1555"/>
+          <item step="14" step_val="14" value="(1348.8,-64.602)" unit="Pa" id="1556"/>
+          <item step="14" step_val="14" value="(1348.8,-64.602)" unit="Pa" id="1557"/>
+          <item step="15" step_val="15" value="(1349.2,-61.027)" unit="Pa" id="1555"/>
+          <item step="15" step_val="15" value="(1349.2,-61.027)" unit="Pa" id="1556"/>
+          <item step="15" step_val="15" value="(1349.2,-61.027)" unit="Pa" id="1557"/>
+          <item step="16" step_val="16" value="(1350.5,-51.644)" unit="Pa" id="1555"/>
+          <item step="16" step_val="16" value="(1350.5,-51.644)" unit="Pa" id="1556"/>
+          <item step="16" step_val="16" value="(1350.5,-51.644)" unit="Pa" id="1557"/>
+          <item step="17" step_val="17" value="(1351.6,-38.191)" unit="Pa" id="1555"/>
+          <item step="17" step_val="17" value="(1351.6,-38.191)" unit="Pa" id="1556"/>
+          <item step="17" step_val="17" value="(1351.6,-38.191)" unit="Pa" id="1557"/>
+          <item step="18" step_val="18" value="(1352.9,-7.4785)" unit="Pa" id="1555"/>
+          <item step="18" step_val="18" value="(1352.9,-7.4784)" unit="Pa" id="1556"/>
+          <item step="18" step_val="18" value="(1352.9,-7.4783)" unit="Pa" id="1557"/>
+          <item step="19" step_val="19" value="(1353.5,30.185)" unit="Pa" id="1555"/>
+          <item step="19" step_val="19" value="(1353.5,30.185)" unit="Pa" id="1556"/>
+          <item step="19" step_val="19" value="(1353.5,30.186)" unit="Pa" id="1557"/>
+          <item step="20" step_val="20" value="(1354.8,28.014)" unit="Pa" id="1555"/>
+          <item step="20" step_val="20" value="(1354.8,28.014)" unit="Pa" id="1556"/>
+          <item step="20" step_val="20" value="(1354.8,28.014)" unit="Pa" id="1557"/>
+          <item step="21" step_val="21" value="(1356.2,16.335)" unit="Pa" id="1555"/>
+          <item step="21" step_val="21" value="(1356.2,16.335)" unit="Pa" id="1556"/>
+          <item step="21" step_val="21" value="(1356.2,16.335)" unit="Pa" id="1557"/>
+          <item step="22" step_val="22" value="(1356.5,7.9095)" unit="Pa" id="1555"/>
+          <item step="22" step_val="22" value="(1356.5,7.9096)" unit="Pa" id="1556"/>
+          <item step="22" step_val="22" value="(1356.5,7.9098)" unit="Pa" id="1557"/>
+          <item step="23" step_val="23" value="(1356.3,-6.2656)" unit="Pa" id="1555"/>
+          <item step="23" step_val="23" value="(1356.3,-6.2655)" unit="Pa" id="1556"/>
+          <item step="23" step_val="23" value="(1356.3,-6.2654)" unit="Pa" id="1557"/>
+          <item step="24" step_val="24" value="(1356.3,10.659)" unit="Pa" id="1555"/>
+          <item step="24" step_val="24" value="(1356.3,10.659)" unit="Pa" id="1556"/>
+          <item step="24" step_val="24" value="(1356.3,10.659)" unit="Pa" id="1557"/>
+          <item step="25" step_val="25" value="(1357.7,-12.906)" unit="Pa" id="1555"/>
+          <item step="25" step_val="25" value="(1357.7,-12.906)" unit="Pa" id="1556"/>
+          <item step="25" step_val="25" value="(1357.7,-12.906)" unit="Pa" id="1557"/>
+          <item step="26" step_val="26" value="(1358.2,-32.614)" unit="Pa" id="1555"/>
+          <item step="26" step_val="26" value="(1358.2,-32.613)" unit="Pa" id="1556"/>
+          <item step="26" step_val="26" value="(1358.2,-32.613)" unit="Pa" id="1557"/>
+          <item step="27" step_val="27" value="(1357.8,-46.855)" unit="Pa" id="1555"/>
+          <item step="27" step_val="27" value="(1357.8,-46.855)" unit="Pa" id="1556"/>
+          <item step="27" step_val="27" value="(1357.8,-46.854)" unit="Pa" id="1557"/>
+          <item step="28" step_val="28" value="(1357.7,-39.792)" unit="Pa" id="1555"/>
+          <item step="28" step_val="28" value="(1357.7,-39.792)" unit="Pa" id="1556"/>
+          <item step="28" step_val="28" value="(1357.7,-39.792)" unit="Pa" id="1557"/>
+          <item step="29" step_val="29" value="(1355.5,-91.54)" unit="Pa" id="1555"/>
+          <item step="29" step_val="29" value="(1355.5,-91.54)" unit="Pa" id="1556"/>
+          <item step="29" step_val="29" value="(1355.5,-91.54)" unit="Pa" id="1557"/>
+          <item step="30" step_val="30" value="(1353.2,-121.65)" unit="Pa" id="1555"/>
+          <item step="30" step_val="30" value="(1353.2,-121.65)" unit="Pa" id="1556"/>
+          <item step="30" step_val="30" value="(1353.2,-121.65)" unit="Pa" id="1557"/>
+          <item step="31" step_val="31" value="(1353.1,-87.169)" unit="Pa" id="1555"/>
+          <item step="31" step_val="31" value="(1353.1,-87.169)" unit="Pa" id="1556"/>
+          <item step="31" step_val="31" value="(1353.1,-87.169)" unit="Pa" id="1557"/>
+          <item step="32" step_val="32" value="(1354.6,-36.203)" unit="Pa" id="1555"/>
+          <item step="32" step_val="32" value="(1354.6,-36.202)" unit="Pa" id="1556"/>
+          <item step="32" step_val="32" value="(1354.6,-36.202)" unit="Pa" id="1557"/>
+          <item step="33" step_val="33" value="(1352.4,-75.288)" unit="Pa" id="1555"/>
+          <item step="33" step_val="33" value="(1352.4,-75.288)" unit="Pa" id="1556"/>
+          <item step="33" step_val="33" value="(1352.4,-75.288)" unit="Pa" id="1557"/>
+          <item step="34" step_val="34" value="(1352.1,-76.247)" unit="Pa" id="1555"/>
+          <item step="34" step_val="34" value="(1352.1,-76.247)" unit="Pa" id="1556"/>
+          <item step="34" step_val="34" value="(1352.1,-76.246)" unit="Pa" id="1557"/>
+          <item step="35" step_val="35" value="(1351.2,-92.151)" unit="Pa" id="1555"/>
+          <item step="35" step_val="35" value="(1351.2,-92.151)" unit="Pa" id="1556"/>
+          <item step="35" step_val="35" value="(1351.2,-92.151)" unit="Pa" id="1557"/>
+          <item step="36" step_val="36" value="(1351.6,-90.346)" unit="Pa" id="1555"/>
+          <item step="36" step_val="36" value="(1351.6,-90.346)" unit="Pa" id="1556"/>
+          <item step="36" step_val="36" value="(1351.6,-90.346)" unit="Pa" id="1557"/>
+          <item step="37" step_val="37" value="(1351.6,-90.606)" unit="Pa" id="1555"/>
+          <item step="37" step_val="37" value="(1351.6,-90.606)" unit="Pa" id="1556"/>
+          <item step="37" step_val="37" value="(1351.6,-90.606)" unit="Pa" id="1557"/>
+          <item step="38" step_val="38" value="(1347.2,-161.99)" unit="Pa" id="1555"/>
+          <item step="38" step_val="38" value="(1347.2,-161.99)" unit="Pa" id="1556"/>
+          <item step="38" step_val="38" value="(1347.2,-161.99)" unit="Pa" id="1557"/>
+          <item step="39" step_val="39" value="(1347.5,-165.97)" unit="Pa" id="1555"/>
+          <item step="39" step_val="39" value="(1347.5,-165.97)" unit="Pa" id="1556"/>
+          <item step="39" step_val="39" value="(1347.5,-165.97)" unit="Pa" id="1557"/>
+          <item step="40" step_val="40" value="(1349.8,-149.33)" unit="Pa" id="1555"/>
+          <item step="40" step_val="40" value="(1349.8,-149.33)" unit="Pa" id="1556"/>
+          <item step="40" step_val="40" value="(1349.8,-149.33)" unit="Pa" id="1557"/>
+        </result>
+      </sequence>
+    </process>
+  </calculation>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="400" end="420" numFreq="2"/>
+      <init_harmonic>
+        <timer wall-clock="0.021s" wall="0.021" cpu="0.018051" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <acoustic>
+        <header>
+          <region name="S_pml_out" damping="pml"/>
+          <region name="S_acou" damping="none"/>
+          <region name="S_opt" damping="none"/>
+          <region name="S_pml_in" damping="pml"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="no" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" coef="CoefFunctionOpt" region="S_acou">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="no" BOp="GradientOperator" coef="CoefFunctionOpt" region="S_opt">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" coef="CoefFunctionOpt" region="S_opt">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="ScaledGradientOperator" coef="CoefFunctionCompound_complex" region="S_pml_in">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionCompound_complex" region="S_pml_in">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="yes" BOp="ScaledGradientOperator" coef="CoefFunctionCompound_complex" region="S_pml_out">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassIntegrator" type="BBInt" complex="yes" coef="CoefFunctionCompound_complex" region="S_pml_out">
+                <row pde="acoustic" functionId="0" result="acouPressure"/>
+                <column pde="acoustic" functionId="0" result="acouPressure"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NormalVelocityIntegrator">
+                <entities name="L_exc_surf" size="20" region="L_exc_surf"/>
+                <row pde="acoustic" result="acouPressure" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="S_acou"/>
+            <region name="S_opt"/>
+            <region name="S_pml_in"/>
+            <region name="S_pml_out"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(141855,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.24884186528652"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(141855,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.24884186528652"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(141855,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.24884186528652"/>
+          <property name="Density" value="(1.204,0)"/>
+          <property name="Acoustic_Bulk_Modulus" value="(141855,0)"/>
+          <property name="Acoustic_Sound_Speed" value="343.24884186528652"/>
+          <property name="Density" value="(1.204,0)"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <S_acou/>
+                <default order="1"/>
+                <S_opt/>
+                <S_pml_in/>
+                <S_pml_out/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+        </feSpaces>
+      </acoustic>
+    </PDE>
+    <OLAS>
+      <acoustic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="1491" totalNumFreeEqns="1491" totalNumDirichlet="0">
+            <function id="0" name="acouPressure" numEqns="1491" lastFreeEqn="1491" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="1491" lastFreeIndex="1491"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer label="setup_directLDL" wall-clock="0.337s" wall="0.337" cpu="0.382627" calls="168"/>
+              </setup>
+              <solve>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.100041" calls="336"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0.000138" calls="168"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </acoustic>
+      <graph_setup>
+        <timer wall-clock="0.006s" wall="0.006" cpu="0.006391" calls="1" sub="true"/>
+      </graph_setup>
+      <reorder_Metis>
+        <timer wall-clock="0.004s" wall="0.004" cpu="0.004554" calls="1" sub="true"/>
+      </reorder_Metis>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.548s" wall="0.548" cpu="1.27114" calls="672"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Acou/multi_dynamic_out_pml/HALTOPT">
+    <header>
+      <objective type="dynamicOutput" name="dynamicOutput" linear="no" access="physical" task="maximize"/>
+      <multipleExcitations type="no_type"/>
+      <constraints>
+        <constraint type="volume" name="volume" linear="yes" access="filtered" bound_value="0.5" bound="upperBound" design="default" excitation="1"/>
+        <constraint type="volume" name="physical_volume" access="physical" mode="observation" design="default" excitation="1"/>
+        <constraint type="greyness" name="physical_greyness" access="physical" mode="observation" design="default" excitation="1"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes" localElementCache="disabled">
+        <setup_design>
+          <timer wall-clock="0s" wall="0" cpu="0.000365" calls="2"/>
+        </setup_design>
+        <filters use_mat_filt="yes">
+          <filter type="maxEdge" value="2.4" contribution="linear" design="density" elems="765" avg_radius="0.013821" avg_neighbors="18.243"/>
+          <timer wall-clock="0s" wall="0" cpu="0.000548" calls="1"/>
+        </filters>
+        <transferFunctions>
+          <transferFunction type="simp" application="acoustic" design="density" param="1"/>
+        </transferFunctions>
+        <designVariables opt_vars="765" field_elems="765" field_fe_elemes="765">
+          <design type="density" upperBound="1" lowerBound="1e-09" physicalLowerBound="1e-09"/>
+        </designVariables>
+        <regions>
+          <region name="S_opt" elements="765" bimaterial="-" groundmaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="yes" harmonic="yes" eigenvalue="no" bloch="no" material="acoustic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="0.5" frequency="400"/>
+        <excitation index="1" meta_idx="0" label="1" weight="1" normalized_weight="0.5" frequency="420"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <optimizer>
+      <ipopt>
+        <summary>
+          <ipopt>
+            <timer wall-clock="0.096s" wall="0.096" cpu="0.113702" calls="316"/>
+          </ipopt>
+        </summary>
+        <scaling active="no"/>
+      </ipopt>
+    </optimizer>
+    <summary>
+      <eval_objective>
+        <timer wall-clock="0s" wall="0" cpu="0.006709" calls="262"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.000933" calls="93"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0.126s" wall="0.126" cpu="0.158213" calls="42"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.00301" calls="42"/>
+      </eval_grad_constraints>
+      <break converged="no">
+        <reason msg="Maximum iterations exceeded"/>
+      </break>
+      <functions>
+        <dynamicOutput min="4.177e+05" max="1.8842e+06" oscillations="4"/>
+        <volume min="0.25892" max="0.5" oscillations="6"/>
+        <physical_volume min="0.25892" max="0.5" oscillations="6"/>
+        <physical_greyness min="0.65687" max="1" oscillations="14"/>
+      </functions>
+    </summary>
+    <process>
+      <iteration number="0" frequency="(mult)" duration="0.188" dynamicOutput="417695.273230605" volume="0.499999999999998" physical_volume="0.499999999999998" physical_greyness="1" nObj="1">
+        <excitation index="0" objective="4.4212e+05" objective_weight="0.5"/>
+        <excitation index="1" objective="3.9327e+05" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="1" frequency="(mult)" duration="0.028" dynamicOutput="881182.362944095" volume="0.411669810348411" physical_volume="0.411669810348411" physical_greyness="0.786565290179241" nObj="2">
+        <excitation index="0" objective="8.2024e+05" objective_weight="0.5"/>
+        <excitation index="1" objective="9.4212e+05" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="2" frequency="(mult)" duration="0.025" dynamicOutput="1488349.52540516" volume="0.400252702602817" physical_volume="0.400252702602817" physical_greyness="0.797593661787994" nObj="3">
+        <excitation index="0" objective="1.4751e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.5016e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="3" frequency="(mult)" duration="0.074" dynamicOutput="1528435.37506614" volume="0.39408619493055" physical_volume="0.39408619493055" physical_greyness="0.783427922155895" nObj="9">
+        <excitation index="0" objective="1.5883e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.4686e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="4" frequency="(mult)" duration="0.026" dynamicOutput="1708950.98016346" volume="0.380114275092812" physical_volume="0.380114275092812" physical_greyness="0.74994512298872" nObj="10">
+        <excitation index="0" objective="1.7441e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.6738e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="5" frequency="(mult)" duration="0.027" dynamicOutput="1840625.60382121" volume="0.361633085313766" physical_volume="0.361633085313766" physical_greyness="0.711373747364055" nObj="11">
+        <excitation index="0" objective="1.8425e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8388e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="6" frequency="(mult)" duration="0.044" dynamicOutput="1852555.67638469" volume="0.352054281569811" physical_volume="0.352054281569811" physical_greyness="0.688581560885399" nObj="13">
+        <excitation index="0" objective="1.8974e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8077e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="7" frequency="(mult)" duration="0.025" dynamicOutput="1864159.8600029" volume="0.349865424465844" physical_volume="0.349865424465844" physical_greyness="0.692929460118877" nObj="14">
+        <excitation index="0" objective="1.8422e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8861e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="8" frequency="(mult)" duration="0.027" dynamicOutput="1870418.8285147" volume="0.348470128170203" physical_volume="0.348470128170203" physical_greyness="0.689062362595067" nObj="15">
+        <excitation index="0" objective="1.8652e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8756e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="9" frequency="(mult)" duration="0.028" dynamicOutput="1871687.8051199" volume="0.346056429527036" physical_volume="0.346056429527036" physical_greyness="0.683961975804363" nObj="16">
+        <excitation index="0" objective="1.8701e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8733e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="10" frequency="(mult)" duration="0.026" dynamicOutput="1871701.636432" volume="0.345954629277583" physical_volume="0.345954629277583" physical_greyness="0.684171251920604" nObj="17">
+        <excitation index="0" objective="1.8683e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8751e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="11" frequency="(mult)" duration="0.028" dynamicOutput="1871740.67054062" volume="0.345874294743743" physical_volume="0.345874294743743" physical_greyness="0.68469418996136" nObj="18">
+        <excitation index="0" objective="1.8689e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8745e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="12" frequency="(mult)" duration="0.029" dynamicOutput="1871987.47371652" volume="0.344083592924352" physical_volume="0.344083592924352" physical_greyness="0.68778923350012" nObj="19">
+        <excitation index="0" objective="1.8735e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8705e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="13" frequency="(mult)" duration="0.057" dynamicOutput="1872319.1050013" volume="0.340282487865938" physical_volume="0.340282487865938" physical_greyness="0.691920007643584" nObj="22">
+        <excitation index="0" objective="1.8761e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8686e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="14" frequency="(mult)" duration="0.074" dynamicOutput="1872661.28673771" volume="0.332192154698517" physical_volume="0.332192154698517" physical_greyness="0.698997870293553" nObj="26">
+        <excitation index="0" objective="1.8806e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8647e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="15" frequency="(mult)" duration="0.077" dynamicOutput="1872884.49860625" volume="0.328440140037377" physical_volume="0.328440140037377" physical_greyness="0.700182001099983" nObj="30">
+        <excitation index="0" objective="1.8819e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8639e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="16" frequency="(mult)" duration="0.072" dynamicOutput="1873633.67837696" volume="0.318119717320557" physical_volume="0.318119717320557" physical_greyness="0.701432177200939" nObj="34">
+        <excitation index="0" objective="1.8849e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8624e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="17" frequency="(mult)" duration="0.06" dynamicOutput="1873998.41745579" volume="0.309638111389114" physical_volume="0.309638111389114" physical_greyness="0.705756964888912" nObj="37">
+        <excitation index="0" objective="1.8867e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8613e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="18" frequency="(mult)" duration="0.056" dynamicOutput="1875176.58038242" volume="0.302273255725663" physical_volume="0.302273255725663" physical_greyness="0.705268198343317" nObj="41">
+        <excitation index="0" objective="1.8832e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8672e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="19" frequency="(mult)" duration="0.06" dynamicOutput="1876772.66220781" volume="0.300317365595705" physical_volume="0.300317365595705" physical_greyness="0.703800026566497" nObj="47">
+        <excitation index="0" objective="1.8724e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8812e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="20" frequency="(mult)" duration="0.026" dynamicOutput="1878690.34476153" volume="0.287032143600037" physical_volume="0.287032143600037" physical_greyness="0.693957810894791" nObj="48">
+        <excitation index="0" objective="1.8796e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8777e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="21" frequency="(mult)" duration="0.057" dynamicOutput="1879730.67477205" volume="0.273116546189964" physical_volume="0.273116546189964" physical_greyness="0.680602841486841" nObj="51">
+        <excitation index="0" objective="1.8873e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8721e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="22" frequency="(mult)" duration="0.061" dynamicOutput="1880206.81195687" volume="0.271643716634905" physical_volume="0.271643716634905" physical_greyness="0.678985771157917" nObj="54">
+        <excitation index="0" objective="1.8875e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8729e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="23" frequency="(mult)" duration="0.028" dynamicOutput="1880496.48299011" volume="0.278340069431255" physical_volume="0.278340069431255" physical_greyness="0.68752167673417" nObj="55">
+        <excitation index="0" objective="1.8828e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8782e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="24" frequency="(mult)" duration="0.088" dynamicOutput="1880542.58931641" volume="0.279093131781156" physical_volume="0.279093131781156" physical_greyness="0.687852844324802" nObj="60">
+        <excitation index="0" objective="1.878e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8831e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="25" frequency="(mult)" duration="0.027" dynamicOutput="1881879.27625696" volume="0.263918132741594" physical_volume="0.263918132741594" physical_greyness="0.666681821395676" nObj="61">
+        <excitation index="0" objective="1.8882e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8756e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="26" frequency="(mult)" duration="0.03" dynamicOutput="1883016.28369093" volume="0.258915019182003" physical_volume="0.258915019182003" physical_greyness="0.656873995936054" nObj="62">
+        <excitation index="0" objective="1.8898e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8762e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="27" frequency="(mult)" duration="0.027" dynamicOutput="1883436.14582317" volume="0.262337949158137" physical_volume="0.262337949158137" physical_greyness="0.65930599980216" nObj="63">
+        <excitation index="0" objective="1.8871e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8798e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="28" frequency="(mult)" duration="0.028" dynamicOutput="1883281.82785356" volume="0.269132276646748" physical_volume="0.269132276646748" physical_greyness="0.672615970229711" nObj="64">
+        <excitation index="0" objective="1.8844e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8821e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="29" frequency="(mult)" duration="0.027" dynamicOutput="1883945.89920243" volume="0.272332067556698" physical_volume="0.272332067556698" physical_greyness="0.66718163368112" nObj="65">
+        <excitation index="0" objective="1.8836e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8843e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="30" frequency="(mult)" duration="0.074" dynamicOutput="1884165.74080066" volume="0.272372761023332" physical_volume="0.272372761023332" physical_greyness="0.665928516534145" nObj="69">
+        <excitation index="0" objective="1.8886e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8797e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="31" frequency="(mult)" duration="0.058" dynamicOutput="1879749.6784572" volume="0.287046487730699" physical_volume="0.287046487730699" physical_greyness="0.694826743925315" nObj="75">
+        <excitation index="0" objective="1.8873e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8722e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="32" frequency="(mult)" duration="0.031" dynamicOutput="1879008.32696005" volume="0.298117184466147" physical_volume="0.298117184466147" physical_greyness="0.706317101527159" nObj="76">
+        <excitation index="0" objective="1.8709e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8871e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="33" frequency="(mult)" duration="0.059" dynamicOutput="1878702.86828981" volume="0.305796813170184" physical_volume="0.305796813170184" physical_greyness="0.714815486336189" nObj="79">
+        <excitation index="0" objective="1.88e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8774e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="34" frequency="(mult)" duration="0.08" dynamicOutput="1877986.26343979" volume="0.308785988905457" physical_volume="0.308785988905457" physical_greyness="0.719348121953997" nObj="83">
+        <excitation index="0" objective="1.8787e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8773e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="35" frequency="(mult)" duration="0.029" dynamicOutput="1878287.75146468" volume="0.308829866048246" physical_volume="0.308829866048246" physical_greyness="0.72032739029402" nObj="84">
+        <excitation index="0" objective="1.8819e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8747e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="36" frequency="(mult)" duration="0.028" dynamicOutput="1878779.46207639" volume="0.30873915155989" physical_volume="0.30873915155989" physical_greyness="0.720221057168005" nObj="85">
+        <excitation index="0" objective="1.8805e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.877e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="37" frequency="(mult)" duration="0.026" dynamicOutput="1878802.05270935" volume="0.310772621039718" physical_volume="0.310772621039718" physical_greyness="0.722196335720375" nObj="86">
+        <excitation index="0" objective="1.8781e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8795e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="38" frequency="(mult)" duration="0.027" dynamicOutput="1882083.51471428" volume="0.297038464984151" physical_volume="0.297038464984151" physical_greyness="0.706262209002488" nObj="87">
+        <excitation index="0" objective="1.8887e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8754e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="39" frequency="(mult)" duration="0.06" dynamicOutput="1882997.45632196" volume="0.290330265363385" physical_volume="0.290330265363385" physical_greyness="0.69644399072904" nObj="90">
+        <excitation index="0" objective="1.8902e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8758e+06" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="40" frequency="(mult)" duration="0.057" dynamicOutput="1883415.27878324" volume="0.286299678028059" physical_volume="0.286299678028059" physical_greyness="0.69185365881929" nObj="93">
+        <excitation index="0" objective="1.889e+06" objective_weight="0.5"/>
+        <excitation index="1" objective="1.8778e+06" objective_weight="0.5"/>
+      </iteration>
+    </process>
+  </optimization>
+</cfsInfo>

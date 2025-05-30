@@ -1,0 +1,261 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <mesh x="6" y="4" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.4" name="density" physical_lower="1e-9" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0" lower="0" name="rotAngle" region="all" relative_bound="-1.0" scale="false" upper="3.14"/>
+    <transferFunction application="mech" design="density" param="3.0" type="simp"/>
+  </header>
+  <set id="0">
+    <element nr="1" type="density" design="0.4" physical="0.064"/>
+    <element nr="2" type="density" design="0.4" physical="0.064"/>
+    <element nr="3" type="density" design="0.4" physical="0.064"/>
+    <element nr="4" type="density" design="0.4" physical="0.064"/>
+    <element nr="5" type="density" design="0.4" physical="0.064"/>
+    <element nr="6" type="density" design="0.4" physical="0.064"/>
+    <element nr="7" type="density" design="0.4" physical="0.064"/>
+    <element nr="8" type="density" design="0.4" physical="0.064"/>
+    <element nr="9" type="density" design="0.4" physical="0.064"/>
+    <element nr="10" type="density" design="0.4" physical="0.064"/>
+    <element nr="11" type="density" design="0.4" physical="0.064"/>
+    <element nr="12" type="density" design="0.4" physical="0.064"/>
+    <element nr="13" type="density" design="0.4" physical="0.064"/>
+    <element nr="14" type="density" design="0.4" physical="0.064"/>
+    <element nr="15" type="density" design="0.4" physical="0.064"/>
+    <element nr="16" type="density" design="0.4" physical="0.064"/>
+    <element nr="17" type="density" design="0.4" physical="0.064"/>
+    <element nr="18" type="density" design="0.4" physical="0.064"/>
+    <element nr="19" type="density" design="0.4" physical="0.064"/>
+    <element nr="20" type="density" design="0.4" physical="0.064"/>
+    <element nr="21" type="density" design="0.4" physical="0.064"/>
+    <element nr="22" type="density" design="0.4" physical="0.064"/>
+    <element nr="23" type="density" design="0.4" physical="0.064"/>
+    <element nr="24" type="density" design="0.4" physical="0.064"/>
+    <element nr="1" type="rotAngle" design="0"/>
+    <element nr="2" type="rotAngle" design="0"/>
+    <element nr="3" type="rotAngle" design="0"/>
+    <element nr="4" type="rotAngle" design="0"/>
+    <element nr="5" type="rotAngle" design="0"/>
+    <element nr="6" type="rotAngle" design="0"/>
+    <element nr="7" type="rotAngle" design="0"/>
+    <element nr="8" type="rotAngle" design="0"/>
+    <element nr="9" type="rotAngle" design="0"/>
+    <element nr="10" type="rotAngle" design="0"/>
+    <element nr="11" type="rotAngle" design="0"/>
+    <element nr="12" type="rotAngle" design="0"/>
+    <element nr="13" type="rotAngle" design="0"/>
+    <element nr="14" type="rotAngle" design="0"/>
+    <element nr="15" type="rotAngle" design="0"/>
+    <element nr="16" type="rotAngle" design="0"/>
+    <element nr="17" type="rotAngle" design="0"/>
+    <element nr="18" type="rotAngle" design="0"/>
+    <element nr="19" type="rotAngle" design="0"/>
+    <element nr="20" type="rotAngle" design="0"/>
+    <element nr="21" type="rotAngle" design="0"/>
+    <element nr="22" type="rotAngle" design="0"/>
+    <element nr="23" type="rotAngle" design="0"/>
+    <element nr="24" type="rotAngle" design="0"/>
+  </set>
+  <set id="1">
+    <element nr="1" type="density" design="0.5092912" physical="0.13209869167"/>
+    <element nr="2" type="density" design="0.4789216" physical="0.10984828331"/>
+    <element nr="3" type="density" design="0.4549456" physical="0.094162592559"/>
+    <element nr="4" type="density" design="0.456544" physical="0.095158572553"/>
+    <element nr="5" type="density" design="0.544456" physical="0.16139436389"/>
+    <element nr="6" type="density" design="0.6227776" physical="0.24154549976"/>
+    <element nr="7" type="density" design="0.3094912" physical="0.029644553584"/>
+    <element nr="8" type="density" design="0.3030976" physical="0.027845017335"/>
+    <element nr="9" type="density" design="0.3238768" physical="0.033973439622"/>
+    <element nr="10" type="density" design="0.3910096" physical="0.059780874081"/>
+    <element nr="11" type="density" design="0.4549456" physical="0.094162592559"/>
+    <element nr="12" type="density" design="0.3894112" physical="0.059050735978"/>
+    <element nr="13" type="density" design="0.3558448" physical="0.04505903344"/>
+    <element nr="14" type="density" design="0.36064" physical="0.04690527463"/>
+    <element nr="15" type="density" design="0.36064" physical="0.04690527463"/>
+    <element nr="16" type="density" design="0.3558448" physical="0.04505903344"/>
+    <element nr="17" type="density" design="0.2903104" physical="0.024467397773"/>
+    <element nr="18" type="density" design="0.2008" physical="0.008096384512"/>
+    <element nr="19" type="density" design="0.448552" physical="0.090248167514"/>
+    <element nr="20" type="density" design="0.3894112" physical="0.059050735978"/>
+    <element nr="21" type="density" design="0.3254752" physical="0.034478924277"/>
+    <element nr="22" type="density" design="0.248752" physical="0.015392166184"/>
+    <element nr="23" type="density" design="0.1720288" physical="0.0050910044856"/>
+    <element nr="24" type="density" design="0.1016992" physical="0.0010518470903"/>
+    <element nr="1" type="rotAngle" design="0.02512"/>
+    <element nr="2" type="rotAngle" design="0.030144"/>
+    <element nr="3" type="rotAngle" design="0.030144"/>
+    <element nr="4" type="rotAngle" design="0.020096"/>
+    <element nr="5" type="rotAngle" design="0"/>
+    <element nr="6" type="rotAngle" design="1.421792"/>
+    <element nr="7" type="rotAngle" design="0.010048"/>
+    <element nr="8" type="rotAngle" design="0"/>
+    <element nr="9" type="rotAngle" design="0"/>
+    <element nr="10" type="rotAngle" design="0"/>
+    <element nr="11" type="rotAngle" design="1.863904"/>
+    <element nr="12" type="rotAngle" design="1.768448"/>
+    <element nr="13" type="rotAngle" design="0"/>
+    <element nr="14" type="rotAngle" design="0"/>
+    <element nr="15" type="rotAngle" design="0"/>
+    <element nr="16" type="rotAngle" design="0"/>
+    <element nr="17" type="rotAngle" design="1.95936"/>
+    <element nr="18" type="rotAngle" design="1.768448"/>
+    <element nr="19" type="rotAngle" design="0"/>
+    <element nr="20" type="rotAngle" design="0"/>
+    <element nr="21" type="rotAngle" design="0"/>
+    <element nr="22" type="rotAngle" design="3.0144"/>
+    <element nr="23" type="rotAngle" design="2.406496"/>
+    <element nr="24" type="rotAngle" design="2.527072"/>
+  </set>
+  <set id="2">
+    <element nr="1" type="density" design="0.5332672" physical="0.15164727692"/>
+    <element nr="2" type="density" design="0.4853152" physical="0.11430669835"/>
+    <element nr="3" type="density" design="0.44056" physical="0.085509662128"/>
+    <element nr="4" type="density" design="0.3974032" physical="0.062761610533"/>
+    <element nr="5" type="density" design="0.3718288" physical="0.051407806682"/>
+    <element nr="6" type="density" design="0.5028976" physical="0.12718581846"/>
+    <element nr="7" type="density" design="0.2183824" physical="0.010414847223"/>
+    <element nr="8" type="density" design="0.2375632" physical="0.013407181846"/>
+    <element nr="9" type="density" design="0.2631376" physical="0.018220014905"/>
+    <element nr="10" type="density" design="0.3062944" physical="0.028735394905"/>
+    <element nr="11" type="density" design="0.3798208" physical="0.054794407163"/>
+    <element nr="12" type="density" design="0.3334672" physical="0.037081677182"/>
+    <element nr="13" type="density" design="0.288712" physical="0.024065478745"/>
+    <element nr="14" type="density" design="0.3254752" physical="0.034478924277"/>
+    <element nr="15" type="density" design="0.3510496" physical="0.043261885899"/>
+    <element nr="16" type="density" design="0.3558448" physical="0.04505903344"/>
+    <element nr="17" type="density" design="0.2951056" physical="0.02569995439"/>
+    <element nr="18" type="density" design="0.1736272" physical="0.0052342358173"/>
+    <element nr="19" type="density" design="0.4789216" physical="0.10984828331"/>
+    <element nr="20" type="density" design="0.4101904" physical="0.069017063317"/>
+    <element nr="21" type="density" design="0.3302704" physical="0.036025412085"/>
+    <element nr="22" type="density" design="0.2423584" physical="0.014235549314"/>
+    <element nr="23" type="density" design="0.16084" physical="0.0041608512807"/>
+    <element nr="24" type="density" design="0.08092" physical="0.00052986791469"/>
+    <element nr="1" type="rotAngle" design="0.045216"/>
+    <element nr="2" type="rotAngle" design="0.065312"/>
+    <element nr="3" type="rotAngle" design="0.070336"/>
+    <element nr="4" type="rotAngle" design="0.060288"/>
+    <element nr="5" type="rotAngle" design="0.02512"/>
+    <element nr="6" type="rotAngle" design="1.40672"/>
+    <element nr="7" type="rotAngle" design="0.02512"/>
+    <element nr="8" type="rotAngle" design="0.02512"/>
+    <element nr="9" type="rotAngle" design="0.02512"/>
+    <element nr="10" type="rotAngle" design="0.015072"/>
+    <element nr="11" type="rotAngle" design="1.894048"/>
+    <element nr="12" type="rotAngle" design="1.828736"/>
+    <element nr="13" type="rotAngle" design="0"/>
+    <element nr="14" type="rotAngle" design="0"/>
+    <element nr="15" type="rotAngle" design="0"/>
+    <element nr="16" type="rotAngle" design="0"/>
+    <element nr="17" type="rotAngle" design="2.0096"/>
+    <element nr="18" type="rotAngle" design="1.83376"/>
+    <element nr="19" type="rotAngle" design="0"/>
+    <element nr="20" type="rotAngle" design="0"/>
+    <element nr="21" type="rotAngle" design="3.079712"/>
+    <element nr="22" type="rotAngle" design="2.969184"/>
+    <element nr="23" type="rotAngle" design="2.48688"/>
+    <element nr="24" type="rotAngle" design="2.476832"/>
+  </set>
+  <set id="3">
+    <element nr="1" type="density" design="0.5396608" physical="0.15716745419"/>
+    <element nr="2" type="density" design="0.4837168" physical="0.11318099653"/>
+    <element nr="3" type="density" design="0.4341664" physical="0.081840567371"/>
+    <element nr="4" type="density" design="0.3878128" physical="0.058326567274"/>
+    <element nr="5" type="density" design="0.3542464" physical="0.044454562079"/>
+    <element nr="6" type="density" design="0.4917088" physical="0.11888414603"/>
+    <element nr="7" type="density" design="0.168832" physical="0.0048124285608"/>
+    <element nr="8" type="density" design="0.2055952" physical="0.0086903829226"/>
+    <element nr="9" type="density" design="0.2391616" physical="0.013679629989"/>
+    <element nr="10" type="density" design="0.2791216" physical="0.021746047775"/>
+    <element nr="11" type="density" design="0.368632" physical="0.050093237121"/>
+    <element nr="12" type="density" design="0.3494512" physical="0.042673632075"/>
+    <element nr="13" type="density" design="0.2439568" physical="0.0145190695"/>
+    <element nr="14" type="density" design="0.2903104" physical="0.024467397773"/>
+    <element nr="15" type="density" design="0.3430576" physical="0.040373940161"/>
+    <element nr="16" type="density" design="0.3734272" physical="0.052073629022"/>
+    <element nr="17" type="density" design="0.3190816" physical="0.032486676466"/>
+    <element nr="18" type="density" design="0.1672336" physical="0.004677034963"/>
+    <element nr="19" type="density" design="0.5108896" physical="0.13334636641"/>
+    <element nr="20" type="density" design="0.4357648" physical="0.082747796607"/>
+    <element nr="21" type="density" design="0.3462544" physical="0.041513170446"/>
+    <element nr="22" type="density" design="0.2455552" physical="0.014806329373"/>
+    <element nr="23" type="density" design="0.152848" physical="0.0035709130972"/>
+    <element nr="24" type="density" design="0.0697312" physical="0.0003390637938"/>
+    <element nr="1" type="rotAngle" design="0.055264"/>
+    <element nr="2" type="rotAngle" design="0.090432"/>
+    <element nr="3" type="rotAngle" design="0.105504"/>
+    <element nr="4" type="rotAngle" design="0.085408"/>
+    <element nr="5" type="rotAngle" design="0.05024"/>
+    <element nr="6" type="rotAngle" design="1.376576"/>
+    <element nr="7" type="rotAngle" design="0.045216"/>
+    <element nr="8" type="rotAngle" design="0.060288"/>
+    <element nr="9" type="rotAngle" design="0.055264"/>
+    <element nr="10" type="rotAngle" design="0.035168"/>
+    <element nr="11" type="rotAngle" design="1.90912"/>
+    <element nr="12" type="rotAngle" design="1.868928"/>
+    <element nr="13" type="rotAngle" design="0"/>
+    <element nr="14" type="rotAngle" design="0"/>
+    <element nr="15" type="rotAngle" design="0"/>
+    <element nr="16" type="rotAngle" design="0"/>
+    <element nr="17" type="rotAngle" design="2.069888"/>
+    <element nr="18" type="rotAngle" design="1.899072"/>
+    <element nr="19" type="rotAngle" design="0"/>
+    <element nr="20" type="rotAngle" design="0"/>
+    <element nr="21" type="rotAngle" design="3.024448"/>
+    <element nr="22" type="rotAngle" design="2.928992"/>
+    <element nr="23" type="rotAngle" design="2.567264"/>
+    <element nr="24" type="rotAngle" design="2.466784"/>
+  </set>
+  <set id="4">
+    <element nr="1" type="density" design="0.544456" physical="0.16139436389"/>
+    <element nr="2" type="density" design="0.48052" physical="0.11095181352"/>
+    <element nr="3" type="density" design="0.4293712" physical="0.079158714444"/>
+    <element nr="4" type="density" design="0.3830176" physical="0.056189632535"/>
+    <element nr="5" type="density" design="0.3494512" physical="0.042673632075"/>
+    <element nr="6" type="density" design="0.4869136" physical="0.1154398397"/>
+    <element nr="7" type="density" design="0.1352656" physical="0.0024749252688"/>
+    <element nr="8" type="density" design="0.184816" physical="0.0063127515839"/>
+    <element nr="9" type="density" design="0.2295712" physical="0.012099076231"/>
+    <element nr="10" type="density" design="0.2631376" physical="0.018220014905"/>
+    <element nr="11" type="density" design="0.36064" physical="0.04690527463"/>
+    <element nr="12" type="density" design="0.3638368" physical="0.048163703039"/>
+    <element nr="13" type="density" design="0.2183824" physical="0.010414847223"/>
+    <element nr="14" type="density" design="0.2599408" physical="0.017563996973"/>
+    <element nr="15" type="density" design="0.3350656" physical="0.037617465205"/>
+    <element nr="16" type="density" design="0.3894112" physical="0.059050735978"/>
+    <element nr="17" type="density" design="0.336664" physical="0.038158389548"/>
+    <element nr="18" type="density" design="0.152848" physical="0.0035709130972"/>
+    <element nr="19" type="density" design="0.536464" physical="0.15439091833"/>
+    <element nr="20" type="density" design="0.4533472" physical="0.093173586561"/>
+    <element nr="21" type="density" design="0.3590416" physical="0.046284365213"/>
+    <element nr="22" type="density" design="0.2439568" physical="0.0145190695"/>
+    <element nr="23" type="density" design="0.136864" physical="0.0025637028473"/>
+    <element nr="24" type="density" design="0.0553456" physical="0.00016953106877"/>
+    <element nr="1" type="rotAngle" design="0.065312"/>
+    <element nr="2" type="rotAngle" design="0.110528"/>
+    <element nr="3" type="rotAngle" design="0.1256"/>
+    <element nr="4" type="rotAngle" design="0.10048"/>
+    <element nr="5" type="rotAngle" design="0.065312"/>
+    <element nr="6" type="rotAngle" design="1.351456"/>
+    <element nr="7" type="rotAngle" design="0.070336"/>
+    <element nr="8" type="rotAngle" design="0.10048"/>
+    <element nr="9" type="rotAngle" design="0.090432"/>
+    <element nr="10" type="rotAngle" design="0.055264"/>
+    <element nr="11" type="rotAngle" design="1.914144"/>
+    <element nr="12" type="rotAngle" design="1.904096"/>
+    <element nr="13" type="rotAngle" design="0"/>
+    <element nr="14" type="rotAngle" design="0"/>
+    <element nr="15" type="rotAngle" design="0"/>
+    <element nr="16" type="rotAngle" design="0"/>
+    <element nr="17" type="rotAngle" design="2.1352"/>
+    <element nr="18" type="rotAngle" design="1.974432"/>
+    <element nr="19" type="rotAngle" design="0"/>
+    <element nr="20" type="rotAngle" design="0"/>
+    <element nr="21" type="rotAngle" design="2.647648"/>
+    <element nr="22" type="rotAngle" design="2.883776"/>
+    <element nr="23" type="rotAngle" design="2.547168"/>
+    <element nr="24" type="rotAngle" design="2.451712"/>
+  </set>
+</cfsErsatzMaterial>

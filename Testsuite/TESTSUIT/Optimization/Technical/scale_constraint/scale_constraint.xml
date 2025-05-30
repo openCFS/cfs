@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Scale a constraint</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2017-01-31</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>Example wher a constraint value is scaled for the optimizer but is entered and output with the real value.
+    The value can be also "objective" but this needs to be checked first.</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <force name="right_lower">
+            <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <optimization>
+    <costFunction type="compliance" task="minimize" > 
+      <stopping queue="999" value="0.002" type="designChange"/>
+    </costFunction>
+    
+    <constraint type="volume" bound="upperBound" value="0.5" scaling="5" linear="false"/>
+    
+    <optimizer type="scpip"  maxIterations="20"/>
+      
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.5" type="density"/>
+      </filters>
+      
+     <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      
+     <transferFunction type="simp" application="mech" param="3" /> 
+     <export write="iteration" save="all"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+  
+</cfsSimulation>
+
+

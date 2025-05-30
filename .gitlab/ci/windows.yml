@@ -27,14 +27,16 @@
     - echo "Build on CDash - $CDASH_BUILD_URL"
     - echo "Tests on CDash - $CDASH_TEST_URL"
 
-# headers for collapsible sections https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
+# headers for _collapsible sections_, see https://docs.gitlab.com/ee/ci/jobs/#custom-collapsible-sections
 # for Powershell see https://forum.gitlab.com/t/creating-collapsible-sections-in-pipeline-shell-scripts/34611
+# make the DEBUGNAME variable accessible in subsequent sections https://docs.gitlab.com/ee/ci/variables/#pass-an-environment-variable-from-the-script-section-to-another-section-in-the-same-job
 .powershell-debug-start_collapsed:
   script: &powershell-debug-start_collapsed
-    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output[collapsed=true]$([char]13)$([char]27)[0KDebug Information (klick to expand)"
+    - $DEBUGNAME += "i"; Add-Content -Path $GITLAB_ENV -Value "DEBUGNAME=$DEBUGNAME" # make sure the collapsible section is unique across the pipeline and accessible in after_script
+    - Write-Host "$([char]27)[0Ksection_start:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$DEBUGNAME[collapsed=true]$([char]13)$([char]27)[0KDebug Information $DEBUGNAME (klick to expand)"
 .powershell-debug-end:
   script: &powershell-debug-end
-    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output$([char]13)$([char]27)[0K"
+    - Write-Host "$([char]27)[0Ksection_end:$([int](Get-Date -UFormat %s -Millisecond 0)):my_debug_output_$DEBUGNAME$([char]13)$([char]27)[0K"
 
 .powershell_debug_dir_listing:
   script:
@@ -42,8 +44,11 @@
     # see https://gitlab.com/gitlab-org/gitlab-runner/-/issues/4480
     - *powershell-debug-start_collapsed
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\cache"; $null
+    - Get-ChildItem -Path "$env:CCACHE_DIR"; $null
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\cache\ccache"; $null
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build"; $null
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\precompiled"; $null
+    - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build\cfsdeps\cache\sources"; $null
     - *powershell-debug-end
 
 .windwos_cdash:
@@ -60,17 +65,20 @@
   <<: *windows-shared_tags
   variables:
     INTEL_INSTALL_DIR: $CI_PROJECT_DIR\cache\oneAPI
-    FC: ifort
+    # we build cfsdeps and cfs with Ninja to be in parallel. For cfs we need to build the cfsdeps target first serially
+    CMAKE_GENERATOR: Ninja
+    # with the Ninja generator the default C/C++ compiler would be icx
+    CC: cl
+    CXX: cl
+    FC: ifx
     #CI_DEBUG_TRACE: "true"
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
     # define config by variable # cfsdat leads to build error on Windows?
-    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON"
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCFS_TESTSUITE=OFF"
     # set the default cache policy (for build jobs) to pull
+    INSTALL_POLICY: "pull" # only pull the install, the cfsdeps step has done it (fresh if necessary)
     # see https://docs.gitlab.com/ee/ci/caching/index.html#use-a-variable-to-control-a-jobs-cache-policy
-    INSTALL_POLICY: pull
-    CFSDEPS_SOURCES_POLICY: pull
-    CFSDEPS_PRECOMPILED_POLICY: pull
     #BUILD_COMMAND: $CI_PROJECT_DIR\.gitlab\ci\dashboard-build.bat
   # We cache the tools installed extra into the shared runners (git, oneAPI) and cfsdeps. 
   # For oneAPI this probably only works if $CI_PROJECT_DIR remains constant. If it changes the 
@@ -82,7 +90,6 @@
         prefix: windows-shared-install
         files:
         - .gitlab/ci/windows-shared-runner_install-build-tools.ps1
-        - .gitlab/ci/install_windows.bat
       paths:
         - cache
       policy: $INSTALL_POLICY
@@ -96,26 +103,29 @@
     - key: cfsdeps-sources-windows-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/sources
-      policy: $CFSDEPS_SOURCES_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-sources-windows-$CI_DEFAULT_BRANCH
     - key: cfsdeps-precompiled-windows-$CI_COMMIT_REF_NAME
       paths:
         - build/cfsdeps/cache/precompiled
-      policy: $CFSDEPS_PRECOMPILED_POLICY
+      policy: $CACHE_POLICY
       fallback_keys:
         - cfsdeps-precompiled-windows-$CI_DEFAULT_BRANCH
+      when: always # there is a zip file only if the dependency is built correctly, so this saves the progress up to a failing cfsdeps
+    - key: ccache-windows-$CI_COMMIT_REF_NAME
+      paths:
+        - ccache
+      policy: $CACHE_POLICY
+      fallback_keys:
+        - ccache-windows-$CI_DEFAULT_BRANCH
   before_script:
     # install the tools to cache
     - if(!(Test-Path cache)) { .gitlab/ci/windows-shared-runner_install-build-tools.ps1 } else { ls cache }
     # debug
     - !reference [.powershell_debug_dir_listing, script]
-    # delete any cfsdeps/cache when environment variable CLEAR_CACHE is set or clear-cache is in the commit message
-    - Write-Host "CLEAR_CACHE=$CLEAR_CACHE" # debug
-    - if ( "$CI_COMMIT_MESSAGE" -match "clear-cache" ) { $CLEAR_CACHE = "yes" } else { Write-Host "no clear-cache requested in commit message" }
-    - if ( $null -eq $CLEAR_CACHE ) { Write-Host "no CLEAR_CACHE variable set" } else { cmake -E rm -rf -- "$CI_PROJECT_DIR\build\cfsdeps\cache" }
     # set git path for tools like patch and diff
-    - $env:Path += ";${CI_PROJECT_DIR}/cache/git/usr/bin"
+    - $env:Path += ";${CI_PROJECT_DIR}/cache/git/usr/bin;${CI_PROJECT_DIR}/cache/ccache"
     # make sure build/Testing is not present
     - cmake -E rm -rf -- "$CI_PROJECT_DIR\build\Testing"
     # debug
@@ -123,6 +133,9 @@
     # try to locate visual studio installation (only info)
     - *powershell-debug-start_collapsed
     - Get-Childitem -Path "C:\Program Files (x86)\Microsoft Visual Studio" -Include *vars*.bat -Recurse -ErrorAction SilentlyContinue; $null
+    - Write-Host "CMAKE_CXX_COMPILER_LAUNCHER=$CMAKE_CXX_COMPILER_LAUNCHER" # debug
+    - ccache.exe --verbose --show-stats; $null
+    - ccache.exe --verbose --zero-stats; $null
     - *powershell-debug-end
     # info about free space (debug)
     - Get-Volume; $null
@@ -143,8 +156,13 @@
   after_script:
     # zip all log files in the build directory
     - Get-ChildItem -Path "$env:CI_PROJECT_DIR\build" -Include *.log -Recurse -ErrorAction SilentlyContinue | Compress-Archive -DestinationPath "$env:CI_PROJECT_DIR\build\logs.zip"; $null
+    # ccache stats & cleanup
+    - $env:Path += ";${CI_PROJECT_DIR}/cache/git/usr/bin;${CI_PROJECT_DIR}/cache/ccache"
+    - ccache.exe --verbose --show-stats; $null
+    - ccache.exe --verbose --cleanup; $null
     # do the CDash submission
     - !reference [.windwos_cdash,after_script]
+
 
 ### TESTS ###
 
@@ -154,6 +172,7 @@
     # Override already defined variable to get submodules
     # see https://docs.gitlab.com/ee/ci/yaml/yaml_optimization.html#merge-details for merge-details with 'extends'
     GIT_SUBMODULE_STRATEGY: recursive
+    RUNNER_AFTER_SCRIPT_TIMEOUT: 15m # increase the timeout
   rules:
     - !reference [.ctest_default, rules]
   before_script:
@@ -188,7 +207,7 @@
     # debug output
     - echo "TEST_CONFIG_OPTIONS=$TEST_CONFIG_OPTIONS"
     # configure first
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE="$env:CI_PROJECT_DIR\build\config.cmake" -DTESTSUITE_DIR="$env:CI_PROJECT_DIR\Testsuite" -DTESTSUITE_PYTHON=OFF -DTESTSUITE_INFO_XML=OFF $env:TEST_CONFIG_OPTIONS ..
+    - cmake -DCFS_TESTSUITE=ON -DTESTSUITE_PYTHON=OFF -DTESTSUITE_INFO_XML=OFF $env:TEST_CONFIG_OPTIONS $env:CI_PROJECT_DIR\Testsuite
     # now start dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash

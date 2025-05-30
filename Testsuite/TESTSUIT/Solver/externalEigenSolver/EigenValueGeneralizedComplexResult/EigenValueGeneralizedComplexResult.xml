@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+  xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>1D Oscillator</title>
+    <authors>
+      <author>Ben Heinrich</author>
+    </authors>
+    <date>2022-11-30</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+      <keyword>eigenValue</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>yes</isVerified>
+    <description>
+    A single degree of freedom oscillator composed of a square mass (1mx1m) with density 1 kg/m3 in 2d (plane strain).
+    We constrain in x direction and connect a concentrated stiffness and damping in the y direction.
+
+    The resulting system has a mass m=1, we set k=1, thus, the (un-daped) natural frequency is w_0=2*pi Hz.
+    Setting xi=3/5, i.e. the damping constant c=2*m*w_0*xi=2*1*1*3/5, we obtain 
+    Re(lambda) = 3/5 = 0.6 and Im(lambda) = 4/5 = 0.8
+    
+    This is a testcase for the eigenvalue step solving a generalized EVP (linearized output from the quadratic solver), 
+    with complex valued eigenvalues. The resulting eigenvalues and eigenvectors are imported from a matrix market file 
+    in coordinate format.
+    </description>  
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="EigenValueGeneralizedComplexResult.h5ref"/>
+      <!--gmsh fileName="../EigenValueStandardArray/UnitSquare.msh"/--> <!-- same mesh as for other testcase-->
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType='plane'  printGridInfo="no">
+    <regionList>
+      <region name="V_square" material="UnitMaterial" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <eigenValue>
+        <valuesAround>
+          <shiftPoint>
+            <Real>-0.6</Real>
+            <Imag>0</Imag>
+          </shiftPoint>
+          <number>2</number>
+        </valuesAround>
+        <eigenVectors normalization="unit" side="right"/>
+        <problemType>
+          <Quadratic>
+            <quadratic>mass</quadratic>
+            <linear>damping</linear>
+            <constant>stiffness</constant>
+          </Quadratic>
+        </problemType>
+      </eigenValue>
+    </analysis>  
+    
+    <pdeList>
+      <mechanic subType='planeStrain'>
+        <regionList>
+          <region name="V_square"/>
+        </regionList>        
+        <bcsAndLoads>
+          <fix name="S_fixed">
+            <comp dof="x"/>
+          </fix>
+          <concentratedElem name="N_spring" dof="y" stiffnessValue="1.0" dampingValue="3/5*2"/>
+        </bcsAndLoads>      
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <eigenSolver id="myquadratic"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <quadratic id="myquadratic">
+            <generalisedEigenSolver id="mygen"/>
+            <linearisation>firstCompanion</linearisation>
+          </quadratic>
+          <external id="mygen">
+            <logging>yes</logging>
+            <cmd>python3 EigenSolver.py</cmd>
+            <arguments>
+	      <AFileName/>
+              <BFileName/>
+	      <shiftPoint/>
+	      <number/>
+              <tolerance>10e-9</tolerance>
+              <EigenValuesFileName/>
+              <EigenVectorsFileName/>
+	    </arguments>
+          </external>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+</cfsSimulation>

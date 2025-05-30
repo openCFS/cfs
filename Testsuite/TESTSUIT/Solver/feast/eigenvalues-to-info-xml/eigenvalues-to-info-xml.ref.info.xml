@@ -1,0 +1,286 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="12">
+  <summary>
+    <timer wall-clock="6.128s" wall="6.128" cpu="6.07918" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="426.52" peak="461"/>
+  </summary>
+  <header id="">
+    <environment started="2023-Aug-17 16:32:46" host="t215-183.demo.tuwien.ac.at"/>
+    <progOpts problem="eigenvalues-to-info-xml" parameterFile="/home/manuel/myCFS/bin/Testsuite/TESTSUIT/Solver/feast/eigenvalues-to-info-xml/eigenvalues-to-info-xml.xml" schemaPath="/home/manuel/myCFS/bin/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="23.05" name="Heavy Headache" build="Debug" git_commit="84d511c3602c6c64b69e966de4c3eb24c8870a67" git_branch="master" compiled="Aug 17 2023" exe="/home/manuel/myCFS/build/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.041s" wall="0.041" cpu="0.041348" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="1210" nodes="1455"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="L_abc" id="0" type="surface" regular="yes" hom="yes" nodes="5" elems="4" isQuadratic="no"/>
+        <region name="L_fix" id="1" type="surface" regular="yes" hom="yes" nodes="3" elems="2" isQuadratic="no"/>
+        <region name="L_guide" id="2" type="surface" regular="yes" hom="yes" nodes="52" elems="50" isQuadratic="no"/>
+        <region name="L_ma" id="3" type="surface" regular="yes" hom="yes" nodes="5" elems="4" isQuadratic="no"/>
+        <region name="S_acou" id="4" type="volume" regular="yes" hom="yes" nodes="1255" elems="1000" isQuadratic="no"/>
+        <region name="S_mass" id="5" type="volume" regular="no" hom="yes" nodes="130" elems="100" isQuadratic="no"/>
+        <region name="S_spring" id="6" type="volume" regular="yes" hom="yes" nodes="78" elems="50" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="P_mid" count="1" coord="(0.02,-6.30809e-18)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="-1.7519" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.055s" wall="0.055" cpu="0.064886" calls="117"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <eigenValue>
+      <init_eigenValue>
+        <timer wall-clock="0.287s" wall="0.287" cpu="0.272963" calls="1"/>
+      </init_eigenValue>
+      <result>
+        <eigenvalues>
+          <mode nr="1" real="-0.57106" imag="-3.4421e-06"/>
+          <mode nr="2" real="-0.56228" imag="-0.2693"/>
+          <mode nr="3" real="-0.56229" imag="0.26929"/>
+          <mode nr="4" real="-0.54111" imag="-0.54868"/>
+          <mode nr="5" real="-0.54112" imag="0.54867"/>
+          <mode nr="6" real="-0.51649" imag="0.8399"/>
+          <mode nr="7" real="-0.51648" imag="-0.83991"/>
+          <mode nr="8" real="-0.49344" imag="1.1396"/>
+          <mode nr="9" real="-0.49342" imag="-1.1396"/>
+          <mode nr="10" real="-0.47324" imag="1.4443"/>
+          <mode nr="11" real="-0.47321" imag="-1.4443"/>
+          <mode nr="12" real="-0.4557" imag="1.7519"/>
+          <mode nr="13" real="-0.45566" imag="-1.7519"/>
+        </eigenvalues>
+      </result>
+    </eigenValue>
+  </sequenceStep>
+  <OLAS>
+    <acoustic-mechanic>
+      <setup idbcHandling="elimination" staticCondensation="no">
+        <feFunctions totalNumEqns="1607" totalNumFreeEqns="1607" totalNumDirichlet="0">
+          <function id="0" name="acouPressure" numEqns="1255" lastFreeEqn="1255" numDirichlet="0">
+            <usedInBlocks>
+              <block id="0"/>
+            </usedInBlocks>
+          </function>
+          <function id="1" name="mechDisplacement" numEqns="352" lastFreeEqn="352" numDirichlet="0">
+            <usedInBlocks>
+              <block id="0"/>
+            </usedInBlocks>
+          </function>
+        </feFunctions>
+        <sbmBlocks>
+          <block id="0" size="1607" lastFreeIndex="1607"/>
+        </sbmBlocks>
+      </setup>
+      <solve_eigen>
+        <summary>
+          <setup_feast>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+          </setup_feast>
+          <solve_feast>
+            <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+          </solve_feast>
+        </summary>
+      </solve_eigen>
+    </acoustic-mechanic>
+    <graph_setup>
+      <timer wall-clock="0.133s" wall="0.133" cpu="0.128443" calls="1" sub="true"/>
+    </graph_setup>
+  </OLAS>
+  <PDE>
+    <directCoupledPDE>
+      <acoustic>
+        <header>
+          <region name="S_acou" damping="none"/>
+        </header>
+        <material name="mat_acou">
+          <regionList>
+            <region name="S_acou"/>
+          </regionList>
+          <property name="Acoustic_Bulk_Modulus" value="(500,0)"/>
+          <property name="Acoustic_Sound_Speed" value="1"/>
+          <property name="Density" value="(500,0)"/>
+        </material>
+        <feSpaces>
+          <acouPressure>
+            <h1Nodal>
+              <regionList>
+                <S_acou/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </acouPressure>
+        </feSpaces>
+        <feFunctions>
+          <acouPressure/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </acoustic>
+      <mechanic>
+        <header>
+          <region name="S_mass" damping="none"/>
+          <region name="S_spring" damping="none"/>
+        </header>
+        <material name="mat_spring">
+          <regionList>
+            <region name="S_spring"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <complex>
+                (4.145280e+05,4.145280e+03) (1.381760e+05,1.381760e+03) (1.381760e+05,1.381760e+03) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00)
+                (1.381760e+05,1.381760e+03) (4.145280e+05,4.145280e+03) (1.381760e+05,1.381760e+03) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00)
+                (1.381760e+05,1.381760e+03) (1.381760e+05,1.381760e+03) (4.145280e+05,4.145280e+03) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00)
+                (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (1.381760e+05,1.381760e+03) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00)
+                (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (1.381760e+05,1.381760e+03) (0.000000e+00,0.000000e+00)
+                (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (0.000000e+00,0.000000e+00) (1.381760e+05,1.381760e+03)
+              </complex>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(345440,3454.4)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.25,0.25)"/>
+          <property name="Density" value="(0.01,0.0001)"/>
+        </material>
+        <material name="mat_mass">
+          <regionList>
+            <region name="S_mass"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 2.400000e+11  8.000000e+10  8.000000e+10  0.000000e+00  0.000000e+00  0.000000e+00
+                 8.000000e+10  2.400000e+11  8.000000e+10  0.000000e+00  0.000000e+00  0.000000e+00
+                 8.000000e+10  8.000000e+10  2.400000e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  8.000000e+10  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  8.000000e+10  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  8.000000e+10
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(2e+11,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.25,0)"/>
+          <property name="Density" value="(7000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <S_mass/>
+                <default order="1"/>
+                <S_spring/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <surfElemList name="L_fix" dofs="x y"/>
+            <surfElemList name="L_guide" dofs="y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+      <header>
+        <integrators>
+          <matrixBiLinearForms>
+            <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionConst" region="S_mass">
+              <row pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <column pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="LinElastInt" type="BDBInt" complex="yes" BOp="StrainOperator2D" coef="CoefFunctionConst" region="S_spring">
+              <row pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <column pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="S_mass">
+              <coef type="CoefFunctionConst" value="7000"/>
+              <row pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <column pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="SingleEntryBiLinInt" type="no bilinear form type" complex="no" region="">
+              <row pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <column pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <destination feMatrix="damping" feMatrixMapped="damping" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="MassInt" type="BBInt" complex="no" region="S_spring">
+              <coef type="CoefFunctionConst" value="0.01"/>
+              <row pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <column pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="abcIntegrator" type="BBInt" complex="no" region="L_abc">
+              <coef type="CoefFunctionConst" value="1"/>
+              <row pde="acoustic" functionId="0" result="acouPressure"/>
+              <column pde="acoustic" functionId="0" result="acouPressure"/>
+              <destination feMatrix="damping" feMatrixMapped="damping" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="MassIntegrator" type="BBInt" complex="no" region="S_acou">
+              <coef type="CoefFunctionConst" value="1"/>
+              <row pde="acoustic" functionId="0" result="acouPressure"/>
+              <column pde="acoustic" functionId="0" result="acouPressure"/>
+              <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="LaplaceIntegrator" type="BBInt" complex="no" BOp="GradientOperator" region="S_acou">
+              <coef type="CoefFunctionConst" value="1"/>
+              <row pde="acoustic" functionId="0" result="acouPressure"/>
+              <column pde="acoustic" functionId="0" result="acouPressure"/>
+              <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="AcouMechPresStiffCouplingInt" type="ABInt" complex="no" region="L_ma">
+              <coef type="CoefFunctionConst" value="1"/>
+              <row pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <column pde="acoustic" functionId="0" result="acouPressure"/>
+              <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+            <bilinearForm integrator="AcouMechPresMassCouplingInt" type="ABInt" complex="no" region="L_ma">
+              <coef type="CoefFunctionConst" value="500"/>
+              <row pde="acoustic" functionId="0" result="acouPressure"/>
+              <column pde="mechanic" functionId="1" result="mechDisplacement"/>
+              <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+              <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="no" updatedGeo="no"/>
+            </bilinearForm>
+          </matrixBiLinearForms>
+          <rhsLinearForms/>
+        </integrators>
+      </header>
+    </directCoupledPDE>
+  </PDE>
+  <analysis>
+    <summary>
+      <assemble>
+        <timer wall-clock="0.263s" wall="0.263" cpu="0.261479" calls="1"/>
+      </assemble>
+    </summary>
+  </analysis>
+  <acouMechDirect>
+    <header sequenceStep="1" pde1="mechanic" pde2="acoustic">
+      <surfaceRegions>
+        <surfaceRegion name="L_ma"/>
+      </surfaceRegions>
+    </header>
+    <feSpaces/>
+  </acouMechDirect>
+</cfsInfo>

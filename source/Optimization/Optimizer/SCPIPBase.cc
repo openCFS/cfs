@@ -210,10 +210,6 @@ int SCPIPBase::solve_problem(bool fromWarmstart)
     LOG_DBG3(scpip_base) << "sp1: spdwdim = " << spdwdim;
     LOG_DBG2(scpip_base) << "sp1: spstrat = " << spstrat << ", linsys = " << linsys;
     
-// we must NOT link libscpip30.a when using libscpip40i.a because of double function names.
-// but USE_SCPIP needs to be enabled for USE_FEAS_SCP because it is a subclass!
-
-#ifndef USE_FEAS_SCP
     scpip30(&n,                      // 1
              &mie,                    // 2
              &meq,                    // 3
@@ -263,7 +259,6 @@ int SCPIPBase::solve_problem(bool fromWarmstart)
              &spdwdim,                // 47
              &spstrat,                // 48
              &linsys);                // 49
-#endif
     
     LOG_DBG3(scpip_base) << "after call to scpip: n = " << n << ", mie = " << mie << ", meq = " << meq
         << ", iemax = " << iemax << ", eqmax = " << eqmax << ", initial guess = " << x.ToString()

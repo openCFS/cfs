@@ -1,0 +1,236 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="37" index="1">
+  <summary>
+    <timer wall="0" cpu="0.296389" calls="1"/>
+    <memory final="102048" peak="102048"/>
+  </summary>
+  <header id="">
+    <environment started="2015-Apr-23 09:40:34" host="eamc061"/>
+    <progOpts problem="mech_coef_static" parameterFile="/home/fwein/code/shared_test/TESTSUIT/Optimization/TwoScale/mech_coef_static/mech_coef_static.xml" schemaPath="/home/fwein/code/shared/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1">
+      <cfs version="15.02" name="Maximale Verwirrung" build="Release" svn_revision="13478 modified"/>
+    </progOpts>
+    <domain dimensions="2" elements="260" nodes="294">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="294" elems="260" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="14"/>
+        <nodes name="east" count="14"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(3,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,2)"/>
+        <nodes name="right_upper" count="1" coord="(3,2)"/>
+      </namedNodes>
+      <namedElements/>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep>
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="right_lower" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_LameMu" value="(0.38462,0)"/>
+          <property name="Mechanic_LameLambda" value="(0.57692,0)"/>
+          <property name="Loss_TangensDelta" value="0.03"/>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="west" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="560" totalNumFreeEqns="560" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="560" lastFreeEqn="560" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="560" lastFreeIndex="560"/>
+          </sbmBlocks>
+          <setupTime wall="0" cpu="0.00211" calls="1"/>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="560" totalNumCols="560" totalNumNonZeros="9280" totalFillLevelPerCent="2.9592" totalMemory="0.070801">
+              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="560" numCols="560" numNonZeros="9280" fillLevelPerCent="2.9592" memory="0.070801" upperBandWidth="549" lowerBandWidth="549" avgBandWidth="200" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <cholmod>
+            <header>
+              <parameters>
+                <factorization>
+                  <nmethods default="0"/>
+                  <postorder default="1"/>
+                  <dbound default="0"/>
+                </factorization>
+                <supernodal>
+                  <method default="auto"/>
+                  <switch default="40"/>
+                </supernodal>
+                <output>
+                  <level default="3"/>
+                  <precise default="0"/>
+                </output>
+              </parameters>
+            </header>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="0.010767" calls="13"/>
+              </setup>
+              <solve>
+                <timer wall="0" cpu="0.000385" calls="13"/>
+              </solve>
+            </summary>
+            <process>
+              <setup selected_factorization_method="1" ll_flop_count="4.4294e+05" nz_in_L="14284" nz_in_triA="4920" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
+                <method id="1" lnz="14284" fl="4.4294e+05"/>
+              </setup>
+              <solver/>
+            </process>
+          </cholmod>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="6e-06" calls="13"/>
+              </setup>
+              <precond>
+                <timer wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="0" cpu="0.040617" calls="13"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_directory="/home/fwein/code/shared_test/TESTSUIT/Optimization/TwoScale/mech_coef_static">
+    <header complex="no" harmonic="no" eigenvalue="no" bloch="no" homogenization="no" material="mechanic">
+      <objective type="compliance" linear="no" task="minimize"/>
+      <constraints>
+        <constraint type="volume" linear="yes" mode="constraint" design="mech_trace" bound="upperBound" bound_value="0.5" delta_logging="no" notation="hill_mandel"/>
+        <constraint type="tensorTrace" parameter="0" linear="yes" locality="multiple_designs_element" local_size="260" mode="constraint" design="mech_trace" bound="upperBound" bound_value="1" delta_logging="no" notation="hill_mandel"/>
+      </constraints>
+      <designSpace pamping="0">
+        <transferFunctions>
+          <transferFunction type="identity" application="no_app" design="default"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="780" modelVariables="780" modelElements="260">
+          <design type="mech_11" upperBound="1" lowerBound="0.1" physicalLowerBound="0.1"/>
+          <design type="mech_22" upperBound="1" lowerBound="0.1" physicalLowerBound="0.1"/>
+          <design type="mech_33" upperBound="1" lowerBound="0.1" physicalLowerBound="0.1"/>
+        </designVariables>
+        <regions>
+          <region name="mech" elements="260" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <snopt/>
+    </header>
+    <commit mode="each_forward" stride="1"/>
+    <designSpace/>
+    <optimizer>
+      <summary snopt_outputfile="mech_coef_static.snopt">
+        <timer wall="0" cpu="0.107652" calls="369"/>
+        <snopt_timer wall="0" cpu="0.074309" calls="14"/>
+        <snopt_callback_timer wall="0" cpu="0.160538" calls="13"/>
+        <snopt_exit exit="0" info="32"/>
+        <evaluations f_evals="13" g_evals="11"/>
+      </summary>
+    </optimizer>
+    <process>
+      <iteration number="0" compliance="68.023" volume_mech_trace="0.99" max_tensorTrace_mech_trace="0.99" mean_tensorTrace_mech_trace="0.99"/>
+      <iteration number="1" compliance="195.82" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.53" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="2" compliance="95.355" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.65622" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="3" compliance="70.944" volume_mech_trace="0.5" max_tensorTrace_mech_trace="0.77774" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="4" compliance="63.948" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="5" compliance="59.75" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="6" compliance="59.331" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="7" compliance="58.896" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="8" compliance="58.628" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="9" compliance="58.429" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="10" compliance="58.287" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" mean_tensorTrace_mech_trace="0.5"/>
+      <iteration number="11" compliance="58.202" volume_mech_trace="0.5" max_tensorTrace_mech_trace="1" mean_tensorTrace_mech_trace="0.5"/>
+    </process>
+    <summary problem="SNOPT: resource limit error - major iteration limit reached">
+      <break converged="no"/>
+    </summary>
+  </optimization>
+</cfsInfo>

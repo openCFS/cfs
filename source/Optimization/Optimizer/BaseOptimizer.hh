@@ -31,7 +31,7 @@ namespace CoupledField
 
     /* snopt needs separated evalutations for the linear and nonlinear constraint gradients
      * all other optimizers always need everything */
-    typedef enum { ALL, LINEAR, NONLINEAR } GradientType;
+    typedef enum { ALL = 0, LINEAR = 1, NONLINEAR = 2} GradientType;
 
     /** call PostInit() afterwards!
      * Child classes shall optimizer_timer_  either in the constructor or after PostInit().

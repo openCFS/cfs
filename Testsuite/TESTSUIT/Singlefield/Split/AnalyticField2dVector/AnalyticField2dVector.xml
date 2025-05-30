@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="mesh.cfs"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="internal" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="bottom"/>
+      <surfRegion name="left"/>
+      <surfRegion name="right"/>
+      <surfRegion name="top"/>
+    </surfRegionList>
+  </domain>
+
+
+ 
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>1</numSteps>
+        <deltaT>0.2</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <split formulation="splitVector">
+
+        <regionList>
+          <region name="internal"/>
+        </regionList>
+         
+        <bcsAndLoads>
+          <tangentialVelocity value="1" name="top"></tangentialVelocity>
+          <tangentialVelocity value="-1" name="bottom"></tangentialVelocity>
+          <tangentialVelocity value="-x" name="right"></tangentialVelocity>
+          <rhsDensity value="-1" name="internal"></rhsDensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="splitVector"> 
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="splitVectVel">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </split>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+  
+  </sequenceStep>
+</cfsSimulation>

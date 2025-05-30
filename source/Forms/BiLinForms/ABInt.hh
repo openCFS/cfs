@@ -44,9 +44,14 @@ namespace CoupledField {
                             EntityIterator& ent1,
                             EntityIterator& ent2 );
 
-    //! Set Coefficient Function of B operator
+    //! Set Coefficient Function of A operator
     virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
       this->aOperator_->SetCoefFunction(coef);
+    }
+
+    //! Set Coefficient Function of B operator
+    virtual void SetBCoefFunctionOpB(PtrCoefFct coef){
+      this->bOperator_->SetCoefFunction(coef);
     }
 
     //! \copydoc BiLinearForm::IsSolDependent

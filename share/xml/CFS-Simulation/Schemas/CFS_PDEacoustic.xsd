@@ -77,14 +77,24 @@
           <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="rayleigh" type="DT_DampingRayleigh">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Rayleigh damping (parameters have to be specified in material-xml-file)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="adaptedLossTangensDelta" type="DT_DampingAdaptedLossTangensDelta">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a frequency-constant loss factor tangens(delta) (parameters have to be specified in material-xml-file)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="globalRayleigh" type="DT_DampingRayleighGlobal">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Rayleigh damping for the global mass and stiffness matrices</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <xsd:element name="pml" type="DT_DampingPML">
                   <xsd:annotation>
                     <xsd:documentation>Allows region to be a Perfectly Matched Layer</xsd:documentation>
-                  </xsd:annotation>
-                </xsd:element>
-                <xsd:element name="rayleigh" type="DT_AcousticDampingRayl">
-                  <xsd:annotation>
-                    <xsd:documentation>Defines Rayleigh damping (parameters have to be specified in material-xml-file)</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
               </xsd:choice>
@@ -318,28 +328,6 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
-
-
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of rayleigh damping -->
-  <!-- ******************************************************************* -->
-
-  <!-- Definition of rayleigh damping type -->
-  <xsd:complexType name="DT_AcousticDampingRayl">
-    <xsd:complexContent>
-      <xsd:extension base="DT_DampingBasic">
-        <xsd:sequence>
-          <xsd:element name="adjustDamping" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="freq" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="ratioDeltaF" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
-        </xsd:sequence>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-
 
   <!-- ******************************************************************* -->
   <!--   Definition of thermoViscous damping -->
@@ -629,48 +617,6 @@
     </xsd:sequence>
   </xsd:complexType>
 
-  <!-- ******************************************************************* -->
-  <!--   Definition of data type for damping model -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_AcousticDamp">
-
-    <!-- Type of damping -->
-    <xsd:attribute name="type" use="optional" default="no">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="no"/>
-          <xsd:enumeration value="fractional"/>
-          <xsd:enumeration value="rayleigh"/>
-          <xsd:enumeration value="absorbingBC"/>
-          <xsd:enumeration value="thermoViscous"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-
-    <!-- Type of fractional damping algorithm -->
-    <xsd:attribute name="fracAlg" use="optional" default="gl">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="gl"/>
-          <xsd:enumeration value="blank"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-
-    <!-- Number of past time-steps for fractional damping -->
-    <xsd:attribute name="fracMemory" type="xsd:positiveInteger" use="optional" default="1"/>
-
-    <!-- Type of interpolation -->
-    <xsd:attribute name="interpolation" use="optional" default="no">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="no"/>
-          <xsd:enumeration value="lin1pt"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-  </xsd:complexType>
-
 
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
@@ -710,6 +656,37 @@
       <xsd:enumeration value="pmlTensor"/>
       <xsd:enumeration value="pmlDeterminant"/>
       <xsd:enumeration value="pmlDistance"/>
+
+      <xsd:enumeration value="pseudoDensity">
+        <xsd:annotation>
+          <xsd:documentation>Non-physical design variable for simp topology optimization.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="physicalPseudoDensity">
+        <xsd:annotation>
+          <xsd:documentation>Physical application of design variable in the simulation.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="optResult_1">
+        <xsd:annotation>
+          <xsd:documentation>General optimization result, e.g. for the gradient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="optResult_2">
+        <xsd:annotation>
+          <xsd:documentation>General optimization result, e.g. for the gradient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="optResult_3">
+        <xsd:annotation>
+          <xsd:documentation>General optimization result, e.g. for the gradient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="optResult_4">
+        <xsd:annotation>
+          <xsd:documentation>General optimization result, e.g. for the gradient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -741,7 +718,7 @@
   </xsd:simpleType>
 
   <!-- Definition of field variables (union of nodal and element results) -->
-  <xsd:simpleType name="DT_AcousticSensorArrayResult">
+  <xsd:simpleType name="DT_AcousticFieldResult">
     <xsd:union memberTypes="DT_AcousticNodeResult DT_AcousticElemResult"/>
   </xsd:simpleType>
 
@@ -783,6 +760,17 @@
           </xsd:complexType>
         </xsd:element>
 
+        <!-- averaged Region result definition -->
+        <xsd:element name="regionAverageResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionAverageResult">
+                <xsd:attribute name="type" type="DT_AcousticFieldResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+
         <!-- Surface result definition -->
         <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
@@ -810,7 +798,7 @@
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SensorArrayResult">
-                <xsd:attribute name="type" type="DT_AcousticSensorArrayResult"/>
+                <xsd:attribute name="type" type="DT_AcousticFieldResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

@@ -1,0 +1,78 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation
+  file:/home/kroppert/Devel/CFS_SRC/latest_trunkGit/CFS/share/xml/CFS-Simulation/CFS.xsd">
+  
+  <!-- define which files are needed for simulation input & output-->
+  <fileFormats>
+    <input>
+      <hdf5 fileName="mesh.h5"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_inner" material="iron"/>
+    </regionList> 
+    <surfRegionList>
+      <surfRegion name="left"/>
+      <surfRegion name="right"/>
+      <surfRegion name="bottom"/>
+      <surfRegion name="top"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="source">
+        <coord x="0" y="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+
+  <sequenceStep index="1">
+    <analysis>
+   <!--   <static/> -->
+      <transient>
+        <numSteps>20</numSteps>
+        <deltaT>10000</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="S_inner"/>
+        </regionList>
+        <bcsAndLoads>      
+          <heatSource value="100" name="source"/>
+<!--           <heatFlux name="right" value="y"/> -->
+          <heatTransport bulkTemperature="20.0" volumeRegion="S_inner" name="right" heatTransferCoefficient="y"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="heatFluxDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList>
+    
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>
+

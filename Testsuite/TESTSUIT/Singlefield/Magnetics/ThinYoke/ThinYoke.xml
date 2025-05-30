@@ -1,0 +1,198 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+    <title>Thin Ferromagnetic Yoke</title>
+    <authors>
+      <author>ahauck</author>
+    </authors>
+    <date>2012-05-22</date>
+    <keywords>
+      <keyword>magneticEdge</keyword>
+      <keyword>static condensation</keyword>
+      <keyword>p-FEM-Legendre</keyword>
+    </keywords>
+    <references>
+      Chen Ch., Biro O., Geometric Multigrid With Plane Smoothing
+      for Thin Elements in 3-D Magnetic Fields Calculation,
+      IEEE Trans. Mag., vol. 48, no. 2, 2012
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Quarter symmetric model of a very thin, high permaeable yoke, 
+      excited by a flux density boundary condition. 
+      
+      The model is very thin (aspect ratio 1:1000), as it is typical
+      e.g. for transformer cores. Here a special block grouping is
+      used, where all face degrees in the anisotropic direction are
+      grouped togehter and smoothed in one block. This reduces the 
+      number of necessary CG iterations by a factor of 10, from
+      720 to 63 iterations.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <output>
+      <hdf5 id="h5"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d" printGridInfo="no">
+
+    <regionList>
+      <region name="air" material="air"/>
+      <region name="magnet" material="iron"/>
+      <region name="yoke_right" material="iron"/>
+      <region name="yoke_upper" material="iron"/>
+    </regionList>
+  </domain>
+    
+  
+  <fePolynomialList>
+    <Legendre>
+      <isoOrder>1</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+  
+  <!-- ================================= -->
+  <!--  E D G E   F O R M U L A T I O N  -->
+  <!-- ================================= -->
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <magneticEdge systemId="default">
+        
+        <!-- 
+          Key element here:
+          This triggers the grouping of all faces orthogonal
+          to local directions, which have an aspect ratio higher
+          than 1:10, i.e. for faces being orthogonal to the
+          "thin" direction of elements.
+          
+          Withtout it, the number of iterations goes up to 
+          almost 720.
+         -->          
+        <thinElements maxAspectRatio="10"/>
+        
+        
+        <regionList>
+          <region name="air"/>
+          <region name="magnet"/>
+          <region name="yoke_right"/>
+          <region name="yoke_upper"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fluxParallel name="bound"/>
+          
+          <fluxDensity name="magnet">
+            <comp dof="y" value="1"/>
+            <!-- We need a minimal contribution in z-direction, as this
+                 increases the number of iterations -->
+            <comp dof="z" value="0.1"/>
+          </fluxDensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+          </elemResult>
+         
+        </storeResults>
+        
+      </magneticEdge>
+    </pdeList>
+    
+    
+    <linearSystems>
+      
+      <system id="default">
+        <solutionStrategy>
+          <!-- ==================== -->
+          <!--  TWO LEVEL STRATEGY  --> 
+          <!-- ==================== -->
+          
+          <!-- In this setup we pursue a two-level, single step approach:
+               The system is split into two blocks and additional
+               an inner block, which arises from static condensation.
+               
+                     (K_00 K_0F K_0I )
+                 K = (  #  K_FF K_FI )
+                     (  #   #   K_II )
+               
+                   K_00 .. block for lowest order Nedelec / edge elements
+                   K_FF .. block for face functions
+                   K_II .. block for interior functions (static condensation)
+               
+               The system is solves using a CG-solver, which gets preconditioned
+               by a hybrid, block preconditioner:
+               
+                     ( K_00^-1                   )
+                 C = (         K*_FF^-1          )
+                     (                  K*_II^-1 )
+                     
+                   K_00^-1  .. inverse of K_00 (direct solver)
+                   K*_FF^-1 .. block inverse of K_FF (= one block per face)
+                   K*_II^-1 .. block inverse of K_II 
+                               (= static condensation, as inner blocks are
+                               decoupled)
+               
+               As we have a linear problem, everything is solved in one step, i.e.
+               it is a two-level, one step setup.
+            -->
+          <twoLevel>
+            <setup calcConditionNumber="no" 
+                   staticCondensation="yes"/>
+            <splitting>
+              <!-- Level 1: Lowest order Nedelec functions -->
+              <level num="1">
+                <matrix reordering="Metis" storage="sparseSym"/>
+              </level>
+              <!-- Level 2: Higher order functions (edges, faces) -->
+              <level num="2">
+                <matrix reordering="noReordering" storage="variableBlockRow"/>
+              </level>
+            </splitting>
+            <solution>
+              <!-- One step: Solve linear system and we are done -->
+              <step num="1" level="2">
+                <solver id="cg"/>
+                <precond id="sbm"/>
+              </step>
+            </solution>
+          </twoLevel>
+        </solutionStrategy>
+        
+        <solverList>
+          <!-- We use a standard CG-solver for the SBM-system -->
+          <cg id="cg">
+            <tol>1e-8</tol>
+            <maxIter>5000</maxIter>
+            <logging>yes</logging>
+          </cg>
+          <pardiso/>
+        </solverList>
+        <precondList>
+          <!-- Use a compound SBM diagonal preconditioner, which uses the
+               following preconditioners for the single blocks:
+               
+                 (1,1)-block: direct solver (= exact inverse)
+                 (2,2)-block: block Jacobian preconditioner (additive SCHWARZ method)
+          -->
+          <SBMDiag id="sbm">
+            <precond block="1" id="par"/>
+            <precond block="2" id="bj"/>
+          </SBMDiag>
+          <!-- Preconditioner for (1,1)-block -->
+          <pardiso id="par"/>
+          <!-- Preconditioner for (2,2)-block -->
+          <BlockJacobi id="bj"/>
+        </precondList>
+      </system>
+    </linearSystems>
+   </sequenceStep>
+   
+  </cfsSimulation>

@@ -114,13 +114,10 @@ parser.add_argument('--fill', help="fill elements without density information wi
 parser.add_argument('--color', help="name of color to be used -> extend for jet, heat, ...", default="gray")
 
 args = parser.parse_args()
-
-input = clean_input(args.input) 
+input = clean_input(args.input, abbort=True) 
 
 if not args.saveall:
-  if not os.path.exists(input[0]):
-    print("file '" + input[0] + "' not found")
-    os.sys.exit()
+  assert(os.path.exists(input[0])) # should be handled by clean_input()
 
 if args.info:
   for file in input:

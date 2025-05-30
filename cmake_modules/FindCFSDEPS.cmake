@@ -1,15 +1,11 @@
-#============================================================================
-#
-# Find locations of external binary libs (e.g. MKL) and build additional
-# external libs from source.
-# 
-# This module finds and builds libs that openCFS depends upon and determines
-# where the include files and libraries are. 
-#
-#=============================================================================
+# This module finds and builds libs that openCFS depends from source with individual configuration
 
 include(ExternalProject) # cmake external project
 include("cmake_modules/DependencyTools.cmake") # our own helper for cfsdeps handling (pseudo object oriented)
+
+if(NOT CMAKE_GENERATOR MATCHES "NMake Makefiles")
+  message(STATUS "Most cfsdeps will be build with ${CFS_DEPS_BUILD_THREADS} threads.")
+endif()
 
 set(CFS_DS_SOURCES_DIR "${CFS_FAU_MIRROR}/sources")
 set(CFSDEPS_DIR "${CFS_SOURCE_DIR}/cfsdeps")
@@ -24,24 +20,13 @@ else()
   set(CFS_DEPS_CACHE_DIR "${CFS_DEPS_CACHE_DIR_DEFAULT}" CACHE PATH "Directory for CFSDEPS sources and prebuilt binaries.")
 endif()
 
-# Check if cache directory is present
-if(NOT CFS_DEPS_CACHE_DIR)
-  message(FATAL_ERROR "Please set CFS_DEPS_CACHE_DIR. This dirctory is used to stor depenency source and compiles.") 
-endif()
+assert_set(CFS_DEPS_CACHE_DIR)
 
 file(TO_CMAKE_PATH "${CFS_DEPS_CACHE_DIR}" CFS_DEPS_CACHE_DIR)
 
-# for configure projectes we may not use ninja but need make
-if("${CMAKE_GENERATOR}" STREQUAL "Ninja")
-  find_program(CONFIGURE_MAKE_PROGRAM make)
-else()
-  set(CONFIGURE_MAKE_PROGRAM ${CMAKE_MAKE_PROGRAM} CACHE FILEPATH "program to build configure projects")
-endif()
-mark_as_advanced(CONFIGURE_MAKE_PROGRAM)
-
-# The Python lib stuff is not built but linked with the system python when we embedd python
+# The Python lib stuff is not built but linked with the system python when we embed python
 if(USE_EMBEDDED_PYTHON)
-  # we don't need the executable for embedded python - the testsuite finds it's own executale
+  # we don't need the executable for embedded python - the testsuite finds it's own executable
   # use -DPython_ROOT_DIR=... to help in case or check cmake's FindPython for other hints
   find_package(Python COMPONENTS Development NumPy)  
   #dump_variables("Python")
@@ -60,7 +45,7 @@ if(USE_EMBEDDED_PYTHON)
 endif()
 
 # these are optional external blas/lapack libs. 
-# MKL and Apple's Accellerate is set in openmp_blas.cmake to have it before compile.cmake
+# MKL and Apple's Accelerate is set in openmp_blas.cmake to have it before compile.cmake
 if(USE_BLAS_LAPACK STREQUAL "NETLIB")
   set(USE_NETLIB 1)
   include("${CFSDEPS_DIR}/netlib/External_Netlib.cmake")
@@ -93,16 +78,9 @@ if(USE_METIS)
   include("${CFSDEPS_DIR}/metis/External_METIS.cmake")
 endif()
 
-#-------------------------------------------------------------------------------
-# Search for GiDpost library
-#-------------------------------------------------------------------------------
-IF(USE_GIDPOST)
-  SET(GIDPOST_VER "2.1")
-  SET(GIDPOST_ZIP "gidpost-${GIDPOST_VER}.zip")
-  SET(GIDPOST_MD5 "a7fe745e40593dc4598920b312663d29")
-
-  INCLUDE("${CFSDEPS_DIR}/gidpost/External_GiDpost.cmake")
-ENDIF(USE_GIDPOST)
+if(USE_GIDPOST)
+  include("${CFSDEPS_DIR}/gidpost/External_GiDpost.cmake")
+endif()
 
 #-----------------------------------------------------------------------------
 # Check which version of the Pardiso API is being used. Pardiso 4.0 intro-
@@ -136,6 +114,12 @@ endif()
 # Find Library of Iterative Solvers
 if(USE_LIS)
   include("${CFSDEPS_DIR}/lis/External_LIS.cmake")
+endif()
+
+if(USE_GINKGO)
+  # we use json for the optional json configuration. Make it more universal once use want to use json independently
+  include("${CFSDEPS_DIR}/nlohmann_json/External_nlohmann_json.cmake")
+  include("${CFSDEPS_DIR}/ginkgo/External_Ginkgo.cmake")
 endif()
 
 if(USE_SUPERLU)
@@ -176,31 +160,14 @@ endif(USE_VTK)
 #-----------------------------------------------------------------------------
 # Find CGAL
 #-----------------------------------------------------------------------------
-IF(USE_CGAL)
-  SET(MSG "The build of gmp and mpfr is only supported for MSYS on Windows!")
-  SET(MSG "${MSG} It is configure-based and therefore requires a shell")
-  SET(MSG "${MSG} interpreter like bash from MSYS. If you need CGAL, you need")
-  SET(MSG "${MSG} to use an MSYS environment or cross compile from Linux.")     
-  IF(WIN32)
-    MESSAGE(FATAL_ERROR "${MSG}")
-   ENDIF()
-
-  SET(GMP_VER "6.1.2")
-  SET(GMP_BZ2 "gmp-${GMP_VER}.tar.bz2")
-  SET(GMP_MD5 "8ddbb26dc3bd4e2302984debba1406a5")
-  INCLUDE("${CFSDEPS_DIR}/gmp/External_gmp.cmake")
-  
-  SET(MPFR_VER "3.1.5")
-  SET(MPFR_BZ2 "mpfr-${MPFR_VER}.tar.bz2")
-  SET(MPFR_MD5 "b1d23a55588e3b2a13e3be66bc69fd8d")
-  INCLUDE("${CFSDEPS_DIR}/mpfr/External_mpfr.cmake")
-
-  SET(CGAL_URL "${CFS_DS_SOURCES_DIR}/cgal")
-  SET(CGAL_VER "4.9.1")
-  SET(CGAL_BZ2 "CGAL-${CGAL_VER}.tar.xz")
-  SET(CGAL_MD5 "820ef17ffa7ed87af6cc9918a961d966")
-  INCLUDE("${CFSDEPS_DIR}/cgal/External_CGAL.cmake")
-ENDIF(USE_CGAL)
+if(USE_CGAL)
+  # currently (CGAL 6.0.1) we still need gmp/mpfr on Unix, but it should work with boost alone
+  if(NOT WIN32)
+    include("${CFSDEPS_DIR}/gmp/External_GMP.cmake")
+    include("${CFSDEPS_DIR}/mpfr/External_MPFR.cmake")
+  endif()
+  include("${CFSDEPS_DIR}/cgal/External_CGAL.cmake")
+endif(USE_CGAL)
 
 #-----------------------------------------------------------------------------
 # Find fast box intersection library.
@@ -229,6 +196,8 @@ endif()
 
 # FLANN - Fast Library for Approximate Nearest Neighbors
 if(USE_FLANN)
+  # dependecy for flann
+  include("${CFSDEPS_DIR}/lz4/External_LZ4.cmake")
   include("${CFSDEPS_DIR}/flann/External_FLANN.cmake")
 endif()
 

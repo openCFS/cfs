@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>ShapeMap 3D two bars with linear shape function and non-smooth max aggregation</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2017-11-03</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Fabian Wein</references>
+    <isVerified>no</isVerified>
+    <description>Simple 3D two bar example, for linear shape sum_thanh aggregation makes not much sense, therefore max</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1.0" z="0.5" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+              <comp dof="z"/>
+           </fix>
+           <force name="load" >
+             <comp dof="y" value="-1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod /> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" sequence="1" linear="false">
+      <stopping queue="55" value="0.0001" type="relativeCostChange" />
+    </costFunction>
+    
+    <constraint type="volume" bound="upperBound" value="0.3" design="density" linear="false"/>
+    
+    <constraint type="slope" bound="upperBound" value="1.1/nx" design="node" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.3/nx" design="node" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.3/nx" design="profile" linear="true"/>
+   
+    <optimizer type="snopt" maxIterations="25">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <!-- extremely early termination to achieve finished successfully --> 
+        <option name="major_optimality_tolerance" type="real" value="5e-3"/>
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
+      <!-- for linear we need higher integration than for tanh but we have less integration points --> 
+      <shapeMap overlap="max" enforce_bounds="false" integration_order="10" shape="linear">
+       <center>
+         <node lower="0" upper="1" initial="0.2 + xi*0.3/nx" dof="y" />
+         <node lower="0" upper="1" initial="0.2 + xi*0.3/nx" dof="z"/>
+       </center> 
+       <center>
+         <node lower="0" upper="1" initial="0.6 - xi*0.3/nx" dof="y" />
+         <node lower="0" upper="1" initial="0.6 - xi*0.3/nx" dof="z"/>
+       </center> 
+        <profile lower=".05" upper=".6" initial=".2"/>
+      </shapeMap>
+      
+      <design name="density" initial=".5" physical_lower="1e-6" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <result value="shapeMapGrad" id="optResult_1" detail="node_a"/>
+      <result value="shapeMapGrad" id="optResult_2" detail="node_b"/>
+      <result value="shapeMapGrad" id="optResult_3" detail="profile"/>
+      <result value="shapeMapIntOrder" id="optResult_4"  />
+      
+      <export save="last" write="iteration" density="false"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="99"/>
+  </optimization>
+</cfsSimulation>

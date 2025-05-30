@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- quartz -->
+  <material name="quartz">
+    <mechanical>
+      <density>
+        <linear>
+          <real>2.6487E+3</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+                        0.8673E+11  0.0692E+11  0.1197E+11  -0.1812E+11 0           0
+                        0.0692E+11  0.8673E+11  0.1183E+11  0.1804E+11  0           0
+                        0.1197E+11  0.1183E+11  1.0570E+11  0           0           0
+                        -0.1812E+11 0.1804E+11  0           0.5818E+11  0           0
+                        0           0           0           0           0.5815E+11  -0.1810E+11
+                        0           0           0           0           -0.1810E+11 0.3985E+11
+                    </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

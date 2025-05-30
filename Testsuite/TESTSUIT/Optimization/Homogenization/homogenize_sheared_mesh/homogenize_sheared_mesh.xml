@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.0" y="0.0" />
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <sequenceStep index="1">
+    <analysis>
+      <static />
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+        <bcsAndLoads>
+          <periodic primary="nodes3" secondary="nodes4" quantity="mechDisplacement" dof="x" />
+          <periodic primary="nodes3" secondary="nodes4" quantity="mechDisplacement" dof="y" />
+          <periodic primary="nodes5" secondary="nodes6" quantity="mechDisplacement" dof="x" />
+          <periodic primary="nodes5" secondary="nodes6" quantity="mechDisplacement" dof="y" />
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination" />
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <loadErsatzMaterial file="homogenize_sheared_mesh.dens" set="last"/>
+
+  <optimization>
+    <costFunction type="homTensor" task="minimize" multiple_excitation="true">
+      <multipleExcitation type="homogenizationTestStrains" />
+    </costFunction>
+    <optimizer type="evaluate" maxIterations="1" />
+    <ersatzMaterial method="simp" material="mechanic" region="mech">
+      <design name="density" initial="1.0" lower="0.000001" upper="1" region="mech" />
+      <transferFunction type="simp" application="mech" design="density" param="1" />
+    </ersatzMaterial>
+    <commit mode="each_forward" />
+  </optimization>
+
+</cfsSimulation>

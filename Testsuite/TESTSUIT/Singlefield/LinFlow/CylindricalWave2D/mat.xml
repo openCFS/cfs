@@ -1,0 +1,61 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="FluidMat">
+    <flow>
+      <!-- density at 20 -->
+      <density>
+        <linear>
+          <real> 1.225 </real>
+        </linear>
+      </density>
+      <!--     <dynamicViscosity> 1.829e-10 </dynamicViscosity>-->
+      <dynamicViscosity>
+        <linear>
+          <real> 0 </real>
+        </linear>
+      </dynamicViscosity>
+      <!-- according to Stokes: -2/3 * dynamicViscosity-->
+      <bulkViscosity>
+        <linear>
+          <real> 0.5 </real>
+        </linear>
+      </bulkViscosity>
+      <!--     <bulkViscosity> 0 </bulkViscosity>-->
+      <adiabaticExponent>
+        <linear>
+          <real> 1.406 </real>
+        </linear>
+      </adiabaticExponent>
+      <compressionModulus>
+        <!--In ideal gas:  compressionModulus = pressure * adiabaticExponent -->
+        <linear>
+          <real> 1.42709e5 </real>
+        </linear>
+      </compressionModulus>
+    </flow>
+    <heatConduction>
+      <density>
+        <linear>
+          <real>1.225</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real> 975.3</real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real> 25.18e-3</real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+      <refTemperature>
+        <linear>
+          <real> 294.3 </real>
+        </linear>
+      </refTemperature>
+    </heatConduction>
+  </material>
+</cfsMaterialDataBase>

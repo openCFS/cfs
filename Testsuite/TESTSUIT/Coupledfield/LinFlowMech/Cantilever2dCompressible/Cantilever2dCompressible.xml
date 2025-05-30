@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="Cantilever2d.cfs"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="cantilever" material="solid"/>
+      <region name="water" material="waterSpecial"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="fix"/>      
+      <surfRegion name="wall"/>      
+      <surfRegion name="cplsurf"/>      
+    </surfRegionList>
+    <nodeList>
+      <nodes name="excite">
+        <coord x="12e-2" y="10.15e-2" z="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange id="velPolyId">
+      <gridOrder/>
+    </Lagrange>
+    
+    <Lagrange id="presPolyId">
+      <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+  
+  <integrationSchemeList>
+    <scheme id="velIntegId">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="presIntegId">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+  
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>1</numFreq>
+        <frequencyList>
+          <freq value="500"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+      
+    <pdeList>
+      <fluidMechLin formulation="compressible" presPolyId="presPolyId" velPolyId="velPolyId">      
+        <regionList>
+          <region name="water"/>
+        </regionList>
+               
+        <bcsAndLoads>
+          <noPressure name="free"/>
+          
+          <noSlip name="wall">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </noSlip>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <regionList>
+              <region name="water"/>
+            </regionList>
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <regionList>
+              <region name="water"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </fluidMechLin> 
+      
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="cantilever"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="fix">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <force name="excite">
+            <comp dof="y" value="1e4"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          
+          <nodeResult type="mechDisplacement">
+            <regionList>
+              <region name="cantilever"/>
+            </regionList>            
+          </nodeResult>
+          <nodeResult type="mechVelocity">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+        
+      </mechanic>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <linFlowMechDirect IsLagrangeMultiplierMethod="true" lmOrderSameAsVel="false">
+          <surfRegionList>
+            <surfRegion name="cplsurf"/>
+          </surfRegionList>
+          <storeResults>
+            <nodeResult type="lagrangeMultiplier">
+              <regionList>
+                <region name="cplsurf"/>
+              </regionList>
+            </nodeResult>
+          </storeResults>
+        </linFlowMechDirect>
+      </direct>      
+    </couplingList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard/>
+        </solutionStrategy>
+        <solverList>
+          <pardiso/>
+          <!-- <umfpack/> works too -->
+        </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+
+</cfsSimulation>

@@ -129,6 +129,9 @@ public:
 struct GlobalFilter
 {
 public:
+  GlobalFilter();
+  ~GlobalFilter();
+
   /** the copy constructor cannot handle the math parser and Tune properly.
    * ReInitParser() creates a new math parser handle and does not release the old.
    * We need to call this every time we create GF instance! */
@@ -222,6 +225,12 @@ public:
 
   /** optional automatic beta setter. Has Init() and a late post init Register() because of the GlobalFilter copy constructor issue */
   Tune tune;
+
+  /** in the robust case, only one filter has a own beta Tune, the other filters register directly there */
+  Tune* ext_tune = nullptr;
+
+  /** when we want to set ext_tune but another tune is not registered yet */
+  static const int UNSET_EXT_BETA_TUNE = 0x12345;
 
   /** for expression */
   MathParser* parser_ = nullptr;

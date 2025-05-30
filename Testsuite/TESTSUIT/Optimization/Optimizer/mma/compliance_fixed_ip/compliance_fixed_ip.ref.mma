@@ -1,0 +1,33 @@
+sub solver: int_point
+verbose dual vars: 0
+major 0 -> cost=1366.03 volume=0.2
+major 1 -> cost=34.9977 volume=0.615886
+major 2 -> cost=41.1349 volume=0.499646
+major 3 -> cost=33.0634 volume=0.49987
+major 4 -> cost=28.6272 volume=0.499934
+major 5 -> cost=25.9048 volume=0.499959
+major 6 -> cost=24.4874 volume=0.499976
+major 7 -> cost=23.7468 volume=0.499986
+major 8 -> cost=23.2832 volume=0.499992
+major 9 -> cost=22.9761 volume=0.499995
+major 10 -> cost=22.7557 volume=0.499996
+major 11 -> cost=22.5905 volume=0.499997
+major 12 -> cost=22.4652 volume=0.499998
+major 13 -> cost=22.3682 volume=0.499998
+major 14 -> cost=22.2899 volume=0.499999
+major 15 -> cost=22.2246 volume=0.499999
+major 16 -> cost=22.1692 volume=0.499999
+major 17 -> cost=22.1246 volume=0.499999
+major 18 -> cost=22.0882 volume=0.499999
+major 19 -> cost=22.0571 volume=0.499999
+major 20 -> cost=22.031 volume=0.499999
+major 21 -> cost=22.0077 volume=0.499999
+major 22 -> cost=21.9867 volume=0.5
+major 23 -> cost=21.9676 volume=0.5
+major 24 -> cost=21.9504 volume=0.5
+major 25 -> cost=21.935 volume=0.5
+major 26 -> cost=21.9224 volume=0.5
+major 27 -> cost=21.9127 volume=0.5
+major 28 -> cost=21.9045 volume=0.5
+major 29 -> cost=21.8976 volume=0.5
+major 30 -> cost=21.8918 volume=0.5

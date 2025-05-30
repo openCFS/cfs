@@ -40,6 +40,7 @@ set_deps_args_default(ON) # set compiler flags
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DHDF5_INSTALL_BIN_DIR:PATH=bin
   -DBUILD_SHARED_LIBS:BOOL=OFF
   -DBUILD_TESTING:BOOL=OFF

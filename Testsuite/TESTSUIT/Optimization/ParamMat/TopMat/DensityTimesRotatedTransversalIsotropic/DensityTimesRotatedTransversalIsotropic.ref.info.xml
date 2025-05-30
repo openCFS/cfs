@@ -1,0 +1,267 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="25" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.529s" wall="0.529" cpu="0.871342" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="379.74" peak="436.5"/>
+  </summary>
+  <header id="">
+    <environment started="2022-Jun-01 10:04:36" host="motown"/>
+    <progOpts problem="DensityTimesRotatedTransversalIsotropic" parameterFile="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ParamMat/TopMat/DensityTimesRotatedTransversalIsotropic/DensityTimesRotatedTransversalIsotropic.xml" schemaPath="/home/jgreif/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="22.03" name="Frohes Fensterln" build="Release" git_commit="d0c065f16dee0e203ca680d7de519fca1ea8c434" git_branch="arrabbiata" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="3" OMP_NUM_THREADS="3"/>
+    </progOpts>
+    <domain nx="20" ny="10" nz="1">
+      <grids>
+        <timer wall-clock="0.008s" wall="0.008" cpu="0.005538" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="200" nodes="231"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="231" elems="200" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="fixed" count="4"/>
+        <nodes name="load2" count="1" coord="(1,0)"/>
+        <nodes name="load1" count="1" coord="(1,1)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="20" ny="10" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.008s" wall="0.008" cpu="0.029266" calls="170"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.013s" wall="0.013" cpu="0.042717" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="iso1">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 8.076923e+00  3.461538e+00  3.461538e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 3.461538e+00  8.076923e+00  3.461538e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 3.461538e+00  3.461538e+00  8.076923e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  2.307692e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  2.307692e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  2.307692e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(6,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1000,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="fixed" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="454" totalNumFreeEqns="454" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="454" lastFreeEqn="454" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="454" lastFreeIndex="454"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.029057" calls="10"/>
+              </setup>
+              <solve>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.009832" calls="20"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1.1e-05" calls="10"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.008928" calls="1" sub="true"/>
+      </graph_setup>
+      <reorder_Metis>
+        <timer wall-clock="0s" wall="0" cpu="0.000359" calls="1" sub="true"/>
+      </reorder_Metis>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.055s" wall="0.055" cpu="0.115277" calls="40"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_file="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ParamMat/TopMat/DensityTimesRotatedTransversalIsotropic/HALTOPT">
+    <header>
+      <objective type="compliance" name="compliance" linear="no" access="physical" task="minimize"/>
+      <multipleExcitations type="fixed_weights"/>
+      <constraints>
+        <constraint type="sumModuli" name="sumModuli_(allDesigns)" parameter="0" linear="no" access="plain" locality="multiple_designs_element" local_size="200" bound_value="15" bound="upperBound" design="allDesigns" excitation="1"/>
+        <constraint type="volume" name="volume_(density)" linear="yes" access="filtered" bound_value="0.6" bound="upperBound" design="density" excitation="1"/>
+        <constraint type="slope" name="slope_(rotAngle)" parameter="0" linear="yes" access="plain" locality="next" local_size="370" bound_value="0.17453" bound="upperBound" design="rotAngle" excitation="1"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes">
+        <setup_design>
+          <timer wall-clock="0s" wall="0" cpu="0.000697" calls="2"/>
+        </setup_design>
+        <filters use_mat_filt="no">
+          <filter type="maxEdge" value="1.4" contribution="linear" design="density" elems="200" avg_radius="0.14" avg_neighbors="3.7"/>
+          <filter type="maxEdge" value="1.6" contribution="linear" design="emodul-iso" elems="200" avg_radius="0.16" avg_neighbors="7.12"/>
+          <filter type="maxEdge" value="1.6" contribution="linear" design="emodul" elems="200" avg_radius="0.16" avg_neighbors="7.12"/>
+          <filter type="maxEdge" value="1.6" contribution="linear" design="gmodul" elems="200" avg_radius="0.16" avg_neighbors="7.12"/>
+          <filter type="maxEdge" value="1.6" contribution="linear" design="poisson" elems="200" avg_radius="0.16" avg_neighbors="7.12"/>
+          <timer wall-clock="0s" wall="0" cpu="0.000844" calls="5"/>
+        </filters>
+        <ersatzMaterialFile file="DensityTimesRotatedTransversalIsotropic.warm.density.xml" source="problem file"/>
+        <transferFunctions>
+          <transferFunction type="identity" application="no_app" design="default"/>
+          <transferFunction type="simp" application="mech" design="density" param="3"/>
+        </transferFunctions>
+        <designVariables opt_vars="1200" field_elems="1200" field_fe_elemes="200">
+          <design type="density" upperBound="1" lowerBound="0.05" physicalLowerBound="0.000125"/>
+          <design type="poisson" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
+          <design type="emodul-iso" upperBound="15" lowerBound="0.1" physicalLowerBound="0.1"/>
+          <design type="emodul" upperBound="15" lowerBound="0.1" physicalLowerBound="0.1"/>
+          <design type="gmodul" upperBound="7.5" lowerBound="0.05" physicalLowerBound="0.05"/>
+          <design type="rotAngle" upperBound="4" lowerBound="-1" physicalLowerBound="-1"/>
+        </designVariables>
+        <localElementCache org="0" shadow="0" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="200" bimaterial="-"/>
+        </regions>
+        <designMaterial type="density-times-rotated-transversal-isotropic-boxed" bias="no"/>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="0.5" load="load1"/>
+        <excitation index="1" meta_idx="0" label="1" weight="1" normalized_weight="0.5" load="load2"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="100"/>
+    <optimizer>
+      <summary snopt_outputfile="DensityTimesRotatedTransversalIsotropic.snopt">
+        <snopt>
+          <timer wall-clock="0.112s" wall="0.112" cpu="0.168116" calls="49"/>
+        </snopt>
+        <snopt_exit exit="0" info="32"/>
+        <evaluations f_evals="10" g_evals="8"/>
+      </summary>
+      <snopt/>
+    </optimizer>
+    <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
+      <eval_objective>
+        <timer wall-clock="0.008s" wall="0.008" cpu="0.028689" calls="37"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.00078" calls="10"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0.137s" wall="0.137" cpu="0.253967" calls="8"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.00254" calls="9"/>
+      </eval_grad_constraints>
+      <break converged="no"/>
+    </summary>
+    <process>
+      <iteration number="0" duration="0.204" compliance="0.906542453481246" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="130" volume_density="0.599999999999894" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28">
+        <excitation index="0" objective="0.90278" objective_weight="0.5"/>
+        <excitation index="1" objective="0.91031" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="1" duration="0.031" compliance="0.906542453481325" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="130" volume_density="0.599999999999894" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28">
+        <excitation index="0" objective="0.90278" objective_weight="0.5"/>
+        <excitation index="1" objective="0.91031" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="2" duration="0.04" compliance="1.18290932320334" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="46">
+        <excitation index="0" objective="1.1492" objective_weight="0.5"/>
+        <excitation index="1" objective="1.2166" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="3" duration="0.032" compliance="0.906231082953379" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="130" volume_density="0.599999999999898" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28">
+        <excitation index="0" objective="0.90267" objective_weight="0.5"/>
+        <excitation index="1" objective="0.90979" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="4" duration="0.024" compliance="1.08737474967515" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="134" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="53">
+        <excitation index="0" objective="1.0553" objective_weight="0.5"/>
+        <excitation index="1" objective="1.1194" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="5" duration="0.041" compliance="0.905979764948744" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="130" volume_density="0.599999999999901" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="28">
+        <excitation index="0" objective="0.90237" objective_weight="0.5"/>
+        <excitation index="1" objective="0.90959" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="6" duration="0.043" compliance="0.905338863879149" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="30">
+        <excitation index="0" objective="0.90143" objective_weight="0.5"/>
+        <excitation index="1" objective="0.90925" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="7" duration="0.045" compliance="0.904419576292134" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="31">
+        <excitation index="0" objective="0.9009" objective_weight="0.5"/>
+        <excitation index="1" objective="0.90794" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="8" duration="0.059" compliance="0.904209509900873" max_abs_sumModuli_allDesigns="15" infeas_count_sumModuli_allDesigns="133" volume_density="0.6" max_abs_slope_rotAngle="0.17453" infeas_count_slope_rotAngle="29">
+        <excitation index="0" objective="0.9008" objective_weight="0.5"/>
+        <excitation index="1" objective="0.90762" objective_weight="0.5"/>
+      </iteration>
+    </process>
+  </optimization>
+</cfsInfo>

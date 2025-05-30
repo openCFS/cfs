@@ -920,9 +920,6 @@ namespace CoupledField {
     if(primarySurfElemBoxes_.size() != primarySurfElems_.GetSize() || movingVolRegion_ == primaryVolRegion_ ){
       primarySurfElemBoxes_.resize(primarySurfElems_.GetSize());
       primaryBoxIndexes_.Resize(primarySurfElems_.GetSize());
-      Integer numSurfElems = primarySurfElems_.GetSize(); // sanity check for type conversion
-      if (numSurfElems != primarySurfElems_.GetSize())
-        EXCEPTION("MortarInterface: the number of primary surface elements in the grid exceeds the integer limits!");
       #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for(Integer iBox = 0; iBox < (Integer)primarySurfElems_.GetSize(); ++iBox) {
         // create the box
@@ -950,9 +947,6 @@ namespace CoupledField {
     if(secondarySurfElemBoxes_.size() != secondarySurfElems_.GetSize() || movingVolRegion_ == secondaryVolRegion_) {
       secondarySurfElemBoxes_.resize(secondarySurfElems_.GetSize());
       secondaryBoxIndexes_.Resize(secondarySurfElems_.GetSize());
-      Integer numSurfElems = secondarySurfElems_.GetSize(); // sanity check for type conversion
-      if (numSurfElems != secondarySurfElems_.GetSize())
-        EXCEPTION("MortarInterface: the number of secondary surface elements in the grid exceeds the integer limits!");
       #pragma omp parallel for num_threads(CFS_NUM_THREADS)
       for(Integer iBox = 0; iBox < (Integer)secondarySurfElems_.GetSize(); ++iBox) {
         // create the box

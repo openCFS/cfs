@@ -1101,7 +1101,6 @@ namespace CoupledField {
   template<typename T>
   void Vector<T>::Import(const std::string& fname, bool checkSize)
   {
-    std::cout << "Import Olivia \n";
     // Determine expected entry Type of the imported file
     std::string matrixType;
     if(GetEntryType() == BaseMatrix::DOUBLE)

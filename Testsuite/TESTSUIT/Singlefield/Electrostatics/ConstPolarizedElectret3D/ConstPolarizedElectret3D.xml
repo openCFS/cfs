@@ -1,0 +1,123 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  
+  
+  <documentation>
+    <title>Electret3D</title>
+    <authors>
+      <author>F. Holzberger</author>
+      <author>F. Heidegger</author>
+      <author>J. Ellmenreich</author>
+    </authors>
+    <date>2021-01-19</date>
+    <keywords>
+      <keyword>electrostatic</keyword>
+    </keywords>
+    <references> http://web.mit.edu/6.013_book/www/chapter6/6.3.html </references>
+    <isVerified>yes</isVerified>
+    <description> 
+      We simulate an electret with height a=0.001 and length L=0.02. The electret consists of 2 domains:
+      one is the polarized Material (-0.01,-0.0005)->(0.01,-0.0002) nameTag=Mat_Polarized
+      one is air (-0.01,-0.0002)->(0.01,0.0005) nameTag=Air
+      The aim of this simulation is to investigate the functionality of our implementation of the
+      constant polarization as a LinearForm.
+      The result of the simulation has to be equal as if one would apply a surface charge density, see sequenceStep 2.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <cdb fileName="ConstPolarizedElectret3D.cdb"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <variableList>
+            <!-- The variables for later use were defined here -->
+            <var name="Pol_val" value="1e-7"/>
+        </variableList>
+    <regionList>
+      <region name="Mat_Polarized" material="Vacuum" />
+      <region name="Air" material="Vacuum" />
+    </regionList>
+  </domain>
+
+
+  <sequenceStep index = "1">
+    <analysis>
+      <static />
+    </analysis>
+
+    <pdeList>
+
+      <electrostatic>
+        <regionList>
+          <region name="Mat_Polarized" />
+          <region name="Air" />
+        </regionList>
+
+        <bcsAndLoads>
+          <ground name="Ground_surf"/>
+          <potential name="Electrode" value="1"/>
+          <polarization name="Mat_Polarized">
+            <comp dof="x" value="0.0"/>
+            <comp dof="y" value="Pol_val"/>
+            <comp dof="z" value="0.0"/> 
+          </polarization>   
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="elecFieldIntensity">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </electrostatic>
+
+
+    </pdeList>
+
+  </sequenceStep>
+
+  <sequenceStep index="2">
+    <analysis>
+      <static />
+    </analysis>
+
+    <pdeList>
+
+      <electrostatic>
+        <regionList>
+          <region name="Mat_Polarized" />
+          <region name="Air" />
+        </regionList>
+
+        <bcsAndLoads>
+          <ground name="Ground_surf"/>
+          <potential name="Electrode" value="1"/>
+          <chargeDensity name="Edge_pol_mat" value="Pol_val"/> 
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="elecFieldIntensity">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </electrostatic>
+
+
+    </pdeList>
+
+  </sequenceStep>
+</cfsSimulation>

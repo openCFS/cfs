@@ -491,28 +491,18 @@ namespace CoupledField {
       PtrCoefFct tecVect = CoefFunction::Generate( mp_, Global::COMPLEX, tecR, tecI);
       material->SetCoefFct(MECH_THERMAL_EXPANSION_TENSOR,tecVect);
     }
-    
+
     // read mechanical damping
-    if (mech->Has("damping"))    {
+    if (mech->Has("damping")) {
       // first rayleigh damping
       if (mech->Get("damping")->Has("rayleigh")) {
         ReadRayleighDamping(mech->Get("damping")->Get("rayleigh"), material);
       }
-      /*if (mech->Get("damping")->Has("fractional"))
-      {
-        PtrParamNode f = mech->Get("damping")->Get("fractional");
-        
-        if (f->Has("alg"))
-          material->SetScalar(f->Get("alg")->As<std::string>(), FRACTIONAL_ALG );
-        
-        if(f->Has("memory"))        
-          material->SetScalar(f->Get("memory")->As<double>(), FRACTIONAL_MEMORY );
-        
-        if (f->Has("interpolation"))
-          material->SetScalar(f->Get("interpolation")->As<std::string>(), FRACTIONAL_INTERPOL );
-      }*/
+      if (mech->Get("damping")->Has("adaptedLossTangensDelta")) {
+        ReadLossTanDeltaDamping(mech->Get("damping")->Get("adaptedLossTangensDelta"), material);
+      }
     }
-    
+
     // read real magmech coupling tensor
     if (mech->Has("magnetoStrictionTensor_h_mech")) {
       PtrCoefFct pctCoef = ReadTensor(mech->Get("magnetoStrictionTensor_h_mech"),
@@ -617,33 +607,15 @@ namespace CoupledField {
 
     // check for acousticDamping
     if (acou->Has("damping")) {
-      PtrParamNode ad = acou->Get("damping");
-      
-      // check rayleigh
-      if (ad->Has("rayleigh")) {
-        ReadRayleighDamping(ad->Get("rayleigh"), material);
+      // first rayleigh damping
+      if (acou->Get("damping")->Has("rayleigh")) {
+        ReadRayleighDamping(acou->Get("damping")->Get("rayleigh"), material);
       }
-      
-      // read alpha0 of thermo viscous damping
-      /*if (ad->Has("thermoViscous"))
-      {
-        if (ad->Get("thermoViscous")->Has("alpha0"))
-          material->SetScalar(ad->Get("thermoViscous")->Get("alpha0")->As<Double>(), ACOU_ALPHA, Global::REAL );
+      if (acou->Get("damping")->Has("adaptedLossTangensDelta")) {
+        ReadLossTanDeltaDamping(acou->Get("damping")->Get("adaptedLossTangensDelta"), material);
       }
-      // read fractional damping
-      if (ad->Has("fractional"))
-      {
-        PtrParamNode f = ad->Get("fractional");
-        
-        if (f->Has("alpha0"))
-          material->SetScalar(f->Get("alpha0")->As<Double>(), ACOU_ALPHA, Global::REAL );
-        
-        // read exponent of fractional damping      
-        if (f->Has("y"))
-          material->SetScalar(f->Get("y")->As<Double>(), FRACTIONAL_EXPONENT, Global::REAL );
-      }*/
-    } // end of acousticDamping
-    
+    }
+
     // read acoustic non linearity
     if (acou->Has("nonlinear"))
     {
@@ -2734,39 +2706,68 @@ namespace CoupledField {
     }
   }
 
-  void XMLMaterialHandler::ReadRayleighDamping( PtrParamNode paramNode,
-                                                BaseMaterial *material )
+  void XMLMaterialHandler::ReadRayleighDamping(PtrParamNode paramNode, BaseMaterial *material)
   {
-    if (paramNode->Has("alpha")) {
-      material->SetCoefFct(RAYLEIGH_ALPHA, CoefFunction::Generate(
-          mp_, Global::REAL, paramNode->Get("alpha")->As<std::string>()));
+    // get the type of Rayleigh damping
+    PtrParamNode rayleighTypeNode = paramNode->GetChild();
+    std::string rayleighTypeName = rayleighTypeNode->GetName();
+    // call the corresponding function to compute the Rayleigh coefficients
+    if (rayleighTypeName == "coefficients") {
+      // If both alpha and beta are set, we can use them directly
+      material->SetCoefFct(RAYLEIGH_ALPHA, CoefFunction::Generate(mp_, Global::REAL, rayleighTypeNode->Get("alpha")->As<std::string>()));
+      material->SetCoefFct(RAYLEIGH_BETA, CoefFunction::Generate(mp_, Global::REAL, rayleighTypeNode->Get("beta")->As<std::string>()));
     }
-    if (paramNode->Has("beta")) {
-      material->SetCoefFct(RAYLEIGH_BETA, CoefFunction::Generate(
-          mp_, Global::REAL, paramNode->Get("beta")->As<std::string>()));
+    else if (rayleighTypeName == "computeFromTwoPoints") {
+      // compute alpha and beta from two points with specified loss tangens and frequency, where
+      // 1/w * alpha + w * beta = tanDelta
+      StdVector<double> frequencies(2);
+      StdVector<double> lossTanDeltas(2);
+      ParamNodeList twoPointNodes = rayleighTypeNode->GetChildren();
+      double tanDelta1 = twoPointNodes[0]->Get("lossTangensDelta")->As<double>();
+      double tanDelta2 = twoPointNodes[1]->Get("lossTangensDelta")->As<double>();
+      double w1 = twoPointNodes[0]->Get("frequency")->As<double>();
+      double w2 = twoPointNodes[1]->Get("frequency")->As<double>();
+      w1 *= 2.0 * M_PI;
+      w2 *= 2.0 * M_PI;
+      double jDet = (w2 / w1 - w1 / w2);
+      double a = (w2 * tanDelta1 - w1 * tanDelta2) / jDet;
+      double b = (-tanDelta1 / w2 + tanDelta2 / w1) / jDet;
+      std::string alpha = lexical_cast<std::string>(a);
+      std::string beta = lexical_cast<std::string>(b);
+      // set the coefFunctions for later use
+      material->SetCoefFct(RAYLEIGH_ALPHA, CoefFunction::Generate(mp_, Global::REAL, alpha));
+      material->SetCoefFct(RAYLEIGH_BETA, CoefFunction::Generate(mp_, Global::REAL, beta));
     }
+    else if (rayleighTypeName == "computeFromTanDeltaAtFrequency") {
+      // compute alpha and beta from a single point with a center frequency and a delta frequency
+      // and a loss tangens delta that is specified on [f_c*(1+df), f_c*(1-df)]
+      // 1/w * alpha + w * beta = tanDelta
+      double tanDelta = rayleighTypeNode->Get("lossTangensDelta")->As<double>();
+      double ratioDeltaF = rayleighTypeNode->Get("ratioDeltaF")->As<double>();
+      double wc = rayleighTypeNode->Get("centerFreq")->As<double>();
+      wc *= 2.0 * M_PI;
+      double w1 = wc * (1 - ratioDeltaF);
+      double w2 = wc * (1 + ratioDeltaF);
+      double jDet = (w2 / w1 - w1 / w2);
+      double a = tanDelta * (w2 - w1) / jDet;
+      double b = tanDelta * (-1 / w2 + 1 / w1) / jDet;
+      std::string alpha = lexical_cast<std::string>(a);
+      std::string beta = lexical_cast<std::string>(b);
+      // set the coefFunctions for later use
+      material->SetCoefFct(RAYLEIGH_ALPHA, CoefFunction::Generate(mp_, Global::REAL, alpha));
+      material->SetCoefFct(RAYLEIGH_BETA, CoefFunction::Generate(mp_, Global::REAL, beta));
+    }
+    else {
+      EXCEPTION("Unknown Rayleigh damping type '" << rayleighTypeName << "'. Possible types are: 'coefficients', 'computeFromTwoPoints', 'computeFromTanDeltaAtFrequency'.");
+    }
+    // set the type of Rayleigh damping
+    material->SetRayleighType(BaseMaterial::ALPHA_BETA);
+  }
 
-    if (paramNode->Has("lossTangensDelta")) {
-      material->SetCoefFct(LOSS_TANGENS_DELTA, CoefFunction::Generate(
-          mp_, Global::REAL, paramNode->Get("lossTangensDelta")->As<std::string>()));
-    }
-
-    if (paramNode->Has("measuredFreq")) {
-      material->SetScalar(paramNode->Get("measuredFreq")->As<Double>(),
-                          RAYLEIGH_FREQUENCY, Global::REAL);
-    }
-
-    /* // This is for a piecewise linear damping curve
-    Vector<Double> values;
-    if (paramNode->Has("lossTangensDelta")) {
-      ParamTools::AsVector(paramNode->Get("lossTangensDelta"), values);
-      material->SetVector(values, LOSS_TANGENS_DELTA, Global::REAL);
-    }
-
-    if (paramNode->Has("measuredFreq")) {
-      ParamTools::AsVector(paramNode->Get("measuredFreq"), values );
-      material->SetVector(values, RAYLEIGH_FREQUENCY, Global::REAL);
-    }*/
+  void XMLMaterialHandler::ReadLossTanDeltaDamping(PtrParamNode paramNode, BaseMaterial *material)
+  {
+    material->SetString(paramNode->Get("value")->As<std::string>(), LOSS_TANGENS_DELTA);
+    material->SetRayleighType(BaseMaterial::ADAPTED_LOSS_TANGENS);
   }
 
   BaseMaterial::MatDescriptorNl
@@ -2815,4 +2816,4 @@ namespace CoupledField {
     return info;
   }
 
-} // end of namespace
+  } // end of namespace

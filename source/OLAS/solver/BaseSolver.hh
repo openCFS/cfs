@@ -31,7 +31,7 @@ namespace CoupledField {
     //! all types of matrices.
     typedef enum {NOSOLVER, RICHARDSON, CG, LANCZOS, QMR, GMRES,
                   MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO_SOLVER,
-                  UMFPACK, CHOLMOD, LIS,PETSC, SUPERLU, SPOOLES,
+                  UMFPACK, CHOLMOD, LIS, GINKGO, PETSC, SUPERLU,
                   LDL_SOLVER, LU_SOLVER, DIAGSOLVER ,PHIST, EXTERNAL_SOLVER} SolverType;
     static Enum<SolverType> solverType;
 
@@ -98,7 +98,6 @@ namespace CoupledField {
      * If there is a parameter with param_name in the xml file, it is used and printed.
      * @param param_name simple xpath chain via slash */
     void CheckParameter(PtrParamNode out, double* val, const char* param_name);
-    void CheckParameter(PtrParamNode out, char** val, const char* param_name);
     void CheckParameter(PtrParamNode out, int* val, const char* param_name);  
     void CheckParameter(PtrParamNode out, size_t* val, const char* param_name);  
     void CheckParameter(PtrParamNode out, bool* val, const char* param_name);

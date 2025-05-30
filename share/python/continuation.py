@@ -68,9 +68,9 @@ def continuation(initial, cnt, type, old_var, var, mesh, short_problem, org_prob
         if old_var == -1:
           # add header line once
           if os.path.exists(var_problem + '.plot.dat'): 
-            plot.write(first_line(var_problem + '.plot.dat', '\t var'))
+            plot.write(first_line(var_problem + '.plot.dat', ' \t:var'))
         if os.path.exists(var_problem + '.plot.dat'):
-          plot.write(last_line(var_problem + '.plot.dat', '\t' + str(var)))    
+          plot.write(last_line(var_problem + '.plot.dat', ' \t' + str(var)))
   if show and not cmdonly:
     execute("show_density.py " + var_problem + dens_ext + " --save " + var_problem + ".png")
 
@@ -114,7 +114,7 @@ def compress(org_problem):
       
       
 txt =  'Make continuation, e.g. for Heaviside. In the simple case just replace cfs by continuation.py. See also warmstart.py.\n'
-txt += 'example: continuation.py cfs_rel killme -p mech.xml -m bulk2d_10.mesh --var penalty --range 1 4  --cmdonly'
+txt += 'example: continuation.py cfs -m bulk2d_10.mesh -p mech.xml --var penalty --range 1 4  --cmdonly'
 parser = argparse.ArgumentParser(description=txt)
 parser.add_argument('exe', help="cfs executable")
 parser.add_argument('name', nargs='?', help="optional problem name")

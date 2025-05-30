@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title> Plane wave crossing rotating cylinder using ALESystem (ALE), connectedRegions, and passiveGeomUpdate</title>
+    <authors>
+      <author>Patrick Heidegger</author>
+    </authors>
+    <date>2024-06-08</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>intersection operations</keyword>
+      <keyword>mortar fem</keyword>
+      <keyword>abc</keyword>
+      <keyword>transient</keyword>
+      <keyword>nonmatching grids</keyword>
+    </keywords>
+    <references>
+      None just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Plane wave crossing a rotating cylinder in a flat 3d geometry setup. One part of the cylinder is 
+      moving actively by the specified motion, the other is passively updated. The cylinder is connected
+      The useEulerian formultion assigns convective integrators that counter rotate the physical field, 
+      so that the plane wave will not be disturbed by the rotating mesh. One of the cylinder parts is pre-rotated
+      by 5°.
+    </description>
+  </documentation>
+
+<!--***************************    INPUTs and OUTPUTs    ***********************-->
+  <fileFormats> 
+    <input>
+      <hdf5 fileName="./RotatingCylinderNitscheNCIConnectedRegionsALESystemAcouPressure3d.h5"></hdf5>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <!--***************************  REGIONSs, SURFACEs and NODEs  ***********************-->
+  <domain geometryType="3d">
+    <variableList>
+      <var name="p0" value="1"/>
+      <var name="f0" value="686.8"/>
+    </variableList>
+    <regionList> 
+      <region name="outer_pipe" material="air_20deg"/>                 <!-- non-moving propagation channel -->
+      <region name="enclosed_cylinder_static" material="air_20deg"/>   <!-- passively updated cylinder -->
+      <region name="enclosed_cylinder_rotating" material="air_20deg"/> <!-- actively rotating cylinder -->
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="src"/>
+      <surfRegion name="abc" />
+      <surfRegion name="if_inner_mantle_rotating"/> 
+      <surfRegion name="if_outer_mantle" />
+      <surfRegion name="if_inner_mantle_static"/>
+      <surfRegion name="if_top_static" />
+      <surfRegion name="if_top_rotating"/>
+    </surfRegionList>
+    <ncInterfaceList>
+      <ncInterface name="if_mantle_rotating"   secondarySide="if_inner_mantle_rotating"   primarySide="if_outer_mantle" storeIntegrationGrid="no">
+        <rotation rpm="9157.50916" movingSide="secondary" coordSysId="rotatingCylinder" ALESystem="yes" connectedRegions="enclosed_cylinder_static"/>
+      </ncInterface>
+      <ncInterface name="if_mantle_static"   secondarySide="if_inner_mantle_static"   primarySide="if_outer_mantle" passiveGeomUpdate="yes" storeIntegrationGrid="no">
+        <rotation rpm="9157.50916" movingSide="secondary" ALESystem="yes" coordSysId="rotatingCylinder"/> <!-- the rotation speed is here only used for the ALESystem tag as the volume moves passively via connectedRegions-->
+      </ncInterface>
+      <ncInterface name="if_top"   secondarySide="if_top_static"   primarySide="if_top_rotating" passiveGeomUpdate="yes" storeIntegrationGrid="no">
+        <rotation rpm="0" movingSide="secondary" coordSysId="rotatingCylinder"/> <!-- 0 the interface is only passively updated and the convection is already assigned to the volume above-->
+      </ncInterface>
+    </ncInterfaceList>
+    <coordSysList>
+      <cylindric id="rotatingCylinder">
+          <origin x="0" y="0" z="0.3"/>
+          <zAxis  x="1.0" y="0.0" z="0.0"/>
+          <rAxis  x="0.0" y="0.0" z="1.0"/>
+      </cylindric>
+    </coordSysList>
+  </domain>
+  <!--***************************  ANALYSIS  ***********************-->
+  <sequenceStep>    
+    <analysis>
+      <transient>
+        <numSteps>
+          40
+        </numSteps>
+        <deltaT>
+          3.64e-05
+        </deltaT>
+      </transient>
+    </analysis>    
+    <!--***************************  PDE LISTs  ***********************-->
+    <pdeList>
+      <acoustic formulation="acouPressure" timeStepAlpha="-0.2" >
+        <regionList>
+          <region name="outer_pipe"/>
+          <region name="enclosed_cylinder_rotating" />
+          <region name="enclosed_cylinder_static"/>
+        </regionList>
+        <!-- ************************************************************ BCS / SOURCES ****************************************************** -->
+        <ncInterfaceList>
+          <ncInterface name="if_mantle_rotating" nitscheFactor="50" formulation="Nitsche"/>
+          <ncInterface name="if_mantle_static" nitscheFactor="50"   formulation="Nitsche"/>
+          <ncInterface name="if_top" nitscheFactor="50"             formulation="Nitsche"/>
+        </ncInterfaceList>
+        <bcsAndLoads>
+          <pressure name="src" value="p0*sin(2*pi*f0*t)"/>
+          <absorbingBCs volumeRegion="outer_pipe" name="abc" />
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <regionList>
+              <region name="outer_pipe" outputIds="hdf5"/>
+              <region name="enclosed_cylinder_static" outputIds="hdf5"/>
+              <region name="enclosed_cylinder_rotating" outputIds="hdf5"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

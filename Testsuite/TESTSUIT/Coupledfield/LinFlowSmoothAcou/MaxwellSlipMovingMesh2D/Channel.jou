@@ -1,0 +1,110 @@
+reset
+undo on
+
+#{sf = 1};
+#{w_1 = 2e-3*sf};
+#{l_1 = 1e-3*sf};
+#{w_2 = 4e-3*sf};
+#{l_2 = 4e-3*sf};
+#{l_3 = 3e-3*sf};
+#{l_4 = 3e-3*sf};
+#{l_5 = 0.5e-3*sf};
+#{h_el = 1.75e-4*sf};
+
+#{tol = 1e-6}
+
+merge tolerance {tol}
+
+
+# geom
+
+create surface rectangle width {w_1/2} height {l_1} zplane
+move surface 1 x {w_1/4} y {l_1/2} z 0
+
+create surface rectangle width {w_2/2} height {l_2} zplane
+move surface 2 x {w_2/4} y {l_1+l_2/2} z 0
+
+create surface rectangle width {w_1/2} height {w_1} zplane
+move surface 3 x {w_1/4} y {l_1+l_2/2} z 0
+
+subtract surface 3 from surface 2
+
+split surface 4 skew
+
+create surface rectangle width {w_1/2} height {l_3} zplane
+move surface 10 x {w_1/4} y {l_1+l_2+l_3/2} z 0
+
+create surface rectangle width {w_1/2} height {l_4} zplane
+move surface 11 x {w_1/4} y {l_1+l_2+l_3+l_4/2} z 0
+
+create surface rectangle width {w_1/2} height {l_5} zplane
+move surface 12 x {w_1/4} y {l_1+l_2+l_3+l_4+l_5/2} z 0
+
+
+
+imprint tolerant volume 1 to 4
+merge volume 1 to 4
+
+imprint tolerant volume 5 6
+merge volume 5 6
+
+
+
+# mesh
+
+surface all scheme submap size {h_el}
+mesh surface all
+
+
+
+# blocks and nodesets
+
+block 1 add surface 1
+block 1 name "Channel_1"
+
+block 2 add surface 5 to 9
+block 2 name "Chamber"
+
+block 3 add surface 10
+block 3 name "Channel_2"
+
+block 4 add surface 11
+block 4 name "Channel_acou"
+
+block 5 add surface 12
+block 5 name "PML"
+
+
+
+nodeset 1 add curve 3
+nodeset 1 name "Exc"
+
+nodeset 2 add curve 4 23 24 26 20 21 32
+nodeset 2 name "NoSlip"
+
+nodeset 3 add curve 29
+nodeset 3 name "IFM"
+
+nodeset 4 add curve 2 14 15 30
+nodeset 4 name "Sym"
+
+nodeset 5 add curve 13 16
+nodeset 5 name "BC_Maxwell_X"
+
+nodeset 6 add curve 17
+nodeset 6 name "BC_Maxwell_Y"
+
+nodeset 7 add curve 1 23 24 26 20 21 27 15 14 
+nodeset 7 name "BC_Fix"
+
+nodeset 8 add curve 25 19
+nodeset 8 name "BC_X"
+
+nodeset 9 add curve 35
+nodeset 9 name "IFS"
+
+
+
+export ansys cdb "Channel.cdb" overwrite
+
+

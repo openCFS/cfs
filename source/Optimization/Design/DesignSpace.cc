@@ -114,7 +114,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   applicationForm.Add(App::PRESSURE, "PressureLinForm");
   applicationForm.Add(App::MASS, "MassInt");
   // acoustic and heat
-  applicationForm.Add(App::LAPLACE, "LaplaceInt");
+  applicationForm.Add(App::ACOUSTIC, "LaplaceIntegrator", false);
+  applicationForm.Add(App::ACOUSTIC, "MassIntegrator", false);
   // read the elements
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
@@ -2153,9 +2154,6 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
     break;
   case ELEC_PSEUDO_POLARIZATION:
     def.design = DesignElement::POLARIZATION;
-    break;
-  case ACOU_PSEUDO_DENSITY:
-    def.design = DesignElement::ACOU_DENSITY;
     break;
   case RHS_PSEUDO_DENSITY:
   case PHYSICAL_RHS_PSEUDO_DENSITY:

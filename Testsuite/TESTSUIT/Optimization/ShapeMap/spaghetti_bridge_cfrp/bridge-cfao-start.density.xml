@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <mesh x="200" y="100" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial=".4" name="density" physical_lower="0" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.2" lower="-18" name="rotAngle" region="all" relative_bound="-1.0" scale="false" upper="16.283185307179586"/>
+    <transferFunction application="mech" design="density" param="3" type="ramp"/>
+    <spaghetti radius="0.35"/>
+  </header>
+  <set id="0">
+    <shapeParamElement nr="0" type="node" dof="x" tip="start" shape="0" design="0"/>
+    <shapeParamElement nr="1" type="node" dof="y" tip="start" shape="0" design="0.98"/>
+    <shapeParamElement nr="2" type="node" dof="x" tip="end" shape="0" design="2"/>
+    <shapeParamElement nr="3" type="node" dof="y" tip="end" shape="0" design="0.98"/>
+    <shapeParamElement nr="4" type="profile" shape="0" design="0.140897"/>
+    <shapeParamElement nr="5" type="node" dof="x" tip="start" shape="1" design="0"/>
+    <shapeParamElement nr="6" type="node" dof="y" tip="start" shape="1" design="0.0370461"/>
+    <shapeParamElement nr="7" type="node" dof="x" tip="end" shape="1" design="2"/>
+    <shapeParamElement nr="8" type="node" dof="y" tip="end" shape="1" design="0.986191"/>
+    <shapeParamElement nr="9" type="profile" shape="1" design="0.15675"/>
+    <shapeParamElement nr="10" type="normal" shape="1" design="0.09452"/>
+    <shapeParamElement nr="11" type="normal" shape="1" design="0.1387694"/>
+    <shapeParamElement nr="12" type="normal" shape="1" design="0.155134"/>
+    <shapeParamElement nr="13" type="normal" shape="1" design="0.155621"/>
+    <shapeParamElement nr="14" type="normal" shape="1" design="0.154007"/>
+    <shapeParamElement nr="15" type="normal" shape="1" design="0.132462"/>
+    <shapeParamElement nr="16" type="normal" shape="1" design="0.0675287"/>
+    <shapeParamElement nr="17" type="node" dof="x" tip="start" shape="2" design=".32"/>
+    <shapeParamElement nr="18" type="node" dof="y" tip="start" shape="2" design="0.75"/>
+    <shapeParamElement nr="19" type="node" dof="x" tip="end" shape="2" design="0.23"/>
+    <shapeParamElement nr="20" type="node" dof="y" tip="end" shape="2" design="0.937764"/>
+    <shapeParamElement nr="21" type="profile" shape="2" design="0.0759723"/>
+    <shapeParamElement nr="22" type="normal" shape="2" design="0.00068067"/>
+    <shapeParamElement nr="23" type="normal" shape="2" design="-0.000879789"/>
+    <shapeParamElement nr="24" type="node" dof="x" tip="start" shape="3" design="0.3"/>
+    <shapeParamElement nr="25" type="node" dof="y" tip="start" shape="3" design="0.4"/>
+    <shapeParamElement nr="26" type="node" dof="x" tip="end" shape="3" design="0.5"/>
+    <shapeParamElement nr="27" type="node" dof="y" tip="end" shape="3" design=".95"/>
+    <shapeParamElement nr="28" type="profile" shape="3" design="0.075"/>
+    <shapeParamElement nr="29" type="normal" shape="3" design="0.04"/>
+    <shapeParamElement nr="30" type="normal" shape="3" design="0.07"/>
+    <shapeParamElement nr="31" type="normal" shape="3" design="0.015"/>
+    <shapeParamElement nr="32" type="node" dof="x" tip="start" shape="4" design="0.8"/>
+    <shapeParamElement nr="33" type="node" dof="y" tip="start" shape="4" design="0.65"/>
+    <shapeParamElement nr="34" type="node" dof="x" tip="end" shape="4" design="0.9"/>
+    <shapeParamElement nr="35" type="node" dof="y" tip="end" shape="4" design=".95"/>
+    <shapeParamElement nr="36" type="profile" shape="4" design="0.07702"/>
+    <shapeParamElement nr="37" type="normal" shape="4" design="0.01"/>
+    <shapeParamElement nr="38" type="normal" shape="4" design="0.01"/>
+  </set>
+</cfsErsatzMaterial>

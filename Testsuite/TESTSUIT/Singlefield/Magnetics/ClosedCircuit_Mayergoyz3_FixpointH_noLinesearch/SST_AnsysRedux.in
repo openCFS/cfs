@@ -1,0 +1,219 @@
+finish
+/clear
+
+/filname,SSTRedux
+/prep7
+init
+
+!
+! PARAMETER
+! > sizes adapted to quarter model!
+!
+heightStripe = 1e-3
+lengthStripe = 5e-3
+
+heightCoil = 3e-3
+lengthCoil = 3e-3
+
+overlapYokeAndStripe = 1e-3
+
+widthYoke = 4e-3
+innerHeightYoke = 4e-3
+
+! > distance between yoke and outer boundary
+widthOuterAir = 5e-3 ! 8e-3
+
+dx = heightStripe/2
+tol = dx/4
+
+! CHECK PARAMETER FIRST
+err = 0
+*if,dx,gt,heightStripe,then
+	err = 1
+*endif
+*if,dx,gt,lengthStripe,then
+	err = 2
+*endif
+*if,lengthCoil,gt,lengthStripe-dx,then
+	! stripe should be at least 1 element longer than coil to allow overlap with yoke
+	err = 3
+*endif
+*if,lengthCoil+overlapYokeAndStripe,ge,lengthStripe,then
+	! no overlap possible
+	err = 4
+*endif
+*if,overlapYokeAndStripe,lt,dx,then
+	err = 5
+*endif
+*if,heightCoil+dx,gt,innerHeightYoke,then
+	! at least one element between coil and yoke
+	err = 6
+*endif
+*if,err,ne,0,then
+	/eof
+*endif
+
+!
+! GEOMETRY
+!
+! Probe including observer
+rectng,0,dx,0,heightStripe-dx
+rectng,0,dx,heightStripe-dx,heightStripe
+
+rectng,dx,lengthStripe-dx,0,heightStripe-dx
+rectng,dx,lengthStripe-dx,heightStripe-dx,heightStripe
+
+rectng,lengthStripe-dx,lengthStripe,0,heightStripe-dx
+rectng,lengthStripe-dx,lengthStripe,heightStripe-dx,heightStripe
+
+! Coil
+rectng,0,dx,heightStripe,heightStripe+heightCoil
+rectng,dx,lengthCoil,heightStripe,heightStripe+heightCoil
+
+! Air between coil and yoke
+rectng,0,dx,heightStripe+heightCoil,heightStripe+innerHeightYoke
+rectng,dx,lengthCoil,heightStripe+heightCoil,heightStripe+innerHeightYoke
+rectng,lengthCoil,lengthStripe-overlapYokeAndStripe,heightStripe,heightStripe+innerHeightYoke
+
+! Yoke
+rectng,0,dx,heightStripe+innerHeightYoke,heightStripe+innerHeightYoke+widthYoke
+rectng,dx,lengthStripe-overlapYokeAndStripe,heightStripe+innerHeightYoke,heightStripe+innerHeightYoke+widthYoke
+rectng,lengthStripe-overlapYokeAndStripe,lengthStripe-overlapYokeAndStripe+widthYoke,heightStripe+innerHeightYoke,heightStripe+innerHeightYoke+widthYoke
+rectng,lengthStripe-overlapYokeAndStripe,lengthStripe-overlapYokeAndStripe+widthYoke,heightStripe,heightStripe+innerHeightYoke
+
+! Outer air
+rectng,lengthStripe,lengthStripe-overlapYokeAndStripe+widthYoke+widthOuterAir,0,heightStripe-dx
+rectng,lengthStripe,lengthStripe-overlapYokeAndStripe+widthYoke+widthOuterAir,dx,heightStripe
+rectng,lengthStripe-overlapYokeAndStripe+widthYoke,lengthStripe-overlapYokeAndStripe+widthYoke+widthOuterAir,heightStripe,heightStripe+heightCoil
+rectng,lengthStripe-overlapYokeAndStripe+widthYoke,lengthStripe-overlapYokeAndStripe+widthYoke+widthOuterAir,heightStripe+heightCoil,heightStripe+innerHeightYoke
+rectng,lengthStripe-overlapYokeAndStripe+widthYoke,lengthStripe-overlapYokeAndStripe+widthYoke+widthOuterAir,heightStripe+innerHeightYoke,heightStripe+innerHeightYoke+widthYoke
+rectng,lengthStripe-overlapYokeAndStripe+widthYoke,lengthStripe-overlapYokeAndStripe+widthYoke+widthOuterAir,heightStripe+innerHeightYoke+widthYoke,heightStripe+innerHeightYoke+widthYoke+widthOuterAir
+rectng,0,dx,heightStripe+innerHeightYoke+widthYoke,heightStripe+innerHeightYoke+widthYoke+widthOuterAir
+rectng,dx,lengthStripe-overlapYokeAndStripe+widthYoke,heightStripe+innerHeightYoke+widthYoke,heightStripe+innerHeightYoke+widthYoke+widthOuterAir
+
+asel,all
+aglue,all
+
+!
+! COMPONENTS
+!
+asel,s,loc,x,0,dx
+asel,r,loc,y,heightStripe-dx,heightStripe
+cm,observerInner,area
+
+asel,s,loc,x,lengthStripe-dx,lengthStripe
+asel,r,loc,y,heightStripe-dx,heightStripe
+cm,observerOuter,area
+
+asel,s,loc,x,0,lengthStripe
+asel,r,loc,y,heightStripe-dx,heightStripe
+cm,observerLine,area
+
+asel,s,loc,x,0,lengthStripe
+asel,r,loc,y,0,heightStripe
+cm,stripe,area
+
+asel,s,loc,x,0,lengthCoil
+asel,r,loc,y,heightStripe,heightStripe+heightCoil
+cm,coil,area
+
+asel,s,loc,x,lengthStripe-overlapYokeAndStripe,lengthStripe-overlapYokeAndStripe+widthYoke
+asel,r,loc,y,heightStripe,heightStripe+innerHeightYoke
+cm,yokeRight,area
+
+asel,s,loc,x,0,lengthStripe-overlapYokeAndStripe+widthYoke
+asel,r,loc,y,heightStripe+innerHeightYoke,heightStripe+innerHeightYoke+widthYoke
+cm,yokeUpper,area
+
+cmsel,s,yokeRight
+cmsel,a,yokeUpper
+cm,yoke,area
+
+asel,all
+cmsel,u,yoke
+cmsel,u,coil
+cmsel,u,stripe
+cm,air,area
+
+lsel,s,loc,y,-tol,tol
+cm,bottomBoundary,line
+
+lsel,s,loc,x,-tol,tol
+cm,leftBoundary,line
+
+lsel,s,loc,x,lengthStripe-overlapYokeAndStripe+widthYoke+widthOuterAir-tol,lengthStripe-overlapYokeAndStripe+widthYoke+widthOuterAir+tol
+cm,rightBoundary,line
+
+lsel,s,loc,y,heightStripe+innerHeightYoke+widthYoke+widthOuterAir-tol,heightStripe+innerHeightYoke+widthYoke+widthOuterAir+tol
+cm,topBoundary,line
+
+!
+! MESH
+!
+lsel,all
+lesize,all,dx
+
+setelems,'quadr',''
+asel,all
+amesh,all
+
+setelems,'2d-line'
+cmsel,s,topBoundary
+cmsel,a,bottomBoundary
+cmsel,a,rightBoundary
+cmsel,a,leftBoundary
+lmesh,all
+
+!
+! WRITE
+!
+cmsel,s,observerInner
+esla,s
+wsavelem,'observerInner'
+
+cmsel,s,observerOuter
+esla,s
+wsavelem,'observerOuter'
+
+cmsel,s,observerLine
+esla,s
+wsavelem,'observerLine'
+
+cmsel,s,stripe
+esla,s
+welems,'stripe'
+
+cmsel,s,coil
+esla,s
+welems,'coil'
+
+cmsel,s,yoke
+esla,s
+welems,'yoke'
+
+cmsel,s,air
+esla,s
+welems,'air'
+
+cmsel,s,leftBoundary
+esll,s
+welems,'leftBoundary'
+
+cmsel,s,rightBoundary
+esll,s
+welems,'rightBoundary'
+
+cmsel,s,topBoundary
+esll,s
+welems,'topBoundary'
+
+cmsel,s,bottomBoundary
+esll,s
+welems,'bottomBoundary'
+
+allsel
+wnodes
+mkmesh
+!mkhdf5
+
+

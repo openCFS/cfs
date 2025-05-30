@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Lattice Boltzmann Topology Optimization</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2014-07-07</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Diplomathesis Thomas Guess</references>
+    <isVerified>yes</isVerified>
+    <description>Lattice Boltzmann Topology Optimization based on G. Pingen, the thesis of Thomas Guess and the fast internal LBM code by Markus Wittmann.
+    Note that the linear system needs to be transposed, e.g. by Pardiso option</description>    
+  </documentation>
+  
+  <fileFormats>
+    <output>
+      <hdf5 /> 
+      <info/>
+     </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="design" material="99mod"/>
+      <region name="boundary" material="99mod"/>
+    </regionList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <LatticeBoltzmann>
+        <regionList>
+          <region name="design" boundary="false" />
+          <region name="boundary" boundary="true" /> 
+        </regionList>
+        <bcsAndLoads>
+          <inlet name="inlet" dof="x" value="0.01"/>
+          <inlet name="inlet" dof="y" value="0.0"/>
+          <inlet name="inlet" dof="z" value="0.0"/>
+          <outlet name="outlet"/>
+        </bcsAndLoads>
+        
+        <LBM omega="1.9" maxWallTime="1e6"  maxIter="1000000" convergence="1e-5" solver="internal" writeFrequency="1000" plot="true"/>
+        <storeResults>
+          <elemResult type="LBMVelocity">  
+            <allRegions/>  
+          </elemResult>
+          <elemResult type="LBMPressure">  
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechPseudoDensity">  
+            <allRegions/>  
+          </elemResult>
+        </storeResults> 
+      </LatticeBoltzmann>
+    </pdeList>
+
+  <linearSystems>
+      <system>
+        <solverList>
+          <pardiso>
+            <IterRefineSteps>2</IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+
+</cfsSimulation>
+
+

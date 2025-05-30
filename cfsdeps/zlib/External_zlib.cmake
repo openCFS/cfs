@@ -6,10 +6,10 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "zlib")
-set(PACKAGE_VER "1.3")
+set(PACKAGE_VER "1.3.1")
 set(ZLIB_VER ${PACKAGE_VER}) # required by boost 
 set(PACKAGE_FILE "${PACKAGE_NAME}-${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "60373b133d630f74f4a1f94c1185a53f")
+set(PACKAGE_MD5 "9855b6d802d7fe5b7bd5b196a2271655")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 

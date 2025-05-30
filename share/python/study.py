@@ -56,7 +56,8 @@ def label(query, given):
   return query  
       
 txt =  'perform easy parameter studies. Afterwards use postproc.py and plotviz.py.\n'      
-txt += 'example: study.py cfs_master_rel -m cantilever2d_100.mesh -p simp2d.xml -b var_power_law -v //cfs:transferFunction/@param -r 1 3.01 .2\n'
+txt += 'example: study.py cfs -m cantilever2d_100.mesh -p simp2d.xml -b var_power_law -v //cfs:transferFunction/@param -r 1 3.01 .2\n'
+txt += 'conditions need to be quoted like -v \'//cfs:constraint[@type="volume"][@mode="constraint"]/@value\'. '
 txt += 'When you are happy, add --execute'
 parser = argparse.ArgumentParser(description=txt)
 
@@ -66,7 +67,7 @@ parser.add_argument('-x', '--initial', help="optional density.xml(.gz) for initi
 parser.add_argument('-p', '--problem', help="the problem -xml file used for the study", required=True)
 parser.add_argument('-b', '--base', help="the common base name for the study", required=True)
 
-parser.add_argument('-v', '--var', help='the query for the variable, e.g. \'//cfs:constraint[@type="volume"]/@value\'', required=True)
+parser.add_argument('-v', '--var', help='the query for the variable, e.g. -v \'//cfs:constraint[@type="volume"]/@value\'', required=True)
 parser.add_argument('-r', '--range', nargs='+', help='the range for the variable as <start> <end> [<step>] in Python style')
 parser.add_argument('-c', '--choice', nargs='+', help='range for var as alternative to --range, e.g. 1 10 100 1000')
 parser.add_argument('-l', '--label', help="short label for the var variable if automatism fails")
@@ -134,7 +135,6 @@ try:
         problem = p2 + '-' + l1 + '_' + v1
         replace(xml, args.var, v1)
         #replace(xml, '//cfs:constraint[@type="globalBucklingLoadFactor"]/@parameter', v1, False)
-
         xml.write(problem + '.xml')
 
         # setting the innermost variable as id allows easy sorting with postproc.py
@@ -147,7 +147,7 @@ try:
         if args.execute:
           execute(c, output=True)
         else:
-         print(c)        
+          print(c)        
 
 except RuntimeError as re:  
   print('Error:', re)

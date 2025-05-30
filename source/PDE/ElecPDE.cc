@@ -755,8 +755,8 @@ namespace CoupledField {
         else if (formulation == "Mortar")
         {
           shared_ptr<SurfElemList> surfMasterGrid(new SurfElemList(ptGrid_)), surfSlaveGrid(new SurfElemList(ptGrid_));
-          surfMasterGrid->SetRegion(mortarIf->GetMasterSurfRegion());
-          surfSlaveGrid->SetRegion(mortarIf->GetSlaveSurfRegion());
+          surfMasterGrid->SetRegion(mortarIf->GetPrimarySurfRegion());
+          surfSlaveGrid->SetRegion(mortarIf->GetSecondarySurfRegion());
           
           // --- Set the approximation for Lagrange Multipliers for the current region ---
           RegionIdType regId = surfSlaveGrid->GetRegion();

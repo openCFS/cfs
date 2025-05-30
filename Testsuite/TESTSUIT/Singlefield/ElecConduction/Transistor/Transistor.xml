@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation"> 
+  <documentation>
+    <title>Transistor</title>
+    <authors>
+      <author>seiser</author>
+    </authors>
+    <date>2014-02-19</date>
+    <keywords>
+      <keyword>electrostatic</keyword>
+    </keywords>
+    <references>
+      nil
+    </references>
+    <isVerified>no</isVerified>
+    <description>
+      Non-linear elecCurrent conduction. The conductivity of the region 'vChannel' (a transistor) depends
+      on three electric potentials (drain, gate and source). Specifically, the gate-source voltage (Vgs) and the drain-source (Vds).
+    
+      In this example a voltage ramp is applied on the gate of a wire (Ugate) which controls the channel conductivity.
+      The threshold voltage in this example is around 2V (reached in time step 15). When switched on, the voltage drop across the channel (Vds) decreases.
+      This effect is modeled by a decreasing supply voltage.
+
+      One can plot the I-U curve using the gnuplot script plot-IV-curve.sh (which outputs `u-i-curve.png`). 
+
+      The test case demonstrates the multivariate nonlinearity, which requires the bilinear approximation of the conductivity.
+      In contrast to DiodeTempDep, the conductivity in this example depends on (Vgs, Vds) and not (V, T).
+      The channel conductivity in test case TransistorTempDep additionally depends on the temperature, i.e. (Vgs, Vds, T), which requires trilinear interpolation.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <gmsh fileName="wire-trans.msh"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <!--<gmsh binaryFormat="no" id="gm"/>-->
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d" printGridInfo="yes">
+    <variableList>
+    </variableList>
+    <regionList>
+      <region name="vWire1" material="dummy"/>
+      <region name="vWire2" material="dummy"/>
+      <region name="vGate" material="dummy"/>
+      <region name="vChannel" material="transistor" />
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="hot"/>
+      <surfRegion name="cold"/>
+      <surfRegion name="Udrain"/>
+      <surfRegion name="Usource"/>
+      <surfRegion name="Ugate"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="drainPt">
+        <coord x="0" y="0" z="8"/>
+      </nodes>
+      <nodes name="sourcePt">
+        <coord x="0" y="0" z="5"/>
+      </nodes>
+      <nodes name="gatePt">
+        <coord x="2" y="2" z="7"/>
+      </nodes>
+      <nodes name="loadPt">
+        <coord x="0" y="0" z="13"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <!--<static></static>-->
+      <transient>
+        <numSteps>25</numSteps>
+        <deltaT>0.00001</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <elecConduction systemId="elec">
+        <regionList>
+          <region name="vWire1" />
+          <region name="vChannel" nonLinIds="tripolemodel"/>
+          <region name="vWire2"/>
+          <region name="vGate"/>
+        </regionList>
+
+        <nonLinList>
+          <elecTriPole id="tripolemodel"/>
+        </nonLinList>
+
+        <poleList>
+          <Tripole id="tripolemodel">
+            <gate region="Ugate"/>
+            <drain region="Udrain"/>
+            <source region="Usource"/>
+          </Tripole>
+        </poleList>
+
+        <bcsAndLoads>
+          <ground name="cold"/>
+          <potential name="hot" value="14-3*1000*2*pi*t"/> <!-- drain supply voltage, Volts -->
+          <potential name="Ugate" value="0+2*1000*2*pi*t"/> <!-- gate voltage modulation, volts -->
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions/>
+            <nodeList>
+              <nodes name="sourcePt" outputIds="txt"/> <!-- history/ -->
+              <nodes name="drainPt" outputIds="txt"/> <!-- history/ -->
+              <nodes name="gatePt" outputIds="txt"/> <!-- history/ -->
+              <nodes name="loadPt" outputIds="txt"/> <!-- history/  -->
+            </nodeList>
+          </nodeResult>
+          <elemResult type="elecCurrentDensity">
+            <allRegions/>
+          </elemResult>
+          <surfElemResult type="elecNormalCurrentDensity">
+            <surfRegionList>
+              <surfRegion name="Udrain"/>
+            </surfRegionList>
+          </surfElemResult> 
+          <surfRegionResult type="elecCurrent">
+            <surfRegionList>
+              <surfRegion name="Udrain"/> <!-- history/ -->
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </elecConduction>
+    </pdeList>
+
+    <couplingList>
+      <iterative>
+        <convergence logging="yes" maxNumIters="5" stopOnDivergence="yes">
+          <!-- <quantity name="elecCurrent" value="1e-3" normType="rel"/> -->
+          <quantity name="elecPower" value="1e-3" normType="rel"/> 
+        </convergence>
+      </iterative>
+    </couplingList>
+
+    <linearSystems>
+      <system id="elec">
+        <solutionStrategy>
+          <standard>
+            <nonLinear logging="yes">
+              <lineSearch type="none"/>
+              <incStopCrit> 1e-7</incStopCrit>
+              <resStopCrit> 1e-7</resStopCrit>
+              <maxNumIters> 25  </maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <!--<solverList>
+          <pardiso/>
+        </solverList> -->
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

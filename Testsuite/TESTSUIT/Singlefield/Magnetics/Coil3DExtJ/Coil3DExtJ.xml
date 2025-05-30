@@ -1,0 +1,261 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Coil with Current Density from External Simulation</title>
+    <authors>
+      <author>dperchto</author>
+    </authors>
+    <date>2016-02-24</date>
+    <keywords>
+      <keyword>magneticEdge</keyword>
+      <keyword>coil</keyword>
+      <keyword>input</keyword>
+      <keyword>multiSequence</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+    <references>
+      Kaltenbacher M., Num. Sim. of Mech. Sens. and Act., 
+      2nd Edition, p. 211f.
+      
+      http://de.wikipedia.org/wiki/Zylinderspule
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      This example demonstrates the use of the electric conduction PDE to
+      determine the current density for the coil in the magnetic edge PDE.
+      
+      The coil is a hollow cylinder, i.e. it has no beginning or end.
+      Therefore, the coil is subdivided into 2 regions. Consequently, the
+      electric potential is calculated in 2 sequence steps.
+      
+      The static step calculates initial values for the last, transient step.
+      
+      length of coil       ..... l = 10 cm
+      inner radius of coil ..... r_1 = 1 cm
+      outer radius of coil ..... r_2 = 1.25 cm
+      number of turns      ..... N = 50
+      magnetic resistance  ..... R_m = l/(mu_0*r_1^2*pi) = 2.533e8 A/(V*s)
+      inductance           ..... L = N^2/R_m = 9.87e-6 H
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="Coil3DExtJ.h5"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="air" material="air"/>
+      <region name="coilYNeg" material="air"/>
+      <region name="coilYPos" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="BnZero"/>
+      <surfRegion name="coilSurfXPos"/>
+      <surfRegion name="coilSurfXNeg"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <elecConduction>
+        <regionList>
+          <region name="coilYPos"/>
+        </regionList>
+        <bcsAndLoads>
+          <ground name="coilSurfXNeg"/>
+          <potential name="coilSurfXPos" value="1.0"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions outputIds="hdf5"/>
+          </nodeResult>
+          <elemResult type="elecCurrentDensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+        </storeResults>
+      </elecConduction>
+    </pdeList>
+  </sequenceStep>
+  
+  <sequenceStep index="2">
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <elecConduction>
+        <regionList>
+          <region name="coilYNeg"/>
+        </regionList>
+        <bcsAndLoads>
+          <ground name="coilSurfXPos"/>
+          <potential name="coilSurfXNeg" value="1.0"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions outputIds="hdf5"/>
+          </nodeResult>
+          <elemResult type="elecCurrentDensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+        </storeResults>
+      </elecConduction>
+    </pdeList>
+  </sequenceStep>
+  
+  <sequenceStep index="3">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <magneticEdge>
+        <regionList>
+          <region name="air"/>
+          <region name="coilYNeg"/>
+          <region name="coilYPos"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fluxParallel name="BnZero"/>
+        </bcsAndLoads>
+
+        <coilList>
+          <coil id="AirCoreCoil">
+            <source type="current" value="1.0"/>
+            <part id="YPos">
+              <regionList>
+                <region name="coilYPos"/>
+              </regionList>
+              <direction>
+                <external>
+                  <sequenceStep index="1">
+                    <quantity name="elecCurrentDensity" pdeName="elecConduction"/>
+                    <timeFreqMapping><constant/></timeFreqMapping>
+                  </sequenceStep>
+                </external>
+              </direction>
+              <wireCrossSection area="5e-6"/>
+            </part>
+            <part id="YNeg">
+              <regionList>
+                <region name="coilYNeg"/>
+              </regionList>
+              <direction>
+                <external>
+                  <sequenceStep index="2">
+                    <quantity name="elecCurrentDensity" pdeName="elecConduction"/>
+                    <timeFreqMapping><constant/></timeFreqMapping>
+                  </sequenceStep>
+                </external>
+              </direction>
+              <wireCrossSection area="5e-6"/>
+            </part>
+          </coil>
+        </coilList>
+
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+          <elemResult type="magCoilCurrentDensity">
+            <regionList>
+              <region name="coilYPos" outputIds="hdf5"/>
+              <region name="coilYNeg" outputIds="hdf5"/>
+            </regionList>
+          </elemResult>
+        </storeResults>
+      </magneticEdge>
+    </pdeList>
+    
+  </sequenceStep>
+  
+  <sequenceStep index="4">
+    <analysis>
+      <transient>
+        <numSteps>5</numSteps>
+        <deltaT>1.0</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <magneticEdge>
+        <regionList>
+          <region name="air"/>
+          <region name="coilYNeg"/>
+          <region name="coilYPos"/>
+        </regionList>
+        
+        <initialValues>
+          <initialState>
+            <sequenceStep index="3"/>
+          </initialState>
+        </initialValues>
+        
+        <bcsAndLoads>
+          <fluxParallel name="BnZero"/>
+        </bcsAndLoads>
+        
+        <coilList>
+          <coil id="AirCoreCoil">
+            <source type="current" value="t+1.0"/>
+            <part id="YPos">
+              <regionList>
+                <region name="coilYPos"/>
+              </regionList>
+              <direction>
+                <external>
+                  <sequenceStep index="1">
+                    <quantity name="elecCurrentDensity" pdeName="elecConduction"/>
+                    <timeFreqMapping><constant/></timeFreqMapping>
+                  </sequenceStep>
+                </external>
+              </direction>
+              <wireCrossSection area="5e-6"/>
+            </part>
+            <part id="YNeg">
+              <regionList>
+                <region name="coilYNeg"/>
+              </regionList>
+              <direction>
+                <external>
+                  <sequenceStep index="2">
+                    <quantity name="elecCurrentDensity" pdeName="elecConduction"/>
+                    <timeFreqMapping><constant/></timeFreqMapping>
+                  </sequenceStep>
+                </external>
+              </direction>
+              <wireCrossSection area="5e-6"/>
+            </part>
+          </coil>
+        </coilList>
+        
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions outputIds="hdf5"/>
+          </elemResult>
+          <elemResult type="magCoilCurrentDensity">
+            <regionList>
+              <region name="coilYPos" outputIds="hdf5"/>
+              <region name="coilYNeg" outputIds="hdf5"/>
+            </regionList>
+          </elemResult>
+        </storeResults>
+      </magneticEdge>
+    </pdeList>
+    
+  </sequenceStep>
+</cfsSimulation>

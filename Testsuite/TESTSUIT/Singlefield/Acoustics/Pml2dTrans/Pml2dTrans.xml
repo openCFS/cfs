@@ -1,0 +1,77 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat2d.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="inner" material="air_approx"/>
+      <region name="pml" material="air_approx"/>
+    </regionList>
+    <elemList>
+      <elems name="abc"/>
+    </elemList>
+    <nodeList>
+      <nodes name="excite"/>
+      <nodes name="save"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>80</numSteps>
+        <deltaT>5e-4</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <acoustic>
+
+        <regionList>
+          <region name="inner"/>
+          <region name="pml" dampingId="myPML"/>
+        </regionList>
+        
+        <dampingList>
+          <pml  id="myPML">
+            <type>inverseDist</type>
+            <dampFactor>1</dampFactor>
+          </pml>
+        </dampingList>
+        
+        <bcsAndLoads>
+          <pressure name="excite" value="(t lt 0.01)? sin(2*pi*100*t) : 0"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="acouPressure"> 
+            <allRegions/>
+            <nodeList>
+              <nodes name="save"/>
+            </nodeList>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList> 
+    <linearSystems>
+      <system id="default">
+        <solverList>
+          <pardiso>
+            <IterRefineSteps>10</IterRefineSteps>
+            <logging>yes</logging>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+    
+
+  </sequenceStep>
+</cfsSimulation>

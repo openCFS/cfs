@@ -1,0 +1,90 @@
+! ----------------------- ! ! Description: ! ----------------------- !
+!   This is an ANSYS classic input script that will create the mesh
+!   for this test case.
+! -------------------------------------------------------------------------- !
+
+! ----------------------- !
+! Initialize ANSYS:
+! ----------------------- !
+FINI
+/CLEAR
+/filname,MassCMEHarm
+/PREP7
+init
+
+
+! ----------------------- !
+! User Defined Parameters:
+! ----------------------- !
+! total weight of mass element (in kg)
+*SET,M,10
+
+! desired equivalent total spring stiffness (in N/m)
+*SET,K,20e9
+
+! elastic modulus of the spring material (in N/mm^2)
+*SET,E,250e9
+
+! heightof the elastic bar
+*SET,h,1e-3
+
+! element size
+*SET,esz,5e-3
+
+! =============================================================== !
+! Preprocessing
+! =============================================================== !
+
+! ----------------------- !
+! Create Geometry:
+! ----------------------- !
+! calculate elastic bar dimension to match the total desired
+! spring stiffness constant K
+*SET,length,E*h/K
+RECTNG,0,length,0,h
+ALLSEL
+NUMMRG,KP
+
+CM,bar_A,AREA
+
+! component for fixing the structure
+LSEL,S,LOC,X,0
+CM,fix_l,LINE
+
+! right keypoints where the mass is attached to
+KSEL,S,LOC,X,length
+CM,massPoints_kp,KP
+
+! ----------------------- !
+! Create Mesh:
+! ----------------------- !
+setelems,'quadr'
+esize,esz
+ASEL,ALL
+AMESH,ALL
+
+setelems,'2d-line'
+CMSEL,s,fix_l
+lmesh,all
+
+! =============================================================== !
+! Write the mesh
+! =============================================================== !
+
+allsel
+wnodes
+
+cmsel,s,bar_A
+esla
+welems,'bar'
+
+cmsel,s,fix_L
+esll
+welems,'fix'
+
+cmsel,s,massPoints_KP
+nslk
+wnodbc,'massPoints'
+
+allsel
+mkmesh

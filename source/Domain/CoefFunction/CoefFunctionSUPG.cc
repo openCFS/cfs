@@ -51,6 +51,14 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
     double velNorm = v.NormL2();
     int nDim = velField_->GetVecSize(); // Dimentions of space 2D or 3D
 
+    // if velocity is 0, the stabilization factor is also zero
+    double epsvelNorm = 1e-13; 
+    if(abs(velNorm) <= epsvelNorm){
+      LOG_DBG(coeffunctionSUPG) << "velNorm=0, returning";
+      scal = 0.0;
+      return;
+    }
+
     // Calculate the dimention of an element in velocity direction
     // lElem = 2 / Sum((v / velNorm) \dot (\nabla shape_function) )
     // The idea is that we use projection of the unit length velocity field from global configuration into reference configuration.
@@ -69,7 +77,13 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
       }
       denom += abs(scalar_product)/velNorm;
     }
-    lElem = 2/(denom);
+    // check if element size in vel direction is zero (with the tolerance epsilon)
+    double epsilonElem = 1e-13; 
+    if (abs(denom) <= epsilonElem){
+      scal = 0.0;
+      return;
+    } 
+    lElem = 2/(denom);    
 
     // To make it work robustly both for TENSOR and SCALAR material parameters
     switch (matCoeff_->GetDimType())
@@ -107,14 +121,9 @@ DEFINE_LOG(coeffunctionSUPG, "coeffunctionSUPG")
     
     //compute Peclet-Number
     double peclet = (velNorm * lElem) / (2 * m);
-    
-    // check if peclet == 0.0 with the tolerance epsilon
-    double epsilon = 1e-13; 
-    if (abs(peclet) <= epsilon)
-      scal = 0.0;
+
     //compute the stabilization factor
-    else 
-      scal = lElem * (coth(peclet) - (1/peclet)) / (2 * velNorm);
+    scal = lElem * (coth(peclet) - (1/peclet)) / (2 * velNorm);
 
     // For debugging purposes
     LOG_DBG(coeffunctionSUPG) << "Calculated element size " << lElem << std::endl;

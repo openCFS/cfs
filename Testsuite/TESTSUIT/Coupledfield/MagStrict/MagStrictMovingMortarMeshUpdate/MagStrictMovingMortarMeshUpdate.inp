@@ -1,0 +1,258 @@
+finish
+/clear
+/filname,MagStrictMovingMortarMeshUpdate,1
+/prep7
+init
+
+
+!				d1      wmag     d2 d4 wprobe/2
+!			|<----->|<--------->|<>||<----->|
+!								
+!								mortar interfacel	
+!			_______________________v________
+!   		|					   !		|	 ^
+!   		|					   !		|    |  d3
+!   		|		_____________  !		|	 v
+!   		|		|			|  ! 		|    ^
+!   		|		|			|  !		|    |
+!   		|		|			|  !		|	 |
+!   		|		|			|  !		|    |
+!   		|		|			|  ! _______|    |
+!   		0       |           |  !|       |    | movrange    ^ hprobe
+!   		|		|			|  !|_______|    |			   v	
+!   		|		|			|  !		|    |
+!   		|		|			|  !		|    |
+!   		|		|			|  !		|    |
+!   		|		|			|  !xxxxxxxx|    | < start position = middleline of probe
+!   		|		|___________|  !xxxxxxxx|    v
+!   		|					   !		|    ^
+!   		|					   !		|    | d3
+!   		|______________________!________|    v
+!
+!	movrange = possible movement range of probe!
+!				actual positon of probe determined by mechanical excitation on probe
+!	0 = origin	
+!
+
+!!! Parameter !!!
+d1 = 0.01
+d2 = 0.005
+d3 = 0.06
+d4 = 0.005
+movrange = 0.1
+start_pos = -movrange/2
+wmag = 0.01
+hmag = 0.04
+hprobe = 0.01
+wprobe = 0.02
+dx_inner = hprobe/2
+tol = dx_inner/5
+
+!!! Create geometry !!!
+! left hand side
+rectng,0,d1,-d3-movrange/2,movrange/2+d3
+
+rectng,d1,d1+wmag,-d3-movrange/2,-hmag/2
+rectng,d1,d1+wmag,-hmag/2,hmag/2
+rectng,d1,d1+wmag,hmag/2,movrange/2+d3
+
+rectng,d1+wmag,d1+wmag+d2,-d3-movrange/2,movrange/2+d3
+
+asel,all
+! glue left and right hand side separately in order to allow
+! mortar interface
+aglue,all
+
+! right hand side
+! extra element layer to get defined observer elements
+rectng,d1+wmag+d2,d1+wmag+d2+d4,-d3-movrange/2,start_pos-hprobe/2
+rectng,d1+wmag+d2,d1+wmag+d2+d4,start_pos-hprobe/2,start_pos
+rectng,d1+wmag+d2,d1+wmag+d2+d4,start_pos,start_pos+hprobe/2
+rectng,d1+wmag+d2,d1+wmag+d2+d4,start_pos+hprobe/2,movrange/2+d3
+
+rectng,d1+wmag+d2+d4,d4+d1+wmag+d2+dx_inner,-d3-movrange/2,start_pos-hprobe/2
+rectng,d1+wmag+d2+d4,d4+d1+wmag+d2+dx_inner,start_pos-hprobe/2,start_pos
+rectng,d1+wmag+d2+d4,d4+d1+wmag+d2+dx_inner,start_pos,start_pos+hprobe/2
+rectng,d1+wmag+d2+d4,d4+d1+wmag+d2+dx_inner,start_pos+hprobe/2,movrange/2+d3
+
+rectng,d1+wmag+d2+dx_inner+d4,d4+d1+wmag+d2+wprobe/2,-d3-movrange/2,start_pos-hprobe/2
+rectng,d1+wmag+d2+dx_inner+d4,d4+d1+wmag+d2+wprobe/2,start_pos-hprobe/2,start_pos
+rectng,d1+wmag+d2+dx_inner+d4,d4+d1+wmag+d2+wprobe/2,start_pos,start_pos+hprobe/2
+rectng,d1+wmag+d2+dx_inner+d4,d4+d1+wmag+d2+wprobe/2,start_pos+hprobe/2,movrange/2+d3
+
+asel,s,loc,x,d1+wmag+d2,d4+d1+wmag+d2+wprobe/2
+aglue,all
+
+!!! Create components !!!
+! left hand side
+asel,s,loc,x,d1,d1+wmag
+asel,r,loc,y,-hmag/2,hmag/2
+cm,magnet,area
+
+asel,s,loc,x,0,d1+wmag+d2
+cmsel,u,magnet
+cm,air_left,area
+
+lsel,s,loc,x,-tol,tol
+cm,left,line
+
+lsel,s,loc,y,d3+movrange/2-tol,d3+movrange/2+tol
+lsel,r,loc,x,0,d1+wmag+d2
+cm,top_left,line
+
+lsel,s,loc,y,-d3-movrange/2-tol,-d3-movrange/2+tol
+lsel,r,loc,x,0,d1+wmag+d2
+cm,bot_left,line
+
+asel,s,loc,x,0,d1+wmag+d2
+lsla,s
+lsel,r,loc,x,d1+wmag+d2-tol,d1+wmag+d2+tol
+cm,interface_left,line
+
+! right hand side
+lsel,s,loc,x,d1+wmag+d2+wprobe/2-tol+d4,d4+d1+wmag+d2+wprobe/2+tol
+cm,right,line
+
+asel,s,loc,x,d1+wmag+d2+d4,d4+d1+wmag+d2+wprobe/2
+asel,r,loc,y,start_pos-hprobe/2,start_pos+hprobe/2
+cm,probe,area
+
+! add special air between probe and interface to have space for
+! probe to extend in x-direction
+asel,s,loc,x,d1+wmag+d2,d4+d1+wmag+d2
+asel,r,loc,y,start_pos-hprobe/2,start_pos+hprobe/2
+cm,probe_air,area
+
+asel,s,loc,x,d1+wmag+d2,d1+wmag+d2+wprobe/2+d4
+cmsel,u,probe
+cmsel,u,probe_air
+cm,air_right,area
+
+lsel,s,loc,y,d3+movrange/2-tol,d3+movrange/2+tol
+lsel,r,loc,x,d1+wmag+d2,d1+wmag+d2+wprobe/2+d4
+cm,top_right,line
+
+lsel,s,loc,y,-d3-movrange/2-tol,-d3-movrange/2+tol
+lsel,r,loc,x,d1+wmag+d2,d1+wmag+d2+wprobe/2+d4
+cm,bot_right,line
+
+asel,s,loc,x,d1+wmag+d2,d1+wmag+d2+wprobe/2+d4
+lsla,s
+lsel,r,loc,x,d1+wmag+d2-tol,d1+wmag+d2+tol
+lsel,r,loc,y,start_pos-hprobe/2,start_pos+hprobe/2
+cm,interface_right_probe_air,line
+
+asel,s,loc,x,d1+wmag+d2,d1+wmag+d2+wprobe/2
+lsla,s
+lsel,r,loc,x,d1+wmag+d2-tol,d1+wmag+d2+tol
+cmsel,u,interface_right_probe_air
+cm,interface_right_air,line
+
+! extend middleline into probe_air
+lsel,s,loc,x,d1+wmag+d2,d1+wmag+d2+wprobe/2+d4
+lsel,r,loc,y,start_pos-tol,start_pos+tol
+lsel,r,tan1,y
+cm,middleline,line
+
+asel,s,loc,x,d1+wmag+d2+d4,d1+wmag+d2+d4+dx_inner
+asel,r,loc,y,start_pos-hprobe/4,start_pos
+cm,observer,area
+
+!!! Create mesh !!!
+lsel,all
+lesize,all,dx_inner
+
+setelems,'quadr',''
+asel,all
+amesh,all
+
+setelems,'2d-line',''
+cmsel,s,left
+cmsel,a,right
+cmsel,a,top_left
+cmsel,a,bot_left
+cmsel,a,interface_left
+cmsel,a,top_right
+cmsel,a,bot_right
+cmsel,a,interface_right_probe_air
+cmsel,a,interface_right_air
+cmsel,a,middleline
+lmesh,all
+
+nsel,s,loc,x,d1+wmag+d2-tol+d4,d1+wmag+d2+tol+d4
+nsel,r,loc,y,start_pos-tol,start_pos+tol
+cm,observer_node,node
+
+!!! Write out mesh !!!
+cmsel,s,magnet
+esla,s
+welems,'magnet'
+
+cmsel,s,probe
+esla,s
+welems,'probe'
+
+cmsel,s,probe_air
+esla,s
+welems,'probe_air'
+
+cmsel,s,observer
+esla,s
+wsavelem,'observer'
+
+cmsel,s,air_left
+esla,s
+welems,'air_left'
+
+cmsel,s,air_right
+esla,s
+welems,'air_right'
+
+cmsel,s,left
+esll,s
+welems,'left'
+
+cmsel,s,right
+esll,s
+welems,'right'
+
+cmsel,s,middleline
+esll,s
+welems,'middleline'
+
+cmsel,s,top_left
+esll,s
+welems,'top_left'
+
+cmsel,s,bot_left
+esll,s
+welems,'bot_left'
+
+cmsel,s,top_right
+esll,s
+welems,'top_right'
+
+cmsel,s,bot_right
+esll,s
+welems,'bot_right'
+
+cmsel,s,interface_left
+esll,s
+welems,'interface_left'
+
+cmsel,s,interface_right_probe_air
+esll,s
+welems,'interface_right_probe_air'
+
+cmsel,s,interface_right_air
+esll,s
+welems,'interface_right_air'
+
+cmsel,s,observer_node
+wsavnod,'observer_node'
+
+allsel
+wnodes
+!mkmesh
+mkhdf5
+

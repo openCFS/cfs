@@ -1,56 +1,11 @@
 #=============================================================================
-# Set global variables, configured from the external build.
-#=============================================================================
-set(gidpost_source  "@gidpost_source@")
-SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
-SET(CMAKE_CXX_COMPILER_ID "@CMAKE_CXX_COMPILER_ID@")
-
-#=============================================================================
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
-INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+set(CMAKE_SOURCE_DIR "@CMAKE_SOURCE_DIR@")
+include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
-SET(files
-	"source/CMakeLists.txt" 
-  "source/gidpost.c"
-  "source/gidpostforAPI.c"
-  "source/gidpostfor.c"
-  "source/gidpostfor.h"
-  "source/gidpost.h"
-  "source/gidpostHash.c"
-  "source/gidpostHash.h"
-  "source/gidpostHDF5.c"
-  "source/gidpostHDF5.h"
-  "source/gidpostInt.c"
-  "source/gidpostInt.h"
-  "source/hashtab.c"
-  "source/hashtab.h"
-  "source/hdf5c.c"
-  "source/hdf5c.h"
-  "source/lookupa.c"
-  "source/lookupa.h"
-  "source/Makefile"
-  "source/recycle.c"
-  "source/recycle.h"
-  "source/standard.h"
-  "examples/testpost.c"
-  "examples/testpost_fd.c"
-  )
+# don't search for hdf5 and more important, no examples
+set(PATCHES "gidpost_cmake.patch")
 
-CHANGE_NEWLINE_STYLE("${files}" ${gidpost_source}/dummy.txt UNIX)
+apply_patches("${PATCHES}" "${CMAKE_SOURCE_DIR}/cfsdeps/gidpost")
 
-#=============================================================================
-# Apply some patches.
-#=============================================================================
-SET(patches
-  # Add append parameter to GiD_OpenPostResultFile for restart capability.
-  "gidpost-file-append.patch"
-  )
-
-# for some very strange reason, all attempts for a patch of CMakeLists.txt to
-# remove examples are rejected. This is possibly to the CRLF style of the original source
-# but very mysterious. Hence brutaly remove examples/CMakeLists.txt and life with the warning
-file(REMOVE "${gidpost_source}/examples/CMakeLists.txt")
-
-
-APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gidpost")

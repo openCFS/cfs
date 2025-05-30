@@ -1,6 +1,6 @@
 // Define used to check if CGAL bounding box intersection is activated
+// currently implicitly triggers the dependencies GMP and MPFR
 
 #cmakedefine USE_CGAL
 
-#define CFS_CGAL_VERSION "@CFS_CGAL_VERSION@"
 

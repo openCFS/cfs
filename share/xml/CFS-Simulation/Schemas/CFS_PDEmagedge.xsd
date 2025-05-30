@@ -134,7 +134,7 @@
           <xsd:element name="velocityList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="velocity" type="DT_BcInhomVector"/>
+                <xsd:element name="velocity" type="DT_BcInhomVector_stabilisation"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -374,6 +374,8 @@
       <xsd:enumeration value="magCoilCurrentDensity"/>
       <xsd:enumeration value="magTotalCurrentDensity"/>
       <xsd:enumeration value="magForceLorentzDensity"/>
+      <xsd:enumeration value="magForceLorentzDensityStatic"/>
+      <xsd:enumeration value="magForceLorentzDensityHarmonic"/>
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magElemReluctivity"/>
@@ -422,6 +424,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEddyCurrent"/>
       <xsd:enumeration value="magEddyCurrent1"/>
+      <xsd:enumeration value="magTotalCurrent"/>
       <xsd:enumeration value="magEddyCurrent2"/>
       <xsd:enumeration value="displacementCurrent"/>
       <xsd:enumeration value="magFlux"/>

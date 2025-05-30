@@ -48,7 +48,7 @@ def find_style(idx, args, axis, data):
   if len(args.input) > 1:
     color = colors[idx % len(colors)] if not args.black else 'black'
     linestyle = '-' if axis == 'x' else ':'
-    marker = markers[i] if len(data) <= 40 else ' '
+    marker = markers[i % len(markers)] if len(data) <= 40 else ' '
   else:
     color = next(colorcycler) if not args.black else 'black'
     linestyle = next(linecycler) if not args.solid else '-'  
@@ -65,7 +65,6 @@ def find_style(idx, args, axis, data):
 # @param comments a list of lines which start with a hashtag
 # @return meta array
 def header(data, comments):
-
   meta = []
   for l in reversed(comments):
     # we assume the last comment contains the labels. Special case are ignored
@@ -75,7 +74,7 @@ def header(data, comments):
     if l.startswith('#'):
       l = l.strip()[1:].strip() # remove trailing single '#'
     assert not l.startswith('#')
-
+    
     # now the cases
     if l.count(':') > 1: # #1:iter  2:compliance  3:duration
       ll = l.split(':') # ['1', 'iter\t2', 'compliance\t3', 'duration']
@@ -83,13 +82,13 @@ def header(data, comments):
         # ['1'] / ['iter', '2'] / ['compliance', '3'] / ['duration']
         # or in the grad.dat case stuff like ['d_compliance', '/', 'd_s0_px', '9']
         t = tl.split()
+        # we split away the number 2 from hans with 1:hans 2:otto
         if i == 0:
           assert len(t) == 1 # skip this the first number
-        elif i == len(ll)-1:
+        elif i == len(ll)-1 or len(t) == 1:
           meta.append(''.join(t))
         else:
           meta.append(''.join(t[:-1])) # all but the last: ['d_compliance', '/', 'd_s0_px', '9'] -> 'd_compliance/d_s0_px'
-
     elif l.startswith('(1)'):
       # we cut the '(x)' as we have our own numbering
       for t in l.split('('): #  ['', '1)No ', '2)Date ', '3)Time ', '4)CO2 ', '5)Temp ', '6)Humi']
@@ -279,7 +278,7 @@ def find_index(meta, key):
           idx = i
           fi = file
     if idx == -1:
-      print("key not found '", key, "'")
+      print("key not found '" + key + "'")
       sys.exit()
   return fi, idx, meta[fi][idx]
 
@@ -433,8 +432,12 @@ def process(input):
  
   # we assume first comments (and assume the last comment to be the header description)
   # then the body. For comment/body/comment we ignore comments after body
-  for l in lines:
-    h = l.strip()
+  for i,l in enumerate(lines):
+    h = l.replace('"','').strip()
+   
+    if len(h) == 0:
+      print('skip empty line',i+1)
+      continue
     # it seems excel creates utf-8 bom at file start, simply skip it
     if ord(h[0]) == 0xfeff:
       h = h[1:]
@@ -646,7 +649,7 @@ if __name__ == '__main__':
       d = content(body)
       m = header(d,comments)
     elif input.endswith('.info.xml'):
-      m, d = process_info_xml_results(input)  
+      m, d = process_info_xml_results(input)
     else:    
       m, d = process(input)
     meta.append(m)
@@ -894,7 +897,8 @@ if __name__ == '__main__':
     
     X, Y = np.meshgrid(x0,y0)       
     if len(z) == 1: # closed surfase for one value
-      ax.plot_surface(X, Y, Z[:,:,0], rstride=1, cstride=1, cmap='jet', edgecolor='black')
+      ec = 'black' if (len(x0) < 20 and len(y0) < 20) else None  
+      ax.plot_surface(X, Y, Z[:,:,0], rstride=1, cstride=1, cmap='jet',edgecolor=ec)
     else: # grid for more data
       for i in range(len(z)):
         ax.plot_wireframe(X, Y, Z[:,:,i],color=colors[i])

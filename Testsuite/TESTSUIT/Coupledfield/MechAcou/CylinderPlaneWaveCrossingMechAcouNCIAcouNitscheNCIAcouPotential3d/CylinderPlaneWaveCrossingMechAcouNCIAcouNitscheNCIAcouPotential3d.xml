@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title> Plane wave in a mechanical channel crossing a cylindric region connected by Nitsche interface</title>
+    <authors>
+      <author>Patrick Heidegger</author>
+    </authors>
+    <date>2024-06-08</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>intersection operations</keyword>
+      <keyword>mortar fem</keyword>
+      <keyword>abc</keyword>
+      <keyword>transient</keyword>
+      <keyword>nonmatching grids</keyword>
+      <keyword>mechanic-acoustic</keyword>
+    </keywords>
+    <references>
+      None just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Plane wave crossing a static cylinder that is non-conforming and connected to the channel by a Nitsche interface.
+      The channel walls are modeled in the mechanic PDE, using a stiff material and fixed outer boundaries.
+      This is one of 6 similar testcases for MechAcou Coupling and NCIs.
+      Refer to CylinderPlaneWaveCrossingMechAcouNCIAcouMortarNCIAcouPotential3d to see an acouPotentialD1 result.
+    </description>
+  </documentation>
+<!--***************************    INPUTs and OUTPUTs    ***********************-->
+  <fileFormats> 
+    <input>
+      <hdf5 fileName="./CylinderPlaneWaveCrossingMechAcouNCIAcouNitscheNCIAcouPotential3d.h5"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <!--***************************  REGIONSs, SURFACEs and NODEs  ***********************-->
+  <domain geometryType="3d">
+    <variableList>
+      <var name="p0" value="1"/>
+      <var name="f0" value="686.8"/>
+    </variableList>
+    <regionList> 
+      <region name="outer_pipe" material="air_20deg"/>
+      <region name="enclosed_cylinder" material="air_20deg"/>
+      <region name="outer_mech_lower" material="stiffMat"/>
+      <region name="outer_mech_upper" material="stiffMat"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="src"/>
+      <surfRegion name="abc" />
+      <surfRegion name="fix_upper" />
+      <surfRegion name="fix_lower" />
+      <surfRegion name="acouMech_couple_lower_inner" />
+      <surfRegion name="acouMech_couple_upper_inner" />
+      <surfRegion name="acouMech_couple_lower_outer" />
+      <surfRegion name="acouMech_couple_upper_outer" />
+      <surfRegion name="if_mantle_inner" />
+      <surfRegion name="if_mantle_outer" />
+    </surfRegionList>
+    <ncInterfaceList>
+      <ncInterface name="if_mantle"   secondarySide="if_mantle_inner"   primarySide="if_mantle_outer"/>
+      <ncInterface name="if_acouMech_upper"   secondarySide="acouMech_couple_upper_inner"   primarySide="acouMech_couple_upper_outer"/>
+      <ncInterface name="if_acouMech_lower"   secondarySide="acouMech_couple_lower_inner"   primarySide="acouMech_couple_lower_outer"/>
+    </ncInterfaceList>
+  </domain>
+  <!--***************************  ANALYSIS  ***********************-->
+  <sequenceStep>    
+    <analysis>
+      <transient>
+        <numSteps>
+          25
+        </numSteps>
+        <deltaT>
+          5.8040e-05
+        </deltaT>
+      </transient>
+    </analysis>    
+    <!--***************************  PDE LISTs  ***********************-->
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="outer_pipe"/>
+          <region name="enclosed_cylinder"/>
+        </regionList>
+        <!-- ************************************************************ BCS / SOURCES ****************************************************** -->
+        <ncInterfaceList>
+          <ncInterface name="if_mantle" nitscheFactor="50" formulation="Nitsche"/>
+        </ncInterfaceList>
+        <bcsAndLoads>
+          <potential name="src" value="p0*sin(2*pi*f0*t)"/>
+          <absorbingBCs volumeRegion="outer_pipe" name="abc" />
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPotential">
+            <regionList>
+              <region name="outer_pipe" outputIds="hdf5"/>
+              <region name="enclosed_cylinder" outputIds="hdf5"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="outer_mech_lower"/>
+          <region name="outer_mech_upper"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="fix_lower">
+            <comp dof="x" />
+            <comp dof="y" />
+            <comp dof="z" />
+          </fix>
+          <fix name="fix_upper">
+            <comp dof="x" />
+            <comp dof="y" />
+            <comp dof="z" />
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <couplingList>
+      <direct>
+        <acouMechDirect>
+          <ncInterfaceList>
+            <ncInterface name="if_acouMech_upper" />
+            <ncInterface name="if_acouMech_lower" />
+          </ncInterfaceList>
+        </acouMechDirect>
+      </direct>
+    </couplingList>
+  </sequenceStep>
+</cfsSimulation>

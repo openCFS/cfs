@@ -1,0 +1,77 @@
+reset
+undo on
+
+#{sf = 1000};
+#{w = 1e-6*sf};
+#{l = 200e-6*sf};
+#{l_2 = 5e-6*sf};
+#{h_el = 1e-7*sf};
+#{inter = 50};
+#{bias_fac = 0.92};
+
+#{tol = 1e-6}
+
+merge tolerance {tol}
+
+
+# geom
+
+create surface rectangle width {w} height {l_2} zplane
+move surface 1 x {w/2} y {l_2/2} z 0
+
+create surface rectangle width {w} height {l} zplane
+move surface 2 x {w/2} y {l_2+l/2} z 0
+
+
+imprint tolerant volume all
+merge volume all
+
+surface all scale x 1 y 0.1 z 1
+
+# mesh
+
+curve 1 3 5 interval {inter} 
+curve 3 scheme bias factor {bias_fac}
+curve 1 scheme bias factor {bias_fac} start vertex 2 
+curve 5 scheme bias factor {bias_fac} start vertex 6
+mesh curve 1 3 5
+surface all size {h_el}
+mesh surface all
+
+surface all scale x 1 y 10 z 1
+
+# blocks and nodesets
+
+block 1 add surface 1 2
+block 1 name "Chamber"
+
+
+nodeset 1 add curve 3
+nodeset 1 name "Exc"
+
+nodeset 2 add curve 2 6
+nodeset 2 name "Sym"
+
+nodeset 3 add curve 4
+nodeset 3 name "BC_trans"
+
+nodeset 4 add curve 8
+nodeset 4 name "BC_Fix"
+
+nodeset 5 add curve 5
+nodeset 5 name "BC_top"
+
+
+
+export ansys cdb "Channel_fine.cdb" overwrite
+
+
+
+
+
+
+
+
+
+
+

@@ -260,7 +260,7 @@ SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
   case App::MAG:
 	return MAG_POTENTIAL;
   case App::ACOUSTIC:
-    return ACOU_POTENTIAL;
+    return ACOU_PRESSURE;
   case App::LAPLACE:
     assert(false);
     break;

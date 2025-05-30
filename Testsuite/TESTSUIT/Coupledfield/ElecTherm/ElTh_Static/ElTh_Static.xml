@@ -1,0 +1,265 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Micro-scale sensor structure embedded into a full chip.</title>
+    <authors>
+      <author>Manfred Kaltenbacher</author>
+    </authors>
+    <date>2016-01-15</date>
+    <keywords>
+      <keyword>thermo-mechanic</keyword>
+      <keyword>static</keyword>
+    </keywords>
+    <references>
+      Ph.D. thesis of Sebastian Eiser; An Extension to Nitsche-type
+      Mortaring for Non-conforming Finite Elements
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Micro-scale sensor structure embedded into a full chip
+      microelectronic device model by means of non-conforming grid
+      technique. We perform just a static analysis based on a static
+      analysis of the temperature distribution.
+    </description>
+  </documentation>
+
+    <fileFormats>
+        <input>
+            <hdf5 fileName="ElTh_CONFlin.h5"/>
+        </input>
+        
+        <output>
+            <hdf5 id="hdf5"/>           
+            <text id="txt"/>
+        </output>
+        
+        <materialData file="IRmat_NL.xml"/>
+    </fileFormats>
+    
+    <domain geometryType="3d">
+        <regionList>
+            <region name="Vol_poly_A1" material="Si8res"/>
+            <region name="Vol_poly_F1" material="Al1"/>
+            <region name="Vol_poly_C1" material="Si8"/>
+            <region name="Vol_bpsg_B1" material="SiO2"/>
+            <region name="Vol_bpsg_F1" material="Al1"/>
+            <region name="Vol_bpsg_C1" material="Si8"/>
+            <region name="Vol_pm_G1" material="Cu1"/>
+            <region name="Vol_pm_F1" material="Al1"/>
+            <region name="Vol_pm_C1" material="Si8"/>
+            <region name="Vol_sub_C1" material="Si8"/>
+            <region name="Vol_sub_C2" material="Si8"/>
+            <region name="Vol_sub_C3" material="Si8"/>
+            <region name="Vol_bond_F1" material="Al1"/>
+        </regionList>
+        
+        <nodeList>
+              <nodes name="N_Tsink" />
+              <nodes name="Vleft" />
+              <nodes name="Vright" />
+              <nodes name="center">
+                  <coord x="-0.3e-3" y="0.15e-3" z="0.062e-3"/>
+              </nodes>
+  
+             <!--nodes name="bc_bot">
+                <list>
+                    <freeCoord comp="x" start="6.4e-5" stop="1.025e-4" inc="0.1e-6"/>
+                    <freeCoord comp="z" start="0.0e-3" stop="6.40e-6" inc="0.1e-6"/>
+                    <fixedCoord comp="y" value="-5.0e-6"/>
+                </list>
+            </nodes-->
+            
+        </nodeList>
+    </domain>
+    
+   <sequenceStep index="1">
+        <analysis>
+           <static>
+           </static>                
+        </analysis>
+        
+        <pdeList>
+            <heatConduction  systemId="heatPDE">
+                <regionList>
+                    <region name="Vol_poly_A1" nonLinIds="cond"/>
+                   <region name="Vol_poly_F1" />
+                   <region name="Vol_poly_C1" nonLinIds="cond"/>
+                   <region name="Vol_bpsg_B1" />
+                   <region name="Vol_bpsg_F1" />
+                   <region name="Vol_bpsg_C1" nonLinIds="cond"/>
+                   <region name="Vol_pm_G1"   />
+                   <region name="Vol_pm_F1"   />
+                  <region name="Vol_pm_C1"   nonLinIds="cond"/>
+                  <region name="Vol_sub_C1"  nonLinIds="cond"/>
+                  <region name="Vol_sub_C2"  nonLinIds="cond"/>
+                  <region name="Vol_sub_C3"  nonLinIds="cond"/>
+                  <region name="Vol_bond_F1" />
+                </regionList>
+
+               <nonLinList>
+                 <heatConductivity id="cond"/>
+               </nonLinList>   
+
+
+                <bcsAndLoads>
+                    <temperature value="298.00" name="N_Tsink"/>
+
+                    <elecPowerDensity name="Vol_poly_A1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity>          
+                    <elecPowerDensity name="Vol_poly_F1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity>          
+                    <elecPowerDensity name="Vol_poly_C1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity>          
+                    <elecPowerDensity name="Vol_bpsg_B1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity>          
+                    <elecPowerDensity name="Vol_bpsg_F1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                    <elecPowerDensity name="Vol_bpsg_C1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                    <elecPowerDensity name="Vol_pm_G1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                    <elecPowerDensity name="Vol_pm_F1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                    <elecPowerDensity name="Vol_pm_C1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                    <elecPowerDensity name="Vol_sub_C1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                    <elecPowerDensity name="Vol_sub_C2">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                    <elecPowerDensity name="Vol_sub_C3">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                    <elecPowerDensity name="Vol_bond_F1">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>           
+                    </elecPowerDensity> 
+                </bcsAndLoads>
+                
+                <storeResults>
+                    <nodeResult type="heatTemperature">
+                        <allRegions outputIds="hdf5"/>
+                        <nodeList>
+                             <nodes name="center" outputIds="txt"/>
+                       </nodeList>
+                    </nodeResult>
+                </storeResults>
+            </heatConduction>
+
+
+            <elecConduction systemId="elecPDE">
+                <regionList>
+                   <region name="Vol_poly_A1" matDependIds="cond"/>
+                   <region name="Vol_poly_F1" />
+                   <region name="Vol_poly_C1" />
+                   <region name="Vol_bpsg_B1" />
+                   <region name="Vol_bpsg_F1" />
+                   <region name="Vol_bpsg_C1" />
+                   <region name="Vol_pm_G1"   />
+                   <region name="Vol_pm_F1"   />
+                  <region name="Vol_pm_C1"   />
+                  <region name="Vol_sub_C1"  />
+                  <region name="Vol_sub_C2"  />
+                  <region name="Vol_sub_C3"  />
+                  <region name="Vol_bond_F1" />
+                </regionList>
+
+                <matDependencyList>
+                    <elecConductivity id="cond">
+                      <coupling pdeName="heatConduction">
+                         <quantity name="heatTemperature"/>
+                      </coupling>
+                    </elecConductivity>
+           </matDependencyList>    
+
+               <bcsAndLoads>
+                   <ground name="Vleft"/>
+                   <potential value="15" name="Vright"/>         
+               </bcsAndLoads>
+        
+              <storeResults>
+                  <nodeResult type="elecPotential">
+                     <allRegions/>
+                  </nodeResult>
+          
+                  <elemResult type="elecCurrentDensity">
+                   <allRegions/>
+                  </elemResult>
+          
+                  <elemResult type="elecPowerDensity">
+                    <allRegions/>
+                  </elemResult>
+             
+                <regionResult type="elecPower">
+                   <allRegions outputIds="txt"/>
+                </regionResult>
+          
+              </storeResults>        
+           </elecConduction>               
+            
+        </pdeList>
+         
+        <couplingList>
+            <iterative>
+                <convergence logging="yes" maxNumIters="20" stopOnDivergence="yes">
+                   <quantity name="elecPower" value="1e-3" normType="rel"/>
+                </convergence>
+            </iterative>
+        </couplingList>
+
+       <linearSystems>
+            <system id="heatPDE">
+                <solutionStrategy>
+                    <standard>
+                        <nonLinear logging="yes">
+                            <lineSearch/>
+                            <incStopCrit> 1e-4</incStopCrit>
+                            <resStopCrit> 1e-4</resStopCrit>
+                            <maxNumIters> 20  </maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+            </system>
+
+        </linearSystems>
+
+
+    </sequenceStep>
+
+</cfsSimulation>

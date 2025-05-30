@@ -473,20 +473,4 @@
     </xsd:attribute>
   </xsd:complexType>
 
-  <xsd:complexType name="DT_BcInhomVector_stabilisation">
-    <xsd:complexContent>
-      <xsd:extension base="DT_BcInhomVector">
-        <xsd:attribute name="stabilisation" use="optional" default="none">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:string">
-              <xsd:enumeration value="none"/>
-              <xsd:enumeration value="ArtificialDiffusion"/>
-              <xsd:enumeration value="SUPG"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
 </xsd:schema>

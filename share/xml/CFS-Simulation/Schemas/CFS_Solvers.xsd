@@ -1142,6 +1142,152 @@
   </xsd:complexType>
 
   
+  <!-- Definition of element for Ginkgo Solver                            -->
+  <xsd:element name="ginkgo" type="DT_Ginkgo" substitutionGroup="SolverBasic">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Ginkgo is a library  with iterative solvers for real/complex linear systems with OpenMP and GPU parallelization.
+        For GPU parallelization (CUDA, HIP and SYCL could also be added) you need a local build.
+      </xsd:documentation>
+    </xsd:annotation>
+  </xsd:element>
+ 
+  <xsd:complexType name="DT_Ginkgo">
+    <xsd:complexContent>
+      <xsd:extension base="DT_SolverBasic">
+      <xsd:sequence>
+        <xsd:element name="jacobi" minOccurs="0" maxOccurs="1">
+          <xsd:complexType>
+            <xsd:attribute name="max_block_size" use="optional" type="xsd:unsignedInt" default="8"/>
+          </xsd:complexType>
+        </xsd:element>
+        <xsd:element name="amg" minOccurs="0" maxOccurs="1">
+          <xsd:complexType>
+            <xsd:attribute name="iterations" use="optional" type="xsd:unsignedInt" default="1"/>
+          </xsd:complexType>
+        </xsd:element>
+      </xsd:sequence>
+       <xsd:attribute name="solver" use="optional" default="cg">
+        <xsd:simpleType>
+         <xsd:restriction base="xsd:token">
+            <xsd:enumeration value="cg">
+              <xsd:annotation>
+                <xsd:documentation>Efficient for symmetric positive-definite (SPD) systems.</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="bicgstab">
+              <xsd:annotation>
+                <xsd:documentation>Works for general non-symmetric linear system. Low memory requirement.</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="gmres">
+              <xsd:annotation>
+                <xsd:documentation>Useful for non-symmetric systems; allows flexible preconditioning. Requires more memory.</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="json">
+              <xsd:annotation>
+                <xsd:documentation>set precond/solver via json file by json attribute</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+         </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:attribute>
+       <xsd:attribute name="precond" use="optional" default="jacobi">
+        <xsd:simpleType>
+         <xsd:restriction base="xsd:token">
+            <xsd:enumeration value="amg">
+              <xsd:annotation>
+                <xsd:documentation>Algebraic Multigrid. Suitable for large, structured sparse matrices.</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="jacobi">
+              <xsd:annotation>
+                <xsd:documentation>Scales each row by the inverse of its diagonal element. See element to set blocks</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ic">
+              <xsd:annotation>
+                <xsd:documentation>Serial incomplete Cholesky factorization for symmetric positive definite (SPD) matrices, e.g. with cg. parIct is very slow and not available here - check via json</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="ilu">
+              <xsd:annotation>
+                <xsd:documentation>Incomplete LU factorization for non-symmetric matrices, e.g. with gmres and bicgstab.</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+            <xsd:enumeration value="json">
+              <xsd:annotation>
+                <xsd:documentation>set precond/solver via json file by json attribute</xsd:documentation>
+              </xsd:annotation>
+            </xsd:enumeration>
+         </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:attribute>
+      <xsd:attribute name="json" type="xsd:string" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>Use an external json file for precond/solver configuration. See Ginkgo's file-config-solver examples. Will ignore precond and solver from xml.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>      
+      
+      <xsd:attribute name="maxIter" type="xsd:int" default="10000" use="optional"/>
+      
+      <xsd:attribute name="tolerance" type="xsd:double" default="1e-9" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>The target tolerance we give the solver.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>      
+      <xsd:attribute name="toleranceType" use="optional" default="absolute">
+       <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+         <xsd:enumeration value="absolute"/>
+         <xsd:enumeration value="initial_resnorm"/>
+         <xsd:enumeration value="rhs_norm"/>
+        </xsd:restriction>
+       </xsd:simpleType>
+      </xsd:attribute>
+      <xsd:attribute name="minimalTolerance" type="xsd:double" default="1e-8" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>When the target tolerance cannot be met, we do not abort when this tolerance is at least achieved.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>      
+      <xsd:attribute name="initial_zero" type="xsd:boolean" default="false" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>Ignore the initial guess for the solution but start from a zero vecotr.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>      
+      <xsd:attribute name="cuda" use="optional" default="auto">
+        <xsd:annotation>
+          <xsd:documentation>Use GPU via CUDA. See cfs --version if cfs is compiled with CUDA.</xsd:documentation>
+        </xsd:annotation>
+       <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+         <xsd:enumeration value="on"/>
+         <xsd:enumeration value="off"/>
+         <xsd:enumeration value="auto"/>
+        </xsd:restriction>
+       </xsd:simpleType>
+      </xsd:attribute>
+      <xsd:attribute name="cuda_devide_id" use="optional" type="xsd:integer" default="0">
+        <xsd:annotation>
+          <xsd:documentation>Usually the default (0) shall be sufficient.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>
+      <xsd:attribute name="fp32" type="xsd:boolean" default="false" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>Solve the system as single precision</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>      
+      <xsd:attribute name="dump_profiling" type="xsd:boolean" default="false" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>Enable the console output of a tablular profiling sheet on cfs exit</xsd:documentation>
+        </xsd:annotation>
+      </xsd:attribute>      
+    </xsd:extension>
+   </xsd:complexContent>
+  </xsd:complexType>
+  
+  
   <!-- =================================================================== -->
   <!-- ==                                                               == -->
   <!-- ==                        PETSC ITERATIVE Solver                   == -->
@@ -1154,8 +1300,7 @@
   <!--xsd:element name="petsc" type="DT_PETSCSpec"
     substitutionGroup="SolverBasic"/-->
   
-  <xsd:element name="petsc" type="DT_PETSCSpec"
-    substitutionGroup="SolverBasic">
+  <xsd:element name="petsc" type="DT_PETSCSpec" substitutionGroup="SolverBasic">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
         PETSC, a Library of Iterative Solvers for linear systems, is a mpi parallel
@@ -1167,7 +1312,6 @@
   
   
   <xsd:complexType name="DT_PETSCSpec">
-    
     <xsd:complexContent>
       <xsd:extension base="DT_SolverBasic">
         <xsd:sequence>

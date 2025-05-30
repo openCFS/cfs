@@ -135,9 +135,12 @@ else:
   shutil.copytree('license/', base + '/license/')
   # Window has the muparser.dll in bin, for UNIX we might have for Ipopt libhsl.dylib (likely) or libhsl.so (unlikely)
   suffix = 'dylib' if platform.system() == 'Darwin' else 'so' # no harm for Windows
-  if os.path.exists('lib/libhsl.' + suffix):
+  if os.path.exists('lib/libiomp5.so') or os.path.exists('lib/libhsl.' + suffix):
     os.makedirs(base + '/lib/')
-    shutil.copy('lib/libhsl.' + suffix, base + '/lib/')
+    if os.path.exists('lib/libiomp5.so'): # we assume Apple Silicon macs, so no Intel oneAPI
+      shutil.copy('lib/libiomp5.so', base + '/lib/')
+    if os.path.exists('lib/libhsl.' + suffix):
+      shutil.copy('lib/libhsl.' + suffix, base + '/lib/')
 
   if platform.system() in ['Windows', 'Linux']:
     copy_redist(base + '/bin/')

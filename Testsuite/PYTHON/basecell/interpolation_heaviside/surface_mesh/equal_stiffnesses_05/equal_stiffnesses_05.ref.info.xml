@@ -1,0 +1,978 @@
+<?xml version="1.0"?>
+
+<basecell nx="40" ny="40" nz="40">
+  <cmd value="basecell.py --res 40 --target surface_mesh --x1 0.5 --y1 0.5 --z1 0.5 --interpolation linear --beta 7 --eta 0.6 --to_info_xml --save equal_stiffnesses_05 --tets --smooth_iter 25 --smooth_lambda 0.6"/>
+  <input x1="0.5" x2="0.5" y1="0.5" y2="0.5" z1="0.5" z2="0.5" interpolation="linear"/>
+  <radii rx1="0.797884560803"  rx2="0.797884560803"  ry1="0.797884560803"  ry2="0.797884560803"  rz1="0.797884560803"  rz2="0.797884560803"/>
+
+  <profile dir="0">
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="90.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="180.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="270.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="90.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="180.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="270.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+  </profile>
+
+  <profile dir="1">
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="90.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="180.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="270.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="90.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="180.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="270.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+  </profile>
+
+  <profile dir="2">
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="90.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="180.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="270.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="90.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="180.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="270.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+    <bisectionFunction>
+      <bicubic>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+    <bspline degree="0.0" rad1="0.797884560803" rad2="0.797884560803" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.0505288597993" y="0.898942280401"/>
+        <P3 x="0.101057719599" y="0.949471140201"/>
+        <P4 x="0.101057719599" y="1.0"/>
+      </controlPolygon>
+    </bspline>
+        <polynomial order="cubic" a0="0.85224357892" a1="1.25784806472" a2="0.925670196624"/>
+      </bicubic>
+      <bspline rad1 = "0.797884560803" rad2="1.10885120781" bend="0.5">
+      <controlPolygon>
+        <P1 x="0.0" y="0.898942280401"/>
+        <P2 x="0.25" y="0.898942280401"/>
+        <P3 x="0.25" y="1.10885120781"/>
+        <P4 x="0.5" y="1.10885120781"/>
+      </controlPolygon>
+      </bspline>
+      <linear x1="0.797884560803"/>
+      <selection type="bicubic" angle="45.0"/>
+    </bisectionFunction>
+
+  </profile>
+
+  <volume value="0.835"/>
+</basecell>

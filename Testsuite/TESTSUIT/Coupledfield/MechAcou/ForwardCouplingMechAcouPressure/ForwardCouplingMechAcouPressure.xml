@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+    <documentation>
+        <title>Acoustic Weak Coupling</title>
+        <authors>
+            <author>Jan Dyduch</author>
+        </authors>
+        <date></date>
+        <keywords>
+            <keyword>acoustic</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>no</isVerified>
+        <description>            
+            Weak Mechanic-Acoustic Coupling 
+            
+            The purpose of this test case is to demonstrate an application of the weak(forward) mechanic-acoustic coupling in a harmonic simulation. 
+            In order to couple the two PDEs first the mechanical simulation is performed and then its results are used as an input for the acoustic simulation. 
+             
+            A steel cube fixed in y and z dircetions and constrained by a normal stiffness in x direction is excited by a volumetric force of total value 1N in the x direction. 
+            The cube movement excites acoustic waves in an adjacent air channel. 
+            The waves propagate in x direction and are damped by a at the end of the channel by a PML to avoid reflections. 
+            The acoustic pressure at the center of the channnel is measured.
+            
+            In the first sequence step the mechanical simulation is performed. 
+            The output result is mechVelocity. This result is then used in second sequence step as the velocity boundary condition for the acoustic simulation. 
+            The velocity BC is defined on the common interface between the cube and the channel. 
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <input>
+            <!-- <cdb fileName="meshWeakCoupling.cdb" /> -->
+            <hdf5 fileName="ForwardCouplingMechAcouPressure.h5ref"/>
+        </input>
+        <output>
+            <hdf5 />
+            <text id="txt" />
+        </output>
+        <materialData file="mat.xml" format="xml" />
+    </fileFormats>
+
+    <!-- material assignment -->
+    <domain geometryType="3d">
+        <regionList>
+            <region name="V_cube" material="steel" />
+            <region name="V_air" material="air" />
+            <region name="V_PML" material="air" />
+        </regionList>
+        <surfRegionList>
+            <surfRegion name="S_fix_yz" />
+            <surfRegion name="S_normal_stiffness" />
+            <surfRegion name="S_coupling" />
+        </surfRegionList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <!--uncomment for a higher frequency resolution in post-processing notebook-->
+                <!-- <numFreq>21</numFreq>
+                <startFreq>1000</startFreq>
+                <stopFreq>3000</stopFreq>
+                <sampling>linear</sampling> -->
+                <frequencyList>
+                    <freq value="1000" />
+                    <freq value="2000" />
+                    <freq value="3000" />
+                </frequencyList>
+                <allowPostProc>yes</allowPostProc> <!-- this is required for interpolated results to work in the next sequence step -->
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <mechanic subType="3d">
+                <regionList>
+                    <region name="V_cube" dampingId="Rayleigh1"/>
+                </regionList>
+                <dampingList>
+                    <adaptedLossTangensDelta id="Rayleigh1"/>
+                </dampingList>
+                <bcsAndLoads>
+                    <fix name="S_fix_yz">
+                        <comp dof="y" />
+                        <comp dof="z" />
+                    </fix>
+                    <forceDensity name="V_cube">
+                        <comp dof="x" value="1000.0" /> <!--Force density 1000N/m^3 with volume 0.001m^3 = total force 1N -->
+                        <comp dof="y" value="0.0" />
+                        <comp dof="z" value="0.0" />
+                    </forceDensity>
+                    <!-- set normal stiffness value k_n such that we have the desired natural frequecy f = sqrt(k_n/(l*rho)))/2/pi -->
+                    <normalStiffness name="S_normal_stiffness" volumeRegion="V_cube" value="4*pi*pi*7800*0.1*4e+6" />
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="mechVelocity" complexFormat="amplPhase">
+                        <allRegions />
+                    </nodeResult>
+                    <nodeResult type="mechDisplacement" complexFormat="amplPhase">
+                        <allRegions />
+                    </nodeResult>
+
+                </storeResults>
+            </mechanic>
+        </pdeList>
+    </sequenceStep>
+
+    <sequenceStep index="2">
+        <analysis>
+            <harmonic>
+                <!--uncomment for a higher frequency resolution in post-processing notebook-->
+                <!-- <numFreq>21</numFreq>
+                <startFreq>1000</startFreq>
+                <stopFreq>3000</stopFreq>
+                <sampling>linear</sampling> -->
+                <frequencyList>
+                    <freq value="1000" />
+                    <freq value="2000" />
+                    <freq value="3000" />
+                </frequencyList>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <acoustic>
+                <regionList>
+                    <region name="V_air" />
+                    <region name="V_PML" dampingId="myPML" />
+                </regionList>
+                <dampingList>
+                    <pml id="myPML">
+                        <type> inverseDist </type>
+                        <dampFactor> 1 </dampFactor>
+                    </pml>
+                </dampingList>
+                <!--Coupling to sequence step 1 mechanic PDE-->
+                <bcsAndLoads>
+                    <velocity name="S_coupling">
+                        <sequenceStep index="1">
+                            <quantity name="mechVelocity" pdeName="mechanic" />
+                            <timeFreqMapping>
+                                <continuous interpolation="nearestNeighbor" />
+                            </timeFreqMapping>
+                        </sequenceStep>
+                    </velocity>
+                </bcsAndLoads>
+
+                <storeResults>
+                    <nodeResult type="acouPressure" complexFormat="amplPhase">
+                        <allRegions />
+                    </nodeResult>
+                    <elemResult type="acouVelocity">
+                        <allRegions />
+                    </elemResult>
+                    <surfElemResult type="acouNormalVelocity">
+                        <surfRegionList>
+                            <surfRegion name="S_coupling" />
+                        </surfRegionList>
+                    </surfElemResult>
+                </storeResults>
+            </acoustic>
+        </pdeList>
+    </sequenceStep>
+
+</cfsSimulation>

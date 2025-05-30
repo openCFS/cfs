@@ -1,0 +1,30 @@
+## coreform_cubit
+## Coreform Cubit Version 2023.11
+## Coreform Cubit Build b14f6c8f
+## Revised Thu Nov 2 20:37:30 2023 +0000
+## Running 12/03/2024 10:06:35 
+reset
+## Command Options:
+brick x 0.1 y 0.1 z 0.1
+brick x 0.1 y 0.1 z 0.1
+
+move volume 1 z 0.1
+
+volume all size 0.05
+mesh volume all
+block 1 add volume 1
+block 1 name "domain1"
+block 2 add volume 2
+block 2 name "domain2"
+
+nodeset 1 add surface 1
+nodeset 1 name "src1"
+nodeset 2 add surface 7
+nodeset 2 name "src2"
+export ansys cdb "./AdaptedLossTanDelta3D.cdb" overwrite
+
+
+
+
+
+

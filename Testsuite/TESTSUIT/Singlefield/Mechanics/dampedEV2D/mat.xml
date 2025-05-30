@@ -1,0 +1,33 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="mechmat">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2000</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 100000000 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.40000000000000002 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <coefficients>
+            <alpha>10</alpha>
+            <beta>1E-08</beta>
+            <!-- <measuredFreq>1000</measuredFreq> -->
+          </coefficients>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

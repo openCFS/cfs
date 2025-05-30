@@ -4585,7 +4585,6 @@ namespace CoupledField {
           st == BaseSolver::UMFPACK ||
           st == BaseSolver::LIS ||
           st == BaseSolver::SUPERLU ||
-          st == BaseSolver::SPOOLES ||
           st == BaseSolver::PETSC ||
           st == BaseSolver::CHOLMOD) && (canChangeReordering == true) )
       {
@@ -4765,8 +4764,7 @@ namespace CoupledField {
 
         // b) pardiso and most external solvers need no reordering or have their own - switch it off when we have default
         if(canChangeReordering == true &&
-           (st == BaseSolver::PARDISO_SOLVER || st == BaseSolver::UMFPACK ||
-            st == BaseSolver::SUPERLU || st == BaseSolver::SPOOLES /* || st == BaseSolver::LIS */))
+           (st == BaseSolver::PARDISO_SOLVER || st == BaseSolver::UMFPACK || st == BaseSolver::SUPERLU /* || st == BaseSolver::LIS */))
         {
           ot = BaseOrdering::NOREORDERING;
         }

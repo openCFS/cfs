@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <fileFormats>
+    <output>
+      <hdf5 directory="results_hdf5" />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1.0" y="0.5" z="1.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="support"> 
+              <comp dof="x"/> 
+              <comp dof="y"/>
+              <comp dof="z"/>
+           </fix>
+          <force name="load">
+              <comp dof="x" value="-0.1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+    
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod /> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" multiple_excitation="false">
+      <stopping queue="999" value="0.002" type="designChange" />
+    </costFunction>
+
+    <constraint type="volume" bound="upperBound" value="0.5" linear="false"/>
+
+    <optimizer type="gradientCheck" maxIterations="0">
+      <gradientCheck h="1e-6"/>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="radius" value="0.1" type="density"/>
+      </filters>
+      <designSpace local_element_cache="false"/>
+      <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      <transferFunction type="simp" application="mech"  param="3" />
+      
+      <result value="costGradient" id="optResult_1" detail="finiteDiffCostGrad" design="density"/>
+      <result value="costGradient" id="optResult_2" detail="finiteDiffCostGradRelError" design="density"/>
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="1" />
+  </optimization>
+ 
+  
+</cfsSimulation>
+
+

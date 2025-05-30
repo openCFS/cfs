@@ -1,0 +1,188 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>Harmonic oscillating plate - Couette Problem</title>
+    <authors>
+      <author>Simon Triebenbacher</author>
+    </authors>
+    <date>2012-03-09</date>
+    <keywords>
+      <keyword>CFD</keyword>
+      <keyword>FluidMechPerturbedPDE</keyword>
+    </keywords>
+    <references>
+      @TECHREPORT{Kumar2006,
+      author = {Vivek Kumar and Chirstof Huber},
+      title = {Determination of Viscous Forces on Oscillating Measuring Tubes, Part
+      I : Verification of Numerical Tools},
+      institution = {Endress+Hauser},
+      year = {2006},
+      file = {:E+H_Report_viscosity_measurement_num_sim.pdf:PDF},
+      owner = {simon},
+      timestamp = {2011.11.25}
+      }
+      
+      @BOOK{Pozrikidis2001,
+      title = {Fluid Dynamics: Theory, Computation, and Numerical Simulation},
+      publisher = {Kluwer Academic Publishers},
+      year = {2001},
+      author = {C. Pozrikidis},
+      file = {:FluidDynamicsPozrikidis.djvu:Djvu},
+      owner = {simon},
+      timestamp = {2012.01.12}
+      }
+    </references>
+    <isVerified>yes</isVerified>
+    <description>c.f. theory.pdf and theory2.pdf</description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <!--<gmsh fileName="OscillatingPlateHarmPerturbed.msh"/>-->
+      <hdf5 fileName="OscillatingPlateHarmPerturbed.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane" printGridInfo="yes">
+    <variableList>
+      <var name="H"    value="4"/>
+      <var name="W"    value="0.2"/>
+    </variableList>
+    <regionList>
+      <region name="channel" material="water"/>
+    </regionList>
+    
+    <nodeList>
+      <nodes name="pres_fix">
+        <coord x="0.0" y="0.0"/>
+      </nodes>
+      <nodes name="left">
+        <list>
+          <freeCoord comp="y" start="0.0002" stop="H-0.1" inc="0.0001"/>
+          <fixedCoord comp="x" value="0"/>
+        </list>        
+      </nodes>
+      <nodes name="right">
+        <list>
+          <freeCoord comp="y" start="0.0002" stop="H-0.1" inc="0.0001"/>
+          <fixedCoord comp="x" value="W"/>
+        </list>        
+      </nodes>
+      <nodes name="bottom">
+        <list>
+          <freeCoord comp="x" start="0.0" stop="W" inc="0.05"/>
+          <fixedCoord comp="y" value="0"/>
+        </list>        
+      </nodes>
+      <nodes name="top">
+        <list>
+          <freeCoord comp="x" start="0.0" stop="W" inc="0.05"/>
+          <fixedCoord comp="y" value="H"/>
+        </list>        
+      </nodes>
+      
+    </nodeList>
+  </domain>
+  
+  <fePolynomialList>
+    <Lagrange id="velPolyId">
+      <gridOrder/>
+    </Lagrange>
+    
+    <Lagrange id="presPolyId">
+      <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="velIntegId">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="presIntegId">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+  
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>1</numFreq>
+        <frequencyList>
+          <freq value="1"/>
+        </frequencyList>        
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <fluidMech systemId="fluid" formulation="perturbed">
+        <regionList>
+          <region name="channel" polyId="default"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <noPressure name="pres_fix"/>
+          <noSlip name="top">
+            <comp dof="y"/>
+          </noSlip>
+          <noSlip name="bottom">
+            <comp dof="y"/>
+          </noSlip>
+          <noSlip name="left">
+            <comp dof="y"/>
+          </noSlip>
+          <noSlip name="right">
+            <comp dof="y"/>
+          </noSlip>
+          <velocity name="bottom">
+            <comp dof="x" value="0.6"/>
+          </velocity>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions/>         
+          </nodeResult>
+          <!--nodeResult type="fluidMechPressure">
+            <allRegions/>         
+          </nodeResult>
+          <nodeResult type="meanFluidMechVelocity">
+            <allRegions/>         
+          </nodeResult>
+          <sensorArray fileName="vel-line.txt" type="fluidMechVelocity">
+          <parametric>
+            <list comp="x" start="1" stop="1" inc="0"/>
+            <list comp="y" start="0" stop="1" inc="0.01"/>
+            </parametric>
+          </sensorArray-->          
+        </storeResults>
+      </fluidMech>
+    </pdeList>
+    <linearSystems>
+      <system id="fluid">
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination" staticCondensation="no"/>
+            <matrix storage="sparseNonSym"/>
+            <solver id="default"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <umfpack/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

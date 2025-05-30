@@ -7,10 +7,12 @@ clear_depencency_variables()
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "flann")
 # 1.9.2 has the issues that is requires liblz4.a (cmake in build cmake) and that it failes on Windows "Could NOT find PkgConfig (missing: PKG_CONFIG_EXECUTABLE)"
-set(PACKAGE_VER "1.9.1")
+set(PACKAGE_VER "1.9.2")
 set(PACKAGE_FILE "${PACKAGE_VER}.zip")
-set(PACKAGE_MD5 "4a6cc62db8ed09dd8a0c6537f6720f12")
-set(DEPS_VER "-c") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(PACKAGE_MD5 "9a1f10c0d890a9595f2f4312436af50f") # 1.9.2
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+
+#https://github.com/flann-lib/flann/pull/507/commits/e6afde06ae8071be96d9c15e9953dd71e5ebee91
 
 if(USE_OPENMP)
   set(DEPS_ID "OPENMP")
@@ -42,6 +44,7 @@ set_deps_args_default(ON) # set compiler flags
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DBUILD_DOC:BOOL=OFF
   -DBUILD_EXAMPLES:BOOL=OFF
   -DBUILD_C_BINDINGS:BOOL=OFF
@@ -49,7 +52,8 @@ set(DEPS_ARGS
   -DBUILD_PYTHON_BINDINGS:BOOL=OFF
   -DBUILD_TESTS:BOOL=OFF
   -DUSE_MPI:BOOL=OFF
-  -DUSE_OPENMP:BOOL=${USE_OPENMP})
+  -DUSE_OPENMP:BOOL=${USE_OPENMP}
+  -Dlz4_DIR:PATH=${CMAKE_BINARY_DIR}) # we add this feature with our patch
 
 # copy "static" license as we configure this dependency. Check if license is still valid!
 file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
@@ -83,6 +87,8 @@ else()
     add_install_dir_to_binary_step()  
   endif()  
 endif()
+
+add_dependencies(flann lz4)
 
 # add project to global list of CFSDEPS
 set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})

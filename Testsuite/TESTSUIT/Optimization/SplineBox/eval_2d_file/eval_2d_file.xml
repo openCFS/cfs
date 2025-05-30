@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>SplineBox optimization in 2D</title>
+    <authors>
+      <author>Daniel Huebner</author>
+    </authors>
+    <date>2019-10-15</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Daniel Huebner</references>
+    <isVerified>no</isVerified>
+    <description>Optimize shape in 2D using an easy spline box</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1.0" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <force name="load" >
+             <comp dof="y" value="-1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_5">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod/> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" sequence="1" linear="false">
+      <stopping queue="55" value="0.00001" type="relativeCostChange" />
+    </costFunction>
+
+    <constraint type="volume" bound="upperBound" value="0.7" mode="constraint" linear="false"/>
+   
+    <optimizer type="snopt" maxIterations="3">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option name="major_optimality_tolerance" type="real" value="1e-8"/>
+        <option name="verify_level" type="integer" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="splineBox">
+      <splineBox degree="3" cp_x="10" cp_y="10" integration_order="1" fixedBoundary="false">
+        <feature type="file">
+          <file path="feature.density.xml" periodic="true">
+            <interpolation type="cubic" beta="100" />
+          </file>
+        </feature>
+        <!-- 
+        <allControlPoints lower="-0.1" upper="0.1"/>
+        <boundingBox lowerXLimit="0.25" lowerYLimit="0.0" upperXLimit="0.75" upperYLimit="1.0"/>
+        <controlpoint index="4" dof="x" initial=".4" />
+        <controlpoint index="9" dof="y" initial="0.3" />
+        <controlpoint index="6" dof="y" initial="-0.3" />
+        <controlpoint index="10" dof="y" initial="-0.6" />
+         -->
+      </splineBox>
+      
+      <design name="density" initial=".5" physical_lower="1e-6" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <result value="splineBoxIntOrder" id="optResult_1"/>
+      <result value="splineBoxMinMaxCorner" id="optResult_2" />
+      <result value="splineBoxGradX" id="optResult_3"/>
+      <result value="splineBoxGradY" id="optResult_4"/>
+      <result value="splineBoxGradZ" id="optResult_5"/>
+      <export save="last" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

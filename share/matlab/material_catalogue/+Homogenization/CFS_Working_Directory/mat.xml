@@ -47,9 +47,11 @@
       </elasticity>
       <damping>
         <rayleigh>
-          <alpha>1E+04</alpha>
-          <beta>1E-08</beta>
-          <measuredFreq>1E6</measuredFreq>
+          <coefficients>
+            <alpha>1E+04</alpha>
+            <beta>1E-08</beta>
+            <!-- <measuredFreq>1E6</measuredFreq> -->
+          </coefficients>
         </rayleigh>
       </damping>
     </mechanical>
@@ -90,9 +92,11 @@
       </elasticity>
       <damping>
         <rayleigh>
-          <alpha>0.05</alpha>
-          <beta>0.002</beta>
-          <measuredFreq>1e3</measuredFreq>
+          <coefficients>
+            <alpha>0.05</alpha>
+            <beta>0.002</beta>
+            <!-- <measuredFreq>1e3</measuredFreq> -->
+          </coefficients>
         </rayleigh>
       </damping>
     </mechanical>
@@ -119,9 +123,11 @@
       </elasticity>
       <damping>
         <rayleigh>
-          <alpha>1e2</alpha>
-          <beta>1e-4</beta>
-          <measuredFreq>100</measuredFreq>
+          <coefficients>
+            <alpha>1e2</alpha>
+            <beta>1e-4</beta>
+            <!-- <measuredFreq>100</measuredFreq> -->
+          </coefficients>
         </rayleigh>
       </damping>
     </mechanical>

@@ -167,10 +167,11 @@ namespace CoupledField {
                        const std::string &yName,
                        Vector<Double>& xValues,
                        Vector<Double>& yValues );
-    
-    //! Read Rayleigh damping parameters
-    void ReadRayleighDamping( PtrParamNode paramNode,
-                              BaseMaterial *material );
+
+    //! Read Rayleigh damping parameters and safe info into coefFunctions
+    void ReadRayleighDamping(PtrParamNode paramNode, BaseMaterial *material);
+    //! Read lossTanDelta damping and safe info into coeffunctions
+    void ReadLossTanDeltaDamping(PtrParamNode paramNode, BaseMaterial *material);
 
     //! Read nonlinearity descriptor
     BaseMaterial::MatDescriptorNl ReadNonlinDescriptor(PtrParamNode paramNode,

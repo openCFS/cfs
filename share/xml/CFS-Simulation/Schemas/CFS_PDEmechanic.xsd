@@ -86,9 +86,19 @@
           <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="rayleigh" type="DT_MechDampingRayl">
+                <xsd:element name="rayleigh" type="DT_DampingRayleigh">
                   <xsd:annotation>
                     <xsd:documentation>Defines Rayleigh damping (parameters have to be specified in material-xml-file)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="adaptedLossTangensDelta" type="DT_DampingAdaptedLossTangensDelta">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines a frequency-constant loss factor tangens(delta) (parameters have to be specified in material-xml-file)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="globalRayleigh" type="DT_DampingRayleighGlobal">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Rayleigh damping for the global mass and stiffness matrices</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <xsd:element name="pml" type="DT_DampingPML">
@@ -141,7 +151,7 @@
                 <xsd:element name="displacement" type="DT_BcInhomVector" />
                 <xsd:element name="velocity" type="DT_BcInhomVector" />
                 <xsd:element name="acceleration" type="DT_BcInhomVector" />
-                
+
                 <!-- RHS Load Values-->
                 <xsd:element name="stress" type="DT_BcInhomTensor"/>
                 <xsd:element name="strain" type="DT_BcInhomTensor"/>
@@ -150,6 +160,13 @@
                 <xsd:element name="force" type="DT_BcInhomVector"/>
                 <xsd:element name="forceDensity" type="DT_BcInhomVector"/>
                 <xsd:element name="rhsValues" type="DT_BcInhomVector"/>
+
+                <xsd:element name="volumeAcceleration" type="DT_BcInhomVector">
+                  <xsd:annotation>
+                    <xsd:documentation>Applies a RHS based on a specified acceleration vector. Can be used, for example, to apply gravity in a static simulation by specifying the gravitational constant g = 9.80665 m/s^2 in the desired direction.</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+
                 <!-- for iterative coupling to magnetostrictive material -->
                 <xsd:element name="magFluxDensity"      type="DT_BcInhomVector"    />
 
@@ -157,8 +174,8 @@
                 <xsd:element name="thermalStrain" type="DT_BcInhomScalar"/>
                 <!-- RHS, due to (piezo-)electric strains-->
                 <xsd:element name="elecStrain" type="DT_elecStrain"/>
-                
-              	<!-- Special Boundary Conditions -->
+
+                <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint" type="DT_MechCS"/>
                 <!-- Models a node attached to a spring. The given value is the spring constant in N/m which is added directly to the appropriate stiffness matrix entry. example: testsuite Optimization/Static/output-->
                 <xsd:element name="concentratedElem" type="DT_MechConcElem"/>
@@ -215,7 +232,7 @@
             <xsd:documentation>Allows to use and define alpha-time stepping method (HHT); extension of Newmark; here you define the alpha-value!</xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
-        
+
         <!-- Subtype of PDE -->
         <xsd:attribute name="subType" use="optional" default="planeStrain">
           <xsd:simpleType>
@@ -229,7 +246,7 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
-        
+
         <!-- switch between effective mass and stiffness formulation -->
         <xsd:attribute name="effectiveMass" type="DT_CFSBool" use="optional" default="no"/>
         
@@ -257,23 +274,6 @@
   <xsd:complexType name="DT_MechNonLinMat">
     <xsd:complexContent>
       <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of rayleigh damping -->
-  <!-- ******************************************************************* -->
-
-  <!-- Definition of rayleigh damping type -->
-  <xsd:complexType name="DT_MechDampingRayl">
-    <xsd:complexContent>
-      <xsd:extension base="DT_DampingBasic">
-        <xsd:sequence>
-          <xsd:element name="adjustDamping" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="freq" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="ratioDeltaF" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1"/>
-        </xsd:sequence>
-      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 

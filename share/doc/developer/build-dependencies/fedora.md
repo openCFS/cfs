@@ -3,7 +3,7 @@ CFS build-dependencies for Fedora
 
 For the default build config, we need
 ```shell
-dnf install -y make gcc gcc-c++ gcc-gfortran cmake patch m4 findutils diffutils
+dnf install -y make gcc gcc-c++ gcc-gfortran cmake patch m4 findutils diffutils gawk
 ```
 
 Intel MKL can be installed using the package manager from [Intel's oneAPI repositories](https://www.intel.com/content/www/us/en/develop/documentation/installation-guide-for-intel-oneapi-toolkits-linux/top/installation/install-using-package-managers/yum-dnf-zypper.html#yum-dnf-zypper).

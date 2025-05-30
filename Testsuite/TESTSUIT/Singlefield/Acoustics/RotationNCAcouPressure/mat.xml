@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+    <material name="air">
+        <acoustic>
+            <density>
+                <linear>
+                    <real> 1.205 </real>
+                </linear>
+            </density>
+            <compressionModulus>
+                <linear>
+                    <real> 1.41767e5 </real>
+                </linear>
+            </compressionModulus>
+        </acoustic>
+    </material>
+</cfsMaterialDataBase>

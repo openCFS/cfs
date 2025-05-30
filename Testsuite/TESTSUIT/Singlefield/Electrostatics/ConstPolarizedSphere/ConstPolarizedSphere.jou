@@ -1,0 +1,44 @@
+reset
+#{ R = 0.1 }
+#{ H = 1.0 }
+#{ N = 5 }
+
+# create geometry
+brick x {H}
+create sphere radius {R}
+
+chop volume 1 with volume 2
+
+imprint volume 3 4
+merge volume 3 4
+
+volume 3 size { R/N }
+Trimesher geometry sizing off
+volume 3 scheme tetmesh
+mesh volume 3
+
+volume 4 size { H/N }
+curve 2 1 3 4 10 5 12 8 6 11 7 9   interval N
+curve 2 1 3 4 10 5 12 8 6 11 7 9   scheme equal
+Trimesher surface gradation 1.7
+Trimesher volume gradation 1.6
+volume 4 scheme tetmesh proximity layers off geometry approximation angle 5
+volume 4 tetmesh growth_factor 1.1
+mesh volume 4
+
+#define boundaries
+block 1 add volume 4
+block 1 name "extern"
+
+block 2 add volume 3
+block 2 name "intern"
+
+block 1 element type tetra10
+block 2 element type tetra10
+
+nodeset 4 add surface 1 2 3 4 5 6
+nodeset 4 name "boundary_surrounding"
+undo group end
+
+export ansys cdb "ConstPolarizedSphere.cdb" overwrite
+

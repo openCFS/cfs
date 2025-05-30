@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<cfsMaterialDataBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+  <material name="visco_isotropic">
+    <mechanical>
+      <density> 2000 </density>
+      <elasticity>
+        <isotropic>
+          <real>
+            <shearModulus>1e+3</shearModulus>
+            <compressionModulus>0.3e+3</compressionModulus>
+          </real>
+        </isotropic>
+      </elasticity>
+      <viscoelasticity>
+        <isotropic>
+          <pronyTerm>
+            <relaxationTime>0.1</relaxationTime>
+            <relaxationModulus>
+              <shearModulus>10</shearModulus>
+              <compressionModulus>3</compressionModulus>
+            </relaxationModulus>
+          </pronyTerm>
+          <pronyTerm>
+            <relaxationTime>0.2</relaxationTime>
+            <relaxationModulus>
+              <shearModulus>100</shearModulus>
+              <compressionModulus>30</compressionModulus>
+            </relaxationModulus>
+          </pronyTerm>
+        </isotropic>  
+      </viscoelasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

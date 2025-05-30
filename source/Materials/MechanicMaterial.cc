@@ -12,56 +12,51 @@
 
 DEFINE_LOG(mat, "mat")
 
-namespace CoupledField
-{
+namespace CoupledField {
 
   // ***********************
   //   Default Constructor
   // ***********************
-  MechanicMaterial::MechanicMaterial(MathParser* mp,
-                                     CoordSystem * defaultCoosy) 
-  : BaseMaterial(MECHANIC, mp, defaultCoosy)
+  MechanicMaterial::MechanicMaterial(MathParser *mp, CoordSystem *defaultCoosy) : BaseMaterial(MECHANIC, mp, defaultCoosy)
   {
-    //set the allowed material parameters
-    isAllowed_.insert( DENSITY );
-    isAllowed_.insert( MECH_STIFFNESS_TENSOR );
-    isAllowed_.insert( MECH_KMODULUS );
-    isAllowed_.insert( MECH_LAME_MU );
-    isAllowed_.insert( MECH_LAME_LAMBDA );
-    isAllowed_.insert( MECH_EMODULUS );
-    isAllowed_.insert( MECH_EMODULUS_1 );
-    isAllowed_.insert( MECH_EMODULUS_2 );
-    isAllowed_.insert( MECH_EMODULUS_3 );
-    isAllowed_.insert( MECH_POISSON );
-    isAllowed_.insert( MECH_POISSON_3 );
-    isAllowed_.insert( MECH_POISSON_12 );
-    isAllowed_.insert( MECH_POISSON_23 );
-    isAllowed_.insert( MECH_POISSON_13 );
-    isAllowed_.insert( MECH_GMODULUS );
-    isAllowed_.insert( MECH_GMODULUS_3 );
-    isAllowed_.insert( MECH_GMODULUS_23 );
-    isAllowed_.insert( MECH_GMODULUS_13 );
-    isAllowed_.insert( MECH_GMODULUS_12 );
-    isAllowed_.insert( MECH_THERMAL_EXPANSION_TENSOR );
-    isAllowed_.insert( MECH_THERMAL_EXPANSION_SCALAR );
-    isAllowed_.insert( MECH_THERMAL_EXPANSION_1 );
-    isAllowed_.insert( MECH_THERMAL_EXPANSION_2 );
-    isAllowed_.insert( MECH_THERMAL_EXPANSION_3 );
-    isAllowed_.insert( MECH_TE_REFTEMPERATURE );
-    isAllowed_.insert( RAYLEIGH_ALPHA );
-    isAllowed_.insert( RAYLEIGH_BETA );
-    isAllowed_.insert( RAYLEIGH_FREQUENCY);
-    isAllowed_.insert( LOSS_TANGENS_DELTA);
-    isAllowed_.insert( NONLIN_DEPENDENCY );
-    isAllowed_.insert( MAGNETOSTRICTION_TENSOR_h_mech );
-    isAllowed_.insert( PIEZO_TENSOR );
-//    isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
-//    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
-//    isAllowed_.insert( MECH_VISCOK_VECTOR );
-//    isAllowed_.insert( MECH_VISCOG_VECTOR );
-//    isAllowed_.insert( ACOU_ALPHA );
-//    isAllowed_.insert( FRACTIONAL_EXPONENT );
-
+    // set the allowed material parameters
+    isAllowed_.insert(DENSITY);
+    isAllowed_.insert(MECH_STIFFNESS_TENSOR);
+    isAllowed_.insert(MECH_KMODULUS);
+    isAllowed_.insert(MECH_LAME_MU);
+    isAllowed_.insert(MECH_LAME_LAMBDA);
+    isAllowed_.insert(MECH_EMODULUS);
+    isAllowed_.insert(MECH_EMODULUS_1);
+    isAllowed_.insert(MECH_EMODULUS_2);
+    isAllowed_.insert(MECH_EMODULUS_3);
+    isAllowed_.insert(MECH_POISSON);
+    isAllowed_.insert(MECH_POISSON_3);
+    isAllowed_.insert(MECH_POISSON_12);
+    isAllowed_.insert(MECH_POISSON_23);
+    isAllowed_.insert(MECH_POISSON_13);
+    isAllowed_.insert(MECH_GMODULUS);
+    isAllowed_.insert(MECH_GMODULUS_3);
+    isAllowed_.insert(MECH_GMODULUS_23);
+    isAllowed_.insert(MECH_GMODULUS_13);
+    isAllowed_.insert(MECH_GMODULUS_12);
+    isAllowed_.insert(MECH_THERMAL_EXPANSION_TENSOR);
+    isAllowed_.insert(MECH_THERMAL_EXPANSION_SCALAR);
+    isAllowed_.insert(MECH_THERMAL_EXPANSION_1);
+    isAllowed_.insert(MECH_THERMAL_EXPANSION_2);
+    isAllowed_.insert(MECH_THERMAL_EXPANSION_3);
+    isAllowed_.insert(MECH_TE_REFTEMPERATURE);
+    isAllowed_.insert(RAYLEIGH_ALPHA);
+    isAllowed_.insert(RAYLEIGH_BETA);
+    isAllowed_.insert(LOSS_TANGENS_DELTA);
+    isAllowed_.insert(NONLIN_DEPENDENCY);
+    isAllowed_.insert(MAGNETOSTRICTION_TENSOR_h_mech);
+    isAllowed_.insert(PIEZO_TENSOR);
+    //    isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
+    //    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
+    //    isAllowed_.insert( MECH_VISCOK_VECTOR );
+    //    isAllowed_.insert( MECH_VISCOG_VECTOR );
+    //    isAllowed_.insert( ACOU_ALPHA );
+    //    isAllowed_.insert( FRACTIONAL_EXPONENT );
   }
 
   void MechanicMaterial::Finalize() {
@@ -1360,6 +1355,4 @@ namespace CoupledField
   // required in ErsatzMaterial. The complex version is explictely called here
   template void MechanicMaterial::ComputeSubTensor<Double>(Matrix<Double>& matMatrix, SubTensorType subTensor, const Matrix<Double>& mat);
 
-
-
-} // end of namespace
+  } // namespace CoupledField

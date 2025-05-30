@@ -15,7 +15,7 @@ endif()
 #MKL_THREAD_LIB=C:/Program Files (x86)/Intel/oneAPI/compiler/latest/lib/libiomp5md.lib
 if(MKL_THREAD_LIB) # empty in the gnu openmp case and legacy_mkl case (which installs itself)
   install(PROGRAMS ${MKL_THREAD_LIB} DESTINATION "${INSTALL_DESTINATION}")
-  message(STATUS "  will install ${MKL_THREAD_LIB} to '${INSTALL_DESTINATION}' upon installation (cpack)")
+  message(STATUS "will install ${MKL_THREAD_LIB} to '${INSTALL_DESTINATION}' upon installation (cpack)")
 endif()
 
 
@@ -29,6 +29,7 @@ install(DIRECTORY "${EXECUTABLE_OUTPUT_PATH}/" DESTINATION "bin" USE_SOURCE_PERM
   PATTERN "*.cmake" EXCLUDE
   PATTERN "*.in" EXCLUDE
   PATTERN "*.exp" EXCLUDE
+  PATTERN "*/vtkHashSource-*" EXCLUDE
   PATTERN "*.manifest" EXCLUDE)
 
 install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISSIONS
@@ -36,7 +37,7 @@ install(DIRECTORY "${LIBRARY_OUTPUT_PATH}/" DESTINATION "lib" USE_SOURCE_PERMISS
   PATTERN "*.la" EXCLUDE
   PATTERN "*.pc" EXCLUDE
   PATTERN "*.lib" EXCLUDE
-  PATTERN "*.cmake" EXCLUDE
+  PATTERN "*/cmake/*" EXCLUDE
   PATTERN "*.in" EXCLUDE
   PATTERN "pkgconfig" EXCLUDE)
 

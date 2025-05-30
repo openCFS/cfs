@@ -1,0 +1,105 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="Piston2d.h5"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="solid" material="steel"/>
+      <region name="waterEl" material="water"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="coupleEl"/>      
+    </surfRegionList>
+    <nodeList>
+      <nodes name="acouMech"/>
+      <nodes name="bottom"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>1</numFreq>
+        <frequencyList>
+          <freq value="1000"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+      
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="waterEl"/>
+        </regionList>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+          <!--nodeResult type="acouPotentialD1">
+            <allRegions/>
+          </nodeResult-->
+        </storeResults>
+      </acoustic>
+      
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="solid"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <dirichletHom name="bottom" dof="x"/>
+          <dirichletHom name="bottom" dof="y"/>
+          <!--dirichletInhom value="1e-2" name="acouMech" dof="y" quantity="mechDisplacement"/-->
+          <!--dirchletInhom name="acouMech" dof="y"  
+          value="1e9 * sample1D('sin1k.dat',t,1)"/-->
+          <!--load name="acouMech" dof="y" value="1e9"/-->
+          <force name="acouMech">
+            <comp dof="y" value="1e9"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+        
+      </mechanic>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <acouMechDirect>
+          <surfRegionList>
+            <surfRegion name="coupleEl"/>
+          </surfRegionList>
+        </acouMechDirect>
+      </direct>
+      
+    </couplingList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU>
+            
+          </directLU>
+          <!--pardiso>
+          </pardiso-->
+        </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+
+</cfsSimulation>

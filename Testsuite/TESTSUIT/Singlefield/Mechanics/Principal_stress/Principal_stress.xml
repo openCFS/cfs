@@ -1,0 +1,102 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd" xmlns="http://www.cfs++.org/simulation">
+    
+    <fileFormats>
+        <input>            
+            <!--<gmsh fileName="pipe.msh"/>-->
+            <hdf5 fileName="Principal_stress.h5ref"/>
+        </input>
+        <output>
+            <hdf5/>            
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <regionList>            
+            <region name="pipe" material="alu"/>
+        </regionList>
+    </domain>
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+        <pdeList>
+            <mechanic subType="planeStress">
+                <regionList>                    
+                    <region name="pipe"/>                
+                </regionList> 
+                <bcsAndLoads>
+                    <pressure name="inner" value="1">
+                    </pressure>
+                    <fix name="x-axis">
+                        <comp dof="y"/>
+                    </fix>
+                    <fix name="y-axis">
+                        <comp dof="x"/>
+                    </fix>
+                </bcsAndLoads>
+                <storeResults>
+                    <elemResult type="mechPrincipalStressMaxScalar">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechPrincipalStressMinScalar">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </mechanic>
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard> 
+                    </standard>
+                </solutionStrategy>                
+            </system>
+            <system></system>
+        </linearSystems>
+    </sequenceStep>
+    <sequenceStep index="2">
+        <analysis>
+            <transient>
+                <numSteps>5</numSteps>
+                <deltaT>0.2</deltaT>
+            </transient>
+        </analysis>
+        <pdeList>
+            <mechanic subType="planeStress">
+                <regionList>                    
+                    <region name="pipe"/>                
+                </regionList> 
+                <bcsAndLoads>
+                    <pressure name="inner" value="1 * t">
+                    </pressure>
+                    <fix name="x-axis">
+                        <comp dof="y"/>
+                    </fix>
+                    <fix name="y-axis">
+                        <comp dof="x"/>
+                    </fix>
+                </bcsAndLoads>
+                <storeResults>
+                    <elemResult type="mechPrincipalStressMaxScalar">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechPrincipalStressMinScalar">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </mechanic>
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard> 
+                    </standard>
+                </solutionStrategy>                
+            </system>
+            <system></system>
+        </linearSystems>
+    </sequenceStep>
+    
+</cfsSimulation>

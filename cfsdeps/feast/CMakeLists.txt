@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 
 project(FEAST Fortran)
 set(FEAST_VERSION 4.0)

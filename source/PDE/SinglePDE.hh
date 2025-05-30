@@ -437,24 +437,13 @@ namespace CoupledField
     //@{
     
   public:
-
-    //! Class defining data needed for defining Rayleigh damping
+    //! Struct that collects the Rayleigh alpha and beta coefficients
     struct RaylDampingData {
-      
-      //! Damping parameters used for MASS and STIFFNESS integrator
+      //! Damping parameters used for MASS and STIFFNESS integrator, respectively.
+      //! The parameters are stored as strings that contain mathParser expressions.
       std::string alpha, beta;
-      
-      //! Ratio for calculation of deltaF
-      Double ratioDeltaF;
-      
-      //! Target frequency, for which alpha and beta should get computed
-      Double freq;
-      
-      //! Use damping adjustment to achieve constant tanDelta
-      bool adjustDamping;
     };
-    
-    
+
   protected:
     
      

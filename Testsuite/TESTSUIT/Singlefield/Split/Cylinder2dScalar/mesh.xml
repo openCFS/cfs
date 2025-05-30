@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <fileFormats>
+    <input>
+<!--      <hdf5 fileName="source_mesh_Vector.h5"/>-->
+<!--      <cgns fileName="caa_5-0001.cgns"/>-->
+      <gmsh fileName="mesh.msh"></gmsh>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+ 
+  <domain geometryType="plane">
+  </domain>
+
+</cfsSimulation>

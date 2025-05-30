@@ -1,0 +1,89 @@
+FINI
+/CLEAR
+/FILNAME,aircoil3Deighth,1
+/PREP7
+init
+
+r1 = 1e-2
+r2 = 1.25e-2
+h = 10e-2
+w_air = 5e-2
+eps = 1e-5
+
+e_div = 5
+e_div_coil = 2
+
+! draw an eighth of the volume and copy the geometry as needed (symmetry or not)
+
+pcirc,0,r1,0,90
+pcirc,r1,r2,0,90
+pcirc,r2,r2+w_air,0,90
+
+allsel
+nummrg,kp,eps
+
+csys,1
+lsel,s,loc,x,r1+eps,r2-eps
+lesize,all,,,e_div_coil
+csys,0
+
+asel,s,loc,z,-eps,eps
+vext,all,,,0,0,h/2
+
+asel,s,loc,z,h/2-eps,h/2+eps
+vext,all,,,0,0,w_air
+
+esize,,e_div
+allsel
+setelems,'brick'
+mshkey,1
+vmesh,all
+
+csys,1
+
+asel,s,loc,x,r1+eps,r2-eps
+asel,r,loc,z,-h/2+eps,h/2-eps
+vsla,s
+cm,coilVol,volu
+
+allsel
+cmsel,u,coilVol
+cm,airVol,volu
+
+allsel
+asel,s,ext
+asel,u,loc,z,-eps,eps
+cm,BnZeroArea,area
+setelems,'quadr'
+amesh,all
+
+csys,1
+asel,s,loc,z,-eps,eps
+asel,r,loc,x,0,r1+eps
+csys,0
+cm,mainFluxArea,area
+amesh,all
+
+cmsel,s,coilVol
+eslv,s
+welems,'coil'
+
+cmsel,s,airVol
+eslv,s
+welems,'air'
+
+cmsel,s,BnZeroArea
+esla,s
+welems,'BnZero'
+
+cmsel,s,mainFluxArea
+esla,s
+welems,'mainFlux'
+
+allsel
+wnodes
+
+mkhdf5
+
+allsel
+eplot
