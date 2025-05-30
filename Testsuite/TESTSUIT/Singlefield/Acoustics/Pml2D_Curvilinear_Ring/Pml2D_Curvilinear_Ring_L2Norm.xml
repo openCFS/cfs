@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+			   xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd" 
+			   xmlns="http://www.cfs++.org/simulation">
+
+	<documentation>
+		<title>Pml2D_Curvilinear_Circle</title>
+		<authors>
+			<author>ChrisObenaus13</author>
+		</authors>
+		<date>2025-03-04</date>
+		<keywords>
+			<keyword>acoustic</keyword>
+			<keyword>pml</keyword>
+			<keyword>harmonic</keyword>
+			<keyword>output</keyword>
+		</keywords>
+		<references></references>
+		<isVerified>yes</isVerified>
+		<description>
+			2D PML test with curvilinear coordinates and a ring as geometry.
+		</description>
+	</documentation>
+
+	<!--***************************    INPUTs and OUTPUTs    ***********************-->
+	<fileFormats>
+		<input>
+			<cdb fileName="ring.cdb" />
+		</input>
+		<output>
+			<hdf5 id="h5"/>
+			<text id="txt"/>
+		</output>
+		<materialData file="mat.xml" format="xml" />
+	</fileFormats>
+
+	<!--***************************  REGIONSs, SURFACEs and NODEs  ***********************-->
+	<domain geometryType="plane">
+		<variableList>
+			<var name="c" value="1"/>  
+			<var name="x0" value="0.4"/>
+			<var name="y0" value="0.3"/>
+			<var name="z0" value="0.0"/>
+			<var name="r0" value="0.25"/>
+		</variableList>
+		<regionList>
+			<region name="ring" material="fakefluid"/>
+      		<region name="PML"    material="fakefluid"/>
+		</regionList>
+	    <surfRegionList>
+			<surfRegion name="ifPML"/>
+		</surfRegionList>
+		<layerGenerationList>
+			<newRegion name="PML">
+				<sourceSurfRegion name="ifPML" />
+				<extrusionParameters elemHeight="0.1" numLayers="4" />
+				<surfGeometry>
+					<analyticApproximation>
+						<!-- <circle origin_x="x0" origin_y="y0"/> -->
+						 <smooth_convex origin_x="x0" origin_y="y0"/>
+					</analyticApproximation>
+				</surfGeometry>
+			</newRegion>
+		</layerGenerationList>
+	</domain>
+
+	<!--***************************  ANALYSIS  ***********************-->
+	<sequenceStep index="1">
+		<analysis>
+			<harmonic>
+				<frequencyList>
+					<freq value="0.1" />
+				</frequencyList>
+			</harmonic>
+		</analysis>
+		<!--***************************  PDE LISTs  ***********************-->
+		<pdeList>
+			<acoustic formulation="acouPressure">
+				<regionList>
+					<region name="ring" />
+					<region name="PML"  dampingId="PMLdamp"/>
+				</regionList>
+				<dampingList>
+					<pml id="PMLdamp" formulation="curvilinear">
+						<type>
+							inverseDist							
+						</type>
+						<dampFactor>
+							1.0
+						</dampFactor>
+					</pml>
+				</dampingList>
+				<!-- ************************************************************ BCS / SOURCES ****************************************************** -->
+				<bcsAndLoads>
+					<pressure name="src" value="1.0"/>
+				</bcsAndLoads>
+				
+				<storeResults>
+				<nodeResult type="acouPressure">
+					<allRegions outputIds="h5" postProcId="anal"/>
+					<!-- <regionList>
+						<region name="ring" outputIds="h5" postProcId="L2rel"/>
+						<region name="PML" outputIds="h5"/>
+					</regionList> -->
+				</nodeResult>
+				<elemResult type="pmlDampFactor">
+					<regionList>
+						<region name="PML" outputIds="h5"/>
+					</regionList>
+				</elemResult>
+				<elemResult type="pmlTensor">
+					<regionList>
+						<region name="PML" outputIds="h5"/>
+					</regionList>
+				</elemResult>
+				<elemResult type="pmlDeterminant">
+					<regionList>
+						<region name="PML" outputIds="h5"/>
+					</regionList>
+				</elemResult>
+				<elemResult type="pmlDistance">
+					<regionList>
+						<region name="PML" outputIds="h5"/>
+					</regionList>
+				</elemResult>
+				</storeResults>
+			</acoustic>
+		</pdeList>
+		<postProcList>
+		<postProc id="L2rel">
+			<L2Norm resultName="L2" outputIds="h5,txt" integrationOrder="5" mode="relative" >
+			<dof name="" realFunc="1.0*(besselCylJ(sqrt((x-x0)^2+(y-y0)^2)*2*pi*f/c,0)*besselCylJ(r0*2*pi*f/c,0) +
+										besselCylY(sqrt((x-x0)^2+(y-y0)^2)*2*pi*f/c,0)*besselCylY(r0*2*pi*f/c,0)) / 
+										(besselCylJ(r0*2*pi*f/c,0)^2+ besselCylY(r0*2*pi*f/c,0)^2)"
+
+							imagFunc="-1.0*(besselCylJ(r0*2*pi*f/c,0)*besselCylY(sqrt((x-x0)^2+(y-y0)^2)*2*pi*f/c,0) -
+										besselCylJ(sqrt((x-x0)^2+(y-y0)^2)*2*pi*f/c,0) *besselCylY(r0*2*pi*f/c,0)) / 
+										(besselCylJ(r0*2*pi*f/c,0)^2 + besselCylY(r0*2*pi*f/c,0)^2)"/>
+			</L2Norm>
+		</postProc>
+		<postProc id="anal">
+			<function resultName="analytical" unit="Pa" outputIds="h5">
+				<inputResult variableName="u" />
+				<scalar realFunc="1.0*(besselCylJ(sqrt((x-x0)^2+(y-y0)^2)*2*pi*f/c,0)*besselCylJ(r0*2*pi*f/c,0) +
+										besselCylY(sqrt((x-x0)^2+(y-y0)^2)*2*pi*f/c,0)*besselCylY(r0*2*pi*f/c,0)) / 
+										(besselCylJ(r0*2*pi*f/c,0)^2+ besselCylY(r0*2*pi*f/c,0)^2)"
+
+						imagFunc="-1.0*(besselCylJ(r0*2*pi*f/c,0)*besselCylY(sqrt((x-x0)^2+(y-y0)^2)*2*pi*f/c,0) -
+										besselCylJ(sqrt((x-x0)^2+(y-y0)^2)*2*pi*f/c,0) *besselCylY(r0*2*pi*f/c,0)) / 
+										(besselCylJ(r0*2*pi*f/c,0)^2 + besselCylY(r0*2*pi*f/c,0)^2)"/>
+			</function>
+		</postProc>
+		</postProcList>
+	</sequenceStep>
+
+</cfsSimulation>
