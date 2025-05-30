@@ -27,6 +27,7 @@
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
+#include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
@@ -226,7 +227,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
         shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
         singleCoilList->AddCoil( coilIt->second );
-        feFunctions_[COIL_VOLTAGE]->AddEntityList( singleCoilList );
+        feFunctions_[COIL_VOLTAGE_INTEGRAL]->AddEntityList( singleCoilList );
 
         for( partIt = actCoil.parts_.begin();
              partIt != actCoil.parts_.end();
@@ -241,7 +242,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
           actSDList->SetRegion( actRegion );
 
 
-          shared_ptr<FeSpace> fsV = feFunctions_[COIL_VOLTAGE]->GetFeSpace();
+          shared_ptr<FeSpace> fsV = feFunctions_[COIL_VOLTAGE_INTEGRAL]->GetFeSpace();
           fsV->InsertElemsToCoilList(actSDList, singleCoilList);
 
           coilCurrentDens_[actRegion] = eJscaled;
@@ -253,7 +254,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
           CoefXprVecScalOp uVec = CoefXprVecScalOp(mp_, eJscaled, conduccoef, CoefXpr::OP_MULT);
           PtrCoefFct sigma_gradV = CoefFunction::Generate(mp_, part, uVec);
 
-          // === UPPER RIGHT PART ===
+          // === UPPER RIGHT PART (coupling) ===
           LinearForm* upperInt;
           if( isComplex_ ) {
             upperInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
@@ -266,49 +267,30 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
           bool assembleTransposed = false;
           BiLinearForm* pseudoBiLin = new BiLinWrappedLinForm( upperInt, assembleTransposed );
-          BiLinFormContext* currCoilContext = new BiLinFormContext( pseudoBiLin, STIFFNESS );
+          BiLinFormContext* currCoilContext = new BiLinFormContext( pseudoBiLin, DAMPING );
           currCoilContext->SetEntities( actSDList, singleCoilList );
-          currCoilContext->SetFeFunctions( feFunc, feFunctions_[COIL_VOLTAGE] );
-          currCoilContext->SetCounterPart(false);
+          currCoilContext->SetFeFunctions( feFunc, feFunctions_[COIL_VOLTAGE_INTEGRAL] );
+          currCoilContext->SetCounterPart(true);
           assemble_->AddBiLinearForm( currCoilContext );
 
-          CoefXprBinOp sigmaIntgVgV = CoefXprBinOp(mp_, lexical_cast<std::string>(gradVsource_[partIt->second]),
-                                                      conduccoef, CoefXpr::OP_MULT);
-          PtrCoefFct totR = CoefFunction::Generate( mp_, part, sigmaIntgVgV );
-          LinearForm* totRint = new SingleEntryInt( totR );
-          totRint->SetName( "LowerDiagIntegrator" );
-          BiLinearForm* totRBiLin = new BiLinWrappedLinForm( totRint, false );
-          BiLinFormContext* totRcontext = new BiLinFormContext( totRBiLin, STIFFNESS );
+          // === Lower Diagonal PART (single line per coil) ===
+          // compute coefficient: gamma*Gard(V).Grad(V') where Gard(V).Grad(V') is read from the first step
+          PtrCoefFct totR = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, lexical_cast<std::string>(gradVsource_[partIt->second]), conduccoef, CoefXpr::OP_MULT) );
+          SingleEntryBiLinInt * totRBiLin = new SingleEntryBiLinInt(1, totR, mp_);
+          totRBiLin->SetName( "LowerDiagIntegrator" );
+          BiLinFormContext* totRcontext = new BiLinFormContext( totRBiLin, DAMPING );
           totRcontext->SetEntities( singleCoilList, singleCoilList );
-          totRcontext->SetFeFunctions( feFunctions_[COIL_VOLTAGE], feFunctions_[COIL_VOLTAGE] );
-          totRcontext->SetCounterPart(false);
+          totRcontext->SetFeFunctions( feFunctions_[COIL_VOLTAGE_INTEGRAL], feFunctions_[COIL_VOLTAGE_INTEGRAL] );
           assemble_->AddBiLinearForm( totRcontext );
 
-
-          // === LOWER LEFT PART ===
-          LinearForm* lowerLeftInt;
-          if( isComplex_ ) {
-            lowerLeftInt = new BUIntegrator<Complex>( new IdentityOperator<FeHCurl,3,1,Complex>(),
-                1.0, sigma_gradV, updatedGeo_);
-          } else {
-            lowerLeftInt = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(),
-                1.0, sigma_gradV, updatedGeo_);
-          }
-          assembleTransposed = true;
-          BiLinearForm* pseudoBiLin2 = new BiLinWrappedLinForm( lowerLeftInt, assembleTransposed );
-          BiLinFormContext* currCoilContext2 = new BiLinFormContext( pseudoBiLin2, DAMPING );
-          currCoilContext2->SetEntities( singleCoilList, actSDList );
-          currCoilContext2->SetFeFunctions( feFunctions_[COIL_VOLTAGE], feFunc );
-          currCoilContext2->SetCounterPart(false);
-          assemble_->AddBiLinearForm( currCoilContext2 );
         } // loop: parts
 
-        // === u ===
+        // set I on the rhs
         LinearForm* currInt = new SingleEntryInt( actCoil.srcVal_ );
         currInt->SetName( "CoilCurrentLoadInt" );
         LinearFormContext* currContext = new LinearFormContext( currInt );
         currContext->SetEntities( singleCoilList );
-        currContext->SetFeFunction( feFunctions_[COIL_VOLTAGE] );
+        currContext->SetFeFunction( feFunctions_[COIL_VOLTAGE_INTEGRAL] );
         assemble_->AddLinearForm( currContext );
       } // if: current / voltage driven
     } // loop: coils
@@ -336,7 +318,7 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       GLMScheme * scheme2 = new Trapezoidal(gamma);
       shared_ptr<BaseTimeScheme> myScheme2(new TimeSchemeGLM(scheme2, 0, nlType) );
 
-      feFunctions_[COIL_VOLTAGE]->SetTimeScheme(myScheme2);
+      feFunctions_[COIL_VOLTAGE_INTEGRAL]->SetTimeScheme(myScheme2);
     }
 
   }
@@ -485,18 +467,29 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
     feFunctions_[MAG_POTENTIAL]->SetResultInfo(potInfo);
     DefineFieldResult( feFunctions_[MAG_POTENTIAL], potInfo );
 
-    // === COIL CURRENT ===
+    // === COIL VOLTAGE ===
     if( useModifiedAVCurrentFormulation_ ){
+      // primary result is the time integral of the coil voltage
+      shared_ptr<ResultInfo> voltIntInfo(new ResultInfo);
+      voltIntInfo->resultType = COIL_VOLTAGE_INTEGRAL;
+      voltIntInfo->dofNames = "";
+      voltIntInfo->unit = MapSolTypeToUnit(COIL_VOLTAGE_INTEGRAL);
+      voltIntInfo->definedOn = ResultInfo::COIL;
+      voltIntInfo->entryType = ResultInfo::SCALAR;
+      voltIntInfo->SetFeFunction(feFunctions_[COIL_VOLTAGE_INTEGRAL]);
+
+      feFunctions_[COIL_VOLTAGE_INTEGRAL]->SetResultInfo(voltIntInfo);
+      DefineFieldResult( feFunctions_[COIL_VOLTAGE_INTEGRAL], voltIntInfo );
+
+      //  coil voltage is the time derivative
       shared_ptr<ResultInfo> voltInfo(new ResultInfo);
       voltInfo->resultType = COIL_VOLTAGE;
       voltInfo->dofNames = "";
-      voltInfo->unit = "V";
+      voltInfo->unit = MapSolTypeToUnit(COIL_VOLTAGE);
       voltInfo->definedOn = ResultInfo::COIL;
       voltInfo->entryType = ResultInfo::SCALAR;
-      voltInfo->SetFeFunction(feFunctions_[COIL_VOLTAGE]);
-
-      feFunctions_[COIL_VOLTAGE]->SetResultInfo(voltInfo);
-      DefineFieldResult( feFunctions_[COIL_VOLTAGE], voltInfo );
+      availResults_.insert( voltInfo );
+      DefineTimeDerivResult( voltInfo->resultType, 1, COIL_VOLTAGE_INTEGRAL );
     }
 
     // -----------------------------------
@@ -842,8 +835,8 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
     if( useModifiedAVCurrentFormulation_ ){
       PtrParamNode voltSpaceNode = infoNode->Get("coilVoltage");
-      crSpaces[COIL_VOLTAGE] = FeSpace::CreateInstance(myParam_, voltSpaceNode, FeSpace::CONSTANT, ptGrid_, true);
-      crSpaces[COIL_VOLTAGE]->Init(solStrat_);
+      crSpaces[COIL_VOLTAGE_INTEGRAL] = FeSpace::CreateInstance(myParam_, voltSpaceNode, FeSpace::CONSTANT, ptGrid_, true);
+      crSpaces[COIL_VOLTAGE_INTEGRAL]->Init(solStrat_);
     }
     return crSpaces;
   }
