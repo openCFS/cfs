@@ -90,6 +90,9 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 #else
     elemMat += Transpose(aMat_) * this->bMat_ * this->factor_*fac;
 #endif
+    std::cout << "A mat " << this->aMat_.ToString() << std::endl;
+    std::cout << "B mat " << this->bMat_.ToString() << std::endl;
+    std::cout << "Elem mat " << elemMat.ToString() << std::endl;
   }
 }
 
@@ -98,14 +101,12 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   ABIntLem<COEF_DATA_TYPE, B_DATA_TYPE>::
     ABIntLem(BaseBOperator * aOp, BaseBOperator * bOp, 
           PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-          const std::set<RegionIdType>& volRegions,
           bool overrideSurfaceInt,
           bool coordUpdate ): 
           ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate) {
   this->type_ = BiLinearForm::AB_INT;
   this->name_ = "ABIntLem"; 
   this->aOperator_ = aOp;
-  this->volRegions_ = volRegions;
   this->overrideSurfaceInt_ = overrideSurfaceInt;
   this->solDependent_ = false;
 
@@ -218,7 +219,8 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   for( UInt iIntPts = 0; iIntPts < numIntPts; ++iIntPts  ) {
 
     // Calculate for each integration point the LocPointMapped
-    lpm.SetWithSurface( intPoints[iIntPts], esm, this->volRegions_, weights[iIntPts] );
+    lpm.Set( intPoints[iIntPts], esm, weights[iIntPts] );
+    //lpm.SetWithSurface( intPoints[iIntPts], esm, this->volRegions_, weights[iIntPts] );
 
     // Decide which FE function to pass (we always need the one of the FEM part for the correct number of equations)
     if( aOpIsAllocOp ){
@@ -228,7 +230,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       // to be a surface integrator
       
       // set bOp to be a surface operator
-      this->bOperator_->OverrideIsSurfOperator(this->overrideSurfaceInt_);
+      //this->bOperator_->OverrideIsSurfOperator(this->overrideSurfaceInt_);
 
       // Calculate A-matrix (first differential operator)
       this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeB );
@@ -237,7 +239,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeB );
 
       // reset it
-      this->bOperator_->OverrideIsSurfOperator(false);
+      //this->bOperator_->OverrideIsSurfOperator(false);
 
     } else {
       // if we are dealing with network coupling, we might evaluate a surface within an
@@ -245,7 +247,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       // therefore, we have the ability to manually override the integrator and tell it
       // to be a surface integrator
       
-      this->aOperator_->OverrideIsSurfOperator(this->overrideSurfaceInt_);
+      //this->aOperator_->OverrideIsSurfOperator(this->overrideSurfaceInt_);
 
       // Calculate A-matrix (first differential operator)
       this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeA );
@@ -254,7 +256,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeA );
 
       // reset it
-      this->aOperator_->OverrideIsSurfOperator(false);
+      //this->aOperator_->OverrideIsSurfOperator(false);
     }
 
     std::cout << "A mat " << this->aMat_.ToString() << std::endl;

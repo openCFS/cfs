@@ -87,7 +87,6 @@ namespace CoupledField {
     //! Constructor with pointer to CoefFunction for surface itself
     ABIntLem( BaseBOperator * aOp, BaseBOperator * bOp,
                   PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-                  const std::set<RegionIdType>& volRegions,
                   bool overrideSurfaceInt,
                   bool coordUpdate = false);
 
@@ -95,7 +94,6 @@ namespace CoupledField {
     ABIntLem( BaseBOperator * aOp, BaseBOperator * bOp,
                   const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
                   MAT_DATA_TYPE factor,
-                  const std::set<RegionIdType>& volRegions,
                   bool overrideSurfaceInt,
                   bool coordUpdate = false);
 
@@ -103,7 +101,6 @@ namespace CoupledField {
     ABIntLem(const ABIntLem& right)
       : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(right){
       //here we would also need to create a new operator
-      this->volRegions_ = right.volRegions_;
       this->regionCoefs_ = right.regionCoefs_;
       this->overrideSurfaceInt_ = right.overrideSurfaceInt_;
     }

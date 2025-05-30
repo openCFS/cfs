@@ -266,7 +266,14 @@ void FemLemAllocationOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMa
   // Set correct size of matrix B and initialize with zeros
   bMat.Resize( numFncs, 1 );
 
-  StdVector<UInt> lpSurfCon = lp.ptEl->connect;
+  // fill everything with ones
+  for( UInt iFunc = 0; iFunc < numFncs; ++iFunc ) {
+    bMat[iFunc][0] =  1;
+  }
+  
+  // all wrong below
+
+  /* StdVector<UInt> lpSurfCon = lp.ptEl->connect;
   StdVector<UInt> lpVolCon = lp.lpmVol->ptEl->connect;
 
   // the allocation vector only consists of ones (where a node of the surface element is located) 
@@ -291,7 +298,7 @@ void FemLemAllocationOperator<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMa
       bMat[iFunc][0] =  0;
     }
     
-  }
+  } */
 }
 
 template<class FE, UInt D, UInt D_DOF, class TYPE>
