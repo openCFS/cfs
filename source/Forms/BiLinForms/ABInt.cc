@@ -101,13 +101,11 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   ABIntLem<COEF_DATA_TYPE, B_DATA_TYPE>::
     ABIntLem(BaseBOperator * aOp, BaseBOperator * bOp, 
           PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-          bool overrideSurfaceInt,
           bool coordUpdate ): 
           ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(aOp, bOp, scalCoef, factor, coordUpdate) {
   this->type_ = BiLinearForm::AB_INT;
   this->name_ = "ABIntLem"; 
   this->aOperator_ = aOp;
-  this->overrideSurfaceInt_ = overrideSurfaceInt;
   this->solDependent_ = false;
 
   // Note: In general the AB-Integrator is not symmetric, as is should 

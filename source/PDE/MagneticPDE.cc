@@ -543,7 +543,7 @@ namespace CoupledField {
       //    in the coupled mech-mag case, a mass integrator is defined from mechanics; thus CFS might try to compute the
       //    EddyPower for regions without conductivity and then fail?
       {
-			  /* BaseBDBInt *massInt = NULL;
+			  BaseBDBInt *massInt = NULL;
 			  if( dim_ == 2 ) {
 				  massInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef,factor, updatedGeo_);
 			  } else {
@@ -553,10 +553,10 @@ namespace CoupledField {
 			  BiLinFormContext * massContext = new BiLinFormContext(massInt, DAMPING );
 			  massContext->SetEntities( actSDList, actSDList );
 			  massContext->SetFeFunctions( myFct, myFct );
-			  assemble_->AddBiLinearForm( massContext ); */
+			  assemble_->AddBiLinearForm( massContext );
 
 
-        // V2 for testing
+        /* // V2 for testing
         StdVector<PtrCoefFct> diagValuesCond = StdVector<PtrCoefFct>(dim_);
         for(UInt i = 0; i < dim_; i++){
           diagValuesCond[i] = conducCoef;
@@ -577,7 +577,7 @@ namespace CoupledField {
 
 			  // insert mass integrator to list of defined mass integrators
         massInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,massInt) );
-			  massInts2_[actRegion] = massInt;
+			  massInts2_[actRegion] = massInt; */
 		  }
 
       // ====================================================================
@@ -1546,233 +1546,297 @@ namespace CoupledField {
           }
         }
       }
+    }
+
+
+
+    // define coupling integrators (LEM-FEM)
+
+    // we have 3 contributions to consider
+
+    // get the terminal definition and entity lists
+    ParamNodeList lemTerminalList = myParam_->Get("network")->GetList("positiveTerminal");
+
+    for( UInt i = 0; i < lemTerminalList.GetSize(); i++ ){
+      
+      // get the FE function of the magnetic part
+      shared_ptr<BaseFeFunction> vecFct = feFunctions_[MAG_POTENTIAL];
+
+      // get the connecting entities
+      std::string femTerminalPositive, networkTerminalPositive, femTerminalNegative, networkTerminalNegative;
+      lemTerminalList[i]->GetValue( "femTerminal", femTerminalPositive );
+      lemTerminalList[i]->GetValue( "networkTerminal", networkTerminalPositive );
 
 
 
 
-      // define coupling integrators (LEM-FEM)
+      // find the corresponding negative terminal
+      // in 2D the femTerminal has to be the same, since we are technically coupling the "volume"
+      // which is actually a surface. Nevertheless, we have to check:
+      if( dim_!=2 ){
+        EXCEPTION("FEM-LEM coupling currently only works for 2D");
+      }
+      ParamNodeList lemTerminalListNegative = myParam_->Get("network")->GetList("negativeTerminal");
+      bool foundTerminal = false;
+      for( UInt ii = 0; ii < lemTerminalListNegative.GetSize(); ii++ ){
+        // find the same femTerminal name
+        std::string femTerminalTemp, networkTerminalTemp;
+        lemTerminalListNegative[ii]->GetValue( "femTerminal", femTerminalTemp );
+        lemTerminalListNegative[ii]->GetValue( "networkTerminal", networkTerminalTemp );
 
-      // we have 3 contributions to consider
-
-      // get the terminal definition and entity lists
-      ParamNodeList lemTerminalList = myParam_->Get("network")->GetList("positiveTerminal");
-
-      for( UInt i = 0; i < lemTerminalList.GetSize(); i++ ){
-        
-        // get the FE function of the magnetic part
-        shared_ptr<BaseFeFunction> vecFct = feFunctions_[MAG_POTENTIAL];
-
-        // get the connecting entities
-        std::string femTerminalPositive, networkTerminalPositive, femTerminalNegative, networkTerminalNegative;
-        lemTerminalList[i]->GetValue( "femTerminal", femTerminalPositive );
-        lemTerminalList[i]->GetValue( "networkTerminal", networkTerminalPositive );
-
-
-
-
-        // find the corresponding negative terminal
-        // in 2D the femTerminal has to be the same, since we are technically coupling the "volume"
-        // which is actually a surface. Nevertheless, we have to check:
-        if( dim_!=2 ){
-          EXCEPTION("FEM-LEM coupling currently only works for 2D");
+        if( femTerminalPositive==femTerminalTemp ) {
+          femTerminalNegative=femTerminalTemp;
+          networkTerminalNegative=networkTerminalTemp;
+          foundTerminal = true;
         }
-        ParamNodeList lemTerminalListNegative = myParam_->Get("network")->GetList("negativeTerminal");
-        bool foundTerminal = false;
-        for( UInt ii = 0; ii < lemTerminalListNegative.GetSize(); ii++ ){
-          // find the same femTerminal name
-          std::string femTerminalTemp, networkTerminalTemp;
-          lemTerminalListNegative[ii]->GetValue( "femTerminal", femTerminalTemp );
-          lemTerminalListNegative[ii]->GetValue( "networkTerminal", networkTerminalTemp );
+      }
+      if( !foundTerminal ) {
+        EXCEPTION("Did not find a suitable negative LEM terminal!");
+      }
 
-          if( femTerminalPositive==femTerminalTemp ) {
-            femTerminalNegative=femTerminalTemp;
-            networkTerminalNegative=networkTerminalTemp;
-            foundTerminal = true;
-          }
+
+      // get the conductivity
+
+      
+      RegionIdType actRegionFEM, evalRegion;
+      for(UInt curRegion = 0; curRegion < regions_.GetSize() ; curRegion++){
+        actRegionFEM = regions_[curRegion];
+  
+        // Get current region name
+        std::string regionName = ptGrid_->GetRegion().ToString(actRegionFEM);
+
+        if( femTerminalPositive == regionName ){
+          evalRegion = actRegionFEM;
+          break;
         }
-        if( !foundTerminal ) {
-          EXCEPTION("Did not find a suitable negative LEM terminal!");
-        }
-
-
-        // get the conductivity
-
-        
-        RegionIdType actRegionFEM, evalRegion;
-        for(UInt curRegion = 0; curRegion < regions_.GetSize() ; curRegion++){
-          actRegionFEM = regions_[curRegion];
-    
-          // Get current region name
-          std::string regionName = ptGrid_->GetRegion().ToString(actRegionFEM);
-
-          if( femTerminalPositive == regionName ){
-            evalRegion = actRegionFEM;
-            break;
-          }
-        }
-        if( !evalRegion ){
-          EXCEPTION("Did not find a suitable region to evaluate the conductivtiy!");
-        }
+      }
+      if( !evalRegion ){
+        EXCEPTION("Did not find a suitable region to evaluate the conductivtiy!");
+      }
 
 
 
-        // 1st one: \int_\Omega A' \gamma X e dOmega --> replacing J_i in the mag PDE
-        shared_ptr<EntityList> entFemPos, entNetworkPos, entFemNeg, entNetworkNeg;
-        entFemPos = ptGrid_->GetEntityList( EntityList::ELEM_LIST,femTerminalPositive );
-        entNetworkPos = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,networkTerminalPositive );
-        entFemNeg = ptGrid_->GetEntityList( EntityList::ELEM_LIST,femTerminalNegative );
-        entNetworkNeg = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,networkTerminalNegative );
+      // 1st one: \int_\Omega A' \gamma X e dOmega --> replacing J_i in the mag PDE
+      shared_ptr<EntityList> entFemPos, entNetworkPos, entFemNeg, entNetworkNeg;
+      entFemPos = ptGrid_->GetEntityList( EntityList::ELEM_LIST,femTerminalPositive );
+      entNetworkPos = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,networkTerminalPositive );
+      entFemNeg = ptGrid_->GetEntityList( EntityList::ELEM_LIST,femTerminalNegative );
+      entNetworkNeg = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,networkTerminalNegative );
 
-        WARN("Only constant conductivity can be treated. Please ensure that this is the case!");
-        PtrCoefFct constCond =
-          materials_[evalRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
-        
-        
-        // LEM to FEM coupling integrator
-        BaseBDBInt *stiffnessCouplingIntPosLF = nullptr;
+      WARN("Only constant conductivity can be treated. Please ensure that this is the case!");
+      PtrCoefFct constCond =
+        materials_[evalRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
+      
+      
+      // LEM to FEM coupling integrator
+      BaseBDBInt *stiffnessCouplingIntPosLF = nullptr;
 
-        if( dim_ == 2) {
-          if( isaxi_ ) {
-            // axisymmetric case
-            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
-          } else {
-            // we don't consider any geometry update, hence, we set the last bool to false
-            stiffnessCouplingIntPosLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCond, 1.0, false);
-          }
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
-          EXCEPTION("3D FEM-LEM coupling is not supported!");
+          // we don't consider any geometry update, hence, we set the last bool to false
+          stiffnessCouplingIntPosLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCond, 1.0, false);
         }
-        stiffnessCouplingIntPosLF->SetName("StiffnessFemLemCouplingIntPosLF");
-        BiLinFormContext * stiffnessCouplingContextPosLF = new BiLinFormContext(stiffnessCouplingIntPosLF, STIFFNESS );
-        stiffnessCouplingContextPosLF->SetEntities( entFemPos, entNetworkPos );
-        stiffnessCouplingContextPosLF->SetFeFunctions( vecFct, myFct );
-        assemble_->AddBiLinearForm( stiffnessCouplingContextPosLF );
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      stiffnessCouplingIntPosLF->SetName("StiffnessFemLemCouplingIntPosLF");
+      BiLinFormContext * stiffnessCouplingContextPosLF = new BiLinFormContext(stiffnessCouplingIntPosLF, STIFFNESS );
+      stiffnessCouplingContextPosLF->SetEntities( entFemPos, entNetworkPos );
+      stiffnessCouplingContextPosLF->SetFeFunctions( vecFct, myFct );
+      assemble_->AddBiLinearForm( stiffnessCouplingContextPosLF );
 
 
-        // same for the negative terminal
-        BaseBDBInt *stiffnessCouplingIntNegLF = nullptr;
+      // same for the negative terminal
+      BaseBDBInt *stiffnessCouplingIntNegLF = nullptr;
 
-        if( dim_ == 2) {
-          if( isaxi_ ) {
-            // axisymmetric case
-            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
-          } else {
-            // we don't consider any geometry update, hence, we set the last bool to false
-            stiffnessCouplingIntNegLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCond, -1.0, false);
-          }
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
-          EXCEPTION("3D FEM-LEM coupling is not supported!");
+          // we don't consider any geometry update, hence, we set the last bool to false
+          stiffnessCouplingIntNegLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCond, -1.0, false);
         }
-        stiffnessCouplingIntNegLF->SetName("StiffnessFemLemCouplingIntNegLF");
-        BiLinFormContext * stiffnessCouplingContextNegLF = new BiLinFormContext(stiffnessCouplingIntNegLF, STIFFNESS );
-        stiffnessCouplingContextNegLF->SetEntities( entFemNeg, entNetworkNeg );
-        stiffnessCouplingContextNegLF->SetFeFunctions( vecFct, myFct );
-        assemble_->AddBiLinearForm( stiffnessCouplingContextNegLF );
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      stiffnessCouplingIntNegLF->SetName("StiffnessFemLemCouplingIntNegLF");
+      BiLinFormContext * stiffnessCouplingContextNegLF = new BiLinFormContext(stiffnessCouplingIntNegLF, STIFFNESS );
+      stiffnessCouplingContextNegLF->SetEntities( entFemNeg, entNetworkNeg );
+      stiffnessCouplingContextNegLF->SetFeFunctions( vecFct, myFct );
+      assemble_->AddBiLinearForm( stiffnessCouplingContextNegLF );
 
 
 
-        // 2nd and 3rd calculate the current going back into the LEM part
-        
-        // ATTENTION: ONLY FOR CONSTANT CONDUCTIVITY
-        // 2nd one: \int e' \gamma e d\Gamma (the integral is not really carried out since this is only LEM)
+      // 2nd and 3rd calculate the current going back into the LEM part
+      
+      // ATTENTION: ONLY FOR CONSTANT CONDUCTIVITY
+      // 2nd one: \int e' \gamma e d\Gamma (the integral is not really carried out since this is only LEM)
 
-        // FEM to LEM
-        BaseBDBInt *stiffnessCouplingIntPosFL = nullptr;
+      // Note: This is basically the same thing we do with the BB Int and the NetworkOperator for a resistor,
+      // but here we have to construct each entry manually since we do not have a network element (only the two nodes)
+      
+      // FEM to LEM
+      BaseBDBInt *stiffnessCouplingIntPosFL = nullptr;
 
-        //TODO: AREA IS MISSING
+      // calculate the area manually since we only have LEM elements in this integrator (only valid for 2D!)
+      double surfAreaFem;
 
-        if( dim_ == 2) {
-          if( isaxi_ ) {
-            // axisymmetric case
-            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
-          } else {
-            // we don't consider any geometry update, hence, we set the last bool to false
-
-            // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
-            stiffnessCouplingIntPosFL = new BBInt<Double,Double>(new IdentityOperator<FeH1>, constCond, -1.0, false);
-          }
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
-          EXCEPTION("3D FEM-LEM coupling is not supported!");
+          
+          surfAreaFem = ptGrid_->CalcVolumeOfRegion(evalRegion);
+
         }
-        stiffnessCouplingIntPosFL->SetName("StiffnessFemLemCouplingIntPosFL");
-        BiLinFormContext * stiffnessCouplingContextPosFL = new BiLinFormContext(stiffnessCouplingIntPosFL, STIFFNESS );
-        stiffnessCouplingContextPosFL->SetEntities( entNetworkPos, entNetworkPos );
-        stiffnessCouplingContextPosFL->SetFeFunctions( myFct, myFct );
-        assemble_->AddBiLinearForm( stiffnessCouplingContextPosFL );
-
-
-        // same for the negative terminal
-        BaseBDBInt *stiffnessCouplingIntNegFL = nullptr;
-
-        if( dim_ == 2) {
-          if( isaxi_ ) {
-            // axisymmetric case
-            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
-          } else {
-            // we don't consider any geometry update, hence, we set the last bool to false
-
-            // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
-            stiffnessCouplingIntNegFL = new BBInt<Double,Double>(new IdentityOperator<FeH1>, constCond, 1.0, false);
-          }
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      
+      
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
-          EXCEPTION("3D FEM-LEM coupling is not supported!");
+          // we don't consider any geometry update, hence, we set the last bool to false
+
+          // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
+          stiffnessCouplingIntPosFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCond, surfAreaFem, false);
         }
-        stiffnessCouplingIntNegFL->SetName("StiffnessFemLemCouplingIntNegFL");
-        BiLinFormContext * stiffnessCouplingContextNegFL = new BiLinFormContext(stiffnessCouplingIntNegFL, STIFFNESS );
-        stiffnessCouplingContextNegFL->SetEntities( entNetworkNeg, entNetworkNeg );
-        stiffnessCouplingContextNegFL->SetFeFunctions( myFct, myFct );
-        assemble_->AddBiLinearForm( stiffnessCouplingContextNegFL );
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      stiffnessCouplingIntPosFL->SetName("StiffnessFemLemCouplingIntPosFL");
+      BiLinFormContext * stiffnessCouplingContextPosFL = new BiLinFormContext(stiffnessCouplingIntPosFL, STIFFNESS );
+      stiffnessCouplingContextPosFL->SetEntities( entNetworkPos, entNetworkPos );
+      stiffnessCouplingContextPosFL->SetFeFunctions( myFct, myFct );
+      assemble_->AddBiLinearForm( stiffnessCouplingContextPosFL );
 
-        
 
-        
-        
-        // 3rd one: -\int e' X^T \gamma \frac{\partial}{\partial t} A \dGamma
+      // same for the negative terminal
+      BaseBDBInt *stiffnessCouplingIntNegFL = nullptr;
 
-        // dynamic FEM to LEM coupling (based on inductive contributions)
-        BaseBDBInt *dampingCouplingIntPosFL = nullptr;
-
-        if( dim_ == 2) {
-          if( isaxi_ ) {
-            // axisymmetric case
-            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
-          } else {
-            // we don't consider any geometry update, hence, we set the last bool to false
-            dampingCouplingIntPosFL = new ABInt<Double,Double>(new IdentityOperator<FeH1,0,1>, new IdentityOperator<FeH1>, constCond, 1.0, false);
-          }
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
-          EXCEPTION("3D FEM-LEM coupling is not supported!");
+          // we don't consider any geometry update, hence, we set the last bool to false
+
+          // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
+          stiffnessCouplingIntNegFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCond, surfAreaFem, false);
         }
-        dampingCouplingIntPosFL->SetName("DampingFemLemCouplingIntPosFL");
-        BiLinFormContext * dampingCouplingContextPosFL = new BiLinFormContext(dampingCouplingIntPosFL, DAMPING );
-        dampingCouplingContextPosFL->SetEntities( entNetworkPos, entFemPos );
-        dampingCouplingContextPosFL->SetFeFunctions( myFct, vecFct );
-        assemble_->AddBiLinearForm( dampingCouplingContextPosFL );
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      stiffnessCouplingIntNegFL->SetName("StiffnessFemLemCouplingIntNegFL");
+      BiLinFormContext * stiffnessCouplingContextNegFL = new BiLinFormContext(stiffnessCouplingIntNegFL, STIFFNESS );
+      stiffnessCouplingContextNegFL->SetEntities( entNetworkNeg, entNetworkNeg );
+      stiffnessCouplingContextNegFL->SetFeFunctions( myFct, myFct );
+      assemble_->AddBiLinearForm( stiffnessCouplingContextNegFL );
 
 
-        // same for the negative part
-        BaseBDBInt *dampingCouplingIntNegFL = nullptr;
+      // off-diagonal entries
 
-        if( dim_ == 2) {
-          if( isaxi_ ) {
-            // axisymmetric case
-            EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
-          } else {
-            // we don't consider any geometry update, hence, we set the last bool to false
-
-            dampingCouplingIntNegFL = new ABInt<Double,Double>(new IdentityOperator<FeH1,0,1>, new IdentityOperator<FeH1>, constCond, -1.0, false);
-          }
+      
+      BaseBDBInt *stiffnessCouplingIntPosOffDiagFL = nullptr;
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
-          EXCEPTION("3D FEM-LEM coupling is not supported!");
+          // we don't consider any geometry update, hence, we set the last bool to false
+
+          // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
+          stiffnessCouplingIntPosOffDiagFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCond, -surfAreaFem, false);
         }
-        dampingCouplingIntNegFL->SetName("DampingFemLemCouplingIntNegFL");
-        BiLinFormContext * dampingCouplingContextNegFL = new BiLinFormContext(dampingCouplingIntNegFL, DAMPING );
-        dampingCouplingContextNegFL->SetEntities( entNetworkNeg, entFemNeg );
-        dampingCouplingContextNegFL->SetFeFunctions( myFct, vecFct );
-        assemble_->AddBiLinearForm( dampingCouplingContextNegFL );
-        
-        
-        
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      stiffnessCouplingIntPosOffDiagFL->SetName("StiffnessFemLemCouplingIntPosOffDiagFL");
+      BiLinFormContext * stiffnessCouplingContextPosOffDiagFL = new BiLinFormContext(stiffnessCouplingIntPosOffDiagFL, STIFFNESS );
+      stiffnessCouplingContextPosOffDiagFL->SetEntities( entNetworkPos, entNetworkNeg );
+      stiffnessCouplingContextPosOffDiagFL->SetFeFunctions( myFct, myFct );
+      assemble_->AddBiLinearForm( stiffnessCouplingContextPosOffDiagFL );
+
+      
+      BaseBDBInt *stiffnessCouplingIntNegOffDiagFL = nullptr;
+
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+        } else {
+          // we don't consider any geometry update, hence, we set the last bool to false
+
+          // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
+          stiffnessCouplingIntNegOffDiagFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCond, -surfAreaFem, false);
+        }
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      stiffnessCouplingIntNegOffDiagFL->SetName("StiffnessFemLemCouplingIntNegOffDiagFL");
+      BiLinFormContext * stiffnessCouplingContextNegOffDiagFL = new BiLinFormContext(stiffnessCouplingIntNegOffDiagFL, STIFFNESS );
+      stiffnessCouplingContextNegOffDiagFL->SetEntities( entNetworkNeg, entNetworkPos );
+      stiffnessCouplingContextNegOffDiagFL->SetFeFunctions( myFct, myFct );
+      assemble_->AddBiLinearForm( stiffnessCouplingContextNegOffDiagFL );
+
+      
+
+      
+      
+      // 3rd one: -\int e' X^T \gamma \frac{\partial}{\partial t} A \dGamma
+
+      // dynamic FEM to LEM coupling (based on inductive contributions)
+      BaseBDBInt *dampingCouplingIntPosFL = nullptr;
+
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+        } else {
+          // we don't consider any geometry update, hence, we set the last bool to false
+          dampingCouplingIntPosFL = new ABIntLem<Double,Double>(new IdentityOperator<FeH1,0,1>, new IdentityOperator<FeH1>, constCond, 1.0, false);
+        }
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      dampingCouplingIntPosFL->SetName("DampingFemLemCouplingIntPosFL");
+      BiLinFormContext * dampingCouplingContextPosFL = new BiLinFormContext(dampingCouplingIntPosFL, DAMPING );
+      dampingCouplingContextPosFL->SetEntities( entNetworkPos, entFemPos );
+      dampingCouplingContextPosFL->SetFeFunctions( myFct, vecFct );
+      assemble_->AddBiLinearForm( dampingCouplingContextPosFL );
+
+
+      // same for the negative part
+      BaseBDBInt *dampingCouplingIntNegFL = nullptr;
+
+      if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+        } else {
+          // we don't consider any geometry update, hence, we set the last bool to false
+
+          dampingCouplingIntNegFL = new ABIntLem<Double,Double>(new IdentityOperator<FeH1,0,1>, new IdentityOperator<FeH1>, constCond, -1.0, false);
+        }
+      } else {
+        EXCEPTION("3D FEM-LEM coupling is not supported!");
+      }
+      dampingCouplingIntNegFL->SetName("DampingFemLemCouplingIntNegFL");
+      BiLinFormContext * dampingCouplingContextNegFL = new BiLinFormContext(dampingCouplingIntNegFL, DAMPING );
+      dampingCouplingContextNegFL->SetEntities( entNetworkNeg, entFemNeg );
+      dampingCouplingContextNegFL->SetFeFunctions( myFct, vecFct );
+      assemble_->AddBiLinearForm( dampingCouplingContextNegFL );
+      
+      
+      
 
 
 
@@ -1979,9 +2043,9 @@ namespace CoupledField {
         BiLinFormContext * massCouplingContext = new BiLinFormContext(massCouplingInt, STIFFNESS );
         massCouplingContext->SetEntities( entFem, entNetwork );
         massCouplingContext->SetFeFunctions( vecFct, myFct );
-        assemble_->AddBiLinearForm( massCouplingContext ); */
+        assemble_->AddBiLinearForm( massCouplingContext );
 
-      }
+      }*/
     }
   }
 

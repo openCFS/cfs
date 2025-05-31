@@ -86,46 +86,57 @@ namespace CoupledField {
     
     //! Constructor with pointer to CoefFunction for surface itself
     ABIntLem( BaseBOperator * aOp, BaseBOperator * bOp,
-                  PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
-                  bool overrideSurfaceInt,
-                  bool coordUpdate = false);
+      PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
+      bool coordUpdate = false );
 
-    //! Constructor with CoefFunctions for a number of volume regions
-    ABIntLem( BaseBOperator * aOp, BaseBOperator * bOp,
-                  const std::map< RegionIdType, PtrCoefFct >& regionCoefs,
-                  MAT_DATA_TYPE factor,
-                  bool overrideSurfaceInt,
-                  bool coordUpdate = false);
-
-    //! Copy constructor
-    ABIntLem(const ABIntLem& right)
-      : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(right){
+    //! Copy Constructor
+    ABIntLem(const ABIntLem& right):ABInt<COEF_DATA_TYPE, B_DATA_TYPE>(right){
       //here we would also need to create a new operator
-      this->regionCoefs_ = right.regionCoefs_;
-      this->overrideSurfaceInt_ = right.overrideSurfaceInt_;
+      this->aOperator_ = right.aOperator_->Clone();
+      this->solDependent_ = right.solDependent_;
+      this->aMat_ = right.aMat_;
     }
 
     //! \copydoc BiLinearForm::Clone
     virtual ABIntLem* Clone(){
-      return new ABIntLem( *this );
+    return new ABIntLem( *this );
     }
 
     //! Destructor
-    virtual ~ABIntLem() {}
+    virtual ~ABIntLem(){
+    delete aOperator_;
+    }
 
     //! Compute element matrix associated to AB form
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                            EntityIterator& ent1,
-                            EntityIterator& ent2 );
+                          EntityIterator& ent1,
+                          EntityIterator& ent2 );
+
+    //! Set Coefficient Function of B operator
+    virtual void SetBCoefFunctionOpA(PtrCoefFct coef){
+    this->aOperator_->SetCoefFunction(coef);
+    }
+
+    //! \copydoc BiLinearForm::IsSolDependent
+    virtual void SetSolDependent() {
+    solDependent_ = true;
+    }
+
+    //! \copydoc BiLinearForm::IsSolDependent
+    virtual bool IsSolDependent() {
+    return solDependent_;
+    }
+
   protected:
-    //! Set containing all volume regions for surface integrators
-    std::set<RegionIdType> volRegions_;
 
-    //! Map containing all coefficient functions for volume regions for operator A
-    std::map< RegionIdType, PtrCoefFct > regionCoefs_;
+    //! First differential operator
+    BaseBOperator* aOperator_;
 
-    //! 
-    bool overrideSurfaceInt_;
+    //! Store intermediate A-matrix
+    Matrix<MAT_DATA_TYPE> aMat_;
+
+    bool solDependent_;
+
   };
 
 
