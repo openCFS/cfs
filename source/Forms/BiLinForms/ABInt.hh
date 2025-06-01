@@ -103,9 +103,7 @@ namespace CoupledField {
     }
 
     //! Destructor
-    virtual ~ABIntLem(){
-    delete aOperator_;
-    }
+    virtual ~ABIntLem() {};
 
     //! Compute element matrix associated to AB form
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,

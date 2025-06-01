@@ -1404,6 +1404,37 @@ namespace CoupledField {
             // TODO insert resistor integrator to list of defined stiffness integrators
             //bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, resistorInt));
 
+          } else if ( networkElementType=="Capacitor" ){
+
+            // capacitor value
+            PtrCoefFct coefC;
+            BaseBDBInt *capacitorInt = nullptr;
+
+            // read in the resistor value
+            std::string capValue = regionNodesLEM[i]->Get("value")->As<std::string>();
+            coefC = CoefFunction::Generate( mp_, Global::REAL, capValue);
+
+            if( dim_ == 2) {
+              if( isaxi_ ) {
+                // axisymmetric case
+                EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+              } else {
+                // we don't consider any geometry update, hence, we set the last bool to false
+                // the identityOperatorLem inside a BBInt creates the following matrix:
+                //  1  -1
+                // -1   1
+                // we multiply this matrix with the conductance in order to get the correct element matrix
+                capacitorInt = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, coefC, 1.0, false);
+              }
+            } else {
+              EXCEPTION("3D FEM-LEM coupling is not supported!");
+            }
+            capacitorInt->SetName("CapacitorIntegrator");
+            BiLinFormContext * capacitorContext = new BiLinFormContext(capacitorInt, DAMPING );
+            capacitorContext->SetEntities( actSDList, actSDList );
+            capacitorContext->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( capacitorContext );
+            
           } else {
             EXCEPTION("Only resistors are currently implemented!");
           }
