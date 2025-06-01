@@ -1331,10 +1331,13 @@ namespace CoupledField {
 
 
 
-
+    // network potential
     shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_NETWORK_POTENTIAL];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
+    // aux variable for the inductors
+    shared_ptr<BaseFeFunction> indFct = feFunctions_[ELEC_NETWORK_AUX];
+    shared_ptr<FeSpace> indSpace = indFct->GetFeSpace();
 
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -1429,11 +1432,74 @@ namespace CoupledField {
             } else {
               EXCEPTION("3D FEM-LEM coupling is not supported!");
             }
+
             capacitorInt->SetName("CapacitorIntegrator");
             BiLinFormContext * capacitorContext = new BiLinFormContext(capacitorInt, DAMPING );
             capacitorContext->SetEntities( actSDList, actSDList );
             capacitorContext->SetFeFunctions( myFct, myFct );
             assemble_->AddBiLinearForm( capacitorContext );
+
+          } else if ( networkElementType=="Inductor" ){
+
+            // inductor value
+            PtrCoefFct coefL, coefInvL;
+            BaseBDBInt *inductorIntStiff = nullptr;
+
+            // read in the resistor value
+            std::string indValue = regionNodesLEM[i]->Get("value")->As<std::string>();
+            coefL = CoefFunction::Generate( mp_, Global::REAL, indValue);
+            
+            coefInvL = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, coefL, CoefXpr::OP_DIV));
+
+            if( dim_ == 2) {
+              if( isaxi_ ) {
+                // axisymmetric case
+                EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+              } else {
+                // we don't consider any geometry update, hence, we set the last bool to false
+                // the identityOperatorLem inside a BBInt creates the following matrix:
+                //  1  -1
+                // -1   1
+                // we multiply this matrix with the conductance in order to get the correct element matrix
+                inductorIntStiff = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, coefInvL, 1.0, false);
+              }
+            } else {
+              EXCEPTION("3D FEM-LEM coupling is not supported!");
+            }
+
+            inductorIntStiff->SetName("InductorIntegratorStiffness");
+            BiLinFormContext * inductorStiffContext = new BiLinFormContext(inductorIntStiff, STIFFNESS );
+            inductorStiffContext->SetEntities( actSDList, actSDList );
+            inductorStiffContext->SetFeFunctions( myFct, indFct );
+            assemble_->AddBiLinearForm( inductorStiffContext );
+            
+
+            // damping matrix part
+            BaseBDBInt *inductorIntDamp = nullptr;
+
+            if( dim_ == 2) {
+              if( isaxi_ ) {
+                // axisymmetric case
+                EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+              } else {
+                // we don't consider any geometry update, hence, we set the last bool to false
+                // the identityOperatorLem inside a BBInt creates the following matrix:
+                //  1  -1
+                // -1   1
+                // we multiply this matrix with the conductance in order to get the correct element matrix
+                inductorIntDamp = new BBInt<Double>(new Identity<FeH1, 2, 1, Double>, constOne, 1.0, false);
+              }
+            } else {
+              EXCEPTION("3D FEM-LEM coupling is not supported!");
+            }
+
+            inductorIntDamp->SetName("InductorIntegratorDamping");
+            BiLinFormContext * inductorDampContext = new BiLinFormContext(inductorIntDamp, DAMPING );
+            inductorDampContext->SetEntities( actSDList, actSDList );
+            inductorDampContext->SetFeFunctions( indFct, indFct );
+            assemble_->AddBiLinearForm( inductorDampContext );
+            
+            
             
           } else {
             EXCEPTION("Only resistors are currently implemented!");
@@ -2155,6 +2221,27 @@ namespace CoupledField {
       hdbcSolNameMap_[ELEC_NETWORK_POTENTIAL] = "elecNetworkGround";
       idbcSolNameMap_[ELEC_NETWORK_POTENTIAL] = "elecNetworkPotential";
 
+      // aux variable for inductors
+      if (hasInductorLEM_) {
+        shared_ptr<BaseFeFunction> networkFeFctAux = feFunctions_[ELEC_NETWORK_AUX];
+        shared_ptr<ResultInfo> resNetworkAux(new ResultInfo);
+        resNetworkAux->resultType = ELEC_NETWORK_AUX;
+        resNetworkAux->dofNames = "";
+        resNetworkAux->unit = MapSolTypeToUnit(resNetwork->resultType);
+        resNetworkAux->definedOn = ResultInfo::NODE;
+        resNetworkAux->entryType = ResultInfo::SCALAR;
+        availResults_.insert( resNetworkAux );
+        networkFeFct->SetResultInfo(resNetworkAux);
+        DefineFieldResult( networkFeFctAux, resNetworkAux );
+  
+        // -----------------------------------
+        //  Define xml-names of Dirichlet BCs
+        // -----------------------------------
+        // defined, but not accessible; let's see if we need them
+        hdbcSolNameMap_[ELEC_NETWORK_AUX] = "elecNetworkAuxGround";
+        idbcSolNameMap_[ELEC_NETWORK_AUX] = "elecNetworkAuxIntegratedPotential";
+  
+      }
 
       // the current could either be evaluated with a separate operator or maybe even with a coefFunctionFormBased
 
@@ -3118,6 +3205,15 @@ namespace CoupledField {
         // (since here the surface is actually a real element, just in 1D)
         crSpaces[ELEC_NETWORK_POTENTIAL]->SetLagrSurfSpace();
         crSpaces[ELEC_NETWORK_POTENTIAL]->Init(solStrat_);
+
+        // if we also have an inductor, we need to create an additional space for the aus variable
+        if( hasInductorLEM_ ) {
+          crSpaces[ELEC_NETWORK_AUX] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+          // we have no volume element, so we have to state that this space only lives on the surface
+          // (since here the surface is actually a real element, just in 1D)
+          crSpaces[ELEC_NETWORK_AUX]->SetLagrSurfSpace();
+          crSpaces[ELEC_NETWORK_AUX]->Init(solStrat_);
+        }
       }
 
     } else {

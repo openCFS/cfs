@@ -523,6 +523,9 @@ namespace CoupledField
     //! When coupling to a network, we need some additional integrators
     bool hasLEM_ = false;
 
+    //! true of an inductor is present and we need an aux variable
+    bool hasInductorLEM_ = false;
+
     // -----------------------------------------------------------------------
     //  Result Handling
     // -----------------------------------------------------------------------

@@ -276,6 +276,12 @@ namespace CoupledField {
               << "'. Please remove duplicate entries." );
           
       regionsLEM_.Push_back(actRegionId);
+
+      // additionally, we check if we need to introduce an aux variable
+      // for inductors
+      if( passiveRegionNodesLEM[i]->Get("type")->As<std::string>() == "Inductor" ){
+        hasInductorLEM_ = true;
+      }
     }
 
     // add all sources
