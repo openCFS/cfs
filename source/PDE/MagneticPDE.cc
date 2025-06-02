@@ -1335,9 +1335,13 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> myFct = feFunctions_[ELEC_NETWORK_POTENTIAL];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
-    // aux variable for the inductors
-    shared_ptr<BaseFeFunction> indFct = feFunctions_[ELEC_NETWORK_AUX];
-    shared_ptr<FeSpace> indSpace = indFct->GetFeSpace();
+    shared_ptr<BaseFeFunction> indFct;
+    shared_ptr<FeSpace> indSpace;
+    if( hasInductorLEM_ ) {
+      // aux variable for the inductors
+      indFct = feFunctions_[ELEC_NETWORK_AUX];
+      indSpace = indFct->GetFeSpace();
+    }
 
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
@@ -1356,7 +1360,10 @@ namespace CoupledField {
 
 		  // --- Set the approximation for the current region ---
       mySpace->SetRegionApproximation(actRegion, "default", "default");
-      
+      if( hasInductorLEM_ ) {
+        indSpace->SetRegionApproximation(actRegion, "default", "default");
+      }
+
       shared_ptr<EntityList> actSDList;
       actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,regionName );
       myFct->AddEntityList( actSDList );
@@ -1440,12 +1447,16 @@ namespace CoupledField {
             assemble_->AddBiLinearForm( capacitorContext );
 
           } else if ( networkElementType=="Inductor" ){
+            // we did not yet add the current entity to the feFunction to avoid unnecessary 0 entries
+            indFct->AddEntityList( actSDList );
 
             // inductor value
             PtrCoefFct coefL, coefInvL;
-            BaseBDBInt *inductorIntStiff = nullptr;
 
-            // read in the resistor value
+            // first part (inverse of inductances) --> PA part (P...potential, A...aux)
+            BaseBDBInt *inductorIntStiffPA = nullptr;
+
+            // read in the inductor value
             std::string indValue = regionNodesLEM[i]->Get("value")->As<std::string>();
             coefL = CoefFunction::Generate( mp_, Global::REAL, indValue);
             
@@ -1461,45 +1472,123 @@ namespace CoupledField {
                 //  1  -1
                 // -1   1
                 // we multiply this matrix with the conductance in order to get the correct element matrix
-                inductorIntStiff = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, coefInvL, 1.0, false);
+                inductorIntStiffPA = new ABInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, new IdentityOperatorLem<FeH1, 2, 1, Double>, coefInvL, 1.0, false);
               }
             } else {
               EXCEPTION("3D FEM-LEM coupling is not supported!");
             }
 
-            inductorIntStiff->SetName("InductorIntegratorStiffness");
-            BiLinFormContext * inductorStiffContext = new BiLinFormContext(inductorIntStiff, STIFFNESS );
-            inductorStiffContext->SetEntities( actSDList, actSDList );
-            inductorStiffContext->SetFeFunctions( myFct, indFct );
-            assemble_->AddBiLinearForm( inductorStiffContext );
+            inductorIntStiffPA->SetName("InductorIntegratorStiffnessPA");
+            BiLinFormContext * inductorStiffPAContext = new BiLinFormContext(inductorIntStiffPA, STIFFNESS );
+            inductorStiffPAContext->SetEntities( actSDList, actSDList );
+            inductorStiffPAContext->SetFeFunctions( myFct, indFct );
+            assemble_->AddBiLinearForm( inductorStiffPAContext );
             
 
-            // damping matrix part
-            BaseBDBInt *inductorIntDamp = nullptr;
+            // second stiffness part (negative identity matrix, AP part)
+            // here we have to cheat a bit
+            // we need a unity matrix for the corresponding element, which is a bit cumbersome to create
+            // with just real valued symmetric operators. Hence, we just get the nodes of the element
+            // and use them to create a scalar 1 entry for each node (similar as it is done below for the
+            // coupling)
 
-            if( dim_ == 2) {
-              if( isaxi_ ) {
-                // axisymmetric case
-                EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+            // this is a bit inefficient (and not that nice), but I did not find a function that can do that
+            StdVector<SurfElem*> elems;
+            ptGrid_->GetSurfElems( elems, actRegion );
+
+            // get the number of nodes
+            StdVector<UInt> connectivity = elems[0]->connect;
+            // now get all node names and loop over them to get the names for the indices from before
+            
+            StdVector<std::string> regionNames; // the nodes are stored as separate "regions", that's why we have to search here
+            ptGrid_->GetRegionNames(regionNames);
+            
+
+            StdVector<std::string> nodeNameList;
+            
+            for( UInt iNodeRegion = 0; iNodeRegion < regionNames.size(); iNodeRegion++ ){
+              RegionIdType curRegion = ptGrid_->GetRegionId(regionNames[iNodeRegion]);
+              StdVector<UInt> nodeList;
+              ptGrid_->GetNodesByRegion(nodeList, curRegion);
+
+              // only nodes will have element size 1, which is what we want to check
+              if( nodeList.size() == 1 ) {
+                if( nodeList[0]==connectivity[0] || nodeList[0]==connectivity[1] ){
+                  nodeNameList.push_back(regionNames[iNodeRegion]);
+                }
+              }
+            }
+
+            for( UInt surfElemNum = 0; surfElemNum < nodeNameList.size(); surfElemNum++ ){
+            
+              // Get current region name
+              std::string nodeName = nodeNameList[surfElemNum];
+              
+              shared_ptr<EntityList> actSDListNode;
+              actSDListNode = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,nodeName );
+              
+              BaseBDBInt *inductorIntStiffAP = nullptr;
+
+              if( dim_ == 2) {
+                if( isaxi_ ) {
+                  // axisymmetric case
+                  EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+                } else {
+                  // we don't consider any geometry update, hence, we set the last bool to false
+                  // the identityOperatorLem inside a BBInt creates the following matrix:
+                  //  1  -1
+                  // -1   1
+                  // we multiply this matrix with the conductance in order to get the correct element matrix
+                  inductorIntStiffAP = new BBInt<Double>(new IdentityOperator<FeH1,0,1>, constOne, -1.0, false);
+                }
               } else {
-                // we don't consider any geometry update, hence, we set the last bool to false
-                // the identityOperatorLem inside a BBInt creates the following matrix:
-                //  1  -1
-                // -1   1
-                // we multiply this matrix with the conductance in order to get the correct element matrix
-                inductorIntDamp = new BBInt<Double>(new Identity<FeH1, 2, 1, Double>, constOne, 1.0, false);
+                EXCEPTION("3D FEM-LEM coupling is not supported!");
               }
-            } else {
-              EXCEPTION("3D FEM-LEM coupling is not supported!");
-            }
 
-            inductorIntDamp->SetName("InductorIntegratorDamping");
-            BiLinFormContext * inductorDampContext = new BiLinFormContext(inductorIntDamp, DAMPING );
-            inductorDampContext->SetEntities( actSDList, actSDList );
-            inductorDampContext->SetFeFunctions( indFct, indFct );
-            assemble_->AddBiLinearForm( inductorDampContext );
+              inductorIntStiffAP->SetName("InductorIntegratorStiffnessAP");
+              BiLinFormContext * inductorStiffAPContext = new BiLinFormContext(inductorIntStiffAP, STIFFNESS );
+              inductorStiffAPContext->SetEntities( actSDListNode, actSDListNode );
+              inductorStiffAPContext->SetFeFunctions( indFct, myFct );
+              assemble_->AddBiLinearForm( inductorStiffAPContext );
+            }
             
             
+            // damping matrix part
+
+            // here we have to cheat a bit (same as before)
+            
+            for( UInt surfElemNum = 0; surfElemNum < nodeNameList.size(); surfElemNum++ ){
+            
+              // Get current region name
+              std::string nodeName = nodeNameList[surfElemNum];
+              
+              shared_ptr<EntityList> actSDListNode;
+              actSDListNode = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,nodeName );
+              
+              BaseBDBInt *inductorIntDamp = nullptr;
+
+              if( dim_ == 2) {
+                if( isaxi_ ) {
+                  // axisymmetric case
+                  EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
+                } else {
+                  // we don't consider any geometry update, hence, we set the last bool to false
+                  // the identityOperatorLem inside a BBInt creates the following matrix:
+                  //  1  -1
+                  // -1   1
+                  // we multiply this matrix with the conductance in order to get the correct element matrix
+                  inductorIntDamp = new BBInt<Double>(new IdentityOperator<FeH1,0,1>, constOne, 1.0, false);
+                }
+              } else {
+                EXCEPTION("3D FEM-LEM coupling is not supported!");
+              }
+
+              inductorIntDamp->SetName("InductorIntegratorDamping");
+              BiLinFormContext * inductorDampContext = new BiLinFormContext(inductorIntDamp, DAMPING );
+              inductorDampContext->SetEntities( actSDListNode, actSDListNode );
+              inductorDampContext->SetFeFunctions( indFct, indFct );
+              assemble_->AddBiLinearForm( inductorDampContext );
+            }
             
           } else {
             EXCEPTION("Only resistors are currently implemented!");
@@ -2231,15 +2320,15 @@ namespace CoupledField {
         resNetworkAux->definedOn = ResultInfo::NODE;
         resNetworkAux->entryType = ResultInfo::SCALAR;
         availResults_.insert( resNetworkAux );
-        networkFeFct->SetResultInfo(resNetworkAux);
+        networkFeFctAux->SetResultInfo(resNetworkAux);
         DefineFieldResult( networkFeFctAux, resNetworkAux );
   
         // -----------------------------------
         //  Define xml-names of Dirichlet BCs
         // -----------------------------------
         // defined, but not accessible; let's see if we need them
-        hdbcSolNameMap_[ELEC_NETWORK_AUX] = "elecNetworkAuxGround";
-        idbcSolNameMap_[ELEC_NETWORK_AUX] = "elecNetworkAuxIntegratedPotential";
+        //hdbcSolNameMap_[ELEC_NETWORK_AUX] = "elecNetworkAuxGround";
+        //idbcSolNameMap_[ELEC_NETWORK_AUX] = "elecNetworkAuxIntegratedPotential";
   
       }
 
