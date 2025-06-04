@@ -3,6 +3,7 @@
 #include "Domain/Domain.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "FeBasis/HCurl/HCurlElems.hh"
 
 namespace CoupledField {
 
@@ -743,6 +744,50 @@ template<class TYPE> Double ResultFunctorVWP<TYPE>::CalcDetJDr(Matrix<Double> &J
   return det;
 }
 
+// --------------------------------------------------------------------------
+//   Calculate the result by integration and sums up to total force: VWP
+// --------------------------------------------------------------------------
+
+template<class FE, class DATA_TYPE>
+ResultFunctorVWPnew<FE, DATA_TYPE>::ResultFunctorVWPnew(shared_ptr< CoefFunctionSurfVWPnew<FE, DATA_TYPE> > coef,
+                                             shared_ptr<ResultInfo> inf)
+: ResultFunctor(inf)
+{
+  derivType_ = INTEGRATED;
+  coef_      = coef;
+  surfCoef_  = coef;
+}
+
+template<class FE, class DATA_TYPE> 
+ResultFunctorVWPnew<FE, DATA_TYPE>::~ResultFunctorVWPnew() {
+
+}
+
+template<class FE, class DATA_TYPE>
+void ResultFunctorVWPnew<FE,DATA_TYPE>::EvalResult(shared_ptr<BaseResult> res ) {
+  Result<DATA_TYPE>& actSol = static_cast< Result<DATA_TYPE>& >(*res);
+  Vector<DATA_TYPE>& vec = actSol.GetVector();
+  Vector<DATA_TYPE> force;
+  EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
+
+  vec.Resize( nameIt.GetSize() * dim_ );
+  vec.Init();
+
+  // Loop over names (= regions / surface regions / named elements)
+  for (nameIt.Begin(); !nameIt.IsEnd(); nameIt++)  {
+    surfCoef_->GetTotalForce(nameIt.GetName(), force);
+    for (UInt dof = 0; dof < dim_; ++dof) {
+      vec[nameIt.GetPos()*dim_+dof] = force[dof];
+    }
+  }
+}
+
+
 template class ResultFunctorVWP<Complex>;
 template class ResultFunctorVWP<Double>;
+template class ResultFunctorVWPnew<FeH1,Double>;
+template class ResultFunctorVWPnew<FeHCurl,Double>;
+template class ResultFunctorVWPnew<FeH1,Complex>;
+template class ResultFunctorVWPnew<FeHCurl,Complex>;
+
 } // end of namespace

@@ -1154,7 +1154,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     availResults_.insert( magIntens );
     
 
-    if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
+  if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
     // === MAXWELL FORCE DENSITY ===
     shared_ptr<ResultInfo> mfd(new ResultInfo);
     mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
@@ -1181,13 +1181,45 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // build result functor for integration
     shared_ptr<ResultFunctor> mfFunc;
     if( isComplex_ ) {
-    mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
+      mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
     } else {
-    mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
+      mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
     }
     resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
 
-    // === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
+    // // === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
+    // shared_ptr<ResultInfo> vwp(new ResultInfo);
+    // vwp->resultType = MAG_FORCE_VWP;
+    // vwp->dofNames = vecComponents;
+    // vwp->unit = "N";
+    // vwp->definedOn = ResultInfo::SURF_REGION;
+    // vwp->entryType = ResultInfo::VECTOR;
+    // availResults_.insert( vwp );
+
+    // // define and save coefFunction
+    // shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_, 1.0, vwp));
+    // surfCoefFcts_[vwpForce] = bFunc;
+
+    // // build result functor for integration
+    // shared_ptr<ResultFunctor> vwpFunc;
+    // if( isComplex_ ) {
+    //   vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
+    // } else {
+    //   vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
+    // }
+    // resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
+  }
+
+  if( analysistype_ != MULTIHARMONIC ) {
+    // === VIRTUAL WORK PRINCIPLE FORCE DENSITY AND TOTAL FORCE ===
+    shared_ptr<ResultInfo> vwpDensity(new ResultInfo());
+    vwpDensity->resultType = MAG_FORCE_VWP_DENSITY;
+    vwpDensity->dofNames = vecComponents;
+    vwpDensity->unit = "N/m^2";
+    vwpDensity->definedOn = ResultInfo::SURF_ELEM;
+    vwpDensity->entryType = ResultInfo::VECTOR;
+    availResults_.insert(vwpDensity );
+
     shared_ptr<ResultInfo> vwp(new ResultInfo);
     vwp->resultType = MAG_FORCE_VWP;
     vwp->dofNames = vecComponents;
@@ -1196,19 +1228,24 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     vwp->entryType = ResultInfo::VECTOR;
     availResults_.insert( vwp );
 
-    // define and save coefFunction
-    shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_, 1.0, vwp));
-    surfCoefFcts_[vwpForce] = bFunc;
-
-    // build result functor for integration
     shared_ptr<ResultFunctor> vwpFunc;
     if( isComplex_ ) {
-      vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
+      shared_ptr< CoefFunctionSurfVWPnew<FeHCurl, Complex> > vwpForceDens(
+          new CoefFunctionSurfVWPnew<FeHCurl, Complex>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+                                                    ptGrid_, feFct));
+      DefineFieldResult(vwpForceDens, vwpDensity);
+      surfCoefFcts_[vwpForceDens] = bFunc;
+      vwpFunc.reset(new ResultFunctorVWPnew<FeHCurl,Complex>(vwpForceDens, vwp ) );
     } else {
-      vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
+      shared_ptr< CoefFunctionSurfVWPnew<FeHCurl,Double> > vwpForceDens(
+          new CoefFunctionSurfVWPnew<FeHCurl,Double>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+                                                  ptGrid_, feFct));
+      DefineFieldResult(vwpForceDens, vwpDensity);
+      surfCoefFcts_[vwpForceDens] = bFunc;
+      vwpFunc.reset(new ResultFunctorVWPnew<FeHCurl,Double>(vwpForceDens, vwp ) );
     }
     resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
-    }
+  }
 
 
     // === MAGNETIC ENERGY ===

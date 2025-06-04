@@ -405,6 +405,7 @@
   <xsd:simpleType name="DT_MagneticEdgeSurfElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magForceMaxwellDensity"/>
+      <xsd:enumeration value="magForceVWPDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
   

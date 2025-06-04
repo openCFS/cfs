@@ -1206,22 +1206,20 @@ namespace CoupledField {
 //    shared_ptr<CoefFunctionFormBased>
     PtrCoefFct bFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
 
-//    // === MAGNETIC FLUX DENSITY ===
-//    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
-//    fluxDens->resultType = MAG_FLUX_DENSITY;
-//    fluxDens->dofNames = vecComponents;
-//    fluxDens->unit = "Vs/m^2";
-//    fluxDens->definedOn = ResultInfo::ELEMENT;
-//    fluxDens->entryType = ResultInfo::VECTOR;
-//    availResults_.insert( fluxDens );
-//    shared_ptr<CoefFunctionFormBased> bFunc;
-//    if( isComplex_ ) {
-//      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
-//    } else {
-//      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
-//    }
-//    DefineFieldResult( bFunc, fluxDens );
-//    stiffFormCoefs_.insert(bFunc);
+    // === MAGNETIC FLUX DENSITY on  SURFACE ===
+    shared_ptr<ResultInfo> fluxDensSurf(new ResultInfo);
+    fluxDensSurf->resultType = MAG_FLUX_DENSITY_SURF;
+    fluxDensSurf->dofNames = vecComponents;
+    fluxDensSurf->unit = "Vs/m^2";
+    fluxDensSurf->definedOn = ResultInfo::SURF_ELEM;
+    fluxDensSurf->entryType = ResultInfo::VECTOR;
+    availResults_.insert( fluxDensSurf );
+
+    shared_ptr<CoefFunctionSurf> bFuncSurf;
+    bFuncSurf.reset(new CoefFunctionSurf(false, 1.0, fluxDensSurf));
+    DefineFieldResult( bFuncSurf, fluxDensSurf );
+    surfCoefFcts_[bFuncSurf] = bFunc;
+
 
     // === MAGNETIC NORMAL FLUX DENSITY ===
     shared_ptr<ResultInfo> normFlux(new ResultInfo);
@@ -1596,7 +1594,6 @@ namespace CoupledField {
   surfCoefFcts_[maxTangentialForceDens] = bFunc;
 
 
-  if( analysistype_ != HARMONIC ) {
 	// === MAXWELL FORCE (TOTAL) ===
 	shared_ptr<ResultInfo> mf(new ResultInfo);
 	mf->resultType = MAG_FORCE_MAXWELL;
@@ -1616,7 +1613,14 @@ namespace CoupledField {
 	resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
 
 
-	// === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
+	// === VIRTUAL WORK PRINCIPLE FORCE DENSITY AND TOTAL FORCE ===
+  shared_ptr<ResultInfo> vwpDensity(new ResultInfo());
+  vwpDensity->resultType = MAG_FORCE_VWP_DENSITY;
+  vwpDensity->dofNames = vecComponents;
+  vwpDensity->unit = "N/m^2";
+  vwpDensity->definedOn = ResultInfo::SURF_ELEM;
+  vwpDensity->entryType = ResultInfo::VECTOR;
+  availResults_.insert(vwpDensity );
 	shared_ptr<ResultInfo> vwp(new ResultInfo);
 	vwp->resultType = MAG_FORCE_VWP;
 	vwp->dofNames = vecComponents;
@@ -1625,20 +1629,23 @@ namespace CoupledField {
 	vwp->entryType = ResultInfo::VECTOR;
 	availResults_.insert( vwp );
 
-	// define and save coefFunction
-	shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_,
-              1.0, vwp));
-	surfCoefFcts_[vwpForce] = bFunc;
-
-	// build result functor for integration
-	shared_ptr<ResultFunctor> vwpFunc;
-	if( isComplex_ ) {
-		vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
-	} else {
-		vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
-	}
-	resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
-    }
+  shared_ptr<ResultFunctor> vwpFunc;
+  if( isComplex_ ) {
+    shared_ptr< CoefFunctionSurfVWPnew<FeH1, Complex> > vwpForceDens(
+            new CoefFunctionSurfVWPnew<FeH1, Complex>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+                                                      ptGrid_, feFct));
+    DefineFieldResult(vwpForceDens, vwpDensity);
+    surfCoefFcts_[vwpForceDens] = bFunc;
+    vwpFunc.reset(new ResultFunctorVWPnew<FeH1,Complex>(vwpForceDens, vwp ) );
+  } else {
+    shared_ptr< CoefFunctionSurfVWPnew<FeH1,Double> > vwpForceDens(
+            new CoefFunctionSurfVWPnew<FeH1,Double>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+                                                    ptGrid_, feFct));
+    DefineFieldResult(vwpForceDens, vwpDensity);
+    surfCoefFcts_[vwpForceDens] = bFunc;
+    vwpFunc.reset(new ResultFunctorVWPnew<FeH1,Double>(vwpForceDens, vwp ) );
+  }
+  resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
 
     // === MAGNETIC ENERGY ===
 //    if( isMixed_)

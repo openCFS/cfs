@@ -8,6 +8,7 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 
 namespace CoupledField {
 
@@ -205,6 +206,36 @@ private:
   //! Pointer to grid
   Grid* ptGrid_;
 };
+
+// --------------------------------------------------------------------------
+//  Calculate the result by integration and sums up to total force using
+//  Virtual Work Principle
+// --------------------------------------------------------------------------
+
+template<class FE, class DATA_TYPE>
+class ResultFunctorVWPnew : public ResultFunctor {
+public:
+
+  //! Constructor
+  ResultFunctorVWPnew(shared_ptr< CoefFunctionSurfVWPnew<FE, DATA_TYPE> > coef, shared_ptr<ResultInfo> inf);
+
+  //! Destructor
+  virtual ~ResultFunctorVWPnew();
+
+  //! Evaluate result for complete entity list
+  virtual void EvalResult(shared_ptr<BaseResult> res);
+
+  //! Return Coefficient function
+  virtual PtrCoefFct GetCoefFct() {
+    return coef_;
+  }
+
+private:
+
+  //! Pointer to underlying CoefFunctionSurfVWP
+  shared_ptr< CoefFunctionSurfVWPnew<FE, DATA_TYPE> > surfCoef_;
+};
+
 
 // --------------------------------------------------------------------------
 //  FIELDS BASED ON ENERGY

@@ -4,6 +4,7 @@
 
 #include "CoefFunction.hh"
 #include "CoefFunctionMulti.hh"
+#include "FeBasis/FeFunctions.hh"
 namespace CoupledField {
 
 // forward class declaration
@@ -43,6 +44,10 @@ public:
   
   //! Pass volume coefficients
   virtual void SetVolumeCoefs( std::map<RegionIdType, PtrCoefFct> coefs );
+
+  //! Add a surface group
+  virtual void AddEntity(shared_ptr<EntityList> entity);
+
 
   //! \copydoc CoefFunction::GetTensor
   virtual void GetTensor(Matrix<Double>& coefMat,
@@ -111,8 +116,15 @@ public:
   //! Set with all regionIdTypes
   std::set<RegionIdType> regions_;
 
+  //! List of surface groups
+  std::map< std::string, shared_ptr<EntityList> > entities_;
+
+
   //! Flag, if normal mapping should be performed
   bool mapNormal_;
+
+  //! Number of DoFs (for vector-valued results)
+  UInt numDofs_;
   
   //! Factor in case of surface mapping
   Double factor_;
@@ -258,6 +270,108 @@ private:
   //! coef-function as defined in PDE
   std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoef_;
 };
+
+//! This class represents coefficient functions, which are defined just on a
+//! surface and computes the force defined by virtual work principle
+//! It's derived from CoefFunctionSurf
+template<class FE, class DATA_TYPE>
+class CoefFunctionSurfVWPnew : public CoefFunctionSurf {
+  public:
+
+    //! Constructor
+
+    //! \param matCoef    Material parameter
+    //! \param vacuumCoef Material parameter of vacuum
+    //! \param surfInfo   Result info object for surface result
+
+    CoefFunctionSurfVWPnew(PtrCoefFct matCoef, 
+                           shared_ptr<ResultInfo> surfInfo, Grid* ptGrid,
+                           shared_ptr<BaseFeFunction> feFnc);
+
+    //! Destructor
+    virtual ~CoefFunctionSurfVWPnew();
+
+    //! \copydoc CoefFunction::GetTensor
+    void GetTensor(Matrix<DATA_TYPE>& coefMat,
+                   const LocPointMapped& lpm ) {
+      EXCEPTION("CoefFunctionSurfVWPnew:GetTensor not implemented");
+    }
+
+    // //! \copydoc CoefFunction::GetTensor
+    // void GetTensor(Matrix<Complex>& coefMat,
+    //     const LocPointMapped& lpm ) {
+    //     EXCEPTION("CoefFunctionSurfVWP:GetTensor not implemented");
+    // }
+
+    //! \copydoc CoefFunction::GetVector
+    void GetVector(Vector<DATA_TYPE>& coefVec,
+                   const LocPointMapped& lpm );
+
+    // //! \copydoc CoefFunction::GetVector
+    // void GetVector(Vector<Complex>& coefVec,
+    //                const LocPointMapped& lpm );
+
+    //! \copydoc CoefFunction::GetScalar
+    void GetScalar(DATA_TYPE& coefScalar,
+                   const LocPointMapped& lpm ) {
+        EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
+    }
+
+    // //! \copydoc CoefFunction::GetScalar
+    // void GetScalar(Complex& coefScalar,
+    //     const LocPointMapped& lpm ) {
+    //     EXCEPTION("CoefFunctionSurfVWP:GetScalar not implemented");
+    // };
+
+    //! Returns the total force summing up all nodal forces over a group
+    void GetTotalForce(const std::string & entityName,
+                       Vector<DATA_TYPE> & totalForce);
+
+  private:
+
+    //! Calculate element force
+    //! \param force          (output) Array containing nodal forces
+    //!                                (dim x nodes) of each element
+    //! \param ptElement      (input)  Pointer to element
+    //! \param dim            (input)  number of dofs = dim
+    //! \param isBoundaryNode (input)  contains 1, if corresponding node is a
+    //!                                boundary node, otherwise 0
+    void CalcElemForce(Matrix<DATA_TYPE>& force, const Elem * ptElement,
+                       const std::vector<bool> & isBoundaryNode);
+
+    //! Update the cache with nodal forces
+    void UpdateCache();
+
+    //! Calculates the expression \f[ \frac{\delta \vert J \vert}{\delta r} /f]
+    //! \param J    (input) Jacobian matrix
+    //! \param J_dr (input) derivative of Jacobian matrix in r-direction
+    //! \param lpm  LocPointMapped at which the expression shall be calculated
+    static Double CalcDetJDr(const Matrix<Double> &J,
+                             const Matrix<Double> &dJ_dr,
+                             const LocPointMapped &lpm);
+
+    //! pointer to the grid
+    Grid* ptGrid_;
+
+    //! CoefFunction of material parameter
+    PtrCoefFct matCoef_;
+
+    //!FeFunction
+    shared_ptr<BaseFeFunction> FeFunction_;
+
+    //! Cache for nodal forces (maps node number to force vector)
+    boost::unordered_map< UInt, Vector<DATA_TYPE> > nodalForces_;
+
+    //! Cache for total force per group
+    std::map< std::string, Vector<DATA_TYPE> > totalForces_;
+
+    //! Step number of cached data
+    UInt cacheStep_;
+
+    //! if true, data type is complex
+    bool isComplex_;
+};
+
 
 } // end of namespace
 #endif

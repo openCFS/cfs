@@ -88,6 +88,25 @@ namespace CoupledField
     virtual void GetNumFncs( StdVector<UInt>& numFcns,
                              EntityType entType,
                              UInt dof = 1) = 0;
+                             
+    //@{ \name Standard bilinear shape function 
+    //! Get value of all shape fnc at local poiont lp
+    /*!
+    \param S (output) Vector of shape fnc values \f$ (N_{1},\cdots\,N_{NumNodes})^T \f$
+    \param ip (input) Integration point
+    */
+    virtual void GetShFnc( Vector<Double>& S, const LocPoint& lp,
+                           const Elem* ptElem,  UInt comp = 1 ) {
+     EXCEPTION("This GetShFnc is not implemented for BaseFE")
+    }
+    
+    //! Return global curl of shape functions
+    virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                               const LocPointMapped& lp,
+                               const Elem* elem, UInt comp = 1 ) {
+      EXCEPTION("This GetCurlShFnc is not implemented for BaseFE")
+    }   
+
 
     //! Flag, if element has true nodal permutation
     virtual bool NeedsNodalPermutation() {
