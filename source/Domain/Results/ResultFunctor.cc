@@ -3,6 +3,7 @@
 #include "Domain/Domain.hh"
 #include "Domain/Results/ResultInfo.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "FeBasis/HCurl/HCurlElems.hh"
 
 namespace CoupledField {
 
@@ -528,221 +529,45 @@ template class ResultFunctorIntegrate<Complex>;
 template class ResultFunctorIntegrate<Double>;
 
 // --------------------------------------------------------------------------
-//   Calculate the result by integration and sums up to total force
+//   Calculate the result by integration and sums up to total force: VWP
 // --------------------------------------------------------------------------
 
-template<class TYPE> ResultFunctorVWP<TYPE>::ResultFunctorVWP( PtrCoefFct coef,
-                        shared_ptr<BaseFeFunction> feFct,
-                        shared_ptr<ResultInfo> inf,
-						Grid* ptGrid) :
-                        ResultFunctor( inf) {
+template<class FE, class DATA_TYPE>
+ResultFunctorVWP<FE, DATA_TYPE>::ResultFunctorVWP(shared_ptr< CoefFunctionSurfVWP<FE, DATA_TYPE> > coef, shared_ptr<ResultInfo> inf)
+: ResultFunctor(inf)
+{
   derivType_ = INTEGRATED;
   coef_      = coef;
-  feFct_     = feFct;
-  ptGrid_    = ptGrid;
+  surfCoef_  = coef;
 }
 
-template<class TYPE> ResultFunctorVWP<TYPE>::~ResultFunctorVWP() {
+template<class FE, class DATA_TYPE> 
+ResultFunctorVWP<FE, DATA_TYPE>::~ResultFunctorVWP() {
 
 }
 
-template<class TYPE> void ResultFunctorVWP<TYPE>::EvalResult(shared_ptr<BaseResult> res ) {
-  Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
+template<class FE, class DATA_TYPE>
+void ResultFunctorVWP<FE,DATA_TYPE>::EvalResult(shared_ptr<BaseResult> res ) {
+  Result<DATA_TYPE>& actSol = static_cast< Result<DATA_TYPE>& >(*res);
+  Vector<DATA_TYPE>& vec = actSol.GetVector();
+  Vector<DATA_TYPE> force;
   EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
 
-  // get coefFunction
-  PtrCoefFct coef = GetCoefFct();
-
-  StdVector<RegionIdType> neighborIds(1);
-  Vector<TYPE>& vec = actSol.GetVector();
   vec.Resize( nameIt.GetSize() * dim_ );
   vec.Init();
 
-  UInt pos = 0;
   // Loop over names (= regions / surface regions / named elements)
-  for(nameIt.Begin(); !nameIt.IsEnd(); nameIt++)  {
-    shared_ptr<EntityList> actSDList = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
-    		                                                            nameIt.GetName());
-
-    //get correct volume neighbor region id
-    neighborIds[0] = coef->GetVolNeighborRegionId(actSDList->GetRegion());
-
-    // get nodes belonging to the surface elements
-    StdVector<UInt> surfNodeList;
-    nameIt.GetGrid()->GetNodesByRegion(surfNodeList, ptGrid_->GetRegionId(nameIt.GetName()) );
-
-    // get volume elements next to nodes
-    StdVector<const Elem*> elemList;
-    ptGrid_->GetElemsNextToNodes( elemList, surfNodeList, neighborIds);
-
-    //get memory
-    StdVector<StdVector<ShortInt> > isBoundaryNode, elemNodeToCouplingNode;
-    isBoundaryNode.Resize(elemList.GetSize());
-    isBoundaryNode.Init();
-    elemNodeToCouplingNode.Resize(elemList.GetSize());
-    elemNodeToCouplingNode.Init();
-
-
-    for (UInt ielem=0; ielem<elemList.GetSize(); ielem++) {
-    	isBoundaryNode[ielem].Resize(elemList[ielem]->connect.GetSize());
-        isBoundaryNode[ielem].Init();
-        elemNodeToCouplingNode[ielem].Resize(elemList[ielem]->connect.GetSize());
-        elemNodeToCouplingNode[ielem].Init();
-
-        // Determine Boundary Nodes
-        for (UInt ielemnode=0; ielemnode<isBoundaryNode[ielem].GetSize(); ielemnode++) {
-          for (UInt inodes=0; inodes<surfNodeList.GetSize(); inodes++) {
-        	  if (elemList[ielem]->connect[ielemnode] == surfNodeList[inodes] ) {
-        		  isBoundaryNode[ielem][ielemnode] = 1;
-        		  elemNodeToCouplingNode[ielem][ielemnode] = inodes;
-        		  break;
-            } // end if
-          }
-        }
+  for (nameIt.Begin(); !nameIt.IsEnd(); nameIt++)  {
+    surfCoef_->GetTotalForce(nameIt.GetName(), force);
+    for (UInt dof = 0; dof < dim_; ++dof) {
+      vec[nameIt.GetPos()*dim_+dof] = force[dof];
     }
-
-    EntityIterator elemIt = actSDList->GetIterator();
-
-    Vector<Double> force(surfNodeList.GetSize()*dim_);
-    force.Init();
-    for (UInt ielem=0; ielem<elemList.GetSize(); ielem++) {
-       	Matrix<Double> Force;
-       	CalcElemElecForce( Force, elemIt, elemList[ielem], isBoundaryNode[ielem] );
-
-        // Add the element force to the according coupling node
-        for (UInt ielemnode=0; ielemnode<elemList[ielem]->connect.GetSize(); ielemnode++) {
-        	for( UInt idim=0; idim<dim_; idim++) {
-        		force[elemNodeToCouplingNode[ielem][ielemnode]*dim_+idim] += Force(ielemnode,idim);
-        	}
-        }
-    } // end elements!
-
-    Vector<Double> totalForce(dim_);
-    totalForce.Init();
-
-    for (UInt i=0; i<surfNodeList.GetSize(); i++)
-    	for (UInt dim=0; dim<dim_; dim++)
-    		totalForce[dim] += force[i*dim_+dim];
-
-    //compute total force
-    for(unsigned jDof = 0; jDof < dim_; jDof++ )
-    	vec[pos+jDof] += totalForce[jDof];
-
-    pos+= dim_;
   }
 }
 
+template class ResultFunctorVWP<FeH1,Double>;
+template class ResultFunctorVWP<FeHCurl,Double>;
+template class ResultFunctorVWP<FeH1,Complex>;
+template class ResultFunctorVWP<FeHCurl,Complex>;
 
-template<class TYPE> void ResultFunctorVWP<TYPE>::CalcElemElecForce(Matrix<Double>& Force,
-		                                          const EntityIterator nameIt,
-		                                          const Elem* ptElement,
-                                                  const StdVector<ShortInt> & IsBoundaryNode) {
-
-
-    Vector<Double> field;
-    Matrix<Double> dJ_dr, CornerCoords,J;
-    Double DetdJ_dr;
-
-    StdVector<UInt>  connectivity = ptElement->connect;
-    UInt numNodes  = connectivity.GetSize();
-
-    // Obtain FE element from feSpace and integration scheme
-    IntegOrder order;
-    order.SetIsoOrder(2);
-    //IntScheme::IntegMethod method;
-
-    shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
-    // Get shape map from grid
-    shared_ptr<ElemShapeMap> esm =  ptGrid_->GetElemShapeMap( ptElement, true );
-
-    // Get integration points
-    StdVector<LocPoint> intPoints;
-    StdVector<Double> weights;
-    shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
-    intScheme->GetIntPoints( Elem::GetShapeType(ptElement->type), IntScheme::GAUSS, order,
-                                     intPoints, weights );
-    //intScheme->GetIntPoints( Elem::GetShapeType(ptElement->type), method, order, intPoints, weights );
-
-    Force.Resize(IsBoundaryNode.GetSize(), dim_);
-    Force.Init();
-
-    // Loop over all integration points
-    LocPointMapped lpm;
-    lpm.SetCheckJacobi(false);
-    for(UInt i = 0; i < intPoints.GetSize(); i++) {
-    	// Calculate for each integration point the LocPointMapped
-    	lpm.Set(intPoints[i], esm, weights[i]);
-    	//lpm.SetCheckJacobi(false);
-    	// get field vector scaled by square of material parameter
-    	coef_->GetVector(field, lpm );
-
-    	Matrix<Double> J = lpm.jac;
-    	Matrix<Double> Jinv = lpm.jacInv;
-
-    	Matrix<Double> JinvT; Jinv.Transpose(JinvT);
-    	Double Jdet = lpm.jacDet;
-    	Matrix<Double> SpecCornerCoords( dim_, numNodes );
-    	for (UInt nNode=0; nNode<IsBoundaryNode.GetSize(); nNode++) {
-    		// loop over all dimension
-    		for (UInt idim=0; idim<dim_; idim++) {
-    			// form SpecCornerCoords-Array
-    			SpecCornerCoords.Init();
-    			if (IsBoundaryNode[nNode] == 1)
-    					SpecCornerCoords[idim][nNode] = 1;
-    			else
-    				break;
-
-    			// calculate dJ_dr
-    			lpm.Set(intPoints[i], esm, weights[i], SpecCornerCoords);
-    			Matrix<Double> dJ_dr = lpm.jac;
-
-    			// calculate dJ_dr
-    			DetdJ_dr = CalcDetJDr(J, dJ_dr);
-
-
-    			Matrix<Double> J_r_Trans;
-    			dJ_dr.Transpose(J_r_Trans);
-    			dJ_dr = J_r_Trans;
-
-    			Double field2 = field.Inner(field);
-
-    			Vector<Double> dJdrTimesE(dim_); dJdrTimesE.Init();
-    			dJdrTimesE = dJ_dr * field;
-
-    			Vector<Double> JInvTimesdJdr(dim_); JInvTimesdJdr.Init();
-    			JInvTimesdJdr = JinvT * dJdrTimesE;
-
-    			Force(nNode,idim) -=  ( field.Inner(JInvTimesdJdr)*Jdet
-    					              - 0.5 *  field2 * DetdJ_dr ) * weights[i];
-
-    		} // loop over dimension
-    	} // loop over boundary nodes
-    } // loop over integration points
-
-}
-
-
-template<class TYPE> Double ResultFunctorVWP<TYPE>::CalcDetJDr(Matrix<Double> &J,
-		                                                       Matrix<Double> &dJ_dr ) {
-  Double det;
-
-  if (J.GetNumRows() == 2) {
-	  det = dJ_dr[0][0]*J[1][1]+dJ_dr[1][1]*J[0][0]-dJ_dr[0][1]*J[1][0]-dJ_dr[1][0]*J[0][1];
-  }
-  else {
-	  det =  dJ_dr[0][0] * (J[1][1]*J[2][2] - J[1][2]*J[2][1])
-          -  dJ_dr[0][1] * (J[1][0]*J[2][2] - J[1][2]*J[2][0])
-          +  dJ_dr[0][2] * (J[1][0]*J[2][1] - J[1][1]*J[2][0])
-          -  dJ_dr[1][0] * (J[0][1]*J[2][2] - J[0][2]*J[2][1])
-          +  dJ_dr[1][1] * (J[0][0]*J[2][2] - J[0][2]*J[2][0])
-          -  dJ_dr[1][2] * (J[0][0]*J[2][1] - J[0][1]*J[2][0])
-          +  dJ_dr[2][0] * (J[0][1]*J[1][2] - J[0][2]*J[1][1])
-          -  dJ_dr[2][1] * (J[0][0]*J[1][2] - J[0][2]*J[1][0])
-          +  dJ_dr[2][2] * (J[0][0]*J[1][1] - J[0][1]*J[1][0]);
-  }
-  return det;
-}
-
-template class ResultFunctorVWP<Complex>;
-template class ResultFunctorVWP<Double>;
 } // end of namespace

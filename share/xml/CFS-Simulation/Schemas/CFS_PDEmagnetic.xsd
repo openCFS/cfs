@@ -393,9 +393,11 @@
   <!-- Definition of surface element result types of electrostatic PDE -->
   <xsd:simpleType name="DT_MagneticSurfElemResult">
     <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magFluxDensitySurf"/>
       <xsd:enumeration value="magForceMaxwellDensity"/>
       <xsd:enumeration value="magNormalForceMaxwellDensity"/>
       <xsd:enumeration value="magTangentialForceMaxwellDensity"/>
+      <xsd:enumeration value="magForceVWPDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
   

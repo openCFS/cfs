@@ -249,12 +249,15 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_FORCE_MAXWELL_DENSITY, "magForceMaxwellDensity");
     SolutionTypeEnum.Add(MAG_NORMALFORCE_MAXWELL_DENSITY, "magNormalForceMaxwellDensity");
     SolutionTypeEnum.Add(MAG_TANGENTIALFORCE_MAXWELL_DENSITY, "magTangentialForceMaxwellDensity");
+    SolutionTypeEnum.Add(MAG_FORCE_VWP_DENSITY, "magForceVWPDensity");
+    SolutionTypeEnum.Add(MAG_FORCE_VWP_DENSITY_STATIC, "magForceVWPDensityStatic");
     SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSITY, "magEddyPowerDensity");
     SolutionTypeEnum.Add(MAG_ENERGY_DENSITY, "magEnergyDensity");
     SolutionTypeEnum.Add(MAG_CORE_LOSS_DENSITY, "magCoreLossDensity");
     SolutionTypeEnum.Add(MAG_CORE_LOSS, "magCoreLoss");
 
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
+    SolutionTypeEnum.Add(MAG_FORCE_VWP_STATIC, "magForceVWPStatic");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
     SolutionTypeEnum.Add(MAG_FORCE_MAXWELL, "magForceMaxwell");
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
@@ -858,6 +861,7 @@ namespace CoupledField {
       case FLUIDMECH_WVT_F:
       case FLUIDMECH_FORCE:
       case MAG_FORCE_VWP:
+      case MAG_FORCE_VWP_STATIC:
       case MECH_RHS_LOAD:
       case ELEC_FORCE:
       case SMOOTH_CONTACT_FORCE:
@@ -1053,6 +1057,8 @@ namespace CoupledField {
       case MAG_FORCE_MAXWELL_DENSITY:
       case MAG_NORMALFORCE_MAXWELL_DENSITY:
       case MAG_TANGENTIALFORCE_MAXWELL_DENSITY:
+      case MAG_FORCE_VWP_DENSITY:
+      case MAG_FORCE_VWP_DENSITY_STATIC:
       case SMOOTH_CONTACT_FORCE_DENSITY:
         return "N/m^2";
 

@@ -869,6 +869,60 @@ namespace CoupledField
     
   }
 
+  template<typename FE>
+  void MagBasePDE::GenerateVwpForcesResults(CoupledField::StdVector<std::string> &vecComponents, CoupledField::PtrCoefFct &bFunc, 
+    boost::shared_ptr<CoupledField::BaseFeFunction> &feFct) {
+
+    if( analysistype_ != MULTIHARMONIC ) {
+      // === VIRTUAL WORK PRINCIPLE FORCE DENSITY AND TOTAL FORCE ===
+      shared_ptr<ResultInfo> vwpDensity(new ResultInfo());
+      if( analysistype_ == HARMONIC ) {
+        vwpDensity->resultType = MAG_FORCE_VWP_DENSITY_STATIC;
+      }
+      else{
+        vwpDensity->resultType = MAG_FORCE_VWP_DENSITY;
+      }
+      vwpDensity->dofNames = vecComponents;
+      vwpDensity->unit = "N/m^2";
+      vwpDensity->definedOn = ResultInfo::SURF_ELEM;
+      vwpDensity->entryType = ResultInfo::VECTOR;
+      availResults_.insert(vwpDensity );
+  
+      shared_ptr<ResultInfo> vwp(new ResultInfo);
+      if( analysistype_ == HARMONIC ) {
+        vwp->resultType = MAG_FORCE_VWP_STATIC;
+      }
+      else{
+        vwp->resultType = MAG_FORCE_VWP;
+      }
+      vwp->dofNames = vecComponents;
+      vwp->unit = "N";
+      vwp->definedOn = ResultInfo::SURF_REGION;
+      vwp->entryType = ResultInfo::VECTOR;
+      availResults_.insert( vwp );
+  
+      shared_ptr<ResultFunctor> vwpFunc;
+      if( isComplex_ ) {
+        shared_ptr< CoefFunctionSurfVWP<FE, Complex> > vwpForceDens(new CoefFunctionSurfVWP<FE, Complex>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, ptGrid_, feFct));
+        DefineFieldResult(vwpForceDens, vwpDensity);
+        surfCoefFcts_[vwpForceDens] = bFunc;
+        vwpFunc.reset(new ResultFunctorVWP<FE,Complex>(vwpForceDens, vwp ) );
+      } else {
+        shared_ptr< CoefFunctionSurfVWP<FE,Double> > vwpForceDens(new CoefFunctionSurfVWP<FE,Double>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, ptGrid_, feFct));
+        DefineFieldResult(vwpForceDens, vwpDensity);
+        surfCoefFcts_[vwpForceDens] = bFunc;
+        vwpFunc.reset(new ResultFunctorVWP<FE,Double>(vwpForceDens, vwp ) );
+      }
+
+      if( analysistype_ == HARMONIC ) {
+        resultFunctors_[MAG_FORCE_VWP_STATIC] = vwpFunc;
+      }
+      else{
+        resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
+      }
+    }
+  }
+
   void MagBasePDE::ReadRegionVelocityField(std::string velocityId, shared_ptr<ElemList> actSDList, RegionIdType actRegion, bool& coefUpdateGeo){
     // Get result info object for flow
     shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
@@ -884,6 +938,14 @@ namespace CoupledField
     ReadUserFieldValues( actSDList, velNode, velInfo->dofNames, velInfo->entryType, isComplex_, regionMoving, definedDofs, coefUpdateGeo );
     VelocityCoef_->AddRegion( actRegion, regionMoving );
   }
+
+  template void MagBasePDE::GenerateVwpForcesResults<FeHCurl>(CoupledField::StdVector<std::string>&,
+    CoupledField::PtrCoefFct&,
+    boost::shared_ptr<CoupledField::BaseFeFunction>&);
+
+  template void MagBasePDE::GenerateVwpForcesResults<FeH1>(CoupledField::StdVector<std::string>&,
+    CoupledField::PtrCoefFct&,
+    boost::shared_ptr<CoupledField::BaseFeFunction>&);
 
 } // end of namespace
 

@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 
-<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns="http://www.cfs++.org/simulation">
-
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation  https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
   <fileFormats>
     <input>
       <hdf5 fileName="actor2c.h5" scaleFac="1e-3"/>
@@ -98,7 +96,12 @@
             <surfRegionList>
               <surfRegion name="interface" neighborRegion="air" outputIds="hdf5"/>
             </surfRegionList>
-          </surfRegionResult>           
+          </surfRegionResult>
+          <surfElemResult type="magForceVWPDensity" >
+            <surfElemList >
+              <surfElems name="interface" neighborRegion="air" outputIds="hdf5" writeAsHistResult="no"/>
+            </surfElemList>
+          </surfElemResult> 
         </storeResults>
       </magnetic>
      

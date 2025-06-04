@@ -934,15 +934,21 @@ namespace CoupledField {
         else if(candidate->definedOn == ResultInfo::SURF_ELEM ||
             candidate->definedOn == ResultInfo::SURF_REGION ) {
           listNode = actResultNode->Get("surfRegionList", ParamNode::PASS);
-          if( listNode )
+          if( listNode ){
             regionNodes = listNode->GetList("surfRegion");
+          }
 
-//          // fetch entry with neighboring regions
-//          for( UInt i = 0; i < regionNodes.GetSize(); i++ ) {
-//            std::string str = regionNodes[i]->Get("neighborRegion")->As<std::string>();
-//            neighborRegions.Push_back( str );
-//          }
-        }
+            if ( candidate->resultType == MAG_FORCE_VWP_DENSITY ||
+              candidate->resultType == MAG_FORCE_VWP_DENSITY_STATIC ) {
+              if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
+                listNode = actResultNode->Get("surfElemList", ParamNode::PASS);
+                if( listNode ) {
+                  regionNodes = listNode->GetList("surfElems");
+                }
+              }
+            }
+          }
+  
 
         // only enter, at least one region is present
         if( listNode ) {
@@ -963,7 +969,10 @@ namespace CoupledField {
             writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
             if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
                  candidate->resultType == MAG_FORCE_MAXWELL ||
-               candidate->resultType == MAG_FORCE_VWP) {
+                 candidate->resultType == MAG_FORCE_VWP ||
+                 candidate->resultType == MAG_FORCE_VWP_STATIC ||
+                 candidate->resultType == MAG_FORCE_VWP_DENSITY ||
+                 candidate->resultType == MAG_FORCE_VWP_DENSITY_STATIC) {
               neighborRegions.Push_back( regionNodes[i]->Get("neighborRegion")->As<std::string>());
             }
           }
@@ -1016,22 +1025,32 @@ namespace CoupledField {
 
           if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
                candidate->resultType == MAG_FORCE_MAXWELL ||
-             candidate->resultType == MAG_FORCE_VWP) {
+               candidate->resultType == MAG_FORCE_VWP_DENSITY ||
+               candidate->resultType == MAG_FORCE_VWP_DENSITY_STATIC || 
+               candidate->resultType == MAG_FORCE_VWP ||
+               candidate->resultType == MAG_FORCE_VWP_STATIC) {
             std::string neighborReg =  neighborRegions[iRegion];
             RegionIdType surfRegionId = ptGrid_->GetRegion().Parse( regionNames[iRegion] );
             RegionIdType volNeighborRegionId = ptGrid_->GetRegion().Parse( neighborReg );
             fnc->GetCoefFct()->SetVolNeighborRegionId(surfRegionId,volNeighborRegionId);
+            //check for surfCoefFunctions
+            shared_ptr<CoefFunctionSurf> surfFct = boost::dynamic_pointer_cast<CoefFunctionSurf>(fnc->GetCoefFct());
+            if (surfFct) {
+              if (surfCoefFcts_.find(surfFct) != surfCoefFcts_.end()) {
+                surfFct->AddEntity(actList);
+              }
             }
+          }
+
 
           // update sequence step for result handler (also done in ResultHandler::BeginMultiSequenceStep, but AFTER reading the xml for the current step, hence we would be one step behind regarding reading e.g. postproc results from the xml)
           // nevertheless, it appears that we have to keep it in ResultHandler::BeginMultiSequenceStep as well since not setting the sequence step in this routine breaks stuff
           resHandler->SetSequenceStep(sequenceStep_);
-          // pass result to result  
-          resHandler->RegisterResult( actSol, fnc, sequenceStep_,
-              saveBegin, saveInc, saveEnd,
-              actOutDest,
-              postProcNames[iRegion], writeResult,
-              isHistory[candidate->definedOn] );
+          // pass result to result, which is not necessary in case of MAG_FORCE_VWP_DENSITY 
+          if ( candidate->resultType != MAG_FORCE_VWP_DENSITY &&
+            candidate->resultType != MAG_FORCE_VWP_DENSITY_STATIC ) {
+            resHandler->RegisterResult( actSol, fnc, sequenceStep_, saveBegin, saveInc, saveEnd, actOutDest, postProcNames[iRegion], writeResult, isHistory[candidate->definedOn] );
+          }
         }
       }
 
