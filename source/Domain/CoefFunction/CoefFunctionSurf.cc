@@ -474,50 +474,8 @@ CoefFunctionSurfMaxwell::~CoefFunctionSurfMaxwell() {
 
 
 //===================Virtual Work Principle =================================================
-CoefFunctionSurfVWP::CoefFunctionSurfVWP( bool mapNormal,
-		                            std::map<SolutionType, shared_ptr<CoefFunctionMulti> > matCoefs,
-									Double factor,
-									shared_ptr<ResultInfo> surfInfo)
-: CoefFunctionSurf(mapNormal, factor, surfInfo) {
-
-
-  // not sure about the following one
-  matCoef_ = matCoefs;
-}
-
-void CoefFunctionSurfVWP::GetVector(Vector<Double>& coefVec,
-                                    const LocPointMapped& lpm ) {
-  assert(this->dimType_ == VECTOR);
-
-  //get magnetic flux density
-  Vector<Double> Bvec;
-  RegionIdType surRegId = lpm.ptEl->regionId;
-  //RegionIdType volNeighborRegionId = neighborRegionId_[surRegId];
-  coefs_[surRegId]->GetVector(Bvec, lpm );
-
-  //get permeability
-  Double permeability;
-  std::map<RegionIdType,PtrCoefFct > permFncs = matCoef_[MAG_ELEM_PERMEABILITY]->GetRegionCoefs();
-  permFncs[surRegId]->GetScalar(permeability, lpm );
-
-  coefVec = Bvec / std::sqrt( permeability );
-}
-
-void CoefFunctionSurfVWP::GetVector(Vector<Complex>& coefVec,
-                               const LocPointMapped& lpm ) {
-  assert(this->dimType_ == VECTOR);
-
-  EXCEPTION("CoefFunctionSurfVWP for Harmonic Analysis not implemented");
-
-}
-
-CoefFunctionSurfVWP::~CoefFunctionSurfVWP() {
-}
-
-
-//===================Virtual Work Principle NEW =================================================
 template<class FE, class DATA_TYPE>
-CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CoefFunctionSurfVWPnew(PtrCoefFct matCoef,
+CoefFunctionSurfVWP<FE,DATA_TYPE>::CoefFunctionSurfVWP(PtrCoefFct matCoef,
                                                    shared_ptr<ResultInfo> surfInfo,
                                                    Grid* ptGrid,
                                                    shared_ptr<BaseFeFunction> feFnc)
@@ -533,12 +491,12 @@ CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CoefFunctionSurfVWPnew(PtrCoefFct matCoef,
 }
 
 template<class FE, class DATA_TYPE>
-CoefFunctionSurfVWPnew<FE,DATA_TYPE>::~CoefFunctionSurfVWPnew() {
+CoefFunctionSurfVWP<FE,DATA_TYPE>::~CoefFunctionSurfVWP() {
 }
 
 // Returns the total force summing up all nodal forces over a group
 template<class FE, class DATA_TYPE>
-void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetTotalForce(const std::string & entityName,
+void CoefFunctionSurfVWP<FE,DATA_TYPE>::GetTotalForce(const std::string & entityName,
                                                          Vector<DATA_TYPE> & totalForce)
 {
     UpdateCache();
@@ -551,7 +509,7 @@ void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetTotalForce(const std::string & ent
 }
 
 template<class FE, class DATA_TYPE>
-void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetVector(Vector<DATA_TYPE>& coefVec,
+void CoefFunctionSurfVWP<FE,DATA_TYPE>::GetVector(Vector<DATA_TYPE>& coefVec,
                                                      const LocPointMapped& lpm ) {
   assert(this->dimType_ == VECTOR);
 
@@ -600,12 +558,12 @@ void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetVector(Vector<DATA_TYPE>& coefVec,
     coefVec.ScalarDiv(lpm.shapeMap->CalcVolume(true));
   }
   else  
-    EXCEPTION("CoefFunctionSurfVWPnew<FE,DATA_TYPE>::GetVector: FE-Type unknown");
+    EXCEPTION("CoefFunctionSurfVWP<FE,DATA_TYPE>::GetVector: FE-Type unknown");
 }
 
 // Update the cache with nodal forces 
 template<class FE, class DATA_TYPE> 
-void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::UpdateCache() {
+void CoefFunctionSurfVWP<FE,DATA_TYPE>::UpdateCache() {
   if (FeFunction_->GetPDE()->GetSolveStep()->GetActStep() == cacheStep_) {
     return;
   }
@@ -706,7 +664,7 @@ void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::UpdateCache() {
 }
 
 template<class FE, class DATA_TYPE>
-void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CalcElemForce(Matrix<DATA_TYPE>& force,
+void CoefFunctionSurfVWP<FE,DATA_TYPE>::CalcElemForce(Matrix<DATA_TYPE>& force,
                                             const Elem* ptElement,
                                             const std::vector<bool> & isBoundaryNode)
 {
@@ -805,7 +763,7 @@ void CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CalcElemForce(Matrix<DATA_TYPE>& forc
 }
 
 template<class FE, class DATA_TYPE>
-Double CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CalcDetJDr(const Matrix<Double> &J,
+Double CoefFunctionSurfVWP<FE,DATA_TYPE>::CalcDetJDr(const Matrix<Double> &J,
                                               const Matrix<Double> &dJ_dr,
                                               const LocPointMapped &lpm) {
   Double det;
@@ -833,10 +791,10 @@ Double CoefFunctionSurfVWPnew<FE,DATA_TYPE>::CalcDetJDr(const Matrix<Double> &J,
 }
 
 // explicit template instantiation
-template class CoefFunctionSurfVWPnew<FeH1, Double>;
-template class CoefFunctionSurfVWPnew<FeHCurl, Double>;
-template class CoefFunctionSurfVWPnew<FeH1, Complex>;
-template class CoefFunctionSurfVWPnew<FeHCurl, Complex>;
+template class CoefFunctionSurfVWP<FeH1, Double>;
+template class CoefFunctionSurfVWP<FeHCurl, Double>;
+template class CoefFunctionSurfVWP<FeH1, Complex>;
+template class CoefFunctionSurfVWP<FeHCurl, Complex>;
 
 
 }

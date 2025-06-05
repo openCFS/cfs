@@ -893,19 +893,19 @@ namespace CoupledField
   
       shared_ptr<ResultFunctor> vwpFunc;
       if( isComplex_ ) {
-        shared_ptr< CoefFunctionSurfVWPnew<FE, Complex> > vwpForceDens(
-            new CoefFunctionSurfVWPnew<FE, Complex>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+        shared_ptr< CoefFunctionSurfVWP<FE, Complex> > vwpForceDens(
+            new CoefFunctionSurfVWP<FE, Complex>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
                                                       ptGrid_, feFct));
         DefineFieldResult(vwpForceDens, vwpDensity);
         surfCoefFcts_[vwpForceDens] = bFunc;
-        vwpFunc.reset(new ResultFunctorVWPnew<FE,Complex>(vwpForceDens, vwp ) );
+        vwpFunc.reset(new ResultFunctorVWP<FE,Complex>(vwpForceDens, vwp ) );
       } else {
-        shared_ptr< CoefFunctionSurfVWPnew<FE,Double> > vwpForceDens(
-            new CoefFunctionSurfVWPnew<FE,Double>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+        shared_ptr< CoefFunctionSurfVWP<FE,Double> > vwpForceDens(
+            new CoefFunctionSurfVWP<FE,Double>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
                                                     ptGrid_, feFct));
         DefineFieldResult(vwpForceDens, vwpDensity);
         surfCoefFcts_[vwpForceDens] = bFunc;
-        vwpFunc.reset(new ResultFunctorVWPnew<FE,Double>(vwpForceDens, vwp ) );
+        vwpFunc.reset(new ResultFunctorVWP<FE,Double>(vwpForceDens, vwp ) );
       }
       resultFunctors_[MAG_FORCE_VWP_STATIC] = vwpFunc;
     }
@@ -929,19 +929,19 @@ namespace CoupledField
   
       shared_ptr<ResultFunctor> vwpFunc;
       if( isComplex_ ) {
-        shared_ptr< CoefFunctionSurfVWPnew<FE, Complex> > vwpForceDens(
-            new CoefFunctionSurfVWPnew<FE, Complex>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+        shared_ptr< CoefFunctionSurfVWP<FE, Complex> > vwpForceDens(
+            new CoefFunctionSurfVWP<FE, Complex>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
                                                       ptGrid_, feFct));
         DefineFieldResult(vwpForceDens, vwpDensity);
         surfCoefFcts_[vwpForceDens] = bFunc;
-        vwpFunc.reset(new ResultFunctorVWPnew<FE,Complex>(vwpForceDens, vwp ) );
+        vwpFunc.reset(new ResultFunctorVWP<FE,Complex>(vwpForceDens, vwp ) );
       } else {
-        shared_ptr< CoefFunctionSurfVWPnew<FE,Double> > vwpForceDens(
-            new CoefFunctionSurfVWPnew<FE,Double>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
+        shared_ptr< CoefFunctionSurfVWP<FE,Double> > vwpForceDens(
+            new CoefFunctionSurfVWP<FE,Double>(matCoefs_[MAG_ELEM_PERMEABILITY], vwpDensity, 
                                                     ptGrid_, feFct));
         DefineFieldResult(vwpForceDens, vwpDensity);
         surfCoefFcts_[vwpForceDens] = bFunc;
-        vwpFunc.reset(new ResultFunctorVWPnew<FE,Double>(vwpForceDens, vwp ) );
+        vwpFunc.reset(new ResultFunctorVWP<FE,Double>(vwpForceDens, vwp ) );
       }
       resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
     }
