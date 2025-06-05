@@ -581,7 +581,7 @@ void CoefFunctionSurfVWP<FE,DATA_TYPE>::UpdateCache() {
   //make sure, that when array has already be used, zero it!
   for ( UInt i = 0; i< nodalForces_.size(); i++ ) {
     Vector<DATA_TYPE> & nodeForce = nodalForces_[i];
-    if ( nodeForce.size() != 0) 
+    if ( nodeForce.GetSize() != 0) 
       nodeForce.Init();
   }
 
@@ -630,7 +630,7 @@ void CoefFunctionSurfVWP<FE,DATA_TYPE>::UpdateCache() {
       // Add the element force to the according coupling node
       for (UInt iElemNode = 0; iElemNode < numElemNodes; ++iElemNode) {
         Vector<DATA_TYPE> & nodeForce = nodalForces_[connect[iElemNode]];
-        if (nodeForce.size() == 0) {
+        if (nodeForce.GetSize() == 0) {
           nodeForce.Resize(numDofs_);
           nodeForce.Init();
         }
@@ -648,7 +648,7 @@ void CoefFunctionSurfVWP<FE,DATA_TYPE>::UpdateCache() {
   // Vector<DATA_TYPE> totForce(numDofs_); totForce.Init(); 
   // for ( UInt i = 0; i< nodalForces_.size(); i++ ) {
   //   Vector<DATA_TYPE> & nodeForce = nodalForces_[i];
-  //   if ( nodeForce.size() != 0) {
+  //   if ( nodeForce.GetSize() != 0) {
   //     for ( UInt j = 0; j < numDofs_; j++ ) {
   //       totForce[j] +=  nodeForce[j];
   //     }
