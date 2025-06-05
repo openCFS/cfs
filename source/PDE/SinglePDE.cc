@@ -938,7 +938,8 @@ namespace CoupledField {
             regionNodes = listNode->GetList("surfRegion");
           }
 
-            if ( candidate->resultType == MAG_FORCE_VWP_DENSITY ) {
+            if ( candidate->resultType == MAG_FORCE_VWP_DENSITY ||
+              candidate->resultType == MAG_FORCE_VWP_DENSITY_STATIC ) {
               if(candidate->definedOn == ResultInfo::SURF_ELEM ) {
                 listNode = actResultNode->Get("surfElemList", ParamNode::PASS);
                 if( listNode ) {
@@ -969,7 +970,9 @@ namespace CoupledField {
             if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
                  candidate->resultType == MAG_FORCE_MAXWELL ||
                  candidate->resultType == MAG_FORCE_VWP ||
-                 candidate->resultType == MAG_FORCE_VWP_DENSITY) {
+                 candidate->resultType == MAG_FORCE_VWP_STATIC ||
+                 candidate->resultType == MAG_FORCE_VWP_DENSITY ||
+                 candidate->resultType == MAG_FORCE_VWP_DENSITY_STATIC) {
               neighborRegions.Push_back( regionNodes[i]->Get("neighborRegion")->As<std::string>());
             }
           }
@@ -1022,8 +1025,10 @@ namespace CoupledField {
 
           if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
                candidate->resultType == MAG_FORCE_MAXWELL ||
-               candidate->resultType == MAG_FORCE_VWP_DENSITY || 
-               candidate->resultType == MAG_FORCE_VWP) {
+               candidate->resultType == MAG_FORCE_VWP_DENSITY ||
+               candidate->resultType == MAG_FORCE_VWP_DENSITY_STATIC || 
+               candidate->resultType == MAG_FORCE_VWP ||
+               candidate->resultType == MAG_FORCE_VWP_STATIC) {
             std::string neighborReg =  neighborRegions[iRegion];
             RegionIdType surfRegionId = ptGrid_->GetRegion().Parse( regionNames[iRegion] );
             RegionIdType volNeighborRegionId = ptGrid_->GetRegion().Parse( neighborReg );
@@ -1043,7 +1048,8 @@ namespace CoupledField {
           // nevertheless, it appears that we have to keep it in ResultHandler::BeginMultiSequenceStep as well since not setting the sequence step in this routine breaks stuff
           resHandler->SetSequenceStep(sequenceStep_);
           // pass result to result, which is not necessary in case of MAG_FORCE_VWP_DENSITY 
-          if ( candidate->resultType != MAG_FORCE_VWP_DENSITY ) {
+          if ( candidate->resultType != MAG_FORCE_VWP_DENSITY &&
+            candidate->resultType != MAG_FORCE_VWP_DENSITY_STATIC ) {
             resHandler->RegisterResult( actSol, fnc, sequenceStep_,
 						                            saveBegin, saveInc, saveEnd,
 						                            actOutDest,

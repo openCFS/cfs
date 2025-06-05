@@ -406,6 +406,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magForceMaxwellDensity"/>
       <xsd:enumeration value="magForceVWPDensity"/>
+      <xsd:enumeration value="magForceVWPDensityStatic"/>
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -430,6 +431,7 @@
       <xsd:enumeration value="displacementCurrent"/>
       <xsd:enumeration value="magFlux"/>
       <xsd:enumeration value="magForceVWP"/>
+      <xsd:enumeration value="magForceVWPStatic"/>
       <xsd:enumeration value="magForceMaxwell"/>
     </xsd:restriction>
   </xsd:simpleType>
