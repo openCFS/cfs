@@ -1152,64 +1152,10 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     DefineFieldResult( fieldIntensity_, magIntens );
     availResults_.insert( magIntens );
-    
 
-    if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
-    // === MAXWELL FORCE DENSITY ===
-    shared_ptr<ResultInfo> mfd(new ResultInfo);
-    mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
-    mfd->dofNames = vecComponents;
-    mfd->unit = "N/m^3";
-    mfd->definedOn = ResultInfo::SURF_ELEM;
-    mfd->entryType = ResultInfo::VECTOR;
-    availResults_.insert( mfd );
-    // Note: The positive normal direction in this case is defined as the
-    //       inward facing one.
-    shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, matCoefs_, ptGrid_, -1.0, mfd));
-    DefineFieldResult( maxForceDens, mfd);
-    surfCoefFcts_[maxForceDens] = bFunc;
+    GenerateMaxwellForce(vecComponents, bFunc, feFct);
 
-    // === MAXWELL FORCE (TOTAL) ===
-    shared_ptr<ResultInfo> mf(new ResultInfo);
-    mf->resultType = MAG_FORCE_MAXWELL;
-    mf->dofNames = vecComponents;
-    mf->unit = "N";
-    mf->definedOn = ResultInfo::SURF_REGION;
-    mf->entryType = ResultInfo::VECTOR;
-    availResults_.insert( mf );
-
-    // build result functor for integration
-    shared_ptr<ResultFunctor> mfFunc;
-    if( isComplex_ ) {
-    mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
-    } else {
-    mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
-    }
-    resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
-
-    // === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
-    shared_ptr<ResultInfo> vwp(new ResultInfo);
-    vwp->resultType = MAG_FORCE_VWP;
-    vwp->dofNames = vecComponents;
-    vwp->unit = "N";
-    vwp->definedOn = ResultInfo::SURF_REGION;
-    vwp->entryType = ResultInfo::VECTOR;
-    availResults_.insert( vwp );
-
-    // define and save coefFunction
-    shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_, 1.0, vwp));
-    surfCoefFcts_[vwpForce] = bFunc;
-
-    // build result functor for integration
-    shared_ptr<ResultFunctor> vwpFunc;
-    if( isComplex_ ) {
-      vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
-    } else {
-      vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
-    }
-    resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
-    }
-
+    GenerateVWPForce(vecComponents, bFunc, feFct);
 
     // === MAGNETIC ENERGY ===
     shared_ptr<ResultInfo> energy(new ResultInfo);

@@ -656,6 +656,9 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
 
     }// end if !static
 
+    GenerateMaxwellForce(vecComponents, bFunc, feFct);
+
+    GenerateVWPForce(vecComponents, bFunc, feFct);
 
     // === PERMEABILITY  ===
     shared_ptr<ResultInfo> perm(new ResultInfo);
