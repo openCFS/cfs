@@ -361,7 +361,6 @@ namespace CoupledField
   =========================================================================================
   */
   Vector<Double> EBHysteresis::ComputeMaterialParamaterDerivative(Vector<Double> HVec, UInt idx){
-    std::cout << "here!!!";
     Vector<Double> dmu_domega(numS_);
     Vector<Double> M;
     Double numerator, denominator;
