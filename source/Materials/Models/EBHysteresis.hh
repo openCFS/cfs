@@ -42,6 +42,18 @@ namespace CoupledField {
       Vector<Double> GetFluxDensity(Vector<Double> E, Integer ElemNum,
                                     LocPointMapped lpm, PtrCoefFct stressCoef);
 
+      /*
+      =========================================================================================
+          Methods regarding the inverse schem
+      =========================================================================================
+      */
+      Vector<Double> ComputeMaterialParamaterDerivative(Vector<Double> E, UInt idx);
+
+      /*
+      =========================================================================================
+          Methods regarding the computation of the Jacobian matrix
+      =========================================================================================
+      */
       Matrix<Double> EvaluateLocalMu(StdVector<Double> E, StdVector<Double> D, UInt idx);
 
       Matrix<Double> EvaluateLocalMuDFP(StdVector<Double> E, StdVector<Double> D, UInt idx);
@@ -56,6 +68,11 @@ namespace CoupledField {
 
       StdVector<Double> inv3x3(StdVector<Double> A);
 
+      /*
+      =========================================================================================
+          Methods regarding the evaluation of the hysteresis model
+      =========================================================================================
+      */
       Vector<Double> Evaluate(Vector<Double> E, UInt idx);
 
       Vector<Double> Eval_2D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
@@ -68,7 +85,11 @@ namespace CoupledField {
       Vector<Double> Eval_2D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
       Vector<Double> Eval_3D_EBM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
 
-
+      /*
+      =========================================================================================
+          Methods regarding the computation of the simplified multiscale model (SMSM)
+      =========================================================================================
+      */
       void Calc_derivs(Double &F_prime, Double &F_prime_prime, Matrix<Double> &dM_dHrev,
                       Double MxS_prev, Double MyS_prev,
                       Double Hex_x, Double Hex_y,
@@ -77,10 +98,6 @@ namespace CoupledField {
 
       Double Energy_linesearch(Double Hx, Double Hy, Double Hprev_x, Double Hprev_y, Double Mprev_x, Double Mprev_y,
                                Double phi, Double chi, Double &F_prime_orig, Double &F_prime_prime_orig);
-
-      void bledsinn(){
-        std::cout<<"bledsinn?ß===================="<<std::endl;
-      }
     private:
       //==============
       std::unique_ptr<SMSM> SMSM_model_;

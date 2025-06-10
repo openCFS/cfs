@@ -237,12 +237,14 @@ namespace CoupledField
       alreadyHasMu_.Init(false);
     }
    
-     if(alreadyHasMu_[idx] == true){
-        if(idx == 1){
-          LOG_DBG2(eb) << "\t mu from alreadyHasMu_ = " << mu_[idx].ToString();
-        }
-        return mu_[idx];
+    if(alreadyHasMu_[idx] == true){
+      if(idx == 1){
+        LOG_DBG2(eb) << "\t mu from alreadyHasMu_ = " << mu_[idx].ToString();
       }
+      return mu_[idx];
+    }
+    Vector<Double> test_dmu_domega;
+    test_dmu_domega = ComputeMaterialParamaterDerivative(HVec, idx);
     
     Vector<Double> M;
     Matrix<Double> mu(dim_, dim_);
@@ -353,6 +355,68 @@ namespace CoupledField
     }
   }
 
+  /*
+  =========================================================================================
+      Methods regarding the inverse schem
+  =========================================================================================
+  */
+  Vector<Double> EBHysteresis::ComputeMaterialParamaterDerivative(Vector<Double> HVec, UInt idx){
+    std::cout << "here!!!";
+    Vector<Double> dmu_domega(numS_);
+    Vector<Double> M;
+    Double numerator, denominator;
+    Double H_norm, M_norm;
+    if (dim_ == 2){ // 2-D case
+      // DEFINE AND INIT. ALL NEEDED VARIABLES (2-D Case)
+      StdVector<Double> Mx_j, My_j;
+      Mx_j.Resize(numS_, 0.0);
+      My_j.Resize(numS_, 0.0);
+      Mx_j = MxS_n_tmp_[idx];
+      My_j = MyS_n_tmp_[idx];
+      Double Hx = HVec[0];
+      Double Hy = HVec[1];
+      Double H_norm = std::sqrt(std::pow(Hx,2) + std::pow(Hy,2));
+      M = Evaluate(HVec, idx);
+      Double Mx = M[0];
+      Double My = M[1];
+      Double M_norm = std::sqrt(std::pow(Mx,2) + std::pow(My,2));
+
+      // ACTUAL COMPUTATION ACCORDING TO EQUATION (2-D Case)
+      for (UInt jdx = 0; jdx < numS_; jdx++){
+        numerator = (Hx*Mx_j[jdx]+Hy*My_j[jdx]) + (Mx*Mx_j[jdx]+My*My_j[jdx]);
+        denominator = std::sqrt(std::pow(H_norm,2) + 2*(Hx*Mx+Hy*My) + std::pow(M_norm,2));
+        dmu_domega[jdx] = (mu0_/H_norm)*(numerator/denominator);
+      }
+    } else { // 3-D case
+      // DEFINE AND INIT. ALL NEEDED VARIABLES (3-D Case)
+      StdVector<Double> Mx_j, My_j, Mz_j;
+      Mx_j.Resize(numS_, 0.0);
+      My_j.Resize(numS_, 0.0);
+      Mz_j.Resize(numS_, 0.0);
+      Mx_j = MxS_n_tmp_[idx];
+      My_j = MyS_n_tmp_[idx];
+      Mz_j = MzS_n_tmp_[idx];
+      Double Hx = HVec[0];
+      Double Hy = HVec[1];
+      Double Hz = HVec[2];
+      M = Evaluate(HVec, idx);
+      Double Mx = M[0];
+      Double My = M[1];
+      Double Mz = M[2];
+      // ACTUAL COMPUTATION ACCORDING TO EQUATION (3-D Case)
+      H_norm = std::sqrt(std::pow(Hx,2) + std::pow(Hy,2) + std::pow(Hz,2));
+      M_norm = std::sqrt(std::pow(Mx,2) + std::pow(My,2) + std::pow(Mz,2));
+      for (UInt jdx = 0; jdx < numS_; jdx++){
+        numerator = (Hx*Mx_j[jdx]+Hy*My_j[jdx]+Hz*Mz_j[jdx]) + (Mx*Mx_j[jdx]+My*My_j[jdx]+Mz*Mz_j[jdx]);
+        denominator = std::sqrt(std::pow(H_norm,2) + 2*(Hx*Mx+Hy*My+Hz*Mz) + std::pow(M_norm,2));
+        dmu_domega[jdx] = (mu0_/H_norm)*(numerator/denominator);
+      }      
+    }
+    
+    // RETURN
+    return dmu_domega;
+  }
+
 
 
   /*
@@ -368,7 +432,7 @@ namespace CoupledField
       Matrix<Double> identity; identity.Resize(dim_,dim_); 
 
       Double t0, t1, t3, factor1,factor2,factor3;
-      Double mu0 = 1.256637061e-06;;
+      Double mu0 = 1.256637061e-06;
 
       // 2D case (x,y)
       if (dim_ == 2){
