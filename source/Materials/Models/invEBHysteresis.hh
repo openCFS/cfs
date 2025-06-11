@@ -57,10 +57,10 @@ namespace CoupledField {
       // recipe to evaluate the hysteresis operator
       Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> B, Integer ElemNum);
 
-      // Evaluate the hystersis operator
+      // Evaluate the hystersis operator for all available cases
       Vector<Double> Evaluate(Vector<Double> B, UInt idx);
       Vector<Double> Eval_2D_invEBM_TAN(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
-      //Vector<Double> Eval_3D_invEBM_TAN(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+      Vector<Double> Eval_3D_invEBM_TAN(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
 
       // --------------- FE related functions --------------- //
 
@@ -162,8 +162,6 @@ namespace CoupledField {
       UInt iterTracker4Nu_;
       UInt timeStep_;
       double isMH_;
-
-      UInt ndx_eb_;
 
       std::string varHandle_;
 

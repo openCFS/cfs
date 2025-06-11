@@ -237,6 +237,7 @@
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="A"/> 
+              <xsd:enumeration value="AStar"/> 
               <xsd:enumeration value="A-V"/>
               <xsd:enumeration value="specialA-V"/> 
               <xsd:enumeration value="Darwin"/> 

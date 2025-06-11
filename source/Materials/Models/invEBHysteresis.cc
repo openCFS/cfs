@@ -124,51 +124,104 @@ if (ParameterMap.size() < 5)
       Matrix<Double> nu(dim_, dim_);
       nu.InitValue(0.0);
 
-      if( timeStep_ == 1 && iterTracker4Nu_ == 1){ // starting value at nu = diag(1/(mu0*1));
-        for(UInt i = 0; i < dim_; i++) {
-          for(UInt j = 0; j < dim_; j++) {
-            if (i == j) {
-              nu[i][j] = 1/(mu0_*1);
-            } else {
-              nu[i][j] = 0;
+      if (dim_ == 2) {
+        if( timeStep_ == 1 && iterTracker4Nu_ == 1){ // starting value at nu = diag(1/(mu0*1));
+          for(UInt i = 0; i < dim_; i++) {
+            for(UInt j = 0; j < dim_; j++) {
+              if (i == j) {
+                nu[i][j] = 1/(mu0_*1000);
+              } else {
+                nu[i][j] = 0;
+              }
             }
           }
+          nu_[idx] = nu;
+          alreadyHasNu_[idx] = true;
+          return nu;
         }
-        nu_[idx] = nu;
-        alreadyHasNu_[idx] = true;
-        return nu;
+
+        Vector<Double> delta_H(dim_);
+        Vector<Double> delta_B(dim_);
+        H = Evaluate(BVec, idx); // get current H
+        for(UInt i = 0; i < dim_; i++) { // get the values for H and M from the last timestep and get deltaH and deltaB
+          delta_B[i] = BVec[i] - B_prev_[idx][i];
+          delta_H[i] = H[i] - H_prev_[idx][i];
+        }
+        switch (jacobian_method_) { // determine nu
+          case 1:
+            // use finite differences
+            EXCEPTION("Finite Differences not implemented!")
+            break;
+          case 2:
+            // use Broyden method
+            nu = EvaluateLocalNuGBM(delta_H, delta_B, idx);
+            break;
+          case 3:
+            // use simple finite differences
+            EXCEPTION("Simple finite differences not implemented!")
+            break;
+          case 4:
+            // use BFGS method
+            nu = EvaluateLocalNuBFGS(delta_H, delta_B, idx); 
+            break;
+        }
+
+        for (UInt i = 0; i < dim_; ++i) {
+            B_prev_[idx][i] = BVec[i];
+            H_prev_[idx][i] = H[i];
+        }
+      } else { // 3D case
+        if( timeStep_ == 1 && iterTracker4Nu_ == 1){ // starting value at nu = diag(1/(mu0*1));
+          for(UInt i = 0; i < dim_; i++) {
+            for(UInt j = 0; j < dim_; j++) {
+              if (i == j) {
+                nu[i][j] = 1/(mu0_*1000);
+              } else {
+                nu[i][j] = 0;
+              }
+            }
+          }
+          nu_[idx] = nu;
+          alreadyHasNu_[idx] = true;
+          return nu;
+        }
+
+        Vector<Double> delta_H(dim_);
+        Vector<Double> delta_B(dim_);
+        H = Evaluate(BVec, idx); // get current H
+        for(UInt i = 0; i < dim_; i++) { // get the values for H and M from the last timestep and get deltaH and deltaB
+          delta_B[i] = BVec[i] - B_prev_[idx][i];
+          delta_H[i] = H[i] - H_prev_[idx][i];
+        }
+        switch (jacobian_method_) { // determine nu
+          case 1:
+            // use finite differences
+            EXCEPTION("Finite Differences not implemented!")
+            break;
+          case 2:
+            // use Broyden method
+            nu = EvaluateLocalNuGBM(delta_H, delta_B, idx);
+            break;
+          case 3:
+            // use simple finite differences
+            EXCEPTION("Simple finite differences not implemented!")
+            break;
+          case 4:
+            // use BFGS method
+            nu = EvaluateLocalNuBFGS(delta_H, delta_B, idx); 
+            break;
+        }
+
+        for (UInt i = 0; i < dim_; ++i) {
+            B_prev_[idx][i] = BVec[i];
+            H_prev_[idx][i] = H[i];
+        }
+
+      }
+      if (idx == 1){
+        std::cout << "nu: " << 1.0/(nu[0][0]*mu0_) << "\n";
       }
 
-      Vector<Double> delta_H(dim_);
-      Vector<Double> delta_B(dim_);
-      H = Evaluate(BVec, idx); // get current H
-      for(UInt i = 0; i < dim_; i++) { // get the values for H and M from the last timestep and get deltaH and deltaB
-        delta_B[i] = BVec[i] - B_prev_[idx][i];
-        delta_H[i] = H[i] - H_prev_[idx][i];
-      }
-      switch (jacobian_method_) { // determine nu
-        case 1:
-          // use finite differences
-          EXCEPTION("Finite Differences not implemented!")
-          break;
-        case 2:
-          // use Broyden method
-          nu = EvaluateLocalNuGBM(delta_H, delta_B, idx);
-          break;
-        case 3:
-          // use simple finite differences
-          EXCEPTION("Simple finite differences not implemented!")
-          break;
-        case 4:
-          // use BFGS method
-          nu = EvaluateLocalNuBFGS(delta_H, delta_B, idx); 
-          break;
-      }
-
-      for (UInt i = 0; i < dim_; ++i) {
-          B_prev_[idx][i] = BVec[i];
-          H_prev_[idx][i] = H[i];
-      }
       nu_[idx] = nu;    
       alreadyHasNu_[idx] = true;
       return nu;
@@ -208,21 +261,16 @@ if (ParameterMap.size() < 5)
         // construct everything
         B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
         B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
-
         B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
         B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
 
         if ( (std::isnan(B_k1[0][0])) || (std::isnan(B_k1[1][1])) || (std::isnan(B_k1[0][1])) || (std::isnan(B_k1[1][0])) ) {
-          B_k1[0][0] = 1.0/mu0_;
-          B_k1[1][1] = 0;
-          B_k1[0][1] = 0;
-          B_k1[1][0] = 1.0/mu0_;
+          B_k1[0][0] = 1.0/mu0_; B_k1[0][1] = 0.0;
+          B_k1[1][0] = 0.0;      B_k1[1][1] = 1.0/mu0_;
         }
         if ( (std::isinf(B_k1[0][0])) || (std::isinf(B_k1[1][1])) || (std::isinf(B_k1[0][1])) || (std::isinf(B_k1[1][0])) ) {
-          B_k1[0][0] = 1.0/mu0_;
-          B_k1[1][1] = 0;
-          B_k1[0][1] = 0;
-          B_k1[1][0] = 1.0/mu0_;
+          B_k1[0][0] = 1.0/mu0_; B_k1[0][1] = 0.0;
+          B_k1[1][0] = 0.0;      B_k1[1][1] = 1.0/mu0_;
         }
       } else { // 3-D version
         // yyT (outer product)
@@ -256,6 +304,21 @@ if (ParameterMap.size() < 5)
         B_k1[2][0] = B[2][0] + yyT[2][0]/yTx - BxBxT[2][0]/xTBx; 
         B_k1[2][1] = B[2][1] + yyT[2][1]/yTx - BxBxT[2][1]/xTBx;
         B_k1[2][2] = B[2][2] + yyT[2][2]/yTx - BxBxT[2][2]/xTBx;
+
+        if ( (std::isnan(B_k1[0][0])) || (std::isnan(B_k1[0][1])) || (std::isnan(B_k1[0][2]))
+          || (std::isnan(B_k1[1][0])) || (std::isnan(B_k1[1][1])) || (std::isnan(B_k1[1][2]))
+          || (std::isnan(B_k1[2][0])) || (std::isnan(B_k1[2][1])) || (std::isnan(B_k1[2][2])) ) {
+          B_k1[0][0] = 1.0/mu0_; B_k1[0][1] = 0.0;      B_k1[0][2] = 0.0;
+          B_k1[1][0] = 0.0;      B_k1[1][1] = 1.0/mu0_; B_k1[1][2] = 0.0;
+          B_k1[2][0] = 0.0;      B_k1[2][1] = 0.0;      B_k1[2][2] = 1.0/mu0_;
+        }
+        if ( (std::isinf(B_k1[0][0])) || (std::isinf(B_k1[0][1])) || (std::isinf(B_k1[0][2]))
+          || (std::isinf(B_k1[1][0])) || (std::isinf(B_k1[1][1])) || (std::isinf(B_k1[1][2]))
+          || (std::isinf(B_k1[2][0])) || (std::isinf(B_k1[2][1])) || (std::isinf(B_k1[2][2])) ) {
+          B_k1[0][0] = 1.0/mu0_; B_k1[0][1] = 0.0;      B_k1[0][2] = 0.0;
+          B_k1[1][0] = 0.0;      B_k1[1][1] = 1.0/mu0_; B_k1[1][2] = 0.0;
+          B_k1[2][0] = 0.0;      B_k1[2][1] = 0.0;      B_k1[2][2] = 1.0/mu0_;
+        }
       }
       return B_k1; // this is the new nu
     }
@@ -297,21 +360,56 @@ if (ParameterMap.size() < 5)
         B_k1[1][1] = B[1][1] + gxT[1][1];
 
         if ( (std::isnan(B_k1[0][0])) || (std::isnan(B_k1[1][1])) || (std::isnan(B_k1[0][1])) || (std::isnan(B_k1[1][0])) ) {
-          B_k1[0][0] = 1.0/mu0_;
-          B_k1[1][1] = 0;
-          B_k1[0][1] = 0;
-          B_k1[1][0] = 1.0/mu0_;
+          B_k1[0][0] = 1.0/mu0_; B_k1[0][1] = 0.0;
+          B_k1[1][0] = 0.0;      B_k1[1][1] = 1.0/mu0_;
         }
         if ( (std::isinf(B_k1[0][0])) || (std::isinf(B_k1[1][1])) || (std::isinf(B_k1[0][1])) || (std::isinf(B_k1[1][0])) ) {
-          B_k1[0][0] = 1.0/mu0_;
-          B_k1[1][1] = 0;
-          B_k1[0][1] = 0;
-          B_k1[1][0] = 1.0/mu0_;
+          B_k1[0][0] = 1.0/mu0_; B_k1[0][1] = 0.0;
+          B_k1[1][0] = 0.0;      B_k1[1][1] = 1.0/mu0_;
         }
         
         
       }else{ // 3D version
-        EXCEPTION("NO 3D Broyden")
+        Vector<Double> dD_minus_epsilon_km1_times_dE(dim_);
+        Vector<Double> dBvec(dim_);
+        Matrix<Double> rightM(dim_,dim_);
+        dD_minus_epsilon_km1_times_dE[0] = dH[0] - (nu_[idx][0][0]*dB[0] + nu_[idx][0][1]*dB[1] + nu_[idx][0][2]*dB[2]);
+        dD_minus_epsilon_km1_times_dE[1] = dH[1] - (nu_[idx][1][0]*dB[0] + nu_[idx][1][1]*dB[1] + nu_[idx][1][2]*dB[2]);
+        dD_minus_epsilon_km1_times_dE[2] = dH[2] - (nu_[idx][2][0]*dB[0] + nu_[idx][2][1]*dB[1] + nu_[idx][2][2]*dB[2]);
+
+        dBvec[0] = dB[0];
+        dBvec[1] = dB[1];
+        dBvec[2] = dB[2];
+        dD_minus_epsilon_km1_times_dE.ScalarDiv(dBvec.NormL2_squared());
+        
+        rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dBvec);
+        
+        nu[1][0] = nu_[idx][1][0] + rightM[1][0];
+        nu[0][1] = nu_[idx][0][1] + rightM[0][1];
+        nu[0][2] = nu_[idx][0][2] + rightM[0][2];
+        nu[2][0] = nu_[idx][2][0] + rightM[2][0];
+        nu[1][2] = nu_[idx][1][2] + rightM[1][2];
+        nu[2][1] = nu_[idx][2][1] + rightM[2][1];
+        nu[0][0] = nu_[idx][0][0] + rightM[0][0];
+        nu[1][1] = nu_[idx][1][1] + rightM[1][1];
+        nu[2][2] = nu_[idx][2][2] + rightM[2][2];
+
+        LOG_DBG3(inveb)<< "\n\t dD_minus_epsilon_km1_times_dE = " << dD_minus_epsilon_km1_times_dE.ToString()
+                    << "\n\t dBvec = " << dBvec.ToString()
+                    << "\n\t rightM = " << rightM.ToString();
+
+        nu[0][1] = 0.0;
+        nu[1][0] = 0.0;
+        nu[2][0] = 0.0;
+        nu[0][2] = 0.0;
+        nu[1][2] = 0.0;
+        nu[2][1] = 0.0;
+        for (UInt i = 0; i < dim_; i++){
+            if (std::isinf(nu[i][i]) || std::isnan(nu[i][i])){
+              Matrix<Double> e = nu_[idx];
+                nu[i][i] = e[i][i]; //e[i][i]; //mu_0;
+            } 
+        }
       }
       return nu;  
     }
@@ -323,17 +421,17 @@ if (ParameterMap.size() < 5)
       // define needed variables
       Vector<Double> ret;
       
-      if (dim_ == 2)
-      {
-        if ( anhyst_type_ == 1 )
-        {
+      if (dim_ == 2){
+        if ( anhyst_type_ == 1 ){
           // full invEB + tan anhysteresis
           ret = Eval_2D_invEBM_TAN(B_n, saveTmpStageVecs_, idx);
         }
       }
-      else if (dim_ == 3)
-      {
-        EXCEPTION("inverse EB for 3D is not yet implemented!");
+      else if (dim_ == 3) {
+        if ( anhyst_type_ == 1 ) {
+          // full invEB + tan anhysteresis
+          ret = Eval_3D_invEBM_TAN(B_n, saveTmpStageVecs_, idx);
+        }
       }
       return ret;
     }
@@ -370,11 +468,11 @@ if (ParameterMap.size() < 5)
       J_x_k_sol.Resize(numS_, 0.0);
       J_y_k_sol.Resize(numS_, 0.0);
       max_newton_iter = 100;       // some Newton cofigurations (should be accessible from the XML-File??)
-      tolerance_newton = 1e-12;
+      tolerance_newton = 1e-15;
       eps_newton = 1e-14;
 
       // apply Newton method
-      for(ndx_eb_ = 0; ndx_eb_ < max_newton_iter; ndx_eb_++){ // Newton method iterations
+      for(UInt ndx = 0; ndx < max_newton_iter; ndx++){ // Newton method iterations
         // calculate the gradient of energy functional
         gradient = CalcGradientMagEnergy(B_n, J_k, J_k_prev);
         // calculate the hessian of energy functional
@@ -403,7 +501,7 @@ if (ParameterMap.size() < 5)
           J_k[1][kdx] = J_k[1][kdx] + eta[1][kdx]*delta_J_k[1][kdx];
         }
         // check stopping criterion
-        if (ndx_eb_ == 0) {
+        if (ndx == 0) {
           phi_der00 = phi_der0;
         }
         if ( std::abs(phi_der0) < (tolerance_newton*std::abs(phi_der00) + eps_newton) ) {
@@ -429,18 +527,6 @@ if (ParameterMap.size() < 5)
       // compute H by general constitutive law
       H_out[0] = (1/mu0_)*(B_n[0] - J_out[0]);
       H_out[1] = (1/mu0_)*(B_n[1] - J_out[1]);
-
-      //!! MAKE IT JUST LINEAR (FOR TESTING)!!
-      /* H_out[0] = (1/(mu0_*1))*B_n[0];
-      H_out[1] = (1/(mu0_*1))*B_n[1]; */
-
-      //!! MAKE IT JUST NONLINEAR (FOR TESTING)!!
-      /* Double norm_B_n;
-      Double p_0, p_1, p_2; // parameter
-      p_0 = 155.9; p_1 = 1.5; p_2 = 9.0;
-      norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
-      H_out[0] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[0];
-      H_out[1] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[1]; */
 
       // return value
       ret.Push_back(H_out[0]);
@@ -800,6 +886,57 @@ if (ParameterMap.size() < 5)
       return internal_energy;
     }
 
+
+    Vector<Double> invEBHysteresis::Eval_3D_invEBM_TAN(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
+      // define needed variables
+      Vector<Double>     ret;
+      Vector<Double>     H_out(dim_);
+
+
+      //!! MAKE IT JUST LINEAR (FOR TESTING)!!
+      /* H_out[0] = (1/(mu0_*1))*B_n[0];
+      H_out[1] = (1/(mu0_*1))*B_n[1];
+      H_out[2] = (1/(mu0_*1))*B_n[2]; */
+
+      //!! MAKE IT JUST NONLINEAR (FOR TESTING)!!
+      Double norm_B_n;
+      Double p_0, p_1, p_2; // parameter
+      p_0 = 155.9; p_1 = 1.5; p_2 = 9.0;
+      norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[2],2));
+      H_out[0] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[0];
+      H_out[1] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[1];
+      H_out[2] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[2];
+
+      // return value
+      ret.Push_back(H_out[0]);
+      ret.Push_back(H_out[1]);
+      ret.Push_back(H_out[2]);
+      return ret;
+
+    } 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     Vector<Double> invEBHysteresis::LUSolve(Matrix<Double> A, Vector<Double> b){
       // define needed variables 
       int                    number_rows_A = 2*numS_;
@@ -889,6 +1026,7 @@ if (ParameterMap.size() < 5)
       // return
       return x;
     }
+
 
     void invEBHysteresis::AllowUpdates(bool allow) {
       saveTmpStageVecs_ = allow;

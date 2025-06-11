@@ -87,6 +87,7 @@ namespace CoupledField
       UInt iterationCounter=0;
 
       Double residualErr = 0.0;
+      Double residualErr0 = 0.0;
       Double incrementalErr = 0.0;
       Double solIncrL2Norm = 0.0;
       Double stageSolL2Norm  = 0.0;
@@ -111,7 +112,21 @@ namespace CoupledField
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
         assemble_->AssembleNonLinRHS();
+        // ONLY FOR TRANSIENT A* FORM.
+        //now update RHS according to time stepping
+        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+          if(matIt->second < 0)
+            continue;
+          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+          }
+          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+        }
         algsys_->GetRHSVal( actRHS );
+        //if(iterationCounter == 1){
+          residualErr0 = actRHS.NormL2();
+        //}
+        
 
         LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
         LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
@@ -188,8 +203,21 @@ namespace CoupledField
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
         assemble_->AssembleNonLinRHS();
+
+        // ONLY FOR TRANSIENT A* FORM.
+        //now update RHS according to time stepping
+        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+          if(matIt->second < 0)
+            continue;
+          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+          }
+          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+        }
+
         algsys_->GetRHSVal( actRHS );
         residualErr = actRHS.NormL2();
+        residualErr = std::abs(residualErr-residualErr0)/residualErr0;
 
         LOG_DBG2(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
         LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();

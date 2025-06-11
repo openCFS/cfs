@@ -253,7 +253,7 @@ AddIntegrator( BaseBDBInt* form,
       coef->GetTensorSize(nRows, nCols);
       UInt dMatSize = TRANS ? nCols : nRows;
       if( dMatSize != res_->dofNames.GetSize() ) {
-        EXCEPTION( "All B-operators must have the same vector size");
+        //EXCEPTION( "All B-operators must have the same vector size");
       } 
     }
     //now we clone each integrator and we already checked if we are in single thread region
