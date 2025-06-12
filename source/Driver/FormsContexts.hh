@@ -59,8 +59,8 @@ namespace CoupledField
     bool IsNonLin();
 
     //! bilinearform is part of Newton tangential matrix
-    bool IsNewtonBilinearForm() {
-      return integrator_->IsNewtonBilinearForm();
+    bool IsNewtonBiLinearForm() {
+      return integrator_->IsNewtonBiLinearForm();
     }
 
     static void SetEnums();
@@ -420,14 +420,14 @@ namespace CoupledField
      //! fundtion Id, as well as entity lists.
      virtual bool isDiagonal() {
        return ((result1_ == result2_) && (ent1_ == ent2_) &&
-               (currentDirection_== BiLinearForm::MASTER_MASTER ||
-                currentDirection_== BiLinearForm::SLAVE_SLAVE ) );
+               (currentDirection_== BiLinearForm::PRIM_PRIM ||
+                currentDirection_== BiLinearForm::SEC_SEC ) );
      }
 
      //! Does the Context needs a fully populated matrix
      virtual bool NeedsFullMatrix(){
-       bool direction = (currentDirection_ == BiLinearForm::MASTER_SLAVE ||
-                         currentDirection_ == BiLinearForm::SLAVE_MASTER);
+       bool direction = (currentDirection_ == BiLinearForm::PRIM_SEC ||
+                         currentDirection_ == BiLinearForm::SEC_PRIM);
        return (direction && isMoving_) ;
      }
    protected:

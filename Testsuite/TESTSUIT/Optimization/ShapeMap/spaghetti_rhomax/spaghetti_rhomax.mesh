@@ -1,0 +1,256 @@
+[Info]
+Version 1
+Dimension 2
+NumNodes 66
+Num3DElements 0
+Num2DElements 50
+Num1DElements 0
+NumNodeBC 38
+NumSaveNodes 0
+NumSaveElements 0
+Num 2d-line      : 0
+Num 2d-line,quad : 0
+Num 3d-line      : 0
+Num 3d-line,quad : 0
+Num triangle     : 0
+Num triangle,quad: 0
+Num quadr        : 50
+Num quadr,quad   : 0
+Num tetra        : 0
+Num tetra,quad   : 0
+Num brick        : 0
+Num brick,quad   : 0
+Num pyramid      : 0
+Num pyramid,quad : 0
+Num wedge        : 0
+Num wedge,quad   : 0
+
+[Nodes]
+#NodeNr x-coord y-coord z-coord
+1  0.0  0.0  0.0
+2  0.2  0.0  0.0
+3  0.4  0.0  0.0
+4  0.6  0.0  0.0
+5  0.8  0.0  0.0
+6  1.0  0.0  0.0
+7  1.2  0.0  0.0
+8  1.4  0.0  0.0
+9  1.6  0.0  0.0
+10  1.8  0.0  0.0
+11  2.0  0.0  0.0
+12  0.0  0.2  0.0
+13  0.2  0.2  0.0
+14  0.4  0.2  0.0
+15  0.6  0.2  0.0
+16  0.8  0.2  0.0
+17  1.0  0.2  0.0
+18  1.2  0.2  0.0
+19  1.4  0.2  0.0
+20  1.6  0.2  0.0
+21  1.8  0.2  0.0
+22  2.0  0.2  0.0
+23  0.0  0.4  0.0
+24  0.2  0.4  0.0
+25  0.4  0.4  0.0
+26  0.6  0.4  0.0
+27  0.8  0.4  0.0
+28  1.0  0.4  0.0
+29  1.2  0.4  0.0
+30  1.4  0.4  0.0
+31  1.6  0.4  0.0
+32  1.8  0.4  0.0
+33  2.0  0.4  0.0
+34  0.0  0.6  0.0
+35  0.2  0.6  0.0
+36  0.4  0.6  0.0
+37  0.6  0.6  0.0
+38  0.8  0.6  0.0
+39  1.0  0.6  0.0
+40  1.2  0.6  0.0
+41  1.4  0.6  0.0
+42  1.6  0.6  0.0
+43  1.8  0.6  0.0
+44  2.0  0.6  0.0
+45  0.0  0.8  0.0
+46  0.2  0.8  0.0
+47  0.4  0.8  0.0
+48  0.6  0.8  0.0
+49  0.8  0.8  0.0
+50  1.0  0.8  0.0
+51  1.2  0.8  0.0
+52  1.4  0.8  0.0
+53  1.6  0.8  0.0
+54  1.8  0.8  0.0
+55  2.0  0.8  0.0
+56  0.0  1.0  0.0
+57  0.2  1.0  0.0
+58  0.4  1.0  0.0
+59  0.6  1.0  0.0
+60  0.8  1.0  0.0
+61  1.0  1.0  0.0
+62  1.2  1.0  0.0
+63  1.4  1.0  0.0
+64  1.6  1.0  0.0
+65  1.8  1.0  0.0
+66  2.0  1.0  0.0
+
+[1D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+
+[2D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+1 6 4 mech
+1 2 13 12
+2 6 4 mech
+2 3 14 13
+3 6 4 mech
+3 4 15 14
+4 6 4 mech
+4 5 16 15
+5 6 4 mech
+5 6 17 16
+6 6 4 mech
+6 7 18 17
+7 6 4 mech
+7 8 19 18
+8 6 4 mech
+8 9 20 19
+9 6 4 mech
+9 10 21 20
+10 6 4 mech
+10 11 22 21
+11 6 4 mech
+12 13 24 23
+12 6 4 mech
+13 14 25 24
+13 6 4 mech
+14 15 26 25
+14 6 4 mech
+15 16 27 26
+15 6 4 mech
+16 17 28 27
+16 6 4 mech
+17 18 29 28
+17 6 4 mech
+18 19 30 29
+18 6 4 mech
+19 20 31 30
+19 6 4 mech
+20 21 32 31
+20 6 4 mech
+21 22 33 32
+21 6 4 mech
+23 24 35 34
+22 6 4 mech
+24 25 36 35
+23 6 4 mech
+25 26 37 36
+24 6 4 mech
+26 27 38 37
+25 6 4 mech
+27 28 39 38
+26 6 4 mech
+28 29 40 39
+27 6 4 mech
+29 30 41 40
+28 6 4 mech
+30 31 42 41
+29 6 4 mech
+31 32 43 42
+30 6 4 mech
+32 33 44 43
+31 6 4 mech
+34 35 46 45
+32 6 4 mech
+35 36 47 46
+33 6 4 mech
+36 37 48 47
+34 6 4 mech
+37 38 49 48
+35 6 4 mech
+38 39 50 49
+36 6 4 mech
+39 40 51 50
+37 6 4 mech
+40 41 52 51
+38 6 4 mech
+41 42 53 52
+39 6 4 mech
+42 43 54 53
+40 6 4 mech
+43 44 55 54
+41 6 4 mech
+45 46 57 56
+42 6 4 mech
+46 47 58 57
+43 6 4 mech
+47 48 59 58
+44 6 4 mech
+48 49 60 59
+45 6 4 mech
+49 50 61 60
+46 6 4 mech
+50 51 62 61
+47 6 4 mech
+51 52 63 62
+48 6 4 mech
+52 53 64 63
+49 6 4 mech
+53 54 65 64
+50 6 4 mech
+54 55 66 65
+
+[3D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+
+[Node BC]
+#NodeNr Level
+1 bottom
+2 bottom
+3 bottom
+4 bottom
+5 bottom
+6 bottom
+7 bottom
+8 bottom
+9 bottom
+10 bottom
+11 bottom
+56 top
+57 top
+58 top
+59 top
+60 top
+61 top
+62 top
+63 top
+64 top
+65 top
+66 top
+1 left
+12 left
+23 left
+34 left
+45 left
+56 left
+11 right
+22 right
+33 right
+44 right
+55 right
+66 right
+1 bottom_left
+11 bottom_right
+56 top_left
+66 top_right
+
+[Save Nodes]
+#NodeNr Level
+
+[Save Elements]
+#ElemNr Level
+
+ 

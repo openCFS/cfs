@@ -135,11 +135,9 @@ namespace CoupledField {
     
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for(it = materials_.begin(); it != materials_.end(); it++)
-    {
-      // Set current region and material
-      actRegion = it->first;
-      actSDMat = it->second;
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
+      actRegion = regions_[iRegion];
+      actSDMat    = materials_[actRegion];
       
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
@@ -692,9 +690,45 @@ namespace CoupledField {
         contactForceFct.reset(new ResultFunctorIntegrate<Double>(contactForceDensityFunc, feFct, contactForce));
     resultFunctors_[SMOOTH_CONTACT_FORCE] = contactForceFct;
     availResults_.insert(contactForce);
+  
+    
+    // === SMOOTH DEFORMATION ENERGY DENSITY ===
+    shared_ptr<ResultInfo> defEnergyDens(new ResultInfo);
+    defEnergyDens->resultType = SMOOTH_DEFORM_ENERGY_DENS;
+    defEnergyDens->dofNames = "";
+    defEnergyDens->unit = MapSolTypeToUnit(SMOOTH_DEFORM_ENERGY_DENS);
+    defEnergyDens->entryType = ResultInfo::SCALAR;
+    defEnergyDens->definedOn = ResultInfo::ELEMENT;
+    shared_ptr<CoefFunctionFormBased> dedFunc;
+    if( isComplex_ ) {
+      dedFunc.reset(new CoefFunctionBdBKernel<Complex>(feFct, 0.5));
+    } else {
+      dedFunc.reset(new CoefFunctionBdBKernel<Double>(feFct, 0.5));
+    }
+    DefineFieldResult( dedFunc, defEnergyDens );
+    stiffFormCoefs_.insert(dedFunc);
+  
+
+    // === SMOOTH DEFORMATION ENERGY===
+    shared_ptr<ResultInfo> defEnergy(new ResultInfo);
+    defEnergy->resultType = SMOOTH_DEFORM_ENERGY;
+    defEnergy->dofNames = "";
+    defEnergy->unit = MapSolTypeToUnit(SMOOTH_DEFORM_ENERGY);
+    defEnergy->entryType = ResultInfo::SCALAR;
+    defEnergy->definedOn = ResultInfo::REGION;
+    availResults_.insert(defEnergy);
+    shared_ptr<ResultFunctor> energyFunc;
+    if( isComplex_ ) {
+      energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, defEnergy, 0.5));
+    } else {
+      energyFunc.reset(new EnergyResultFunctor<Double>(feFct, defEnergy, 0.5));
+    }
+    resultFunctors_[SMOOTH_DEFORM_ENERGY] = energyFunc;
+
+    // DefineFieldResult( energyFunc, defEnergy );
+
+    stiffFormFunctors_.insert(energyFunc);
   }
-
-
   void SmoothPDE::ReadContact(StdVector<std::string>& surfList1,
                                   StdVector<std::string>& surfList2,
                                   StdVector<std::string>& volumeList,

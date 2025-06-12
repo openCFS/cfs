@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+    xmlns="http://www.cfs++.org/simulation">
+    
+    <documentation>
+        <title>Fluid Mechanic</title>
+        <authors>
+            <author>hhassanpour</author>
+        </authors>
+        <date>2018-11-15</date>
+        <keywords>
+            <keyword>flow</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>yes</isVerified>
+        <description>
+            Oscillation Stokes boundary layer, see https://en.wikipedia.org/wiki/Stokes_problem.
+            This example ist the p-FEM version of ../StokesBoundaryLayer2D (whith same mesh and result)
+        </description>
+    </documentation>
+    <fileFormats>
+        <input>
+		  <!-- <cdb fileName="../StokesBoundaryLayer2D/Stokes.cdb"/> -->
+          <hdf5 fileName="StokesBoundaryLayer2DpFEM.h5ref"/>
+        </input>
+        <output>
+            <hdf5/><!-- the default output, i.e. the results_hdf5/job.cfs file -->
+            <text id="txt"/><!-- you can also use text output (suitable for selected results, specify outputIds="txt" for them) -->
+        </output>
+        <materialData file="mat.xml" format="xml"/><!-- material database -->
+    </fileFormats>
+    
+    <domain geometryType="plane">
+        <regionList>
+            <!-- specify material assignment here -->
+            <region name="S_flow" material="FluidMat"/><!-- 'name' refers to the name of the 'Block' defined in Trelis, 'material' refers to the name of the material in the mat.xml file -->
+        </regionList> 
+    </domain>
+    
+    <fePolynomialList>
+        <!-- Set second order polynomial for velocity -->
+        <Lagrange id="Lagrange2">
+            <isoOrder>2</isoOrder>
+        </Lagrange>
+        <!-- Set first order polynomial for pressure -->
+        <Lagrange id="Lagrange1">
+            <isoOrder>1</isoOrder> 
+        </Lagrange>
+        <!-- ansatz functions for p-FEM -->
+        <Legendre id="Legendre3">
+            <isoOrder>3</isoOrder>
+        </Legendre>
+        <Legendre id="Legendre2">
+            <isoOrder>2</isoOrder>
+        </Legendre>
+    </fePolynomialList>
+    
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <frequencyList>
+                    <freq value="500"/>
+                    <freq value="1e+3"/>
+                    <freq value="2e+3"/>
+                    <freq value="10e+3"/>
+                </frequencyList>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <fluidMechLin formulation="compressible" presPolyId="Legendre2" velPolyId="Legendre3">
+                <regionList>
+                    <region name="S_flow"/>
+                </regionList>
+                <bcsAndLoads>
+                    <!-- set unit velocity in tangential direction at the bottom -->
+                    <velocity name="L_bottom">
+                        <comp dof="x" value="1"/>
+                    </velocity>
+                    <noSlip name="L_bottom">
+                        <comp dof="y"/>
+                    </noSlip>
+                    <noSlip name="L_right">
+                        <comp dof="y"/>
+                    </noSlip>
+                    <noSlip name="L_left">
+                        <comp dof="y"/>
+                    </noSlip>
+                </bcsAndLoads>
+                <storeResults >
+                    <!-- only store velocity, pressure is trivially zero -->
+                    <nodeResult type="fluidMechVelocity">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </fluidMechLin>
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solverList>
+                    <directLU/>
+                </solverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+    
+</cfsSimulation>

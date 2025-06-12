@@ -61,6 +61,7 @@ class Function
 
     /** Different function types - some only objective, some only constraint some both */
     typedef enum {
+      NO_TYPE = -1,
       // This are exclusive objective functions
       MULTI_OBJECTIVE,           /*!< Special type, not to be evaluated but trigger only */
       SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
@@ -71,6 +72,8 @@ class Function
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
       SQUARED_OUTPUT,            /*!< Re(u,l)^2 maximize solution where vector l is not 0 */
       DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
+      REFLECTED_WAVE,            /*!< ((u-z), L conj(u-z)) as DYNAMIC_OUTPUT, but a complex value z is substracted. 
+                                      E.g. when u is the total pressure and z is the pressure resulting from a normalVelocity b.c., u-z is the pressure of the reflected wave */
       ABS_OUTPUT,                /*!< |<u,l>| harmonic is implemented, real valued easy to add */
       CONJUGATE_COMPLIANCE,      /*!< (u, F conj(u)) as DYNAMIC_OUTPUT with trace of L is f */
       GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
@@ -112,7 +115,6 @@ class Function
       LOCAL_BUCKLING_LOAD_FACTOR,/*!< microscopic load factor/ eigenvalue for two scale optimization*/
       GLOBAL_BUCKLING_LOAD_FACTOR,/*!< globalized microscopic load factor/ eigenvalue for two scale optimization*/
       ARC_OVERLAP,               /*!< prevents overlapping arc segments for spaghetti optimization */
-      PYTHON_VOLUME,             /*!< computes penalized volume constraint in python */
       PYTHON_FUNCTION,           /*!< python global function */
       LOCAL_PYTHON_FUNCTION,     /*!< python local function */
 
@@ -206,11 +208,17 @@ class Function
     /** Get the parameter, if it was set */
     double GetParameter() const { return parameter_;  }
 
-    /** The evaluated function value. -1.0 if not set. */
+    /** The evaluated function to process value. In the multiple objective case this contains weight and term handling! -1.0 if not set.
+     * @see GetOrgValue() */
     virtual double GetValue() const { return value_; }
 
     /** overloaded in LocalCondition */
     virtual void SetValue(double val) { value_ = val; }
+
+    /** the real function value without scaling and term handling for the multiple objective case (e.g. penalty max(0, v - parameter)^2. */
+    double GetOrgValue() const { return org_value_; }
+    void   SetOrgValue(double v) { org_value_ = v; }
+
 
     /** Access of the design variable in (local) functions. Both sensitivity and density.
      * There is no filtered sensitivity value, only gradient.
@@ -335,6 +343,9 @@ class Function
     
     /** index within all objectives for design element gradient */
     int GetIndex() const { return index_; }
+
+    /** Grayness scaling for a normalized variables is 4 in the non-physical case as 4 * 0.5 * (1-0.5) = 1 */
+    double CalcGraynessScaling() const;
 
     /** Read the tensor if it is given, otherwise sets to 1.1
      * @param f_ctxt we call this during the constructor an therefore cannot use Function::ctxt
@@ -699,7 +710,6 @@ class Function
       /** Multiple designs on several elements for paramMat*/
       void SetupMultDesignsVirtualElementMap(const Function* f = NULL);
 
-
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */
       struct NeighborhoodStructure
@@ -825,10 +835,10 @@ class Function
     /** matrices for polynomial coefficients and discretization steps of the interpolation for volume calculation in 3D with cross shaped base cells*/
 
     /** This is DEFAULT (= applies always) if not defined */
-    BaseDesignElement::Type design_;
+    BaseDesignElement::Type design_ = BaseDesignElement::NO_TYPE;
 
     /** The actual kind of cost function. */
-    Type type_;
+    Type type_ = NO_TYPE;
 
     /** The slack function type */
     SlackFnct slackFnct_ = NO_FUNCTION;
@@ -837,13 +847,16 @@ class Function
     Matrix<double> tensor_;
 
     /** The current function value */
-    double value_;
+    double value_ = 0.0;
+
+    /** for the multiple objecitve case where we set to value_ something complex in Optimization::CalcObjective() */
+    double org_value_ = -1.0;
 
     /** Some special functions use a parameter: slope constraint and penalized volume */
     double parameter_;
 
-    /** manual switch for local constraints whether the plain value of the design variable, the filtered or the physical value is used */
-    Access access_;
+    /** considered by some function: wheather plain value of the design variable, the filtered or the physical value is used */
+    Access access_ = NO_ACCESS;
 
     /** this index is the position in the Optimization list and is used to
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
@@ -860,7 +873,7 @@ class Function
 
     /** the "ev" parameter for the eigenvalue function. 1-based!
      * @see Condition::bloch_extremal_ */
-    int eigenvalue_id_;
+    int eigenvalue_id_ = -1;
 
     /** Conditions mark themselves as (non) linear -> no power in the design variable, ...*/
     bool linear_;
@@ -918,7 +931,7 @@ class Function
     /** Excitation index for evaluation.
      * Note that the index is unique over all sequences!
      * >= 0 for the actual excitation, ExciteIndex for other cases */
-    int excite_;
+    int excite_ = -100;
 
     /** We need this as argument for DefaultAccess() when called by IsDefaultAccess()
      * as we usually have no space and don't want to store it (whyever). */

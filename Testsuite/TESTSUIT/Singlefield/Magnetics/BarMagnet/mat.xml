@@ -1,0 +1,84 @@
+<?xml version="1.0"?>
+
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- STANDARD LINEAR MATERIALS -->
+  <material name="air">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 0.0
+          </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.25664e-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="Epcos_N87">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 0.1 </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 2.7646e-3 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="NdFeB">
+    <mechanical>
+      <density>
+        <linear>
+          <real>  7500 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.6E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.24 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>6.67E5</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>  1.3188E-6 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+	  <prescribedMagnetization>
+        <MagnetizationVector> 1 0 0
+        </MagnetizationVector>
+      </prescribedMagnetization>
+    </magnetic>
+  </material>
+ 
+</cfsMaterialDataBase>

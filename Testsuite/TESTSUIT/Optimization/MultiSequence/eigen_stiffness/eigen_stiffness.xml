@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>eigen_stiffness</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-12-22</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>Perform a multi sequence optimization for two analysis problems. The first one is the Dynamic/eigen problem, the second
+        is homogenization. This is a very difficult problem as the eigen gradients are not smooth. We start generic and run to a similar
+        design as with eigen where the homogenization constraints choosen to satisfy the original eigen solution.</description>
+  </documentation>
+    
+    <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.5" y="0.5" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <!-- Homogenization: swap stiffness_eigen, therefore the first pde is sequence 2 here -->
+  <sequenceStep index="2">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <periodic secondary="north" primary="south" dof="x" quantity="mechDisplacement"/>
+           <periodic secondary="north" primary="south" dof="y" quantity="mechDisplacement"/>
+           <periodic primary="west"  secondary="east" dof="x"  quantity="mechDisplacement" />
+           <periodic primary="west"  secondary="east" dof="y"  quantity="mechDisplacement" />
+           <fix name="center"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>             
+       </storeResults>
+      </mechanic>
+    </pdeList>
+
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solutionStrategy> -->
+<!--           <standard> -->
+<!--           </standard> -->
+<!--         </solutionStrategy> -->
+<!--         <solverList> -->
+<!--           <cholmod/> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+  
+  <!-- Eigenvalue: swap stiffness_eigen, therefore the second pde is sequence 1 here -->
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>9</numModes>
+        <freqShift>0</freqShift>
+        <writeModes>yes</writeModes>
+      </eigenFrequency>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="north"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="east"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="south"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+        </bcsAndLoads>
+
+        <storeResults>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solutionStrategy> -->
+<!--           <standard> -->
+<!--           </standard> -->
+<!--         </solutionStrategy> -->
+<!--         <solverList> -->
+<!--            <cholmod/> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+  <loadErsatzMaterial file="circular_2d-v_0.5-o_6_12.density.xml" set="last"/>
+  
+  <optimization>
+    <costFunction type="slack" sequence="1" task="maximize" multiple_excitation="true">
+      <stopping queue="999" value="0.001" type="designChange"/>
+      <multipleExcitation type="homogenizationTestStrains" sequence="2"/>
+    </costFunction>
+
+    <constraint type="youngsModulusE1" bound="lowerBound" value=".33"  mode="constraint" sequence="2"  />
+    <constraint type="iso-orthotropy" mode="constraint" sequence="2"  />
+
+    <constraint type="eigenfrequency" bound="lowerBound" value="slack" ev="1" sequence="1"  />
+    
+<!--     <constraint type="volume" value="0.5" bound="equal" linear="true" mode="constraint" /> -->
+
+    <optimizer type="snopt" maxIterations="100">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option type="integer" name="verify_level" value="-1"/>
+        <option name="major_feasibility_tolerance" type="real" value="1e-5"/>
+        <option name="major_optimality_tolerance" type="real" value="1e-5"/>
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.6" />
+      </filters>
+
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0" />
+      <design name="slack" initial="2500" lower="0" upper="1e6"/>
+
+      <transferFunction type="simp" application="mech" param="1"/>
+      <transferFunction type="identity" application="mass" />
+
+      <export save="last" write="iteration"/>
+
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="999"/>
+  </optimization>
+
+
+</cfsSimulation>

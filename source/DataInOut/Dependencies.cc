@@ -10,6 +10,7 @@
 #include <def_use_flann.hh>
 #include <def_use_ghost.hh>
 #include <def_use_gidpost.hh>
+#include <def_use_ginkgo.hh>
 #include <def_use_hwloc.hh>
 #include <def_use_ipopt.hh>
 #include <def_use_libfbi.hh>
@@ -18,6 +19,7 @@
 #include <def_use_metis.hh>
 #include <def_use_mpi.hh>
 #include <def_use_openmp.hh>
+#include <def_use_cuda.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_petsc.hh>
 #include <def_use_phist_cg.hh>
@@ -68,6 +70,10 @@
 
 #ifdef USE_CGAL
 #include <CGAL/version.h>
+  #ifndef WIN32
+  #include <gmp.h>
+  #include <mpfr.h>
+  #endif
 #endif
 
 #ifdef USE_EIGEN
@@ -76,6 +82,12 @@
 
 #ifdef USE_FLANN
 #include <flann/flann.hpp>
+#include <lz4.h>
+#endif
+
+#ifdef USE_GINKGO
+#include <ginkgo/config.hpp>
+#include <nlohmann/json.hpp>
 #endif
 
 #ifdef USE_XERCES
@@ -105,7 +117,7 @@
 #include <fstream>
 #include <muParserBase.h>
 
-#if _WIN32
+#if defined(WIN32)
   #undef max
 #endif
 
@@ -190,6 +202,12 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(omp);
 
+  Dependency cuda("cuda", "USE_CUDA", EASY);
+#ifdef USE_CUDA
+  cuda.SetVersion(CUDAToolkit_VERSION);
+#endif
+  data.Push_back(cuda);
+
   Dependency mpi("mpi", "USE_MPI", NOT_KNOWN);
 #ifdef USE_MPI
   mpi.active = true;
@@ -229,7 +247,7 @@ void Dependencies::ReadSetting()
 
   Dependency mkl("MKL", "USE_MKL", ISSL);
 #ifdef USE_MKL
-  CFSMKLVersion ver;
+  CFSMKLVersion ver; // FIXME this is from def_use_blas.hh.in - check if necessary, this is dangerous code!!!
   MKL_Get_Version(reinterpret_cast<MKLVersion*>(&ver));
   MKL_Free_Buffers();
   mkl.SetVersion(ver.MajorVersion,ver.MinorVersion,ver.BuildNumber);
@@ -289,6 +307,16 @@ void Dependencies::ReadSetting()
 #endif
   data.Push_back(lis);
 
+  Dependency ginkgo("Ginkgo", "USE_GINKGO", BSD);
+#ifdef USE_GINKGO
+  ginkgo.SetVersion(GKO_VERSION_MAJOR, GKO_VERSION_MINOR, GKO_VERSION_PATCH);
+
+  // change this if someone else might want to use json but not ginkgo
+  data.Push_back(Dependency("nlohmann_json", "", "", MIT, "used by Gingko"));
+  data.Last().SetVersion(NLOHMANN_JSON_VERSION_MAJOR, NLOHMANN_JSON_VERSION_MINOR, NLOHMANN_JSON_VERSION_MINOR);
+#endif
+  data.Push_back(ginkgo);
+
   Dependency superlu("SuperLU", "USE_SUPERLU", EASY);
 #ifdef USE_SUPERLU
   superlu.SetVersion(SUPERLU_VER);
@@ -336,6 +364,14 @@ void Dependencies::ReadSetting()
   Dependency cgal("CGAL", "USE_CGAL", GPL);
 #ifdef USE_CGAL
   cgal.SetVersion(QUOTEME(CGAL_VERSION));
+
+  #ifndef WIN32
+    // we still need GMP and MPFR for CGAL
+    data.Push_back(Dependency("gmp", "", "", LGPL, "used by CGAL"));
+    data.Last().SetVersion(__GNU_MP_VERSION, __GNU_MP_VERSION_MINOR, __GNU_MP_VERSION_PATCHLEVEL);
+
+    data.Push_back(Dependency("MPFR", "", MPFR_VERSION_STRING, LGPL, "used by CGAL"));
+  #endif
 #endif
   data.Push_back(cgal);
 
@@ -348,6 +384,10 @@ void Dependencies::ReadSetting()
   Dependency flann("flann", "USE_FLANN", NOT_KNOWN);
 #ifdef USE_FLANN
   flann.SetVersion(FLANN_VERSION_);
+
+  // for flann >= 1.9.2 we need to provide lz4
+  data.Push_back(Dependency("lz4", "", "", BSD, "used by flann"));
+  data.Last().SetVersion(LZ4_VERSION_MAJOR, LZ4_VERSION_MINOR, LZ4_VERSION_RELEASE);
 #endif
   data.Push_back(flann);
 
@@ -361,7 +401,7 @@ void Dependencies::ReadSetting()
 
   Dependency gid("GiDpost", "USE_GIDPOST", EASY);
 #ifdef USE_GIDPOST
-  metis.SetVersion(GIDPOST_VERSION);
+  gid.SetVersion(GIDPOST_VERSION);
 #endif
   data.Push_back(gid);
 
@@ -449,16 +489,10 @@ void Dependencies::ReadSetting()
   data.Push_back(cfsdat);
 
   Dependency cfstool("cfstool", "BUILD_CFSTOOL", CFS);
-#ifdef BUILD_TOOL
+#ifdef BUILD_CFSTOOL
   cfstool.active = true;
 #endif
   data.Push_back(cfstool);
-
-  Dependency testing("TESTING", "BUILD_TESTING", CFS);
-#ifdef BUILD_TESTING
-  testing.active = true;
-#endif
-  data.Push_back(testing);
 
   Dependency unittests("Unit-Tests", "BUILD_UNIT_TESTS", CFS);
 #ifdef BUILD_UNIT_TESTS

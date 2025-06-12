@@ -1,0 +1,23 @@
+reset
+#{ L = 0.03 }
+#{ H = 0.001 }
+
+create brick x {L} y {H} z {L}
+
+curve 11 2 12 8 4 9 10 6  interval 40
+curve 1 3 5 7 interval 5
+curve 1 2 3 4 5 6 7 8 9 10 11 12  scheme equal
+mesh curve 1 2 3 4 5 6 7 8 9 10 11 12
+
+mesh volume 1
+
+block 1 add volume 1
+block 1 name "polarized_mat"
+block 1 element type HEX20
+
+nodeset 1 add surface 3 5
+nodeset 1 name "ground_boundary"
+
+nodeset 2 add surface 4 6
+nodeset 2 name "side_boundary"
+

@@ -1,0 +1,339 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="132" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="2.082s" wall="2.082" cpu="8.48087" calls="1"/>
+  </summary>
+  <header id="">
+    <environment started="2021-Jan-04 20:39:17" host="Fabians-Flunder.fritz.box"/>
+    <progOpts problem="two_bar_tanh_sum" parameterFile="/Users/fwein/code/master/Testsuite/TESTSUIT/Optimization/ShapeMap/two_bar_tanh_sum/two_bar_tanh_sum.xml" schemaPath="/Users/fwein/code/master/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="20.09" name="Frohes Fensterln" build="Release" git_commit="86ba2687a522710b7f8bc80fdced492a726b93fd" git_branch="master" exe="cfs_master"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="-" OMP_NUM_THREADS="-"/>
+    </progOpts>
+    <domain nx="20" ny="20" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="400" nodes="441"/>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="400" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="21"/>
+        <nodes name="east" count="21"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+        <nodes name="load" count="1" coord="(1,0)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="20" ny="20" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <update_results>
+      <timer wall-clock="0s" wall="0" cpu="0.001629" calls="189"/>
+    </update_results>
+    <finish_step>
+      <timer wall-clock="0.137s" wall="0.137" cpu="0.696734" calls="63"/>
+    </finish_step>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="CoefFunctionOpt"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="load" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="0.000762" calls="63"/>
+          </writeResults>
+        </summary>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="west" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="840" totalNumFreeEqns="840" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="840" lastFreeEqn="840" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="840" lastFreeIndex="840"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <cholmod>
+            <header>
+              <parameters>
+                <factorization>
+                  <nmethods default="0"/>
+                  <postorder default="1"/>
+                  <dbound default="0"/>
+                </factorization>
+                <supernodal>
+                  <method default="auto"/>
+                  <switch default="40"/>
+                </supernodal>
+                <output>
+                  <level default="3"/>
+                  <precise default="0"/>
+                </output>
+              </parameters>
+            </header>
+            <summary>
+              <setup>
+                <timer label="setup_cholmod" wall-clock="0.069s" wall="0.069" cpu="0.405242" calls="63"/>
+              </setup>
+              <solve>
+                <timer label="solve_cholmod" wall-clock="0.001s" wall="0.001" cpu="0.025874" calls="63"/>
+              </solve>
+            </summary>
+            <process>
+              <setup selected_factorization_method="1" ll_flop_count="1.0295e+06" nz_in_L="25652" nz_in_triA="7496" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
+                <method id="1" lnz="25652" fl="1.0295e+06"/>
+              </setup>
+              <solver/>
+            </process>
+          </cholmod>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="0.000471" calls="63"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.026s" wall="0.026" cpu="0.266836" calls="126"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.007s" wall="0.007" cpu="0.058297" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+  <optimization haltopt_file="/Users/fwein/code/master/Testsuite/TESTSUIT/Optimization/ShapeMap/two_bar_tanh_sum/HALTOPT">
+    <header>
+      <objective type="compliance" name="compliance" linear="no" filtered="yes" task="minimize"/>
+      <constraints>
+        <constraint type="slope" name="slope_(node)" parameter="0" linear="yes" filtered="yes" locality="next" local_size="40" periodic="no" bound_value="0.055" bound="upperBound" design="node"/>
+        <constraint type="curvature" name="curvature_(node)" parameter="0" linear="yes" filtered="yes" locality="prev_next" local_size="38" periodic="no" bound_value="0.01" bound="upperBound" design="node"/>
+        <constraint type="curvature" name="curvature_(profile)" parameter="0" linear="yes" filtered="yes" locality="prev_next" local_size="38" periodic="no" bound_value="0.01" bound="upperBound" design="profile"/>
+        <constraint type="volume" name="volume" linear="no" filtered="yes" bound_value="0.5" bound="upperBound" design="default"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes">
+        <gradient_chain_rule>
+          <timer label="gradient_chain_rule" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+        </gradient_chain_rule>
+        <features>
+          <mapping>
+            <timer label="features_map" wall-clock="0.183s" wall="0.183" cpu="0.909933" calls="63" sub="true"/>
+          </mapping>
+          <gradient>
+            <timer label="features_grad" wall-clock="1.031s" wall="1.031" cpu="4.59005" calls="126" sub="true"/>
+          </gradient>
+        </features>
+        <shapeMap overlap="tanh_sum">
+          <numInt max_order="11" sensitivity="1e-10" integration="tailored" tailored_order="1->11 0.1->11 0.01->11 0.001->11 0.0001->11 1e-05->11 1e-06->11 1e-07->9 1e-08->9 1e-09->7 1e-10->5 ">
+            <warning> resolution and beta combination allows no sufficient numerical integration for sensitvity 1e-10</warning>
+
+            <cells integrate_fraction="0.765" avg_order="10.134" total_int="9.6162e+06"/>
+          </numInt>
+          <mesh n="20 20 1" min="0 0" max="1 1" step="0.05 0.05"/>
+        </shapeMap>
+        <filters use_mat_filt="yes"/>
+        <transferFunctions>
+          <transferFunction type="identity" application="mech" design="density"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="84" modelVariables="400" modelElements="400">
+          <design type="density" upperBound="1" lowerBound="1e-07" physicalLowerBound="1e-07"/>
+          <shapeParam idx="0" ref="0" type="node" dof="x" orientation="y" lower="0" upper="1" clamp="no" variables="21" design="21" induced="no"/>
+          <shapeParam idx="1" ref="1" type="node" dof="y" orientation="x" lower="0" upper="1" clamp="no" variables="21" design="21" induced="no"/>
+          <shapeParam idx="2" ref="0" type="profile" lower=".1" upper=".2" clamp="no" variables="21" design="21" induced="no"/>
+          <shapeParam idx="3" ref="1" type="profile" lower=".1" upper=".2" clamp="no" variables="21" design="21" induced="no"/>
+        </designVariables>
+        <localElementCache org="1" shadow="0" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="400" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
+      </excitations>
+      <snopt/>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <optimizer>
+      <summary snopt_outputfile="two_bar_tanh_sum.snopt">
+        <snopt>
+          <timer wall-clock="0.31s" wall="0.31" cpu="1.45734" calls="256"/>
+        </snopt>
+        <snopt_exit exit="0" info="32"/>
+        <evaluations f_evals="64" g_evals="63"/>
+      </summary>
+    </optimizer>
+    <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
+      <eval_objective>
+        <timer wall-clock="0.18s" wall="0.18" cpu="0.981756" calls="254"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.010055" calls="64"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0.527s" wall="0.527" cpu="2.35832" calls="63"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="0.516s" wall="0.516" cpu="2.28561" calls="64"/>
+      </eval_grad_constraints>
+      <break converged="no"/>
+    </summary>
+    <process>
+      <iteration number="0" duration="0.252" compliance="389.08695125188" max_abs_slope_node="0" infeas_slope_node="0" max_abs_curvature_node="0" infeas_curvature_node="0" max_abs_curvature_profile="0" infeas_curvature_profile="0" volume="0.443162625736738"/>
+      <iteration number="1" duration="0.033" compliance="427.119845182364" max_abs_slope_node="0.0539" infeas_slope_node="0" max_abs_curvature_node="0.0098" infeas_curvature_node="0" max_abs_curvature_profile="0.0098" infeas_curvature_profile="0" volume="0.392841360080004"/>
+      <iteration number="2" duration="0.033" compliance="191.249355783974" max_abs_slope_node="0.047687" infeas_slope_node="0" max_abs_curvature_node="0.0099277" infeas_curvature_node="0" max_abs_curvature_profile="0.0099277" infeas_curvature_profile="0" volume="0.433828837327966"/>
+      <iteration number="3" duration="0.033" compliance="239.894688308581" max_abs_slope_node="0.046824" infeas_slope_node="0" max_abs_curvature_node="0.0098243" infeas_curvature_node="0" max_abs_curvature_profile="0.0098243" infeas_curvature_profile="0" volume="0.406990289892843"/>
+      <iteration number="4" duration="0.034" compliance="349.41660296452" max_abs_slope_node="0.0518" infeas_slope_node="0" max_abs_curvature_node="0.0098072" infeas_curvature_node="0" max_abs_curvature_profile="0.0098072" infeas_curvature_profile="0" volume="0.396748973550563"/>
+      <iteration number="5" duration="0.029" compliance="125.023397142157" max_abs_slope_node="0.039116" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="12" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.423491492906861"/>
+      <iteration number="6" duration="0.028" compliance="103.960451744112" max_abs_slope_node="0.042266" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="10" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.434841836254078"/>
+      <iteration number="7" duration="0.028" compliance="88.8180665444436" max_abs_slope_node="0.046548" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="8" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.449271562850587"/>
+      <iteration number="8" duration="0.028" compliance="78.4989039993479" max_abs_slope_node="0.04225" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="9" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.466886840507821"/>
+      <iteration number="9" duration="0.029" compliance="69.3316012441961" max_abs_slope_node="0.042353" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="10" max_abs_curvature_profile="0.01" infeas_curvature_profile="6" volume="0.488756560480659"/>
+      <iteration number="10" duration="0.031" compliance="66.1797373708112" max_abs_slope_node="0.045929" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="9" max_abs_curvature_profile="0.01" infeas_curvature_profile="5" volume="0.499676972070185"/>
+      <iteration number="11" duration="0.029" compliance="65.0454868600642" max_abs_slope_node="0.04677" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="6" max_abs_curvature_profile="0.01" infeas_curvature_profile="7" volume="0.499955134862"/>
+      <iteration number="12" duration="0.028" compliance="64.3832892593647" max_abs_slope_node="0.047616" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="6" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.50001599448093"/>
+      <iteration number="13" duration="0.03" compliance="63.9597399566485" max_abs_slope_node="0.048959" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="8" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.50001817206173"/>
+      <iteration number="14" duration="0.032" compliance="63.6551282301825" max_abs_slope_node="0.049503" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="9" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.500004300330768"/>
+      <iteration number="15" duration="0.03" compliance="63.4700338337015" max_abs_slope_node="0.049403" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="9" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.500000374725284"/>
+      <iteration number="16" duration="0.028" compliance="60.9841016249508" max_abs_slope_node="0.048021" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="11" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.499319976612108"/>
+      <iteration number="17" duration="0.025" compliance="59.6645233331243" max_abs_slope_node="0.049192" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="10" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.500418533422156"/>
+      <iteration number="18" duration="0.029" compliance="59.066087784509" max_abs_slope_node="0.050703" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="9" max_abs_curvature_profile="0.01" infeas_curvature_profile="6" volume="0.499765896949757"/>
+      <iteration number="19" duration="0.029" compliance="55.5466640691091" max_abs_slope_node="0.055" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="10" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.499874253131143"/>
+      <iteration number="20" duration="0.031" compliance="58.9948958303528" max_abs_slope_node="0.050703" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="9" max_abs_curvature_profile="0.01" infeas_curvature_profile="6" volume="0.499999243037931"/>
+      <iteration number="21" duration="0.032" compliance="52.3247184215286" max_abs_slope_node="0.055" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="9" max_abs_curvature_profile="0.01" infeas_curvature_profile="7" volume="0.499178452651059"/>
+      <iteration number="22" duration="0.032" compliance="49.7484773167898" max_abs_slope_node="0.055" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="8" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.498935958828917"/>
+      <iteration number="23" duration="0.032" compliance="47.9374463673549" max_abs_slope_node="0.055" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="7" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.498671673700643"/>
+      <iteration number="24" duration="0.032" compliance="45.8010466163933" max_abs_slope_node="0.055" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="10" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.498548776280896"/>
+      <iteration number="25" duration="0.032" compliance="43.4939451214143" max_abs_slope_node="0.055" infeas_slope_node="0" max_abs_curvature_node="0.01" infeas_curvature_node="13" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.496854747262731"/>
+      <iteration number="26" duration="0.032" compliance="40.9485653385503" max_abs_slope_node="0.055" infeas_slope_node="2" max_abs_curvature_node="0.01" infeas_curvature_node="14" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.498512714644648"/>
+      <iteration number="27" duration="0.033" compliance="38.7279837506371" max_abs_slope_node="0.055" infeas_slope_node="3" max_abs_curvature_node="0.01" infeas_curvature_node="13" max_abs_curvature_profile="0.01" infeas_curvature_profile="12" volume="0.49916612897701"/>
+      <iteration number="28" duration="0.032" compliance="37.6639109441299" max_abs_slope_node="0.055" infeas_slope_node="3" max_abs_curvature_node="0.01" infeas_curvature_node="13" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.499846635366527"/>
+      <iteration number="29" duration="0.033" compliance="34.5726651835441" max_abs_slope_node="0.055" infeas_slope_node="4" max_abs_curvature_node="0.01" infeas_curvature_node="15" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.497255034223643"/>
+      <iteration number="30" duration="0.032" compliance="32.6258693448001" max_abs_slope_node="0.055" infeas_slope_node="3" max_abs_curvature_node="0.01" infeas_curvature_node="14" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.499556637313394"/>
+      <iteration number="31" duration="0.033" compliance="29.7103975544729" max_abs_slope_node="0.055" infeas_slope_node="6" max_abs_curvature_node="0.01" infeas_curvature_node="10" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.493876194380974"/>
+      <iteration number="32" duration="0.031" compliance="28.2172943196222" max_abs_slope_node="0.055" infeas_slope_node="8" max_abs_curvature_node="0.01" infeas_curvature_node="8" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.489812446789666"/>
+      <iteration number="33" duration="0.029" compliance="26.4576777514555" max_abs_slope_node="0.055" infeas_slope_node="13" max_abs_curvature_node="0.01" infeas_curvature_node="5" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.498816854392709"/>
+      <iteration number="34" duration="0.027" compliance="25.8148854805196" max_abs_slope_node="0.055" infeas_slope_node="15" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500535124550762"/>
+      <iteration number="35" duration="0.031" compliance="25.6194874655163" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500011881376157"/>
+      <iteration number="36" duration="0.031" compliance="25.4753770851512" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="11" volume="0.50001270241525"/>
+      <iteration number="37" duration="0.028" compliance="25.3166996194652" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.499912076270843"/>
+      <iteration number="38" duration="0.026" compliance="25.2202075930073" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="3" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.499991189050654"/>
+      <iteration number="39" duration="0.027" compliance="25.1706461258253" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="3" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.499991505233129"/>
+      <iteration number="40" duration="0.033" compliance="25.1543308042772" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="3" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.500002170922776"/>
+      <iteration number="41" duration="0.03" compliance="25.1445845683555" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.499998389558909"/>
+      <iteration number="42" duration="0.03" compliance="25.1325741303131" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.500006327990351"/>
+      <iteration number="43" duration="0.028" compliance="25.1283343077165" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="8" volume="0.499997284318906"/>
+      <iteration number="44" duration="0.027" compliance="25.1263616680065" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.500000950707637"/>
+      <iteration number="45" duration="0.027" compliance="25.1262105895678" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.499999986009829"/>
+      <iteration number="46" duration="0.03" compliance="25.1261902091907" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.500000016460324"/>
+      <iteration number="47" duration="0.031" compliance="25.1261786635172" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.500000020545024"/>
+      <iteration number="48" duration="0.03" compliance="25.1261713480899" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.500000016269964"/>
+      <iteration number="49" duration="0.027" compliance="25.1261638326809" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.500000018365491"/>
+      <iteration number="50" duration="0.029" compliance="25.1261598915826" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.500000001156884"/>
+      <iteration number="51" duration="0.027" compliance="25.126110373878" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="9" volume="0.500000109657017"/>
+      <iteration number="52" duration="0.028" compliance="25.1261035196603" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000039121096"/>
+      <iteration number="53" duration="0.027" compliance="25.1260981915059" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000035003406"/>
+      <iteration number="54" duration="0.027" compliance="25.1260976137869" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000078357894"/>
+      <iteration number="55" duration="0.026" compliance="25.1260980001555" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000023308209"/>
+      <iteration number="56" duration="0.028" compliance="25.1260976603791" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000113925565"/>
+      <iteration number="57" duration="0.025" compliance="25.1260979190845" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000017396276"/>
+      <iteration number="58" duration="0.026" compliance="25.1260976972712" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.50000011722848"/>
+      <iteration number="59" duration="0.026" compliance="25.1260979080484" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000016519317"/>
+      <iteration number="60" duration="0.026" compliance="25.1260978995543" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000015829531"/>
+      <iteration number="61" duration="0.026" compliance="25.1260978934408" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000015324343"/>
+      <iteration number="62" duration="0.028" compliance="25.1260978892468" max_abs_slope_node="0.055" infeas_slope_node="14" max_abs_curvature_node="0.01" infeas_curvature_node="4" max_abs_curvature_profile="0.01" infeas_curvature_profile="10" volume="0.500000014973425"/>
+    </process>
+  </optimization>
+</cfsInfo>

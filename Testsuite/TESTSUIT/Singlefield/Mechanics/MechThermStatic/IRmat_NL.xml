@@ -1,0 +1,664 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="Air">
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <!-- Remarks : "dry air @ 20 degree c" -->
+      <density>
+        <linear>
+          <real> 1.29 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.527E+05 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade, and 1 atm" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 8.859E-12 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.yutopian.com/Yuan/prop/"
+           Reference(s) : "www.yutopian.com/Yuan/prop/" -->
+      <!-- Remarks : "@ 27 degree c" -->
+      <density>
+        <linear>
+          <real> 1.18 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            0.03
+          </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            0.03
+          </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <magnetic>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "Conductivity: www.matweb.com; Permeability: http://www.ee.surrey.ac.uk/Workshop/advice/coils/mu/#mu0"
+           Remarks : "Name: K0.5Na0.5Nb03, air fired" -->
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>1.0E-10</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="Aluminium">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Alluminium Alloy" -->
+      <density>
+        <linear>
+          <real> 7850 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.10E+10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <density>
+        <linear>
+          <real> 2700 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.1128E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            7.12000E-09 0.00000E+00 0.00000E+00
+            0.00000E+00 7.12000E-09 0.00000E+00
+            0.00000E+00 0.00000E+00 5.84000E-09
+          </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.memsnet.org"
+           Reference(s) : "CRC Materials Science and Engineering Handbook" -->
+      <density>
+        <linear>
+          <real> 2700 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>898.7</real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            237
+          </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <magnetic>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "Conductivity: www.matweb.com; Permeability: http://hyperphysics.phy-astr.gsu.edu/hbase/tables/magprop.html#c "
+           Remarks : "Conductivity value for Aluminium Alloy" -->
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>3.7037E7</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+    <piezo>
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real>
+          0.00000E+00   0.00000E+00 0.00000E+00 0.00000E+00 1.05000E+01 0.00000E+00
+          0.00000E+00   0.00000E+00 0.00000E+00 1.05000E+01 0.00000E+00 0.00000E+00
+          -4.10000E+00 -4.10000E+00 1.41000E+01 0.00000E+00 0.00000E+00 0.00000E+00
+	</real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="Tungsten">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks :  -->
+      <density>
+        <linear>
+          <real> 19300 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 4.00E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.28 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) :  -->
+      <density>
+        <linear>
+          <real> 19400 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 5.2500E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.memsnet.org"
+           Reference(s) : "CRC Materials Science and Engineering Handbook" -->
+      <density>
+        <linear>
+          <real> 19250 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            132.51
+          </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            178
+          </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Si8lin">
+    <heatConduction>
+      <!-- Data obtained from : "http://www.matweb.com"
+      see to IR material database     -->
+      <density>
+        <linear>
+          <real>2330</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            733
+          </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            155.761
+          </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Si8">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2330 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.6E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <thermalExpansion>
+        <orthotropic>
+          <value_1>
+            <real>3E-06</real>
+          </value_1>
+          <value_2>
+            <real>3E-06</real>
+          </value_2>
+          <value_3>
+            <real>3E-06</real>
+          </value_3>
+        </orthotropic>
+        <refTemperature>
+          <real>298</real>
+        </refTemperature>
+      </thermalExpansion>
+    </mechanical>
+    <heatConduction>
+      <density>
+        <linear>
+          <real>2330</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            733
+          </real>
+        </linear>
+        <nonlinear>
+          <dependency>temperature</dependency>
+          <approxType>LinInterpolate</approxType>
+          <measAccuracy>0.05</measAccuracy>
+          <maxApproxVal>871.049</maxApproxVal>
+          <dataName>Cap_OTS_Si_8.fnc</dataName>
+        </nonlinear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            155.761
+          </real>
+          </isotropic>
+        </linear>
+        <nonlinear>
+          <isotropic>
+            <dependency>temperature</dependency>
+            <approxType>LinInterpolate</approxType>
+            <measAccuracy>0.05</measAccuracy>
+            <maxApproxVal>283.269</maxApproxVal>
+            <dataName>Cond_OTS_Si_8.fnc</dataName>
+          </isotropic>
+        </nonlinear>
+      </heatConductivity>
+    </heatConduction>
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 1.0E-3 </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+  <material name="Si8res">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2330 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.6E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <thermalExpansion>
+        <isotropic>
+          <real>3E-06</real>
+        </isotropic>
+        <refTemperature>
+          <real>298</real>
+        </refTemperature>
+      </thermalExpansion>
+    </mechanical>
+    <heatConduction>
+      <density>
+        <linear>
+          <real>2330</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            733
+          </real>
+        </linear>
+        <nonlinear>
+          <dependency>temperature</dependency>
+          <approxType>LinInterpolate</approxType>
+          <measAccuracy>0.05</measAccuracy>
+          <maxApproxVal>871.049</maxApproxVal>
+          <dataName>Cap_OTS_Si_8.fnc</dataName>
+        </nonlinear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            155.761
+          </real>
+          </isotropic>
+        </linear>
+        <nonlinear>
+          <isotropic>
+            <dependency>temperature</dependency>
+            <approxType>LinInterpolate</approxType>
+            <measAccuracy>0.05</measAccuracy>
+            <maxApproxVal>283.269</maxApproxVal>
+            <dataName>Cond_OTS_Si_8.fnc</dataName>
+          </isotropic>
+        </nonlinear>
+      </heatConductivity>
+    </heatConduction>
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 1.233E+05 </real>
+          </isotropic>
+        </linear>
+        <nonlinear>
+          <isotropic>
+            <dependency>temperature</dependency>
+            <approxType>LinInterpolate</approxType>
+            <measAccuracy>0.05</measAccuracy>
+            <maxApproxVal>1.63209349E+05</maxApproxVal>
+            <dataName>ElecCond_OTS_Si_8.fnc</dataName>
+          </isotropic>
+        </nonlinear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+  <material name="Cu1">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 8960 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.17E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.33 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <thermalExpansion>
+        <isotropic>
+          <real>1.7E-05</real>
+        </isotropic>
+        <refTemperature>
+          <real>298</real>
+        </refTemperature>
+      </thermalExpansion>
+    </mechanical>
+    <heatConduction>
+      <!-- Data obtained from IR material database -->
+      <density>
+        <linear>
+          <real>8960</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            385
+          </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            385
+          </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 1.0E-03  </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+  <material name="Al1">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2699 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 6.9E+10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.33 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <thermalExpansion>
+        <isotropic>
+          <real>2.31E-05</real>
+        </isotropic>
+        <refTemperature>
+          <real>298</real>
+        </refTemperature>
+      </thermalExpansion>
+    </mechanical>
+    <heatConduction>
+      <!-- Data obtained from IR material database -->
+      <density>
+        <linear>
+          <real>2699</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            900
+          </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            210
+          </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 3.7037E+07  </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+  <material name="SiO2">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2330 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.6E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <thermalExpansion>
+        <orthotropic>
+          <value_1>
+            <real>3E-06</real>
+          </value_1>
+          <value_2>
+            <real>3E-06</real>
+          </value_2>
+          <value_3>
+            <real>3E-06</real>
+          </value_3>
+        </orthotropic>
+        <refTemperature>
+          <real>298</real>
+        </refTemperature>
+      </thermalExpansion>
+    </mechanical>
+    <heatConduction>
+      <!-- Data obtained from IR material database -->
+      <density>
+        <linear>
+          <real>2200</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            670
+          </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            4.4
+          </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 2.0E-08 </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+  <material name="W1">
+    <heatConduction>
+      <!-- Data obtained from IR material database -->
+      <density>
+        <linear>
+          <real>19300</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>
+            134
+          </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>
+            163.3
+          </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+</cfsMaterialDataBase>

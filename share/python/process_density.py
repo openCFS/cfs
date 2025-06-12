@@ -27,7 +27,7 @@ parser.add_argument('--nosave', help="do not write output file", action='store_t
 parser.add_argument('--save', help="optional output file name, for single input only")
 args = parser.parse_args()
 
-allinput = args.input if len(args.input) != 1 else glob.glob(args.input[0]) # for Windows potentially globalize 
+allinput = clean_input(args.input) 
 
 if args.save and len(allinput) > 1:
   print('error: --save only possible with single file input')

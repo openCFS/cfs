@@ -13,7 +13,7 @@ set(PACKAGE_FILE "hdf5-${PACKAGE_VER}.tar.bz2")
 set(PACKAGE_MD5 "23078d57975903e9536d1e7b299cc39c")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-set(PACKAGE_MIRRORS "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-${PACKAGE_VER}/src/${PACKAGE_FILE}") 
+set(PACKAGE_MIRRORS "https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-1.8/hdf5-${PACKAGE_VER}/src/${PACKAGE_FILE}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
@@ -27,7 +27,7 @@ set_precompiled_pckg_file()
 set_package_library_list_lib_prefix("hdf5_hl_cpp;hdf5_cpp;hdf5_hl;hdf5")
 
 # creates HDF5_LIBARAY as CACHE variable, hence it will not be overwritten once in cache!
-set_standard_variables() 
+set_standard_variables()
 
 # we need share/cmake/hdf5-config.cmake for cgns and flann, therefore install_manifest.txt
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
@@ -40,6 +40,7 @@ set_deps_args_default(ON) # set compiler flags
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DHDF5_INSTALL_BIN_DIR:PATH=bin
   -DBUILD_SHARED_LIBS:BOOL=OFF
   -DBUILD_TESTING:BOOL=OFF
@@ -49,6 +50,7 @@ set(DEPS_ARGS
   -DHDF5_BUILD_EXAMPLES:BOOL=OFF
   -DHDF5_ENABLE_HSIZET:BOOL=OFF
   -DHDF5_ENABLE_Z_LIB_SUPPORT:BOOL=ON
+  -DH5_ZLIB_HEADER:FILEPATH=${ZLIB_INCLUDE_DIR}/zlib.h # we need to tell hdf5 explicitly which zlib header to use
   -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
   -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
   -DHDF5_BUILD_TOOLS:BOOL=OFF # no binaries wanted, use system hdf5 tools
@@ -56,7 +58,7 @@ set(DEPS_ARGS
 
 if(POLICY CMP0075)
   list(APPEND DEPS_ARGS -DCMAKE_POLICY_DEFAULT_CMP0075=NEW)# prevent Policy CMP0075 is not set: Include file check macros honor
-endif()  
+endif()
 
 # --- it follows generic final block for cmake packages with no patch and no postinstall ---
 
@@ -66,7 +68,7 @@ file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/"
 
 assert_unset(PATCHES_SCRIPT)
 
-# generate package creation script. 
+# generate package creation script.
 generate_packing_script_manifest()
 
 # we have no postinstall, so don't call generate_postinstall_script()
@@ -79,13 +81,13 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # if not, build newly and possibly pack the stuff
 else()
-  create_external_cmake()  
+  create_external_cmake()
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
     # add custom step to zip a precompiled package to the cache.
     add_external_storage_step()
-  endif()  
+  endif()
 endif()
 
 # add project to global list of CFSDEPS

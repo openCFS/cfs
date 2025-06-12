@@ -105,7 +105,7 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
           intersectsSmall++;
           continue;
         }
-        shared_ptr<ElemShapeMap> esm = tGrid_->GetElemShapeMap(elem1,true,false);
+        shared_ptr<ElemShapeMap> esm = tGrid_->GetElemShapeMap(elem1,true);
         esm->Global2Local(locPoint,elemInfo[i].center);
         if(!esm->CoordIsInsideElem(locPoint,1e-6)){
           intersectsOutsideElem++;

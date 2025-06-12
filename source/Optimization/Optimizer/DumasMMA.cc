@@ -36,7 +36,7 @@ DumasMMA::DumasMMA(Optimization* optimization, PtrParamNode pn, Optimization::Op
 
   int m = (int) opt->constraints.view->GetNumberOfActiveConstraints();
   int n = (int) opt->design->GetNumberOfVariables();
-  assert(n == (int) opt->design->data.GetSize());
+  assert(n >= (int) opt->design->data.GetSize()); // there might be auxiliary variables
 
   xval.Resize(n);
   dfdx.Resize(n);
@@ -44,6 +44,9 @@ DumasMMA::DumasMMA(Optimization* optimization, PtrParamNode pn, Optimization::Op
   dgdx.Resize(m*n);
   xmin.Resize(n);
   xmax.Resize(n);
+
+  if(m == 0)
+    throw Exception("dumas requires at least one constraint");
 
   if(dumas == Optimization::DUMAS_MMA)
   {
@@ -117,9 +120,10 @@ void DumasMMA::DescribeProperties(StdVector<std::pair<std::string, std::string> 
 void DumasMMA::SolveProblem()
 {
   Optimization* opt = this->optimization;
-  int m = (int) opt->constraints.view->GetNumberOfActiveConstraints();
-  int n = (int) opt->design->GetNumberOfVariables();
-  assert(n == opt->design->data.GetSize());
+  unsigned int m = (int) opt->constraints.view->GetNumberOfActiveConstraints();
+  unsigned int n = (int) opt->design->GetNumberOfVariables();
+  assert(xval.GetSize() == n);
+  assert(n >= opt->design->data.GetSize());
 
   // design and f_i for gcmma
   Vector<double> xnew(gcmma ? n : 0);
@@ -136,10 +140,6 @@ void DumasMMA::SolveProblem()
   {
     // calc gradients to store the results in data[element]...
     // only the gradients are needed for the calculation of the next iteration
-    optimizer_timer_->Stop();
-    optimization->SolveAdjointProblems();
-
-    optimizer_timer_->Start(); // these functions believe they are called from the optimizer directly
     double f = EvalObjective(n, xval.GetPointer(), true); // only for gcmma and logging/stopping
     EvalGradObjective(n,  xval.GetPointer(), true, dfdx); // we scale
     EvalConstraints(n, xval.GetPointer(), m, true, g.GetPointer(), true); // normalize f_i <= 0, we do not give the constraint bound to the solver
@@ -155,12 +155,15 @@ void DumasMMA::SolveProblem()
     }
 
     // Set outer move limits
-    for(int i=0; i<n; i++)
+    for(unsigned int i=0; i<n; i++)
     {
-      BaseDesignElement& de = opt->design->data[i];
-      xmax[i] = std::min(de.GetUpperBound(), xval[i] + move_limit);
-      xmin[i] = std::max(de.GetLowerBound(), xval[i] - move_limit);
+      BaseDesignElement* de = opt->design->GetDesignElement(i);
+      xmax[i] = std::min(de->GetUpperBound(), xval[i] + move_limit);
+      xmin[i] = std::max(de->GetLowerBound(), xval[i] - move_limit);
     }
+
+    assert(dfdx.GetSize() > 0);
+    assert(g.GetSize() > 0 && dgdx.GetSize() > 0);
 
     if(mma)
       mma->Update(xval.GetPointer(),dfdx.GetPointer(),g.GetPointer(),dgdx.GetPointer(),xmin.GetPointer(),xmax.GetPointer());
@@ -171,9 +174,6 @@ void DumasMMA::SolveProblem()
       gcmma->OuterUpdate(xnew.GetPointer(), xval.GetPointer(), f, dfdx.GetPointer(), g.GetPointer(), dgdx.GetPointer(), xmin.GetPointer(), xmax.GetPointer());
 
       // test xnew
-      optimizer_timer_->Stop();
-      optimization->SolveAdjointProblems();
-      optimizer_timer_->Start();
       opt->design->ReadDesignFromExtern(xnew, false); // don't write this test design to density.xml
       double fnew = EvalObjective(n, xnew.GetPointer(), true);
       EvalConstraints(n, xnew.GetPointer(), m, true, gnew.GetPointer(), true);
@@ -185,9 +185,6 @@ void DumasMMA::SolveProblem()
         gcmma->InnerUpdate(xnew.GetPointer(), fnew, gnew.GetPointer(), xval.GetPointer(), f,
           dfdx.GetPointer(), g.GetPointer(), dgdx.GetPointer(), xmin.GetPointer(), xmax.GetPointer());
 
-        optimizer_timer_->Stop();
-        optimization->SolveAdjointProblems();
-        optimizer_timer_->Start();
         opt->design->ReadDesignFromExtern(xnew, false); // don't write this test design to density.xml
         fnew = EvalObjective(n, xnew.GetPointer(), true);
         EvalConstraints(n, xnew.GetPointer(), m, true, gnew.GetPointer(), true);

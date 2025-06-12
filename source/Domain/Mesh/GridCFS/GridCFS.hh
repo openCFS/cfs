@@ -96,10 +96,9 @@ namespace CoupledField
     UInt GetNumElemOfDim( UInt dim ) override;
 
     //! Return dimension of mesh
-
     //! Returns the geometrical dimension of the mesh. Currently only
     //! two- and three-dimensional meshes are supported.
-    UInt GetDim() const override;
+    using Grid::GetDim;
 
     //! Add a number of nodes to the grid;
     //! Resizes coords_ and increases numNodes_, but does not assign
@@ -199,9 +198,9 @@ namespace CoupledField
                             bool updated) const override;
     
     //! \see Grid::GetNodeCoordinates
-    void GetNodeCoordinates( StdVector<Vector<Double> > & nodeCoords,
-                                           StdVector<UInt> & nodeList,
-                                           bool updated) const override;
+    void GetNodeCoordinates(StdVector<Vector<Double>>& nodeCoords,
+                            const StdVector<UInt> & nodeList,
+                            const bool updated ) const override;
 
     /** simply gives access to the full 0-based node coordinates. Note that node numbers are 1-based */
     const StdVector<Vector<double> >& GetNodeCoordinates() const { return coords_;}
@@ -538,6 +537,7 @@ namespace CoupledField
     //! whether they are still connected to elements or not!
     //! Used with rotating nonconforming interfaces for deleting the
     //! new nodes of intersection elements after each time step.
+    //! \param name (in) name of the named nodes list
     void DeleteNamedNodes( const std::string &name ) override;
     
     /** gives the element with the lowest elemNum for a region.

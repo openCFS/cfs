@@ -270,6 +270,52 @@ extern "C" {
       if( newMatrixPattern_ ) {
         facSymbolic = true;
         facNumeric  = true;
+
+        // getRidOfZeros part: Since getRidOfZeros can call Setup()
+        // again, we would init Pardiso multiple times, leading to
+        // potential massive memory leaks - see:
+        // https://www.intel.com/content/www/us/en/docs/onemkl/developer-reference-c/2023-0/pardiso.html
+        // Hence, we effectively use the destructor of this routine
+        // to clean up before initilizing it again. This is not the
+        // most efficient strategy, but this fixes the current memory
+        // leaks introduced in commit 18c6118b
+        // For a full fix, I would recommend letting getRidOfZeros
+        // act on the stiffness matrix (and other matrices involved)
+        // before setting the actual system matrix. This should lead
+        // to a more stable implementation, where we don't need to
+        // copy system matrices back and forth. For harmonic computations the
+        // changes proposed in
+        // https://gitlab.com/openCFS/cfs/-/merge_requests/185 are necessary for
+        // this to work, since right now only the system matrix is considered
+        // (no splitting between M and K).
+        // PARDISO - Last Phase: Cleaning up the parameters
+        if (firstCall_ == false) {
+          int errorFlag = 0;
+          int phase = -1; // request to free up memory
+
+#if PARDISO_API_VER == 4
+          pardiso(&pt_[0], &maxfct_, &mnum_, &mType_, &phase, &probDim_,
+                  theMatrix_, rowPtr_, colPtr_, idPerm_, &nrhs_, &iparm_[0],
+                  &msgLvl_, &zeroDBL_, &zeroDBL_, &errorFlag, &dparm_[0]);
+#endif
+
+#if PARDISO_API_VER == 3
+          pardiso(&pt_[0], &maxfct_, &mnum_, &mType_, &phase, &probDim_,
+                  theMatrix_, rowPtr_, colPtr_, idPerm_, &nrhs_, &iparm_[0],
+                  &msgLvl_, &zeroDBL_, &zeroDBL_, &errorFlag);
+#endif
+
+          if (errorFlag != PARDISO_NO_ERROR) {
+            std::cout << "Error occured during cleanup: "
+                      << GetErrorString(errorFlag) << std::endl;
+            domain->GetInfoRoot()->ToFile();
+          }
+
+          // Delete identity re-ordering (if exists)
+          delete[] (idPerm_);
+          idPerm_ = NULL;
+          idPermSize_ = 0;
+        }
       }
 
       // If only the values of the matrix entries changed, we
@@ -795,11 +841,14 @@ extern "C" {
 
     // Finish log report
     if(!mSolver_) {
-      if ( iparm_[7] > 0 && iparm_[6] == iparm_[7] ) {
-        WARN( "PARDISO reached the maximum number of iterative refinement steps ("
-              << iparm_[7] << ").\n This could indicate that the solution is incorrect!\n"
-              << " You may need to increase the iterRefineSteps parameter in"
-              << " order to obtain\n a correct solution." );
+      // oneAPI 2025 changed some tolerances such that we always get this warning for the same result and time as before. 
+      // don't spoil the conosole output with WARN()
+      if (iparm_[7] > 0 && iparm_[6] == iparm_[7])
+      { // according to Dominik the tolerace might be to small since oneAPI 2025 (1e-20)
+        if(iparm_[6] ==2) 
+          infoNode_->Get("refinement")->Get("hint")->SetValue("PARDISO reached the maximum number of iterative refinement steps (" + std::to_string(iparm_[7]) + ") probably the tolerance is too small.");
+        else // also print a warning to the console as with the WARN macro
+          infoNode_->Get("refinement")->SetWarning("PARDISO completed without reaching maximum iterative refinement steps (" + std::to_string(iparm_[7]) + ").");
       }
       LOG_TRACE(pardisoSolver) << " number of iterative refinement steps: " << iparm_[6];
       LOG_TRACE(pardisoSolver) << " number of perturbed pivots: " << iparm_[13];

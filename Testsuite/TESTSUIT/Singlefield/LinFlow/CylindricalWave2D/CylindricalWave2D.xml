@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+    <documentation>
+        <title></title>
+        <authors>
+            <author>hhassanpour</author>
+            <author>ftoth</author>
+        </authors>
+        <date>2019-10-03</date>
+        <keywords>
+            <keyword>flow</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>yes</isVerified>
+        <description>
+            2D plane wave in a cicular symmetric setup (quarter ring)
+            Here the traction boundary condition (at the inner ring) is used to excite a wave travelling radialla outwards.
+            
+            To be sure that the results are symmetric one can run ipynb.
+        </description>
+    </documentation>
+    
+    <fileFormats>
+        <input>
+<!--            <gmsh fileName="circle_th.msh"/>-->
+            <hdf5 fileName="CylindricalWave2D.h5ref"/>
+        </input>
+        <output>
+            <hdf5/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    
+    <domain geometryType="plane">
+        <variableList>
+            <var name="frc" value="1"/>
+        </variableList>
+        <regionList>
+            <region name="S_1" material="FluidMat"></region>
+        </regionList>
+    </domain>
+    
+    <fePolynomialList>
+        <Lagrange id="velPolyId">
+            <isoOrder>2</isoOrder>
+        </Lagrange>
+        
+        <Lagrange id="presPolyId">
+            <isoOrder>1</isoOrder> 
+        </Lagrange>
+    </fePolynomialList>
+    <integrationSchemeList>
+        <scheme id="velIntegId">
+            <method>Gauss</method>
+            <order>6</order>
+            <mode>absolute</mode>
+        </scheme>
+        
+        <scheme id="presIntegId">
+            <method>Gauss</method>
+            <order>4</order>
+            <mode>absolute</mode>
+        </scheme>    
+    </integrationSchemeList>  
+    
+    <sequenceStep>
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <frequencyList>
+                    <freq value="10e3"/>
+                </frequencyList>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            
+            <fluidMechLin formulation="compressible" velPolyId="velPolyId" presPolyId="presPolyId">
+                <regionList>
+                    <region name="S_1"/>
+                </regionList>
+                <bcsAndLoads>
+                    <traction name="L_c0"> <!-- Instead traction one can use normalTraction <normalTraction name="L_c0" value="10" volumeRegion="S_1"/> >-->
+                        <comp dof="x" value="frc*x"/>
+                        <comp dof="y" value="frc*y"/>
+                    </traction>                    
+                    <noSlip name="L_x1">
+                        <comp dof="y"/>
+                    </noSlip>
+                    <noSlip name="L_y1">
+                        <comp dof="x"/>
+                    </noSlip>
+                </bcsAndLoads>
+                
+                <storeResults>
+                    <nodeResult type="fluidMechPressure">
+                        <allRegions/>
+                    </nodeResult>
+                    <nodeResult type="fluidMechVelocity">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </fluidMechLin>
+        </pdeList>
+            
+        
+        <linearSystems>
+            <system>
+                <solverList>
+                    <directLU/>
+                </solverList>
+            </system>
+        </linearSystems>
+        
+    </sequenceStep>
+    
+    
+    
+</cfsSimulation>

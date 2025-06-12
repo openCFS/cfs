@@ -1,0 +1,94 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="PZT-5H">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7730 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+            128e9   66e9   66e9   0    0     0
+             66e9  128e9   66e9   0    0     0
+             66e9   66e9  110e9   0    0     0
+              0      0      0    21e9  0     0
+              0      0      0     0   21e9   0
+              0      0      0     0    0    21e9
+          </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            1.503e-8  0         0
+            0         1.503e-8  0
+            0         0         1.3e-8
+          </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <piezo>
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real>
+            0     0    0    0 17 0
+            0     0    0   17  0 0
+           -6.5  -6.5 23.3 0  0  0
+        </real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="Aluminum">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2690 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 70.3e9 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.345 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="Foam">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 32 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 35.3e6 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.383 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

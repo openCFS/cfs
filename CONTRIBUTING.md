@@ -21,6 +21,7 @@ Merge Request Guidelines
   Choose a descriptive branch name for your change.
   Once you're done open a _merge request_ from _your branch/fork_ to the _master_ branch.
   Do not mix unrelated changes in a single branch.
+  Branch names of the _CFS_ and _Testsuite_ projects must match (this will be enforced strictly in the CI pipelines).
 * __Code against the master branch__.
   Always base your work on top of the master branch.
 * __Single topic per change__. 
@@ -83,6 +84,7 @@ Please use the following workflow to contribute
    * Mark the merge request as *draft* or *work in progress*. This disables automatically running CI pipelines.
    * Add a description to the merge request (e.g. to-do list, discussion outcome of the issue, ...).
    * Comments, changes, and pipeline results will be collected within the merge request page on gitlab.
+   * If you changed the _Testsuite_, open a merge request (with matching branch names) in the _Testsuite_ project too.
 4. Once you're done (contribution adheres to guidelines, pipeline passes), start the review: **assign** the merge request to a _maintainer_.
    * The maintainer might assign reviewers to comment on the contribution.
    * If there is still an issue the reviewer/maintainer will tell you about it and assign the issue back to you.
@@ -90,6 +92,8 @@ Please use the following workflow to contribute
    * To allow maintainers to directly fix things, you can [allow commits from upstream members](https://docs.gitlab.com/ee/user/project/merge_requests/allow_collaboration.html#allow-commits-from-upstream-members) in your fork.
      By selecting the respective checkbox when creating/editing the MR you can give openCFS maintainers write permission on the MR-source-branch in your fork.
    * Please do not open a new merge request!
+
+> If you contribute from a _fork_ please do not rename the project, i.e. keep `your-namespace/cfs` and `your-namespace/Testsuite`, because renaming will break the CI pipelines.
 
 Notes for Maintainers
 ---------------------

@@ -403,10 +403,8 @@ namespace CoupledField
     void Dump(int level = 0) const;
 
     /** Similar to recursive dump, this adds all childs to the flat list.
-     * colons (:) separates (sub) child names.
-     * @param list output
-     * @param level only for recursive calls, don't use */
-    void ToStringList(StdVector<std::pair<std::string, std::string> >& list, int level = 0) const;
+     * colons (:) separates (sub) child names. */
+    StdVector<std::pair<std::string, std::string>> ToStringList(int max_level = 9999) const;
 
     /** The ParamNode::Dump() shows all sub-content. This shows the parent path */
     void DumpParentPath();
@@ -422,7 +420,7 @@ namespace CoupledField
       return input.find('/') != std::string::npos;
     }
 
-  protected:
+  private:
 
     /** Helper that implements a Get() as same as Has(). Call this if ContainsTokens() returns true. */
     template<typename TYPE>
@@ -438,6 +436,9 @@ namespace CoupledField
      * iterates recursively over all nodes and determines for all nodes, which 
      * have a type UNDEF a suitable type (ELEMENT, ATTRIBUTE) */
     void AdjustElementType();
+
+    /** recursive helper */
+    void ToStringList(StdVector<std::pair<std::string, std::string> >& list, int max_level, int level) const;
 
     /** The real content (attribute or simple type content) */
     boost::any value_;
@@ -465,8 +466,6 @@ namespace CoupledField
     /** cache variable for last Get() result */
     int lastresultidx_;
 
-  private:
-    
     /** Some attributes are only necessary for the root node of a writing ParamNode.
      * Collect them here to save footprint for all nodes. Easier than class hierarchy */
     struct RootNode

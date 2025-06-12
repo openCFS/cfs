@@ -257,6 +257,11 @@
       <xsd:enumeration value="interpolation"/>
       <xsd:enumeration value="derivative"/>
       
+      <!-- ========================================================== -->
+      <!--  Material Related Keywords                                 -->
+      <!-- ========================================================== -->
+      <xsd:enumeration value="rayleigh damping"/>
+
     </xsd:restriction>
   </xsd:simpleType>
   

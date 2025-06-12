@@ -86,15 +86,33 @@
 
   <!-- Data type for specification of the motion of an NcInterface -->
   <xsd:complexType name="DT_NciMotion">
-    <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
-                   default="default"/>
-    <xsd:attribute name="eulerianSystem" type="DT_CFSBool" use="optional"
-                   default="no"/>                   
-    <xsd:attribute name="movingSide" use="optional" default="slave">
+    <xsd:attribute name="coordSysId" type="xsd:token" use="optional" default="default">
+      <xsd:annotation>
+        <xsd:documentation>
+          The coordinate system in which the motion is defined. For rotating motion, use a cylindrical coordinate system.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="ALESystem" type="DT_CFSBool" use="optional" default="no">
+      <xsd:annotation>
+        <xsd:documentation>
+          This feature is only in use when the motion is defined in a cylindrical coordinate system.
+          If set to "yes", the grid motion is defined on a stationary material. In this case, CFS applies a 
+          convective term that rotates against the grid motion. Hence, only the mesh will rotate but not the physical field.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="movingSide" use="required">
+      <xsd:annotation>
+        <xsd:documentation>
+          Specify the side of the interface that is moving. CFS applies motion to the volume region of the moving side.
+          Attention: when multiple regions are connected to the moving side, these need to be specified in the connectedRegions attribute.
+        </xsd:documentation>
+      </xsd:annotation>
       <xsd:simpleType>
         <xsd:restriction base="xsd:normalizedString">
-          <xsd:enumeration value="master"/>
-          <xsd:enumeration value="slave"/>
+          <xsd:enumeration value="primary"/>
+          <xsd:enumeration value="secondary"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -322,6 +340,12 @@
   <xsd:complexType name="DT_DomainNCIface">
     <xsd:choice minOccurs="0" maxOccurs="1">
       <xsd:element name="generalMotion">
+        <xsd:annotation>
+          <xsd:documentation>
+            General (non-rotational) motion of the interface.
+            The motion is defined as math parser expressions along the coordinates.
+          </xsd:documentation>
+        </xsd:annotation>
         <xsd:complexType>
           <xsd:complexContent>
             <xsd:extension base="DT_NciMotion">
@@ -334,6 +358,27 @@
       </xsd:element>
       <xsd:element name="rotation">
         <xsd:complexType>
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              rpm:
+                rotation speed in rounds per minute
+              connectedRegions:
+                For rotating interfaces, it might happen that there is another volume
+                region inside or outside of a nonconforming rotating region (region
+                conform connected to a rotating region). In this case, the connected
+                region would not be rotated, which leads to negative Jacobians because
+                it's conform connected to a rotating region.
+                Therefore the "connectedRegions" tag is introduced in the xml file
+                to also rotate those connected regions.
+                For example: There is a rotating coil inside a rotating air volume,
+                followed by a stationary copper shield with the NC interface between the
+                stationary copper shield and the rotating air domain. In this case, the
+                conform connected coil region would not be rotated, the air domain with the
+                NC interface, on the other hand, would rotate, leading to heavily distorted
+                and self-intersecting elements.
+                connectedRegions can be multiple, space separated regions
+            </xsd:documentation>
+          </xsd:annotation>
           <xsd:complexContent>
             <xsd:extension base="DT_NciMotion">
               <xsd:attribute name="rpm" type="xsd:double" use="required"/>
@@ -351,40 +396,49 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="masterSide" type="xsd:token" use="required">
+    <xsd:attribute name="primarySide" type="xsd:token" use="required">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
-          The master side of the nonmatching interface is given by either a
-          reference to an arbitrary surface or a volume region which is planar
-          along the common interface with the slave region. The elements on
-          this side are assumed to be smaller than the ones on the slave side.
+          The primary side of the nonmatching interface is given by a reference to an arbitrary surface
+          of a volume region along the common interface with the secondary region.
+          In the non-planar case, the surface elements of the primary side will be projected onto the 
+          secondary side before the intersection calculation takes place.
+          For line intersections (2D) and polygon intersections (3D) without USE_CGAL, elements on this side 
+          are assumed to be smaller than the ones on the secondary side.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>   
-    <xsd:attribute name="useMeshSmoothing" type="DT_CFSBool" use="optional" default="no">
+    <xsd:attribute name="passiveGeomUpdate" type="DT_CFSBool" use="optional" default="no">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
-	    This option is only reasonable if iterative coupling and a geometry update
-	    is activated. This option will cause the interface to be updated according
-	    to the mesh update calculated in the iterative coupling.
+          This option sets the interface to be updated at every timestep, to account for passive motion.
+          It can thus be used on interfaces that sit on regions that are moved by other interfaces.
+          It is also used if iterative coupling and a geometry update is activated so that the interface
+          moves according to the computed mechanical displacements.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="slaveSide" type="xsd:token" use="required">
+    <xsd:attribute name="secondarySide" type="xsd:token" use="required">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
-          The slave side of the nonmatching interface is given by either a
-          reference to an arbitrary surface or a volume region which is planar
-          along the common interface with the master region. The surface
-          elements on the slave side of the nonmatching interface are also the
-          definition domain of the Lagrange Multiplier. In the case of curved
-          interfaces the elements of the master side will be projected onto
-          the elements of the slave side before the intersection calculation
-          takes place.
+          The secondary side of the nonmatching interface is given by either a reference to an arbitrary surface 
+          of a volume region along the common interface with the primary volume. The surface elements on the 
+          this side of the nonmatching interface are the definition domain of the Lagrange Multiplier 
+          for Mortar interfaces.
+          In the case of curved interfaces the surface elements of the primary side will be projected onto
+          the elements of the secondary side before the intersection calculation takes place.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute name="intersectionMethod" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          The 3D intersection method to be used for the nonconforming interface.
+          "coaxi"    ...  Coaxial Rectangle Algorithm. Can only be used for coplanar interfaces and linar quadrilateral elements.
+          "polygon"  ...  Use a more generic polygon intersection algorithm. Can be used for non-coplanar interfaces and qadrilateral or triangle elements.
+                          When USE_CGAL is defined, elements are rotated into the xy plane and the intersection of coplanar polygonal elements is performed using CGAL.
+        </xsd:documentation>
+      </xsd:annotation>
       <xsd:simpleType>
         <xsd:restriction base="xsd:normalizedString">
           <xsd:enumeration value="coaxi"/>
@@ -419,30 +473,63 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
-    <xsd:attribute name="tolAbs" type="DT_NonNegFloat"
-                   use="optional" default="1e-12"/>
-    <xsd:attribute name="tolRel" type="DT_FloatUnitInterval"
-                   use="optional" default="1e-4" />
-    <xsd:attribute name="gridProjection" use="optional" default="naive">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:normalizedString">
-          <xsd:enumeration value="naive"/>
-          <xsd:enumeration value="gander-japhet"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
-    <xsd:attribute name="geometryWarnings" type="DT_CFSBool"
-                   use="optional" default="yes" />
-    <xsd:attribute name="writeGraphvizFiles" type="DT_CFSBool"
-                   use="optional" default="no" />
-    <xsd:attribute name="storeIntegrationGrid" type="DT_CFSBool"
-                   use="optional" default="yes">
+    <xsd:attribute name="tolAbs" type="DT_NonNegFloat" use="optional" default="1e-12">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
-          This attribute controls if the integration grid of the interface
-          (which is the collection of all pairwise intersections of master and
-          slave elements) is stored as a surfRegion in the grid, so it can be
-          visualized.
+          Absolute tolerance for the computation of line intersections.
+          Used in all 2D scenarios, as well as 3D scenarios with the default build.
+          Not used in 3D problems when CFS was compiled with USE_CGAL=ON (check with cfs -v).
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="tolRel" type="DT_FloatUnitInterval" use="optional" default="1e-4">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Relative tolerance for the computation of line intersections.
+          Used in all 2D scenarios, as well as 3D scenarios with the default build.
+          Not used in 3D problems when CFS was compiled with USE_CGAL=ON (check with cfs -v).
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="coincidenceRadius" type="DT_NonNegFloat" use="optional" default="1e-12">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Allows to specify a minimum distance between points of the intersection polygon. 
+          Intersection nodes that are closer than the coincidenceRadius to each other are considered coincident.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="minRelSideLength" type="DT_NonNegFloat" use="optional" default="1e-5">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Allows to specify a minimum relative side length for the intersection elements. 
+          If an intersection element that has a relative sidelength larger than minRelSideLength * sqrt(min(A_primary,A_secondary)) will be discarded.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="tolBbox" type="DT_FloatUnitInterval" use="optional" default="1e-4">
+    <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Relative tolerance for computing bounding boxes to precompute intersection candidates.
+          Currently only used in 3D problems when USE_CGAL is defined.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="geometryWarnings" type="DT_CFSBool" use="optional" default="yes">
+      <xsd:annotation>
+        <xsd:documentation>
+          Perform several additional checks for the validity of the interface meshes.
+          Print warnings/exceptions for some cases.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="storeIntegrationGrid" type="DT_CFSBool" use="optional" default="yes">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          This attribute controls if the intersection grid of the interface
+          (which is the collection of all pairwise intersections of primary and
+          secondary elements) is copied to a separate surfRegion in the grid, so it can be
+          visualized. Only writes out the initial intersection grid, not the updated ones after mesh motion.
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
@@ -450,7 +537,7 @@
       <xsd:annotation>
         <xsd:documentation xml:lang="en">
           Used for creating an intersection grid handling periodic boundary conditions.
-          In this case, the master and the slave surfaces don't lie on the same interface. Therefore,
+          In this case, the primary and the secondary surfaces don't lie on the same interface. Therefore,
           there will be no intersection grid found unless they are projected on a common interface.
         </xsd:documentation>
       </xsd:annotation>
@@ -743,12 +830,11 @@
         </xsd:annotation>              
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="ncInterface" type="DT_DomainNCIface"
-              minOccurs="0" maxOccurs="unbounded">
+            <xsd:element name="ncInterface" type="DT_DomainNCIface" minOccurs="0" maxOccurs="unbounded">
               <xsd:annotation>
                 <xsd:documentation xml:lang="en">
-                  A non-conforming interface is defined by references to two
-                  neighboring surface or co-planar volumes regions.
+                  A non-conforming interface is defined by references to two parallel neighboring surface regions
+                  that belong to volumes of different topology.
                 </xsd:documentation>
               </xsd:annotation>              
             </xsd:element>

@@ -95,7 +95,7 @@ namespace CoupledField {
     in->Get("pde1")->SetValue(pde1_->GetName()); 
     in->Get("pde2")->SetValue(pde2_->GetName());
 
-    // get "region" list of current coupling object
+    // get "region" list of current coupling object (volumetric coupling)
     PtrParamNode regionListNode = myParam_->Get("regionList", ParamNode::PASS );
     if(regionListNode) 
     {
@@ -128,7 +128,7 @@ namespace CoupledField {
       }
     }
     
-    // get "surfRegion" list of current coupling object
+    // get "surfRegion" list of current coupling object (surface coupling)
     PtrParamNode surfRegionListNode = myParam_->Get("surfRegionList", ParamNode::PASS );
     if( surfRegionListNode ) 
     {
@@ -154,64 +154,34 @@ namespace CoupledField {
     // Non-conforming grid interfaces
     // ===========================================================
     PtrParamNode ncIfListNode = myParam_->Get("ncInterfaceList", ParamNode::PASS);
-    if (ncIfListNode) 
-    {
+    if (ncIfListNode) {
       ParamNodeList ncIfList = ncIfListNode->GetList("ncInterface");
-
-      if (ncIfList.GetSize() > 0) 
-      {
+      if (ncIfList.GetSize() > 0) {
         PtrParamNode list = in->Get("nonConformingGridInterfaces"); 
-
         for (UInt i = 0; i < ncIfList.GetSize(); ++i) {
-        	std::string ncIfName = ncIfList[i]->Get("name")->As<std::string>();
-        	RegionIdType ncIfId = ptGrid_->GetRegion().Parse(ncIfName);
-
-        	StdPDE::NcInterfaceInfo newIface;
-        	Enum<StdPDE::NcCouplingType> ncCouplingType;
-        	newIface.interfaceId = ptGrid_->GetNcInterfaceId( ncIfList[i]->Get("name")
-        	                                                        ->As<std::string>() );
-        	newIface.type = StdPDE::NC_MORTAR;
-//        	newIface.type = ncCouplingType.Parse( ncIfList[i]->Get("formulation",
-//        	          ParamNode::INSERT)->As<std::string>() );
-        	newIface.crossPointHandling = false;
-        	newIface.lagrangeMultType = StdPDE::LM_STANDARD;
-
-        	//PtrParamNode e = list->Get("nc_interface", ParamNode::APPEND);
-        	//e->Get("name")->SetValue(ncIfName);
-        	//e->Get("id")->SetValue(ncIfId);
-
-        	ncIfaces_.Push_back(ncIfId);
-        	ncInterfaces_.Push_back(newIface);
+          std::string ncIfName = ncIfList[i]->Get("name")->As<std::string>();
+          RegionIdType ncIfId = ptGrid_->GetRegion().Parse(ncIfName);
+          // define non-conforming mortar interface
+          StdPDE::NcInterfaceInfo newIface;
+          Enum<StdPDE::NcCouplingType> ncCouplingType;
+          newIface.interfaceId = ptGrid_->GetNcInterfaceId( ncIfList[i]->Get("name")->As<std::string>() );
+          newIface.type = StdPDE::NC_MORTAR;
+          newIface.lagrangeMultType = StdPDE::LM_STANDARD;
+          ncInterfaceIds_.Push_back(ncIfId);
+          ncInterfaces_.Push_back(newIface);
         }
       }
     }
-    
     // Determine, if axisymmetric geometry is used
     isaxi_ = ptGrid_->IsAxi();
-
-    // Get type of analysis and create according 
-    // assemble object
-    // -> copy simply from first pde
-    std::string help = BasePDE::analysisType.ToString((*pde1_).analysistype_);
-    //std::cerr << "Analysis of PDE is " 
-    //<< help << std::endl;
-
+    // check if the alg sys has been set
     if ( algsys_ == NULL ) {
       EXCEPTION("BasePairCoupling::Init: The pointer to the algebraic "
                 << "system was not set yet! You must call 'SetAlgSys()' "
                 << "before!" );
     }
-
-
-    //I do not think that this is necessary here!
-    //feFct1_ = pde1_->GetFunctionDesriptors();
-    //feFct2_ = pde2_->GetFunctionDesriptors();
-    //assert( feFct1_ != NULL);
-    //assert( feFct2_ != NULL);
-
     // Define the FE spaces and their functions
     DefineFeFunctions();
-
     // Register all fe functions with the algebraic system
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
@@ -222,26 +192,16 @@ namespace CoupledField {
       actFct->SetFctId(fctId);
       fncIt++;
     }
-    
     //define primary results (possible new unknowns!)
     DefinePrimaryResults();
-   
     // Define available results
     DefineAvailResults();
-
     // Initialize nonlinearities
     InitNonLin();
-
     // Read in material data
     ReadMaterialData();
- 
-
     // Define the integrators
     DefineIntegrators();
-
-    //std::cout << "BasePairCoupling: pde1_->IsNonLin()? " << pde1_->IsNonLin() << std::endl;
-    //std::cout << "BasePairCoupling: pde2_->IsNonLin()? " << pde2_->IsNonLin() << std::endl;
-
   }
   
   void BasePairCoupling::FinalizeInit() {

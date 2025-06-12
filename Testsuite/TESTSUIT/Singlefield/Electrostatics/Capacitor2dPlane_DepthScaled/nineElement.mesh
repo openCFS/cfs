@@ -1,0 +1,110 @@
+[Info]
+Version 1
+Dimension 2
+NumNodes 16
+Num3DElements 0
+Num2DElements 9
+Num1DElements 12
+NumNodeBC 0
+NumSaveNodes 0
+NumSaveElements 1
+Num 2d-line      : 12
+Num 2d-line,quad : 0
+Num 3d-line      : 0
+Num 3d-line,quad : 0
+Num triangle     : 0
+Num triangle,quad: 0
+Num quadr        : 9
+Num quadr,quad   : 0
+Num tetra        : 0
+Num tetra,quad   : 0
+Num brick        : 0
+Num brick,quad   : 0
+Num pyramid      : 0
+Num pyramid,quad : 0
+Num wedge        : 0
+Num wedge,quad   : 0
+
+[Nodes]
+#NodeNr x-coord y-coord z-coord
+       1  1.0000000000000e-02  0.0000000000000e+00  0.0000000000000e+00
+       2  2.0000000000000e-02  0.0000000000000e+00  0.0000000000000e+00
+       3  2.0000000000000e-02  1.0000000000000e-02  0.0000000000000e+00
+       4  1.0000000000000e-02  1.0000000000000e-02  0.0000000000000e+00
+       5  2.0000000000000e-02  2.0000000000000e-02  0.0000000000000e+00
+       6  1.0000000000000e-02  2.0000000000000e-02  0.0000000000000e+00
+       7  2.0000000000000e-02  3.0000000000000e-02  0.0000000000000e+00
+       8  1.0000000000000e-02  3.0000000000000e-02  0.0000000000000e+00
+       9  0.0000000000000e+00  0.0000000000000e+00  0.0000000000000e+00
+      10  0.0000000000000e+00  3.0000000000000e-02  0.0000000000000e+00
+      11  0.0000000000000e+00  2.0000000000000e-02  0.0000000000000e+00
+      12  0.0000000000000e+00  1.0000000000000e-02  0.0000000000000e+00
+      13  3.0000000000000e-02  0.0000000000000e+00  0.0000000000000e+00
+      14  3.0000000000000e-02  3.0000000000000e-02  0.0000000000000e+00
+      15  3.0000000000000e-02  1.0000000000000e-02  0.0000000000000e+00
+      16  3.0000000000000e-02  2.0000000000000e-02  0.0000000000000e+00
+
+[3D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+
+[2D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+1 6 4 probe
+1 2 3 4
+2 6 4 probe
+4 3 5 6
+3 6 4 probe
+6 5 7 8
+4 6 4 probe
+4 6 11 12
+5 6 4 probe
+12 9 1 4
+6 6 4 probe
+6 8 10 11
+7 6 4 probe
+5 3 15 16
+8 6 4 probe
+16 14 7 5
+9 6 4 probe
+3 2 13 15
+
+[1D Elements]
+#ElemNr  ElemType  NrOfNodes  Level
+#Node1 Node2 ... NodeNrOfNodes
+12 100 2 left
+10 11
+13 100 2 left
+11 12
+14 100 2 left
+12 9
+15 100 2 right
+13 15
+16 100 2 right
+15 16
+17 100 2 right
+16 14
+11 100 2 top
+8 10
+19 100 2 top
+8 7
+21 100 2 top
+7 14
+10 100 2 bot
+9 1
+18 100 2 bot
+1 2
+20 100 2 bot
+2 13
+
+[Node BC]
+#NodeNr Level
+
+[Save Nodes]
+#NodeNr Level
+
+[Save Elements]
+#ElemNr Level
+2 center
+

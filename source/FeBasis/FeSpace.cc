@@ -920,6 +920,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   // GENERATE REGION SPECIFIC DATA AND PROCESS USER INPUT
   // ************************************************************************
   void FeSpace::SetRegionApproximation(RegionIdType region, std::string polyId, std::string integId){
+    // add region to _regions
+    regions_.insert(region);
+
     std::string regionName = ptGrid_->GetRegion().ToString(region);
     PtrParamNode regionNode = infoNode_->Get("regionList")->Get(regionName);
     
@@ -972,7 +975,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   
   const Elem* FeSpace::GetVolElem( const Elem* ptElem ) const {
 
-    const Elem * ret = NULL;
+    const Elem * ret = nullptr;
     
     // check dimension
     UInt elemDim = Elem::shapes[ptElem->type].dim;

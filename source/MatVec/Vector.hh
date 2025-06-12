@@ -76,7 +76,7 @@ template<typename T> class ElemStoreSol;
     //! Creates an vector with size \a size and gets initialized
     //! with \a entry. If no \a entry is provided, the vector
     //! is initialized with zeroes.
-    Vector<T>(const UInt size, const T entry = 0);
+    Vector(const UInt size, const T entry = 0);
 
     //! Copy Constructor
 

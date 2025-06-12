@@ -1,7 +1,0 @@
-#=============================================================================
-# * copy the files to the cfs bin dir
-#=============================================================================
-
-# copy data from install dir to the target.
-file(COPY "@mpfr_install@/include/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
-file(COPY "@mpfr_install@/lib/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib")

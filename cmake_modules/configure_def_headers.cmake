@@ -25,6 +25,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_build_quadeigensolver.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_lis.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_lis.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ginkgo.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_ginkgo.hh")
   
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_petsc.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_petsc.hh")
@@ -50,22 +53,6 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_suitesparse.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_superlu.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_superlu.hh")
-
-if(USE_BLAS_LAPACK STREQUAL "MKL")
-  set(USE_MKL 1)
-endif()
-
-if(USE_BLAS_LAPACK STREQUAL "OPENBLAS")
-  set(USE_OPENBLAS 1)
-endif()
-
-if(USE_BLAS_LAPACK STREQUAL "NETLIB")
-  set(USE_NETLIB 1)
-endif()
-
-if(USE_BLAS_LAPACK STREQUAL "ACCELERATE")
-  set(USE_ACCELERATE 1)
-endif()
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_blas.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_blas.hh")
@@ -133,6 +120,10 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_unv.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_openmp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_openmp.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cuda.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_cuda.hh")
+
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_sgpp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_sgpp.hh")

@@ -569,8 +569,8 @@ namespace CoupledField {
         if (formulation == "Nitsche")
         {
           PtrCoefFct matDataTensorMas, matDataTensorSla, matData;
-          RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
-          RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
+          RegionIdType volMasterId = mortarIf->GetPrimaryVolRegion();
+          RegionIdType volSlaveId = mortarIf->GetSecondaryVolRegion();
           
           matDataTensorMas = regionPermittivity_[volMasterId];
           matDataTensorSla = regionPermittivity_[volSlaveId];
@@ -673,24 +673,24 @@ namespace CoupledField {
           
           // define bilinear forms for Nitsche coupling
           // penalty integrators
-          pnlt_PhiM_PsiM = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::MASTER_MASTER);
-          pnlt_PhiM_PsiS = GetPenaltyIntegrator<Complex>(factorSqr, -beta, BiLinearForm::MASTER_SLAVE);
-          pnlt_PhiS_PsiM = GetPenaltyIntegrator<Double>(one, -beta, BiLinearForm::SLAVE_MASTER);
-          pnlt_PhiS_PsiS = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::SLAVE_SLAVE);
+          pnlt_PhiM_PsiM = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::PRIM_PRIM);
+          pnlt_PhiM_PsiS = GetPenaltyIntegrator<Complex>(factorSqr, -beta, BiLinearForm::PRIM_SEC);
+          pnlt_PhiS_PsiM = GetPenaltyIntegrator<Double>(one, -beta, BiLinearForm::SEC_PRIM);
+          pnlt_PhiS_PsiS = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::SEC_SEC);
           // flux integrators
           if (matData->IsComplex())
           {
-            flux_DPhiM_PsiM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0*pz, BiLinearForm::MASTER_MASTER, true);
-            flux_PhiM_DPsiM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0*pz, BiLinearForm::MASTER_MASTER, false);
-            flux_DPhiM_PsiS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0*pz, BiLinearForm::MASTER_SLAVE, true);
-            flux_PhiS_DPsiM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0*pz, BiLinearForm::SLAVE_MASTER, false);
+            flux_DPhiM_PsiM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0*pz, BiLinearForm::PRIM_PRIM, true);
+            flux_PhiM_DPsiM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0*pz, BiLinearForm::PRIM_PRIM, false);
+            flux_DPhiM_PsiS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0*pz, BiLinearForm::PRIM_SEC, true);
+            flux_PhiS_DPsiM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0*pz, BiLinearForm::SEC_PRIM, false);
           }
           else
           {
-            flux_DPhiM_PsiM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0*pz, BiLinearForm::MASTER_MASTER, true);
-            flux_PhiM_DPsiM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0*pz, BiLinearForm::MASTER_MASTER, false);
-            flux_DPhiM_PsiS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0*pz, BiLinearForm::MASTER_SLAVE, true);
-            flux_PhiS_DPsiM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0*pz, BiLinearForm::SLAVE_MASTER, false);
+            flux_DPhiM_PsiM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0*pz, BiLinearForm::PRIM_PRIM, true);
+            flux_PhiM_DPsiM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0*pz, BiLinearForm::PRIM_PRIM, false);
+            flux_DPhiM_PsiS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0*pz, BiLinearForm::PRIM_SEC, true);
+            flux_PhiS_DPsiM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0*pz, BiLinearForm::SEC_PRIM, false);
           }
           
           // pass material data to the flux operators
@@ -712,18 +712,18 @@ namespace CoupledField {
           //slave-slave
           pnlt_PhiS_PsiS->SetName("pnlt_PhiS_PsiS");
           
-          // BiLinearForm::MASTER_MASTER
-          SurfaceBiLinFormContext *pnlt_PhiM_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-          SurfaceBiLinFormContext *flux_DPhiM_PsiM_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-          SurfaceBiLinFormContext *flux_PhiM_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiM_DPsiM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-          // BiLinearForm::MASTER_SLAVE
-          SurfaceBiLinFormContext *pnlt_PhiM_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-          SurfaceBiLinFormContext *flux_DPhiM_PsiS_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-          // BiLinearForm::SLAVE_MASTER
-          SurfaceBiLinFormContext *pnlt_PhiS_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-          SurfaceBiLinFormContext *flux_PhiS_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiS_DPsiM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-          // BiLinearForm::SLAVE_SLAVE
-          SurfaceBiLinFormContext *pnlt_PhiS_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiS, STIFFNESS, BiLinearForm::SLAVE_SLAVE);
+          // BiLinearForm::PRIM_PRIM
+          SurfaceBiLinFormContext *pnlt_PhiM_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          SurfaceBiLinFormContext *flux_DPhiM_PsiM_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          SurfaceBiLinFormContext *flux_PhiM_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiM_DPsiM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          // BiLinearForm::PRIM_SEC
+          SurfaceBiLinFormContext *pnlt_PhiM_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiS, STIFFNESS, BiLinearForm::PRIM_SEC);
+          SurfaceBiLinFormContext *flux_DPhiM_PsiS_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiS, STIFFNESS, BiLinearForm::PRIM_SEC);
+          // BiLinearForm::SEC_PRIM
+          SurfaceBiLinFormContext *pnlt_PhiS_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiM, STIFFNESS, BiLinearForm::SEC_PRIM);
+          SurfaceBiLinFormContext *flux_PhiS_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiS_DPsiM, STIFFNESS, BiLinearForm::SEC_PRIM);
+          // BiLinearForm::SEC_SEC
+          SurfaceBiLinFormContext *pnlt_PhiS_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiS, STIFFNESS, BiLinearForm::SEC_SEC);
           
           pnlt_PhiM_PsiM_cont->SetEntities(actSDList, actSDList);
           flux_DPhiM_PsiM_cont->SetEntities(actSDList, actSDList);
@@ -755,8 +755,8 @@ namespace CoupledField {
         else if (formulation == "Mortar")
         {
           shared_ptr<SurfElemList> surfMasterGrid(new SurfElemList(ptGrid_)), surfSlaveGrid(new SurfElemList(ptGrid_));
-          surfMasterGrid->SetRegion(mortarIf->GetMasterSurfRegion());
-          surfSlaveGrid->SetRegion(mortarIf->GetSlaveSurfRegion());
+          surfMasterGrid->SetRegion(mortarIf->GetPrimarySurfRegion());
+          surfSlaveGrid->SetRegion(mortarIf->GetSecondarySurfRegion());
           
           // --- Set the approximation for Lagrange Multipliers for the current region ---
           RegionIdType regId = surfSlaveGrid->GetRegion();
@@ -774,30 +774,30 @@ namespace CoupledField {
             intOne1 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
                     new IdentityOperator<FeH1, 2, 1, Complex>(),
                     one, pz,
-                    mortarIf->GetSlaveVolRegion(), mortarIf->GetMasterVolRegion(),
-                    mortarIf->IsPlanar(), updatedGeo_, BiLinearForm::SLAVE_MASTER);
+                    mortarIf->GetSecondaryVolRegion(), mortarIf->GetPrimaryVolRegion(),
+                    mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::SEC_PRIM);
             intFactor1 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), factor, -pz, updatedGeo_);
             intOne2 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), one, pz, updatedGeo_);
             intFactor2 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
                     new IdentityOperator<FeH1, 2, 1, Complex>(),
                     factor, -pz,
-                    mortarIf->GetMasterVolRegion(), mortarIf->GetSlaveVolRegion(),
-                    mortarIf->IsPlanar(), updatedGeo_, BiLinearForm::MASTER_SLAVE);
+                    mortarIf->GetPrimaryVolRegion(), mortarIf->GetSecondaryVolRegion(),
+                    mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::PRIM_SEC);
           }
           else
           {
             intOne1 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
                     new IdentityOperator<FeH1, 3, 1, Complex>(),
                     one, pz,
-                    mortarIf->GetSlaveVolRegion(), mortarIf->GetMasterVolRegion(),
-                    mortarIf->IsPlanar(), updatedGeo_, BiLinearForm::SLAVE_MASTER);
+                    mortarIf->GetSecondaryVolRegion(), mortarIf->GetPrimaryVolRegion(),
+                    mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::SEC_PRIM);
             intFactor1 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), factor, -pz, updatedGeo_);
             intOne2 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), one, pz, updatedGeo_);
             intFactor2 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
                     new IdentityOperator<FeH1, 3, 1, Complex>(),
                     factor, -pz,
-                    mortarIf->GetMasterVolRegion(), mortarIf->GetSlaveVolRegion(),
-                    mortarIf->IsPlanar(), updatedGeo_, BiLinearForm::MASTER_SLAVE);
+                    mortarIf->GetPrimaryVolRegion(), mortarIf->GetSecondaryVolRegion(),
+                    mortarIf->IsCoplanar(), updatedGeo_, BiLinearForm::PRIM_SEC);
           }
           
           intOne1->SetName("master1Elec");

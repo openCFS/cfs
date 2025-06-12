@@ -242,7 +242,7 @@ parser.add_argument('--skipaborted', help="skip .info.xml files which are aborte
 parser.add_argument('--silentfailsafe', help="continue on errors w/o message", action='store_true')
 args = parser.parse_args()
 
-input = args.input if len(args.input) != 1 else glob.glob(args.input[0]) # for Windows potentially globalize 
+input = clean_input(args.input) 
  
 res = []
 if input[0].endswith('.info.xml'):

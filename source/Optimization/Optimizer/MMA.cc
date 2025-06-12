@@ -102,7 +102,7 @@ MMA::MMA(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn, Optimizati
       }
 
     } // end asymptotes
-    if (subSolverType_ == BFGS_SOLV)
+    if(subSolverType_ == BFGS_SOLV)
     {
       if(this_opt_pn_->Has("bfgs_setting"))
       {
@@ -191,6 +191,9 @@ void MMA::PostInit()
   n = optimization->GetDesign()->GetNumberOfVariables();
   m = cc.view->GetNumberOfActiveConstraints();
   LOG_DBG(mmaTopOpt) << "PI: n=" << n << " m=" << m;
+
+  if(m == 0)
+    throw Exception("MMA requires at least one constraint!");
 
   // set design and bounds
   xval.Resize(n);

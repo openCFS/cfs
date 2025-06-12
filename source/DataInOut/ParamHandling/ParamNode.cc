@@ -291,20 +291,18 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
   }
 
   // perform action, in case no node was found
-  if (result == NULL || action == APPEND)
-  {
+  if (result == NULL || action == APPEND) {
     // depending on ActionType:
-    switch (action)
-    {
+    switch (action) {
     case DEFAULT:
-      EXCEPTION("Some action has to be performed")
-      ;
+      EXCEPTION("Some action has to be performed");
       break;
-    case EX:
-      EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
-          << this->name_ << "'" << " has a child '" << myName << "' ")
-      ;
+    case EX: {
+      std::string matName;
+      GetValue("name", matName, ParamNode::EX);
+      EXCEPTION("None of the " << children_.GetSize() << " childs of element '" << this->name_ << "' with name '" << matName << "' has a child '" << myName << "' ");
       break;
+    }
     case PASS:
       break;
     case INSERT:
@@ -1215,8 +1213,19 @@ void ParamNode::Dump(int level) const
 }
 
 
-void ParamNode::ToStringList(StdVector<std::pair<std::string, std::string> >& list, int level) const
+StdVector<std::pair<std::string, std::string>> ParamNode::ToStringList(int max_level) const
 {
+  StdVector<std::pair<std::string, std::string>> res;
+  ToStringList(res, max_level, 0); // let the recursive game begin
+  return res;
+}
+
+
+void ParamNode::ToStringList(StdVector<std::pair<std::string, std::string> >& list, int max_level, int level) const
+{
+  if(level > max_level)
+    return;
+
   // level 0 name is not printed, level 1 is printed and only from level 2 we have a parent name chain
   string parentname;
   for(int add = level; add >= 2; add--) // e.g. we have level 2
@@ -1237,7 +1246,7 @@ void ParamNode::ToStringList(StdVector<std::pair<std::string, std::string> >& li
 
 
   for(auto child : children_)
-      child->ToStringList(list, level +1);
+      child->ToStringList(list, max_level, level +1);
 }
 
 StdVector<string> ParamNode::SplitIntoTokens(const string& input) const

@@ -67,6 +67,9 @@ namespace CoupledField{
 
     //!  Define available primary results
     void DefinePrimaryResults();
+
+    //! Check if there is only one material 
+    void CheckIfIsOnlyOneMaterial();
     
     //! Define available postprocessing results
     void DefinePostProcResults();
@@ -89,6 +92,15 @@ namespace CoupledField{
 //    virtual void SetRhsValues();
 
   private:
+    //! Defines integrators for Nitsche coupling of an unknown on one specific
+    //! interface.
+    //! \param iface Interface for which the coupling is defined.
+    template<UInt DIM, bool IS_COMPLEX>
+    void DefineNitscheCoupling(NcInterfaceInfo &iface);
+
+    // //! Compute a global factor for coupling to other PDEs. Currently only used for
+    // //! the mechAcou coupling to get a symmetric matrix when in acouPotential formulation.
+    // PtrCoefFct SetGlobalCouplingFactor();
 
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
@@ -98,7 +110,6 @@ namespace CoupledField{
 
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
-    
 
     //! acoustic source density
     shared_ptr<CoefFunctionMulti> acousticSourceDensityCoef_;
@@ -154,6 +165,9 @@ namespace CoupledField{
     //! need wave-PDE for changing density
     bool complexFluidFormulation_;
 
+    //! flag for checking if only one material is defined in the whole computational domain 
+    bool isOnlyOneMaterial_;
+
     //! Definition of convective integrators (Pierce Operator)
     //! \param actRegion  region id
     //! \param curRegNode current region node
@@ -161,6 +175,30 @@ namespace CoupledField{
     //! \param coeffM     material coefficient of mass integrators
     template <UInt DIM, bool IS_COMPLEX>
     void DefineConvectiveIntegrators(RegionIdType actRegion, PtrParamNode curRegNode, shared_ptr<ElemList> actSDList, PtrCoefFct coeffM);
+
+    //! This function defines Perfectly Matched Layer (PML) integrators for a given region.
+    //! It outsources the definition of the stiffness and mass integrator for this region.
+    //! \tparam DIM The dimension of the problem.
+    //! \param actRegion The active region identifier.
+    //! \param actSDList Shared pointer to the active element list.
+    //! \param curRegNode Pointer to the current region node.
+    //! \param c0 Shared pointer to the coefficient function c0.
+    //! \param coeffK Shared pointer to the coefficient function for stiffness.
+    //! \param coeffM Shared pointer to the coefficient function for mass.
+    //! \param tempId Temporary identifier string.
+    //! \param stiffInt Pointer to the base stiffness integrator (output parameter).
+    //! \param massInt Pointer to the base mass integrator (output parameter).
+    template <UInt DIM>
+    void DefinePMLIntegrators(RegionIdType actRegion, shared_ptr<ElemList> &actSDList, PtrParamNode &curRegNode, PtrCoefFct &c0, PtrCoefFct &coeffK, PtrCoefFct &coeffM, std::string &tempId, BaseBDBInt *&stiffInt, BaseBDBInt *&massInt);
+
+    //! This function assigns the integrator context for all defined integrators of the region.
+    //! \param stiffInt Reference to a pointer to the stiffness integrator.
+    //! \param massInt Reference to a pointer to the mass integrator.
+    //! \param actRegion The active region identifier.
+    //! \param actSDList Shared pointer to the active element list.
+    //! \param coeffK Pointer to the coefficient function for stiffness.
+    //! \param coeffM Pointer to the coefficient function for mass.
+    void SetIntegratorContext(BaseBDBInt *&stiffInt, BaseBDBInt *&massInt, RegionIdType actRegion, shared_ptr<ElemList> &actSDList, PtrCoefFct &coeffK, PtrCoefFct &coeffM);
   };
 }
 

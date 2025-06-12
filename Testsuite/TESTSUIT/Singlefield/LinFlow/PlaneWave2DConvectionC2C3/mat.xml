@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+
+<cfsMaterialDataBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/material ../../../../../share/xml/CFS-Material/CFS_Material.xsd"
+  xmlns="http://www.cfs++.org/material">
+
+  <material name="FluidMat">
+
+    <flow>
+      <!-- density at 20 -->
+     <density>
+       <linear>
+         <real>1</real>
+       </linear>
+     </density>
+	<dynamicViscosity>
+		<linear>
+			<real>0</real>
+		</linear>
+	</dynamicViscosity> <!-- 2e-1 un-physically high just to test the effect -->
+	<bulkViscosity>
+		<linear>
+			<real>0</real>
+		</linear>
+	</bulkViscosity>
+	<adiabaticExponent>
+		<linear>
+			<real>1</real>
+		</linear>
+	</adiabaticExponent>
+	<compressionModulus>
+		<linear>
+			<real>1</real>
+		</linear>
+	</compressionModulus>
+    </flow>
+  </material>
+</cfsMaterialDataBase>

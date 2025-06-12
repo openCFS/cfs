@@ -50,9 +50,9 @@ endif()
 
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
 
-IF(TARGET cgal)
-  ADD_DEPENDENCIES(coeffunction cgal)
-ENDIF()
+if(TARGET cgal)
+  add_dependencies(coeffunction cgal)
+endif()
 
 SET(TARGET_LL 
   scattereddatainout
@@ -60,9 +60,8 @@ SET(TARGET_LL
   ${MUPARSER_LIBRARY} 
   ${LAPACK_LIBRARY} )
 
-IF(USE_FLANN)
-  # flann must be linked to because it uses LZ4 (directly included in the FLANN lib)
-  LIST(APPEND TARGET_LL ${FLANN_LIBRARY})
-ENDIF(USE_FLANN)
+if(USE_FLANN)
+  list(APPEND TARGET_LL ${LZ4_LIBRARY} ${FLANN_LIBRARY})
+endif()
 
 TARGET_LINK_LIBRARIES(coeffunction ${TARGET_LL})

@@ -11,17 +11,20 @@ macro(dump_depencency_variables)
   cmake_print_variables(PACKAGE_MIRRORS) # e.g. the original download, see add_standard_mirrors()
   cmake_print_variables(PACKAGE_KEY)   # for encrypted closed source
   # DEPS variables for building the package. Most important is DEPS_ARGS for cmake packages
-  cmake_print_variables(DEPS_ARGS)    # for cmake projects, see set_deps_args_default(ON) # set compiler flags, add compiler and specific settings     
+  cmake_print_variables(DEPS_ARGS)    # for cmake projects, see set_deps_args_default(ON)
+  cmake_print_variables(DEPS_BUILD_THREADS) # locally overwrite the global CFS_DEPS_BUILD_THREADS variable
   cmake_print_variables(DEPS_CONFIGURE) # for configure projects, see set_configure_default()
   cmake_print_variables(DEPS_VER)     # either "" or "-a", ... to trigger new precompiles when PACKAGE_VER does not change
   cmake_print_variables(DEPS_ID)      # optional package id like "openmp" or "no_openmp"
   cmake_print_variables(DEPS_PREFIX)  # usuallay "${CMAKE_BINARY_DIR}/cfsdeps/${PACKAGE_NAME}"
   cmake_print_variables(DEPS_SOURCE)  # usuallay "${DEPS_PREFIX}/src/${PACKAGE_NAME}"
+  cmake_print_variables(DEPS_SUBDIR)  # set when CMakeLists.txt is not directly in DEPS_SOURCE
   cmake_print_variables(DEPS_INSTALL) # with install_manifest.txt directly ${CMAKE_BINARY_DIR} otherwise ${DEPS_PREFIX}/install
   cmake_print_variables(DEPS_LIB_TYPE)# default "static", otherwise "dynamic" or "static-dynamic"
   # kind of internal "class attributes" of DependencyTools. Check with DepsPackaging*.cmake.in
-  cmake_print_variables(USE_C_CXX)    # use either C or C++ compiler. See set_compilers()
+  cmake_print_variables(USE_C_CXX)    # use either C or C++ compiler. See use_c_and_fortran()
   cmake_print_variables(USE_FORTRAN)
+  cmake_print_variables(FORCE_C_CXX)  # enforce the C/C++ label to overwrite the cfs compiler. See force_c_cxx_compiler()
   cmake_print_variables(PRECOMPILED_PCKG_FILE) # full patch to precompiled, e.g. /Users/fwein/code/cfsdepscache/precompiled/arpack_3.7.0_MACOSX_12.6_ARM64_F-GNU-11.2.0.zip
   cmake_print_variables(DEPS_BUILD_MESSAGE)    # message to be printed before building
   cmake_print_variables(LOCAL_PACKAGE_FILE)    # full path to local source 
@@ -43,15 +46,18 @@ macro(clear_depencency_variables)
   unset(PACKAGE_MIRRORS)
   unset(PACKAGE_KEY)
   unset(DEPS_ARGS)
+  unset(DEPS_BUILD_THREADS)
   unset(DEPS_CONFIGURE)
   unset(DEPS_VER)
   unset(DEPS_ID)
   unset(DEPS_PREFIX)
   unset(DEPS_SOURCE)
+  unset(DEPS_SUBDIR)
   unset(DEPS_INSTALL)
   set(DEPS_LIB_TYPE "static") # default
   unset(USE_C_CXX)
   unset(USE_FORTRAN)
+  unset(FORCE_C_CXX)
   unset(PRECOMPILED_PCKG_FILE)
   unset(DEPS_BUILD_MESSAGE)
   unset(LOCAL_PACKAGE_FILE)
@@ -60,12 +66,38 @@ macro(clear_depencency_variables)
   unset(ZIPTOCACHE_SCRIPT)
 endmacro()
 
+# create -j<threads> where threads is the global CFS_DEPS_BUILD_THREADS or the local DEPS_BUILD_THREADS if set
+# if the generator is NMake we return the empty string
+function(set_parallel_build_option BUILD_OUTPUT)
+  if(${CMAKE_GENERATOR} STREQUAL "NMake Makefiles")
+    set(${BUILD_OUTPUT} "" PARENT_SCOPE)
+  else()
+    if(DEFINED DEPS_BUILD_THREADS)
+      set(${BUILD_OUTPUT} "-j${DEPS_BUILD_THREADS}" PARENT_SCOPE)
+    else()
+      set(${BUILD_OUTPUT} "-j${CFS_DEPS_BUILD_THREADS}" PARENT_SCOPE)
+    endif()
+  endif()  
+endfunction()
+
 # indicate if C/C++ and/or Fortran is used. 
 # Triggers package name, DEPS_ARGS compiler settings 
 # and if CACHE variable*_INLUDE_DIR is generated
 macro(use_c_and_fortran IN_USE_C_CXX IN_USE_FORTRAN)
   set(USE_C_CXX ${IN_USE_C_CXX})
   set(USE_FORTRAN ${IN_USE_FORTRAN})
+endmacro()
+
+# variant of use_c_and_fortran where we enforce the given compiler name for C/C++ and don't use
+# CFSDEPS_C(XX)_FLAGS. We set USE_C_CXX to ON and USE_FORTRAN to OFF.
+# Usage is Win32 to use CL for boost and xerces for an intel cfs and vice versa for ginkgo
+macro(force_c_cxx_compiler IN_FORCE_C_CXX)
+  assert_unset(USE_C_CXX)
+  assert_unset(USE_FORTRAN)
+  
+  set(FORCE_C_CXX ${IN_FORCE_C_CXX})
+  set(USE_C_CXX ON)
+  set(USE_FORTRAN OFF) # simply not in the use case of currently boost, xerces, ginkgo
 endmacro()
 
 # set os sensitive static lib to given variable in cmake cache
@@ -77,7 +109,7 @@ endmacro()
 # determine common PACKAGE_LIBRARY content for a standard cmake package.
 #
 # can only be used for the simple standard case.
-# sets PACKAGE_LIBRARY
+# sets PACKAGE_LIBRARY. Note that  ${PACKAGE_NAME}_LIBRARY is set in set_standard_variables()
 macro(set_package_library_default)
   assert_set(PACKAGE_NAME)
   assert_set(LIB_SUFFIX)
@@ -110,7 +142,7 @@ macro(set_package_library_list_lib_prefix IN_LIST)
 endmacro()
 
 
-# set standard variables. Kind of late constructor.
+# set standard variables. Kind of late constructor. Not for header-only deps
 #
 # also set some standard (hidden) CACHE variables with uppercase package name.
 # in rare cases <package>_INCLUDE_DIR is not CMAKE_BINARY_DIR/include. Overwrite the setting
@@ -151,13 +183,23 @@ macro(set_standard_variables)
      COMMENT "delete cached ${PACKAGE_NAME}_LIBRARY and _INCLUDE_DIR")
 endmacro()
 
+# adds clean-<package> and target for head-only deps. See set_standard_variables() 
+macro(add_clean_target)
+  assert_set(PACKAGE_NAME)
+
+  # see set_standard_variables()
+  add_custom_target(clean-${PACKAGE_NAME} cmake -E remove_directory ${DEPS_PREFIX}
+     COMMAND cmake -E remove ${PRECOMPILED_PCKG_FILE}
+     COMMENT "delete cfsdeps/${PACKAGE_NAME} and precompiled")
+endmacro()
+
 
 # set variable DEPS_ARGS with default settings cmake dependencies.
 #
 # The idea is to not set settings, the package complains about not known.
 macro(set_deps_args_default SET_COMPILER_FLAGS)
 
-  assert_unset(DEPS_ARGS) # shall be cleared by clear_depencency_variables()
+  assert_unset(DEPS_ARGS) # shall be cleared by clear_dependency_variables()
   assert_set(DEPS_INSTALL)
 
   set(DEPS_ARGS
@@ -177,7 +219,7 @@ macro(set_deps_args_default SET_COMPILER_FLAGS)
     endif()
   endif() 
 
-  if(USE_C_CXX)
+  if(USE_C_CXX AND NOT FORCE_C_CXX)
     list(APPEND DEPS_ARGS -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER})
     if(${SET_COMPILER_FLAGS} AND CFSDEPS_C_FLAGS)
       list(APPEND DEPS_ARGS -DCMAKE_C_FLAGS:STRING=${CFSDEPS_C_FLAGS} )     
@@ -275,6 +317,13 @@ macro(set_precompiled_pckg_file)
   # DEPS_VER might be "" which is unset
   assert_unset(PRECOMPILED_PCKG_FILE)
   
+  if(FORCE_C_CXX)
+    set(_CXX_ID_VER "${FORCE_C_CXX}")
+  else()
+    set(_CXX_ID_VER "${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
+  endif()
+  
+  
   # first set variables
   if(USE_FORTRAN)
     if(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
@@ -294,15 +343,16 @@ macro(set_precompiled_pckg_file)
   if(NOT USE_C_CXX AND USE_FORTRAN)
     set(_TMP "${_TMP}_F-${CMAKE_Fortran_COMPILER_ID}-${_FORTRAN_COMPILER_VERSION}")
   elseif(USE_C_CXX AND NOT USE_FORTRAN)
-    set(_TMP "${_TMP}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
+    set(_TMP "${_TMP}_C-${_CXX_ID_VER}")
   elseif(USE_C_CXX AND USE_FORTRAN)
     assert_set(USE_C_CXX)
     assert_set(USE_FORTRAN)
     # combine C_F if same version
     if("${CMAKE_CXX_COMPILER_VERSION}" STREQUAL "${_FORTRAN_COMPILER_VERSION}")
+      assert_unset(FORCE_C_CXX)
       set(_TMP "${_TMP}_C_F-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
     else()
-      set(_TMP "${_TMP}_C-${CMAKE_CXX_COMPILER_ID}-${CMAKE_CXX_COMPILER_VERSION}")
+      set(_TMP "${_TMP}_C-${_CXX_ID_VER}")
       set(_TMP "${_TMP}_F-${CMAKE_Fortran_COMPILER_ID}-${_FORTRAN_COMPILER_VERSION}")
     endif()
   endif()
@@ -314,8 +364,6 @@ macro(set_precompiled_pckg_file)
     message(STATUS "will build ${PACKAGE_NAME}_${PACKAGE_VER}: cannot find ${PRECOMPILED_PCKG_FILE}")
   endif()
 endmacro()
-
-
 
 
 # generate packing script for install_manifest.txt cmake package.
@@ -337,7 +385,7 @@ macro(generate_packing_script_install_dir)
   assert_set(DEPS_LIB_TYPE)
   # with DEPS_INSTALL == CMAKE_BINARY_DIR we would pack the whole lib and include for all current packages
   if(${DEPS_INSTALL} STREQUAL ${CMAKE_BINARY_DIR})
-    message(FATAL_ERROR "either DEPS_INSTALL is wrong or you want to call generate_packing_manifest")
+    message(FATAL_ERROR "either DEPS_INSTALL is wrong or you want to call generate_packing_script_manifest")
   endif()
   
   assert_not(${DEPS_INSTALL} ${CMAKE_BINARY_DIR}) # would pack all and probably install_manifest.txt is meant
@@ -348,7 +396,6 @@ endmacro()
 
 # generate ExternalProject_Add() for the unpacking from precompiled case
 macro(create_external_unpack_precompiled)
-
   assert_set(PACKAGE_NAME)
   assert_set(PRECOMPILED_PCKG_FILE)
   assert_set(DEPS_PREFIX)
@@ -388,6 +435,8 @@ macro(create_external_cmake_patched)
   # file means, that we have the source already in the cfsdeps cache. If not, we store there
   # see add_standard_mirrors()
 
+  set_parallel_build_option(BUILD_OPTIONS_) # usually -j<threads> but empty for nmake
+
   # we need to build the package - here in cmake style
   ExternalProject_Add("${PACKAGE_NAME}"
     PREFIX "${DEPS_PREFIX}"
@@ -400,25 +449,35 @@ macro(create_external_cmake_patched)
     DOWNLOAD_NO_PROGRESS ON
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}"
     CMAKE_ARGS ${DEPS_ARGS}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${BUILD_OPTIONS_}
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
 endmacro()
 
+# set DEPS_SUBDIR to set SOURCE_SUBDIR argument of ExternalProject_Add()
 macro(create_external_cmake)
 
   assert_set(PACKAGE_NAME)
   assert_set(DEPS_ARGS)
   assert_set(DEPS_PREFIX)
   assert_unset(PATCHES_SCRIPT)
+  
+  if(DEPS_SUBDIR)
+    set(_SOURCE_SUBDIR "${DEPS_SUBDIR}")
+  else()
+    set(_SOURCE_SUBDIR ".")
+  endif()    
+
+  set_parallel_build_option(BUILD_OPTIONS_) # usually -j<threads> but empty for nmake
 
   # URL can take a list of mirrors but when there is a file, it needs to be the only one.
   # file means, that we have the source already in the cfsdeps cache. If not, we store there
   # see add_standard_mirrors()
-  
   # we need to build the package - here in cmake style
   ExternalProject_Add("${PACKAGE_NAME}"
     PREFIX "${DEPS_PREFIX}"
+    SOURCE_SUBDIR "${_SOURCE_SUBDIR}"
     URL "${PACKAGE_MIRRORS}"
     URL_MD5 "${PACKAGE_MD5}"
     # DOWNLOAD_DIR is ignored, if URL contains not the file mirror
@@ -427,6 +486,7 @@ macro(create_external_cmake)
     DOWNLOAD_NAME "${PACKAGE_FILE}"
     DOWNLOAD_NO_PROGRESS ON
     CMAKE_ARGS ${DEPS_ARGS}
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${BUILD_OPTIONS_}
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
@@ -449,6 +509,8 @@ macro(create_external_encrypted_cmake_patched)
   # file means, that we have the source already in the cfsdeps cache. If not, we store there
   # see add_standard_mirrors()
   
+  set_parallel_build_option(BUILD_OPTIONS_) # usually -j<threads> but empty for nmake
+
   # we need to build the package - here in cmake style
   ExternalProject_Add("${PACKAGE_NAME}"
     PREFIX "${DEPS_PREFIX}"
@@ -473,7 +535,7 @@ macro(create_external_encrypted_cmake_patched)
     LOG_CONFIGURE 1
     LOG_BUILD 1
     LOG_INSTALL 1 
-    
+    BUILD_COMMAND ${CMAKE_COMMAND} --build . ${BUILD_OPTIONS_} 
     BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
 
   add_postinstall_step() # only if POSTINSTALL_SCRIPT is set
@@ -487,6 +549,16 @@ macro(create_external_configure)
   assert_set(DEPS_PREFIX)
   assert_set(PACKAGE_LIBRARY)
   assert_set(DEPS_CONFIGURE)
+    
+  # there are potentially the cmake generators make, nmake (Windows) and ninja. 
+  # for configure (usually autotools) we enforce make and nmake
+  if(UNIX) # Linux, macOS
+    # cannot be in one variable
+    set(BUILD_COMMAND_ "make")
+    set_parallel_build_option(BUILD_OPTIONS_) # usually -j<threads> but empty for nmake
+  else()
+    set(BUILD_COMMAND_ "nmake") # it does not harm to have no BUILD_OPTIONS_
+  endif()
 
   if(PATCHES_SCRIPT)
     # we need to build the package - here in configure style
@@ -499,11 +571,11 @@ macro(create_external_configure)
       # in case the mirrors have different file names we always store to the same
       DOWNLOAD_NAME "${PACKAGE_FILE}"
       DOWNLOAD_NO_PROGRESS ON 
-      CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE} 
+      CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE}
+      BUILD_COMMAND ${BUILD_COMMAND_} ${BUILD_OPTIONS_}
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} 
       # now patch the unpacked source
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PATCHES_SCRIPT}" )
-  
   else()
     ExternalProject_Add("${PACKAGE_NAME}"
       PREFIX "${DEPS_PREFIX}"
@@ -512,7 +584,8 @@ macro(create_external_configure)
       DOWNLOAD_DIR "${CFS_DEPS_CACHE_DIR}/sources/${PACKAGE_NAME}"
       DOWNLOAD_NAME "${PACKAGE_FILE}"
       DOWNLOAD_NO_PROGRESS ON 
-      CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE} 
+      CONFIGURE_COMMAND ${DEPS_CONFIGURE_ENV} ${DEPS_SOURCE}/configure ${DEPS_CONFIGURE}
+      BUILD_COMMAND ${BUILD_COMMAND_} ${BUILD_OPTIONS_}
       BUILD_BYPRODUCTS ${PACKAGE_LIBRARY} )
   endif()     
     

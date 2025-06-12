@@ -1,0 +1,146 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+ 
+  
+ <documentation>
+   <title>2D Mechanic-Acoustic Eigenvalue Problem</title>
+   <authors>
+     <author>ftoth</author>
+   </authors>
+   <date>2018-09-26</date>
+   <keywords>
+     <keyword>mechanic-acoustic</keyword>
+   </keywords>
+   <references>Ansys Verification Example </references>
+   <isVerified>yes</isVerified>
+   <description>
+      This test problem demonstrates the capability of a coupled
+      mechanic-acoustic eigenvalue problem.
+      The original reference solution was checked against ANSYS.
+        
+      This testcase is equivalent to CoupledEV2D but uses the pressure formulation.
+      The resulting real valued, unsymmetric, generalised EVP is solved with FEAST.
+      
+      Results correspond to the conforming case, if the mesh is pseudo-conforming.
+      For coarser meshes the results deviate slighly.
+   </description>
+ </documentation>
+
+   
+  <fileFormats>
+    <input>
+<!--       <hdf5 fileName="CoupledEV2Dpressure.h5ref"/> -->
+      <cdb fileName="mesh.cdb"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+
+    <regionList>
+      <region name="S_mech" material="steel"/>
+      <region name="S_fluid" material="water"/>
+    </regionList>
+    <ncInterfaceList>
+    	<ncInterface name="I_fluidSolid" primarySide="L_mech" secondarySide="L_fluid"/>
+    </ncInterfaceList>
+
+  </domain>
+
+  
+  <sequenceStep>
+
+    <analysis>
+      
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+<!--         <freqShift>0</freqShift> -->
+<!--         <numModes>10</numModes> -->
+        <minVal>0</minVal>
+        <maxVal>50e+6</maxVal> <!-- corresponds to (2*pi*f)^2 -->
+        <writeModes> yes </writeModes>
+      </eigenFrequency>
+    </analysis>
+
+    <pdeList>
+
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="S_mech"/> 
+        </regionList>
+        
+        <bcsAndLoads>
+          <fix name="L_fixdis">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+      
+      
+    <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="S_fluid"/>
+        </regionList>
+        <bcsAndLoads>
+          <soundSoft name="L_fixpot"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+
+    </pdeList>
+
+    <couplingList>
+      <direct>
+        <acouMechDirect>
+          <ncInterfaceList>
+          	<ncInterface name="I_fluidSolid"/>
+          </ncInterfaceList>
+        </acouMechDirect>
+      </direct>
+    </couplingList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+<!--             <exportLinSys mass="true" stiffness="true"/> -->
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <eigenSolver id="feast"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+	        <arpack id="arpack">
+	        	<logging>true</logging>
+	        </arpack>
+          <feast id="feast">
+            <logging>true</logging>
+            <stopCrit>12</stopCrit>
+            <m0>20</m0> <!-- help feast a bit with a good estimate -->
+          </feast>
+        </eigenSolverList>
+         <solverList>
+           <pardiso>
+             <logging>yes</logging>
+           </pardiso>
+         </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+</cfsSimulation>

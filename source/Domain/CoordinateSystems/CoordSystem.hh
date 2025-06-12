@@ -42,6 +42,15 @@ namespace CoupledField {
     //! Return number of dimensions
     UInt GetDim( ) const { return dim_; }
     
+    //! Return the origin of the coordinate system
+    const Vector<Double>* GetOrigin( ) const { return &origin_; }
+
+    //! Return the rotation matrix of the coordinate system
+    const Matrix<Double>* GetRotationMatrix( ) const { return &rotationMat_; }
+
+    //! Return the paramNode defining the coordinate system
+    const PtrParamNode GetParamNode( ) const { return myParam_; }
+
     //! Transform local into global coordinate
 
     //! This method transforms a point given in local coordinates into a

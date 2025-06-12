@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsdat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+  <pipeline>
+    <stepValueDefinition>
+      <startStop>
+        <startStep value="0"/>
+        <numSteps value="21"/>
+        <!--numSteps value="4400"/-->
+        <startTime value="0"/>
+        <delta value="1"/>
+        <deleteOffset value="no"/>
+      </startStop>
+      <!--dynamic></dynamic-->
+    </stepValueDefinition>
+
+    <meshInput id="input" gridType="fullGrid">
+      <inputFile>
+        <ensight fileName="fourcells.case" readFVMesh="no" fixFVPyramids="no">
+            <variableList>
+            <variable CFSVarName="optResult_1" EnsightVarName="Variable"/>
+          </variableList>
+        </ensight>
+      </inputFile>
+    </meshInput>
+
+
+    <meshOutput id="fourcells" inputFilterIds="input">
+      <outputFile>
+        <hdf5 extension="h5" compressionLevel="0" externalFiles="no"/>
+      </outputFile>
+      <saveResults>
+        <result resultName="optResult_1">
+          <allRegions/>
+        </result>
+      </saveResults>
+    </meshOutput>
+
+
+  </pipeline>
+</cfsdat>

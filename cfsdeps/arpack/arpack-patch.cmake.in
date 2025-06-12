@@ -2,15 +2,11 @@
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
 set(CMAKE_SOURCE_DIR "@CMAKE_SOURCE_DIR@")
-INCLUDE("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 
-# arpack org CMake wants always system blas, what is not necessary for us
-# and not available on all gitlab-runners.
-# is after 3.7.0 possibly not necessary any more, as I try to fix it upstream
-set(patches 
-  "arpack_no_system_blas.patch"
-)
+# do not search for blas as we have no EXAMPLES and no TESTS. Submitted upstream at 3.9.1 
+set(patches "arpack_no_blas.patch")
 
-APPLY_PATCHES("${patches}" "${CMAKE_SOURCE_DIR}/cfsdeps/arpack")
+apply_patches("${patches}" "${CMAKE_SOURCE_DIR}/cfsdeps/arpack")
 

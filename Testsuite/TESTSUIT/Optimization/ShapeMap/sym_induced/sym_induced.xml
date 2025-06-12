@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+ <documentation>
+    <title>ShapeMap with shape induced symmetry</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2016-06-17</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Fabian Wein</references>
+    <isVerified>no</isVerified>
+    <description>Makes use of symmetry. Here the x_symmetry of a vertical shape induces the creation of another shape.</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines"/>
+    </regionList>
+    <nodeList>
+      <nodes name="right_center">
+        <coord x="1" y="0.5" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+         <fix name="west">
+           <comp dof="x"/> 
+           <comp dof="y"/>
+         </fix>
+         <force name="right_center">
+           <comp dof="y" value="-1"/>
+         </force>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping queue="999" value="0.001" type="designChange" />
+    </costFunction>
+    
+    
+    <constraint type="slope" bound="upperBound" value="0.7/nx" design="node" linear="false"/>
+    <constraint type="curvature" bound="upperBound" value="0.2/nx" design="node" linear="false" />
+    
+    <constraint type="volume" linear="false" mode="constraint" bound="upperBound" value="0.3"/>
+
+    <optimizer type="snopt" maxIterations="100">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="shapeMap" >
+      <shapeMap beta="80" overlap="tanh_sum" enforce_bounds="true" sensitivity="1e-9" >
+        <node dof="y" lower="0.0" upper="1" initial="0.45" bottom_up_sym="mirror" left_right_sym="none"/>
+        <profile fixed="1.5/nx" />
+      </shapeMap>
+    
+      <design name="density" initial="1.0" lower="1e-3" upper="1.0" />
+      
+      <transferFunction type="identity" application="mech"/>
+      <result value="shapeMapIntOrder" id="optResult_1" design="density" />
+      <export write="iteration" save="last"/>
+    </ersatzMaterial>
+    <commit stride="99"/>
+  </optimization> 
+</cfsSimulation>
+
+

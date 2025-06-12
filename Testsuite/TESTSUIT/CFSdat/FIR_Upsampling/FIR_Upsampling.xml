@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsdat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+  <pipeline>
+    <stepValueDefinition>
+      <startStop>
+        <startStep value="0"/>
+        <numSteps value="42"/>
+        <!--numSteps value="4400"/-->
+        <startTime value="0"/>
+        <delta value="0.5"/>
+        <deleteOffset value="no"/>
+      </startStop>
+      <!--dynamic></dynamic-->
+    </stepValueDefinition>
+
+    <meshInput id="input" gridType="fullGrid">
+      <inputFile>
+        <hdf5 fileName="testcase/results_hdf5/fourcells.h5"/>
+      </inputFile>
+    </meshInput>
+
+    <fir id="fir" inputFilterIds="input" upsampling="2">
+      <coefficients offset="center">0.0625,0.0625,0.25,0.4375,0.1875</coefficients>
+      <singleResult>
+        <inputQuantity resultName="optResult_1"/>
+        <outputQuantity resultName="optResult_2"/>
+      </singleResult>
+    </fir>
+
+    <meshOutput id="FIR_Upsampling" inputFilterIds="fir">
+      <outputFile>
+        <hdf5 extension="h5" compressionLevel="0" externalFiles="no"/>
+      </outputFile>
+      <saveResults>
+        <result resultName="optResult_2">
+          <allRegions/>
+        </result>
+      </saveResults>
+    </meshOutput>
+
+
+  </pipeline>
+</cfsdat>

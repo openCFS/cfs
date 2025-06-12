@@ -212,7 +212,7 @@ void MultipleExcitation::SetHarmonicExcitation(Context* ctxt, Excitation& ex, in
   ex.frequency = hd->freqs[freq_idx].freq;
   assert(!(ex.label != "" && freq_idx > 0));
   if(ex.label == "") // don't overwrite the single frequenc multiple load case
-    ex.label = lexical_cast<string>(ex.frequency);
+    ex.label = lexical_cast<string>(freq_idx);
   ex.weight = hd->freqs[freq_idx].weight;
   ex.f_link = &hd->freqs[freq_idx];
 }

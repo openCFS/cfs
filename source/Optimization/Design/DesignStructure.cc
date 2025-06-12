@@ -136,7 +136,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, bool skip_cfs_filtering)
   // while meeting other regions or designs we create new global filters based on this one.
   GlobalFilter* global = &filter.Last();
   LOG_DBG(ds) << "SF: initial global=" << global->ToString();
-  global->PostCopy(true); // register tunr
+  global->PostCopy(true); // register tune
 
   // do we have to do something?
   // in case skip_cfs_filtering is true, we don't want cfs to apply filter but still assemble it for external (SGP) lib
@@ -374,6 +374,12 @@ GlobalFilter DesignStructure::Parse(PtrParamNode pn, const DesignElement* ref_de
     {
       global.tune.Init(pn->Get("density/tune", ParamNode::PASS), Tune::BETA);
       global.beta = global.tune.start;
+    }
+    else if(pn->Get("density/beta")->As<string>() == "tuned")
+    {
+      /** we can set global.ext_tune only to a Tune object when we do the final Registration in PostCopy() */
+      global.ext_tune = (Tune*)(0) + GlobalFilter::UNSET_EXT_BETA_TUNE; // prevent conversion of different size
+      global.beta = -1;
     }
     else
       global.beta = pn->Get("density/beta")->As<double>();

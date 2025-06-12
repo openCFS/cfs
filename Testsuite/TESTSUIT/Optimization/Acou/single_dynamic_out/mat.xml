@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/material 
+https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd" >
+  <material name="air">
+    <acoustic>
+      <!-- Data obtained from : www.wikipedia.de -> "Luft" und "Kompressionsmodul" und "Adiabatenexponent"  
+      Reference(s) :  -->
+      <!-- Remarks : Standardbedingungen bei Temp. T=20 degree und Druckp=1013 hPa"
+                     Kompressionsmodul aus Adiabatenexponent gamma = 1,40 berechnet -->
+      <density>
+        <linear>
+          <real> 1.204 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 0.141855e+6 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

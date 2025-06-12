@@ -1,0 +1,259 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="9" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.237s" wall="0.237" cpu="0.621171" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="449.14" peak="451.15"/>
+  </summary>
+  <header id="">
+    <environment started="2020-Jun-19 12:36:40" host="mo42"/>
+    <progOpts problem="two_materials_2d_diag" parameterFile="/home/daniel/code/cfs_wien/Testsuite/TESTSUIT/Optimization/Homogenization/heat_conduction/two_materials_2d_diag/two_materials_2d_diag.xml" schemaPath="/home/daniel/code/cfs_wien/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="18.03" name="AMGme" build="Release" git_commit="75f1c59737348f10cc28f2e2e6ccbb3fd0f36bde" git_branch="fix-periodic-bcs" exe="cfswien.rel"/>
+      <openmp CFS_NUM_THREADS="4" MKL_NUM_THREADS="4" OMP_NUM_THREADS="4"/>
+    </progOpts>
+    <domain nx="20" ny="20" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="400" nodes="441"/>
+      </grids>
+      <regions>
+        <region name="void" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="376" isQuadratic="no"/>
+        <region name="mech" id="1" type="volume" regular="yes" hom="yes" nodes="50" elems="24" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="21"/>
+        <nodes name="east" count="21"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="20" ny="20" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <update_results>
+      <timer wall-clock="0s" wall="0" cpu="9e-06" calls="8"/>
+    </update_results>
+    <finish_step>
+      <timer wall-clock="0.002s" wall="0.002" cpu="0.016891" calls="2"/>
+    </finish_step>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <heatConduction>
+        <header>
+          <region name="void" damping="none"/>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="mech">
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="void">
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="water">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 6.060000e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  6.060000e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  6.060000e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(0.606,0)"/>
+          <property name="Heat_Capacity" value="4186"/>
+          <property name="Density" value="1.1799999999999999"/>
+        </material>
+        <material name="air">
+          <regionList>
+            <region name="void"/>
+          </regionList>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 3.000000e-02  0.000000e+00  0.000000e+00
+                 0.000000e+00  3.000000e-02  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.000000e-02
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(0.03,0)"/>
+          <property name="Heat_Capacity" value="1005"/>
+          <property name="Density" value="1.1799999999999999"/>
+        </material>
+        <feSpaces>
+          <heatTemperature>
+            <h1Nodal>
+              <regionList>
+                <void/>
+                <default order="1"/>
+                <mech/>
+              </regionList>
+            </h1Nodal>
+          </heatTemperature>
+        </feSpaces>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="2e-06" calls="2"/>
+          </writeResults>
+        </summary>
+        <feFunctions>
+          <heatTemperature/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </heatConduction>
+    </PDE>
+    <OLAS>
+      <heatConduction>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="400" totalNumFreeEqns="400" totalNumDirichlet="0">
+            <function id="0" name="heatTemperature" numEqns="400" lastFreeEqn="400" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="400" lastFreeIndex="400"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.000793" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.000239" calls="2"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="2e-06" calls="1"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </heatConduction>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.006s" wall="0.006" cpu="0.031326" calls="4"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.052s" wall="0.052" cpu="0.156606" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+  <optimization haltopt_file="/home/daniel/code/cfs_wien/Testsuite/TESTSUIT/Optimization/Homogenization/heat_conduction/two_materials_2d_diag/HALTOPT">
+    <header>
+      <objective type="homTensor" name="homTensor" linear="no" filtered="yes" task="minimize"/>
+      <multipleExcitations type="homogenizationTestStrains"/>
+      <constraints/>
+      <designSpace pamping="0" regular="yes">
+        <gradient_chain_rule>
+          <timer label="gradient_chain_rule" wall-clock="0s" wall="0" cpu="2e-05" calls="1" sub="true"/>
+        </gradient_chain_rule>
+        <filters use_mat_filt="yes"/>
+        <transferFunctions>
+          <transferFunction type="identity" application="heat" design="density"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="400" modelVariables="400" modelElements="400">
+          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
+        </designVariables>
+        <localElementCache org="1" shadow="0" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="24" bimaterial="-"/>
+          <region name="void" elements="376" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="heat" homogenization="yes"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="x" weight="0" normalized_weight="0">
+          <TestTempGradInt entities="void"/>
+          <TestTempGradInt entities="mech"/>
+        </excitation>
+        <excitation index="1" meta_idx="0" label="y" weight="1" normalized_weight="1">
+          <TestTempGradInt entities="void"/>
+          <TestTempGradInt entities="mech"/>
+        </excitation>
+      </excitations>
+      <evaluate/>
+    </header>
+    <commit mode="each_forward" stride="1"/>
+    <optimizer>
+      <summary>
+        <evaluate>
+          <timer wall-clock="0s" wall="0" cpu="5e-06" calls="1"/>
+        </evaluate>
+      </summary>
+    </optimizer>
+    <summary>
+      <eval_objective>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002026" calls="1"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0s" wall="0" cpu="2.9e-05" calls="1"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </eval_grad_constraints>
+    </summary>
+    <process>
+      <iteration number="0" duration="0.23" homTensor="0.0561748701988669">
+        <excitation index="0" objective="0" objective_weight="0"/>
+        <excitation index="1" objective="0.056175" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.056175" trace="0.078346">
+          <tensor dim1="2" dim2="2">
+            <real>
+               3.941901e-02 -6.574832e-03
+              -6.574832e-03  3.892686e-02
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+    </process>
+  </optimization>
+</cfsInfo>

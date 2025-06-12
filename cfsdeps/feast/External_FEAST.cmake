@@ -10,7 +10,7 @@ set(FEAST_VER ${PACKAGE_VER}) # for --version
 set(PACKAGE_FILE "feast_${PACKAGE_VER}.tgz")
 set(PACKAGE_MD5 "e4e6b47de276c203de2c0e9e7d9e5a65")
 set(PACKAGE_MIRRORS "https://gitlab.com/api/v4/projects/12930334/packages/generic/cfsdeps/sources/${PACKAGE_FILE}")  
-set(DEPS_VER "-b") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-c") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # we cannot link a parallel compiled suitesparse with debug without openmp
 # we need to set DEPS_ID before calling set_precompiled_pckg_file()

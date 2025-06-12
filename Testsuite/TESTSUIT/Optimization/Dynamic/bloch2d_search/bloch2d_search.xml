@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Maximization of Bloch band gap</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2016-01-29</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Bendsoe and Sigmund</references>
+    <isVerified>no</isVerified>
+    <description>We do NOT optimize over all wave vectors as constraints but search for the minimal and maxmial ones.
+    This is clearly non-smooth but works surprisingly well</description>
+  </documentation>
+
+   <fileFormats>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.5" y="0.5" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>6</numModes>
+        <freqShift>0</freqShift>
+        <writeModes>yes</writeModes>
+        <bloch>
+           <ibz sample="symmetric" steps="6" />
+        </bloch>
+      </eigenFrequency>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+          <periodic primary="north" secondary="south" dof="x"  quantity="mechDisplacement" />
+          <periodic primary="north" secondary="south" dof="y"  quantity="mechDisplacement" />
+          <periodic primary="west"  secondary="east" dof="x"  quantity="mechDisplacement" />
+          <periodic primary="west"  secondary="east" dof="y"  quantity="mechDisplacement" />
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <arpack>
+            <logging>false</logging>
+          </arpack>
+        </eigenSolverList>
+        <solverList>
+          <umfpack>
+            <tol>0.01</tol>          
+            <symtol>0.0001</symtol>
+          </umfpack>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <loadErsatzMaterial file="circular_2d-v_0.5-o_6-inv_16.density.xml" set="last"/>
+
+  <optimization>
+    <costFunction type="bandgap" task="maximize" multiple_excitation="true">
+      <bandgap lower_ev="3" upper_ev="4"/>      
+    </costFunction>
+  
+    <constraint type="eigenfrequency" bound="upperBound" ev="3" value="4200" mode="observation" bloch="extremal"/>
+    <constraint type="eigenfrequency" bound="lowerBound" ev="4" value="4200" mode="observation" bloch="extremal"/>
+
+    <optimizer type="snopt" maxIterations="10" >
+      <snopt>
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters periodic="disable">
+        <filter neighborhood="maxEdge" value="1.3" type="density"/>
+      </filters>
+      <design name="density" initial="random" physical_lower="1e-9" upper="1.0" enforce_bounds="true" />
+
+      <transferFunction type="simp" application="mech" param="1" />
+      <transferFunction type="simp" application="mass" param="1"/>
+
+      <export save="all" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="999"/>
+  </optimization>
+  
+
+
+</cfsSimulation>

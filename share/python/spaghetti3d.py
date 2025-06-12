@@ -17,41 +17,42 @@ except ImportError:
 
 from multiprocessing.pool import Pool as Pool # preferably to line below
 #from multiprocessing.pool import ThreadPool as Pool # only necessary for python profiling using kernprof
-# noinspection PyUnresolvedReferences
-import vtkmodules.vtkInteractionStyle
-# noinspection PyUnresolvedReferences
-import vtkmodules.vtkRenderingOpenGL2
-from vtkmodules.vtkCommonColor import vtkNamedColors
-from vtkmodules.vtkCommonTransforms import vtkTransform
-from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
-from vtkmodules.vtkRenderingAnnotation import vtkAxesActor
-from vtkmodules.vtkCommonCore import vtkPoints
-from vtkmodules.vtkIOXML import vtkXMLPolyDataWriter
-from vtkmodules.vtkIOImage import vtkPNGWriter
-from vtkmodules.vtkCommonDataModel import (
+  # noinspection PyUnresolvedReferences
+try:
+  import vtkmodules.vtkInteractionStyle
+  # noinspection PyUnresolvedReferences
+  import vtkmodules.vtkRenderingOpenGL2
+
+  from vtkmodules.vtkCommonColor import vtkNamedColors
+  from vtkmodules.vtkCommonTransforms import vtkTransform
+  from vtkmodules.vtkInteractionWidgets import vtkOrientationMarkerWidget
+  from vtkmodules.vtkRenderingAnnotation import vtkAxesActor
+  from vtkmodules.vtkCommonCore import vtkPoints
+  from vtkmodules.vtkIOXML import vtkXMLPolyDataWriter
+  from vtkmodules.vtkIOImage import vtkPNGWriter
+  from vtkmodules.vtkCommonDataModel import (
     vtkCellArray,
-    vtkPolyData
-)
-from vtkmodules.vtkFiltersCore import vtkGlyph3D
-from vtkmodules.vtkFiltersSources import (
-  vtkCylinderSource,
-  vtkSphereSource,
-  vtkParametricFunctionSource,
-  vtkArrowSource
-)
-from vtkmodules.vtkCommonComputationalGeometry import vtkParametricTorus
-from vtkmodules.vtkRenderingCore import (
+    vtkPolyData)
+  from vtkmodules.vtkFiltersCore import vtkGlyph3D
+  from vtkmodules.vtkFiltersSources import (
+    vtkCylinderSource,
+    vtkSphereSource,
+    vtkParametricFunctionSource,
+    vtkArrowSource)
+  from vtkmodules.vtkCommonComputationalGeometry import vtkParametricTorus
+  from vtkmodules.vtkRenderingCore import (
     vtkActor,
     vtkPolyDataMapper,
     vtkRenderWindow,
     vtkRenderWindowInteractor,
     vtkRenderer,
-    vtkWindowToImageFilter
-)
-from vtk import (
-  vtkOBJExporter,
-  vtkX3DExporter
-)
+    vtkWindowToImageFilter)
+  from vtk import (
+    vtkOBJExporter,
+    vtkX3DExporter)
+except ImportError as ex:
+  print('Warning: import error, hopefully not needd:', ex)
+
 import sys
 
 # for gradient check

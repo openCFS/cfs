@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd" xmlns="http://www.cfs++.org/simulation">
+
+	<documentation>
+		<title>Fluid Mechanic</title>
+		<authors>
+			<author>ftoth</author>
+		</authors>
+		<date>2020-02-02</date>
+		<keywords>
+			<keyword>flow</keyword>
+		</keywords>
+		<references></references>
+		<isVerified>yes</isVerified>
+		<description>
+			Plane wave propagation in 1D setup with convection, including second convective term
+		</description>
+	</documentation>
+	<fileFormats>
+		<input>
+			<hdf5 fileName="PlaneWave2DConvectionC2.h5ref" />
+			<!-- <gmsh fileName="domain.msh"/> -->
+		</input>
+		<output>
+			<hdf5 />
+			<text id="txt" />
+		</output>
+		<materialData file="mat.xml" format="xml" />
+	</fileFormats>
+
+	<domain geometryType="plane">
+		<variableList>
+            <var name="Vx" value="0.3"/>
+        </variableList>
+		<regionList>
+			<region name="S_flow" material="FluidMat" />
+		</regionList>
+	</domain>
+	<fePolynomialList>
+
+		<Legendre id="velPolyId">
+			<isoOrder>2</isoOrder>
+		</Legendre>
+
+		<Legendre id="presPolyId">
+			<isoOrder>1</isoOrder>
+		</Legendre>
+	</fePolynomialList>
+
+	<sequenceStep index="1">
+		<analysis>
+			<harmonic>
+				<frequencyList>
+					<freq value="1" />
+				</frequencyList>
+			</harmonic>
+		</analysis>
+		<pdeList>
+			<fluidMechLin formulation="compressible" presPolyId="presPolyId" velPolyId="velPolyId" enableC2="true" enableC3="false">
+				<regionList>
+					<region name="S_flow" flowId="myFlow" /><!---->
+				</regionList>
+
+				<flowList>
+					<velocity name="myFlow">
+						<comp dof="x" value="Vx*x" />
+					</velocity>
+				</flowList>
+
+				<bcsAndLoads>
+					<noSlip name="L_bottom">
+						<comp dof="y" />
+					</noSlip>
+					<noSlip name="L_top">
+						<comp dof="y" />
+					</noSlip>
+					<traction name="L_left">
+						<comp dof="x" value="1.0" />
+					</traction>
+				</bcsAndLoads>
+
+				<storeResults>
+					<nodeResult type="fluidMechPressure">
+						<allRegions />
+					</nodeResult>
+					<nodeResult type="fluidMechVelocity">
+						<allRegions />
+					</nodeResult>
+					<nodeResult type="meanFluidMechVelocity">
+						<allRegions />
+					</nodeResult>
+				</storeResults>
+			</fluidMechLin>
+		</pdeList>
+		<linearSystems>
+			<system>
+				<solutionStrategy>
+					<standard>
+						<matrix storage="sparseNonSym" />
+					</standard>
+				</solutionStrategy>
+				<solverList>
+					<directLU />
+				</solverList>
+			</system>
+		</linearSystems>
+	</sequenceStep>
+
+</cfsSimulation>

@@ -291,7 +291,7 @@ namespace CoupledField {
         assert(mortarIf);
 
         PtrCoefFct matData, tmpData;
-        RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
+        RegionIdType volMasterId = mortarIf->GetPrimaryVolRegion();
 
         SubTensorType tensorType = NO_TENSOR;
         if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
@@ -361,17 +361,17 @@ namespace CoupledField {
           // define bilinear forms coupling mechanical displacement with electric potential
           if (matData->IsComplex())
           {
-            int_PhiM_DUM = GetNormalPiezoFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false);
-            int_PhiS_DUM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false);
-            int_DPhiM_UM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true);
-            int_DPhiM_US = GetNormalPiezoStrainIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true);
+            int_PhiM_DUM = GetNormalPiezoFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false);
+            int_PhiS_DUM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false);
+            int_DPhiM_UM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true);
+            int_DPhiM_US = GetNormalPiezoStrainIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true);
           }
           else
           {
-            int_PhiM_DUM = GetNormalPiezoFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false);
-            int_PhiS_DUM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false);
-            int_DPhiM_UM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true);
-            int_DPhiM_US = GetNormalPiezoStrainIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true);
+            int_PhiM_DUM = GetNormalPiezoFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false);
+            int_PhiS_DUM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false);
+            int_DPhiM_UM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true);
+            int_DPhiM_US = GetNormalPiezoStrainIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true);
           }
 
           int_PhiM_DUM->SetBCoefFunctionOpB(matData);
@@ -384,10 +384,10 @@ namespace CoupledField {
           int_DPhiM_US->SetName("int_DPhiM_US");
 
           // define contexts for bilinear forms
-          SurfaceBiLinFormContext* descr_PhiM_DUM = new SurfaceBiLinFormContext(int_PhiM_DUM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-          SurfaceBiLinFormContext* descr_PhiS_DUM = new SurfaceBiLinFormContext(int_PhiS_DUM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-          SurfaceBiLinFormContext* descr_DPhiM_UM = new SurfaceBiLinFormContext(int_DPhiM_UM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-          SurfaceBiLinFormContext* descr_DPhiM_US = new SurfaceBiLinFormContext(int_DPhiM_US, STIFFNESS, BiLinearForm::MASTER_SLAVE);
+          SurfaceBiLinFormContext* descr_PhiM_DUM = new SurfaceBiLinFormContext(int_PhiM_DUM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          SurfaceBiLinFormContext* descr_PhiS_DUM = new SurfaceBiLinFormContext(int_PhiS_DUM, STIFFNESS, BiLinearForm::SEC_PRIM);
+          SurfaceBiLinFormContext* descr_DPhiM_UM = new SurfaceBiLinFormContext(int_DPhiM_UM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          SurfaceBiLinFormContext* descr_DPhiM_US = new SurfaceBiLinFormContext(int_DPhiM_US, STIFFNESS, BiLinearForm::PRIM_SEC);
 
           descr_PhiM_DUM->SetEntities(actSDList, actSDList);
           descr_PhiS_DUM->SetEntities(actSDList, actSDList);
@@ -411,17 +411,17 @@ namespace CoupledField {
           // define bilinear forms coupling electric potential with mechanical displacement
           if (matData->IsComplex())
           {
-            int_UM_DPhiM = GetNormalPiezoStrainIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false);
-            int_US_DPhiM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false);
-            int_DUM_PhiM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true);
-            int_DUM_PhiS = GetNormalPiezoFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true);
+            int_UM_DPhiM = GetNormalPiezoStrainIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false);
+            int_US_DPhiM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false);
+            int_DUM_PhiM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true);
+            int_DUM_PhiS = GetNormalPiezoFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true);
           }
           else
           {
-            int_UM_DPhiM = GetNormalPiezoStrainIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false);
-            int_US_DPhiM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false);
-            int_DUM_PhiM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true);
-            int_DUM_PhiS = GetNormalPiezoFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true);
+            int_UM_DPhiM = GetNormalPiezoStrainIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false);
+            int_US_DPhiM = GetNormalPiezoStrainIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false);
+            int_DUM_PhiM = GetNormalPiezoFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true);
+            int_DUM_PhiS = GetNormalPiezoFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true);
           }
 
 
@@ -435,10 +435,10 @@ namespace CoupledField {
           int_DUM_PhiS->SetName("int_DUM_PhiS");
 
           // define contexts for bilinear forms
-          SurfaceBiLinFormContext* descr_UM_DPhiM = new SurfaceBiLinFormContext(int_UM_DPhiM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-          SurfaceBiLinFormContext* descr_US_DPhiM = new SurfaceBiLinFormContext(int_US_DPhiM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-          SurfaceBiLinFormContext* descr_DUM_PhiM = new SurfaceBiLinFormContext(int_DUM_PhiM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-          SurfaceBiLinFormContext* descr_DUM_PhiS = new SurfaceBiLinFormContext(int_DUM_PhiS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
+          SurfaceBiLinFormContext* descr_UM_DPhiM = new SurfaceBiLinFormContext(int_UM_DPhiM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          SurfaceBiLinFormContext* descr_US_DPhiM = new SurfaceBiLinFormContext(int_US_DPhiM, STIFFNESS, BiLinearForm::SEC_PRIM);
+          SurfaceBiLinFormContext* descr_DUM_PhiM = new SurfaceBiLinFormContext(int_DUM_PhiM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+          SurfaceBiLinFormContext* descr_DUM_PhiS = new SurfaceBiLinFormContext(int_DUM_PhiS, STIFFNESS, BiLinearForm::PRIM_SEC);
 
           descr_UM_DPhiM->SetEntities(actSDList, actSDList);
           descr_US_DPhiM->SetEntities(actSDList, actSDList);

@@ -7,22 +7,60 @@
 
 # include common stuff to make this file shorter
 include:
+  - local: .gitlab/ci/linux.yml
   - local: .gitlab/ci/windows.yml
-
-# short manual section about tags (define which jobs can be run by which runners):
-# - docker: runners using docker, all is defined by the image, no other tags required (python, linux, ...)
-# - linux: generic linux
-# - mdmt: runners who can deploy to the TU Wien infrastructure
+  # this switches the CACHE_POLICY by including the file with a variable definition (and an info job)
+  # see https://docs.gitlab.com/ee/ci/yaml/includes.html#merge-method-for-include
+  # and https://docs.gitlab.com/ee/ci/yaml/includes.html#use-nested-includes-with-duplicate-include-entries
+  - local: .gitlab/ci/cache-default.yml
+  # since it is included __after__ the above cache-default, it wins (and variables are overwritten)
+  - local: .gitlab/ci/cache-policy-push.yml
+    rules:
+      - if: $CLEAR_CACHE != null
+      - if: $CI_COMMIT_MESSAGE =~ /clear-cache/
+      - if: $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
+      - if: $CACHE_POLICY == "push" # effectively just add the info job
 
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
-  GIT_SUBMODULE_STRATEGY: recursive # by default clone the testsuite, switch to 'none' to save time if not required
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   CTEST_PROGRESS_OUTPUT: "ON" # makes the ctest output shorter, see https://cmake.org/cmake/help/latest/envvar/CTEST_PROGRESS_OUTPUT.html#envvar:CTEST_PROGRESS_OUTPUT
   # build options for the maximal config
   MAX_CONFIG_OPTIONS: " -DUSE_EMBEDDED_PYTHON=ON -DUSE_CGAL=ON -DUSE_SUITESPARSE=ON -DUSE_EIGEN=ON -DUSE_SGP=ON"
   MUSL_CONFIG_OPTIONS: "-DCMAKE_EXE_LINKER_FLAGS=-static -DMKL_THREADING=gnu_thread" # link statically
+  # Select which tag of the build containers we use. Update the tag when there are breaking changes in the conainers!
+  # This way pipelines for old CFS-commits can still run on old container versions.
+  # see https://gitlab.com/openCFS/build-environment/-/tags
+  # or https://hub.docker.com/u/opencfs for the available images
+  BUILD_ENVIRONMENT_TAG: 2025.05
+  BUILD_ENVIRONMENT_REGISTRY:
+    value: "opencfs" # defaults to using docker-hub
+    options:
+      - "opencfs"
+      - "registry.gitlab.com/opencfs/build-environment"
+    description: "Container registry to pull from to obtain the build-environment (docker) container images for the Linux builds. Set BUILD_ENVIRONMENT_TAG to specify a image tag to use."
+  # configure ccache, see https://ccache.dev/manual/latest.html
+  CCACHE_BASEDIR: $CI_PROJECT_DIR/build
+  CCACHE_DIR: $CI_PROJECT_DIR/ccache
+  CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
+  CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
+  CCACHE_MAXSIZE: 200M
+  # default ref for artifacts in downstream (Testsuite) pipelines
+  CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_COMMIT_REF_NAME # for the build artifacts
+  # set the pipeline type via variable, see https://docs.gitlab.com/ee/ci/yaml/#variablesoptionsq
+  CFS_PIPELINE_TYPE:
+    value: "test"
+    options:
+      - "manual"
+      - "test"
+      - "nightly"
+      - "release"
+      - "pipeline"
+    description: "The type of the pipeline: usually you want 'test', 'manual', or 'nightly'. Other options are for pipeline-experiments only!"
+  # all rules:changes:compare_to use this value - it can be set in as a variable when creating a pipeline
+  # since branch and MR pipelines show a different behavior without this option, we set it (see https://docs.gitlab.com/ee/ci/yaml/#ruleschanges)
+  COMPARE_CHANGES_TO: $CI_DEFAULT_BRANCH # if one does merge requests to a different branch than the default this needs to be changed
 
 # stages in the pipeline run in succession
 stages:
@@ -48,6 +86,10 @@ workflow:
   name: "$CFS_PIPELINE_NAME"
   rules:
   # put the most specific rules first - we have a release tag (in the correct format)
+  - if: $CI_PIPELINE_SOURCE == "pipeline" # the pipeline was triggered by CFS
+    variables:
+      CFS_PIPELINE_TYPE: "testsuite"
+      CFS_PIPELINE_NAME: "Triggered by $TESTSUITE_PROJECT !$TESTSUITE_MR of $TESTSUITE_BRANCH"
   # tags with 20* should be protected in the GitLab repo settings
   - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
     variables:
@@ -66,11 +108,15 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "manual"
       CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
+      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggered pipelines
+      CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_MERGE_REQUEST_REF_PATH # for build artifacts
   # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
+      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggered pipelines
+      CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_MERGE_REQUEST_REF_PATH # for build artifacts
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
@@ -79,15 +125,15 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "nightly"
       CFS_PIPELINE_NAME: "Scheduled for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
-  # create a manual pipeline via the web interface (for any branch) by setting the variable CFS_PIPELINE_TYPE=manual
-  - if: $CI_PIPELINE_SOURCE == "web" && $CFS_PIPELINE_TYPE == "manual"
-    variables:
-      CFS_PIPELINE_NAME: "Manual for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
-  # automatically run if branch name starts or ends with test or is scheduled
-  - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/ || $CI_PIPELINE_SOURCE == "web"
+  # automatically run if branch name starts or ends with test
+  - if: $CI_COMMIT_BRANCH =~ /^test.*$/ || $CI_COMMIT_BRANCH =~ /^.*test$/
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for branch ${CI_COMMIT_BRANCH}: $CI_COMMIT_TITLE"
+  # honor the CFS_PIPELINE_TYPE from the Web-ui
+  - if: $CI_PIPELINE_SOURCE == "web"
+    variables:
+      CFS_PIPELINE_NAME: "$CFS_PIPELINE_TYPE for ${CI_COMMIT_REF_NAME}: $CI_COMMIT_TITLE"
   # when no rule triggers, no pipeline is created
 
 #################################################
@@ -103,51 +149,35 @@ workflow:
     - saas-linux-small-amd64
   # switch off cloning any code
   variables:
-    GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
   cache: {} # disable
 
-# Check the revision of the testsuite submodule
+## different sets of changes with different conditions
+
+# the revision of the testsuite submodule has changed
 .Testsuite_changes: &Testsuite_changes
       changes:
         paths:
-          - Testsuite
-        compare_to: 'refs/heads/master'
+          - "Testsuite/**/*"
+        compare_to: $COMPARE_CHANGES_TO
 
-testsuite-revision:
-  extends: .check
-  image: opencfs/fedora32
-  variables:
-    # we clone to make sure we have everything (including current names of the SHAs)
-    GIT_STRATEGY: clone
-    GIT_SUBMODULE_STRATEGY: recursive
-  rules:
-    # only create the job if there are changes in the Testsuite submodule
-    - if: $CFS_PIPELINE_TYPE == "test" 
-      <<: *Testsuite_changes
-      when: on_success
-      allow_failure: true # only for info
-    - if: $CFS_PIPELINE_TYPE != /test/
-      <<: *Testsuite_changes
-      when: manual
-      allow_failure: true # only for info
-  before_script:
-    - git --no-pager log -1 --pretty=tformat:'%h %D'
-    - echo "The Testsuite in $CI_COMMIT_REF_NAME has changes compared to master!"
-  script:
-    # check in Testsuite submodule
-    - cd Testsuite
-    - git --no-pager log -1 --pretty=tformat:'%h %D'
-    # check if we are on a branch called like the branch from CFS (or still on master)
-    - git --no-pager log -1 --pretty=tformat:'%h %D' | egrep -w "(${CI_COMMIT_REF_NAME})|(master)"
-  after_script:
-    - pwd # debug
+# changes that require the c++ builds to run
+.require-rebuild-changes: &require-rebuild-changes
+  # works like only/except changes
+  # for examples, see https://docs.gitlab.com/ee/ci/yaml/#onlychanges--exceptchanges
+  changes:
+    paths:
+      - "**/CMakeLists.txt"
+      - "**/*.cmake"
+      - "**/*.cmake.in"
+      - source/**/*.{hh,cc,h,c}
+    compare_to: $COMPARE_CHANGES_TO
 
 # check the links in markdown files using https://github.com/tcort/markdown-link-check
 markdown-link-check:
   extends: .check
   image: 
-    name: ghcr.io/tcort/markdown-link-check # working label :3.12.2
+    name: $BUILD_ENVIRONMENT_REGISTRY/markdown-link-check:$BUILD_ENVIRONMENT_TAG
     entrypoint: ["/bin/sh","-c"]
   variables:
     GIT_STRATEGY: fetch
@@ -172,13 +202,12 @@ markdown-link-check:
         paths:
         - .gitlab-ci.yml
         - .gitlab/ci/*.yml
-        compare_to: 'refs/heads/master'
+        compare_to: $COMPARE_CHANGES_TO
 pipeline-changes:
   extends: .check
-  image: opencfs/fedora32
-  # switch off cloning the Testsuite submodule
-  variables:
-    GIT_STRATEGY: none
+  image:
+    name: alpine/git:2.47.1
+    entrypoint: ["/bin/sh","-c"]
   rules:
     # only run the job for merge requests if there are changes in the pipeline definition
     - if: $CFS_PIPELINE_TYPE == "test"
@@ -196,6 +225,7 @@ pipeline-changes:
 
 runner-debug:
   extends: .check
+  image: alpine
   tags:
     - saas-linux-small-amd64
   rules:
@@ -205,6 +235,9 @@ runner-debug:
   script:
     - echo "$CFS_PIPELINE_NAME"
     - echo "$CFS_PIPELINE_TYPE"
+    - echo "$CACHE_POLICY:$INSTALL_POLICY"
+    - echo $TESTSUITE_BRANCH
+    - echo $CFS_UPSTREAM_REF
     - echo $CI_SERVER_HOST
     - echo $CI_SERVER
     - echo $GITLAB_USER_ID
@@ -221,10 +254,14 @@ runner-debug:
     - echo $CI_COMMIT_REF_NAME
     - echo $CI_PIPELINE_SOURCE
     - echo $CI_PIPELINE_IID
+    - echo $CI_JOB_IMAGE
+    - echo $CI_JOB_NAME_SLUG
+    - echo $CI_MERGE_REQUEST_LABELS
 
 # this job is created when there is a skip-build in the commit message
 skip-build:
   extends: .check
+  image: alpine
   tags:
     - saas-linux-small-amd64
   rules:
@@ -236,19 +273,9 @@ skip-build:
   script:
     - /commit/message/contained/skip-build
 
-.require-rebuild-changes: &require-rebuild-changes
-  # changes that require the c++ builds to run
-  # works like only/except changes
-  # for examples, see https://docs.gitlab.com/ee/ci/yaml/#onlychanges--exceptchanges
-  changes:
-    - "**/CMakeLists.txt"
-    - "**/*.cmake"
-    - "**/*.cmake.in"
-    - source/**/*.{hh,cc,h,c}
-    - Testsuite
-
 cpp-code-changes:
   extends: .check
+  image: alpine
   tags:
     - saas-linux-small-amd64
   rules:
@@ -286,9 +313,6 @@ cpp-code-changes:
       allow_failure: true # we need this to not stop the pipeline if the manual job is not triggered
   # disable cache
   cache: {}
-  # switch off cloning the Testsuite submodule
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
   # install dependencies in the docker image
   before_script:
     # ensure build does not exist
@@ -376,13 +400,6 @@ debian:11: # (bullseye)
     TAG: "11"
 
 # RHEL derivatives
-# centos 7, see https://hub.docker.com/_/centos, probably not maintained any more
-rhel:7:
-  extends: .platform
-  variables:
-    IMAGE: "centos"
-    TAG: "7"
-
 # rockylinux 8, see https://hub.docker.com/_/rockylinux
 rhel:8:
   extends: .platform
@@ -404,101 +421,35 @@ rhel:9:
 # store the precompiled ones as artifacts
 # we need to precompile for all GCC versions independently
 
-# cache the build files see https://docs.gitlab.com/ee/ci/caching/index.html
-# use the ref-name, e.g. `master` as key -> same for successive builds
-# it is stored as a zip archive and extracted before each stage - this takes time,
-# thus we combine the build and configure step
-# the key is used to define which cache is used for which job.
-
-# requires disabling od seperate branches
-# see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
-# we use one cache per compiler type, and one cache per branch
-# the master branch is used as a fallback key, it's cache is kept up to date by the nightly schedule
-.cache_cfsdeps-gcc7: &cache_cfsdeps-gcc7
-  cache:
-    - key: cfsdeps-precompiled-gcc7-$CI_COMMIT_REF_NAME
-      paths:
-        - build/cfsdeps/cache/precompiled/
-      fallback_keys:
-        - cfsdeps-precompiled-gcc7-$CI_DEFAULT_BRANCH
-    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
-      paths:
-        - build/cfsdeps/cache/sources/
-      fallback_keys:
-        - cfsdeps-sources-$CI_DEFAULT_BRANCH
-.cache_cfsdeps-gcc12: &cache_cfsdeps-gcc12
-  cache:
-    - key: cfsdeps-precompiled-gcc12-${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/precompiled/
-      fallback_keys:
-        - cfsdeps-precompiled-gcc12-$CI_DEFAULT_BRANCH
-    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
-      paths:
-        - build/cfsdeps/cache/sources/
-      fallback_keys:
-        - cfsdeps-sources-$CI_DEFAULT_BRANCH
-# seperate cache for intel, since shared runners need to save space
-.cache_cfsdeps-intel: &cache_cfsdeps-intel
-  cache:
-    - key: cfsdeps-precompiled-intel-${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/precompiled/
-      fallback_keys:
-        # requires disabling od seperate branches
-        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
-        - cfsdeps-precompiled-intel-$CI_DEFAULT_BRANCH
-    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
-      paths:
-        - build/cfsdeps/cache/sources/
-      fallback_keys:
-        # requires disabling od seperate branches
-        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
-        - cfsdeps-sources-$CI_DEFAULT_BRANCH
-
-.cache_cfsdeps-alpine: &cache_cfsdeps-alpine
-  cache:
-    - key: cfsdeps-precompiled-alpine-${CI_COMMIT_REF_NAME}
-      paths:
-        - build/cfsdeps/cache/precompiled/
-      fallback_keys:
-        # requires disabling od seperate branches
-        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
-        - cfsdeps-precompiled-alpine-$CI_DEFAULT_BRANCH
-    - key: cfsdeps-sources-$CI_COMMIT_REF_NAME
-      paths:
-        - build/cfsdeps/cache/sources/
-      fallback_keys:
-        # requires disabling od seperate branches
-        # see https://docs.gitlab.com/ee/ci/caching/index.html#use-the-same-cache-for-all-branches
-        - cfsdeps-sources-$CI_DEFAULT_BRANCH
-
-.before-script-build: &before-script-build
-  - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
-  # make sure the Testsuite submodule is OK
-  - git status # debug
-  - git diff -- Testsuite # debug
-  - git diff --exit-code -- Testsuite || (mv Testsuite Testsuite_ignore && git checkout Testsuite)
-  - git status # debug
-  # report disk space
-  - df -h # disk space debug
-  - du -h --max-depth=1 . # repos space debug
-  # setup build directory
-  - mkdir -p build # create if it does not exist
-  - cd build # descend in build
-  - rm -f CMakeCache.txt # clear old cache
-  # show the contents of the cfsdeps cache
-  - ls -l cfsdeps/cache/precompiled || ls #debug
-  - ls -l cfsdeps/cache/sources || ls #debug
-  # remove precompiled when we find clear-cache in the commit message or if an environment variable CLEAR_CACHE is defined
-  - (grep clear-cache <<< "$CI_COMMIT_MESSAGE" && rm -rf cfsdeps/cache ) || echo "no clear-cache requested in commit message"
-  - if [ -n  "${CLEAR_CACHE+set}" ]; then rm -rf cfsdeps/cache; else echo "no clear cache requested via environment variable CLEAR_CACHE"; fi
-  - ls -l cfsdeps || ls # debug
-
-# if testsuite_ignore is there, restore it
-.restore_Testsuite_ignore: &restore_Testsuite_ignore
-  - (ls Testsuite_ignore && mv -T Testsuite_ignore Testsuite) || ls Testsuite
-  - git status # debug
+.before-script-build:
+  script:
+    # git repo info
+    - export DEBUG_SECTION_TITLE='git repository info'
+    - !reference [.linux-debug-start_collapsed, script]
+    - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
+    - git status # debug
+    - !reference [.linux-debug-end, script]
+    # report disk space
+    - export DEBUG_SECTION_TITLE='disk space info'
+    - !reference [.linux-debug-start_collapsed, script]
+    - df -h # disk space debug
+    - du -h --max-depth=1 . # repos space debug
+    - ls -l build/cfsdeps || ls # debug
+    - !reference [.linux-debug-end, script]
+    # setup build directory
+    - mkdir -p build # create if it does not exist
+    - cd build # descend in build
+    - rm -f CMakeCache.txt # clear old cache
+    # show the contents of the caches
+    - !reference [.linux_list_cache, script]
+    # analyze ccache
+    - export DEBUG_SECTION_TITLE='ccache setup and debug info'
+    - !reference [.linux-debug-start_collapsed, script]
+    - ls $CCACHE_DIR || true #debug
+    - ccache --verbose --show-stats || ccache -s || true
+    - ccache --verbose --zero-stats || ccache -z || true
+    - $CMAKE_CXX_COMPILER_LAUNCHER --version || true
+    - !reference [.linux-debug-end, script]
 
 # define when csdeps need to be rebuilt based on changes
 .cfsdeps-rebuild-changes: &cfsdeps-rebuild-changes
@@ -507,11 +458,11 @@ rhel:9:
     paths:
       - "cfsdeps/**/*"
       - "cmake_modules/FindCFSDEPS.cmake"
-    compare_to: 'refs/heads/master'
+    compare_to: $COMPARE_CHANGES_TO
 
 .build_rules: &build_rules
   rules:
-    # there should be changes but a user has skipped the build
+    # there should be changes (in cfsdeps or cfs) but a user has skipped the build
     - if: $CFS_PIPELINE_TYPE == "test" && $CI_COMMIT_MESSAGE =~ /skip-build/
       <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
       when: manual
@@ -522,6 +473,8 @@ rhel:9:
     # builds & tests are required
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *require-rebuild-changes
+    - if: $CFS_PIPELINE_TYPE == "test"
+      <<: *Testsuite_changes
     # all manual
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes # cfsdeps have changed -> keep them as needs
@@ -530,8 +483,11 @@ rhel:9:
       <<: *require-rebuild-changes
       when: manual
       needs: [] # allow to be triggered manually without cfsdeps
+    - if: $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+      needs: [] # allow to be triggered manually without cfsdeps
     # If there are no c++ changes, place manual jobs & allow failure to not block the pipeline
-    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test"
+    - if: $CFS_PIPELINE_TYPE == "manual" || $CFS_PIPELINE_TYPE == "test" 
       when: manual
       allow_failure: true
       needs: [] # allow to be triggered manually without cfsdeps
@@ -546,93 +502,94 @@ rhel:9:
 
 .cfsdeps: &cfsdeps
   stage: cfsdeps
+  # the IMAGE variable needs to be defined in the job defintion
+  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
-  # switch off cloning the Testsuite submodule
   variables: &cfsdeps-variables
-    GIT_SUBMODULE_STRATEGY: none
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+    RUNNER_SCRIPT_TIMEOUT: 150m # set a script timeout lower than the job timeout to ensure there is time for artifact and cache upload
   rules:
-    # include the cfsdeps stage even if there are no changes by setting this variable
+    # include the cfsdeps stage even if there are no changes by setting the variable BUILD_CFSDEPS or merge request label "build-cfsdeps"
+    # manual
     - if: $BUILD_CFSDEPS == "manual" || ( $BUILD_CFSDEPS && $CFS_PIPELINE_TYPE == "manual" )
       when: manual
-    - if: $BUILD_CFSDEPS
+    - if: ( $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ || $CI_MERGE_REQUEST_LABELS =~ /clear-cache/ ) && $CFS_PIPELINE_TYPE == "manual"
+      when: manual
+    # automatic
+    - if: $BUILD_CFSDEPS || ( $CLEAR_CACHE != $null )
+    - if: $CI_MERGE_REQUEST_LABELS =~ /build-cfsdeps/ || $CI_MERGE_REQUEST_LABELS =~ /clear-cache/
     # only add cfsdeps jobs if there are changes
+    # ... in a "test" pipeline
     - if: $CFS_PIPELINE_TYPE == "test"
       <<: *cfsdeps-rebuild-changes
+    # ... in a 'manual' pipeline
     - if: $CFS_PIPELINE_TYPE == "manual"
       <<: *cfsdeps-rebuild-changes
       when: manual
+  cache: !reference [.cache_linux_cfsdeps-job, cache]
   before_script:
     - pwd # debug
-    - *before-script-build
+    - !reference [.before-script-build, script]
   script:
-    - cmake $CFS_CONFIG_OPTIONS ..
+    - cmake -DCFS_TESTSUITE=OFF $CFS_CONFIG_OPTIONS ..
     - cmake .
-    - make cfsdeps
+    - cmake --build . --target cfsdeps --parallel 1
   after_script:
-    - ls -l build/cfsdeps/cache/precompiled || ls # debug
-    - *restore_Testsuite_ignore
+    # show the contents of the caches
+    - !reference [.linux_list_cache, script]
+  artifacts:
+    paths:
+      - build/cfsdeps/cache/precompiled/*.zip
+      - build/cfsdeps/cache/sources/
+    name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
+    expire_in: 12 hours
+  # set a timeout for the job (increasing the project-level setting) https://docs.gitlab.com/ci/yaml/#timeout
+  # it must not exceed the runner timeout (3h for gitlab hosted runners, https://docs.gitlab.com/ci/runners/hosted_runners/#gitlabcom-hosted-runner-workflow)
+  timeout: 170m
+  # define retry on timeout. A retry should make use of a cache from the previous job
+  retry:
+    max: 2
+    when:
+      - stuck_or_timeout_failure
+      - job_execution_timeout
   needs: []
 
-cfsdeps:gcc7:
+cfsdeps:gcc9:
   extends: .cfsdeps
-  image: opencfs/centos6-gcc7
-  <<: *cache_cfsdeps-gcc7
-  artifacts:
-    paths:
-      - build/cfsdeps/cache/precompiled/*GNU_7*-lib.zip # legacy
-      - build/cfsdeps/cache/precompiled/*GNU-7*.zip
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 6 hours
-
-cfsdeps:gcc12:
-  extends: .cfsdeps
-  image: opencfs/fedora37
-  <<: *cache_cfsdeps-gcc12
-  artifacts:
-    paths:
-      - build/cfsdeps/cache/precompiled/*GNU_12*-lib.zip # legacy
-      - build/cfsdeps/cache/precompiled/*GNU-12*.zip
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 6 hours
+  variables:
+    <<: *cfsdeps-variables
+    IMAGE: centos7-gcc9
 
 # intel assumes that CC,CXX,FC are set (e.g. in bash_profile of the Dockerfile)
 cfsdeps:intel:
   extends: .cfsdeps
-  image: opencfs/centos7-intel
-  <<: *cache_cfsdeps-intel
-  artifacts:
-    paths:
-      - build/cfsdeps/cache/precompiled/*Intel*.zip
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 6 hours
+  variables:
+    <<: *cfsdeps-variables
+    IMAGE: rhel8-intel
 
-cfsdeps:gcc13-musl:
+cfsdeps:clang:
   extends: .cfsdeps
-  image: opencfs/alpine:2024.02
+  variables:
+    <<: *cfsdeps-variables
+    IMAGE: rhel8-llvm
+
+cfsdeps:gcc14-musl:
+  extends: .cfsdeps
   variables:
     <<: *cfsdeps-variables
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS # add the MUSL-options
-  <<: *cache_cfsdeps-alpine
-  artifacts:
-    paths:
-      - build/cfsdeps/cache/precompiled/*.zip
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 6 hours
+    IMAGE: alpine
 
-cfsdeps:MSVC2022-Ifort2021:
+cfsdeps:msvc2022:
   extends: .windows-shared-build
   stage: cfsdeps
   rules:
     - !reference [.cfsdeps,rules]
   variables:
-    # set the cache policy to pull-push to update the cache
-    INSTALL_POLICY: pull-push
-    CFSDEPS_SOURCES_POLICY: pull-push
-    CFSDEPS_PRECOMPILED_POLICY: pull-push
-    # define the build command
-    BUILD_COMMAND: "cmake --build . --target cfsdeps"
+    # we build with ninja and each cfsdeps is build in parallel, so build the deps themselves serially  
+    BUILD_COMMAND: "cmake --build . --target cfsdeps --parallel 1"
+    RUNNER_SCRIPT_TIMEOUT: 100m # set a script timeout lower than the job timeout (seems 120m in hosted windows runners) to ensure there is time for artifact and cache upload
   after_script:
     # just debug
     - !reference [.powershell_debug_dir_listing, script]
@@ -640,9 +597,22 @@ cfsdeps:MSVC2022-Ifort2021:
     when: on_success
     paths:
       - build/cfsdeps/cache/precompiled/*.zip
-    expire_in: 2 days
-  # Set empty needs so that the jobs start immediately (not per stage)
-  needs: []
+      - build/cfsdeps/cache/sources/
+    name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
+    expire_in: 12 hours
+  # set a timeout for the job (increasing the project-level setting) https://docs.gitlab.com/ci/yaml/#timeout
+  # it must not exceed the runner timeout (seems to be 2h for GitLab hosted windows runners)
+  timeout: 120m
+  # define retry on timeout. A retry should make use of a cache from the previous job
+  retry:
+    max: 2
+    when:
+      - stuck_or_timeout_failure
+      - job_execution_timeout
+  # Set optional needs for install job (only available for clear-cache case)
+  needs:
+    - job: install:msvc2022
+      optional: true
 
 #######################################################################
 # BUILD STAGE definitions
@@ -651,7 +621,10 @@ cfsdeps:MSVC2022-Ifort2021:
 
 # set environment for URL on CDash
 # see https://docs.gitlab.com/ee/ci/environments/index.html#set-dynamic-environment-urls-after-a-job-finishes
-.save_cdash_buildid: &save_cdash_buildid
+.save_cdash_buildid:
+  script:
+  - export DEBUG_SECTION_TITLE='Save CDash build ID'
+  - !reference [.linux-debug-start_collapsed, script]
   - ls -R Testing # debug
   - cat Testing/*/Done.xml # debug
   - grep -Po '<buildId>\K.*?(?=<.*?>)' Testing/*/Done.xml # debug
@@ -663,21 +636,28 @@ cfsdeps:MSVC2022-Ifort2021:
   # output to annotations
   # https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsannotations
   - echo '{"CDash":[{"external_link":{"label":"CDash Build","url":"'$CDASH_BUILD_URL'"}},{"external_link":{"label":"CDash Tests","url":"'$CDASH_TEST_URL'"}}]}' > annotations.json
+  - !reference [.linux-debug-end, script]
   # output to job log
   - echo "Build on CDash - $CDASH_BUILD_URL"
   - echo "Tests on CDash - $CDASH_TEST_URL"
 
 .default_build_job: &default_build_job
   stage: build
+  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
     GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
     CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
+    # using the Unix Makefile generator (every Linux but gcc14-musl), this variable builds cfs parallel.
+    # the cfsdeps will be build in sequence but automatically with the availabe number of cores.
+    # currently (04.2025) all gitlab runners seem to run with 2 threads
+    CMAKE_BUILD_PARALLEL_LEVEL: 2
+  cache: !reference [.cache_linux_build-job, cache ]
   script:
     # configure once to have dashboard ready
     - echo "$CFS_CONFIG_OPTIONS"
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ..
+    - cmake -DCFS_TESTSUITE=OFF ${CFS_CONFIG_OPTIONS} ..
     # start cdash dashboard
     - ctest -D ExperimentalStart --track $CDASH_TRACK -V
     # update to current revision (gives link on CDash)
@@ -686,9 +666,13 @@ cfsdeps:MSVC2022-Ifort2021:
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
     # build
+    # --parallel 1 beats the environment variable CMAKE_BUILD_PARALLEL_LEVEL
+    - cmake --build . --target cfsdeps --parallel 1
     - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
     - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
     # install test to create arifacts (first delete stuff to make space for packing)
+    - export DEBUG_SECTION_TITLE='Delete stuff to make space for packing'
+    - !reference [.linux-debug-start_collapsed, script]
     - df -h # debug
     - du -h --max-depth=1 . # debug
     - find cfsdeps/* -type d -not -wholename "*/cache" -not -wholename "*/cache/*" -prune -exec rm -rf {} + # delete cfsdeps (except cache)
@@ -696,30 +680,45 @@ cfsdeps:MSVC2022-Ifort2021:
     - find -iregex ".*\(\([.]a\)\|\([.]hpp\)\)$" -delete # delete *.a and *.hpp files
     - du -h --max-depth=1 . # debug
     - df -h # debug
-    - ctest -D ExperimentalTest --track $CDASH_TRACK # test build and install
+    - !reference [.linux-debug-end, script]
+    - ctest -D ExperimentalTest --track $CDASH_TRACK -R Pipeline_Build # test build and install
     - mv "CFS-$CI_COMMIT_SHA-Linux.tar.gz" "CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # rename to a (branch/tag-)constant name
   after_script:
+    - export DEBUG_SECTION_TITLE='debug information and cleanup'
+    - !reference [.linux-debug-start_collapsed, script]
     - git status # debug
-    # restore testsuite
-    - *restore_Testsuite_ignore
     - ls -la # debug
     - df -h # debug
-    - du -h --max-depth=1 . # debug
-    - cd build
-    - du -h --max-depth=1 . # debug
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    # rename CMakeCache to avoid conflicts
-    - cp CMakeCache.txt CMakeCache_build-stage.txt
+    - du -h --max-depth=1 $CI_PROJECT_DIR # debug
+    - du -h --max-depth=1 $CI_PROJECT_DIR/build # debug
     # clean up a bit to free disk space for cache-creation, leave artifacts and cache
-    - rm -rf _CPack_Packages vtk include source bin lib
+    - rm -rf $CI_PROJECT_DIR/build/_CPack_Packages $CI_PROJECT_DIR/build/vtk $CI_PROJECT_DIR/build/include $CI_PROJECT_DIR/build/source $CI_PROJECT_DIR/build/bin $CI_PROJECT_DIR/build/lib
     - df -h # debug
+    - !reference [.linux-debug-end, script]
+    # show the contents of the caches
+    - !reference [.linux_list_cache, script]
+    # submit test results
+    - cd build
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
+    - cp CMakeCache.txt CMakeCache_build-stage.txt # rename CMakeCache to avoid conflicts
+    # ccache info & clean
+    - ccache --verbose --show-stats || ccache -s || true
+    - export DEBUG_SECTION_TITLE='ccache details'
+    - !reference [.linux-debug-start_collapsed, script]
+    - ccache --verbose --show-log-stats || true
+    - ccache --verbose --cleanup || ccache -c || true
+    - ccache --verbose --show-stats || ccache -s || true
+    - !reference [.linux-debug-end, script]
     # save buildid for environment
-    - *save_cdash_buildid
+    - !reference [.save_cdash_buildid,script]
   artifacts:
     paths: # just an example
-      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
+      - ./build/CFS-${CI_COMMIT_REF_SLUG}-Linux.tar.gz # the packed binaries for distribution
       - build/CMakeCache_build-stage.txt
+      - build/ccache.log # for debug
     name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
+    # show files on the MR page, see https://docs.gitlab.com/ee/ci/yaml/#artifactsexpose_as
+    expose_as: 'job logs'
     expire_in: 1.2 days            
 
 .except-skip-gcc: &except-skip-gcc
@@ -739,14 +738,14 @@ cfsdeps:MSVC2022-Ifort2021:
     # debug output
     - gcc --version
     # general build before script
-    - *before-script-build
+    - !reference [.before-script-build, script]
 
 .intel_before: &intel_before
   before_script:
     # we assume CC, CXX and FC is set in the image properly (e.g. in the file bash_profile)
-    - icc -v
-    - icpc -v
-    - ifort -v
+    - (icc -v || icx -v)
+    - (icpc -v || icpx -v)
+    - (ifort -v || ifx -v)
     - $CC -v
     - $CXX -v
     - $FC -v
@@ -755,7 +754,7 @@ cfsdeps:MSVC2022-Ifort2021:
     - rm -rf Testsuite
     - git checkout Testsuite
     # general build before script
-    - *before-script-build
+    - !reference [.before-script-build, script]
 
 # ensure maximal build is tested never tested automatically in forks 
 # if someone wants to enable max-builds one has to manually define the variable "DO_MAX_BUILD" and set its value to "ON"
@@ -769,99 +768,112 @@ cfsdeps:MSVC2022-Ifort2021:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.build_rules, rules]
 
-# build artifacts expire early
-.build_artifacs_short: &build_artifacs_short
-  artifacts:
-    paths: # just an example
-      - build/CFS-*-Linux.tar.gz # the packed binaries for distribution
-      - build/CMakeCache_build-stage.txt
-    name: "$CI_JOB_NAME-$CI_COMMIT_REF_SLUG"
-    expire_in: 5h
-
 #######################################################################
 # BUILD STAGE
 #######################################################################
 
 
 # maximal build using as many options as possible
-linux:gcc7max-debug:
+linux:gcc9max-debug:
   extends: .default_build_job
-  image: opencfs/centos6-gcc7
   variables:
-    BUILD_NAME: "GCC7 maximal debug"
+    IMAGE: centos7-gcc9
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON -DUSE_OPENMP=OFF $MAX_CONFIG_OPTIONS"
-  <<: [ *max_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  <<: [ *max_rules, *gcc_before ]
   needs: 
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true
 
 # maximal build using as many options as possible
-linux:gcc7max:
+linux:gcc9max:
   extends: .default_build_job
-  image: opencfs/centos6-gcc7
   variables:
-    BUILD_NAME: "GCC7 maximal"
+    IMAGE: centos7-gcc9
     CFS_CONFIG_OPTIONS: $MAX_CONFIG_OPTIONS
-  <<: [ *max_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  <<: [ *max_rules, *gcc_before ]
   needs: 
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true
 
-# this is the offcial release buils
-linux:gcc7:
+linux:gcc9:
   extends: .default_build_job
-  image: opencfs/centos6-gcc7
   variables:
-    BUILD_NAME: "GCC7"
-  <<: [ *release_build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+    IMAGE: centos7-gcc9
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache    
+  <<: [ *build_rules, *gcc_before ]
   needs: 
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true
 
-linux:gcc13-musl:
+# this is the official release build
+linux:gcc14-musl:
   extends: .default_build_job
-  image: opencfs/alpine:2024.02
   variables:
-    BUILD_NAME: "GCC13-MUSL"
+    IMAGE: alpine
     CFS_CONFIG_OPTIONS: $MUSL_CONFIG_OPTIONS
-  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-alpine ]
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
+    # use Ninja to test if we have dependencies declared properly, standard would be "Unix Makefiles"
+    CMAKE_GENERATOR: Ninja
+  <<: [ *release_build_rules, *gcc_before ]
   needs: 
-    - job: cfsdeps:gcc13-musl
+    - job: cfsdeps:gcc14-musl
       optional: true
 
-linux:gcc7min:
+linux:gcc9min:
   extends: .default_build_job
-  image: opencfs/centos6-gcc7
   variables:
-    BUILD_NAME: "GCC7 minimal"
-    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
-  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc7 ]
+    IMAGE: centos7-gcc9
+    CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DUSE_BLAS_LAPACK=NETLIB -DBUILD_UNIT_TESTS=OFF -DUSE_ARPACK=OFF -DUSE_GINKGO=OFF -DUSE_CGAL=OFF -DUSE_CGNS=OFF -DUSE_DUMAS=OFF -DUSE_ENSIGHT=OFF -DUSE_EXPRESSION_TEMPLATES=OFF -DUSE_FEAST=OFF -DUSE_FLANN=OFF -DUSE_GIDPOST=OFF -DUSE_IPOPT=OFF -DUSE_LIS=OFF -DUSE_METIS=OFF -DUSE_OPENMP=OFF -DUSE_PARDISO=OFF -DUSE_SUITESPARSE=OFF -DUSE_SUPERLU=OFF "
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  <<: [ *build_rules, *gcc_before ]
   needs:
-    - job: cfsdeps:gcc7
+    - job: cfsdeps:gcc9
       optional: true
 
-linux:gcc12:
+# closed build using as many options as possible and containing closed source software AND tests
+linux:gcc9closed:
   extends: .default_build_job
-  image: opencfs/fedora37
   variables:
-    BUILD_NAME: "GCC12"
-  <<: [ *build_rules, *gcc_before, *cache_cfsdeps-gcc12 ]
-  needs: 
-    - job: cfsdeps:gcc12
-      optional: true
+    IMAGE: centos7-gcc9
+    # embedded_python is not closed but technically not that easy deployable
+    CFS_CONFIG_OPTIONS: "-DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_SUITESPARSE=ON -DBUILD_CFSDAT=OFF" 
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
+  # ensure closed build is tested only when the keys are set
+  rules:
+    - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
+      when: never
+    - !reference [.build_rules, rules]
+  <<: [*gcc_before]
+  # make sure artifacts are not accessible, see https://docs.gitlab.com/ee/ci/yaml/#artifactsaccess
+  artifacts:
+    access: 'none'
+  needs:
+    - job: cfsdeps:gcc9
+      optional: true  
 
 # intel compiler builds
 linux:intel:
   extends: .default_build_job
-  image: opencfs/centos7-intel
   variables:
-    BUILD_NAME: "Intel2021"
+    IMAGE: rhel8-intel
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
       <<: *require-rebuild-changes
       when: manual
+    - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-intel/'
+      when: manual
     - !reference [.build_rules, rules]
-  <<: [ *intel_before,*cache_cfsdeps-intel ]
+  <<: [ *intel_before ]
   needs:
     - job: cfsdeps:intel
       optional: true
@@ -869,10 +881,11 @@ linux:intel:
 # LLVM clang compiler builds
 linux:clang-debug:
   extends: .default_build_job
-  image: opencfs/fedora37-clang
   variables:
-    BUILD_NAME: "Clang debug"
+    IMAGE: rhel8-llvm
     CFS_CONFIG_OPTIONS: "-DDEBUG=ON "
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache
   rules:
     - if: '$CI_COMMIT_MESSAGE =~ /skip-builds-clang/'
       when: manual
@@ -882,9 +895,7 @@ linux:clang-debug:
     # ensure clang is installed
     - clang --version
     # general build before script
-    - *before-script-build
-  # artifacts are not needed long since no tests are done for this job
-  <<: [ *build_artifacs_short ]
+    - !reference [.before-script-build, script]
   cache:
     - key: cfsdeps-precompiled-Clang-${CI_COMMIT_REF_NAME}
       paths:
@@ -896,61 +907,33 @@ linux:clang-debug:
         - build/cfsdeps/cache/sources/
       fallback_keys:
         - cfsdeps-sources-$CI_DEFAULT_BRANCH
-  needs: []
-
-# build with ninja
-linux:gcc12:ninja:
-  extends: .default_build_job
-  image: opencfs/fedora37
-  rules:
-    # this job is always manual (just for info)
-    - if: $CFS_PIPELINE_TYPE == "test"
-      <<: *require-rebuild-changes
-      when: manual
-      allow_failure: true # do not stop the pipeline for this info-job
-    # it is not useful for nightly builds since it has no cdash output
-    - if: $CFS_PIPELINE_TYPE == "nightly"
-      when: never
-    - !reference [.build_rules, rules]
-  before_script:
-     # general build before script
-    - *before-script-build
-  script:
-    # configure with correct generator
-    - cmake -G Ninja ..
-    # build - note that we depend on cfsdeps:gcc12, hence the dependencies might already be built with make
-    # e.g. suitesparse cannot be build in parallel with ninja
-    - ninja -j1 cfsdeps
-    # build cfs in parallel   
-    - ninja  
-    # create artifacts
-    - cpack -G TGZ
-  after_script:
-    - ls -la
-  needs: 
-    - job: cfsdeps:gcc12
+  needs:
+    - job: cfsdeps:clang
       optional: true
 
 # windows build
-windows:MSVC2022-Ifort2021:
+windows:msvc2022:
   extends: .windows-shared-build
   stage: build
   <<: *release_build_rules
   variables:
-    BUILD_NAME: "MSVC2022-Ifort2021"
     # see https://yaml-multiline.info/ for multiline info
+    # building cfs with ninja we need to make sure to build cfsdeps serially first (practically all from precompiled cfsdeps)
     BUILD_COMMAND: "ctest -D ExperimentalStart --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalUpdate --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalConfigure --track $CDASH_TRACK -V &&
                     ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
+                    cmake --build . --target cfsdeps --parallel 1 &&
                     ctest -D ExperimentalBuild --track $CDASH_TRACK -V | tee build.log &&
                     ctest -D ExperimentalSubmit --track $CDASH_TRACK &&
-                    ctest -D ExperimentalTest --track $CDASH_TRACK -V"
+                    ctest -D ExperimentalTest --track $CDASH_TRACK -R Pipeline_Build -V"
+    # use ccache
+    CMAKE_CXX_COMPILER_LAUNCHER: ccache.exe
   script:
     # inherit the standard script, then extend by mv command
     - !reference [.windows-shared-build, script]
-    # rename packaged file to branch-based name
-    - mv "CFS-$CI_COMMIT_SHA-win64.zip" "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
+    # rename packaged file to branch-based name - ignore a possible -modified variant
+    - mv "CFS-$CI_COMMIT_SHA*-win64.zip" "CFS-$CI_COMMIT_REF_SLUG-Windows.zip"
   artifacts:
     when: always
     paths:
@@ -959,7 +942,9 @@ windows:MSVC2022-Ifort2021:
     expire_in: 1 days
   needs:
     # set the needs to 'optional' since the cfsdeps job might not be present
-    - job: cfsdeps:MSVC2022-Ifort2021
+    - job: cfsdeps:msvc2022
+      optional: true
+    - job: install:msvc2020
       optional: true
 
 
@@ -979,22 +964,26 @@ windows:MSVC2022-Ifort2021:
 # _python_ is seperate as not to re-run python tests for all GCCx versions.
 
 # test for cmake or install it
-.cmake_test_or_install: &cmake_test_or_install
+.cmake_test_or_install:
+  script:
+  - export DEBUG_SECTION_TITLE='cmake test or install'
+  - !reference [.linux-debug-start_collapsed, script]
   - cmake --version || ls -l cmake || ( wget https://cmake.org/files/v3.22/cmake-3.22.6-linux-x86_64.sh && mkdir $(pwd)/cmake && sh cmake-3.22.6-linux-x86_64.sh --prefix=$(pwd)/cmake --skip-license)
   - cmake --version || export PATH=$(pwd)/cmake/bin:$PATH
   - echo $PATH
   - ctest --version
   - cmake --version
+  - !reference [.linux-debug-end, script]
 
 .after_cdash_submit: &after_cdash_submit
   after_script:
     - cd build
     # optionally install cmake if not present
-    - *cmake_test_or_install
-    # CDash submit
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
+    - !reference [.cmake_test_or_install,script]
+    # CDash submit, quiet, but do not fail
+    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log || echo "submit fail, not even submit.log written"
     # save buildid
-    - *save_cdash_buildid
+    - !reference [.save_cdash_buildid,script]
   artifacts:
     # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
     reports:
@@ -1004,6 +993,7 @@ windows:MSVC2022-Ifort2021:
 
 # test preparation starts by extracting the build files from assets
 .ctest_default: &ctest_default
+  image: $BUILD_ENVIRONMENT_REGISTRY/$IMAGE:$BUILD_ENVIRONMENT_TAG
   rules:
     - !reference [.build_rules, rules]
   before_script:
@@ -1015,7 +1005,7 @@ windows:MSVC2022-Ifort2021:
     # obtain the build config
     - ./bin/cfs --dependencies config.cmake
     # optionally install cmake if not present
-    - *cmake_test_or_install
+    - !reference [.cmake_test_or_install,script]
 # [global setting](https://docs.gitlab.com/ee/user/project/pipelines/settings.html#test-coverage-parsing) applies to last test only
 # https://docs.gitlab.com/ee/ci/yaml/#coverage
 # in the format '/REGEX/' - one can test REGEX at http://rubular.com/
@@ -1042,207 +1032,127 @@ windows:MSVC2022-Ifort2021:
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     - echo "CTEST_OPTIONS="$CTEST_OPTIONS
     # configure and run the testsuite
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest ${CTEST_OPTIONS} --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalTest ${CTEST_OPTIONS} -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 
-# we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc7max-debug
+# we were not able to assign -LE "unstable|slow" via CTEST_OPTIONS to test_generic, therefore this is our copy & paste version only for gcc9max-debug
 .test_no_slow: &test_no_slow
   <<: *ctest_default
   script:
     # show variables for debug
     - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
     # configure and run the testsuite
-    - cmake -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILDNAME="$CI_COMMIT_REF_SLUG / ${BUILD_NAME}" -DBUILD_TESTING=ON -DCFS_BUILD_CONFIG_FILE=$(pwd)/config.cmake -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=OFF ${TEST_CONFIG_OPTIONS} .. # multicore = default
+    - cmake -DCFS_INSTALL_DIR=${CI_PROJECT_DIR}/build ${TEST_CONFIG_OPTIONS} ${CI_PROJECT_DIR}/Testsuite
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -LE "unstable|slow" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalTest -LE "unstable|slow" -E "^PYTHON_" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
 
 # now we define the actual tests, i.e. we decide which build we want to test
 # the build is taken from the dependencies
-# Naming scheme for ci-jobs: <test-set_parallelism>:<build-name>:<system>
-# Naming scheme for BUILD_NAME: build config / test-set parallelism
-stable_ser:gcc7min:linux:
+# Naming scheme for CI_JOB_NAME: <test-set_parallelism>:<build-name>:<system>
+# The BUILDNAME (for DCash will be inferred from CI_JOB_NAME in CMakeLists of the Testsuite)
+stable_ser:gcc9min:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: "GCC7 minimal / stable serial"
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
-    - linux:gcc7min
+    - linux:gcc9min
 
-unstable_ser:gcc7min:linux:
+unstable_ser:gcc9min:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   stage: test
   variables:
+    IMAGE: ubuntu22.04
     # is built without opnemp  
-    BUILD_NAME: "GCC7 minimal / unstable serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
   needs:
-    - linux:gcc7min
+    - linux:gcc9min
 
-stable_par:gcc7max:linux:
+stable_par:gcc9max:linux:
   extends: .test_generic
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos6-gcc7
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
-    BUILD_NAME: "GCC7 maximal / stable parallel"
+    IMAGE: centos7-gcc9
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   needs:
-    - linux:gcc7max
+    - linux:gcc9max
 
-unstable_ser:gcc7max:linux:
+unstable_ser:gcc9max:linux:
   extends: .test_generic
   tags:
     - saas-linux-small-amd64
   stage: test
-  image: opencfs/centos6-gcc7
   rules: # overwrite rules given via extends: .test_generic
     - !reference [.max_rules, rules]
   variables:
-    BUILD_NAME: "GCC7 maximal / unstable serial"
+    IMAGE: centos7-gcc9
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   needs:
-    - linux:gcc7max
+    - linux:gcc9max
 
-# closed build using as many options as possible and containing closed source software AND tests
-stable_par:gcc7closed:linux:
-  stage: test
-  image: opencfs/centos6-gcc7
+stable_par_opt:gcc9closed:linux:
+  extends: .test_generic
   tags:
     - saas-linux-small-amd64
+  stage: test
+  rules: # overwrite rules given via extends: .test_generic
+    - !reference [linux:gcc9closed, rules]
   variables:
-    BUILD_NAME: "GCC7 closed / stable opt parallel"
-    # embedded_python is not closed but technically not that easy deployable
-    CFS_CONFIG_OPTIONS: "-DUSE_SCPIP=ON -DUSE_SNOPT=ON -DUSE_EMBEDDED_PYTHON=ON -DUSE_SUITESPARSE=ON -DBUILD_CFSDAT=OFF" 
-    TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF -DPIPELINE_TEST_STAGE_CONFIG=OFF"
+    IMAGE: centos7-gcc9
+    TEST_CONFIG_OPTIONS: "-DTESTSUITE_THREADS=2 -DTESTSUITE_PYTHON=OFF "
     CTEST_OPTIONS: "-LE unstable|broken -R Opt"
-  # ensure closed build is tested only when the keys are set
-  rules:
-    - if: $CFS_KEY_SCPIP == null || $CFS_KEY_SNOPT == null # check if one key is not defined (null) which is equivalent to checking if both are defined - we only build if both keys are defined
-      when: never
-    - !reference [.build_rules, rules]
-  <<: [*gcc_before,*cache_cfsdeps-gcc7]
-  script:
-    ## BUILD STAGE
-    - echo "CFS_CONFIG_OPTIONS="$CFS_CONFIG_OPTIONS
-    - echo "TEST_CONFIG_OPTIONS="$TEST_CONFIG_OPTIONS
-    - echo "CTEST_OPTIONS="$CTEST_OPTIONS
-    # configure once to have dashboard ready
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / $BUILD_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DCTEST_GIT_INIT_SUBMODULES:BOOL=OFF -DTESTSUITE_DIR="${CI_PROJECT_DIR}/Testsuite" -DBUILD_TESTING=ON ${CFS_CONFIG_OPTIONS} ${TEST_CONFIG_OPTIONS} ..
-    # start cdash dashboard
-    - ctest -D ExperimentalStart --track $CDASH_TRACK -V
-    # update to current revision (gives link on CDash)
-    - ctest -D ExperimentalUpdate --track $CDASH_TRACK -V
-    # configure
-    - ctest -D ExperimentalConfigure --track $CDASH_TRACK -V
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # intermittent submit to get live CDash results
-    # build
-    - ctest -D ExperimentalBuild --track $CDASH_TRACK -V |& tee build.log
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK  || cat submit.log
-    # save some space by deleting stuff
-    - df -h # debug
-    - du -h --max-depth=1 . # debug
-    - find cfsdeps/* -type d -not -wholename "*/cache" -not -wholename "*/cache/*" -prune -exec rm -rf {} + # delete cfsdeps (except cache)
-    - find -name CMakeFiles -type d -exec rm -rf {} + # delete cmake directories
-    - find -iregex ".*\(\([.]a\)\|\([.]hpp\)\)$" -delete # delete *.a and *.hpp files
-    - du -h --max-depth=1 . # debug
-    # run the testsuite
-    - ctest -D ExperimentalTest ${CTEST_OPTIONS} --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
-  after_script:
-    - cd build
-    # CDash submit
-    - ctest --quiet -O submit.log -D ExperimentalSubmit --track $CDASH_TRACK || cat submit.log # only output submit.log on fail
-    # save buildid
-    - *save_cdash_buildid
-  coverage: '/(\d+\%)\s+tests\s+passed,\s+\d+\s+tests?\s+failed\s+out\s+of\s+\d+/' # regular expression that searches through the job output and extracts the matching line. (\s = whitespace, \d = digit, ? = match 0 or 1 of the preceeding character, % = % sign; see https://docs.gitlab.com/ee/ci/yaml/#coverage for coverage infos)
   needs:
-    - job: "cfsdeps:gcc7"
-      optional: true
-  artifacts:
-    # display ctest output as junit, see https://docs.gitlab.com/ee/ci/yaml/artifacts_reports.html#artifactsreportsjunit
-    reports:
-      junit: build/${CI_JOB_ID}.xml
-      annotations: build/annotations.json
-    when: always
+    - linux:gcc9closed
 
-stable_ser:gcc13-musl:linux:
+stable_ser:gcc14-musl:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: "GCC13-MUSL / stable serial"
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
-    - linux:gcc13-musl
+    - linux:gcc14-musl
 
-stable_par:gcc13-musl:linux:
+stable_par:gcc14-musl:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: "GCC13-MUSL / stable parallel"
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
   needs:
-    - linux:gcc13-musl
-
-stable_par:gcc12:linux:
-  image: opencfs/fedora37
-  tags:
-    - saas-linux-small-amd64
-  stage: test
-  variables:
-    BUILD_NAME: "GCC12 / stable parallel"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-LE unstable|broken"
-  <<: *test_generic
-  needs:
-    - linux:gcc12
-
-unstable_ser:gcc12:linux:
-  image: opencfs/fedora37
-  tags:
-    - saas-linux-small-amd64
-  stage: test
-  variables:
-    BUILD_NAME: "GCC12 / unstable serial"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-L unstable"
-  <<: *test_generic
-  needs:
-    - linux:gcc12
+    - linux:gcc14-musl
 
 stable_par:intel:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 / stable parallel
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-LE unstable|broken"
   <<: *test_generic
@@ -1252,10 +1162,9 @@ stable_par:intel:linux:
 unstable_ser:intel:linux:
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   stage: test
   variables:
-    BUILD_NAME: Intel2021 / unstable serial
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L unstable"
   <<: *test_generic
@@ -1263,48 +1172,38 @@ unstable_ser:intel:linux:
     - linux:intel
 
 # windows tests
-stable_ser:MSVC2022-Ifort2021:windows:
+stable_ser:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2022-Ifort2021 / stable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script: 
     - !reference [.windows-test_stable, script]
   needs:
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
-stable_par:MSVC2022-Ifort2021:windows:
+stable_par:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2022-Ifort2021 / stable parallel
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
   script: 
     - !reference [.windows-test_stable, script]
-  rules:
-    #make it optional since MSVC builds currently are not running in parallel
-    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
-      <<: *require-rebuild-changes
-      when: manual
-      allow_failure: true
-    - !reference [.ctest_default, rules]
   needs:
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
-unstable_ser:MSVC2022-Ifort2021:windows:
+unstable_ser:msvc2022:windows:
   extends: .windows-shared-test
   stage: test
   variables:
-    BUILD_NAME: MSVC2022-Ifort2021 / unstable serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_unstable, script]
   needs:
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
 python:linux:
-  image: opencfs/ubuntu22.04
+  image: $BUILD_ENVIRONMENT_REGISTRY/ubuntu22.04:$BUILD_ENVIRONMENT_TAG
   extends: .ctest_default
   tags:
     - saas-linux-small-amd64
@@ -1315,25 +1214,30 @@ python:linux:
     # run when we have changes in python files
     - if: $CFS_PIPELINE_TYPE == "test"
       changes:
-        - "**/*.py"
+        paths:
+          - "**/*.py"
+        compare_to: $COMPARE_CHANGES_TO
     - if: $CFS_PIPELINE_TYPE == "manual"
       changes:
-        - "**/*.py"
+        paths:
+          - "**/*.py"
+        compare_to: $COMPARE_CHANGES_TO
       when: manual
-  variables:
-    TEST_NAME: "stable"
-    EXCLUDE: ""
+    # add a manual job if there were no changes
+    - if: $CFS_PIPELINE_TYPE == "test" || $CFS_PIPELINE_TYPE == "manual"
+      allow_failure: true
+      when: manual
   before_script:
     - git rev-list -n 1 HEAD -- || echo "git failed, should return ${CI_COMMIT_SHA}" # debug for command run by CTestUpdate
     - mkdir -p build
     - cd build
-    - *cmake_test_or_install # optionally install cmake if not present
-    - cmake -DBUILDNAME="$CI_COMMIT_REF_SLUG / python / $TEST_NAME" -DCTEST_UPDATE_VERSION_ONLY:BOOL=ON -DBUILD_TESTING=ON -DTESTSUITE_DIR=$(pwd)/../Testsuite -DTESTSUITE_PYTHON=ON ..
+    - !reference [.cmake_test_or_install,script] # optionally install cmake if not present
+    - cmake -DTESTSUITE_CFS=OFF -DCFS_INSTALL_DIR=$CI_PROJECT_DIR/build $CI_PROJECT_DIR/Testsuite # switch off CFS
   script:
     - ctest -D ExperimentalStart --track $CDASH_TRACK # start a new dashboard
     - ctest -D ExperimentalUpdate --track $CDASH_TRACK # SHA is visible in CDash
     - ctest -D ExperimentalConfigure --track $CDASH_TRACK # show config
-    - ctest -D ExperimentalTest -R PYTHON -E "$EXCLUDE" --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
+    - ctest -D ExperimentalTest -R PYTHON --track $CDASH_TRACK --output-junit ${CI_JOB_ID}.xml
   dependencies: [] # python tests do not need any dependencies (no cfs required)
   <<: *after_cdash_submit
   needs: [] # run as soon as possible
@@ -1359,163 +1263,128 @@ python:linux:
       when: manual
       allow_failure: true
 
-broken_ser:gcc7min:linux:
+broken_ser:gcc9min:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   variables:
+    IMAGE: ubuntu22.04
     # is built without opnemp  
-    BUILD_NAME: "GCC7 minimal / broken serial"
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
-    - linux:gcc7min
+    - linux:gcc9min
 
-# this test has the speciality that it shall run at an unspecified image 
-all_par:gcc7:any-linux:
+all_par:gcc14-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
   variables:
-    BUILD_NAME: "GCC7 / all parallel any-linux"
-    # no special options - we take all default (should be all tests & in parallel if NCPU>1)
+    IMAGE: ubuntu24.04
   needs:
-    - linux:gcc7
+    - linux:gcc14-musl
 
-unstable_par:gcc7max:linux:
+unstable_par:gcc9max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: "GCC7 maximal / unstable parallel"
+    IMAGE: centos7
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-L unstable"      
+    CTEST_OPTIONS: "-L unstable"
   needs:
-    - linux:gcc7max
+    - linux:gcc9max
 
-broken_ser:gcc7max:linux:
+broken_ser:gcc9max:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: "GCC7 maximal / broken serial"
+    IMAGE: centos7
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
-    - linux:gcc7max
+    - linux:gcc9max
 
 # debug is compiled without openmp
-no-slow_ser:gcc7max-debug:linux:
+no-slow_ser:gcc9max-debug:linux:
   extends: .test_extra
   <<: *test_no_slow
   tags:
     - saas-linux-small-amd64
-  image: opencfs/centos6-gcc7
   # overwrite rules & variables
   rules:
     - !reference [.max_never_auto_rule, rules]
     - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: "GCC7 maximal debug / no-slow serial"
+    IMAGE: centos7
     # debug is compiled without openmp, we could set the threads to anything and it would be ignored
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     # this special test_no_slow does -LE "unstable|slow"
   needs:
-    - linux:gcc7max-debug
-
-unstable_par:gcc12:linux:
-  extends: .test_extra
-  image: opencfs/fedora37
-  tags:
-    - saas-linux-small-amd64
-  variables:
-    BUILD_NAME: "GCC12 / unstable parallel"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
-    CTEST_OPTIONS: "-L unstable"
-  needs:
-    - linux:gcc12
-
-broken_ser:gcc12:linux:
-  extends: .test_extra
-  image: opencfs/fedora37
-  tags:
-    - saas-linux-small-amd64
-  variables:
-    BUILD_NAME: "GCC12 / broken serial"
-    TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
-    CTEST_OPTIONS: "-L broken"
-  needs:
-    - linux:gcc12
+    - linux:gcc9max-debug
 
 unstable_par:intel:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: Intel2021 / unstable parallel
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
     - linux:intel
 
-unstable_par:gcc13-musl:linux:
+unstable_par:gcc14-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: GCC13-MUSL / unstable parallel
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=2
     CTEST_OPTIONS: "-L unstable"
   needs:
-    - linux:gcc13-musl
+    - linux:gcc14-musl
 
-broken_ser:gcc13-musl:linux:
+broken_ser:gcc14-musl:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: GCC13-MUSL / broken serial
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
-    - linux:gcc13-musl
+    - linux:gcc14-musl
 
 broken_ser:intel:linux:
   extends: .test_extra
   tags:
     - saas-linux-small-amd64
-  image: opencfs/ubuntu22.04
   variables:
-    BUILD_NAME: Intel2021 / broken serial
+    IMAGE: ubuntu22.04
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
     CTEST_OPTIONS: "-L broken"
   needs:
     - linux:intel
 
-broken_ser:MSVC2022-Ifort2021:windows:
+broken_ser:msvc2022:windows:
   extends: .windows-shared-test
   stage: test_extra
   rules:
     - !reference [.test_extra, rules]
   variables:
-    BUILD_NAME: MSVC2022-Ifort2021 / broken serial
     TEST_CONFIG_OPTIONS: -DTESTSUITE_THREADS=1
   script:
     - !reference [.windows-test_broken, script]
   needs:
-    - windows:MSVC2022-Ifort2021
+    - windows:msvc2022
 
 #######################################################################
 # DOCS STAGE - Documentation jobs
@@ -1524,7 +1393,7 @@ broken_ser:MSVC2022-Ifort2021:windows:
 # build doxygen docu
 doxygen:
   stage: docs
-  image: opencfs/fedora32
+  image: $BUILD_ENVIRONMENT_REGISTRY/fedora41:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
   variables:
@@ -1614,7 +1483,7 @@ pages:
     # only for release pipelines in our namespace
     - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAMESPACE == "openCFS"
   dependencies:
-    - linux:gcc7
+    - linux:gcc14-musl
     - doxygen
   script:
     - mkdir -p public # create public dir
@@ -1652,8 +1521,8 @@ pages:
   after_script: []
   before_script: []
   needs:
-    - linux:gcc7
-    - windows:MSVC2022-Ifort2021
+    - linux:gcc14-musl
+    - windows:msvc2022
 
 repack-release: # publish release packages (when a tag is pushed)
   extends: .package-release_common
@@ -1725,27 +1594,3 @@ release:
           url: "${PACKAGE_REGISTRY_URL}/${WINDOWS_ARCHIVE}" # uploaded by 'package' job before
           filepath: '/CFS-Windows.zip' # optional, but required for 'latest', defines the URL (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#permanent-links-to-release-assets)
           link_type: 'package' # optional, defines the section and icon (see https://docs.gitlab.com/ee/user/project/releases/release_fields.html#link-types)
-
-copy_to_draco:
-  dependencies:
-    - linux:gcc7
-  script:
-    # copy over via scp
-    - scp "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "draco:/opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz"
-  environment:
-    name: share_programs
-  <<: *deploy_rules
-
-install_on_draco:
-  dependencies: []
-  script:
-    # extract on draco by ssh
-    - ssh draco "tar -xzf /opt/programs/cfs_master/CFS-$CI_COMMIT_SHA-Linux.tar.gz -C /opt/programs/cfs_master"
-    # set the new symlink and replace the old one in one atomic operation
-    - ssh draco "cd /opt/programs/cfs_master/; ln -s CFS-$CI_COMMIT_SHA-Linux new; mv -fT new latest"
-    # run the cleanup script
-    - ssh draco "cd /opt/programs/cfs_master/; ./cleanup.sh"
-  environment:
-    name: share_programs
-  <<: *deploy_rules
-  needs: ["copy_to_draco"]

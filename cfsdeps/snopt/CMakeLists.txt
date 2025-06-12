@@ -1,8 +1,17 @@
-cmake_minimum_required(VERSION 2.8.6...3.22)
+# this file generates a static and on request a shared snopt lib (the later needs blas on the system) 
+cmake_minimum_required(VERSION 3.16)
 
-PROJECT(snopt Fortran)
+include(CMakePrintHelpers)
 
-SET(SNOPT_SRCS 
+project(snopt Fortran)
+
+# we don't need the shared lib for openCFS but probably for own use
+option(BUILD_SHARED_LIBS "build also a dynamic snopt lib" OFF)
+if(BUILD_SHARED_LIBS)
+  find_package(BLAS REQUIRED) # for the shared lib!
+endif() 
+
+set(SNOPT_SRCS 
      src/sqopt.f
      src/snopta.f
      src/snoptb.f
@@ -38,11 +47,11 @@ SET(SNOPT_SRCS
      src/sn87sopt.f
      src/sn90lmqn.f
      src/sn95fmqn.f
-     src/sn03prnt.f # print stuff
-   )
-SET(BLAS_SRCS src/sn15blas.f)
+     src/sn03prnt.f) # print stuff
 
-SET(SNOPTAD_SRCS
+set(BLAS_SRCS src/sn15blas.f)
+
+set(SNOPTAD_SRCS
      src/snopta.f
      src/sq02lib.f
      src/sn02lib.f
@@ -66,31 +75,32 @@ SET(SNOPTAD_SRCS
      src/sn85hess.f
      src/sn87sopt.f
      src/sn90lmqn.f
-     src/sn95fmqn.f
-   )
+     src/sn95fmqn.f)
 
-SET(SNADIOPT_GEN_SRCS
+set(SNADIOPT_GEN_SRCS
      snadiopt/common_lib_src/ad.f
      snadiopt/common_lib_src/mtx.f
-     snadiopt/lib_src/nlp.f
-   )
+     snadiopt/lib_src/nlp.f)
 
-SET(SNADIOPT_DENSE_SRCS
+set(SNADIOPT_DENSE_SRCS
      snadiopt/common_lib_src/dad.f 
-     snadiopt/lib_src/daduserfg.f
-   )
+     snadiopt/lib_src/daduserfg.f)
 
-SET(SNADIOPT_SPARSE_SRCS
+set(SNADIOPT_SPARSE_SRCS
      snadiopt/common_lib_src/sad.f 
-     snadiopt/lib_src/saduserfg.f
-   )
+     snadiopt/lib_src/saduserfg.f)
 
-SET(SNADIOPT_SNADFUN_SRCS snadiopt/common_lib_src/sn05adwrp.f)
+set(SNADIOPT_SNADFUN_SRCS snadiopt/common_lib_src/sn05adwrp.f)
 
-ADD_LIBRARY(snopt STATIC ${SNOPT_SRCS})
-
+add_library(snopt STATIC ${SNOPT_SRCS})
 # for some very strange reason, the precompiled package containing only lib/libsnopt.a is unpacked flat to CMAKE_BINARY_DIR/libsnopt.a
 # but only when executed by execute_process "${CMAKE_COMMAND}" -E tar xzf
 # with another file all works?! cmake version 3.22.2 on macOS
-install(FILES README.FAQ DESTINATION "include")
 install(TARGETS snopt ARCHIVE DESTINATION "${LIB_SUFFIX}")
+
+if(BUILD_SHARED_LIBS)
+  add_library(snopt_shared SHARED ${SNOPT_SRCS}) # shared lib
+  set_target_properties(snopt_shared PROPERTIES OUTPUT_NAME "snopt") # to get a snopt.so, snopt.dylib
+  target_link_libraries(snopt_shared ${BLAS_LIBRARIES})
+  install(TARGETS snopt_shared ARCHIVE DESTINATION "${LIB_SUFFIX}")
+endif()

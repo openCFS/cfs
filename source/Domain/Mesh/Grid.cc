@@ -121,7 +121,7 @@ namespace CoupledField
     return grid_bounding_box_;
   }
 
-  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated, bool secondary)
+  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated)
   {
    //  shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
    //  ret->SetElem(ptElem, isUpdated );
@@ -215,40 +215,6 @@ namespace CoupledField
         return newMap;
       }
     }
-    // 1) check for use of secondary element shape map
-
-
-    //if ( !secondary ) {
-    //  // === Primary element maps ===
-    //  if( isUpdated ) {
-    //    if (ptElem->elemNum != lastShapeElemNumUpdated_[aThread]) {
-    //      elemShapeMapUpdated_[aThread]->SetElem(ptElem, isUpdated );
-    //      lastShapeElemNumUpdated_[aThread] = ptElem->elemNum;
-    //    }
-    //    return elemShapeMapUpdated_[aThread];
-    //  } else {
-    //    if (ptElem->elemNum != lastShapeElemNumOrig_[aThread]) {
-    //      elemShapeMapOrig_[aThread]->SetElem(ptElem, isUpdated );
-    //      lastShapeElemNumOrig_[aThread] = ptElem->elemNum;
-    //    }
-    //    return elemShapeMapOrig_[aThread];
-    //  }
-    //} else {
-    //  // === Secondary element maps ===
-    //  if( isUpdated ) {
-    //    if (ptElem->elemNum != lastShapeElemNumUpdated2nd_[aThread]) {
-    //      elemShapeMapUpdated2nd_[aThread]->SetElem(ptElem, isUpdated );
-    //      lastShapeElemNumUpdated2nd_[aThread] = ptElem->elemNum;
-    //    }
-    //    return elemShapeMapUpdated2nd_[aThread];
-    //  } else {
-    //    if (ptElem->elemNum != lastShapeElemNumOrig2nd_[aThread]) {
-    //      elemShapeMapOrig2nd_[aThread]->SetElem(ptElem, isUpdated );
-    //      lastShapeElemNumOrig2nd_[aThread] = ptElem->elemNum;
-    //    }
-    //    return elemShapeMapOrig2nd_[aThread];
-    //  }
-    //}
   }
   
   RegionIdType Grid::AddRegion(const std::string& name, bool reg)
@@ -644,27 +610,35 @@ namespace CoupledField
     if (!param_) return;
 
     // check if there is a ncInterfaceList, if not just leave
-    PtrParamNode nciListNode = param_->Get("domain")
-                  ->Get("ncInterfaceList", ParamNode::PASS);
+    PtrParamNode nciListNode = param_->Get("domain")->Get("ncInterfaceList", ParamNode::PASS);
     if (!nciListNode) return;
 
     ParamNodeList nciList = nciListNode->GetList("ncInterface");
     UInt numNCIs = nciList.GetSize();
     ncInterfaces_.Reserve(numNCIs);
-    
-    //loop twice to ensure that moving interfaces get added last
+
+    // loop twice to ensure that static interfaces are added before actively moving ones,
+    // before passively moving ones. This is to assure that changing interfaces are deleted in correct order.
+    // In case of connectedRegions the passively moving interfaces must already contain the node offset when they
+    // are updated.
+    bool passiveUpdate = false;
     for ( UInt i=0; i<numNCIs; ++i ) {
-      if(!nciList[i]->Has("rotation") &&
-         !nciList[i]->Has("generalMotion")){
+      passiveUpdate = (nciList[i]->Get("passiveGeomUpdate")->As<std::string>()=="yes");
+      if(!nciList[i]->Has("rotation") && !nciList[i]->Has("generalMotion") && !passiveUpdate)
         AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
-      }
     }
     for ( UInt i=0; i<numNCIs; ++i ) {
-      if(nciList[i]->Has("rotation") ||
-         nciList[i]->Has("generalMotion")){
+      passiveUpdate = (nciList[i]->Get("passiveGeomUpdate")->As<std::string>()=="yes");
+      if((nciList[i]->Has("rotation") || nciList[i]->Has("generalMotion")) && !passiveUpdate)
         AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
-      }
     }
+    for ( UInt i=0; i<numNCIs; ++i ) {
+      passiveUpdate = (nciList[i]->Get("passiveGeomUpdate")->As<std::string>()=="yes");
+      if(passiveUpdate)
+        AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+    }
+    // sanity check
+    assert(ncInterfaces_.GetSize() == numNCIs);
   }
 
   shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
@@ -694,24 +668,17 @@ namespace CoupledField
   }
 
   void Grid::MoveNcInterfaces() {
-    StdVector< shared_ptr<BaseNcInterface> >::iterator it = ncInterfaces_.Begin(),
-        itEnd = ncInterfaces_.End();
-
-	//std::cout << "MoveNcInterfaces - Grid.cc 662" << std::endl;
-
-    //Here some special things need to be done
-    //basically this code is very experimental and may fail in many
-    //situations. anyhow, we first remove the NCInterface nodes and update
-    //in a second step
-    for ( ; it != itEnd; ++it) {
+    // First, we reset the moving interfaces. MortarInterface::ResetInterface() checks if the interface needs to be reset first.
+    // We reset the interfaces in reverse order, so we always only delete nodes and elements that were created last
+    // the double loop in Grid::InitNcInterfacesFromXML() assures that moving interfaces are updated last.
+    // also, we need to assure that actively moving interfaces are updated before passively moving ones.
+    for (auto it = ncInterfaces_.End(); it-- != ncInterfaces_.Begin();) {
       (*it)->ResetInterface();
     }
-    it = ncInterfaces_.Begin();
-    for ( ; it != itEnd; ++it) {
+    for (auto it = ncInterfaces_.Begin(); it != ncInterfaces_.End(); ++it) {
       (*it)->UpdateInterface();
     }
   }
-
   bool Grid::HasNCI() {
     if (!ncInterfaces_.IsEmpty())
       return true;
@@ -727,7 +694,7 @@ namespace CoupledField
     Vector<Double> pv1, pv2, pv3;
     Vector<Double> v1, v2, normal, n;
     Double innerProd = 0.0, norm1 = 0.0, norm2 = 0.0;
-    Double eps = 1e-15;
+    Double eps = NORM_EPS;
     UInt pnum=0; // number of point in ifaceNodes
     UInt dim = GetDim();
 

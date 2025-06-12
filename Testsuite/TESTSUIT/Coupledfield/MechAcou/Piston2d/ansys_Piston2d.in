@@ -1,0 +1,84 @@
+fini
+/clear
+/filname,waterCol,1
+/prep7
+init
+! switch warnings popups off (for "shpp,off")
+/uis,msgpop,3
+shpp,off
+! switch warnings popups again on
+/uis,msgpop,2
+
+
+! PARAMETER DEFINITION =====================================
+freq     = 1000
+cFluid   = 1450           ! water
+cWafer   = 4000
+lambdaFl = cFluid / freq  ! wavelength in fluid
+lambdaWa = cWafer / freq  ! wavelength in wafer
+nrElWaLa = 10             ! nr elements per lambda in the wafer
+nrElFlLa = 10             ! nr elements per lambda in the wafer
+
+elSizeFl = lambdaFl / nrElWaLa
+
+hWater   = 2*lambdaFl
+wWater   = elSizeFl
+hSolid   = elSizeFl
+wSolid   = wWater
+eps      = 1e-7
+
+
+
+
+
+! DEFINE AREAS =============================================
+rectng,0,wWater,0,hWater
+rectng,0,wWater,-hSolid,0
+
+asel,all
+aglue,all
+
+! ELEMENT GROUP DEFINITION =================================
+setelems,'quadr'
+
+
+! MESH DEFINITION ==========================================
+mshkey,1           ! use mapped meshing
+esize,elSizeFl
+asel,all
+amesh,all
+
+asel,s,loc,y,-eps,hWater
+cm,water,area
+esla
+welems,'waterEl'
+
+asel,s,loc,y,-hSolid-eps,eps
+cm,solid,area
+esla
+welems,'solid'
+
+
+! BOUNDARY CONDITIONS ====================================
+
+!setelems,'2d-line'
+type,100
+lsel,s,loc,y,-eps,eps
+lmesh,all
+welems,'coupleEl'
+
+
+nsel,s,loc,y,-eps,eps
+wnodbc,'acouMech'
+
+nsel,s,loc,y,-hSolid-eps,-hSolid+eps
+wnodbc,'bottom'
+
+
+! OUTPUT SECTION ========================================
+
+allsel
+wnodes
+
+mkmesh
+

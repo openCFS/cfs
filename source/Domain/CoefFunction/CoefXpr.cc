@@ -823,10 +823,17 @@ void CoefXprUnaryOp::GetVectorXpr( StdVector<std::string>& real,
       sizeA = a_->GetVecSize();
       if( op_ == OP_RE) {
         real.Resize(sizeA);
+        imag.Resize(sizeA);
         for(UInt i = 0; i < sizeA; ++i){
-          ApplyUnaryFunc( real[i], aR[i], OP_RE );
+          ApplyUnaryFunc( real[i], imag[i], aR[i], aI[i], OP_RE );
         }
-      }else{
+      } else if ( op_ == OP_IM ) {
+        imag.Resize(sizeA);
+        real.Resize(sizeA);
+        for(UInt i = 0; i < sizeA; ++i){
+          ApplyUnaryFunc( real[i], imag[i], aR[i], aI[i], OP_IM );
+        }
+      } else {
         EXCEPTION("CoefXprUnaryOp::GetVectorXpr This vector valued expression is not implemented yet!");
       }
     }

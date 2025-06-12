@@ -9,7 +9,7 @@ set(PACKAGE_VER "7.1") # must be 2 digits for include-dir to be correct
 set(VTK_VERSION ${PACKAGE_VER}) # required later
 set(PACKAGE_FILE "VTK-7.1.1.tar.gz") # note, one digit more and VERSION
 set(PACKAGE_MD5 "daee43460f4e95547f0635240ffbc9cb")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 set(PACKAGE_MIRRORS "http://www.vtk.org/files/release/${PACKAGE_VER}/${PACKAGE_FILE}")
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
@@ -43,9 +43,18 @@ set_standard_variables()
 # we use the cmake manifest
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
-# set DEPS_ARG with defaults for a cmake project
-set_deps_args_default(ON) # set compiler flags 
+# don't set compiler flags, we need to change
+set_deps_args_default(OFF) 
+
+# VTK 7.1 does not compile with msvc as C++17 -> set back to C++14
+if(CMAKE_CXX_COMPILER_ID MATCHES "MSVC")
+  string(REPLACE "c++17" "c++14" _CXX_FLAGS ${CFSDEPS_CXX_FLAGS})
+else()
+  set(_CXX_FLAGS ${CFSDEPS_CXX_FLAGS})
+endif()
+
 set(DEPS_ARGS ${DEPS_ARGS}
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
   -DBUILD_SHARED_LIBS:BOOL=OFF
   -DVTK_Group_Rendering:BOOL=OFF
   -DVTK_Group_StandAlone:BOOL=OFF
@@ -59,7 +68,8 @@ set(DEPS_ARGS ${DEPS_ARGS}
   -DModule_vtkhdf5:BOOL=OFF
   -DModule_vtkIONetCDF:BOOL=OFF
   -DModule_vtkIOParallel:BOOL=OFF
-  -DvtkexodusII:BOOL=OFF)
+  -DvtkexodusII:BOOL=OFF
+  -DCMAKE_CXX_FLAGS:STRING=${_CXX_FLAGS})
 
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
 

@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>RotatingDiscALE</title>
+    <authors>
+      <author>dmayrhof</author>
+    </authors>
+    <date>2022-03-28</date>
+    <keywords>
+      <keyword>flow</keyword>
+      <keyword>smooth</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> Non Just funcionality test </references>
+    <isVerified>no</isVerified>
+    <description>
+      This test consists of a rotating disc loaded with a pressure excitation at the boundary. Due to the rotation the ALE-specific convection terms are necessary to get a similar to solution as the non-rotating reference.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="RotatingDiscALE.h5ref"/>  <!-- did not work! -->
+      <!--<cdb fileName="RotatingDiscMesh.cdb"/> -->
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+  	<variableList>
+      <var name="d_disc" value="1e-1"/>
+  	  <var name="f_exc" value="10000"/>
+  	  <var name="f_rot" value="500"/>
+    </variableList>
+  
+    <regionList>
+      <region name="Disc" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="Exc_outer"/>
+      <surfRegion name="Exc_inner"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="orderVel">
+      <isoOrder>2</isoOrder> 
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="orderPres">
+      <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+  
+  <integrationSchemeList>
+    <scheme id="integVel">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="integPres">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>8</numSteps>
+        <deltaT>5e-06</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <smooth subType="planeStrain">
+        <regionList>
+          <region name="Disc"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <displacement name="Exc_outer">
+            <comp dof="x" value="d_disc/2*cos(atan2(y,x)+2*pi*f_rot*t)-x"/> <!-- relative displacement: r*cos(phi_0+2*pi*f)-x -->
+            <comp dof="y" value="d_disc/2*sin(atan2(y,x)+2*pi*f_rot*t)-y"/> <!-- relative displacement: r*sin(phi_0+2*pi*f)-y -->
+          </displacement>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <allRegions outputIds="h5"/>
+          </nodeResult>
+          <nodeResult type="smoothVelocity">
+            <allRegions outputIds="h5"/>
+          </nodeResult>
+        </storeResults>
+      </smooth>   
+
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel" enableGridVelC1="true" enableGridVelC2="true">
+        <regionList>
+          <region name="Disc" movingMeshId="moveGridID"/>
+        </regionList>
+        
+        <movingMeshList>
+          <movingMesh name="moveGridID">
+            <coupling pdeName="smooth">
+              <quantity name="smoothVelocity"/>
+            </coupling>
+          </movingMesh>
+        </movingMeshList>
+        
+        <bcsAndLoads> 
+          <noSlip name="Exc_outer">
+            <comp dof="x"/> 
+            <comp dof="y"/>         
+          </noSlip>
+          <pressure name="Exc_outer" value="sin(2*pi*f_exc*t)"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions outputIds="h5"/>        
+          </nodeResult>
+          <elemResult type="fluidMechMeshVelocityElem">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+        </storeResults>
+      </fluidMechLin>
+    </pdeList>
+    
+    <couplingList>
+      <iterative PDEorder="mechanic;smooth">
+        <convergence logging="yes" maxNumIters="5" stopOnDivergence="no">
+          <quantity name="smoothDisplacement" value="1e-3" normType="rel"/>
+          <quantity name="smoothVelocity" value="1e-3" normType="rel"/>
+          <quantity name="fluidMechVelocity" value="1e-3" normType="rel"/>
+          <quantity name="fluidMechPressure" value="1e-3" normType="rel"/>
+        </convergence>
+        <geometryUpdate>
+          <region name="Disc"/>
+        </geometryUpdate>
+      </iterative>
+    </couplingList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso>
+            <posDef>no</posDef>
+            <symStruct>no</symStruct>
+            <logging>yes</logging>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

@@ -40,7 +40,7 @@ for d in range(1,days):
   if len(status) == 0:
     errors += 1
     if errors > 4:
-      print('we got',errrors,'from cdash - skip the remeaining',days-d,'requests')
+      print('we got',errors,'from cdash - skip the remeaining',days-d,'requests')
       break
   else:
     good += status.count('Passed')

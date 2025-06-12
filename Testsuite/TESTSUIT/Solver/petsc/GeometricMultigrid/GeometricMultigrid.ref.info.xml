@@ -1,0 +1,205 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.519s" wall="0.519" cpu="0.358354" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="382.39" peak="393.58"/>
+  </summary>
+  <header id="">
+    <environment started="2018-Aug-23 13:06:57" host="eamc068"/>
+    <progOpts problem="GeometricMultigrid" parameterFile="/home/sri/code/cfs-test-git/TESTSUIT/Solver/petsc/GeometricMultigrid/GeometricMultigrid.xml" schemaPath="/home/sri/code/cfs_petsc/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="18.03" name="AMGme" build="Release" svn_revision="N/A modified" svn_branch="A" exe="cfs_petsc"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain nx="10" ny="10" nz="10">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="3" elements="1000" nodes="1331"/>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="1331" elems="1000" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="left" count="242"/>
+        <nodes name="right" count="242"/>
+        <nodes name="bottom" count="242"/>
+        <nodes name="top" count="242"/>
+        <nodes name="back" count="242"/>
+        <nodes name="front" count="242"/>
+        <nodes name="left_bottom_back" count="2"/>
+        <nodes name="right_bottom_back" count="2"/>
+        <nodes name="left_top_back" count="2"/>
+        <nodes name="right_top_back" count="2"/>
+        <nodes name="left_bottom_front" count="2"/>
+        <nodes name="right_bottom_front" count="2"/>
+        <nodes name="left_top_front" count="2"/>
+        <nodes name="right_top_front" count="2"/>
+        <nodes name="bottom_back" count="22"/>
+        <nodes name="bottom_front" count="22"/>
+        <nodes name="bottom_left" count="22"/>
+        <nodes name="bottom_right" count="22"/>
+        <nodes name="top_back" count="22"/>
+        <nodes name="top_front" count="22"/>
+        <nodes name="top_left" count="22"/>
+        <nodes name="top_right" count="22"/>
+        <nodes name="back_left" count="22"/>
+        <nodes name="back_right" count="22"/>
+        <nodes name="front_left" count="22"/>
+        <nodes name="front_right" count="22"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="10" ny="10" nz="10" step="0" t="0" t0="0"/>
+    </domain>
+    <update_results>
+      <timer wall-clock="0s" wall="0" cpu="2e-06" calls="2"/>
+    </update_results>
+    <finish_step>
+      <timer wall-clock="0.002s" wall="0.002" cpu="0.002258" calls="1"/>
+    </finish_step>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="1.3461538e+00 5.7692308e-01 5.7692308e-01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e-01 1.3461538e+00 5.7692308e-01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+5.7692308e-01 5.7692308e-01 1.3461538e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e-01 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e-01 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.8461538e-01
+"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" complex="no" BOp="StrainOperator3D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="bottom_right" size="22" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor" value="(1.3461538e+00,0.0000000e+00) (5.7692308e-01,0.0000000e+00) (5.7692308e-01,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) 
+(5.7692308e-01,0.0000000e+00) (1.3461538e+00,0.0000000e+00) (5.7692308e-01,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) 
+(5.7692308e-01,0.0000000e+00) (5.7692308e-01,0.0000000e+00) (1.3461538e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) 
+(0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (3.8461538e-01,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) 
+(0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (3.8461538e-01,0.0000000e+00) (0.0000000e+00,0.0000000e+00) 
+(0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (0.0000000e+00,0.0000000e+00) (3.8461538e-01,0.0000000e+00)
+"/>
+          <property name="Loss_TangensDelta" value="0.03"/>
+          <property name="Density" value="1e-08"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+          </writeResults>
+        </summary>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="left" dofs="x y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="3630" totalNumFreeEqns="3630" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="3630" lastFreeEqn="3630" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="3630" lastFreeIndex="3630"/>
+          </sbmBlocks>
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="3630" totalNumCols="3630" totalNumNonZeros="242172" totalFillLevelPerCent="1.8379" totalMemory="1.8476">
+              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="3630" numCols="3630" numNonZeros="242172" fillLevelPerCent="1.8379" memory="1.8476" upperBandWidth="365" lowerBandWidth="365" avgBandWidth="662" symCounterPart="no" orderingType="noReordering"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <petsc>
+            <header maxIter="10000" tolerance="1e-06" solver="fgmres" precond="mg" innerSolver="chebyshev" coarse_maxits="30" mgLevels="2"/>
+            <summary>
+              <setup>
+                <timer label="setup_petsc" wall-clock="0.1s" wall="0.1" cpu="0.087875" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_petsc" wall-clock="0.014s" wall="0.014" cpu="0.014409" calls="1"/>
+              </solve>
+              <petsc_assembly>
+                <timer wall-clock="0.096s" wall="0.096" cpu="0.083686" calls="1" sub="true"/>
+              </petsc_assembly>
+            </summary>
+            <process>
+              <solver residualNorm="3.1795e-07" iterationCurrentStep="3" totalIterations="6"/>
+            </process>
+          </petsc>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="2e-06" calls="1"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0s" wall="0" cpu="0.000118" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.072s" wall="0.072" cpu="0.065431" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+</cfsInfo>

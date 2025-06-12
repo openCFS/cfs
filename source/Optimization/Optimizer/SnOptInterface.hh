@@ -38,6 +38,8 @@ extern "C" {
        intptr_t prob_len, intptr_t xnames_len, intptr_t fnames_len, intptr_t cu_len,
        intptr_t cw_len);
 
+  // it is unclear, where the intptr_t cw_len argument comes from.
+  // https://web.stanford.edu/group/SOL/guides/sndoc7.pdf documents 8 parameters ?!
   void sninit
      ( int32_t *iPrint, int32_t *iSumm, char *cw,
        int32_t *lencw, int32_t *iw, int32_t *leniw,

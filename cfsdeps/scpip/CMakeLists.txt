@@ -1,16 +1,12 @@
-CMAKE_MINIMUM_REQUIRED(VERSION 2.4)
+cmake_minimum_required(VERSION 3.16) # cmake 4.0 does not allow < 3.5
 
-PROJECT(scpip Fortran)
+project(scpip Fortran)
 
-SET(SCPIP_SRCS Scpip30.f Sparsecz.f scpblas.f scpdummy.f)
+set(SCPIP_SRCS Scpip30.f Sparsecz.f scpblas.f scpdummy.f)
 
-SET(SCPIP_LIBNAME scpip)
+set(SCPIP_LIBNAME scpip)
 
-ADD_LIBRARY(${SCPIP_LIBNAME} STATIC ${SCPIP_SRCS})
+add_library(${SCPIP_LIBNAME} STATIC ${SCPIP_SRCS})
 
-# ADD_EXECUTABLE(v30main v30main.f)
-
-# TARGET_LINK_LIBRARIES(v30main scpip)
-
-INSTALL(TARGETS ${SCPIP_LIBNAME} ARCHIVE DESTINATION "${LIB_SUFFIX}")
+install(TARGETS ${SCPIP_LIBNAME} ARCHIVE DESTINATION "${LIB_SUFFIX}")
 

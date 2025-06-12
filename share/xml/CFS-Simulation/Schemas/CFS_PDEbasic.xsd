@@ -371,7 +371,7 @@
       </xsd:documentation>
     </xsd:annotation>
     <xsd:sequence>
-       <xsd:element name="option" minOccurs="0" maxOccurs="unbounded" type="DT_PythonOption"/>
+      <xsd:element name="option" minOccurs="0" maxOccurs="unbounded" type="DT_PythonOption"/>
     </xsd:sequence>
     <xsd:attribute name="init" type="xsd:token" use="optional" >
       <xsd:annotation>
@@ -537,6 +537,7 @@
           <xsd:element name="coupling" maxOccurs="1" type="DT_IterCplData"/>
 
         </xsd:choice>
+        <xsd:attribute name="volumeRegion" type="xsd:token" use="optional"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -657,8 +658,8 @@
   <xsd:complexType name="DT_BcPeriodic">
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
-        <xsd:attribute name="master" type="xsd:token" use="required"/>
-        <xsd:attribute name="slave" type="xsd:token" use="required"/>
+        <xsd:attribute name="primary" type="xsd:token" use="required"/>
+        <xsd:attribute name="secondary" type="xsd:token" use="required"/>
         <xsd:attribute name="quantity" type="xsd:token" use="required"/>
         <xsd:attribute name="dof" type="xsd:token" use="optional"/>
         <xsd:attribute name="fixedCoords" type="xsd:token" use="optional"/>
@@ -691,21 +692,8 @@
         </xsd:sequence>
         <xsd:attribute default="1.0" name="factor_value" type="xsd:token"/>
         <xsd:attribute default="0.0" name="factor_phase" type="xsd:token"/>
-        <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional"
-          default="Nitsche"/>
+        <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche"/>
         <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100"/>
-        <xsd:attribute name="nitscheFactorDamping" type="xsd:double" use="optional" default="1e-2"/>
-        <xsd:attribute name="lagrangeMultType" use="optional" default="standard">
-          <xsd:simpleType>
-            <xsd:restriction base="xsd:token">
-              <xsd:enumeration value="standard"/>
-              <xsd:enumeration value="dualDiscont"/>
-              <xsd:enumeration value="dualCubic"/>
-            </xsd:restriction>
-          </xsd:simpleType>
-        </xsd:attribute>
-        <xsd:attribute name="crossPointHandling" type="DT_CFSBool" use="optional" default="no"/>
-        <xsd:attribute name="movingMortar" type="DT_CFSBool" use="optional" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -840,7 +828,7 @@
       ******************************************************************** -->
   <xsd:complexType name="DT_NcInterfaceList">
     <xsd:sequence>
-      <xsd:element name="ncInterface" minOccurs="1" maxOccurs="unbounded">
+      <xsd:element name="ncInterface" minOccurs="0" maxOccurs="unbounded">
         <xsd:complexType>
           <xsd:sequence>
             <xsd:element name="thinLayer" minOccurs="0" maxOccurs="1">
@@ -858,21 +846,8 @@
             </xsd:element>
           </xsd:sequence>
           <xsd:attribute name="name" type="xsd:token" use="required"/>
-          <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional"
-            default="Mortar"/>
+          <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Mortar"/>
           <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100"/>
-          <xsd:attribute name="nitscheFactorDamping" type="xsd:double" use="optional" default="1e-2"/>
-          <xsd:attribute name="lagrangeMultType" use="optional" default="standard">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="standard"/>
-                <xsd:enumeration value="dualDiscont"/>
-                <xsd:enumeration value="dualCubic"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
-          <xsd:attribute name="crossPointHandling" type="DT_CFSBool" use="optional" default="no"/>
-          <xsd:attribute name="movingMortar" type="DT_CFSBool" use="optional" default="no"/>
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
@@ -887,9 +862,38 @@
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
         <xsd:attribute name="id" type="xsd:token" use="required"/>
-        <!--xsd:attribute name="aPML" type="DT_CFSBool" use="optional" default="no"/-->
       </xsd:restriction>
     </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of rayleigh damping -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_DampingRayleigh">
+    <xsd:complexContent>
+      <xsd:extension base="DT_DampingBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_DampingAdaptedLossTangensDelta">
+    <xsd:complexContent>
+      <xsd:extension base="DT_DampingBasic">
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_DampingRayleighGlobal">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en"> Specify alpha and beta to compute a global damping matrix from the assembled global MASS and STIFFNESS matrices. All other Rayleigh damping types should be deactivated when this damping is used. </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en"> Provide 'alpha' and 'beta' </xsd:documentation>
+      </xsd:annotation>
+      <xsd:element name="alpha" type="xsd:float"/>
+      <xsd:element name="beta" type="xsd:float"/>
+    </xsd:sequence>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
@@ -1696,7 +1700,6 @@ The result is divided by the total volume of the region, yielding the volume ave
             </xsd:element>
 
 
-
             <!--Specify the reading of grad(V)*grad(V) (needed in special A-V formulation) -->
             <xsd:element name="gradV_in_gradV" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
@@ -1730,7 +1733,7 @@ The result is divided by the total volume of the region, yielding the volume ave
                 </xsd:complexType>
               </xsd:element>
             </xsd:choice>
-            
+
             <!-- Resistance of coil (given explicitly) -->
             <xsd:element name="resistance" minOccurs="0">
               <xsd:complexType>
@@ -1746,6 +1749,23 @@ The result is divided by the total volume of the region, yielding the volume ave
 
     <!-- Identifier string to address the coil for results -->
     <xsd:attribute name="id" type="xsd:token" use="required"/>
+  </xsd:complexType>
+
+  <!-- Options for stabilisation of a convective term-->
+  <xsd:complexType name="DT_BcInhomVector_stabilisation">
+    <xsd:complexContent>
+      <xsd:extension base="DT_BcInhomVector">
+        <xsd:attribute name="stabilisation" use="optional" default="none">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:string">
+              <xsd:enumeration value="none"/>
+              <xsd:enumeration value="ArtificialDiffusion"/>
+              <xsd:enumeration value="SUPG"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
 
 </xsd:schema>

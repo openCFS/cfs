@@ -123,13 +123,13 @@ namespace CoupledField {
     bool csv_;
 
     //! Coordinate system
-    CoordSystem * coordSys_;
+    CoordSystem* coordSys_ = nullptr;
 
     //! Current multi-sequence step
-    UInt currMS_;
+    UInt currMS_ = 0;
     
     //! Type of analysis in current multisequence step
-    BasePDE::AnalysisType actAnalysis_;
+    BasePDE::AnalysisType actAnalysis_ = BasePDE::NO_ANALYSIS;
 
     // from revision 12363
     // Offset for step number in case of multisequence analysis

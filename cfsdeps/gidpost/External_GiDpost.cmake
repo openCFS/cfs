@@ -1,206 +1,92 @@
 #-------------------------------------------------------------------------------
-# GiDpost: a C / C++ / Fortran library to create postprocess files for GiD
+# GiDpost: library to create postprocess files for GiD
 #
 # Project Homepage
 # http://gid.cimne.upc.es/gid-plus/tools/gidpost
 #-------------------------------------------------------------------------------
 
-#-------------------------------------------------------------------------------
-# Set paths to gidpost sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
-set(gidpost_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/gidpost")
-set(gidpost_source  "${gidpost_prefix}/src/gidpost")
-set(gidpost_install  "${CFS_BINARY_DIR}")
+clear_depencency_variables()
 
-IF(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
-  SET(GIDPOST_C_FLAGS "-DINTEL_COMPILER ${CFSDEPS_C_FLAGS}")
-ELSE()
-  SET(GIDPOST_C_FLAGS "-DgFortran ${CFSDEPS_C_FLAGS}")
-ENDIF()
+# set mandatory variables for the macros in DependencyTools.cmake.
+set(PACKAGE_NAME "gidpost")
+set(PACKAGE_VER "2.11") # not that we hide depecreced warnings in SimOutGiD.cc 
+set(PACKAGE_FILE "gidpost-${PACKAGE_VER}.zip")
+set(PACKAGE_MD5 "20cbd5b359fb1b6ef4ae5d2f1f26a41e")
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
-STRING(REPLACE ";" "," GID_FORTRAN_LIBS "${CFS_FORTRAN_LIBS}")
+# the mirrors can point to arbitrary file names.
 
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${gidpost_install}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_BUILD_TYPE:STRING=Release
-  -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
-  -DCMAKE_C_FLAGS:STRING=${GIDPOST_C_FLAGS}
-  -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-  -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_C_FLAGS}
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DZLIB_INCLUDE_DIRS:FILEPATH=${CFS_BINARY_DIR}/include
-  -DZLIB_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
-  -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
-  -DZLIB_LIBRARIES:FILEPATH=${ZLIB_LIBRARY}
-  -DHDF5:BOOL=OFF
-)
+set(PACKAGE_MIRRORS "https://downloads.gidsimulation.com/Tools/gidpost/${PACKAGE_FILE}") 
+# add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
+add_standard_mirrors_or_set_local()
 
-IF(CFS_DISTRO STREQUAL "MACOSX")
-  SET(CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
-    -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
-ENDIF(CFS_DISTRO STREQUAL "MACOSX")
+ # C/C++
+use_c_and_fortran(ON OFF)
 
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
+# sets PRECOMPILED_PCKG_FILE to the full precompiled name including path
+set_precompiled_pckg_file()
 
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/gidpost/gidpost-patch.cmake.in")
-SET(PFN "${gidpost_prefix}/gidpost-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+# libgidpost.a
+set_package_library_default()
 
-#-------------------------------------------------------------------------------
-# Set up a list of publicly available mirrors, since the non-standard port 
-# number of the FTP server on the openCFS development server  may not be
-# accessible from behind firewalls.
-# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
-# used to configure the download CMake file for the library.
-#-------------------------------------------------------------------------------
-SET(MIRRORS
-  "ftp://www.gidhome.com/pub/Tools/gidpost/old/${GIDPOST_ZIP}"
-  "${CFS_DS_SOURCES_DIR}/gidpost/${GIDPOST_ZIP}"
-)
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gidpost/${GIDPOST_ZIP}")
-SET(MD5_SUM ${GIDPOST_MD5})
+set_standard_variables() 
 
-SET(DLFN "${gidpost_prefix}/gidpost-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
+# we will use the manifest.txt
+set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
 #copy license
-file(COPY "${CFS_SOURCE_DIR}/cfsdeps/gidpost/license/" DESTINATION "${CFS_BINARY_DIR}/license/gidpost" )
+file(COPY "${CFS_SOURCE_DIR}/cfsdeps/gidpost/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/gidpost" )
 
+# set DEPS_ARG with defaults for a cmake project and compiler flags
+set_deps_args_default(ON)
 
+set(DEPS_ARGS
+  ${DEPS_ARGS}
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5
+  -DZLIB_INCLUDE_DIR:FILEPATH=${ZLIB_INCLUDE_DIR}
+  -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
+  -DENABLE_FORTRAN_EXAMPLES=OFF
+  -DENABLE_HDF5=OFF
+  -DENABLE_PARALLEL_EXAMPLE=OFF
+  -DENABLE_SHARED_LIBS=OFF )
 
-PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "gidpost" "${GIDPOST_VER}")
-  
-# This should be either PREFIX_DIR (install manifest is used for zipping)
-# or INSTALL_DIR (install directory will be zipped)
-SET(TMP_DIR "${gidpost_prefix}")
+# --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
-SET(ZIPFROMCACHE "${gidpost_prefix}/gidpost-zipFromCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+# we need to patch - we skip the append patch frin version 2.1 in 02.2025
+generate_patches_script()
 
-SET(ZIPTOCACHE "${gidpost_prefix}/gidpost-zipToCache.cmake")
-CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+# we have no postinstall, so don't call generate_postinstall_script()
+assert_unset(POSTINSTALL_SCRIPT)
 
-#-------------------------------------------------------------------------------
-# Determine paths of GIDPOST libraries.
-#-------------------------------------------------------------------------------
-IF(WIN32)
-  SET(GIDPOST_LIBRARY_DEBUG
-    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/gidpost.lib"
-    CACHE FILEPATH "GiDpost library" FORCE)
-  SET(GIDPOST_LIBRARY_RELEASE
-    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/gidpost.lib"
-    CACHE FILEPATH "GiDpost library" FORCE)
-ELSE()
-  SET(GIDPOST_LIBRARY_DEBUG
-    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libgidpost.a"
-    CACHE FILEPATH "GiDpost library" FORCE)
-  SET(GIDPOST_LIBRARY_RELEASE
-    "${CFS_BINARY_DIR}/${LIB_SUFFIX}/libgidpost.a"
-    CACHE FILEPATH "GiDpost library" FORCE)
-ENDIF(WIN32)
+# copy "static" license as we configure this dependency. Check if license is still valid!
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/license/" DESTINATION "${CMAKE_BINARY_DIR}/license/${PACKAGE_NAME}" )
 
-#-------------------------------------------------------------------------------
-# Mark paths of GIDPOST libraries as advanced.
-#-------------------------------------------------------------------------------
-MARK_AS_ADVANCED(GIDPOST_INCLUDE_DIR)
-MARK_AS_ADVANCED(GIDPOST_LIBRARY_DEBUG)
-MARK_AS_ADVANCED(GIDPOST_LIBRARY_RELEASE)
+# we build directory to CMAKE_BINARY_DIR, there is no unnecessary stuff in manifest.txt
+generate_packing_script_manifest()
 
-#-------------------------------------------------------------------------------
-# Set GIDPOST_LIBRARY according to configuration
-#-------------------------------------------------------------------------------
-IF(DEBUG)
-  SET(GIDPOST_LIBRARY "${GIDPOST_LIBRARY_DEBUG}")
-ELSE(DEBUG)
-  SET(GIDPOST_LIBRARY "${GIDPOST_LIBRARY_RELEASE}")
-ENDIF(DEBUG)
+assert_unset(POSTINSTALL_SCRIPT)
 
-#-------------------------------------------------------------------------------
-# The GiDpost external project
-#-------------------------------------------------------------------------------
-IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package exists copy files from cache
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(gidpost
-    PREFIX "${gidpost_prefix}"
-    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
-    PATCH_COMMAND ""
-    UPDATE_COMMAND ""
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS ${GIDPOST_LIBRARY}
-  )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add(gidpost
-    DEPENDS zlib
-    PREFIX "${gidpost_prefix}"
-    URL ${LOCAL_FILE}
-    URL_MD5 ${GIDPOST_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    LIST_SEPARATOR ,
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-    BUILD_BYPRODUCTS ${GIDPOST_LIBRARY}
-  )
-  
-  #-------------------------------------------------------------------------------
-  # Add custom download step to be able to download from a list of mirrors
-  # instead of just a single URL.
-  #-------------------------------------------------------------------------------
-  ExternalProject_Add_Step(gidpost cfsdeps_download
-    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-    DEPENDERS download
-    DEPENDS "${DLFN}"
-    WORKING_DIRECTORY ${gidpost_prefix}
-  )
-  
-  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
-    #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
-    #-------------------------------------------------------------------------------
-    ExternalProject_Add_Step(gidpost cfsdeps_zipToCache
-      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
-      DEPENDS "${ZIPTOCACHE}"
-      WORKING_DIRECTORY ${CFS_BINARY_DIR}
-    )
-  ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+#dump_depencency_variables()
 
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  gidpost
-)
+# do we want to use precompiled and do we already have the package?
+if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  # copy files from cache
+  create_external_unpack_precompiled()
 
-#-------------------------------------------------------------------------------
-# These variables are used to find Gidpost by other projects
-#-------------------------------------------------------------------------------
-SET(GIDPOST_INCLUDE_DIR
-  "${CFS_BINARY_DIR}/include"
-  CACHE
-  FILEPATH
-  "GiDpost include dir"
-  FORCE)
+# if not, build newly and possibly pack the stuff
+else()
+  # patched cmake project    
+  create_external_cmake_patched()  
+
+  # new data just built: shall we pack and store as precompiled?
+  if(${CFS_DEPS_PRECOMPILED})
+    # add custom step to zip a precompiled package to the cache.
+    add_external_storage_step()
+  endif()
+endif()
+
+# add project to global list of CFSDEPS
+set(CFSDEPS ${CFSDEPS} ${PACKAGE_NAME})
+
+# we don't use the hdf5 dependency - use it, if you want to use binary gidpost
+add_dependencies(${PACKAGE_NAME} zlib)

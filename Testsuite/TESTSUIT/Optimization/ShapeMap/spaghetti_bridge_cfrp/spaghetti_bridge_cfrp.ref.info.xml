@@ -1,0 +1,487 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="353" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="4h 29m 48.07s" wall="16188.1" cpu="16268.2" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="1414.1" peak="1460.4"/>
+  </summary>
+  <header id="">
+    <environment started="2022-Sep-29 14:14:54" host="motown"/>
+    <python version="3.6.15 (default, Sep 23 2021, 15:41:43) [GCC]" file="/home/jgreif/code/cfs/share/python/spaghetti.py"/>
+    <progOpts problem="spaghetti_bridge_cfrp" parameterFile="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_bridge_cfrp/spaghetti_bridge_cfrp.xml" schemaPath="/home/jgreif/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="22.03" name="Frohes Fensterln" build="Release" git_commit="8db43540d5b2b94d26dc0edc90b336e1e8cb8ca7" git_branch="arrabbiata" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="3" OMP_NUM_THREADS="3"/>
+    </progOpts>
+    <domain nx="200" ny="100" nz="1">
+      <grids>
+        <timer wall-clock="0.238s" wall="0.238" cpu="0.30732" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="20000" nodes="20301"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="20301" elems="20000" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="201"/>
+        <nodes name="top" count="201"/>
+        <nodes name="left" count="101"/>
+        <nodes name="right" count="101"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(2,0)"/>
+        <nodes name="top_left" count="1" coord="(0,1)"/>
+        <nodes name="top_right" count="1" coord="(2,1)"/>
+        <nodes name="load" count="1" coord="(2,0.5)"/>
+        <nodes name="fix" count="1" coord="(0,0)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="200" ny="100" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.162s" wall="0.162" cpu="0.252782" calls="1392"/>
+    </results>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.238s" wall="0.238" cpu="0.556154" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="top" size="201" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0, -0.00497512]"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="weak">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e-03  5.769231e-04  5.769231e-04  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-04  1.346154e-03  5.769231e-04  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-04  5.769231e-04  1.346154e-03  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-04  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-04  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-04
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(0.001,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-09,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="fix" dofs="x y"/>
+            <nodeList name="right" dofs="x"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="40499" totalNumFreeEqns="40499" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="40499" lastFreeEqn="40499" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="40499" lastFreeIndex="40499"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <cholmod>
+            <header>
+              <parameters>
+                <factorization>
+                  <nmethods default="0"/>
+                  <postorder default="1"/>
+                  <dbound default="0"/>
+                </factorization>
+                <supernodal>
+                  <method default="auto"/>
+                  <switch default="40"/>
+                </supernodal>
+                <output>
+                  <level default="3"/>
+                  <precise default="0"/>
+                </output>
+              </parameters>
+            </header>
+            <summary>
+              <setup>
+                <timer label="setup_cholmod" wall-clock="10.03s" wall="10.028" cpu="23.3346" calls="172"/>
+              </setup>
+              <solve>
+                <timer label="solve_cholmod" wall-clock="0.951s" wall="0.951" cpu="2.52807" calls="172"/>
+              </solve>
+            </summary>
+            <process>
+              <setup selected_factorization_method="1" ll_flop_count="4.1165e+08" nz_in_L="2.693e+06" nz_in_triA="3.8098e+05" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
+                <method id="1" lnz="2.693e+06" fl="4.1165e+08"/>
+              </setup>
+              <solver/>
+            </process>
+          </cholmod>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0.000499" calls="172"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.145s" wall="0.145" cpu="0.440886" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="29.15s" wall="29.149" cpu="29.2198" calls="344"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_file="/home/jgreif/code/cfs/Testsuite/TESTSUIT/Optimization/ShapeMap/spaghetti_bridge_cfrp/HALTOPT">
+    <header>
+      <objective type="compliance" name="compliance" linear="no" access="physical" task="minimize"/>
+      <constraints>
+        <constraint type="volume" name="volume_(density)" linear="no" access="filtered" bound_value="0.4" bound="upperBound" design="density"/>
+        <constraint warning="consider setting 'design' for function 'arc_overlap'" type="localPython" name="arc_overlap" parameter="0" linear="no" access="plain" locality="externally_defined" local_size="18" bound_value="0" bound="lowerBound" design="default">
+          <python eval="cfs_get_constraint_arc_overlap" grad="cfs_get_gradient_arc_overlap" name="arc_overlap" script="kernel" sparsity="cfs_get_sparsity_arc_overlap"/>
+        </constraint>
+      </constraints>
+      <designSpace pamping="0" regular="yes">
+        <setup_design>
+          <timer wall-clock="23.99s" wall="23.992" cpu="24.3556" calls="7"/>
+        </setup_design>
+        <features>
+          <mapping>
+            <timer label="features_map" wall-clock="1h 14m 31.38s" wall="4471.38" cpu="4471.29" calls="173" sub="true"/>
+          </mapping>
+          <gradient>
+            <timer label="features_grad" wall-clock="3h 13m 12.72s" wall="11592.7" cpu="11589.4" calls="344" sub="true"/>
+          </gradient>
+        </features>
+        <spaghetti combine="softmax" radius="0.3" orientation="straight">
+          <python file="/home/jgreif/code/cfs/share/python/spaghetti.py" options="">
+            <timer wall-clock="4h 27m 51.86s" wall="16071.9" cpu="16077.2" calls="1379" sub="true"/>
+          </python>
+          <boundary type="poly" transition="0.04"/>
+          <mesh n="[200, 100, 1]"/>
+          <info_field genericElem="d_compliance_density_by_d_s0_px d_compliance_rotAngle_by_d_s0_px d_compliance_density_by_d_s0_py d_compliance_rotAngle_by_d_s0_py d_compliance_density_by_d_s0_qx d_compliance_rotAngle_by_d_s0_qx d_compliance_density_by_d_s0_qy d_compliance_rotAngle_by_d_s0_qy d_compliance_density_by_d_s0_p d_compliance_rotAngle_by_d_s0_p d_compliance_density_by_d_s1_px d_compliance_rotAngle_by_d_s1_px d_compliance_density_by_d_s1_py d_compliance_rotAngle_by_d_s1_py d_compliance_density_by_d_s1_qx d_compliance_rotAngle_by_d_s1_qx d_compliance_density_by_d_s1_qy d_compliance_rotAngle_by_d_s1_qy d_compliance_density_by_d_s1_p d_compliance_rotAngle_by_d_s1_p d_compliance_density_by_d_s1_a1 d_compliance_rotAngle_by_d_s1_a1 d_compliance_density_by_d_s1_a2 d_compliance_rotAngle_by_d_s1_a2 d_compliance_density_by_d_s1_a3 d_compliance_rotAngle_by_d_s1_a3 d_compliance_density_by_d_s1_a4 d_compliance_rotAngle_by_d_s1_a4 d_compliance_density_by_d_s1_a5 d_compliance_rotAngle_by_d_s1_a5 d_compliance_density_by_d_s1_a6 d_compliance_rotAngle_by_d_s1_a6 d_compliance_density_by_d_s1_a7 d_compliance_rotAngle_by_d_s1_a7 d_compliance_density_by_d_s2_px d_compliance_rotAngle_by_d_s2_px d_compliance_density_by_d_s2_py d_compliance_rotAngle_by_d_s2_py d_compliance_density_by_d_s2_qx d_compliance_rotAngle_by_d_s2_qx d_compliance_density_by_d_s2_qy d_compliance_rotAngle_by_d_s2_qy d_compliance_density_by_d_s2_p d_compliance_rotAngle_by_d_s2_p d_compliance_density_by_d_s2_a1 d_compliance_rotAngle_by_d_s2_a1 d_compliance_density_by_d_s2_a2 d_compliance_rotAngle_by_d_s2_a2 d_compliance_density_by_d_s3_px d_compliance_rotAngle_by_d_s3_px d_compliance_density_by_d_s3_py d_compliance_rotAngle_by_d_s3_py d_compliance_density_by_d_s3_qx d_compliance_rotAngle_by_d_s3_qx d_compliance_density_by_d_s3_qy d_compliance_rotAngle_by_d_s3_qy d_compliance_density_by_d_s3_p d_compliance_rotAngle_by_d_s3_p d_compliance_density_by_d_s3_a1 d_compliance_rotAngle_by_d_s3_a1 d_compliance_density_by_d_s3_a2 d_compliance_rotAngle_by_d_s3_a2 d_compliance_density_by_d_s3_a3 d_compliance_rotAngle_by_d_s3_a3 d_compliance_density_by_d_s4_px d_compliance_rotAngle_by_d_s4_px d_compliance_density_by_d_s4_py d_compliance_rotAngle_by_d_s4_py d_compliance_density_by_d_s4_qx d_compliance_rotAngle_by_d_s4_qx d_compliance_density_by_d_s4_qy d_compliance_rotAngle_by_d_s4_qy d_compliance_density_by_d_s4_p d_compliance_rotAngle_by_d_s4_p d_compliance_density_by_d_s4_a1 d_compliance_rotAngle_by_d_s4_a1 d_compliance_density_by_d_s4_a2 d_compliance_rotAngle_by_d_s4_a2 d_volume_(density)_density_by_d_s0_px d_volume_(density)_rotAngle_by_d_s0_px d_volume_(density)_density_by_d_s0_py d_volume_(density)_rotAngle_by_d_s0_py d_volume_(density)_density_by_d_s0_qx d_volume_(density)_rotAngle_by_d_s0_qx d_volume_(density)_density_by_d_s0_qy d_volume_(density)_rotAngle_by_d_s0_qy d_volume_(density)_density_by_d_s0_p d_volume_(density)_rotAngle_by_d_s0_p d_volume_(density)_density_by_d_s1_px d_volume_(density)_rotAngle_by_d_s1_px d_volume_(density)_density_by_d_s1_py d_volume_(density)_rotAngle_by_d_s1_py d_volume_(density)_density_by_d_s1_qx d_volume_(density)_rotAngle_by_d_s1_qx d_volume_(density)_density_by_d_s1_qy d_volume_(density)_rotAngle_by_d_s1_qy d_volume_(density)_density_by_d_s1_p d_volume_(density)_rotAngle_by_d_s1_p d_volume_(density)_density_by_d_s1_a1 d_volume_(density)_rotAngle_by_d_s1_a1 d_volume_(density)_density_by_d_s1_a2 d_volume_(density)_rotAngle_by_d_s1_a2 d_volume_(density)_density_by_d_s1_a3 d_volume_(density)_rotAngle_by_d_s1_a3 d_volume_(density)_density_by_d_s1_a4 d_volume_(density)_rotAngle_by_d_s1_a4 d_volume_(density)_density_by_d_s1_a5 d_volume_(density)_rotAngle_by_d_s1_a5 d_volume_(density)_density_by_d_s1_a6 d_volume_(density)_rotAngle_by_d_s1_a6 d_volume_(density)_density_by_d_s1_a7 d_volume_(density)_rotAngle_by_d_s1_a7 d_volume_(density)_density_by_d_s2_px d_volume_(density)_rotAngle_by_d_s2_px d_volume_(density)_density_by_d_s2_py d_volume_(density)_rotAngle_by_d_s2_py d_volume_(density)_density_by_d_s2_qx d_volume_(density)_rotAngle_by_d_s2_qx d_volume_(density)_density_by_d_s2_qy d_volume_(density)_rotAngle_by_d_s2_qy d_volume_(density)_density_by_d_s2_p d_volume_(density)_rotAngle_by_d_s2_p d_volume_(density)_density_by_d_s2_a1 d_volume_(density)_rotAngle_by_d_s2_a1 d_volume_(density)_density_by_d_s2_a2 d_volume_(density)_rotAngle_by_d_s2_a2 d_volume_(density)_density_by_d_s3_px d_volume_(density)_rotAngle_by_d_s3_px d_volume_(density)_density_by_d_s3_py d_volume_(density)_rotAngle_by_d_s3_py d_volume_(density)_density_by_d_s3_qx d_volume_(density)_rotAngle_by_d_s3_qx d_volume_(density)_density_by_d_s3_qy d_volume_(density)_rotAngle_by_d_s3_qy d_volume_(density)_density_by_d_s3_p d_volume_(density)_rotAngle_by_d_s3_p d_volume_(density)_density_by_d_s3_a1 d_volume_(density)_rotAngle_by_d_s3_a1 d_volume_(density)_density_by_d_s3_a2 d_volume_(density)_rotAngle_by_d_s3_a2 d_volume_(density)_density_by_d_s3_a3 d_volume_(density)_rotAngle_by_d_s3_a3 d_volume_(density)_density_by_d_s4_px d_volume_(density)_rotAngle_by_d_s4_px d_volume_(density)_density_by_d_s4_py d_volume_(density)_rotAngle_by_d_s4_py d_volume_(density)_density_by_d_s4_qx d_volume_(density)_rotAngle_by_d_s4_qx d_volume_(density)_density_by_d_s4_qy d_volume_(density)_rotAngle_by_d_s4_qy d_volume_(density)_density_by_d_s4_p d_volume_(density)_rotAngle_by_d_s4_p d_volume_(density)_density_by_d_s4_a1 d_volume_(density)_rotAngle_by_d_s4_a1 d_volume_(density)_density_by_d_s4_a2 d_volume_(density)_rotAngle_by_d_s4_a2"/>
+        </spaghetti>
+        <filters use_mat_filt="no"/>
+        <ersatzMaterialFile file="bridge-cfao-start.density.xml" source="problem file"/>
+        <transferFunctions>
+          <transferFunction type="identity" application="no_app" design="default"/>
+          <transferFunction type="ramp" application="mech" design="density" param="3"/>
+        </transferFunctions>
+        <designVariables opt_vars="39" field_elems="40000" field_fe_elemes="20000">
+          <design type="density" upperBound="1" lowerBound="0" physicalLowerBound="0"/>
+          <design type="rotAngle" upperBound="16.283" lowerBound="-18" physicalLowerBound="-18"/>
+          <noodle id="0" segments="1">
+            <px type="node" dof="x" tip="start" lower="0" upper="0"/>
+            <py type="node" dof="y" tip="start" lower="0.98" upper="0.98"/>
+            <qx type="node" dof="x" tip="end" lower="2" upper="2"/>
+            <qy type="node" dof="y" tip="end" lower="0.98" upper="0.98"/>
+            <p type="profile" lower="0.1" upper="0.2"/>
+          </noodle>
+          <noodle id="1" segments="8">
+            <px type="node" dof="x" tip="start" lower="0" upper="2"/>
+            <py type="node" dof="y" tip="start" lower="0" upper="1"/>
+            <qx type="node" dof="x" tip="end" lower="0" upper="2"/>
+            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <p type="profile" lower="0.1" upper="0.35"/>
+            <a type="normal" lower="-0.2" upper="0.2" size="7"/>
+          </noodle>
+          <noodle id="2" segments="3">
+            <px type="node" dof="x" tip="start" lower="0" upper="2"/>
+            <py type="node" dof="y" tip="start" lower="0" upper="1"/>
+            <qx type="node" dof="x" tip="end" lower="0" upper="2"/>
+            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <p type="profile" lower="0.05" upper="0.3"/>
+            <a type="normal" lower="-0.2" upper="0.2" size="2"/>
+          </noodle>
+          <noodle id="3" segments="4">
+            <px type="node" dof="x" tip="start" lower="0" upper="2"/>
+            <py type="node" dof="y" tip="start" lower="0" upper="1"/>
+            <qx type="node" dof="x" tip="end" lower="0" upper="2"/>
+            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <p type="profile" lower="0.05" upper="0.3"/>
+            <a type="normal" lower="-0.2" upper="0.2" size="3"/>
+          </noodle>
+          <noodle id="4" segments="3">
+            <px type="node" dof="x" tip="start" lower="0" upper="2"/>
+            <py type="node" dof="y" tip="start" lower="0" upper="1"/>
+            <qx type="node" dof="x" tip="end" lower="0" upper="2"/>
+            <qy type="node" dof="y" tip="end" lower="0" upper="1"/>
+            <p type="profile" lower="0.05" upper="0.3"/>
+            <a type="normal" lower="-0.2" upper="0.2" size="2"/>
+          </noodle>
+        </designVariables>
+        <localElementCache org="0" shadow="0" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="20000" bimaterial="-"/>
+        </regions>
+        <designMaterial type="density-times-rotated-transversal-isotropic" bias="yes"/>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="999"/>
+    <optimizer>
+      <summary snopt_outputfile="spaghetti_bridge_cfrp.snopt">
+        <snopt>
+          <timer wall-clock="0s" wall="0" cpu="0.038663" calls="864"/>
+        </snopt>
+        <snopt_exit exit="0" info="71"/>
+        <evaluations f_evals="172" g_evals="172"/>
+      </summary>
+      <snopt/>
+    </optimizer>
+    <summary problem="SNOPT: user requested termination - terminated during function evaluation" snopt_exit="71">
+      <eval_objective>
+        <timer wall-clock="1h 13m 49.21s" wall="4429.21" cpu="4433.17" calls="688"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0.01s" wall="0.01" cpu="0.395289" calls="172"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="1h 37m 26.8s" wall="5846.8" cpu="5899.87" calls="172"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="1h 36m 40.16s" wall="5800.16" cpu="5798.64" calls="172"/>
+      </eval_grad_constraints>
+      <break converged="no">
+        <reason msg="Too small relative change in objective function" value="0.0001" queue="55"/>
+      </break>
+    </summary>
+    <process>
+      <iteration number="0" duration="112.62" compliance="0.355114359808087" volume_density="0.268763284514479" min_abs_arc_overlap="0.0041173" infeas_count_arc_overlap="0"/>
+      <iteration number="1" duration="93.974" compliance="7020.65298767014" volume_density="0.293048454238708" min_abs_arc_overlap="0.0089118" infeas_count_arc_overlap="5"/>
+      <iteration number="2" duration="87.944" compliance="0.355037884332292" volume_density="0.26876892135871" min_abs_arc_overlap="0.0041177" infeas_count_arc_overlap="0"/>
+      <iteration number="3" duration="87.863" compliance="0.349547684658833" volume_density="0.269196450952251" min_abs_arc_overlap="0.0041471" infeas_count_arc_overlap="0"/>
+      <iteration number="4" duration="94.506" compliance="6845.50634501077" volume_density="0.292299272126436" min_abs_arc_overlap="0.013985" infeas_count_arc_overlap="5"/>
+      <iteration number="5" duration="87.725" compliance="0.349485825730106" volume_density="0.269201557781357" min_abs_arc_overlap="0.0041476" infeas_count_arc_overlap="0"/>
+      <iteration number="6" duration="87.623" compliance="0.344845257910044" volume_density="0.269607988942115" min_abs_arc_overlap="0.0041827" infeas_count_arc_overlap="0"/>
+      <iteration number="7" duration="86.812" compliance="0.301421088646479" volume_density="0.294392550230064" min_abs_arc_overlap="0.0047345" infeas_count_arc_overlap="0"/>
+      <iteration number="8" duration="86.391" compliance="0.270303257246783" volume_density="0.331275164461764" min_abs_arc_overlap="0.0054064" infeas_count_arc_overlap="0"/>
+      <iteration number="9" duration="88.459" compliance="0.24504002704131" volume_density="0.383350653261452" min_abs_arc_overlap="0.0038096" infeas_count_arc_overlap="0"/>
+      <iteration number="10" duration="87.523" compliance="0.239137298213313" volume_density="0.39978828614442" min_abs_arc_overlap="0.0033311" infeas_count_arc_overlap="0"/>
+      <iteration number="11" duration="86.567" compliance="0.238394313082397" volume_density="0.40000711216707" min_abs_arc_overlap="0.0033204" infeas_count_arc_overlap="0"/>
+      <iteration number="12" duration="85.745" compliance="0.236616461047722" volume_density="0.400631361288356" min_abs_arc_overlap="0.0034499" infeas_count_arc_overlap="0"/>
+      <iteration number="13" duration="86.522" compliance="0.235631058433903" volume_density="0.400284501936431" min_abs_arc_overlap="0.003395" infeas_count_arc_overlap="0"/>
+      <iteration number="14" duration="86.196" compliance="0.237062831019004" volume_density="0.400080600091578" min_abs_arc_overlap="0.0037635" infeas_count_arc_overlap="0"/>
+      <iteration number="15" duration="85.771" compliance="0.235344847970266" volume_density="0.400165331616932" min_abs_arc_overlap="0.0035738" infeas_count_arc_overlap="0"/>
+      <iteration number="16" duration="85.654" compliance="0.234980103313765" volume_density="0.400003336449342" min_abs_arc_overlap="0.0041963" infeas_count_arc_overlap="0"/>
+      <iteration number="17" duration="86.128" compliance="0.234110436715371" volume_density="0.400190786600899" min_abs_arc_overlap="0.0033633" infeas_count_arc_overlap="0"/>
+      <iteration number="18" duration="86.853" compliance="0.23381656616927" volume_density="0.400001318450987" min_abs_arc_overlap="0.0031667" infeas_count_arc_overlap="0"/>
+      <iteration number="19" duration="86.87" compliance="0.233551019130715" volume_density="0.400000813632655" min_abs_arc_overlap="0.0028397" infeas_count_arc_overlap="0"/>
+      <iteration number="20" duration="86.122" compliance="0.233079479172377" volume_density="0.399987119503692" min_abs_arc_overlap="0.00151" infeas_count_arc_overlap="0"/>
+      <iteration number="21" duration="88.901" compliance="0.232919228103576" volume_density="0.399993310587479" min_abs_arc_overlap="0.00078712" infeas_count_arc_overlap="0"/>
+      <iteration number="22" duration="90.71" compliance="0.232731839700254" volume_density="0.399987405395696" min_abs_arc_overlap="3.304e-05" infeas_count_arc_overlap="0"/>
+      <iteration number="23" duration="88.551" compliance="0.232604735060232" volume_density="0.399999717767893" min_abs_arc_overlap="2.0052e-07" infeas_count_arc_overlap="1"/>
+      <iteration number="24" duration="94.622" compliance="0.232403889784073" volume_density="0.399999666460099" min_abs_arc_overlap="1.5019e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="25" duration="95.131" compliance="0.232261887354065" volume_density="0.400001207000528" min_abs_arc_overlap="2.0561e-05" infeas_count_arc_overlap="0"/>
+      <iteration number="26" duration="88.642" compliance="0.232094374828338" volume_density="0.399995189767875" min_abs_arc_overlap="3.5493e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="27" duration="89.742" compliance="0.232028110167587" volume_density="0.400000590889151" min_abs_arc_overlap="4.1794e-07" infeas_count_arc_overlap="1"/>
+      <iteration number="28" duration="88.547" compliance="0.231910901978613" volume_density="0.400000277724044" min_abs_arc_overlap="1.2608e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="29" duration="88.468" compliance="0.231777417553977" volume_density="0.400002052949723" min_abs_arc_overlap="2.8456e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="30" duration="87.86" compliance="0.231621559638493" volume_density="0.400008116695202" min_abs_arc_overlap="5.6558e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="31" duration="87.436" compliance="0.231508312373086" volume_density="0.400006678464743" min_abs_arc_overlap="4.2568e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="32" duration="87.817" compliance="0.23142419403593" volume_density="0.400003041707854" min_abs_arc_overlap="3.0783e-05" infeas_count_arc_overlap="0"/>
+      <iteration number="33" duration="87.941" compliance="0.23132354971467" volume_density="0.400002149530821" min_abs_arc_overlap="4.6344e-05" infeas_count_arc_overlap="0"/>
+      <iteration number="34" duration="88.214" compliance="0.23118878288071" volume_density="0.399998882410299" min_abs_arc_overlap="3.8143e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="35" duration="88.109" compliance="0.231031709832044" volume_density="0.399995144562328" min_abs_arc_overlap="5.8311e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="36" duration="89.229" compliance="0.230830643822207" volume_density="0.399993900010668" min_abs_arc_overlap="7.0451e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="37" duration="89.078" compliance="0.230662398177607" volume_density="0.400006752451503" min_abs_arc_overlap="9.413e-05" infeas_count_arc_overlap="0"/>
+      <iteration number="38" duration="89.231" compliance="0.230519337749177" volume_density="0.400005019576719" min_abs_arc_overlap="5.7243e-07" infeas_count_arc_overlap="1"/>
+      <iteration number="39" duration="89.312" compliance="0.230406376338767" volume_density="0.40000391854362" min_abs_arc_overlap="1.0489e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="40" duration="89.452" compliance="0.230288385666342" volume_density="0.400002802971408" min_abs_arc_overlap="2.561e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="41" duration="89.587" compliance="0.230152274991162" volume_density="0.399999361656083" min_abs_arc_overlap="4.745e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="42" duration="90.053" compliance="0.229924881129969" volume_density="0.399997192951489" min_abs_arc_overlap="8.9557e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="43" duration="90.466" compliance="0.229553640015176" volume_density="0.400007401654596" min_abs_arc_overlap="8.0038e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="44" duration="89.775" compliance="0.229304419606492" volume_density="0.400014954717803" min_abs_arc_overlap="1.1758e-06" infeas_count_arc_overlap="0"/>
+      <iteration number="45" duration="89.407" compliance="0.229239209249611" volume_density="0.400001036172532" min_abs_arc_overlap="5.0647e-08" infeas_count_arc_overlap="1"/>
+      <iteration number="46" duration="89.631" compliance="0.229166310206445" volume_density="0.400003337256093" min_abs_arc_overlap="8.9225e-08" infeas_count_arc_overlap="1"/>
+      <iteration number="47" duration="89.436" compliance="0.229123952215039" volume_density="0.400001016686861" min_abs_arc_overlap="7.0917e-08" infeas_count_arc_overlap="1"/>
+      <iteration number="48" duration="89.614" compliance="0.229010989542671" volume_density="0.400006416573437" min_abs_arc_overlap="9.1808e-07" infeas_count_arc_overlap="1"/>
+      <iteration number="49" duration="89.643" compliance="0.228902252721135" volume_density="0.400010063546633" min_abs_arc_overlap="6.0588e-05" infeas_count_arc_overlap="0"/>
+      <iteration number="50" duration="89.637" compliance="0.22880440272317" volume_density="0.399998944742845" min_abs_arc_overlap="0.00018794" infeas_count_arc_overlap="0"/>
+      <iteration number="51" duration="90.115" compliance="0.228672816158918" volume_density="0.39999191177309" min_abs_arc_overlap="0.00040657" infeas_count_arc_overlap="0"/>
+      <iteration number="52" duration="91.415" compliance="0.228544940289663" volume_density="0.399985722663367" min_abs_arc_overlap="0.00076623" infeas_count_arc_overlap="0"/>
+      <iteration number="53" duration="91.85" compliance="0.228318640719374" volume_density="0.399936518302716" min_abs_arc_overlap="0.0014571" infeas_count_arc_overlap="0"/>
+      <iteration number="54" duration="91.862" compliance="0.22795643515925" volume_density="0.399838358144981" min_abs_arc_overlap="0.0025254" infeas_count_arc_overlap="0"/>
+      <iteration number="55" duration="93.632" compliance="0.227711496861597" volume_density="0.399851594208427" min_abs_arc_overlap="0.0033012" infeas_count_arc_overlap="0"/>
+      <iteration number="56" duration="93.423" compliance="0.227241052462923" volume_density="0.399997824529859" min_abs_arc_overlap="0.0028394" infeas_count_arc_overlap="0"/>
+      <iteration number="57" duration="96.18" compliance="0.226721461928586" volume_density="0.399994171815537" min_abs_arc_overlap="0.0021418" infeas_count_arc_overlap="0"/>
+      <iteration number="58" duration="95.197" compliance="0.226653108885018" volume_density="0.400035238837912" min_abs_arc_overlap="0.0017003" infeas_count_arc_overlap="0"/>
+      <iteration number="59" duration="95.828" compliance="0.226469530425325" volume_density="0.400010930329026" min_abs_arc_overlap="0.0018749" infeas_count_arc_overlap="0"/>
+      <iteration number="60" duration="94.766" compliance="0.226183786104439" volume_density="0.400019726355934" min_abs_arc_overlap="0.00084744" infeas_count_arc_overlap="0"/>
+      <iteration number="61" duration="93.672" compliance="0.22606196064943" volume_density="0.400004991835388" min_abs_arc_overlap="0.00047663" infeas_count_arc_overlap="0"/>
+      <iteration number="62" duration="93.325" compliance="0.225813663923471" volume_density="0.400002050262303" min_abs_arc_overlap="0.00026666" infeas_count_arc_overlap="0"/>
+      <iteration number="63" duration="93.485" compliance="0.225722545596801" volume_density="0.399999234153484" min_abs_arc_overlap="0.0002267" infeas_count_arc_overlap="0"/>
+      <iteration number="64" duration="93.564" compliance="0.22559148393994" volume_density="0.399997676677285" min_abs_arc_overlap="0.00014722" infeas_count_arc_overlap="0"/>
+      <iteration number="65" duration="93.248" compliance="0.225542586121902" volume_density="0.39999552517401" min_abs_arc_overlap="0.00011894" infeas_count_arc_overlap="0"/>
+      <iteration number="66" duration="93.521" compliance="0.225482842356651" volume_density="0.399992584856458" min_abs_arc_overlap="0.00017622" infeas_count_arc_overlap="0"/>
+      <iteration number="67" duration="93.709" compliance="0.225420238071076" volume_density="0.399991160232319" min_abs_arc_overlap="0.00042618" infeas_count_arc_overlap="0"/>
+      <iteration number="68" duration="93.825" compliance="0.225366943842798" volume_density="0.399997249369037" min_abs_arc_overlap="0.00066159" infeas_count_arc_overlap="0"/>
+      <iteration number="69" duration="93.367" compliance="0.225329960043863" volume_density="0.400002758695935" min_abs_arc_overlap="0.0010558" infeas_count_arc_overlap="0"/>
+      <iteration number="70" duration="93.058" compliance="0.225309698179309" volume_density="0.400001375269521" min_abs_arc_overlap="0.0014403" infeas_count_arc_overlap="0"/>
+      <iteration number="71" duration="106.8" compliance="0.225296774508817" volume_density="0.400001558364657" min_abs_arc_overlap="0.0016807" infeas_count_arc_overlap="0"/>
+      <iteration number="72" duration="120.34" compliance="0.225280414945966" volume_density="0.400001996297415" min_abs_arc_overlap="0.0019865" infeas_count_arc_overlap="0"/>
+      <iteration number="73" duration="109.37" compliance="0.225259393841228" volume_density="0.400003941184815" min_abs_arc_overlap="0.0024341" infeas_count_arc_overlap="0"/>
+      <iteration number="74" duration="109.69" compliance="0.225238007165511" volume_density="0.400004320248027" min_abs_arc_overlap="0.0029944" infeas_count_arc_overlap="0"/>
+      <iteration number="75" duration="107.42" compliance="0.225220720789472" volume_density="0.400002049082135" min_abs_arc_overlap="0.0035183" infeas_count_arc_overlap="0"/>
+      <iteration number="76" duration="112.78" compliance="0.225204918542681" volume_density="0.400001087067129" min_abs_arc_overlap="0.0039778" infeas_count_arc_overlap="0"/>
+      <iteration number="77" duration="111.73" compliance="0.225189751475188" volume_density="0.400000995692055" min_abs_arc_overlap="0.0044068" infeas_count_arc_overlap="0"/>
+      <iteration number="78" duration="112.77" compliance="0.225173831497703" volume_density="0.400001231533441" min_abs_arc_overlap="0.0049173" infeas_count_arc_overlap="0"/>
+      <iteration number="79" duration="115.67" compliance="0.225165459161171" volume_density="0.400000626417065" min_abs_arc_overlap="0.0052027" infeas_count_arc_overlap="0"/>
+      <iteration number="80" duration="116.7" compliance="0.225162019189447" volume_density="0.399999985671442" min_abs_arc_overlap="0.0050787" infeas_count_arc_overlap="0"/>
+      <iteration number="81" duration="117.76" compliance="0.22515870940127" volume_density="0.39999989471555" min_abs_arc_overlap="0.0049594" infeas_count_arc_overlap="0"/>
+      <iteration number="82" duration="121.58" compliance="0.225152378257667" volume_density="0.400000404881553" min_abs_arc_overlap="0.0047772" infeas_count_arc_overlap="0"/>
+      <iteration number="83" duration="116.64" compliance="0.225145084324189" volume_density="0.400001164906856" min_abs_arc_overlap="0.0045505" infeas_count_arc_overlap="0"/>
+      <iteration number="84" duration="119.41" compliance="0.22513799917511" volume_density="0.400002678421583" min_abs_arc_overlap="0.0043351" infeas_count_arc_overlap="0"/>
+      <iteration number="85" duration="119.49" compliance="0.225132694733562" volume_density="0.400000565024546" min_abs_arc_overlap="0.0042444" infeas_count_arc_overlap="0"/>
+      <iteration number="86" duration="96.567" compliance="0.225124636995616" volume_density="0.400000464507652" min_abs_arc_overlap="0.0041558" infeas_count_arc_overlap="0"/>
+      <iteration number="87" duration="96.198" compliance="0.225119701703774" volume_density="0.40000009853548" min_abs_arc_overlap="0.0040922" infeas_count_arc_overlap="0"/>
+      <iteration number="88" duration="92.969" compliance="0.225114841593564" volume_density="0.400000170045464" min_abs_arc_overlap="0.0039558" infeas_count_arc_overlap="0"/>
+      <iteration number="89" duration="95.83" compliance="0.225112780410341" volume_density="0.400000040190398" min_abs_arc_overlap="0.0038895" infeas_count_arc_overlap="0"/>
+      <iteration number="90" duration="93.789" compliance="0.225111160365647" volume_density="0.399999975603177" min_abs_arc_overlap="0.003875" infeas_count_arc_overlap="0"/>
+      <iteration number="91" duration="94.339" compliance="0.225104751005554" volume_density="0.399998214363711" min_abs_arc_overlap="0.0037452" infeas_count_arc_overlap="0"/>
+      <iteration number="92" duration="94.776" compliance="0.225100222391525" volume_density="0.399999822327679" min_abs_arc_overlap="0.0037695" infeas_count_arc_overlap="0"/>
+      <iteration number="93" duration="94.04" compliance="0.225095675314272" volume_density="0.399999827408647" min_abs_arc_overlap="0.0037777" infeas_count_arc_overlap="0"/>
+      <iteration number="94" duration="101.34" compliance="0.22509420449649" volume_density="0.39999996958611" min_abs_arc_overlap="0.0037469" infeas_count_arc_overlap="0"/>
+      <iteration number="95" duration="96.946" compliance="0.225092999739831" volume_density="0.400000024807498" min_abs_arc_overlap="0.0037659" infeas_count_arc_overlap="0"/>
+      <iteration number="96" duration="93.838" compliance="0.225091170586655" volume_density="0.399999942867516" min_abs_arc_overlap="0.0037498" infeas_count_arc_overlap="0"/>
+      <iteration number="97" duration="95.436" compliance="0.225088516975002" volume_density="0.399999997292088" min_abs_arc_overlap="0.0038304" infeas_count_arc_overlap="0"/>
+      <iteration number="98" duration="94.735" compliance="0.225086257121402" volume_density="0.400000100363004" min_abs_arc_overlap="0.0038656" infeas_count_arc_overlap="0"/>
+      <iteration number="99" duration="93.704" compliance="0.225084687804387" volume_density="0.400000143804907" min_abs_arc_overlap="0.0038734" infeas_count_arc_overlap="0"/>
+      <iteration number="100" duration="97.394" compliance="0.225084266264073" volume_density="0.400000017431757" min_abs_arc_overlap="0.0038873" infeas_count_arc_overlap="0"/>
+      <iteration number="101" duration="97.326" compliance="0.225083769849324" volume_density="0.400000027336409" min_abs_arc_overlap="0.0039001" infeas_count_arc_overlap="0"/>
+      <iteration number="102" duration="94.067" compliance="0.225083266484382" volume_density="0.400000059291325" min_abs_arc_overlap="0.0039323" infeas_count_arc_overlap="0"/>
+      <iteration number="103" duration="95.031" compliance="0.225082535133307" volume_density="0.400000083402135" min_abs_arc_overlap="0.0039748" infeas_count_arc_overlap="0"/>
+      <iteration number="104" duration="94.378" compliance="0.225081462983596" volume_density="0.40000048417459" min_abs_arc_overlap="0.0041146" infeas_count_arc_overlap="0"/>
+      <iteration number="105" duration="95.338" compliance="0.225080189167127" volume_density="0.399999984995337" min_abs_arc_overlap="0.004139" infeas_count_arc_overlap="0"/>
+      <iteration number="106" duration="93.816" compliance="0.225076408284746" volume_density="0.40000003134982" min_abs_arc_overlap="0.004344" infeas_count_arc_overlap="0"/>
+      <iteration number="107" duration="94.305" compliance="0.225073635311041" volume_density="0.400000405817724" min_abs_arc_overlap="0.0047318" infeas_count_arc_overlap="0"/>
+      <iteration number="108" duration="96.69" compliance="0.225071746040615" volume_density="0.40000008501281" min_abs_arc_overlap="0.0050419" infeas_count_arc_overlap="0"/>
+      <iteration number="109" duration="94.27" compliance="0.225069279951511" volume_density="0.399999248465286" min_abs_arc_overlap="0.0051057" infeas_count_arc_overlap="0"/>
+      <iteration number="110" duration="94.097" compliance="0.225065920425075" volume_density="0.399997522355794" min_abs_arc_overlap="0.0047721" infeas_count_arc_overlap="0"/>
+      <iteration number="111" duration="93.731" compliance="0.225062554960327" volume_density="0.399982446097043" min_abs_arc_overlap="0.0040917" infeas_count_arc_overlap="0"/>
+      <iteration number="112" duration="94.134" compliance="0.225051864438804" volume_density="0.399994245957263" min_abs_arc_overlap="0.0038033" infeas_count_arc_overlap="0"/>
+      <iteration number="113" duration="94.974" compliance="0.225032037777548" volume_density="0.399988635286154" min_abs_arc_overlap="0.0038865" infeas_count_arc_overlap="0"/>
+      <iteration number="114" duration="95.016" compliance="0.225048077753275" volume_density="0.399917217014818" min_abs_arc_overlap="0.0030216" infeas_count_arc_overlap="0"/>
+      <iteration number="115" duration="94.556" compliance="0.225025831571399" volume_density="0.399968306048592" min_abs_arc_overlap="0.0033981" infeas_count_arc_overlap="0"/>
+      <iteration number="116" duration="93.068" compliance="0.225000435640444" volume_density="0.400002196168256" min_abs_arc_overlap="0.0035443" infeas_count_arc_overlap="0"/>
+      <iteration number="117" duration="91.679" compliance="0.22498801732988" volume_density="0.399994805071017" min_abs_arc_overlap="0.0031342" infeas_count_arc_overlap="0"/>
+      <iteration number="118" duration="92.551" compliance="0.224976469473647" volume_density="0.400000859531477" min_abs_arc_overlap="0.0029223" infeas_count_arc_overlap="0"/>
+      <iteration number="119" duration="92.253" compliance="0.224966854595337" volume_density="0.399998599932124" min_abs_arc_overlap="0.0025187" infeas_count_arc_overlap="0"/>
+      <iteration number="120" duration="92.127" compliance="0.224952563535628" volume_density="0.399999985987468" min_abs_arc_overlap="0.0025005" infeas_count_arc_overlap="0"/>
+      <iteration number="121" duration="92.296" compliance="0.224934950971483" volume_density="0.399997505329487" min_abs_arc_overlap="0.0025757" infeas_count_arc_overlap="0"/>
+      <iteration number="122" duration="92.595" compliance="0.22491949551462" volume_density="0.39999731194718" min_abs_arc_overlap="0.0030265" infeas_count_arc_overlap="0"/>
+      <iteration number="123" duration="92.221" compliance="0.22490994206364" volume_density="0.400003430058118" min_abs_arc_overlap="0.003425" infeas_count_arc_overlap="0"/>
+      <iteration number="124" duration="94.877" compliance="0.224904612413209" volume_density="0.400001928935375" min_abs_arc_overlap="0.0035657" infeas_count_arc_overlap="0"/>
+      <iteration number="125" duration="93.993" compliance="0.224901403372684" volume_density="0.400000207714056" min_abs_arc_overlap="0.0034882" infeas_count_arc_overlap="0"/>
+      <iteration number="126" duration="92.406" compliance="0.224896813382874" volume_density="0.399998640628193" min_abs_arc_overlap="0.003188" infeas_count_arc_overlap="0"/>
+      <iteration number="127" duration="95.177" compliance="0.224891418011279" volume_density="0.40000037560332" min_abs_arc_overlap="0.0031302" infeas_count_arc_overlap="0"/>
+      <iteration number="128" duration="92.014" compliance="0.224881681358512" volume_density="0.399999833413389" min_abs_arc_overlap="0.0031983" infeas_count_arc_overlap="0"/>
+      <iteration number="129" duration="91.83" compliance="0.224877100140765" volume_density="0.399999968047094" min_abs_arc_overlap="0.0036366" infeas_count_arc_overlap="0"/>
+      <iteration number="130" duration="96.2" compliance="0.224876193237722" volume_density="0.399999440336781" min_abs_arc_overlap="0.0039416" infeas_count_arc_overlap="0"/>
+      <iteration number="131" duration="95.942" compliance="0.224875575119935" volume_density="0.399999872637641" min_abs_arc_overlap="0.0040281" infeas_count_arc_overlap="0"/>
+      <iteration number="132" duration="93.656" compliance="0.224875063563489" volume_density="0.399999993539327" min_abs_arc_overlap="0.0041256" infeas_count_arc_overlap="0"/>
+      <iteration number="133" duration="93.332" compliance="0.224872860186038" volume_density="0.40000001852039" min_abs_arc_overlap="0.0044999" infeas_count_arc_overlap="0"/>
+      <iteration number="134" duration="94.403" compliance="0.224869708507934" volume_density="0.400000238974058" min_abs_arc_overlap="0.0055623" infeas_count_arc_overlap="0"/>
+      <iteration number="135" duration="91.45" compliance="0.224867094837056" volume_density="0.4000003649209" min_abs_arc_overlap="0.0060183" infeas_count_arc_overlap="0"/>
+      <iteration number="136" duration="91.464" compliance="0.224864486944783" volume_density="0.400000681910151" min_abs_arc_overlap="0.0061115" infeas_count_arc_overlap="0"/>
+      <iteration number="137" duration="91.74" compliance="0.224863922523831" volume_density="0.400000023278831" min_abs_arc_overlap="0.0061749" infeas_count_arc_overlap="0"/>
+      <iteration number="138" duration="92.23" compliance="0.224863693479393" volume_density="0.399999999476985" min_abs_arc_overlap="0.0062008" infeas_count_arc_overlap="0"/>
+      <iteration number="139" duration="93.238" compliance="0.224863059224296" volume_density="0.399999961445734" min_abs_arc_overlap="0.0063449" infeas_count_arc_overlap="0"/>
+      <iteration number="140" duration="92.114" compliance="0.224862029854032" volume_density="0.399999918219606" min_abs_arc_overlap="0.0067711" infeas_count_arc_overlap="0"/>
+      <iteration number="141" duration="91.612" compliance="0.224861021969956" volume_density="0.399999980791928" min_abs_arc_overlap="0.0068745" infeas_count_arc_overlap="0"/>
+      <iteration number="142" duration="92.289" compliance="0.224859579310947" volume_density="0.400000258364465" min_abs_arc_overlap="0.0068914" infeas_count_arc_overlap="0"/>
+      <iteration number="143" duration="91.541" compliance="0.224859510650074" volume_density="0.39999999447177" min_abs_arc_overlap="0.0069229" infeas_count_arc_overlap="0"/>
+      <iteration number="144" duration="91.797" compliance="0.224859452742898" volume_density="0.399999992959587" min_abs_arc_overlap="0.0069453" infeas_count_arc_overlap="0"/>
+      <iteration number="145" duration="91.486" compliance="0.224859411246159" volume_density="0.399999995951001" min_abs_arc_overlap="0.0069739" infeas_count_arc_overlap="0"/>
+      <iteration number="146" duration="91.412" compliance="0.224859348611062" volume_density="0.399999998356042" min_abs_arc_overlap="0.0069699" infeas_count_arc_overlap="0"/>
+      <iteration number="147" duration="91.777" compliance="0.224859107782159" volume_density="0.39999997077406" min_abs_arc_overlap="0.0069209" infeas_count_arc_overlap="0"/>
+      <iteration number="148" duration="93.56" compliance="0.224858784013469" volume_density="0.399999923498443" min_abs_arc_overlap="0.0068361" infeas_count_arc_overlap="0"/>
+      <iteration number="149" duration="94.382" compliance="0.224858491048735" volume_density="0.399999845768707" min_abs_arc_overlap="0.0066458" infeas_count_arc_overlap="0"/>
+      <iteration number="150" duration="95.291" compliance="0.224858305700906" volume_density="0.399999992606503" min_abs_arc_overlap="0.0065251" infeas_count_arc_overlap="0"/>
+      <iteration number="151" duration="94.062" compliance="0.22485824732107" volume_density="0.400000007441539" min_abs_arc_overlap="0.0064219" infeas_count_arc_overlap="0"/>
+      <iteration number="152" duration="95.141" compliance="0.224858224646452" volume_density="0.399999999851492" min_abs_arc_overlap="0.0064852" infeas_count_arc_overlap="0"/>
+      <iteration number="153" duration="94.39" compliance="0.224858214738092" volume_density="0.400000000062418" min_abs_arc_overlap="0.0064804" infeas_count_arc_overlap="0"/>
+      <iteration number="154" duration="96.758" compliance="0.224858136613487" volume_density="0.400000006243573" min_abs_arc_overlap="0.0064497" infeas_count_arc_overlap="0"/>
+      <iteration number="155" duration="96.909" compliance="0.224858055368027" volume_density="0.400000012298088" min_abs_arc_overlap="0.0063978" infeas_count_arc_overlap="0"/>
+      <iteration number="156" duration="91.238" compliance="0.224857981951445" volume_density="0.400000009710941" min_abs_arc_overlap="0.0063413" infeas_count_arc_overlap="0"/>
+      <iteration number="157" duration="91.14" compliance="0.224857952971578" volume_density="0.39999999678489" min_abs_arc_overlap="0.0063171" infeas_count_arc_overlap="0"/>
+      <iteration number="158" duration="94.101" compliance="0.224857943037574" volume_density="0.399999998383322" min_abs_arc_overlap="0.0063174" infeas_count_arc_overlap="0"/>
+      <iteration number="159" duration="91.964" compliance="0.224857934072715" volume_density="0.399999999330579" min_abs_arc_overlap="0.0063182" infeas_count_arc_overlap="0"/>
+      <iteration number="160" duration="92.796" compliance="0.224857915172099" volume_density="0.399999999763996" min_abs_arc_overlap="0.0063384" infeas_count_arc_overlap="0"/>
+      <iteration number="161" duration="91.51" compliance="0.22485786176337" volume_density="0.399999995631555" min_abs_arc_overlap="0.0063509" infeas_count_arc_overlap="0"/>
+      <iteration number="162" duration="91.826" compliance="0.224857768011008" volume_density="0.399999982630961" min_abs_arc_overlap="0.0063679" infeas_count_arc_overlap="0"/>
+      <iteration number="163" duration="94.018" compliance="0.224857677205407" volume_density="0.399999993669683" min_abs_arc_overlap="0.0063504" infeas_count_arc_overlap="0"/>
+      <iteration number="164" duration="93.415" compliance="0.224857601166829" volume_density="0.39999999623389" min_abs_arc_overlap="0.0063695" infeas_count_arc_overlap="0"/>
+      <iteration number="165" duration="92.497" compliance="0.224857589357355" volume_density="0.399999999731027" min_abs_arc_overlap="0.0063369" infeas_count_arc_overlap="0"/>
+      <iteration number="166" duration="91.856" compliance="0.224857585163023" volume_density="0.400000000000699" min_abs_arc_overlap="0.0063305" infeas_count_arc_overlap="0"/>
+      <iteration number="167" duration="92.067" compliance="0.224857581715615" volume_density="0.400000000036096" min_abs_arc_overlap="0.006318" infeas_count_arc_overlap="0"/>
+      <iteration number="168" duration="91.287" compliance="0.224857573378375" volume_density="0.399999999943506" min_abs_arc_overlap="0.0063255" infeas_count_arc_overlap="0"/>
+      <iteration number="169" duration="90.752" compliance="0.22485755092953" volume_density="0.399999998369474" min_abs_arc_overlap="0.0063466" infeas_count_arc_overlap="0"/>
+      <iteration number="170" duration="90.661" compliance="0.22485752688222" volume_density="0.399999995036272" min_abs_arc_overlap="0.0063679" infeas_count_arc_overlap="0"/>
+      <iteration number="171" duration="90.501" compliance="0.224857514094982" volume_density="0.399999994835314" min_abs_arc_overlap="0.0063847" infeas_count_arc_overlap="0"/>
+      <iteration number="172" duration="0.091" compliance="0.224857514094982" volume_density="0.399999994835314" min_abs_arc_overlap="0.0063847" infeas_count_arc_overlap="0"/>
+    </process>
+  </optimization>
+</cfsInfo>

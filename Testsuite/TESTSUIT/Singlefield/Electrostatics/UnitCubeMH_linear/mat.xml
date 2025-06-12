@@ -1,0 +1,23 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="PZT-4"> 
+    <electric>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+          	<real>1.306E-08</real>
+          </isotropic>
+        </linear>
+        <nonlinear>
+         	<isotropic>
+                    <dependency>ElectricField</dependency>
+                    <approxType>LinInterpolate</approxType>
+            		<dataName>E_ep.fnc</dataName>
+        	</isotropic>
+        </nonlinear>
+      </permittivity>
+    </electric>
+  </material>
+</cfsMaterialDataBase>

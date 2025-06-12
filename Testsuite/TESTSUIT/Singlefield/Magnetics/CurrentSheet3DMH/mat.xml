@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="steel">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>9.17431e5</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 8.388998782263e-05 </real>
+          </isotropic>
+        </linear>
+        <nonlinear>
+          <isotropic>
+            <dependency></dependency>
+            <approxType>smoothSplines</approxType>
+            <measAccuracy>1e-5</measAccuracy>
+            <maxApproxVal>2.0</maxApproxVal>
+            <dataName>BH4.fnc</dataName>
+          </isotropic>
+        </nonlinear>
+      </permeability>
+    </magnetic>
+  </material>
+</cfsMaterialDataBase>

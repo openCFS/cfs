@@ -1,0 +1,15 @@
+reset
+#{ w = 7 }
+#{ h = 5 }
+create surface rectangle width {w} height {h} zplane 
+nodeset 1 add curve 1 2 3 4  
+nodeset 1 name "L_wall"
+set duplicate block elements off
+block 1 add surface 1 
+block 1 name "S_rect"
+# mesh
+curve 4 1 2 3  scheme dualbias fine size 0.5 factor 1.08 
+mesh curve 4 1 2 3 
+surface 1  scheme map
+mesh surface 1
+export ansys cdb "rectangle.cdb"  overwrite 

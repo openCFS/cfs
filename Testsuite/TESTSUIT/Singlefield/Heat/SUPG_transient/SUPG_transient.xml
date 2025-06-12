@@ -1,0 +1,64 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+     <documentation>
+        <title>SUPG transient</title>
+        <authors>
+            <author>Felix Huber</author>
+        </authors>
+        <date>2025-03-02</date>
+        <references>https://www.comsol.com/blogs/understanding-stabilization-methods</references>
+        <description>
+            This 2D testcase closely reassembles the comsol example on SUPG stabilization, 
+            but instead of a mass transfer problem, heat is used.
+            Because this example is transient, we can test the full LHS implementation.
+            The example was verified by comparing the temparature profiles qualitively to the COMSOL example
+            and to an analytical (non-stabilized) solution.
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <input>
+            <hdf5 fileName="SUPG_transient.h5ref" />
+        </input>
+        <output>
+            <hdf5 />
+        </output>
+        <materialData file="mat.xml" format="xml" />
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <regionList>
+            <region name="S_all" material="iron" />
+        </regionList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <transient>
+            <numSteps>50</numSteps>
+            <deltaT>0.02</deltaT>
+            </transient>
+        </analysis>
+        <pdeList>
+            <heatConduction>
+                <regionList>
+                    <region name="S_all" velocityId="vel"/>
+                </regionList>
+                <velocityList>
+                    <velocity name="vel" stabilisation="SUPG">
+                        <comp dof="x" value="1"/>
+                    </velocity>
+                </velocityList>
+                <bcsAndLoads>
+                    <temperature name="C_0" value="1.0" />
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="heatTemperature" >
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </heatConduction>
+        </pdeList>
+    </sequenceStep>
+</cfsSimulation>

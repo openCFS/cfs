@@ -101,7 +101,7 @@ void EvaluateOnly::SolveProblem()
       eval_grad_obj_timer_->Stop();
       for(unsigned int i = 0; i < grad.GetSize(); i++) {
         BaseDesignElement* de = optimization->GetDesign()->GetDesignElement(i);
-        LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << grad[i];
+        LOG_DBG2(eval) << "SP: obj grad i=" << i << " (" << (i+1) <<  ") de=\"" << de->ToString() << "\" -> " << std::setprecision(10) << grad[i];
       }
     }
 

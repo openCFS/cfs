@@ -53,7 +53,7 @@ namespace CoupledField {
         {
           matrixFileName_ = pn->As<std::string>();
           argumentPointers_.push_back(&matrixFileName_);
-          if(matrixFileName_ == "")
+          if(matrixFileName_.empty())
           {
             useDefaultMatrixFileName_ = true;
           }
@@ -62,7 +62,7 @@ namespace CoupledField {
         {
           rhsFileName_ = pn->As<std::string>();
           argumentPointers_.push_back(&rhsFileName_);
-          if(rhsFileName_ == "")
+          if(rhsFileName_.empty())
           {
             useDefaultRhsFileName_ = true;
           }
@@ -71,7 +71,7 @@ namespace CoupledField {
         {
           solutionFileName_ = pn->As<std::string>();
           argumentPointers_.push_back(&solutionFileName_);
-          if(solutionFileName_ == "")
+          if(solutionFileName_.empty())
           {
             useDefaultSolutionFileName_ = true;
           }
@@ -130,10 +130,6 @@ namespace CoupledField {
     // Getting the analysis id because it contains information about the current step.
     AnalysisID& id = domain->GetDriver()->GetAnalysisId();
 
-    // Getting the current time/step
-    if(id.step != -1)
-      step_ = std::to_string(id.step);
-
     if(exportMatrix_)
     {
       // Before creating the default filenames and export the system matrix, the matrix-file from the previous step has to be deleted,
@@ -159,18 +155,22 @@ namespace CoupledField {
   // *********
   template<typename T>
   void ExternalSolver<T>::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol) {
+     // Create the rhs and solution default names
+    if(useDefaultRhsFileName_)
+      rhsFileName_ = ConstructFileName("rhs");
+    if(useDefaultSolutionFileName_)
+      solutionFileName_ = ConstructFileName("sol");
+    // Export the rhs
     if(exportRhs_)
     {
-      // Create the rhs and solution default names and export the rhs.
-      if(useDefaultRhsFileName_)
-        rhsFileName_ = ConstructFileName("rhs");
-      if(useDefaultSolutionFileName_)
-        solutionFileName_ = ConstructFileName("sol");
       exportTimer_->Start();
       rhs.Export(rhsFileName_,BaseMatrix::OutputFormat::MATRIX_MARKET);
       exportTimer_->Stop();
     }
     timeFreq_ = FormatedTimeFreq(formatString_);
+
+    // update the step
+    step_ = std::to_string( domain->GetDriver()->GetAnalysisId().step );
 
     // Assembling the command string
     std::string cmd = cmd_;
@@ -246,6 +246,7 @@ namespace CoupledField {
     }
     else
     {
+      WARN("I do not know that to format, this should not happen ...")
       std::snprintf(buffer, 20, " ");
     }
     std::string formatedTimeFreq = buffer;

@@ -1,0 +1,9 @@
+  #Iteration |      Jmerit |      J_phys |       J_vol |       J_reg |         tau |      lambda |         vol |   J_old - J |    n_subprb |      n_prox |        time
+           0 |     1304.46 |     1304.94 |        -0.1 |   0.0153507 |       1e-06 |           5 |         0.2 |           0 |           0 |           0 |           0
+
+WARNING: Algorithm not converged. Maximum number of iterations reached!
+Computation time:
+total time:             T =        0 s
+eval_J():             t_J =        0 s =  -nan T
+eval_dJ():           t_dJ =        0 s =  -nan T
+solve subproblems:    t_s =        0 s =  -nan T

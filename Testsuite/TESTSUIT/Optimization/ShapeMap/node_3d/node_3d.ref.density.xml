@@ -1,0 +1,213 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <mesh x="8" y="8" z="8"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial=".5" name="density" physical_lower="1e-9" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <transferFunction application="mech" type="identity"/>
+  </header>
+  <set id="0">
+    <shapeParamElement nr="0" type="node" dof="x" shape="0" ref="0" design="0.2"/>
+    <shapeParamElement nr="1" type="node" dof="x" shape="0" ref="0" design="0.2375"/>
+    <shapeParamElement nr="2" type="node" dof="x" shape="0" ref="0" design="0.275"/>
+    <shapeParamElement nr="3" type="node" dof="x" shape="0" ref="0" design="0.3125"/>
+    <shapeParamElement nr="4" type="node" dof="x" shape="0" ref="0" design="0.35"/>
+    <shapeParamElement nr="5" type="node" dof="x" shape="0" ref="0" design="0.3875"/>
+    <shapeParamElement nr="6" type="node" dof="x" shape="0" ref="0" design="0.425"/>
+    <shapeParamElement nr="7" type="node" dof="x" shape="0" ref="0" design="0.4625"/>
+    <shapeParamElement nr="8" type="node" dof="x" shape="0" ref="0" design="0.5"/>
+    <shapeParamElement nr="9" type="node" dof="z" shape="1" ref="0" design="0.2"/>
+    <shapeParamElement nr="10" type="node" dof="z" shape="1" ref="0" design="0.2375"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.275"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.3125"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.35"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.3875"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.425"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.4625"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="18" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="19" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="20" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="21" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="22" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="23" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="24" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="25" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="26" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+  </set>
+  <set id="1">
+    <shapeParamElement nr="0" type="node" dof="x" shape="0" ref="0" design="0.642409"/>
+    <shapeParamElement nr="1" type="node" dof="x" shape="0" ref="0" design="0.659171"/>
+    <shapeParamElement nr="2" type="node" dof="x" shape="0" ref="0" design="0.660169"/>
+    <shapeParamElement nr="3" type="node" dof="x" shape="0" ref="0" design="0.640428"/>
+    <shapeParamElement nr="4" type="node" dof="x" shape="0" ref="0" design="0.59995"/>
+    <shapeParamElement nr="5" type="node" dof="x" shape="0" ref="0" design="0.546151"/>
+    <shapeParamElement nr="6" type="node" dof="x" shape="0" ref="0" design="0.513091"/>
+    <shapeParamElement nr="7" type="node" dof="x" shape="0" ref="0" design="0.500768"/>
+    <shapeParamElement nr="8" type="node" dof="x" shape="0" ref="0" design="0.509183"/>
+    <shapeParamElement nr="9" type="node" dof="z" shape="1" ref="0" design="0.642409"/>
+    <shapeParamElement nr="10" type="node" dof="z" shape="1" ref="0" design="0.659171"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.660169"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.640428"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.59995"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.546151"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.513091"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.500768"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.509183"/>
+    <shapeParamElement nr="18" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="19" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="20" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="21" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="22" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="23" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="24" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="25" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="26" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+  </set>
+  <set id="2">
+    <shapeParamElement nr="0" type="node" dof="x" shape="0" ref="0" design="0.290062"/>
+    <shapeParamElement nr="1" type="node" dof="x" shape="0" ref="0" design="0.297631"/>
+    <shapeParamElement nr="2" type="node" dof="x" shape="0" ref="0" design="0.298081"/>
+    <shapeParamElement nr="3" type="node" dof="x" shape="0" ref="0" design="0.295374"/>
+    <shapeParamElement nr="4" type="node" dof="x" shape="0" ref="0" design="0.303871"/>
+    <shapeParamElement nr="5" type="node" dof="x" shape="0" ref="0" design="0.326921"/>
+    <shapeParamElement nr="6" type="node" dof="x" shape="0" ref="0" design="0.379903"/>
+    <shapeParamElement nr="7" type="node" dof="x" shape="0" ref="0" design="0.449755"/>
+    <shapeParamElement nr="8" type="node" dof="x" shape="0" ref="0" design="0.508402"/>
+    <shapeParamElement nr="9" type="node" dof="z" shape="1" ref="0" design="0.290062"/>
+    <shapeParamElement nr="10" type="node" dof="z" shape="1" ref="0" design="0.297631"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.298081"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.295374"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.303871"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.326921"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.379903"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.449755"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.508402"/>
+    <shapeParamElement nr="18" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="19" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="20" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="21" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="22" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="23" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="24" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="25" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="26" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+  </set>
+  <set id="3">
+    <shapeParamElement nr="0" type="node" dof="x" shape="0" ref="0" design="0.496194"/>
+    <shapeParamElement nr="1" type="node" dof="x" shape="0" ref="0" design="0.509141"/>
+    <shapeParamElement nr="2" type="node" dof="x" shape="0" ref="0" design="0.509912"/>
+    <shapeParamElement nr="3" type="node" dof="x" shape="0" ref="0" design="0.49724"/>
+    <shapeParamElement nr="4" type="node" dof="x" shape="0" ref="0" design="0.477085"/>
+    <shapeParamElement nr="5" type="node" dof="x" shape="0" ref="0" design="0.455176"/>
+    <shapeParamElement nr="6" type="node" dof="x" shape="0" ref="0" design="0.457821"/>
+    <shapeParamElement nr="7" type="node" dof="x" shape="0" ref="0" design="0.479599"/>
+    <shapeParamElement nr="8" type="node" dof="x" shape="0" ref="0" design="0.508859"/>
+    <shapeParamElement nr="9" type="node" dof="z" shape="1" ref="0" design="0.496194"/>
+    <shapeParamElement nr="10" type="node" dof="z" shape="1" ref="0" design="0.509141"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.509912"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.49724"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.477085"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.455176"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.457821"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.479599"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.508859"/>
+    <shapeParamElement nr="18" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="19" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="20" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="21" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="22" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="23" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="24" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="25" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="26" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+  </set>
+  <set id="4">
+    <shapeParamElement nr="0" type="node" dof="x" shape="0" ref="0" design="0.502631"/>
+    <shapeParamElement nr="1" type="node" dof="x" shape="0" ref="0" design="0.505799"/>
+    <shapeParamElement nr="2" type="node" dof="x" shape="0" ref="0" design="0.504113"/>
+    <shapeParamElement nr="3" type="node" dof="x" shape="0" ref="0" design="0.502767"/>
+    <shapeParamElement nr="4" type="node" dof="x" shape="0" ref="0" design="0.502766"/>
+    <shapeParamElement nr="5" type="node" dof="x" shape="0" ref="0" design="0.495083"/>
+    <shapeParamElement nr="6" type="node" dof="x" shape="0" ref="0" design="0.495426"/>
+    <shapeParamElement nr="7" type="node" dof="x" shape="0" ref="0" design="0.499556"/>
+    <shapeParamElement nr="8" type="node" dof="x" shape="0" ref="0" design="0.509796"/>
+    <shapeParamElement nr="9" type="node" dof="z" shape="1" ref="0" design="0.502631"/>
+    <shapeParamElement nr="10" type="node" dof="z" shape="1" ref="0" design="0.505799"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.504113"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.502767"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.502766"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.495083"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.495426"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.499556"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.509796"/>
+    <shapeParamElement nr="18" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="19" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="20" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="21" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="22" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="23" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="24" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="25" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="26" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+  </set>
+  <set id="5">
+    <shapeParamElement nr="0" type="node" dof="x" shape="0" ref="0" design="0.499791"/>
+    <shapeParamElement nr="1" type="node" dof="x" shape="0" ref="0" design="0.50192"/>
+    <shapeParamElement nr="2" type="node" dof="x" shape="0" ref="0" design="0.501005"/>
+    <shapeParamElement nr="3" type="node" dof="x" shape="0" ref="0" design="0.500528"/>
+    <shapeParamElement nr="4" type="node" dof="x" shape="0" ref="0" design="0.502335"/>
+    <shapeParamElement nr="5" type="node" dof="x" shape="0" ref="0" design="0.498169"/>
+    <shapeParamElement nr="6" type="node" dof="x" shape="0" ref="0" design="0.499386"/>
+    <shapeParamElement nr="7" type="node" dof="x" shape="0" ref="0" design="0.499229"/>
+    <shapeParamElement nr="8" type="node" dof="x" shape="0" ref="0" design="0.506478"/>
+    <shapeParamElement nr="9" type="node" dof="z" shape="1" ref="0" design="0.499791"/>
+    <shapeParamElement nr="10" type="node" dof="z" shape="1" ref="0" design="0.50192"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.501005"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.500528"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.502335"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.498169"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.499386"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.499229"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.506478"/>
+    <shapeParamElement nr="18" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="19" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="20" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="21" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="22" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="23" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="24" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="25" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="26" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+  </set>
+  <set id="6">
+    <shapeParamElement nr="0" type="node" dof="x" shape="0" ref="0" design="0.498633"/>
+    <shapeParamElement nr="1" type="node" dof="x" shape="0" ref="0" design="0.500393"/>
+    <shapeParamElement nr="2" type="node" dof="x" shape="0" ref="0" design="0.499744"/>
+    <shapeParamElement nr="3" type="node" dof="x" shape="0" ref="0" design="0.499258"/>
+    <shapeParamElement nr="4" type="node" dof="x" shape="0" ref="0" design="0.501331"/>
+    <shapeParamElement nr="5" type="node" dof="x" shape="0" ref="0" design="0.499185"/>
+    <shapeParamElement nr="6" type="node" dof="x" shape="0" ref="0" design="0.500957"/>
+    <shapeParamElement nr="7" type="node" dof="x" shape="0" ref="0" design="0.498513"/>
+    <shapeParamElement nr="8" type="node" dof="x" shape="0" ref="0" design="0.503367"/>
+    <shapeParamElement nr="9" type="node" dof="z" shape="1" ref="0" design="0.498633"/>
+    <shapeParamElement nr="10" type="node" dof="z" shape="1" ref="0" design="0.500393"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.499744"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.499258"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.501331"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.499185"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.500957"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.498513"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.503367"/>
+    <shapeParamElement nr="18" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="19" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="20" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="21" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="22" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="23" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="24" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="25" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+    <shapeParamElement nr="26" type="profile" dof="x" shape="2" ref="0" design="0.25"/>
+  </set>
+</cfsErsatzMaterial>

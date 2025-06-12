@@ -1,0 +1,291 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="49" infoRejectCounter="0">
+  <summary>
+    <timer wall="7" cpu="7.17636" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="176.74" peak="180.86"/>
+  </summary>
+  <header id="">
+    <environment started="2017-Oct-13 09:35:56" host="eamc061"/>
+    <progOpts problem="sym_map" parameterFile="/home/fwein/code/cfs-test/TESTSUIT/Optimization/ShapeMap/sym_map/sym_map.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1">
+      <cfs version="17.8" name="AMGme" build="Release" svn_revision="15951 modified" svn_branch="Fabian_Wein_TopOpt_0415" exe="cfs_rel"/>
+    </progOpts>
+    <domain nx="20" ny="20" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="400" nodes="441"/>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="400" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="21"/>
+        <nodes name="east" count="21"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+        <nodes name="center" count="1" coord="(0.5,0.5)"/>
+        <nodes name="right_center" count="1" coord="(1,0.5)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="20" ny="20" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="right_lower" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_Kmodulus" value="(0.83333,0)"/>
+          <property name="Mechanic_LameMu" value="(0.38462,0)"/>
+          <property name="Mechanic_LameLambda" value="(0.57692,0)"/>
+          <property name="Loss_TangensDelta" value="0.03"/>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="west" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="840" totalNumFreeEqns="840" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="840" lastFreeEqn="840" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="840" lastFreeIndex="840"/>
+          </sbmBlocks>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="840" totalNumCols="840" totalNumNonZeros="14152" totalFillLevelPerCent="2.0057" totalMemory="0.10797">
+              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="840" numCols="840" numNonZeros="14152" fillLevelPerCent="2.0057" memory="0.10797" upperBandWidth="829" lowerBandWidth="829" avgBandWidth="299" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall="0" cpu="0.029647" calls="41"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall="0" cpu="0.004173" calls="41"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="1">
+                <symbfact cpu="0.002012" wall="0" peakMem="596" permanentMem="566"/>
+                <numfact cpu="0.000667" wall="0" peakMem="391"/>
+              </call>
+              <solver numIter="-1" finalNorm="-1"/>
+            </process>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="1.5e-05" calls="41"/>
+              </setup>
+              <precond>
+                <timer wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="1" cpu="0.091375" calls="82"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_file="/home/fwein/code/cfs-test/TESTSUIT/Optimization/ShapeMap/sym_map/HALTOPT">
+    <header>
+      <objective type="compliance" name="compliance" linear="no" filtered="yes" task="minimize"/>
+      <constraints>
+        <constraint type="slope" name="slope_(node)" parameter="0" linear="no" filtered="yes" locality="next_and_reverse" local_size="80" periodic="no" bound_value="0.075" bound="upperBound" design="node"/>
+        <constraint type="slope" name="slope_(profile)" parameter="0" linear="no" filtered="yes" locality="next_and_reverse" local_size="80" periodic="no" bound_value="0.025" bound="upperBound" design="profile"/>
+        <constraint type="curvature" name="curvature_(node)" parameter="0" linear="no" filtered="yes" locality="prev_next_and_reverse" local_size="82" periodic="no" bound_value="0.01" bound="upperBound" design="node"/>
+        <constraint type="curvature" name="curvature_(profile)" parameter="0" linear="no" filtered="yes" locality="prev_next_and_reverse" local_size="82" periodic="no" bound_value="0.005" bound="upperBound" design="profile"/>
+        <constraint type="volume" name="volume" linear="no" filtered="yes" bound_value="0.4" bound="upperBound" design="default"/>
+      </constraints>
+      <designSpace pamping="0">
+        <gradient_chain_rule>
+          <timer label="gradient_chain_rule" wall="0" cpu="0" calls="0" sub="true"/>
+        </gradient_chain_rule>
+        <shapeMap overlap="tanh_sum">
+          <numInt max_order="11" sensitivity="1e-08" integration="tailored" tailored_order="1->11 0.1->11 0.01->11 0.001->9 0.0001->9 1e-05->7 1e-06->7 1e-07->5 1e-08->5 1e-09->3 1e-10->3 ">
+            <warning> resolution and beta combination allows no sufficient numerical integration for sensitvity 1e-08</warning>
+
+          </numInt>
+          <mesh n="20 20 1" min="0 0" max="1 1" step="0.05 0.05"/>
+        </shapeMap>
+        <transferFunctions>
+          <transferFunction type="identity" application="mech" design="density"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="86" modelVariables="400" modelElements="400">
+          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
+          <shapeParam idx="0" type="node" dof="x" lower="0.0" upper="1" clamp="no" variables="21" design="21" left_right_sym="none" bottom_up_sym="none"/>
+          <shapeParam idx="1" type="node" dof="y" lower="0" upper=".5" clamp="no" variables="21" design="11" left_right_sym="mirror" bottom_up_sym="none"/>
+          <shapeParam idx="2" type="node" dof="y" lower="0.0" upper=".5" clamp="no" variables="21" design="11" left_right_sym="mirror" bottom_up_sym="none"/>
+          <shapeParam idx="3" type="profile" lower="0.05" upper="0.1" clamp="no" variables="21" design="21" left_right_sym="none" bottom_up_sym="none"/>
+          <shapeParam idx="4" type="profile" lower="0.05" upper="0.1" clamp="no" variables="21" design="11" left_right_sym="mirror" bottom_up_sym="none"/>
+          <shapeParam idx="5" type="profile" lower="0.05" upper="0.1" clamp="no" variables="21" design="11" left_right_sym="mirror" bottom_up_sym="none"/>
+        </designVariables>
+        <regions>
+          <region name="mech" elements="400" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
+      </excitations>
+      <scpip>
+        <icntl i1="1" i2="1" i3="40" i4="1" i5="10" i6="0" i7="0" i8="0" i9="0" i10="0" i11="0" i12="0" i13="1"/>
+        <rcntl r1="1e-07" r2="1e+30" r3="1e+30" r4="0.01" r5="0.01" r6="0.01" r7="0"/>
+      </scpip>
+    </header>
+    <commit mode="forward" stride="99"/>
+    <optimizer>
+      <summary>
+        <scpip>
+          <timer wall="4" cpu="3.45809" calls="165"/>
+        </scpip>
+      </summary>
+    </optimizer>
+    <summary problem="maximum number of iterations reached (40)">
+      <eval_objective>
+        <timer wall="0" cpu="0.202816" calls="205"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall="0" cpu="0.001961" calls="41"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall="0" cpu="1.66108" calls="41"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall="2" cpu="1.64522" calls="41"/>
+      </eval_grad_constraints>
+      <break converged="no">
+        <reason msg="SCPIP: maximum number of iterations reached (40)"/>
+      </break>
+    </summary>
+    <process>
+      <iteration number="0" duration="0" compliance="124.53" max_slope_node="0" infeas_slope_node="0" max_slope_profile="0" infeas_slope_profile="0" max_curvature_node="0" infeas_curvature_node="0" max_curvature_profile="0" infeas_curvature_profile="0" volume="0.37992"/>
+      <iteration number="1" duration="0" compliance="93.972" max_slope_node="0.024162" infeas_slope_node="0" max_slope_profile="0.0046231" infeas_slope_profile="0" max_curvature_node="0.0098032" infeas_curvature_node="0" max_curvature_profile="0.0037538" infeas_curvature_profile="0" volume="0.39192"/>
+      <iteration number="2" duration="1" compliance="75.877" max_slope_node="0.025206" infeas_slope_node="0" max_slope_profile="0.0068533" infeas_slope_profile="0" max_curvature_node="0.0099994" infeas_curvature_node="1" max_curvature_profile="0.0047538" infeas_curvature_profile="0" volume="0.39151"/>
+      <iteration number="3" duration="0" compliance="63.245" max_slope_node="0.036524" infeas_slope_node="0" max_slope_profile="0.0084049" infeas_slope_profile="0" max_curvature_node="0.009227" infeas_curvature_node="0" max_curvature_profile="0.0049691" infeas_curvature_profile="0" volume="0.39151"/>
+      <iteration number="4" duration="0" compliance="54.761" max_slope_node="0.040128" infeas_slope_node="0" max_slope_profile="0.010881" infeas_slope_profile="0" max_curvature_node="0.0095845" infeas_curvature_node="0" max_curvature_profile="0.0049902" infeas_curvature_profile="0" volume="0.39307"/>
+      <iteration number="5" duration="0" compliance="49.846" max_slope_node="0.042739" infeas_slope_node="0" max_slope_profile="0.01193" infeas_slope_profile="0" max_curvature_node="0.0099943" infeas_curvature_node="0" max_curvature_profile="0.0049657" infeas_curvature_profile="0" volume="0.39592"/>
+      <iteration number="6" duration="0" compliance="46.316" max_slope_node="0.044229" infeas_slope_node="0" max_slope_profile="0.012514" infeas_slope_profile="0" max_curvature_node="0.0098194" infeas_curvature_node="0" max_curvature_profile="0.0049703" infeas_curvature_profile="0" volume="0.39834"/>
+      <iteration number="7" duration="1" compliance="43.772" max_slope_node="0.048009" infeas_slope_node="0" max_slope_profile="0.013952" infeas_slope_profile="0" max_curvature_node="0.0099848" infeas_curvature_node="0" max_curvature_profile="0.0049978" infeas_curvature_profile="0" volume="0.39968"/>
+      <iteration number="8" duration="0" compliance="41.877" max_slope_node="0.049137" infeas_slope_node="0" max_slope_profile="0.013384" infeas_slope_profile="0" max_curvature_node="0.0099113" infeas_curvature_node="0" max_curvature_profile="0.0049997" infeas_curvature_profile="1" volume="0.39932"/>
+      <iteration number="9" duration="0" compliance="40.094" max_slope_node="0.053069" infeas_slope_node="0" max_slope_profile="0.011717" infeas_slope_profile="0" max_curvature_node="0.0099999" infeas_curvature_node="1" max_curvature_profile="0.005" infeas_curvature_profile="2" volume="0.39938"/>
+      <iteration number="10" duration="0" compliance="38.495" max_slope_node="0.053382" infeas_slope_node="0" max_slope_profile="0.012284" infeas_slope_profile="0" max_curvature_node="0.0099996" infeas_curvature_node="1" max_curvature_profile="0.005" infeas_curvature_profile="4" volume="0.39933"/>
+      <iteration number="11" duration="0" compliance="36.852" max_slope_node="0.051586" infeas_slope_node="0" max_slope_profile="0.012078" infeas_slope_profile="0" max_curvature_node="0.0099996" infeas_curvature_node="1" max_curvature_profile="0.0049896" infeas_curvature_profile="0" volume="0.39897"/>
+      <iteration number="12" duration="0" compliance="35.188" max_slope_node="0.057191" infeas_slope_node="0" max_slope_profile="0.011505" infeas_slope_profile="0" max_curvature_node="0.0099971" infeas_curvature_node="0" max_curvature_profile="0.0049766" infeas_curvature_profile="0" volume="0.39866"/>
+      <iteration number="13" duration="1" compliance="33.761" max_slope_node="0.058611" infeas_slope_node="0" max_slope_profile="0.012493" infeas_slope_profile="0" max_curvature_node="0.0099977" infeas_curvature_node="0" max_curvature_profile="0.0049802" infeas_curvature_profile="0" volume="0.39815"/>
+      <iteration number="14" duration="0" compliance="32.376" max_slope_node="0.059111" infeas_slope_node="0" max_slope_profile="0.011382" infeas_slope_profile="0" max_curvature_node="0.0099976" infeas_curvature_node="0" max_curvature_profile="0.0049888" infeas_curvature_profile="0" volume="0.39851"/>
+      <iteration number="15" duration="0" compliance="31.146" max_slope_node="0.061136" infeas_slope_node="0" max_slope_profile="0.013535" infeas_slope_profile="0" max_curvature_node="0.0099959" infeas_curvature_node="0" max_curvature_profile="0.0049969" infeas_curvature_profile="0" volume="0.39898"/>
+      <iteration number="16" duration="0" compliance="29.955" max_slope_node="0.061599" infeas_slope_node="0" max_slope_profile="0.015214" infeas_slope_profile="0" max_curvature_node="0.0099999" infeas_curvature_node="1" max_curvature_profile="0.005" infeas_curvature_profile="2" volume="0.39917"/>
+      <iteration number="17" duration="0" compliance="28.977" max_slope_node="0.066421" infeas_slope_node="0" max_slope_profile="0.015955" infeas_slope_profile="0" max_curvature_node="0.0099928" infeas_curvature_node="0" max_curvature_profile="0.005" infeas_curvature_profile="2" volume="0.39952"/>
+      <iteration number="18" duration="1" compliance="28.211" max_slope_node="0.071794" infeas_slope_node="0" max_slope_profile="0.015122" infeas_slope_profile="0" max_curvature_node="0.0099912" infeas_curvature_node="0" max_curvature_profile="0.005" infeas_curvature_profile="2" volume="0.39951"/>
+      <iteration number="19" duration="0" compliance="27.587" max_slope_node="0.074979" infeas_slope_node="0" max_slope_profile="0.013951" infeas_slope_profile="0" max_curvature_node="0.0099999" infeas_curvature_node="1" max_curvature_profile="0.0049998" infeas_curvature_profile="1" volume="0.39976"/>
+      <iteration number="20" duration="0" compliance="27.679" max_slope_node="0.07461" infeas_slope_node="0" max_slope_profile="0.013254" infeas_slope_profile="0" max_curvature_node="0.009987" infeas_curvature_node="0" max_curvature_profile="0.0049936" infeas_curvature_profile="0" volume="0.39861"/>
+      <iteration number="21" duration="0" compliance="26.801" max_slope_node="0.073683" infeas_slope_node="0" max_slope_profile="0.014653" infeas_slope_profile="0" max_curvature_node="0.0099902" infeas_curvature_node="0" max_curvature_profile="0.0049851" infeas_curvature_profile="0" volume="0.39864"/>
+      <iteration number="22" duration="0" compliance="26.694" max_slope_node="0.074682" infeas_slope_node="0" max_slope_profile="0.015607" infeas_slope_profile="0" max_curvature_node="0.009998" infeas_curvature_node="0" max_curvature_profile="0.005" infeas_curvature_profile="2" volume="0.39872"/>
+      <iteration number="23" duration="0" compliance="26.017" max_slope_node="0.074182" infeas_slope_node="0" max_slope_profile="0.012854" infeas_slope_profile="0" max_curvature_node="0.0099984" infeas_curvature_node="0" max_curvature_profile="0.0049954" infeas_curvature_profile="0" volume="0.39897"/>
+      <iteration number="24" duration="1" compliance="25.952" max_slope_node="0.074604" infeas_slope_node="0" max_slope_profile="0.015239" infeas_slope_profile="0" max_curvature_node="0.0099999" infeas_curvature_node="4" max_curvature_profile="0.0049996" infeas_curvature_profile="2" volume="0.39915"/>
+      <iteration number="25" duration="0" compliance="25.67" max_slope_node="0.073913" infeas_slope_node="0" max_slope_profile="0.013001" infeas_slope_profile="0" max_curvature_node="0.0099997" infeas_curvature_node="2" max_curvature_profile="0.0049973" infeas_curvature_profile="0" volume="0.39931"/>
+      <iteration number="26" duration="0" compliance="25.51" max_slope_node="0.074666" infeas_slope_node="0" max_slope_profile="0.014745" infeas_slope_profile="0" max_curvature_node="0.0099981" infeas_curvature_node="0" max_curvature_profile="0.005" infeas_curvature_profile="4" volume="0.39981"/>
+      <iteration number="27" duration="0" compliance="25.434" max_slope_node="0.074952" infeas_slope_node="0" max_slope_profile="0.012465" infeas_slope_profile="0" max_curvature_node="0.01" infeas_curvature_node="5" max_curvature_profile="0.0049999" infeas_curvature_profile="3" volume="0.39979"/>
+      <iteration number="28" duration="0" compliance="25.646" max_slope_node="0.074575" infeas_slope_node="0" max_slope_profile="0.011863" infeas_slope_profile="0" max_curvature_node="0.0099997" infeas_curvature_node="4" max_curvature_profile="0.005" infeas_curvature_profile="3" volume="0.40128"/>
+      <iteration number="29" duration="0" compliance="25.418" max_slope_node="0.074595" infeas_slope_node="0" max_slope_profile="0.013225" infeas_slope_profile="0" max_curvature_node="0.0099989" infeas_curvature_node="0" max_curvature_profile="0.0049837" infeas_curvature_profile="0" volume="0.40237"/>
+      <iteration number="30" duration="1" compliance="25.616" max_slope_node="0.074344" infeas_slope_node="0" max_slope_profile="0.010097" infeas_slope_profile="0" max_curvature_node="0.0099902" infeas_curvature_node="0" max_curvature_profile="0.0049274" infeas_curvature_profile="0" volume="0.40114"/>
+      <iteration number="31" duration="0" compliance="25.502" max_slope_node="0.074549" infeas_slope_node="0" max_slope_profile="0.010789" infeas_slope_profile="0" max_curvature_node="0.0099694" infeas_curvature_node="0" max_curvature_profile="0.0047974" infeas_curvature_profile="0" volume="0.40047"/>
+      <iteration number="32" duration="0" compliance="25.46" max_slope_node="0.074692" infeas_slope_node="0" max_slope_profile="0.010278" infeas_slope_profile="0" max_curvature_node="0.0099775" infeas_curvature_node="0" max_curvature_profile="0.0048564" infeas_curvature_profile="0" volume="0.40009"/>
+      <iteration number="33" duration="0" compliance="25.364" max_slope_node="0.074746" infeas_slope_node="0" max_slope_profile="0.010967" infeas_slope_profile="0" max_curvature_node="0.0099712" infeas_curvature_node="0" max_curvature_profile="0.004887" infeas_curvature_profile="0" volume="0.39998"/>
+      <iteration number="34" duration="0" compliance="25.285" max_slope_node="0.07489" infeas_slope_node="0" max_slope_profile="0.011222" infeas_slope_profile="0" max_curvature_node="0.0099984" infeas_curvature_node="0" max_curvature_profile="0.0049491" infeas_curvature_profile="0" volume="0.40038"/>
+      <iteration number="35" duration="1" compliance="25.291" max_slope_node="0.074958" infeas_slope_node="0" max_slope_profile="0.011647" infeas_slope_profile="0" max_curvature_node="0.009999" infeas_curvature_node="1" max_curvature_profile="0.0049683" infeas_curvature_profile="0" volume="0.40012"/>
+      <iteration number="36" duration="0" compliance="25.219" max_slope_node="0.074931" infeas_slope_node="0" max_slope_profile="0.013604" infeas_slope_profile="0" max_curvature_node="0.0099983" infeas_curvature_node="0" max_curvature_profile="0.0049797" infeas_curvature_profile="0" volume="0.40003"/>
+      <iteration number="37" duration="0" compliance="25.208" max_slope_node="0.074994" infeas_slope_node="0" max_slope_profile="0.013947" infeas_slope_profile="0" max_curvature_node="0.0099989" infeas_curvature_node="0" max_curvature_profile="0.0049974" infeas_curvature_profile="0" volume="0.39992"/>
+      <iteration number="38" duration="0" compliance="25.175" max_slope_node="0.074993" infeas_slope_node="0" max_slope_profile="0.014535" infeas_slope_profile="0" max_curvature_node="0.0099999" infeas_curvature_node="6" max_curvature_profile="0.0049963" infeas_curvature_profile="0" volume="0.39987"/>
+      <iteration number="39" duration="0" compliance="25.154" max_slope_node="0.074996" infeas_slope_node="0" max_slope_profile="0.01476" infeas_slope_profile="0" max_curvature_node="0.0099998" infeas_curvature_node="6" max_curvature_profile="0.0049964" infeas_curvature_profile="0" volume="0.39989"/>
+      <iteration number="40" duration="0" compliance="25.138" max_slope_node="0.074999" infeas_slope_node="2" max_slope_profile="0.014896" infeas_slope_profile="0" max_curvature_node="0.01" infeas_curvature_node="11" max_curvature_profile="0.0049984" infeas_curvature_profile="0" volume="0.39993"/>
+    </process>
+  </optimization>
+</cfsInfo>

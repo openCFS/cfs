@@ -19,7 +19,6 @@ namespace CoupledField
 typedef std::pair<int, std::string> EnumTuple;
 typedef std::multimap<int, std::string> EnumMap;
 
-
 /** <p>This class is a convenient wrapper for enums, it is somehow oriented to the 
    * Java Enum type. It can also be used for general text string handling.</p>
    * <p>The basic idea for an <b>class internal</b> enum is as following:</p>

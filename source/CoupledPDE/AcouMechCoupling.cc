@@ -35,27 +35,23 @@ namespace CoupledField {
   AcouMechCoupling::AcouMechCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                 PtrParamNode paramNode, 
                                 PtrParamNode infoNode,
-                                shared_ptr<SimState> simState, Domain* domain)
-    : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
-  {
+                                shared_ptr<SimState> simState, Domain* domain): 
+    BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain ) {
+
     couplingName_ = "acouMechDirect";
     materialClass_ = ACOUSTIC;
 
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
-
+    // both pdes are linear
     nonLin_ = false;
-    
-    // Initialize nonlinearities
-    InitNonLin();
-
     //check consistency in time stepping
     MechPDE* mechPDE = dynamic_cast<MechPDE*>(pde1_);
     AcousticPDE* acouPDE = dynamic_cast<AcousticPDE*>(pde2_);
     PtrParamNode mechParam = mechPDE->GetMyParam();
     PtrParamNode acouParam = acouPDE->GetMyParam();
     if ( mechParam->Get("timeStepAlpha")->As<Double>() != acouParam->Get("timeStepAlpha")->As<Double>() )
-    	EXCEPTION("Alpha value of time stepping algorithm has to be the same in acousticPDE and mechPDE");
+      EXCEPTION("Alpha value of time stepping algorithm has to be the same in acousticPDE and mechPDE");
   }
 
 
@@ -150,9 +146,9 @@ namespace CoupledField {
             // factor for the lower diagonal coupling integrator C_Phi_U 
             // has a switched sign.
           
-        	DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct,
+          DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct,
                          acouFct, actSDList, coefFuncs, acouRegions );
-        	DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0,
+          DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0,
                          DAMPING, acouFct, dispFct, actSDList, coefFuncs, acouRegions );
           }
         }
@@ -178,7 +174,7 @@ namespace CoupledField {
     }
 
     //now we do it for the non-conforming interfaces
-    for ( UInt actNC = 0, n = ncIfaces_.GetSize(); actNC < n; actNC++ ) {
+    for ( UInt actNC = 0, n = ncInterfaceIds_.GetSize(); actNC < n; actNC++ ) {
 
       // Get interface from grid and cast to MortarInterface class
       shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ncInterfaces_[actNC].interfaceId);
@@ -205,9 +201,9 @@ namespace CoupledField {
             // factor for the lower diagonal coupling integrator C_Phi_U
             // has a switched sign.
 
-        	  DefCouplIntNC( "AcouMechPotCouplingInNC", false, -1.0, DAMPING, dispFct,
+            DefCouplIntNC( "AcouMechPotCouplingInNC", false, -1.0, DAMPING, dispFct,
                              acouFct, ncIf, coefFuncs );
-        	  DefCouplIntNC( "AcouMechPotCouplingInt_TransposedNC", false, 1.0,
+            DefCouplIntNC( "AcouMechPotCouplingInt_TransposedNC", false, 1.0,
                              DAMPING, acouFct, dispFct, ncIf, coefFuncs );
           }
         }
@@ -278,23 +274,23 @@ namespace CoupledField {
     assemble_->AddBiLinearForm( context );
   }
   
-  void AcouMechCoupling::DefCouplIntNC( const std::string& name,
-                                      bool assembleTransposed,
-                                      Double factor,
-                                      FEMatrixType matType,
-                                      shared_ptr<BaseFeFunction>& fnc1,
-                                      shared_ptr<BaseFeFunction>& fnc2,
-									  shared_ptr<BaseNcInterface> ncIf,
-									  const std::map< RegionIdType, PtrCoefFct >& coefFuncs) {
+  void AcouMechCoupling::DefCouplIntNC(const std::string& name,
+                                       bool assembleTransposed,
+                                       Double factor,
+                                       FEMatrixType matType,
+                                       shared_ptr<BaseFeFunction>& fnc1,
+                                       shared_ptr<BaseFeFunction>& fnc2,
+                                       shared_ptr<BaseNcInterface> ncIf,
+                                       const std::map< RegionIdType, PtrCoefFct >& coefFuncs) {
 
 
-	MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(ncIf.get());
-	assert(mortarIf);
+    MortarInterface *mortarIf = dynamic_cast<MortarInterface*>(ncIf.get());
+    assert(mortarIf);
 
-	// create new entity list
-  	shared_ptr<ElemList> actSDList = mortarIf->GetElemList();
+    // create new entity list
+    shared_ptr<ElemList> actSDList = mortarIf->GetElemList();
 
-  	// check for position of integrator
+    // check for position of integrator
     SolutionType rowType = fnc1->GetResultInfo()->resultType;
     BiLinearForm * cplInt = NULL;
 
@@ -302,23 +298,29 @@ namespace CoupledField {
 
     if( dim_ == 2  ) {
       if(rowType == MECH_DISPLACEMENT) {
-    	cplInt = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,2,2>(),
-    			 new IdentityOperatorNormal<FeH1,2>(),
-				 coefFuncs, factor, mortarIf->IsPlanar(), geoUpdate_);
+        cplInt = new SurfaceMortarABIntMA<>(new IdentityOperator<FeH1,2,2>(),
+                                            new IdentityOperatorNormal<FeH1,2>(),
+                                            coefFuncs, factor, mortarIf->IsCoplanar(),
+                                            geoUpdate_);  
       } else {
-      	cplInt = new SurfaceMortarABIntMA<>( new IdentityOperatorNormal<FeH1,2>(),
-      			 new IdentityOperator<FeH1,2,2>(),
-				 coefFuncs, factor, mortarIf->IsPlanar(), geoUpdate_);
+        cplInt = new SurfaceMortarABIntMA<>(new IdentityOperatorNormal<FeH1,2>(),
+                                            new IdentityOperator<FeH1,2,2>(),
+                                            coefFuncs, factor, mortarIf->IsCoplanar(),
+                                            geoUpdate_);
       }
-    } else if( dim_ == 3) {
+    }
+    else if( dim_ == 3)
+    {
       if(rowType == MECH_DISPLACEMENT) {
-      	cplInt = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,3,3>(),
-      			 new IdentityOperatorNormal<FeH1,3>(),
-				 coefFuncs, factor, mortarIf->IsPlanar(), geoUpdate_);
+        cplInt = new SurfaceMortarABIntMA<>(new IdentityOperator<FeH1,3,3>(),
+                                            new IdentityOperatorNormal<FeH1,3>(),
+                                            coefFuncs, factor, mortarIf->IsCoplanar(),
+                                            geoUpdate_);
       } else {
-        cplInt = new SurfaceMortarABIntMA<>( new IdentityOperatorNormal<FeH1,3>(),
-        		 new IdentityOperator<FeH1,3,3>(),
-				 coefFuncs, factor, mortarIf->IsPlanar(), geoUpdate_);
+        cplInt = new SurfaceMortarABIntMA<>(new IdentityOperatorNormal<FeH1,3>(),
+                                            new IdentityOperator<FeH1,3,3>(),
+                                            coefFuncs, factor, mortarIf->IsCoplanar(),
+                                            geoUpdate_);
       }
     } else {
       EXCEPTION( "Coupling only for two and three dimensions defined" );

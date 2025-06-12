@@ -34,17 +34,16 @@
       <xsd:element name="linear" type="DT_ScalarType" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
-  
-  
+
+
   <!-- ******************************************************************* -->
   <!--   Definition of acoustic damping model                              -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_AcousticDamping">
-    <xsd:sequence>
-      <xsd:element name="rayleigh" type="DT_RayleighDamping" minOccurs="0"/>
-      <!-- <xsd:element name="thermoViscous" type="DT_AcouThermoViscousDamping" minOccurs="0"/>
-      <xsd:element name="fractional" type="DT_AcouFractionalDamping" minOccurs="0"/> -->
-    </xsd:sequence>
+    <xsd:choice>
+      <xsd:element name="rayleigh" type="DT_RayleighDampingClassic" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="adaptedLossTangensDelta" type="DT_RayleighAdaptedLossTangensDelta" minOccurs="0" maxOccurs="1"/>
+    </xsd:choice>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->

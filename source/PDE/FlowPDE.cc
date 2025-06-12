@@ -156,10 +156,9 @@ namespace CoupledField {
 
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
       // Set current region and material
-      actRegion = it->first;
+      actRegion = regions_[iRegion];
 
     // Not needed at the moment. Commented out due to gcc 4.6.
 #if 0
@@ -390,7 +389,7 @@ namespace CoupledField {
 
         convectivevV->SetName("FlowStiffIntConvectiveNewtonVv");
         //! mark the bi-linear form to be a Newton part
-        convectivevV->SetNewtonBilinearForm();
+        convectivevV->SetNewtonBiLinearForm();
 
         BiLinFormContext *convectiveContextvV = NULL;
         convectiveContextvV = new BiLinFormContext(convectivevV, STIFFNESS );
@@ -415,7 +414,7 @@ namespace CoupledField {
               coeffKPPstab,1.0);
         }
         stiffIntPPstab->SetName("FlowStiffIntPPstab");
-        //stiffIntPPstab->SetNewtonBilinearForm();
+        //stiffIntPPstab->SetNewtonBiLinearForm();
 
         BiLinFormContext *stiffContPPstab = NULL;
         stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );

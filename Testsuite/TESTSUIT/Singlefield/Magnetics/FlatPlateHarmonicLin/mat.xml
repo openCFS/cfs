@@ -1,0 +1,39 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="air">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>1.256E-6</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="alu">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>34.0E6</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.256E-6 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+</cfsMaterialDataBase>

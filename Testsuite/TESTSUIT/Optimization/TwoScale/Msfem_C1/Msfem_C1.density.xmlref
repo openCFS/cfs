@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial infoWriteCounter="0" infoRejectCounter="0">
+  <header>
+    <mesh x="2" y="2" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.8" lower="0.001" name="stiff1" region="mech" relative_bound="-1.0" scale="false" upper="1."/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.8" lower="0.001" name="stiff2" region="mech" relative_bound="-1.0" scale="false" upper="1."/>
+    <filters>
+      <filter contribution="linear" design="stiff1" neighborhood="maxEdge" type="density" value="1.5"/>
+      <filter contribution="linear" design="stiff2" neighborhood="maxEdge" type="density" value="1.5"/>
+    </filters>
+  </header>
+  <set id="6">
+    <element nr="1" type="stiff1" design="1" physical="0.93463595614"/>
+    <element nr="2" type="stiff1" design="0.70930313353" physical="0.77801782932"/>
+    <element nr="3" type="stiff1" design="1" physical="0.93700522484"/>
+    <element nr="4" type="stiff1" design="0.72409362671" physical="0.78373774994"/>
+    <element nr="1" type="stiff2" design="0.97378811367" physical="0.91117238815"/>
+    <element nr="2" type="stiff2" design="0.70045456491" physical="0.76068218626"/>
+    <element nr="3" type="stiff2" design="0.9716358868" physical="0.90899617604"/>
+    <element nr="4" type="stiff2" design="0.69206518994" physical="0.75709300488"/>
+  </set>
+</cfsErsatzMaterial>

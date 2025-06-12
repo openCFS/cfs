@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>PmlCurvilinear3dSimpleGeomQuarterSphere</title>
+    <authors>
+      <author>pheidegger</author>
+    </authors>
+    <date>2023-09-11</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>pml</keyword>
+      <keyword>harmonic</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      A harmonically pulsating sphere in a spherical propagation domain, surrounded by a 
+      (curvilinear) PML. The PML domain is automatically generated and the required nodal geometry 
+      is given using the 'simpleGeometry="sphere"' tag. 
+      The testexample compares the L2 Norm w.r.t. the analytical solution and the computed acouPotential.
+      This test also checks the postprocessing results of the curvilinear PML:
+      pmlDampFactor, pmlTensor, pmlDeterminant, and pmlDistance. 
+      Note: a non-physical material is used here for simplicity.
+    </description>
+  </documentation>
+
+<!--***************************    INPUTs and OUTPUTs    ***********************-->
+  <fileFormats> 
+    <input>
+      <cdb fileName="./PmlCurvilinear3dSimpleGeomQuarterSphereAcouPotentialL2Norm.cdb"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <!--***************************  REGIONSs, SURFACEs and NODEs  ***********************-->
+  <domain geometryType="3d">
+    <variableList>
+      <var name="r0" value="0.5"/>  <!-- radius of the sphere -->
+      <var name="c" value="1"/>     <!-- speed of sound -->
+      <var name="vn" value="1"/>    <!-- velocity of the sphere -->
+      <var name="rho" value="1"/>   <!-- density -->
+      <var name="x0" value="0.456395"/>
+      <var name="y0" value="1.394827"/>
+      <var name="z0" value="-0.384756"/>
+    </variableList>
+    <regionList> 
+      <region name="prop" material="fakefluid"/>
+      <region name="PML"    material="fakefluid"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="src"/>
+      <surfRegion name="ifPML"/>
+    </surfRegionList>
+    <layerGenerationList>
+      <newRegion name="PML">
+        <sourceSurfRegion name="ifPML" />
+        <extrusionParameters elemHeight="0.1" numLayers="4" />
+        <surfGeometry>
+          <analyticApproximation>
+            <sphere origin_x="x0" origin_y="y0" origin_z="z0"/>
+          </analyticApproximation>
+        </surfGeometry>
+      </newRegion>
+    </layerGenerationList>
+  </domain>
+  <!--***************************  ANALYSIS  ***********************-->
+  <sequenceStep>    
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="0.1"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>    
+    <!--***************************  PDE LISTs  ***********************-->
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="prop" />
+          <region name="PML"  dampingId="PMLdamp"/>
+        </regionList>
+        <dampingList>
+          <pml id="PMLdamp" formulation="curvilinear">
+            <type>
+              inverseDist
+            </type>
+            <dampFactor>
+              1.0
+            </dampFactor>
+          </pml>
+        </dampingList>
+        <!-- ************************************************************ BCS / SOURCES ****************************************************** -->
+        <bcsAndLoads>
+          <normalVelocity name="src" value="vn"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPotential">
+            <regionList>
+              <region name="prop" outputIds="h5" postProcId="L2rel"/>
+              <region name="PML" outputIds="h5"/>
+            </regionList>
+          </nodeResult>
+          <elemResult type="pmlDampFactor">
+            <regionList>
+              <region name="PML" outputIds="h5"/>
+            </regionList>
+          </elemResult>
+          <elemResult type="pmlTensor">
+            <regionList>
+              <region name="PML" outputIds="h5"/>
+            </regionList>
+          </elemResult>
+          <elemResult type="pmlDeterminant">
+            <regionList>
+              <region name="PML" outputIds="h5"/>
+            </regionList>
+          </elemResult>
+          <elemResult type="pmlDistance">
+            <regionList>
+              <region name="PML" outputIds="h5"/>
+            </regionList>
+          </elemResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    <postProcList>
+      <!-- Here we calulcate the L2 norm to the analytical solution of a pulsating sphere for the acoustic velocity potential
+        
+        psi = -r0^2 v0 / (r (1 - i k r0)) * e^(i k (r - r0))
+          = - vn  * r0 / (1 - j k r0) * G(r-r0)
+          = vn  * 1/(r + k^2 r0^2 r) * (-1 * (r0^2 * cos(k(r-r0)) + 1i*( k * r0^3 * sin(k(r-r0))) + k * r0^3 * cos(k(r-r0)) + r0^2 sin(k(r-r0))))
+      -->
+      <postProc id="L2rel">
+        <L2Norm resultName="L2rel" outputIds="h5,txt" integrationOrder="5" mode="relative">
+          <dof name="" realFunc="vn /  (sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)+(2*pi*f/c)^2*r0^2*sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)) * (r0^2*cos(2*pi*f/c*(sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)-r0)) - 2*pi*f/c*r0^3*sin(2*pi*f/c*(sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)-r0)))"
+                       imagFunc="-vn / (sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)+(2*pi*f/c)^2*r0^2*sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)) * (r0^2*sin(2*pi*f/c*(sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)-r0)) + 2*pi*f/c*r0^3*cos(2*pi*f/c*(sqrt((x-x0)^2+(y-y0)^2+(z-z0)^2)-r0)))"/>
+        </L2Norm>
+      </postProc>
+    </postProcList>
+  </sequenceStep>
+</cfsSimulation>

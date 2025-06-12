@@ -1,0 +1,260 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="8" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="12.98s" wall="12.978" cpu="38.7589" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="665.61" peak="665.61"/>
+  </summary>
+  <header id="">
+    <environment started="2020-Jun-19 14:38:32" host="mo42"/>
+    <progOpts problem="equal_xystiffnesses_homogenize" parameterFile="/home/daniel/code/cfs_wien/Testsuite/PYTHON/basecell/interpolation_heaviside/surface_mesh/equal_xystiffnesses/equal_xystiffnesses_homogenize.xml" schemaPath="/home/daniel/code/cfs_wien/share/xml" meshFile="/home/daniel/code/cfs_wien/Testsuite/PYTHON/basecell/interpolation_heaviside/surface_mesh/equal_xystiffnesses/equal_xystiffnesses.ref.mesh" logConfFile="" detailed="no">
+      <cfs version="18.03" name="AMGme" build="Release" git_commit="75f1c59737348f10cc28f2e2e6ccbb3fd0f36bde" git_branch="fix-periodic-bcs" exe="cfswien.rel"/>
+      <openmp CFS_NUM_THREADS="4" MKL_NUM_THREADS="4" OMP_NUM_THREADS="4"/>
+    </progOpts>
+    <domain>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="3" elements="47571" nodes="10498"/>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="no" hom="yes" nodes="10498" elems="47571" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="top" count="315"/>
+        <nodes name="bottom" count="315"/>
+        <nodes name="left" count="20"/>
+        <nodes name="right" count="20"/>
+        <nodes name="front" count="20"/>
+        <nodes name="back" count="20"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" step="0" t="0" t0="0"/>
+    </domain>
+    <finish_step>
+      <timer wall-clock="0.035s" wall="0.035" cpu="0.000638" calls="1"/>
+    </finish_step>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="CoefFunctionOpt"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="6e-06" calls="1"/>
+          </writeResults>
+        </summary>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="30429" totalNumFreeEqns="30429" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="30429" lastFreeEqn="30429" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="30429" lastFreeIndex="30429"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <lis config="  -p 3 -ssor_w 1  -maxiter 999999 -tol 1e-12 -print none -initx_ones false -initx_zeros false" solver="BiCG" precond="ssor">
+            <header maxIter="999999" tolerance="1e-12" minimalTolerance="1e-10">
+              <precond id="default">
+                <ssor omega="1.0"/>
+              </precond>
+            </header>
+            <summary>
+              <setup>
+                <timer label="setup_lis" wall-clock="0.006s" wall="0.006" cpu="0.016515" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_lis" wall-clock="6.458s" wall="6.458" cpu="25.8235" calls="6"/>
+              </solve>
+            </summary>
+            <process>
+              <solve timing="1.0819" residualNorm="8.9853e-13" iterations="346"/>
+              <solve timing="1.0596" residualNorm="9.7974e-13" iterations="352"/>
+              <solve timing="1.1023" residualNorm="9.6656e-13" iterations="350"/>
+              <solve timing="1.0765" residualNorm="8.5728e-13" iterations="346"/>
+              <solve timing="1.0588" residualNorm="8.6141e-13" iterations="347"/>
+              <solve timing="1.0769" residualNorm="9.5221e-13" iterations="357"/>
+            </process>
+          </lis>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="3e-06" calls="1"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="2.277s" wall="2.277" cpu="5.51126" calls="12"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.771s" wall="0.771" cpu="1.76311" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+  <optimization haltopt_file="/home/daniel/code/cfs_wien/Testsuite/PYTHON/basecell/interpolation_heaviside/surface_mesh/equal_xystiffnesses/HALTOPT">
+    <header>
+      <objective type="homTensor" name="homTensor" linear="no" filtered="yes" task="minimize"/>
+      <multipleExcitations type="homogenizationTestStrains"/>
+      <constraints>
+        <constraint type="volume" name="volume" filtered="yes" mode="observation" design="default" excitation="xy"/>
+      </constraints>
+      <designSpace pamping="0" regular="no">
+        <gradient_chain_rule>
+          <timer label="gradient_chain_rule" wall-clock="0.003s" wall="0.003" cpu="0.003837" calls="1" sub="true"/>
+        </gradient_chain_rule>
+        <filters use_mat_filt="yes"/>
+        <transferFunctions>
+          <transferFunction type="identity" application="mech" design="density"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="47571" modelVariables="47571" modelElements="47571">
+          <design type="density" upperBound="1" lowerBound="1e-09" physicalLowerBound="1e-09"/>
+        </designVariables>
+        <localElementCache org="1" shadow="0" mat_deriv="0" megabytes="52"/>
+        <regions>
+          <region name="mech" elements="47571" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="yes"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="x" weight="0" normalized_weight="0" load="mech"/>
+        <excitation index="1" meta_idx="0" label="y" weight="0" normalized_weight="0" load="mech"/>
+        <excitation index="2" meta_idx="0" label="z" weight="0" normalized_weight="0" load="mech"/>
+        <excitation index="3" meta_idx="0" label="yz" weight="0" normalized_weight="0" load="mech"/>
+        <excitation index="4" meta_idx="0" label="xz" weight="0" normalized_weight="0" load="mech"/>
+        <excitation index="5" meta_idx="0" label="xy" weight="1" normalized_weight="1" load="mech"/>
+      </excitations>
+      <evaluate/>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <summary>
+      <calcUKU>
+        <timer label="calc_U1KU2" wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+      </calcUKU>
+      <eval_objective>
+        <timer wall-clock="1.591s" wall="1.591" cpu="2.0708" calls="1"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.001286" calls="1"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0.004s" wall="0.004" cpu="0.004929" calls="1"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+      </eval_grad_constraints>
+    </summary>
+    <optimizer>
+      <summary>
+        <evaluate>
+          <timer wall-clock="0s" wall="0" cpu="7e-06" calls="3"/>
+        </evaluate>
+      </summary>
+    </optimizer>
+    <process>
+      <iteration number="0" duration="12.938" homTensor="0.329489434214861" volume="1">
+        <excitation index="0" objective="0" objective_weight="0"/>
+        <excitation index="1" objective="0" objective_weight="0"/>
+        <excitation index="2" objective="0" objective_weight="0"/>
+        <excitation index="3" objective="0" objective_weight="0"/>
+        <excitation index="4" objective="0" objective_weight="0"/>
+        <excitation index="5" objective="0.32949" objective_weight="1"/>
+        <homogenizedTensor norm_L2="0.32949" trace="0.40123">
+          <isotropy E="0.030447" v="0.024612" G="0.014858" err="0.35307"/>
+          <orthotropy E_1="0.030305" E_2="0.030329" E_3="0.32271" v_21="0.019851" v_12="0.019836" v_31="0.23625" v_13="0.022186" v_32="0.23637" v_23="0.022215" G_23="0.0058158" G_13="0.0058246" G_12="0.0023864" err="0.00015312"/>
+          <tensor dim1="6" dim2="6">
+            <real>
+               3.048513e-02  7.692409e-04  7.383969e-03  1.425960e-06  6.163836e-05  9.691345e-06
+               7.692409e-04  3.050883e-02  7.393148e-03  4.126633e-05  1.831448e-06  8.311086e-06
+               7.383969e-03  7.393148e-03  3.262057e-01  5.424863e-06  1.136384e-05  3.283054e-06
+               1.425960e-06  4.126633e-05  5.424863e-06  5.815907e-03  1.499002e-08 -7.690605e-06
+               6.163836e-05  1.831448e-06  1.136384e-05  1.499002e-08  5.824756e-03 -1.181415e-06
+               9.691345e-06  8.311086e-06  3.283054e-06 -7.690605e-06 -1.181415e-06  2.386440e-03
+            </real>
+          </tensor>
+        </homogenizedTensor>
+      </iteration>
+    </process>
+  </optimization>
+</cfsInfo>

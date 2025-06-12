@@ -163,7 +163,7 @@ namespace CoupledField {
       }
 
       //loop over all non-conforming interfaces
-      for ( UInt actNC = 0, n = ncIfaces_.GetSize(); actNC < n; actNC++ ) {
+      for ( UInt actNC = 0, n = ncInterfaceIds_.GetSize(); actNC < n; actNC++ ) {
 
         // Get interface from grid and cast to MortarInterface class
         shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ncInterfaces_[actNC].interfaceId);
@@ -182,13 +182,13 @@ namespace CoupledField {
         if( dim_ == 2  ) {
           ncCplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,2,2>(),
                                                 new IdentityOperatorNormal<FeH1,2>(),
-                                                coefFuncs, -linFlowBalanceOfMomentumSign, mortarIf->IsPlanar(),
+                                                coefFuncs, -linFlowBalanceOfMomentumSign, mortarIf->IsCoplanar(),
                                                 geoUpdate_);
         }
         else {
           ncCplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,3,3>(),
                                                 new IdentityOperatorNormal<FeH1,3>(),
-                                                coefFuncs, -linFlowBalanceOfMomentumSign, mortarIf->IsPlanar(),
+                                                coefFuncs, -linFlowBalanceOfMomentumSign, mortarIf->IsCoplanar(),
                                                 geoUpdate_);
         }
         ncCplInt1->SetName("LinFlowAcouCouplingNCInt1");
@@ -207,13 +207,13 @@ namespace CoupledField {
         if( dim_ == 2  ) {
             ncCplInt2 = new SurfaceMortarABIntMA<>(new IdentityOperatorNormal<FeH1,2>(),
                                                  new IdentityOperator<FeH1,2,2>(),
-                                                 constOne, 1.0, mortarIf->IsPlanar(),
+                                                 constOne, 1.0, mortarIf->IsCoplanar(),
                                                  geoUpdate_);
         }
         else  {
             ncCplInt2 = new SurfaceMortarABIntMA<>(new IdentityOperatorNormal<FeH1,3>(),
                                                  new IdentityOperator<FeH1,3,3>(),
-                                                 constOne, 1.0, mortarIf->IsPlanar(),
+                                                 constOne, 1.0, mortarIf->IsCoplanar(),
                                                  geoUpdate_);
         }
         ncCplInt2->SetName("AcouLinFlowCouplingNCInt2");
@@ -282,7 +282,7 @@ namespace CoupledField {
       }
 
       //loop over all non-conforming interfaces
-      for ( UInt actNC = 0, n = ncIfaces_.GetSize(); actNC < n; actNC++ ) {
+      for ( UInt actNC = 0, n = ncInterfaceIds_.GetSize(); actNC < n; actNC++ ) {
 
         // Get interface from grid and cast to MortarInterface class
         shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ncInterfaces_[actNC].interfaceId);
@@ -300,13 +300,13 @@ namespace CoupledField {
         if( dim_ == 2  ) {
           cplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,2,2>(),
                                                 new IdentityOperatorNormal<FeH1,2>(),
-                                                constOne, -linFlowBalanceOfMomentumSign, mortarIf->IsPlanar(),
+                                                constOne, -linFlowBalanceOfMomentumSign, mortarIf->IsCoplanar(),
                                                 geoUpdate_);
         }
         else {
           cplInt1 = new SurfaceMortarABIntMA<>( new IdentityOperator<FeH1,3,3>(),
                                                 new IdentityOperatorNormal<FeH1,3>(),
-                                                constOne, -linFlowBalanceOfMomentumSign, mortarIf->IsPlanar(),
+                                                constOne, -linFlowBalanceOfMomentumSign, mortarIf->IsCoplanar(),
                                                 geoUpdate_);
         }
         cplInt1->SetName("LinFlowAcouCouplingNCInt");
@@ -324,13 +324,13 @@ namespace CoupledField {
         if( dim_ == 2  ) {
             cplInt2 = new SurfaceMortarABIntMA<>(new IdentityOperatorNormal<FeH1,2>(),
                                                  new IdentityOperator<FeH1,2,2>(),
-                                                 coefFuncs, 1.0, mortarIf->IsPlanar(),
+                                                 coefFuncs, 1.0, mortarIf->IsCoplanar(),
                                                  geoUpdate_);
         }
         else  {
             cplInt2 = new SurfaceMortarABIntMA<>(new IdentityOperatorNormal<FeH1,3>(),
                                                  new IdentityOperator<FeH1,3,3>(),
-                                                 coefFuncs, 1.0, mortarIf->IsPlanar(),
+                                                 coefFuncs, 1.0, mortarIf->IsCoplanar(),
                                                  geoUpdate_);
         }
         cplInt2->SetName("AcouLinFlowCouplingIntNC");

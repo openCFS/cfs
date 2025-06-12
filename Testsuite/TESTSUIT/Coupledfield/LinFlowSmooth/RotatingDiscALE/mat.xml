@@ -1,0 +1,63 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="FluidMat">
+    <smooth> <!-- former mechanical: pseudo material for the moving grid -->
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0 </real> <!-- Here we avoid transversal contraction -->
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </smooth>
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.225 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.4261e5 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <flow>
+      <!-- density at 20 -->
+      <density>
+        <linear>
+          <real> 1.225 </real>
+        </linear>
+      </density>
+      <!--     <dynamicViscosity> 1.829e-5 </dynamicViscosity>-->
+      <dynamicViscosity>
+        <linear>
+          <real> 1.829e-5 </real>
+        </linear>
+      </dynamicViscosity>
+      <!-- according to Stokes: -2/3 * dynamicViscosity-->
+      <!--     <bulkViscosity> -1.22e-5 </bulkViscosity>-->
+      <bulkViscosity>
+        <linear>
+          <real> 0 </real>
+        </linear>
+      </bulkViscosity>
+      <adiabaticExponent>
+        <linear>
+          <real> 1.406 </real>
+        </linear>
+      </adiabaticExponent>
+      <compressionModulus>
+        <!--In ideal gas:  compressionModulus = pressure * adiabaticExponent -->
+        <linear>
+          <real> 1.42709e5 </real>
+        </linear>
+      </compressionModulus>
+    </flow>
+  </material>
+</cfsMaterialDataBase>

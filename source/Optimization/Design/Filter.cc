@@ -35,13 +35,42 @@ void Filter::Dump() const
               << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }
 
+GlobalFilter::GlobalFilter()
+{
+  LOG_DBG(flt) << "GF &beta=" << &beta << " tune=" << tune.IsSet() << " e_t=" << ext_tune;
+}
+
+GlobalFilter::~GlobalFilter()
+{
+  LOG_DBG(flt) << "~GF &beta=" << &beta << " tune=" << tune.IsSet() << " e_t=" << ext_tune;
+
+  if(ext_tune != nullptr && ext_tune != (Tune*)(0) + UNSET_EXT_BETA_TUNE) // prevent conversion of different size
+    ext_tune->Remove(&beta, this);
+}
+
 void GlobalFilter::PostCopy(bool register_tune)
 {
   if(density == Filter::EXPRESSION)
     ReInitParser();
 
-  if(register_tune && tune.IsSet())
-    tune.Register(&beta, domain->GetOptimization(), this);
+  if(register_tune && domain->GetOptimization() != nullptr) // handle pure load_ersatzmaterial
+  {
+    Tune* t = domain->GetOptimization()->SearchTune(Tune::BETA, true); // silent
+    if(tune.IsSet())
+    {
+      assert(ext_tune == nullptr);
+      if(t)
+        throw Exception("beta tune already registered. In the robust case, the first filter shall have 'tune' beta, the other ones 'tuned'");
+      tune.Register(&beta, domain->GetOptimization(), this);
+    }
+    else if(ext_tune == (Tune*)(0) + UNSET_EXT_BETA_TUNE) // prevent conversion of different size
+    {
+      if(t == nullptr)
+        throw Exception("No beta tune registered. In the robust case, the first filter shall have 'tune' beta, the other ones 'tuned'");
+      t->Append(&beta, this);
+      ext_tune = t;
+    }
+  }
 }
 
 void GlobalFilter::SetNonLinCorrection(const DesignElement* ref)

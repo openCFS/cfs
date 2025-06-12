@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Bloch band gap maximization with stiffness constraint</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2016-01-29</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>Perform a multi sequence optimization for two analysis problems. The first one a bloch band gap maximization, the second
+        is homogenization for a stiffness constraint. Very important are the solvers! umpfack for homogenization failes for non-symmetric designs.
+        That means the a gradient check for a symmetric desing works but any other design fails (E=3000, ...)
+        Edit: 2019-12-12: Reduced optimization to evaluate as the problem is too sensitive. The old optimization results are stored as *.ref.opt.*
+        and can easily activated by switching the optimizer to snopt again
+        </description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.5" y="0.5" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>6</numModes>
+        <freqShift>0</freqShift>
+        <writeModes>no</writeModes>
+        <bloch>
+           <ibz sample="symmetric" steps="6" />
+        </bloch>
+      </eigenFrequency>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+        <bcsAndLoads>
+          <periodic primary="north" secondary="south" dof="x"  quantity="mechDisplacement" />
+          <periodic primary="north" secondary="south" dof="y"  quantity="mechDisplacement" />
+          <periodic primary="west"  secondary="east" dof="x"  quantity="mechDisplacement" />
+          <periodic primary="west"  secondary="east" dof="y"  quantity="mechDisplacement" />
+        </bcsAndLoads>
+        <storeResults>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <umfpack>
+            <tol>0.01</tol>          
+            <symtol>0.0001</symtol>
+          </umfpack>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <sequenceStep index="2">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <periodic secondary="north" primary="south" dof="x" quantity="mechDisplacement"/>
+           <periodic secondary="north" primary="south" dof="y" quantity="mechDisplacement"/>
+           <periodic primary="west"  secondary="east" dof="x"  quantity="mechDisplacement" />
+           <periodic primary="west"  secondary="east" dof="y"  quantity="mechDisplacement" />
+           <!-- necessary BC for cholmod -->
+           <fix name="center"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+       </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <cholmod/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <loadErsatzMaterial file="cross_2d-v_0.5_16.density.xml" set="last"/>
+
+  <optimization>
+    <costFunction type="bandgap" sequence="1" task="maximize" multiple_excitation="true">
+      <bandgap lower_ev="3" upper_ev="4"/>
+      <multipleExcitation type="homogenizationTestStrains" sequence="2"/>
+    </costFunction>
+
+    <constraint type="youngsModulusE1" bound="lowerBound" value="0.2"  mode="constraint" sequence="2"  />
+    <constraint type="iso-orthotropy" mode="constraint" sequence="2" />
+
+    <constraint type="volume" value="0.5" bound="upperBound" linear="true" mode="constraint" />
+
+    <!-- 2019-12-12: changed from snopt to evaluate for a more robust test case, see ref.opt. files -->
+    <optimizer type="evaluate" maxIterations="12">
+      <snopt>
+        <option type="integer" name="verify_level" value="0"/>
+        <option name="major_optimality_tolerance" type="real" value="1e-5"/>
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.4" />
+      </filters>
+
+<!--       <designSpace local_element_cache="false"/> -->
+
+      <design name="density" initial=".5" physical_lower="1e-9" upper="1.0" enforce_bounds="true"/>
+
+      <transferFunction type="simp" application="mech" param="3"/>
+      <transferFunction type="simp" application="mass" param="3" />
+
+      <export save="all" write="iteration"/>
+
+    </ersatzMaterial>
+    <commit mode="forward" stride="999"/>
+  </optimization>
+
+
+</cfsSimulation>

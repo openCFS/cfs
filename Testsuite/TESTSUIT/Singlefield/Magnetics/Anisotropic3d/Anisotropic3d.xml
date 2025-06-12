@@ -1,0 +1,150 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+    <title>3D Anisotropic example</title>
+    <authors>
+      <author>manfred</author>
+      <author>avolk</author>
+    </authors>
+    <date>2014-08-14</date>
+    <keywords>
+      <keyword>magneticEdge</keyword>
+      <keyword>nonlinear</keyword>
+    </keywords>
+    <references>
+      n.A.
+    </references>
+    <!-- This is just a proof of concept simulation,
+         to ensure working functionality.    -->
+    <isVerified>no</isVerified>
+    <description>
+      This is a 3D model of a current carrying rod, surrounded by
+      an anisotropic and nonlinear material.
+      
+      This siulation is merely a proof-of concept simulation to 
+      verify the 3D anisotropic algorithm including nonlinearity.
+    </description>
+  </documentation>
+
+   <fileFormats>
+    <output>
+      <gid/>
+      <hdf5/>
+    </output>
+    <materialData file="matAniso.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="coil"   material="AIR"/>
+      <region name="coreX1" material="ironOrthoX"/>
+      <region name="coreX2" material="ironOrthoX"/>
+      <region name="coreY1" material="ironOrthoY"/>
+      <region name="coreY2"  material="ironOrthoY"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="bottom"/>
+      <surfRegion name="top"/>
+      <surfRegion name="surfxInner"/>
+      <surfRegion name="surfxOuter"/>
+      <surfRegion name="surfyInner"/>
+      <surfRegion name="surfyOuter"/>
+      <!--surfRegion name="fixAll"/-->
+    </surfRegionList>
+  </domain>
+  
+  <fePolynomialList>
+    <Legendre id="default">
+      <isoOrder>0</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+  
+  <sequenceStep>  
+    <analysis>
+      <static/>
+      <!--transient>
+        <numSteps>  2 </numSteps>
+        <deltaT>0.25e-3</deltaT>
+      </transient-->    
+    </analysis>
+  <pdeList>
+    <magneticEdge>
+        <regionList>
+          <region name="coreX1" nonLinIds="p"/>
+          <region name="coreX2" nonLinIds="p"/>
+          <region name="coreY1" nonLinIds="p"/>
+          <region name="coreY2" nonLinIds="p"/>
+          <region name="coil"/>
+        </regionList>
+
+        <nonLinList>
+          <permeability id="p"/>
+        </nonLinList>
+
+        <bcsAndLoads>
+          <fluxParallel name="bottom"/>
+          <fluxParallel name="top"/>	  
+          <fluxParallel name="surfxOuter"/>
+          <fluxParallel name="surfyOuter"/>
+          <fluxParallel name="surfxInner"/>
+          <fluxParallel name="surfyInner"/>
+        </bcsAndLoads>
+        
+        <coilList>
+          <coil id="myCoil">
+            <source type="current" value="200"/>
+            <part>
+              <regionList>
+                <region name="coil"/>
+              </regionList>
+              <direction>
+                <analytic>
+                  <comp dof="x" value="1"/>
+                  <comp dof="y" value="1"/>
+                  <comp dof="z" value="1"/>
+                </analytic>
+              </direction>
+              <wireCrossSection area="1"/>
+              <resistance value="0"/>
+            </part>
+          </coil>        
+        </coilList>
+
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+          </elemResult>
+          <!--
+          <coilResult type="coilCurrent">
+            <coilList>
+              <coil id="myCoil"/>
+            </coilList>
+          </coilResult>
+          <elemResult type="magCoilCurrentDensity"><allRegions/></elemResult>
+          <elemResult type="magFieldIntensity"><allRegions/></elemResult>
+          -->
+        </storeResults>
+      </magneticEdge>
+
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <nonLinear logging="yes" method="newton">
+              <lineSearch type="minEnergy"/>
+              <incStopCrit>1e-2</incStopCrit>
+              <resStopCrit>1e-2</resStopCrit>
+              <maxNumIters>20</maxNumIters>
+            </nonLinear>
+            
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Indirect Perimeter Maximization</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-08-13</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>This is a variant of min_perimeter but not as regularization but perimeter maximization.
+        Therefore a density filter required but no volume constraint.</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <force name="right_lower">
+            <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <optimization>
+    <costFunction type="compliance" task="minimize">
+      <stopping queue="999" value="0.002" type="designChange"/>
+    </costFunction>
+
+    <!-- no volume constraint needed -->    
+    <constraint type="perimeter" bound="lowerBound" value="0.15" parameter="1e-3" mode="constraint" linear="false"/>
+    
+    <optimizer type="snopt"  maxIterations="20">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option name="verify_level" type="integer" value="-1"/>
+      </snopt>
+    </optimizer> 
+      
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+     <filters>
+       <filter neighborhood="maxEdge" value="1.5" type="density"/>
+     </filters>
+      
+     <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      
+     <transferFunction type="simp" application="mech" param="3" /> 
+     <export write="iteration" save="all"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="999"/>
+  </optimization>
+  
+</cfsSimulation>
+
+

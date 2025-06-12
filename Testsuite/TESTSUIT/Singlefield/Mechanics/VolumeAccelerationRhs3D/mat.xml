@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="myMaterial">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 1e10 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1e15 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 1e-5 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

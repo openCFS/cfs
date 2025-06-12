@@ -6,11 +6,11 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "arpack")
-set(PACKAGE_VER "3.7.0")
+set(PACKAGE_VER "3.9.1")
 set(ARPACK_VER ${PACKAGE_VER}) # for Dependencies.cc
 set(PACKAGE_FILE "${PACKAGE_VER}.tar.gz")
-set(PACKAGE_MD5 "6fc6c6bf78dbd4f144595ef0675c8430")
-set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(PACKAGE_MD5 "8f66485ae9d7e676b42aeead2bf5757e")
+set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names. 
 set(PACKAGE_MIRRORS "https://github.com/opencollab/arpack-ng/archive/${PACKAGE_FILE}")
@@ -31,14 +31,13 @@ set_standard_variables()
 set(DEPS_INSTALL "${CMAKE_BINARY_DIR}")
 
 # set DEPS_ARG with defaults for a cmake project
-set_deps_args_default(ON) # set compiler flags 
+set_deps_args_default(ON) # set compiler flags, we need no change
 # add the specific settings for the packge which comes in cmake style
 set(DEPS_ARGS
   ${DEPS_ARGS}
-   # for our 3.7.0 patch only
-  -DSYSTEM_BLAS:BOOL=OFF
-  -DSYSTEM_LAPACK:BOOL=OFF
-  -DTESTS:BOOL=OFF )
+  -DBUILD_SHARED_LIBS:BOOL=OFF
+  -DEXAMPLES:BOOL=OFF
+  -DTESTS:BOOL=OFF)
 
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
 

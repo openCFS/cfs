@@ -1,0 +1,130 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+    <title>Isotropic radiator using a curved nonmatching elasto-acoustic interface</title>
+    <authors>
+      <author>Jens Grabinger</author>
+      <author>Simon Triebenbacher</author>
+    </authors>
+    <date>2010-02-02</date>
+    <keywords>
+      <keyword>abc</keyword>
+      <keyword>mortar fem</keyword>
+      <keyword>nonmatching grids</keyword>
+    </keywords>
+    <references>
+      Jens Grabinger, Master Thesis, 2007, section 6.1
+      Rossing, Handbook of Acoustics, 2007, page 75ff.
+      Morse and Ingard, Theoretical Acoustics, 1986, page 356ff.
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      In order to verify that the non-conforming approach produces physically correct re- 
+      sults, we model an isotropic radiator. In this setup the transient solution is com- 
+      puted in two dimensions. The radiator itself is modelled by an inhomogeneous
+      Dirichlet BC on the circular inner boundary. We apply bilinear quadrilaterals for
+      both acoustic subdomains. On the interface the grids do not match and the
+      nonconforming coupling using the projection operation for curved interfaces has to
+      be used. On the outer boundary we apply standard first order absorbing boundary
+      conditions since we know that the wave will impinge perpendicular to the boundary.
+    </description>
+  </documentation>
+  
+  
+  <fileFormats>
+    
+    <input>
+      <hdf5 fileName="Mortar2dCurved.h5"/>
+    </input>
+    
+    <output>
+      <hdf5 externalFiles="no" compressionLevel="9"/>
+    </output>
+
+    <materialData file="mat.xml" format="xml"/>
+
+  </fileFormats>
+
+  <domain geometryType="plane">
+    
+    <regionList>
+      <region name="inner" material="air"/>
+      <region name="outer" material="air"/>
+    </regionList>
+
+    <surfRegionList>
+      <surfRegion name="abc"/>
+      <surfRegion name="excite"/>
+      <surfRegion name="master"/>
+      <surfRegion name="slave"/>
+    </surfRegionList>
+
+    <ncInterfaceList>
+      <ncInterface name="iface" primarySide="master" secondarySide="slave"/>
+    </ncInterfaceList>
+
+    <nodeList>
+      <nodes name="sym_left"/>
+      <nodes name="sym_bottom"/>
+    </nodeList>
+    
+  </domain>
+
+  <sequenceStep>
+
+    <analysis>
+      <transient>
+        <numSteps>150</numSteps>
+        <deltaT>2.5e-5</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      
+      <acoustic formulation="acouPotential">
+
+        <regionList>
+          <region name="inner"/>
+          <region name="outer"/>
+        </regionList>
+
+        <ncInterfaceList>
+          <ncInterface name="iface" formulation="Mortar"/>
+        </ncInterfaceList>
+        
+        <bcsAndLoads>
+          <absorbingBCs name="abc" volumeRegion="outer"/>
+          <potential name="excite" value="sin(2000*pi*t)"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="acouPotential">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+        
+      </acoustic>
+
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso>
+            <posDef>no</posDef>
+            <symStruct>no</symStruct>
+            <IterRefineSteps>100</IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>

@@ -144,112 +144,95 @@ namespace CoupledField {
   {
     
   }
-  
-  void MechPDE::ReadDampingInformation( ) {
-    
-    //    bool identical = true; // i.e. same type of damping for all regions
-    
-    std::map<std::string, DampingType> idDampType;
-    std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
-    
-    // try to get dampingList
-    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
-    if( dampListNode ) {
-      
-      // get specific damping nodes
-      ParamNodeList dampNodes = dampListNode->GetChildren();
-      
-      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
-        
-        std::string dampString = dampNodes[i]->GetName();
-        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
-        
-        // determine type of damping
-        DampingType actType;
-        String2Enum( dampString, actType );
-        
-        if( actType == RAYLEIGH ) {
-          // set data for Rayleigh damping
-          shared_ptr<RaylDampingData> actRaylDamp(new RaylDampingData());
-          actRaylDamp->alpha = "0.0";
-          actRaylDamp->beta = "0.0";
-          actRaylDamp->adjustDamping = true;
-          actRaylDamp->ratioDeltaF = 0.01;
-          actRaylDamp->freq = 0.0;
-          
-          dampNodes[i]->GetValue( "freq", actRaylDamp->freq, ParamNode::PASS);
-          dampNodes[i]->GetValue( "ratioDeltaF", actRaylDamp->ratioDeltaF, ParamNode::PASS );
-          dampNodes[i]->GetValue( "adjustDamping", actRaylDamp->adjustDamping, ParamNode::PASS );
-          idRaylData[actId] = actRaylDamp;
-        }
-        
-        // store damping type string
-        idDampType[actId] = actType;
-      }
-    }
-    
-    // Run over all region and set entry in "regionNonLinId"
-    ParamNodeList regionNodes =
-            myParam_->Get("regionList")->GetChildren();
-    
+
+  void MechPDE::ReadDampingInformation()
+  {
+    // get regions of current PDE
+    ParamNodeList regionParamNodes = myParam_->Get("regionList")->GetChildren();
+    // corresponding region id
     RegionIdType actRegionId;
+    // corresponding region name and damping id
     std::string actRegionName, actDampingId;
-    
-    //    if( regionNodes.GetSize() > 0 ) {
-    //      Info->PrintF( pdename_, "Damping in following region(s)\n" );
-    //    }
-    
-    for (UInt k = 0; k < regionNodes.GetSize(); k++) {
-      regionNodes[k]->GetValue( "name", actRegionName );
-      regionNodes[k]->GetValue( "dampingId", actDampingId );
-      if( actDampingId == "" )
-        continue;
-      
-      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
-      
-      // Check actDampingId was already registerd
-      if( idDampType.count( actDampingId ) == 0 ) {
-        EXCEPTION( "Damping with id '" << actDampingId
-                << "' was not defined in 'dampingList'" );
-      }
-      
-      dampingList_[actRegionId] = idDampType[actDampingId];
-      if ( dampingList_[actRegionId] == RAYLEIGH ){
-        RaylDampingData actRayl = *(idRaylData[actDampingId]); 
-        Double dampFreq;
-        
-        if( actRayl.freq == 0.0 ) {
-          materials_[actRegionId]->GetScalar(dampFreq,RAYLEIGH_FREQUENCY,Global::REAL);
-        } else { 
-          dampFreq = actRayl.freq;
+    // try to get the dampingList and return if it is not specified
+    PtrParamNode dampListNode = myParam_->Get("dampingList", ParamNode::PASS);
+    if (dampListNode) {
+      // get the individual damping nodes
+      ParamNodeList dampNodes = dampListNode->GetChildren();
+      // map of damping ids from the xml and corresponding damping types
+      std::map<std::string, DampingType> idDampType;
+
+      // Run over all region param nodes and assign the required damping information
+      for (UInt iRegion = 0; iRegion < regionParamNodes.GetSize(); ++iRegion) {
+        regionParamNodes[iRegion]->GetValue("name", actRegionName);
+        regionParamNodes[iRegion]->GetValue("dampingId", actDampingId);
+
+        // pass if no damping is defined
+        if (actDampingId == "")
+          continue;
+
+        // parse region id from region name
+        actRegionId = ptGrid_->GetRegion().Parse(actRegionName);
+
+        // now, read the damping information from the dampingList
+        for (UInt iChild = 0; iChild < dampNodes.GetSize(); ++iChild) {
+          std::string dampString = dampNodes[iChild]->GetName();
+          std::string actId = dampNodes[iChild]->Get("id")->As<std::string>();
+          // only consider damping information for the current damping id
+          if (actId != actDampingId)
+            continue;
+
+          // determine type of damping
+          DampingType actType;
+          String2Enum(dampString, actType);
+
+          // store damping type string
+          idDampType[actId] = actType;
+          // break after the information is set as only one damping ID per region is possible
+          break;
         }
-        
-        // Check if analysis is harmonic
-        bool isHarmonic = analysistype_ == BasePDE::HARMONIC;
-        
-        // Compute Rayleigh damping parameters
-        materials_[actRegionId]->
-        ComputeRayleighDamping( actRayl.alpha, actRayl.beta,
-                dampFreq, actRayl.ratioDeltaF, 
-                actRayl.adjustDamping, isHarmonic );
-        regionRaylDamping_[actRegionId] = actRayl;
-        
-        PtrParamNode in = infoNode_->Get(ParamNode::HEADER)
-                ->GetByVal("region", "name", ptGrid_->GetRegion().ToString(actRegionId));
-        in->Get("alpha_M")->SetValue(actRayl.alpha);
-        in->Get("alpha_K")->SetValue(actRayl.beta);
-      }
-    }
-    
-    // Check, if all entries are identical
-    for ( UInt i = 1; i < dampingList_.size(); i++ ) {
-      if ( dampingList_[regions_[i-1]] != dampingList_[regions_[i]] ) {
-        //        identical = false;
-        break;
+
+        // check actDampingId was indeed registerd above
+        if (idDampType.count(actDampingId) == 0)
+          EXCEPTION("Damping with id '" << actDampingId << "' of region '" << actRegionName << "' was not found. Is it defined in the 'dampingList'?");
+
+        // assign damping type to the region
+        dampingList_[actRegionId] = idDampType[actDampingId];
+
+        // if Rayleigh damping is specified, parse and store the additional damping information
+        if (dampingList_[actRegionId] == RAYLEIGH) {
+          RaylDampingData actRaylCoeffs;
+          materials_[actRegionId]->GetRayleighCoeffStrings(actRaylCoeffs.alpha, actRaylCoeffs.beta);
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+          PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", ptGrid_->GetRegion().ToString(actRegionId));
+          in->Get("alpha_M")->SetValue(actRaylCoeffs.alpha);
+          in->Get("alpha_K")->SetValue(actRaylCoeffs.beta);
+        }
+        else if (dampingList_[actRegionId] == ADAPTED_LOSS_TANGENS_DELTA) {
+          if (!(analysistype_ == BasePDE::HARMONIC))
+            EXCEPTION("Adapted loss tangent delta damping is only allowed for harmonic analysis.");
+          RaylDampingData actRaylCoeffs;
+          materials_[actRegionId]->GetFreqAdaptedRayleighCoeffStrings(actRaylCoeffs.alpha, actRaylCoeffs.beta);
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+          PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", ptGrid_->GetRegion().ToString(actRegionId));
+          in->Get("alpha_M")->SetValue(actRaylCoeffs.alpha);
+          in->Get("alpha_K")->SetValue(actRaylCoeffs.beta);
+        }
+        else if (dampingList_[actRegionId] == GLOBAL_RAYLEIGH) {
+          EXCEPTION("Global Rayleigh damping is not yet implemented.");
+          if (dampNodes.GetSize() != 1)
+            EXCEPTION("Global Rayleigh damping does not allow for additional damping nodes defined.");
+          RaylDampingData actRaylCoeffs;
+          actRaylCoeffs.alpha = dampNodes[0]->Get("alpha")->As<std::string>();
+          actRaylCoeffs.beta = dampNodes[0]->Get("beta")->As<std::string>();
+          regionRaylDamping_[actRegionId] = actRaylCoeffs;
+          PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->GetByVal("region", "name", ptGrid_->GetRegion().ToString(actRegionId));
+          in->Get("alpha_M")->SetValue(actRaylCoeffs.alpha);
+          in->Get("alpha_K")->SetValue(actRaylCoeffs.beta);
+        }
       }
     }
   }
-  
+
   void MechPDE::ReadSoftening() {
     
     // Check if softeningList node is present
@@ -332,11 +315,9 @@ namespace CoupledField {
     
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for(it = materials_.begin(); it != materials_.end(); it++)
-    {
-      // Set current region and material
-      actRegion = it->first;
-      actSDMat = it->second;
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
+      actRegion = regions_[iRegion];
+      actSDMat    = materials_[actRegion];
       
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
@@ -457,13 +438,13 @@ namespace CoupledField {
         BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
         stiffIntDescr->SetEntities( actSDList, actSDList );
         stiffIntDescr->SetFeFunctions( myFct, myFct );
-        
-        //check for damping
-        if ( dampingList_[actRegion] == RAYLEIGH ) {
-          RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
-          stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
+
+        // check for Rayleigh damping (stiffness part)
+        if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
+          RaylDampingData &actDamp = (regionRaylDamping_[actRegion]);
+          stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta);
         }
-        
+
         assemble_->AddBiLinearForm( stiffIntDescr );
         
         // Important: Add bdb-integrator to global list, as we need them later
@@ -509,14 +490,13 @@ namespace CoupledField {
         nlContext->SetEntities(actSDList, actSDList);
         nlContext->SetFeFunctions(myFct, myFct);
         assemble_->AddBiLinearForm(nlContext);
-        
-        //check for damping
-        if ( dampingList_[actRegion] == RAYLEIGH ) {
-          RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
-          nlContext->SetSecDestMat(DAMPING, actDamp.beta );
+
+        // check for damping
+        if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
+          RaylDampingData &actDamp = (regionRaylDamping_[actRegion]);
+          nlContext->SetSecDestMat(DAMPING, actDamp.beta);
         }
-        
-        
+
         // Important: Add bdb-integrator to global list, as we need them later
         // for calculation of postprocessing results.
         bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,nlBInt) );
@@ -545,7 +525,7 @@ namespace CoupledField {
           }
           
           //very important: ist the tangent stiffness matrix
-          piolaInt->SetNewtonBilinearForm();
+          piolaInt->SetNewtonBiLinearForm();
           
           piolaInt->SetSolDependent(true);
           piolaInt->SetFeSpace(mySpace);
@@ -646,13 +626,13 @@ namespace CoupledField {
       BiLinFormContext *massContext =  new BiLinFormContext( massInt, MASS );
       massContext->SetEntities( actSDList, actSDList );
       massContext->SetFeFunctions( myFct, myFct );
-      
-      // Check for damping (mass part)
-      if ( dampingList_[actRegion] == RAYLEIGH ) {
-        RaylDampingData & actDamp = regionRaylDamping_[actRegion];
-        massContext->SetSecDestMat( DAMPING, actDamp.alpha );
+
+      // Check for Rayleigh damping (mass part)
+      if (dampingList_[actRegion] == RAYLEIGH || dampingList_[actRegion] == ADAPTED_LOSS_TANGENS_DELTA || dampingList_[actRegion] == GLOBAL_RAYLEIGH) {
+        RaylDampingData &actDamp = regionRaylDamping_[actRegion];
+        massContext->SetSecDestMat(DAMPING, actDamp.alpha);
       }
-      
+
       // Important: Add mass-integrator to global list, as we need them later
       // for calculation of postprocessing results
       massInts_[actRegion] = massInt;
@@ -951,8 +931,8 @@ namespace CoupledField {
           assert(mortarIf);
           
           PtrCoefFct matDataTensorMas, matDataTensorSla, matData;
-          RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
-          RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
+          RegionIdType volMasterId = mortarIf->GetPrimaryVolRegion();
+          RegionIdType volSlaveId = mortarIf->GetSecondaryVolRegion();
           
           matDataTensorMas = regionStiffness_[volMasterId];
           matDataTensorSla = regionStiffness_[volSlaveId];
@@ -1062,24 +1042,24 @@ namespace CoupledField {
             
             // define bilinear forms for Nitsche coupling
             // penalty integrators
-            pnlt_uM_vM = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::MASTER_MASTER);
-            pnlt_uM_vS = GetPenaltyIntegrator<Complex>(factorSqr, -beta, BiLinearForm::MASTER_SLAVE);
-            pnlt_uS_vM = GetPenaltyIntegrator<Double>(one, -beta, BiLinearForm::SLAVE_MASTER);
-            pnlt_uS_vS = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::SLAVE_SLAVE);
+            pnlt_uM_vM = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::PRIM_PRIM);
+            pnlt_uM_vS = GetPenaltyIntegrator<Complex>(factorSqr, -beta, BiLinearForm::PRIM_SEC);
+            pnlt_uS_vM = GetPenaltyIntegrator<Double>(one, -beta, BiLinearForm::SEC_PRIM);
+            pnlt_uS_vS = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::SEC_SEC);
             // flux integrators
             if (matData->IsComplex())
             {
-              flux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes);
-              flux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes);
-              flux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes);
-              flux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes);
+              flux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true, icModes);
+              flux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false, icModes);
+              flux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true, icModes);
+              flux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false, icModes);
             }
             else
             {
-              flux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes);
-              flux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes);
-              flux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes);
-              flux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes);
+              flux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true, icModes);
+              flux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false, icModes);
+              flux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true, icModes);
+              flux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false, icModes);
             }
             
             // pass material data to the flux operators
@@ -1101,18 +1081,18 @@ namespace CoupledField {
             //slave-slave
             pnlt_uS_vS->SetName("pnlt_uS_vS");
             
-            // BiLinearForm::MASTER_MASTER;
-            SurfaceBiLinFormContext *pnlt_uM_vM_cont = new SurfaceBiLinFormContext(pnlt_uM_vM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-            SurfaceBiLinFormContext *flux_DuM_vM_cont = new SurfaceBiLinFormContext(flux_DuM_vM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-            SurfaceBiLinFormContext *flux_uM_DvM_cont = new SurfaceBiLinFormContext(flux_uM_DvM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-            // BiLinearForm::MASTER_SLAVE;
-            SurfaceBiLinFormContext *pnlt_uM_vS_cont = new SurfaceBiLinFormContext(pnlt_uM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-            SurfaceBiLinFormContext *flux_DuM_vS_cont = new SurfaceBiLinFormContext(flux_DuM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-            // BiLinearForm::SLAVE_MASTER;
-            SurfaceBiLinFormContext *pnlt_uS_vM_cont = new SurfaceBiLinFormContext(pnlt_uS_vM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-            SurfaceBiLinFormContext *flux_uS_DvM_cont = new SurfaceBiLinFormContext(flux_uS_DvM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
-            // BiLinearForm::SLAVE_SLAVE;
-            SurfaceBiLinFormContext *pnlt_uS_vS_cont = new SurfaceBiLinFormContext(pnlt_uS_vS, STIFFNESS, BiLinearForm::SLAVE_SLAVE);
+            // BiLinearForm::PRIM_PRIM;
+            SurfaceBiLinFormContext *pnlt_uM_vM_cont = new SurfaceBiLinFormContext(pnlt_uM_vM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+            SurfaceBiLinFormContext *flux_DuM_vM_cont = new SurfaceBiLinFormContext(flux_DuM_vM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+            SurfaceBiLinFormContext *flux_uM_DvM_cont = new SurfaceBiLinFormContext(flux_uM_DvM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+            // BiLinearForm::PRIM_SEC;
+            SurfaceBiLinFormContext *pnlt_uM_vS_cont = new SurfaceBiLinFormContext(pnlt_uM_vS, STIFFNESS, BiLinearForm::PRIM_SEC);
+            SurfaceBiLinFormContext *flux_DuM_vS_cont = new SurfaceBiLinFormContext(flux_DuM_vS, STIFFNESS, BiLinearForm::PRIM_SEC);
+            // BiLinearForm::SEC_PRIM;
+            SurfaceBiLinFormContext *pnlt_uS_vM_cont = new SurfaceBiLinFormContext(pnlt_uS_vM, STIFFNESS, BiLinearForm::SEC_PRIM);
+            SurfaceBiLinFormContext *flux_uS_DvM_cont = new SurfaceBiLinFormContext(flux_uS_DvM, STIFFNESS, BiLinearForm::SEC_PRIM);
+            // BiLinearForm::SEC_SEC;
+            SurfaceBiLinFormContext *pnlt_uS_vS_cont = new SurfaceBiLinFormContext(pnlt_uS_vS, STIFFNESS, BiLinearForm::SEC_SEC);
             
             pnlt_uM_vM_cont->SetEntities(actSDList, actSDList);
             flux_DuM_vM_cont->SetEntities(actSDList, actSDList);
@@ -1164,17 +1144,17 @@ namespace CoupledField {
               // define bilinear forms for Nitsche coupling
               if (preStressFct->IsComplex())
               {
-                preStrFlux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes, true);
-                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes, true);
-                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes, true);
-                preStrFlux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes, true);
+                preStrFlux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true, icModes, true);
+                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false, icModes, true);
+                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true, icModes, true);
+                preStrFlux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false, icModes, true);
               }
               else
               {
-                preStrFlux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes, true);
-                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes, true);
-                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes, true);
-                preStrFlux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes, true);
+                preStrFlux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, true, icModes, true);
+                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::PRIM_PRIM, false, icModes, true);
+                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::PRIM_SEC, true, icModes, true);
+                preStrFlux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SEC_PRIM, false, icModes, true);
               }
               
               preStrFlux_DuM_vM->SetBCoefFunctionOpA(preStressFct);
@@ -1190,10 +1170,10 @@ namespace CoupledField {
               // slave-master
               preStrFlux_uS_DvM->SetName("preStrFlux_uS_DvM");
               
-              SurfaceBiLinFormContext *preStrFlux_DuM_vM_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-              SurfaceBiLinFormContext *preStrFlux_uM_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uM_DvM, STIFFNESS, BiLinearForm::MASTER_MASTER);
-              SurfaceBiLinFormContext *preStrFlux_DuM_vS_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
-              SurfaceBiLinFormContext *preStrFlux_uS_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uS_DvM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
+              SurfaceBiLinFormContext *preStrFlux_DuM_vM_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+              SurfaceBiLinFormContext *preStrFlux_uM_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uM_DvM, STIFFNESS, BiLinearForm::PRIM_PRIM);
+              SurfaceBiLinFormContext *preStrFlux_DuM_vS_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vS, STIFFNESS, BiLinearForm::PRIM_SEC);
+              SurfaceBiLinFormContext *preStrFlux_uS_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uS_DvM, STIFFNESS, BiLinearForm::SEC_PRIM);
               
               preStrFlux_DuM_vM_cont->SetEntities(actSDList, actSDList);
               preStrFlux_uM_DvM_cont->SetEntities(actSDList, actSDList);
@@ -1463,16 +1443,30 @@ namespace CoupledField {
           lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
                   Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
-                  1.0, coef[i], coefUpdateGeo);
+          if(coef[i]->IsComplex()){
+            // rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(), Complex(1.0), coef[i], coefUpdateGeo, true, coef[i]->IsComplex() );
+            WARN("<forceDensity> has complex-valued input. "
+              "Only the real part is used. This is typically intended for mean values "
+              "from harmonic analyses. Please verify if this behavior is appropriate for your use case.");
+          }else{
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(), 1.0, coef[i], coefUpdateGeo, true, coef[i]->IsComplex() );
+          }
         }
       } else  {
         if(isComplex_) {
           lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1,3,3>(),
                   Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
-                  1.0, coef[i], coefUpdateGeo);
+          if(coef[i]->IsComplex()){
+            // rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(), Complex(1.0), coef[i], coefUpdateGeo, true, coef[i]->IsComplex() );
+            WARN("<forceDensity> has complex-valued input. "
+              "Only the real part is used. This is typically intended for mean values "
+              "from harmonic analyses. Please verify if this behavior is appropriate for your use case.");
+          }else{
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(), 1.0, coef[i], coefUpdateGeo, true, coef[i]->IsComplex() );
+          }
         }
       }
       lin->SetName("ForceDensityInt");
@@ -1482,11 +1476,75 @@ namespace CoupledField {
       assemble_->AddLinearForm(ctx);
       myFct->AddEntityList(ent[i]);
     } // for
-    
-    
+
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-    
-    
+
+    // ===============
+    //  VOLUME ACCELERATION
+    // ===============
+    LOG_DBG(mechpde) << "Reading volume acceleration";
+
+    ReadRhsExcitation("volumeAcceleration", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
+    for (UInt i = 0; i < ent.GetSize(); ++i) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Volume acceleration must be defined on elements")
+      }
+      // get the material density
+      RegionIdType curRegionId = ent[i]->GetRegion();
+      BaseMaterial *curMaterial = materials_[curRegionId];
+      PtrCoefFct density;
+      if (this->IsMaterialComplex()) {
+        // complex material definition
+        EXCEPTION("Volume acceleration is not implemented for complex-valued materials");
+      }
+      else {
+        density = curMaterial->GetScalCoefFnc(DENSITY, part);
+      }
+      // multiply by the acceleration to get the force density
+      PtrCoefFct forceDens = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], density, CoefXpr::OP_MULT));
+
+      if (isComplex_) {
+        // frequency domain or eigenvalue analysis
+        EXCEPTION("This feature is untested. Consider adding a test case before activating it.");
+        if (dim_ == 2) {
+          lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1, 2, 2>(), Complex(1.0), forceDens, coefUpdateGeo);
+        }
+        else {
+          lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1, 3, 3>(), Complex(1.0), forceDens, coefUpdateGeo);
+        }
+      }
+      else {
+        if (coef[i]->IsComplex()) {
+          // rhs excitation comes from a harmonic simulation (actually a real result with zero imaginary part)
+          EXCEPTION("This feature is untested. Consider adding a test case before activating it.");
+          WARN("<volumeAcceleration> has complex-valued input. "
+               "Only the real part is used. This is typically intended for mean values "
+               "from harmonic analyses. Please verify if this behavior is appropriate for your use case.");
+          if (dim_ == 2) {
+            lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1, 2, 2>(), Complex(1.0), forceDens, coefUpdateGeo);
+          }
+          else {
+            lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1, 3, 3>(), Complex(1.0), forceDens, coefUpdateGeo, true, forceDens->IsComplex());
+          }
+        }
+        else {
+          if (dim_ == 2) {
+            lin = new BUIntegrator<Double>(new IdentityOperator<FeH1, 2, 2>(), 1.0, forceDens, coefUpdateGeo, true, forceDens->IsComplex());
+          }
+          else {
+            lin = new BUIntegrator<Double>(new IdentityOperator<FeH1, 3, 3>(), 1.0, forceDens, coefUpdateGeo, true, forceDens->IsComplex());
+          }
+        }
+      }
+      lin->SetName("VolumeAccelerationInt");
+      LinearFormContext *ctx = new LinearFormContext(lin);
+      ctx->SetEntities(ent[i]);
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    } // for
+
     // ===============
     //  magneticFluxDensity (couples in case of magnetostrictive material)
     // ===============

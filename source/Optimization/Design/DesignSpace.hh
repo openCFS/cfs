@@ -334,13 +334,13 @@ namespace CoupledField
        // we might have surface element and it is pointing to a design element
        const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
        // no chance, we are wrong
-       if(se == NULL) {
+       if(se == nullptr) {
          if(!throw_exception) return -1;
          EXCEPTION("element " << elem->ToString() << " not in design regions" );
        }
        else
          for(unsigned int i = 0; i < se->ptVolElems.size(); i++)
-           if(se->ptVolElems[i] != NULL && FindRegion(se->ptVolElems[i]->regionId) >= 0)
+           if(se->ptVolElems[i] != nullptr && FindRegion(se->ptVolElems[i]->regionId) >= 0)
              return Find(se->ptVolElems[i]->elemNum);
 
        if(!throw_exception)

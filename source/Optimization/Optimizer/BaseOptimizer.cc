@@ -67,7 +67,7 @@ BaseOptimizer::Scale::Scale(BaseOptimizer* base, PtrParamNode autoscale, double 
     this->scaling.value = manual_scale;
     this->scaling.value *= base_->optimization->objectives.DoMaximize() ? -1.0 : 1.0;
   }
-  LOG_TRACE(optimizer) << "Scale::Scale() target=" << target << " tol=" << tol << " manual_scale=" 
+  LOG_DBG(optimizer) << "Scale::Scale() target=" << target << " tol=" << tol << " manual_scale="
                        << manual_scale << " -> PostInit() pending!";
 }
 
@@ -76,7 +76,7 @@ void BaseOptimizer::Scale::PostInit()
   // calculate the autoscale values (more or less expensive, never cheap)
   CalcAutoscale();
 
-  LOG_TRACE(optimizer) << "Scale::PostInit() target=" << target << " tol=" << tol << " -> scale=" << scaling.value;
+  LOG_DBG(optimizer) << "Scale::PostInit() target=" << target << " tol=" << tol << " -> scale=" << scaling.value;
 }
 
 void BaseOptimizer::Scale::CalcAutoscale()
@@ -111,13 +111,13 @@ void BaseOptimizer::Scale::CalcAutoscale()
     // our new scaling is the optimal scaling for now!
     scaling.design_id = opt_scaling.design_id;
     scaling.value = opt_scaling.value;
-    LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " curr=" << current.value << " design="
+    LOG_DBG(optimizer) << "Scale::CalcAutoscale(): scale=" << scaling.value << " curr=" << current.value << " design="
                          << scaling.design_id << " needed_eval=" << (opt_scaling.design_id != design_id);
   } else {
     scaling.design_id = opt_scaling.design_id;
     scaling.value = manual;
     opt_scaling.value = manual;
-    LOG_TRACE(optimizer) << "Scale::CalcAutoscale(): manual scaling. Scale=" << scaling.value << " design="
+    LOG_DBG(optimizer) << "Scale::CalcAutoscale(): manual scaling. Scale=" << scaling.value << " design="
                          << scaling.design_id;
   }
   assert(opt_scaling.value != 0.0);
@@ -149,7 +149,7 @@ bool BaseOptimizer::Scale::CheckScaling(int n, StdVector<double>& grad)
     opt_scaling.value = target / current.value; 
     opt_scaling.value *= base_->optimization->objectives.DoMaximize() ? -1.0 : 1.0;
     
-    LOG_TRACE(optimizer) << "Scale::check::set opt scaling: design=" << opt_scaling.design_id << " target=" << target 
+    LOG_DBG(optimizer) << "Scale::check::set opt scaling: design=" << opt_scaling.design_id << " target=" << target
                          << " opt_scaling=" << opt_scaling.value << " maximize="
                          << base_->optimization->objectives.DoMaximize();
   }
@@ -177,7 +177,7 @@ bool BaseOptimizer::Scale::CheckScaling(int n, StdVector<double>& grad)
 void BaseOptimizer::Scale::ToInfo(ParamNode* in)
 {
   if(scaling.value == 0.0 || target == 0.0)
-    in->Get("active")->SetValue(false);
+    in->Get("active")->SetValue("no");
   else if(target != 0.0)
   {
     in->Get("target")->SetValue(target);
@@ -302,7 +302,7 @@ void BaseOptimizer::ToInfo(PtrParamNode pn)
   if(objective)
     objective->ToInfo(sc);
   else
-    sc->Get("active")->SetValue(false);
+    sc->Get("active")->SetValue("no");
 }
 
 boost::shared_ptr<Timer> BaseOptimizer::GetRunningEvalTimer()
@@ -428,6 +428,7 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
 double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 {
+  LOG_DBG(optimizer) << "EO: n=" << n << " cs=" << cfs_scale;
 
   assert(optimization->GetDesign()->GetNumberOfVariables() == (unsigned int) n);
   // we might come from another eval, then the optimizer is already stopped and we must not restart it
@@ -497,6 +498,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
 
 bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cfs_scale)
 {
+  LOG_DBG(optimizer) << "SAPiN: n=" << n << " cs=" << cfs_scale;
+
   // we need to take care about measurement! We don't want to count times double!
   assert(!optimizer_timer_->IsRunning());
   // we eval objective next so there must not be anything running at the moment!
@@ -522,8 +525,9 @@ bool BaseOptimizer::EvalGradObjective(int n, const double* x, bool cfs_scale, St
 {
 //  assert(optimization->CalcObjectiveCalled());
   Optimization* opt = domain->GetOptimization();
+  LOG_DBG(optimizer) << "EGO: n=" << n << " cs=" << cfs_scale << " COC=" << opt->CalcObjectiveCalled();
   if(!opt->CalcObjectiveCalled())
-    opt->CalcObjective();
+    EvalObjective(n, x, cfs_scale);
 
   bool opt_run = optimizer_timer_->IsRunning(); // in the scale case we have to optimization_timer
   if(opt_run)
@@ -585,6 +589,7 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
   python->CallHook(PythonKernel::OPT_EVAL_FUNC);
 
   ConditionContainer& cc = optimization->constraints;
+  LOG_DBG(optimizer) << "ECs: n=" << n << " m=" << m << " cs=" << cfs_scale << " n=" << normalize << " IASD=" << cc.IsAllStateDependent();
 
   assert(m == cc.view->GetNumberOfActiveConstraints());
 
@@ -614,6 +619,7 @@ void BaseOptimizer::EvalConstraints(int n, const double* x, int m, bool cfs_scal
 
 double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normalize, bool direct_call, Excitation* ev_only_excite)
 {
+  LOG_DBG(optimizer) << "EC: g=" << g->ToString() << " cs=" << cfs_scale << " n=" << normalize << " dc=" << direct_call << " ev=" << (ev_only_excite == nullptr ? "null" : ev_only_excite->GetFullLabel());
   // for a proper time measurement we have to know if we are called by EvalConstraints() or directly (FeasPP)
   assert(!(!direct_call && !eval_const_timer_->IsRunning()));
   if(direct_call) {
@@ -669,6 +675,8 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
 void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentries, bool cfs_scale, bool normalize,
       StdVector<double>& values, GradientType grtype)
 {
+  LOG_DBG(optimizer) << "EGCs: n=" << n << " m=" << m << " ne=" << nentries << " cs=" << cfs_scale << " n=" << normalize << " gt=" << grtype;
+
   // Attention! there is a copy and paste clone in FeasPP::SolveSubProblem()!
   optimizer_timer_->Stop();
 
@@ -713,7 +721,9 @@ void BaseOptimizer::EvalGradConstraints(int n, const double* x, int m, int nentr
 
 int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, bool normalize, StdVector<double>& values, bool direct_call)
 {
-  // for a proper time measurement we have to know if we are called by EvalGradConstraints() or directly (FeasPP)
+  LOG_DBG(optimizer) << "EGC: g=" << g->ToString() << " s=" << start << " cs=" << cfs_scale << " n=" << normalize << " dc=" << direct_call;
+
+      // for a proper time measurement we have to know if we are called by EvalGradConstraints() or directly (FeasPP)
   assert(!(!direct_call && !eval_grad_const_timer_->IsRunning()));
   if(direct_call) {
     assert(optimizer_timer_->IsRunning());

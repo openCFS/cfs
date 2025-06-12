@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>Heat_conduction_one_material_density_2d</title>
+    <authors>
+      <author>Bich Ngoc Vu</author>
+    </authors>
+    <date>2020-03-31</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Andreassen et al.: How to determine composite material properties using numerical homogenization </references>
+    <isVerified>yes</isVerified>
+    <description> Demonstrate the calculation of thermal conductivity by asymptotic homogenization of the static
+    heat equation. We have two regions, both with the same material but different initial pseudo density.
+    </description>
+  </documentation>  
+  
+  <fileFormats>
+    <output>
+      <hdf5 directory="./" />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines"/>
+      <region name="void" material="99lines"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <heatConduction>
+        <regionList>
+          <region name="mech"/>
+          <region name="void"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <periodic secondary="west" primary="east" quantity="heatTemperature"/>
+           <periodic secondary="south"  primary="north" quantity="heatTemperature" />
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+       </storeResults>
+      </heatConduction>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/> 
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <optimization log="">
+    <costFunction type="homTensor" task="minimize" multiple_excitation="true">
+      <multipleExcitation type="homogenizationTestStrains" sequence="1"/>
+    </costFunction>
+    <optimizer type="evaluate" maxIterations="1"/>
+    <ersatzMaterial method="simp" material="heat">
+      <regions>
+        <region name="mech"/>
+        <region name="void"/>
+      </regions>
+      <design name="density" initial="1" physical_lower="1e-9" upper="1" region="mech"/>
+      <design name="density" initial="1e-9" physical_lower="1e-9" upper="1" region="void"/>
+      <transferFunction type="identity" application="heat" design="density"/>
+    </ersatzMaterial>
+    <commit mode="each_forward"/>
+  </optimization>  
+</cfsSimulation>

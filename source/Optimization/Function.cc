@@ -369,6 +369,9 @@ void Function::ToInfo(PtrParamNode info) {
   if(pn->Has("parameter") || IsLocal(type_))
     info->Get("parameter")->SetValue(parameter_);
 
+  if(type_ == GREYNESS)
+    info->Get("gray_scale")->SetValue(CalcGraynessScaling());
+
   // We might have non-standard stresses
   if(type_ == GLOBAL_STRESS  || type_ == LOCAL_STRESS)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
@@ -506,7 +509,6 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case PYTHON_FUNCTION:
   case LOCAL_PYTHON_FUNCTION:
   case ARC_OVERLAP:
-  case PYTHON_VOLUME:
     return PLAIN;
 
   // filtered stuff different for sensitivity filtering
@@ -537,6 +539,7 @@ Function::Access Function::DefaultAccess(Function::Type type) const
   case OUTPUT:
   case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case REFLECTED_WAVE:
   case ABS_OUTPUT:
   case CONJUGATE_COMPLIANCE:
   case GLOBAL_DYNAMIC_COMPLIANCE:
@@ -572,6 +575,7 @@ Function::Access Function::DefaultAccess(Function::Type type) const
     return PHYSICAL;
 
   case MULTI_OBJECTIVE:
+  case NO_TYPE:
     assert(false);
     break;
   }
@@ -654,7 +658,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case PYTHON_FUNCTION: // check in case!
   case LOCAL_PYTHON_FUNCTION:
   case ARC_OVERLAP:
-  case PYTHON_VOLUME:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;
@@ -687,6 +690,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case OUTPUT:
   case SQUARED_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case REFLECTED_WAVE:
   case ENERGY_FLUX:
   case TRACKING:
   case ABS_OUTPUT:
@@ -741,6 +745,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     break;
 
   case MULTI_OBJECTIVE: // only to make the switch complete
+  case NO_TYPE:
     assert(false);
     break;
   }
@@ -832,6 +837,7 @@ bool Function::IsAdjointBased() const {
   case ABS_OUTPUT:
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case DYNAMIC_OUTPUT:
+  case REFLECTED_WAVE:
   case ELEC_ENERGY:
   case ENERGY_FLUX:
   case GLOBAL_STRESS:
@@ -862,6 +868,7 @@ bool Function::NeedsSelectionVector() const {
   case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case DYNAMIC_OUTPUT:
+  case REFLECTED_WAVE:
   case ENERGY_FLUX:
     return true;
 
@@ -1174,7 +1181,17 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
       preInfo_->Get(ParamNode::WARNING)->SetValue("consider setting 'design' for function '" + ToString() + "'");
 }
 
-Function::Local* Function::InitLocal(DesignSpace* space) {
+double Function::CalcGraynessScaling() const
+{
+  DesignSpace* design = domain->GetDesign();
+  assert(design != nullptr); // when called in Optimization constructor
+  TransferFunction* tf = IsPhysical() ? design->GetTransferFunction(GetDesignType(), App::MECH) : nullptr;
+
+  return tf ? (1.0/std::pow(tf->Transform(0.5),2)) : 4.0;
+}
+
+Function::Local* Function::InitLocal(DesignSpace* space)
+{
   if (local == NULL)
   {
     local = new Local(this, space);
@@ -1183,7 +1200,8 @@ Function::Local* Function::InitLocal(DesignSpace* space) {
   return local;
 }
 
-Function::Local::Local(Function* func, DesignSpace* space) {
+Function::Local::Local(Function* func, DesignSpace* space)
+{
   this->space = space;
   this->func_ = func;
   this->structure_ = NULL;

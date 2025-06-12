@@ -287,27 +287,27 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
                  solType2 = feFunc2->GetResultInfo()->resultType;
     
     if ( (solType1 == LAGRANGE_MULT) && (solType2 != LAGRANGE_MULT) ) {
-      feFunc1->GetFeSpace()->GetElemEqns(eqnVec1, mortarElem->ptSlave);
-      feFunc2->GetFeSpace()->GetElemEqns(eqnVec2, mortarElem->ptMaster);
+      feFunc1->GetFeSpace()->GetElemEqns(eqnVec1, mortarElem->ptSecondary);
+      feFunc2->GetFeSpace()->GetElemEqns(eqnVec2, mortarElem->ptPrimary);
     }
     else if ( (solType1 != LAGRANGE_MULT) && (solType2 == LAGRANGE_MULT) ) {
-      feFunc1->GetFeSpace()->GetElemEqns(eqnVec1, mortarElem->ptMaster);
-      feFunc2->GetFeSpace()->GetElemEqns(eqnVec2, mortarElem->ptSlave);
+      feFunc1->GetFeSpace()->GetElemEqns(eqnVec1, mortarElem->ptPrimary);
+      feFunc2->GetFeSpace()->GetElemEqns(eqnVec2, mortarElem->ptSecondary);
     }
     else if ( (solType1 != LAGRANGE_MULT) && (solType2 != LAGRANGE_MULT) ) {
       // no Lagrange multiplier => probably acou-mech acoupling
       
-      SurfElem *surfElem1 = NULL, *surfElem2 = NULL;
+      SurfElem *surfElem1 = nullptr, *surfElem2 = nullptr;
       const std::set<RegionIdType> &regions1 = feFunc1->GetRegions(),
                                    &regions2 = feFunc2->GetRegions();
       
-      if (regions1.find(mortarElem->ptMaster->ptVolElems[0]->regionId)
+      if (regions1.find(mortarElem->ptPrimary->ptVolElems[0]->regionId)
           != regions1.end()) {
-        surfElem1 = mortarElem->ptMaster;
+        surfElem1 = mortarElem->ptPrimary;
       }
-      else if (regions1.find(mortarElem->ptSlave->ptVolElems[0]->regionId)
+      else if (regions1.find(mortarElem->ptSecondary->ptVolElems[0]->regionId)
           != regions1.end()) {
-        surfElem1 = mortarElem->ptSlave;
+        surfElem1 = mortarElem->ptSecondary;
       }
       else {
         EXCEPTION("None of the parents of NcSurfElem " << mortarElem->elemNum
@@ -315,20 +315,21 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
             << SolutionTypeEnum.ToString(solType1) << "'");
       }
       
-      if (regions2.find(mortarElem->ptMaster->ptVolElems[0]->regionId)
+      if (regions2.find(mortarElem->ptPrimary->ptVolElems[0]->regionId)
           != regions2.end()) {
-        surfElem2 = mortarElem->ptMaster;
+        surfElem2 = mortarElem->ptPrimary;
       }
-      else if (regions2.find(mortarElem->ptSlave->ptVolElems[0]->regionId)
+      else if (regions2.find(mortarElem->ptSecondary->ptVolElems[0]->regionId)
           != regions2.end()) {
-        surfElem2 = mortarElem->ptSlave;
+        surfElem2 = mortarElem->ptSecondary;
       }
       else {
         EXCEPTION("None of the parents of NcSurfElem " << mortarElem->elemNum
             << "were found in the regions of FeFunction '"
             << SolutionTypeEnum.ToString(solType2) << "'");
       }
-
+      assert(surfElem1 != nullptr);
+      assert(surfElem2 != nullptr);
       feFunc1->GetFeSpace()->GetElemEqns(eqnVec1, surfElem1);
       feFunc2->GetFeSpace()->GetElemEqns(eqnVec2, surfElem2);
     }
@@ -365,8 +366,8 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
     const MortarNcSurfElem* mortarElem =
         dynamic_cast<const MortarNcSurfElem*>(ncElem);
     assert(mortarElem);
-    masterElems->SetRegion(mortarElem->ptMaster->regionId);
-    slaveElems->SetRegion(mortarElem->ptSlave->regionId);
+    masterElems->SetRegion(mortarElem->ptPrimary->regionId);
+    slaveElems->SetRegion(mortarElem->ptSecondary->regionId);
     
     shared_ptr<BaseFeFunction> feFunc1 = this->feFct1_.lock(),
                                feFunc2 = this->feFct2_.lock();
@@ -388,11 +389,11 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
       const std::set<RegionIdType> &regions1 = feFunc1->GetRegions(),
                                    &regions2 = feFunc2->GetRegions();
       
-      if (regions1.find(mortarElem->ptMaster->ptVolElems[0]->regionId)
+      if (regions1.find(mortarElem->ptPrimary->ptVolElems[0]->regionId)
           != regions1.end()) {
         elemList1 = masterElems;
       }
-      else if (regions1.find(mortarElem->ptSlave->ptVolElems[0]->regionId)
+      else if (regions1.find(mortarElem->ptSecondary->ptVolElems[0]->regionId)
           != regions1.end()) {
         elemList1 = slaveElems;
       }
@@ -402,11 +403,11 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
             << SolutionTypeEnum.ToString(solType1) << "'");
       }
       
-      if (regions2.find(mortarElem->ptMaster->ptVolElems[0]->regionId)
+      if (regions2.find(mortarElem->ptPrimary->ptVolElems[0]->regionId)
           != regions2.end()) {
         elemList2 = masterElems;
       }
-      else if (regions2.find(mortarElem->ptSlave->ptVolElems[0]->regionId)
+      else if (regions2.find(mortarElem->ptSecondary->ptVolElems[0]->regionId)
           != regions2.end()) {
         elemList2 = slaveElems;
       }
@@ -456,14 +457,14 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
      //now lets try to downcast to MortarNcSurfElem
      const MortarNcSurfElem * mSe1 = dynamic_cast<const MortarNcSurfElem*>(sElem1);
 
-     if(mSe1->ptMaster->ptVolElems[1] != NULL){
+     if(mSe1->ptPrimary->ptVolElems[1] != nullptr){
        EXCEPTION("Master surface element has not exactly one neighbor... can this be true??")
      }
-     if(mSe1->ptSlave->ptVolElems[1] != NULL){
+     if(mSe1->ptSecondary->ptVolElems[1] != nullptr){
        EXCEPTION("Master surface element has not exactly one neighbor... can this be true??")
      }
-     Elem* volEMaster = mSe1->ptMaster->ptVolElems[0];
-     Elem* volESlave  = mSe1->ptSlave->ptVolElems[0];
+     Elem* volEMaster = mSe1->ptPrimary->ptVolElems[0];
+     Elem* volESlave  = mSe1->ptSecondary->ptVolElems[0];
 
      // Hamideh: In the case of having two different PDEs id1 and id2 could be different and should be assign
      // according to the coupling direction.
@@ -473,25 +474,25 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
      // and feFct2_ is the unknown from slave(velocity-LinFlow PDE)
 
      switch(currentDirection_){
-     case BiLinearForm::MASTER_MASTER:
+     case BiLinearForm::PRIM_PRIM:
        this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
        eqnVec2 = eqnVec1;
        id1 = feFct1_.lock()->GetFctId();
        id2 = feFct1_.lock()->GetFctId();
        break;
-     case BiLinearForm::SLAVE_SLAVE:
+     case BiLinearForm::SEC_SEC:
        this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
        eqnVec2 = eqnVec1;
        id1 = feFct2_.lock()->GetFctId();
        id2 = feFct2_.lock()->GetFctId();
        break;
-     case BiLinearForm::MASTER_SLAVE:
+     case BiLinearForm::PRIM_SEC:
        this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volEMaster);
        this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volESlave);
        id1 = feFct1_.lock()->GetFctId();
        id2 = feFct2_.lock()->GetFctId();
        break;
-     case BiLinearForm::SLAVE_MASTER:
+     case BiLinearForm::SEC_PRIM:
        this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
        this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
        id1 = feFct2_.lock()->GetFctId();
@@ -517,8 +518,8 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
          dynamic_cast<const MortarNcSurfElem*>(ncElem);
      assert(mortarElem);
 
-     masterElems->SetRegion(mortarElem->ptMaster->regionId);
-     slaveElems->SetRegion(mortarElem->ptSlave->regionId);
+     masterElems->SetRegion(mortarElem->ptPrimary->regionId);
+     slaveElems->SetRegion(mortarElem->ptSecondary->regionId);
 
      //now we gather the volume elements
      shared_ptr<ElemList> masterVolElems(new ElemList(ent1_->GetGrid()));
@@ -542,19 +543,19 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
 
      //now we gather all volume elements associated
      switch(currentDirection_){
-     case BiLinearForm::MASTER_MASTER:
+     case BiLinearForm::PRIM_PRIM:
        this->feFct1_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec1,masterVolElems);
        eqnVec2 = eqnVec1;
        break;
-     case BiLinearForm::SLAVE_SLAVE:
+     case BiLinearForm::SEC_SEC:
        this->feFct2_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec1,slaveVolElems);
        eqnVec2 = eqnVec1;
        break;
-     case BiLinearForm::MASTER_SLAVE:
+     case BiLinearForm::PRIM_SEC:
        this->feFct1_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec1,masterVolElems);
        this->feFct2_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec2,slaveVolElems);
        break;
-     case BiLinearForm::SLAVE_MASTER:
+     case BiLinearForm::SEC_PRIM:
        this->feFct1_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec1,slaveVolElems);
        this->feFct2_.lock()->GetFeSpace()->GetEntityListEqns(eqnVec2,masterVolElems);
        break;

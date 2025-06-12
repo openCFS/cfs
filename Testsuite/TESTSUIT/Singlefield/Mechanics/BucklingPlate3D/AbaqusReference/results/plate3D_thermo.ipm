@@ -1,0 +1,31 @@
+<?xml version="1.0"?><msgwrapper><Started><phase type="symconst">BATCHPRE_PHASE</phase><jobName type="string">plate3D_thermo</jobName><clientHost type="string">felab02.ilsb.tuwien.ac.at</clientHost><handle type="integer">0</handle></Started>
+<Warning><message type="string">LOCAL DIRECTION ABOUT WHICH THE ADDITIONAL ROTATION IS GIVEN HAS NOT BEEN SPECIFIED.  THE LOCAL 1 DIRECTION WITH NO ADDITIONAL ROTATION HAS BEEN CHOSEN AS THE DEFAULT.  THE TANGENTIAL DIRECTIONS ON A SURFACE, THE MATERIAL AXES IN THE SHELL, MEMBRANE, OR BEHAVIOR DIRECTIONS IN A GASKET MID-SURFACE ARE THE LOCAL 2 AND 3 DIRECTIONS.</message><phase type="symconst">BATCHPRE_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Warning>
+<Warning><message type="string">OUTPUT REQUEST CF HAS BEEN REMOVED AS THERE ARE NO APPLICABLE LOADS IN THIS STEP</message><phase type="symconst">BATCHPRE_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Warning>
+<Odb_File><file type="string">/work/e01126107/plate_3D_thermo/plate3D_thermo.odb</file><phase type="symconst">BATCHPRE_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_File>
+<Completed><message type="string">Analysis phase complete</message><phase type="symconst">BATCHPRE_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Completed>
+<Started><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName><clientHost type="string">felab02.ilsb.tuwien.ac.at</clientHost><handle type="integer">0</handle></Started>
+<Step><stepId type="integer">1</stepId><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Step>
+<Odb_Frame><step type="integer">0</step><frame type="integer">0</frame><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_Frame>
+<MEMORY_ESTIMATE><memory type="float">36</memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></MEMORY_ESTIMATE>
+<PHYSICAL_MEMORY><physical_memory type="float">64512</physical_memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></PHYSICAL_MEMORY>
+<MINIMUM_MEMORY><minimum_memory type="float">20</minimum_memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></MINIMUM_MEMORY>
+<MEMORY_ESTIMATE><memory type="float">38</memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></MEMORY_ESTIMATE>
+<PHYSICAL_MEMORY><physical_memory type="float">64512</physical_memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></PHYSICAL_MEMORY>
+<MINIMUM_MEMORY><minimum_memory type="float">22</minimum_memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></MINIMUM_MEMORY>
+<Odb_Frame><step type="integer">0</step><frame type="integer">1</frame><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_Frame>
+<Odb_Frame><step type="integer">0</step><frame type="integer">2</frame><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_Frame>
+<Odb_Frame><step type="integer">0</step><frame type="integer">3</frame><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_Frame>
+<Odb_Frame><step type="integer">0</step><frame type="integer">4</frame><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_Frame>
+<Odb_Frame><step type="integer">0</step><frame type="integer">5</frame><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_Frame>
+<Status><step type="integer">1</step><increment type="integer">1</increment><attempts type="integer">1</attempts><severe type="integer">0</severe><equilibrium type="integer">0</equilibrium><iterations type="integer">0</iterations><totalTime type="float">0</totalTime><stepTime type="float">1e-36</stepTime><timeIncrement type="float">1e-36</timeIncrement><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Status>
+<End_Step><stepId type="integer">1</stepId><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></End_Step>
+<Step><stepId type="integer">2</stepId><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Step>
+<Odb_Frame><step type="integer">1</step><frame type="integer">0</frame><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_Frame>
+<MEMORY_ESTIMATE><memory type="float">39</memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></MEMORY_ESTIMATE>
+<PHYSICAL_MEMORY><physical_memory type="float">64512</physical_memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></PHYSICAL_MEMORY>
+<MINIMUM_MEMORY><minimum_memory type="float">23</minimum_memory><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></MINIMUM_MEMORY>
+<Odb_Frame><step type="integer">1</step><frame type="integer">1</frame><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Odb_Frame>
+<Status><step type="integer">2</step><increment type="integer">1</increment><attempts type="integer">1</attempts><severe type="integer">0</severe><equilibrium type="integer">1</equilibrium><iterations type="integer">1</iterations><totalTime type="float">1</totalTime><stepTime type="float">1</stepTime><timeIncrement type="float">1</timeIncrement><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Status>
+<End_Step><stepId type="integer">2</stepId><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></End_Step>
+<Completed><message type="string">Analysis phase complete</message><phase type="symconst">STANDARD_PHASE</phase><jobName type="string">plate3D_thermo</jobName></Completed>
+<JOB_COMPLETED><jobName type="string">plate3D_thermo</jobName><time type="string">Tue Mar 10 19:00:49 2020</time></JOB_COMPLETED></msgwrapper>

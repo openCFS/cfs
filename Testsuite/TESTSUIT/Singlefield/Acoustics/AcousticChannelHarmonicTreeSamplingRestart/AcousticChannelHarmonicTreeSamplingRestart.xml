@@ -1,0 +1,93 @@
+﻿<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+	<documentation>
+		<title>3D Acoustic Channel harmonic simulation using tree stepping (restart aborted simulation)</title>
+		<authors>
+			<author>awurzinger</author>
+		</authors>
+		<date>2023-01-18</date>
+		<keywords>
+			<keyword>acoustic</keyword>
+		</keywords>
+		<references>
+			3D example of Kaltenbacher "Numerical Simulation of Mechatronic Sensors and Actuators"
+		</references>
+		<isVerified>no</isVerified>
+		<description>
+			This example is based on example 'AcousticChannelHarmonicTreeSampling' and 
+			tests the restart functionality in combination with tree stepping for harmonic simulations.
+			Restart is run by `cfs -r -p input.xml jobname`
+		</description>
+	</documentation>
+
+
+	<fileFormats>
+		<input>
+			<hdf5 fileName="AcousticChannelHarmonicTreeSamplingRestart.h5ref"/>
+		</input>
+		<output>
+			<hdf5 />
+			<text />
+		</output>
+		<materialData file="mat.xml" format="xml" />
+	</fileFormats>
+
+	<domain geometryType="3d" printGridInfo="no">
+		<variableList>
+			<var name="k" value="9*pi/2" /> <!-- wave number -->
+			<var name="L" value="1" /> <!-- length of the rectangular domain -->
+		</variableList>
+		<regionList>
+			<region name="inner" material="air" />
+		</regionList>
+		<surfRegionList>
+			<surfRegion name="source" />
+			<surfRegion name="abc" />
+		</surfRegionList>
+		<nodeList>
+			<nodes name="n1">
+				<coord x="0.05" y="0" z="0" />
+			</nodes>
+		</nodeList>
+	</domain>
+	<fePolynomialList>
+		<Legendre id="default">
+			<isoOrder>2</isoOrder>
+		</Legendre>
+	</fePolynomialList>
+	
+	<sequenceStep index="1">
+		<analysis>
+			<harmonic>
+				<numFreq>10</numFreq>
+				<startFreq>1</startFreq>
+				<stopFreq>10</stopFreq>
+				<sampling treeStepping="true">linear</sampling>
+			</harmonic>
+		</analysis>
+
+		<pdeList>
+			<acoustic formulation="acouPressure">
+				<regionList>
+					<region name="inner" polyId="default" />
+				</regionList>
+				<bcsAndLoads>
+					<pressure name="source" value="1.0" coordSysId="default" />
+					<pressure name="abc" value="0.0" coordSysId="default" />
+				</bcsAndLoads>
+				<storeResults>
+					<nodeResult type="acouPressure" complexFormat="realImag">
+						<regionList>
+							<region name="inner" writeResult="yes" />
+						</regionList>
+						<nodeList>
+							<nodes name="n1" />
+						</nodeList>
+					</nodeResult>
+				</storeResults>
+			</acoustic>
+		</pdeList>
+	</sequenceStep>
+
+</cfsSimulation>

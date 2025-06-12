@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>2D cantilever simp + local orientation optimized with external SGP lib</title>
+    <authors>
+      <author>Bich Ngoc Vu</author>
+    </authors>
+    <date>2021-10-27</date>
+    <keywords>
+      <keyword>optimization</keyword>
+    </keywords>    
+    <references> None </references>
+    <isVerified>yes</isVerified>
+    <description> 
+       optimization of topology and local orientation of a 2D cantilever setting 
+       with external SGP lib - same filter is applied to density and angle field
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="Cantilever2dSimpRot.h5ref"/>
+    </input>
+    <output>
+      <hdf5 />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="3" y="0" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west">
+              <comp dof="x"/>
+              <comp dof="y"/>
+           </fix>
+           <force name="load">
+             <comp dof="y" value="-1"/>
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping queue="999" value="0.001" type="designChange"/>
+    </costFunction>
+
+    <constraint type="volume" value="0.3" bound="upperBound" linear="true" mode="constraint" design="density"/>
+<!--     <constraint type="volume" value="0.3" bound="upperBound" linear="true" mode="observation" design="density" access="physical"/> -->
+
+    <optimizer type="sgp" maxIterations="10">
+      <sgp>
+        <!-- value can be 'exact' or 'asymptotes' (=0) -->
+        <option name="approximation" type="string" value="asymptotes"/>
+        <!-- number of levels of hierarichal grid for subproblem -->
+        <option name="levels" type="integer" value="3"/>
+        <!-- number of samples per level on hierarichal grid -->
+        <option name="samples_per_level" type="integer" value="6"/>
+        <!-- number of max. bisection steps for volume multiplier -->
+        <option name="max_bisections" type="integer" value="100"/>
+        <!-- globalization parameters -->
+        <option name="tau_init" type="real" value="1e-3"/>
+        <option name="tau_factor" type="real" value="5"/>
+        <!-- filter type: 'linear' or 'non_linear' -->
+        <option name="filtering" type="string" value="linear"/>
+        <!-- penalty value for regularization term -->
+        <option name="p_filt_density" type="real" value="0.55"/>
+        <option name="p_filt_angle" type="real" value="0.55"/>
+        <!-- lower and upper bounds for volume multiplier (default: 0 and 500) -->
+        <option name="pmin_vol" type="real" value="0"/>
+        <option name="pmax_vol" type="real" value="500"/>
+        <!-- tolerance of stopping criterion for optimization problem (default=1e-6) -->
+        <option name="tolerance" type="real" value="1e-6"/>
+        <!-- tolerance of stopping criterion for volume bisection (default=1e-6) -->
+        <option name="volume_tolerance" type="real" value="1e-4"/> 
+      </sgp>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="paramMat" >
+      <paramMat>
+        <designMaterials>
+          <designMaterial type="density-times-rotated-2dtensor">
+            <!-- define tensor of core material  -->
+            <param name="mech_11" value="1"/>
+            <param name="mech_22" value="0.1"/>
+            <param name="mech_33" value="0.05"/>
+            <param name="mech_23" value="0"/>
+            <param name="mech_13" value="0"/>
+            <param name="mech_12" value="0.02"/>
+          </designMaterial>
+        </designMaterials>
+      </paramMat>
+      <filters write_mat_filt="false" use_mat_filt="true" pass_to_external="true">
+        <filter neighborhood="maxEdge" value="1.7" type="density" design="density"/>
+        <filter neighborhood="maxEdge" value="1.7" type="density" design="rotAngle"/>
+      </filters>
+
+      <design name="density" initial="0.3" physical_lower="1e-9" upper="1.0"/>
+      <design name="rotAngle" initial="0" lower="0" upper="3.14"/>
+
+      <transferFunction design="density" type="simp" application="mech" param="3.0"/>
+      <result value="design" design="density" id="optResult_1" />
+      <result value="design" design="rotAngle" id="optResult_2" />
+      <export save="all" write="iteration"/>
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>
+
+

@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+               xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  
+  <documentation>
+    <title>PolarizedElectrode2D</title>
+    <authors>
+      <author>F. Holzberger</author>
+      <author>F. Heidegger</author>
+      <author>J. Ellmenreich</author>
+    </authors>
+    <date>2021-01-19</date>
+    <keywords>
+      <keyword>electrostatic</keyword>
+    </keywords>
+    <references> http://web.mit.edu/6.013_book/www/chapter6/6.3.html </references>
+    <isVerified>yes</isVerified>
+    <description> 
+      We simulate a electrode with height a=0.001 and length L=0.03 which is constant polarized.
+      The aim of this simulation is to investigate the functionality of the math parser. 
+      The result has to be equal as if one would apply a volumetric charge density, see sequenceStep 2.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <cdb fileName="ConstPolarizedElectrode2D.cdb"/>
+    </input>
+    <output>
+      <hdf5 />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <variableList>
+            <!-- The variables for later use were defined here -->
+       <var name="beta" value="2*pi/0.02"/>
+       <var name="rho_0" value="1e-7"/>
+       <var name="a" value="0.001"/>
+    </variableList>
+    <regionList>
+      <region name="polarized_mat" material="Vacuum" />
+    </regionList>
+  </domain>
+
+
+  <sequenceStep index="1">
+    <analysis>
+      <static />
+    </analysis>
+
+    <pdeList>
+
+      <electrostatic>
+        <regionList>
+          <region name="polarized_mat" />
+        </regionList>
+        <bcsAndLoads>
+					<ground name="ground_boundary"/>			
+					<ground name="side_boundary"/>			
+					<polarization name="polarized_mat">
+						<comp dof="x" value="-rho_0/beta*sin(beta*x)"/>
+						<comp dof="y" value="0"/>
+          </polarization>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="elecFieldIntensity">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </electrostatic>
+
+
+    </pdeList>
+
+  </sequenceStep>
+
+  <sequenceStep index="2">
+    <analysis>
+      <static />
+    </analysis>
+
+    <pdeList>
+
+      <electrostatic>
+        <regionList>
+          <region name="polarized_mat" />
+        </regionList>
+        <bcsAndLoads>
+					<ground name="ground_boundary"/>			
+          <ground name="side_boundary"/>			
+          <chargeDensity name="polarized_mat" value="rho_0*cos(beta*x)"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="elecFieldIntensity">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </electrostatic>
+
+
+    </pdeList>
+
+  </sequenceStep>
+
+</cfsSimulation>

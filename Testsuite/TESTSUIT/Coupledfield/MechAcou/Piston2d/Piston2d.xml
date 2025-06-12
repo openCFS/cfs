@@ -1,0 +1,107 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  <fileFormats>
+    <input>
+      <hdf5/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="solid" material="steel"/>
+      <region name="waterEl" material="water"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="coupleEl"/>      
+    </surfRegionList>
+    <nodeList>
+      <nodes name="acouMech"/>
+      <nodes name="bottom"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>    50    </numSteps> 
+        <deltaT>     5e-05 </deltaT>
+      </transient>
+    </analysis>
+      
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="waterEl"/>
+        </regionList>
+        <storeResults>
+          <nodeResult type="acouPotential">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="acouPotentialD1">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="acouVelocity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </acoustic>
+      
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="solid"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="bottom">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <force name="acouMech">
+            <comp dof="y" value="2e9 * sample1D('sin1k.dat',t,1)"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          
+           <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="mechVelocity">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+        
+      </mechanic>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <acouMechDirect>
+          <surfRegionList>
+            <surfRegion name="coupleEl"/>
+          </surfRegionList>
+        </acouMechDirect>
+      </direct>
+      
+    </couplingList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+    
+  </sequenceStep>
+
+</cfsSimulation>

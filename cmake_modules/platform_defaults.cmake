@@ -10,7 +10,7 @@
 # - on Windows/Mac from platform_defaults_win/mac.cmake (read at the end)
 # - simply manually via ccmake
 
-set(BUILD_TESTING_DEFAULT OFF)
+set(CFS_TESTSUITE_DEFAULT ON)
 set(BUILD_CFSTOOL_DEFAULT ON)
 set(BUILD_CFSDAT_DEFAULT ON)
 set(BUILD_UNIT_TESTS_DEFAULT ON)
@@ -40,6 +40,7 @@ set(USE_PHIST_EV_DEFAULT OFF)
 set(BUILD_GHOST_DEFAULT OFF)
 set(USE_FEAST_DEFAULT ON)
 set(USE_LIS_DEFAULT ON)
+set(USE_GINKGO_DEFAULT ON)
 set(USE_SUPERLU_DEFAULT ON)
 set(USE_CGNS_DEFAULT ON)
 set(USE_METIS_DEFAULT ON)
@@ -59,6 +60,7 @@ set(USE_LIBFBI_DEFAULT OFF)
 set(USE_FLANN_DEFAULT ON)
 
 set(USE_OPENMP_DEFAULT ON) # for Debug usually OFF
+set(USE_CUDA_DEFAULT OFF) 
 
 # ----------------------------------------------------------------------
 # by the following specific platform_defaults values can be overwritten

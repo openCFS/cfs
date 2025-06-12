@@ -1,0 +1,659 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.50" lower=".1" name="density" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <transferFunction application="magnetic" param="1" type="simp"/>
+  </header>
+  <set id="0">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="1">
+    <element nr="1" type="density" design="0.50000066251" physical="0.50000066251"/>
+    <element nr="2" type="density" design="0.50000039912" physical="0.50000039912"/>
+    <element nr="3" type="density" design="0.50000044752" physical="0.50000044752"/>
+    <element nr="4" type="density" design="0.50000016368" physical="0.50000016368"/>
+    <element nr="5" type="density" design="0.50000025989" physical="0.50000025989"/>
+    <element nr="6" type="density" design="0.50000013967" physical="0.50000013967"/>
+    <element nr="7" type="density" design="0.50000021131" physical="0.50000021131"/>
+    <element nr="8" type="density" design="0.50000013506" physical="0.50000013506"/>
+  </set>
+  <set id="2">
+    <element nr="1" type="density" design="0.50000033125" physical="0.50000033125"/>
+    <element nr="2" type="density" design="0.50000019956" physical="0.50000019956"/>
+    <element nr="3" type="density" design="0.50000022376" physical="0.50000022376"/>
+    <element nr="4" type="density" design="0.50000008184" physical="0.50000008184"/>
+    <element nr="5" type="density" design="0.50000012994" physical="0.50000012994"/>
+    <element nr="6" type="density" design="0.50000006983" physical="0.50000006983"/>
+    <element nr="7" type="density" design="0.50000010565" physical="0.50000010565"/>
+    <element nr="8" type="density" design="0.50000006753" physical="0.50000006753"/>
+  </set>
+  <set id="3">
+    <element nr="1" type="density" design="0.50000016563" physical="0.50000016563"/>
+    <element nr="2" type="density" design="0.50000009978" physical="0.50000009978"/>
+    <element nr="3" type="density" design="0.50000011188" physical="0.50000011188"/>
+    <element nr="4" type="density" design="0.50000004092" physical="0.50000004092"/>
+    <element nr="5" type="density" design="0.50000006497" physical="0.50000006497"/>
+    <element nr="6" type="density" design="0.50000003492" physical="0.50000003492"/>
+    <element nr="7" type="density" design="0.50000005283" physical="0.50000005283"/>
+    <element nr="8" type="density" design="0.50000003376" physical="0.50000003376"/>
+  </set>
+  <set id="4">
+    <element nr="1" type="density" design="0.50000008281" physical="0.50000008281"/>
+    <element nr="2" type="density" design="0.50000004989" physical="0.50000004989"/>
+    <element nr="3" type="density" design="0.50000005594" physical="0.50000005594"/>
+    <element nr="4" type="density" design="0.50000002046" physical="0.50000002046"/>
+    <element nr="5" type="density" design="0.50000003249" physical="0.50000003249"/>
+    <element nr="6" type="density" design="0.50000001746" physical="0.50000001746"/>
+    <element nr="7" type="density" design="0.50000002641" physical="0.50000002641"/>
+    <element nr="8" type="density" design="0.50000001688" physical="0.50000001688"/>
+  </set>
+  <set id="5">
+    <element nr="1" type="density" design="0.50000004141" physical="0.50000004141"/>
+    <element nr="2" type="density" design="0.50000002494" physical="0.50000002494"/>
+    <element nr="3" type="density" design="0.50000002797" physical="0.50000002797"/>
+    <element nr="4" type="density" design="0.50000001023" physical="0.50000001023"/>
+    <element nr="5" type="density" design="0.50000001624" physical="0.50000001624"/>
+    <element nr="6" type="density" design="0.50000000873" physical="0.50000000873"/>
+    <element nr="7" type="density" design="0.50000001321" physical="0.50000001321"/>
+    <element nr="8" type="density" design="0.50000000844" physical="0.50000000844"/>
+  </set>
+  <set id="6">
+    <element nr="1" type="density" design="0.5000000207" physical="0.5000000207"/>
+    <element nr="2" type="density" design="0.50000001247" physical="0.50000001247"/>
+    <element nr="3" type="density" design="0.50000001399" physical="0.50000001399"/>
+    <element nr="4" type="density" design="0.50000000512" physical="0.50000000512"/>
+    <element nr="5" type="density" design="0.50000000812" physical="0.50000000812"/>
+    <element nr="6" type="density" design="0.50000000436" physical="0.50000000436"/>
+    <element nr="7" type="density" design="0.5000000066" physical="0.5000000066"/>
+    <element nr="8" type="density" design="0.50000000422" physical="0.50000000422"/>
+  </set>
+  <set id="7">
+    <element nr="1" type="density" design="0.50000001035" physical="0.50000001035"/>
+    <element nr="2" type="density" design="0.50000000624" physical="0.50000000624"/>
+    <element nr="3" type="density" design="0.50000000699" physical="0.50000000699"/>
+    <element nr="4" type="density" design="0.50000000256" physical="0.50000000256"/>
+    <element nr="5" type="density" design="0.50000000406" physical="0.50000000406"/>
+    <element nr="6" type="density" design="0.50000000218" physical="0.50000000218"/>
+    <element nr="7" type="density" design="0.5000000033" physical="0.5000000033"/>
+    <element nr="8" type="density" design="0.50000000211" physical="0.50000000211"/>
+  </set>
+  <set id="8">
+    <element nr="1" type="density" design="0.50000000518" physical="0.50000000518"/>
+    <element nr="2" type="density" design="0.50000000312" physical="0.50000000312"/>
+    <element nr="3" type="density" design="0.5000000035" physical="0.5000000035"/>
+    <element nr="4" type="density" design="0.50000000128" physical="0.50000000128"/>
+    <element nr="5" type="density" design="0.50000000203" physical="0.50000000203"/>
+    <element nr="6" type="density" design="0.50000000109" physical="0.50000000109"/>
+    <element nr="7" type="density" design="0.50000000165" physical="0.50000000165"/>
+    <element nr="8" type="density" design="0.50000000106" physical="0.50000000106"/>
+  </set>
+  <set id="9">
+    <element nr="1" type="density" design="0.50000000259" physical="0.50000000259"/>
+    <element nr="2" type="density" design="0.50000000156" physical="0.50000000156"/>
+    <element nr="3" type="density" design="0.50000000175" physical="0.50000000175"/>
+    <element nr="4" type="density" design="0.50000000064" physical="0.50000000064"/>
+    <element nr="5" type="density" design="0.50000000102" physical="0.50000000102"/>
+    <element nr="6" type="density" design="0.50000000055" physical="0.50000000055"/>
+    <element nr="7" type="density" design="0.50000000083" physical="0.50000000083"/>
+    <element nr="8" type="density" design="0.50000000053" physical="0.50000000053"/>
+  </set>
+  <set id="10">
+    <element nr="1" type="density" design="0.50000000129" physical="0.50000000129"/>
+    <element nr="2" type="density" design="0.50000000078" physical="0.50000000078"/>
+    <element nr="3" type="density" design="0.50000000087" physical="0.50000000087"/>
+    <element nr="4" type="density" design="0.50000000032" physical="0.50000000032"/>
+    <element nr="5" type="density" design="0.50000000051" physical="0.50000000051"/>
+    <element nr="6" type="density" design="0.50000000027" physical="0.50000000027"/>
+    <element nr="7" type="density" design="0.50000000041" physical="0.50000000041"/>
+    <element nr="8" type="density" design="0.50000000026" physical="0.50000000026"/>
+  </set>
+  <set id="11">
+    <element nr="1" type="density" design="0.50000000065" physical="0.50000000065"/>
+    <element nr="2" type="density" design="0.50000000039" physical="0.50000000039"/>
+    <element nr="3" type="density" design="0.50000000044" physical="0.50000000044"/>
+    <element nr="4" type="density" design="0.50000000016" physical="0.50000000016"/>
+    <element nr="5" type="density" design="0.50000000025" physical="0.50000000025"/>
+    <element nr="6" type="density" design="0.50000000014" physical="0.50000000014"/>
+    <element nr="7" type="density" design="0.50000000021" physical="0.50000000021"/>
+    <element nr="8" type="density" design="0.50000000013" physical="0.50000000013"/>
+  </set>
+  <set id="12">
+    <element nr="1" type="density" design="0.50000000032" physical="0.50000000032"/>
+    <element nr="2" type="density" design="0.50000000019" physical="0.50000000019"/>
+    <element nr="3" type="density" design="0.50000000022" physical="0.50000000022"/>
+    <element nr="4" type="density" design="0.50000000008" physical="0.50000000008"/>
+    <element nr="5" type="density" design="0.50000000013" physical="0.50000000013"/>
+    <element nr="6" type="density" design="0.50000000007" physical="0.50000000007"/>
+    <element nr="7" type="density" design="0.5000000001" physical="0.5000000001"/>
+    <element nr="8" type="density" design="0.50000000007" physical="0.50000000007"/>
+  </set>
+  <set id="13">
+    <element nr="1" type="density" design="0.50000000016" physical="0.50000000016"/>
+    <element nr="2" type="density" design="0.5000000001" physical="0.5000000001"/>
+    <element nr="3" type="density" design="0.50000000011" physical="0.50000000011"/>
+    <element nr="4" type="density" design="0.50000000004" physical="0.50000000004"/>
+    <element nr="5" type="density" design="0.50000000006" physical="0.50000000006"/>
+    <element nr="6" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="7" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="8" type="density" design="0.50000000003" physical="0.50000000003"/>
+  </set>
+  <set id="14">
+    <element nr="1" type="density" design="0.50000000008" physical="0.50000000008"/>
+    <element nr="2" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="3" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="4" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="5" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="6" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="7" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="8" type="density" design="0.50000000002" physical="0.50000000002"/>
+  </set>
+  <set id="15">
+    <element nr="1" type="density" design="0.50000000004" physical="0.50000000004"/>
+    <element nr="2" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="3" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="4" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="5" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="6" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="7" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="8" type="density" design="0.50000000001" physical="0.50000000001"/>
+  </set>
+  <set id="16">
+    <element nr="1" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="2" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="3" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="17">
+    <element nr="1" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="2" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="3" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="18">
+    <element nr="1" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="19">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="20">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="21">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="22">
+    <element nr="1" type="density" design="0.50000066251" physical="0.50000066251"/>
+    <element nr="2" type="density" design="0.50000039912" physical="0.50000039912"/>
+    <element nr="3" type="density" design="0.50000044752" physical="0.50000044752"/>
+    <element nr="4" type="density" design="0.50000016368" physical="0.50000016368"/>
+    <element nr="5" type="density" design="0.50000025989" physical="0.50000025989"/>
+    <element nr="6" type="density" design="0.50000013967" physical="0.50000013967"/>
+    <element nr="7" type="density" design="0.50000021131" physical="0.50000021131"/>
+    <element nr="8" type="density" design="0.50000013506" physical="0.50000013506"/>
+  </set>
+  <set id="23">
+    <element nr="1" type="density" design="0.50000033125" physical="0.50000033125"/>
+    <element nr="2" type="density" design="0.50000019956" physical="0.50000019956"/>
+    <element nr="3" type="density" design="0.50000022376" physical="0.50000022376"/>
+    <element nr="4" type="density" design="0.50000008184" physical="0.50000008184"/>
+    <element nr="5" type="density" design="0.50000012994" physical="0.50000012994"/>
+    <element nr="6" type="density" design="0.50000006983" physical="0.50000006983"/>
+    <element nr="7" type="density" design="0.50000010565" physical="0.50000010565"/>
+    <element nr="8" type="density" design="0.50000006753" physical="0.50000006753"/>
+  </set>
+  <set id="24">
+    <element nr="1" type="density" design="0.50000016563" physical="0.50000016563"/>
+    <element nr="2" type="density" design="0.50000009978" physical="0.50000009978"/>
+    <element nr="3" type="density" design="0.50000011188" physical="0.50000011188"/>
+    <element nr="4" type="density" design="0.50000004092" physical="0.50000004092"/>
+    <element nr="5" type="density" design="0.50000006497" physical="0.50000006497"/>
+    <element nr="6" type="density" design="0.50000003492" physical="0.50000003492"/>
+    <element nr="7" type="density" design="0.50000005283" physical="0.50000005283"/>
+    <element nr="8" type="density" design="0.50000003376" physical="0.50000003376"/>
+  </set>
+  <set id="25">
+    <element nr="1" type="density" design="0.50000008281" physical="0.50000008281"/>
+    <element nr="2" type="density" design="0.50000004989" physical="0.50000004989"/>
+    <element nr="3" type="density" design="0.50000005594" physical="0.50000005594"/>
+    <element nr="4" type="density" design="0.50000002046" physical="0.50000002046"/>
+    <element nr="5" type="density" design="0.50000003249" physical="0.50000003249"/>
+    <element nr="6" type="density" design="0.50000001746" physical="0.50000001746"/>
+    <element nr="7" type="density" design="0.50000002641" physical="0.50000002641"/>
+    <element nr="8" type="density" design="0.50000001688" physical="0.50000001688"/>
+  </set>
+  <set id="26">
+    <element nr="1" type="density" design="0.50000004141" physical="0.50000004141"/>
+    <element nr="2" type="density" design="0.50000002494" physical="0.50000002494"/>
+    <element nr="3" type="density" design="0.50000002797" physical="0.50000002797"/>
+    <element nr="4" type="density" design="0.50000001023" physical="0.50000001023"/>
+    <element nr="5" type="density" design="0.50000001624" physical="0.50000001624"/>
+    <element nr="6" type="density" design="0.50000000873" physical="0.50000000873"/>
+    <element nr="7" type="density" design="0.50000001321" physical="0.50000001321"/>
+    <element nr="8" type="density" design="0.50000000844" physical="0.50000000844"/>
+  </set>
+  <set id="27">
+    <element nr="1" type="density" design="0.5000000207" physical="0.5000000207"/>
+    <element nr="2" type="density" design="0.50000001247" physical="0.50000001247"/>
+    <element nr="3" type="density" design="0.50000001399" physical="0.50000001399"/>
+    <element nr="4" type="density" design="0.50000000512" physical="0.50000000512"/>
+    <element nr="5" type="density" design="0.50000000812" physical="0.50000000812"/>
+    <element nr="6" type="density" design="0.50000000436" physical="0.50000000436"/>
+    <element nr="7" type="density" design="0.5000000066" physical="0.5000000066"/>
+    <element nr="8" type="density" design="0.50000000422" physical="0.50000000422"/>
+  </set>
+  <set id="28">
+    <element nr="1" type="density" design="0.50000001035" physical="0.50000001035"/>
+    <element nr="2" type="density" design="0.50000000624" physical="0.50000000624"/>
+    <element nr="3" type="density" design="0.50000000699" physical="0.50000000699"/>
+    <element nr="4" type="density" design="0.50000000256" physical="0.50000000256"/>
+    <element nr="5" type="density" design="0.50000000406" physical="0.50000000406"/>
+    <element nr="6" type="density" design="0.50000000218" physical="0.50000000218"/>
+    <element nr="7" type="density" design="0.5000000033" physical="0.5000000033"/>
+    <element nr="8" type="density" design="0.50000000211" physical="0.50000000211"/>
+  </set>
+  <set id="29">
+    <element nr="1" type="density" design="0.50000000518" physical="0.50000000518"/>
+    <element nr="2" type="density" design="0.50000000312" physical="0.50000000312"/>
+    <element nr="3" type="density" design="0.5000000035" physical="0.5000000035"/>
+    <element nr="4" type="density" design="0.50000000128" physical="0.50000000128"/>
+    <element nr="5" type="density" design="0.50000000203" physical="0.50000000203"/>
+    <element nr="6" type="density" design="0.50000000109" physical="0.50000000109"/>
+    <element nr="7" type="density" design="0.50000000165" physical="0.50000000165"/>
+    <element nr="8" type="density" design="0.50000000106" physical="0.50000000106"/>
+  </set>
+  <set id="30">
+    <element nr="1" type="density" design="0.50000000259" physical="0.50000000259"/>
+    <element nr="2" type="density" design="0.50000000156" physical="0.50000000156"/>
+    <element nr="3" type="density" design="0.50000000175" physical="0.50000000175"/>
+    <element nr="4" type="density" design="0.50000000064" physical="0.50000000064"/>
+    <element nr="5" type="density" design="0.50000000102" physical="0.50000000102"/>
+    <element nr="6" type="density" design="0.50000000055" physical="0.50000000055"/>
+    <element nr="7" type="density" design="0.50000000083" physical="0.50000000083"/>
+    <element nr="8" type="density" design="0.50000000053" physical="0.50000000053"/>
+  </set>
+  <set id="31">
+    <element nr="1" type="density" design="0.50000000129" physical="0.50000000129"/>
+    <element nr="2" type="density" design="0.50000000078" physical="0.50000000078"/>
+    <element nr="3" type="density" design="0.50000000087" physical="0.50000000087"/>
+    <element nr="4" type="density" design="0.50000000032" physical="0.50000000032"/>
+    <element nr="5" type="density" design="0.50000000051" physical="0.50000000051"/>
+    <element nr="6" type="density" design="0.50000000027" physical="0.50000000027"/>
+    <element nr="7" type="density" design="0.50000000041" physical="0.50000000041"/>
+    <element nr="8" type="density" design="0.50000000026" physical="0.50000000026"/>
+  </set>
+  <set id="32">
+    <element nr="1" type="density" design="0.50000000065" physical="0.50000000065"/>
+    <element nr="2" type="density" design="0.50000000039" physical="0.50000000039"/>
+    <element nr="3" type="density" design="0.50000000044" physical="0.50000000044"/>
+    <element nr="4" type="density" design="0.50000000016" physical="0.50000000016"/>
+    <element nr="5" type="density" design="0.50000000025" physical="0.50000000025"/>
+    <element nr="6" type="density" design="0.50000000014" physical="0.50000000014"/>
+    <element nr="7" type="density" design="0.50000000021" physical="0.50000000021"/>
+    <element nr="8" type="density" design="0.50000000013" physical="0.50000000013"/>
+  </set>
+  <set id="33">
+    <element nr="1" type="density" design="0.50000000032" physical="0.50000000032"/>
+    <element nr="2" type="density" design="0.50000000019" physical="0.50000000019"/>
+    <element nr="3" type="density" design="0.50000000022" physical="0.50000000022"/>
+    <element nr="4" type="density" design="0.50000000008" physical="0.50000000008"/>
+    <element nr="5" type="density" design="0.50000000013" physical="0.50000000013"/>
+    <element nr="6" type="density" design="0.50000000007" physical="0.50000000007"/>
+    <element nr="7" type="density" design="0.5000000001" physical="0.5000000001"/>
+    <element nr="8" type="density" design="0.50000000007" physical="0.50000000007"/>
+  </set>
+  <set id="34">
+    <element nr="1" type="density" design="0.50000000016" physical="0.50000000016"/>
+    <element nr="2" type="density" design="0.5000000001" physical="0.5000000001"/>
+    <element nr="3" type="density" design="0.50000000011" physical="0.50000000011"/>
+    <element nr="4" type="density" design="0.50000000004" physical="0.50000000004"/>
+    <element nr="5" type="density" design="0.50000000006" physical="0.50000000006"/>
+    <element nr="6" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="7" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="8" type="density" design="0.50000000003" physical="0.50000000003"/>
+  </set>
+  <set id="35">
+    <element nr="1" type="density" design="0.50000000008" physical="0.50000000008"/>
+    <element nr="2" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="3" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="4" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="5" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="6" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="7" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="8" type="density" design="0.50000000002" physical="0.50000000002"/>
+  </set>
+  <set id="36">
+    <element nr="1" type="density" design="0.50000000004" physical="0.50000000004"/>
+    <element nr="2" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="3" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="4" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="5" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="6" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="7" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="8" type="density" design="0.50000000001" physical="0.50000000001"/>
+  </set>
+  <set id="37">
+    <element nr="1" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="2" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="3" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="38">
+    <element nr="1" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="2" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="3" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="39">
+    <element nr="1" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="40">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="41">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="42">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="43">
+    <element nr="1" type="density" design="0.50000066251" physical="0.50000066251"/>
+    <element nr="2" type="density" design="0.50000039912" physical="0.50000039912"/>
+    <element nr="3" type="density" design="0.50000044752" physical="0.50000044752"/>
+    <element nr="4" type="density" design="0.50000016368" physical="0.50000016368"/>
+    <element nr="5" type="density" design="0.50000025989" physical="0.50000025989"/>
+    <element nr="6" type="density" design="0.50000013967" physical="0.50000013967"/>
+    <element nr="7" type="density" design="0.50000021131" physical="0.50000021131"/>
+    <element nr="8" type="density" design="0.50000013506" physical="0.50000013506"/>
+  </set>
+  <set id="44">
+    <element nr="1" type="density" design="0.50000033125" physical="0.50000033125"/>
+    <element nr="2" type="density" design="0.50000019956" physical="0.50000019956"/>
+    <element nr="3" type="density" design="0.50000022376" physical="0.50000022376"/>
+    <element nr="4" type="density" design="0.50000008184" physical="0.50000008184"/>
+    <element nr="5" type="density" design="0.50000012994" physical="0.50000012994"/>
+    <element nr="6" type="density" design="0.50000006983" physical="0.50000006983"/>
+    <element nr="7" type="density" design="0.50000010565" physical="0.50000010565"/>
+    <element nr="8" type="density" design="0.50000006753" physical="0.50000006753"/>
+  </set>
+  <set id="45">
+    <element nr="1" type="density" design="0.50000016563" physical="0.50000016563"/>
+    <element nr="2" type="density" design="0.50000009978" physical="0.50000009978"/>
+    <element nr="3" type="density" design="0.50000011188" physical="0.50000011188"/>
+    <element nr="4" type="density" design="0.50000004092" physical="0.50000004092"/>
+    <element nr="5" type="density" design="0.50000006497" physical="0.50000006497"/>
+    <element nr="6" type="density" design="0.50000003492" physical="0.50000003492"/>
+    <element nr="7" type="density" design="0.50000005283" physical="0.50000005283"/>
+    <element nr="8" type="density" design="0.50000003376" physical="0.50000003376"/>
+  </set>
+  <set id="46">
+    <element nr="1" type="density" design="0.50000008281" physical="0.50000008281"/>
+    <element nr="2" type="density" design="0.50000004989" physical="0.50000004989"/>
+    <element nr="3" type="density" design="0.50000005594" physical="0.50000005594"/>
+    <element nr="4" type="density" design="0.50000002046" physical="0.50000002046"/>
+    <element nr="5" type="density" design="0.50000003249" physical="0.50000003249"/>
+    <element nr="6" type="density" design="0.50000001746" physical="0.50000001746"/>
+    <element nr="7" type="density" design="0.50000002641" physical="0.50000002641"/>
+    <element nr="8" type="density" design="0.50000001688" physical="0.50000001688"/>
+  </set>
+  <set id="47">
+    <element nr="1" type="density" design="0.50000004141" physical="0.50000004141"/>
+    <element nr="2" type="density" design="0.50000002494" physical="0.50000002494"/>
+    <element nr="3" type="density" design="0.50000002797" physical="0.50000002797"/>
+    <element nr="4" type="density" design="0.50000001023" physical="0.50000001023"/>
+    <element nr="5" type="density" design="0.50000001624" physical="0.50000001624"/>
+    <element nr="6" type="density" design="0.50000000873" physical="0.50000000873"/>
+    <element nr="7" type="density" design="0.50000001321" physical="0.50000001321"/>
+    <element nr="8" type="density" design="0.50000000844" physical="0.50000000844"/>
+  </set>
+  <set id="48">
+    <element nr="1" type="density" design="0.5000000207" physical="0.5000000207"/>
+    <element nr="2" type="density" design="0.50000001247" physical="0.50000001247"/>
+    <element nr="3" type="density" design="0.50000001399" physical="0.50000001399"/>
+    <element nr="4" type="density" design="0.50000000512" physical="0.50000000512"/>
+    <element nr="5" type="density" design="0.50000000812" physical="0.50000000812"/>
+    <element nr="6" type="density" design="0.50000000436" physical="0.50000000436"/>
+    <element nr="7" type="density" design="0.5000000066" physical="0.5000000066"/>
+    <element nr="8" type="density" design="0.50000000422" physical="0.50000000422"/>
+  </set>
+  <set id="49">
+    <element nr="1" type="density" design="0.50000001035" physical="0.50000001035"/>
+    <element nr="2" type="density" design="0.50000000624" physical="0.50000000624"/>
+    <element nr="3" type="density" design="0.50000000699" physical="0.50000000699"/>
+    <element nr="4" type="density" design="0.50000000256" physical="0.50000000256"/>
+    <element nr="5" type="density" design="0.50000000406" physical="0.50000000406"/>
+    <element nr="6" type="density" design="0.50000000218" physical="0.50000000218"/>
+    <element nr="7" type="density" design="0.5000000033" physical="0.5000000033"/>
+    <element nr="8" type="density" design="0.50000000211" physical="0.50000000211"/>
+  </set>
+  <set id="50">
+    <element nr="1" type="density" design="0.50000000518" physical="0.50000000518"/>
+    <element nr="2" type="density" design="0.50000000312" physical="0.50000000312"/>
+    <element nr="3" type="density" design="0.5000000035" physical="0.5000000035"/>
+    <element nr="4" type="density" design="0.50000000128" physical="0.50000000128"/>
+    <element nr="5" type="density" design="0.50000000203" physical="0.50000000203"/>
+    <element nr="6" type="density" design="0.50000000109" physical="0.50000000109"/>
+    <element nr="7" type="density" design="0.50000000165" physical="0.50000000165"/>
+    <element nr="8" type="density" design="0.50000000106" physical="0.50000000106"/>
+  </set>
+  <set id="51">
+    <element nr="1" type="density" design="0.50000000259" physical="0.50000000259"/>
+    <element nr="2" type="density" design="0.50000000156" physical="0.50000000156"/>
+    <element nr="3" type="density" design="0.50000000175" physical="0.50000000175"/>
+    <element nr="4" type="density" design="0.50000000064" physical="0.50000000064"/>
+    <element nr="5" type="density" design="0.50000000102" physical="0.50000000102"/>
+    <element nr="6" type="density" design="0.50000000055" physical="0.50000000055"/>
+    <element nr="7" type="density" design="0.50000000083" physical="0.50000000083"/>
+    <element nr="8" type="density" design="0.50000000053" physical="0.50000000053"/>
+  </set>
+  <set id="52">
+    <element nr="1" type="density" design="0.50000000129" physical="0.50000000129"/>
+    <element nr="2" type="density" design="0.50000000078" physical="0.50000000078"/>
+    <element nr="3" type="density" design="0.50000000087" physical="0.50000000087"/>
+    <element nr="4" type="density" design="0.50000000032" physical="0.50000000032"/>
+    <element nr="5" type="density" design="0.50000000051" physical="0.50000000051"/>
+    <element nr="6" type="density" design="0.50000000027" physical="0.50000000027"/>
+    <element nr="7" type="density" design="0.50000000041" physical="0.50000000041"/>
+    <element nr="8" type="density" design="0.50000000026" physical="0.50000000026"/>
+  </set>
+  <set id="53">
+    <element nr="1" type="density" design="0.50000000065" physical="0.50000000065"/>
+    <element nr="2" type="density" design="0.50000000039" physical="0.50000000039"/>
+    <element nr="3" type="density" design="0.50000000044" physical="0.50000000044"/>
+    <element nr="4" type="density" design="0.50000000016" physical="0.50000000016"/>
+    <element nr="5" type="density" design="0.50000000025" physical="0.50000000025"/>
+    <element nr="6" type="density" design="0.50000000014" physical="0.50000000014"/>
+    <element nr="7" type="density" design="0.50000000021" physical="0.50000000021"/>
+    <element nr="8" type="density" design="0.50000000013" physical="0.50000000013"/>
+  </set>
+  <set id="54">
+    <element nr="1" type="density" design="0.50000000032" physical="0.50000000032"/>
+    <element nr="2" type="density" design="0.50000000019" physical="0.50000000019"/>
+    <element nr="3" type="density" design="0.50000000022" physical="0.50000000022"/>
+    <element nr="4" type="density" design="0.50000000008" physical="0.50000000008"/>
+    <element nr="5" type="density" design="0.50000000013" physical="0.50000000013"/>
+    <element nr="6" type="density" design="0.50000000007" physical="0.50000000007"/>
+    <element nr="7" type="density" design="0.5000000001" physical="0.5000000001"/>
+    <element nr="8" type="density" design="0.50000000007" physical="0.50000000007"/>
+  </set>
+  <set id="55">
+    <element nr="1" type="density" design="0.50000000016" physical="0.50000000016"/>
+    <element nr="2" type="density" design="0.5000000001" physical="0.5000000001"/>
+    <element nr="3" type="density" design="0.50000000011" physical="0.50000000011"/>
+    <element nr="4" type="density" design="0.50000000004" physical="0.50000000004"/>
+    <element nr="5" type="density" design="0.50000000006" physical="0.50000000006"/>
+    <element nr="6" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="7" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="8" type="density" design="0.50000000003" physical="0.50000000003"/>
+  </set>
+  <set id="56">
+    <element nr="1" type="density" design="0.50000000008" physical="0.50000000008"/>
+    <element nr="2" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="3" type="density" design="0.50000000005" physical="0.50000000005"/>
+    <element nr="4" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="5" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="6" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="7" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="8" type="density" design="0.50000000002" physical="0.50000000002"/>
+  </set>
+  <set id="57">
+    <element nr="1" type="density" design="0.50000000004" physical="0.50000000004"/>
+    <element nr="2" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="3" type="density" design="0.50000000003" physical="0.50000000003"/>
+    <element nr="4" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="5" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="6" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="7" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="8" type="density" design="0.50000000001" physical="0.50000000001"/>
+  </set>
+  <set id="58">
+    <element nr="1" type="density" design="0.50000000002" physical="0.50000000002"/>
+    <element nr="2" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="3" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="59">
+    <element nr="1" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="2" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="3" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="60">
+    <element nr="1" type="density" design="0.50000000001" physical="0.50000000001"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="61">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="62">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="63">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="64">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+</cfsErsatzMaterial>

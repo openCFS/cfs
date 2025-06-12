@@ -1,0 +1,4 @@
+#cmakedefine USE_CUDA
+
+// we do find_package(CUDAToolkit)
+#define CUDAToolkit_VERSION "@CUDAToolkit_VERSION@"

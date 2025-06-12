@@ -1,0 +1,353 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="48" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.345s" wall="0.345" cpu="0.372171" calls="1"/>
+  </summary>
+  <header id="">
+    <environment started="2024-Aug-07 19:44:21" host="aa6a0cf6-8114-4756-8f0a-541099d9ef10.fritz.box"/>
+    <progOpts problem="dynamic_bimat" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/dynamic_bimat/dynamic_bimat.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="24.03" name="Ideal Implementation" build="RELEASE" git_commit="8c4886e639db84000756f6a086407e923d6d723b" git_branch="pathplan" compiled="Aug  2 2024" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="20" ny="13" nz="1">
+      <grids>
+        <timer wall-clock="0.01s" wall="0.01" cpu="0.009706" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="260" nodes="294"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="294" elems="260" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="14"/>
+        <nodes name="east" count="14"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(3,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,2)"/>
+        <nodes name="right_upper" count="1" coord="(3,2)"/>
+        <nodes name="right_center" count="1" coord="(3,1.07692)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="200" nx="20" ny="13" nz="1" step="1" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.073s" wall="0.073" cpu="0.119715" calls="336"/>
+    </results>
+  </header>
+  <calculation>
+    <process>
+      <sequence step="0">
+        <result data="mechDisplacement" location="right_lower" definedOn="node">
+          <item step="0" step_val="0" x="(0.039602,0)" y="(0.13135,0)" unit="m" id="21"/>
+          <item step="1" step_val="1" x="(-0.28174,0)" y="(-0.1272,0)" unit="m" id="21"/>
+          <item step="2" step_val="2" x="(0.028299,0)" y="(0.10606,0)" unit="m" id="21"/>
+          <item step="3" step_val="3" x="(0.0014244,0)" y="(0.036926,0)" unit="m" id="21"/>
+          <item step="4" step_val="4" x="(0.0007108,0)" y="(0.032917,0)" unit="m" id="21"/>
+          <item step="5" step_val="5" x="(-1.4496,0)" y="(-0.10755,0)" unit="m" id="21"/>
+          <item step="6" step_val="6" x="(0.013584,0)" y="(0.05722,0)" unit="m" id="21"/>
+          <item step="7" step_val="7" x="(-0.0043243,0)" y="(0.035398,0)" unit="m" id="21"/>
+          <item step="8" step_val="8" x="(0.0099557,0)" y="(0.038016,0)" unit="m" id="21"/>
+          <item step="9" step_val="9" x="(0.0058078,0)" y="(0.036929,0)" unit="m" id="21"/>
+          <item step="10" step_val="10" x="(0.0032355,0)" y="(0.03458,0)" unit="m" id="21"/>
+          <item step="11" step_val="11" x="(0.0041553,0)" y="(0.034181,0)" unit="m" id="21"/>
+          <item step="12" step_val="12" x="(-0.0074873,0)" y="(0.034054,0)" unit="m" id="21"/>
+          <item step="13" step_val="13" x="(0.0078082,0)" y="(0.037915,0)" unit="m" id="21"/>
+          <item step="14" step_val="14" x="(0.0053298,0)" y="(0.035646,0)" unit="m" id="21"/>
+          <item step="15" step_val="15" x="(0.0033628,0)" y="(0.034889,0)" unit="m" id="21"/>
+          <item step="16" step_val="16" x="(0.010361,0)" y="(0.034133,0)" unit="m" id="21"/>
+          <item step="17" step_val="17" x="(0.0017687,0)" y="(0.036711,0)" unit="m" id="21"/>
+          <item step="18" step_val="18" x="(0.0036554,0)" y="(0.035802,0)" unit="m" id="21"/>
+          <item step="19" step_val="19" x="(0.0045806,0)" y="(0.035017,0)" unit="m" id="21"/>
+          <item step="20" step_val="20" x="(0.0038087,0)" y="(0.034707,0)" unit="m" id="21"/>
+        </result>
+        <result data="mechKinEnergy" location="mech" definedOn="region">
+          <item step="0" step_val="0" value="(0.00015502,0)" unit="Ws"/>
+          <item step="1" step_val="1" value="(0.0013499,0)" unit="Ws"/>
+          <item step="2" step_val="2" value="(0.00010983,0)" unit="Ws"/>
+          <item step="3" step_val="3" value="(2.7508e-05,0)" unit="Ws"/>
+          <item step="4" step_val="4" value="(2.3357e-05,0)" unit="Ws"/>
+          <item step="5" step_val="5" value="(0.02987,0)" unit="Ws"/>
+          <item step="6" step_val="6" value="(4.077e-05,0)" unit="Ws"/>
+          <item step="7" step_val="7" value="(2.5231e-05,0)" unit="Ws"/>
+          <item step="8" step_val="8" value="(2.6022e-05,0)" unit="Ws"/>
+          <item step="9" step_val="9" value="(2.3806e-05,0)" unit="Ws"/>
+          <item step="10" step_val="10" value="(2.2413e-05,0)" unit="Ws"/>
+          <item step="11" step_val="11" value="(2.2036e-05,0)" unit="Ws"/>
+          <item step="12" step_val="12" value="(2.4291e-05,0)" unit="Ws"/>
+          <item step="13" step_val="13" value="(2.4137e-05,0)" unit="Ws"/>
+          <item step="14" step_val="14" value="(2.2564e-05,0)" unit="Ws"/>
+          <item step="15" step_val="15" value="(2.1976e-05,0)" unit="Ws"/>
+          <item step="16" step_val="16" value="(2.2809e-05,0)" unit="Ws"/>
+          <item step="17" step_val="17" value="(2.3036e-05,0)" unit="Ws"/>
+          <item step="18" step_val="18" value="(2.2227e-05,0)" unit="Ws"/>
+          <item step="19" step_val="19" value="(2.1744e-05,0)" unit="Ws"/>
+          <item step="20" step_val="20" value="(2.155e-05,0)" unit="Ws"/>
+        </result>
+        <result data="mechDeformEnergy" location="mech" definedOn="region">
+          <item step="0" step_val="0" value="(9.5625e-05,0)" unit="Ws"/>
+          <item step="1" step_val="1" value="(0.0014145,0)" unit="Ws"/>
+          <item step="2" step_val="2" value="(6.2344e-05,0)" unit="Ws"/>
+          <item step="3" step_val="3" value="(1.0863e-05,0)" unit="Ws"/>
+          <item step="4" step_val="4" value="(8.108e-06,0)" unit="Ws"/>
+          <item step="5" step_val="5" value="(0.029935,0)" unit="Ws"/>
+          <item step="6" step_val="6" value="(1.5279e-05,0)" unit="Ws"/>
+          <item step="7" step_val="7" value="(9.0671e-06,0)" unit="Ws"/>
+          <item step="8" step_val="8" value="(8.4281e-06,0)" unit="Ws"/>
+          <item step="9" step_val="9" value="(6.5162e-06,0)" unit="Ws"/>
+          <item step="10" step_val="10" value="(6.0699e-06,0)" unit="Ws"/>
+          <item step="11" step_val="11" value="(5.841e-06,0)" unit="Ws"/>
+          <item step="12" step_val="12" value="(8.2683e-06,0)" unit="Ws"/>
+          <item step="13" step_val="13" value="(6.2387e-06,0)" unit="Ws"/>
+          <item step="14" step_val="14" value="(5.6931e-06,0)" unit="Ws"/>
+          <item step="15" step_val="15" value="(5.442e-06,0)" unit="Ws"/>
+          <item step="16" step_val="16" value="(6.5707e-06,0)" unit="Ws"/>
+          <item step="17" step_val="17" value="(5.8259e-06,0)" unit="Ws"/>
+          <item step="18" step_val="18" value="(5.332e-06,0)" unit="Ws"/>
+          <item step="19" step_val="19" value="(5.1464e-06,0)" unit="Ws"/>
+          <item step="20" step_val="20" value="(5.1058e-06,0)" unit="Ws"/>
+        </result>
+        <result data="mechTotalEnergy" location="mech" definedOn="region">
+          <item step="0" step_val="0" value="(0.00025065,0)" unit="Ws"/>
+          <item step="1" step_val="1" value="(0.0027644,0)" unit="Ws"/>
+          <item step="2" step_val="2" value="(0.00017217,0)" unit="Ws"/>
+          <item step="3" step_val="3" value="(3.8371e-05,0)" unit="Ws"/>
+          <item step="4" step_val="4" value="(3.1465e-05,0)" unit="Ws"/>
+          <item step="5" step_val="5" value="(0.059805,0)" unit="Ws"/>
+          <item step="6" step_val="6" value="(5.605e-05,0)" unit="Ws"/>
+          <item step="7" step_val="7" value="(3.4298e-05,0)" unit="Ws"/>
+          <item step="8" step_val="8" value="(3.445e-05,0)" unit="Ws"/>
+          <item step="9" step_val="9" value="(3.0322e-05,0)" unit="Ws"/>
+          <item step="10" step_val="10" value="(2.8483e-05,0)" unit="Ws"/>
+          <item step="11" step_val="11" value="(2.7877e-05,0)" unit="Ws"/>
+          <item step="12" step_val="12" value="(3.2559e-05,0)" unit="Ws"/>
+          <item step="13" step_val="13" value="(3.0376e-05,0)" unit="Ws"/>
+          <item step="14" step_val="14" value="(2.8257e-05,0)" unit="Ws"/>
+          <item step="15" step_val="15" value="(2.7418e-05,0)" unit="Ws"/>
+          <item step="16" step_val="16" value="(2.938e-05,0)" unit="Ws"/>
+          <item step="17" step_val="17" value="(2.8861e-05,0)" unit="Ws"/>
+          <item step="18" step_val="18" value="(2.7559e-05,0)" unit="Ws"/>
+          <item step="19" step_val="19" value="(2.6891e-05,0)" unit="Ws"/>
+          <item step="20" step_val="20" value="(2.6656e-05,0)" unit="Ws"/>
+        </result>
+      </sequence>
+    </process>
+  </calculation>
+  <sequenceStep sequence="1">
+    <harmonic>
+      <header unit="Hz" sampling="linear" start="200" end="200" numFreq="1"/>
+      <init_harmonic>
+        <timer wall-clock="0.014s" wall="0.014" cpu="0.014704" calls="1"/>
+      </init_harmonic>
+    </harmonic>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="no" coef="CoefFunctionOpt" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="right_center" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0+0j, -0.001+0j]"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Loss_TangensDelta" value="0.029999999999999999"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="560" totalNumFreeEqns="560" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="560" lastFreeEqn="560" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="560" lastFreeIndex="560"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer label="setup_directLDL" wall-clock="0.021s" wall="0.021" cpu="0.023581" calls="21"/>
+              </setup>
+              <solve>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.017454" calls="42"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="1.8e-05" calls="21"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002247" calls="1" sub="true"/>
+      </graph_setup>
+      <reorder_Metis>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.001128" calls="1" sub="true"/>
+      </reorder_Metis>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.021s" wall="0.021" cpu="0.056464" calls="42"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/dynamic_bimat/HALTOPT">
+    <header>
+      <objective type="globalDynamicCompliance" name="globalDynamicCompliance" linear="no" access="physical" task="minimize"/>
+      <constraints>
+        <constraint type="volume" name="volume" linear="yes" access="filtered" bound_value="0.5" bound="equal" design="default"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes">
+        <setup_design>
+          <timer wall-clock="0.013s" wall="0.013" cpu="0.013675" calls="2"/>
+        </setup_design>
+        <filters use_mat_filt="yes">
+          <filter type="maxEdge" value="1.5" contribution="linear" design="density" elems="260" avg_radius="0.23077" avg_neighbors="7.2538"/>
+          <timer wall-clock="0s" wall="0" cpu="0.000183" calls="1"/>
+        </filters>
+        <transferFunctions>
+          <transferFunction type="ramp" application="mech" design="density" param="5"/>
+          <transferFunction type="identity" application="mass" design="density"/>
+        </transferFunctions>
+        <designVariables opt_vars="260" field_elems="260" field_fe_elemes="260">
+          <design type="density" upperBound="1" lowerBound="0" physicalLowerBound="0"/>
+        </designVariables>
+        <localElementCache org="2" shadow="2" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="260" bimaterial="soft"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="yes" harmonic="yes" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="200" weight="1" normalized_weight="1" frequency="200"/>
+      </excitations>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <optimizer>
+      <scpip>
+        <summary>
+          <scpip>
+            <timer wall-clock="0s" wall="0" cpu="0.006455" calls="109"/>
+          </scpip>
+        </summary>
+        <icntl i1="1" i2="1" i3="20" i4="1" i5="10" i6="0" i7="0" i8="0" i9="0" i10="0" i11="0" i12="0" i13="1"/>
+        <rcntl r1="1e-07" r2="1e+30" r3="1e+30" r4="0.01" r5="0.01" r6="0.01" r7="0"/>
+      </scpip>
+    </optimizer>
+    <summary problem="maximum number of iterations reached (20)">
+      <eval_objective>
+        <timer wall-clock="0s" wall="0" cpu="0.00691" calls="84"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0s" wall="0" cpu="8.4e-05" calls="21"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0s" wall="0" cpu="0.005119" calls="21"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.000473" calls="21"/>
+      </eval_grad_constraints>
+      <break converged="no">
+        <reason msg="SCPIP: maximum number of iterations reached (20)"/>
+      </break>
+      <functions>
+        <globalDynamicCompliance min="0.17905" max="267.25" oscillations="9"/>
+        <volume min="0.5" max="0.5" oscillations="13"/>
+      </functions>
+    </summary>
+    <process>
+      <iteration number="0" frequency="200.0" duration="0.121" globalDynamicCompliance="1.80678375750497" volume="0.499999999999999"/>
+      <iteration number="1" frequency="200.0" duration="0.011" globalDynamicCompliance="17.0658392792395" volume="0.500000000000001"/>
+      <iteration number="2" frequency="200.0" duration="0.01" globalDynamicCompliance="1.22121858181578" volume="0.5"/>
+      <iteration number="3" frequency="200.0" duration="0.011" globalDynamicCompliance="0.243840130466887" volume="0.5"/>
+      <iteration number="4" frequency="200.0" duration="0.01" globalDynamicCompliance="0.201194937496795" volume="0.499999999784264"/>
+      <iteration number="5" frequency="200.0" duration="0.011" globalDynamicCompliance="267.248596752973" volume="0.5"/>
+      <iteration number="6" frequency="200.0" duration="0.011" globalDynamicCompliance="0.395995791228975" volume="0.5"/>
+      <iteration number="7" frequency="200.0" duration="0.01" globalDynamicCompliance="0.219145080657639" volume="0.5"/>
+      <iteration number="8" frequency="200.0" duration="0.011" globalDynamicCompliance="0.226530406050485" volume="0.5"/>
+      <iteration number="9" frequency="200.0" duration="0.011" globalDynamicCompliance="0.203641786687447" volume="0.5"/>
+      <iteration number="10" frequency="200.0" duration="0.011" globalDynamicCompliance="0.189483304273445" volume="0.5"/>
+      <iteration number="11" frequency="200.0" duration="0.011" globalDynamicCompliance="0.185273685373093" volume="0.5"/>
+      <iteration number="12" frequency="200.0" duration="0.012" globalDynamicCompliance="0.205732596481349" volume="0.499999999999999"/>
+      <iteration number="13" frequency="200.0" duration="0.011" globalDynamicCompliance="0.20633974106036" volume="0.500000000000001"/>
+      <iteration number="14" frequency="200.0" duration="0.01" globalDynamicCompliance="0.190566465363813" volume="0.5"/>
+      <iteration number="15" frequency="200.0" duration="0.011" globalDynamicCompliance="0.184532974825698" volume="0.5"/>
+      <iteration number="16" frequency="200.0" duration="0.011" globalDynamicCompliance="0.190714015666588" volume="0.499999999999999"/>
+      <iteration number="17" frequency="200.0" duration="0.011" globalDynamicCompliance="0.194918482207873" volume="0.500000000000001"/>
+      <iteration number="18" frequency="200.0" duration="0.011" globalDynamicCompliance="0.186354363550093" volume="0.5"/>
+      <iteration number="19" frequency="200.0" duration="0.01" globalDynamicCompliance="0.181177345916535" volume="0.5"/>
+      <iteration number="20" frequency="200.0" duration="0.011" globalDynamicCompliance="0.179047676400353" volume="0.5"/>
+    </process>
+  </optimization>
+</cfsInfo>

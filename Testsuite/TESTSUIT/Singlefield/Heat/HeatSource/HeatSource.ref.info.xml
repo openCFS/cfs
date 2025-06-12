@@ -1,0 +1,161 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="2" index="1">
+  <summary>
+    <timer wall="0" cpu="0.043882" calls="1"/>
+    <memory final="135260" peak="139888"/>
+  </summary>
+  <header id="">
+    <environment started="2016-Mar-09 17:23:15" host="eamc072"/>
+    <progOpts problem="HeatSource" parameterFile="/home/bvu/code/cfs-test_shared/TESTSUIT/Singlefield/Heat/HeatSource/HeatSource.xml" schemaPath="/home/bvu/code/cfs/share/xml" meshFile="/home/bvu/code/cfs-test_shared/TESTSUIT/Singlefield/Heat/HeatSource/bulk2d_10.mesh" logConfFile="" detailed="no" MKL_NUM_THREADS="1">
+      <cfs version="15.11" name="Back To The Future" build="Release" svn_revision="14633 modified"/>
+    </progOpts>
+    <domain dimensions="2" elements="100" nodes="121">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="121" elems="100" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="left_lower" count="2"/>
+        <nodes name="right_lower" count="2"/>
+        <nodes name="left_upper" count="2"/>
+        <nodes name="right_upper" count="2"/>
+        <nodes name="south" count="11"/>
+        <nodes name="north" count="11"/>
+        <nodes name="west" count="11"/>
+        <nodes name="east" count="11"/>
+        <nodes name="source" count="121"/>
+      </namedNodes>
+      <namedElements/>
+    </domain>
+  </header>
+  <sequenceStep>
+    <static/>
+    <PDE>
+      <heatConduction>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="HeatConductivity" BOp="GradientOperator" region="mech">
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalHeatInt" region="">
+                <entities name="source" size="121" region="no_region"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="Iron">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="HeatConductivity" value="80.4"/>
+          <property name="HeatCapacity" value="444"/>
+          <property name="HeatConductivity_Tensor" value="80.4">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.040000e+01  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.040000e+01  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.040000e+01
+              </real>
+            </tensor>
+          </property>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <heatTemperature>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </heatTemperature>
+        </feSpaces>
+        <feFunctions>
+          <heatTemperature/>
+          <homDirichletBC/>
+          <inhomDirichletBC>
+            <nodeList name="west" dofs="" value="1"/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </heatConduction>
+    </PDE>
+    <OLAS>
+      <heatConduction>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="121" totalNumFreeEqns="110" totalNumDirichlet="11">
+            <function id="0" name="heatTemperature" numEqns="121" lastFreeEqn="110" numDirichlet="11">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="121" lastFreeIndex="110"/>
+          </sbmBlocks>
+          <setupTime wall="0" cpu="0.00073" calls="1"/>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="110" totalNumCols="110" totalNumNonZeros="868" totalFillLevelPerCent="7.1736" totalMemory="0.0066223">
+              <matrix blockRow="0" blockCol="0" storageType="sparseNonSym" numRows="110" numCols="110" numNonZeros="868" fillLevelPerCent="7.1736" memory="0.0066223" upperBandWidth="107" lowerBandWidth="107" avgBandWidth="46" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="11" solver="direct">
+            <summary>
+              <setup>
+                <timer wall="0" cpu="0.002103" calls="1"/>
+              </setup>
+              <solve>
+                <timer wall="0" cpu="9.2e-05" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.001812" wall="0" peakMem="84" permanentMem="67"/>
+                <numfact cpu="0.00023" wall="0" peakMem="18"/>
+              </call>
+              <solver numIter="-1" finalNorm="-1"/>
+            </process>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="1e-06" calls="1"/>
+              </setup>
+              <precond>
+                <timer wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </heatConduction>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="0" cpu="0.000426" calls="1"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

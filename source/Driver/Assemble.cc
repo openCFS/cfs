@@ -470,7 +470,7 @@ namespace CoupledField
     matrixUpdated_ = false;
 
     // Temporary: Check each time for non-linearities
-    // On first Assembly, assemble all matrices for each BilinearForm
+    // On first Assembly, assemble all matrices for each BiLinearForm
     CheckNonLinearities(isFirstTime_);
 
     // Init all matrices, which have to be reassembled
@@ -574,7 +574,7 @@ namespace CoupledField
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
           BiLinFormContext & actContext = *forms[iForm];
-          bool bilinearFormIsNewton =  actContext.IsNewtonBilinearForm();
+          bool bilinearFormIsNewton =  actContext.IsNewtonBiLinearForm();
 
           //when we just want to assemble a Newton bilinear form and
           //the bilinear form is not a Newton one, then go to the next!
@@ -741,7 +741,7 @@ namespace CoupledField
     matrixUpdated_ = false;
 
     // Temporary: Check each time for non-linearities
-    // On first Assembly, assemble all matrices for each BilinearForm
+    // On first Assembly, assemble all matrices for each BiLinearForm
     CheckNonLinearities(isFirstTime_);
 
     // Init all matrices, which have to be reassembled
@@ -870,7 +870,7 @@ namespace CoupledField
 
 
           BiLinFormContext & actContext = *forms[iForm];
-          bool bilinearFormIsNewton =  actContext.IsNewtonBilinearForm();
+          bool bilinearFormIsNewton =  actContext.IsNewtonBiLinearForm();
           if( bilinearFormIsNewton ){
             EXCEPTION("Assemble::AssembleMatrices_MultHarm no newton-bilinear forms"
                       "allowed in multiharmonic analysis");
@@ -1086,7 +1086,7 @@ namespace CoupledField
     matrixUpdated_ = false;
 
     // Temporary: Check each time for non-linearities
-    // On first Assembly, assemble all matrices for each BilinearForm
+    // On first Assembly, assemble all matrices for each BiLinearForm
     CheckNonLinearities(isFirstTime_);
 
     // check if any matrix needs to be reassembled
@@ -1350,7 +1350,7 @@ namespace CoupledField
     matrixUpdated_ = false;
 
     // Temporary: Check each time for non-linearities
-    // On first Assembly, assemble all matrices for each BilinearForm
+    // On first Assembly, assemble all matrices for each BiLinearForm
     CheckNonLinearities(isFirstTime_);
 
     // Init all matrices, which have to be reassembled

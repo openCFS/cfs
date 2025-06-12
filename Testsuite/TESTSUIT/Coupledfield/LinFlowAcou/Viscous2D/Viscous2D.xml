@@ -1,0 +1,162 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation ../../CFS_SRC/CFS-Master/share/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title> Viscothermal acoustics coupled to standard wave equation (non-viscous)</title>
+    <authors>
+      <author>Manfred Kaltenbacher</author>
+    </authors>
+    <date>2019-01-19</date>
+    <keywords>
+      <keyword>CFD</keyword>
+    </keywords>    
+    <references>
+    </references>
+    <isVerified>yes</isVerified>
+    <description> 
+       Simple channel radiating into free space  
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="channel2DViscous1.cfs" gridId="default" id="h1"/>
+      <hdf5 fileName="radiate1.cfs" gridId="default" id="h2"/>      
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="fluid1" material="FluidMat"/>
+      <region name="fluid2" material="FluidMat"/>
+      <region name="damp" material="FluidMat"/>
+    </regionList>
+     <surfRegionList>
+      <surfRegion name="interface"/>
+      <surfRegion name="interface2"/>
+    </surfRegionList>
+
+    <ncInterfaceList>
+      <ncInterface name="my_interface"
+        primarySide="interface"
+        secondarySide="interface2"/>
+    </ncInterfaceList>
+    
+  </domain>
+  
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="orderVel">
+      <gridOrder/>
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="orderPres">
+       <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="integVel">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="integPres">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+  
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>1</numFreq>
+        <startFreq>10e3</startFreq>
+        <stopFreq>10e3</stopFreq>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel">
+        <regionList>
+          <region name="fluid1"/>
+        </regionList>
+               
+        <bcsAndLoads>          
+          <pressure name="excite" value="2e-3"/>
+                    
+          <noSlip name="excite">
+            <!--comp dof="x"/-->         
+            <comp dof="y"/>         
+          </noSlip>
+          <noSlip name="wall">
+            <comp dof="x"/>         
+            <comp dof="y"/>
+          </noSlip>
+          <noSlip name="symmetry">     
+            <comp dof="y"/>
+          </noSlip>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+        </storeResults>
+      </fluidMechLin>
+      
+      <acoustic >
+        <regionList>
+          <region name="fluid2" polyId="orderPres"/>
+          <region name="damp" dampingId="pmlId" polyId="orderPres" />
+        </regionList>        
+        
+        <dampingList>
+          <pml id="pmlId">
+            <type>inverseDist</type>
+            <dampFactor>1.0</dampFactor>
+          </pml>
+        </dampingList>
+         
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <linFlowAcouDirect>  
+          <ncInterfaceList>
+            <ncInterface name="my_interface"/>
+          </ncInterfaceList>              
+        </linFlowAcouDirect>
+      </direct>
+    </couplingList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <pardiso>
+            <IterRefineSteps>10</IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

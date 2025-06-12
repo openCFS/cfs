@@ -1,0 +1,223 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="49" index="1">
+  <summary>
+    <timer wall="0" cpu="0.36926" calls="1"/>
+    <memory final="133940" peak="133940"/>
+  </summary>
+  <header id="">
+    <environment started="2015-Aug-13 12:12:46" host="eamc061"/>
+    <progOpts problem="min_perimeter" parameterFile="/home/fwein/code/cfs-test/TESTSUIT/Optimization/Regularization/min_perimeter/min_perimeter.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1">
+      <cfs version="15.07" name="Verlorene Soehne" build="Release" svn_revision="13980 modified"/>
+    </progOpts>
+    <domain dimensions="2" elements="400" nodes="441">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="400" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="21"/>
+        <nodes name="east" count="21"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+      </namedNodes>
+      <namedElements/>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep>
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="right_lower" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_Kmodulus" value="(0.83333,0)"/>
+          <property name="Mechanic_LameMu" value="(0.38462,0)"/>
+          <property name="Mechanic_LameLambda" value="(0.57692,0)"/>
+          <property name="Loss_TangensDelta" value="0.03"/>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="west" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="840" totalNumFreeEqns="840" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="840" lastFreeEqn="840" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="840" lastFreeIndex="840"/>
+          </sbmBlocks>
+          <setupTime wall="0" cpu="0.003114" calls="1"/>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="840" totalNumCols="840" totalNumNonZeros="14152" totalFillLevelPerCent="2.0057" totalMemory="0.10797">
+              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="840" numCols="840" numNonZeros="14152" fillLevelPerCent="2.0057" memory="0.10797" upperBandWidth="829" lowerBandWidth="829" avgBandWidth="299" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="0.042423" calls="24"/>
+              </setup>
+              <solve>
+                <timer wall="0" cpu="0.00907" calls="24"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="1.2e-05" calls="24"/>
+              </setup>
+              <precond>
+                <timer wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="0" cpu="0.073846" calls="24"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_directory="/home/fwein/code/cfs-test/TESTSUIT/Optimization/Regularization/min_perimeter">
+    <header complex="no" harmonic="no" eigenvalue="no" bloch="no" homogenization="no" material="mechanic">
+      <objective type="perimeter" parameter="0.001" linear="no" filtered="yes" task="minimize"/>
+      <constraints>
+        <constraint type="volume" linear="yes" filtered="yes" mode="constraint" design="default" bound="upperBound" bound_value="0.5"/>
+        <constraint type="compliance" linear="no" filtered="yes" mode="constraint" design="default" bound="upperBound" bound_value="20"/>
+      </constraints>
+      <designSpace pamping="0">
+        <transferFunctions>
+          <transferFunction type="simp" application="mech" design="density" param="3"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="400" modelVariables="400" modelElements="400">
+          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="1e-09"/>
+        </designVariables>
+        <regions>
+          <region name="mech" elements="400" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <snopt/>
+    </header>
+    <commit mode="forward" stride="999"/>
+    <designSpace/>
+    <optimizer>
+      <summary snopt_outputfile="min_perimeter.snopt">
+        <timer wall="0" cpu="0.099636" calls="217"/>
+        <snopt_timer wall="0" cpu="0.091567" calls="26"/>
+        <snopt_callback_timer wall="0" cpu="0.170936" calls="25"/>
+        <snopt_exit exit="0" info="32"/>
+        <evaluations f_evals="25" g_evals="23"/>
+      </summary>
+    </optimizer>
+    <summary problem="SNOPT: resource limit error - major iteration limit reached">
+      <break converged="no"/>
+    </summary>
+    <process>
+      <iteration number="0" perimeter="0" infeasible_perimeter="0" volume="0.5" compliance="98.711"/>
+      <iteration number="1" perimeter="0.0043849" infeasible_perimeter="219" volume="0.5" compliance="70.875"/>
+      <iteration number="2" perimeter="0.00070209" infeasible_perimeter="219" volume="0.5" compliance="87.895"/>
+      <iteration number="3" perimeter="0.065931" infeasible_perimeter="341" volume="0.5" compliance="65.066"/>
+      <iteration number="4" perimeter="0.090978" infeasible_perimeter="355" volume="0.5" compliance="44.624"/>
+      <iteration number="5" perimeter="0.069719" infeasible_perimeter="385" volume="0.5" compliance="53.332"/>
+      <iteration number="6" perimeter="0.11826" infeasible_perimeter="427" volume="0.5" compliance="37.82"/>
+      <iteration number="7" perimeter="0.073731" infeasible_perimeter="509" volume="0.5" compliance="45.825"/>
+      <iteration number="8" perimeter="0.12972" infeasible_perimeter="452" volume="0.5" compliance="29.003"/>
+      <iteration number="9" perimeter="0.13764" infeasible_perimeter="500" volume="0.5" compliance="24.074"/>
+      <iteration number="10" perimeter="0.13834" infeasible_perimeter="435" volume="0.5" compliance="21.246"/>
+      <iteration number="11" perimeter="0.13368" infeasible_perimeter="351" volume="0.5" compliance="20.107"/>
+      <iteration number="12" perimeter="0.12531" infeasible_perimeter="397" volume="0.5" compliance="19.984"/>
+      <iteration number="13" perimeter="0.12601" infeasible_perimeter="419" volume="0.5" compliance="19.931"/>
+      <iteration number="14" perimeter="0.11789" infeasible_perimeter="486" volume="0.5" compliance="20.011"/>
+      <iteration number="15" perimeter="0.12187" infeasible_perimeter="492" volume="0.5" compliance="19.998"/>
+      <iteration number="16" perimeter="0.1136" infeasible_perimeter="543" volume="0.5" compliance="20.006"/>
+      <iteration number="17" perimeter="0.12199" infeasible_perimeter="538" volume="0.5" compliance="20.017"/>
+      <iteration number="18" perimeter="0.112" infeasible_perimeter="596" volume="0.5" compliance="20.005"/>
+      <iteration number="19" perimeter="0.11424" infeasible_perimeter="635" volume="0.5" compliance="20.002"/>
+      <iteration number="20" perimeter="0.1111" infeasible_perimeter="649" volume="0.5" compliance="20.004"/>
+      <iteration number="21" perimeter="0.11312" infeasible_perimeter="643" volume="0.5" compliance="20.003"/>
+      <iteration number="22" perimeter="0.11054" infeasible_perimeter="668" volume="0.5" compliance="20.003"/>
+    </process>
+  </optimization>
+</cfsInfo>

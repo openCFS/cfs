@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+ <documentation>
+    <title>Rotate Design for multiple load case compliance as min-max problem</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-07-14</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>Extenstion to rot_compl_single, now with two loads expressed as a min-max problem with slack variable.
+        Note that you need optResult_* for the individual outputs and also note, that these are not penalized</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+      <!-- <region material="99lines" name="inner" /> -->
+    </regionList>
+    <elemList>
+      <elems name="center_el">
+        <coord x="0.5" y="0.5"/>
+      </elems>
+    </elemList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.5" y="0.5"/>
+      </nodes>
+      <nodes name="center_right">
+        <coord x="1.05" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+          <force name="center_right">
+              <comp dof="x" value="1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+            <nodeList>
+              <nodes name="center_right"/>
+            </nodeList>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <!-- transformed but not penalized -->
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>  
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          
+       </storeResults>
+      </mechanic>
+    </pdeList>
+    
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="slack" task="minimize" multiple_excitation="true">
+      <stopping queue="999" value="0.002" type="designChange" />
+      <multipleExcitation do_transform="true" />
+    </costFunction>
+
+    <constraint type="compliance" bound="upperBound" value="slack" excitation="0"/>
+    <constraint type="compliance" bound="upperBound" value="slack" excitation="1"/>
+    
+    <constraint type="volume" bound="upperBound" value="0.5" />
+
+    <optimizer type="scpip" maxIterations="20">
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.3" type="density"/>
+      </filters>
+      <transform>
+        <rotate center="center_el" angle="0.0 * pi" excitation="0"/>
+        <rotate center="center_el" angle="0.5 * pi" excitation="1"/> 
+      </transform>
+
+      <design name="slack" initial="30" lower="0" upper="1e3" />
+      <design name="density" initial=".5" lower="1e-3" upper="1.0" />
+      <transferFunction type="simp" application="mech"  param="3" />
+
+      <result value="design" id="optResult_1" excitation="0" access="smart"/>
+      <result value="design" id="optResult_2" excitation="1" access="smart"/> 
+      
+      <export write="iteration" save="all" />
+
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="999" />
+  </optimization>
+ 
+  
+</cfsSimulation>
+
+

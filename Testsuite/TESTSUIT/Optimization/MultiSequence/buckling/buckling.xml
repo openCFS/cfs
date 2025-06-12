@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <fileFormats>
+    <output>
+      <hdf5 directory="results_hdf5" />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="strong" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <list>
+          <freeCoord comp="x" inc="0.0125" start="0.45" stop="0.55"/>
+          <fixedCoord comp="y" value="0.25"/>
+        </list>
+      </nodes>
+      <nodes name="bc_fix">
+        <list>
+          <freeCoord comp="x" inc="0.0125" start="0.0" stop="0.05"/>
+          <fixedCoord comp="y" value="0.0"/>
+        </list>
+      </nodes>
+      <nodes name="bc_roll">
+        <list>
+          <freeCoord comp="x" inc="0.0125" start="0.95" stop="1.0"/>
+          <fixedCoord comp="y" value="0.0"/>
+        </list>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="bc_fix">
+            <comp dof="x"/>
+            <comp dof="y"/>  
+          </fix>
+          <fix name="bc_roll"> 
+            <comp dof="y"/>
+          </fix>
+          <force name="load">
+            <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+<!--           <nodeResult type="mechDisplacement"> -->
+<!--             <allRegions /> -->
+<!--           </nodeResult> -->
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>             
+       </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard/>
+        </solutionStrategy>
+        <solverList>
+          <cholmod />
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+
+  <sequenceStep index="2">
+    <analysis>
+      <buckling inverse="yes">
+        <numModes>5</numModes>
+        <valueShift>1</valueShift>
+        <calcModes normalization="solver" />
+      </buckling>
+    </analysis>
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" thickness="4.0" />
+        </regionList>
+        <bcsAndLoads>
+          <fix name="bc_fix">
+            <comp dof="x"/>
+            <comp dof="y"/>  
+          </fix>
+          <fix name="bc_roll"> 
+            <comp dof="y"/>
+          </fix>
+          <force name="load">
+            <comp dof="y" value="-1"/>
+          </force>
+          <referenceLoad region="mech">
+            <referenceStress sequenceStep="1" />
+          </referenceLoad>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseSym" />
+            <eigenSolver id="arpack" />
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <arpack id="arpack"/>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" sequence="1" multiple_excitation="false">
+      <stopping queue="5" value="0.00001" type="designChange" />
+    </costFunction>
+
+    <constraint type="bucklingLoadFactor" bound="lowerBound" value="8" ev="5" sequence="2" mode="constraint"/>
+    <constraint type="bucklingLoadFactor" bound="lowerBound" value="25" ev="4" sequence="2" mode="observation"/>
+    <constraint type="bucklingLoadFactor" bound="lowerBound" value="25" ev="3" sequence="2" mode="observation"/>
+
+    <constraint type="volume" bound="upperBound" value="0.5" linear="false"/>
+
+    <optimizer type="scpip" maxIterations="20"/>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.3" type="density">
+          <density type="standard" beta="1.0"/>
+        </filter>
+      </filters>
+
+      <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      <transferFunction type="ramp" application="mech"  param="2.8" />
+
+      <export write="iteration" save="last" />
+
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="1" />
+  </optimization>
+ 
+  
+</cfsSimulation>

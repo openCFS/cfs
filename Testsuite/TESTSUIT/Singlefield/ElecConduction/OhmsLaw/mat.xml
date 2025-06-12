@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="dummy">
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 30  </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+</cfsMaterialDataBase>

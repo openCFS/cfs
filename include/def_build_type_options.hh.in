@@ -12,8 +12,7 @@
 // Activate expression templates
 #cmakedefine USE_EXPRESSION_TEMPLATES
 
-// build tpye options
+// build type options
 #cmakedefine BUILD_CFSDAT
-#cmakedefine BUILD_TESTING
 #cmakedefine BUILD_CFSTOOL
 #cmakedefine BUILD_UNIT_TESTS

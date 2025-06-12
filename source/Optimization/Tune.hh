@@ -26,7 +26,8 @@ public:
   typedef enum {
     NO_USAGE,
     BETA,            /** beta for density projection */
-    PENALTY } Usage; /** param for transfer function */
+    PENALTY,         /** param for transfer function */
+    FUNC_SCALE } Usage; /** scale for function in multio objective case (0 tolerant!) */
 
   /** empty constructor to allow instances. We have with GlobalFilter and TransferFunction
    * objects which are copied. Use Init() to init and Register() to activate. */
@@ -46,6 +47,12 @@ public:
   /** we check with Optimization::tunes to not mix up with a copied objection which was registered */
   bool IsRegistered() const;
 
+  /** e.g. other robust filters connect to this Tune. Sets the value content */
+  void Append(double* value, GlobalFilter* f = nullptr);
+
+  /** opposite of Append() */
+  void Remove(double* value, GlobalFilter* f = nullptr);
+
   void ToInfo(PtrParamNode in) const;
 
   /** regular update to be called from Optimization::CommitIteration() to set value */
@@ -64,6 +71,7 @@ public:
 
   static Enum<Usage> usage;
 
+  /** we need the start value to properly scale for multiplicative grow with start < 1 */
   double start = -1;
 
   // <tune method="obj/mult/add" start="1" end="256" grow="1e-4" obj_max_grow="0.2" stride="1" stopping_greyness="true" />
@@ -75,10 +83,18 @@ private:
   /** helper for constructor */
   void FindGraynessStoppingRule();
 
-  /** here we store the actual value */
+  /** here we store the actual values.  */
   double* value = nullptr;
 
+  /** here we store additional values (other filters in the robust case)
+   * @see Append() and Remove() */
+  StdVector<double*> external;
+
   double end = -1;
+
+  /** prevent too early stopping by graynesss */
+  static constexpr double OFF = -4711;
+  double minimal = OFF;
 
   /** how often do we update? 1 is every time, 50 is every 50 iterations */
   unsigned int stride = 1;
@@ -88,6 +104,9 @@ private:
 
   /** only for OBJ */
   double max_grow_rate = 0.2;
+
+  /** OBJ and ADD are multiplicative, this fails for values < 1. Therefore we conditionally scale the value in a range [1, end] */
+  bool one_scale = false;
 
   /** when we want to stop for grayness, this is the corresponding rule */
   StoppingRule* grayness = nullptr;
@@ -101,7 +120,7 @@ private:
   Optimization* opt = nullptr;
 
   /** when we are linked to a GlobalFilter we call SetNonLinCorrection() */
-  GlobalFilter* gf = nullptr;
+  StdVector<GlobalFilter*> gf;
 
   Method method_ = NO_METHOD;
 

@@ -1,0 +1,86 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="cube3dNL.h5"/>
+    </input>
+    <output>
+      <hdf5 id="hdf"/>
+    </output>
+    <materialData/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region material="P4" name="mech3d"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+  
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="3d">
+
+        <regionList>
+          <region name="mech3d" nonLinIds="_id_geometric_1"/>
+        </regionList>
+
+        <nonLinList>
+          <geometric id="_id_geometric_1"/>
+        </nonLinList>
+
+        <bcsAndLoads>
+          <fix name="uz-lSide">
+            <comp dof="z"/>
+          </fix>
+          <fix name="uy-rSide">
+            <comp dof="y"/>
+          </fix>
+          <fix name="ux-lSide">
+            <comp dof="x"/>
+          </fix>
+          <fix name="uy-lSide">
+            <comp dof="y"/>
+          </fix>
+          <fix name="uz-rSide">
+            <comp dof="z"/>
+          </fix>
+          <force name="ux-rSide">
+            <comp dof="x" value="4e7"/>
+          </force>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement" complexFormat="amplPhase">
+            <regionList>
+              <region name="mech3d" outputIds="hdf"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+        
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <nonLinear logging="yes" method="fixPoint">
+              <lineSearch type="minEnergy"/>
+              <incStopCrit>1e-05</incStopCrit>
+              <resStopCrit>1e-05</resStopCrit>
+              <maxNumIters>200</maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>

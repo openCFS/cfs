@@ -2,11 +2,12 @@
 #define OBJECTIVE_HH_
 
 #include <string>
-
+#include "boost/math/special_functions/sign.hpp"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
 #include "MatVec/Vector.hh"
 #include "Optimization/Function.hh"
+#include "Optimization/Tune.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField {
@@ -73,6 +74,7 @@ class Objective : public Function
   friend class ObjectiveContainer;
 
   public:
+
     /** Reads and processes the costFunction element but not the type information.
      * @param pn the costFunction pointer
      * @param pn_type either the costFunction pointer (for type attribute)
@@ -91,7 +93,7 @@ class Objective : public Function
     /** The name eventually enriched by the coord information for HOM_TENSOR */
     std::string GetName() const;
 
-    /** Adds the value but don't touch penalty */
+    /** Adds the value but don't touch scale */
     void AddValue(double add) { value_ += add; }
 
     /** Resets the Value to 0.0 */ // TODO move!
@@ -100,10 +102,30 @@ class Objective : public Function
     /** is a homogenization tensor coord set */
     bool HasHomogenizationEntry() const { return boost::get<0>(coord) != -1; }
 
-    double GetPenalty() const { return penalty_; }
-
     /** overloads Function::ToInfo() */
     void ToInfo(PtrParamNode info);
+
+    /** for a given function value calculate the panalty method value max(0, value - parameter)^2 */
+    double CalcPenalty(double value) const
+    {
+      double tmp = std::max(0.0, value - GetParameter());
+      return tmp * tmp;
+    }
+
+    /** ln1p is ln damping wich is good for values < 0 and negative values */
+    double CalcLn1p(double value) const
+    {
+       return boost::math::sign(value) * std::log(1.0 + std::abs(value));
+    }
+
+    /** penalty method = scale * max(x-parameter)^2
+     * ln1p method = scale * sign(x) * ln(1 + |x|) good for x < 1 (even negative)
+     * power method = scale * x^parameter where parameter=0.5 or 1/3 standard damping */
+    typedef enum { LINEAR, PENALTY, LN1P, POWER } Term;
+
+    static Enum<Term> term;
+
+    Term GetTerm() const { return term_; }
 
     /** This defines the optional coord pair for HOM_TRACKING, HOM_FROBENIUS_PRODUCT.
      *  e.g. (1,1) for tensor entry (0,0). For Condition this is a list! The double shall be by default 1.0 */
@@ -112,10 +134,15 @@ class Objective : public Function
     /** Here we store our ParamNode such we can more easily access it in ErsatzMaterial */
     PtrParamNode pn;
 
-  private:
+    /** optionally we can tune (in the multi objective case) the scaling via tune */
+    Tune tune;
 
-    /** by default 1.0 if not multiObjective */
-    double penalty_;
+    /** we add scale * term(function) */
+    double scale = 1.0;
+
+  private:  
+
+    Term term_ = LINEAR;
 };
 
 
@@ -141,9 +168,9 @@ public:
   Objective* Get(const std::string& name, bool throw_exception = true);
 
   /** Sums up the history results of multiple objectives.
-   * @param if true the penalty value is included
+   * @param if true the scale value is included
    * @param history the positive or negative index within history. Negative in Python style (-1 last, ...)*/
-  double GetHistoryValue(bool penalty = true, int history = -1);
+  double GetHistoryValue(bool scale = true, int history = -1);
 
   unsigned int GetHistorySize();
 

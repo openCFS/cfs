@@ -35,17 +35,16 @@ class BiLinearForm : public CfsCopyable{
 
     //for NMG integrators
     typedef enum {
-      MASTER_MASTER,
-      SLAVE_SLAVE,
-      MASTER_SLAVE,
-      SLAVE_MASTER
+      PRIM_PRIM,
+      SEC_SEC,
+      PRIM_SEC,
+      SEC_PRIM
     } CouplingDirection;
 
       BiLinearForm( bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
         isSymmetric_ = false;
-        isNewtonBilinearForm_ = false;
-        isSymmetric_ = false;
+        isNewtonBiLinearForm_ = false;
         isSolDependent_ = false;
 
         useVolEqnA_ = false;
@@ -65,7 +64,7 @@ class BiLinearForm : public CfsCopyable{
        */
       BiLinearForm(const BiLinearForm& right){
         this->coordUpdate_ = right.coordUpdate_;
-        this->isNewtonBilinearForm_ = right.isNewtonBilinearForm_;
+        this->isNewtonBiLinearForm_ = right.isNewtonBiLinearForm_;
         this->isSymmetric_ = right.isSymmetric_;
 
         this->name_ = right.name_;
@@ -137,13 +136,13 @@ class BiLinearForm : public CfsCopyable{
       void SetCoordUpdate(bool val) { coordUpdate_ = val; }
 
       //! set bilinearform to part of Newton tangential matrix
-      void SetNewtonBilinearForm() {
-        isNewtonBilinearForm_ = true;
+      void SetNewtonBiLinearForm() {
+        isNewtonBiLinearForm_ = true;
       }
 
       //! Return if bilinearform is part of Newton tangential matrix
-      bool IsNewtonBilinearForm() {
-        return isNewtonBilinearForm_;
+      bool IsNewtonBiLinearForm() {
+        return isNewtonBiLinearForm_;
       }
 
       //! Set Coefficient Function of B operator
@@ -201,7 +200,7 @@ class BiLinearForm : public CfsCopyable{
       bool coordUpdate_; 
 
       //! is the (bi)linear part of the Newton tangential matrix
-      bool isNewtonBilinearForm_;
+      bool isNewtonBiLinearForm_;
 
       //!depends on the solution
       bool isSolDependent_;

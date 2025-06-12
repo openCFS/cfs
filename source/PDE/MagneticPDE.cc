@@ -120,26 +120,26 @@ namespace CoupledField {
   void MagneticPDE::DefineIntegrators() {
 
     RegionIdType actRegion;
-	  BaseMaterial * actMat = NULL;
+    BaseMaterial * actMat = NULL;
     BaseMaterial * actSDMat = NULL;
 
     reluc_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, dim_, false));
 
-	  // determine tensor representation of the material parameters needed
-	  SubTensorType tensorType;
-	  if ( dim_ == 3 ) {
-		  tensorType = FULL;
-	  } else {
-		  if ( isaxi_ == true ) {
-			  tensorType = AXI;
-		  } else {
-			  // 2d: plane case
-			  tensorType = PLANE_STRAIN;
-		  }
-	  }
+    // determine tensor representation of the material parameters needed
+    SubTensorType tensorType;
+    if ( dim_ == 3 ) {
+      tensorType = FULL;
+    } else {
+      if ( isaxi_ == true ) {
+        tensorType = AXI;
+      } else {
+        // 2d: plane case
+        tensorType = PLANE_STRAIN;
+      }
+    }
 
-	  shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
-	  shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
+    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
     // Init material model for hysteretic transient analysis
@@ -148,16 +148,16 @@ namespace CoupledField {
       matModelCoef_->Init(magFluxCoef, modelName_, dim_);
     }
 
-	  double factor = 1.0;
-	  if ( isMagnetoStrictCoupled_ == true ){
-		  // similar to the piezoelectric case we have to multiply the magnetic pde in the magnetostrictive case with -1 to
-		  // get a symmetric equation system (in mechanics we have -div(sigma) in magnetics +rot(H) -> multiply magnetics with -1)
-		  factor = -1.0;
-	  }
+    double factor = 1.0;
+    if ( isMagnetoStrictCoupled_ == true ){
+      // similar to the piezoelectric case we have to multiply the magnetic pde in the magnetostrictive case with -1 to
+      // get a symmetric equation system (in mechanics we have -div(sigma) in magnetics +rot(H) -> multiply magnetics with -1)
+      factor = -1.0;
+    }
 
-	  //  Loop over all regions
-	  std::map<RegionIdType, BaseMaterial*>::iterator it;
-	  //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+    //  Loop over all regions
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    //hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
 
 	  for ( it = materials_.begin(); it != materials_.end(); it++ ) {
 
@@ -310,7 +310,7 @@ namespace CoupledField {
 
             stiff2->SetName("CurlCurlIntegrator-NL-Newton");
             //! mark the bi-linear form to be a Newton part
-            stiff2->SetNewtonBilinearForm();
+            stiff2->SetNewtonBiLinearForm();
 
             BiLinFormContext * stiffContext2 =
                     new BiLinFormContext(stiff2, STIFFNESS );
@@ -518,19 +518,8 @@ namespace CoupledField {
       std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
       if(velocityId != "")
       {
-        // Get result info object for flow
-        shared_ptr<ResultInfo> velInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
-
-        // Add the region information
-        PtrParamNode velNode = myParam_->Get("velocityList")->GetByVal("velocity","name",velocityId.c_str());
-
-        // Read velocity coefficient function for this region and add it to velocity functor
-        PtrCoefFct regionMoving;
-        std::set<UInt> definedDofs;
         bool coefUpdateGeo;
-        //we assume that velocity is real
-        ReadUserFieldValues( actSDList, velNode, velInfo->dofNames, velInfo->entryType, isComplex_, regionMoving, definedDofs, coefUpdateGeo );
-        VelocityCoef_->AddRegion( actRegion, regionMoving );
+        ReadRegionVelocityField(velocityId,actSDList,actRegion,coefUpdateGeo);
 
         //coef-Fnc for electric conductivity
         Matrix<Double> reluc;
@@ -1081,7 +1070,7 @@ namespace CoupledField {
     res1->dofNames = vecComponents;
     res1->definedOn = ResultInfo::NODE;
     res1->entryType = ResultInfo::VECTOR;
-    res1->unit = "Vs/m";
+    res1->unit = MapSolTypeToUnit(MAG_POTENTIAL);
     res1->SetFeFunction(vecFct);
     results_.Push_back( res1 );
     availResults_.insert( res1 );
@@ -1552,41 +1541,7 @@ namespace CoupledField {
             isComplex_));
     DefineFieldResult( tcdCoef, tcd );
 
-    // === LORENTZ FORCE DENSITY ===
-    shared_ptr<ResultInfo> lfd(new ResultInfo);
-    lfd->resultType = MAG_FORCE_LORENTZ_DENSITY;
-    lfd->dofNames = vecComponents;
-    lfd->unit = "N/m^3";
-    lfd->definedOn = ResultInfo::ELEMENT;
-    lfd->entryType = ResultInfo::VECTOR;
-    availResults_.insert( lfd );
-
-    // assemble coefficient function F_L = J X B
-
-    // switch type of cross-product depending on dimensionality
-    CoefXpr::OpType op = isaxi_ ? CoefXpr::OP_CROSS_AXI : CoefXpr::OP_CROSS;
-    PtrCoefFct lfdFunc = CoefFunction::Generate( mp_, part,
-            CoefXprBinOp(mp_,  tcdCoef, bFunc, op) );
-    DefineFieldResult( lfdFunc, lfd);
-
-    // === LORENTZ FORCE (TOTAL) ===
-    shared_ptr<ResultInfo> lf(new ResultInfo);
-    lf->resultType = MAG_FORCE_LORENTZ;
-    lf->dofNames = vecComponents;
-    lf->unit = "N";
-    lf->definedOn = ResultInfo::REGION;
-    lf->entryType = ResultInfo::VECTOR;
-    availResults_.insert( lf );
-
-    // build result functor for integration
-    shared_ptr<ResultFunctor> lfFunc;
-    if( isComplex_ ) {
-      lfFunc.reset(new ResultFunctorIntegrate<Complex>(lfdFunc, feFct, lf ) );
-    } else {
-      lfFunc.reset(new ResultFunctorIntegrate<Double>(lfdFunc, feFct, lf ) );
-    }
-    resultFunctors_[MAG_FORCE_LORENTZ] = lfFunc;
-
+    GenerateLorentzForceResults(vecComponents, tcdCoef, bFunc, part, feFct);
 
  	// === MAXWELL FORCE DENSITY ===
 	shared_ptr<ResultInfo> mfd(new ResultInfo);

@@ -150,10 +150,9 @@ namespace CoupledField{
     shared_ptr<FeSpace> spaceP = feFunctions_[ACOU_PRESSURE]->GetFeSpace();
     shared_ptr<FeSpace> spaceV = feFunctions_[ACOU_VELOCITY]->GetFeSpace();
     BaseMaterial * actMat = NULL;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      // Set current region and material
-      actRegion = it->first;
-      actMat = it->second;
+    for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion++){
+      actRegion = regions_[iRegion];
+      actMat    = materials_[actRegion];
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
       

@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsdat xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <pipeline>
+    <stepValueDefinition>
+      <startStop>
+        <startStep value="0"/>
+        <numSteps value="4"/>
+        <startTime value="0.1"/>
+        <delta value="0.1"/>
+        <deleteOffset value="no"/>
+      </startStop>
+    </stepValueDefinition>
+    
+    
+    <meshInput id="input1" gridType="fullGrid">  
+      <inputFile>
+        <hdf5 fileName="srcData/source.h5"/>
+      </inputFile>
+    </meshInput>
+    
+    <differentiation type="SpaceDifferentiation_Gradient" inputFilterIds="input1" id="diff1">
+      <RBF_Settings epsilonScaling="1e-0"/>
+      <targetMesh>
+        <hdf5 fileName="srcData/source.h5"/>
+      </targetMesh>
+      <singleResult>
+        <inputQuantity resultName="acouRhsLoad"/>
+        <outputQuantity resultName="gradP"/>
+      </singleResult>
+      <regions>
+        <sourceRegions>
+          <region name="fluid" />
+        </sourceRegions>
+        <targetRegions>
+          <region name="fluid"/>
+        </targetRegions>
+      </regions>
+    </differentiation>
+        
+    
+    <meshOutput id="MultiOutput_NN" inputFilterIds="diff1 input1">
+      <outputFile>
+        <hdf5 extension="h5" compressionLevel="1" externalFiles="no"/>
+      </outputFile>
+      <saveResults>
+        <result resultName="gradP">
+          <allRegions/>
+        </result>
+        <result resultName="acouRhsLoad">
+          <allRegions/>
+        </result>
+      </saveResults>
+    </meshOutput>
+  </pipeline>
+</cfsdat>
+
+

@@ -1,0 +1,90 @@
+<?xml version="1.0" ?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title> Inteprolation of acoustic RHS from external (conservative) and from default grid</title>
+    <authors>
+      <author>Andreas Hueppe</author>
+    </authors>
+    <date>2013-03-22</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+    </keywords>
+    <references>
+      Sum of all sources should be identical in each timestep
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      The rhs ios computed by taking 1) a coefficient function from the calculation grid, and
+      2) the values from an external Grid. The sum of all RhsValues in calcGrid+ExternalGrid
+      has to be equal to the sum of all rhs values of the result in each timestep
+    </description>
+  </documentation>
+    <fileFormats>
+        <input>
+            <hdf5 fileName="calcGrid.h5"/>
+            <hdf5 fileName="srcMoved.h5" gridId="srcG" id="srcI"/>
+        </input>
+        <output>
+            <hdf5 id="1"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="3d">
+        <regionList>
+            <region material="air_approx" name="inner"/>
+            <region material="air_approx" name="pml"/>
+        </regionList>
+    </domain>
+    <sequenceStep>
+        <analysis>
+            <transient>
+                <numSteps>3</numSteps>
+                <deltaT>0.01</deltaT>
+            </transient>
+        </analysis>
+        <pdeList>
+            <acoustic >
+                <regionList>
+                    <region name="inner"/>
+                    <region name="pml"/>
+                </regionList>
+                <bcsAndLoads>
+                    <rhsValues name="inner">
+                        <grid>
+                            <externalGrid gridId="srcG" inputId="srcI" quantity="acouRhsLoad" dependtype="GENERAL">
+                                <globalTolerance>1e-4</globalTolerance>
+                                <localTolerance>1e-2</localTolerance>
+                                <regionList>
+                                    <region srcRegionName="srcReg"/>
+                                </regionList>
+                            </externalGrid>
+                        </grid>
+                    </rhsValues>
+                    <rhsValues name="inner">
+                        <grid>
+                            <defaultGrid quantity="acouRhsLoad" dependtype="GENERAL"/>
+                        </grid>
+                    </rhsValues>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouRhsLoad">
+                        <regionList>
+                            <region name="inner"/>
+                            <region name="pml"/>
+                        </regionList>
+                    </nodeResult>
+                </storeResults>
+            </acoustic>
+        </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+    </sequenceStep>
+</cfsSimulation>

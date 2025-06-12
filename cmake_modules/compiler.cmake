@@ -22,41 +22,19 @@ if(DEBUG)
   set(CHECK_MEM_ALLOC 1)
 endif()
 
-# Check if compiler supports OpenMP
-find_package(OpenMP) # properties might be used from deps even with USE_OPENMP=OFF
-
+# make sure openmp_blas.cmake run already
 if(USE_OPENMP)
-  if(NOT OpenMP_FOUND)
-    message(FATAL_ERROR "USE_OPENMP selected but not found in system")
-  endif()
-
-  set(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS}")
-
-  if(APPLE)
-    # homebrew uses since Okt 2022 not the system path and we need to help cfs and lis
-    # according to cmake docu, OpenMP_<lang>_INCLUDE_DIR is input and OpenMP_<lang>_INCLUDE_DIRS is output, wherever the OpenMP_<lang>_INCLUDE_DIR is set?!
-    # sometimes the C stuff is set and is valid for C++, give it a try
-    if(NOT OpenMP_CXX_INCLUDE_DIR)
-      # dump_variables("OpenMP")
-      set(OpenMP_CXX_INCLUDE_DIR ${OpenMP_C_INCLUDE_DIR})
-    endif()
-    assert_set(OpenMP_CXX_INCLUDE_DIR) # /opt/homebrew[/opt/libomp]/include
-    assert_set(OpenMP_libomp_LIBRARY) # /opt/homebrew[/opt/libomp]/lib/libomp.dylib"
-    get_filename_component(OpenMP_LIBDIR ${OpenMP_libomp_LIBRARY} DIRECTORY) # also use for lis
-    include_directories(AFTER SYSTEM "${OpenMP_CXX_INCLUDE_DIR}")
-    set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -lomp -L${OpenMP_LIBDIR} ")
-  endif()   
-endif() # USE_OPENMP
+  assert_set(OpenMP_FOUND)
+endif()
 
 # Clang can be UNIX (macOS as AppleClang or Linux) or Windows (MSVC bundled).
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  set(CFS_CXX_FLAGS "-std=c++14 -ftemplate-depth-100 -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+  set(CFS_CXX_FLAGS "-std=c++17 -ftemplate-depth-100 -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
 
   if(USE_CGAL)
     # CGAL seems to require -frounding-math 
-    # warning gcc 12+13 crash creating a hdf5 file using hdf5 1.8.20 
-    # probably -frounding-math needs to be in sync with all cfsdeps
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math") 
+    # in theory use of Boost.multiprecision instead of gmp/mpfr can be enforced via -DCMAKE_OVERRIDDEN_DEFAULT_ENT_BACKEND=BOOST_BACKEND
+    #set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
   endif() 
 
   # this is set via ccmake (advanded) and produces very slow code which can check during runtime for memory issues   
@@ -115,13 +93,10 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
     set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-int-conversion -Wno-implicit-function-declaration")
   endif()
   set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} ${CFS_OPT_FLAGS} -w -Wno-everything")
-  if(USE_CGAL) # see comment about -frounding-math for gcc 12+13 above
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
-  endif()
 
   if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL "14")
     set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-implicit-int") # needed for SuperLU (and maybe others)
+    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -Wno-incompatible-pointer-types") # needed for gidpost (and maybe others)
   endif()
 
   # enable all warnings, then disable the ones we cannot prevent (e.g. from lib includes).
@@ -151,19 +126,25 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     # set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-redeclared-class-member -Wno-potentially-evaluated-expression -Wno-c11-extensions")
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-potentially-evaluated-expression")
-    # -Wno-constant-conversion: boost/iostreams/filter/gzip.hpp:674:16: error: implicit conversion from 'const int' to 'char' changes value from 139 to -117
-    #set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-constant-conversion")
     # include/muParserBytecode.h:51:7: error: anonymous types declared in an anonymous union are an extension
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-nested-anon-types")
-    # from boost 1.78 hash.hpp 'unary_function<const std::error_category *, unsigned long>' is deprecated
+    # from boost 1.78 warning: 'sprintf' is deprecated: 
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-declarations")
+    # from boost 1.78 with C++17 'warning: 'BOOST_NO_AUTO_PTR' macro redefined'
+    set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-macro-redefined") 
+    
     # not all gcc options are compatible with clang (mac)
     set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unknown-warning-option")
     
     if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15)
       set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-deprecated-builtins") # at least AppleClang
       set(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-enum-constexpr-conversion")
-    endif()  
+    endif()
+
+    # clang >= 18 is missing some standard c++ functions without that flag
+    if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 18)
+      set(CFS_LINKER_FLAGS "${CFS_LINKER_FLAGS} -static-libstdc++")
+    endif()
   endif() # end Clang   
 endif() # CXX GNU+Clang  
 
@@ -171,11 +152,11 @@ endif() # CXX GNU+Clang
 if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). Interface seems compatible
   # BOOST_ALL_NO_LIB is mandatoy for Windows, correct but not necessary on UNIX
   if(WIN32)
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Qstd=c++14 -D_WIN32_WINNT=0x0A00  -DBOOST_ALL_NO_LIB /fp:precise")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Qstd=c++17 -D_WIN32_WINNT=0x0A00  -DBOOST_ALL_NO_LIB /fp:precise")
     set(CFSDEPS_C_FLAGS " -D_WIN32_WINNT=0x0A00 /fp:precise")
     set(CFSDEPS_CXX_FLAGS " -D_WIN32_WINNT=0x0A00 /fp:precise")
   else()
-    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS}  -std=c++14 -fp-model=precise")
+    set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -std=c++17 -fp-model=precise")
     set(CFSDEPS_C_FLAGS " -fp-model=precise")
     set(CFSDEPS_CXX_FLAGS " -fp-model=precise")
   endif()
@@ -188,10 +169,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
     # error: cannot use 'throw' with exceptions disabled
     set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /EHsc")
   endif() 
-  if(USE_CGAL) # remove when we use header only CGAL
-    set(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -frounding-math ")
-    set(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -frounding-math ")
-  endif()
 
   # also icx on Windows with MSVC command line interface seems to understand gcc style
   set(CFS_SUPPRESSIONS "-Wno-overloaded-virtual -Wno-deprecated-declarations -Wno-comment ")
@@ -205,7 +182,8 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "IntelLLVM") # Windows (icx) or UNIX (icpx). I
 endif() # IntelLLVM
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  # this is for WINDOWS 10. It is essential to have the same version for the boost libs see External_Boost.cmake
+  set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /std:c++17") 
+  # this is for Windows 10 and 11. It is essential to have the same version for the boost libs see External_Boost.cmake
   set(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00")
   
   # support for alternative tokens requires the following
@@ -256,18 +234,18 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "Intel")
   #-----------------------------------------------------------------------------
   IF(UNIX)
     IF(DEBUG)
-      SET(CFS_CXX_FLAGS "-std=c++14 -g -w0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++14 -g ${CFSDEPS_CXX_FLAGS}") 
+      SET(CFS_CXX_FLAGS "-std=c++17 -g -w0 ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++17 -g ${CFSDEPS_CXX_FLAGS}") 
     ELSE()
       # release case
-      SET(CFS_CXX_FLAGS "-std=c++14 -w0 ${CFS_CXX_FLAGS}")
-      SET(CFSDEPS_CXX_FLAGS "-std=c++14 -w0 ${CFSDEPS_CXX_FLAGS}")
+      SET(CFS_CXX_FLAGS "-std=c++17 -w0 ${CFS_CXX_FLAGS}")
+      SET(CFSDEPS_CXX_FLAGS "-std=c++17 -w0 ${CFSDEPS_CXX_FLAGS}")
       SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
     ENDIF()
   ELSE()
     # this is for WINDOWS 10
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /DBOOST_ALL_NO_LIB /Qstd=c++14")
-    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++14")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /DBOOST_ALL_NO_LIB /Qstd=c++17")
+    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} /D_WIN32_WINNT=0x0A00 /Qstd=c++17")
     IF(DEBUG)
       SET(CFS_CXX_FLAGS "/Z7 /W0 ${CFS_CXX_FLAGS}")
       SET(CFSDEPS_CXX_FLAGS "/Z7 ${CFSDEPS_CXX_FLAGS}")
@@ -295,7 +273,16 @@ if(${CMAKE_Fortran_COMPILER_ID} MATCHES "GNU" AND (CMAKE_Fortran_COMPILER_VERSIO
   set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} -fallow-argument-mismatch") # was once --std=legacy # see https://github.com/Reference-LAPACK/lapack/issues/353
 endif()  
 
-# in CheckFortanRuntime.cmake we copy redistributable intel libs for deplyment 
+if(WIN32 AND ${CMAKE_Fortran_COMPILER_ID} MATCHES "Intel") # ifx and ifort 
+   # prevent the following error on arpack - but shall not harm for the other Fortran cfsdeps, too 
+   # ucrt.lib(api-ms-win-crt-math-l1-1-0.dll) : error LNK2005: ldexp already defined in libmmt.lib(ldexp_iface_c99.obj)
+   set(CFSDEPS_Fortran_FLAGS "/fpp /libs:dll")
+   if(USE_OPENMP)                                                                                                                                                                         
+      set(CFSDEPS_Fortran_FLAGS "${CFSDEPS_Fortran_FLAGS} /threads ")                                                                                                                  
+   endif() 
+endif()
+
+# in CheckFortanRuntime.cmake and redistributables.cmake we copy redistributable intel libs for deployment 
 
 #cmake_print_variables(CFSDEPS_C_FLAGS)
 #cmake_print_variables(CFSDEPS_CXX_FLAGS)
@@ -305,7 +292,10 @@ endif()
 #cmake_print_variables(CFS_CXX_FLAGS)
 #cmake_print_variables(CFS_LINKER_FLAGS)
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_CXX_FLAGS} ${CFS_OPT_FLAGS} ${CFS_SUPPRESSIONS}") # does not overwrite the cache variable
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_CXX_FLAGS} ${CFS_SUPPRESSIONS}") # does not overwrite the cache variable
+if(NOT DEBUG) # note that CFS_OPT_FLAGS are set for cfsdeps even for debug as we store the zip without build information
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${CFS_OPT_FLAGS}")
+endif()
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CFS_LINKER_FLAGS}")
 set(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CFS_LINKER_FLAGS}")
 set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_LINKER_FLAGS}")

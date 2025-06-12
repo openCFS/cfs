@@ -179,7 +179,7 @@ void CFSDatProgramOptions::GetHeaderString(std::ostream & out)
         << "===========" << std::endl;
     out << " openCFS Data Processing Tool" << std::endl << std::endl
         << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
-        << " (rev " << CFS_WC_REVISION << ")" << std::endl
+        << " (rev " << CFS_GIT_COMMIT << ")" << std::endl
         << " compiled " << __DATE__
         << " as " << CMAKE_BUILD_TYPE << std::endl
         << " CFSDat routines use " << CoupledField::CFS_NUM_THREADS << " threads for this run" << std::endl;

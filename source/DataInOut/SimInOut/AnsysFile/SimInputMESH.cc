@@ -468,7 +468,7 @@ namespace CoupledField {
     // Some additional variables
     UInt i, k, eNum, eType, eNodes;
     std::string region, lastRegion;
-    RegionIdType regionId;
+    RegionIdType regionId = 0;
     Integer regionIndex = 0;
     
     // Loop over all elements

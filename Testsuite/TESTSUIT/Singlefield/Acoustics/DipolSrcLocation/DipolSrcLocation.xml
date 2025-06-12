@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="forward.cfs"/>
+    </input>   
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="src" material="air_approx"/>
+      <region name="air" material="air_approx"/>
+      <region name="damp" material="air_approx"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <inverseSource>
+         <measDataFilename>testMeas.txt</measDataFilename>
+         <freq>500</freq>
+         <alphaPar>1e-1</alphaPar>
+         <betaPar>1e-1</betaPar>
+         <rhoPar>1e-3</rhoPar>
+         <expPar>1.1</expPar>
+         <resStopCritRel>0.01</resStopCritRel>
+         <maxReduceParSteps>8</maxReduceParSteps>
+         <maxGradSteps>10</maxGradSteps>
+         <maxNumLineSearch>8</maxNumLineSearch>
+         <minMicDistant>1.0</minMicDistant>
+         <logLevel>2</logLevel>
+      </inverseSource>
+    </analysis>
+    
+    <pdeList>
+      <acoustic>
+
+        <regionList>
+          <region name="src"/>
+          <region name="air"/>
+          <region name="damp"  dampingId="myPML"/>
+        </regionList>
+        
+        <dampingList>
+          <pml  id="myPML">
+            <type> inverseDist </type>
+            <dampFactor> 1 </dampFactor>
+          </pml>
+        </dampingList>
+        
+        <bcsAndLoads>
+         <rhsValues name="air">
+            <grid>
+             <defaultGrid quantity="acouPressure" dependtype="INVMEASURE" measureNodes="MicPos"/>
+            </grid>
+          </rhsValues>
+          <rhsValues name="src">
+            <grid>
+              <defaultGrid quantity="acouPressure" dependtype="INVSOURCE"></defaultGrid>
+            </grid>
+         </rhsValues>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="acouPressure"> 
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="acouRhsLoad">
+            <allRegions/>        
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>      
+ 
+    
+  </sequenceStep>
+  
+</cfsSimulation>

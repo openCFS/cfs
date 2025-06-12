@@ -1,0 +1,181 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation 
+    file:/home/kroppert/Devel/CFS_SRC/latest_trunkGit/CFS/share/xml/CFS-Simulation/CFS.xsd">
+    
+<documentation>
+    <title>Simple plate with temperature-dependent BH-curves</title>
+    <authors>
+        <author>kroppert</author>
+    </authors>
+    <date>2023-01-03</date>
+    <keywords>
+        <keyword>magneticEdge</keyword>
+        <keyword>transient</keyword>
+        <keyword>nonlinear</keyword>
+    </keywords>
+    <references> </references>
+    <isVerified>no</isVerified>
+    <description>
+        Simple coupled magnetic-thermal problem to test the correct behavior of interpolating between temperature-dependent 
+        BH-curves. The first sequence step is just an initial state, in order to reach plausible temperature values faster.
+
+        When looking at the time-evolution of the magnetic permeability in, e.g. Paraview, you can see that
+        the permeability changes over time (respectively temperature, since the temperature is ever increasing
+        in this testcase.
+
+        Note: the material parameters are just chosen artificially for this testcase, don't use them
+        for real simulations!
+    </description>
+</documentation>
+
+<fileFormats>
+    <input>
+        <hdf5 fileName="SimplePlate_tempdepend_BH_analytic.h5ref" />
+    </input>
+    <output>
+        <hdf5/>
+        <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+</fileFormats>
+<domain geometryType="3d">
+    <variableList>
+        <var name="freq" value="50"/>
+        <var name="B_amplitude" value="2"/>
+    </variableList>
+    <regionList>
+        <region name="V_aluminium" material="tempdepend_sheet_analytic"/>
+    </regionList>
+</domain>
+
+<sequenceStep index="1">
+    <analysis>
+        <static/>
+    </analysis>
+    <pdeList>
+        <heatConduction>
+            <regionList>
+                <region name="V_aluminium"/>
+            </regionList>
+            <bcsAndLoads>
+                <temperature name="S_aluminium" value="95"/>
+            </bcsAndLoads>
+            <storeResults>
+                <nodeResult type="heatTemperature">
+                    <allRegions/>
+                </nodeResult>
+            </storeResults>
+        </heatConduction>
+    </pdeList>
+</sequenceStep>
+
+<sequenceStep index="2">
+    <analysis>
+        <transient>
+            <numSteps>55</numSteps>
+            <deltaT>0.002</deltaT>
+        </transient>
+    </analysis>
+
+    <pdeList>
+        <magneticEdge>
+            <regionList>
+                <region name="V_aluminium" nonLinIds="nlPerm" matDependIds="permTdepend"/>
+            </regionList>
+            <nonLinList>
+                <permeability id="nlPerm"/>
+            </nonLinList>
+            <matDependencyList>
+                <permeability id="permTdepend">
+                    <coupling pdeName="heatConduction">
+                        <quantity name="heatTemperature" />
+                    </coupling>
+                </permeability>
+            </matDependencyList>
+            <bcsAndLoads>
+                <fluxDensity name="V_aluminium">
+                    <comp dof="z" value="B_amplitude*sin(2*pi*freq*t)"/>
+                </fluxDensity>
+            </bcsAndLoads>
+            <storeResults>
+                <elemResult type="magFluxDensity">
+                    <allRegions/>
+                </elemResult>
+                <elemResult type="magElemPermeability">
+                    <allRegions />
+                </elemResult>
+                <elemResult type="magTotalCurrentDensity">
+                    <allRegions/>
+                </elemResult>
+                <elemResult type="magEddyCurrentDensity">
+                    <allRegions/>
+                </elemResult>
+                <elemResult type="magPotential">
+                    <allRegions/>
+                </elemResult>
+                <elemResult type="magPotentialD1">
+                    <allRegions/>
+                </elemResult>
+                <elemResult type="magJouleLossPowerDensity">
+                    <allRegions/>
+                </elemResult>
+            </storeResults>
+        </magneticEdge>
+
+        <heatConduction>
+            <regionList>
+                <region name="V_aluminium" />
+            </regionList>
+            <initialValues>
+                <initialState>
+                    <sequenceStep index="1" />
+                </initialState>
+            </initialValues>
+            <bcsAndLoads>
+                <heatSourceDensity volumeRegion="V_aluminium" name="V_aluminium">
+                    <coupling pdeName="magneticEdge">
+                        <quantity name="magJouleLossPowerDensity"/>
+                    </coupling>
+                </heatSourceDensity>
+                <heatTransport name="S_aluminium" volumeRegion="V_aluminium" bulkTemperature="140" heatTransferCoefficient="0.1"/>
+            </bcsAndLoads>
+            <storeResults>
+                <nodeResult type="heatTemperature">
+                    <allRegions/>
+                </nodeResult>
+                <elemResult type="heatFluxDensity">
+                    <allRegions/>
+                </elemResult>
+            </storeResults>
+        </heatConduction>
+    </pdeList>
+
+    <couplingList>
+        <iterative>
+            <convergence logging="yes" maxNumIters="10" stopOnDivergence="yes">
+                <quantity name="magJouleLossPowerDensity" value="1e-6"/>
+            </convergence>
+        </iterative>
+    </couplingList>
+
+    <linearSystems>
+        <system >
+            <solutionStrategy>
+                <standard>
+                    <nonLinear logging="yes" method="fixPoint">
+                        <lineSearch/>
+                        <incStopCrit> 1e-5</incStopCrit>
+                        <resStopCrit> 1e-5</resStopCrit>
+                        <maxNumIters> 20  </maxNumIters>
+                    </nonLinear>
+                </standard>
+            </solutionStrategy>
+            <solverList>
+                <pardiso/>
+            </solverList>
+        </system>
+    </linearSystems>
+</sequenceStep>
+</cfsSimulation>

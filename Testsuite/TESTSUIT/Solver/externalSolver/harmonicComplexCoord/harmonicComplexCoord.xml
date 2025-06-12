@@ -1,0 +1,97 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+  <documentation>
+    <title>External Solver static test</title>
+    <authors>
+      <author>lklimon</author>
+    </authors>
+    <date>2022-09-15</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+      <keyword>harmonic</keyword>
+    </keywords>
+    <references/>
+    <isVerified>no</isVerified>
+    <description>
+      This is a test for the externalSolver Solver. The reference solution is computated with the directLU solver in CFS.
+      This tests checks a harmonic analysis, where the entry type of the format will be complex and the solution vector will be profided
+      from the external Solver in the Matrix Market Coordiante Format.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="harmonicComplexCoord.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+        <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="V_mech" material="steel"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <harmonic>
+        <numFreq>5</numFreq>
+        <startFreq>10</startFreq>
+        <stopFreq>100</stopFreq>
+        <sampling>linear</sampling>
+      </harmonic>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region  name="V_mech" dampingId="myDamping"/>
+        </regionList>
+        <dampingList>
+          <adaptedLossTangensDelta id="myDamping"/>
+        </dampingList>
+
+        <bcsAndLoads>
+          <fix name="S_fix">
+            <comp dof="x" />
+            <comp dof="y" />
+            <comp dof="z" />
+          </fix>
+          <force name="N_force">
+            <comp dof="x" value="1000" />
+            <comp dof="y" value="-1000" />
+          </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <elemResult type="mechStress">
+            <allRegions />
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <externalSolver>
+            <logging>no</logging>
+            <cmd>python3 solve.py</cmd>
+            <arguments>
+              <step></step>
+              <matrixFileName></matrixFileName>
+              <rhsFileName></rhsFileName>
+              <solutionFileName></solutionFileName>
+            </arguments>
+          </externalSolver>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

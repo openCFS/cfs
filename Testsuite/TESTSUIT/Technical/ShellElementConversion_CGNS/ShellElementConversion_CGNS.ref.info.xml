@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="2" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.36s" wall="0.36" cpu="0.330182" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="271.48" peak="273.48"/>
+  </summary>
+  <header id="">
+    <environment started="2022-Sep-09 11:10:46" host="Latitude7400"/>
+    <progOpts problem="ShellElementConversion_CGNS" parameterFile="/home/awurzinger/CFS_Devel/CFS_SRC/CFS/Testsuite/TESTSUIT/Technical/ShellElementConversion_CGNS/ShellElementConversion_CGNS.xml" schemaPath="/home/awurzinger/CFS_Devel/CFS_BIN/build_debug/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="22.03" name="Frohes Fensterln" build="Debug" git_commit="17c1437a27270c41154f36c42e0af696217bdf39" git_branch="awurzinger_add_shellElement_support" exe="/home/awurzinger/CFS_Devel/CFS_BIN/build_debug/bin/../bin/cfsbin"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.03s" wall="0.03" cpu="0.030087" calls="1"/>
+        <grid gridId="default" dimensions="3" elements="11" nodes="8"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="QUAD" id="0" type="surface" regular="yes" hom="yes" nodes="4" elems="1" isQuadratic="no"/>
+        <region name="TET" id="1" type="surface" regular="no" hom="yes" nodes="4" elems="2" isQuadratic="no"/>
+        <region name="SYS_1_1" id="2" type="volume" regular="no" hom="yes" nodes="4" elems="4" isQuadratic="no"/>
+        <region name="SYS_2_1" id="3" type="volume" regular="no" hom="yes" nodes="4" elems="4" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <grid>
+        <nodeList>
+          <node id="1" x="1" y="1" z="0" names="0"/>
+          <node id="2" x="1" y="1" z="1" names="0"/>
+          <node id="3" x="1" y="0" z="1" names="0"/>
+          <node id="4" x="1" y="0" z="0" names="0"/>
+          <node id="5" x="1" y="1" z="1" names="0"/>
+          <node id="6" x="0" y="1" z="1" names="0"/>
+          <node id="7" x="0" y="0" z="1" names="0"/>
+          <node id="8" x="1" y="0" z="1" names="0"/>
+        </nodeList>
+        <regionList>
+          <region name="QUAD">
+            <element id="1" type="QUAD4" nodes="4" node_0="3" node_1="4" node_2="1" node_3="2" names="0"/>
+          </region>
+          <region name="TET">
+            <element id="2" type="TRIA3" nodes="3" node_0="5" node_1="6" node_2="8" names="0"/>
+            <element id="3" type="TRIA3" nodes="3" node_0="8" node_1="6" node_2="7" names="0"/>
+          </region>
+          <region name="SYS_1_1">
+            <element id="4" type="LINE2" nodes="2" node_0="1" node_1="2" names="0"/>
+            <element id="5" type="LINE2" nodes="2" node_0="2" node_1="3" names="0"/>
+            <element id="6" type="LINE2" nodes="2" node_0="3" node_1="4" names="0"/>
+            <element id="7" type="LINE2" nodes="2" node_0="4" node_1="1" names="0"/>
+          </region>
+          <region name="SYS_2_1">
+            <element id="8" type="LINE2" nodes="2" node_0="5" node_1="6" names="0"/>
+            <element id="9" type="LINE2" nodes="2" node_0="6" node_1="7" names="0"/>
+            <element id="10" type="LINE2" nodes="2" node_0="7" node_1="8" names="0"/>
+            <element id="11" type="LINE2" nodes="2" node_0="8" node_1="5" names="0"/>
+          </region>
+        </regionList>
+      </grid>
+      <globalMathParser/>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <warning lineNum="244" fileName="/home/awurzinger/CFS_Devel/CFS_SRC/CFS/source/DataInOut/SimInOut/CGNS/SimInputCGNS.cc" message="CGNS file '/home/awurzinger/CFS_Devel/CFS_SRC/CFS/Testsuite/TESTSUIT/Technical/ShellElementConversion_CGNS/mesh.cgns:
+BaseIterativeData_t node doesn't exist under CGNSBase 1"/>
+</cfsInfo>

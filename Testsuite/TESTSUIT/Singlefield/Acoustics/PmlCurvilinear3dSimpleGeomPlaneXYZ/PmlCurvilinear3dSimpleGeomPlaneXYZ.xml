@@ -1,0 +1,168 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+<documentation>
+  <title>PmlCurvilinear3dSimpleGeomPlaneXYZ</title>
+  <authors>
+    <author>pheidegger</author>
+  </authors>
+  <date>2023-09-11</date>
+  <keywords>
+    <keyword>acoustic</keyword>
+    <keyword>pml</keyword>
+    <keyword>harmonic</keyword>
+    <keyword>output</keyword>
+  </keywords>
+  <references> 
+    Non Just functionality test
+  </references>
+  <isVerified>yes</isVerified>
+  <description>
+    A point source in the center of a cross (3 rectangular tunnels in the x,y,z direction).
+    The PML domains are automatically generated and the required nodal geometry 
+    is given using the 'simpleGeometry="planeX/Y/Z"' tag. 
+    The testexample computes the solution using the curvilinear PML formulation.
+    Note: a non-physical material is used here for simplicity.
+  </description>
+</documentation>
+
+  <!--***************************    INPUTs and OUTPUTs    ***********************-->
+  <fileFormats> 
+    <input>
+      <cdb fileName="./PmlCurvilinear3dSimpleGeomPlaneXYZ.cdb"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <!--***************************  REGIONSs, SURFACEs and NODEs  ***********************-->
+  <domain geometryType="3d">
+    <variableList>
+      <var name="p" value="1"/> <!-- source pressure -->
+    </variableList>
+    <regionList> 
+      <region name="prop" material="fakefluid"/>
+      <region name="PML+x"    material="fakefluid"/>
+      <region name="PML-x"    material="fakefluid"/>
+      <region name="PML+y"    material="fakefluid"/>
+      <region name="PML-y"    material="fakefluid"/>
+      <region name="PML+z"    material="fakefluid"/>
+      <region name="PML-z"    material="fakefluid"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="ifPML+x"/>
+      <surfRegion name="ifPML-x"/>
+      <surfRegion name="ifPML+y"/>
+      <surfRegion name="ifPML-y"/>
+      <surfRegion name="ifPML+z"/>
+      <surfRegion name="ifPML-z"/>
+    </surfRegionList>
+    <layerGenerationList>
+      <newRegion name="PML+x">
+        <sourceSurfRegion name="ifPML+x" />
+        <extrusionParameters elemHeight="0.05" numLayers="4" />
+        <surfGeometry>
+          <analyticApproximation>
+            <plane normalDirection="x" />
+          </analyticApproximation>
+        </surfGeometry>
+      </newRegion>
+      <newRegion name="PML-x">
+        <sourceSurfRegion name="ifPML-x" />
+        <extrusionParameters elemHeight="0.05" numLayers="4" />
+        <surfGeometry>
+          <analyticApproximation>
+            <plane normalDirection="x"/>
+          </analyticApproximation>
+        </surfGeometry>
+      </newRegion>
+      <newRegion name="PML+y">
+        <sourceSurfRegion name="ifPML+y" />
+        <extrusionParameters elemHeight="0.05" numLayers="4" />
+        <surfGeometry>
+          <analyticApproximation>
+            <plane normalDirection="y" />
+          </analyticApproximation>
+        </surfGeometry>
+      </newRegion>
+      <newRegion name="PML-y">
+        <sourceSurfRegion name="ifPML-y" />
+        <extrusionParameters elemHeight="0.05" numLayers="4" />
+        <surfGeometry>
+          <analyticApproximation>
+            <plane normalDirection="y" />
+          </analyticApproximation>
+        </surfGeometry>
+      </newRegion>
+      <newRegion name="PML+z">
+        <sourceSurfRegion name="ifPML+z" />
+        <extrusionParameters elemHeight="0.05" numLayers="4" />
+        <surfGeometry>
+          <analyticApproximation>
+            <plane normalDirection="z" />
+          </analyticApproximation>
+        </surfGeometry>
+      </newRegion>
+      <newRegion name="PML-z">
+        <sourceSurfRegion name="ifPML-z" />
+        <extrusionParameters elemHeight="0.05" numLayers="4" />
+        <surfGeometry>
+          <analyticApproximation>
+            <plane normalDirection="z" />
+          </analyticApproximation>
+        </surfGeometry>
+      </newRegion>
+    </layerGenerationList>
+    <nodeList>
+      <nodes name="src">
+        <coord x="0" y="0" z="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  <sequenceStep index="1">    
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="0.1"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>    
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="prop" />
+          <region name="PML+x"  dampingId="PMLdamp"/>
+          <region name="PML-x"  dampingId="PMLdamp"/>
+          <region name="PML+y"  dampingId="PMLdamp"/>
+          <region name="PML-y"  dampingId="PMLdamp"/>
+          <region name="PML+z"  dampingId="PMLdamp"/>
+          <region name="PML-z"  dampingId="PMLdamp"/>
+        </regionList>
+        <dampingList>
+          <pml id="PMLdamp" formulation="curvilinear">
+            <type>
+              inverseDist
+            </type>
+            <dampFactor>
+              1.0
+            </dampFactor>
+          </pml>
+        </dampingList>
+        <bcsAndLoads>
+          <pressure name="src" value="p"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <regionList>
+              <region name="prop" outputIds="h5"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

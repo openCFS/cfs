@@ -8,6 +8,7 @@ These instructions are tested on [rockylinux docker containers](https://hub.dock
 
 For instructions on older systems see:
 * [CentOS 7](./centos_7.md)
+* [RockLinux 8](./rockylinux_8.md)
 
 For the default build configuration, we need
 ```shell

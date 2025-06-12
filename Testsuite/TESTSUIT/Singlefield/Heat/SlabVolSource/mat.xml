@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="steel">
+    <heatConduction>
+      <density>
+        <linear>
+          <real>             7.2e3   </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real> 4.405e2 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real> 3.5e1 </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+</cfsMaterialDataBase>

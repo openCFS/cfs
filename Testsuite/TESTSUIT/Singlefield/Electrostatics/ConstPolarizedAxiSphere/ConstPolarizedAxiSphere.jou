@@ -1,0 +1,59 @@
+reset
+#{ R = 0.1 }
+#{ H = 1.0 }
+
+create surface circle radius {R} zplane 
+create surface rectangle width {H} zplane
+
+webcut body 2 with sheet body 1
+
+webcut body 2 1 with plane xplane offset 0
+delete Surface 4 6 8
+
+merge curve 9 19
+
+curve 12 11 interval12
+curve 12 11 scheme equal
+mesh curve 12 11 
+
+curve 5 interval 24
+curve 5 scheme equal
+mesh curve 5 
+
+curve 9 interval 30
+curve 9 scheme equal
+mesh curve 9 
+
+curve 18 interval 25
+curve 18 scheme equal
+mesh curve 18 
+
+curve 8  tangent opposite
+draw curve  8   tangent color red factor 1 
+
+curve 10 8  interval 30
+curve 10 8  scheme bias factor 1.1
+mesh curve 10 8
+
+surface 7 scheme trimesh geometry approximation angle 5 
+surface 5 scheme trimesh geometry approximation angle 5 
+trimesher surface gradation 1.3
+trimesher geometry sizing on
+mesh surface 7 5
+
+#define boundaries
+block 1 add surface 5
+block 1 name "extern"
+
+block 2 add surface 7
+block 2 name "intern"
+
+block 1 element type TRI6
+block 2 element type TRI6
+
+nodeset 3 add curve 5 11 12
+nodeset 3 name "boundary_surrounding"
+
+
+#export ansys cdb "sphere_2D_axi.cdb" overwrite
+

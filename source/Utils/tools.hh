@@ -15,6 +15,7 @@
   #define M_PI boost::math::constants::pi<double>()
 #endif
 
+#include <def_use_cuda.hh>
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
 #include <omp.h>
@@ -328,10 +329,9 @@ namespace CoupledField {
   void PrintCFSHeader(std::ostream & out);
   
 
-  /** Determines the current memory consumption.
-   * This is done by calling ps and some post processing from a pipe.
-   * Runs clearly only on Unix and is rather expensive
-   * @param peak peak memory or current memory
+  /** Determines the current memory consumption for Linux, macOS and Windows
+   * Rather slow on Linux, only current memory on macOS
+   * @param peak peak memory, otherwise current memory
    * @return the memory in KBytes or 0 if there was a problem */
   int MemoryUsage(bool peak);
 
@@ -420,6 +420,15 @@ namespace CoupledField {
   inline bool UseOpenMP()
   {
     #ifdef USE_OPENMP
+      return true;
+    #else
+      return false;
+    #endif
+  }
+
+  inline bool UseCuda()
+  {
+    #ifdef USE_CUDA
       return true;
     #else
       return false;

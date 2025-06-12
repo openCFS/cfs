@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>Plane Wave LinFLow Postprocessing results</title>
+    <authors>
+      <author>dmayrhof</author>
+    </authors>
+    <date>2022-04-04</date>
+    <keywords>
+      <keyword>flow</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Analytic derivation
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      1D problem (plane wave in a channel) with velocity excitation. Including no grid- or background velocity, a simple analytic solution can be found with the complex wave number
+      k = 1i*sqrt(rho0*omega^2/(rho0*c0^2+(4/3*mu+lambda)*1i*omega))
+      We use this information to compute all variants of stresses and compare them with the analytic solution.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="PlaneWave2DPostProc.h5ref"/>
+      <!--<cdb fileName="Channel_mesh.cdb"/>-->      
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="Channel" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="Excite"/>
+      <surfRegion name="BC_Bot"/>
+      <surfRegion name="BC_Top"/>
+      <surfRegion name="BC_Right"/>
+    </surfRegionList> 
+  </domain>
+
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="orderVel">
+      <isoOrder>2</isoOrder> 
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="orderPres">
+      <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+  
+  <integrationSchemeList>
+    <scheme id="integVel">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="integPres">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>28</numSteps>
+        <deltaT>5e-05</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel">
+        <regionList>
+          <region name="Channel"/>
+        </regionList>
+        
+        <bcsAndLoads> 
+          <noSlip name="BC_Top">
+            <comp dof="y"/>         
+          </noSlip>
+          <noSlip name="BC_Bot">
+            <comp dof="y"/>         
+          </noSlip>
+          <!--<pressure name="Excite" value="sin(2*pi*1000*t)*(1-exp(-t/(3e-3)))"/>-->
+          <velocity name="Excite">
+            <comp dof="x" value="sin(2*pi*1000*t)"/>
+          </velocity>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions outputIds="h5"/>        
+          </nodeResult>
+          <elemResult type="fluidMechCompressibleStress">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <elemResult type="fluidMechPressureTensor">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <elemResult type="fluidMechStress">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <elemResult type="fluidMechViscousStress">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <elemResult type="fluidMechTotalStress">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <elemResult type="fluidMechStrainRate">
+            <allRegions outputIds="h5"/>
+          </elemResult>
+          <surfElemResult type="fluidMechSurfaceTraction">
+            <surfRegionList>
+              <surfRegion name="Excite"/>
+            </surfRegionList>
+          </surfElemResult>
+          <surfRegionResult type="fluidMechForce">
+            <surfRegionList>
+              <surfRegion name="Excite"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </fluidMechLin>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

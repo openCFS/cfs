@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="air">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.2 </real>
+          <imag>0</imag>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real>  138720.0 </real>
+          <imag>0</imag>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="MPP1">
+    <acoustic>
+      <density>
+        <linear>
+          <real> sample1D('mppDensityR.txt',f,1) </real>
+          <imag> sample1D('mppDensityI.txt',f,1) </imag>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> sample1D('mppCompR.txt',f,1) </real>
+          <imag> sample1D('mppCompI.txt',f,1) </imag>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

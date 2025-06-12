@@ -73,7 +73,7 @@ ENDIF()
 # Target link libraries for openCFS executable target.
 #message(STATUS "cfs TARGET_LL=${TARGET_LL}")
 TARGET_LINK_LIBRARIES(cfs ${TARGET_LL})
-if(MKL_LIBS AND CMAKE_VERSION VERSION_GREATER "3.24") # TODO: remove this once legacy finding is removed from FindIntelMKL
+if(MKL_LIBS AND CMAKE_VERSION VERSION_GREATER "3.24") # TODO: possibly remove this once legacy_mkl.cmake is removed
   message(STATUS "Setting link group")
   target_link_libraries(cfs "$<LINK_GROUP:RESCAN,${MKL_LIBS}>") # keept the group together
 endif()

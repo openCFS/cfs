@@ -197,7 +197,7 @@ def find_corners(centers):
   return min, max      
 
 def last_h5_step(hdf5_file,multistep=1):          
-  ms = hdf5_file['/Results/Mesh/MultiStep_%i'%multistep]
+  ms = hdf5_file['/Results/Mesh/MultiStep_' + str(multistep)]
   last = None
   for name in ms:
     if name.startswith('Step_'):

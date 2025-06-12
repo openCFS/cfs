@@ -1,0 +1,134 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+   <fileFormats>
+    <output>
+      <hdf5/>
+    </output>
+     <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="airV"  material="AIR"/>
+      <region name="plateV"  material="alu"/>
+      <region name="coilV1" material="AIR"/>
+      <region name="coilV2" material="AIR"/>
+      <region name="coreV" material="AIR"/>
+    </regionList>
+    <elemList>
+      <elems name="bottom"/>
+      <elems name="top"/>
+      <elems name="surfxOuter"/>
+      <elems name="surfyOuter"/>
+      <elems name="surfxInner"/>
+      <elems name="surfyInner"/>
+    </elemList>
+    <nodeList>
+      <nodes name="fixMech"/>
+    </nodeList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="mag">
+      <isoOrder>0</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+
+   <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>5</numSteps>
+        <deltaT>1e-3</deltaT>
+        
+        <!-- Important: Activate saving of all data, 
+          in order to postprocess data afterwards -->
+         <allowPostProc>yes</allowPostProc>
+      </transient>
+    </analysis>
+    
+    
+    <pdeList>
+      <magneticEdge>
+        <regionList>
+          <region name="airV" polyId="mag"/>
+          <region name="coilV1" polyId="mag"/>
+          <region name="coilV2" polyId="mag"/>
+          <region name="plateV" polyId="mag"/>
+          <region name="coreV" polyId="mag"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fluxParallel name="bottom"/>
+          <fluxParallel name="top"/>
+	  <fluxParallel name="surfxOuter"/>
+	  <fluxParallel name="surfyOuter"/>
+	  <fluxParallel name="surfxInner"/>
+	  <fluxParallel name="surfyInner"/>
+        </bcsAndLoads>
+        
+	<coilList>
+          <coil id="myCoil">
+            <source type="current" value="8000* sin(2*pi*50*t)"/>
+              <part>
+                <regionList>
+                  <region name="coilV1"/>
+                </regionList>
+                <direction>
+                  <analytic>
+                    <comp dof="y" value="1"/>
+                  </analytic>
+                </direction>
+                <wireCrossSection area="3e-3"/>
+                <resistance value="0"/> 
+              </part>
+	      <part>
+                <regionList>
+                  <region name="coilV2"/>
+                </regionList>
+                <direction>
+                  <analytic>
+                    <comp dof="x" value="-1"/>
+                  </analytic>
+                </direction>
+                <wireCrossSection area="3e-3"/>
+                <resistance value="0"/> 
+              </part>
+            </coil>
+          </coilList>
+        
+        
+        <storeResults>          
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="magEddyCurrentDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="magCoilCurrentDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="magForceLorentzDensity">
+            <allRegions/>
+          </elemResult>
+          
+          <regionResult type="magForceLorentz">
+            <allRegions/>
+          </regionResult>
+          
+        </storeResults>
+      </magneticEdge>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>
+

@@ -114,7 +114,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
       if(constraint_idx_ == -1)
         EXCEPTION("multiObjective constraint type " << Function::type.ToString(constraint_type) << " is not given as constraint.")
 
-      LOG_DBG3(ocm) << "mO: w=" << weight_ << " b=" << beta_ << " c=" << Function::type.ToString(constraint_type) << " constraint_idx_=" << constraint_idx_;
+      LOG_DBG(ocm) << "mO: w=" << weight_ << " b=" << beta_ << " c=" << Function::type.ToString(constraint_type) << " constraint_idx_=" << constraint_idx_;
     }
   }
 

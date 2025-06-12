@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  <documentation>
+    <title>Piezoelectric Extension Actuator - Eigenfrequency 2D</title>
+    <authors>
+      <author>ahauck</author>
+    </authors>
+    <date>2012-03-11</date>
+    <keywords>
+      <keyword>piezo</keyword>
+    </keywords>
+    <references>
+      @ARTICLE{benjeddou97:1,
+      author = {Benjeddou, A., Trindade, M.A., Ohayon, R.},
+      title = {A unified beam finite element model for extension and shear piezoelectric
+      actuation mechanisms},
+      journal = {Journal of Intelligent Material Systems and Structures},
+      year = {1997},
+      volume = {8},
+      pages = {1012-1025},
+      number = {12},
+      }
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      This is a model of a piezoelectric extension actuator, which consists
+      of a cantilever made of aluminum. Two PZT-5H actuators are mounted on
+      top and on bottom for actuation.
+      
+      The goal is to compare the eigenfrequencies. The first analytical values
+      are given by:
+
+        EF1:  1030 Hz
+        EF2:  4230 Hz
+        EF3: 12000 Hz
+        EF4: 23500 Hz
+        EF5: 38500 Hz
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <output>
+      <hdf5 id ="h"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="piezo-top" material="PZT-5H"/>
+      <region name="piezo-bot" material="PZT-5H"/>
+      <region name="bar" material="Aluminum"/>
+    </regionList>
+  </domain>
+  
+  <fePolynomialList>
+    <Lagrange>
+      <isoOrder serendipity="false">2</isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+  <sequenceStep>
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>10</numModes>
+        <freqShift>0</freqShift>
+        <writeModes>yes</writeModes>
+      </eigenFrequency>
+    </analysis>
+    
+    <pdeList>
+      <!-- Important: In the publication, a plane-stress 
+           approximation is assumed (see annotation 
+           on p. 1015, after eq (13) ). -->
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="piezo-top"/>
+          <region name="piezo-bot"/>
+          <region name="bar"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <fix name="left">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+      
+      <electrostatic>
+        <regionList>
+          <region name="piezo-top"/>
+          <region name="piezo-bot"/>
+        </regionList>
+        
+        <bcsAndLoads>
+         <constraint name="hot"/>
+          <ground name="gnd"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+<!--          <nodeResult type="elecPotential">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="elecFieldIntensity">
+            <allRegions/>
+          </elemResult>-->
+        </storeResults>
+      </electrostatic>
+    </pdeList>
+    <couplingList>
+      
+      <direct>
+        <piezoDirect>
+          <regionList>
+            <region name="piezo-top"/>
+            <region name="piezo-bot"/>
+          </regionList>
+        </piezoDirect>
+      </direct>
+    </couplingList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+  
+</cfsSimulation>

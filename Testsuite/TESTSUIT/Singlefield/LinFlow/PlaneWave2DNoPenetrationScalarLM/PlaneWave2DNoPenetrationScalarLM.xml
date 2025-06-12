@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>Testing of the implemented noSlip BC based on the Lagrange multiplier for the LinFlow-PDE</title>
+    <authors>
+      <author>fspoerk</author>
+    </authors>
+    <date>2022-07-14</date>
+    <keywords>
+      <keyword>flow</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>no</isVerified>
+    <description>
+      The bottom of the channel is excited with velocity. The channel is rotated, therefore the velocity excitation is rotated as well.  
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="PlaneWave2DNoPenetrationScalarLM.h5ref"/>
+      <!--cdb fileName="Channel_mesh.cdb"/-->
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="Channel" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="BC_Left"/>
+      <surfRegion name="BC_Bot"/>
+      <surfRegion name="BC_Top"/>
+      <surfRegion name="BC_Right"/>
+    </surfRegionList> 
+    
+  </domain>
+  
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="orderVel">
+      <isoOrder>2</isoOrder> 
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="orderPres">
+       <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="integVel">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="integPres">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>50</numSteps>
+        <deltaT>5e-5</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel" presIntegId="integPres" velIntegId="integVel">
+        <regionList>
+          <region name="Channel"/>
+        </regionList>
+        
+        <bcsAndLoads> 
+          <velocity name="BC_Bot">
+            <comp dof="x" value="sin(2*pi*1000*t)*cos(pi/3)*(1-exp(-t/(3e-3)))"/>
+            <comp dof="y" value="sin(2*pi*1000*t)*sin(pi/3)*(1-exp(-t/(3e-3)))"/>
+          </velocity>
+          <scalarVelocityConstraint name="BC_Left" volumeRegion="Channel">
+            <noPenetration/>
+          </scalarVelocityConstraint>
+          <scalarVelocityConstraint name="BC_Right" volumeRegion="Channel">
+            <noPenetration/>
+          </scalarVelocityConstraint>
+          <scalarVelocityConstraint name="BC_Top" volumeRegion="Channel">
+            <noPenetration/>
+          </scalarVelocityConstraint>
+          <!-- pressure name="BC_Bot" value="sin(2*pi*1000*t)*(1-exp(-t/(3e-3)))"/-->
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions outputIds="h5"/>       
+          </nodeResult>
+          <nodeResult type="lagrangeMultiplier1">
+            <allRegions outputIds="h5"/>
+          </nodeResult>
+        </storeResults>
+      </fluidMechLin>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

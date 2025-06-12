@@ -1,0 +1,102 @@
+undo on
+reset
+
+##################################################
+############# GEOMETRY #############################
+#################################################
+
+
+# Create  volumes
+brick x 0.5 y 1 z 1
+move volume 1 z -0.5
+
+brick x 0.5 y 1 z 1
+move volume 2 z 0.5
+
+#merge volume 1 4
+
+
+
+
+###################################################
+############## GROUPS ###############################
+##################################################
+block 1 add volume 1
+block 1 name "V_low"
+block 2 add volume 2
+block 2 name "V_up"
+
+
+
+nodeset 1 add surface 3
+nodeset 1 name "S_3"
+
+nodeset 2 add surface 4
+nodeset 2 name "S_4"
+
+nodeset 3 add surface 5
+nodeset 3 name "S_5"
+
+nodeset 4 add surface 6
+nodeset 4 name "S_6"
+
+
+
+nodeset 5 add surface 9
+nodeset 5 name "S_9"
+
+nodeset 6 add surface 10
+nodeset 6 name "S_10"
+
+nodeset 7 add surface 11
+nodeset 7 name "S_11"
+
+nodeset 9 add surface 12
+nodeset 9 name "S_12"
+
+
+
+
+
+nodeset 10 add surface 8
+nodeset 10 name "NC_up"
+
+nodeset 11 add surface 1
+nodeset 11 name "NC_low"
+
+
+nodeset 12 add surface 2
+nodeset 12 name "S_bottom"
+
+nodeset 13 add surface 7
+nodeset 13 name "S_top"
+
+###################################################
+############## MESH ################################
+##################################################
+
+volume 1 scheme map
+volume 1 size 0.2
+mesh volume 1
+
+volume 2 scheme map
+volume 2 size 0.25
+mesh volume 2
+
+
+
+###################################################
+############## EXPORT CDB FILE #########################
+##################################################
+export ansys cdb "mesh.cdb"  overwrite 
+
+
+
+
+
+
+
+
+
+
+

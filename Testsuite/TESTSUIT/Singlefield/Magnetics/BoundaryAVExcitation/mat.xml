@@ -1,0 +1,115 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="air">
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0.0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <!-- Permeability: http://www.ee.surrey.ac.uk/Workshop/advice/coils/mu/#mu0"
+           Remarks : "Name: K0.5Na0.5Nb03, air fired" -->
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="copper">
+    <mechanical>
+      <density>
+        <linear>
+          <real>8900</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>115E9</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.34</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>5.67E7</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 5.67E7 </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.256E-6 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="iron">
+    <mechanical>
+      <density>
+        <linear>
+          <real>7680</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>210E9</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.3</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 1.04E7 </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 6.3E-3 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+</cfsMaterialDataBase>

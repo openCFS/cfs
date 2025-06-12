@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation  ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Cantilever with Rayleigh Damping</title>
+    <authors>
+      <author>Alexander Schmiedhofer</author>
+      <author>Florian Toth</author>
+    </authors>
+    <date>2021-10-10</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references></references>
+    <isVerified> no</isVerified>
+    <description>
+    A cantilever with rayleigh damping.
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <!--  <gmsh fileName="damped_struct_2D.msh">  </gmsh>-->
+      <hdf5 fileName="RayleighDampledCantilever2D_quadraticEigenSolver.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <domain geometryType="plane"  printGridInfo="no">
+    <regionList>
+      <region name="block" material="refAlu" />
+    </regionList>
+  </domain>
+  <sequenceStep index="1">
+    <analysis>
+        <eigenFrequency>
+          <isQuadratic>yes</isQuadratic>
+          <!-- <freqShift>0</freqShift>
+          <numModes>15</numModes> -->
+          <minVal>-10000</minVal>
+          <maxVal> 10000</maxVal>
+          <writeModes>yes</writeModes>
+        </eigenFrequency>
+    </analysis>  
+    <pdeList>
+      <mechanic subType="planeStrain" >
+        <regionList>
+          <region  dampingId="Rayl" name="block" complexMaterial="no"/>
+        </regionList>   
+        <dampingList>
+          <rayleigh id="Rayl"/>
+        </dampingList>
+        <bcsAndLoads>
+          <fix name="bc">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>      
+        <storeResults>
+          <nodeResult complexFormat="amplPhase" type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard> 
+            <eigenSolver id="mysolver"/>
+          </standard>
+        </solutionStrategy>
+       <eigenSolverList>
+         <feast id="feast">
+           <stopCrit>6</stopCrit>
+         </feast>
+         <quadratic id="mysolver">
+           <generalisedEigenSolver id="feast"/> 
+            <linearisation>secondCompanion</linearisation>
+         </quadratic>
+       </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

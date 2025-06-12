@@ -509,14 +509,15 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 AcouMat::AcouMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_   = ACOUSTIC;
-  assert(false); // mc_!
-  stiff.integrator = "LaplaceInt";
-  stiff.mc = MECHANIC; // What could match better?!
-  stiff.mt = MECH_STIFFNESS_TENSOR;
+  // We wrap not a single material, but the pre-factors for stiffness and mass-matrix. Therefore NO_MATERIAL is used.
+  // e.g. 1 for the stiffness and rho^2/K^2 for the mass matrix.
+  stiff.integrator = "LaplaceIntegrator";
+  stiff.mc = MaterialClass::ACOUSTIC;
+  stiff.mt = NO_MATERIAL;
 
-  mass.integrator = "MassInt";
+  mass.integrator = "MassIntegrator";
   mass.mc = stiff.mc;
-  mass.mt = DENSITY;
+  mass.mt = NO_MATERIAL;
 }
 
 

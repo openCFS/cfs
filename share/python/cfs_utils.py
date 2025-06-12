@@ -11,12 +11,12 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 # lxml is technically based on the libxml2 C-code bat hat the nicer python interface
 import lxml
 import lxml.etree
-import six
 import math
 import os
 import string
 import numpy as np
 import collections
+import glob
 
 # helper to print a (numpy) array with commas such that the output can be copied as python code
 def nice(array, round_digits = 10):
@@ -34,6 +34,22 @@ def nice(array, round_digits = 10):
   txt += ']'
   return txt
 
+## Windows input beautifier
+# when argsparse has '*' as input, it need to be globalized for windows
+# drawback is, that for a wrong file name an empty list is returned.
+# @param abbort if no existing file is described, we print an error message and exit()
+def clean_input(input, abbort = False):
+  if isinstance(input, list):
+    result = glob.glob(input[0]) if len(input) == 1 else input
+    if(len(result) == 0 and abbort):
+      print("error: '" + input[0] + "' refers no existing file");
+      os.sys.exit(1)
+    return result  
+  else:
+    if(abbort and not os.path.exists(input)):
+      print("error: '" + input + "' refers no existing file");
+      os.sys.exit(1)
+    return input
 
 # helper to write values and coordinates to a csv (comma separated values) file
 # see element_to_node_2d in hdf5_tools
@@ -70,6 +86,8 @@ def namespace(query):
 
 # replace a single xpath value -> must exist once!
 # the xpath shall contain a single result. e.g. '//cfs:materialData/@file
+# when using conditions like //cfs:constraint[@type="volume"][@mode="constraint"]/@value
+# you need to quote when using via command line as '//cfs:constraint[@type="volume"][@mode="constraint"]/@value'
 # internally we get via lxml the element by removing /@file from the expression
 # if the original attribute value has '/nx' this will stay, even when value has not '/nx' set.
 #@param unique if True there must be one match, if false there may be more than one - none is also an option
@@ -81,16 +99,19 @@ def replace(xml, path, value, unique = True):
       raise RuntimeError(path + " not found")
     if len(res) > 1:
       raise RuntimeError(path + " not unique, has " + str(len(res)) + " hits")
-
+  
   # in the attribute case we have to fake
   idx = path.rfind('/@')
+  key = path[idx+2:]
   if idx > 0:
-    # query element
+    # query element (we might not be unique)
     elem = xml.xpath(path[0:idx], namespaces = namespace(path))
     for e in elem:
-      data = e.attrib[path[idx+2:]]
+      if key not in e.attrib:
+        raise RuntimeError("key '" + key + "' not in element " + str(e.attrib) + " maybe specify more precisely")
+      data = e.attrib[key]
       by_nx = str(data).find('/nx') > 0 and str(value).find('/nx') == -1
-      e.attrib[path[idx+2:]] = str(value) + ('/nx' if by_nx else '')
+      e.attrib[key] = str(value) + ('/nx' if by_nx else '')
     return len(elem)
   else:
     for e in res:
@@ -126,10 +147,7 @@ def xpath(xml, path):
     data = res[0]
     return str(data)
   except AttributeError: # this happens when xml is from libxml2 and not lxml
-    if six.PY2:
-      raise RuntimeError('is your xml paramater from libxml2? You need to switch to lxml')
-    else: 
-      raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
+    raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
 
   
 # does at least one element exist
@@ -141,10 +159,7 @@ def has(xml, path):
     else:
       return True
   except AttributeError: # this happens when xml is from libxml2 and not lxml
-    if six.PY2:
-      raise RuntimeError('is your xml paramater from libxml2? You need to switch to lxml')
-    else: 
-      raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
+    raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
   
 # dump a xml node
 def dump(xml, path):
