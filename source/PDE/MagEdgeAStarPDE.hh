@@ -78,7 +78,7 @@ namespace CoupledField
     void DefinePostProcResults();
     
     //! Init the time stepping
-    void InitTimeStepping();
+    // void InitTimeStepping();
 
     // =======================================================================
     //   COILS

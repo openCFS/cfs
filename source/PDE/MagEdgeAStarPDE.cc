@@ -378,22 +378,22 @@ DEFINE_LOG(magEdgeAStarPde, "magEdgeAStarPde")
   // ======================================================
   // TIME-STEPPING SECTION 
   // ======================================================
-  void MagEdgeAStarPDE::InitTimeStepping() {
-    // Use complete implicit scheme
-    Double gamma = 1.0;
-    GLMScheme * scheme = new Trapezoidal(gamma);
+  // void MagEdgeAStarPDE::InitTimeStepping() {
+  //   // Use complete implicit scheme
+  //   Double gamma = 1.0;
+  //   GLMScheme * scheme = new Trapezoidal(gamma);
 
-    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
-    feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
+  //   TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+  //   shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
+  //   feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 
-    // Important: Create a new time scheme for each additional feFunction
-    // NEW: from NACS - copy stepping scheme from mag potential
-    shared_ptr<TimeSchemeGLM> mainScheme;
-    mainScheme = dynamic_pointer_cast<TimeSchemeGLM>(
-    feFunctions_[MAG_POTENTIAL]->GetTimeScheme());            
-    assert(mainScheme);
-  }
+  //   // Important: Create a new time scheme for each additional feFunction
+  //   // NEW: from NACS - copy stepping scheme from mag potential
+  //   shared_ptr<TimeSchemeGLM> mainScheme;
+  //   mainScheme = dynamic_pointer_cast<TimeSchemeGLM>(
+  //   feFunctions_[MAG_POTENTIAL]->GetTimeScheme());            
+  //   assert(mainScheme);
+  // }
 
 
 
