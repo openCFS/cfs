@@ -121,6 +121,18 @@ namespace CoupledField
       shared_ptr<BaseTimeScheme> myScheme3(new TimeSchemeGLM(*mainScheme));
       feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme3);
     }
+
+    // 3) check for network coupling
+    if( hasLEM_ ) {
+      shared_ptr<BaseTimeScheme> myScheme4(new TimeSchemeGLM(*mainScheme));
+      feFunctions_[ELEC_NETWORK_POTENTIAL]->SetTimeScheme(myScheme4);
+
+      // if we also have an inductor, we need to create an additional space for the aus variable
+      if( hasInductorLEM_ ) {
+        shared_ptr<BaseTimeScheme> myScheme5(new TimeSchemeGLM(*mainScheme));
+        feFunctions_[ELEC_NETWORK_AUX]->SetTimeScheme(myScheme5);
+      }
+    }
   }
 
   void MagBasePDE::ReadSpecialBCs() {
