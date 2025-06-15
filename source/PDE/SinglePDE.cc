@@ -91,6 +91,7 @@ using std::string;
 
 // used for getting coils from the pde
 #include "MagEdgePDE.hh"
+#include "MagEdgeAStarPDE.hh"
 #include "MagEdgeSpecialAVPDE.hh"
 #include "MagneticPDE.hh"
 
@@ -1119,6 +1120,9 @@ namespace CoupledField {
               actCoil = askThePDE->GetCoilById( histNames[i] );
             } else if( pdename_ == "magneticEdgeSpecialAV" ){
               MagEdgeSpecialAVPDE* askThePDE = dynamic_cast<MagEdgeSpecialAVPDE*>(this);
+              actCoil = askThePDE->GetCoilById( histNames[i] );
+            } else if( pdename_ == "magneticEdgeAStar" ){
+              MagEdgeAStarPDE* askThePDE = dynamic_cast<MagEdgeAStarPDE*>(this);
               actCoil = askThePDE->GetCoilById( histNames[i] );
             } else {
               MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
