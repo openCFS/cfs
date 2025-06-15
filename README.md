@@ -7,6 +7,8 @@ With about 20 years of research-driven development, the core of openCFS is used 
 The modelling strategy focuses on physical fields and their respective couplings.
 
 openCFS is under **[MIT License](LICENSE)**. You may use, distribute and copy it under the license terms.
+Any compiled openCFS binaries will include a number of third party libraries with different licenses.
+See the output of e.g. `cfs --version` or the `license` directory for details.
 
 Building
 --------
