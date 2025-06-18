@@ -86,7 +86,7 @@ namespace CoupledField
 
     /** do string/enum conversion via BasePDE::analysisType */
     typedef enum {NO_ANALYSIS, STATIC, TRANSIENT, HARMONIC, MULTIHARMONIC,
-    			  EIGENFREQUENCY, INVERSESOURCE, MULTI_SEQUENCE, BUCKLING, EIGENVALUE } AnalysisType;
+    			  EIGENFREQUENCY, INVERSESOURCE, MULTI_SEQUENCE, BUCKLING, EIGENVALUE, HARMONIC25D} AnalysisType;
 
     //! Enums for advection-diffusion stabilisation 
     typedef enum {NO_STABILISATION, ARTIFICIAL_DIFFUSION, SUPG } StabilisationType;

@@ -51,6 +51,7 @@
 #include "Driver/TransientDriver.hh"
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/MultiHarmonicDriver.hh"
+#include "Driver/Harmonic25DDriver.hh"
 
 // header for resultHandling
 #include "DataInOut/ResultHandler.hh"
@@ -1288,7 +1289,7 @@ namespace CoupledField {
         derivFeFct->Finalize();
         derivFeFct->SetPDE(this);
         UInt timeDerivOrder = timeDerivOrder_[it->first];
-        if( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ||  analysistype_ == INVERSESOURCE || analysistype_ == EIGENFREQUENCY || analysistype_ == EIGENVALUE) {
+        if( analysistype_ == HARMONIC || analysistype_ == MULTIHARMONIC ||  analysistype_ == INVERSESOURCE || analysistype_ == EIGENFREQUENCY || analysistype_ == EIGENVALUE || analysistype_ == HARMONIC25D) {
           FeFunction<Complex> & cDerivFct = dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
           shared_ptr<FeFunction<Complex> > cPrimFct = dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
           cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );

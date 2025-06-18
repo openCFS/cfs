@@ -1,6 +1,7 @@
 #include "Assemble.hh"
 
 #include <iostream>
+#include <cmath>
 #include <fstream>
 #include <iomanip>
 #include <boost/lexical_cast.hpp>
@@ -68,6 +69,14 @@ namespace CoupledField
     mHandle_ = mp->GetNewHandle();
     mp->SetExpr(mHandle_, "2*pi*f");
 
+    // for 2.5d harmonic analysis, set expression for analysis frequency
+    if (analysisType_ == BasePDE::HARMONIC25D) {
+      baseOmega25D_ = mp->GetNewHandle();
+      mp->SetExpr(baseOmega25D_, "2*pi*baseFreqHarmonic25D");
+    } else {
+      baseOmega25D_ = 0;
+    }
+    
     // the timer object is used in every AssembleMatrices() call
     info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
   }
@@ -208,7 +217,7 @@ namespace CoupledField
     // Otherwise we issue an error
     if( (biLinContext->GetEntryType() == Global::IMAG ||
          biLinContext->GetEntryType() == Global::COMPLEX )
-        && analysisType_ != BasePDE::HARMONIC && analysisType_ != BasePDE::INVERSESOURCE) {
+        && analysisType_ != BasePDE::HARMONIC && analysisType_ != BasePDE::INVERSESOURCE && analysisType_ != BasePDE::HARMONIC25D) {
       EXCEPTION( "Can not add integrator '"
                  << biLinContext->GetIntegrator()->GetName()
                  << "' with complex/imaginary entries for a "
@@ -1591,7 +1600,7 @@ namespace CoupledField
         std::stringstream progStream;
         boost::timer::progress_display progress( size, progStream );
 
-        if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE ) {
+        if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::HARMONIC25D) {
 
           Vector<Complex> elemVec;
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -1844,7 +1853,7 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::HARMONIC25D || analysisType_ == BasePDE::MULTIHARMONIC
 		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         matReassemble_[actContext.GetDestMat()] = true;
@@ -1926,7 +1935,9 @@ namespace CoupledField
         break;
       case MASS:
         derivOrder = 2;
-        factor = -omega*omega;
+        // in harmonic 2.5d analysis, we calculate the factor for mass matrix in
+        // InsertMatrix() method and then pass the factor directly here
+        factor = (analysisType_ == BasePDE::HARMONIC25D) ? omega : -omega*omega;
         break;
       case MASS_UPDATE:
         derivOrder = 2;
@@ -1983,8 +1994,10 @@ namespace CoupledField
       factor = Complex(0.0, omega);
       break;
     case MASS:
-      // BLOCH CHECK for 1st time derivative order!
-      factor = Complex(-omega*omega, 0.0);
+      // BLOCH CHECK for 1st time derivative order!\
+      // in harmonic 2.5d analysis, we calculate the factor for mass matrix in
+      // InsertMatrix() method and then pass the factor directly here
+      factor = (analysisType_ == BasePDE::HARMONIC25D) ? Complex(omega, 0.0) : Complex(-omega*omega, 0.0);
       break;
     case MASS_UPDATE:
       // BLOCH CHECK for 1st time derivative order!
@@ -2086,7 +2099,15 @@ namespace CoupledField
         matrixMap_[STIFFNESS_UPDATE] = STIFFNESS;
         matrixMap_[DAMPING_UPDATE]   = DAMPING;
         matrixMap_[MASS_UPDATE]      = MASS;
-      break;
+        break;
+    
+    case BasePDE::HARMONIC25D:
+        matrixMap_[SYSTEM]    = SYSTEM;
+        matrixMap_[STIFFNESS] = SYSTEM;
+        matrixMap_[DAMPING]   = SYSTEM;
+        matrixMap_[MASS]      = SYSTEM;
+        break;
+
     default:
       EXCEPTION("Analysistype '" << BasePDE::analysisType.ToString(analysisType_)
                 << "' not known!");
@@ -2160,7 +2181,7 @@ namespace CoupledField
 
     bool isComplex = false;
     if (actCt->GetIntegrator()->IsComplex() ||
-        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE||analysisType_ == BasePDE::EIGENVALUE) {
+        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENVALUE || analysisType_ == BasePDE::HARMONIC25D) {
       isComplex = true;
     }
     return isComplex;
@@ -2204,12 +2225,15 @@ namespace CoupledField
         algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
       }
     } else {
-      assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE);
+      assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::HARMONIC25D);
 
       Double omega;
       if(isMultHarmDiag){
         omega = 2 * M_PI * f;
-      }else{
+      } else if (analysisType_ == BasePDE::HARMONIC25D) {
+        //for 2.5d harmonic analysis, we calculate the factor (omega_kz^2 - omega_base^2) for the mass matrix here
+        dest == MASS ? omega = std::pow(mp_->Eval( mHandle_),2.0) - std::pow(mp_->Eval( baseOmega25D_),2.0) : omega = mp_->Eval( baseOmega25D_);
+      } else{
         omega = mp_->Eval( mHandle_ );
       }
 
@@ -2249,15 +2273,23 @@ namespace CoupledField
 
     assert(mappedDest != NOTYPE);
     // bloch mode analysis is complex
-    assert(analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::HARMONIC
+    assert(analysisType_ == BasePDE::MULTIHARMONIC || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::HARMONIC25D
         || analysisType_ == BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || analysisType_ == BasePDE::EIGENVALUE);
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
 
-    Double omega = isMultHarmDiag ? 2 * M_PI * f : mp_->Eval(mHandle_);
+    Double omega;
+    if(isMultHarmDiag){
+      omega = 2 * M_PI * f;
+    } else if (analysisType_ == BasePDE::HARMONIC25D) {
+      //for 2.5d harmonic analysis, we calculate the factor (omega_kz^2 - omega_base^2) for the mass matrix here
+      dest == MASS ? omega = std::pow(mp_->Eval( mHandle_),2.0) - std::pow(mp_->Eval( baseOmega25D_),2.0) : omega = mp_->Eval( baseOmega25D_);
+    } else{
+      omega = mp_->Eval( mHandle_ );
+    }
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
-       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)
+       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC25D)
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
     else
       harmMat = elemMat;

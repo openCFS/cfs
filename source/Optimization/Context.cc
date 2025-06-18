@@ -111,6 +111,7 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
 
   case BasePDE::MULTI_SEQUENCE:
   case BasePDE::MULTIHARMONIC:
+  case BasePDE::HARMONIC25D:
   case BasePDE::NO_ANALYSIS:
     assert(false);
     break;

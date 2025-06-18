@@ -21,6 +21,9 @@ namespace CoupledField {
 
     // default no multiharmonic analysis
     isMultHarm_ = false;
+
+    // default no 2.5d harmonic analysis
+    is25dHarm_ = false;
   }
 
   SolStrategy::~SolStrategy() {

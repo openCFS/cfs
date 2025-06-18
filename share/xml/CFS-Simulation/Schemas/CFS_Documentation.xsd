@@ -118,6 +118,7 @@
       <xsd:enumeration value="static"/>
       <xsd:enumeration value="transient"/>
       <xsd:enumeration value="harmonic"/>
+      <xsd:enumeration value="harmonic25d"/>
       <xsd:enumeration value="eigenFrequency"/>
       <xsd:enumeration value="buckling"/>
       <xsd:enumeration value="eigenValue"/>

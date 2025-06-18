@@ -55,6 +55,7 @@ namespace CoupledField {
     analysisType.Add(MULTI_SEQUENCE, "multiSequence");
     analysisType.Add(BUCKLING, "buckling");
     analysisType.Add(EIGENVALUE, "eigenValue");
+    analysisType.Add(HARMONIC25D, "harmonic25d");
 
 
     MechPDE::testStrain.SetName("MechPDE::TestStrain");

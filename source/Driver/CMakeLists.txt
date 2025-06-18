@@ -6,6 +6,7 @@ SET(DRIVER_SRCS
   BucklingDriver.cc
   FormsContexts.cc
   HarmonicDriver.cc
+  Harmonic25DDriver.cc
   MultiHarmonicDriver.cc
   MultiSequenceDriver.cc
   SingleDriver.cc

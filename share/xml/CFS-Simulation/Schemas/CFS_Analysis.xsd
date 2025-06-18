@@ -21,6 +21,7 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="static"/>
               <xsd:enumeration value="harmonic"/>
+              <xsd:enumeration value="harmonic25d"/>
               <xsd:enumeration value="multiharmonic"/>
               <xsd:enumeration value="transient"/>
               <xsd:enumeration value="eigenFrequency"/>
@@ -630,6 +631,69 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+    <!-- ******************************************************************* -->
+  <!--   Definition of element harmonic25d -->
+  <!-- ******************************************************************* -->
+  <xsd:element name="harmonic25d" type="DT_Analysis25DHarmonic" substitutionGroup="AnalysisBasic"/>
+  
+  <!-- Data type for 2.5D Harmonic section, i.e. parameters required for
+       performing a 2.5D harmonic analysis -->
+  <xsd:complexType name="DT_Analysis25DHarmonic">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AnalysisBasic">
+        <xsd:sequence>
+          <xsd:element name="excitationFreq" type="xsd:token" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Frequency of interest
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="cutoffFreq" type="xsd:token" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                The upper bound of the wavenumber spectrum
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name="freqResolution" type="xsd:token" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Frequency resolution of the wavenumber spectrum in Hz
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <!-- poslist currently not used -->
+          <!--xsd:element name="posList" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                List of positions to evaluate the inverse fourier transform
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="pos" maxOccurs="unbounded" minOccurs="1">
+                  <xsd:complexType>
+                    <xsd:attribute name="value" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element-->
+          <!-- storeSpectrum currently not used -->
+          <!--xsd:element name="storeSpectrum" type="xsd:boolean" minOccurs="0" maxOccurs="1" default="false">
+          <xsd:annotation>
+            <xsd:documentation>
+              true: write the wavenumber spectrum to results;
+              false: compute the inverse fourier transform at evaluation position
+            </xsd:documentation>
+          </xsd:annotation>
+          </xsd:element-->
+        </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

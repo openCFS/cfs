@@ -137,6 +137,13 @@ public:
   UInt GetNumFFT(){ return numFFT_; }
   bool IsFullSystem(){ return fullSystem_; }
 
+  // ========================================================================
+  //  2.5D HARMONIC SECTION
+  // ========================================================================
+  //! Set flag if 2.5d harmonic analysis is used
+  void Set25dHarm(bool is25dHarm){ is25dHarm_ = is25dHarm;}
+  bool Is25dHarm(){ return is25dHarm_; }
+
 protected:
   
   //! Paramnode for strategy element
@@ -157,7 +164,11 @@ protected:
   //! Flag if multiharmonic analysis is used
   bool isMultHarm_;
 
+  //! Flag if 2.5d harmonic analysis is used
+  bool is25dHarm_;
+
   //! Base frequency for multiharmonic excitation
+  //! Also used for 2.5d harmonic analysis
   UInt baseFreq_;
   //! Number of harmonics for solution
   UInt numHarmN_;

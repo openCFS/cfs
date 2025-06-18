@@ -50,7 +50,7 @@ namespace CoupledField {
   // ***********************
   //   Default Constructor
   // ***********************
-  AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultHarm )
+  AlgebraicSys::AlgebraicSys(PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultHarm)
   {
     size_ = 0;
     myParam_ = param;

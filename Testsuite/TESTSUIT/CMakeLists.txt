@@ -143,6 +143,7 @@ add_subdirectory(Singlefield/Acoustics/Surf2VolMapping3D)
 add_subdirectory(Singlefield/Acoustics/Surf2VolMapping2D)
 add_subdirectory(Singlefield/Acoustics/RayleighDamping3D)
 add_subdirectory(Singlefield/Acoustics/AdaptedLossTanDelta3D)
+add_subdirectory(Singlefield/Acoustics/AcousticHarmonic25D)
 
 #-------------------------------------------------------------------------------
 # Subdirectories for water waves test cases.

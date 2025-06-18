@@ -96,7 +96,7 @@ namespace CoupledField {
     //@}
 
     //! Default Constructor
-    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultiHarm = false );
+    AlgebraicSys( PtrParamNode param, PtrParamNode info, bool isSolutionComplex, bool isMultiHarm = false);
 
     //! Default Destructor
     virtual ~AlgebraicSys();

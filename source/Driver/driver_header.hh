@@ -3,6 +3,7 @@
 
 #include <Driver/BaseDriver.hh>
 #include <Driver/SingleDriver.hh>
+#include <Driver/Harmonic25DDriver.hh>
 #include <Driver/HarmonicDriver.hh>
 #include <Driver/MultiHarmonicDriver.hh>
 #include <Driver/InverseSourceDriver.hh>

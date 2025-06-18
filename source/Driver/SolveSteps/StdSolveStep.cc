@@ -1411,7 +1411,8 @@ namespace CoupledField {
     //this has to be done each frequency!
     assemble_->AssembleLinRHS();
 
-    assemble_->AssembleMatrices( );
+    assemble_->AssembleMatrices();
+
     PDE_.SetBCs();
     
     // store rhs vector back to PDE

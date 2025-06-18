@@ -101,6 +101,10 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
         ptdriver = new EigenValueDriver( seqStep, false, state, myDom, seqNode, info);
         break;
 
+      case BasePDE::HARMONIC25D:
+        ptdriver = new Harmonic25DDriver( seqStep, false, state, myDom, seqNode, info  );
+        break;
+
       default:
         EXCEPTION( "Could not create driver" );
     }
