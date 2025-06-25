@@ -3666,95 +3666,88 @@ namespace CoupledField {
       } else {
         EXCEPTION("You passed an invalid geometry type.");
       }
-    }
-    else if( this->dim_ == 2 )
-    {
-      if (geomType == "smooth_convex") 
-      {
-          StdVector<UInt> connectedNodeIds;
-          StdVector<const Elem*> currElemsNextToNode;
-          StdVector<RegionIdType> searchRegionIds;
-          searchRegionIds.Push_back(surfRegionId);
-          for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) 
-          {
-              connectedNodeIds.Clear();
-              connectedNodeIds.Push_back(nodeIds[iNodes]); //assign current node
+    } 
+    else if (this->dim_ == 2) {
+      if (geomType == "smooth_convex") {
+        StdVector<UInt> connectedNodeIds;
+        StdVector<const Elem *> currElemsNextToNode;
+        StdVector<RegionIdType> searchRegionIds;
+        searchRegionIds.Push_back(surfRegionId);
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          connectedNodeIds.Clear();
+          connectedNodeIds.Push_back(nodeIds[iNodes]); // assign current node
 
-              // get elements connected to the node
-              this->GetElemsNextToNodes(currElemsNextToNode, connectedNodeIds, searchRegionIds);
-              // get node ids of connected elements
-              this->GetNodesOfElemList(connectedNodeIds, currElemsNextToNode);
+          // get elements connected to the node
+          this->GetElemsNextToNodes(currElemsNextToNode, connectedNodeIds, searchRegionIds);
+          // get node ids of connected elements
+          this->GetNodesOfElemList(connectedNodeIds, currElemsNextToNode);
 
-              if(connectedNodeIds.GetSize() != 3)
-              {
-                  EXCEPTION("The number of connected nodes is not equal to 3. Please check the geometry.");
-              }
-
-              // get the coordinates of the connected nodes
-              Vector<Double> prevNodeCoords;
-              Vector<Double> nextNodeCoords;
-              int prevId = connectedNodeIds[0] != nodeIds[iNodes] ? connectedNodeIds[0] : connectedNodeIds[1];
-              int nextId = connectedNodeIds[2] != nodeIds[iNodes] ? connectedNodeIds[2] : connectedNodeIds[1];
-              this->GetNodeCoordinate(prevNodeCoords, prevId, false);
-              this->GetNodeCoordinate(nextNodeCoords, nextId, false);
-              
-              // approx tangential vector through diffrence of neighboring nodes
-              Double tx = nextNodeCoords[0] - prevNodeCoords[0];
-              Double ty = nextNodeCoords[1] - prevNodeCoords[1];
-
-              Double tLength = sqrt( pow( tx, 2 ) + pow( ty, 2 ));
-              tx /= tLength;
-              ty /= tLength;
-
-              // Calculate the normal vector
-              Double nx = ty;
-              Double ny = -tx;
-
-              // Vector from origin to node
-              Double vx = nodeCoords[iNodes][0] - origin[0];
-              Double vy = nodeCoords[iNodes][1] - origin[1];
-
-              // Flip normal if it points inward
-              Double dot = vx * nx + vy * ny;
-              if (dot < 0.0) {
-                  nx = -nx;
-                  ny = -ny;
-              }
-
-              // Assign normal and tangential vectors
-              geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
-              geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = nx;
-              geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = ny;
-
-              geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes].Resize(this->dim_);
-              geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] = nx;
-              geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] = ny;
-
-              geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
-              geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = tx;
-              geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = ty;
-
-              // Approximate curvature by the change of the tangential vector
-              Double dTangentialX = nextNodeCoords[0] - 2 * nodeCoords[iNodes][0] + prevNodeCoords[0];
-              Double dTangentialY = nextNodeCoords[1] - 2 * nodeCoords[iNodes][1] + prevNodeCoords[1];
-
-              Double curvature = fabs(dTangentialX * ny - dTangentialY * nx) / pow( tLength, 2 );
-
-              geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0.0;
-              geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curvature;
+          if (connectedNodeIds.GetSize() != 3) {
+            EXCEPTION("The number of connected nodes is not equal to 3. Please check the geometry.");
           }
+
+          // get the coordinates of the connected nodes
+          Vector<Double> prevNodeCoords;
+          Vector<Double> nextNodeCoords;
+          int prevId = connectedNodeIds[0] != nodeIds[iNodes] ? connectedNodeIds[0] : connectedNodeIds[1];
+          int nextId = connectedNodeIds[2] != nodeIds[iNodes] ? connectedNodeIds[2] : connectedNodeIds[1];
+          this->GetNodeCoordinate(prevNodeCoords, prevId, false);
+          this->GetNodeCoordinate(nextNodeCoords, nextId, false);
+
+          // approx tangential vector through diffrence of neighboring nodes
+          Double tx = nextNodeCoords[0] - prevNodeCoords[0];
+          Double ty = nextNodeCoords[1] - prevNodeCoords[1];
+
+          Double tLength = sqrt(pow(tx, 2) + pow(ty, 2));
+          tx /= tLength;
+          ty /= tLength;
+
+          // Calculate the normal vector
+          Double nx = ty;
+          Double ny = -tx;
+
+          // Vector from origin to node
+          Double vx = nodeCoords[iNodes][0] - origin[0];
+          Double vy = nodeCoords[iNodes][1] - origin[1];
+
+          // Flip normal if it points inward
+          Double dot = vx * nx + vy * ny;
+          if (dot < 0.0) {
+            nx = -nx;
+            ny = -ny;
+          }
+
+          // Assign normal and tangential vectors
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = nx;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = ny;
+
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] = nx;
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] = ny;
+
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = tx;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = ty;
+
+          // Approximate curvature by the change of the tangential vector
+          Double dTangentialX = nextNodeCoords[0] - 2 * nodeCoords[iNodes][0] + prevNodeCoords[0];
+          Double dTangentialY = nextNodeCoords[1] - 2 * nodeCoords[iNodes][1] + prevNodeCoords[1];
+
+          Double curvature = fabs(dTangentialX * ny - dTangentialY * nx) / pow(tLength, 2);
+
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0.0;
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curvature;
+        }
       }
 
-      else if( geomType == "circle" )
-      {
-        // curvatures can be assigned via the circle radius
-        Double r = sqrt( pow(nodeCoords[0][0]-origin[0],2) + pow(nodeCoords[0][1]-origin[1],2) );
+      else if (geomType == "circle") {
+        // normal- and tangential vectors as well as curvatures can be assigned via the circle radius
+        Double r = sqrt(pow(nodeCoords[0][0] - origin[0], 2) + pow(nodeCoords[0][1] - origin[1], 2));
         Double curv = 1 / r;
 
-        // to compute the tangential vectors, we compute the numerical differential where we vary phi by a small portion
         Double x, y;
-        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) 
-        {
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
           x = nodeCoords[iNodes][0] - origin[0];
           y = nodeCoords[iNodes][1] - origin[1];
           // assign normal vector
@@ -3763,7 +3756,6 @@ namespace CoupledField {
           geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = y / r;
           geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes].Resize(this->dim_);
           geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes] = geometryRegionMap_[surfRegionId]->normalVectors_[iNodes];
-
 
           // tangential vector
           geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
@@ -3774,67 +3766,66 @@ namespace CoupledField {
           geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0.0;
           geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curv;
         }
-      }
-      else if( geomType == "ellipse" )
-      {
+      } 
+      
+      else if (geomType == "ellipse") {
         // Approximate the semi-axes by finding the maximum distances in x and y
         Double a = 0.0, b = 0.0;
 
         // Compute the max distances from the origin
-        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) 
-        {
-            Double distanceX = fabs(nodeCoords[iNodes][0] - origin[0]);
-            Double distanceY = fabs(nodeCoords[iNodes][1] - origin[1]);
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          Double distanceX = fabs(nodeCoords[iNodes][0] - origin[0]);
+          Double distanceY = fabs(nodeCoords[iNodes][1] - origin[1]);
 
-            if (distanceX > a) a = distanceX;
-            if (distanceY > b) b = distanceY;
+          if (distanceX > a)
+            a = distanceX;
+          if (distanceY > b)
+            b = distanceY;
         }
 
-        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) 
-        {
-            Double x = nodeCoords[iNodes][0] - origin[0];
-            Double y = nodeCoords[iNodes][1] - origin[1];
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
+          Double x = nodeCoords[iNodes][0] - origin[0];
+          Double y = nodeCoords[iNodes][1] - origin[1];
 
-            // Compute normal vector
-            Double nx = x / pow( a, 2 );
-            Double ny = y / pow( b, 2);
-            Double normFactor = sqrt( pow( nx, 2) + pow( ny, 2) );
+          // Compute normal vector
+          Double nx = x / pow(a, 2);
+          Double ny = y / pow(b, 2);
+          Double normFactor = sqrt(pow(nx, 2) + pow(ny, 2));
 
-            nx /= normFactor;
-            ny /= normFactor;
+          nx /= normFactor;
+          ny /= normFactor;
 
-            geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
-            geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = nx;
-            geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = ny;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = nx;
+          geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = ny;
 
-            // Compute tangential vector
-            Double tx = -ny;
-            Double ty = nx;
+          // Compute tangential vector
+          Double tx = -ny;
+          Double ty = nx;
 
-            // Assign tangential vector to min principal vector
-            geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
-            geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = tx;
-            geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = ty;
+          // Assign tangential vector to min principal vector
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][0] = tx;
+          geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes][1] = ty;
 
-            // Assign normal vector to max principal vector
-            geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes] = geometryRegionMap_[surfRegionId]->normalVectors_[iNodes];
+          // Assign normal vector to max principal vector
+          geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes] = geometryRegionMap_[surfRegionId]->normalVectors_[iNodes];
 
-            // Compute curvature
-            Double curvature = (a * b) / pow(pow(a * y / b, 2) + pow(b * x * a, 2), 3/2.0);
+          // Compute curvature
+          Double curvature = (a * b) / pow(pow(a * y / b, 2) + pow(b * x * a, 2), 3 / 2.0);
 
-            // Assign curvature values
-            geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0.0;  // Tangential curvature
-            geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curvature;  // Normal curvature
+          // Assign curvature values
+          geometryRegionMap_[surfRegionId]->minPrincipalCurvatures_[iNodes] = 0.0;       // Tangential curvature
+          geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = curvature; // Normal curvature
         }
-      }
-      else if( geomType == "plane" )
-      {
+      } 
+      
+      else if (geomType == "plane") {
         // get the specified normal direction
         std::string normalDirection;
         layerGenNode->Get("surfGeometry")->Get("analyticApproximation")->GetChildren()[0]->GetValue("normalDirection", normalDirection);
 
-        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) 
-        {
+        for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
           geometryRegionMap_[surfRegionId]->normalVectors_[iNodes].Resize(this->dim_);
           geometryRegionMap_[surfRegionId]->minPrincipalVectors_[iNodes].Resize(this->dim_);
           geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes].Resize(this->dim_);
@@ -3843,13 +3834,11 @@ namespace CoupledField {
           geometryRegionMap_[surfRegionId]->maxPrincipalCurvatures_[iNodes] = 0.0;
         }
 
-        if (normalDirection == "x") 
-        {
+        if (normalDirection == "x") {
           // use distance vector to origin for obtaining the sign of the normal vector
           int nVecSign = (nodeCoords[0][0] > origin[0]) ? 1 : -1;
 
-          for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) 
-          {
+          for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
             geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = 1.0 * nVecSign;
             geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = 0.0;
 
@@ -3859,14 +3848,11 @@ namespace CoupledField {
             geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] = 1.0 * nVecSign;
             geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] = 0.0;
           }
-        }
-        else if (normalDirection == "y") 
-        {
+        } else if (normalDirection == "y") {
           // use distance vector to origin for obtaining the sign of the normal vector
           int nVecSign = (nodeCoords[0][1] > origin[1]) ? 1 : -1;
 
-          for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) 
-          {
+          for (UInt iNodes = 0; iNodes < numNodes; ++iNodes) {
             geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][0] = 0.0;
             geometryRegionMap_[surfRegionId]->normalVectors_[iNodes][1] = 1.0 * nVecSign;
 
@@ -3876,15 +3862,12 @@ namespace CoupledField {
             geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][0] = 0.0;
             geometryRegionMap_[surfRegionId]->maxPrincipalVectors_[iNodes][1] = 1.0 * nVecSign;
           }
-        }
-        else if ( normalDirection == "z")
-        {
+        } else if (normalDirection == "z") {
           EXCEPTION("Two dimensional plane geometry can only be defined in x or y direction.");
         }
-        
-      }
-      else
-      {
+      } 
+      
+      else {
         EXCEPTION("You passed an invalid geometry type.");
       }
     }

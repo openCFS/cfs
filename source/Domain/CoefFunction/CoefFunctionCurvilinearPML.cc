@@ -95,11 +95,10 @@ namespace CoupledField{
         // get Base Fe, which provides the shape functions for interpolating with the identity operator 
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
 
-        if( this->dim_ == 2 )
-        {
+        if (this->dim_ == 2) {
           // Initialize stacked geometry tensors
-          Vector<Double> normMats(numElemNodes * pow(this->dim_,2));
-          Vector<Double> tMats(numElemNodes * pow(this->dim_,2));
+          Vector<Double> normMats(numElemNodes * pow(this->dim_, 2));
+          Vector<Double> tMats(numElemNodes * pow(this->dim_, 2));
 
           // Scalar quantities
           Vector<Double> maxPrincCurv(numElemNodes);
@@ -114,25 +113,22 @@ namespace CoupledField{
           Vector<Double> d(1);
 
           // Loop over element nodes and compute interpolated geometry on lpm
-          for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) 
-          {
-              nodeIdx = GetIdxByNodeId(nodeIds[iNodes], (nodeIdx < numElemNodes) ? 0 : nodeIdx - numElemNodes);
-              nodeIdxIface = nodeIdx % numSurfNodes_;
+          for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+            nodeIdx = GetIdxByNodeId(nodeIds[iNodes], (nodeIdx < numElemNodes) ? 0 : nodeIdx - numElemNodes);
+            nodeIdxIface = nodeIdx % numSurfNodes_;
 
-              // Compute dyadic products for normal and tangential vectors
-              for (UInt iRow = 0; iRow < this->dim_; ++iRow) 
-              {
-                  for (UInt iCol = 0; iCol < this->dim_; ++iCol) 
-                  {
-                      vecIdx = iCol + this->dim_ * iRow + pow(this->dim_, 2) * iNodes;
-                      normMats[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->normalVectors_[nodeIdxIface][iCol];
-                      tMats[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iCol];
-                  }
+            // Compute dyadic products for normal and tangential vectors
+            for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+              for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+                vecIdx = iCol + this->dim_ * iRow + pow(this->dim_, 2) * iNodes;
+                normMats[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->normalVectors_[nodeIdxIface][iCol];
+                tMats[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iCol];
               }
+            }
 
-              // Get scalar values
-              maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
-              dist[iNodes] = thicknessOnNodes_[nodeIdx];
+            // Get scalar values
+            maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
+            dist[iNodes] = thicknessOnNodes_[nodeIdx];
           }
 
           // Perform interpolation
@@ -160,20 +156,19 @@ namespace CoupledField{
           // Compute inverse of the metric tensor
           Vector<Complex> s(this->dim_);
           for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
-              s[iDim] = Complex(1.0, 0.0) / Complex(1.0, -h[iDim] / K);
+            s[iDim] = Complex(1.0, 0.0) / Complex(1.0, -h[iDim] / K);
           }
 
           // Compute the tensor and unstack
           tensor.Resize(this->dim_, this->dim_);
           for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
-              for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
-                  vecIdx = iCol + this->dim_ * iRow;
-                  tensor[iRow][iCol] = s[0] * N[vecIdx] + s[1] * Tmin[vecIdx];
-              }
+            for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+              vecIdx = iCol + this->dim_ * iRow;
+              tensor[iRow][iCol] = s[0] * N[vecIdx] + s[1] * Tmin[vecIdx];
+            }
           }
         }
-        else if( this->dim_ == 3 )
-        {
+        else if (this->dim_ == 3) {
 
           // initialize stacked geometry tensors (needs to be stacked as interpolation requires it)
           // vector entries: [N1_T11, N1_T12,..., N1_T33, N2_T11, ...], 
@@ -296,8 +291,7 @@ namespace CoupledField{
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
 
         // in 2D we only use the tmin_ as tangential vector and kmin_ as curvature
-        if (this->dim_ == 2)
-        {
+        if (this->dim_ == 2) {
           // Vectors to store geometry data at nodes
           Vector<Double> maxPrincCurv(numElemNodes);
           Vector<Double> dist(numElemNodes);
@@ -306,7 +300,7 @@ namespace CoupledField{
           for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
             nodeIdx = GetIdxByNodeId(nodeIds[iNodes], 0);
             nodeIdxIface = nodeIdx % numSurfNodes_;
-            
+
             maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
             dist[iNodes] = thicknessOnNodes_[nodeIdx];
           }
@@ -478,19 +472,17 @@ namespace CoupledField{
 
         // get Base Fe, which provides the shape functions for interpolating with the identity operator 
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
-        
-        if (this->dim_ == 2) 
-        {
+
+        if (this->dim_ == 2) {
           // Vectors to store geometry data at nodes
           Vector<Double> maxPrincCurv(numElemNodes);
           Vector<Double> dist(numElemNodes);
 
           // Loop over element nodes and get necessary quantities
-          for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) 
-          {
+          for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
             nodeIdx = GetIdxByNodeId(nodeIds[iNodes], 0);
             nodeIdxIface = nodeIdx % numSurfNodes_;
-            
+
             maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
             dist[iNodes] = thicknessOnNodes_[nodeIdx];
           }
