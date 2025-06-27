@@ -12,7 +12,7 @@
   ],
   "httpHeaders": [
     {
-      "urls": ["https://www.intel.com/","https://software.intel.com/"],
+      "urls": ["https://www.intel.com/","https://software.intel.com/","https://stackoverflow.com/"],
       "headers": {
         "Accept-Encoding": "zstd, br, gzip, deflate"
       }

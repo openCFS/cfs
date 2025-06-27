@@ -191,9 +191,9 @@ markdown-link-check:
     - markdown-link-check README.md
     - markdown-link-check CONTRIBUTING.md
     # check all in source, share/doc/developer/build-dependencies and .gitlab
-    - find source -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
-    - find share/doc/developer/build-dependencies -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
-    - find .gitlab -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config markdown-link-check-config.json
+    - find source -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config .gitlab/ci/markdown-link-check-config.json
+    - find share/doc/developer/build-dependencies -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config .gitlab/ci/markdown-link-check-config.json
+    - find .gitlab -name '*.md' -print0 | xargs -0 -n1 markdown-link-check --config .gitlab/ci/markdown-link-check-config.json
 
 # this job is intended as a warning if the pipeline has changed
 # it is running only if there are changes, and will always fail if there are some
