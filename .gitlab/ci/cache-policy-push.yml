@@ -1,3 +1,5 @@
+# this file is only included in the "clear-cache" case, see include::rules  in top level .gitlab-ci.yml
+
 # set the cache policy to push such that cache is not pulled
 variables:
   CACHE_POLICY: push
@@ -17,7 +19,7 @@ clear-cache:
     - echo $CI_COMMIT_MESSAGE
     - /or/commit/message/contained/clear-cache
 
-# this job installs the windows build dependencies in a fresh cache
+# this job installs the windows build dependencies in a fresh cache, must run before any other windows cfsdeps to avoid duplicate effort
 install:msvc2022:
   extends: .windows-shared-build
   stage: cfsdeps
@@ -27,9 +29,49 @@ install:msvc2022:
     INSTALL_POLICY: push
     # define a dummy build command
     BUILD_COMMAND: "echo $INSTALL_POLICY"
+  # only use the cache for installed tools
+  cache:
+    - key:
+        prefix: windows-shared-install
+        files:
+        - .gitlab/ci/windows-shared-runner_install-build-tools.ps1
+      paths:
+        - cache
+      policy: $INSTALL_POLICY
   after_script:
     # just debug
     - !reference [.powershell_debug_dir_listing, script]
   artifacts: {}
   # Set empty needs so that the jobs start immediately (not per stage)
   needs: []
+
+# job(s) to build large cfsdeps in parallel
+largedeps:msvc2022:
+  extends: install:msvc2022
+  stage: cfsdeps
+  rules:
+    - !reference [.cfsdeps,rules]
+  variables:
+    # we build the single requested cfsdeps target
+    BUILD_COMMAND: "cmake --build . --target ${TARGET}"
+    RUNNER_SCRIPT_TIMEOUT: 100m # set a script timeout lower than the job timeout (seems 120m in hosted windows runners) to ensure there is time for artifact and cache upload
+    INSTALL_POLICY: pull
+  # the finished precompiled cfsdeps will be passed to the standard cfsdeps job as artifacts
+  # this should also include required dependencies, e.g. metis for ginkgo, or zlib for boost
+  artifacts:
+    when: on_success
+    paths:
+      - build/cfsdeps/cache/precompiled/*.zip
+    name: "${CI_JOB_NAME_SLUG}__${CI_COMMIT_REF_SLUG}"
+    expire_in: 12 hours
+  # set a timeout for the job (increasing the project-level setting) https://docs.gitlab.com/ci/yaml/#timeout
+  # it must not exceed the runner timeout (seems to be 2h for GitLab hosted windows runners)
+  timeout: 120m
+  # only start after the install job has run
+  needs:
+    - job: install:msvc2022
+  # here we define the large cfsdeps to run in the parallel:matrix jobs
+  # required dependencies will be automatically included and thus should not overlap to avoid duplicate builds in parallel
+  parallel:
+    matrix:
+      - TARGET: [boost, vtk, ginkgo]
