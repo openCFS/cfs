@@ -1,0 +1,36 @@
+# cubit file that creates an ellipse with a circular hole
+reset
+
+# set variables
+#{meshSize = 0.05};  # mesh size
+#{ro = 1.0};        # larger ellipsoid radius
+#{ri = 0.4};     # smaller ellipsoid radius
+#{r = 0.2};        # source radius
+
+# create body
+create vertex {ro} 0 0
+create vertex 0 {ri} 0
+create vertex 0 0 0
+create surface ellipse vertex 1 2 3
+create surface circle radius {r}
+subtract surface 2 from surface 1
+move curve 1 location 0.2 0.3 0
+
+# mesh
+surface 3 scheme trimesh
+surface 3 size {meshSize}
+mesh surface 3
+
+# set blocks
+block 1 add surface 3
+block 1 name "ellipse"
+
+# set nodesets
+nodeset 1 add curve 3
+nodeset 1 name "src"
+nodeset 2 add curve 1
+nodeset 2 name "ifPml"
+
+# save mesh
+export ansys cdb "./PmlCurvilinear2dEllipse.cdb" overwrite
+

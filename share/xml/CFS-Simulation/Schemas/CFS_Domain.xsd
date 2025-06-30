@@ -131,7 +131,7 @@
         - name:                 (required) specifies the name of the newly created region
         Child elements:
         - sourceSurfRegion:     (required) specifies the surface where the layer will be built onto; 
-                                           should be the the outer boundary of the propagation domain or a part of it;
+                                           should be the outer boundary of the propagation domain or a part of it;
         - extrusionParameters:  (required) specifies the height of the generated elements in m and the number of extrusions
         - surfGeometry:         (required) specify a geometry type or input file or CGAL surface approximation parameters
         - outputFile:           (optional) allows to specify a path to a file where the computed geometry should be
@@ -200,15 +200,30 @@
         - sphere:   the surface is spherical
         - cylinder: the surface is cylindric
         - plane:    the surface is planar
+        - circle:   the surface is circular
+        - ellipse:  the surface is elliptic
+        - smooth_convex: arbitrary 2D geometry with smooth convex boundary
       </xsd:documentation>
     </xsd:annotation>
     <xsd:choice>
       <xsd:element name="plane" type="DT_GeometryPlane" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="cylinder" type="DT_GeometryCylinder" minOccurs="1" maxOccurs="1"/>
       <xsd:element name="sphere" type="DT_GeometrySphere" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="circle" type="DT_Geometry2D" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="ellipse" type="DT_Geometry2D" minOccurs="1" maxOccurs="1"/>
+      <xsd:element name="smooth_convex" type="DT_Geometry2D" minOccurs="1" maxOccurs="1"/>
     </xsd:choice>
   </xsd:complexType>
 
+  <xsd:complexType name="DT_Geometry2D">
+    <xsd:annotation>
+      <xsd:documentation>
+        Defines an arbitrary 2D convex domain and the center used for automatic layer generation
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:attribute name="origin_x" type="xsd:token" default="0" use="optional"/>
+    <xsd:attribute name="origin_y" type="xsd:token" default="0" use="optional"/>
+  </xsd:complexType>
 
   <xsd:complexType name="DT_GeometryPlane">
     <xsd:annotation>
@@ -566,7 +581,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
 
   <!-- ******************************************************************** -->
   <!-- Data type for specifying either a single entity or a list of   -->
@@ -666,14 +681,14 @@
   <!-- This element is abstract in order to force substitution -->
   <!-- by the derived specialised CoordSys elements -->
   <xsd:element name="CoordSysBasic" type="DT_CoordSysBasic" abstract="true"/>
-    
-    
+
+
   <!-- ******************************************************************** -->
   <!--   Definition of element for cylindric coordinate system -->
   <!-- ******************************************************************** -->
   <xsd:element name="cylindric" type="DT_CoordSysCylindric"
     substitutionGroup="CoordSysBasic"/>
-  
+
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for cylindric coordinate system -->
@@ -696,7 +711,7 @@
   <!-- ******************************************************************** -->
   <xsd:element name="polar" type="DT_CoordSysPolar"
     substitutionGroup="CoordSysBasic"/>
-  
+
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for polar coordinate system -->
@@ -719,7 +734,7 @@
   <!-- ******************************************************************** -->
   <xsd:element name="cartesian" type="DT_CoordSysCartesian"
     substitutionGroup="CoordSysBasic"/>
-  
+
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for cartesian coordinate system -->
@@ -742,7 +757,7 @@
   <!-- ******************************************************************** -->
   <xsd:element name="trivialCartesian" type="DT_CoordSysTrivialCartesian"
     substitutionGroup="CoordSysBasic"/>
-  
+
 
   <!-- ******************************************************************** -->
   <!--   Definition of data type for cartesian coordinate system -->
@@ -783,7 +798,7 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-      
+
       <!-- Region list -->
       <xsd:element name="regionList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
@@ -793,7 +808,7 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-      
+
       <!-- Surface region list -->
       <xsd:element name="surfRegionList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
@@ -820,7 +835,7 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-      
+
       <!-- Non-conforming interface region list -->
       <xsd:element name="ncInterfaceList" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
@@ -851,7 +866,7 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-      
+
       <!-- Named nodes list -->
       <xsd:element name="nodeList" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
@@ -861,7 +876,7 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-      
+
       <!-- Composite material list -->
       <xsd:element name="composite" type="DT_DomainComposite" minOccurs="0"
         maxOccurs="unbounded"/>
@@ -875,7 +890,7 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
-    </xsd:sequence> 
+    </xsd:sequence>
 
     <!-- Type of geometry used for the domain -->
     <xsd:attribute name="geometryType" use="required">

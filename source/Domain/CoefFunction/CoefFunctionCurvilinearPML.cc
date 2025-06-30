@@ -94,97 +94,171 @@ namespace CoupledField{
         // get Base Fe, which provides the shape functions for interpolating with the identity operator 
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
 
-        // initialize stacked geometry tensors (needs to be stacked as interpolation requires it)
-        // vector entries: [N1_T11, N1_T12,..., N1_T33, N2_T11, ...], 
-        // where Nx is the node and Txx are entries in respective tensor
-        Vector<Double> normMats(numElemNodes * pow(this->dim_,2));
-        Vector<Double> tminMats(numElemNodes * pow(this->dim_,2));
-        Vector<Double> tmaxMats(numElemNodes * pow(this->dim_,2));
-        // vectors for scalar quantities
-        Vector<Double> minPrincCurv(numElemNodes);
-        Vector<Double> maxPrincCurv(numElemNodes);
-        Vector<Double> dist(numElemNodes);
+        if (this->dim_ == 2) {
+          // Initialize stacked geometry tensors
+          Vector<Double> normMats(numElemNodes * pow(this->dim_, 2));
+          Vector<Double> tMats(numElemNodes * pow(this->dim_, 2));
 
-        // variable to store interpolated tensors
-        Vector<Double> N(this->dim_);
-        Vector<Double> Tmin(this->dim_);
-        Vector<Double> Tmax(this->dim_);
-        // create 1 element vectors for scalars because ApplyOp only takes Vectors
-        Vector<Double> kmin(1);
-        Vector<Double> kmax(1);
-        Vector<Double> d(1);
+          // Scalar quantities
+          Vector<Double> maxPrincCurv(numElemNodes);
+          Vector<Double> dist(numElemNodes);
 
-        // loop over element nodes and compute interpolated geometry on lpm
-        for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
-          // get node idx and provide an initial guess for faster search
-          if (nodeIdx < numElemNodes) {
-            nodeIdx = GetIdxByNodeId(nodeIds[iNodes], 0);
-          } else {
-            nodeIdx = GetIdxByNodeId(nodeIds[iNodes], nodeIdx-numElemNodes);
+          // Interpolated tensor storage
+          Vector<Double> N(this->dim_);
+          Vector<Double> Tmin(this->dim_);
+
+          // Scalars for interpolation
+          Vector<Double> kmax(1);
+          Vector<Double> d(1);
+
+          // Loop over element nodes and compute interpolated geometry on lpm
+          for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+            nodeIdx = GetIdxByNodeId(nodeIds[iNodes], (nodeIdx < numElemNodes) ? 0 : nodeIdx - numElemNodes);
+            nodeIdxIface = nodeIdx % numSurfNodes_;
+
+            // Compute dyadic products for normal and tangential vectors
+            for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+              for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+                vecIdx = iCol + this->dim_ * iRow + pow(this->dim_, 2) * iNodes;
+                normMats[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->normalVectors_[nodeIdxIface][iCol];
+                tMats[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iCol];
+              }
+            }
+
+            // Get scalar values
+            maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
+            dist[iNodes] = thicknessOnNodes_[nodeIdx];
           }
-          nodeIdxIface = nodeIdx % numSurfNodes_;
-          //std::cout << nodeIdx << "\n" << nodeIdxIface;
-          
-          // store dyadic products of current node in a stacked vector
+
+          // Perform interpolation
+          this->tensorMappingOperator_->ApplyOp(N, lpm, ptrFe, normMats);
+          this->tensorMappingOperator_->ApplyOp(Tmin, lpm, ptrFe, tMats);
+          this->scalarMappingOperator_->ApplyOp(kmax, lpm, ptrFe, maxPrincCurv);
+          this->scalarMappingOperator_->ApplyOp(d, lpm, ptrFe, dist);
+
+          // Compute damping function
+          Double dampFunc = this->dampFunction_->ComputeFactor(d[0], layerThickness_);
+          Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(d[0], layerThickness_);
+
+          // Get speed of sound at current location
+          Double sos;
+          this->speedOfSound_->GetScalar(sos, lpm);
+
+          // Compute the wave number
+          Double K = this->omega_ / sos;
+
+          // Compute helper functions
+          Vector<Double> h(this->dim_);
+          h[0] = dampFunc;
+          h[1] = intDampFunc * kmax[0] / (1.0 + d[0] * kmax[0]);
+
+          // Compute inverse of the metric tensor
+          Vector<Complex> s(this->dim_);
+          for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+            s[iDim] = Complex(1.0, 0.0) / Complex(1.0, -h[iDim] / K);
+          }
+
+          // Compute the tensor and unstack
+          tensor.Resize(this->dim_, this->dim_);
           for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
             for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
-              vecIdx = iCol + this->dim_ * iRow + pow(this->dim_,2) * iNodes;
-              normMats[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->normalVectors_[nodeIdxIface][iCol];
-              tminMats[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iCol];
-              tmaxMats[vecIdx] = ptrNodeGeom_->maxPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->maxPrincipalVectors_[nodeIdxIface][iCol];
+              vecIdx = iCol + this->dim_ * iRow;
+              tensor[iRow][iCol] = s[0] * N[vecIdx] + s[1] * Tmin[vecIdx];
             }
           }
-          // get scalar values
-          minPrincCurv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdxIface];
-          maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
-          dist[iNodes] = thicknessOnNodes_[nodeIdx];
         }
+        else if (this->dim_ == 3) {
+          // initialize stacked geometry tensors (needs to be stacked as interpolation requires it)
+          // vector entries: [N1_T11, N1_T12,..., N1_T33, N2_T11, ...],
+          // where Nx is the node and Txx are entries in respective tensor
+          Vector<Double> normMats(numElemNodes * pow(this->dim_, 2));
+          Vector<Double> tminMats(numElemNodes * pow(this->dim_, 2));
+          Vector<Double> tmaxMats(numElemNodes * pow(this->dim_, 2));
+          // vectors for scalar quantities
+          Vector<Double> minPrincCurv(numElemNodes);
+          Vector<Double> maxPrincCurv(numElemNodes);
+          Vector<Double> dist(numElemNodes);
 
-        // perform interpolation
-        this->tensorMappingOperator_->ApplyOp(N,lpm,ptrFe,normMats);
-        this->tensorMappingOperator_->ApplyOp(Tmin,lpm,ptrFe,tminMats);
-        this->tensorMappingOperator_->ApplyOp(Tmax,lpm,ptrFe,tmaxMats);
-        this->scalarMappingOperator_->ApplyOp(kmin,lpm,ptrFe,minPrincCurv);
-        this->scalarMappingOperator_->ApplyOp(kmax,lpm,ptrFe,maxPrincCurv);
-        this->scalarMappingOperator_->ApplyOp(d,lpm,ptrFe,dist);
+          // variable to store interpolated tensors
+          Vector<Double> N(this->dim_);
+          Vector<Double> Tmin(this->dim_);
+          Vector<Double> Tmax(this->dim_);
+          // create 1 element vectors for scalars because ApplyOp only takes Vectors
+          Vector<Double> kmin(1);
+          Vector<Double> kmax(1);
+          Vector<Double> d(1);
 
-        // get the damping function and its integral at the mapped distance
-        Double dampFunc = this->dampFunction_->ComputeFactor(d[0], layerThickness_);
-        Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(d[0], layerThickness_);
+          // loop over element nodes and compute interpolated geometry on lpm
+          for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+            // get node idx and provide an initial guess for faster search
+            if (nodeIdx < numElemNodes) {
+              nodeIdx = GetIdxByNodeId(nodeIds[iNodes], 0);
+            }
+            else {
+              nodeIdx = GetIdxByNodeId(nodeIds[iNodes], nodeIdx - numElemNodes);
+            }
+            nodeIdxIface = nodeIdx % numSurfNodes_;
+            // std::cout << nodeIdx << "\n" << nodeIdxIface;
 
-        // get speed of sound at current lpm
-        Double sos;
-        this->speedOfSound_->GetScalar(sos,lpm);
+            // store dyadic products of current node in a stacked vector
+            for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+              for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+                vecIdx = iCol + this->dim_ * iRow + pow(this->dim_, 2) * iNodes;
+                normMats[vecIdx] = ptrNodeGeom_->normalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->normalVectors_[nodeIdxIface][iCol];
+                tminMats[vecIdx] = ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->minPrincipalVectors_[nodeIdxIface][iCol];
+                tmaxMats[vecIdx] = ptrNodeGeom_->maxPrincipalVectors_[nodeIdxIface][iRow] * ptrNodeGeom_->maxPrincipalVectors_[nodeIdxIface][iCol];
+              }
+            }
+            // get scalar values
+            minPrincCurv[iNodes] = ptrNodeGeom_->minPrincipalCurvatures_[nodeIdxIface];
+            maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
+            dist[iNodes] = thicknessOnNodes_[nodeIdx];
+          }
 
-        // compute the current wave number
-        Double K = this->omega_ / sos;
+          // perform interpolation
+          this->tensorMappingOperator_->ApplyOp(N, lpm, ptrFe, normMats);
+          this->tensorMappingOperator_->ApplyOp(Tmin, lpm, ptrFe, tminMats);
+          this->tensorMappingOperator_->ApplyOp(Tmax, lpm, ptrFe, tmaxMats);
+          this->scalarMappingOperator_->ApplyOp(kmin, lpm, ptrFe, minPrincCurv);
+          this->scalarMappingOperator_->ApplyOp(kmax, lpm, ptrFe, maxPrincCurv);
+          this->scalarMappingOperator_->ApplyOp(d, lpm, ptrFe, dist);
 
-        // compute helper functions
-        Vector<Double> h = Vector<Double>(this->dim_);
-        h[0] = dampFunc;
-        h[1] = intDampFunc * kmin[0] / (1.0 + d[0] * kmin[0]);
-        h[2] = intDampFunc * kmax[0] / (1.0 + d[0] * kmax[0]);
-        // get the entries of (I+jD)^-1 (is named s but resembles 1/s_i)
-        Vector<Complex> s = Vector<Complex>(3);
-        for (UInt iDim = 0; iDim < 3; ++iDim) {
-          s[iDim] = Complex(1.0,0.0) / Complex(1.0, -h[iDim]/K);
-        }
-        // compute the tensor and unstack
-        tensor.Resize(this->dim_, this->dim_);
-        for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
-          for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
-            vecIdx = iCol + this->dim_ * iRow;
-            tensor[iRow][iCol] = s[0]*N[vecIdx] + s[1]*Tmin[vecIdx] + s[2]*Tmax[vecIdx];
+          // get the damping function and its integral at the mapped distance
+          Double dampFunc = this->dampFunction_->ComputeFactor(d[0], layerThickness_);
+          Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(d[0], layerThickness_);
+
+          // get speed of sound at current lpm
+          Double sos;
+          this->speedOfSound_->GetScalar(sos, lpm);
+
+          // compute the current wave number
+          Double K = this->omega_ / sos;
+
+          // compute helper functions
+          Vector<Double> h = Vector<Double>(this->dim_);
+          h[0] = dampFunc;
+          h[1] = intDampFunc * kmin[0] / (1.0 + d[0] * kmin[0]);
+          h[2] = intDampFunc * kmax[0] / (1.0 + d[0] * kmax[0]);
+          // get the entries of (I+jD)^-1 (is named s but resembles 1/s_i)
+          Vector<Complex> s = Vector<Complex>(3);
+          for (UInt iDim = 0; iDim < 3; ++iDim) {
+            s[iDim] = Complex(1.0, 0.0) / Complex(1.0, -h[iDim] / K);
+          }
+          // compute the tensor and unstack
+          tensor.Resize(this->dim_, this->dim_);
+          for (UInt iRow = 0; iRow < this->dim_; ++iRow) {
+            for (UInt iCol = 0; iCol < this->dim_; ++iCol) {
+              vecIdx = iCol + this->dim_ * iRow;
+              tensor[iRow][iCol] = s[0] * N[vecIdx] + s[1] * Tmin[vecIdx] + s[2] * Tmax[vecIdx];
+            }
           }
         }
         break;
       }
       default:
-        EXCEPTION("CoefFunctionCurvilinearPML::GetTensor(Complex...) is used for OutputType: " <<
-                  "TENSOR only.");
-    }
+        EXCEPTION("CoefFunctionCurvilinearPML::GetTensor(Complex...) is used for OutputType: " << "TENSOR only.");
+      }
   };
-
 
   template<typename T>
   void CoefFunctionCurvilinearPML<T>::GetScalar(Complex& val, const LocPointMapped& lpm ) {
@@ -214,8 +288,46 @@ namespace CoupledField{
 
         // in 2D we only use the tmin_ as tangential vector and kmin_ as curvature
         if (this->dim_ == 2) {
-          // currently the 2D implementation is not running
-          EXCEPTION("CoefFunctionCurvilinearPML in 2D not implemented yet");
+          // Vectors to store geometry data at nodes
+          Vector<Double> maxPrincCurv(numElemNodes);
+          Vector<Double> dist(numElemNodes);
+
+          // Loop over element nodes and get necessary quantities
+          for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+            nodeIdx = GetIdxByNodeId(nodeIds[iNodes], 0);
+            nodeIdxIface = nodeIdx % numSurfNodes_;
+
+            maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
+            dist[iNodes] = thicknessOnNodes_[nodeIdx];
+          }
+
+          // Create single-element vectors for interpolation since ApplyOp only takes vectors
+          Vector<Double> kmax(1);
+          Vector<Double> d(1);
+
+          // Interpolate curvature and distance to the local point
+          this->scalarMappingOperator_->ApplyOp(kmax, lpm, ptrFe, maxPrincCurv);
+          this->scalarMappingOperator_->ApplyOp(d, lpm, ptrFe, dist);
+
+          // Compute the damping function and its integral
+          Double dampFunc = this->dampFunction_->ComputeFactor(d[0], layerThickness_);
+          Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(d[0], layerThickness_);
+
+          // Get speed of sound at current lpm
+          Double sos;
+          this->speedOfSound_->GetScalar(sos, lpm);
+
+          // Compute wave number
+          Double K = this->omega_ / sos;
+
+          // Compute helper functions
+          Vector<Double> h(2);
+          h[0] = dampFunc;
+          h[1] = intDampFunc * kmax[0] / (1.0 + d[0] * kmax[0]);
+
+          // Compute determinant in 2D:
+          // The eigenvalues in 2D are of the form s_i = (1 + 1i/K * h[i])
+          val = Complex(1.0, -h[0] / K) * Complex(1.0, -h[1] / K);
         } // dim_ == 2
         else if (this->dim_ == 3) {
           // vectors with extracted geometry data
@@ -312,7 +424,6 @@ namespace CoupledField{
         for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
           nodeIdx = GetIdxByNodeId(nodeIds[iNodes],0);
           dist[iNodes] = thicknessOnNodes_[nodeIdx];
-          //std::cout << dist[iNodes];
         }
         // create 1 element vector for scalar because ApplyOp only takes Vectors
         Vector<Double> d(1);
@@ -356,7 +467,48 @@ namespace CoupledField{
         BaseFE* ptrFe = ptrEsm->GetBaseFE();
         
         if (this->dim_ == 2) {
-          EXCEPTION("CoefFunctionCurvilinearPML in 2D not implemented yet");
+          // Vectors to store geometry data at nodes
+          Vector<Double> maxPrincCurv(numElemNodes);
+          Vector<Double> dist(numElemNodes);
+
+          // Loop over element nodes and get necessary quantities
+          for (UInt iNodes = 0; iNodes < numElemNodes; ++iNodes) {
+            nodeIdx = GetIdxByNodeId(nodeIds[iNodes], 0);
+            nodeIdxIface = nodeIdx % numSurfNodes_;
+
+            maxPrincCurv[iNodes] = ptrNodeGeom_->maxPrincipalCurvatures_[nodeIdxIface];
+            dist[iNodes] = thicknessOnNodes_[nodeIdx];
+          }
+
+          // Create single-element vectors for interpolation since ApplyOp only takes vectors
+          Vector<Double> kmax(1);
+          Vector<Double> d(1);
+
+          // Interpolate curvature and distance to the local point
+          this->scalarMappingOperator_->ApplyOp(kmax, lpm, ptrFe, maxPrincCurv);
+          this->scalarMappingOperator_->ApplyOp(d, lpm, ptrFe, dist);
+
+          // Compute the damping function and its integral
+          Double dampFunc = this->dampFunction_->ComputeFactor(d[0], layerThickness_);
+          Double intDampFunc = this->dampFunction_->ComputeIntegralFactor(d[0], layerThickness_);
+
+          // Get speed of sound at current lpm
+          Double sos;
+          this->speedOfSound_->GetScalar(sos, lpm);
+
+          // Compute wave number
+          Double K = this->omega_ / sos;
+
+          // Compute helper functions
+          Vector<Double> h(2);
+          h[0] = dampFunc;
+          h[1] = intDampFunc * kmax[0] / (1.0 + d[0] * kmax[0]);
+
+          // the eigenvalues are of the form s_i = (1 + 1i/K * h[i])
+          val.Resize(this->dim_);
+          for (UInt iDim = 0; iDim < this->dim_; ++iDim) {
+            val[iDim] = Complex(1, h[iDim] / K);
+          }
         } // dim_ == 2
         else if (this->dim_ == 3) {
           // vectors with extracted geometry data

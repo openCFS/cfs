@@ -614,9 +614,6 @@ namespace CoupledField{
       } else if (pmlFormul == "curvilinear") {
         if (complexFluidFormulation_)
           WARN("Curvilinear PML with complex fluid is not tested. Check results and consider adding a testcase.");
-        if (DIM == 2) {
-          EXCEPTION("Curvilinear PML currently only implemented in 3D!");
-        }
 
         // pointer to object that handles the computation of the curvilinear PML damping tensor
         coeffPMLTensor.reset(new CoefFunctionCurvilinearPML<Complex>(pmlNode, c0R, actSDList, regions_, OutputType::TENSOR));
