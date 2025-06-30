@@ -7,6 +7,12 @@
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
 #include "def_use_blas.hh"
+#include "def_use_openmp.hh"
+
+#ifdef USE_OPENMP
+  #include <omp.h>
+#endif
+
 
 using std::to_string;
 
@@ -2220,6 +2226,7 @@ namespace CoupledField {
     assert(cfs >= 1); // programOptions has this as fallback
     // our variables are cfs (command line or CFS_NUM_THREADS) and omp and mkl from environment
     int omp = getenv("OMP_NUM_THREADS") != NULL ? atoi(getenv("OMP_NUM_THREADS")) : -1;
+
     // here mostly for MKL_NUM_THREADS or VECLIB_MAXIMUM_THREADS or not used (openblas and netlib) and only DUMMY_NUM_THREADS is used
     // we set for openblas the dummy as we already have OMP_NUM_THREADS and don't want to double
     int other = getenv(otherenv) != NULL ? atoi(getenv(otherenv)) : -1;
@@ -2228,6 +2235,7 @@ namespace CoupledField {
     // note that this change is only for this process and child processes, it does not change the system settings.
     if(omp <= 0) {
       omp = cfs; // for later comparison
+      omp_set_num_threads(omp); // e.g. for ginkgo we cannot rely on the environment variable
       #ifndef WIN32
         setenv("OMP_NUM_THREADS",to_string(omp).c_str(),1); // libs read it there
       #else
