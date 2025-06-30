@@ -68,6 +68,18 @@ public:
   virtual void GetScalar(Complex& coefScalar,
                    const LocPointMapped& lpm );
 
+  // Workaround to use templated functions
+  //! \copydoc CoefFunction::GetVector
+  template<typename TYPE> void GetVector_(Vector<TYPE>& coefVec, const LocPointMapped& lpm );
+
+    // Workaround to use templated functions
+  //! \copydoc CoefFunction::GetVector
+  template<typename TYPE> void GetScalar_(TYPE& coefScalar, const LocPointMapped& lpm );
+
+  
+
+  virtual void SetSurfInfo(LocPointMapped &surfLpm);
+
   //! \copydoc CoefFunction::GetVecSize
   UInt GetVecSize() const;
 

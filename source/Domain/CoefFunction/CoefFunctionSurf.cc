@@ -104,62 +104,34 @@ void CoefFunctionSurf::GetTensor(Matrix<Complex>& coefMat,
   assert(this->dimType_ == TENSOR);
 }
 
-
+// Workaround to use templated functions
 void CoefFunctionSurf::GetVector(Vector<Double>& coefVec, 
                                  const LocPointMapped& lpm ) {
-  // create local point for surface
-  LocPointMapped surfLpm(lpm);
-  surfLpm.SetSurfInfo( regions_);
-  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
-
-  //Confirm that output variable is defined as a vector
-  assert(this->dimType_ == VECTOR);
-
-  //For tensor or vector volume coefficient function
-  if (coefs_[region]->GetDimType() == TENSOR || coefs_[region]->GetDimType() == VECTOR ){
-    //normal mapping (from Tensor)
-    if( mapNormal_ ) {
-      Vector<Double> coefTens;
-      coefs_[region]->GetVector(coefTens, *surfLpm.lpmVol );
-      MapTensorNormal<Double>( coefVec, coefTens, surfLpm.normal);
-    //get vector without normal mapping
-    } else {
-      coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
-    }
-  }
-
-  //normal mapping from scalar CoefFunction
-  else if (mapNormal_ && coefs_[region]->GetDimType() == SCALAR){
-    Double coefScal;
-    coefs_[region]->GetScalar(coefScal, *surfLpm.lpmVol);
-    MapScalNormal<Double>( coefVec, coefScal, surfLpm.normal);
-  }
-
-  else{
-    EXCEPTION("Case not implemented.");
-  }
-
-  coefVec *= factor_;
+    CoefFunctionSurf::GetVector_(coefVec, lpm );
 }
-
 
 void CoefFunctionSurf::GetVector(Vector<Complex>& coefVec, 
-                               const LocPointMapped& lpm ) {
-  // create local point for surface
-  LocPointMapped surfLpm(lpm);
-  surfLpm.SetSurfInfo( regions_);
-  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
+                                 const LocPointMapped& lpm ) {
+    CoefFunctionSurf::GetVector_(coefVec, lpm );
+}
 
+template<typename TYPE>
+void CoefFunctionSurf::GetVector_(Vector<TYPE>& coefVec, const LocPointMapped& lpm) {
   //Confirm that output variable is defined as a vector
   assert(this->dimType_ == VECTOR);
-
+    
+  // create local point for surface
+  LocPointMapped surfLpm(lpm);
+  this->SetSurfInfo(surfLpm);
+  
+  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
   //For tensor or vector volume coefficient function
   if (coefs_[region]->GetDimType() == TENSOR || coefs_[region]->GetDimType() == VECTOR ){
     //normal mapping (from Tensor)
     if( mapNormal_ ) {
-      Vector<Complex> coefTens;
+      Vector<TYPE> coefTens;
       coefs_[region]->GetVector(coefTens, *surfLpm.lpmVol );
-      MapTensorNormal<Complex>( coefVec, coefTens, surfLpm.normal);
+      MapTensorNormal<TYPE>( coefVec, coefTens, surfLpm.normal);
     //get vector without normal mapping
     } else {
       coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
@@ -168,9 +140,9 @@ void CoefFunctionSurf::GetVector(Vector<Complex>& coefVec,
 
   //normal mapping from scalar CoefFunction
   else if (mapNormal_ && coefs_[region]->GetDimType() == SCALAR){
-    Complex coefScal;
+    TYPE coefScal;
     coefs_[region]->GetScalar(coefScal, *surfLpm.lpmVol);
-    MapScalNormal<Complex>( coefVec, coefScal, surfLpm.normal);
+    MapScalNormal<TYPE>( coefVec, coefScal, surfLpm.normal);
   }
 
   else{
@@ -180,17 +152,29 @@ void CoefFunctionSurf::GetVector(Vector<Complex>& coefVec,
   coefVec *= factor_;
 }
 
-
+// Workaround to use templated functions
 void CoefFunctionSurf::GetScalar(Double& coefScalar, 
-                                 const LocPointMapped& lpm ){
+                                 const LocPointMapped& lpm ) {
+    CoefFunctionSurf::GetScalar_(coefScalar, lpm );
+}
+
+void CoefFunctionSurf::GetScalar(Complex& coefScalar, 
+                                 const LocPointMapped& lpm ) {
+    CoefFunctionSurf::GetScalar_(coefScalar, lpm );
+}
+
+template<typename TYPE>
+void CoefFunctionSurf::GetScalar_(TYPE& coefScalar, const LocPointMapped& lpm) {
+  //Confirm that output variable is defined as a scalar
   assert(this->dimType_ == SCALAR);
 
   // create local point for surface
   LocPointMapped surfLpm(lpm);
-  surfLpm.SetSurfInfo( regions_);
+  this->SetSurfInfo(surfLpm);
+  
   RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
   if( mapNormal_ ) {
-    Vector<Double> coefVec;
+    Vector<TYPE> coefVec;
     coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
     if (coefVec.GetSize() == surfLpm.normal.GetSize())
       coefScalar = coefVec * surfLpm.normal;
@@ -203,25 +187,23 @@ void CoefFunctionSurf::GetScalar(Double& coefScalar,
   //std::cout << "Value: " << coefScalar << std::endl;
 }
 
-void CoefFunctionSurf::GetScalar(Complex& coefScalar, 
-                                 const LocPointMapped& lpm ){
-  assert(this->dimType_ == SCALAR);
-
-  // create local point for surface
-  LocPointMapped surfLpm(lpm);
-  surfLpm.SetSurfInfo( regions_);
-  RegionIdType region = surfLpm.lpmVol->ptEl->regionId;
-  if( mapNormal_ ) {
-    Vector<Complex> coefVec;
-    coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
-    if (coefVec.GetSize() == surfLpm.normal.GetSize())
-      coefScalar = coefVec * surfLpm.normal;
-    else // this happens in 2.5D case where 'coefVec' and 'normal' have 3 and 2 components, respectively
-      coefScalar = coefVec[0]*surfLpm.normal[0] + coefVec[1]*surfLpm.normal[1];
-  } else {
-    coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
+void CoefFunctionSurf::SetSurfInfo(LocPointMapped& surfLpm)
+{
+  // get regionId from surfRegion
+  RegionIdType surRegId = surfLpm.ptEl->regionId;
+  RegionIdType volNeighborRegionId;
+  if (neighborRegionId_.count(surRegId))
+  {
+    volNeighborRegionId = neighborRegionId_[surRegId];
   }
-  coefScalar *= factor_;
+  else
+  {
+    #ifndef NDEBUG
+    WARN(this->GetName() << ": No neighboring region set, using arbitrary connected volume domain. Consider using SinglePDE::SetSurfVolNeighborRegion.");
+    #endif
+    volNeighborRegionId = NO_REGION_ID;
+  }
+  surfLpm.SetSurfInfo(regions_, volNeighborRegionId);
 }
 
 UInt CoefFunctionSurf::GetVecSize() const {

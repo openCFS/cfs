@@ -4506,4 +4506,41 @@ namespace CoupledField {
   template void SinglePDE::DefineEulerianSystem<2,2>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineEulerianSystem<3,1>(SolutionType,NcInterfaceInfo&);
   template void SinglePDE::DefineEulerianSystem<3,3>(SolutionType,NcInterfaceInfo&);
+
+  void SinglePDE::SetSurfVolNeighborRegion(shared_ptr<CoefFunctionSurf> coefFctSurf, std::string quantity)
+  {
+    PtrParamNode resultNode = myParam_->Get("storeResults", ParamNode::PASS);
+    if (resultNode)
+    {
+      PtrParamNode actResultNode = resultNode->GetByVal("surfElemResult", "type", quantity, ParamNode::PASS);
+      if (actResultNode)
+      {
+        ParamNodeList regionNodes;
+        std::string regName;
+        std::string neighborReg;
+        RegionIdType surfRegionId;
+        RegionIdType volNeighborRegionId;
+        PtrParamNode listNode = actResultNode->Get("surfRegionList", ParamNode::PASS);
+        if (listNode)
+        {
+          regionNodes = listNode->GetList("surfRegion");
+          for (UInt iRegion = 0; iRegion < regionNodes.GetSize(); iRegion++)
+          {
+            regName = regionNodes[iRegion]->Get("name")->As<std::string>();
+            neighborReg = regionNodes[iRegion]->Get("neighborRegion")->As<std::string>();
+            surfRegionId = ptGrid_->GetRegion().Parse(regName);
+            if (neighborReg == "")
+            {
+              volNeighborRegionId = NO_REGION_ID;
+            }
+            else
+            {
+              volNeighborRegionId = ptGrid_->GetRegion().Parse(neighborReg);
+            }
+            coefFctSurf->SetVolNeighborRegionId(surfRegionId, volNeighborRegionId);
+          }
+        }
+      }
+    }
+  }
 } // end of namespace

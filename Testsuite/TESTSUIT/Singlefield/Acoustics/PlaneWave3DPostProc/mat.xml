@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+
+<cfsMaterialDataBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/material ../../../../../share/xml/CFS-Material/CFS_Material.xsd"
+  xmlns="http://www.cfs++.org/material">
+
+<!-- recycled from PlaneWave2DPostProc, alternatively use PlaneWave3DGridVel2CRotated as reference -->
+  <material name="FluidMat">
+    <acoustic>
+      <density>
+        <linear>
+          <real>10</real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real>5</real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

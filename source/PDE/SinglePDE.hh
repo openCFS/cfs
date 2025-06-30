@@ -644,6 +644,9 @@ namespace CoupledField
     //! Vector containing all ncInterfaces for this PDE
     StdVector< NcInterfaceInfo > ncInterfaces_;
     
+    // Sets neighbor region ids for a surface CoefFunction
+    void SetSurfVolNeighborRegion(shared_ptr<CoefFunctionSurf> coefFctSurf, std::string quantity);
+
     //@}
   private:
   };

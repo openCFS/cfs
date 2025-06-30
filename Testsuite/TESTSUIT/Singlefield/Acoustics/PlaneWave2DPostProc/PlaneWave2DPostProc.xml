@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Plane Wave Acoustic Postprocessing results</title>
+    <authors>
+      <author>awurzinger</author>
+    </authors>
+    <date>2024-06-21</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+    </keywords>
+    <references>No references</references>
+    <isVerified>no</isVerified>
+    <description> 1D problem (plane wave in a channel). This test computes various post-processing
+      results for transient and harmonic analysis using both acouPressure and acouPotential 
+      formulations. The results include surface region forces, surface impedance, and average 
+      surface impedance. Some node, element, and region results are commented out but can be enabled
+      if needed. 
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <hdf5 fileName="PlaneWave2DPostProc.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_flow" material="FluidMat"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="L_top"/>
+      <surfRegion name="L_right"/>
+      <surfRegion name="L_bottom"/>
+      <surfRegion name="L_left"/>
+    </surfRegionList>
+  </domain>
+
+  <!-- Transient pressure formulation -->
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>3</numSteps>
+        <deltaT>1</deltaT>
+        <allowPostProc>yes</allowPostProc>
+      </transient>
+    </analysis>
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="S_flow"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <rhsDensity name="L_left" value="sin(2*pi*1*t)" volumeRegion="S_flow"/>
+        </bcsAndLoads>
+        <storeResults>
+          <!-- Surface region results -->
+          <surfRegionResult type="acouForce">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+
+  <!-- Transient potential formulation -->
+  <sequenceStep index="2">
+    <analysis>
+      <transient>
+        <numSteps>3</numSteps>
+        <deltaT>1</deltaT>
+        <allowPostProc>yes</allowPostProc>
+      </transient>
+    </analysis>
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="S_flow"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <rhsDensity name="L_left" value="sin(2*pi*1*t)" volumeRegion="S_flow"/>
+        </bcsAndLoads>
+        <storeResults>
+          <!-- Surface element results -->
+        
+          <surfElemResult type="acouSurfImpedance">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfElemResult>
+
+          <!-- Surface region results -->
+          <surfRegionResult type="acouForce">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+
+  <!-- Harmonic pressure formulation -->
+  <sequenceStep index="3">
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="1"/>
+        </frequencyList>
+        <allowPostProc>yes</allowPostProc>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="S_flow"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <rhsDensity name="L_left" value="1" volumeRegion="S_flow"/>
+        </bcsAndLoads>
+        <storeResults>
+          <!-- Surface element results -->
+          <surfElemResult type="acouSurfImpedance">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfElemResult>
+
+          <!-- Surface region results -->
+          <surfRegionResult type="acouForce">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfRegionResult>
+          <surfRegionResult type="acouSurfAvgImpedance">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+
+  <!-- Harmonic potential formulation -->
+  <sequenceStep index="4">
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="1"/>
+        </frequencyList>
+        <allowPostProc>yes</allowPostProc>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <acoustic formulation="acouPotential">
+        <regionList>
+          <region name="S_flow"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <rhsDensity name="L_left" value="1" volumeRegion="S_flow"/>
+        </bcsAndLoads>
+        <storeResults>
+          <!-- Surface element results -->
+          <surfElemResult type="acouSurfImpedance">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfElemResult>
+
+          <!-- Surface region results -->
+          <surfRegionResult type="acouForce">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfRegionResult>
+          <surfRegionResult type="acouSurfAvgImpedance">
+            <surfRegionList>
+              <surfRegion name="L_left"/>
+              <surfRegion name="L_right" neighborRegion="S_flow"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+
+</cfsSimulation>

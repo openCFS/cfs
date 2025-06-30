@@ -14,7 +14,6 @@
       </compressionModulus>
     </acoustic>
     <flow>
-      <!-- density at 20 -->
       <density>
         <linear>
           <real> 1.225 </real>

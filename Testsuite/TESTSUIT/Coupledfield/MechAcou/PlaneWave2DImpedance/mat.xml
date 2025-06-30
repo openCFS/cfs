@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsMaterialDataBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/material ../../../../../share/xml/CFS-Material/CFS_Material.xsd"
+  xmlns="http://www.cfs++.org/material">
+  <material name="mat_left">
+    <acoustic>
+      <density>
+        <linear>
+          <real>1.0</real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real>1.0</real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="mat_right">
+    <mechanical>
+      <density>
+        <linear>
+          <real>2.0</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <shearModulus>
+              <real>0.0</real>
+            </shearModulus>
+            <compressionModulus>
+              <real>1.0</real>
+            </compressionModulus>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <density>
+        <linear>
+          <real>2.0</real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real>1.0</real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

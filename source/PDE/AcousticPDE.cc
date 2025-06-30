@@ -3155,6 +3155,26 @@ namespace CoupledField{
     ppd->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
   
+    // === ACOU_FORCE ===
+    // Force F_{\mathrm{a}} = \int_{\Gamma} p_{\mathrm{a}} \ \mathrm{d} \Gamma
+    shared_ptr<ResultInfo> force(new ResultInfo);
+    force->resultType = ACOU_FORCE;
+    force->dofNames = "";
+    force->unit = MapSolTypeToUnit(ACOU_FORCE);
+    force->entryType = ResultInfo::SCALAR;
+    force->definedOn = ResultInfo::SURF_REGION;
+    // Force F = \int_Gamma p *n dGamma
+    // Integrate pressure over surface
+    shared_ptr<ResultFunctor> forceFct;
+    if( isComplex_ ) {
+      forceFct.reset(new ResultFunctorIntegrate<Complex>(presFct, feFct, force ) );
+    } else {
+      forceFct.reset(new ResultFunctorIntegrate<Double>(presFct, feFct, force ) );
+    }
+    resultFunctors_[ACOU_FORCE] = forceFct;
+    availResults_.insert(force);
+
+
     shared_ptr<CoefFunctionFormBased> presGradFct;
     
     // some results are only available in potential formulation (both transient and harmonic) or
@@ -3213,6 +3233,8 @@ namespace CoupledField{
       velNormal->definedOn = ResultInfo::SURF_ELEM;
       shared_ptr<CoefFunctionSurf> velFctNormal;
       velFctNormal.reset(new CoefFunctionSurf(true, 1.0, velNormal));
+      std::string quantity = "acouNormalVelocity";
+      this->SetSurfVolNeighborRegion(velFctNormal, quantity);
       DefineFieldResult(velFctNormal, velNormal);
       if( formulation_ == ACOU_POTENTIAL ) {
         surfCoefFcts_[velFctNormal] = velFctPot;
@@ -3221,6 +3243,37 @@ namespace CoupledField{
         surfCoefFcts_[velFctNormal] = velFct;
       }
       
+      // === ACOU_SURFIMPEDANCE ===
+      shared_ptr<ResultInfo> surfImpedance(new ResultInfo);
+      surfImpedance->resultType = ACOU_SURFIMPEDANCE;
+      surfImpedance->dofNames = "";
+      surfImpedance->unit = MapSolTypeToUnit(ACOU_SURFIMPEDANCE);
+      surfImpedance->entryType = ResultInfo::SCALAR;
+      surfImpedance->definedOn = ResultInfo::SURF_ELEM;
+      PtrCoefFct surfImpFct = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, presFct, velFctNormal, CoefXpr::OP_DIV ) );
+      DefineFieldResult(surfImpFct, surfImpedance);
+      
+      // === ACOU_SURF_AVG_IMPEDANCE ===
+      shared_ptr<ResultInfo> impedance(new ResultInfo);
+      impedance->resultType = ACOU_SURF_AVG_IMPEDANCE;
+      impedance->dofNames = "";
+      impedance->unit = MapSolTypeToUnit(ACOU_SURF_AVG_IMPEDANCE);
+      impedance->entryType = ResultInfo::SCALAR;
+      impedance->definedOn = ResultInfo::SURF_REGION;
+      // area weighted average
+      shared_ptr<ResultFunctor> impedanceFct;
+      if( isComplex_ ) {
+        impedanceFct.reset(new ResultFunctorIntegrate<Complex>(surfImpFct, 
+                                                            feFct, impedance ) );
+        dynamic_pointer_cast< ResultFunctorIntegrate<Complex> >(impedanceFct)->SetAveraged(true);
+      } else {
+        impedanceFct.reset(new ResultFunctorIntegrate<Double>(surfImpFct, 
+                                                          feFct, impedance ) );
+        dynamic_pointer_cast< ResultFunctorIntegrate<Double> >(impedanceFct)->SetAveraged(true);                                                  
+      }
+      resultFunctors_[ACOU_SURF_AVG_IMPEDANCE] = impedanceFct;
+      availResults_.insert(impedance);
+
       // === ACOU_INTENSITY ===
       // Intensity \bm{\mathrm{I}}_{\mathrm{a}} = p_{\mathrm{a}} \overline{\bm{v}_{\mathrm{a}}}
       shared_ptr<ResultInfo> intensity(new ResultInfo);

@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>PlaneWave2DImpedance</title>
+    <authors>
+      <author>awurzinger</author>
+    </authors>
+    <date>2024-07-01</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>mechanic-acoustic</keyword>
+      <keyword>harmonic</keyword>
+    </keywords>
+    <references> Analytic derivation </references>
+    <isVerified>yes</isVerified>
+    <description>Plane Wave Propagation in a 2D duct. Interface of 2 media with acou-mech-acou setup. Evaluation of acoustic impedance at the
+      interface. The expected impedance is approx. sqrt(2) on the left and approx. -sqrt(2) on the right side of the interface.
+    </description>
+  </documentation>
+  <fileFormats>
+    <!-- Data Input -->
+    <input>
+      <hdf5 fileName="PlaneWave2DImpedance.h5ref"/>
+    </input>
+    <!-- Data Output -->
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <!-- Material File -->
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <!-- Volume Regions -->
+    <regionList>
+      <region name="S_left" material="mat_left"/>
+      <region name="S_mid" material="mat_right"/>
+      <region name="S_right" material="mat_right"/>
+    </regionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange>
+      <isoOrder>2</isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <!-- Analysis Type -->
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="10"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+
+    <!-- PDE Definition -->
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <!-- Computation Domain -->
+        <regionList>
+          <region name="S_left"/>
+          <region name="S_right"/>
+        </regionList>
+
+        <!-- Boundary Conditions and Volume Loads -->
+        <bcsAndLoads>
+          <rhsDensity name="L_left" value="1.0" volumeRegion="S_left"/>
+          <absorbingBCs name="L_left" volumeRegion="S_left"/>
+          <absorbingBCs name="L_right" volumeRegion="S_right"/>
+        </bcsAndLoads>
+
+        <!-- Results Definition -->
+        <storeResults>
+          <!-- Export surface element result -->
+          <surfElemResult type="acouSurfPressure">
+            <surfRegionList>
+              <surfRegion name="L_if_left" neighborRegion="S_left" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_if_right" neighborRegion="S_right" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_left" neighborRegion="S_left" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_right" neighborRegion="S_right" outputIds="hdf5" writeAsHistResult="yes"/>
+            </surfRegionList>
+          </surfElemResult>
+          <surfElemResult type="acouNormalVelocity">
+            <surfRegionList>
+              <surfRegion name="L_if_left" neighborRegion="S_left" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_if_right" neighborRegion="S_right" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_left" neighborRegion="S_left" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_right" neighborRegion="S_right" outputIds="hdf5" writeAsHistResult="yes"/>
+            </surfRegionList>
+          </surfElemResult>
+          <surfElemResult type="acouSurfImpedance">
+            <surfRegionList>
+              <surfRegion name="L_if_left" neighborRegion="S_left" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_if_right" neighborRegion="S_right" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_left" neighborRegion="S_left" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_right" neighborRegion="S_right" outputIds="hdf5" writeAsHistResult="yes"/>
+            </surfRegionList>
+          </surfElemResult>
+          <surfRegionResult type="acouSurfAvgImpedance">
+            <surfRegionList>
+              <surfRegion name="L_if_left" neighborRegion="S_left" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_if_right" neighborRegion="S_right" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_left" neighborRegion="S_left" outputIds="hdf5" writeAsHistResult="yes"/>
+              <surfRegion name="L_right" neighborRegion="S_right" outputIds="hdf5" writeAsHistResult="yes"/>
+            </surfRegionList>
+          </surfRegionResult>
+        </storeResults>
+      </acoustic>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="S_mid"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="L_mid_top">
+            <comp dof="y"/>
+          </fix>
+          <fix name="L_mid_bottom">
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults/>
+      </mechanic>
+    </pdeList>
+    <couplingList>
+      <direct>
+        <acouMechDirect>
+          <surfRegionList>
+            <surfRegion name="L_if_left"/>
+            <surfRegion name="L_if_right"/>
+          </surfRegionList>
+        </acouMechDirect>
+      </direct>
+    </couplingList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix reordering="noReordering" storage="sparseNonSym"/>
+            <solver/>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

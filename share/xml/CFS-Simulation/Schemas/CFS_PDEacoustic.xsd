@@ -696,17 +696,52 @@
   <!-- Definition of surface element result types of acoustic PDE -->
   <xsd:simpleType name="DT_AcousticSurfElemResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="acouSurfPressure"/>
-      <xsd:enumeration value="acouSurfIntensity"/>
-      <xsd:enumeration value="acouNormalIntensity"/>
-      <xsd:enumeration value="acouNormalVelocity"/>
+      <xsd:enumeration value="acouSurfPressure">
+        <xsd:annotation>
+          <xsd:documentation>\mathrm{p_a}, evalutated on surface elements</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="acouSurfIntensity">
+        <xsd:annotation>
+          <xsd:documentation>\mathrm{I_a} = \mathrm{p_a} \mathrm{v_a}, evalutated on surface elements</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="acouNormalIntensity">
+        <xsd:annotation>
+          <xsd:documentation>\mathrm{I_n} = \mathrm{I_a} \cdot \mathrm{n}, evalutated on surface elements</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="acouNormalVelocity">
+        <xsd:annotation>
+          <xsd:documentation>\mathrm{v_n} = \mathrm{v_a} \cdot \mathrm{n}, evalutated on surface elements</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="acouSurfImpedance">
+        <xsd:annotation>
+          <xsd:documentation>\mathrm{Z_a} = \mathrm{p_a} / (\mathrm{v_a} \cdot \mathrm{n}), evalutated on surface elements</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
     </xsd:restriction>
   </xsd:simpleType>
 
   <!-- Definition of surface region result types of acoustic PDE -->
   <xsd:simpleType name="DT_AcousticSurfRegionResult">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="acouPower"/>
+      <xsd:enumeration value="acouForce">
+        <xsd:annotation>
+          <xsd:documentation>\mathrm{F_a} = \int \mathrm{p_a} \mathrm{d} \Gamma, integrated of the surface</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="acouSurfAvgImpedance">
+        <xsd:annotation>
+          <xsd:documentation>\mathrm{Z_a} = \bar(\mathrm{p_a} / \mathrm{v_a}), averaged over the surface</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="acouPower">
+        <xsd:annotation>
+          <xsd:documentation>\mathrm{Z_a} = \int \mathrm{p_a} \mathrm{v_a} \mathrm{d} \Gamma, integrated over the surface</xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
       <xsd:enumeration value="acouPowerPlaneWave"/>
     </xsd:restriction>
   </xsd:simpleType>
@@ -787,6 +822,13 @@
 
         <!-- Surface region result definition -->
         <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:annotation>
+            <xsd:documentation>
+              acouForce F_{\mathrm{a}} = \int_{\Gamma} p_{\mathrm{a}} \ \mathrm{d} \Gamma <br/>
+              acouPower P_{\mathrm{a}} = \int_{\Gamma} p_{\mathrm{a}} v_{\mathrm{a}} \ \mathrm{d} \Gamma <br/>
+              acouSurfAvgImpedance Z_{\mathrm{a}} = 1/A_\Gamma \int_{\Gamma} p_{\mathrm{a}} / v_{\mathrm{a}} \ \mathrm{d} \Gamma <br/>
+            </xsd:documentation>
+          </xsd:annotation>
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">

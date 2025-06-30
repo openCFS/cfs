@@ -76,6 +76,337 @@
     </xsd:restriction>
   </xsd:simpleType>
 
+  <!-- ******************************************************************** -->
+  <!--   Definition of CFS Variable names -->
+  <!-- ******************************************************************** -->
+  <xsd:simpleType name="DT_CFSVarName">
+    <xsd:union>
+      <!-- Predefined enumeration values for suggestions -->
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <!-- mechanics -->
+          <xsd:enumeration value="mechDisplacement"/>
+          <xsd:enumeration value="mechElemPorosity"/>
+          <xsd:enumeration value="mechNormalDisplacement"/>
+          <xsd:enumeration value="mechAcceleration"/>
+          <xsd:enumeration value="mechVelocity"/>
+          <xsd:enumeration value="mechRhsLoad"/>
+          <xsd:enumeration value="mechStress"/>
+          <xsd:enumeration value="mechThermalStress"/>
+          <xsd:enumeration value="mechStrain"/>
+          <xsd:enumeration value="mechIrrStrain"/>
+          <xsd:enumeration value="mechIrrStress"/>
+          <xsd:enumeration value="mechThermalStrain"/>
+          <xsd:enumeration value="mechStructIntensity"/>
+          <xsd:enumeration value="mechNormalStructIntensity"/>
+          <xsd:enumeration value="mechPrincipalStress"/>
+          <xsd:enumeration value="mechPrincipalStressMin"/>
+          <xsd:enumeration value="mechPrincipalStressMax"/>
+          <xsd:enumeration value="mechPrincipalStressMed"/>
+          <xsd:enumeration value="mechPrincipalStressMinScalar"/>
+          <xsd:enumeration value="mechPrincipalStressMaxScalar"/>
+          <xsd:enumeration value="mechPrincipalStressMedScalar"/>
+          <xsd:enumeration value="mechPrincipalStrain"/>
+          <xsd:enumeration value="mechPrincipalStrainMin"/>
+          <xsd:enumeration value="mechPrincipalStrainMax"/>
+          <xsd:enumeration value="mechPrincipalStrainMed"/>
+          <xsd:enumeration value="mechPrincipalStrainMinScalar"/>
+          <xsd:enumeration value="mechPrincipalStrainMaxScalar"/>
+          <xsd:enumeration value="mechPrincipalStrainMedScalar"/>
+          <xsd:enumeration value="vonMisesStress"/>
+          <xsd:enumeration value="vonMisesStrain"/>
+          <xsd:enumeration value="mechKinEnergyDensity"/>
+          <xsd:enumeration value="mechDeformEnergyDensity"/>
+          <xsd:enumeration value="mechTotalEnergyDensity"/>
+          <xsd:enumeration value="mechKinEnergy"/>
+          <xsd:enumeration value="mechDeformEnergy"/>
+          <xsd:enumeration value="mechTotalEnergy"/>
+          <xsd:enumeration value="mechPower"/>
+          <xsd:enumeration value="mechDisplacedSurfVolume"/>
+          <xsd:enumeration value="mechForce"/>
+          <xsd:enumeration value="mechNormalStress"/>
+          <xsd:enumeration value="mechDyadicStrain"/>
+          <xsd:enumeration value="mechDyadicStrainSum"/>
+          <xsd:enumeration value="mechQuadDisplacement"/>
+          <xsd:enumeration value="mechQuadDisplacementSum"/>
+          <xsd:enumeration value="mechPseudoDensity"/>
+          <xsd:enumeration value="pseudoDensity"/>
+          <xsd:enumeration value="physicalPseudoDensity"/>
+          <xsd:enumeration value="mechShape"/>
+          <xsd:enumeration value="mechTensorTrace"/>
+          <xsd:enumeration value="mechTensor"/>
+          <xsd:enumeration value="mechTensorHillMandel"/>
+          <xsd:enumeration value="mechElemVol"/>
+          <xsd:enumeration value="mechVelocityElem"/>
+          <!-- electrostatics / elctric current conduction -->
+          <xsd:enumeration value="elecPotential"/>
+          <xsd:enumeration value="elecFieldIntensity"/>
+          <xsd:enumeration value="elecFieldIntensitySurf"/>
+          <xsd:enumeration value="elecFieldIntensityTransversal"/>
+          <xsd:enumeration value="elecFieldIntensityLongitudinal"/>
+          <xsd:enumeration value="elecCurrentDensitySurf"/>
+          <xsd:enumeration value="elecCurrentSurf"/>
+          <xsd:enumeration value="displacementCurrentDensity"/>
+          <xsd:enumeration value="displacementCurrent"/>
+          <xsd:enumeration value="electricAndDisplacemetCurrentDensity"/>
+          <xsd:enumeration value="elecPolarization"/>
+          <xsd:enumeration value="elecCurrentDensity"/>
+          <xsd:enumeration value="elecGradVInt"/>
+          <xsd:enumeration value="elecNormalCurrentDensity"/>
+          <xsd:enumeration value="displacementNormalCurrentDensity"/>
+          <xsd:enumeration value="elecAndDisplacementNormalCurrentDensity"/>
+          <xsd:enumeration value="elecCurrent"/>
+          <xsd:enumeration value="elecAndDisplacementCurrent"/>
+          <xsd:enumeration value="elecPowerDensity"/>
+          <xsd:enumeration value="elecPower"/>
+          <xsd:enumeration value="elecForce"/>
+          <xsd:enumeration value="elecForceVWP"/>
+          <xsd:enumeration value="elecCharge"/>
+          <xsd:enumeration value="elecSurfaceChargeDensity"/>
+          <xsd:enumeration value="elecFluxDensity"/>
+          <xsd:enumeration value="elecEnergy"/>
+          <xsd:enumeration value="elecEnergyDensity"/>
+          <xsd:enumeration value="elecForceDensity"/>
+          <xsd:enumeration value="elecRhsLoad"/>
+          <xsd:enumeration value="elecElemPermittivity"/>
+          <xsd:enumeration value="ElectCond"/>
+          <xsd:enumeration value="elecPseudoPolarization"/>
+          <xsd:enumeration value="elecPhysicalPseudoDensity"/>
+          <xsd:enumeration value="elecTensor"/>
+          <xsd:enumeration value="elecTensorTrace"/>
+          <!-- smoothing PDE -->
+          <xsd:enumeration value="smoothDisplacement"/>
+          <xsd:enumeration value="smoothVelocity"/>
+          <xsd:enumeration value="smoothAcceleration"/>
+          <xsd:enumeration value="smoothZeroStress"/>
+          <xsd:enumeration value="smoothStrain"/>
+          <xsd:enumeration value="smoothContactForceDensity"/>
+          <xsd:enumeration value="smoothContactForce"/>
+          <!-- acoustics -->
+          <xsd:enumeration value="acouPressure"/>
+          <xsd:enumeration value="acouAcceleration"/>
+          <xsd:enumeration value="acouPotential"/>
+          <xsd:enumeration value="acouVelocity"/>
+          <xsd:enumeration value="acouPosition"/>
+          <xsd:enumeration value="acouNormalVelocity"/>
+          <xsd:enumeration value="acouPressureD1"/>
+          <xsd:enumeration value="acouPressureD2"/>
+          <xsd:enumeration value="acouForce"/>
+          <xsd:enumeration value="acouSurfAvgImpedance"/>
+          <xsd:enumeration value="acouSurfImpedance"/>
+          <xsd:enumeration value="acouPotentialD1"/>
+          <xsd:enumeration value="acouPotentialD2"/>
+          <xsd:enumeration value="acouRhsLoad"/>
+          <xsd:enumeration value="acouRhsLoadDensity"/>
+          <xsd:enumeration value="acouRhsLoadDensityVector"/>
+          <xsd:enumeration value="acouRhsLoadP"/>
+          <xsd:enumeration value="apeRhsLoad"/>
+          <xsd:enumeration value="vortexRhsLoad"/>
+          <xsd:enumeration value="acouDivLighthillTensor"/>
+          <xsd:enumeration value="acouRHSval"/>
+          <xsd:enumeration value="acouSurfRHSval"/>
+          <xsd:enumeration value="acouSpeedOfSound"/>
+          <xsd:enumeration value="acouPowerDensity"/>
+          <xsd:enumeration value="acouPower"/>
+          <xsd:enumeration value="acouPowerPlaneWave"/>
+          <xsd:enumeration value="acouIntensity"/>
+          <xsd:enumeration value="acouNormalIntensity"/>
+          <xsd:enumeration value="acouNormalIntensityPlaneWave"/>
+          <xsd:enumeration value="acouSurfIntensity"/>
+          <xsd:enumeration value="acouSurfPressure"/>
+          <xsd:enumeration value="acouPotEnergy"/>
+          <xsd:enumeration value="acouKinEnergy"/>
+          <xsd:enumeration value="acouPmlAuxVec"/>
+          <xsd:enumeration value="acouPmlAuxScalar"/>
+          <xsd:enumeration value="acouPseudoDensity"/>
+          <xsd:enumeration value="acouMixedMassLoad"/>
+          <xsd:enumeration value="acouMixedMomentumLoad"/>
+          <xsd:enumeration value="acouLambRhs"/>
+          <!-- Splitting -->
+          <xsd:enumeration value="splitScalar"/>
+          <xsd:enumeration value="splitVector"/>
+          <xsd:enumeration value="splitRhsLoad"/>
+          <xsd:enumeration value="splitScalVel"/>
+          <xsd:enumeration value="splitVectVel"/>
+          <xsd:enumeration value="splitPotEnergy"/>
+          <xsd:enumeration value="splitLamb"/>
+          <xsd:enumeration value="splitDivLamb"/>
+          <!-- water waves -->
+          <xsd:enumeration value="waterPressure"/>
+          <xsd:enumeration value="waterPosition"/>
+          <xsd:enumeration value="waterPmlAuxVec"/>
+          <xsd:enumeration value="waterPmlAuxScalar"/>
+          <xsd:enumeration value="waterRhsLoad"/>
+          <xsd:enumeration value="waterPressureTensor"/>
+          <xsd:enumeration value="waterSurfaceTraction"/>
+          <xsd:enumeration value="waterSurfaceForce"/>
+          <xsd:enumeration value="waterSurfaceTorque"/>
+          <xsd:enumeration value="waterTorqueDensityTensor"/>
+          <xsd:enumeration value="waterSurfaceTorqueDensity"/>
+          <!-- magnetics -->
+          <xsd:enumeration value="magPotential"/>
+          <xsd:enumeration value="magPotentialD1"/>
+          <xsd:enumeration value="magTotalPotential"/>
+          <xsd:enumeration value="magReducedPotential"/>
+          <xsd:enumeration value="magRhsLoad"/>
+          <xsd:enumeration value="fluxIndStrain"/>
+          <xsd:enumeration value="magFluxDensity"/>
+          <xsd:enumeration value="magFluxDensitySurf"/>
+          <xsd:enumeration value="magFlux"/>
+          <xsd:enumeration value="magNormalFluxDensity"/>
+          <xsd:enumeration value="magFieldIntensity"/>
+          <xsd:enumeration value="magEddyCurrentDensity"/>
+          <xsd:enumeration value="magCoilCurrentDensity"/>
+          <xsd:enumeration value="magTotalCurrentDensity"/>
+          <xsd:enumeration value="magJouleLossPowerDensity"/>
+          <xsd:enumeration value="magJouleLossPowerDensityOnNodes"/>
+          <xsd:enumeration value="magJouleLossPower"/>
+          <xsd:enumeration value="magPotentialDiv"/>
+          <xsd:enumeration value="magForceLorentzDensity"/>
+          <xsd:enumeration value="magForceMaxwellDensity"/>
+          <xsd:enumeration value="magNormalForceMaxwellDensity"/>
+          <xsd:enumeration value="magTangentialForceMaxwellDensity"/>
+          <xsd:enumeration value="magEddyPowerDensity"/>
+          <xsd:enumeration value="magEnergyDensity"/>
+          <xsd:enumeration value="magCoreLossDensity"/>
+          <xsd:enumeration value="magCoreLoss"/>
+          <xsd:enumeration value="magForceVWP"/>
+          <xsd:enumeration value="magForceLorentz"/>
+          <xsd:enumeration value="magForceMaxwell"/>
+          <xsd:enumeration value="magEnergy"/>
+          <xsd:enumeration value="magEddyPower"/>
+          <xsd:enumeration value="magEddyCurrent"/>
+          <xsd:enumeration value="magEddyCurrent1"/>
+          <xsd:enumeration value="magEddyCurrent2"/>
+          <xsd:enumeration value="magElemPermeability"/>
+          <xsd:enumeration value="magElemReluctivity"/>
+          <xsd:enumeration value="magMagnetization"/>
+          <xsd:enumeration value="magPolarization"/>
+          <!-- for magnetic coil optimization -->
+          <xsd:enumeration value="rhsPseudoDensity"/>
+          <xsd:enumeration value="physicalRhsPseudoDensity"/>
+          <xsd:enumeration value="elecPotentialD1"/>
+          <!-- magnetic - coil results -->
+          <xsd:enumeration value="coilCurrent"/>
+          <xsd:enumeration value="coilCurrentD1"/>
+          <xsd:enumeration value="coilVoltage"/>
+          <xsd:enumeration value="coilInducedVoltage"/>
+          <xsd:enumeration value="coilInductance"/>
+          <xsd:enumeration value="coilLinkedFlux"/>
+          <!-- heat conduction -->
+          <xsd:enumeration value="heatTemperature"/>
+          <xsd:enumeration value="heatMeanTemperature"/>
+          <xsd:enumeration value="heatTemperatureD1"/>
+          <xsd:enumeration value="heatFluxDensity"/>
+          <xsd:enumeration value="heatFluxIntensity"/>
+          <xsd:enumeration value="heatFlux"/>
+          <xsd:enumeration value="heatRhsLoad"/>
+          <xsd:enumeration value="heatSourceDensity"/>
+          <xsd:enumeration value="heatConductivityTensorHomogenized"/>
+          <!-- fluidMech -->
+          <xsd:enumeration value="fluidForce"/>
+          <xsd:enumeration value="meanFluidMechVelocity"/>
+          <xsd:enumeration value="meanFluidMechVelocityNormal"/>
+          <xsd:enumeration value="divMeanFluidMechVelocity"/>
+          <xsd:enumeration value="fluidMechVorticity"/>
+          <xsd:enumeration value="fluidMechVelocity"/>
+          <xsd:enumeration value="fluidMechMeshVelocity"/>
+          <xsd:enumeration value="fluidMechMeshVelocityNode"/>
+          <xsd:enumeration value="fluidMechMeshVelocityElem"/>
+          <xsd:enumeration value="fluidMechTotalVelocityElem"/>
+          <xsd:enumeration value="fluidMechPressure"/>
+          <xsd:enumeration value="fluidMechZeroPressure"/>
+          <xsd:enumeration value="fluidMechVelocity_deriv1"/>
+          <xsd:enumeration value="fluidMechPressure_deriv1"/>
+          <xsd:enumeration value="fluidMechVelocity_deriv2"/>
+          <xsd:enumeration value="fluidMechPressure_deriv2"/>
+          <xsd:enumeration value="fluidMechPressure_timeDeriv1"/>
+          <xsd:enumeration value="fluidMechPressure_timeDeriv2"/>
+          <xsd:enumeration value="fluidMechForce"/>
+          <xsd:enumeration value="fluidMechDensity"/>
+          <xsd:enumeration value="fluidMechTemp"/>
+          <xsd:enumeration value="fluidMechTKE"/>
+          <xsd:enumeration value="fluidMechTDR"/>
+          <xsd:enumeration value="fluidMechTEF"/>
+          <xsd:enumeration value="fluidMechStress"/>
+          <xsd:enumeration value="fluidMechCompressibleStress"/>
+          <xsd:enumeration value="fluidMechViscousStress"/>
+          <xsd:enumeration value="fluidMechPressureTensor"/>
+          <xsd:enumeration value="fluidMechTotalStress"/>
+          <xsd:enumeration value="fluidMechSurfaceTraction"/>
+          <xsd:enumeration value="fluidMechStrainRate"/>
+          <xsd:enumeration value="fluidMechWVT"/>
+          <xsd:enumeration value="fluidMechWVTDensity"/>
+          <xsd:enumeration value="fluidMechWVTPhi"/>
+          <xsd:enumeration value="fluidMechWVTDensityPhi"/>
+          <xsd:enumeration value="fluidMechWVT_u1"/>
+          <xsd:enumeration value="fluidMechWVT_u2"/>
+          <xsd:enumeration value="fluidMechWVT_f"/>
+          <xsd:enumeration value="fluidMechViscousDissipationDensity"/>
+          <xsd:enumeration value="fluidMechViscousDissipationDensityDivergencePart"/>
+          <xsd:enumeration value="fluidMechViscousDissipationDensityTotalStrainPart"/>
+          <xsd:enumeration value="fluidMechViscousDissipation"/>
+          <xsd:enumeration value="fluidMechIntensity"/>
+          <xsd:enumeration value="fluidMechIntensityPressureOnly"/>
+          <xsd:enumeration value="fluidMechSurfaceIntensity"/>
+          <xsd:enumeration value="fluidMechSurfaceIntensityPressureOnly"/>
+          <xsd:enumeration value="fluidMechNormalIntensity"/>
+          <xsd:enumeration value="fluidMechNormalIntensityPressureOnly"/>
+          <xsd:enumeration value="fluidMechPower"/>
+          <xsd:enumeration value="fluidMechPowerPressureOnly"/>
+          <xsd:enumeration value="lambda_k"/>
+          <!-- TEST PDE -->
+          <xsd:enumeration value="testDof"/>
+          <xsd:enumeration value="testField"/>
+          <xsd:enumeration value="testRhsLoad"/>
+          <!-- optimization -->
+          <xsd:enumeration value="homogenizedTensor"/>
+          <!-- independent -->
+          <xsd:enumeration value="lagrangeMultiplier"/>
+          <xsd:enumeration value="lagrangeMultiplierD1"/>
+          <xsd:enumeration value="lagrangeMultiplierD2"/>
+          <xsd:enumeration value="lagrangeMultiplier1"/>
+          <!-- evaluates the spacial gradient of the solution at the nodes. -->
+          <!-- common for all PDEs, no unit -->
+          <xsd:enumeration value="gradAcousticSolution"/>
+          <xsd:enumeration value="gradElecPotential"/>
+          <xsd:enumeration value="gradElecPotentialD1"/>
+          <xsd:enumeration value="density"/>
+          <!-- PML parameters for all formulations -->
+          <xsd:enumeration value="pmlDampFactor"/>
+          <xsd:enumeration value="pmlDistance"/>
+          <!-- PML parameters for curvilinear PML only -->
+          <xsd:enumeration value="pmlTensor"/>
+          <xsd:enumeration value="pmlDeterminant"/>
+          <!-- General (grid related) results -->
+          <!-- <xsd:enumeration value="localDirection"/> -->
+          <!-- <xsd:enumeration value="jacobian"/> -->
+          <!-- <xsd:enumeration value="aspectRatio"/> -->
+          <!-- LBM velocity -->
+          <xsd:enumeration value="LBMProbabilityDistribution"/>
+          <xsd:enumeration value="LBMVelocity"/>
+          <xsd:enumeration value="LBMDensity"/>
+          <xsd:enumeration value="LBMPressure"/>
+          <xsd:enumeration value="LBMPhysicalPseudoDensity"/>
+          <!-- Geometry -->
+          <!-- <xsd:enumeration value="NodeNormal"/> -->
+          <!-- <xsd:enumeration value="CooSy-default-x"/> -->
+          <!-- <xsd:enumeration value="CooSy-default-y"/> -->
+          <!-- <xsd:enumeration value="SurfaceNormal"/> -->
+          <!-- <xsd:enumeration value="area"/> -->
+          <!-- <xsd:enumeration value="eta"/> -->
+          <!-- <xsd:enumeration value="xi"/> -->
+        </xsd:restriction>
+      </xsd:simpleType>
+      <!-- Allow any other string value -->
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:minLength value="1"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:union>
+  </xsd:simpleType>
+
   <xsd:complexType name="DT_BaseGridData">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">
@@ -86,7 +417,7 @@
                 <xsd:element name="globalFactor" maxOccurs="unbounded" minOccurs="0" default="1"
                   type="xsd:token"/>
               </xsd:sequence>
-              <xsd:attribute name="quantity" use="required"/>
+              <xsd:attribute name="quantity" type="DT_CFSVarName" use="required"/>
               <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required"/>
               <xsd:attribute name="definedOn" use="required">
                 <xsd:simpleType>
