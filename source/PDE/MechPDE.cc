@@ -295,7 +295,16 @@ namespace CoupledField {
     //  Get information about softening types
     // =======================================
     ReadSoftening();
-    
+
+    // check for defined preStress regions and check if every defined region is available in the PDE
+    StdVector<std::string> preStressRegions;
+    this->ReadVolumeRegions("preStress", preStressRegions);
+    for (const auto &regionName : preStressRegions) {
+      if (std::find(regions_.Begin(), regions_.End(), regionName) == regions_.End()) {
+        EXCEPTION("Prestress region '" << regionName << "' is not defined in the PDE.");
+      }
+    }
+
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
     
@@ -537,16 +546,22 @@ namespace CoupledField {
           assemble_->AddBiLinearForm(piolaContext);
         }
       }
-      
-      
-      //prestressing
-      PtrParamNode preStressNode;
+
+      // prestressing
+      if (preStressRegions.Find(regionName) != -1) {
+
+      }
+      PtrParamNode preStressNode = nullptr;
       PtrParamNode bcNode = this->myParam_->Get("bcsAndLoads");
+      std::cout << regionName << std::endl;
       if(bcNode){
         preStressNode = bcNode->GetByVal("preStress","region",regionName.c_str(),ParamNode::PASS);
       }
+      std::cout << "PrestressNode: " << preStressNode << std::endl;
       
       if( preStressNode ){
+        //ptGrid_->GetRegion().ToString(actRegionId);
+
         ParamNodeList pbcList = bcNode->GetList("blochPeriodic");
         // complex prestressing can be due to: complex material; bloch mode with complex B-matrices; PML; periodic BC
         bool complexPre = do_bloch || harmonicPML || (pbcList.GetSize() > 0);

@@ -128,7 +128,13 @@
           <displacement name="x_normal_1">
             <comp dof="y" value="1e-6"/>
           </displacement>
-          <preStress region="brick">
+          <preStress region="brick_0">
+            <computeLHS/>
+          </preStress>
+          <preStress region="brick_1">
+            <computeLHS/>
+          </preStress>
+          <preStress region="brick_2">
             <computeLHS/>
           </preStress>
         </bcsAndLoads>
@@ -204,7 +210,10 @@
           <displacement name="x_normal_1">
             <comp dof="y" value="1e-6"/>
           </displacement>
-          <preStress region="brick">
+          <preStress region="brick_1">
+            <computeLHS/>
+          </preStress>
+          <preStress region="brick_2">
             <computeLHS/>
           </preStress>
         </bcsAndLoads>
@@ -274,7 +283,10 @@
           <displacement name="x_normal_1">
             <comp dof="y" value="1e-6"/>
           </displacement>
-          <preStress region="brick">
+          <preStress region="brick_1">
+            <computeLHS/>
+          </preStress>
+          <preStress region="brick_2">
             <computeLHS/>
           </preStress>
         </bcsAndLoads>
