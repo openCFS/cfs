@@ -2,19 +2,19 @@
 
 <cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.098s" wall="0.098" cpu="0.103613" calls="1"/>
+    <timer wall-clock="0.089s" wall="0.089" cpu="0.094675" calls="1"/>
     <!-- memory in MB-->
     <memory final="52"/>
   </summary>
   <header id="">
-    <environment started="2025-Feb-28 13:39:55" host="MacBookPro.fritz.box"/>
+    <environment started="2025-Jul-02 10:50:53" host="Finsternis.local"/>
     <progOpts problem="jacobi_cg" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Solver/ginkgo/jacobi_cg/jacobi_cg.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="25.02" name="Ideal Implementation" build="RELEASE" git_commit="26a7aa6d6004d444e4c777f52aa782bc439db09e-modified" git_branch="fwein_ginkgo" compiled="Feb 26 2025" exe="cfs"/>
+      <cfs version="25.04" name="Ideal Implementation" build="RELEASE" git_commit="f99ee809f965d27f14c82b8f195be2d84b36165e" git_branch="fwein_robust_omp" compiled="Jul  2 2025" exe="cfs"/>
       <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="5" ny="5" nz="5">
       <grids>
-        <timer wall-clock="0.003s" wall="0.003" cpu="0.003943" calls="1"/>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.003885" calls="1"/>
         <grid gridId="default" dimensions="3" elements="125" nodes="216"/>
       </grids>
       <coordinateSystems>
@@ -55,7 +55,7 @@
       <globalMathParser dt="0" f="0" nx="5" ny="5" nz="5" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.001s" wall="0.001" cpu="0.001759" calls="6"/>
+      <timer wall-clock="0.001s" wall="0.001" cpu="0.001708" calls="6"/>
     </results>
   </header>
   <calculation>
@@ -70,7 +70,7 @@
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.017s" wall="0.017" cpu="0.018079" calls="1"/>
+        <timer wall-clock="0.014s" wall="0.014" cpu="0.014289" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -152,25 +152,25 @@
           </sbmBlocks>
         </setup>
         <solver>
-          <ginko>
+          <ginko exec="openmp" cuda_available="no">
             <summary>
               <setup>
-                <timer label="setup_ginkgo" wall-clock="0.006s" wall="0.006" cpu="0.009422" calls="1"/>
+                <timer label="setup_ginkgo" wall-clock="0.005s" wall="0.005" cpu="0.00907" calls="1"/>
               </setup>
               <solve>
-                <timer label="solve_ginkgo" wall-clock="0.004s" wall="0.004" cpu="0.005072" calls="1"/>
+                <timer label="solve_ginkgo" wall-clock="0.003s" wall="0.003" cpu="0.004328" calls="1"/>
               </solve>
             </summary>
             <precond type="ilu"/>
-            <solver type="cg" max_iter="10000" tolerance="1e-12" mode="absolute"/>
-            <solve analysis_id="" converged="yes" iters="36" residual="4.3883e-13" sol="23.212" initial="0"/>
+            <solver type="cg" max_iter="10000" tolerance="1e-12" mode="absolute" cfs="double" ginkgo="double" precision="64"/>
+            <solve analysis_id="" converged="yes" iters="29" residual="2.1145e-13" sol="23.212" initial="0"/>
           </ginko>
         </solver>
         <precond>
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="2e-06" calls="1"/>
+                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -183,16 +183,13 @@
         </process>
       </mechanic>
       <graph_setup>
-        <timer wall-clock="0.006s" wall="0.006" cpu="0.006328" calls="1" sub="true"/>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.002064" calls="1" sub="true"/>
       </graph_setup>
-      <reorder_Metis>
-        <timer wall-clock="0.003s" wall="0.003" cpu="0.003979" calls="1" sub="true"/>
-      </reorder_Metis>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.001s" wall="0.001" cpu="0.002103" calls="2"/>
+          <timer wall-clock="0s" wall="0" cpu="0.001715" calls="2"/>
         </assemble>
       </summary>
     </analysis>
