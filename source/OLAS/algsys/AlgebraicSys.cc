@@ -3143,7 +3143,11 @@ namespace CoupledField {
 
     UInt block,idx;
     this->MapFctIdEqnToIndex(fctId,eqnNr,block,idx);
-    rhs_->GetPointer(block)->AddToEntry(idx-1,val);
+    if(idx==0){
+      LOG_DBG3(algSys) << "Skipping RHS contribution to idx 0 (RHS for Dirichlet value)";
+    } else {
+      rhs_->GetPointer(block)->AddToEntry(idx-1,val);
+    }
   }
 
   template<typename T>

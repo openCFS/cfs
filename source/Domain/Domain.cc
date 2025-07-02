@@ -298,6 +298,10 @@ void Domain::ReadGrid(const std::string & gridId,
     actInFile->ReadMesh(actGrid);
   }
 
+  if (actGrid->IsNetworkGrid()) {
+    WARN("Network grids currently only work with h5 input (cfs, h5, h5ref)!");
+  }
+
   actGrid->FinishInit();
 
   // Initialize non-conforming interfaces
