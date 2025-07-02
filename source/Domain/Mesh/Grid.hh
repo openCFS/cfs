@@ -1189,36 +1189,6 @@ namespace CoupledField
     //! Node groups have dimension 0 by definition.
     std::map<std::string, UInt> entityDim_;
 
-   // =======================================================================
-   // Cached Data for element shape mapping (THREAD VERSION)
-   // =======================================================================
-   //@{
-
-   //! Pointer to element shape map (original grid)
-   CfsTLS< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
-
-   //! Pointer to element shape map (updated grid)
-   CfsTLS<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
-
-   //! Last accessed elements for updated grid
-   CfsTLS< StdVector<UInt> > lastShapeElemNumUpdated_;
-
-   //! Last accessed secondary element map for original grid
-   CfsTLS< StdVector<UInt> > lastShapeElemNumOrig_;
-
-   ////! Pointer to seoncary element shape map (original grid)
-   //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapOrig2nd_;
-   //
-   ////! Last accessed secondary element map for original grid
-   //StdVector< UInt > lastShapeElemNumOrig2nd_;
-   //
-   ////! Pointer to secondary element shape map (updated grid)
-   //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapUpdated2nd_;
-   //
-   ////! Last accessed secondary element map for updated grid
-   //StdVector< UInt > lastShapeElemNumUpdated2nd_;
-   //@}
-
     // =======================================================================
     // Interation Scheme
     // =======================================================================

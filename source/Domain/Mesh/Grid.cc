@@ -48,14 +48,6 @@ namespace CoupledField
 
     // in addition, add always the NO_REGION to the enum
     region_.Add( NO_REGION_ID, "_NO_REGION_");
-
-    UInt slotsToReserve = 6;
-    for(UInt aT = 0; aT < CFS_NUM_THREADS; aT++){
-      lastShapeElemNumOrig_.Mine(aT).Reserve(slotsToReserve);
-      lastShapeElemNumUpdated_.Mine(aT).Reserve(slotsToReserve);
-      elemShapeMapOrig_.Mine(aT).Reserve(slotsToReserve);
-      elemShapeMapUpdated_.Mine(aT).Reserve(slotsToReserve);
-    }
   }
 
   Grid::~Grid()
@@ -121,102 +113,13 @@ namespace CoupledField
     return grid_bounding_box_;
   }
 
-  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated)
+  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem *ptElem, bool isUpdated)
   {
-   //  shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
-   //  ret->SetElem(ptElem, isUpdated );
-   //  return ret;
-
-   StdVector<UInt>& lastShapeElemNumOrig                      = lastShapeElemNumOrig_.Mine();
-   StdVector<UInt>& lastShapeElemNumUpdated                   = lastShapeElemNumUpdated_.Mine();
-   StdVector<shared_ptr<ElemShapeMap> > & elemShapeMapOrig    = elemShapeMapOrig_.Mine();
-   StdVector<shared_ptr<ElemShapeMap> > & elemShapeMapUpdated = elemShapeMapUpdated_.Mine();
-
-
-    if(elemShapeMapUpdated.GetSize() > 10){
-      WARN("More than 10 cached elemShapeMaps detected. This is unlikely to happen. Check for memory overflow.");
-    }
-
-    if(isUpdated)
-    {
-      Integer idx = lastShapeElemNumUpdated.Find(ptElem->elemNum);
-      if(idx>=0){
-        ////check for special element number 0 in case of mortar interface elements
-        if(ptElem->elemNum==0){
-          //still, there may be situations in which some object still holds references
-          //this is just due to the incosistent element numbering of mortarNcElems, as well as
-          //the projected master construct. We will have to fix this or find another way around
-          if(elemShapeMapUpdated[(UInt)idx].use_count()>1){
-            shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
-            ret->SetElem(ptElem, isUpdated );
-            return ret;
-          }else{
-            elemShapeMapUpdated[(UInt)idx]->SetElem(ptElem, isUpdated );
-          }
-        }
-        //even if we found it, we can only return it, if we really have reference count==1
-        //this is because we have cached variables inside the class itself...
-        // thereby, if we just return it, it can happen that the cached shape function
-        // inside the shape map class becomes outdated which is dangerous
-        // decision by element number is a piece of crap. we can cache some shape maps
-        // to avoid memory reallocation but otherwise, it just does not work out
-        return elemShapeMapUpdated[(UInt)idx];
-      }
-      else
-      {
-        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
-        for(UInt aIdx =0;aIdx<elemShapeMapUpdated.GetSize();aIdx++){
-         if(elemShapeMapUpdated[aIdx].use_count()==1){
-            elemShapeMapUpdated[aIdx]->SetElem(ptElem, isUpdated );
-            lastShapeElemNumUpdated[aIdx] = ptElem->elemNum;
-            return elemShapeMapUpdated[aIdx];
-          }
-        }
-        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
-        newMap->SetElem(ptElem, isUpdated );
-        elemShapeMapUpdated.Push_back(newMap);
-        lastShapeElemNumUpdated.Push_back(ptElem->elemNum);
-        return newMap;
-      }
-    }
-    else // the not updated version
-    {
-      Integer idx = lastShapeElemNumOrig.Find(ptElem->elemNum);
-      if(idx>=0){
-        ////check for special element number 0 in case of mortar interface elements
-        if(ptElem->elemNum==0){
-          //still, there may be situations in which some object still holds references
-          //this is just due to the incosistent element numbering of mortarNcElems, as well as
-          //the projected master construct. We will have to fix this or find another way around
-          if(elemShapeMapOrig[(UInt)idx].use_count()>1){
-            shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
-            ret->SetElem(ptElem, isUpdated );
-            return ret;
-          }else{
-            elemShapeMapOrig[(UInt)idx]->SetElem(ptElem, isUpdated );
-          }
-        }
-        return elemShapeMapOrig[(UInt)idx];
-      }
-      else // idx is zero
-      {
-        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
-        for(UInt aIdx =0;aIdx<elemShapeMapOrig.GetSize();aIdx++){
-         if(elemShapeMapOrig[aIdx].use_count()==1){
-            elemShapeMapOrig[aIdx]->SetElem(ptElem, isUpdated );
-            lastShapeElemNumOrig[aIdx] = ptElem->elemNum;
-            return elemShapeMapOrig[aIdx];
-          }
-        }
-        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
-        newMap->SetElem(ptElem, isUpdated );
-        elemShapeMapOrig.Push_back(newMap);
-        lastShapeElemNumOrig.Push_back(ptElem->elemNum);
-        return newMap;
-      }
-    }
+    shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+    ret->SetElem(ptElem, isUpdated);
+    return ret;
   }
-  
+
   RegionIdType Grid::AddRegion(const std::string& name, bool reg)
   {
     RegionData rd;
@@ -679,13 +582,13 @@ namespace CoupledField
       (*it)->UpdateInterface();
     }
   }
+
   bool Grid::HasNCI() {
     if (!ncInterfaces_.IsEmpty())
       return true;
     else 
       return false;
   }
-
 
   bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
   {
