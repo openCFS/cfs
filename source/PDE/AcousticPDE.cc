@@ -2950,7 +2950,7 @@ namespace CoupledField{
     }
 
     // get list of parameter nodes for region definitions
-    UInt numRegions;
+    UInt numRegions = 0; // this if fine because it skips everything below if it is not set otherwise
     ParamNodeList regionNodes;
     PtrParamNode regionListNode = domain_->GetParamRoot()->Get("domain")->Get("regionList",ParamNode::PASS );
 
