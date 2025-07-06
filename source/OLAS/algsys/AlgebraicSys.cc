@@ -3718,6 +3718,7 @@ namespace CoupledField {
           //stdMat->Export("oldMat.mtx", BaseMatrix::MATRIX_MARKET);
           // delete the old effMat_ since otherwise we'll have some not so nice heap corruption
           delete effMat_;
+          effMat_ = nullptr;
           // overwrite old matrix with new (resized) empty matrix (the last bool forces an overwrite)
           LOG_DBG(algSys) << "\tOverwriting old sub matrix";
           // generate new empty SBM-Matrix
@@ -3759,9 +3760,11 @@ namespace CoupledField {
           UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
           for ( UInt k = 0; k < nB; k++ ) {
             if (statCond_) {
+              delete effMat_;
               effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
                                         numBlocks_-1 );
             } else {
+              delete effMat_;
               effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], nB, nB );
             }
           }
@@ -3795,15 +3798,18 @@ namespace CoupledField {
 
   void AlgebraicSys::RestoreSystemMatrixFromBackup(){
     delete effMat_;
+    effMat_ = nullptr;
     delete sysMat_[SYSTEM];
     sysMat_[SYSTEM] = new SBM_Matrix(*sysMat_[BACKUP]);
 
     UInt nB = (isMultHarm_)? domain->GetDriver()->GetNumFreq() : numBlocks_;
     for ( UInt k = 0; k < nB; k++ ) {
       if (statCond_) {
+        delete effMat_;
         effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], numBlocks_-1,
                                   numBlocks_-1 );
       } else {
+        delete effMat_;
         effMat_ = new SBM_Matrix( *sysMat_[SYSTEM], nB, nB );
       }
     }

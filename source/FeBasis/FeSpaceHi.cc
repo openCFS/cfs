@@ -781,6 +781,10 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
     // Print out information about the solution of the system
     // ctx->infoNode->ToXML(std::cerr);
 
+    if (!cache){ // Delete ctx before it leaves scope if it is not stored
+      delete ctx;
+    }
+
   } // end of general mapping section
 }
 

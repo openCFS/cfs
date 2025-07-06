@@ -427,6 +427,7 @@ namespace CoupledField {
     NEWARRAY( colInd_, UInt, colI.GetSize() );
 
     // Allocate memory for the data vector
+    delete[] data_;
     NEWARRAY( data_ , T, colI.GetSize() );
 
     UInt maxCol = 0;
