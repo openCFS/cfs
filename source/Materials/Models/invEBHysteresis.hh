@@ -59,7 +59,9 @@ namespace CoupledField {
 
       // Evaluate the hystersis operator for all available cases
       Vector<Double> Evaluate(Vector<Double> B, UInt idx);
+      
       Vector<Double> Eval_2D_invEBM_TAN(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
+      Vector<Double> Eval_3D_Brauer(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
       Vector<Double> Eval_3D_invEBM_TAN(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
 
       // --------------- FE related functions --------------- //
@@ -81,39 +83,53 @@ namespace CoupledField {
       // calculates the energy of the minimization problem, i.e., the magnetic energy grad w_m
       // only needed for the line search procedure
       Double CalcMagEnergy(Vector<Double> B, Matrix<Double> J_k, Matrix<Double> J_k_prev);
+      Double CalcMagEnergy3D(Vector<Double> B, Matrix<Double> J_k, Matrix<Double> J_k_prev);
 
       // calculates the gradient of the minimization problem, i.e., the magnetic energy grad w_m
       Vector<Double> CalcGradientMagEnergy(Vector<Double> B, Matrix<Double> J_k, Matrix<Double> J_k_prev);
+      Vector<Double> CalcGradientMagEnergy3D(Vector<Double> B, Matrix<Double> J_k, Matrix<Double> J_k_prev);
 
       // calculates the hessian of the minimization problem, i.e., the magnetic energy grad^2 w_m
       Matrix<Double> CalcHessianMagEnergy(Matrix<Double> J_k, Matrix<Double> J_k_prev);
+      Matrix<Double> CalcHessianMagEnergy3D(Matrix<Double> J_k, Matrix<Double> J_k_prev);
 
       // calculates the internal energy of the magnetic energy u(J)
       Vector<Double> CalcInternalEnergy(Matrix<Double> J_k);
+      Vector<Double> CalcInternalEnergy3D(Matrix<Double> J_k);
 
       // calculates the gradient of the internal energy of the magnetic energy grad u(J)
       Vector<Double> CalcGradientInternalEnergy(Vector<Double> J);
+      Vector<Double> CalcGradientInternalEnergy3D(Vector<Double> J);
 
       // calculates the hessian of the internal energy of the magnetic energy grad^2 u(J)
+
       Matrix<Double> CalcHessianInternalEnergy(Vector<Double> J);
+      Matrix<Double> CalcHessianInternalEnergy3D(Vector<Double> J);
 
       // calculates the hessian of the dissipation energy of the magnetic energy grad^2 d(J)
+
       Matrix<Double> CalcHessianDissipationEnergy(Vector<Double> delta_J, Double norm_delta_J, Double chi);
+      Matrix<Double> CalcHessianDissipationEnergy3D(Vector<Double> delta_J, Double norm_delta_J, Double chi);
 
       // applies an Armijo line search in the minimization of the magnetic energy
       Matrix<Double> LineSearchArmijoInvEB(Double phi_der0, Vector<Double> B, Matrix<Double> J_k, Matrix<Double> delta_J_k, Matrix<Double> J_k_prev);
+      Matrix<Double> LineSearchArmijoInvEB3D(Double phi_der0, Vector<Double> B, Matrix<Double> J_k, Matrix<Double> delta_J_k, Matrix<Double> J_k_prev);
 
       // --------------- HELPER FUNCTIONS: evaluation of the hysteresis operator (END) --------------- //
 
       // --------------- HELPER FUNCTIONS: Solve linear systems (START) --------------- //
 
       // solves a linear system using gaussian elimination
+      template<int DIM>
       Vector<Double> LUSolve(Matrix<Double> A, Vector<Double> b);
 
+      template<int DIM>
       bool LUDecompose(Matrix<Double> A, Matrix<Double>& L, Matrix<Double>& U);
 
+      template<int DIM>
       Vector<Double> LUForwardSubstitution(const Matrix<Double>& L, const Vector<Double>& b);
 
+      template<int DIM>
       Vector<Double> LUBackwardSubstitution(const Matrix<Double>& U, const Vector<double>& y);
 
       // --------------- HELPER FUNCTIONS: Solve linear systems (END) --------------- //
@@ -133,6 +149,7 @@ namespace CoupledField {
       Double chi_factor_;
       UInt jacobian_method_;
       UInt anhyst_type_;
+      UInt ndx_g_;
 
 
       StdVector< StdVector<Double> > B_prev_;

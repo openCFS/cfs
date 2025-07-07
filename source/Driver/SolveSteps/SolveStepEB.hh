@@ -36,15 +36,15 @@ namespace CoupledField
 
     void StepTransNonLin();
 
-    Double ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol);
+    Double ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, UInt i);
 
-    Double InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol);
+    Double InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol, UInt i);
 
     Double LineSearchArmijo(SBM_Vector& solIncrement, SBM_Vector& actSol);
 
-    double GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta);
+    double GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta, UInt i);
 
-    double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b);
+    double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b, UInt i);
 
   private:
 

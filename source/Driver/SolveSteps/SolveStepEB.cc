@@ -175,7 +175,7 @@ namespace CoupledField
         if ( lineSearch_ == "none"){
           stageSol.Add(etaLineSearch, solInc);
         }else if ( lineSearch_ == "minEnergy"){
-          etaLineSearch = ExactLineSearch(solInc, stageSol);
+          etaLineSearch = ExactLineSearch(solInc, stageSol, i);
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
         }else if ( lineSearch_ == "Armijo"){
@@ -183,7 +183,7 @@ namespace CoupledField
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
         }else if ( lineSearch_ == "Inexact"){
-          etaLineSearch = InexactLineSearch(solInc, stageSol);
+          etaLineSearch = InexactLineSearch(solInc, stageSol, i);
           stageSol_temp.Add(etaLineSearch, solInc);
           stageSol = stageSol_temp;
         }
@@ -286,26 +286,40 @@ namespace CoupledField
     }
   }
 
-  double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol){
+  double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol, UInt i){
 
     Double bottom_interval = 0.0 + 1e-3;
     Double top_interval = 1; 
     Double gamma = 0;
     
-    gamma = BrentMethod(solIncrement, stageSol, bottom_interval, top_interval);
+    gamma = BrentMethod(solIncrement, stageSol, bottom_interval, top_interval, i);
     return gamma;
   }
 
-  double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& stageSol,Double eta){
+  double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& stageSol,Double eta, UInt i){
     
     SBM_Vector residual_vector(BaseMatrix::DOUBLE);
     SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
     double EnergyDerivative = 0.0;
+    UInt pos = 0;
+    std::map<FEMatrixType,Integer>::iterator matIt;
+    std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
 
     stageSol.Add(eta,solIncrement);
     algsys_->InitRHS();
     assemble_->AssembleLinRHS();
     assemble_->AssembleNonLinRHS();
+    // ONLY FOR TRANSIENT A* FORM.
+    //now update RHS according to time stepping
+    for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+      if(matIt->second < 0)
+        continue;
+      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+        fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+      }
+      algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+    }
     algsys_->GetRHSVal( residual_vector );
     residual_vector.Inner(solIncrement,EnergyDerivative);
     stageSol = stageSol_temp;
@@ -365,7 +379,7 @@ namespace CoupledField
     return etaOpt;
   }
 
-  double SolveStepEB::InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol)   {
+  double SolveStepEB::InexactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol, UInt i)   {
 
     Double nr_gammas = 5;
     double gamma = 1.0;
@@ -373,7 +387,7 @@ namespace CoupledField
     std::vector<Double> Energy;
 
     for( UInt idx=0; idx<nr_gammas; idx++) {
-      Energy.push_back(GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, gamma_trial[idx]));
+      Energy.push_back(GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, gamma_trial[idx],i));
     }
 
     int closest_index = 0;
@@ -394,7 +408,7 @@ namespace CoupledField
 
 
 
-  double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double a, Double b){
+  double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double a, Double b, UInt i){
 
     double Fa, Fb, Fc;
     double c;
@@ -413,8 +427,8 @@ namespace CoupledField
 
     SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
 
-    Fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a);
-    Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
+    Fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a, i);
+    Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b, i);
     c = a; 
     Fc = Fa;
 
@@ -475,7 +489,7 @@ namespace CoupledField
         a = b;
         Fa = Fb;
         b = b + new_step;
-        Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
+        Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b, i);
         if (( Fb > 0.0 && Fc > 0.0 ) || ( Fb < 0.0 && Fc < 0.0 )){
             c = a;
             Fc = Fa;        
