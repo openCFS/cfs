@@ -72,7 +72,7 @@ namespace CoupledField
     std::string start_time_;
 
     /** The object itself in kept in the fileHandler */
-    MaterialHandler* materialHandler;
+    shared_ptr<MaterialHandler> materialHandler;
     
     std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
   };

@@ -343,7 +343,7 @@ public:
                    BaseFE* ptFe ){
       const UInt numFncs = ptFe->GetNumFncs();
 
-      // Set correct size of matrix B and initialize with zeros
+      // Set correct size of matrix B
       bMat.Resize( DIM_D_MAT, numFncs * DIM_SPACE );
 
       // Get derivatives of local shape functions with respect to global
@@ -363,6 +363,9 @@ public:
       for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
         bMat[0][iFunc*DIM_SPACE] =  xiDx[iFunc][0] + shape[iFunc] * oneOverR;
         bMat[1][iFunc*DIM_SPACE + 1] = xiDx[iFunc][1];
+
+        bMat[0][iFunc*DIM_SPACE + 1] =  0;
+        bMat[1][iFunc*DIM_SPACE] = 0;
       }
     }
 
@@ -372,7 +375,7 @@ public:
       
       const UInt numFncs = ptFe->GetNumFncs();
 
-      // Set correct size of matrix B and initialize with zeros
+      // Set correct size of matrix B
       bMat.Resize( numFncs * DIM_SPACE, DIM_D_MAT );
 
       // Get derivatives of local shape functions with respect to global
@@ -392,6 +395,9 @@ public:
       for( iFunc = 0; iFunc < numFncs; ++iFunc ) {
         bMat[iFunc*DIM_SPACE][0] =  xiDx[iFunc][0] + shape[iFunc] * oneOverR;
         bMat[iFunc*DIM_SPACE + 1][1] = xiDx[iFunc][1];
+
+        bMat[iFunc*DIM_SPACE + 1][0] =  0;
+        bMat[iFunc*DIM_SPACE][1] = 0;
       }
     }
 

@@ -245,28 +245,7 @@ namespace CoupledField {
     //! data arrays will be thrown away and re-allocated with the new sizes.
     //! In this case all matrix entries and sparsity pattern information is
     //! lost, of course.
-    void SetSize( UInt nrows, UInt ncols, UInt nnz ) {
-
-
-      this->ncols_ = ncols;
-      if ( this->nrows_ != nrows ) {
-        this->nrows_ = nrows; 
-        delete[] (rowPtr_);
-        
-        NEWARRAY( rowPtr_, UInt, this->nrows_ + 1 );
-        rowPtr_[0] = 0;
-      }
-      this->nnz_ = nnz;
-
-      //this is correct iff there are no 0s on the diagonal!
-      if ( numEntries_!= (this->nnz_ + this->nrows_) / 2 ) {
-        delete[] (data_);
-        delete[] (colInd_);
-        numEntries_ = (this->nnz_ + this->nrows_) / 2;
-        NEWARRAY( this->data_, T, numEntries_ );
-        NEWARRAY( this->colInd_, UInt, numEntries_ );
-      }
-    }
+    void SetSize( UInt nrows, UInt ncols, UInt nnz );
  
     //! Initialize matrix to zero
     

@@ -5,6 +5,8 @@
 #ifndef DEFINEFILES_2001
 #define DEFINEFILES_2001
 
+#include <boost/shared_ptr.hpp>
+
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
@@ -46,7 +48,7 @@ namespace CoupledField
                                std::map<std::string, std::string>& gridIds );
 
     //! create pointer to Materialfile Handler
-    MaterialHandler* CreateMaterialHandler( PtrParamNode rootNode );
+    shared_ptr<MaterialHandler> CreateMaterialHandler( PtrParamNode rootNode );
 
     //! Generic function to obtain a single SimInput object based on the given parameters
     static shared_ptr<SimInput>  CreateSingleInputFileObject(std::string fName,
@@ -63,7 +65,7 @@ namespace CoupledField
   private:
 
     //! pointer to MaterialHandler
-    MaterialHandler * ptMaterialHandler_;
+    shared_ptr<MaterialHandler> ptMaterialHandler_;
     
   };
 

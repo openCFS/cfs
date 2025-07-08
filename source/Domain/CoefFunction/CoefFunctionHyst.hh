@@ -348,7 +348,7 @@ namespace CoupledField {
   // ============================================================================
   //! Provide a coefficient for hysteresis modeling
   //! \note This class only works for real-valued scalar data.
-  class CoefFunctionHyst : public CoefFunction{
+  class CoefFunctionHyst : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionHyst> {
   public:
 
     //! Constructor
@@ -2210,7 +2210,7 @@ namespace CoupledField {
           // in mech PDE we need e^T or d^T
           transposed = true;
         }
-        shared_ptr<CoefFunctionHystMatTensor> c(new CoefFunctionHystMatTensor(hystItself_,tensorName,transposed));
+        shared_ptr<CoefFunctionHystMatTensor> c(new CoefFunctionHystMatTensor(this->shared_from_this(),tensorName,transposed));
 
         ret = c;
       } else if((tensorName == "Reluctivity")||(tensorName == "LinearReluctivity")||
@@ -2230,7 +2230,7 @@ namespace CoupledField {
           // in mech PDE we need h^T or g^T
           transposed = true;
         }
-        shared_ptr<CoefFunctionHystMatTensor> c(new CoefFunctionHystMatTensor(hystItself_,tensorName,transposed));
+        shared_ptr<CoefFunctionHystMatTensor> c(new CoefFunctionHystMatTensor(this->shared_from_this(),tensorName,transposed));
 
         ret = c;
       } else {
@@ -2257,7 +2257,7 @@ namespace CoupledField {
           formerHystHelperParamsSet_ = true;
         }
 
-        shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(hystItself_,vectorName,transposed,onBoundary,coefFunctionToBeIncluded));
+        shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(this->shared_from_this(),vectorName,transposed,onBoundary,coefFunctionToBeIncluded));
         ret = c;
       }
       return ret;
@@ -2282,7 +2282,7 @@ namespace CoupledField {
         //          // in mech PDE we need h^T or g^T
         //          transposed = true;
         //        }
-        shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(hystItself_,vectorName,transposed,onBoundary));
+        shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(this->shared_from_this(),vectorName,transposed,onBoundary));
 
         ret = c;
       } else if( (vectorName == "MagMagnetization") || (vectorName == "MagStrictLoadForMechPDE") || (vectorName == "MagStrictLoadForMagPDE")){
@@ -2301,7 +2301,7 @@ namespace CoupledField {
           // in mech PDE we need h^T or g^T
           transposed = true;
         }
-        shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(hystItself_,vectorName,transposed,onBoundary));
+        shared_ptr<CoefFunctionHystRHSLoad> c(new CoefFunctionHystRHSLoad(this->shared_from_this(),vectorName,transposed,onBoundary));
 
         ret = c;
       } else {
@@ -2326,7 +2326,7 @@ namespace CoupledField {
           formerHystHelperParamsSet_ = true;
         }
 
-        shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(hystItself_,ResultName));
+        shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(this->shared_from_this(),ResultName));
         ret = c;
       } else if ( (ResultName == "MagPolarization") || (ResultName == "MagMagnetization") || (ResultName == "MagFieldIntensityHyst") ){
         PtrCoefFct nu = material_->GetTensorCoefFnc( MAG_RELUCTIVITY_TENSOR,tensorType_,Global::REAL);
@@ -2339,7 +2339,7 @@ namespace CoupledField {
           formerHystHelperParamsSet_ = true;
         }
 
-        shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(hystItself_,ResultName));
+        shared_ptr<CoefFunctionHystOutput> c(new CoefFunctionHystOutput(this->shared_from_this(),ResultName));
         ret = c;
 
       } else {
@@ -2871,7 +2871,6 @@ namespace CoupledField {
     Integer timeLevel_deltaMatCoupling_;
     Integer timeLevel_results_;
     Integer timeLevel_boundaryTerms_;
-    PtrCoefFct hystItself_;
 
     IntegOrder IntegOrder_;
 		IntScheme::IntegMethod IntegMethod_;

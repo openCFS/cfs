@@ -40,6 +40,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   # this is set via ccmake (advanded) and produces very slow code which can check during runtime for memory issues   
   if(CFS_FSANITIZE)
     set(CFS_CXX_FLAGS " -fsanitize=address ${CFS_CXX_FLAGS}")
+    set(CFS_LINKER_FLAGS " -fsanitize=address ${CFS_LINKER_FLAGS}")
   endif()
   
   # see https://en.wikipedia.org/wiki/Gcov

@@ -28,7 +28,20 @@ CoefFunctionFormBased::CoefFunctionFormBased( ) : CoefFunction(){
 }
 
 CoefFunctionFormBased::~CoefFunctionFormBased() {
-  
+  // If openMP is used all the cloned Integrators must be deleted
+  #ifdef USE_OPENMP
+  if(omp_get_num_threads()!=1){
+    std::ostringstream ostr; ostr << "Call from parallel region which is not safe!"; // Cannot except in destructor -> terminate would be generated anyways
+    std::terminate();
+  }
+  for(UInt i=0;i<forms_.GetNumSlots();++i){
+    auto myForms = forms_.Mine(i);
+    for(auto form : myForms){
+      delete form.second;
+    }
+    myForms.clear();
+  }
+  #endif
 }
 
 void CoefFunctionFormBased::AddIntegrator( BaseBDBInt* form,  

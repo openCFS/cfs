@@ -39,6 +39,15 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/PythonKernel.hh"
 
+#ifdef USE_MKL
+#include <mkl_service.h>
+#ifndef mkl_get_version
+#define MKL_Get_Version MKLGetVersion
+#define MKL_Free_Buffers MKL_FreeBuffers
+#endif
+#endif
+
+
 using namespace CoupledField;
 using namespace std;
 using namespace boost::posix_time;
@@ -124,7 +133,6 @@ CFS::CFS(int argc, const char **argv) :
   timer->Start();
 
   resultHandler = NULL;
-  materialHandler = NULL;
 
   // Set segfault to false
   Exception::segfault_ = false;
@@ -193,6 +201,9 @@ CFS::~CFS()
   // might write ersatz material file if <export save="finally"/> in optimization
   delete progOpts;
   progOpts = NULL;
+
+  delete python;
+  python = nullptr;
   
   if (simState) {
     simState->Finalize();
@@ -203,6 +214,10 @@ CFS::~CFS()
   // does not really matter anyway...
   paramNode_.reset();
   infoNode.reset();
+
+  #ifdef USE_MKL
+  MKL_Free_Buffers();
+  #endif
 }
 
 int CFS::Run()

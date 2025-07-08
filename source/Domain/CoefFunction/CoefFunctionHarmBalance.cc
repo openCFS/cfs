@@ -7,6 +7,7 @@
 
 #include "CoefFunctionHarmBalance.hh"
 #include <boost/lexical_cast.hpp>
+#include <boost/enable_shared_from_this.hpp>
 #include "Utils/mathParser/mathParser.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
@@ -93,6 +94,7 @@ template<class T>
     nuFreqTmp_.Resize(0);
 
     // For the callback mechanism
+    areHandlesReleased_ = false;
     mp_ = domain->GetMathParser();
     cashHandle_ = mp_->GetNewHandle(true);
     // Bind the handle to the correct expression
@@ -134,12 +136,12 @@ template<class T>
   template<class T>
   CoefFunctionHarmBalance<T>::
   ~CoefFunctionHarmBalance() {
-    if( isMH_ ){
+    if( isMH_ && !areHandlesReleased_){
       mp_->ReleaseHandle(cashHandle_);
       mp_->ReleaseHandle(solHandle_);
       mp_->ReleaseHandle(harmonicHandle_);
+      areHandlesReleased_ = true;
     }
-
   }
 
 
@@ -184,12 +186,12 @@ template<class T>
               // regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, BField);
               // it seems like i get the same result...
 
-              regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, magFluxCoef_);
+              regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, magFluxCoef_.lock());
               // for the initial solution we also need the linear nu
               regStruc.linNuCoefMap = actMat->GetScalCoefFnc( ELEC_PERMITTIVITY_SCALAR, Global::REAL);
 
               dimType_ = SCALAR;
-              ret = (PtrCoefFct)this;
+              ret = this->shared_from_this();
             } else if(nonLin && (modelName_ != "nonlinearCurve" )){
               LOG_DBG(coeffctharmbalance) << "Generating hysteresis multiharmonic "
                   "material coefficient function for region"<< actRegion <<" with material "<< actMat;
@@ -204,22 +206,22 @@ template<class T>
                 actMat->GetScalar(ParameterMap["k"], ELEC_K_JILES, Global::REAL );
                 actMat->GetScalar(ParameterMap["c"], ELEC_C_JILES, Global::REAL );
                 ParameterMap["isMH"] = 1.0;
-                matModelCoef_->InitModel( ParameterMap, actSDList->GetSize());
+                matModelCoef_.lock()->InitModel( ParameterMap, actSDList->GetSize());
               }
 
-              regStruc.nonLinNuCoefMap = matModelCoef_; //actMat->GetScalCoefFncModel(matModelCoef_);
+              regStruc.nonLinNuCoefMap = matModelCoef_.lock(); //actMat->GetScalCoefFncModel(matModelCoef_);
               // for the initial solution we also need the linear nu
               regStruc.linNuCoefMap = actMat->GetScalCoefFnc( ELEC_PERMITTIVITY_SCALAR, Global::REAL);
 
               dimType_ = SCALAR;
-              ret = (PtrCoefFct)this;
+              ret = this->shared_from_this();
 
             }else{
               regStruc.isNonLin = false;
               regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(ELEC_PERMITTIVITY_SCALAR,Global::REAL );
               //TODO Clean this up, it's the same as nonLinNuCoefMap for the linear material
               regStruc.linNuCoefMap = actMat->GetScalCoefFnc(ELEC_PERMITTIVITY_SCALAR,Global::REAL );
-              ret = (PtrCoefFct)this;
+              ret = this->shared_from_this();
             }
             return ret;
     }else{
@@ -249,20 +251,20 @@ template<class T>
         // we need the real part of this CoefFunction GetVector because the
         // GetScalCoefFncNonLin method can only handle real values
         shared_ptr<CoefFunction> BField = NULL;
-        BField.reset(new CoefFunctionHarmBalanceEval<Double>(magFluxCoef_, ptGrid_));
+        BField.reset(new CoefFunctionHarmBalanceEval<Double>(magFluxCoef_.lock(), ptGrid_));
 
         regStruc.nonLinNuCoefMap = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, BField);
         // for the initial solution we also need the linear nu
         regStruc.linNuCoefMap = actMat->GetScalCoefFnc( MAG_RELUCTIVITY_SCALAR, Global::REAL);
 
         dimType_ = SCALAR;
-        ret = (PtrCoefFct)this;
+        ret = this->shared_from_this();
       }else{
         regStruc.isNonLin = false;
         regStruc.nonLinNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR,Global::REAL );
         //TODO Clean this up, it's the same as nonLinNuCoefMap for the linear material
         regStruc.linNuCoefMap = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR,Global::REAL );
-        ret = (PtrCoefFct)this;
+        ret = this->shared_from_this();
       }
     return ret;
     }
@@ -324,6 +326,17 @@ template<class T>
 
 
   template<class T>
+  void CoefFunctionHarmBalance<T>::DeregisterMathParser()
+  {
+    if( isMH_ && !areHandlesReleased_){
+      mp_->ReleaseHandle(cashHandle_);
+      mp_->ReleaseHandle(solHandle_);
+      mp_->ReleaseHandle(harmonicHandle_);
+      areHandlesReleased_ = true;
+    }
+  }
+
+template<class T>
   void CoefFunctionHarmBalance<T>::
   FinishCash(){
     LOG_DBG(coeffctharmbalance) << "\t UpdateHarm()";
@@ -447,7 +460,7 @@ template<class T>
     if( harmonic == maxInt_ ){
       // For the initial multiharmonic iteration
       // loop over regions and get the region of the lpm
-      for(auto reg : hbRegion_){
+      for(auto& reg : hbRegion_){
         if ( lpm.isSurface ){
           const MortarNcSurfElem* e = dynamic_cast<const MortarNcSurfElem*>(lpm.ptEl);
           if( reg.region == e->ptSecondary->ptVolElems[0]->regionId ){
@@ -535,7 +548,7 @@ template<class T>
   GetVector(Vector<T>& coefVec, const LocPointMapped& lpm){
       // This is just for testing, don't take anything for granted from here !!!!!!!!!
       Vector<Complex> tmp;
-      magFluxCoef_->GetVector(tmp, lpm);
+      magFluxCoef_.lock()->GetVector(tmp, lpm);
       coefVec = tmp.GetPart(Global::REAL);
   }
 

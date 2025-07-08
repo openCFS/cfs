@@ -102,6 +102,15 @@ namespace CoupledField {
     
     SinglePDE::InitNonLin();
   }
+
+  ElecPDE::~ElecPDE(){
+    if(multiHarmCoef_){
+      // Part of a bandaid solution to fix faulty memory management
+      // TODO remove when proper memory management is implemented
+      dynamic_cast<CoefFunctionHarmBalance<Complex>&>(*multiHarmCoef_).DeregisterMathParser();
+      multiHarmCoef_.reset();
+    }
+  }
   
   void ElecPDE::ReadDampingInformation()
   {

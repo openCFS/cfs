@@ -404,6 +404,52 @@ namespace CoupledField {
     rowPtr_ = myPattern->rptr_;
   }
 
+  template<typename T>
+  void SCRS_Matrix<T>::SetSize( UInt nrows, UInt ncols, UInt nnz ) {
+    UInt newNumEntries = (nnz + nrows) / 2;
+
+    if(patternPool_ && ((this->nrows_ != nrows) || (this->numEntries_ != newNumEntries))){ // If we don't own the pattern, deregister and clear pattern
+      patternPool_->DeRegisterUser(patternID_);
+      rowPtr_ = nullptr;
+      diagPtr_ = nullptr;
+      colInd_ = nullptr;
+      patternID_ = NO_PATTERN_ID;
+      patternPool_ = nullptr;
+    }
+
+    this->ncols_ = ncols;
+    if ( this->nrows_ != nrows ) {
+      this->nrows_ = nrows; 
+      delete[] rowPtr_;
+      rowPtr_ = nullptr;
+    }
+    this->nnz_ = nnz;
+
+    //this is correct iff there are no 0s on the diagonal!
+    if ( numEntries_!= newNumEntries) {
+      delete[] data_;
+      data_ = nullptr;
+      delete[] colInd_;
+      colInd_ = nullptr;
+    }
+    numEntries_ = newNumEntries;
+    
+    if(!rowPtr_){
+      rowPtr_  = new UInt[this->nrows_ + 1];
+      rowPtr_[0]  = 0;
+    }
+    if(!diagPtr_){
+      diagPtr_ = new UInt[this->nrows_];
+      diagPtr_[0] = 0;
+    }
+    if(!colInd_){
+      colInd_ = new UInt[this->numEntries_];
+    }
+    if(!data_){
+      data_ = new T[this->numEntries_];
+    }
+  }
+
   // **********************
   //   SetSparsityPatternData
   // **********************

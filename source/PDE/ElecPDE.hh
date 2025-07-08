@@ -51,7 +51,7 @@ namespace CoupledField
     shared_ptr<SimState> simState, Domain* domain );
     
     //! Destructor
-    virtual ~ElecPDE(){};
+    virtual ~ElecPDE();
     
   protected:
     

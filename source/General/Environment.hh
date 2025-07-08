@@ -45,6 +45,7 @@ namespace CoupledField {
   // Type definition for shared_ptr<CoefFunction>
   class CoefFunction;
   typedef boost::shared_ptr<CoefFunction> PtrCoefFct;
+  typedef boost::weak_ptr<CoefFunction> WeakPtrCoefFct;
 
   //! type of data
   struct Global {

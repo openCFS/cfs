@@ -90,7 +90,7 @@ namespace CoupledField
 
 Domain::Domain(
     std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
-    ResultHandler * handler, MaterialHandler * ptMat, 
+    ResultHandler * handler, shared_ptr<MaterialHandler> ptMat, 
     shared_ptr<SimState> simState,
     PtrParamNode rootNode, PtrParamNode infoNode,
     bool output)

@@ -78,7 +78,7 @@ public:
     }
 
   virtual ~BUIntegrator(){
-
+    delete bOperator_;
   }
 
   void CalcElemVector(Vector<VEC_DATA_TYPE> & elemVec,EntityIterator& ent);

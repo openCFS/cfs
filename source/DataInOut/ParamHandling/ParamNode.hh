@@ -20,6 +20,7 @@ namespace CoupledField
   
   /** Definitions of pointers, using boost::shared_ptr */
   typedef boost::shared_ptr<ParamNode> PtrParamNode;
+  typedef boost::weak_ptr<ParamNode> WeakPtrParamNode;
   typedef StdVector<boost::shared_ptr<ParamNode> > ParamNodeList;
   
   /** This class realizes the following concept of param handling, mainly the representation
@@ -157,7 +158,7 @@ namespace CoupledField
     PtrParamNode GetRoot();
 
     /** Returns father element. If this element is the root node, NULL is returned */
-    PtrParamNode  GetParent() { return parent_;}
+    PtrParamNode  GetParent() { return parent_.lock();}
     
     /** @return the name of the attribute or XML element */
     const std::string& GetName() const { return name_;} 
@@ -458,7 +459,7 @@ namespace CoupledField
     ParamNodeList children_;
     
     /** pointer to father node */
-    PtrParamNode parent_;
+    WeakPtrParamNode parent_;
     
     /** default action for non-existing nodes */
     ActionType defaultAction_;

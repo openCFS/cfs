@@ -113,7 +113,7 @@ class MaterialHandler;
 
     // Generate material reader
     
-    XMLMaterialHandler * matHandler = new XMLMaterialHandler();
+    shared_ptr<XMLMaterialHandler> matHandler = boost::make_shared<XMLMaterialHandler>();
     matHandler->LoadFromString( matContent );
 
     // Create dummy info node

@@ -145,7 +145,7 @@ void ParamNode::SetComment(const std::string& comment)
   PtrParamNode newChild(new ParamNode(defaultAction_, COMMENT));
   newChild->SetName("comment");
   newChild->SetValue(comment);
-  newChild->parent_ = shared_from_this();
+  newChild->parent_ = weak_from_this();
   newChild->defaultAction_ = defaultAction_;
   children_.Push_back(newChild);
 }
@@ -159,7 +159,7 @@ void ParamNode::SetWarning(const std::string& msg, bool append)
 
 void ParamNode::AddChildNode(PtrParamNode child)
 {
-  child->parent_ = shared_from_this();
+  child->parent_ = weak_from_this();
   if (child->defaultAction_ == DEFAULT)
   {
     child->defaultAction_ = defaultAction_;
@@ -172,7 +172,7 @@ PtrParamNode ParamNode::SetNewChild(const std::string& name, unsigned int index)
 
   PtrParamNode node(new ParamNode());
   node->SetName(name);
-  node->parent_ = shared_from_this();
+  node->parent_ = weak_from_this();
   node->defaultAction_ = defaultAction_;
   children_[index] = node;
   return node;
@@ -181,7 +181,7 @@ PtrParamNode ParamNode::SetNewChild(const std::string& name, unsigned int index)
 PtrParamNode ParamNode::ReplaceChild(PtrParamNode node, unsigned int index)
 {
   NodeType type = children_[index]->type_;
-  node->parent_ = shared_from_this();
+  node->parent_ = weak_from_this();
   node->SetType(type);
   children_[index] = node;
   return node;
@@ -312,7 +312,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       newChild->SetName(myName);
       // ATTENTION: Do NOT set an empty string as value to this node, as
       // std::string("").empty() != boost::any(st::string("")).empty()
-      newChild->parent_ = shared_from_this();
+      newChild->parent_ = weak_from_this();
       newChild->defaultAction_ = defaultAction_;
       children_.Push_back(newChild);
       result = newChild;
@@ -324,8 +324,9 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
 }
 
 PtrParamNode ParamNode::GetRoot() {
-  if( parent_ ) {
-    return parent_->GetRoot();
+  PtrParamNode parent_locked = parent_.lock();
+  if( parent_locked ) {
+    return parent_locked->GetRoot();
   } else {
     return shared_from_this();
   }
@@ -339,7 +340,7 @@ string ParamNode::GetLocation() const
   while(pn != nullptr)
   {
     loc = "/" + pn->name_ + loc;
-    pn = pn->parent_.get();
+    pn = pn->parent_.lock().get();
   }
   return loc;
 }
@@ -1230,10 +1231,10 @@ void ParamNode::ToStringList(StdVector<std::pair<std::string, std::string> >& li
   string parentname;
   for(int add = level; add >= 2; add--) // e.g. we have level 2
   {
-    ParamNode* base = parent_.get(); // this is then level 1
+    PtrParamNode base = parent_.lock(); // this is then level 1
     for(int search = 1; search < add-2; search++)
     {
-      base = base->parent_.get();
+      base = base->parent_.lock();
       assert(base);
     }
     parentname += base->name_ + ":";

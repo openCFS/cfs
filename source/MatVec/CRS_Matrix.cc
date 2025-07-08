@@ -1862,24 +1862,46 @@ namespace CoupledField {
     }
 #endif
 
+    if(patternPool_ && ((this->nrows_ != nrows) || (this->nnz_ != nnz))){ // If we don't own the pattern, deregister and clear pattern
+      patternPool_->DeRegisterUser(patternID_);
+      rowPtr_ = nullptr;
+      diagPtr_ = nullptr;
+      colInd_ = nullptr;
+      patternID_ = NO_PATTERN_ID;
+      patternPool_ = nullptr;
+    }
+
     this->ncols_ = ncols;
     if ( this->nrows_ != nrows ) {
       this->nrows_ = nrows;
-      delete [] ( rowPtr_  );  rowPtr_   = NULL;
-      delete [] ( diagPtr_ );  diagPtr_  = NULL;
-      NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1 );
-      NEWARRAY( diagPtr_, UInt, this->nrows_     );
-      rowPtr_[0]  = 0;
-      diagPtr_[0] = 0;
+      delete [] ( rowPtr_  );
+      rowPtr_ = nullptr;
+      delete [] ( diagPtr_ );
+      diagPtr_ = nullptr;
       currentLayout_ = CRS_Matrix<T>::UNSORTED;
     }
 
     if ( this->nnz_ != nnz ) {
       this->nnz_ = nnz;
-      delete [] ( colInd_ );  colInd_  = NULL;
-      delete [] ( data_ );  data_  = NULL;
-      NEWARRAY( colInd_, UInt, this->nnz_ );
-      NEWARRAY( data_, T, this->nnz_ );
+      delete [] ( colInd_ );
+      colInd_ = nullptr;
+      delete [] ( data_ );
+      data_ = nullptr;
+    }
+    
+    if(!rowPtr_){
+      rowPtr_  = new UInt[this->nrows_ + 1];
+      rowPtr_[0]  = 0;
+    }
+    if(!diagPtr_){
+      diagPtr_ = new UInt[this->nrows_];
+      diagPtr_[0] = 0;
+    }
+    if(!colInd_){
+      colInd_ = new UInt[this->nnz_];
+    }
+    if(!data_){
+      data_ = new T[this->nnz_];
     }
   }
 

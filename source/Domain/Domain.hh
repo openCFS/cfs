@@ -52,7 +52,7 @@ namespace CoupledField
                             domain, which will log output to the console.
     */
     Domain( std::map<std::string, StdVector<shared_ptr<SimInput> > >& gridInputs,
-            ResultHandler * handler, MaterialHandler * ptMat,
+            ResultHandler * handler, shared_ptr<MaterialHandler> ptMat,
             shared_ptr<SimState> simState, PtrParamNode xmlNode,
             PtrParamNode infoNode,
             bool isParentDomain = true);
@@ -165,7 +165,7 @@ namespace CoupledField
     ResultHandler * GetResultHandler() { return resultHandler_; }
 
     //! Get pointer to material handler
-    MaterialHandler * GetMaterialHandler() {return ptMatHandler_; }
+    MaterialHandler * GetMaterialHandler() {return ptMatHandler_.get(); }
 
     //! Get pointer to simulation state object
     shared_ptr<SimState> GetSimState() {return simState_; }
@@ -349,7 +349,7 @@ namespace CoupledField
     ResultHandler * resultHandler_;
 
     //! Pointer to material handler
-    MaterialHandler * ptMatHandler_;
+    shared_ptr<MaterialHandler> ptMatHandler_;
     
     //! Pointer to simulation state object
     shared_ptr<SimState> simState_;

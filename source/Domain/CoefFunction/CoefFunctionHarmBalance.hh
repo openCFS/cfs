@@ -24,6 +24,7 @@
 namespace CoupledField  {
 
 class MathParser;
+class ElecPDE;
 
 // ==========================================================================
 //  COEFFICIENT FUNCTION HARMONIC BALANCE
@@ -34,8 +35,8 @@ class MathParser;
 //!   OI! DESCRIBE ME IN DETAIL
 
 template <class T>
-class CoefFunctionHarmBalance : public CoefFunction {
-
+class CoefFunctionHarmBalance : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionHarmBalance<T>> {
+  friend ElecPDE;
 public:
   //! Constructor
   CoefFunctionHarmBalance();
@@ -83,6 +84,9 @@ public:
   }
 
 protected:
+  //! This is part of a bandaid solution to prevent segfault with the current memory errors
+  //! TODO: remove when proper memory management is implemented
+  void DeregisterMathParser();
 
   void FinishCash();
 
@@ -140,13 +144,16 @@ protected:
   //! Handle for the harmonic callback-mechanism
   unsigned int harmonicHandle_;
 
+  //! Part of bandaid solution
+  bool areHandlesReleased_;
+
   //! Pointer to grid object
   Grid * ptGrid_;
 
   //! CoefFunction for magnetic flux density
   PtrCoefFct BField = NULL;
 
-  PtrCoefFct magFluxCoef_ = NULL;
+  WeakPtrCoefFct magFluxCoef_;
 
   //! Number of regions
   UInt numRegions_;
@@ -190,7 +197,7 @@ protected:
 
   std::string modelName_;
 
-  PtrCoefFct matModelCoef_;
+  WeakPtrCoefFct matModelCoef_;
 };
 
 
@@ -230,7 +237,7 @@ private:
   Grid * ptGrid_;
 
   //! CoefFunction for magnetic flux density
-  PtrCoefFct magFluxCoef_ = NULL;
+  WeakPtrCoefFct magFluxCoef_;
 
 };
 } //end of namespace

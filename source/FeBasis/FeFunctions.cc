@@ -362,6 +362,7 @@ namespace CoupledField {
     // only create new vector, if we are not a time
     // derivative fe function
     if( timeDerivOrder_ == 0 ) {
+      delete coeffs_;
       coeffs_ = new Vector<T>(feSpace_->GetNumEquations());
       coeffs_->Init();
     }

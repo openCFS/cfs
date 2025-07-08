@@ -1047,7 +1047,6 @@ namespace CoupledField {
 
 		// for interaction with coefFunctionHystMat
 		deltaMatActive_ = true;
-		hystItself_ = PtrCoefFct(this);
 
     // per default the coef functtions for coupling are NULL
     // for coupled pdes, these functions have to be set BEFORE both coupled

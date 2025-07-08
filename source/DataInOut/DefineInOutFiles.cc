@@ -7,6 +7,7 @@
 #include <cstdio>
 
 #include <string>
+#include <boost/make_shared.hpp>
 
 // Include headers which define what types of in/output files openCFS supports
 #include <def_use_gidpost.hh>
@@ -77,11 +78,7 @@ namespace CoupledField
   // ==============
   //   Destructor
   // ==============
-  DefineInOutFiles::~DefineInOutFiles()
-  {
-    delete ptMaterialHandler_;
-    ptMaterialHandler_ = NULL;
-  }
+  DefineInOutFiles::~DefineInOutFiles() {}
   
 // ==============================
 //   Generate mesh file pointer
@@ -261,7 +258,7 @@ CreateSimOutputFiles(PtrParamNode rootNode,
 // ==================================
 //   Generate material file handler
 // ==================================
-MaterialHandler *
+shared_ptr<MaterialHandler>
 DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
 {
   fs::path root = progOpts->ObtainCFSRootFromSystem();
@@ -290,7 +287,7 @@ DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
   }
   else if (format == "xml")
   {
-    XMLMaterialHandler * xmlHandler = new XMLMaterialHandler();
+    shared_ptr<XMLMaterialHandler> xmlHandler = boost::make_shared<XMLMaterialHandler>();
     xmlHandler->LoadFromFile(fileName);
     ptMaterialHandler_ = xmlHandler;
   }
