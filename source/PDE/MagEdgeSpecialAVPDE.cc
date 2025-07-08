@@ -808,10 +808,9 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
       for( ; regIt != regions_.End(); ++regIt ) {
         RegionIdType actRegion = *regIt;
         // OP_MULT_CONJ computes A in B'
-        PtrCoefFct conjJinE = CoefFunction::Generate( mp_, part,
+        PtrCoefFct tmp = CoefFunction::Generate( mp_, part,
                     CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY),
                                        GetCoefFct(MAG_EDDY_CURRENT_DENSITY), CoefXpr::OP_MULT) );
-        PtrCoefFct tmp = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, conjJinE, conjJinE, CoefXpr::OP_ADD) );
 
         eddyLossCoef->AddRegion(actRegion, tmp);
       }
