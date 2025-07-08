@@ -1,0 +1,958 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+    
+    <documentation>
+        <title>Simple Current Sheet</title>
+        <authors>
+            <author>ftoth</author>
+        </authors>
+        <date>2018-09-15</date>
+        <keywords>
+            <keyword>magneticEdge</keyword>
+        </keywords>
+        <references>http://web.mit.edu/viz/EM/visualizations/coursenotes/modules/guide09.pdf</references>
+        <isVerified>no</isVerified>
+        <description> We condiser an infinite current sheet with uniform current density J in a
+            unit-cube. The current density is applied in y direction, thus we assume flux-parallel
+            on the boundaries parallel to the x-z plane (S_S and S_N, south and north). Furthermore,
+            we set fluxParallel on the top, x-y parallel plane (S_T), and leave the bottom plane
+            free. This implies B=0 at the bottom face z=0 (S_B) and is, thus, a symmetry BC. The H
+            field is then linearly distributed as H(z) = J*z Thus, we can test any non-linear
+            BH-curve simply by looking at the resulting B-field: Assume B = sqrt(H), we get nu = H/B
+            = B^2/B = B, and nu' = 1, which is speciefied in the material definition. For a
+            comparison with the analysic solution see the iPython notebook. </description>
+    </documentation>
+    <fileFormats>
+        <input>
+            <!--<hdf5 fileName="CurrentSheet3D.h5ref"/>
+            -->            
+            <gmsh fileName="UnitCube.msh"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="3d" printGridInfo="no">
+        <variableList>
+            <var name="J" value="1e6"/>
+            <var name="f_coil" value="1.0"/>
+        </variableList>
+        <regionList>
+            <region name="V" material="steel"/>
+        </regionList>
+        <surfRegionList> </surfRegionList>
+    </domain>
+
+    <fePolynomialList>
+        <Legendre id="Hcurl">
+            <isoOrder>0</isoOrder>
+        </Legendre>
+    </fePolynomialList>
+
+
+    <!--=================================================================================
+        HBFEM:
+        -) using the optimized version (only odd harmonics and no zero harmonic)
+        -) N = 5
+        -) GMRES with 5 maxKrylivDim
+        -) excitation in harmonic 1
+       ==================================================================================-->
+    <sequenceStep index="1">
+        <analysis>
+            <multiharmonic>
+                <baseFreq>f_coil</baseFreq>
+                <numHarmonics_N>5</numHarmonics_N>
+                <numFFTPoints>1024</numFFTPoints>
+                <fullSystem>false</fullSystem>
+            </multiharmonic>
+        </analysis>
+
+        <pdeList>
+            <magneticEdge>
+                <regionList>
+                    <region name="V" polyId="Hcurl" nonLinIds="perm"/>
+                </regionList>
+
+                <nonLinList>
+                    <permeability id="perm"/>
+                </nonLinList>
+
+                <bcsAndLoads>
+                    <fluxParallel name="S_S"/>
+                    <fluxParallel name="S_N"/>
+                    <fluxParallel name="S_T"/>
+                </bcsAndLoads>
+
+                <coilList>
+                    <coil id="coil">
+                        <sourceMultiharmonic type="current">
+                            <harmonic harmonic="1" value="J/2"/>
+                        </sourceMultiharmonic>
+                        <part id="1">
+                            <regionList>
+                                <region name="V"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="y" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1.0"/>
+                        </part>
+                    </coil>
+                </coilList>
+
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magEddyCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magCoilCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotential">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotentialD1">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magJouleLossPowerDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <!-- <elemResult type="magFieldIntensity">
+                        <allRegions/>
+                    </elemResult> -->  
+                    <elemResult type="elecFieldIntensity">
+                        <allRegions/>
+                    </elemResult>  
+                    <coilResult type="coilInducedVoltage">
+                        <coilList>
+                            <coil id="coil" outputIds="txt"/>
+                        </coilList>
+                    </coilResult>
+                </storeResults>
+            </magneticEdge>
+
+
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <matrix reordering="noReordering" storage="sparseNonSym"/>
+                        <nonLinear method="fixPoint">
+                            <lineSearch/>
+                            <incStopCrit>1e-5</incStopCrit>
+                            <resStopCrit>1e-5</resStopCrit>
+                            <maxNumIters>30</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso id="pardiso"/>
+                    <gmres>
+                        <stoppingRule type="absNorm"/>
+                        <tol>1e-16</tol>
+                        <maxIter>15</maxIter>
+                        <maxKrylovDim>5</maxKrylovDim>
+                        <logging>yes</logging>
+                        <consoleConvergence>yes</consoleConvergence>
+                    </gmres>
+                </solverList>
+                <precondList>
+                    <SBMDiag>
+                        <precond block="1" id="def"/>
+                        <precond block="2" id="def"/>
+                        <precond block="3" id="def"/>
+                        <precond block="4" id="def"/>
+                        <precond block="5" id="def"/>
+                        <precond block="6" id="def"/>
+                        <precond block="7" id="def"/>
+                        <precond block="8" id="def"/>
+                        <precond block="9" id="def"/>
+                        <precond block="10" id="def"/>
+                        <precond block="11" id="def"/>
+                        <precond block="12" id="def"/>
+                        <precond block="13" id="def"/>
+                        <precond block="14" id="def"/>
+                        <precond block="15" id="def"/>
+                        <precond block="16" id="def"/>
+                        <precond block="17" id="def"/>
+                        <precond block="18" id="def"/>
+                        <precond block="19" id="def"/>
+                        <precond block="20" id="def"/>
+                        <precond block="21" id="def"/>
+                        <precond block="22" id="def"/>
+                        <precond block="23" id="def"/>
+                        <precond block="24" id="def"/>
+                        <precond block="25" id="def"/>
+                        <precond block="26" id="def"/>
+                    </SBMDiag>
+                    <pardiso id="def"/>
+                </precondList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+
+
+
+    <!--=================================================================================
+        HBFEM:
+        -) using the full system (including even and odd harmonics and zero harmonic)
+        -) N = 5
+        -) GMRES with 5 maxKrylivDim
+        -) excitation in harmonic 1
+       ==================================================================================-->
+    <sequenceStep index="2">
+        <analysis>
+            <multiharmonic>
+                <baseFreq>f_coil</baseFreq>
+                <numHarmonics_N>5</numHarmonics_N>
+                <numFFTPoints>1024</numFFTPoints>
+                <fullSystem>true</fullSystem>
+            </multiharmonic>
+        </analysis>
+        
+        <pdeList>
+            <magneticEdge>
+                <regionList>
+                    <region name="V" polyId="Hcurl" nonLinIds="perm"/>
+                </regionList>
+                
+                <nonLinList>
+                    <permeability id="perm"/>
+                </nonLinList>
+                
+                <bcsAndLoads>
+                    <fluxParallel name="S_S"/>
+                    <fluxParallel name="S_N"/>
+                    <fluxParallel name="S_T"/>
+                </bcsAndLoads>
+                
+                <coilList>
+                    <coil id="coil">
+                        <sourceMultiharmonic type="current">
+                            <harmonic harmonic="1" value="J/2"/>
+                        </sourceMultiharmonic>
+                        <part id="1">
+                            <regionList>
+                                <region name="V"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="y" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1.0"/>
+                        </part>
+                    </coil>
+                </coilList>
+                
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magEddyCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magCoilCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotential">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotentialD1">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magJouleLossPowerDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <!-- <elemResult type="magFieldIntensity">
+                        <allRegions/>
+                    </elemResult> -->  
+                    <elemResult type="elecFieldIntensity">
+                        <allRegions/>
+                    </elemResult>  
+                    <coilResult type="coilInducedVoltage">
+                        <coilList>
+                            <coil id="coil" outputIds="txt"/>
+                        </coilList>
+                    </coilResult>
+                </storeResults>
+            </magneticEdge>
+            
+            
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <matrix reordering="noReordering" storage="sparseNonSym"/>
+                        <nonLinear method="fixPoint">
+                            <lineSearch/>
+                            <incStopCrit>1e-5</incStopCrit>
+                            <resStopCrit>1e-5</resStopCrit>
+                            <maxNumIters>30</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso id="pardiso"/>
+                    <gmres>
+                        <stoppingRule type="absNorm"/>
+                        <tol>1e-16</tol>
+                        <maxIter>15</maxIter>
+                        <maxKrylovDim>5</maxKrylovDim>
+                        <logging>yes</logging>
+                        <consoleConvergence>yes</consoleConvergence>
+                    </gmres>
+                </solverList>
+                <precondList>
+                    <SBMDiag>
+                        <precond block="1" id="def"/>
+                        <precond block="2" id="def"/>
+                        <precond block="3" id="def"/>
+                        <precond block="4" id="def"/>
+                        <precond block="5" id="def"/>
+                        <precond block="6" id="def"/>
+                        <precond block="7" id="def"/>
+                        <precond block="8" id="def"/>
+                        <precond block="9" id="def"/>
+                        <precond block="10" id="def"/>
+                        <precond block="11" id="def"/>
+                        <precond block="12" id="def"/>
+                        <precond block="13" id="def"/>
+                        <precond block="14" id="def"/>
+                        <precond block="15" id="def"/>
+                        <precond block="16" id="def"/>
+                        <precond block="17" id="def"/>
+                        <precond block="18" id="def"/>
+                        <precond block="19" id="def"/>
+                        <precond block="20" id="def"/>
+                        <precond block="21" id="def"/>
+                        <precond block="22" id="def"/>
+                        <precond block="23" id="def"/>
+                        <precond block="24" id="def"/>
+                        <precond block="25" id="def"/>
+                        <precond block="26" id="def"/>
+                    </SBMDiag>
+                    <pardiso id="def"/>
+                </precondList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+
+
+    <!--=================================================================================
+        HBFEM:
+        -) using the full system (including even and odd harmonics and zero harmonic)
+        -) N = 5
+        -) GMRES with 5 maxKrylivDim
+        -) excitation in harmonic 1 and 2
+       ==================================================================================-->
+    <sequenceStep index="3">
+        <analysis>
+            <multiharmonic>
+                <baseFreq>f_coil</baseFreq>
+                <numHarmonics_N>5</numHarmonics_N>
+                <numFFTPoints>1024</numFFTPoints>
+                <fullSystem>true</fullSystem>
+            </multiharmonic>
+        </analysis>
+        
+        <pdeList>
+            <magneticEdge>
+                <regionList>
+                    <region name="V" polyId="Hcurl" nonLinIds="perm"/>
+                </regionList>
+                
+                <nonLinList>
+                    <permeability id="perm"/>
+                </nonLinList>
+                
+                <bcsAndLoads>
+                    <fluxParallel name="S_S"/>
+                    <fluxParallel name="S_N"/>
+                    <fluxParallel name="S_T"/>
+                </bcsAndLoads>
+                
+                <coilList>
+                    <coil id="coil">
+                        <sourceMultiharmonic type="current">
+                            <harmonic harmonic="1" value="J/2"/>
+                            <harmonic harmonic="3" value="J/3"/>
+                        </sourceMultiharmonic>
+                        <part id="1">
+                            <regionList>
+                                <region name="V"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="y" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1.0"/>
+                        </part>
+                    </coil>
+                </coilList>
+                
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magEddyCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magCoilCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotential">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotentialD1">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magJouleLossPowerDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <!-- <elemResult type="magFieldIntensity">
+                        <allRegions/>
+                    </elemResult> -->  
+                    <elemResult type="elecFieldIntensity">
+                        <allRegions/>
+                    </elemResult>  
+                    <coilResult type="coilInducedVoltage">
+                        <coilList>
+                            <coil id="coil" outputIds="txt"/>
+                        </coilList>
+                    </coilResult>
+                </storeResults>
+            </magneticEdge>
+            
+            
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <matrix reordering="noReordering" storage="sparseNonSym"/>
+                        <nonLinear method="fixPoint">
+                            <lineSearch/>
+                            <incStopCrit>1e-5</incStopCrit>
+                            <resStopCrit>1e-5</resStopCrit>
+                            <maxNumIters>30</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso id="pardiso"/>
+                    <gmres>
+                        <stoppingRule type="absNorm"/>
+                        <tol>1e-16</tol>
+                        <maxIter>15</maxIter>
+                        <maxKrylovDim>5</maxKrylovDim>
+                        <logging>yes</logging>
+                        <consoleConvergence>yes</consoleConvergence>
+                    </gmres>
+                </solverList>
+                <precondList>
+                    <SBMDiag>
+                        <precond block="1" id="def"/>
+                        <precond block="2" id="def"/>
+                        <precond block="3" id="def"/>
+                        <precond block="4" id="def"/>
+                        <precond block="5" id="def"/>
+                        <precond block="6" id="def"/>
+                        <precond block="7" id="def"/>
+                        <precond block="8" id="def"/>
+                        <precond block="9" id="def"/>
+                        <precond block="10" id="def"/>
+                        <precond block="11" id="def"/>
+                        <precond block="12" id="def"/>
+                        <precond block="13" id="def"/>
+                        <precond block="14" id="def"/>
+                        <precond block="15" id="def"/>
+                        <precond block="16" id="def"/>
+                        <precond block="17" id="def"/>
+                        <precond block="18" id="def"/>
+                        <precond block="19" id="def"/>
+                        <precond block="20" id="def"/>
+                        <precond block="21" id="def"/>
+                        <precond block="22" id="def"/>
+                        <precond block="23" id="def"/>
+                        <precond block="24" id="def"/>
+                        <precond block="25" id="def"/>
+                        <precond block="26" id="def"/>
+                    </SBMDiag>
+                    <pardiso id="def"/>
+                </precondList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+
+
+
+    <!--=================================================================================
+        HBFEM:
+        -) using the optimized version (only odd harmonics and no zero harmonic)
+        -) N = 5
+        -) GMRES with 5 maxKrylivDim
+        -) excitation in harmonic 1 and 3
+       ==================================================================================-->
+    <sequenceStep index="4">
+        <analysis>
+            <multiharmonic>
+                <baseFreq>f_coil</baseFreq>
+                <numHarmonics_N>5</numHarmonics_N>
+                <numFFTPoints>1024</numFFTPoints>
+                <fullSystem>false</fullSystem>
+            </multiharmonic>
+        </analysis>
+        
+        <pdeList>
+            <magneticEdge>
+                <regionList>
+                    <region name="V" polyId="Hcurl" nonLinIds="perm"/>
+                </regionList>
+                
+                <nonLinList>
+                    <permeability id="perm"/>
+                </nonLinList>
+                
+                <bcsAndLoads>
+                    <fluxParallel name="S_S"/>
+                    <fluxParallel name="S_N"/>
+                    <fluxParallel name="S_T"/>
+                </bcsAndLoads>
+                
+                <coilList>
+                    <coil id="coil">
+                        <sourceMultiharmonic type="current">
+                            <harmonic harmonic="1" value="J/2"/>
+                            <harmonic harmonic="3" value="J/3"/>
+                        </sourceMultiharmonic>
+                        <part id="1">
+                            <regionList>
+                                <region name="V"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="y" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1.0"/>
+                        </part>
+                    </coil>
+                </coilList>
+                
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magEddyCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magCoilCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotential">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotentialD1">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magJouleLossPowerDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <!-- <elemResult type="magFieldIntensity">
+                        <allRegions/>
+                    </elemResult> -->  
+                    <elemResult type="elecFieldIntensity">
+                        <allRegions/>
+                    </elemResult>  
+                    <coilResult type="coilInducedVoltage">
+                        <coilList>
+                            <coil id="coil" outputIds="txt"/>
+                        </coilList>
+                    </coilResult>
+                </storeResults>
+            </magneticEdge>
+            
+            
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <matrix reordering="noReordering" storage="sparseNonSym"/>
+                        <nonLinear method="fixPoint">
+                            <lineSearch/>
+                            <incStopCrit>1e-5</incStopCrit>
+                            <resStopCrit>1e-5</resStopCrit>
+                            <maxNumIters>30</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso id="pardiso"/>
+                    <gmres>
+                        <stoppingRule type="absNorm"/>
+                        <tol>1e-16</tol>
+                        <maxIter>15</maxIter>
+                        <maxKrylovDim>5</maxKrylovDim>
+                        <logging>yes</logging>
+                        <consoleConvergence>yes</consoleConvergence>
+                    </gmres>
+                </solverList>
+                <precondList>
+                    <SBMDiag>
+                        <precond block="1" id="def"/>
+                        <precond block="2" id="def"/>
+                        <precond block="3" id="def"/>
+                        <precond block="4" id="def"/>
+                        <precond block="5" id="def"/>
+                        <precond block="6" id="def"/>
+                        <precond block="7" id="def"/>
+                        <precond block="8" id="def"/>
+                        <precond block="9" id="def"/>
+                        <precond block="10" id="def"/>
+                        <precond block="11" id="def"/>
+                        <precond block="12" id="def"/>
+                        <precond block="13" id="def"/>
+                        <precond block="14" id="def"/>
+                        <precond block="15" id="def"/>
+                        <precond block="16" id="def"/>
+                        <precond block="17" id="def"/>
+                        <precond block="18" id="def"/>
+                        <precond block="19" id="def"/>
+                        <precond block="20" id="def"/>
+                        <precond block="21" id="def"/>
+                        <precond block="22" id="def"/>
+                        <precond block="23" id="def"/>
+                        <precond block="24" id="def"/>
+                        <precond block="25" id="def"/>
+                        <precond block="26" id="def"/>
+                    </SBMDiag>
+                    <pardiso id="def"/>
+                </precondList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+    
+    
+    
+    <!--=================================================================================
+        HBFEM:
+        -) using the full system (including even and odd harmonics and zero harmonic)
+        -) N = 1
+        -) CG
+        -) excitation in harmonic 1
+       ==================================================================================-->    
+    <sequenceStep index="5">
+        <analysis>
+            <multiharmonic>
+                <baseFreq>f_coil</baseFreq>
+                <numHarmonics_N>1</numHarmonics_N>
+                <numFFTPoints>1024</numFFTPoints>
+                <fullSystem>true</fullSystem>
+            </multiharmonic>
+        </analysis>
+        
+        <pdeList>
+            <magneticEdge>
+                <regionList>
+                    <region name="V" polyId="Hcurl" nonLinIds="perm"/>
+                </regionList>
+                
+                <nonLinList>
+                    <permeability id="perm"/>
+                </nonLinList>
+                
+                <bcsAndLoads>
+                    <fluxParallel name="S_S"/>
+                    <fluxParallel name="S_N"/>
+                    <fluxParallel name="S_T"/>
+                </bcsAndLoads>
+                
+                <coilList>
+                    <coil id="coil">
+                        <sourceMultiharmonic type="current">
+                            <harmonic harmonic="1" value="J/2"/>
+                        </sourceMultiharmonic>
+                        <part id="1">
+                            <regionList>
+                                <region name="V"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="y" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1.0"/>
+                        </part>
+                    </coil>
+                </coilList>
+                
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magEddyCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magCoilCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotential">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotentialD1">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magJouleLossPowerDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <!-- <elemResult type="magFieldIntensity">
+                        <allRegions/>
+                    </elemResult> -->  
+                    <elemResult type="elecFieldIntensity">
+                        <allRegions/>
+                    </elemResult>  
+                    <coilResult type="coilInducedVoltage">
+                        <coilList>
+                            <coil id="coil" outputIds="txt"/>
+                        </coilList>
+                    </coilResult>
+                </storeResults>
+            </magneticEdge>
+            
+            
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <matrix reordering="noReordering" storage="sparseNonSym"/>
+                        <nonLinear method="fixPoint">
+                            <lineSearch/>
+                            <incStopCrit>1e-5</incStopCrit>
+                            <resStopCrit>1e-5</resStopCrit>
+                            <maxNumIters>30</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso id="pardiso"/>
+                    <cg>
+                        <stoppingRule type="absNorm"/>
+                        <tol>1.0E-16</tol>
+                        <maxIter>50</maxIter>
+                        <logging>yes</logging>
+                        <consoleConvergence>yes</consoleConvergence>
+                    </cg>
+                </solverList>
+                <precondList>
+                    <SBMDiag>
+                        <precond block="1" id="def"/>
+                        <precond block="2" id="def"/>
+                        <precond block="3" id="def"/>
+                        <precond block="4" id="def"/>
+                        <precond block="5" id="def"/>
+                        <precond block="6" id="def"/>
+                        <precond block="7" id="def"/>
+                        <precond block="8" id="def"/>
+                        <precond block="9" id="def"/>
+                        <precond block="10" id="def"/>
+                        <precond block="11" id="def"/>
+                        <precond block="12" id="def"/>
+                        <precond block="13" id="def"/>
+                        <precond block="14" id="def"/>
+                        <precond block="15" id="def"/>
+                        <precond block="16" id="def"/>
+                        <precond block="17" id="def"/>
+                        <precond block="18" id="def"/>
+                        <precond block="19" id="def"/>
+                        <precond block="20" id="def"/>
+                        <precond block="21" id="def"/>
+                        <precond block="22" id="def"/>
+                        <precond block="23" id="def"/>
+                        <precond block="24" id="def"/>
+                        <precond block="25" id="def"/>
+                        <precond block="26" id="def"/>
+                    </SBMDiag>
+                    <pardiso id="def"/>
+                </precondList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+    
+    
+    
+    
+        <!--=================================================================================
+        HBFEM:
+        -) using the optimized version
+        -) N = 1
+        -) CG
+        -) excitation in harmonic 1
+       ==================================================================================-->
+    <sequenceStep index="6">
+        <analysis>
+            <multiharmonic>
+                <baseFreq>f_coil</baseFreq>
+                <numHarmonics_N>1</numHarmonics_N>
+                <numFFTPoints>1024</numFFTPoints>
+                <fullSystem>false</fullSystem>
+            </multiharmonic>
+        </analysis>
+        
+        <pdeList>
+            <magneticEdge>
+                <regionList>
+                    <region name="V" polyId="Hcurl" nonLinIds="perm"/>
+                </regionList>
+                
+                <nonLinList>
+                    <permeability id="perm"/>
+                </nonLinList>
+                
+                <bcsAndLoads>
+                    <fluxParallel name="S_S"/>
+                    <fluxParallel name="S_N"/>
+                    <fluxParallel name="S_T"/>
+                </bcsAndLoads>
+                
+                <coilList>
+                    <coil id="coil">
+                        <sourceMultiharmonic type="current">
+                            <harmonic harmonic="1" value="J/2"/>
+                        </sourceMultiharmonic>
+                        <part id="1">
+                            <regionList>
+                                <region name="V"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="y" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1.0"/>
+                        </part>
+                    </coil>
+                </coilList>
+                
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magEddyCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magCoilCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotential">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotentialD1">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magJouleLossPowerDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <!-- <elemResult type="magFieldIntensity">
+                        <allRegions/>
+                    </elemResult> -->  
+                    <elemResult type="elecFieldIntensity">
+                        <allRegions/>
+                    </elemResult>  
+                    <coilResult type="coilInducedVoltage">
+                        <coilList>
+                            <coil id="coil" outputIds="txt"/>
+                        </coilList>
+                    </coilResult>
+                </storeResults>
+            </magneticEdge>
+            
+            
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <matrix reordering="noReordering" storage="sparseNonSym"/>
+                        <nonLinear method="fixPoint">
+                            <lineSearch/>
+                            <incStopCrit>1e-5</incStopCrit>
+                            <resStopCrit>1e-5</resStopCrit>
+                            <maxNumIters>30</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso id="pardiso"/>
+                    <cg>
+                        <stoppingRule type="absNorm"/>
+                        <tol>1.0E-16</tol>
+                        <maxIter>50</maxIter>
+                        <logging>yes</logging>
+                        <consoleConvergence>yes</consoleConvergence>
+                    </cg>
+                </solverList>
+                <precondList>
+                    <SBMDiag>
+                        <precond block="1" id="def"/>
+                        <precond block="2" id="def"/>
+                        <precond block="3" id="def"/>
+                        <precond block="4" id="def"/>
+                        <precond block="5" id="def"/>
+                        <precond block="6" id="def"/>
+                        <precond block="7" id="def"/>
+                        <precond block="8" id="def"/>
+                        <precond block="9" id="def"/>
+                        <precond block="10" id="def"/>
+                        <precond block="11" id="def"/>
+                        <precond block="12" id="def"/>
+                        <precond block="13" id="def"/>
+                        <precond block="14" id="def"/>
+                        <precond block="15" id="def"/>
+                        <precond block="16" id="def"/>
+                        <precond block="17" id="def"/>
+                        <precond block="18" id="def"/>
+                        <precond block="19" id="def"/>
+                        <precond block="20" id="def"/>
+                        <precond block="21" id="def"/>
+                        <precond block="22" id="def"/>
+                        <precond block="23" id="def"/>
+                        <precond block="24" id="def"/>
+                        <precond block="25" id="def"/>
+                        <precond block="26" id="def"/>
+                    </SBMDiag>
+                    <pardiso id="def"/>
+                </precondList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+</cfsSimulation>

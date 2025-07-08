@@ -1,0 +1,443 @@
+  ! ========================================================================
+!  3D Model of a straight conductor in air. 
+!  It uses all types of 3D elements (tetra / wedge / hex / pyra) of 2nd
+!  order.
+! ========================================================================
+fini
+/clear
+/prep7
+
+!-----------------------------------!
+! Interface Initialization     !
+!-----------------------------------!
+init
+
+! Define element type
+! 0: pure tet
+! 1: pure hex
+! 2: pure wedge
+! 3: hex+wedge
+! 4: wedge+tet
+! 5: hex+wedge+pyra
+! 6: hex+wedge+tet+pyra
+TYPE=6
+
+
+! FLAG, if mesh should get distorted
+DISTORT=1
+
+! type of elements ('' for 1st order, 'quad' for 2nd order)
+elemMode= ''
+
+! geometric radii
+r1=1
+r2=2.5
+r3=3
+
+! extrusion height of one segment
+z1=1.5
+
+! distortion factors
+fac1=1
+fac2=2
+
+!-----------------------------------!
+! Create Geometry and Mesh          !
+!-----------------------------------!
+
+! element size
+h = 0.7
+
+RECTNG,0,r1,0,r1
+k,5,0,0,1
+CIRC,1,r2,5,,90,2
+k,9,0,r3
+k,10,r3,0
+k,11,r3,r3
+
+/pnum,kp,1
+
+! define areas
+a,4,3,7,8
+a,2,6,7,3
+a,6,10,11,7
+a,7,11,9,8
+
+
+*if,type,eq,0,then
+  name='tet'
+  ! =======================
+  !  TET-MESH
+  ! =======================
+   
+  ! extrude geometry 
+  allsel
+  vext,all,0,0,0,0,2*z1
+ 
+  ! create unstructured mesh
+  setelems,'tetra',elemMode
+  mshkey,0
+  esize,h
+  vmesh,all
+  
+
+*elseif,type,eq,1,then
+  ! =======================
+  !  HEX-MESH
+  ! =======================
+  name='hex'
+  
+  ! extrude geometry 
+  allsel
+  vext,all,0,0,0,0,2*z1
+ 
+  numElems = 4
+  allsel
+  lesize,all,,,numElems
+
+  allsel
+  ! define vertical element sizes (distorted)
+  *IF,DISTORT,EQ,1,THEN
+    lesize,26,,,numElems,fac1
+    lesize,30,,,numElems,-fac1
+    lesize,28,,,numElems,fac2
+    lesize,21,,,numElems,1/fac1
+    lesize,22,,,numElems,1/fac2
+    
+    
+    ! change horizontal line sizes
+    lesize,5,,,numElems,1/fac2
+    lesize,29,,,numElems,fac1
+    lesize,24,,,numElems,fac2
+    lesize,6,,,numnElems,-fac1
+    
+    lesize,15,,,numElems,1/fac2
+    lesize,18,,,numElems,1/fac1
+    
+    
+    lesize,32,,,numElems,1/fac1
+    lesize,11,,,numElems,-fac2
+  *ENDIF
+    
+  setelems,'brick',elemMode
+  esize,h
+  mshkey,1
+  vmesh,all
+  
+
+*elseif,type,eq,2,then
+  ! =======================
+  !  WEDGE-MESH
+  ! =======================
+  name='wedge'
+  
+  ! extrude geometry 
+  allsel
+  vext,all,0,0,0,0,2*z1
+ 
+  
+  ! define vertical element sizes (distorted)
+  *IF,DISTORT,EQ,1,THEN
+    numElems = 4
+    allsel
+    lesize,all,,,numElems
+
+    allsel
+  
+    lesize,26,,,numElems,fac1
+    lesize,30,,,numElems,-fac1
+    lesize,28,,,numElems,fac2
+    lesize,21,,,numElems,1/fac1
+    lesize,22,,,numElems,1/fac2
+    
+    ! change horizontal line sizes
+    lesize,5,,,numElems,1/fac2
+    lesize,29,,,numElems,fac1
+    lesize,24,,,numElems,fac2
+    lesize,6,,,numnElems,-fac1
+    
+    lesize,15,,,numElems,1/fac2
+    lesize,18,,,numElems,1/fac1
+    
+    
+    lesize,32,,,numElems,1/fac1
+    lesize,11,,,numElems,-fac2
+  *ENDIF
+    
+  allsel
+  asel,s,loc,z,0
+  esize,h
+  setelems,'triangle',elemMode
+  amesh,all
+  
+  
+  setelems,'wedge',elemMode
+  
+  mshkey,2
+  esize,,5
+  vsweep,all
+  
+  
+  
+*elseif,type,eq,3,then
+  ! =======================
+  !  HEX-WEDGE-MESH
+  ! =======================
+  name='hex-wedge'
+  
+  ! extrude geometry 
+  allsel
+  vext,all,0,0,0,0,2*z1
+  
+  ! define vertical element sizes (distorted)
+  *IF,DISTORT,EQ,1,THEN
+    numElems = 3
+    allsel
+    lesize,all,,,numElems
+
+    allsel
+  
+    lesize,26,,,numElems,fac1
+    lesize,30,,,numElems,-fac1
+    lesize,28,,,numElems,fac2
+    lesize,21,,,numElems,1/fac1
+    lesize,22,,,numElems,1/fac2
+    
+    ! change horizontal line sizes
+    lesize,5,,,numElems,1/fac2
+    lesize,29,,,numElems,fac1
+    lesize,24,,,numElems,fac2
+    lesize,6,,,numnElems,-fac1
+    
+    lesize,15,,,numElems,1/fac2
+    lesize,18,,,numElems,1/fac1
+    
+    
+    lesize,32,,,numElems,1/fac1
+    lesize,11,,,numElems,-fac2
+  *ENDIF
+    
+  allsel
+  asel,s,loc,z,0
+  esize,h
+  setelems,'triangle',elemMode
+  amesh,2
+  amesh,4
+  
+  setelems,'quadr',elemMode
+  amesh,all
+  
+  setelems,'brick',elemMode
+  
+  mshkey,2
+  esize,,5
+  vsweep,all
+  
+  aclear,all
+*elseif,type,eq,4,then
+  ! =======================
+  !  WEDGE-TET-MESH
+  ! =======================
+  name='wedge-tet'
+  
+  ! generate area mesh
+  setelems,'triangle',elemMode
+
+  mshkey,0
+  allsel
+  amesh,all
+
+
+  ! extrude geometry
+  setelems,'brick',elemMode
+  allsel
+  esize,,4/h
+  mshape,1,3D
+  vext,all,2,0,0,0,3
+
+  ! extrude first part of air
+  esize,,0
+  asel,s,loc,z,3
+  vext,all,2,0,0,0,1
+
+  ! extrude second part of air
+  asel,s,loc,z,4
+  vext,all,2,0,0,0,2
+
+  ! generate unstructured mesh on top
+  setelems,'tetra',elemMode
+  allsel
+  esize,h
+  vmesh,all
+  
+*elseif,type,eq,5,then
+  ! =======================
+  !  HEX-TET-PYRA-MESH
+  ! =======================
+  name='hex-tet-pyra'
+  
+  ! generate area mesh
+  setelems,'quadr',elemMode
+  esize,h
+  mshkey,2
+  allsel
+  asel,s,loc,z,0
+  amesh,all
+
+  ! extrude geometry
+  setelems,'brick',elemMode
+  allsel
+  esize,,z1/h
+  mshape,1,3D
+  vext,all,0,0,0,0,z1
+
+
+  ! extrude second part of air
+  asel,s,loc,z,z1
+  esize,,0
+  vext,all,2,0,0,0,z1
+
+  ! generate pyramid elements in between
+  setelems,'brick',elemMode
+  allsel
+  esize,1
+  mshape,1,3D
+  mopt,pyra,on
+  mshkey,0
+  allsel
+  vmesh,all
+  
+*elseif,type,eq,6,then
+  ! =======================
+  !  HEX-TET-WEDGE-PYRA-MESH
+  ! =======================
+  name='all'
+  
+  ! generate area mesh
+  esize,h
+  mshkey,2
+  allsel
+  asel,s,loc,z,0
+
+  setelems,'triangle',elemMode
+  amesh,2
+  amesh,4
+  
+  setelems,'quadr',elemMode
+  amesh,all
+  
+  ! extrude geometry
+  setelems,'brick',elemMode
+  allsel
+  esize,,z1/h
+  mshape,1,3D
+  vext,all,0,0,0,0,z1
+
+
+  ! extrude second part of air
+  asel,s,loc,z,z1
+  esize,,0
+  vext,all,2,0,0,0,z1
+
+  ! generate pyramid elements in between
+  setelems,'brick',elemMode
+  allsel
+  esize,1
+  mshape,1,3D
+  mopt,pyra,on
+  mshkey,0
+  allsel
+  vmesh,all
+*endif
+
+
+
+!-----------------------------------!
+! Define Components                 !
+!-----------------------------------!
+! write out all nodes
+allsel
+wnodes
+
+
+
+! --- a) Volume components ---
+allsel
+cm,air,volume
+
+! --- b) Surface components ---
+asel,s,loc,z,0
+cm,a_bottom,area
+
+asel,s,loc,z,2*z1
+cm,a_top,area
+
+asel,s,loc,x,0
+cm,a_x_inner,area
+
+asel,s,loc,x,r3
+cm,a_x_outer,area
+
+asel,s,loc,y,0
+cm,a_y_inner,area
+
+asel,s,loc,y,r3
+cm,a_y_outer,area
+
+
+
+! Generate surface mesh
+setelems,'quadr',elemMode
+cmsel,s,a_bottom,area
+cmsel,a,a_top,area
+cmsel,a,a_x_inner,area
+cmsel,a,a_x_outer,area
+cmsel,a,a_y_inner,area
+cmsel,a,a_y_outer,area
+amesh,all
+
+! be careful and compress element numbers
+allsel
+numcmp,node
+numcmp,elem
+
+!-----------------------------------!
+! Write mesh                        !
+!-----------------------------------!
+! write out all nodes
+allsel
+wnodes
+
+cmsel,s,air
+eslv
+welems,'air'
+
+cmsel,s,a_bottom
+esla
+wsavelem,'bottom'
+
+cmsel,s,a_top
+esla
+wsavelem,'top'
+
+cmsel,s,a_x_inner
+esla
+wsavelem,'x_inner'
+
+cmsel,s,a_x_outer
+esla
+wsavelem,'x_outer'
+
+cmsel,s,a_y_inner
+esla
+wsavelem,'y_inner'
+
+cmsel,s,a_y_outer
+esla
+wsavelem,'y_outer'
+
+
+! write out mesh
+mkhdf5
+
+

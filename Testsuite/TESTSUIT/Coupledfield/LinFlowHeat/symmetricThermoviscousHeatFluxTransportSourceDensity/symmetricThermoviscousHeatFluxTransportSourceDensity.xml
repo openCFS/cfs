@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Testcase for LinFlowHeatPDE in symmetric formulation to test the Heat Boundary Conditons and Loads</title>
+    <authors>
+      <author>Lorenz Klimon</author>
+    </authors>
+    <date>2022-11-26</date>
+    <keywords>
+      <keyword>CFD</keyword>
+    </keywords>    
+    <references>
+    </references>
+    <isVerified>no</isVerified>
+    <description>
+       Temperature, velocity and pressure field are compared with the solutions from the unsymmetric formulation.
+       Note, that the unsymmetric formulation is not verfied and therefore this testcase is also not verfied.
+       This test aims to test the following Heat Boundary Conditions and Loads in the symetric formulation:
+       - Heat Flux
+       - Heat Transport
+       - Heat Source
+       - Heat Source Density
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="symmetricThermoviscousHeatFluxTransportSourceDensity.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_fluid" material="FluidMat"/>
+      <region name="L_top" material="FluidMat"/>
+    </regionList>
+    <nodeList>
+      <nodes name="source">
+        <allNodesInRegion regName="L_right" />
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="velPolyId">
+       <isoOrder>2</isoOrder> 
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="presPolyId">
+       <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <harmonic>
+        <numFreq>4</numFreq>
+        <frequencyList>
+          <freq value="100"/>
+          <freq value="1000"/>
+          <freq value="5000"/>
+          <freq value="10000"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <fluidMechLin formulation="compressible" presPolyId="presPolyId" velPolyId="velPolyId">
+        <regionList>
+          <region name="S_fluid"/>
+        </regionList>
+        
+        <presSurfaceList>
+          <presSurf name="L_bottom"/>
+          <presSurf name="L_top"/>
+          <presSurf name="L_left"/>
+          <presSurf name="L_right" />
+        </presSurfaceList>
+       
+        <bcsAndLoads> 
+          <pressure name="L_left" value="1"/>
+          <noSlip name="L_top">       
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </noSlip>
+          <noSlip name="L_bottom">       
+            <comp dof="x"/>
+            <comp dof="y" />
+          </noSlip>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions/>         
+          </nodeResult>      
+        </storeResults>
+      </fluidMechLin>
+      
+      <heatConduction>
+        <regionList>
+          <region name="S_fluid"/>
+        </regionList>
+
+
+        <bcsAndLoads>
+          <heatFlux name="L_bottom" value="10" volumeRegion="S_fluid"/> 
+          <heatTransport name="L_top" volumeRegion="S_fluid" heatTransferCoefficient="1" bulkTemperature="20.0"/>
+          <heatSource name="source" volumeRegion="S_fluid" value="10"/>
+          <heatSourceDensity name="L_left" volumeRegion="S_fluid" value="10" />
+
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>       
+      </heatConduction>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <linFlowHeatDirect symmetric="yes">
+          <regionList>
+            <region  name="S_fluid"/>
+          </regionList>
+        </linFlowHeatDirect>
+      </direct>
+    </couplingList>
+  </sequenceStep>
+</cfsSimulation>

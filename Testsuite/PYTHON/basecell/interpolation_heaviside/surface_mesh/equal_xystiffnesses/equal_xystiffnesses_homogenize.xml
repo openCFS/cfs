@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  
+  <fileFormats>
+    <output>
+<!--       <hdf5 directory="./"/> -->
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+<domain geometryType="3d">
+    <regionList>
+     <region name="mech" material="99lines"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList> 
+          <region name="mech"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <periodic primary="top" secondary="bottom" dof="x" quantity="mechDisplacement" />
+          <periodic primary="top" secondary="bottom" dof="y" quantity="mechDisplacement" />
+           <periodic primary="top" secondary="bottom" dof="z" quantity="mechDisplacement"/>
+           <periodic primary="front" secondary="back" dof="x" quantity="mechDisplacement"/>
+           <periodic primary="front" secondary="back" dof="y" quantity="mechDisplacement"/>
+          <periodic primary="front" secondary="back" dof="z" quantity="mechDisplacement"/>
+          <periodic primary="left" secondary="right" dof="x" quantity="mechDisplacement"/>
+          <periodic primary="left" secondary="right" dof="y" quantity="mechDisplacement"/>         
+          <periodic primary="left" secondary="right" dof="z" quantity="mechDisplacement"/>
+          <!-- dirichletHom name="center" dof="x"/>
+          <dirichletHom name="center" dof="y"/ -->
+        </bcsAndLoads>
+        
+        <storeResults>
+<!--           <elemResult type="mechPseudoDensity">  <allRegions/> </elemResult> -->
+<!--           <elemResult type="physicalPseudoDensity"> <allRegions/> </elemResult> -->
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <lis>
+            <precond>
+              <ssor omega="1.0"/>
+            </precond>
+            <maxIter>999999</maxIter>
+            <minimalTolerance>1e-10</minimalTolerance>
+          </lis>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+ 
+  <optimization log="">
+    <costFunction type="homTensor" task="minimize" multiple_excitation="true">
+      <multipleExcitation type="homogenizationTestStrains" />
+    </costFunction>
+    
+    <constraint type="volume" mode="observation"/>
+    
+    <optimizer type="evaluate" maxIterations="1"/>
+    <ersatzMaterial method="simp" material="mechanic">
+      <regions>
+        <region name="mech"/>
+      </regions>
+      <design name="density" initial="1" lower="1e-9" upper="1" region="mech"/>
+      <transferFunction type="identity" application="mech" design="density"/> 
+    </ersatzMaterial>
+  </optimization> 	  
+
+</cfsSimulation>

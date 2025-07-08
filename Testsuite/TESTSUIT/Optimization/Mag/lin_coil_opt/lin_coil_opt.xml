@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+    <fileFormats>
+        <input>
+            <gmsh fileName="grid2Dsym-coarse.msh"/>
+        </input>        
+        <output>
+            <hdf5 />
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="plane">
+        <variableList>
+            <var name="i" value="1000.0"/>
+            <var name="N" value="1"/>
+        </variableList>
+        <regionList>
+            <region name="spule1_in" material="AIR"/>
+            <region name="spule2_out" material="AIR"></region>
+            <region name="joch" material="iron"></region>
+            <region name="anker" material="iron"></region>
+            <region name="OptimierungY" material="iron"></region>
+            <region name="air" material="AIR"></region>
+        </regionList>
+    </domain>    
+    <sequenceStep index="1">
+        <analysis>
+            <static>
+            </static>
+        </analysis>
+        <pdeList>
+            <magnetic>
+                <regionList>
+                    <region name="spule1_in"/>
+                    <region name="spule2_out"/>
+                    <region name="joch" />
+                    <region name="anker" />
+                    <region name="air"/>
+                    <region name="OptimierungY" />
+                </regionList>
+                <nonLinList>
+                    <permeability id="nonLin"/>
+                </nonLinList>
+                <bcsAndLoads>
+                    <fluxParallel name="FluxParallel_V">
+                        <comp dof="y"/>
+                    </fluxParallel>
+                    <fluxParallel name="FluxParallel_h">
+                        <comp dof="x"/>
+                    </fluxParallel>
+                </bcsAndLoads>
+                <coilList>
+                    <coil id="Spule1">
+                        <source type="current" value="i*N"/>
+                        <part id="2">
+                            <regionList>
+                                <region name="spule2_out"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="1"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="500e-6" coil_top_opt="true"/>
+                        </part>
+                    </coil>
+                </coilList>
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="pseudoDensity">
+                      <allRegions/>
+                    </elemResult>
+                    <elemResult type="physicalPseudoDensity">
+                       <allRegions/>
+                    </elemResult>
+                    <elemResult type="rhsPseudoDensity">
+                       <allRegions/>
+                    </elemResult>
+                    <elemResult type="physicalRhsPseudoDensity">
+                       <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </magnetic>
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                         <!--exportLinSys /--> 
+                        <matrix reordering="noReordering"/>
+                        <nonLinear logging="yes" method="fixPoint">
+                            <lineSearch type="minEnergy"/>
+                            <incStopCrit>1E-2</incStopCrit>
+                            <resStopCrit>1E-2</resStopCrit>
+                            <maxNumIters>100</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso></pardiso>
+                </solverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+    <optimization>
+        <costFunction type="sqrMagFluxDensY" task="maximize" region="OptimierungY">
+            <stopping queue="100" value="1.0E-4" type="designChange" />
+        </costFunction>
+        
+        <constraint type="multimaterial_sum" value="1" bound="upperBound" region="spule2_out" />
+
+        <constraint type="volume" value="0.2" bound="lowerBound" design="density"/>
+
+        <constraint type="volume" value="0.1" bound="lowerBound" design="rhsDensity"/>
+        <constraint type="volume" value="0.3" bound="upperBound" design="rhsDensity"/>
+
+        <!--constraint type="volume" bound="lowerBound" value="0.45" mode="constraint" /-->
+        <!--constraint type="volume" mode="observation"/-->
+        <!--constraint type="volume" bound="upperBound" value="0.65"/-->
+        
+        <!--         <constraint type="sqrMagFluxDensY" bound="equal" value="0.00014" mode="constraint" region="OptimierungY"/> -->
+        
+        <!--constraint type="greyness" access="physical" mode="observation"/--> 
+        <!--optimizer maxIterations="50" type="optimalityCondition">
+            <optimalityCondition move_limit="0.16" type="trajectory" feasibility="1e-8"/>
+        </optimizer-->
+        
+        <optimizer type="snopt" maxIterations="50" >
+            <!--autoscale target="1.0"/-->
+            <snopt>
+              <option name="major_optimality_tolerance" type="real" value="1e-8"/>
+              <option name="verify_level" type="integer" value="-1"/>
+            </snopt>
+        </optimizer>
+        
+        <ersatzMaterial material="magnetic" method="simp">
+            <regions>
+                <!--region name="joch"/-->
+<!--                 <region name="OptimierungY"/> -->
+                <region name="spule2_out"/>
+            </regions>
+<!--             <filters> -->
+<!--               <filter neighborhood="maxEdge" value="1.5" design="density"/> -->
+<!--               <filter neighborhood="maxEdge" value="2.5" design="rhsDensity"></filter> -->
+<!--             </filters> -->
+            
+            <designSpace local_element_cache="false"/>
+            <design name="density" initial="0.5" upper="1.0" lower="0" />
+            <design name="rhsDensity" initial="0.5" upper="1.0" lower="0"/>
+            <transferFunction type="simp" application="magnetic" param="1.0" design="density"/>
+            <transferFunction type="simp" application="magnetic" param="1.0" design="rhsDensity"/>
+            <result value="designTracking" id="optResult_1" />
+            <export write="iteration" save="all"/> 
+        </ersatzMaterial>
+        
+        <commit mode="both_cases" stride="1"/>
+    </optimization>
+   
+    
+</cfsSimulation>

@@ -1,0 +1,20 @@
+FORMAT
+type: ensight gold
+GEOMETRY
+model: fourcells00000.geo
+VARIABLE
+scalar per element: Volume fourcells*****.Volume
+vector per element: Centroid fourcells*****.Centroid
+vector per element: VectorA fourcells*****.VectorA
+vector per element: VectorB fourcells*****.VectorB
+TIME
+time set:               1
+number of steps:        1
+filename start number:  0
+filename increment:     1
+time values:
+0
+
+#SCRIPTS
+#metadata: starccmplus.xml
+

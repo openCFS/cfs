@@ -1,0 +1,1452 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="Air">
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <!-- Remarks : "dry air @ 20 degree c" -->
+      <density>
+        <linear>
+          <real> 1.29 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.527E+05 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade, and 1 atm" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 8.859E-12 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.yutopian.com/Yuan/prop/"
+           Reference(s) : "www.yutopian.com/Yuan/prop/" -->
+      <!-- Remarks : "@ 27 degree c" -->
+      <density>
+        <linear>
+          <real> 1.18 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real> 1005 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real> 0.03 </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <magnetic>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "Conductivity: www.matweb.com; Permeability: http://www.ee.surrey.ac.uk/Workshop/advice/coils/mu/#mu0"
+           Remarks : "Name: K0.5Na0.5Nb03, air fired" -->
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>1.0e-10</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="Aluminium">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Alluminium Alloy" -->
+      <density>
+        <linear>
+          <real> 2700 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 7.00E+10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.33 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <density>
+        <linear>
+          <real> 2700 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.1128E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.memsnet.org"
+           Reference(s) : "CRC Materials Science and Engineering Handbook" -->
+      <density>
+        <linear>
+          <real> 2700 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>  898.7  </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real> 237 </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <magnetic>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "Conductivity: www.matweb.com; Permeability: http://hyperphysics.phy-astr.gsu.edu/hbase/tables/magprop.html#c "
+           Remarks : "Conductivity value for Aluminium Alloy" -->
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>1.5e5</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 3.7037E+07  </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="BariumTitanate">
+    <mechanical>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <density>
+        <linear>
+          <real> 6020 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real> 2.751e+11 1.790e+11 1.516e+11 0.000e+00 0.000e+00 0.000e+00 1.790e+11 2.751e+11
+            1.516e+11 0.000e+00 0.000e+00 0.000e+00 1.516e+11 1.516e+11 1.649e+11 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 0.000e+00 5.435e+10 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 5.435e+10 0.000e+00 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 1.131e+11 </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real> 2.585E-08 0.000E+00 0.000E+00 0.000E+00 2.585E-08 0.000E+00 0.000E+00 0.000E+00
+            1.487E-09 </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <piezo>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real> 0.0000e-003 0.0000e-003 0.0000e-003 0.0000e-003 21.3052e+000 0.0000e-003 0.0000e-003
+          0.0000e-003 0.0000e-003 21.3052e+000 0.0000e-003 0.0000e-003 -2.6179e+000 -2.5795e+000
+          3.7157e+000 0.0000e-003 0.0000e-003 0.0000e-003
+          </real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="BariumTitanatePoled">
+    <mechanical>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <!-- Remarks : "poled" -->
+      <density>
+        <linear>
+          <real> 5700 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real> 1.504e+11 6.563e+10 6.594e+10 0.000e+00 0.000e+00 0.000e+00 6.563e+10 1.504e+11
+            6.594e+10 0.000e+00 0.000e+00 0.000e+00 6.594e+10 6.594e+10 1.455e+11 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 0.000e+00 4.386e+10 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 4.386e+10 0.000e+00 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 4.237e+10 </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real> 1.284E-08 0.000E+00 0.000E+00 0.000E+00 1.284E-08 0.000E+00 0.000E+00 0.000E+00
+            1.505E-08 </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <piezo>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real> 0.0000e-003 0.0000e-003 0.0000e-003 0.0000e-003 11.4036e+000 0.0000e-003 0.0000e-003
+          0.0000e-003 0.0000e-003 11.4036e+000 0.0000e-003 0.0000e-003 -4.3217e+000 -4.3217e+000
+          17.3584e+000 0.0000e-003 0.0000e-003 0.0000e-003
+          </real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="Benzene">
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <!-- Remarks : "@ 25 degree c" -->
+      <density>
+        <linear>
+          <real> 870 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.4600E+09 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 2.022E-11 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+  <material name="Copper">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Annealed." -->
+      <density>
+        <linear>
+          <real> 8960 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.10E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.34 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <density>
+        <linear>
+          <real> 8930 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.2414E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.memsnet.org"
+           Reference(s) : "Mechanics of Materials, 1996" -->
+      <density>
+        <linear>
+          <real> 8960 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>  384.56  </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real> 398 </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Glass">
+    <mechanical>
+      <!-- Data obtained from: http://www.baunetzwissen.de/dl/134762/eigenschaften.pdf
+           Reference: DIN EN 572-1 -->
+      <density>
+        <linear>
+          <real> 2500 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 7.0e10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.22 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 3.472E-07 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+  <material name="Glycerin">
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 3.763E-10 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+  <material name="Gold">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks :  -->
+      <density>
+        <linear>
+          <real> 19320 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 7.72E+10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.42 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <!-- Remarks : "hard drawn" -->
+      <density>
+        <linear>
+          <real> 19700 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.0700E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.memsnet.org"
+           Reference(s) : "CRC Materials Science and Engineering Handbook" -->
+      <density>
+        <linear>
+          <real> 19280 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real> 128.74  </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  315  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Graphite">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "Young Modulus: www.matweb.com; Poisson ratio: Elastic Properties of Isotropic Graphite, Cost,James R. ; Janowski,Kenneth R. ; Rossi,Ronald C, January 1968"
+           Remarks :  -->
+      <density>
+        <linear>
+          <real> 2250 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 4.80E+09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.31 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="Iron">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks :  -->
+      <density>
+        <linear>
+          <real> 7870 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.00E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.29 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) :  -->
+      <density>
+        <linear>
+          <real> 7690 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.6769E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.goodfellow.com"
+           Reference(s) : "www.goodfellow.com/csp/active/gfMaterials.csp" -->
+      <!-- Remarks : "density @ 20 degree c; specific heat capacity @ 25 degree c; thermal conductivity @ 0-100 degree c." -->
+      <density>
+        <linear>
+          <real> 7870 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real> 444  </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  80.4  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+    <magnetic>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/"
+           Reference(s) : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Remarks : "Initial Relative permeability: 150, max: 5000. Data based on maximum relative permeability" -->
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>1.03e7</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 6.2832E-03 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="Lead">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks :  -->
+      <density>
+        <linear>
+          <real> 11340 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.40E+10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.42 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) :  -->
+      <density>
+        <linear>
+          <real> 11200 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 5.4208E+10 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.memsnet.org"
+           Reference(s) : "CRC Materials Science and Engineering Handbook" -->
+      <density>
+        <linear>
+          <real> 11340 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>  158.84 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  35.2  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="LithiumNiobate">
+    <mechanical>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <density>
+        <linear>
+          <real> 4700 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real> 2.029e+11 5.292e+10 7.491e+10 9.000e+09 0.000e+00 0.000e+00 2.292e+10 2.029e+11
+            7.491e+10 -9.000e+09 0.000e+00 0.000e+00 7.491e+10 7.491e+10 2.431e+11 0.000e+00
+            0.000e+00 0.000e+00 9.000e+09 -9.000e+09 0.000e+00 5.990e+10 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 5.990e+10 8.990e+09 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 8.990e+09 7.488e+10 </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real> 7.437E-10 0.000E+00 0.000E+00 0.000E+00 7.437E-10 0.000E+00 0.000E+00 0.000E+00
+            2.656E-10 </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <piezo>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real> 0.0000e-003 0.0000e-003 0.0000e-003 0.0000e-003 3.6956e+000 -2.5336e+000 -3.1676e+000
+          2.5376e+000 0.0000e-003 3.6952e+000 0.0000e-003 0.0000e-003 223.6400e-003 193.6400e-003
+          1.3088e+000 0.0000e-003 0.0000e-003 0.0000e-003
+          </real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="Mica">
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 3.466E-07 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+  <material name="Mylar">
+    <!-- Also called/ material is of type : "polyethylene terephthalate" -->
+    <mechanical>
+      <!-- Data obtained from : "http://www.goodfellow.com"
+           Reference(s) : "http://www.goodfellow.com/csp/active/gfMaterials.csp"
+           Remarks : "Also called Polyethylene Terephthalate; Density in the range 1300-1400; Young's Modulus Values is in the range 2E+09-4E+09; Poisson ratio value is in the range 0.37-0.44" -->
+      <density>
+        <linear>
+          <real> 1350 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 3.00E+09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.41 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "Also called Polyethylene Terephthalate @20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 2.745E-11 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.goodfellow.com"
+           Reference(s) : "www.goodfellow.com/csp/active/gfMaterials.csp" -->
+      <!-- Remarks : "also called polyethylene terephthalate; specific heat capacity value in the range 1200-1350; thermal conductivity @ 23 degree c and value in the range 0.15-0.4." -->
+      <density>
+        <linear>
+          <real> 1390 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>   1275 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  0.28  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Neoprene">
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 5.932E-11 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+  <material name="Plexiglas">
+    <mechanical>
+      <!-- Data obtained from : "http://www.goodfellow.com"
+           Reference(s) : "http://www.goodfellow.com/csp/active/gfMaterials.csp"
+           Remarks : "Young's Modulus Values is in the range 2.4E+09-3.3E+09; Poisson ratio value is in the range 0.35-0.4" -->
+      <density>
+        <linear>
+          <real> 1190 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.85E+09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.38 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 3.010E-11 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.goodfellow.com"
+           Reference(s) : "www.goodfellow.com/csp/active/gfMaterials.csp" -->
+      <!-- Remarks : "specific heat capacity value in the range 1400-1500; thermal conductivity @ 23 degree c and value in the range 0.17-0.19." -->
+      <density>
+        <linear>
+          <real> 1190 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>   1450 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  0.18  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Polyethylene">
+    <mechanical>
+      <!-- Data obtained from : "http://www.goodfellow.com"
+           Reference(s) : "http://www.goodfellow.com/csp/active/gfMaterials.csp"
+           Remarks : "High density; Young's Modulus Values is in the range 0.5E+09-1.2E+09" -->
+      <density>
+        <linear>
+          <real> 950 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 9.50E+08 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.46 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 1.992E-11 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+  <material name="Polysulphone">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Density in the range 12400-12500; Young's Modulus Values is in the range 2.69E+09-3.0E+09" -->
+      <density>
+        <linear>
+          <real> 12450 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.85E+09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.0 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com" -->
+      <!-- Remarks : "density in the range 1240-1250; specific heat capacity: 1.2 j/g.c; thermal conductivity value in the range 0.12-0.26" -->
+      <density>
+        <linear>
+          <real> 1245 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>  1200 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  0.19  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Polyurethane">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "ABS/Polyurethane Alloy; Density in the range 1090-1120; Young's Modulus Values is in the range 0.827E+08-7.45E+08" -->
+      <density>
+        <linear>
+          <real> 1105 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 4.14E+08 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.0 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com" -->
+      <!-- Remarks : "alloy (abs); density in the range 1090-1120; specific heat capacity: 1.5 j/g.c" -->
+      <density>
+        <linear>
+          <real> 1105 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>  1500 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  0.19  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="PVDF">
+    <!-- Also called/ material is of type : "polyvinylidenefluoride" -->
+    <mechanical>
+      <!-- Data obtained from : "http://www.goodfellow.com"
+           Reference(s) : "http://www.goodfellow.com/csp/active/gfMaterials.csp"
+           Remarks : "Also called Polyvinylidenefluoride; Young's Modulus Values is in the range 1.0E+09-3.0E+09" -->
+      <density>
+        <linear>
+          <real> 1760 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.00E+09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.34 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) :  -->
+      <!-- Remarks : "polyvinylidenefluoride" -->
+      <density>
+        <linear>
+          <real> 1790 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 9.4700E+09 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="PZT-4">
+    <mechanical>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <density>
+        <linear>
+          <real> 7500 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real> 1.376e+11 7.627e+10 7.313e+10 0.000e+00 0.000e+00 0.000e+00 7.627e+10 1.376e+11
+            7.313e+10 0.000e+00 0.000e+00 0.000e+00 7.313e+10 7.313e+10 1.145e+11 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 0.000e+00 2.564e+10 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 2.564e+10 0.000e+00 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 3.058e+10 </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Vernitron Piezoelectric Division, “Piezoelectic Technology Data for Designers”, phone# (216)232-8600." -->
+      <density>
+        <linear>
+          <real> 7500 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 5.1877E+10 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <electric>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real> 1.306E-08 0.000E+00 0.000E+00 0.000E+00 1.306E-08 0.000E+00 0.000E+00 0.000E+00
+            1.151E-08 </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <piezo>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real> 0.0000e-003 0.0000e-003 0.0000e-003 0.0000e-003 12.7174e+000 0.0000e-003 0.0000e-003
+          0.0000e-003 0.0000e-003 12.7174e+000 0.0000e-003 0.0000e-003 -5.1714e+000 -5.1714e+000
+          15.1005e+000 0.0000e-003 0.0000e-003 0.0000e-003
+          </real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="PZT-5A">
+    <mechanical>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <density>
+        <linear>
+          <real> 7750 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real> 1.204e+11 7.518e+10 7.509e+10 0.000e+00 0.000e+00 0.000e+00 7.518e+10 1.204e+11
+            7.509e+10 0.000e+00 0.000e+00 0.000e+00 7.509e+10 7.509e+10 1.109e+11 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 0.000e+00 2.105e+10 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 2.105e+10 0.000e+00 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 2.257e+10 </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Vernitron Piezoelectric Division, “Piezoelectic Technology Data for Designers”, phone# (216)232-8600." -->
+      <density>
+        <linear>
+          <real> 7750 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 3.9584E+10 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <electric>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real> 1.532E-08 0.000E+00 0.000E+00 0.000E+00 1.532E-08 0.000E+00 0.000E+00 0.000E+00
+            1.505E-08 </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <piezo>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real> 0.0000e-003 0.0000e-003 0.0000e-003 0.0000e-003 12.2932e+000 0.0000e-003 0.0000e-003
+          0.0000e-003 0.0000e-003 12.2932e+000 0.0000e-003 0.0000e-003 -5.3605e+000 -5.3605e+000
+          15.7958e+000 0.0000e-003 0.0000e-003 0.0000e-003
+          </real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="PZT-5H">
+    <mechanical>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <density>
+        <linear>
+          <real> 7500 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real> 1.272e+11 8.021e+10 8.467e+10 0.000e+00 0.000e+00 0.000e+00 8.021e+10 1.272e+11
+            8.467e+10 0.000e+00 0.000e+00 0.000e+00 8.467e+10 8.467e+10 1.174e+11 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 0.000e+00 2.299e+11 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 0.000e+00 2.299e+11 0.000e+00 0.000e+00 0.000e+00
+            0.000e+00 0.000e+00 0.000e+00 2.347e+11 </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Vernitron Piezoelectric Division, “Piezoelectic Technology Data for Designers”, phone# (216)232-8600." -->
+      <density>
+        <linear>
+          <real> 7500 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 4.2483E+10 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <electric>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real> 2.771E-08 0.000E+00 0.000E+00 0.000E+00 2.771E-08 0.000E+00 0.000E+00 0.000E+00
+            3.010E-08 </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+    <piezo>
+      <!-- Data obtained from : "http://www.efunda.com"
+           Reference(s) : "www.efunda.com/materials/piezo/" -->
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real> 0.0000e-003 0.0000e-003 0.0000e-003 0.0000e-003 170.3559e+000 0.0000e-003 0.0000e-003
+          0.0000e-003 0.0000e-003 170.3559e+000 0.0000e-003 0.0000e-003 -6.6210e+000 -6.6210e+000
+          23.2190e+000 0.0000e-003 0.0000e-003 0.0000e-003
+          </real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="Silicon">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks :  -->
+      <density>
+        <linear>
+          <real> 2329 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.12E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.28 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="Silver">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Annealed." -->
+      <density>
+        <linear>
+          <real> 10491 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 7.60E+10 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.37 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) :  -->
+      <density>
+        <linear>
+          <real> 10600 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.3738E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.memsnet.org"
+           Reference(s) : "CRC Materials Science and Engineering Handbook" -->
+      <density>
+        <linear>
+          <real> 10500 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>  236.59 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  427  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Steel">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "AISI 1005" -->
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.00E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.29 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) :  -->
+      <density>
+        <linear>
+          <real> 7800 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.7152E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="Tungsten">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks :  -->
+      <density>
+        <linear>
+          <real> 19300 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 4.00E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.28 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) :  -->
+      <density>
+        <linear>
+          <real> 19400 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 5.2500E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.memsnet.org"
+           Reference(s) : "CRC Materials Science and Engineering Handbook" -->
+      <density>
+        <linear>
+          <real> 19250 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real> 132.51 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  178  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Vacuum">
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 8.854E-12 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+  <material name="Water">
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+        Reference(s) : "MetroTek Inc. Application note 23" -->
+      <!-- Remarks : "@ 20 degree c" -->
+      <density>
+        <linear>
+          <real> 1000 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.1904E+09 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <electric>
+      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
+           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
+           Remarks : "@20 degree centigrade" -->
+      <permittivity>
+        <linear>
+          <isotropic>
+            <real> 7.119E-10 </real>
+          </isotropic>
+        </linear>
+      </permittivity>
+    </electric>
+    <heatConduction>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com" -->
+      <!-- Remarks : "specific heat capacity: 4.182 j/g.c" -->
+      <density>
+        <linear>
+          <real> 998.23 </real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real> 4182 </real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>  0.61  </real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+  <material name="Water25degreeC">
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <!-- Remarks : "@ 25 degree c" -->
+      <density>
+        <linear>
+          <real> 998 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.2356E+09 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <magnetic>
+      <!-- Data obtained from : "http://www.btinternet.com/~martin.chaplin/data.html"
+           Reference(s) : "Susceptibility: R. Cini and M. Torrini, Temperature dependence of the magnetic susceptibility of water, J. Chem. Phys. 49 (1968) 2826-2830; Conductivity: T. S. Light, S. Licht, A. C. Bevilacqua and K. R. Morash, The fundamental conductivity and resistivity of water, Electrochem. Solid-State Lett. 8 (2005) E16-E19."
+           Remarks : "@ 25 degree Centigrade" -->
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>5.5e-6</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="Water_Sea">
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
+      <!-- Remarks : "sea water @ 25 degree c" -->
+      <density>
+        <linear>
+          <real> 1025 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.4026E+09 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

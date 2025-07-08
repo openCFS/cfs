@@ -1,0 +1,137 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+ <fileFormats>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="air" material="AIR"/>
+      <region name="coil" material="AIR"/>
+      <region name="plate" material="alu"/>
+    </regionList>
+    <nodeList>
+      <nodes name="ux-fix"/>
+      <nodes name="uy-fix"/>
+      <nodes name="az-fix"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>    1  </numSteps>
+        <deltaT>     1e-03 </deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+    <magnetic  systemId="mag">
+        <regionList>
+          <region name="air"/>
+          <region name="coil"/>
+          <region name="plate"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fluxParallel name="az-fix">
+            <comp dof="z"/>
+          </fluxParallel>
+        </bcsAndLoads>
+        
+	<coilList>
+           <coil id="myCoil">
+            <source type="current" value="1"/>
+            <part>
+              <regionList>
+                <region name="coil"/>
+              </regionList>
+	      <direction>
+		  <analytic/>
+		</direction>
+                <wireCrossSection area="1"/>
+                <resistance value="0"/> 
+              </part>
+            </coil>
+        </coilList>
+        
+        <storeResults>
+          <nodeResult type="magPotential">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="magEddyCurrentDensity">
+            <allRegions/>
+          </elemResult>
+          <regionResult type="magForceLorentz">
+            <allRegions/>
+          </regionResult>
+          <regionResult type="magEddyPower">
+            <allRegions/>
+	  </regionResult>
+        </storeResults>
+      </magnetic>
+      
+     <mechanic subType="planeStrain" systemId="mech">
+        <regionList>
+          <region name="plate"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="ux-fix">
+            <comp dof="x"/>
+          </fix>
+          
+          <fix name="uy-fix">
+            <comp dof="y"/>
+          </fix>
+          
+         <forceDensity name="plate">
+            <coupling pdeName="magnetic">
+              <quantity name="magForceLorentzDensity"/>
+            </coupling>
+          </forceDensity>
+          
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="mechRhsLoad">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <couplingList>
+      <iterative>
+        <!-- Specify convergence criterias -->
+        <convergence logging="yes" maxNumIters="10" stopOnDivergence="yes">
+          <quantity name="mechDisplacement" value="1e-3" normType="rel"/>
+          <quantity name="magForceLorentz" value="1e-3" normType="rel"/>
+        </convergence>
+        <!-- Define geometric update -->
+        <geometryUpdate>
+          <region name="plate"/>
+        </geometryUpdate>
+      </iterative>
+    </couplingList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+ </sequenceStep>
+
+</cfsSimulation>

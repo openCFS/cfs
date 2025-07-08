@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+    <documentation>
+        <title>Viscous dissipation-single element test</title>
+        <authors>
+            <author>hhassanpour</author>
+        </authors>
+        <date>2021-09-20</date>
+        <keywords>
+            <keyword>flow</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>no</isVerified>
+        <description>
+            Total strain part of viscous dissipation on single element
+        </description>
+    </documentation>
+    <fileFormats>
+        <input>
+            <!-- specify you mesh input file here -->
+<!--            <cdb fileName="recsurf.cdb"/>-->
+            <hdf5 fileName="ViscousDissipationTotalStrainPart.h5ref"/>
+        </input>
+        <output>
+            <hdf5/><!-- the default output, i.e. the results_hdf5/job.cfs file -->
+            <text id="txt"/><!-- you can also use text output (suitable for selected results, specify outputIds="txt" for them) -->
+        </output>
+        <materialData file="mat.xml" format="xml"/><!-- material database -->
+    </fileFormats>
+    
+    <domain geometryType="plane">
+        <variableList>
+            <var name="P" value="1"/>
+        </variableList>
+        <regionList>
+            <!-- specify material assignment here -->
+            <region name="S_flow" material="FluidMat"/><!-- 'name' refers to the name of the 'Block' defined in Trelis, 'material' refers to the name of the material in the mat.xml file -->
+        </regionList> 
+    </domain>
+    
+    <fePolynomialList>
+        
+        <Legendre id="velPolyId">
+            <isoOrder>2</isoOrder> 
+        </Legendre>
+        
+        <Legendre id="presPolyId">
+            <isoOrder>1</isoOrder> 
+        </Legendre>
+    </fePolynomialList>
+     
+    <sequenceStep index="1"> 
+        <analysis> 
+            <harmonic>
+                <frequencyList>
+                    <freq value="10e+3"/>
+                </frequencyList>
+            </harmonic>
+        </analysis>
+        
+        <pdeList>
+            <fluidMechLin formulation="compressible" presPolyId="presPolyId" velPolyId="velPolyId">
+                <regionList >
+                    <region name="S_flow"/>
+                </regionList>
+                
+                <bcsAndLoads>
+                    <normalTraction  name="L_left" volumeRegion="S_flow" value="1"/>
+                    <velocity  name="L_top" >
+                        <comp dof="y" value="1"/>
+                    </velocity>
+                    <noSlip name="L_bottom">
+                        <comp dof="y"/>
+                        <comp dof="x"/>
+                    </noSlip>
+                </bcsAndLoads>
+                
+                <storeResults >
+                    <elemResult type="fluidMechViscousDissipationDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <regionResult type="fluidMechViscousDissipation">
+                        <allRegions/>
+                    </regionResult>
+                    <elemResult type="fluidMechViscousDissipationDensityTotalStrainPart">
+                        <allRegions/>
+                    </elemResult>
+                    <nodeResult  type="fluidMechPressure">
+                        <allRegions/>   
+                    </nodeResult>
+                    <nodeResult type="fluidMechVelocity">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </fluidMechLin>
+            
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solverList>
+                    <directLU/>
+                </solverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+    
+    
+</cfsSimulation>

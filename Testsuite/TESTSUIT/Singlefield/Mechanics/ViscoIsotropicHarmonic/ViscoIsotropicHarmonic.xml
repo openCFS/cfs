@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Harmonic single element test of an isotropic viscoleastic material</title>
+    <authors>
+      <author></author>
+    </authors>
+    <date></date>
+    <keywords>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description></description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <gmsh fileName="SingleElement3D.msh"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="visco.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType='3d' >
+    <regionList>
+      <region material="visco_isotropic" name="SOLID"/>
+    </regionList>
+  </domain>
+  
+  <sequenceStep index="1">
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="1"/>
+          <freq value="2"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>  
+    
+    <pdeList>
+      <mechanic subType='3d'>
+        <regionList>
+          <region name="SOLID"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="W">
+            <comp dof="x"/>
+          </fix>
+          <fix name="S">
+            <comp dof="y"/>
+          </fix>
+          <fix name="B">
+            <comp dof="z"/>
+          </fix>
+          <pressure name="O" value="1.0"></pressure> 
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStrain">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>   
+  </sequenceStep>
+</cfsSimulation>
+
+

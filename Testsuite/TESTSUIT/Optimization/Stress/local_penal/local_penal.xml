@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>local stress constraints (penalized)</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2020-12-29</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>standard</references>
+    <isVerified>no</isVerified>
+    <description>
+      This is an extension for the local_vts stress constraints test. See there for general description. Here we apply for the physical density
+      power law with param=3 and param=.3 for the stress qp-penalization following Bruggi, On an alternative approach to stress constraints relaxation in topology optimization, 2008.
+      It helps to observe the following values (regon and center element/node) for evaluation of initial designs 1 and 0.5. For vectors only the x-component is given
+      
+      Full design: displacement=0.57917, mechStrain=1.567,  mechStress=1.4845, VMStress=1.6486, quadraticVMStress=2.7204, energy_mech=0.77712 
+      0.5 design:  displacement=4.6334,  mechStrain=12.536, mechStress=1.4845, VMStress=1.6486, quadraticVMStress=114.87, energy_mech=6.217
+      
+      With a physical (mech) density of 0.5^3 = 1/8 we have expect a displacement of 8*0.57917=4.6334, and a strain of 8*1.567=12.536.
+      For the stress sigma=E*B*u we have (E/8)*B*(8*u) and therefore same von Mises stress sqrt((sigma,M sigma)). For the full design the root of
+      the quadraticVMStress is 1.6494 with the discrepance due to the evaluation at integration points. With M=[[1,-.5,0],[-.5,1,0],[0,0,3]] and
+      the stress vector t=np.ones(3) * [1.4845, -0.27523, -0.10003] we are close to the full design quadraticVMStress t @ M @ t = 2.7180887406 
+      (again discrepancy due to evaluation at integration points). Taking the stress vector, fixing the 1/8 from mech interpolation and applying qp-penalization
+      v=t / .5**3 * .5**.3=[ 9.64630946, -1.78844982, -0.64999686] we get the qudraticVMStress v @ M @ v=114.7692. Finall the energy for the mech region is 
+      8*0.77712=6.21696 as it is linear with the displacement.
+           
+      For meaningful stress constraints bounds a solid material reference solution is more helpful than a penalized half material solution.
+      
+      Variant of the problem with a 40 mesh: Set stress transfer function to 3 and allow for 100 iterations. The inclusion will be rather gray to comply with the stress constraint.
+      Another variant: optimize only for mech and give the problem a very long time :) 
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines" /> 
+      <region name="inner" material="99lines" />
+    </regionList>
+    <elemList>
+      <elems name="center_el">
+        <!-- we assume even number of cells, so there is no center element. Take the right upper to be more deterministic -->
+        <coord x=".5001" y=".5001" />
+       </elems>
+    </elemList>
+    <nodeList>
+      <nodes name="center">
+        <coord x=".5" y=".5"/>
+      </nodes>
+      <nodes name="load">
+        <list>
+          <freeCoord comp="y" start=".4" stop=".6" inc=".01" />
+          <fixedCoord comp="x" value="1"/>
+        </list>
+      </nodes>
+    </nodeList>
+    
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+          <region name="inner" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="load">
+             <comp dof="x" value="1"/>
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+            <nodeList>
+              <nodes name="center"/>
+            </nodeList>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechStrain">
+            <allRegions/>
+            <elemList>
+              <elems name="center_el"/>
+            </elemList>
+          </elemResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+            <elemList>
+              <elems name="center_el"/>
+            </elemList>
+          </elemResult>
+          <elemResult type="vonMisesStrain" >
+            <allRegions/>
+            <elemList>
+              <elems name="center_el"/>
+            </elemList>
+          </elemResult>
+          <elemResult type="vonMisesStress" >
+            <allRegions/>
+            <elemList>
+              <elems name="center_el"/>
+            </elemList>
+          </elemResult>
+
+          <elemResult type="optResult_1">
+            <allRegions/>
+            <elemList>
+              <elems name="center_el"/>
+            </elemList>
+          </elemResult>
+          
+          <regionResult type="mechDeformEnergy">
+            <allRegions/>
+          </regionResult>
+          
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+<!--    <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod/> -->
+<!--         </solverList>  -->
+<!--       </system> -->
+<!--     </linearSystems>  -->
+  </sequenceStep>
+
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping queue="999" value="0.001" type="designChange"/>
+    </costFunction>
+
+    <constraint type="volume" value=".5" bound="upperBound" linear="true" mode="constraint"  />
+
+    <constraint type="localStress" value="2" bound="upperBound" region="inner" />
+
+    <optimizer type="snopt" maxIterations="50">
+      <snopt>
+        <option name="verify_level" type="integer" value="-1"/>
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial material="mechanic" method="simp" >
+      <regions>
+        <region name="mech"/>
+        <region name="inner"/>
+      </regions>
+      <filters>
+        <filter neighborhood="maxEdge" value="1.5" type="density"/>
+      </filters>
+
+      <design name="density" initial="1" physical_lower="1e-5" upper="1.0" />
+
+      <transferFunction type="simp" application="mech" param="3"/>
+      <transferFunction type="simp" application="stress" design="density" param=".3"/>
+
+      <result value="quadraticVMStress" id="optResult_1"/>
+      <export save="last" write="iteration" compress="false"/>
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="999"/>
+   </optimization>
+</cfsSimulation>
+
+

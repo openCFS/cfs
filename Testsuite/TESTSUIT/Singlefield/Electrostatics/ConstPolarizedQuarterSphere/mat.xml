@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="Vacuum">
+    <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+              8.854187E-12  0         0
+              0         8.854187E-12  0
+              0         0         8.854187E-12
+            </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+</cfsMaterialDataBase>
+

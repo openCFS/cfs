@@ -1,0 +1,35 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="air">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.2 </real>
+          <imag> 0.0 </imag>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real>  138720.0 </real>
+          <imag> 0.0 </imag>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="Porous1">
+    <acoustic>
+      <density>
+        <linear>
+          <real> sample1D('porous1RhoR.txt',f,1) </real>
+          <imag> sample1D('porous1RhoI.txt',f,1) </imag>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> sample1D('porous1CompR.txt',f,1) </real>
+          <imag> sample1D('porous1CompI.txt',f,1) </imag>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>

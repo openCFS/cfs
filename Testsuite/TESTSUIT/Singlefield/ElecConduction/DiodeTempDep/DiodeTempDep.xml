@@ -1,0 +1,248 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+    <title>DiodeTempDep</title>
+    <authors>
+      <author>seiser</author>
+    </authors>
+    <date>2014-02-14</date>
+    <keywords>
+      <keyword>electrostatic</keyword>
+    </keywords>
+    <references>
+      my bloody mind
+    </references>
+    <isVerified>no</isVerified>
+    <description>
+       Non-linear elecCurrent conduction. The region 'chan' (a diode) has a voltage dependant conductivity. 
+       A diode has a low conductivity in reverse direction (until reaching breakdown) and a high conductivity 
+       in forward direction (starting at appx .6V for Silicon). See the material file for details.
+       Note: I made up the material dependency of the diode from my school memories.
+
+       In this example a voltage ramp is applied on the terminals of a wire (vWire1, vWire2) where a diode is in-between. 
+       Starting at negative voltage -0.9 V, the diode is a very good insulator.
+       Upon reaching 0.6V (~time step 13) the current starts to flow (quite violently). 
+
+       In addition to the voltage ramp, the temperature of the channel is modulated by a sinusodial shape from 200 to 400 K. 
+       This introduces small jitter on the current.
+       One can plot the I-U curve using the gnuplot script plot-IV-curve.sh (which outputs `u-i-curve.png`). 
+       When plotting interactively, zoom into the negative V region to see the 'tunnel current'.
+
+       The test case demonstrates the multivariate nonlinearity, which requires the bilinear approximation of the conductivity.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <gmsh fileName="diode.msh"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <gmsh binaryFormat="no" id="gm"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d" printGridInfo="yes">
+    <regionList>
+      <region name="vWire1" material="dummy"/>
+      <region name="vWire2" material="dummy"/>
+      <!-- <region name="chan" material="diode" /> only temperature dependant -->
+      <region name="chan" material="diodeTempDep" />
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="hot"/>
+      <surfRegion name="cold"/>
+      <surfRegion name="anode"/>
+      <surfRegion name="cathode"/>
+    </surfRegionList>
+    <nodeList>
+      <!-- <nodes name="anoPt"/>  point on anode -->
+      <!-- <nodes name="catPt"/> point on cathode -->
+      <nodes name="anoPt">
+             <coord x="0" y="0" z="5"/>
+      </nodes>
+      <nodes name="catPt">
+             <coord x="0" y="0" z="8"/>
+      </nodes>
+      <nodes name="loadPt">
+             <coord x="0" y="0" z="13"/>
+      </nodes>
+    </nodeList>
+
+  </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <static></static>
+        </analysis>
+        <pdeList>
+            <heatConduction>
+                <regionList>
+                    <region name="vWire1"/>
+                    <region name="vWire2"/>
+                    <region name="chan"/>
+                </regionList>
+                <bcsAndLoads>
+                    <temperature name="cold" value="298.00"/>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="heatTemperature">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </heatConduction>
+        </pdeList>
+    </sequenceStep>
+
+    <sequenceStep index="2">
+        <analysis>
+            <!-- <static></static> -->
+	    <transient>
+	      <numSteps>
+	        25
+	      </numSteps>
+              <deltaT> 0.000006 </deltaT>
+	    </transient>
+        </analysis>
+        <pdeList>
+            <heatConduction  systemId="heat">
+                <regionList>
+                    <region name="vWire1" />
+                    <region name="vWire2"/>
+                    <region name="chan"/>
+                </regionList>
+
+               <initialValues>
+                  <initialState>
+                    <sequenceStep index="1"/>
+                 </initialState>
+               </initialValues>
+
+                <bcsAndLoads>
+                     <temperature name="cold" value="298.00"/>
+          	    <temperature name="chan" value="300+99*sin(2000*2*pi*t)"/> <!-- Kelvin -->
+
+                    <elecPowerDensity name="chan">
+                      <coupling pdeName="elecConduction">
+                          <quantity name="elecPowerDensity"/>
+                      </coupling>        
+                   </elecPowerDensity>          
+                </bcsAndLoads>
+
+                <storeResults>
+                    <nodeResult type="heatTemperature">
+                        <allRegions/>
+			<nodeList>
+			  <nodes name="anoPt" outputIds="txt"/> <!-- history/DiodeTempDep-ms2-heatTemperature-node-8-anoPt.hist -->
+			  <nodes name="catPt" outputIds="txt"/> <!-- history/DiodeTempDep-ms2-heatTemperature-node-8-anoPt.hist -->
+			</nodeList>
+                    </nodeResult> 
+                </storeResults>
+            </heatConduction>
+
+      <elecConduction systemId="elec">
+        <regionList>
+          <region name="vWire1" />
+          <region name="chan" matDependIds="cond" nonLinIds="bipolemodel"/>
+          <region name="vWire2"/>
+        </regionList>
+
+	<nonLinList>
+	  <elecBiPoleTempDep id="bipolemodel"/>
+	</nonLinList>
+
+        <matDependencyList>
+            <elecConductivity id="cond">
+              <coupling pdeName="heatConduction">
+                 <quantity name="heatTemperature"/>
+              </coupling>
+            </elecConductivity>
+        </matDependencyList>    
+
+	<poleList>
+	    <Bipole id="bipolemodel">
+	      <anode region="anode"/>
+	      <cathode region="cathode"/>
+	    </Bipole>
+	</poleList> 
+
+        <bcsAndLoads>
+          <ground name="cold"/>
+          <potential name="hot" value="-.9+2*1000*2*pi*t"/> <!-- Volts -->
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions/>
+	    <nodeList>
+	      <nodes name="anoPt" outputIds="txt"/> <!-- history/DiodeTempDep-ms2-elecPot -->
+	      <nodes name="catPt" outputIds="txt"/> <!-- history/DiodeTempDep-ms2-elecPot -->
+	      <nodes name="loadPt" outputIds="txt"/> <!-- history/DiodeTempDep-ms2-elecPot...  -->
+	    </nodeList>
+          </nodeResult>
+          <elemResult type="elecCurrentDensity">
+            <allRegions/>
+          </elemResult>
+	 <surfElemResult type="elecNormalCurrentDensity">
+	    <surfRegionList>
+              <surfRegion name="cathode"/>
+	    </surfRegionList>
+	  </surfElemResult> 
+	 <surfRegionResult type="elecCurrent">
+	    <surfRegionList>
+              <surfRegion name="cathode" /> <!-- history/DiodeTempDep-ms2-elecCurrent-surfRegion-cathode.hist -->
+	    </surfRegionList>
+	  </surfRegionResult>
+        </storeResults>
+      </elecConduction>
+        </pdeList>
+
+    <couplingList>
+        <iterative>
+            <convergence logging="yes" maxNumIters="5" stopOnDivergence="yes">
+                <!-- <quantity name="elecCurrent" value="1e-3" normType="rel"/> -->
+                <quantity name="elecPower" value="1e-3" normType="rel"/> 
+            </convergence>
+        </iterative>
+    </couplingList>
+
+    <linearSystems>
+      <system id="heat">
+        <solutionStrategy>
+          <standard>
+           <!-- <nonLinear logging="yes">
+                   <lineSearch/>
+                   <incStopCrit> 1e-3</incStopCrit>
+                   <resStopCrit> 1e-3</resStopCrit>
+                   <maxNumIters> 20  </maxNumIters>
+            </nonLinear> -->
+          </standard>
+        </solutionStrategy>
+        <!--<solverList>
+          <pardiso>
+          </pardiso>
+        </solverList>-->
+      </system>
+      <system id="elec">
+        <solutionStrategy>
+          <standard>
+                        <nonLinear logging="yes">
+                            <lineSearch type="minEnergy"/>
+                            <incStopCrit> 1e-7</incStopCrit>
+                            <resStopCrit> 1e-7</resStopCrit>
+                            <maxNumIters> 22  </maxNumIters>
+                        </nonLinear>
+          </standard>
+        </solutionStrategy>
+        <!-- <solverList>
+          <pardiso/>
+        </solverList> -->
+      </system>
+    </linearSystems>
+    </sequenceStep>
+  
+</cfsSimulation>

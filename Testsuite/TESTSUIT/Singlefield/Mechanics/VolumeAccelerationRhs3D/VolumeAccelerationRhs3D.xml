@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>VolumeAccelerationRhs3D</title>
+    <authors>
+      <author>pheidegger</author>
+    </authors>
+    <date>2025-05-02</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>yes</isVerified>
+    <description> Here we test the volume acceleration RHS in a 3D brick element that is connected to the ground. The acceleration is applied as a gravity in the positive x direction, which is the ground-normal direction. In this case, the normal stress on the ground surface should be $\sigma_n \approx - \rho g h$. In this example, $g=1$, $h=1$, and $\rho=1e10$. A dense and stiff material with a low Poisson ratio is chosen to reduce the effect of shear stresses, so that the solution follows the analytical approximation. </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <cdb fileName="brick.cdb"/>
+      <!-- <hdf5 fileName="VolumeAccelerationRhs3D.h5ref"/> -->
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <domain geometryType="3d">
+    <regionList>
+      <region name="brick" material="myMaterial"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="ground"/>
+      <surfRegion name="y_normal"/>
+      <surfRegion name="z_normal"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="mechanicPolyId">
+      <isoOrder>2</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="brick" polyId="mechanicPolyId"/>
+        </regionList>
+        <bcsAndLoads>
+          <fix name="ground">
+            <comp dof="x"/>
+          </fix>
+          <fix name="y_normal">
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <fix name="z_normal">
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+          <volumeAcceleration name="brick">
+            <comp dof="x" value="1"/>
+            <comp dof="y" value="0"/>
+            <comp dof="z" value="0"/>
+          </volumeAcceleration>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+          <surfElemResult type="mechNormalStress">
+            <surfRegionList>
+              <surfRegion name="ground"/>
+            </surfRegionList>
+          </surfElemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

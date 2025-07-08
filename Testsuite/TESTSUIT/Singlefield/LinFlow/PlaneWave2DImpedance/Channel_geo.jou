@@ -1,0 +1,72 @@
+reset
+undo on
+
+
+set logging errors on file 'mesh_log.txt'
+
+#{b = 10e-3}; # widht of the channel
+#{h = 0.5}; # height of the channel
+#{d_cut = 20e-3}; # distance of the first cut to the origin
+#{d_cut_2 = 50e-3}; # distance of the second cut to the origin
+#{phi_cut_2 = 30}; # angle of the second cut
+#{h_el = 5e-3}; # element size
+
+#{tol = 1e-6}
+merge tolerance {tol}
+
+
+# geometry
+
+create surface rectangle width {h} height {b} zplane
+move surface 1 x {h/2} y 0 z 0 
+
+
+split surface 1 across location position {d_cut} {-b/2} 0 location position {d_cut} {b/2} 0
+split surface 2 across location position {d_cut_2+b/2*tand(phi_cut_2)} {-b/2} 0 location position {d_cut_2-b/2*tand(phi_cut_2)} {b/2} 0
+
+
+# mesh
+surface all size {h_el} scheme submap
+mesh surface all
+
+imprint tolerant volume all 
+merge volume all 
+
+
+# blocks and nodesets
+
+block 1 add surface 3
+block 1 name "Channel_L"
+
+block 2 add surface 5
+block 2 name "Channel_M"
+
+block 3 add surface 4
+block 3 name "Channel_R"
+
+
+nodeset 1 add curve 2
+nodeset 1 name "Excite"
+
+nodeset 2 add curve 8 12 13
+nodeset 2 name "BC_Top"
+
+nodeset 3 add curve 9 11 14
+nodeset 3 name "BC_Bot"
+
+nodeset 4 add curve 4
+nodeset 4 name "BC_Right"
+
+nodeset 5 add curve 5
+nodeset 5 name "IF_L"
+
+nodeset 6 add curve 10
+nodeset 6 name "IF_R"
+
+
+
+# use this command to enable the output of wedges inside your hex-blocks (otherwise you get holes)
+Set Block Mixed Element Output Degenerate
+
+export ansys cdb "Channel_mesh.cdb" overwrite
+

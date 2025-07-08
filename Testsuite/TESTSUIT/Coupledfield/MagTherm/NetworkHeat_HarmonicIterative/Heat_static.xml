@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <documentation>
+        <title>Magnetic Network coupled with Heat Condution</title>
+        <authors>
+            <author>ftoth</author>
+        </authors>
+        <date>2018-09-08</date>
+        <keywords>
+            <keyword>magneticEdge</keyword>
+            <keyword>heatConduction</keyword>
+            <keyword>harmonic</keyword>
+        </keywords>
+        <references> </references>
+        <isVerified>no</isVerified>
+        <description> 
+Simple magnetic network of a conducting wire though a magnetic core.
+The BCs are set such that magnetic flux is possible only in z-direction.
+The wire is excited by current in x-direction.
+
+We selcect the geometry such that we have unit-areas and lengths
+        </description>
+    </documentation>
+    <fileFormats>
+        <input>
+            <hdf5 fileName="results_hdf5/test.cfs" id="hdf"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="3d">
+        <variableList>
+            <var name="freq" value="5"/>
+            <var name="a" value="1.0"/>
+            <var name="b1" value="1.0"/>
+            <var name="b2" value="1.0"/>
+            <var name="b3" value="b1"/>
+            <var name="c" value="1.0"/>
+            <var name="I_coil" value="1.0"/>
+            <var name="alpha" value="1.0"/>
+        </variableList>
+        <regionList>
+            <region name="V1" material="SimpleCore"/>
+            <region name="V3" material="SimpleCore"/>
+            <region name="V2" material="SimpleCoil"/>
+        </regionList>
+        <surfRegionList> </surfRegionList>
+    </domain>
+    
+    <fePolynomialList>
+        <Legendre id="Hcurl">
+            <isoOrder>0</isoOrder>
+        </Legendre>
+        <Lagrange id="H1">
+            <isoOrder>1</isoOrder>
+        </Lagrange>
+    </fePolynomialList>
+    
+    
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+        
+        <pdeList>
+
+            <heatConduction>
+                <regionList>
+                    <region name="V1" polyId="H1"/>
+                    <region name="V2" polyId="H1"/>
+                    <region name="V3" polyId="H1"/>
+                </regionList>               
+                
+                <bcsAndLoads><!--
+                    <heatSourceDensity volumeRegion="V2" name="V2">
+                        <externalSimulation inputId="hdf" sequenceStep="1">
+                            <quantity name="magJouleLossPowerDensity" pdeName="magneticEdge"/>
+                            <timeFreqMapping>
+                                <constant/>
+                            </timeFreqMapping>
+                        </externalSimulation>
+                    </heatSourceDensity>-->
+                    <heatSourceDensity name="V2" value="1"/>
+                    <heatTransport name="S1S" volumeRegion="V1" bulkTemperature="0" heatTransferCoefficient="alpha"/>
+                    <heatTransport name="S3N" volumeRegion="V3" bulkTemperature="0" heatTransferCoefficient="alpha"/>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="heatTemperature">
+                        <allRegions/>
+                    </nodeResult>
+                    <nodeResult type="heatRhsLoad">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="heatFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <surfRegionResult type="heatFlux">
+                        <surfRegionList>
+                            <surfRegion name="S12" outputIds="txt"/>
+                            <surfRegion name="S23" outputIds="txt"/>
+                            <surfRegion name="S1S" outputIds="txt"/>
+                            <surfRegion name="S3N" outputIds="txt"/>
+                        </surfRegionList>
+                    </surfRegionResult>
+                </storeResults>
+            </heatConduction>
+        </pdeList>
+                  
+        
+        <linearSystems>
+            <system >
+                <solutionStrategy>
+                    <standard>
+                        <nonLinear logging="yes">
+                            <lineSearch/>
+                            <incStopCrit> 1e-5</incStopCrit>
+                            <resStopCrit> 1e-5</resStopCrit>
+                            <maxNumIters> 20  </maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso/>
+                </solverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+</cfsSimulation>

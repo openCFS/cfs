@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="air">
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 1e-8  </real>
+          </isotropic>
+        </linear>
+        <nonlinear>
+          <isotropic>
+            <dependency>voltage</dependency>
+            <approxType>LinInterpolate</approxType>
+            <measAccuracy>0.05</measAccuracy>
+            <maxApproxVal>1e8</maxApproxVal>
+            <dataName>sigAir.dat</dataName>
+          </isotropic>
+        </nonlinear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+  <material name="copper">
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 1e8  </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+  <material name="resistor">
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real> 1e8  </real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+  </material>
+</cfsMaterialDataBase>

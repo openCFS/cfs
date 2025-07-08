@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="0.500" lower=".005" name="density" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <transferFunction application="magnetic" param="1.0" type="simp"/>
+  </header>
+  <set id="0">
+    <element nr="1" type="density" design="0.5" physical="0.5"/>
+    <element nr="2" type="density" design="0.5" physical="0.5"/>
+    <element nr="3" type="density" design="0.5" physical="0.5"/>
+    <element nr="4" type="density" design="0.5" physical="0.5"/>
+    <element nr="5" type="density" design="0.5" physical="0.5"/>
+    <element nr="6" type="density" design="0.5" physical="0.5"/>
+    <element nr="7" type="density" design="0.5" physical="0.5"/>
+    <element nr="8" type="density" design="0.5" physical="0.5"/>
+  </set>
+  <set id="1">
+    <element nr="1" type="density" design="0.50000034234" physical="0.50000034234"/>
+    <element nr="2" type="density" design="0.49999965766" physical="0.49999965766"/>
+    <element nr="3" type="density" design="0.50000034233" physical="0.50000034233"/>
+    <element nr="4" type="density" design="0.49999965767" physical="0.49999965767"/>
+    <element nr="5" type="density" design="0.50000034233" physical="0.50000034233"/>
+    <element nr="6" type="density" design="0.49999965768" physical="0.49999965768"/>
+    <element nr="7" type="density" design="0.50000034232" physical="0.50000034232"/>
+    <element nr="8" type="density" design="0.49999965769" physical="0.49999965769"/>
+  </set>
+</cfsErsatzMaterial>

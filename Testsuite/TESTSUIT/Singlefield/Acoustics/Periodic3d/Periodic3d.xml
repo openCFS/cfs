@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+    
+    <documentation>
+        <title>Periodic acoustic box</title>
+        <authors>
+            <author>Jens Grabinger</author>
+        </authors>
+        <date>2013-07-16</date>
+        <keywords>
+            <keyword>acoustic</keyword>
+        </keywords>
+        <references>none</references>
+        <isVerified>yes</isVerified>
+        <description>
+            The domain is a cylinder sector covering 36°, i.e. 1/10 of a full
+            cylinder. Its radial surfaces act as a periodic boundary. Therefore
+            the periodic BC uses a cylindrical coordinate system for determination
+            of coupling nodes, where the r- and z-coordinates have to match.
+            A point source is placed off-centered, so one can easily discriminate
+            the periodic BC behaviour from total reflection. On the outer circum-
+            ferential surface we impose an absorbing BCs, other boundaries are
+            perfectly reflecting.
+        </description>
+    </documentation>
+    
+    <fileFormats>
+        <input>
+            <hdf5 fileName="Periodic3d.h5"/>
+        </input>
+        <output>
+            <hdf5 compressionLevel="9"/>
+        </output>
+        <materialData/>
+    </fileFormats>
+    
+    <domain geometryType="3d">
+
+        <regionList>
+            <region name="sector" material="air"/>
+        </regionList>
+        
+        <surfRegionList>
+            <surfRegion name="bottom"/>
+            <surfRegion name="left"/>
+            <surfRegion name="right"/>
+            <surfRegion name="top"/>
+            <surfRegion name="inner"/>
+            <surfRegion name="outer"/>
+        </surfRegionList>
+        
+        <nodeList>
+            <nodes name="src" >
+                <coord coordSysId="cyl" r="0.4" phi="10" z="0.1"/>
+            </nodes>
+        </nodeList>
+
+        <coordSysList>
+            <cylindric id="cyl">
+                <origin x="0.0" y="0.0" z="0.0"/>
+                <zAxis x="0.0" y="0.0" z="1.0"/>
+                <rAxis x="1.0" y="0.0" z="0.0"/>
+            </cylindric>
+            
+        </coordSysList>
+    </domain>
+    
+    <fePolynomialList>
+        <Lagrange>
+            <gridOrder/>
+        </Lagrange>
+    </fePolynomialList>
+    
+    <sequenceStep>
+        
+        <analysis>
+            <transient>
+                <numSteps>50</numSteps>
+                <deltaT>2e-4</deltaT>
+            </transient>
+        </analysis>
+        
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                
+                <regionList>
+                    <region name="sector"/>
+                </regionList>
+                
+                <bcsAndLoads>
+                    <absorbingBCs volumeRegion="sector" name="outer" quantity="acouPressure"/>
+                    <periodic primary="left" secondary="right" quantity="acouPressure"
+                        coordSysId="cyl" fixedCoords="r,z"/>
+                    <pressure value="sin(500*pi*t)" name="src"/>
+                </bcsAndLoads>
+                
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </acoustic>
+            
+        </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+
+    </sequenceStep>
+
+</cfsSimulation>

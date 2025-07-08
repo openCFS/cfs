@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+  <fileFormats>
+    <output>
+      <text/>
+      <info/>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="axi">
+    <regionList>
+      <region name="piezo_ax" material="PZT-4"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="surf"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="ep-lower"/>
+      <nodes name="ep-top"/>
+      <nodes name="axisBoun"/>
+      <nodes name="save-u"/>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>     5       </numFreq>
+        <startFreq>   2.0e6   </startFreq>
+        <stopFreq>    6.0e6   </stopFreq>
+      </harmonic>
+    </analysis>
+
+    <pdeList>
+      
+      <mechanic subType="axi">
+
+        <regionList>
+          <region name="piezo_ax" complexMaterial="yes"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="axisBoun">
+            <comp dof="r"/>
+          </fix>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStrain">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+      
+      <electrostatic>
+        <regionList>
+          <region name="piezo_ax" complexMaterial="yes"/>
+        </regionList>
+        <bcsAndLoads>
+          <ground name="ep-lower" />
+          <potential name="ep-top" value="10" phase="30"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <elemResult type="elecFieldIntensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </electrostatic>
+
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <piezoDirect>
+          
+          <regionList>
+            <region name="piezo_ax" complexMaterial="yes"/>
+          </regionList>
+
+          <storeResults>
+
+            <elemResult type="mechStress">
+              <allRegions/>
+            </elemResult>
+
+            <surfRegionResult type="elecCharge"> 
+              <surfRegionList>
+                <surfRegion name="surf" neighborRegion="piezo_ax" />
+              </surfRegionList>
+            </surfRegionResult>
+            
+          </storeResults> 
+        </piezoDirect>
+      </direct>
+    </couplingList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+
+  </sequenceStep>
+  
+</cfsSimulation>

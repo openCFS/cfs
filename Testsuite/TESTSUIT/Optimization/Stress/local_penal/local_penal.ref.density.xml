@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <mesh x="10" y="10" z="1"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial="1" name="density" physical_lower="1e-5" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <transferFunction application="mech" param="3" type="simp"/>
+    <transferFunction application="stress" design="density" param=".3" type="simp"/>
+    <filters periodic="enable">
+      <filter contribution="linear" design="allDesigns" neighborhood="maxEdge" type="density" value="1.5"/>
+    </filters>
+  </header>
+  <set id="20">
+    <element nr="1" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="2" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="3" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="4" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="5" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="6" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="7" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="8" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="9" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="10" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="11" type="density" design="0.0215443469" physical="0.0082747864332"/>
+    <element nr="12" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="13" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="14" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="15" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="16" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="17" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="18" type="density" design="0.0215443469" physical="0.0068351986911"/>
+    <element nr="19" type="density" design="0.0215443469" physical="0.0037011388514"/>
+    <element nr="20" type="density" design="0.0215443469" physical="8.9216643399e-05"/>
+    <element nr="21" type="density" design="1" physical="0.54991727095"/>
+    <element nr="22" type="density" design="1" physical="0.56976229918"/>
+    <element nr="23" type="density" design="1" physical="0.56976229918"/>
+    <element nr="24" type="density" design="1" physical="0.56976229918"/>
+    <element nr="25" type="density" design="1" physical="0.56976229918"/>
+    <element nr="26" type="density" design="1" physical="0.56976229918"/>
+    <element nr="27" type="density" design="1" physical="0.56976229918"/>
+    <element nr="28" type="density" design="1" physical="0.53740528385"/>
+    <element nr="29" type="density" design="0.87697516216" physical="0.27936661238"/>
+    <element nr="30" type="density" design="0.0215443469" physical="0.038317024869"/>
+    <element nr="31" type="density" design="1" physical="0.54991727095"/>
+    <element nr="32" type="density" design="1" physical="0.56976229918"/>
+    <element nr="33" type="density" design="1" physical="0.59387618818"/>
+    <element nr="34" type="density" design="1" physical="0.77383955381"/>
+    <element nr="35" type="density" design="1" physical="0.96939721458"/>
+    <element nr="36" type="density" design="1" physical="1"/>
+    <element nr="37" type="density" design="1" physical="0.93683153771"/>
+    <element nr="38" type="density" design="1" physical="0.66271669867"/>
+    <element nr="39" type="density" design="1" physical="0.8322895214"/>
+    <element nr="40" type="density" design="1" physical="0.59784034318"/>
+    <element nr="41" type="density" design="0.0215443469" physical="0.0082747864332"/>
+    <element nr="42" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="43" type="density" design="0.0215443469" physical="0.019965543564"/>
+    <element nr="44" type="density" design="0.53825942685" physical="0.22761842108"/>
+    <element nr="47" type="density" design="1" physical="0.62082633593"/>
+    <element nr="48" type="density" design="0.036053437315" physical="0.12379200627"/>
+    <element nr="49" type="density" design="1" physical="0.62082633593"/>
+    <element nr="50" type="density" design="1" physical="1"/>
+    <element nr="51" type="density" design="0.0215443469" physical="0.0082747864332"/>
+    <element nr="52" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="53" type="density" design="0.0215443469" physical="0.019965520562"/>
+    <element nr="54" type="density" design="0.53825940665" physical="0.22761813979"/>
+    <element nr="57" type="density" design="1" physical="0.620819697"/>
+    <element nr="58" type="density" design="0.036053001345" physical="0.12378653589"/>
+    <element nr="59" type="density" design="1" physical="0.620819697"/>
+    <element nr="60" type="density" design="1" physical="1"/>
+    <element nr="61" type="density" design="1" physical="0.54991727095"/>
+    <element nr="62" type="density" design="1" physical="0.56976229918"/>
+    <element nr="63" type="density" design="1" physical="0.59387614245"/>
+    <element nr="64" type="density" design="1" physical="0.77383923581"/>
+    <element nr="65" type="density" design="1" physical="0.96939715118"/>
+    <element nr="66" type="density" design="1" physical="1"/>
+    <element nr="67" type="density" design="1" physical="0.93682972878"/>
+    <element nr="68" type="density" design="1" physical="0.66269822458"/>
+    <element nr="69" type="density" design="1" physical="0.83221930288"/>
+    <element nr="70" type="density" design="1" physical="0.59782891269"/>
+    <element nr="71" type="density" design="1" physical="0.54991727095"/>
+    <element nr="72" type="density" design="1" physical="0.56976229918"/>
+    <element nr="73" type="density" design="1" physical="0.56976229918"/>
+    <element nr="74" type="density" design="1" physical="0.56976229918"/>
+    <element nr="75" type="density" design="1" physical="0.56976229918"/>
+    <element nr="76" type="density" design="1" physical="0.56976229918"/>
+    <element nr="77" type="density" design="1" physical="0.56976229918"/>
+    <element nr="78" type="density" design="1" physical="0.53735407588"/>
+    <element nr="79" type="density" design="0.87696601721" physical="0.27926730013"/>
+    <element nr="80" type="density" design="0.0215443469" physical="0.038306356048"/>
+    <element nr="81" type="density" design="0.0215443469" physical="0.0082747864332"/>
+    <element nr="82" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="83" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="84" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="85" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="86" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="87" type="density" design="0.0215443469" physical="0.0071361281287"/>
+    <element nr="88" type="density" design="0.0215443469" physical="0.0068347199625"/>
+    <element nr="89" type="density" design="0.0215443469" physical="0.0036992854571"/>
+    <element nr="90" type="density" design="0.0215443469" physical="8.918448785e-05"/>
+    <element nr="91" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="92" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="93" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="94" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="95" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="96" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="97" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="98" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="99" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="100" type="density" design="0.0215443469" physical="1e-05"/>
+    <element nr="45" type="density" design="1" physical="0.80337346525"/>
+    <element nr="46" type="density" design="1" physical="1"/>
+    <element nr="55" type="density" design="1" physical="0.80337319515"/>
+    <element nr="56" type="density" design="1" physical="1"/>
+  </set>
+</cfsErsatzMaterial>

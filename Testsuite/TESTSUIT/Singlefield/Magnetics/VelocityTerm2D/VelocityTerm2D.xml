@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Considering motional EMF term in magnetics</title>
+    <authors>
+      <author>Philipp Seebacher</author>
+    </authors>
+    <date>2019-06-04</date>
+    <keywords>
+      <keyword>magneticNodal</keyword>
+    </keywords>
+    <references>Numerical Simulation of Mechatronic Sensors and Actuators; M. Kaltenbacher</references>
+    <isVerified>no</isVerified>
+    <description>A ferromagnetic body moves through a constang magnetic field with a constant velocity. Problem is considered in the linear case.</description>
+  </documentation>     
+    <fileFormats>
+        <input>
+            <gmsh fileName="Geometrie.msh"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="plane">
+        <regionList>
+            <region name="Magnet" material="air"/>
+            <region name="Body" material="iron-table"/>
+            <region name="Air" material="air"/>
+        </regionList>
+    </domain>
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+        <pdeList>
+            <magnetic>
+                <regionList>
+                    <region name="Magnet"/>
+                    <region name="Air"/>
+                    <region name="Body" velocityId="velId1"/>
+                </regionList>            
+                <nonLinList>
+                    <permeability id="S_core"/>
+                </nonLinList>
+                <velocityList>
+                    <velocity name="velId1">
+                        <comp dof="y" value="5.0"/>
+                    </velocity>
+                </velocityList>
+                <bcsAndLoads>                 
+                    <fluxParallel name="L_outer-x">
+                        <comp dof="x"/>
+                    </fluxParallel>
+                    <fluxParallel name="L_outer-y">
+                        <comp dof="z"/>
+                    </fluxParallel>   
+                    <fluxDensity name="Magnet">
+                        <comp dof="y" value="1.2"/>
+                    </fluxDensity>      
+                </bcsAndLoads>
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <nodeResult type="magPotential">
+                        <allRegions/>        
+                    </nodeResult>
+                </storeResults>
+            </magnetic>
+        </pdeList>      
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <nonLinear method="newton">
+                            <lineSearch type="minEnergy"/>
+                            <incStopCrit>1e-2</incStopCrit>
+                            <resStopCrit>1e-2</resStopCrit>
+                            <maxNumIters>100</maxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso></pardiso>
+                </solverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+</cfsSimulation>

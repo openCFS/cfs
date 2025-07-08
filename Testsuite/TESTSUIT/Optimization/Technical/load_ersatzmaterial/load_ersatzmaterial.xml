@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Load Ersatzmaterial</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-02-02</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>no math</references>
+    <isVerified>yes</isVerified>
+    <description>Load a density.xml file and apply it to simulation but do not used the optimization element</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <force name="right_lower">
+            <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <regionResult type="mechDeformEnergy">
+            <allRegions/>
+          </regionResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <loadErsatzMaterial file="DensityFilter.ref.density.xml" set="last" />
+</cfsSimulation>
+
+

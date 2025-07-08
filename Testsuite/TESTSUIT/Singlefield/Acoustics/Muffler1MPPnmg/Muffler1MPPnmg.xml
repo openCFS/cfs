@@ -1,0 +1,92 @@
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+    
+    <fileFormats>
+        <input>
+            <hdf5 fileName="muffler1NMG1.h5" scaleFac="1e-3" id="h1"/>
+            <hdf5 fileName="muffler1NMG2.h5" scaleFac="1e-3" id="h2"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="matMPP.xml" format="xml"/>
+    </fileFormats>
+    
+    <domain geometryType="axi">
+        <regionList>
+            <region material="air" name="airEl"/>              
+            <region material="air" name="damp"/>     
+            <region material="MPP1" name="mpp" />            
+        </regionList>                      
+
+        <ncInterfaceList>
+            <ncInterface name="i1" primarySide="I1master" secondarySide="I1slave"/>
+            <ncInterface name="i2" primarySide="I2master" secondarySide="I2slave"/>
+        </ncInterfaceList>        
+    </domain>
+    
+
+     <sequenceStep>
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <startFreq>1000</startFreq>
+                <stopFreq>1000</stopFreq>
+            </harmonic>
+        </analysis>
+        
+        <pdeList>
+            <acoustic> 
+                <regionList>
+                    <region name="airEl"/>
+                    <region name="damp" dampingId="myPml"/>
+                    <region name="mpp" complexFluid="yes"/>                    
+                </regionList>
+ 
+               <ncInterfaceList>
+                  <ncInterface name="i1" formulation="Nitsche" nitscheFactor="50"/>
+                  <ncInterface name="i2" formulation="Nitsche" nitscheFactor="50"/>
+               </ncInterfaceList>
+                
+                <dampingList>
+                    <pml id="myPml">
+                        <type> inverseDist </type>
+                        <dampFactor>1.0</dampFactor>
+                    </pml> 
+                </dampingList>
+                
+                <bcsAndLoads>
+                    <normalVelocity name="excite" value="1"/>                    
+                    <!--pressure name="excite" value="1"/-->                                                          
+                </bcsAndLoads>
+                
+                <storeResults>
+                    <nodeResult  complexFormat="realImag" type="acouPressure">
+                        <allRegions/>                        
+                    </nodeResult>                           
+                </storeResults>
+            </acoustic>
+        </pdeList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard>
+                        <matrix  reordering="noReordering" storage="sparseSym"/>
+                        <solver id="paradiso"/>
+                    </standard>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso id="paradiso">                       
+                        <IterRefineSteps>10</IterRefineSteps>
+                        <logging>yes</logging>
+                        <stats>no</stats> 
+                    </pardiso>
+                </solverList>
+                
+            </system>
+            
+        </linearSystems>
+         
+    </sequenceStep> 
+</cfsSimulation>

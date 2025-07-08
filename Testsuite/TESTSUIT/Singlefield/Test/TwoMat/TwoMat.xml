@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  
+  <fileFormats>
+    <input>
+      <hdf5/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane" printGridInfo="yes">
+    <regionList>
+      <region name="reg1" material="polyethylene"/>
+      <region name="reg2" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="bottom"/>
+      <surfRegion name="top"/>
+    </surfRegionList>
+  </domain>
+  
+  <fePolynomialList>
+    <Legendre id="default">
+      <isoOrder>1</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+  
+  
+  <sequenceStep>
+    <analysis>
+      <static>    
+      </static>
+    </analysis>
+    
+    <pdeList>
+      <testPDE>
+        <regionList>
+          <region name="reg1" polyId="default"/>
+          <region name="reg2" polyId="default"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <testGround name="bottom"/>
+          <testPotential name="top" value="1.0"/>
+          <!--testSourceDensity name="dielec-1" value="1"/-->
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="testDof">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="testField">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </testPDE>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+</cfsSimulation>

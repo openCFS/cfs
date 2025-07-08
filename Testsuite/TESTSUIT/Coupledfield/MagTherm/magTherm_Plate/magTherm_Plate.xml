@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <documentation>
+        <title>Harmonic Flat Plate</title>
+        <authors>
+            <author>kroppert</author>
+        </authors>
+        <date>2017-10-21</date>
+        <keywords>
+            <keyword>magneticEdge</keyword>
+            <keyword>heatConduction</keyword>
+            <keyword>transient</keyword>
+        </keywords>
+        <references> Prechtl "Grundlagen der Elektrotechnik Band 2" Bsp. A26.9 </references>
+        <isVerified>no</isVerified>
+        <description> This is a simple cylindric flat aluminium plate with diameter D in a magnetic
+            field with magnetic flux density normal to the plate. The alternating magnetic field has
+            a amplitude of 1T and for a frequency of 50Hz, the induced current at the outer diameter
+            is 53,4A/mm². The analytic solution for the diameter-dependent current is \hat{J}(r) =
+            0.25 \omega \gamma \hat{B} r D .
+            But the coupling to the thermal field is not verified.</description>
+    </documentation>
+    <fileFormats>
+        <input>
+            <gmsh fileName="plateNew.msh"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="3d">
+        <variableList>
+            <var name="freq" value="500"/>
+            <var name="B_amplitude" value="1"/>
+        </variableList>
+        <regionList>
+            <region name="V_aluminium" material="alu"/>
+        </regionList>
+        <surfRegionList> </surfRegionList>
+    </domain>
+
+    <fePolynomialList>
+        <Legendre id="Hcurl">
+            <isoOrder>0</isoOrder>
+        </Legendre>
+        <Lagrange id="H1">
+            <isoOrder>1</isoOrder>
+        </Lagrange>
+    </fePolynomialList>
+
+    <sequenceStep index="1">
+        <analysis>
+            <transient>
+                <numSteps>10</numSteps>
+                <deltaT>0.001</deltaT>
+            </transient>
+        </analysis>
+
+        <pdeList>
+            <magneticEdge>
+                <regionList>
+                    <region name="V_aluminium" polyId="Hcurl"/>
+                </regionList>
+                <bcsAndLoads>
+                    <fluxDensity name="V_aluminium">
+                        <comp dof="y" value="B_amplitude*sin(2*pi*50*t)"/>
+                    </fluxDensity>
+                </bcsAndLoads>
+                
+                <storeResults>
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magTotalCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotential" complexFormat="amplPhase">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magPotentialD1" complexFormat="amplPhase">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magJouleLossPowerDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </magneticEdge>
+            
+            <heatConduction>
+                <regionList>
+                    <region name="V_aluminium" polyId="H1"/>
+                </regionList>
+                <bcsAndLoads>
+                    <heatSourceDensity volumeRegion="V_aluminium" name="V_aluminium">
+                        <coupling pdeName="magneticEdge">
+                            <quantity name="magJouleLossPowerDensity"/>
+                        </coupling>
+                    </heatSourceDensity>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="heatTemperature">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="heatFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </heatConduction>
+        </pdeList>
+        
+        <couplingList>
+            <iterative>
+                <convergence logging="yes" maxNumIters="20" stopOnDivergence="yes">
+                    <quantity name="magFluxDensity" value="1e-6" normType="rel"/>
+                </convergence>
+            </iterative>
+        </couplingList>
+        
+    </sequenceStep>
+</cfsSimulation>

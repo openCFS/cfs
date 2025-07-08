@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Rotate Design for single load case compliance</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-07-13</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>yes</isVerified>
+    <description>For the concept of rotating the physical design, this is the most trivial load case. As such the problem has no practical relevance, this would require multiple rotations.
+    For rotation is makes sense to have an odd number of elements squared. The center is an element. Here center_el.</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <elemList>
+      <!--  we rotate arount this element's barycenter -->
+      <elems name="center_el">
+        <coord x="0.5" y="0.5"/>
+      </elems>
+    </elemList>
+    <nodeList>
+      <nodes name="center_right">
+        <coord x="1.05" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+          <force name="center_right">
+              <comp dof="x" value="1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <!-- unfiltered beam which is horizontal due to the 90 degrees rotation -->
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <!-- will show the horizontal beam -->
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>           
+          <!-- like physicalPseudoDensity but w/o penalization -->
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>  
+          <regionResult type="mechDeformEnergy">
+            <allRegions/>
+          </regionResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+    <!--     Changes for the new default reordering stratergy -->
+   <linearSystems>
+      <system>
+       <solutionStrategy>
+         <standard><matrix reordering="Metis"/></standard>
+       </solutionStrategy>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" multiple_excitation="false">
+      <stopping queue="999" value="0.002" type="designChange" />
+    </costFunction>
+
+    <constraint type="volume" bound="upperBound" value="0.5" />
+
+    <optimizer type="ocm" maxIterations="5">
+      <ocm max_lambda_iters="100">
+        <framed enlargeLower="0.2"/>
+      </ocm>
+
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.3" type="density"/>
+      </filters>
+      <transform>
+        <!-- rotate the physical design to 90 degrees against the nonphysical desgn. -->
+        <rotate center="center_el" angle="0.5 * pi" excitation="0" />
+      </transform>
+
+      <design name="density" initial=".5" lower="1e-3" upper="1.0" />
+      <transferFunction type="simp" application="mech"  param="3" />
+      
+      <!-- like the physical design but w/o penalization -->
+      <result value="design" id="optResult_1" excitation="0" access="smart"/>
+      
+      <export write="iteration" save="all" />
+
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="1" />
+  </optimization>
+ 
+  
+</cfsSimulation>
+
+

@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+   <title>Bloch mode analysis</title>
+     <authors>
+       <author>Fabian Wein</author>
+     </authors>
+     <date>2014-08-04</date>
+     <keywords>
+       <keyword>mechanic</keyword>
+     </keywords>
+     <references>
+       Hussein; Reduced Bloch mode expansion for periodic media band structure calculations.pdf
+     </references>
+     <isVerified>yes</isVerified>
+     <description>
+      Does standard bloch mode analysis, not the reduced approach but the method and example is
+      anyway given in the above reference.
+
+      For a periodic cell complex eigenvalues are evaluated, following Blochs theorem ...
+
+      Arpack is known to fail with some MKL version (breaks with an error). In that case disable
+      pardiso and use OPENBLAS or NETLIB instead of MKL and disable Pardiso via USE_PARDISO=OFF.
+      
+      To visualize the bloch.dat file sort it with sort_bloch.py --dim 2 BlochMode2D.bloch.dat
+      and create a gnuplot script via find_bloch_band_gaps.py --dim 2 BlochMode2D_sorted.bloch.dat --gnuplot
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <output/>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="stiff" name="inner" />
+      <region material="weak" name="outer" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.5" y="0.5" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>7</numModes>
+        <freqShift> 0 </freqShift>
+        <writeModes> yes </writeModes>
+        <bloch>
+          <ibz sample="symmetric" steps="6" />
+          <!-- waveVector x="1" y="1"/ -->
+        </bloch>
+      </eigenFrequency>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="inner" />
+          <region name="outer" />
+        </regionList>
+
+        <bcsAndLoads>
+          <!-- <dirichletHom dof="x" name="down" quantity="mechDisplacement"/> 
+            <dirichletHom dof="y" name="down" quantity="mechDisplacement"/ -->
+          <!-- <fix name="center"> <comp dof="x"/> <comp dof="y"/> </fix> -->
+          <periodic primary="up" secondary="down" dof="x" quantity="mechDisplacement"/>
+          <periodic primary="up" secondary="down" dof="y" quantity="mechDisplacement"/>
+          <periodic primary="left" secondary="right" dof="x" quantity="mechDisplacement"/>
+          <periodic primary="left" secondary="right" dof="y" quantity="mechDisplacement"/>
+        </bcsAndLoads>
+
+        <storeResults/>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <!-- exportLinSys split_system="true" / -->
+            <!-- matrix storage="sparseNonSym" /> -->
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <arpack>
+            <logging>false</logging>
+          </arpack>
+        </eigenSolverList>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+
+
+</cfsSimulation>

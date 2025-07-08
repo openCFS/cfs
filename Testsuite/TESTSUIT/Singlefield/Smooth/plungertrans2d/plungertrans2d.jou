@@ -1,0 +1,58 @@
+reset
+undo on
+
+Journal off
+Echo off
+Warning off
+
+#{h_pl = 75e-6}; # heigth of the plunger
+#{l_pl = 125e-6}; # length of the plunger
+#{h_el = 25e-6}; # element size
+#{tol = 1e-6}
+
+merge tolerance {tol}
+
+
+# geometry
+
+create surface rectangle width {l_pl} height {h_pl} zplane
+
+
+# mesh
+
+surface all size {h_el}
+mesh surface all 
+
+
+
+block 1 add surface 1
+block 1 name "Plunger"
+
+
+
+nodeset 1 add curve 2
+nodeset 1 name "Excite"
+
+nodeset 2 add curve 1
+nodeset 2 name "Fix_t"
+
+nodeset 3 add curve 3
+nodeset 3 name "Fix_b"
+
+nodeset 4 add curve 4
+nodeset 4 name "Fix_r"
+
+
+Journal on
+Echo on
+Warning on
+
+export ansys cdb "plungertrans2d.cdb" overwrite
+
+
+
+
+
+
+
+

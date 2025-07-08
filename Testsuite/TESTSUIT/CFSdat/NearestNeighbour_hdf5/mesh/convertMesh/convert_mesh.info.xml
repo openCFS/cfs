@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="2" infoRejectCounter="0">
+  <summary>
+    <timer wall="0" cpu="0.14" calls="1"/>
+    <memory final="142180" peak="142184"/>
+  </summary>
+  <header id="">
+    <environment started="2016-Aug-18 13:36:01" host="pc5.mdmt.tuwien.ac.at"/>
+    <progOpts problem="convert_mesh" parameterFile="/home/kroppert/Implementation_tests/conservCellCentroid_hdf5/mesh/convertMesh/convert_mesh.xml" schemaPath="/home/kroppert/Devel/CFS_BIN/latest_trunk/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1">
+      <cfs version="16.4" name="Roadrunner" build="Release" svn_revision="15062"/>
+    </progOpts>
+    <domain dimensions="2" elements="1020" nodes="961">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="fluid" id="0" type="volume" regular="no" hom="yes" nodes="961" elems="900" isQuadratic="no"/>
+        <region name="bottom" id="1" type="surface" regular="no" hom="yes" nodes="31" elems="30" isQuadratic="no"/>
+        <region name="top" id="2" type="surface" regular="no" hom="yes" nodes="31" elems="30" isQuadratic="no"/>
+        <region name="inlet" id="3" type="surface" regular="yes" hom="yes" nodes="31" elems="30" isQuadratic="no"/>
+        <region name="outlet" id="4" type="surface" regular="yes" hom="yes" nodes="31" elems="30" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+    </domain>
+  </header>
+</cfsInfo>

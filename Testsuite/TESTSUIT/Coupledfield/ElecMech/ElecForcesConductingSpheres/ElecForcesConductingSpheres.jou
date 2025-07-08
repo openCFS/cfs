@@ -1,0 +1,60 @@
+reset
+#{ R = 1 }
+#{ s = 0.01 }
+#{ air = 7 }
+#{ x=0.05}
+#{ x_fine=0.01}
+#{ x_air = 0.5}
+#{ r_spring = 0.2 }
+#{ l_spring = 4*R }
+#
+create surface circle radius {R} zplane 
+move surface 1 y {R+0.5*s}
+create surface circle radius {R} zplane 
+move surface 2y {-1*(R+0.5*s)}
+create surface rectangle width {2*r_spring} height {l_spring+R}
+move surface 3 y {R+0.5*s+(l_spring+R)*0.5}
+chop surface 3 with surface 1 keep
+delete surface 3 4
+create surface circle radius {air} zplane
+subtract surface 1 2 5 from surface 6 keep
+delete surface 6
+create surface rectangle width {R} height {2*R}
+chop surface 7 with surface 8
+create surface rectangle width {air} height {2*air}
+move surface 11 x {-0.5*air}
+subtract surface 11 from surface all 
+surface 15 size {x_fine}
+surface all except 16 15 size {x}
+curve 48 47 size {x_fine}
+curve 53 size {x_air}
+imprint volume all
+merge volume all
+mesh surface 15
+mesh surface all
+
+#NODESET DEFINITION
+nodeset 1 add curve 45 
+nodeset 1 name "L_fix"
+nodeset 2 add curve 44 32 48
+nodeset 2 name "L_upper_sphere"
+nodeset 3 add curve 47 51
+nodeset 3 name "L_lower_sphere"
+nodeset 4 add vertex 39
+nodeset 4 name "sensor"
+
+block 1 add surface 14 
+block 1 name "S_spring"
+block 2 add surface 12
+block 2 name "S_upper_sphere"
+block 3 add surface 13
+block 3 name "S_lower_sphere"
+block 4 add surface 15 16
+block 4 name "S_air"
+
+export ansys cdb "./ElecForcesConductingSpheres.cdb" overwrite
+
+
+
+
+

@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  
+   <documentation>
+    <title>spaghetti bridge example with anisotropic material</title>
+    <authors>
+      <author>Jannis Greifenstein</author>
+    </authors>
+    <date>2022-10-17</date>
+    <keywords>
+      <keyword>feature mapping</keyword>
+    </keywords>
+    <references>spaghetti paper Greifenstein, Stingl, Wein</references>
+    <isVerified>no</isVerified>
+    <description>Numerical example of a loaded bridge from spaghetti paper as reference. Too slow as testcase, so not tested. Feature mapping using linear spline ("spaghetti") and transversely isotropic material based on CFRP with stiff direction aligned with spline direction </description>
+  </documentation>
+
+  <!-- In the given script the functions called from optimization are implemented. -->
+  <python file="spaghetti.py" path="cfs:share:python" /> 
+  
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="weak" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="2.0" y="0.5"/>
+      </nodes>
+      <nodes name="fix">
+        <coord x="0.0" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="fix"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <fix name="right"> 
+              <comp dof="x"/>
+           </fix>
+           <force name="top" >
+             <comp dof="y" value="-1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechTensor">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod/> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+  
+    <loadErsatzMaterial file="bridge-cfao-start.density.xml"/>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" sequence="1" linear="false">
+      <stopping queue="55" value="0.0001" type="relativeCostChange" />
+    </costFunction>
+
+    <constraint type="volume" design="density" bound="upperBound" value="0.4" mode="constraint" linear="false"/> 
+    <constraint type="localPython" value="0" bound="lowerBound" linear="false" mode="constraint"  >
+      <python name="arc_overlap" sparsity="cfs_get_sparsity_arc_overlap" eval="cfs_get_constraint_arc_overlap" grad="cfs_get_gradient_arc_overlap" script="kernel" />  
+    </constraint>
+
+    <optimizer type="snopt" maxIterations="300">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option name="major_optimality_tolerance" type="real" value="1e-8"/>
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="spaghettiParamMat">
+      <spaghettiParamMat combine="softmax" boundary="poly" transition=".04" radius=".3" orientation="straight" gradplot="true">
+        <python file="spaghetti.py" path="cfs:share:python" >
+          <!-- silent disables command line output from pythons-->
+          <option key="silent" value="1"/>
+          <option key="order" value="5"/>
+          <option key="p" value="8"/>
+          <option key="gradient_check" value="0"/>
+        </python> 
+        <noodle segments="1">
+          <node dof="x" initial="0.0" upper="0.0" lower="0" tip="start"/>
+          <node dof="y" initial="0.98" upper=".98" lower=".98" tip="start"/>
+          <node dof="x" initial="2.0" upper="2" lower="2" tip="end"/>
+          <node dof="y" initial="0.98" upper=".98" lower=".98" tip="end"/>
+          <profile initial=".1"  lower=".1" upper=".2" />
+        </noodle>
+        <noodle segments="8">
+          <node dof="x" initial="0.05" upper="2" lower="0" tip="start"/>
+          <node dof="y" initial="0.04" upper="1" lower="0"  tip="start"/>
+          <node dof="x" initial="1.9" upper="2" lower="0"  tip="end"/>
+          <node dof="y" initial="0.96" upper="1" lower="0." tip="end"/>
+          <profile initial=".2"  lower=".1" upper=".35" />
+          <normal initial="0.1" lower="-0.2" upper="0.2"/>
+          <normal initial="0.1" lower="-0.2" upper="0.2"/>
+        </noodle>
+        <noodle segments="3">
+          <node dof="x" initial="0.05" upper="2" lower="0" tip="start"/>
+          <node dof="y" initial="0.2" upper="1" lower="0"  tip="start"/>
+          <node dof="x" initial="0.05" upper="2" lower="0"  tip="end"/>
+          <node dof="y" initial="0.9" upper="1" lower="0." tip="end"/>
+          <profile initial=".12"  lower=".05" upper=".3" />
+          <normal initial="0.01" lower="-0.2" upper="0.2"/>
+          <normal initial="0.01" lower="-0.2" upper="0.2"/>
+        </noodle>
+        <noodle segments="4">
+          <node dof="x" initial="0.5" upper="2" lower="0" tip="start"/>
+          <node dof="y" initial="0.4" upper="1" lower="0"  tip="start"/>
+          <node dof="x" initial="0.5" upper="2" lower="0"  tip="end"/>
+          <node dof="y" initial="0.96" upper="1" lower="0." tip="end"/>
+          <profile initial=".1"  lower=".05" upper=".3" />
+          <normal initial="0.01" lower="-0.2" upper="0.2"/>
+          <normal initial="0.01" lower="-0.2" upper="0.2"/>
+        </noodle>
+        <noodle segments="3">
+          <node dof="x" initial="1" upper="2" lower="0" tip="start"/>
+          <node dof="y" initial="0.8" upper="1" lower="0"  tip="start"/>
+          <node dof="x" initial="1" upper="2" lower="0"  tip="end"/>
+          <node dof="y" initial="0.96" upper="1" lower="0." tip="end"/>
+          <profile initial=".1"  lower=".05" upper=".3" />
+          <normal initial="0.01" lower="-0.2" upper="0.2"/>
+          <normal initial="0.01" lower="-0.2" upper="0.2"/>
+        </noodle>
+        <designMaterial type="density-times-rotated-transversal-isotropic" bias="true" isoplane="yz">
+          <param name="emodul" value="113.6"/>
+          <param name="emodul-iso" value="9.650"/>
+          <param name="gmodul" value="6.0"/>
+          <param name="poisson" value="0.334"/>
+         <!--  <param name="density" value=".8"/>-->
+        </designMaterial>
+      </spaghettiParamMat>
+    
+      <design name="density" initial=".4" physical_lower="0" upper="1.0"/>
+      <design name="rotAngle" initial="0.2" lower="-18" upper="16.283185307179586"/>
+
+      <transferFunction type="ramp" param="3" application="mech" design="density" />
+      
+       <result value="design" id="optResult_1" design="density" /> 
+       <result value="design" id="optResult_2" design="rotAngle"/>
+      <export save="last" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="999"/>
+  </optimization>
+</cfsSimulation>

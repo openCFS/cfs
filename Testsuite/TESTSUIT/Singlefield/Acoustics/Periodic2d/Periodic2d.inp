@@ -1,0 +1,47 @@
+finish
+/clear
+/filname,PeriodicBC,1
+/prep7
+init
+
+numelems_x = 16
+numelems_y = 16
+
+rectng,0,1,0,1
+
+! set element numbers on lines
+lsel,s,loc,y,0
+lesize,all,,,numelems_x
+
+lsel,s,loc,x,0
+lesize,all,,,numelems_y
+
+allsel
+setelems,'quadr','quad'
+mshkey,1
+amesh,all
+esla,s
+welems,'fluid'
+
+setelems,'2d-line','quad'
+lmesh,all
+
+lsel,s,loc,y,0
+esll,s
+welems,'bottom'
+
+lsel,s,loc,x,1
+esll,s
+welems,'right'
+
+lsel,s,loc,y,1
+esll,s
+welems,'top'
+
+lsel,s,loc,x,0
+esll,s
+welems,'left'
+
+allsel
+wnodes
+mkhdf5

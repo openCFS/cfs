@@ -1,0 +1,99 @@
+undo on 
+reset
+
+#{ h = 0.01  }
+#{ w1 = 0.3 } #length of S_flow
+#{ w3 = 0.3 } #length of S_acou
+#{ w2 = 0.16 } #length of S_PML
+#{tol = 1e-6}
+
+##Create the surface
+create surface rectangle width { w1 } height { h } zplane 
+move surface 1 x {w1/2} y { h/2 } z 0 
+surface 1 scheme submap
+
+create surface rectangle width { w3 } height { h } zplane 
+move surface 2 x {w1+w3/2} y { h/2 } z 0 
+surface 2 scheme submap
+
+create surface rectangle width { w2 } height { h } zplane 
+move surface 3 x {w1+w3+w2/2} y { h/2 } z 0 
+surface 3 scheme submap
+
+merge tolerance {tol}
+#imprint tolerant curve all
+merge curve 8 10
+
+##Name
+block 1 add surface 1 
+block 1 name "S_flow"
+
+block 2 add surface 2 
+block 2 name "S_acou"
+
+block 3 add surface 3 
+block 3 name "S_PML"
+
+
+nodeset 1 add curve 4  
+nodeset 1 name "Interface1"
+
+
+nodeset 9 add curve 6
+nodeset 9 name "Interface2"
+
+
+nodeset 3 add curve 2  
+nodeset 3 name "L_left"
+
+nodeset 4 add curve 1  
+nodeset 4 name "L_top_f"
+
+nodeset 5 add curve 3  
+nodeset 5 name "L_bottom_f"
+
+
+nodeset 7 add curve 5  
+nodeset 7 name "L_top_a"
+
+nodeset 8 add curve  7
+nodeset 8 name "L_bottom_a"
+
+nodeset 6 add curve 8  
+nodeset 6 name "L_right"
+
+
+curve 1 3 interval 300
+curve 1 3 scheme equal
+mesh curve 1 3 
+curve 2 4  interval 2
+curve 2 4 scheme equal
+mesh curve 2 4 
+mesh surface 1
+
+curve 5 7 interval 300
+curve 5 7  scheme equal
+mesh curve 5 7 
+curve 4 8 interval 2
+curve 4 8  scheme equal
+mesh curve 4 8 
+mesh surface 2 
+
+curve 9 11 interval 25
+curve 9 11  scheme equal
+mesh curve 9 11 
+curve 8 12 interval 2
+curve 8 12  scheme equal
+mesh curve 8 12  
+mesh surface 3 
+
+export ansys cdb "recsurf_PML.cdb" overwrite
+
+
+
+
+
+
+
+
+

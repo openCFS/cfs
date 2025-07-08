@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns="http://www.cfs++.org/simulation">
+    <fileFormats>
+        
+        <input>
+            <hdf5
+                fileName="convert_mesh.cfs"/>
+        </input>
+        <output>
+            <hdf5 id="hdf5"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    
+    <domain geometryType="3d">
+        <regionList>
+            <region name="Zylinder1" material="air"/>  
+            <region name="Zylinder2" material="air"/>  
+            <region name="InnerRectangle" material="air"/>
+            <region name="Surrounding" material="air"/>
+ 
+        </regionList>
+        
+        <surfRegionList>
+            <surfRegion name="if_Zylinder1"/>
+            <surfRegion name="if_Zylinder2"/>
+            <surfRegion name="if_Surr1"/>
+            <surfRegion name="if_Surr2"/>
+        </surfRegionList>
+        
+        <ncInterfaceList>
+            <ncInterface name="NC1" primarySide="if_Surr1" secondarySide="if_Zylinder1" >
+                <rotation rpm="10" movingSide="secondary" coordSysId="rotating" connectedRegions="InnerRectangle"/>
+            </ncInterface>
+            <ncInterface name="NC2" primarySide="if_Surr2" secondarySide="if_Zylinder2" >
+                <rotation rpm="10" movingSide="secondary" coordSysId="rotating" connectedRegions="InnerRectangle"></rotation>
+            </ncInterface>
+        </ncInterfaceList>
+        
+        <nodeList>
+            <nodes name="nodal_source">
+                <coord x="0" y="0" z="0"/>
+            </nodes>
+        </nodeList>
+        
+        <coordSysList>
+            <cylindric id="rotating">
+                <origin x="0" y="0" z="0"/>
+                <zAxis  x="0.0" y="0.0" z="1.0"/>
+                <rAxis  x="1.0" y="0.0" z="0.0"/>
+            </cylindric>
+        </coordSysList>
+        
+    </domain>
+    
+    <sequenceStep>
+        <analysis>
+            <transient>
+                <numSteps>20</numSteps>
+                <deltaT>0.001</deltaT>
+            </transient>
+        </analysis>
+        
+        <pdeList>
+            <acoustic formulation="acouPressure" timeStepAlpha="-0.3">
+                
+                <regionList>
+                    <region name="Zylinder1"/>  
+                    <region name="Zylinder2"/>  
+                    <region name="InnerRectangle"/>
+                    <region name="Surrounding"/>
+                </regionList>
+                
+                <ncInterfaceList>
+ <ncInterface name="NC1" formulation="Nitsche" nitscheFactor="40"/>
+ <ncInterface name="NC2" formulation="Nitsche" nitscheFactor="40"/>
+                </ncInterfaceList>
+                
+                <dampingList>
+                    <pml id="mPML">
+                        <type>inverseDist</type>
+                        <dampFactor>1.0</dampFactor>
+                    </pml>
+                </dampingList>
+                
+                <bcsAndLoads>
+                    <rhsValues name="nodal_source" value="sin(2*pi*t*10)"></rhsValues>
+                    
+                </bcsAndLoads>
+                
+                <storeResults>
+                    
+                    <nodeResult type="acouPressure">
+                        <allRegions outputIds="hdf5"/>
+                    </nodeResult>
+                </storeResults>
+                
+            </acoustic>
+        </pdeList>
+        
+        
+        <linearSystems>
+            <system>
+                <solverList>
+                    <pardiso></pardiso>
+                </solverList>
+            </system>
+
+        </linearSystems>
+    </sequenceStep>
+</cfsSimulation>

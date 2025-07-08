@@ -1,0 +1,90 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="FluidMat">
+    <mechanical>
+      <density>
+        <linear>
+          <real>  7.84709e3 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+            2.74400E+11 1.08400E+11 1.08400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+            1.08400E+11 2.74400E+11 1.08400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+            1.08400E+11 1.08400E+11 2.74400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10
+          </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.225 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.41767e5 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <flow>
+      <!-- density at 20 -->
+      <density>
+        <linear>
+          <real> 1.225 </real>
+        </linear>
+      </density>
+      <dynamicViscosity>
+        <linear>
+          <real> 1.829e-5 </real>
+        </linear>
+      </dynamicViscosity>
+      <bulkViscosity>
+        <linear>
+          <real> 2.5e-3 </real>
+        </linear>
+      </bulkViscosity>
+      <adiabaticExponent>
+        <linear>
+          <real> 1.406 </real>
+        </linear>
+      </adiabaticExponent>
+      <refPressure>
+        <linear>
+          <real> 1.015e5 </real>
+        </linear>
+      </refPressure>
+    </flow>
+    <heatConduction>
+      <density>
+        <linear>
+          <real>1.225</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real> 975.3</real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real> 25.18e-3</real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+      <refTemperature>
+        <linear>
+          <real> 294.3</real>
+        </linear>
+      </refTemperature>
+    </heatConduction>
+  </material>
+</cfsMaterialDataBase>

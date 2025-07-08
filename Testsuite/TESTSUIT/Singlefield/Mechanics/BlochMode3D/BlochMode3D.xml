@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+   <title>Bloch mode analysis</title>
+     <authors>
+       <author>Fabian Wein</author>
+     </authors>
+     <date>2014-08-15</date>
+     <keywords>
+       <keyword>mechanic</keyword>
+     </keywords>
+     <references>
+       Hussein; Reduced Bloch mode expansion for periodic media band structure calculations.pdf
+     </references>
+     <isVerified>no</isVerified>
+     <description>
+       See BlochMode2!
+       Create meshes via create_mesh.py --type two_mat_cube 
+    </description>
+  </documentation>  
+  
+  <fileFormats>
+    <output/>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region material="stiff" name="inner" />
+      <region material="weak" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.5" y="0.5" z="0.5" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>5</numModes>
+        <freqShift>0</freqShift>
+        <writeModes>yes</writeModes>
+        <bloch>
+          <ibz sample="symmetric" steps="20" />
+        </bloch>
+      </eigenFrequency>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech" />
+          <region name="inner" /> 
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="center"> 
+            <comp dof="x"/> 
+            <comp dof="y"/> 
+            <comp dof="z"/>
+          </fix> 
+          <periodic primary="up" secondary="down" dof="x" quantity="mechDisplacement" />
+          <periodic primary="up" secondary="down" dof="y" quantity="mechDisplacement" />
+          <periodic primary="up" secondary="down" dof="z" quantity="mechDisplacement" />
+          <periodic primary="left" secondary="right" dof="x" quantity="mechDisplacement" />
+          <periodic primary="left" secondary="right" dof="y" quantity="mechDisplacement" />
+          <periodic primary="left" secondary="right" dof="z" quantity="mechDisplacement" />
+          <periodic primary="front" secondary="back" dof="x" quantity="mechDisplacement" />
+          <periodic primary="front" secondary="back" dof="y" quantity="mechDisplacement" />
+          <periodic primary="front" secondary="back" dof="z" quantity="mechDisplacement" />
+          
+        </bcsAndLoads>
+
+        <storeResults/>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <arpack>
+          </arpack>
+        </eigenSolverList>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+
+
+</cfsSimulation>

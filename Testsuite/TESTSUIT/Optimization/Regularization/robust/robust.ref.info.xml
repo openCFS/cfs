@@ -1,0 +1,406 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="133" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.585s" wall="0.585" cpu="0.599597" calls="1"/>
+  </summary>
+  <header id="">
+    <environment started="2024-Aug-07 23:52:51" host="Finsternis.local"/>
+    <progOpts problem="robust" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Regularization/robust/robust.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="24.03" name="Ideal Implementation" build="RELEASE" git_commit="8c4886e639db84000756f6a086407e923d6d723b" git_branch="pathplan" compiled="Aug  2 2024" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="20" ny="20" nz="1">
+      <grids>
+        <timer wall-clock="0.013s" wall="0.013" cpu="0.010229" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="400" nodes="441"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="400" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="21"/>
+        <nodes name="east" count="21"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="20" ny="20" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.012s" wall="0.012" cpu="0.044542" calls="1152"/>
+    </results>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.017s" wall="0.017" cpu="0.012643" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator2D" coef="CoefFunctionOpt" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="right_lower" size="1" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0, -1]"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="base_contrast">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e-02  5.769231e-03  5.769231e-03  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-03  1.346154e-02  5.769231e-03  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-03  5.769231e-03  1.346154e-02  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-03  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-03  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-03
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(0.01,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="west" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="840" totalNumFreeEqns="840" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="840" lastFreeEqn="840" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="840" lastFreeIndex="840"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer label="setup_directLDL" wall-clock="0.117s" wall="0.117" cpu="0.125196" calls="117"/>
+              </setup>
+              <solve>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.025387" calls="117"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="6.1e-05" calls="117"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.002715" calls="1" sub="true"/>
+      </graph_setup>
+      <reorder_Metis>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.001592" calls="1" sub="true"/>
+      </reorder_Metis>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0s" wall="0" cpu="0.063785" calls="234"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Regularization/robust/HALTOPT">
+    <header>
+      <objective type="slack" name="slack" linear="yes" access="plain" task="minimize"/>
+      <multipleExcitations type="no_type"/>
+      <constraints>
+        <constraint type="compliance" name="compliance_f_0" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="0_f_0"/>
+        <constraint type="compliance" name="compliance_f_1" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="1_f_1"/>
+        <constraint type="compliance" name="compliance_f_2" linear="no" access="physical" bound_value="slack" bound="upperBound" design="default" excitation="2_f_2"/>
+        <constraint type="volume" name="volume_f_2" linear="no" access="filtered" bound_value="0.5" bound="upperBound" design="default" excitation="2_f_2"/>
+      </constraints>
+      <designSpace pamping="0" regular="yes">
+        <setup_design>
+          <timer wall-clock="0s" wall="0" cpu="0.000238" calls="4"/>
+        </setup_design>
+        <filters use_mat_filt="yes">
+          <filter type="maxEdge" value="1.5" contribution="linear" design="density" robust_excitation="0" elems="400" avg_radius="0.075" avg_neighbors="7.41">
+            <tanh eta="0.2" beta="4" scaling="1.2047" offset="-0.20272"/>
+          </filter>
+          <filter type="maxEdge" value="1.5" contribution="linear" design="density" robust_excitation="1" elems="400" avg_radius="0.075" avg_neighbors="7.41">
+            <tanh eta="0.8" beta="4" scaling="1.2031" offset="-0.0010117"/>
+          </filter>
+          <filter type="maxEdge" value="1.5" contribution="linear" design="density" robust_excitation="2" elems="400" avg_radius="0.075" avg_neighbors="7.41">
+            <tanh eta="0.5" beta="4" scaling="1.0364" offset="-0.017788"/>
+          </filter>
+          <timer wall-clock="0s" wall="0" cpu="0.000471" calls="3"/>
+        </filters>
+        <ersatzMaterialFile file="robust_20_nice.density.xml" source="problem file"/>
+        <transferFunctions>
+          <transferFunction type="simp" application="mech" design="density" param="1"/>
+        </transferFunctions>
+        <designVariables opt_vars="401" field_elems="400" field_fe_elemes="400">
+          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="0.001"/>
+          <design type="slack" upperBound="1e+06" lowerBound="0"/>
+        </designVariables>
+        <localElementCache org="1" shadow="0" mat_deriv="0" megabytes="0"/>
+        <regions>
+          <region name="mech" elements="400" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" robust_idx="0" label="0" full_label="0_f_0" weight="1" normalized_weight="0.33333" load="right_lower" reassemble="yes"/>
+        <excitation index="1" meta_idx="1" robust_idx="1" label="1" full_label="1_f_1" weight="1" normalized_weight="0.33333" load="right_lower" reassemble="yes"/>
+        <excitation index="2" meta_idx="2" robust_idx="2" label="2" full_label="2_f_2" weight="1" normalized_weight="0.33333" load="right_lower" reassemble="yes"/>
+      </excitations>
+    </header>
+    <commit mode="each_forward" stride="999"/>
+    <optimizer>
+      <snopt>
+        <summary snopt_outputfile="robust.snopt">
+          <snopt>
+            <timer wall-clock="0.005s" wall="0.005" cpu="0.014835" calls="192"/>
+          </snopt>
+          <snopt_exit exit="0" info="32"/>
+          <evaluations f_evals="40" g_evals="39" majors="29"/>
+        </summary>
+      </snopt>
+    </optimizer>
+    <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
+      <eval_objective>
+        <timer wall-clock="0.084s" wall="0.084" cpu="0.107842" calls="197"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.000468" calls="40"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0s" wall="0" cpu="0.000487" calls="39"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.018089" calls="39"/>
+      </eval_grad_constraints>
+      <break converged="no"/>
+      <functions>
+        <slack min="16.513" max="1964.9" oscillations="9"/>
+        <compliance_f_0 min="1332.2" max="1592.2" oscillations="8"/>
+        <compliance_f_1 min="1924.4" max="2733.9" oscillations="9"/>
+        <compliance_f_2 min="1615" max="1754.8" oscillations="9"/>
+        <volume_f_2 min="0.49994" max="0.52804" oscillations="11"/>
+      </functions>
+    </summary>
+    <process>
+      <iteration number="0" duration="0.121" slack="16.5130883971973" volume_f_2="0.507542788906277" nObj="2">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1344.5"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="2733.9"/>
+        <excitation index="2" objective="16.513" objective_weight="0.33333" compliance_f_2="1643.7"/>
+      </iteration>
+      <iteration number="1" duration="0.015" slack="31.3554121723431" volume_f_2="0.522761133070652" nObj="3">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1332.2"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="2638.6"/>
+        <excitation index="2" objective="31.355" objective_weight="0.33333" compliance_f_2="1615"/>
+      </iteration>
+      <iteration number="2" duration="0.011" slack="528.864428883774" volume_f_2="0.528038796997748" nObj="4">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1362.1"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="2398.8"/>
+        <excitation index="2" objective="528.86" objective_weight="0.33333" compliance_f_2="1658.3"/>
+      </iteration>
+      <iteration number="3" duration="0.01" slack="1902.54736636061" volume_f_2="0.515171371713377" nObj="5">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1592.2"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="2002"/>
+        <excitation index="2" objective="1902.5" objective_weight="0.33333" compliance_f_2="1754.8"/>
+      </iteration>
+      <iteration number="4" duration="0.009" slack="1921.89297447632" volume_f_2="0.512327802998225" nObj="6">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1550.5"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1924.4"/>
+        <excitation index="2" objective="1921.9" objective_weight="0.33333" compliance_f_2="1708.6"/>
+      </iteration>
+      <iteration number="5" duration="0.017" slack="1941.9980777158" volume_f_2="0.507273919556522" nObj="8">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1531.4"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1944"/>
+        <excitation index="2" objective="1942" objective_weight="0.33333" compliance_f_2="1716"/>
+      </iteration>
+      <iteration number="6" duration="0.017" slack="1956.35965763104" volume_f_2="0.503026173744765" nObj="10">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1528.4"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1958.6"/>
+        <excitation index="2" objective="1956.4" objective_weight="0.33333" compliance_f_2="1723.3"/>
+      </iteration>
+      <iteration number="7" duration="0.01" slack="1964.89136904451" volume_f_2="0.500815270923109" nObj="11">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1537.7"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1965"/>
+        <excitation index="2" objective="1964.9" objective_weight="0.33333" compliance_f_2="1732.5"/>
+      </iteration>
+      <iteration number="8" duration="0.011" slack="1962.8473579987" volume_f_2="0.50028255784877" nObj="12">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1542.3"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1963.7"/>
+        <excitation index="2" objective="1962.8" objective_weight="0.33333" compliance_f_2="1733.1"/>
+      </iteration>
+      <iteration number="9" duration="0.011" slack="1956.48353803616" volume_f_2="0.500644238233908" nObj="13">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1539.6"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1957.6"/>
+        <excitation index="2" objective="1956.5" objective_weight="0.33333" compliance_f_2="1725.8"/>
+      </iteration>
+      <iteration number="10" duration="0.011" slack="1953.69181725055" volume_f_2="0.500874250119827" nObj="14">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1549.6"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1953.6"/>
+        <excitation index="2" objective="1953.7" objective_weight="0.33333" compliance_f_2="1727"/>
+      </iteration>
+      <iteration number="11" duration="0.011" slack="1954.43168650973" volume_f_2="0.500250691349174" nObj="15">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1551.9"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1954.9"/>
+        <excitation index="2" objective="1954.4" objective_weight="0.33333" compliance_f_2="1727.9"/>
+      </iteration>
+      <iteration number="12" duration="0.012" slack="1953.41876647519" volume_f_2="0.500041637058557" nObj="16">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1556.7"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1953.4"/>
+        <excitation index="2" objective="1953.4" objective_weight="0.33333" compliance_f_2="1727.9"/>
+      </iteration>
+      <iteration number="13" duration="0.012" slack="1943.23970887478" volume_f_2="0.500741869464719" nObj="17">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1571.6"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1943.1"/>
+        <excitation index="2" objective="1943.2" objective_weight="0.33333" compliance_f_2="1724.2"/>
+      </iteration>
+      <iteration number="14" duration="0.012" slack="1943.46544965589" volume_f_2="0.500083145493594" nObj="18">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1576.1"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1943.4"/>
+        <excitation index="2" objective="1943.5" objective_weight="0.33333" compliance_f_2="1726.5"/>
+      </iteration>
+      <iteration number="15" duration="0.012" slack="1942.25882512576" volume_f_2="0.500006010047559" nObj="19">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1577"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1942.3"/>
+        <excitation index="2" objective="1942.3" objective_weight="0.33333" compliance_f_2="1727.4"/>
+      </iteration>
+      <iteration number="16" duration="0.012" slack="1941.23376807164" volume_f_2="0.499986939399038" nObj="20">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1578"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1941.3"/>
+        <excitation index="2" objective="1941.2" objective_weight="0.33333" compliance_f_2="1728.4"/>
+      </iteration>
+      <iteration number="17" duration="0.013" slack="1940.48266525319" volume_f_2="0.499993659085175" nObj="21">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1578.4"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1940.5"/>
+        <excitation index="2" objective="1940.5" objective_weight="0.33333" compliance_f_2="1728.9"/>
+      </iteration>
+      <iteration number="18" duration="0.013" slack="1939.59561531894" volume_f_2="0.499994202217962" nObj="22">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1578.4"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1939.8"/>
+        <excitation index="2" objective="1939.6" objective_weight="0.33333" compliance_f_2="1729.2"/>
+      </iteration>
+      <iteration number="19" duration="0.022" slack="1939.01703077768" volume_f_2="0.499939677963248" nObj="24">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1579.5"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1939.4"/>
+        <excitation index="2" objective="1939" objective_weight="0.33333" compliance_f_2="1730"/>
+      </iteration>
+      <iteration number="20" duration="0.014" slack="1938.5120468576" volume_f_2="0.499992000018753" nObj="25">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1580"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1938.7"/>
+        <excitation index="2" objective="1938.5" objective_weight="0.33333" compliance_f_2="1730.2"/>
+      </iteration>
+      <iteration number="21" duration="0.014" slack="1938.01647391499" volume_f_2="0.500061995960736" nObj="26">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1580.2"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1938.1"/>
+        <excitation index="2" objective="1938" objective_weight="0.33333" compliance_f_2="1729.8"/>
+      </iteration>
+      <iteration number="22" duration="0.014" slack="1938.17241841539" volume_f_2="0.500003687611656" nObj="27">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1580.1"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1938.2"/>
+        <excitation index="2" objective="1938.2" objective_weight="0.33333" compliance_f_2="1729.6"/>
+      </iteration>
+      <iteration number="23" duration="0.014" slack="1938.10475367122" volume_f_2="0.49999868207313" nObj="28">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1579.6"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1938.1"/>
+        <excitation index="2" objective="1938.1" objective_weight="0.33333" compliance_f_2="1729.3"/>
+      </iteration>
+      <iteration number="24" duration="0.025" slack="1937.69857189794" volume_f_2="0.499948631894904" nObj="30">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1578"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1937.9"/>
+        <excitation index="2" objective="1937.7" objective_weight="0.33333" compliance_f_2="1728.1"/>
+      </iteration>
+      <iteration number="25" duration="0.025" slack="1937.48993780135" volume_f_2="0.499971577064546" nObj="32">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1577.1"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1937.7"/>
+        <excitation index="2" objective="1937.5" objective_weight="0.33333" compliance_f_2="1727.4"/>
+      </iteration>
+      <iteration number="26" duration="0.025" slack="1937.48150617964" volume_f_2="0.499995766234099" nObj="34">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1577"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1937.6"/>
+        <excitation index="2" objective="1937.5" objective_weight="0.33333" compliance_f_2="1727.2"/>
+      </iteration>
+      <iteration number="27" duration="0.016" slack="1937.50350095589" volume_f_2="0.500016439666785" nObj="35">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1576.8"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1937.5"/>
+        <excitation index="2" objective="1937.5" objective_weight="0.33333" compliance_f_2="1727.3"/>
+      </iteration>
+      <iteration number="28" duration="0.027" slack="1937.48322799236" volume_f_2="0.500015911072358" nObj="37">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1577.3"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1937.5"/>
+        <excitation index="2" objective="1937.5" objective_weight="0.33333" compliance_f_2="1727.4"/>
+      </iteration>
+      <iteration number="29" duration="0.027" slack="1937.48315527222" volume_f_2="0.500012549186346" nObj="39">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1577.3"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1937.5"/>
+        <excitation index="2" objective="1937.5" objective_weight="0.33333" compliance_f_2="1727.4"/>
+      </iteration>
+      <iteration number="30" duration="0.008" slack="1937.48315527222" volume_f_2="0.500012549186346" nObj="40">
+        <excitation index="0" objective="0" objective_weight="0.33333" compliance_f_0="1577.3"/>
+        <excitation index="1" objective="0" objective_weight="0.33333" compliance_f_1="1937.5"/>
+        <excitation index="2" objective="1937.5" objective_weight="0.33333" compliance_f_2="1727.4"/>
+      </iteration>
+    </process>
+  </optimization>
+</cfsInfo>

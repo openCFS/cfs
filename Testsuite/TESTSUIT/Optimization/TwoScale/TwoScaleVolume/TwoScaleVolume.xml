@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>TwoScaleVolume</title>
+    <authors>
+      <author>Bich Ngoc Vu
+      </author>
+    </authors>
+    <date>2020-06-25</date> 
+    <keywords>
+      <keyword>optimization</keyword>
+    </keywords>
+    <references> none </references>
+    <isVerified>yes</isVerified>
+    <description>Test calculation of interpolated global two-scale volume and output of local unit cell volumes to h5</description>
+  </documentation>
+  <fileFormats>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="mech" material="99lines" />
+    </regionList>
+    <nodeList>
+      <nodes name="mech_nodes">
+        <allNodesInRegion regName="mech"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static />
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+          <force name="right_bottom_front">
+            <comp dof="y" value="-1" />
+          </force>
+          <fix name="left">
+            <comp dof="x" />
+            <comp dof="y" />
+          </fix>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="optResult_1">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_5">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_6">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_7">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <optimization log="">
+    <costFunction type="globalTwoScaleVolume" task="minimize" linear="true" region="all">
+      <local normalize="true" power="1" />
+      <stopping queue="10" value="0.001" type="designChange" />
+    </costFunction>
+    <constraint type="compliance" mode="observation" sequence="1" bound="upperBound" value="400" linear="false" />
+
+    <optimizer type="evaluate" maxIterations="1"/>
+
+    <ersatzMaterial region="mech" material="mechanic" method="paramMat">
+      <paramMat>
+        <designMaterials>
+          <designMaterial type="hom-rect-C1" sequence="1">
+            <param name="rotAngleFirst" value="0." />
+            <param name="rotAngleSecond" value="0." />
+            <param name="rotAngleThird" value="0." />
+            <homRectC1 file="catalogue_3d-ortho_samples-10.xml" interpolation="c1" />
+          </designMaterial>
+        </designMaterials>
+      </paramMat>
+      <filters>
+        <filter type="density" design="stiff1" neighborhood="maxEdge" value="2.1" />
+        <filter type="density" design="stiff2" neighborhood="maxEdge" value="2.1" />
+        <filter type="density" design="stiff3" neighborhood="maxEdge" value="2.1" />
+      </filters>
+
+      <design name="stiff1" region="mech" initial="random" lower="1e-9" upper="1.0" />
+      <design name="stiff2" region="mech" initial="random" lower="1e-9" upper="1.0" />
+      <design name="stiff3" region="mech" initial="random" lower="1e-9" upper="1.0" />
+      <result value="homogenizedVolume" design="allDesigns" id="optResult_1" access="smart" />
+      <result value="design" design="stiff1" id="optResult_2" access="smart" />
+      <result value="design" design="stiff2" id="optResult_3" access="smart" />
+      <result value="design" design="stiff3" id="optResult_4" access="smart" />
+      <result value="design" design="stiff1" id="optResult_5" access="plain" />
+      <result value="design" design="stiff2" id="optResult_6" access="plain" />
+      <result value="design" design="stiff3" id="optResult_7" access="plain" />
+    </ersatzMaterial>
+    <commit mode="forward" stride="1" />
+  </optimization>
+
+
+</cfsSimulation>

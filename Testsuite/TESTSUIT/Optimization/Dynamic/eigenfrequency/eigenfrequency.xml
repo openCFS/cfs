@@ -1,0 +1,133 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  
+  
+  <documentation>
+    <title>Simple maximization of the lowest elastitic eigenfrequency</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-02-12</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Bendsoe and Sigmund, p. 71</references>
+    <isVerified>no</isVerified>
+    <description>Simple eigenfrequency optimization. Not converges within the 50 iterations. Scpip failes.
+    This is not the eigenvalue optimization but scaled for eigenfrequency. 
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines"/>
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="1.5" y="1"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>9</numModes>
+        <freqShift>0</freqShift>
+        <writeModes>yes</writeModes>
+      </eigenFrequency>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="planeStrain"> 
+        <regionList>
+          <region name="mech" />
+        </regionList>
+        <bcsAndLoads>
+           <fix name="north"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="east"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="south"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">  
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <regionList>
+              <region name="mech"/>
+            </regionList>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <optimization>
+    <costFunction type="slack" task="maximize">
+      <stopping queue="999" value="0.001" type="designChange"/>
+    </costFunction>
+
+    <constraint type="eigenfrequency" bound="lowerBound" value="slack" ev="1" />
+    <constraint type="eigenfrequency" bound="lowerBound" value="slack" ev="2" mode="observation" />
+    <constraint type="eigenfrequency" bound="lowerBound" value="slack" ev="3" mode="observation"  />
+    
+    <constraint type="volume" value="0.5" bound="equal" linear="true" mode="constraint" />
+    
+    <optimizer type="snopt" maxIterations="50">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+     <filters>
+       <filter neighborhood="maxEdge" value="1.6" type="density"/>
+      </filters>
+      
+      <design name="density" initial=".5" lower="1e-3" upper="1.0" />
+      <design name="slack" initial="2500" lower="0" upper="1e6"/>
+
+      <transferFunction type="identity" application="mech" />
+      <transferFunction type="identity" application="mass" />
+
+      <export save="last"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="999"/>
+  </optimization>
+  
+</cfsSimulation>
+

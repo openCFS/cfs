@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Global Python Function</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2022-03-02</date>
+    <description>Use in optimization a function and its gradient from a python implementation.
+    Based on embedded python interpreter via USE_EMBEDDED_PYTHON.
+    The function obtains all required information by calling cfs functions via the module cfs.</description>
+  </documentation>
+
+  <!-- In the given script the functions called from optimization are implemented. -->
+  <python file="kernel.py" path="." />
+  
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="bottom_right" >
+             <comp dof="y" value="-1" />
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <regionResult type="mechTotalEnergy">
+            <allRegions/>
+          </regionResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+  </sequenceStep>
+
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping queue="999" value="0.001" type="designChange"/>
+    </costFunction>
+
+    <!-- This global python function implementes the plain volume constraint -->
+    <constraint type="python" value=".5" bound="upperBound" access="plain">
+      <!--  the value of script points to the python elmenent in the beginning which contains the script.
+          Another option would be design where spaghetti in it's python implementation is meant. -->
+      <python name="vol" init="vol_init" eval="vol_eval" grad="vol_grad" script="kernel" />  
+    </constraint>
+
+    <optimizer type="ocm" maxIterations="5">
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp" >
+      <filters>
+        <filter neighborhood="maxEdge" value="1.3" type="density" />
+     </filters>
+
+      <design name="density" initial=".5" physical_lower="1e-9" upper="1.0" />
+      <transferFunction type="simp" application="mech" param="3"/>
+      <export save="last" write="iteration" />
+    </ersatzMaterial>
+ 
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

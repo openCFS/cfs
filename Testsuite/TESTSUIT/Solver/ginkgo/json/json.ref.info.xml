@@ -1,0 +1,197 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.088s" wall="0.088" cpu="0.090478" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="49"/>
+  </summary>
+  <header id="">
+    <environment started="2025-Jul-02 10:53:17" host="Finsternis.local"/>
+    <progOpts problem="json" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Solver/ginkgo/json/json.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="25.04" name="Ideal Implementation" build="RELEASE" git_commit="f99ee809f965d27f14c82b8f195be2d84b36165e" git_branch="fwein_robust_omp" compiled="Jul  2 2025" exe="cfs"/>
+      <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
+    </progOpts>
+    <domain nx="5" ny="5" nz="5">
+      <grids>
+        <timer wall-clock="0.004s" wall="0.004" cpu="0.004031" calls="1"/>
+        <grid gridId="default" dimensions="3" elements="125" nodes="216"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="216" elems="125" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="back" count="36"/>
+        <nodes name="back_left" count="6"/>
+        <nodes name="back_right" count="6"/>
+        <nodes name="bottom" count="36"/>
+        <nodes name="bottom_back" count="6"/>
+        <nodes name="bottom_front" count="6"/>
+        <nodes name="bottom_left" count="6"/>
+        <nodes name="bottom_right" count="6"/>
+        <nodes name="front" count="36"/>
+        <nodes name="front_left" count="6"/>
+        <nodes name="front_right" count="6"/>
+        <nodes name="left" count="36"/>
+        <nodes name="left_bottom_back" count="1" coord="(0,0,0)"/>
+        <nodes name="left_bottom_front" count="1" coord="(0,0,1)"/>
+        <nodes name="left_top_back" count="1" coord="(0,1,0)"/>
+        <nodes name="left_top_front" count="1" coord="(0,1,1)"/>
+        <nodes name="right" count="36"/>
+        <nodes name="right_bottom_back" count="1" coord="(1,0,0)"/>
+        <nodes name="right_bottom_front" count="1" coord="(1,0,1)"/>
+        <nodes name="right_top_back" count="1" coord="(1,1,0)"/>
+        <nodes name="right_top_front" count="1" coord="(1,1,1)"/>
+        <nodes name="top" count="36"/>
+        <nodes name="top_back" count="6"/>
+        <nodes name="top_front" count="6"/>
+        <nodes name="top_left" count="6"/>
+        <nodes name="top_right" count="6"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="5" ny="5" nz="5" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.001s" wall="0.001" cpu="0.001685" calls="6"/>
+    </results>
+  </header>
+  <calculation>
+    <process>
+      <sequence step="0">
+        <result data="mechDeformEnergy" location="mech" definedOn="region">
+          <item step="1" step_val="0" value="1.0362" unit="Ws"/>
+        </result>
+      </sequence>
+    </process>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.014s" wall="0.014" cpu="0.014991" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="no" BOp="StrainOperator3D" coef="CoefFunctionConst" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt">
+                <entities name="top" size="36" region="no_region"/>
+                <coef type="CoefFunctionConst" value="[0, -0.0277778, 0]"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.3,0)"/>
+          <property name="Density" value="(1e-08,0)"/>
+          <property name="Rayleigh_Alpha" value="9.3305301811616843"/>
+          <property name="Rayleigh_Beta" value="2.3873241463784287e-05"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="bottom_left" dofs="x y z"/>
+            <nodeList name="bottom_right" dofs="x y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="612" totalNumFreeEqns="612" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="612" lastFreeEqn="612" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="612" lastFreeIndex="612"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <ginko json="cg.json" exec="openmp" cuda_available="no">
+            <summary>
+              <setup>
+                <timer label="setup_ginkgo" wall-clock="0s" wall="0" cpu="0.000133" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_ginkgo" wall-clock="0.005s" wall="0.005" cpu="0.006233" calls="1"/>
+              </solve>
+            </summary>
+            <precond type="json"/>
+            <solver type="json"/>
+            <solve analysis_id="" converged="yes" iters="67" residual="1.0515e-09" sol="23.212" initial="0" json="conv criteria set in json"/>
+          </ginko>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+      <graph_setup>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002385" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0s" wall="0" cpu="0.001724" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd"
+    xmlns="http://www.cfs++.org/simulation">
+        
+    <documentation>
+        <title>Piezo Coupling</title>
+        <authors>
+            <author>aalipour</author>
+        </authors>
+        <date>2019-04-01</date>
+        <keywords>
+            <keyword>piezo</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>yes</isVerified>
+        <description>Linear piezo effects on a unit cube for: 1-Stress free condition 2-Under uniaxial Stress 3-Under uniaxial Strain
+        </description>
+    </documentation>
+    
+    <!-- define which files are needed for simulation input & output-->
+    <fileFormats>
+        <input>
+            <!-- specify you input file here -->
+            <cdb fileName="UnitCube.cdb"/>
+        </input>
+        <output>
+            <hdf5/>
+        </output>
+        <materialData file="piezo_mat.xml" format="xml"/>
+    </fileFormats>
+
+    <!-- material assignment -->
+    <domain geometryType="3d">
+        <regionList>
+            <region name="V" material="PZT-4">
+                <matRotation alpha="0.0" beta="0" gamma="0"/>
+            </region>
+        </regionList>
+    </domain>
+    
+<!--    Step1: Stress Free-->
+    
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+        <pdeList>
+            <mechanic subType="3d">
+                <regionList>
+                    <region name="V"/>
+                </regionList>
+                <bcsAndLoads>
+                </bcsAndLoads>
+                <storeResults>
+                    <elemResult type="mechStrain">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </mechanic>
+            <electrostatic>
+                <regionList>
+                    <region name="V"/>
+                </regionList>
+                <bcsAndLoads>
+                    <ground name="S_T"/>
+                    <potential name="S_B" value="1.0e+6"/>                 
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="elecPotential">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="elecFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </electrostatic>
+        </pdeList>
+        <couplingList>
+            <direct>
+                <piezoDirect>
+                    <regionList>
+                        <region name="V"/>
+                    </regionList>
+                </piezoDirect>
+            </direct>
+        </couplingList>
+    </sequenceStep>
+    
+    <!--    Step2: UniaxialStress-->
+    
+    <sequenceStep index="2">
+        <analysis>
+            <static/>
+        </analysis>
+        <pdeList>
+            <mechanic subType="3d">
+                <regionList>
+                    <region name="V"/>
+                </regionList>
+                <bcsAndLoads>
+                    <traction coordSysId="default" name="S_B">
+                        <comp dof="z" value="-10e+6"/>
+                    </traction>
+                    <traction coordSysId="default" name="S_T">
+                        <comp dof="z" value="10e+6"/>
+                    </traction>
+                </bcsAndLoads>
+                <storeResults>
+                    <elemResult type="mechStrain">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </mechanic>
+            <electrostatic>
+                <regionList>
+                    <region name="V"/>
+                </regionList>
+                <bcsAndLoads>
+                    <ground name="S_T"/>
+                    <potential name="S_B" value="1.0e+6"/>                 
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="elecPotential">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="elecFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </electrostatic>
+        </pdeList>
+        <couplingList>
+            <direct>
+                <piezoDirect>
+                    <regionList>
+                        <region name="V"/>
+                    </regionList>
+                    <storeResults>
+                        <elemResult type="mechStress">
+                            <allRegions/>
+                        </elemResult>
+                    </storeResults>
+                </piezoDirect>
+            </direct>
+        </couplingList>
+    </sequenceStep>
+    
+    <!--    Step3: Uniaxial Strain-->
+    
+    <sequenceStep index="3">
+        <analysis>
+            <static/>
+        </analysis>
+        <pdeList>
+            <mechanic subType="3d">
+                <regionList>
+                    <region name="V"/>
+                </regionList>
+                <bcsAndLoads>
+                    <displacement coordSysId="default" name="S_S">
+                        <comp dof="y" value="0"/>
+                    </displacement>
+                    
+                    <displacement coordSysId="default" name="S_N">
+                        <comp dof="y" value="0"/>
+                    </displacement>
+                    
+                    <displacement coordSysId="default" name="S_E">
+                        <comp dof="x" value="0"/>
+                    </displacement>
+                    
+                    <displacement coordSysId="default" name="S_W">
+                        <comp dof="x" value="0"/>
+                    </displacement>
+                    
+                    <displacement coordSysId="default" name="S_B">
+                        <comp dof="z" value="0"/>
+                    </displacement>
+                    
+                    <displacement coordSysId="default" name="S_T">
+                        <comp dof="z" value="1e-4"/>
+                    </displacement>
+                    
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="mechDisplacement">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="mechStrain">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </mechanic>
+            <electrostatic>
+                <regionList>
+                    <region name="V"/>
+                </regionList>
+                <bcsAndLoads>
+                    <ground name="S_T"/>
+                    <potential name="S_B" value="1.0e+6"/>                 
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="elecPotential">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="elecFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </electrostatic>
+        </pdeList>
+        <couplingList>
+            <direct>
+                <piezoDirect>
+                    <regionList>
+                        <region name="V"/>
+                    </regionList>
+                    <storeResults>
+                        <elemResult type="mechStress">
+                            <allRegions/>
+                        </elemResult>
+                    </storeResults>
+                </piezoDirect>
+            </direct>
+        </couplingList>
+    </sequenceStep>
+</cfsSimulation>

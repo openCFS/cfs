@@ -1,0 +1,115 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>SloshingEV2D_InfiniteDepthMapping_rational</title>
+    <authors>
+      <author>F. Toth</author>
+    </authors>
+    <date>2017-02-10</date>
+    <keywords>
+      <keyword>waterWaves</keyword>
+      <keyword>eigenFrequency</keyword>
+    </keywords>
+    <references> </references>
+    <isVerified>yes</isVerified>
+    <description> The sloshing modes in a rectangular tank are computed. The tank has a length l of
+      150m and an infinitely deep. The fundamental wave number can be computed analytically by $ k =
+      \frac{n\pi}{l} $. The natural frequencies then follow from the dispersion relation $ \omega^2
+      = gk $, where $g$ denotes the acceleration of gravity. We numerically compute the first 11
+      natural frequencies (the first one is always zero, rigid body mode?). Analytically the first
+      10 modes have the natural frequencies:
+ 1 : 0.072141 Hz
+ 2 : 0.102023 Hz
+ 3 : 0.124952 Hz
+ 4 : 0.144283 Hz
+ 5 : 0.161313 Hz
+ 6 : 0.176709 Hz
+ 7 : 0.190868 Hz
+ 8 : 0.204046 Hz
+ 9 : 0.216424 Hz
+10 : 0.228131 Hz
+ </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <gmsh fileName="rectangular.msh"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="FLUID" material="water"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="SURFACE"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="origin">
+        <coord x="0" y="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>10</numModes>
+        <freqShift>0.17</freqShift>
+        <writeModes>yes</writeModes>
+      </eigenFrequency>
+    </analysis>
+    <pdeList>
+      <waterWave>
+        <regionList>
+          <region name="FLUID">
+            <transforms>
+              <id name="myMap"/>
+            </transforms>
+          </region>
+        </regionList>
+        <transformList>
+          <mapping id="myMap">
+            <propRegion>
+              <direction comp="y" min="0" max="1"/>
+              <direction comp="x" min="-75" max="75"/>
+            </propRegion>
+            <type> rational </type>
+            <dampFactor> 15.91549431 </dampFactor>
+          </mapping>
+        </transformList>
+        <bcsAndLoads>
+          <freeSurfaceCondition name="SURFACE" volumeRegion="FLUID"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="waterPressure" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </waterWave>
+    </pdeList>
+    <linearSystems>
+      <system>
+       <solutionStrategy>
+        <standard>
+<!--         This is required since the default behavior of reordering has changed inside CFS and the test cases were designed with -->
+<!--         reordering -->
+          <matrix reordering="Metis"/>
+          
+        </standard>
+      </solutionStrategy>
+      
+        <eigenSolverList>
+          <arpack/>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+</cfsSimulation>

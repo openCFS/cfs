@@ -1,0 +1,206 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="78" infoRejectCounter="0">
+  <summary>
+    <timer wall="2" cpu="11.5612" calls="1"/>
+    <LBMSolver>
+      <timer label="adjColl" wall="0" cpu="0" calls="0" sub="true"/>
+      <timer label="adjProp" wall="0" cpu="0" calls="0" sub="true"/>
+    </LBMSolver>
+    <memory final="687220" peak="687220"/>
+  </summary>
+  <header id="">
+    <environment started="2016-Apr-07 17:47:37" host="eamc072"/>
+    <progOpts problem="lbm2dSim" parameterFile="/home/bvu/code/cfs-test/TESTSUIT/Optimization/LBM/SRT/lbm2dSim/lbm2dSim.xml" schemaPath="/home/bvu/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1">
+      <cfs version="15.11" name="Back To The Future" build="Release" svn_revision="14699 modified"/>
+    </progOpts>
+    <domain dimensions="2" elements="400" nodes="441">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="boundary" id="0" type="volume" regular="yes" hom="yes" nodes="152" elems="76" isQuadratic="no"/>
+        <region name="design" id="1" type="volume" regular="yes" hom="yes" nodes="361" elems="324" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+      </namedNodes>
+      <namedElements>
+        <elements name="inlet" count="5"/>
+        <elements name="outlet" count="5"/>
+      </namedElements>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <LatticeBoltzmann>
+        <header>
+          <region name="boundary" damping="none"/>
+          <region name="design" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="StiffnessIntegrator" region="boundary">
+                <row pde="LatticeBoltzmann" functionId="0" result="testDof"/>
+                <column pde="LatticeBoltzmann" functionId="0" result="testDof"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="no" solutionDependent="yes" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+          <LBM omega_nu="1.9" Re="1" maxIter="1000000" maxWallTime="1e+06" convergence="1e-08" iface="internal" u_max_x="0.0017544" u_max_y="0" u_max_z="0"/>
+        </header>
+        <material name="99mod">
+          <regionList>
+            <region name="design"/>
+            <region name="boundary"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+12  5.769231e+11  5.769231e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+11  1.346154e+12  5.769231e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+11  5.769231e+11  1.346154e+12  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1e+12"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_Kmodulus" value="(8.3333e+11,0)"/>
+          <property name="Mechanic_LameMu" value="(3.8462e+11,0)"/>
+          <property name="Mechanic_LameLambda" value="(5.7692e+11,0)"/>
+          <property name="Rayleigh_Alpha" value="1e2"/>
+          <property name="Rayleigh_Beta" value="1e-4"/>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+12  5.769231e+11  5.769231e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+11  1.346154e+12  5.769231e+11  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e+11  5.769231e+11  1.346154e+12  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e+11
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1e+12"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_Kmodulus" value="(8.3333e+11,0)"/>
+          <property name="Mechanic_LameMu" value="(3.8462e+11,0)"/>
+          <property name="Mechanic_LameLambda" value="(5.7692e+11,0)"/>
+          <property name="Rayleigh_Alpha" value="1e2"/>
+          <property name="Rayleigh_Beta" value="1e-4"/>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <testDof>
+            <regionList>
+              <boundary/>
+              <default/>
+            </regionList>
+          </testDof>
+        </feSpaces>
+        <summary>
+          <sensitvityAnalysis>
+            <timer label="forwardSim" wall="2" cpu="11.4694" calls="1"/>
+            <timer label="backwardSim" wall="0" cpu="0" calls="0"/>
+            <timer label="setupAdjoint" wall="0" cpu="0" calls="0"/>
+            <timer label="setupPardiso" wall="0" cpu="0" calls="0"/>
+            <timer label="solveLSE" wall="0" cpu="0" calls="0"/>
+            <timer label="dprop" wall="0" cpu="0" calls="0" sub="true"/>
+            <timer label="dcoll" wall="0" cpu="0" calls="0" sub="true"/>
+            <timer label="dPressureDrop" wall="0" cpu="0" calls="0" sub="true"/>
+            <timer label="rhsSetup" wall="0" cpu="0" calls="0" sub="true"/>
+            <timer label="delSing" wall="0" cpu="0" calls="0" sub="true"/>
+          </sensitvityAnalysis>
+          <stateProblem original_pressure_drop="7.6476e-05" prop_step_pressure_drop="7.6476e-05">
+            <totalTimer cpu="11.469" wall="2" calls="1"/>
+          </stateProblem>
+        </summary>
+        <process>
+          <stateProblem original_pressure_drop="7.6472e-05" prop_step_pressure_drop="7.6476e-05">
+            <LBM converged="running" iterations="7000" residuum="8.8445e-09" memory="0.054932">
+              <process>
+                <forward number="0" iterations="7001" residuum="8.8445e-09" converged="yes" wall="2" cpu="11.383" MFLUP_s="1.2637"/>
+              </process>
+            </LBM>
+          </stateProblem>
+        </process>
+        <feFunctions>
+          <testDof/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </LatticeBoltzmann>
+    </PDE>
+    <OLAS>
+      <LatticeBoltzmann>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="76" totalNumFreeEqns="76" totalNumDirichlet="0">
+            <function id="0" name="testDof" numEqns="76" lastFreeEqn="76" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="76" lastFreeIndex="76"/>
+          </sbmBlocks>
+          <setupTime wall="0" cpu="0.000775" calls="1"/>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="76" totalNumCols="76" totalNumNonZeros="76" totalFillLevelPerCent="1.3158" totalMemory="0.00057983">
+              <matrix blockRow="0" blockCol="0" storageType="sparseNonSym" numRows="76" numCols="76" numNonZeros="76" fillLevelPerCent="1.3158" memory="0.00057983" upperBandWidth="0" lowerBandWidth="0" avgBandWidth="1" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="no" posDef="no" pardiso_matrix="11" solver="direct">
+            <summary>
+              <setup>
+                <timer wall="0" cpu="0.000456" calls="1"/>
+              </setup>
+              <solve>
+                <timer wall="0" cpu="2.3e-05" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.000385" wall="0" peakMem="0" permanentMem="0"/>
+                <numfact cpu="1.5e-05" wall="0" peakMem="0"/>
+              </call>
+              <solver numIter="-1" finalNorm="-1"/>
+            </process>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond/>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </LatticeBoltzmann>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="0" cpu="4.6e-05" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <warning lineNum="546" fileName="/home/bvu/code/cfs/source/FeBasis/FeFunctions.cc" message="The interpolation operator for FeSpaceConst is not initialized."/>
+</cfsInfo>

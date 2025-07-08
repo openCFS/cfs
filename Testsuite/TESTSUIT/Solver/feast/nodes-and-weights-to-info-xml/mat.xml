@@ -1,0 +1,64 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/material 
+https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd" >
+
+<!-- material is tuned for wavelength = 1 -->
+  <material name="mat_acou">
+    <acoustic>
+      <density>
+        <linear>
+          <real>500</real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real>500</real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="mat_spring">
+    <mechanical>
+      <density>
+        <linear>
+          <real>0.01</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>3.4544e+05</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.25</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="mat_mass">
+    <mechanical>
+      <density>
+        <linear>
+          <real>7000</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>2e+11</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.25</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

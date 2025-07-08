@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Two Scale Interpolation with very coarse Interpolation without rotational angle</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-04-20</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Bendsoe and Kikuchi 1988</references>
+    <isVerified>no</isVerified>
+    <description>visualize via matviz.py mech_hom_rect.h5 --show hom_rect</description>
+  </documentation>
+
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center_upper">
+        <coord x="0.5" y="0.5"/>
+      </nodes>
+      <nodes name="center_lower">
+        <coord x="0.5" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+          <force name="right_lower">
+              <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechTensor">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions/>
+          </elemResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod /> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="compliance" design="allDesigns" notation="hill_mandel">
+
+   <stopping queue="99" value="1.0E-5" type="designChange"/>
+    </costFunction>
+    
+    <constraint type="globalTwoScaleVolume" design="allDesigns" bound="upperBound" value="0.5" linear="false" access="filtered" notation="hill_mandel"> 
+      <local normalize="true" power="1"/>
+    </constraint>
+    <optimizer type="snopt" maxIterations="10">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option type="integer" name="verify_level" value="0"/>
+      </snopt>
+    </optimizer> 
+    <ersatzMaterial method="paramMat" material="mechanic">
+      <regions>
+        <region name="mech"/>
+      </regions>
+      <filters>
+       <filter type="density" design="stiff1" neighborhood="maxEdge" value="1.5"/>
+       <filter type="density" design="stiff2" neighborhood="maxEdge" value="1.5"/>
+      </filters>
+      <paramMat>
+        <designMaterials>
+          <!-- format of tensordata: a b 11 12 22 33 where a and b are percent --> 
+          <designMaterial type="hom-rect">
+           <param name="rotAngle" value="0.0"/>
+            <homRect notation="voigt">
+              <data a="0.0" b="0.0"   e11="0.0"      e12="0.0"       e22="0.0"      e33="0.0"/>
+              <data a="0.5" b="0.0"   e11="2.5"      e12="0.0"       e22="0.0"      e33="0.0"/>
+              <data a="0.5" b="0.5"   e11="2.834787" e12="0.626595"  e22="2.834787" e33="0.4978714"/>
+              <data a="0.0" b="0.5"   e11="0.0"      e12="0.0"       e22="2.5"      e33="0.0"/>
+              
+              <data a="0.25" b="0.0"  e11="1.25"     e12="0.0"       e22="0.0"      e33="0.0"/>
+              <data a="0.5" b="0.25"  e11="2.607069" e12="0.3030707" e22="1.484705" e33="0.1626158"/>
+              <data a="0.25" b="0.5"  e11="1.484705" e12="0.3030707" e22="2.607069" e33="0.1626158"/>
+              <data a="0.0" b="0.25"  e11="0.0"      e12="0.0"       e22="1.25"     e33="0.0"/>
+              
+              <data a="0.25" b="0.25" e11="1.311663" e12="0.1397536" e22="1.311663" e33="0.05048487"/>
+            </homRect>
+          </designMaterial>
+        </designMaterials>
+      </paramMat>
+
+      <design name="stiff1" initial="0.5" lower="0.04" upper="0.5"/>
+      <design name="stiff2" initial="0.1" lower="0.04" upper="0.5"/>
+
+      <result value="design" design="stiff1" id="optResult_1" access="smart"/>
+      <result value="design" design="stiff2" id="optResult_2" access="smart"/>
+      <result value="design" design="stiff1" id="optResult_3" access="plain"/>
+      <result value="design" design="stiff2" id="optResult_4" access="plain"/>
+
+      <export/>      
+    </ersatzMaterial>
+    <commit stride="50"/>
+  </optimization>  
+</cfsSimulation>
+
+

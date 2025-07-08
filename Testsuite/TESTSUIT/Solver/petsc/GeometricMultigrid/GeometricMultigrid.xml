@@ -1,0 +1,84 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>PETSc Linear Solver</title>
+    <authors>
+      <author>Srikrishna Jaganathan</author>
+    </authors>
+    <date>2018-08-23</date>
+    <keywords>
+      <keyword>iterative_solver</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>Geometric Multigrid from the PETSc library for Structured Grid Problems.</description>
+  </documentation>
+  
+  <fileFormats>
+    <output>
+      <hdf5 />
+       <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  
+  <!-- EV: swap stiffness_eigen, therefore the second pde is sequence 1 here -->
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+              <comp dof="z"/>
+           </fix>
+           <force name="bottom_right">
+             <comp dof="y" value="-1"/>
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+   <linearSystems >
+      <system >
+      <solutionStrategy >
+        <standard >
+          <matrix storage="sparseSym" reordering="noReordering" />
+        </standard>
+      </solutionStrategy>
+        <solverList>
+           <petsc solver="fgmres"  tolerance="1e-6" maxIter="10000">
+            <precond>
+              <mg nlvls="4" smoothSweeps="2" innerSolver="chebyshev"/>
+            </precond>
+          </petsc>
+        </solverList>
+      </system>
+    </linearSystems> 
+    </sequenceStep> 
+</cfsSimulation>
+
+
+  

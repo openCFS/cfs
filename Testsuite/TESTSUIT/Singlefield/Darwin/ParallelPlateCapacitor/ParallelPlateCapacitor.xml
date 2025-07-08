@@ -1,0 +1,192 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation
+  file:/home/kroppert/Devel/CFS_SRC/latest_trunkGit/CFS/share/xml/CFS-Simulation/CFS.xsd">
+
+  <documentation>
+    <title>Quarter model of a parallel plate capacitor, simulated with the Darwin approximation</title>
+    <authors>
+      <author>kroppert</author>
+    </authors>
+    <date>2021-10-23</date>
+    <keywords>
+      <keyword>magneticEdge</keyword>
+      <keyword>harmonic</keyword>
+      <keyword>darwin approximation</keyword>
+      <keyword>lagrange multiplier</keyword>
+      <keyword>capacitor</keyword>
+    </keywords>
+    <references>
+      n.A.
+    </references>
+    <!-- Simulation results were compared to fullwave CST simulation and 
+    	the results showed good agreement    -->
+    <isVerified>yes</isVerified>
+    <description>
+		Quarter model of a parallel plate capacitor, simulated with the Darwin approximation.
+		The formulation consists of a magnetic vector potential, a scalar potential (not really
+		the electric scalar potential but physically similar) and a Lagrange multiplier to obtain 
+		a symmetric formulation.
+    </description>
+  </documentation>
+  
+    <!-- define which files are needed for simulation input & output-->
+    <fileFormats>
+        <input>
+            <!-- specify your input file here -->
+		<cdb fileName="capacitor_quarter.cdb"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <!-- material assignment -->
+    <domain geometryType="3d">
+        <regionList>
+            <region name="V_dielec" material="dielec"/>
+            <region name="V_electrode_top" material="copper"/>
+            <region name="V_electrode_bottom" material="copper"/>
+            <region name="V_feed_top" material="copper"/>
+            <region name="V_feed_bottom" material="copper"/>
+            <region name="V_air" material="air"/>
+        </regionList>
+    </domain>
+
+
+	<fePolynomialList>
+		<Legendre id="edgePoly">
+			<isoOrder>1</isoOrder>
+		</Legendre>	
+		<Lagrange id="elecPoly">
+			<isoOrder>1</isoOrder>
+		</Lagrange>
+		<Lagrange id="lagMultPoly">
+			<isoOrder>1</isoOrder>
+		</Lagrange>
+	</fePolynomialList>
+
+	<integrationSchemeList>
+		<scheme id="elecInt">
+			<method>Gauss</method>
+			<order>3</order>
+			<mode>absolute</mode>
+		</scheme>
+		<scheme id="lagMultInt">
+			<method>Gauss</method>
+			<order>3</order>
+			<mode>absolute</mode>
+		</scheme>
+	</integrationSchemeList>
+
+
+
+
+    <sequenceStep index="1">
+        <analysis>
+        	<harmonic>
+        		<numFreq>3</numFreq>
+        		<startFreq>1e5</startFreq>
+        		<stopFreq>1e7</stopFreq>
+        		<sampling>log</sampling>
+        	</harmonic>
+        </analysis>
+        <pdeList>
+        	<magneticEdge formulation="Darwin">
+				<regionList>
+                    <region name="V_dielec" isConducRegion="false" elecScalPolyId="elecPoly" lagrangeMultPolyId="lagMultPoly" elecScalIntegId="elecInt" lagrangeMultIntegId="lagMultInt" />
+                    <region name="V_air" isConducRegion="false" elecScalPolyId="elecPoly" lagrangeMultPolyId="lagMultPoly" elecScalIntegId="elecInt" lagrangeMultIntegId="lagMultInt"/>
+                    <region name="V_feed_top" isConducRegion="true" elecScalPolyId="elecPoly" lagrangeMultPolyId="lagMultPoly" elecScalIntegId="elecInt" lagrangeMultIntegId="lagMultInt"/>
+                    <region name="V_feed_bottom" isConducRegion="true" elecScalPolyId="elecPoly" lagrangeMultPolyId="lagMultPoly" elecScalIntegId="elecInt" lagrangeMultIntegId="lagMultInt"/>
+					<region name="V_electrode_top" isConducRegion="true" elecScalPolyId="elecPoly" lagrangeMultPolyId="lagMultPoly" elecScalIntegId="elecInt" lagrangeMultIntegId="lagMultInt"/>
+					<region name="V_electrode_bottom" isConducRegion="true" elecScalPolyId="elecPoly" lagrangeMultPolyId="lagMultPoly" elecScalIntegId="elecInt" lagrangeMultIntegId="lagMultInt"/>
+                </regionList>
+                <bcsAndLoads>
+					<elecPotential name="S_electrode_top" value="1"/>
+					<elecPotential name="S_electrode_bottom" value="-1"/>
+					
+					<lagrangeMultiplier name="S_electrode_top" value="0"/>
+					<lagrangeMultiplier name="S_electrode_bottom" value="0"/>
+					<lagrangeMultiplier name="S_air_outer" value="0"/>
+					<lagrangeMultiplier name="S_air_top" value="0"/>
+					<lagrangeMultiplier name="S_air_bottom" value="0"/> 
+					
+                	<fluxParallel name="S_air_outer"/>
+                	<fluxParallel name="S_air_top"/>
+                	<fluxParallel name="S_air_bottom"/>
+                	<fluxParallel name="S_electrode_top"/>
+                	<fluxParallel name="S_electrode_bottom"/>
+                </bcsAndLoads>
+                <storeResults>
+                	<elemResult type="magFluxDensity">
+                		<allRegions/>
+                	</elemResult>
+                	<nodeResult type="elecPotential">
+                		<allRegions/>
+                	</nodeResult>
+<!--                 	<nodeResult type="lagrangeMultiplier"> -->
+<!--                 		<regionList> -->
+<!--                 			<region name="V_air"/> -->
+<!--                 			<region name="V_feed_top"/> -->
+<!--                 			<region name="V_feed_bottom"/> -->
+<!-- 	               			<region name="V_electrode_top"/> -->
+<!-- 	               			<region name="V_electrode_bottom"/> -->
+<!--                 		</regionList> -->
+<!--                 	</nodeResult> -->
+					<elemResult type="elecFieldIntensityTransversal">
+						<allRegions/>
+					</elemResult>
+					<elemResult type="elecFieldIntensityLongitudinal">
+						<allRegions/>
+					</elemResult>
+					<elemResult type="gradElecPotential">
+						<allRegions/>
+					</elemResult>
+					<elemResult type="displacementCurrentDensity">
+						<allRegions/>
+					</elemResult>
+					<elemResult type="elecFieldIntensity">
+						<allRegions/>
+					</elemResult>
+					<elemResult type="magEddyCurrentDensity">
+						<allRegions/>
+					</elemResult>
+					<surfRegionResult type="magEddyCurrent">
+						<surfRegionList>
+							<surfRegion name="S_electrode_top" writeAsHistResult="yes" />
+							<surfRegion name="S_electrode_bottom" writeAsHistResult="yes" />
+						</surfRegionList>
+					</surfRegionResult>
+					<surfRegionResult type="displacementCurrent">
+						<surfRegionList>
+							<surfRegion name="S_electrode_top" writeAsHistResult="yes" />
+							<surfRegion name="S_electrode_bottom" writeAsHistResult="yes" />
+						</surfRegionList>
+					</surfRegionResult>
+                </storeResults>
+        	</magneticEdge>
+        </pdeList>
+
+		<linearSystems>
+			<system>
+				<solutionStrategy>
+					<standard>
+<!-- 						<exportLinSys format="matrix-market" system="true" -->
+<!-- 				      		rhs="true" baseName="MAT" damping="true" stiffness="true" /> -->
+<!-- 						<matrix storage="sparseSym" reordering="Metis"/> -->
+<!-- 				      <setup idbcHandling="elimination"/> -->
+					</standard>
+				</solutionStrategy>
+				<solverList>
+<!-- 					<directLU/> -->
+					<pardiso/>
+				</solverList>
+			</system>
+		</linearSystems>
+
+</sequenceStep>
+
+</cfsSimulation>

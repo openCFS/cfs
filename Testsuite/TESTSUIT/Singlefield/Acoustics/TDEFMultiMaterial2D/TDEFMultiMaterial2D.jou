@@ -1,0 +1,76 @@
+undo on
+reset
+
+#============================================================
+# =============== Parameter definition ===============================
+#============================================================
+
+#{L=3 } 		# length
+#{L_eqFl=1 } 	# length
+#{L_air1=1 }	# length of air domain
+
+#{W= 0.01} 		# width
+
+
+# mesh details
+#{ f_min = 1000 } 	# Hz 				-> defines min. element size
+#{ f_max = 1000 } 	# Hz 				-> defines max. element size
+
+#{ N_per_lam = 20 } 	# no elems per wave length		-> defines mesh size
+#{c0 = 343}	# speed of sound in m/s
+
+#{lamda_max = c0 / f_min}
+#{lamda_min = c0 / f_max}
+
+#{elSize = lamda_min / N_per_lam}
+
+#============================================================
+
+create surface rectangle width {W} height {L}
+move volume all y {L/2}  include_merged
+
+webcut volume all with plane yplane offset {L_air1}
+webcut volume all with plane yplane offset {L_air1+L_eqFl}
+
+imprint volume all
+merge volume all
+
+curve 3 scheme equal
+curve 3 interval 1
+
+
+volume all size {elSize}
+mesh surface all
+
+#===================================
+# Nodeset definition
+
+nodeset 1 add curve 3
+nodeset 1 name "bc_left"
+
+nodeset 2 add curve 1
+nodeset 2 name "bc_right"
+
+nodeset 3 add curve 5
+nodeset 3 name "if_1"
+
+nodeset 4 add curve 11
+nodeset 4 name "if_2"
+
+#===================================
+# Block definition
+
+block 1 add surface 2
+block 1 name "air"
+
+block 2 add surface 4
+block 2 name "eqFluid1"
+
+block 3 add surface 5
+block 3 name "eqFluid2"
+
+export ansys cdb "TDEFMultiMaterial2D.cdb" overwrite
+
+
+
+

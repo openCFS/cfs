@@ -1,0 +1,43 @@
+reset
+#GEOMETRY
+#{L_cube = 0.1}
+#{L_channel = 1}
+#{e_size_x = L_cube/5}
+#{L_PML = 5*e_size_x}
+brick x {L_cube} y {L_cube}  z {L_cube} 
+volume 1 rename "cube"
+brick x {L_channel}  y {L_cube} z {L_cube} 
+move Volume 2 x {(L_channel+L_cube)/2} include_merged
+volume 2 rename "air"
+brick x {L_PML}  y {L_cube}  z {L_cube} 
+move Volume 3 x {(L_PML+L_cube)/2+L_channel} include_merged
+volume 3 rename "pml"
+imprint volume all
+merge volume all
+
+#MESH
+curve 1 size {e_size_x} 
+curve 2 size {e_size_x} 
+curve 11 size {L_cube} 
+curve 13 size {e_size_x}
+curve 14 size {e_size_x}
+curve 26 size {e_size_x}
+volume all scheme auto 
+mesh volume all
+
+#NODESETS
+set duplicate block elements off
+block 1 add volume 1
+block 1 name "V_cube"
+block 2 add volume 2
+block 2 name "V_air"
+block 3 add volume 3
+block 3 name "V_PML"
+nodeset 1 add surface 5 1 2 3 
+nodeset 1 name "S_fix_yz"
+nodeset 2 add surface 4 
+nodeset 2 name "S_normal_stiffness"
+nodeset 3 add surface 6
+nodeset 3 name "S_coupling"
+
+

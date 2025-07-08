@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+/home/florian/Devel/CFS_SRC/cfs/share/xml/CFS-Simulation/CFS.xsd">
+
+<documentation>
+    <title>Harmonic Lorentz Force Density - MagEdgePDE</title>
+    <authors>
+        <author>Florian Frech</author>
+    </authors>
+    <date>2025-08-01</date>
+    <keywords>
+        <keyword>harmonic</keyword>
+        <keyword>magneticEdge</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+        In this example, a 3D simulation of two parallel wires is performed.
+        The wires are driven by a harmonic current source.
+        The constant and harmonic Lorentz force densities are calculated.
+    </description>
+</documentation>
+    
+<!-- define which files are needed for simulation input & output-->
+    <fileFormats>
+        <input>
+            <!-- specify your ANSYS-cdb input file here -->
+            <hdf5 fileName="HarmonicLorentzForceMagEdgePDE.h5ref"/>
+        </input>
+        <output>
+            <hdf5/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <!-- material assignment -->
+    <domain geometryType="3d">
+        <regionList>
+            <region name="V_air" material="air"></region>
+            <region name="V_wire_left" material="copper"></region>
+            <region name="V_wire_right" material="copper"></region>
+        </regionList>
+    </domain>
+
+    <!-- Step 1: Harmonic Analysis-->
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <startFreq>50</startFreq>
+                <stopFreq>50</stopFreq>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <magneticEdge formulation="A">
+                
+                <regionList>
+                    <region name="V_air"/>
+                    <region name="V_wire_left"/>
+                    <region name="V_wire_right"/>
+                </regionList>
+
+                <bcsAndLoads>
+                    <fluxParallel name="S_flux_air_radial"/>
+                    <fluxParallel name="S_flux_air_front"/>
+                    <fluxParallel name="S_flux_air_back"/>
+                    <fluxParallel name="S_wire_left_front"/>
+                    <fluxParallel name="S_wire_left_back"/>
+                    <fluxParallel name="S_wire_right_front"/>
+                    <fluxParallel name="S_wire_right_back"/>
+                </bcsAndLoads>
+
+                <coilList>
+                    <coil id="1">
+                        <source type="current" value="8"/>
+                        <part id="1">
+                            <regionList>
+                                <region name="V_wire_left" />
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="1" />
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="7.853981633974482e-07" />
+                            <resistance value="0" />
+                        </part>
+                    </coil>
+                    <coil id="2">
+                        <source type="current" value="8" />
+                        <part id="1">
+                            <regionList>
+                                <region name="V_wire_right" />
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="1" />
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="7.853981633974482e-07" />
+                            <resistance value="0" />
+                        </part>
+                    </coil>
+                </coilList>
+
+                <storeResults>
+                    <elemResult type="magForceLorentzDensityStatic" complexFormat="realImag">
+                        <regionList>
+                            <region name="V_wire_left" />
+                            <region name="V_wire_right" />
+                        </regionList>
+                    </elemResult>
+                    
+                    <elemResult type="magForceLorentzDensityHarmonic" complexFormat="realImag">
+                        <regionList>
+                            <region name="V_wire_left" />
+                            <region name="V_wire_right" />
+                        </regionList>
+                    </elemResult>
+                </storeResults>
+            </magneticEdge>
+        </pdeList>
+    </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd" xmlns="http://www.cfs++.org/simulation">
+
+	<documentation>
+		<title>Fluid Mechanic</title>
+		<authors>
+			<author>awurzinger</author>
+		</authors>
+		<date>2023-11-23</date>
+		<keywords>
+			<keyword>flow</keyword>
+		</keywords>
+		<references></references>
+		<isVerified>yes</isVerified>
+		<description>
+			Plane wave propagation in 1D transient setup with convection velocity read from grid, including all convective terms
+		</description>
+	</documentation>
+	<fileFormats>
+		<input>
+			<hdf5 fileName="PlaneWave2DConvectionC2C3TransientReadGrid.h5ref" />
+		</input>
+		<output>
+			<hdf5 />
+		</output>
+		<materialData file="mat.xml" format="xml" />
+	</fileFormats>
+
+	<domain geometryType="plane">
+		<regionList>
+			<region name="S_flow" material="FluidMat" />
+		</regionList>
+	</domain>
+	<fePolynomialList>
+
+		<Legendre id="velPolyId">
+			<isoOrder>2</isoOrder>
+		</Legendre>
+
+		<Legendre id="presPolyId">
+			<isoOrder>1</isoOrder>
+		</Legendre>
+	</fePolynomialList>
+
+	<sequenceStep index="1">
+		<analysis>
+			<transient>
+				<numSteps>36</numSteps>
+				<deltaT>0.5</deltaT>
+			</transient>
+		</analysis>
+		<pdeList>
+			<fluidMechLin formulation="compressible" presPolyId="presPolyId" velPolyId="velPolyId" enableC2="true" enableC3="true">
+				<regionList>
+					<region name="S_flow" flowId="myFlow" /><!---->
+				</regionList>
+
+				<flowList>
+					<velocity name="myFlow">
+						<grid>
+							<defaultGrid dependtype="SPACE" quantity="meanFluidMechVelocity" definedOn="node" sequenceStep="1" />
+						</grid>
+					</velocity>
+				</flowList>
+
+				<bcsAndLoads>
+					<noSlip name="L_bottom">
+						<comp dof="y" />
+					</noSlip>
+					<noSlip name="L_top">
+						<comp dof="y" />
+					</noSlip>
+					<traction name="L_left">
+						<comp dof="x" value="1.0*sin(t)" />
+					</traction>
+				</bcsAndLoads>
+
+				<storeResults>
+					<nodeResult type="fluidMechPressure">
+						<allRegions />
+					</nodeResult>
+					<nodeResult type="fluidMechVelocity">
+						<allRegions />
+					</nodeResult>
+					<nodeResult type="meanFluidMechVelocity">
+						<allRegions />
+					</nodeResult>
+				</storeResults>
+			</fluidMechLin>
+		</pdeList>
+		<linearSystems>
+			<system>
+				<solutionStrategy>
+					<standard>
+						<matrix storage="sparseNonSym" />
+					</standard>
+				</solutionStrategy>
+			</system>
+		</linearSystems>
+	</sequenceStep>
+
+</cfsSimulation>

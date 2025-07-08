@@ -1,0 +1,25 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- material with wave speed of 1.0 in the uni-axial strain case -->
+  <material name="C1">
+    <mechanical>
+      <density>
+        <linear>
+          <real>1.0</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>5.0/6.0</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.25</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

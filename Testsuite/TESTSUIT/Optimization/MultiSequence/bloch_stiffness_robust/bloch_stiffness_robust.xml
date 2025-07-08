@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+
+ <documentation>
+    <title>Bloch band gap maximization with robust stiffness constraint</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2016-02-19</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>Appends on bloch_stiffness but has two filters for the homogenization (only one for bloch!). This shall help
+    preventing gray stiffness connections when used with a Heaviside filter.
+    We mean robust in the Ole sense with multiple filters and here we just change the radius and not the type.
+    Edit: 2019-12-12: Reduced optimization to evaluate as the problem is too sensitive. The old optimization results are stored as *.ref.opt.*
+    and can easily activated by switching the optimizer to snopt again
+    </description>
+
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="TitaniumFranziScaledE10" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.5" y="0.5" />
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>5</numModes>
+        <freqShift>0</freqShift>
+        <writeModes>no</writeModes>
+        <bloch>
+           <ibz sample="symmetric" steps="6" />
+        </bloch>
+      </eigenFrequency>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+        <bcsAndLoads>
+          <periodic primary="north" secondary="south" dof="x"  quantity="mechDisplacement" />
+          <periodic primary="north" secondary="south" dof="y"  quantity="mechDisplacement" />
+          <periodic primary="west"  secondary="east" dof="x"  quantity="mechDisplacement" />
+          <periodic primary="west"  secondary="east" dof="y"  quantity="mechDisplacement" />
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>  
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <umfpack/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+ 
+  <sequenceStep index="2">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <periodic secondary="north" primary="south" dof="x" quantity="mechDisplacement"/>
+           <periodic secondary="north" primary="south" dof="y" quantity="mechDisplacement"/>
+           <periodic primary="west"  secondary="east" dof="x"  quantity="mechDisplacement" />
+           <periodic primary="west"  secondary="east" dof="y"  quantity="mechDisplacement" />
+           <!-- necessary BC for cholmod -->
+           <fix name="center"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>           
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>  
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+            
+       </storeResults>
+      </mechanic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <cholmod/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <loadErsatzMaterial file="cross_2d-v_0.5_10.density.xml" set="last"/>
+
+   <optimization>
+    <costFunction type="slack" sequence="1" task="maximize" multiple_excitation="true">
+      <stopping queue="999" value="0.001" type="designChange"/>
+      <multipleExcitation type="homogenizationTestStrains" sequence="2">
+        <robust sequence="1" enable="false" filter="0"/>
+        <robust sequence="2" enable="true"/>
+      </multipleExcitation>
+    </costFunction>
+
+    <constraint type="eigenfrequency" bound="upperBound" value="alpha-slack" ev="2" mode="constraint" bloch="full" />
+    <constraint type="eigenfrequency" bound="upperBound" value="alpha-slack" ev="3" mode="constraint" bloch="full" /> 
+    <constraint type="eigenfrequency" bound="lowerBound" value="alpha+slack" ev="4" mode="constraint" bloch="full"/>
+    <constraint type="eigenfrequency" bound="lowerBound" value="alpha+slack" ev="5" mode="constraint" bloch="full"/>
+
+    <constraint type="youngsModulusE1" bound="lowerBound" value="0.6"  mode="constraint" sequence="2" excitation="0" />
+    <constraint type="youngsModulusE1" bound="lowerBound" value="0.8"  mode="constraint" sequence="2" excitation="1" />
+
+    <constraint type="iso-orthotropy" mode="constraint" sequence="2" excitation="0"/>
+    <constraint type="iso-orthotropy" mode="constraint" sequence="2" excitation="1" />
+
+    <constraint type="volume" value="0.5" bound="upperBound" linear="true" mode="constraint" excitation="0"/>
+    
+    <constraint type="greyness" mode="observation" access="plain"/>
+    <constraint type="greyness" mode="observation" access="physical"/>
+
+    <!-- 2019-12-12: changed from snopt to evaluate for a more robust test case, see ref.opt. files -->
+    <optimizer type="evaluate" maxIterations="35">
+      <snopt>
+        <option type="integer" name="verify_level" value="0"/>
+        <option name="major_optimality_tolerance" type="real" value="1e-4"/>
+         <option name="major_feasibility_tolerance" type="real" value="1e-6"/>
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters periodic="disable">
+        <filter neighborhood="maxEdge" value="1.3" robust_excitation="0">
+          <density type="standard" beta="1"/>
+        </filter>
+        <filter neighborhood="maxEdge" value="2.0" robust_excitation="1">
+          <density type="standard" beta="1"/>
+        </filter>
+      </filters>
+
+      <design name="density" initial="random" physical_lower="1e-9" upper="1.0" enforce_bounds="true"/>
+      <design name="slack" initial="000" lower="0" upper="5000"/>
+      <design name="alpha" initial="100" lower="50" upper="15000"/>
+
+      <transferFunction type="simp" application="mech" param="6"/>
+      <transferFunction type="simp" application="mass" param="6" />
+
+      <result value="design" id="optResult_1" excitation="0" access="smart"/>
+      <result value="design" id="optResult_2" excitation="6" access="smart"/>
+      <result value="design" id="optResult_3" excitation="9" access="smart"/>
+
+      <export save="last" write="iteration"/>
+
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="999"/>
+    
+  </optimization>
+
+
+</cfsSimulation>

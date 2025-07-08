@@ -1,0 +1,127 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org file:/home/domini/Devel/CFS_SRC/CFS/share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>RotatingDiscALE_reference</title>
+    <authors>
+      <author>dmayrhof</author>
+    </authors>
+    <date>2022-03-28</date>
+    <keywords>
+      <keyword>flow</keyword>
+      <keyword>smooth</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> Non Just funcionality test </references>
+    <isVerified>no</isVerified>
+    <description>
+      Non-rotating reference file for the RotatingDiscALE testcase.
+    </description>
+  </documentation>  
+  
+  <fileFormats>
+    <input>
+      <cdb fileName="RotatingDiscMesh.cdb"/>      
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+  	<variableList>
+      <var name="d_disc" value="1e-1"/>
+  	  <var name="f_exc" value="10000"/>
+    </variableList>
+  
+    <regionList>
+      <region name="Disc" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="Exc_outer"/>
+      <surfRegion name="Exc_inner"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="orderVel">
+      <isoOrder>2</isoOrder> 
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="orderPres">
+      <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+  
+  <integrationSchemeList>
+    <scheme id="integVel">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="integPres">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>8</numSteps>
+        <deltaT>5e-06</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel">
+        <regionList>
+          <region name="Disc"/>
+        </regionList>
+        
+        <bcsAndLoads> 
+          <noSlip name="Exc_outer">
+            <comp dof="x"/> 
+            <comp dof="y"/>         
+          </noSlip>
+          <pressure name="Exc_outer" value="sin(2*pi*f_exc*t)"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions outputIds="h5"/>        
+          </nodeResult>
+        </storeResults>
+      </fluidMechLin>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso>
+            <posDef>no</posDef>
+            <symStruct>no</symStruct>
+            <logging>yes</logging>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+
+  <documentation>
+    <title>local stress constraints (VTS)</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2020-12-28</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>standard</references>
+    <isVerified>no</isVerified>
+    <description>Local stress constraints are expensive as for each constraint an adjoint PDE is to be solved. The constraint is (Bu,M Bu)
+                 with the von Mises M matrix.
+                 We have here the easy case with transfer function for physics (mech) and stress constraints (stress) being linear (vts)
+                 The mesh has a ball inclusion of size .3 (create_mesh.py --res 40 --type bulk2d --inclusion_size .3 --inclusion ball)
+                 You can test with the provided larger mesh. Additional mean values are calculated with -d. Note that having the named elements
+                 in the store results blows up the info.xml, it is only useful for debugging and therefore kept here. 
+                 The slight differente between sqrt(vonMisesStress) and penalizedVMStress is that the former is evaluated only at the element center.
+                 </description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="mech" material="99lines" /> 
+      <region name="inner" material="99lines" />
+    </regionList>
+    <elemList>
+      <elems name="elems">
+        <list>
+          <!-- the fine inc makes is quite expensive -->
+          <freeCoord comp="x" stop="1" inc=".01" start="0"/>
+          <freeCoord comp="y" stop="1" inc=".01" start="0"/>
+        </list>
+       </elems>
+    </elemList>
+    <nodeList>
+      <nodes name="load">
+        <list>
+          <freeCoord comp="y" start=".4" stop=".6" inc=".01" />
+          <fixedCoord comp="x" value="1"/>
+        </list>
+      </nodes>
+      <nodes name="elems_nodes">
+         <allNodesInRegion regName="mech"/>
+      </nodes>
+    </nodeList>
+    
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+          <region name="inner" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="load">
+             <comp dof="x" value="1"/>
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+<!--             <nodeList> -->
+<!--               <nodes name="elems_nodes"/> -->
+<!--             </nodeList> -->
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+            <elemList>
+              <elems name="elems"/>
+            </elemList>
+          </elemResult>
+          <elemResult type="vonMisesStress" >
+            <allRegions/>
+            <elemList>
+              <elems name="elems"/>
+            </elemList>
+          </elemResult>
+
+          <elemResult type="optResult_1">
+            <allRegions/>
+            <elemList>
+              <elems name="elems"/>
+            </elemList>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+
+<!--    <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod/> -->
+<!--         </solverList>  -->
+<!--       </system> -->
+<!--     </linearSystems>  -->
+  </sequenceStep>
+
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping queue="999" value="0.001" type="designChange"/>
+    </costFunction>
+
+    <constraint type="volume" value=".5" bound="upperBound" linear="true" mode="constraint"  />
+
+    <!-- for each element of the inclusion (Bu, M Bu) <= 2 as local constraint with own adjoint PDE -->
+    <constraint type="localStress" value="2" bound="upperBound" region="inner" />
+
+    <optimizer type="snopt" maxIterations="10">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option name="verify_level" type="integer" value="-1"/>
+      </snopt>
+    </optimizer>
+
+    <ersatzMaterial material="mechanic" method="simp" >
+      <regions>
+        <region name="mech"/>
+        <region name="inner"/>
+      </regions>
+      <filters>
+        <filter neighborhood="maxEdge" value="1.5" type="density"/>
+      </filters>
+
+      <design name="density" initial="1" physical_lower="1e-5" upper="1.0" />
+
+      <transferFunction type="simp" application="mech" param="1"/>
+      <transferFunction type="simp" application="stress" design="density" param="1"/>
+
+      <result value="quadraticVMStress" id="optResult_1"/>
+      <export save="last" write="iteration" compress="false"/>
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="1"/>
+   </optimization>
+</cfsSimulation>
+
+
