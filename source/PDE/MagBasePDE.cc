@@ -800,6 +800,14 @@ namespace CoupledField
       
       PtrCoefFct sumCrossProds = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp( mp_, realCrossProd, imagCrossProd, CoefXpr::OP_ADD ) );
       PtrCoefFct lfdFunc_static = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, "0.5", sumCrossProds, CoefXpr::OP_MULT ) ); 
+
+      // scale solution for MULTIHARMONIC case
+      // consider that the quantities in multiharmonic are 1/2 of the harmonic ones,
+      // the total force is obtained by summing all the harmonics
+      if (analysistype_ == MULTIHARMONIC) 
+      {
+        lfdFunc_static = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, "2", lfdFunc_static, CoefXpr::OP_MULT ));
+      }
       
       DefineFieldResult( lfdFunc_static, lfd_static);
 
@@ -827,6 +835,14 @@ namespace CoupledField
       sumImAmp = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, halfJ, sumImAmp, CoefXpr::OP_MULT ));
 
       PtrCoefFct lfdFunc_harmonic = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp( mp_, subReAmp, sumImAmp, CoefXpr::OP_ADD));
+
+      // scale solution for MULTIHARMONIC case
+      // consider that the quantities in multiharmonic are 1/2 of the harmonic ones,
+      // the total force is obtained by summing all the harmonics
+      if (analysistype_ == MULTIHARMONIC) 
+      {
+        lfdFunc_harmonic = CoefFunction::Generate( mp_, Global::COMPLEX, CoefXprBinOp(mp_, "2", lfdFunc_harmonic, CoefXpr::OP_MULT ));
+      }
       
       DefineFieldResult( lfdFunc_harmonic, lfd_harmonic);
     }
