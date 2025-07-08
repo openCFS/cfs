@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+
+  <fileFormats>
+    <input>
+      <!--<gmsh fileName="Abc3d.msh"/>-->
+      <hdf5 fileName="template.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="acoust3d" material="air"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="abc"/>
+    </surfRegionList>
+    
+    <nodeList>
+      <nodes name="center">
+        <coord x="0.0" y="0.0" z="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>40</numSteps>
+        <deltaT>0.000125</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <acoustic_BEM>
+        <regionList>
+          <region name="acoust3d"/>
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="center" value="1.0*sin(2.0*_pi*1000.0*t)"/>
+          <absorbingBCs name="abc" volumeRegion="acoust3d"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic_BEM>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+  </sequenceStep>
+  
+
+</cfsSimulation>
