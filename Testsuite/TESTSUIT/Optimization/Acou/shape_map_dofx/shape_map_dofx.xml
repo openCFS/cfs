@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>Acoustic Optimization - ShapeMapping</title>
+        <authors>
+            <author>Felix Huber</author>
+        </authors>
+        <date>2025-07-15</date>
+        <description>This file is used to minimize the reflected wave of an acoustic structure.
+        It is a multiload optimization for four frequencies.
+        Furthermore, shapeMap is used to allow stable optimization.
+        This test is not stable for mma, snopt was found best.
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <input>
+            <hdf5 fileName="shape_map_dofx.h5ref"/>
+        </input>
+        <output>
+            <hdf5 />
+            <info id="info"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <regionList>
+            <region name="S_acou" material="air"/>
+            <region name="S_opt" material="air"/>
+        </regionList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>4</numFreq>
+                <startFreq>1000</startFreq>
+                <stopFreq>2000</stopFreq>
+                <sampling>linear</sampling>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_acou"/>
+                    <region name="S_opt"/>
+                </regionList>
+                <bcsAndLoads>
+                    <normalVelocity name="L_exc_surf" value="1"/>
+                    <absorbingBCs volumeRegion="S_acou" name="L_exc_surf" />
+                    <absorbingBCs volumeRegion="S_acou" name="L_out_surf" />
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                </storeResults>
+            </acoustic>
+        </pdeList>
+    </sequenceStep>
+    <optimization>
+        <costFunction type="reflectedWave" task="minimize" multiple_excitation="true">
+            <stopping queue="2" value="0.001" type="relativeCostChange"/>
+            <output>
+                <acoustic name="L_exc" value="1" surfRegion="L_exc_surf" volumeNeighbour="S_acou"/>
+            </output>
+        </costFunction>
+
+        <constraint type="curvature" bound="upperBound" value="0.1/ny" design="profile" linear="false"/>
+
+        <optimizer type="snopt" maxIterations="100"/>
+
+        <ersatzMaterial region="S_opt" material="acoustic" method="shapeMap">
+            <designSpace local_element_cache="false"/>
+            <shapeMap beta="384" overlap="tanh_sum" enforce_bounds="false" sensitivity="1e-10" shape="tanh">
+                <node fixed="0" dof="x"/>
+                <profile lower="0" upper="0.12" initial=".05"/>
+            </shapeMap>
+
+            <design name="density" initial="0.5" physical_lower="1e-9" upper="1.0" />
+
+            <transferFunction type="simp" application="acoustic" param="1"/>
+            
+            <export save="last" write="iteration"/>
+        </ersatzMaterial>
+        <commit mode="forward" stride="1"/>
+    </optimization>
+</cfsSimulation>
