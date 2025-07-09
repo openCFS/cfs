@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+ 
+  <documentation>
+    <title>Feature Mapping with variable mapping</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2025-08-06</date>
+    <references>see two_pill.xml</references>
+    <isVerified>no</isVerified>
+    <description>
+      Feature mapping where a single variable (endpoint Q_y) is mapped to another variable (start P_y).
+      This makes the feature to be strictly horizontal. Technically only one variable is seen by the optimizer and takes both gradient information.
+
+      Use e.g. bulk2d mesh from create_mesh.py
+    </description>
+  </documentation>
+
+  <fileFormats>
+
+    <input>
+      <hdf5 fileName="map_single.h5ref"/>
+    </input>
+
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <list>
+          <freeCoord comp="y" stop="0.6" inc="1/100" start="0.4"/>
+          <fixedCoord comp="x" value="1"/>
+        </list>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="load" >
+             <comp dof="x" value="1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+ 
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" sequence="1" linear="false">
+      <!-- we stop duma mma quite early -->
+      <stopping queue="2" value="1e-3" type="relativeCostChange" />
+    </costFunction>
+
+    <constraint type="volume" bound="upperBound" value="0.3" mode="constraint" linear="false"/>
+   
+    <optimizer type="dumas_mma" maxIterations="100"/>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="featureMapping">
+      <featureMapping  transition=".1" order="2" combine="p-norm" p="4" >
+        <pill>
+          <node dof="x" initial="0.2" upper="1" lower="0" tip="start" />
+          <!-- we assign to the P_y variable the key "py". For snopt it helps to limit the bounds, otherwise snopt jumps to the upper edge and stays -->
+          <node dof="y" initial="0.2" upper=".9" lower="0.1" tip="start" key="py"/>
+          <node dof="x" initial="0.8" upper="1" lower="0" tip="end"/>
+          <!-- we do not use the original variable <node dof="y" initial="0.2" upper="1" lower="0" tip="end"/> -->
+          <!-- we map the py value to the Q_y variable. -->
+          <node dof="y" tip="end" map="py" />
+          <profile initial="0.1" lower="0.05" upper="0.2" />
+        </pill>
+      </featureMapping>
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech" />
+      <export save="all" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

@@ -60,7 +60,7 @@ public:
   template <class T>
   bool Init(std::string excite_label, App::Type app = App::NO_APP);
 
-  /** kind of inhom Neumbann. From Init() */
+  /** kind of inhomogeneous Neumann. From Init() */
   App::Type app;
 
   /** bool are we set? */

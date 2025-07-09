@@ -181,6 +181,8 @@ namespace CoupledField
       return gridMap_.begin()->second;
     }
 
+    /** Shortcut to obtain grid dimension (2 or 3). */
+    unsigned int GetDim() const; 
 
     /** return the name of the registered coordinate systems */
     StdVector<std::string> GetCoordSystems() const;

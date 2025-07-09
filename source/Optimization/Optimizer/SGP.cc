@@ -428,7 +428,7 @@ void SGP::eval_dJ(const sgp::Material_Vector& x, std::vector<sgp::Matrix>& dJ) c
   CalcTensDeriv(deriv, tmp);
 
   assert(dJ.size() == n_elems_);
-  unsigned int dim = domain->GetGrid()->GetDim();
+  unsigned int dim = domain->GetDim();
   // copy res to data structure of external sgp
   for (unsigned int e = 0; e < n_elems_; e++) {
     // expects dimension of grid
@@ -449,7 +449,7 @@ void SGP::eval_dJ(const sgp::Material_Vector& x, std::vector<sgp::Matrix>& dJ) c
 void SGP::eval_Gamma_epsilon(const sgp::Material_Vector& x, std::vector<sgp::Matrix>& Gamma, std::vector<sgp::Vector>& epsilon) const
 {
   // number of rows of material tensor (depends on dimension of problem)
-  unsigned int D_rows = (domain->GetGrid()->GetDim() == 3) ? 6 : 3;
+  unsigned int D_rows = (domain->GetDim() == 3) ? 6 : 3;
 
   StdVector<Matrix<double>> Gamma_tmp;
   StdVector<Vector<double>> eps;
@@ -661,13 +661,13 @@ void SGP::ComputeElementGammaEps(Matrix<Double>& gamma, Vector<Double>& eps, con
   // number of free dofs in element e
   unsigned int ndofe = eqnVec.GetSize();
 
-  assert(ndofe == domain->GetGrid()->GetDim()*nip);
+  assert(ndofe == domain->GetDim()*nip);
   LOG_DBG3(sgpopt) << "elem " << elem->elemNum << " has " << ndofe << " free dofs";
 //  stiffMat->Export("stiffMat", BaseMatrix::MATRIX_MARKET);
   Matrix<double> bMat_glob(3*bMat.GetSize(), ndofe);
 
   // number of rows of material tensor (depends on dimension of problem)
-  unsigned int D_rows = (domain->GetGrid()->GetDim() == 3) ? 6 : 3;
+  unsigned int D_rows = (domain->GetDim() == 3) ? 6 : 3;
   Matrix<double> Bglob_e(ndofe, D_rows*nip);
 
   assert(eqnVec.GetSize() == ndofe);

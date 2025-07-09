@@ -277,12 +277,15 @@ namespace CoupledField {
      * On Windows max() could be a macro, so call #undef max in some header or #define NOMINMAX #include <windows.h> */
     inline size_type max_size() const {return std::numeric_limits<size_type>::max();}
 
-    /** Set the length of the vector but might keep the capacity!
-     * Will keep data.
+    /** Set the length of the vector but keep the capacity.
+     * When we shrink, capacity will remain. If we grow beyond capacity we copy 
      * @param size if smaller capacity only the internal size parameter is adjusted.
      *        If larger than the current capacity the old data is copied!
-     * @note Additional data is NOT initialized, and Resize with init parameter sets ALL data */
+     * @note Additional data is NOT initialized, use the other constructor Resize with init parameter sets ALL data */
     void Resize(size_type size);
+
+    /** Resize by keeping the capacity. In case we grow beyond capacity, the data is not copied. */ 
+    void ResizeNoCopy(size_type size);
 
     /** Set the length of the vector and initialize
      * @note Init() is called with this value */

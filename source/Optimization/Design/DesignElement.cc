@@ -16,6 +16,9 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
+#ifdef USE_EMBEDDED_PYTHON 
+  #include "Optimization/Design/SpaghettiDesign.hh"
+#endif
 #include "Optimization/Design/SplineBoxDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Function.hh"
@@ -26,6 +29,7 @@
 #include "PDE/SinglePDE.hh"
 #include "Utils/Point.hh"
 #include "Utils/tools.hh"
+#include "Utils/mathParser/mathParser.hh"
 #include "boost/date_time/posix_time/posix_time.hpp"
 #include "boost/math/special_functions/sign.hpp"
 #include "boost/lexical_cast.hpp"
@@ -51,6 +55,8 @@ Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
 Enum<ShapeParamElement::Dof>        ShapeParamElement::dof;
+
+Enum<FeatureVariable::Tip> FeatureVariable::tip_enum;
 
 Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
 
@@ -387,11 +393,246 @@ string ShapeParamElement::GetLabel() const
   return type.ToString(type_) +  "_" + dof.ToString(dof_) + "_" + std::to_string(opt_index_);
 }
 
+void FeatureVariable::CompareToInfoHelper(const FeatureVariable* v0, const FeatureVariable* test, std::string& fixed, std::string& lower, std::string& upper) 
+{
+  assert(v0 != nullptr && test != nullptr);
+  assert(v0->fixed == test->fixed);
+
+  if(v0->GetPlainDesignValue() == test->GetPlainDesignValue()) {
+    if(fixed != "not constant")
+      fixed = std::to_string(v0->GetPlainDesignValue());
+  } else
+    fixed = "not constant";
+
+  if(v0->GetLowerBound() == test->GetLowerBound()) {
+    if(lower != "not constant")
+      lower = std::to_string(v0->GetLowerBound());
+  } else
+    lower = "not constant";
+
+  if(v0->GetUpperBound() == test->GetUpperBound()) {
+    if(upper != "not constant")
+      upper = std::to_string(v0->GetUpperBound());
+  } else
+    upper = "not constant";
+}
+
+
+bool FeatureVariable::IsFixed(const StdVector<FeatureVariable>& point) 
+{
+  assert(point.GetSize() == domain->GetDim());
+  for(const FeatureVariable& v : point)
+    if(v.fixed)
+      return true;
+  return false;
+}
+
+int FeatureVariable::CountRealVariables(const StdVector<FeatureVariable>& point) 
+{
+  int sum = 0;
+  assert(point.GetSize() == domain->GetDim());
+  for(const FeatureVariable& v : point)
+    sum += v.IsVariable() ? 1 : 0;
+  return sum;
+}
+
+std::string FeatureVariable::ToString(const StdVector<FeatureVariable>& vec, bool show_fixed)
+{
+  std::stringstream ss;
+  ss << "[";
+  for(unsigned int i = 0; i < vec.GetSize(); i++)
+  {
+    const FeatureVariable& v = vec[i];
+    if(show_fixed && v.fixed)
+      ss << "*";
+    ss << v.GetPlainDesignValue();
+    if(i < vec.GetSize()-1)
+      ss << ", ";
+  }
+  ss << "]";
+  return ss.str();
+}
+
+Vector<double> FeatureVariable::AsVector(const StdVector<FeatureVariable>& vec)
+{
+  Vector<double> res(vec.GetSize());
+  for(unsigned int i = 0; i < vec.GetSize(); i++)
+    res[i] = vec[i].GetPlainDesignValue();
+  return res;
+}
+
+
+void FeatureVariable::Parse(PtrParamNode pn, int feature_idx, double interpolate_value)
+{
+  this->feature = feature_idx;
+
+  MathParser* mp = domain->GetMathParser();
+  unsigned int handle = mp->GetNewHandle();
+
+  // mapping via "key" and "map" needs to be validated and processed outside (e.g. FeatureMappingDesign)
+  if(pn->Has("key")) 
+    key = pn->Get("key")->As<string>();
+  if(pn->Has("map")) 
+    map = pn->Get("map")->As<string>();
+
+  fixed = false;  
+  string value; // subject to mathparser evaluation
+
+  if(pn->Has("fixed")) 
+  {
+    value = pn->Get("fixed")->As<string>();
+
+    if(pn->Has("key") || pn->Has("map")) // only pill has key/map, not spaghetti - so don't mix in messages
+      throw Exception("When a '" + pn->GetName() + "' is 'fixed', don't use 'key' or 'map'");
+    if(pn->Has("upper") || pn->Has("lower") || pn->Has("initial"))
+      throw Exception("When a '" + pn->GetName() + "' is 'fixed', don't use 'initial', 'lower' or 'upper'");
+    fixed = true;
+  } 
+  if(!fixed)
+  {
+    if(map == "")
+    { 
+      if(!pn->Has("upper") || !pn->Has("lower") || !pn->Has("initial"))
+        throw Exception("'" + pn->GetName() + "' needs 'initial', 'lower' and 'upper' when not 'fixed'");
+      value = pn->Get("initial")->As<string>();
+      mp->SetExpr(handle, pn->Get("lower")->As<string>());
+      SetLowerBound(mp->Eval(handle));
+      mp->SetExpr(handle, pn->Get("upper")->As<string>());
+      SetUpperBound(mp->Eval(handle));
+    }
+    else
+      if(pn->Has("upper") || pn->Has("lower") || pn->Has("initial") || pn->Has("fixed"))
+        throw Exception("When a '" + pn->GetName() + "' is mapped, don't use 'initial', 'lower', 'upper', or 'fixed'");
+  }
+
+  // this might contain a formula or simply a value
+  if(value == "interpolated")
+  {
+    assert(interpolate_value != -12.34);
+    SetDesign(interpolate_value);
+  }
+  else
+  {
+    assert(value != "" || map != ""); // either value or map must be set
+    assert(!(value != "" && map != "")); // not both
+    if(value != "")
+    {
+      mp->SetExpr(handle, value);
+      SetDesign(mp->Eval(handle));
+    }
+  }
+
+  mp->ReleaseHandle(handle);
+
+  if(pn->Has("tip")) // node requires tip
+    tip = FeatureVariable::tip_enum.Parse(pn->Get("tip")->As<string>());
+
+  if(pn->Has("dof")) // node requires top
+    dof_ = dof.Parse(pn->Get("dof")->As<string>());
+
+  type_ = type.Parse(pn->GetName());
+
+  LOG_DBG(desel) << "FV:P fi=" << feature_idx << " v=" << value << " f=" << fixed << " tip=" << tip << " dof=" << dof_ << " type=" << type_;
+
+  if(type_ != NODE && (tip != NO_TIP || dof_ != NOT_SET))
+    throw Exception("Within 'pill' use 'dof' and 'tip' only for 'node'");
+}
+
+void FeatureVariable::ToInfo(PtrParamNode in) const
+{
+  in->Get("type")->SetValue(type.ToString(type_));
+  if(type_ == NODE)
+    in->Get("dof")->SetValue(ShapeParamElement::dof.ToString(dof_));
+  if(type_ == NODE && tip != NO_TIP) 
+    in->Get("tip")->SetValue(FeatureVariable::tip_enum.ToString(tip));
+
+  if(fixed)
+   in->Get("fixed")->SetValue(GetPlainDesignValue());
+  else 
+  {
+   // key and map are only used for pills, not for noodles - shape map has own legacy stuff
+   if(map == "") 
+   {
+     in->Get("lower")->SetValue(lower_);
+     in->Get("upper")->SetValue(upper_);
+     if(key != "")
+       in->Get("key")->SetValue(key);
+   }
+   else
+    in->Get("map")->SetValue(map);
+  }
+}
+
+std::string FeatureVariable::ToString() const
+{
+  std::stringstream ss;
+  ss << ShapeParamElement::ToString() << " feature=" << feature << " type=" << type.ToString(type_) << " dof=" << dof.ToString(dof_) << " tip=" << tip;
+  if(map != "" )
+    ss << " map=" << map;
+  if(key != "")
+    ss << " key=" << key; 
+  return ss.str();
+}
+
+void FeatureVariable::InitInnerNode(int feature_idx, Dof dof, double val, double lower, double upper)
+{
+  this->type_ = NODE;
+  this->fixed = false;
+  this->feature = feature_idx;
+  this->dof_ = dof;
+  this->tip = INNER;
+  SetDesign(val);
+  SetLowerBound(lower);
+  SetUpperBound(upper);
+  LOG_DBG(desel) << "V:IIN " << ToString();
+}
+
+std::string FeatureVariable::GetLabel() const
+{
+  std::stringstream ss;
+  ss << "s" << feature << "_"; // 0-based
+  switch(type_)
+  {
+  case NODE:
+    if(tip == START)
+      ss << "p";
+    else if(tip == END)
+      ss << "q";
+    else // We increment after x/y/z. 
+      assert(false);
+    ss << dof.ToString(dof_);
+    break;
+  case PROFILE:
+    ss << "p";
+    break;
+  case NORMAL:
+  case RADIUS:
+  {
+#ifdef USE_EMBEDDED_PYTHON 
+    // we are in a noodle
+    assert(domain->GetOptimization() != NULL);
+    SpaghettiDesign* sd = dynamic_cast<SpaghettiDesign*>(domain->GetOptimization()->GetDesign());
+    const SpaghettiDesign::Noodle& n = sd->spaghetti[feature];
+    ss << (type_ == NORMAL ? "a" : "r");
+    assert(!(n.a.GetSize() > 0 && n.r.GetSize() > 0)); // we are in GetLable() and shall have it
+    unsigned int pos = GetIndex() - (type_ == NORMAL ? n.a.First().GetIndex() : n.r.First().GetIndex());
+    ss << (pos + 1); // 1-based
+#endif    
+    break;    
+  }
+  default:
+    assert(false);
+    break;
+  }
+
+  return ss.str();
+}
+
 /** The default constructor for StdVector and ghost elements*/
 DesignElement::DesignElement() : BaseDesignElement()
 {
   Init();
-  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetDim()-1),0.0);
 }
 
 /** The default constructor for StdVector and ghost elements*/
@@ -409,7 +650,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->upper_ = 1.0;
   this->lower_ = 1.0;
   this->specialResult.Resize(66, 0.0);
-  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetDim()-1),0.0);
 }
 
 
@@ -424,7 +665,7 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
   this->specialResult.Resize(66, 0.0);
   this->index_ = index;
   this->multimaterial = mm;
-  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetGrid()->GetDim()-1),0.0);
+  this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetDim()-1),0.0);
 
   type_ = dt;
   upper_ = upper;
@@ -690,7 +931,7 @@ inline double DesignElement::GetPlainCostGradient() const {
   // opt->CalcObjective() has to been had called before, such that the values are set!
   assert(opt->CalcObjectiveCalled());
   size_t n = opt->objectives.data.GetSize();
-  StdVector<double> ov(n);
+  Vector<double> ov(n);
   for(size_t i = 0; i < n; ++i)
     ov[i] = opt->objectives.data[i]->GetValue();
   double sum = 0.0;
@@ -882,6 +1123,11 @@ void DesignElement::SetEnums()
   ShapeParamElement::dof.Add(ShapeParamElement::X, "x");
   ShapeParamElement::dof.Add(ShapeParamElement::Y, "y");
   ShapeParamElement::dof.Add(ShapeParamElement::Z, "z");
+
+  FeatureVariable::tip_enum.SetName("FeatureMappingDesign::Tip");
+  FeatureVariable::tip_enum.Add(FeatureVariable::START, "start");
+  FeatureVariable::tip_enum.Add(FeatureVariable::END, "end"); 
+  FeatureVariable::tip_enum.Add(FeatureVariable::INNER, "inner"); // only SpaghettiDesign
 
   type.SetName("BaseDesignElement::Type");
   type.Add(NO_TYPE, "no_type");
@@ -1449,7 +1695,7 @@ void SIMPElement::Dump()
 
 VicinityElement::VicinityElement()
 {
-  design.Resize(domain->GetGrid()->GetDim() == 2 ? 4 : 6);
+  design.Resize(domain->GetDim() == 2 ? 4 : 6);
   design.Init(NULL);
   periodic = false;
 }
@@ -1657,7 +1903,7 @@ string VicinityElement::ToString() const
 {
   std::stringstream ss;
   ss << "(";
-  unsigned int max = domain->GetGrid()->GetDim() == 2 ? 4 : 6;
+  unsigned int max = domain->GetDim() == 2 ? 4 : 6;
   for(unsigned int i = 0; i < max; i++)
   {
     if(design[i] == NULL) ss << "null";

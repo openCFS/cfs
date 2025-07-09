@@ -565,19 +565,19 @@ namespace CoupledField {
     return std::log(fac * (std::exp((left - max) * beta) + std::exp((right - max) * beta))) / beta + max;
   }
 
-  double SmoothMax(const StdVector<double>& values, double beta, bool normalize)
+  double SmoothMax(const Vector<double>& values, double beta, bool normalize)
   {
     assert(beta > 0 || beta == -1.0);
     assert(values.GetSize() > 0);
 
-    double max = *std::max_element(values.begin(), values.end());
+    double max = values.Max();
 
     if(beta == -1.0)
       return max;
 
     // see SmoothMax(double left, double right, double beta)
     // x = log ( sum(exp(beta * x_i))) / beta
-    // shift by maximum for better numerical stability
+    // shift by maximum for better numerical stability w/o changing the result
     double sum = 0.0;
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
       sum += std::exp((values[i] - max) * beta);
@@ -608,23 +608,33 @@ namespace CoupledField {
 
   double SmoothMin(const StdVector<double>& values, double beta, bool normalize)
   {
+    return SmoothMin(values.GetPointer(), values.GetSize(), beta, normalize);
+  }
+
+  double SmoothMin(const Vector<double>& values, double beta, bool normalize)
+  {
+    return SmoothMin(values.GetPointer(), values.GetSize(), beta, normalize);
+  }
+
+  double SmoothMin(const double* values, size_t size, double beta, bool normalize)
+  {
     assert(beta > 0 || beta == -1.0);
-    assert(values.GetSize() > 0);
+    assert(size> 0);
     // see  SmoothMax(double left, double right, double beta)
 
     if(beta == -1.0)
-      return *std::min_element(values.begin(), values.end());
+      return *std::min_element(values, values + size);
 
     // shift by maximum for better numerical stability
     // the shift cancels out in the formula and also has no influence on the derivative
-    double max = *std::max_element(values.begin(), values.end());
+    double max = *std::max_element(values, values + size);
 
     double sum = 0.0;
-    for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
+    for(unsigned int i = 0; i < size; i++)
       sum += std::exp((max - values[i]) * beta);
 
     assert(sum > 0);
-    double fac = normalize ? (double) values.GetSize() : 1.0;
+    double fac = normalize ? (double) size : 1.0;
     return max - std::log(sum / fac) / beta;
   }
 
@@ -644,7 +654,7 @@ namespace CoupledField {
       return exp_right / (exp_left + exp_right);
   }
 
-  double DerivSmoothMax(const StdVector<double>& values, double beta, unsigned int derive)
+  double DerivSmoothMax(const Vector<double>& values, double beta, unsigned int derive)
   {
     assert(beta > 0);
 
@@ -655,7 +665,7 @@ namespace CoupledField {
       return 1.0;
 
     // shift by maximum for better numerical stability
-    double max = *std::max_element(values.begin(), values.end());
+    double max = values.Max();
 
     for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
     {
@@ -683,18 +693,27 @@ namespace CoupledField {
       return exp_right / (exp_left + exp_right);
   }
 
-  double DerivSmoothMin(const StdVector<double>& values, double beta, unsigned int derive)
+  double DerivSmoothMin(const Vector<double>& values, double beta, unsigned int derive) 
+  { 
+    return DerivSmoothMin(values.GetPointer(),values.GetSize(),beta, derive);
+  }
+  double DerivSmoothMin(const StdVector<double>& values, double beta, unsigned int derive) 
+  {
+    return DerivSmoothMin(values.GetPointer(),values.GetSize(),beta, derive);
+  }
+
+  double DerivSmoothMin(const double* values, size_t size, double beta, unsigned int derive)
   {
     double my_exp = -1.0;
     double sum = 0.0;
 
-    if(values.GetSize() == 1)
+    if(size == 1)
       return 1.0;
 
     // shift by maximum for better numerical stability
-    double max = *std::max_element(values.begin(), values.end());
+    double max = *std::max_element(values, values + size);
 
-    for(unsigned int i = 0, n = values.GetSize(); i < n; i++)
+    for(unsigned int i = 0; i < size; i++)
     {
       double v = std::exp((max - values[i]) * beta);
       sum += v;

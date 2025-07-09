@@ -4,7 +4,7 @@
 
 namespace CoupledField {
 
-DEFINE_LOG(FD, "featuredDesign")
+DEFINE_LOG(fd, "featuredDesign")
 
 Enum<FeaturedDesign::IntStrategy> FeaturedDesign::intStrategy_;
 unsigned int FeaturedDesign::dim_ = 99;
@@ -16,7 +16,7 @@ FeaturedDesign::FeaturedDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
 
   SetEnums();
 
-  this->dim_ = domain->GetGrid()->GetDim();
+  this->dim_ = domain->GetDim();
   this->export_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
   this->tailing_aux_design_ = true; // we want our own design (e.g. SBD: param_, SMD: shape_param_ or better their opt_* versions) to take the role of DesignSpace::data
 
@@ -75,6 +75,44 @@ void FeaturedDesign::PostInit(int objectives, int constraints)
   setup_timer_->Stop();
 };
 
+/** only used by SpaghettiDesign and FeaturedDesign(), others have their own */
+void FeaturedDesign::SetupDesign(PtrParamNode base)
+{
+  assert(features_.IsEmpty());
+  SetupParsedFeatures(base);
+  assert(!features_.IsEmpty());
+  int total = 0;
+  int opt   = 0;
+  for(Feature* feature :  features_)
+  {
+    total += feature->GetTotalVariables();
+    opt   += feature->GetOptVariables();
+  }
+
+  LOG_DBG(fd) << "SD: total=" << total << " opt=" << opt;
+
+  shape_param_.Reserve(total);
+  opt_shape_param_.Reserve(opt);
+  opt_indices.Resize(opt);
+}
+
+void FeaturedDesign::AddVariable(FeatureVariable* var)
+{
+  // we do exact space "estimation"
+
+  assert(shape_param_.HasSpace());
+  var->SetIndex(shape_param_.GetSize());
+  shape_param_.Push_back(var);
+
+  if(var->IsVariable())
+  {
+    assert(opt_shape_param_.HasSpace());
+    opt_indices[opt_shape_param_.GetSize()] = shape_param_.GetSize()-1;
+    var->SetOptIndex(opt_shape_param_.GetSize());
+    opt_shape_param_.Push_back(var);
+  }
+}
+
 int FeaturedDesign::ReadDesignFromExtern(const double* space_in, bool setAndWriteCurrent)
 {
   assert(!std::isnan(scaling_));
@@ -95,7 +133,7 @@ int FeaturedDesign::ReadDesignFromExtern(const double* space_in, bool setAndWrit
 
     opt_shape_param_[i]->SetDesign(v);
 
-    LOG_DBG3(FD) << "RDFE: i=" << i << ", " << opt_shape_param_[i]->ToString() << " -> " << v;
+    LOG_DBG3(fd) << "RDFE: i=" << i << ", " << opt_shape_param_[i]->ToString() << " -> " << v;
   }
 
   // append aux design, might also change design_id
@@ -126,18 +164,18 @@ int FeaturedDesign::WriteDesignToExtern(double* space_out, bool scaling) const
 
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); ++i) {
     space_out[i] = opt_shape_param_[i]->GetPlainDesignValue() * rscaling;
-    LOG_DBG3(FD) << "WDTE: out[" << i << "]=" << space_out[i];
+    LOG_DBG3(fd) << "WDTE: out[" << i << "]=" << space_out[i];
   }
 
   AuxDesign::WriteDesignToExtern(space_out, scaling);
 
-  LOG_DBG(FD) << "WDTE: di -> " << design_id;
+  LOG_DBG(fd) << "WDTE: di -> " << design_id;
   return design_id;
 }
 
 void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
-  LOG_DBG(FD) << "WGTE: f=" << f->ToString() << " auxd=" << aux_design_.GetSize() << " d=" << shape_param_.GetSize()
+  LOG_DBG(fd) << "WGTE: f=" << f->ToString() << " auxd=" << aux_design_.GetSize() << " d=" << shape_param_.GetSize()
       << " out=" << out.GetSize() << " outwindowstart=" << out.window.GetStart() << " outwindowsz=" << out.window.GetSize();
   assert(out.window.GetStart() + out.window.GetSize() <= out.GetSize());
 
@@ -160,7 +198,7 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   if(f->HasDenseJacobian())
   {
     unsigned int end_opt = opt_shape_param_.GetSize();
-    LOG_DBG(FD) << "WGTE: end_opt=" << end_opt << " ad=" << aux_design_.GetSize() << " w=" << out.window.GetSize();
+    LOG_DBG(fd) << "WGTE: end_opt=" << end_opt << " ad=" << aux_design_.GetSize() << " w=" << out.window.GetSize();
     assert(end_opt + aux_design_.GetSize() == out.window.GetSize());
     for(unsigned int s = 0; s < end_opt; ++s)
     {
@@ -168,12 +206,12 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
 
       double opt = opt_shape_param_[s]->GetPlainGradient(f);
 
-      LOG_DBG3(FD) << "WGTE de=" << opt_shape_param_[s]->ToString();
+      LOG_DBG3(fd) << "WGTE de=" << opt_shape_param_[s]->ToString();
       assert(!std::isnan(opt));
 
       out[base + s] = opt * scaling;
 
-      LOG_DBG3(FD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " opt=" << opt << " -> " << out[base + s];
+      LOG_DBG3(fd) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " opt=" << opt << " -> " << out[base + s];
     }
     // add slack stuff. No need to cheat window size
     AuxDesign::WriteGradientToExtern(out, vs, access, f, scaling);
@@ -182,13 +220,13 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   {
     // uses opt_index_!
     StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
-    LOG_DBG2(FD) << "WGTE f=" << f->ToString() << " sparsity=" << sparsity.ToString();
+    LOG_DBG2(fd) << "WGTE f=" << f->ToString() << " sparsity=" << sparsity.ToString();
     assert(out.window.GetSize() == sparsity.GetSize());
     for(unsigned int i = 0; i < sparsity.GetSize(); i++)
     {
       unsigned int s = sparsity[i];
       assert(s < opt_shape_param_.GetSize());
-      LOG_DBG3(FD) << "WGTE i=" << i << " s=" << s << " base=" << base << " b+s=" << (base+s);
+      LOG_DBG3(fd) << "WGTE i=" << i << " s=" << s << " base=" << base << " b+s=" << (base+s);
 
       assert(out.InWindow(base + i));
       double scale = scaling ? scaling_ : 1.0;
@@ -257,7 +295,7 @@ void FeaturedDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
   {
     x_l[i] = opt_shape_param_[i]->GetLowerBound() / scaling_;
     x_u[i] = opt_shape_param_[i]->GetUpperBound() / scaling_;
-    LOG_DBG3(FD) << "WBTE: l[" << i << "]=" << x_l[i] << " u[" << i << "]=" << x_u[i];
+    LOG_DBG3(fd) << "WBTE: l[" << i << "]=" << x_l[i] << " u[" << i << "]=" << x_u[i];
   }
 
   AuxDesign::WriteBoundsToExtern(x_l, x_u);
@@ -267,7 +305,7 @@ void FeaturedDesign::SetupMeshStructure()
 {
   Grid* grid = domain->GetGrid();
 
-  LOG_DBG(FD) << "SMS: regions=" << GetRegionIds().ToString();
+  LOG_DBG(fd) << "SMS: regions=" << GetRegionIds().ToString();
 
   assert(GetRegionIds().GetSize() == 1);
   StdVector<unsigned int> t = grid->GetRegularDiscretization(GetRegionIds().First());
@@ -281,14 +319,14 @@ void FeaturedDesign::SetupMeshStructure()
   nx_ = n_[0];
   ny_ = n_[1];
   nz_ = n_[2];
-  LOG_DBG(FD) << "SMS: n=" << n_.ToString() << " #=" << (nx_ * ny_ * nz_) << " #data=" << data.GetSize();
+  LOG_DBG(fd) << "SMS: n=" << n_.ToString() << " #=" << (nx_ * ny_ * nz_) << " #data=" << data.GetSize();
 
   // We need the spacing of an element
   assert(data[0].elem != nullptr);
   shared_ptr<ElemShapeMap> esm = grid->GetElemShapeMap(data[0].elem);
   double minEdge, maxEdge;
   esm->GetMaxMinEdgeLength(maxEdge,minEdge);
-  LOG_DBG(FD) << "SMS: dx_=min=" << minEdge << " max=" << maxEdge;
+  LOG_DBG(fd) << "SMS: dx_=min=" << minEdge << " max=" << maxEdge;
   assert(close(minEdge, maxEdge));
   dx_ = minEdge;
 
@@ -307,7 +345,7 @@ void FeaturedDesign::SetupMapping()
   assert(GetRegionIds().GetSize() == 1);
   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assumes elements in designElems are ordered!
 
-  LOG_DBG(FD) << "SM: #map=" << map_.GetSize() << " #designElems=" << designElems.GetSize();
+  LOG_DBG(fd) << "SM: #map=" << map_.GetSize() << " #designElems=" << designElems.GetSize();
 
   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
   {
@@ -318,7 +356,7 @@ void FeaturedDesign::SetupMapping()
     item.min_corner_value.Resize(1);
     item.max_corner_value.Resize(1);
 
-    LOG_DBG3(FD) << "SM i=" << i << " elem=" << item.elemval->elem->elemNum << " de_elem=" << designElems[i]->elemNum
+    LOG_DBG3(fd) << "SM i=" << i << " elem=" << item.elemval->elem->elemNum << " de_elem=" << designElems[i]->elemNum
                  << " coord=" << domain->GetGrid()->GetElemNodesCoord(item.elemval->elem).ToString();
   }
 
@@ -330,15 +368,15 @@ void FeaturedDesign::SetupMapping()
 
   if(designElems.GetSize() < n_.Product())
   {
-    // size of map_ and designElems differer for density + angles
+    // size of map_ and designElems differ for density + angles
     Matrix<double> mm;
     domain->GetGrid()->CalcBoundingBoxOfRegion(GetRegionIds().First(), mm);
-    LOG_DBG(FD) << "SM: bb=" << mm.ToString();
+    LOG_DBG(fd) << "SM: bb=" << mm.ToString();
     assert(mm.GetNumRows() == dim_);
     Vector<double> lower(dim_);
     for(unsigned int i = 0; i < dim_; i++)
       lower[i] = mm[i][0];
-    LOG_DBG(FD) << "SM: lower=" << lower.ToString();
+    LOG_DBG(fd) << "SM: lower=" << lower.ToString();
     Vector<double>  glob(dim_);
     LocPoint loc;
     unsigned int virt_size = n_.Product();
@@ -353,7 +391,7 @@ void FeaturedDesign::SetupMapping()
           assert(elem != nullptr);
           int idx = Find(elem, false); // design index or -1
           int pos = LexicographicPos(x,y,z);
-          LOG_DBG3(FD) << "(" << x << "," << y << "," << z << ") g=" << glob.ToString() << " l=" << loc.coord.ToString() << " e=" << elem->elemNum << " idx=" << idx << " pos=" << pos;
+          LOG_DBG3(fd) << "(" << x << "," << y << "," << z << ") g=" << glob.ToString() << " l=" << loc.coord.ToString() << " e=" << elem->elemNum << " idx=" << idx << " pos=" << pos;
           assert(pos < (int) virt_size);
           if(idx > -1)
             for(unsigned int d = 0; d < design.GetSize(); d++) // such that it also works for design/angle
@@ -389,7 +427,82 @@ int FeaturedDesign::FindDesign(DesignElement::Type dt, bool throw_exception) con
   return -1;
 }
 
+void FeaturedDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
+{
+  assert(f != NULL);
+  assert(f->IsLocal(f->GetType()));
+  // we shall be called by Local::PostInit() therefore local shall exist
+  assert(f->GetLocal() != NULL);
+  assert(f->GetType() == Function::DISTANCE || f->GetType() == Function::BENDING);
 
+  // we assume fixed only for profile if at all
+  assert(locality == Function::Local::FUNCTION_SPECIFIC || locality == Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS);
+
+  assert(!features_.IsEmpty());
+  vem.Reserve(features_.GetSize()); // assume nothing fixed
+
+  assert(dim_ == 2);
+  StdVector<BaseDesignElement*> nodes;
+
+  bool two_signs = locality == Function::Local::FUNCTION_SPECIFIC_TWO_SIGNS;
+
+  int sign_1 = two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
+  int sign_2 = -1;
+
+  for(Feature* s : features_)
+  {
+    nodes.Clear();
+    StdVector<FeatureVariable>& P = s->points.First();
+    StdVector<FeatureVariable>& Q = s->points.Last();
+
+    // assume nothing fixed
+    if(P[0].fixed || P[1].fixed || Q[0].fixed || Q[1].fixed)
+    {
+      if (f->GetType() == Function::DISTANCE)
+        throw Exception("distance constraints currently only for non-fixed nodes");
+      // else: Bending
+      if (FeatureVariable::IsFixed(P) && FeatureVariable::IsFixed(Q) && (!s->IsExtended()))
+        continue; // won't add empty constraint if all points are fixed -> next noodle
+    }
+
+    // px is element, then py, then qx then qy
+    nodes.Push_back(&P[1]);
+    nodes.Push_back(&Q[0]);
+    nodes.Push_back(&Q[1]);
+
+    if(f->GetType() == Function::DISTANCE)
+    {
+      if(f->GetDesignType() != BaseDesignElement::NODE)
+        throw Exception("Configuration error: distance needs to be defined for node.");
+
+      vem.Push_back(Function::Local::Identifier(&P[0], nodes));
+      LOG_DBG(fd) << "SVSEM: f=" << f->ToString() << " s=" << s->idx << " id=" << vem.Last().ToString();
+    }
+    else // Bending
+    {
+      assert(f->GetType() == Function::BENDING);
+      SetupVirtualShapeElementMapBending(s, vem, nodes, two_signs, sign_1, sign_2);
+    } // end bending
+  } // end noodle
+}
+
+
+void FeaturedDesign::ToInfo(ErsatzMaterial* em)
+{
+  AuxDesign::ToInfo(em);
+
+  PtrParamNode in = info_->Get("features");
+
+  in->Get("combine/type")->SetValue(combine.ToString(combine_));
+  in->Get("boundary/type")->SetValue(boundary.ToString(boundary_));
+  
+  PtrParamNode msh = in->Get("mesh");
+  msh->Get("n")->SetValue(n_.ToString());
+
+  PtrParamNode base = info_->Get("designVariables");
+  for(Feature* f : features_)
+    f->ToInfo(base->Get(f->GetName(), ParamNode::APPEND));
+}
 
 void FeaturedDesign::CheckPlausibility()
 {
@@ -426,7 +539,7 @@ int FeaturedDesign::Item::GetOrder(Vector<int>& order, const FeaturedDesign::Num
 
     assert(min_val >= 0);
     assert(max_val >= min_val);
-    assert(max_val <= 1);
+    assert(max_val <= 1.01);
 
     // prevent unused variable warning
     (void)(min_val);
@@ -474,8 +587,133 @@ void FeaturedDesign::NumInt::ToInfo(PtrParamNode info) const
   PtrParamNode cells = info->Get("cells");
   cells->Get("integrate_fraction")->SetValue(int_cells_cnt_ / (double) cells_);
   cells->Get("avg_order")->SetValue(int_cells_order_sum_ / (double) int_cells_cnt_);
-  cells->Get("total_int")->SetValue(std::pow(int_cells_order_sum_, domain->GetGrid()->GetDim()));
+  cells->Get("total_int")->SetValue(std::pow(int_cells_order_sum_, domain->GetDim()));
 }
+
+void FeaturedDesign::Feature::Parse(PtrParamNode pn, int idx)
+{
+  this->idx = idx;
+  opt_variables_ = 0;
+
+  points.Resize(2); // start and end point
+
+  // add tip
+  StdVector<FeatureVariable>& start = points.First();
+  start.Resize(dim_);
+  start[0].Parse(pn->GetByVal("node", "dof", "x", "tip", "start"),idx);
+  start[1].Parse(pn->GetByVal("node", "dof", "y", "tip", "start"),idx);
+  if(dim_ == 3)
+    start[2].Parse(pn->GetByVal("node", "dof", "z", "tip", "start"),idx);
+  opt_variables_ += FeatureVariable::CountRealVariables(start);
+
+  StdVector<FeatureVariable>& end = points.Last();
+  end.Resize(dim_);
+  end[0].Parse(pn->GetByVal("node", "dof", "x", "tip", "end"),idx);
+  end[1].Parse(pn->GetByVal("node", "dof", "y", "tip", "end"),idx);
+  if(dim_ == 3)
+    end[2].Parse(pn->GetByVal("node", "dof", "z", "tip", "end"),idx);
+  opt_variables_ += FeatureVariable::CountRealVariables(end);
+
+  p.Parse(pn->Get("profile"),idx); // exactly one
+  opt_variables_ += p.IsVariable() ? 1 : 0;
+
+  LOG_DBG(fd) << "F:P ov=" << opt_variables_ << " " << ToString();
+}
+
+int FeaturedDesign::Feature::GetTotalVariables() const
+{
+  int vars = 1; // profile p
+  vars += dim_ * points.GetSize();
+  return vars;
+}
+
+
+string FeaturedDesign::Feature::ToString() const
+{
+  std::stringstream ss;
+
+  ss << "idx=" << idx;
+  if(points.GetSize() > 1)
+  {
+    ss << " start=" << FeatureVariable::ToString(points.First());
+    ss << " end=" << FeatureVariable::ToString(points.Last());
+    for(unsigned int i = 1; i < points.GetSize()-1; i++) // 3d spaghetti
+      ss << " num_" << i << "=" << FeatureVariable::ToString(points[i]);
+  }
+  ss << " p=" << (p.fixed ? "*" : "") << p.GetPlainDesignValue();
+  return ss.str();
+}
+
+void FeaturedDesign::Feature::ToInfo(PtrParamNode in)
+{
+  in->Get("id")->SetValue(idx);
+
+  // one could combine P and Q as coordinates.
+  auto& P = points.First();
+  auto& Q = points.Last();
+
+  for(unsigned int d = 0; d < dim_; d++)
+    P[d].ToInfo(in->Get("p" + Dof(d), ParamNode::APPEND));
+
+  for(unsigned int d = 0; d < dim_; d++)
+    Q[d].ToInfo(in->Get("p" + Dof(d), ParamNode::APPEND));
+
+  p.ToInfo(in->Get("p", ParamNode::APPEND));
+}
+
+
+void FeaturedDesign::Feature::ToInfo(PtrParamNode in, FeatureVariable::Type type, const std::string& label, int dim) const
+{
+  std::string fixed;
+  std::string lower;
+  std::string upper;
+  const FeatureVariable* v0 = nullptr;
+  int size = -1;
+
+  assert(type == FeatureVariable::NODE);
+  assert(dim >= 0 && dim <= 2);
+  if(points.GetSize() <= 2)
+    return;
+
+  v0 = &(points[1][dim]);
+  assert(v0->tip == FeatureVariable::INNER);
+  size = points.GetSize() - 2; // minus P and Q
+
+  for(unsigned int i = 1; i < points.GetSize()-1; i++)
+    FeatureVariable::CompareToInfoHelper(v0, &points[i][dim], fixed, lower, upper);
+ 
+  v0->ToInfo(in->Get(label, ParamNode::APPEND));
+  in->Get(label + "/size")->SetValue(size);
+  if(v0->fixed)
+    in->Get(label + "/fixed")->SetValue(fixed);
+  else {
+    in->Get(label + "/lower")->SetValue(lower);
+    in->Get(label + "/upper")->SetValue(upper);
+  }
+}
+
+void FeaturedDesign::Feature::GetAllVariables(StdVector<FeatureVariable*>& out) const
+{
+  unsigned int total = points.GetSize() * domain->GetDim() + 1; // start + end + p
+  out.Clear();
+  out.Reserve(total); 
+
+  for(const StdVector<FeatureVariable>& vec : points) 
+    for(const FeatureVariable& var : vec)
+      out.Push_back(const_cast<FeatureVariable*>(&var));
+  out.Push_back(const_cast<FeatureVariable*>(&p));
+
+  assert(out.GetSize() == total); // we predicted properly
+}
+
+StdVector<FeatureVariable*> FeaturedDesign::Feature::GetAllVariables() const
+{
+  StdVector<FeatureVariable*> vec;
+  GetAllVariables(vec);
+  return vec;
+}
+
+
 
 
 } // end of namespace

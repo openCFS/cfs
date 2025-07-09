@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+ 
+ <documentation>
+    <title>Feature Mapping with higher order and softmax combine</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2025-08-08</date>
+    <references>Fabian's talk about numerics of feature mapping integration https://www.youtube.com/watch?v=ftgZt-7aYP4</references>
+    <isVerified>no</isVerified>
+    <description>
+      Feature mapping of order 1 is midpoint, with order 2 it are the corner nodes (often poorer than midpoint).
+      With higher order (5 is 5x5 integration points for elements which are not constant (1 or rho_min) it is more complicated.
+      With order of 3 and more we use the element corner nodes (order 2) to determine if we need additional inner integration points.
+      This is dynamically done by for each new iteration.
+
+      Additionally we test here the softmax combine function.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="high_order_softmax.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="load" >
+             <comp dof="y" value="-1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize">
+      <!-- stop artificially early for test case -->
+      <stopping queue="2" value="1e-3" type="relativeCostChange" />
+    </costFunction>
+    <constraint type="volume" bound="upperBound" value="0.3" mode="constraint" linear="false"/>
+
+    <optimizer type="dumas_mma" maxIterations="100" />
+    
+    <ersatzMaterial region="mech" material="mechanic" method="featureMapping">
+      <featureMapping  transition=".1" order="5" combine="softmax" p="4" >
+        <pill>
+          <node dof="x" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.8" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.5" upper="1" lower="0" tip="end"/>
+          <profile initial="0.1" lower="0.05" upper="0.2" />
+        </pill>
+        <pill>
+          <node dof="x" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.8" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.8" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.5" upper="1" lower="0" tip="end"/>
+          <profile initial="0.1" lower="0.05" upper="0.2" />
+        </pill>
+
+      </featureMapping>
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech" />
+      <export save="all" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

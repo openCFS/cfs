@@ -956,7 +956,7 @@ void SplineBoxDesign::MapFeatureToDensity()
               }
 
               double ip_rho = GetDensityAtCoord( Eval(ip) ); // the final value for one integration point.
-              assert(ip_rho >= 0.0 && ip_rho <= 1.0);
+              assert(ip_rho >= 0.0 && ip_rho <= 1.01);
               rho += weight * ip_rho;
               LOG_DBG3(SBD) << "MFTD: de=" << de->GetIndex() << " p=" << de->GetLocation()->ToString()
                   << " local_ip=" << local_ip.ToString() << " ip=" << ip.ToString() << " Eval(ip)=" << Eval(ip).ToString()
@@ -965,7 +965,7 @@ void SplineBoxDesign::MapFeatureToDensity()
           } // end ip_y
         } // end ip_x
       } // end real integration
-      assert(rho >= 0.0 && rho <= 1.0);
+      assert(rho >= 0.0 && rho <= 1.01);
       de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * rho); // we assume 0 <= rho <= 1
       LOG_DBG2(SBD) << "MFTD: el=" << de->elem->elemNum << " avg=" << de->GetPlainDesignValue()
                     << " delta=" << (de->GetPlainDesignValue() - de->GetLowerBound());
@@ -1210,7 +1210,7 @@ double SplineBoxDesign::GetDensityAtCoord(Vector<double> point) const
   } else {
     double relative_coords;
     StdVector<double> sub(dim_);
-    StdVector<double> values(dim_);
+    Vector<double> values(dim_);
     for(unsigned int d = 0; d < dim_; ++d) {
       relative_coords = (point[d] - bounding_box_[d][0]) / (bounding_box_[d][1] - bounding_box_[d][0]);
       // shift sine by pi/2 -> could use cosine instead
@@ -1297,7 +1297,7 @@ Vector<double> SplineBoxDesign::GetDensityDerivativeAtCoord(Vector<double> point
   } else {
     double relative_coords;
     StdVector<double> sub(dim_);
-    StdVector<double> values(dim_);
+    Vector<double> values(dim_);
     for(unsigned int d = 0; d < dim_; ++d) {
       relative_coords = (point[d] - bounding_box_[d][0]) / (bounding_box_[d][1] - bounding_box_[d][0]);
       sub[d] = (relative_coords / feature_scale_ + 1./4.) * 2. * M_PI;

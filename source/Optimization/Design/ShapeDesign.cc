@@ -22,7 +22,7 @@ DEFINE_LOG(ShDes, "ShapeDesign")
 ShapeDesign::ShapeDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method)
   : AuxDesign(regions, pn, method)
 {
-  dim_ = domain->GetGrid()->GetDim();
+  dim_ = domain->GetDim();
   export_fe_design_ = method == ErsatzMaterial::SHAPE_PARAM_MAT;
 }
 

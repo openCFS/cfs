@@ -164,17 +164,13 @@ template<typename T> class ElemStoreSol;
 
     //! Re-size the vector
 
-    //! This method can be used to change the length of the vector.
+    //! This method can be used to change the length of the vector. Data might be lost!
     //! \param newSize the new length of the vector
-    //! \param init    if this boolean is yes, then the vector entries
-    //!                will be set to zero by a call to Init().
     //! \note
+    //! - When we grow, all data will be lost - no copy of data as for StdVector()!
     //! - A re-allocation of memory will only be triggered by Resize(),
     //!   if the new length of the vector exceeds the length of the
     //!   internal data array as given by dataSize_.
-    //! - If init = false, then the vector entries will be undefined
-    //!   if re-allocation was performed. Otherwise they will retain
-    //!   their old values.
     //! - Re-size will currently refuse to perform a re-size operation,
     //!   if it is not responsible for the memory management of the data_
     //!   array.
@@ -657,6 +653,14 @@ template<typename T> class ElemStoreSol;
     bool ContainsInf() const;
 
     //@}
+
+    // the following code makes Vector iterable by ranges for(double v : vec)
+    T* begin() { return data_; }
+    T* end()   { return data_ + size_; }
+
+    const T* begin() const { return data_; }
+    const T* end()   const { return data_ + size_; }
+
 
   protected:
 

@@ -1,18 +1,20 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="84" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="86" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.195s" wall="0.195" cpu="0.196127" calls="1"/>
+    <timer wall-clock="0.195s" wall="0.195" cpu="0.188606" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="49"/>
   </summary>
   <header id="">
-    <environment started="2024-Sep-30 17:30:28" host="Finsternis.local"/>
+    <environment started="2025-Aug-01 13:48:25" host="MacBookPro.fritz.box"/>
     <progOpts problem="dumas_mma" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Optimizer/dumas_mma/dumas_mma.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="24.10" name="Ideal Implementation" build="RELEASE" git_commit="ee20c3589899a6b5740f37142982f84f0abc0e12" git_branch="FM_MMA" compiled="Sep 29 2024" exe="cfs"/>
+      <cfs version="25.07" name="Just Jacobians" build="RELEASE" git_commit="cba80eb8ccacef28b9340a06ac4eb3515d39d1fa-modified" git_branch="fwein_feature_mapping" compiled="Jul 31 2025" exe="cfs"/>
       <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="10" ny="10" nz="1">
       <grids>
-        <timer wall-clock="0.006s" wall="0.006" cpu="0.00596" calls="1"/>
+        <timer wall-clock="0.005s" wall="0.005" cpu="0.005688" calls="1"/>
         <grid gridId="default" dimensions="2" elements="100" nodes="121"/>
       </grids>
       <coordinateSystems>
@@ -35,7 +37,7 @@
       <globalMathParser dt="0" f="0" nx="10" ny="10" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0s" wall="0" cpu="0.031738" calls="312"/>
+      <timer wall-clock="0.004s" wall="0.004" cpu="0.032713" calls="320"/>
     </results>
   </header>
   <calculation>
@@ -44,7 +46,7 @@
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.009s" wall="0.009" cpu="0.00962" calls="1"/>
+        <timer wall-clock="0.009s" wall="0.009" cpu="0.009461" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -128,10 +130,10 @@
           <directLDL>
             <summary>
               <setup>
-                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.004002" calls="39"/>
+                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.003954" calls="39"/>
               </setup>
               <solve>
-                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.001531" calls="40"/>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.001469" calls="39"/>
               </solve>
             </summary>
           </directLDL>
@@ -140,7 +142,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="2.2e-05" calls="39"/>
+                <timer wall-clock="0s" wall="0" cpu="1.4e-05" calls="39"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -153,33 +155,33 @@
         </process>
       </mechanic>
       <graph_setup>
-        <timer wall-clock="0s" wall="0" cpu="0.000791" calls="1" sub="true"/>
+        <timer wall-clock="0s" wall="0" cpu="0.000787" calls="1" sub="true"/>
       </graph_setup>
       <reorder_Metis>
-        <timer wall-clock="0s" wall="0" cpu="0.00033" calls="1" sub="true"/>
+        <timer wall-clock="0s" wall="0" cpu="0.000324" calls="1" sub="true"/>
       </reorder_Metis>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0s" wall="0" cpu="0.005828" calls="80"/>
+          <timer wall-clock="0s" wall="0" cpu="0.005528" calls="78"/>
         </assemble>
       </summary>
     </analysis>
   </sequenceStep>
   <optimization haltopt_file="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Optimizer/dumas_mma/HALTOPT">
     <header>
-      <objective type="compliance" name="compliance" linear="no" access="physical" task="minimize"/>
+      <objective type="compliance" name="compliance" linear="no" access="physical" term="linear" scale="1" task="minimize"/>
       <constraints>
         <constraint type="volume" name="volume" linear="yes" access="filtered" bound_value="0.5" bound="upperBound" design="default"/>
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0s" wall="0" cpu="0.000124" calls="2"/>
+          <timer wall-clock="0s" wall="0" cpu="0.000131" calls="2"/>
         </setup_design>
         <filters use_mat_filt="yes">
           <filter type="maxEdge" value="1.5" contribution="linear" design="density" elems="100" avg_radius="0.15" avg_neighbors="6.84"/>
-          <timer wall-clock="0s" wall="0" cpu="8e-05" calls="1"/>
+          <timer wall-clock="0s" wall="0" cpu="7.7e-05" calls="1"/>
         </filters>
         <transferFunctions>
           <transferFunction type="simp" application="mech" design="density" param="3"/>
@@ -202,7 +204,7 @@
       <dumas_mma move_limit="0.500000" asyminit="0.5" asymdec="0.7" asyminc="1.2" a0_lin_aux_z="1" ai_lin_aux_z="0" c_lin_aux_y="1000" d_quad_aux_y="0">
         <summary>
           <dumas_mma>
-            <timer wall-clock="0.001s" wall="0.001" cpu="0.003476" calls="237"/>
+            <timer wall-clock="0.002s" wall="0.002" cpu="0.004654" calls="197"/>
           </dumas_mma>
         </summary>
         <scaling target="10" scale="0.14658"/>
@@ -210,16 +212,16 @@
     </optimizer>
     <summary>
       <eval_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.001654" calls="157"/>
+        <timer wall-clock="0s" wall="0" cpu="0.001658" calls="158"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="6.1e-05" calls="39"/>
+        <timer wall-clock="0s" wall="0" cpu="7.7e-05" calls="39"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.001083" calls="40"/>
+        <timer wall-clock="0s" wall="0" cpu="0.00081" calls="40"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.000291" calls="39"/>
+        <timer wall-clock="0s" wall="0" cpu="0.00022" calls="39"/>
       </eval_grad_constraints>
       <break converged="yes">
         <reason msg="design change below 0.02 for 2 iterations"/>
@@ -230,45 +232,46 @@
       </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.084" compliance="87.425624395604" volume="0.5" scale="0.14658" opt_scale="0.14658"/>
-      <iteration number="1" duration="0.002" compliance="63.0093865731286" volume="0.471757265647678" scale="0.14658" opt_scale="0.82851"/>
-      <iteration number="2" duration="0.002" compliance="47.8903880939757" volume="0.488785781639392" scale="0.14658" opt_scale="1.3925"/>
-      <iteration number="3" duration="0.002" compliance="40.0612480407585" volume="0.49113116485363" scale="0.14658" opt_scale="1.8679"/>
-      <iteration number="4" duration="0.002" compliance="34.0370895116954" volume="0.491476899990828" scale="0.14658" opt_scale="1.9935"/>
-      <iteration number="5" duration="0.002" compliance="30.1568152766092" volume="0.494470520435177" scale="0.14658" opt_scale="2.1462"/>
-      <iteration number="6" duration="0.003" compliance="27.7211867004823" volume="0.496111206011721" scale="0.14658" opt_scale="2.2028"/>
-      <iteration number="7" duration="0.002" compliance="26.1215432316909" volume="0.496734286485231" scale="0.14658" opt_scale="2.2332"/>
-      <iteration number="8" duration="0.002" compliance="24.685656766605" volume="0.496516222724091" scale="0.14658" opt_scale="2.2784"/>
-      <iteration number="9" duration="0.003" compliance="23.6431285674765" volume="0.497477111427677" scale="0.14658" opt_scale="2.3065"/>
-      <iteration number="10" duration="0.002" compliance="23.0768999489665" volume="0.498475610222903" scale="0.14658" opt_scale="2.3057"/>
-      <iteration number="11" duration="0.002" compliance="22.7165968431733" volume="0.498951801910006" scale="0.14658" opt_scale="2.3039"/>
-      <iteration number="12" duration="0.003" compliance="22.4304210320614" volume="0.49903599757595" scale="0.14658" opt_scale="2.3025"/>
-      <iteration number="13" duration="0.002" compliance="22.2491537239696" volume="0.499609551130605" scale="0.14658" opt_scale="2.3018"/>
-      <iteration number="14" duration="0.003" compliance="22.1596318618325" volume="0.49973892480091" scale="0.14658" opt_scale="2.3015"/>
-      <iteration number="15" duration="0.003" compliance="22.067764744877" volume="0.499682694057049" scale="0.14658" opt_scale="2.3013"/>
-      <iteration number="16" duration="0.002" compliance="21.9813318104674" volume="0.499780534865639" scale="0.14658" opt_scale="2.301"/>
-      <iteration number="17" duration="0.003" compliance="21.9222570174207" volume="0.499801443042683" scale="0.14658" opt_scale="2.3006"/>
-      <iteration number="18" duration="0.003" compliance="21.8918600232365" volume="0.499926378576759" scale="0.14658" opt_scale="2.3004"/>
-      <iteration number="19" duration="0.002" compliance="21.8757166687772" volume="0.499945463638938" scale="0.14658" opt_scale="2.3002"/>
-      <iteration number="20" duration="0.003" compliance="21.8621326201101" volume="0.499953315455459" scale="0.14658" opt_scale="2.3004"/>
-      <iteration number="21" duration="0.003" compliance="21.8496891919919" volume="0.499958107169683" scale="0.14658" opt_scale="2.3009"/>
-      <iteration number="22" duration="0.003" compliance="21.8396708055982" volume="0.49996452228768" scale="0.14658" opt_scale="2.3012"/>
-      <iteration number="23" duration="0.003" compliance="21.8304123359962" volume="0.499967811845847" scale="0.14658" opt_scale="2.3017"/>
-      <iteration number="24" duration="0.003" compliance="21.8213103947418" volume="0.499969419862305" scale="0.14658" opt_scale="2.3023"/>
-      <iteration number="25" duration="0.003" compliance="21.8128446880848" volume="0.499969689070285" scale="0.14658" opt_scale="2.3031"/>
-      <iteration number="26" duration="0.003" compliance="21.8032565921015" volume="0.499966534430101" scale="0.14658" opt_scale="2.304"/>
-      <iteration number="27" duration="0.003" compliance="21.7945114469534" volume="0.499971690157885" scale="0.14658" opt_scale="2.3047"/>
-      <iteration number="28" duration="0.003" compliance="21.7880355648205" volume="0.499976760522824" scale="0.14658" opt_scale="2.305"/>
-      <iteration number="29" duration="0.003" compliance="21.782735862824" volume="0.499979904166786" scale="0.14658" opt_scale="2.3051"/>
-      <iteration number="30" duration="0.003" compliance="21.7787045572438" volume="0.499979814148007" scale="0.14658" opt_scale="2.3053"/>
-      <iteration number="31" duration="0.003" compliance="21.7765899677967" volume="0.499971769343727" scale="0.14658" opt_scale="2.3055"/>
-      <iteration number="32" duration="0.003" compliance="21.7742821026049" volume="0.4999505275807" scale="0.14658" opt_scale="2.3056"/>
-      <iteration number="33" duration="0.005" compliance="21.7700127008388" volume="0.499946252654256" scale="0.14658" opt_scale="2.3061"/>
-      <iteration number="34" duration="0.004" compliance="22.1015983399293" volume="0.495489114225762" scale="0.14658" opt_scale="2.3044"/>
-      <iteration number="35" duration="0.004" compliance="21.7796764837179" volume="0.499857173940272" scale="0.14658" opt_scale="2.3061"/>
-      <iteration number="36" duration="0.003" compliance="21.765872840959" volume="0.499957610877494" scale="0.14658" opt_scale="2.3062"/>
-      <iteration number="37" duration="0.004" compliance="21.7623639641551" volume="0.499996556652637" scale="0.14658" opt_scale="2.3063"/>
-      <iteration number="38" duration="0.004" compliance="21.7616736161117" volume="0.499997445577059" scale="0.14658" opt_scale="2.3063"/>
+      <iteration number="0" duration="0.082" compliance="87.425624395604" volume="0.5" scale="0.14658" opt_scale="0.14658"/>
+      <iteration number="1" duration="0.002" compliance="87.425624395604" volume="0.5" scale="0.14658" opt_scale="0.14658"/>
+      <iteration number="2" duration="0.002" compliance="63.0093865731286" volume="0.471757265647678" scale="0.14658" opt_scale="0.82851"/>
+      <iteration number="3" duration="0.002" compliance="47.8903880939757" volume="0.488785781639392" scale="0.14658" opt_scale="1.3925"/>
+      <iteration number="4" duration="0.002" compliance="40.0612480407585" volume="0.49113116485363" scale="0.14658" opt_scale="1.8679"/>
+      <iteration number="5" duration="0.001" compliance="34.0370895116954" volume="0.491476899990828" scale="0.14658" opt_scale="1.9935"/>
+      <iteration number="6" duration="0.002" compliance="30.1568152766091" volume="0.494470520435178" scale="0.14658" opt_scale="2.1462"/>
+      <iteration number="7" duration="0.003" compliance="27.7211867004821" volume="0.496111206011721" scale="0.14658" opt_scale="2.2028"/>
+      <iteration number="8" duration="0.002" compliance="26.1215432316906" volume="0.496734286485231" scale="0.14658" opt_scale="2.2332"/>
+      <iteration number="9" duration="0.003" compliance="24.6856567666044" volume="0.496516222724091" scale="0.14658" opt_scale="2.2784"/>
+      <iteration number="10" duration="0.002" compliance="23.643128567476" volume="0.497477111427677" scale="0.14658" opt_scale="2.3065"/>
+      <iteration number="11" duration="0.002" compliance="23.0768999489665" volume="0.498475610222904" scale="0.14658" opt_scale="2.3057"/>
+      <iteration number="12" duration="0.002" compliance="22.716596843173" volume="0.498951801910006" scale="0.14658" opt_scale="2.3039"/>
+      <iteration number="13" duration="0.003" compliance="22.4304210320612" volume="0.49903599757595" scale="0.14658" opt_scale="2.3025"/>
+      <iteration number="14" duration="0.002" compliance="22.2491537239697" volume="0.499609551130605" scale="0.14658" opt_scale="2.3018"/>
+      <iteration number="15" duration="0.002" compliance="22.1596318618326" volume="0.499738924800911" scale="0.14658" opt_scale="2.3015"/>
+      <iteration number="16" duration="0.003" compliance="22.0677647448773" volume="0.499682694057049" scale="0.14658" opt_scale="2.3013"/>
+      <iteration number="17" duration="0.002" compliance="21.9813318104673" volume="0.499780534865638" scale="0.14658" opt_scale="2.301"/>
+      <iteration number="18" duration="0.003" compliance="21.9222570174215" volume="0.499801443042684" scale="0.14658" opt_scale="2.3006"/>
+      <iteration number="19" duration="0.002" compliance="21.8918600232366" volume="0.499926378576759" scale="0.14658" opt_scale="2.3004"/>
+      <iteration number="20" duration="0.003" compliance="21.8757166687773" volume="0.499945463638938" scale="0.14658" opt_scale="2.3002"/>
+      <iteration number="21" duration="0.003" compliance="21.8621326201101" volume="0.499953315455459" scale="0.14658" opt_scale="2.3004"/>
+      <iteration number="22" duration="0.002" compliance="21.8496891919914" volume="0.499958107169685" scale="0.14658" opt_scale="2.3009"/>
+      <iteration number="23" duration="0.003" compliance="21.8396708055982" volume="0.49996452228768" scale="0.14658" opt_scale="2.3012"/>
+      <iteration number="24" duration="0.003" compliance="21.8304123359963" volume="0.499967811845848" scale="0.14658" opt_scale="2.3017"/>
+      <iteration number="25" duration="0.003" compliance="21.8213103947418" volume="0.499969419862306" scale="0.14658" opt_scale="2.3023"/>
+      <iteration number="26" duration="0.003" compliance="21.812844688085" volume="0.499969689070285" scale="0.14658" opt_scale="2.3031"/>
+      <iteration number="27" duration="0.004" compliance="21.8032565921016" volume="0.499966534430102" scale="0.14658" opt_scale="2.304"/>
+      <iteration number="28" duration="0.003" compliance="21.7945114469538" volume="0.499971690157886" scale="0.14658" opt_scale="2.3047"/>
+      <iteration number="29" duration="0.003" compliance="21.7880355648202" volume="0.499976760522825" scale="0.14658" opt_scale="2.305"/>
+      <iteration number="30" duration="0.003" compliance="21.7827358628243" volume="0.499979904166786" scale="0.14658" opt_scale="2.3051"/>
+      <iteration number="31" duration="0.003" compliance="21.7787045572436" volume="0.499979814148008" scale="0.14658" opt_scale="2.3053"/>
+      <iteration number="32" duration="0.004" compliance="21.7765899677961" volume="0.499971769343729" scale="0.14658" opt_scale="2.3055"/>
+      <iteration number="33" duration="0.003" compliance="21.7742821026044" volume="0.499950527580705" scale="0.14658" opt_scale="2.3056"/>
+      <iteration number="34" duration="0.006" compliance="21.7700127008382" volume="0.49994625265426" scale="0.14658" opt_scale="2.3061"/>
+      <iteration number="35" duration="0.003" compliance="22.1015983399292" volume="0.495489114225764" scale="0.14658" opt_scale="2.3044"/>
+      <iteration number="36" duration="0.004" compliance="21.7796764837183" volume="0.499857173940272" scale="0.14658" opt_scale="2.3061"/>
+      <iteration number="37" duration="0.003" compliance="21.7658728409593" volume="0.499957610877495" scale="0.14658" opt_scale="2.3062"/>
+      <iteration number="38" duration="0.005" compliance="21.7623639641554" volume="0.499996556652637" scale="0.14658" opt_scale="2.3063"/>
+      <iteration number="39" duration="0.004" compliance="21.7616736161116" volume="0.499997445577059" scale="0.14658" opt_scale="2.3063"/>
     </process>
   </optimization>
 </cfsInfo>

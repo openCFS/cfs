@@ -131,13 +131,13 @@ inline CoefFunctionOpt* OptimizationMaterial::GetMatCoef(LinearFormContext* cont
     coef = bu->GetCoef();
   } else if (app == App::HEAT) {
     // FIXME Nasty stuff
-    if (domain->GetGrid()->GetDim() == 2) {
+    if (domain->GetDim() == 2) {
       BDUIntegrator<GradientOperator<FeH1,2> >* bdu = dynamic_cast<BDUIntegrator<GradientOperator<FeH1,2> >*>(context->GetIntegrator());
       assert(bdu != NULL);
       assert(bdu->GetDCoef());
       coef = bdu->GetDCoef();
     } else {
-      assert(domain->GetGrid()->GetDim() == 3);
+      assert(domain->GetDim() == 3);
       BDUIntegrator<GradientOperator<FeH1,3> >* bdu = dynamic_cast<BDUIntegrator<GradientOperator<FeH1,3> >*>(context->GetIntegrator());
       assert(bdu != NULL);
       assert(bdu->GetDCoef());

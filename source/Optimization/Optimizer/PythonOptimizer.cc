@@ -300,7 +300,7 @@ void PythonOptimizer::Get_dfdH(PyObject *args)
 
   LOG_DBG3(pyopt) << "GTD: Got " << n_mat << " matrices with dim=(" << PyArray_DIM(list,1) << "," << PyArray_DIM(list,2) << ") from python" << std::endl;
 
-  unsigned int rows = (domain->GetGrid()->GetDim() == 3) ? 6 : 3;
+  unsigned int rows = (domain->GetDim() == 3) ? 6 : 3;
   // get objective function
   assert(optimization->objectives.Has(Function::COMPLIANCE));
   Function* f =  optimization->objectives.Get(Function::COMPLIANCE);
@@ -466,7 +466,7 @@ void PythonOptimizer::GetCoreStiffness(PyObject *args)
 
 PyObject* PythonOptimizer::GetDims(PyObject* args)
 {
-  unsigned int dim = domain->GetGrid()->GetDim();
+  unsigned int dim = domain->GetDim();
   // assume rectilinear mesh with one region only
   const auto& regids = domain->GetOptimization()->GetDesign()->GetRegionIds();
 

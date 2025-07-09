@@ -290,7 +290,7 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
   // G = E(4,4) (= E(5,5) = E(6,6))
   // this conditions are lower bound conditions!
 
-  if(domain->GetGrid()->GetDim() == 2)
+  if(domain->GetDim() == 2)
   {
     assert(g->coords.GetSize() == 0);
     g->boundValue_ = 0;
@@ -453,7 +453,7 @@ void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Co
     get<2>(entry) = 1.0;
     g->boundValue_ = g->tensor_[1-1][1-1]; // one-based!
     g = g->AppendSubCondition(list, 2,2); // 2. 2222
-    if(domain->GetGrid()->GetDim() == 2)
+    if(domain->GetDim() == 2)
     {
       g = g->AppendSubCondition(list, 1,2); // 3. 1122
 

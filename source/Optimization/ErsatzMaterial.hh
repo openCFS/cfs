@@ -81,7 +81,7 @@ public:
   typedef enum
   {
     NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT, SHAPE_MAP,
-    SPAGHETTI, SPAGHETTI_PARAM_MAT, SPLINE_BOX
+    SPAGHETTI, SPAGHETTI_PARAM_MAT, SPLINE_BOX, FEATURE_MAPPING
   } Method;
 
   /** Actually everything with has material parameterization, e.g. rotated anisotropy as in spaghetti */

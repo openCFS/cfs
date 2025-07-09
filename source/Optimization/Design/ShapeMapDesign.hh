@@ -517,7 +517,7 @@ private:
      * Note this is for node and we have one node more than elements in one direction. ShapeMapping only*/
     StdVector<int> idx;
 
-    /** Only for the variables within FeaturedDesgin::opt_shape_param_. Contains links to the hippen variables  */
+    /** Only for the variables within FeaturedDesign::opt_shape_param_. Contains links to the hidden variables  */
     ElementSymmetry* sym = NULL;
   };
 

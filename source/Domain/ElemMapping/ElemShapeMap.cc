@@ -1973,12 +1973,17 @@ void LagrangeElemShapeMap::CalcDiameter(Vector<Double>& diameter) {
 
 void LagrangeElemShapeMap::CalcBarycenter(Point& barycenter)
 {
-  UInt n_dims  = coords_.GetNumRows();
-  UInt n_elems = coords_.GetNumCols();
+  CalcBarycenter(barycenter, coords_, domain);
+}
 
-  //somtimes there is no domain pointer
+void LagrangeElemShapeMap::CalcBarycenter(Point& barycenter, const Matrix<double>& coords, const Domain* domain)
+{
+  UInt n_dims  = coords.GetNumRows();
+  UInt n_elems = coords.GetNumCols();
+
+  //sometimes there is no domain pointer
   if(domain){
-    assert(n_dims == domain->GetGrid()->GetDim());
+    assert(n_dims == (unsigned int) domain->GetDim());
   }
 
   // init barycenter for safty reason
@@ -1992,7 +1997,7 @@ void LagrangeElemShapeMap::CalcBarycenter(Point& barycenter)
     for (UInt k=0; k < n_elems; k++)
     {
       // the constructor of Point initializes
-      barycenter[dim] += coords_[dim][k];
+      barycenter[dim] += coords[dim][k];
       // std::cout << coords[dim][k] << "->" << barycenter[dim] << "\t";
     }
 

@@ -10,6 +10,7 @@ set(DESIGN_SRCS
   LocalElementCache.cc
   ShapeDesign.cc
   ShapeMapDesign.cc
+  FeatureMappingDesign.cc
   SplineBoxDesign.cc
   MaterialTensor.cc)
   # for SpahettiDesign.cc see below 

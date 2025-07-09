@@ -426,6 +426,28 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
     }
   }
 
+  if(space_->GetMethod() == ErsatzMaterial::Method::FEATURE_MAPPING)
+  {
+    FeaturedDesign* fd = dynamic_cast<FeaturedDesign*>(space_);
+
+    for(int i = 0; i < fd->GetNumberOfFeatureMappingVariables(); i++)
+    {
+      FeatureVariable* var = dynamic_cast<FeatureVariable*>(fd->GetFeaturedDesignElement((unsigned int) i));
+
+      std::stringstream ss;
+      ss << "<shapeParamElement nr=\"" << var->GetIndex();
+      ss << "\" type=\"" << DesignElement::type.ToString(var->GetType());
+      if(var->GetType() == DesignElement::NODE) {
+        ss << "\" dof=\"" << var->dof.ToString(var->dof_);
+        ss << "\" tip=\"" << FeatureVariable::tip_enum.ToString(var->tip);
+      }
+      ss << "\" shape=\"" << var->feature; // legacy density.xml files don't have this attribute
+      ss << "\" design=\"" << var->GetDesign(BaseDesignElement::PLAIN);
+      ss << "\"/>";
+      block[base + i] = ss.str();
+    }
+  }
+
   // spaghetti.py can visualize the noodles
   if(ErsatzMaterial::IsSpaghetti(space_->GetMethod()))
   {
@@ -435,7 +457,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
     // skip the aux variables slack and alpha -> they are written to the info.xml
     for(unsigned int i = 0, n = space_->GetNumberOfFeatureMappingVariables(); i < n; i++)
     {
-      SpaghettiDesign::Variable* spe = dynamic_cast<SpaghettiDesign::Variable*>(sd->GetFeaturedDesignElement(i));
+      FeatureVariable* spe = dynamic_cast<FeatureVariable*>(sd->GetFeaturedDesignElement(i));
       assert(spe != NULL);
 
       LOG_DBG2(density) << "SAWC: " << spe->GetLabel() << " " << spe->ToString();
@@ -446,17 +468,17 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
       if(spe->GetType() == DesignElement::NODE)
       {
         ss << "\" dof=\"" << spe->dof.ToString(spe->dof_);
-        ss << "\" tip=\"" << SpaghettiDesign::tip.ToString(spe->tip);
-        const SpaghettiDesign::Noodle& n = sd->spaghetti[spe->noodle];
-        ss << "\" num=\"" << (unsigned int) (spe->GetIndex() - n.points[0][0].GetIndex()) / domain->GetGrid()->GetDim();
+        ss << "\" tip=\"" << FeatureVariable::tip_enum.ToString(spe->tip);
+        const SpaghettiDesign::Noodle& n = sd->spaghetti[spe->feature];
+        ss << "\" num=\"" << (unsigned int) (spe->GetIndex() - n.points[0][0].GetIndex()) / domain->GetDim();
       }
       if(spe->GetType() == DesignElement::RADIUS)
       {
-        const SpaghettiDesign::Noodle& n = sd->spaghetti[spe->noodle];
+        const SpaghettiDesign::Noodle& n = sd->spaghetti[spe->feature];
         ss << "\" con=\"" << spe->GetIndex() - n.r[0].GetIndex();
       }
 
-      ss << "\" shape=\"" << spe->noodle; // legacy density.xml files don't have this attribute
+      ss << "\" shape=\"" << spe->feature; // legacy density.xml files don't have this attribute
       ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";
       block[base + i] = ss.str();

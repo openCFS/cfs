@@ -9,98 +9,71 @@
 namespace CoupledField
 {
 
-Point & Point::operator=(const Point& t) {
-  for (UInt i=0; i<3; i++)
-    data[i]=t.data[i];
-  return *this;
-}
-
-bool Point::operator==(const Point& t) const {
-  return data[0] == t.data[0] && data[1] == t.data[1] && data[2] == t.data[2];
-}
-
-Point & Point::operator+=(const Point& t) {
-  UInt i;
-  for (i=0; i<3; i++)
+Point& Point::operator+=(const Point& t) {
+  assert(data.GetSize() == t.data.GetSize());
+  for (unsigned int i=0; i<data.GetSize(); i++)
     data[i]+=t.data[i];
   return *this;
 }
 
-Point Point::operator+(const Point &t) {
-  return Point(data[0]+t.data[0], data[1]+t.data[1], data[2] + t.data[2]);
-}
-
-Point Point::operator+(const Point &t) const {
-  return Point(data[0]+t.data[0], data[1]+t.data[1], data[2] + t.data[2]);
-}
-
-Point & Point::operator-=(const Point & t) {
-  for (UInt i=0; i<3; i++)
+Point& Point::operator-=(const Point& t) {
+  assert(data.GetSize() == t.data.GetSize());
+  for (UInt i=0; i<data.GetSize(); i++)
     data[i]-=t.data[i];
   return *this;
 }
 
-Point Point::operator-(const Point &t) {
-  return Point(data[0]-t.data[0], data[1]-t.data[1], data[2]-t.data[2]);
-}
-
-Point Point::operator-(const Point &t) const {
-  return Point(data[0]-t.data[0], data[1]-t.data[1], data[2]-t.data[2]);
-}
-
-Point& Point::operator*=(const Double factor) {
-  for (UInt i=0; i<3; i++)
+Point& Point::operator*=(double factor) {
+  for (UInt i=0; i<data.GetSize(); i++)
     data[i] *= factor;
   return *this;
 }
 
-Point Point::operator*(const Double factor) {
+Point Point::operator*(double factor) const {
   return Point(data[0]*factor, data[1]*factor, data[2]*factor);
 }
 
-Point Point::operator*(const Double factor) const {
-  return Point(data[0]*factor, data[1]*factor, data[2]*factor);
-}
-
-Point& Point::operator/=(const Double factor) {
-  for (UInt i=0; i<3; i++)
-    data[i] /= factor;
-  return *this;
-}
-
-Point Point::operator/(const Double factor) {
-  return Point(data[0]/factor, data[1]/factor, data[2]/factor);
-}
-
-Point Point::operator/(const Double factor) const {
-  return Point(data[0]/factor, data[1]/factor, data[2]/factor);
+double Point::Dot(const Point& other) const
+{
+  double sum = 0.0;
+  sum  = data[0] * other.data[0];
+  sum += data[1] * other.data[1];
+  sum += data[2] * other.data[2];
+  return sum;
 }
 
 std::string Point::ToString() const
 {
    std::ostringstream os;
-   os << "(" << data[0] << ";" << data[1] << ";" << data[2] << ")";
+   os << "(";
+   if(data.GetSize() > 0) 
+     os << data[0] << "," << data[1] << "," << data[2];
+   os << ")";
    return os.str();
 }
 
-int  Point::GetCartesianOrientation(const Vector<double>* vec)
+int Point::GetCartesianOrientation(const Vector<double>* vec)
 {
   assert(vec != NULL);
-  assert(vec->GetSize() == 3);
-  return GetCartesianOrientation(vec->GetPointer());
+  return GetCartesianOrientation(vec->GetPointer(), vec->GetSize());
 }
 
 
-int Point::GetCartesianOrientation(const double* vec)
+int Point::GetCartesianOrientation(const double* vec, int length)
 {
-  assert(  (vec[0] != 0.0 && vec[1] == 0.0 && vec[2] == 0.0)
-         ||(vec[0] == 0.0 && vec[1] != 0.0 && vec[2] == 0.0)
-         ||(vec[0] == 0.0 && vec[1] == 0.0 && vec[2] != 0.0));
-  for(UInt i = 0; i < 3; i++)
-    if(vec[i] != 0)
+  assert(vec != NULL);
+  assert(length == 2 || length == 3);
+  assert(length == 3 || ((vec[0] != 0.0 && vec[1] == 0.0)
+                       ||(vec[0] == 0.0 && vec[1] != 0.0)));
+
+  assert(length == 2 || ((vec[0] != 0.0 && vec[1] == 0.0 && vec[2] == 0.0)
+                       ||(vec[0] == 0.0 && vec[1] != 0.0 && vec[2] == 0.0)
+                       ||(vec[0] == 0.0 && vec[1] == 0.0 && vec[2] != 0.0)));
+  for(int i = 0; i < length; i++)
+    if(vec[(unsigned int) i] != 0)
       return i;
 
-  EXCEPTION("vector is not Cartesian: " + StdVector<double>::ToString(3, vec));
+  throw Exception("vector is not Cartesian: " + StdVector<double>::ToString(length, vec));
 }
 
 }

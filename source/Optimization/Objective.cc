@@ -344,7 +344,7 @@ double ObjectiveContainer::GetHistoryValue(bool penalty, int index)
 {
   double result = 0.0;
 
-  StdVector<double> vals(data.GetSize());
+  Vector<double> vals(data.GetSize());
 
   int idx = index >= 0 ? index : (int) GetHistorySize() + index; // -1 is last, ...
   LOG_DBG(obj) << "OC:GHV p=" << penalty << " index=" << index << " size=" << data.GetSize() << " idx=" << idx;

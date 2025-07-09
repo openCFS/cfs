@@ -597,7 +597,10 @@ namespace CoupledField {
     void CalcDiameter( Vector<Double>& diameter );
 
     //! @copydoc ElemShapeMap::CalcBarycenter
-    void CalcBarycenter(Point& baryCenter );
+    void CalcBarycenter(Point& baryCenter);
+
+    /** static to allow to serve as service */
+    static void CalcBarycenter(Point& barycenter, const Matrix<double>& coords, const Domain* domain);
 
     //! @copydoc ElemShapeMap::GetMaxMinEdgeLength
     void GetMaxMinEdgeLength( Double& max, Double& min);

@@ -663,8 +663,8 @@ class Function
 
       private:
         /** to be reused */
-        static StdVector<double> tmp1;
-        static StdVector<double> tmp2;
+        static Vector<double> tmp1;
+        static Vector<double> tmp2;
       }; // end of struct Identifier
 
 

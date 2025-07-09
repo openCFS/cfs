@@ -139,7 +139,7 @@ public:
    * So just ignore it! */
   virtual double GetDesign(BaseDesignElement::Access access) const { return design; }
 
-  /** to handle exporting only parts of the design (due to symmetry) to the external optimizers */
+/** to handle exporting only parts of the design (due to symmetry) to the external optimizers */
   virtual unsigned int GetOptIndex() const { assert(opt_index_ != std::numeric_limits<unsigned int>::max()); return opt_index_; }
 
   void SetOptIndex(unsigned int idx) { this->opt_index_ = idx; }
@@ -161,6 +161,63 @@ public:
 private:
   /** see BaseDesignElement::GetOptIndex() */
   unsigned int opt_index_ = std::numeric_limits<unsigned int>::max();
+};
+
+
+/** Base Variable for FeatureMappingDesign and SpaghettiDesign. The later extends */
+class FeatureVariable : public ShapeParamElement
+{   
+public:
+  typedef enum { NO_TIP = -1, START=0, END=1, INNER=2 } Tip; // INNER only for SpaghettiDesign or BAR for Feature::Distance()
+
+  static Enum<Tip> tip_enum;
+
+  /** optional late constructor - only SpaghettiDesign */
+  void InitInnerNode(int noodle_idx, Dof dof, double val, double lower, double upper);
+
+  static std::string ToString(const StdVector<FeatureVariable>& vec, bool show_fixed = true);
+
+  static Vector<double> AsVector(const StdVector<FeatureVariable>& vec);
+
+  bool IsVariable() const { return !fixed && map == ""; }
+
+  /** check all components of point if we are fixed. Mapping is OK */
+  static bool IsFixed(const StdVector<FeatureVariable>& point);
+
+  /** Count number of real variables. Exclude fixed and mapped */
+  static int CountRealVariables(const StdVector<FeatureVariable>& point);
+
+  static void CompareToInfoHelper(const FeatureVariable* v0, const FeatureVariable* test, std::string& fixed, std::string& lower, std::string& upper);
+
+  void Parse(PtrParamNode pn, int feature, double interpolate_value = -12.34);
+
+  /** all other BaseDesignElement children do this in the constructor.
+   * @see SetOptIndex() */
+  void SetIndex(int idx) { index_ = idx; }
+
+  void ToInfo(PtrParamNode in) const;
+
+  /** for debug info */
+  std::string ToString() const override;
+
+  std::string GetLabel() const override;
+
+  /** does not apply for all */
+  Tip tip = NO_TIP;
+
+  bool fixed = false;
+
+  /** Pill has mapping and this is the reference, map refers to key   */
+  std::string key; 
+
+  /** Pill has mapping and we point to a key. Check and housekeeping is not done by FeatureVariable
+   * Consider to implement formulas (-key, key+5, ...) */
+  std::string map; 
+
+  FeatureVariable* map_to = nullptr; // only for FeatureMappingDesign. Make sure to point to non-resizable vector to avoid dangling!
+
+  /** pill/noodle index */
+  int feature = -1;
 };
 
 

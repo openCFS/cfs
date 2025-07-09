@@ -21,6 +21,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/FeatureMappingDesign.hh"
 #include "Optimization/Design/SpaghettiDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
@@ -95,9 +96,6 @@ Enum<Optimization::CommitMode>       Optimization::commitMode;
 
 Context*                             Optimization::context;
 ContextManager                       Optimization::manager;
-
-// have it here as SpaghettiDesign.cc is currently conditionally compiled with USE_EMBEDDED_PYTHON only
-Enum<SpaghettiDesign::Tip> SpaghettiDesign::tip;
 
 Optimization::Optimization()
 {
@@ -586,7 +584,8 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SPAGHETTI, "spaghetti");
   ErsatzMaterial::method.Add(ErsatzMaterial::SPAGHETTI_PARAM_MAT, "spaghettiParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SPLINE_BOX, "splineBox");
-  
+  ErsatzMaterial::method.Add(ErsatzMaterial::FEATURE_MAPPING, "featureMapping");
+
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::EACH_FORWARD, "each_forward");
@@ -775,6 +774,7 @@ Optimization* Optimization::CreateInstance()
   {
   case ErsatzMaterial::SIMP_METHOD:
   case ErsatzMaterial::SHAPE_MAP: // we have ShapeMap for mech SIMP but also
+  case ErsatzMaterial::FEATURE_MAPPING:
     switch(material)
     {
     case OptimizationMaterial::MECH:
@@ -1089,8 +1089,8 @@ double Optimization::CalcObjective(Excitation* ev_only_excite)
 
   // term = linear -> function value, penalty max(value - parameter)^2, ...
   // the smooth max (from Daniel) want both approaches
-  StdVector<double> s_t_ov;   //  scale * term(objective value)
-  StdVector<double> w_s_t_ov; // weight * scale * term(objective value)
+  Vector<double> s_t_ov;   //  scale * term(objective value)
+  Vector<double> w_s_t_ov; // weight * scale * term(objective value)
 
   // the multiple excitation case is a special case - for all other cases this is executed once
   for(unsigned int e = 0; e < (ev_only_excite != NULL ? 1 : me->excitations.GetSize()); e++)

@@ -2,6 +2,7 @@
 #define OPTIMIZATION_DESIGN_FEATUREDDESIGN_HH_
 
 #include "Optimization/Design/AuxDesign.hh"
+#include "Utils/Point.hh"
 
 namespace CoupledField {
 
@@ -58,19 +59,19 @@ public:
   /** handles spaghetti and spline box */
   virtual int FindDesign(DesignElement::Type dt, bool throw_exception) const override;
 
-  virtual void ToInfo(ErsatzMaterial* em) override = 0 ;
+  /** SpaghettiDesign and FeatureMappingDesign share this implementation, ShapeMapeDesign and SplineBoxDesign() have own stuff */
+  virtual void ToInfo(ErsatzMaterial* em) override;
 
   /** Called from DensityFile::ReadErsatzMaterial() with load ersatz material (-x)
    * @param set the set from the density.xml
    * @param lower_violation the maximal violation */
   virtual void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation) = 0;
 
-  /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
+  /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements
+   * And for distance for FeatureMappingDesign and SpaghettiDesign and Bending for SpaghettiDesign.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
    * @param locality just given to assert() it is PREV_AND_NEXT */
-  virtual void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) {
-    throw Exception("FeatureMapping does not define SetupVirtualShapeElementMap for " + f->ToString());
-  }
+  virtual void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
 
   /** For SHAPE_MAP design. Combines NODE and PROFILE. Simple implementation, does not handle symmetry */
   virtual  void SetupVirtualMultiShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) {
@@ -118,9 +119,19 @@ public:
   };
 
 protected:
+  struct Feature; // forward declaration
 
-  /** meant to set up the design variables. Possibly call SetupMapping() next() */
-  virtual void SetupDesign(PtrParamNode pn) = 0;
+  /** meant to set up the design variables. Possibly call SetupMapping() next()
+   * FeatureMappingDesign and SpaghettiDesign override and use this, ShapeMapDesign and SplineBoxDesign have own instances. */
+  virtual void SetupDesign(PtrParamNode pn);
+
+  /** Helper for SetupDesign(). Stores the variable to shape_param_ and opt_shape_param_ */
+  void AddVariable(FeatureVariable* var);
+
+  virtual void SetupVirtualShapeElementMapBending(Feature* f, StdVector<Function::Local::Identifier>& vem, StdVector<BaseDesignElement*>& nodes, bool two_signs, int sign_1, int sign_2) { assert(false); };
+
+  /** mandatory helper for base SetupDesign(). */
+  virtual void SetupParsedFeatures(PtrParamNode base) { throw Exception("not implemented"); }
 
   /** Map (distorted) structure to rho (DesignSpace::data). Sets DesignSpace::data.
    *  Shall be called by ReadDesignFromExtern(). */
@@ -136,23 +147,99 @@ protected:
   void SetupMeshStructure();
 
   /** set map_ */
-  void SetupMapping();
+  virtual void SetupMapping();
 
   /** called in the optimization case in PostInit().
    * E.g. check meaningful constraints line no linear volume */
   virtual void CheckPlausibility();
 
+  /** FeatureVariable is a single variable as used for SpaghettiDesign or FeatureMappingDesign. 
+   * Feature is the accumulation of all FeatureVariables for a single geometry object. 
+   * SpaghettiDesign extends to Noodle. ShapeMapDesign and SplineBoxDDesign use their own stuff.   */ 
+  struct Feature // could also be called Geometry
+  {
+  public:
+
+    virtual ~Feature() { } 
+
+    /** Updates internal variables for efficient Distance and Grad calculation.
+     * Call this after every variable change. */
+    virtual void Update() {};
+ 
+    /** pill, noodle */
+    virtual const char* GetName() = 0; 
+
+    virtual void Parse(PtrParamNode feature, int idx);
+
+    virtual void ToInfo(PtrParamNode info);
+
+    /** helper for a and r */
+    virtual void ToInfo(PtrParamNode in, FeatureVariable::Type type, const std::string& label, int dim = -1) const;
+
+    /** for debug purpose */
+    virtual std::string ToString() const;
+
+    virtual int GetTotalVariables() const;
+
+    /** return Noodle.a.GetSize() > 0 */
+    virtual bool IsExtended() const { return false; }
+
+    /** Assumes Update() has been called properly. 
+     * @param part if given, the closes part is returned (relevant for gradient)*/
+    virtual double Distance(const Point& p, FeatureVariable::Tip* part = nullptr) const { assert(false); return -1.0; }
+
+    /** for efficiency reason calculate all gradients at once. Is a waste for fixed variables */
+    virtual void GradDistance(const Point& X, FeatureVariable::Tip part, StdVector<double>& out) const { assert(false); }
+
+    int GetOptVariables() const { return opt_variables_; }
+   
+    /** does a const_cast */
+    void GetAllVariables(StdVector<FeatureVariable*>& out) const;
+    StdVector<FeatureVariable*> GetAllVariables() const;
+
+    /** for Pill and 2D Noodle this is start and of a vector of two variables */
+    StdVector<StdVector<FeatureVariable> > points;
+
+    /** the scalar profile variable */
+    FeatureVariable p;
+
+    /** shape index */
+    int idx = -1;
+
+  protected:
+
+    Point P; // make this pointer to have it 2D or 3D
+    Point Q;
+
+    /** little helper */
+    double minimum(double a, double b, double c) const { return std::min(a, std::min(b, c)); }
+    
+    int opt_variables_ = -1;
+  };
+
+  /** when we want extensions of Item we do this dynamically by derived ItemExtension. */
+  struct ItemExtension
+  {
+    virtual ~ItemExtension() { }
+    virtual std::string ToString() { return ""; } // for debug purpose
+  };
+
   /** to conveniently handle the mapping shape param to design */
   struct Item
   {
+    virtual ~Item() { delete extension; }
+
     /** our Design Element, which is almost always the density (rho) but might also be an angle */
     DesignElement* elemval = nullptr;
+
+    /** E.g. FeatureMappingDesign sets this extension to a derived variant */
+    ItemExtension* extension = nullptr;
 
     /** this is the index of the element within the rectangular lexicographic n_ domain.
      * usually often the position of Item within map_ but not for complex designs as in solar heater */
     int lexicographic_pos = -1;
 
-    /** This is the minimal corner value of all corners. Set by EvalAllCorners() */
+    /** This is the minimal corner value of all corners. Set by EvalAllCornerValues() */
     Vector<double> min_corner_value;
     Vector<double> max_corner_value;
 
@@ -184,7 +271,7 @@ protected:
   /** this describes the continuation of a structure in 1D. See feature mapping review.
    * Not every class uses all boundary functions, this is handled in the schema file */
   typedef enum { NO_BOUNDARY, TANH, LINEAR, POLY } Boundary;
-
+  
   /** gives the fiber orientation for anisotropic material in spaghettiParamMat
    * rounded: follows the spaghetti direction but at the endings uses orientations parallel to the boundary
    * straight: follows the spaghetti direction extended to the round endings */
@@ -192,6 +279,10 @@ protected:
 
   /** for a full virtual lexicographic mesh, the position from coordinates */
   unsigned int LexicographicPos(unsigned int x, unsigned int y, unsigned int z) const { return z * (ny_*nx_) + y * nx_ + x; }
+
+  /** 2D variant */
+  unsigned int LexicographicPos(unsigned int x, unsigned int y) const { return y * nx_ + x; }
+
 
   Boundary GetBoundary() const { return boundary_; }
 
@@ -234,13 +325,19 @@ protected:
   /** Measure MapFeatureGradient() */
   shared_ptr<Timer> gradient_timer_;
 
-  /** This are the design parameters. This includes fixed elements which are not object
+  /** This are the design parameters. This includes fixed and mapped elements which are not object. 
    * to optimization (scpip cannot handle lower bound == upper bound). See opt_shape_param_ */
   StdVector<ShapeParamElement*> shape_param_;
 
   /** This are the external design parameters which means shape_param_ w/o fixed and optional links.
    * Note that in ShapeMapDesign the variable is a vector of another type */
   StdVector<ShapeParamElement*> opt_shape_param_;
+
+  /** This holds pointers to Feature base pointers, the real instances are SpaghettiDesign and FeatureMappingDesign.
+   * ShapeMapDesign and SplineBoxDesign are too old and do not use this. */
+  StdVector<Feature*> features_;
+
+  StdVector<int> opt_indices;
 
   /** mapping with size of elemval to ShapeParamElement pointers to design variables */
   StdVector<Item> map_;

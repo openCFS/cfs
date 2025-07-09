@@ -66,7 +66,7 @@ LevelSetNode::LevelSetNode(const double val, const unsigned int cfs_number) :
   state(LS_NONE), value(val), phi_temp(0.0), intersection_length(0.0),
   f_ext(0.0), shapegrad(0.0), global_node_number(cfs_number)
 {
-  static const unsigned int dim(domain->GetGrid()->GetDim());
+  static const unsigned int dim(domain->GetDim());
   neighbours_.resize((dim == 2 ? 4 : 6), NULL);
 }
 
@@ -103,7 +103,7 @@ LevelSetElement::LevelSetElement(DesignElement* de, const double val) :
 {
   // it is important here to call resize, not reserve, because we assume the existence
   // of this object at a later point where we acquire a reference to it
-  const unsigned int dim(domain->GetGrid()->GetDim());
+  const unsigned int dim(domain->GetDim());
   nodes_.resize((dim == 2 ? 4 : 8), 0);
   objects.reserve((dim == 2) ? 2 : 4);
 }
@@ -148,7 +148,7 @@ bool LevelSetElement::ContainsFront() const
   for(unsigned int i = 0; i < 4; ++i)
     if(HasIntersection(GetEdgeNodes(i))) return true;
 
-  if(domain->GetGrid()->GetDim() == 3)
+  if(domain->GetDim() == 3)
   {
     assert(nodes_[4] != NULL && nodes_[5] != NULL && nodes_[6] != NULL && nodes_[7] != NULL);
     // back face and middle edges
@@ -162,7 +162,7 @@ bool LevelSetElement::ContainsFront() const
 const lsnodepair LevelSetElement::GetEdgeNodes(const unsigned int idx) const
 {
   // check the index, idx >= 0 trivially fulfilled because of unsigned
-  assert((domain->GetGrid()->GetDim() == 2) ? (idx < 4) : (idx < 12));
+  assert((domain->GetDim() == 2) ? (idx < 4) : (idx < 12));
 
   switch(idx)
   {
@@ -237,7 +237,7 @@ void LevelSetElement::CalcShapeGrad(const Vector<double> &elem_sol, linElastInt*
 
 void LevelSetElement::CalcIntersectionObjects(const Vector<double> &elem_sol)
 {
-  static const unsigned int dim(domain->GetGrid()->GetDim());
+  static const unsigned int dim(domain->GetDim());
   assert(dim == 2); // FIXME
   
   // calc the intersection objects
@@ -367,7 +367,7 @@ double LevelSetElement::CalcBarycenterNode(Vector<double> &outpoint, const lsnod
 void LevelSetElement::CalcBarycenterDisplacement(Vector<double> &out_u, const double w1,
                                                  const Vector<double> &elem_sol, const int idx) const
 {
-  static const unsigned int dim(domain->GetGrid()->GetDim());
+  static const unsigned int dim(domain->GetDim());
   out_u.Resize(dim);
   for(unsigned int i = 0; i < dim; ++i)
   {
@@ -379,7 +379,7 @@ double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linEl
 {
   assert(false);
   /* FIXME
-  static const unsigned int dim(domain->GetGrid()->GetDim());
+  static const unsigned int dim(domain->GetDim());
   assert(dim == 2); // FIXME
 
   Matrix<double> B; // 2D: 3 * 8
@@ -450,7 +450,7 @@ const std::string ToString(const LevelSetElement &elem)
       ss << node->GetNeighbour(VicinityElement::Y_N)->GetNumber();
     else
       ss << "NA";
-    if(domain->GetGrid()->GetDim() == 3)
+    if(domain->GetDim() == 3)
     {
       ss << ", f ";
       if(node->GetNeighbour(VicinityElement::Z_P) != NULL)
@@ -481,7 +481,7 @@ LevelSet::LevelSet(Optimization* opt, PtrParamNode pn) :
 
   // cache the element widths, assumes a uniform grid!!
   domain->GetGrid()->GetElemShapeMap((*design_)[0].elem, false)->GetEdgeLength(edge_length_);
-  assert(edge_length_.GetSize() == (domain->GetGrid()->GetDim() == 2 ? 2 : 3));
+  assert(edge_length_.GetSize() == (domain->GetDim() == 2 ? 2 : 3));
   LOG_DBG(ls) << "edge_length_: x = " << edge_length_[0] << ", y = " << edge_length_[1];
   if(edge_length_.GetSize() == 3)
   {
@@ -631,8 +631,8 @@ void LevelSet::MakeTrivialHole(const unsigned int node_nr)
     return;
 
   double minimum(min(edge_length_[0], edge_length_[1]));
-  assert(domain->GetGrid()->GetDim() == edge_length_.GetSize());
-  if(domain->GetGrid()->GetDim() == 3)
+  assert(domain->GetDim() == edge_length_.GetSize());
+  if(domain->GetDim() == 3)
   { 
     minimum = min(minimum, edge_length_[2]);
   }    
@@ -670,7 +670,7 @@ double LevelSet::GetGradientAtNode(const unsigned int node_nr, const unsigned in
   // assume that we have at least one neighbour in each direction
   assert((node->neighbours_[0] != NULL) || (node->neighbours_[1] != NULL));
   assert((node->neighbours_[2] != NULL) || (node->neighbours_[3] != NULL));
-  assert(domain->GetGrid()->GetDim() != 3 ? true : ((node->neighbours_[4] != NULL) || (node->neighbours_[5] != NULL)));
+  assert(domain->GetDim() != 3 ? true : ((node->neighbours_[4] != NULL) || (node->neighbours_[5] != NULL)));
   
   if(node->neighbours_[dir] != NULL)
     return (node->neighbours_[dir]->value - node->value) / edge_length_[GetAxisFromIndex(dir)];
@@ -687,7 +687,7 @@ double LevelSet::GetNormGradientAtNode(const unsigned int node_nr) const
   double gx(GetGradientAtNode(node_nr, 0));
   double gy(GetGradientAtNode(node_nr, 2));
   double gz(0.0);
-  if(domain->GetGrid()->GetDim() == 3)
+  if(domain->GetDim() == 3)
     gz = GetGradientAtNode(node_nr, 4);
   gz = std::sqrt(gx*gx + gy*gy + gz*gz);
   LOG_DBG3(ls) << "gradient at node " << node_nr << ": " << gz;
@@ -1068,7 +1068,7 @@ void LevelSet::AddOrderedLevelsetNodesToLevelsetElement(LevelSetElement &lse)
 
   // add pointers to the nodes according to the node numbers
   const unsigned int nn(cfs_node_numbers.GetSize());
-  assert(nn == (domain->GetGrid()->GetDim() == 2 ? 4 : 8));
+  assert(nn == (domain->GetDim() == 2 ? 4 : 8));
   vector<Point> point_coords;
   point_coords.reserve(nn);
   
@@ -1158,7 +1158,7 @@ void LevelSet::AddOrderedLevelsetNodesToLevelsetElement(LevelSetElement &lse)
 void LevelSet::BuildNeighbourhoodOfLevelsetNodes(const DesignElement* de)
 {
   assert(de != NULL);
-  const bool threeDAndZPIsNULL((domain->GetGrid()->GetDim() == 3) && 
+  const bool threeDAndZPIsNULL((domain->GetDim() == 3) && 
                                (de->vicinity->GetNeighbour(VicinityElement::Z_P) == NULL));
   
   // we always have to set the neighbours of this node
@@ -1213,7 +1213,7 @@ void LevelSet::SetNeighboursOfLowLeftNode(const int startIdx, const DesignElemen
   // set neighbourhood of lower left levelset node which has index 0
   // if we have at least one neighbour missing we know that we are at the boundary
   vector<LevelSetNode*> &low_left = ptrnodes->neighbours_;
-  assert(low_left.size() == ((domain->GetGrid()->GetDim() == 2) ? 4 : 6));
+  assert(low_left.size() == ((domain->GetDim() == 2) ? 4 : 6));
 
   // right is always in the same element
   low_left[VicinityElement::X_P] = de->lse_->nodes_[startIdx+1];
@@ -1243,7 +1243,7 @@ void LevelSet::SetNeighboursOfLowLeftNode(const int startIdx, const DesignElemen
     ptrnodes->value = 0.0;
   }
 
-  if((startIdx == 0) && (domain->GetGrid()->GetDim() == 3))
+  if((startIdx == 0) && (domain->GetDim() == 3))
   {
     // also add z-neighbours
     assert(low_left.size() == 6);
@@ -1279,7 +1279,7 @@ void LevelSet::SetNeighboursOfLowRightNode(const int startIdx, const DesignEleme
   ptrnodes->value = 0.0;
   
   vector<LevelSetNode*> & low_right = ptrnodes->neighbours_;
-  assert(low_right.size() == ((domain->GetGrid()->GetDim() == 2) ? 4 : 6));
+  assert(low_right.size() == ((domain->GetDim() == 2) ? 4 : 6));
    
   low_right[VicinityElement::X_P] = NULL;
   low_right[VicinityElement::X_N] = de->lse_->nodes_[startIdx-1];
@@ -1294,7 +1294,7 @@ void LevelSet::SetNeighboursOfLowRightNode(const int startIdx, const DesignEleme
     low_right[VicinityElement::Y_N] = NULL;
   }
   
-  if((startIdx == 1) && (domain->GetGrid()->GetDim() == 3))
+  if((startIdx == 1) && (domain->GetDim() == 3))
   {
     assert(low_right.size() == 6);
     low_right[VicinityElement::Z_P] = de->lse_->nodes_[5];
@@ -1327,7 +1327,7 @@ void LevelSet::SetNeighboursOfUpLeftNode(const int startIdx, const DesignElement
   ptrnodes->value = 0.0;
   
   vector<LevelSetNode*> & up_left = ptrnodes->neighbours_;
-  assert(up_left.size() == ((domain->GetGrid()->GetDim() == 2) ? 4 : 6));
+  assert(up_left.size() == ((domain->GetDim() == 2) ? 4 : 6));
   
   up_left[VicinityElement::X_P] = de->lse_->nodes_[startIdx-1];
 
@@ -1344,7 +1344,7 @@ void LevelSet::SetNeighboursOfUpLeftNode(const int startIdx, const DesignElement
   up_left[VicinityElement::Y_P] = NULL;
   up_left[VicinityElement::Y_N] = de->lse_->nodes_[startIdx-3];
 
-  if((startIdx == 3) && (domain->GetGrid()->GetDim() == 3))
+  if((startIdx == 3) && (domain->GetDim() == 3))
   {
     assert(up_left.size() == 6);
     up_left[VicinityElement::Z_P] = de->lse_->nodes_[7];
@@ -1377,14 +1377,14 @@ void LevelSet::SetNeighboursOfUpRightNode(const int startIdx, const DesignElemen
   ptrnodes->value = 0.0;
   
   vector<LevelSetNode*> &up_right = ptrnodes->neighbours_;
-  assert(up_right.size() == ((domain->GetGrid()->GetDim() == 2) ? 4 : 6));
+  assert(up_right.size() == ((domain->GetDim() == 2) ? 4 : 6));
   
   up_right[VicinityElement::X_P] = NULL; // only called when this is true
   up_right[VicinityElement::X_N] = de->lse_->nodes_[startIdx+1];
   up_right[VicinityElement::Y_P] = NULL; // only called when this is true
   up_right[VicinityElement::Y_N] = de->lse_->nodes_[startIdx-1];
   
-  if((startIdx == 2) && (domain->GetGrid()->GetDim() == 3))
+  if((startIdx == 2) && (domain->GetDim() == 3))
   {
     assert(up_right.size() == 6);
     up_right[VicinityElement::Z_P] = de->lse_->nodes_[6];

@@ -108,11 +108,6 @@ namespace CoupledField {
   template<class TYPE>
   void StdVector<TYPE>::Resize(size_type size)
   {
-#ifdef CHECK_INITIALIZED
-    if(capacity_ < size_)
-      EXCEPTION("capacity " << capacity_ << " smaller size " << size_);
-#endif
-
     // the cheap case, e.g. Resize(0)
     if(size <= capacity_)
     {
@@ -136,9 +131,26 @@ namespace CoupledField {
   }
 
   template<class TYPE>
+  void StdVector<TYPE>::ResizeNoCopy(size_type size)
+  {
+    // the cheap case, e.g. Resize(0)
+    if(size <= capacity_)
+    {
+      size_ = size;
+    }
+    else
+    {
+      delete[] data_;
+      data_ = new TYPE[size];
+      size_ = size;
+      capacity_ = size;
+    }
+  }
+
+  template<class TYPE>
   void StdVector<TYPE>::Resize(size_type size, TYPE entry)
   {
-    Resize(size);
+    ResizeNoCopy(size);
     Init(entry);
   }
 

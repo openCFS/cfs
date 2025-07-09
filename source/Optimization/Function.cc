@@ -51,8 +51,8 @@ Enum<Function::Local::Locality> Function::Local::locality;
 Enum<Function::Local::Phase> Function::Local::phase;
 
 // speed up by sharing
-StdVector<double> Function::Local::Identifier::tmp1;
-StdVector<double> Function::Local::Identifier::tmp2;
+Vector<double> Function::Local::Identifier::tmp1;
+Vector<double> Function::Local::Identifier::tmp2;
 
 // sync the values with Local::Phase
 const int Function::Local::Identifier::NO_SIGN = -1000;
@@ -302,7 +302,7 @@ bool Function::ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matr
       EXCEPTION("The Voigt 'tensor' for homogenizations needs to be 3x3 or 6x6");
     if (tens->Has("dim2") && dim != tens->Get("dim2")->As<int>())
       EXCEPTION("The 'tensor' for homogenization needs to be symmetric");
-    if ((domain->GetGrid()->GetDim() == 2 && dim != 3) || (domain->GetGrid()->GetDim() == 3 && dim != 6))
+    if ((domain->GetDim() == 2 && dim != 3) || (domain->GetDim() == 3 && dim != 6))
       EXCEPTION("The 'tensor' for homogenization needs to be 3x3 for 2D and 6x6 for 3D");
 
     matrix.Resize(dim, dim);
@@ -1223,7 +1223,7 @@ Function::Local::Local(Function* func, DesignSpace* space)
 
   bool enable = pn != NULL ? pn->Get("periodic")->As<bool>() : true; // enable/disable is handled in As<bool>() and true is default
   this->periodic = enable & domain->HasPerdiodicBC();
-  int dim = domain->GetGrid()->GetDim();
+  int dim = domain->GetDim();
   if (dim == 3 && (domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterials/designMaterial/homRectC1") || domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterials/designMaterial/homIsoC1") || domain->GetParamRoot()->Has("optimization/ersatzMaterial/paramMat/designMaterials/designMaterial/heat"))) {
     //read interpolation data for volume calculation in 3D
     PtrParamNode dm_node = domain->GetParamRoot()->Get("optimization/ersatzMaterial/paramMat/designMaterials")->GetByVal("designMaterial", "sequence", Optimization::context->sequence);
@@ -1594,7 +1594,7 @@ Function::Local::~Local() {
 void Function::Local::SetupVirtualElementMap(Phase ph) {
   // we construct locality_ into reverse, prev and next
   // reverse means we have a REVERSE option which makes two constraints with different signs
-  int dim = domain->GetGrid()->GetDim();
+  int dim = domain->GetDim();
   bool prev = locality_ == PREV_NEXT_AND_REVERSE || locality_ == PREV_NEXT;
   bool next = true; // always
   bool two_signs = locality_ == NEXT_AND_REVERSE || locality_ == PREV_NEXT_AND_REVERSE;
@@ -1646,7 +1646,7 @@ void Function::Local::SetupVirtualStarLocalElementMap(const Function* f)
   // reverse means we have a REVERSE option which makes two constraints with different signs
   assert(locality_==NEXT_DIAG); // It is not clean, but I do it by hand to be sure of what I am doing
 
-//  int  dim  = domain->GetGrid()->GetDim();
+//  int  dim  = domain->GetDim();
 
   //So far works only for d=2
 
@@ -1719,7 +1719,7 @@ void Function::Local::SetupVirtualStarLocalElementMap(const Function* f)
 }
 
 void Function::Local::SetupStarLocalityElementMap(Phase ph) {
-  unsigned int dim = domain->GetGrid()->GetDim();
+  unsigned int dim = domain->GetDim();
   // oscillation has with BOTH DEG_45_STAR_AND_REVERSE,
   // mole has always BOTH and DEG_45_STAR.
   // oscillation w/o BOTH needs to be DEG_45_STAR
@@ -1858,7 +1858,7 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
 }
 
 void Function::Local::SetupBoundaryElementMap() {
-  unsigned int dim = domain->GetGrid()->GetDim();
+  unsigned int dim = domain->GetDim();
   // oscillation has with BOTH DEG_45_STAR_AND_REVERSE,
   // mole has always BOTH and DEG_45_STAR.
   // oscillation w/o BOTH needs to be DEG_45_STAR
@@ -2023,7 +2023,7 @@ void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, co
 {
   // only this element!
   //element_dimension_ = 1; // two boundary "stones" per dimension
-  int  dim     = domain->GetGrid()->GetDim();
+  int  dim     = domain->GetDim();
   bool prev    = locality_ == MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality_ == MULT_DESIGNS_PREV_NEXT;
   bool next    = true; // always
   bool two_signs = locality_ == MULT_DESIGNS_NEXT_AND_REVERSE || locality_ == MULT_DESIGNS_PREV_NEXT_AND_REVERSE;
@@ -2228,7 +2228,7 @@ bool Function::Local::RequiresBeta(Type ft)
 
 Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
     PtrParamNode pn) {
-  unsigned int dim = domain->GetGrid()->GetDim();
+  unsigned int dim = domain->GetDim();
   // sample design element -> assume regular grid
   DesignElement& de = local->space->data[0];
 
@@ -2321,7 +2321,7 @@ Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseD
   this->element = elem;
   this->neighbor = buddies;
   this->sb_neighbor = sb_buddies;
-  assert(sb_buddies.GetSize() == 2 * domain->GetGrid()->GetDim());
+  assert(sb_buddies.GetSize() == 2 * domain->GetDim());
   assert(elem->GetType() == DesignElement::Type::CP && si >= -12 && si <= 12);
   this->sign = si;
 }
@@ -2886,7 +2886,7 @@ double Function::Local::Identifier::CalcOverhangGradient(int neigh_idx, Function
 
 double Function::Local::Identifier::CalcCones(const Local* local) const {
   assert(local->GetLocality() == MULT_DESIGNS_PREV_NEXT);
-  unsigned int dim = domain->GetGrid()->GetDim();
+  unsigned int dim = domain->GetDim();
 
   assert(sb_neighbor.GetSize() == 2 * dim);
   assert(element->GetType() == DesignElement::CP);
@@ -3005,7 +3005,7 @@ double Function::Local::Identifier::CalcCones(const Local* local) const {
 
 double Function::Local::Identifier::CalcConesGradient(int neigh_idx, const Local* local) const {
   assert(local->GetLocality() == MULT_DESIGNS_PREV_NEXT);
-  unsigned int dim = domain->GetGrid()->GetDim();
+  unsigned int dim = domain->GetDim();
 
   assert(sb_neighbor.GetSize() == 2 * dim);
   assert(element->GetType() == DesignElement::CP);
@@ -3555,7 +3555,7 @@ double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElem
   double G = GetDesign(DesignElement::GMODUL, local, access, true);
   double theta = GetDesign(DesignElement::POISSON, local, access, true);
 
-  int dim = domain->GetGrid()->GetDim();
+  int dim = domain->GetDim();
   if(dim ==2){ //case PLANE_STRESS, reformulated theta version
     if(derivative)
     {
@@ -3688,7 +3688,7 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
 
 double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
   DesignElement* de = dynamic_cast<DesignElement*>(element);
-  int dim = domain->GetGrid()->GetDim();
+  int dim = domain->GetDim();
 
   assert(Optimization::context->dm);
   if (Optimization::context->dm->GetType() == DesignMaterial::HOM_ISO_C1 && dim == 2) {

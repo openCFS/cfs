@@ -35,7 +35,7 @@ SGPHolder::SGPHolder(Optimization* opt, PtrParamNode pn) : BaseOptimizer(opt, pn
   space_ = optimization->GetDesign();
   n_elems_ = space_->GetNumberOfElements();
 
-  int dim = domain->GetGrid()->GetDim();
+  int dim = domain->GetDim();
   sgp::InitParams initargs;
   initargs.dim = dim;
 

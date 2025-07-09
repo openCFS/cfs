@@ -35,8 +35,7 @@ DumasMMA::DumasMMA(Optimization* optimization, PtrParamNode pn, Optimization::Op
   Optimization* opt = this->optimization;
 
   int m = (int) opt->constraints.view->GetNumberOfActiveConstraints();
-  int n = (int) opt->design->GetNumberOfVariables();
-  assert(n >= (int) opt->design->data.GetSize()); // there might be auxiliary variables
+  int n = (int) opt->design->GetNumberOfVariables();  // e.g. for feature mapping n might be smaller than opt->design->data
 
   xval.Resize(n);
   dfdx.Resize(n);
@@ -123,7 +122,6 @@ void DumasMMA::SolveProblem()
   unsigned int m = (int) opt->constraints.view->GetNumberOfActiveConstraints();
   unsigned int n = (int) opt->design->GetNumberOfVariables();
   assert(xval.GetSize() == n);
-  assert(n >= opt->design->data.GetSize());
 
   // design and f_i for gcmma
   Vector<double> xnew(gcmma ? n : 0);
@@ -148,11 +146,7 @@ void DumasMMA::SolveProblem()
     LOG_DBG(dumas) << "SP: it=" << optimization->GetCurrentIteration() << " f=" << f << " gcmma=" << (gcmma != nullptr);
     // store iteration 0
     if(optimization->GetCurrentIteration() == 0)
-    {
-      optimizer_timer_->Stop();
-      optimization->SolveStateProblem();
-      optimizer_timer_->Start();
-    }
+      CommitIteration(); // BaseOptimizer, not Optimization!
 
     // Set outer move limits
     for(unsigned int i=0; i<n; i++)

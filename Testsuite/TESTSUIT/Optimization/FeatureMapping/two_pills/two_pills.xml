@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+ 
+  <documentation>
+    <title>Feature mapping of two feature (via P-Norm) with integration order 2</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2025-08-05</date>
+    <references>Wein, Dunning, Norato; A review on feature-mapping methods for structural optimization; 2020  
+               and Greifenstein, Letournel, Stingl, Wein; Efficient spline design via feature-mapping for continuous fiber-reinforced structures; 2023</references>
+    <isVerified>no</isVerified>
+    <description>
+      Trivial two bars example.
+
+      Mesh is bulk2d_10.mesh (create_mesh.py --type bulk2d --res 10)
+    </description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="two_pills.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="load" >
+             <comp dof="y" value="-1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" />
+    <constraint type="volume" bound="upperBound" value="0.3" mode="constraint" linear="false"/>
+   
+    <optimizer type="snopt" maxIterations="100">
+      <snopt>
+        <!-- extra easy to have fewer iterations in test, remove for productive usage -->
+        <option name="major_optimality_tolerance" type="real" value="1e-3"/>
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="featureMapping">
+      <featureMapping  transition=".1" order="2" combine="p-norm" p="4" >
+        <pill>
+          <node dof="x" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.8" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.5" upper="1" lower="0" tip="end"/>
+          <profile initial="0.1" lower="0.05" upper="0.2" />
+        </pill>
+        <pill>
+          <node dof="x" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.8" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.8" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.5" upper="1" lower="0" tip="end"/>
+          <profile initial="0.1" lower="0.05" upper="0.2" />
+        </pill>
+      </featureMapping>
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech" />
+      <export save="all" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

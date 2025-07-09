@@ -1276,8 +1276,18 @@
               </xsd:complexType>
             </xsd:element>
 
+            <xsd:element name="featureMapping" minOccurs="0" maxOccurs="1" type="DT_FeatureMapping">
+              <xsd:annotation>
+                <xsd:documentation>Classical feature mapping with native C++ implementation</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>
+
             <!-- feature mapping via spaghetti based on density mapping -->
-            <xsd:element name="spaghetti" minOccurs="0" maxOccurs="1" type="DT_Spaghetti"/>
+            <xsd:element name="spaghetti" minOccurs="0" maxOccurs="1" type="DT_Spaghetti">
+              <xsd:annotation>
+                <xsd:documentation>Spaghetti feature mapping based on embedded Python</xsd:documentation>
+              </xsd:annotation>
+            </xsd:element>  
 
             <!-- spaghetti feature mapping based on anisotropic paramMat  -->
             <xsd:element name="spaghettiParamMat" minOccurs="0" maxOccurs="1" >
@@ -1755,17 +1765,43 @@
           <xsd:attribute name="method" use="required">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="simp" />
-                <xsd:enumeration value="paramMat" />
+                <xsd:enumeration value="simp" >
+                  <xsd:annotation>
+                    <xsd:documentation>standard SIMP method</xsd:documentation>
+                  </xsd:annotation> 
+                </xsd:enumeration>
+                <xsd:enumeration value="paramMat" >
+                  <xsd:annotation>
+                    <xsd:documentation>two-scale topology optimization where each cell describes somehow a tensorial material property. Includes FMO</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
                 <xsd:enumeration value="shapeGrad" />
                 <xsd:enumeration value="shapeOpt" />
                 <xsd:enumeration value="shapeParamMat" />
                 <!-- parametric shape is mapped to density -->
-                <xsd:enumeration value="shapeMap" />
-                <xsd:enumeration value="splineBox" />
-                <xsd:enumeration value="spaghetti" />
+                <xsd:enumeration value="shapeMap" >
+                  <xsd:annotation>
+                    <xsd:documentation>original shape mapping feature mapping approach by Fabian</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="splineBox" >
+                  <xsd:annotation>
+                    <xsd:documentation>parametric shape optimization (similar to feature mapping) from Daniel, Eduard Rohan and Michael.</xsd:documentation>
+                    </xsd:annotation>
+                </xsd:enumeration>
+                <xsd:enumeration value="spaghetti" >
+                  <xsd:annotation>
+                    <xsd:documentation>special feature mapping approach for standard or spline objects from FIONA project. See paper by Jannis and Fabian</xsd:documentation>
+                   </xsd:annotation>
+                </xsd:enumeration>
                 <!-- spaghetti variant for anisotropy with designMaterial -->
                 <xsd:enumeration value="spaghettiParamMat" />
+                <!-- general standard feature mapping. ShapeMap is an older shape variant, spaghetti an older Python variant -->
+                 <xsd:enumeration value="featureMapping" >
+                  <xsd:annotation>
+                    <xsd:documentation>general standard feature mapping. ShapeMap is an older shape variant, spaghetti an older Python variant</xsd:documentation>
+                  </xsd:annotation>
+                 </xsd:enumeration>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -2678,30 +2714,79 @@
 
   </xsd:complexType>
 
+  <!-- A pill is a simplified noodle with only one segment. Two parallel lines and half circle caps as end --> 
+  <xsd:complexType name="DT_Pill">
+    <xsd:sequence>
+      <xsd:element name="node" minOccurs="4" maxOccurs="6">
+        <xsd:annotation>
+          <xsd:documentation>We need the nodes for dof=x and dof=y for tip=stat and tip=end</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="dof" use="required" type="DT_Axis" />
+          <xsd:attribute name="tip" use="required">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="start" />
+                <xsd:enumeration value="end" />
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <!-- lower, upper and initial go together or fixed or map! We apply the mathparser to inital/lower/upper -->
+          <xsd:attribute name="initial" type="xsd:token" use="optional" />
+          <xsd:attribute name="lower" type="xsd:token" use="optional" />
+          <xsd:attribute name="upper" type="xsd:token" use="optional" />
+          <xsd:attribute name="fixed" type="xsd:token" use="optional">
+            <xsd:annotation>
+              <xsd:documentation>Fix variable, will not be subject to optimization. No initial/lower/upper</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+          <xsd:attribute name="key" type="xsd:token" use="optional">
+            <xsd:annotation>
+              <xsd:documentation>Provide a unique token. Allows to map to this key (e.g. share the value)</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+          <xsd:attribute name="map" type="xsd:token" use="optional">
+            <xsd:annotation>
+              <xsd:documentation>Refer to a key (over all featurs) and use it's value. Remove this variable from optimization. No inital/lower/upper/map</xsd:documentation>
+            </xsd:annotation>
+          </xsd:attribute>
+        </xsd:complexType>
+      </xsd:element>
+
+      <xsd:element name="profile" minOccurs="1" maxOccurs="1" type="DT_FeatureMappingVariable">
+        <xsd:annotation>
+          <xsd:documentation>The profile is double the half width w. Radius needs to be larger w</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+   
+  <!-- end of DT_Pill -->
+
   <!-- A noodle is part of a spaghetti(ParamNode) -->
-	<xsd:complexType name="DT_Noodle">
-		<xsd:sequence>
-			<xsd:element name="node" minOccurs="4" maxOccurs="6">
-				<xsd:annotation>
-					<xsd:documentation>We need the nodes for dof=x and dof=y for tip=stat and tip=end</xsd:documentation>
-				</xsd:annotation>
-				<xsd:complexType>
-					<xsd:attribute name="dof" use="required" type="DT_Axis" />
-					<xsd:attribute name="tip" use="required">
-						<xsd:simpleType>
-							<xsd:restriction base="xsd:token">
-								<xsd:enumeration value="start" />
-								<xsd:enumeration value="end" />
-							</xsd:restriction>
-						</xsd:simpleType>
-					</xsd:attribute>
-					<!-- lower, upper and initial go together or fixed! We apply the mathparser to all of them! -->
-					<xsd:attribute name="initial" type="xsd:token" use="optional" />
-					<xsd:attribute name="lower" type="xsd:token" use="optional" />
-					<xsd:attribute name="upper" type="xsd:token" use="optional" />
-					<xsd:attribute name="fixed" type="xsd:token" use="optional" />
-				</xsd:complexType>
-			</xsd:element>
+  <xsd:complexType name="DT_Noodle">
+    <xsd:sequence>
+      <xsd:element name="node" minOccurs="4" maxOccurs="6">
+        <xsd:annotation>
+          <xsd:documentation>We need the nodes for dof=x and dof=y for tip=stat and tip=end</xsd:documentation>
+        </xsd:annotation>
+        <xsd:complexType>
+          <xsd:attribute name="dof" use="required" type="DT_Axis" />
+          <xsd:attribute name="tip" use="required">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="start" />
+                <xsd:enumeration value="end" />
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          <!-- lower, upper and initial go together or fixed! We apply the mathparser to all of them! -->
+          <xsd:attribute name="initial" type="xsd:token" use="optional" />
+          <xsd:attribute name="lower" type="xsd:token" use="optional" />
+          <xsd:attribute name="upper" type="xsd:token" use="optional" />
+          <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+        </xsd:complexType>
+      </xsd:element>
 
       <xsd:element name="inner" minOccurs="0" maxOccurs="3">
         <xsd:annotation>
@@ -2729,17 +2814,17 @@
         </xsd:complexType>
       </xsd:element>
 
-			<xsd:element name="profile" minOccurs="1" maxOccurs="1" type="DT_FeatureMappingVariable">
-				<xsd:annotation>
-					<xsd:documentation>The profile is double the half width w. Radius	needs to be larger w</xsd:documentation>
-				</xsd:annotation>
-			</xsd:element>
+      <xsd:element name="profile" minOccurs="1" maxOccurs="1" type="DT_FeatureMappingVariable">
+        <xsd:annotation>
+          <xsd:documentation>The profile is double the half width w. Radius needs to be larger w</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
 
-			<xsd:element name="normal" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariable">
-				<xsd:annotation>
-					<xsd:documentation>The normals are the heights between two segments. Use if segments larger or equal 2</xsd:documentation>
-				</xsd:annotation>
-			</xsd:element>
+      <xsd:element name="normal" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariable">
+        <xsd:annotation>
+          <xsd:documentation>The normals are the heights between two segments. Use if segments larger or equal 2</xsd:documentation>
+    </xsd:annotation>
+  </xsd:element>
 
       <xsd:element name="radius" minOccurs="0" maxOccurs="1" type="DT_FeatureMappingVariable">
         <xsd:annotation>
@@ -2753,10 +2838,10 @@
         </xsd:annotation>
       </xsd:element>
       
-		</xsd:sequence>
-		<!-- corresponds to segments-1 normals -->
-		<xsd:attribute name="segments" type="xsd:int" use="required" />
-	</xsd:complexType> <!-- end of DT_Noodle -->
+    </xsd:sequence>
+    <!-- corresponds to segments-1 normals -->
+    <xsd:attribute name="segments" type="xsd:int" use="required" />
+  </xsd:complexType> <!-- end of DT_Noodle -->
 
   <!-- This is the python field for python based optimizers, e.g. spaghetti -->
   <xsd:complexType name="DT_Python">
@@ -2767,6 +2852,43 @@
     <xsd:attribute name="file" type="xsd:string" use="required" />
     <!-- optional root for file with cfs:share:python a special key to be resolved via schema path -->
     <xsd:attribute name="path" type="xsd:string" use="optional" default="" />
+  </xsd:complexType>
+
+  <!-- classic feature mapping base with C++ implementation -->
+  <xsd:complexType name="DT_FeatureMapping">
+    <xsd:sequence>
+      <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
+    </xsd:sequence>
+    <xsd:attribute name="transition" type="xsd:float" use="required">
+      <xsd:annotation><xsd:documentation>Transition zone in meter for intermediate density at feature boundary.</xsd:documentation></xsd:annotation>
+    </xsd:attribute>  
+    <xsd:attribute name="order" use="optional" type="xsd:unsignedInt" default="2">
+      <xsd:annotation><xsd:documentation>Integration order for one pseudo density to be subject to power by dimension (2).</xsd:documentation></xsd:annotation>
+    </xsd:attribute>  
+    <xsd:attribute name="combine" use="required">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <!-- non differentiable maximum of shapes -->
+          <!-- max_i(rho_i) -->
+          <xsd:enumeration value="max" />
+          <!-- Kreisselmeier-Steinhauser function -->
+          <!-- 1/p*ln(sum_i(exp(p*rho_i))) -->
+          <xsd:enumeration value="KS" />
+          <!-- p-norm -->
+          <!-- (sum_i(rho_i^p))^(1/p) -->
+          <xsd:enumeration value="p-norm" />
+          <!-- softmax -->
+          <!-- sum_i(rho_i*exp(p*rho_i))/sum_i(exp(p*rho_i)) -->
+          <xsd:enumeration value="softmax" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    
+    <xsd:attribute name="p" use="optional" type="xsd:float">
+      <xsd:annotation>
+        <xsd:documentation>combine option: Exponent for p-norm and parameter (beta) for KS and softmax</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- the basic spaghetti type, to be extended by spaghettiParamMat -->

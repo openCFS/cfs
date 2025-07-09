@@ -33,6 +33,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Design/FeatureMappingDesign.hh"
 #ifdef USE_EMBEDDED_PYTHON // currently only the Python version
   #include "Optimization/Design/SpaghettiDesign.hh"
 #endif
@@ -346,6 +347,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
                   || method == ErsatzMaterial::SHAPE_MAP
                   || method == ErsatzMaterial::SPAGHETTI
                   || method == ErsatzMaterial::SPAGHETTI_PARAM_MAT
+                  || method == ErsatzMaterial::FEATURE_MAPPING
                   || method == ErsatzMaterial::SPLINE_BOX)
               {
                 DesignElement* ptr = &(data.Last());
@@ -511,6 +513,8 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
     return new ShapeDesign(reg_data, pn, method);
   case ErsatzMaterial::SHAPE_MAP:
     return new ShapeMapDesign(reg_data, pn, method);
+  case ErsatzMaterial::FEATURE_MAPPING:
+    return new FeatureMappingDesign(reg_data, pn, method);
   case ErsatzMaterial::SPAGHETTI:
   case ErsatzMaterial::SPAGHETTI_PARAM_MAT:
 #ifdef USE_EMBEDDED_PYTHON
@@ -984,7 +988,7 @@ bool DesignSpace::ApplyPhysicalDesignElementMatrix(BiLinearForm* form, Matrix<T>
 
     // in the Optimization case nu_r is cached in the linear case. Here we do the general nonlinear case
     MagSIMP* ms = domain->GetOptimization() != NULL ? dynamic_cast<MagSIMP*>(domain->GetOptimization()) : NULL;
-    double nu_r = ms != NULL ? ms->GetRelactivity(elem, domain->GetGrid()->GetDim()) : MagSIMP::ExtractRelactivity(coef->orgMat.get());
+    double nu_r = ms != NULL ? ms->GetRelactivity(elem, domain->GetDim()) : MagSIMP::ExtractRelactivity(coef->orgMat.get());
     double nu_0 = MagSIMP::nu_0;
     assert(nu_r > 0 && nu_0 > 0);
 
@@ -1090,9 +1094,9 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& re
 
   // this is legacy stuff, most times ApplyPhysicalDesignElementMatrix() shall be used
   if (coef->GetForm()->GetName() == "PreStressInt")
-    assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 4 : 9));
+    assert(retMat.GetNumCols() <= (domain->GetDim() == 2 ? 4 : 9));
   else
-    assert(retMat.GetNumCols() <= (domain->GetGrid()->GetDim() == 2 ? 3 : 6));
+    assert(retMat.GetNumCols() <= (domain->GetDim() == 2 ? 3 : 6));
   assert(coef->GetForm() != NULL); // needs to be set manually via CoefFunctionOpt::SetForm()
   double factor = -4711; // set below
   double bimat_factor = -1.0;
@@ -1126,7 +1130,7 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& re
   {
     // retMat = nu_0 * nu_r
     // we assume the org mat to be a dim x dim diagonal matrix
-    assert(retMat.GetNumRows() == domain->GetGrid()->GetDim());
+    assert(retMat.GetNumRows() == domain->GetDim());
     assert(retMat.GetNumCols() == retMat.GetNumRows());
     assert(retMat[0][1] == 0.0); // shall be a diagonal matrix
     assert(retMat.IsSymmetric());
@@ -1781,6 +1785,7 @@ int DesignSpace::WriteDesignToExtern(double* space, DesignElement::Type type, bo
 
 int DesignSpace::WriteDesignToExtern(StdVector<double>& space_out, bool scaling, DesignElement::Type type) const
 {
+  assert(GetNumberOfVariables() > 0);
   space_out.Reserve(GetNumberOfVariables());
   if (type == DesignElement::ALL_DESIGNS)
     return WriteDesignToExtern(space_out.GetPointer(), scaling);

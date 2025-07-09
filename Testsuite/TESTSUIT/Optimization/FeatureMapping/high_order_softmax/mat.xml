@@ -1,0 +1,45 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+
+  <material name="99lines">
+    <mechanical>
+      <density>
+        <linear> 
+          <real>1e-8</real>
+        </linear>
+      </density>
+      <!-- Data as in the 99-lines code by Sigmund -->
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.3</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <heatConduction>
+      <density>
+        <linear>
+          <real>1</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>1</real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>1</real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+</cfsMaterialDataBase>

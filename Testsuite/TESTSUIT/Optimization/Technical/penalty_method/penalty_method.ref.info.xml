@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
 
-<cfsInfo status="finished" infoWriteCounter="134" infoRejectCounter="0">
+<cfsInfo status="finished" infoWriteCounter="137" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.212s" wall="0.212" cpu="0.219708" calls="1"/>
+    <timer wall-clock="0.204s" wall="0.204" cpu="0.207501" calls="1"/>
     <!-- memory in MB-->
-    <memory final="47"/>
+    <memory final="48"/>
   </summary>
   <header id="">
-    <environment started="2025-Mar-26 19:13:06" host="MacBookPro.fritz.box"/>
+    <environment started="2025-Aug-01 13:49:30" host="MacBookPro.fritz.box"/>
     <progOpts problem="penalty_method" parameterFile="/Users/fwein/code/cfs/Testsuite/TESTSUIT/Optimization/Technical/penalty_method/penalty_method.xml" schemaPath="/Users/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="25.02" name="Ideal Implementation" build="RELEASE" git_commit="802e7f1af17cde06db236aef7bb6db082d874fe0-modified" git_branch="fwein_penalty" compiled="Mar 17 2025" exe="cfs"/>
+      <cfs version="25.07" name="Just Jacobians" build="RELEASE" git_commit="cba80eb8ccacef28b9340a06ac4eb3515d39d1fa-modified" git_branch="fwein_feature_mapping" compiled="Jul 31 2025" exe="cfs"/>
       <openmp CFS_NUM_THREADS="2" VECLIB_MAXIMUM_THREADS="2" OMP_NUM_THREADS="2"/>
     </progOpts>
     <domain nx="20" ny="13" nz="1">
       <grids>
-        <timer wall-clock="0.003s" wall="0.003" cpu="0.003067" calls="1"/>
+        <timer wall-clock="0.003s" wall="0.003" cpu="0.003305" calls="1"/>
         <grid gridId="default" dimensions="2" elements="260" nodes="294"/>
       </grids>
       <coordinateSystems>
@@ -39,7 +39,7 @@
       <globalMathParser dt="0" f="0" nx="20" ny="13" nz="1" step="0" t="0" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.004s" wall="0.004" cpu="0.031992" calls="688"/>
+      <timer wall-clock="0.003s" wall="0.003" cpu="0.028994" calls="704"/>
     </results>
   </header>
   <calculation>
@@ -48,7 +48,7 @@
   <sequenceStep sequence="1">
     <static>
       <init_static>
-        <timer wall-clock="0.01s" wall="0.01" cpu="0.010623" calls="1"/>
+        <timer wall-clock="0.011s" wall="0.011" cpu="0.010753" calls="1"/>
       </init_static>
     </static>
     <PDE>
@@ -138,10 +138,10 @@
           <directLDL>
             <summary>
               <setup>
-                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.02214" calls="42"/>
+                <timer label="setup_directLDL" wall-clock="0s" wall="0" cpu="0.021809" calls="42"/>
               </setup>
               <solve>
-                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.011259" calls="86"/>
+                <timer label="solve_directLDL" wall-clock="0s" wall="0" cpu="0.010741" calls="84"/>
               </solve>
             </summary>
           </directLDL>
@@ -150,7 +150,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="2.1e-05" calls="42"/>
+                <timer wall-clock="0s" wall="0" cpu="3e-05" calls="42"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -163,16 +163,16 @@
         </process>
       </mechanic>
       <graph_setup>
-        <timer wall-clock="0.001s" wall="0.001" cpu="0.001766" calls="1" sub="true"/>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.001672" calls="1" sub="true"/>
       </graph_setup>
       <reorder_Metis>
-        <timer wall-clock="0s" wall="0" cpu="0.0009" calls="1" sub="true"/>
+        <timer wall-clock="0s" wall="0" cpu="0.000882" calls="1" sub="true"/>
       </reorder_Metis>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0s" wall="0" cpu="0.016497" calls="172"/>
+          <timer wall-clock="0s" wall="0" cpu="0.015164" calls="168"/>
         </assemble>
       </summary>
     </analysis>
@@ -196,11 +196,11 @@
       </constraints>
       <designSpace pamping="0" regular="yes">
         <setup_design>
-          <timer wall-clock="0s" wall="0" cpu="0.000151" calls="2"/>
+          <timer wall-clock="0s" wall="0" cpu="0.000154" calls="2"/>
         </setup_design>
         <filters use_mat_filt="yes">
           <filter type="maxEdge" value="1.5" contribution="linear" design="density" elems="260" avg_radius="0.23077" avg_neighbors="7.2538"/>
-          <timer wall-clock="0s" wall="0" cpu="0.000142" calls="1"/>
+          <timer wall-clock="0s" wall="0" cpu="0.000145" calls="1"/>
         </filters>
         <transferFunctions>
           <transferFunction type="simp" application="mech" design="density" param="1"/>
@@ -224,7 +224,7 @@
       <dumas_mma move_limit="0.500000" asyminit="0.5" asymdec="0.7" asyminc="1.2" a0_lin_aux_z="1" ai_lin_aux_z="0" c_lin_aux_y="1000" d_quad_aux_y="0">
         <summary>
           <dumas_mma>
-            <timer wall-clock="0s" wall="0" cpu="0.004872" calls="213"/>
+            <timer wall-clock="0.002s" wall="0.002" cpu="0.007021" calls="212"/>
           </dumas_mma>
         </summary>
         <scaling active="no"/>
@@ -232,16 +232,16 @@
     </optimizer>
     <summary>
       <eval_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.002192" calls="168"/>
+        <timer wall-clock="0s" wall="0" cpu="0.002003" calls="168"/>
       </eval_objective>
       <eval_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.000146" calls="42"/>
+        <timer wall-clock="0s" wall="0" cpu="0.000141" calls="42"/>
       </eval_constraints>
       <eval_grad_objective>
-        <timer wall-clock="0s" wall="0" cpu="0.00348" calls="42"/>
+        <timer wall-clock="0s" wall="0" cpu="0.003081" calls="42"/>
       </eval_grad_objective>
       <eval_grad_constraints>
-        <timer wall-clock="0s" wall="0" cpu="0.00061" calls="42"/>
+        <timer wall-clock="0s" wall="0" cpu="0.000547" calls="42"/>
       </eval_grad_constraints>
       <break converged="yes">
         <reason msg="relative change in objective function below 0.001 for 2 iterations"/>
@@ -250,175 +250,179 @@
         <compliance min="5.7583" max="8.7625" oscillations="25"/>
         <plain_greyness min="0.00014212" max="0.91876" oscillations="12"/>
         <volume min="0.36657" max="0.4" oscillations="14"/>
-        <greyness min="0.44686" max="0.88922" oscillations="19"/>
+        <greyness min="0.44686" max="0.95952" oscillations="19"/>
       </functions>
     </summary>
     <process>
-      <iteration number="0" duration="0.078" multiObjectiveValue="8.76246081377223" compliance="8.76246081377222" plain_greyness="0.959518076635192" plain_greyness_penalty="0.91876" volume="0.400000000000001" greyness="0.889219859029033" fscale="0.000000">
+      <iteration number="0" duration="0.077" multiObjectiveValue="8.76246081377223" compliance="8.76246081377222" plain_greyness="0.959518076635192" plain_greyness_penalty="0.91876" volume="0.400000000000001" greyness="0.959518076635192" fscale="0.000000">
         <excitation index="0" objective="8.7625" objective_weight="0.5"/>
         <excitation index="1" objective="8.7625" objective_weight="0.5"/>
       </iteration>
-      <iteration number="1" duration="0.005" multiObjectiveValue="7.21989057347484" compliance="7.21989057347485" plain_greyness="0.878352091305055" plain_greyness_penalty="0.76975" volume="0.366573908349211" greyness="0.848390735160565" fscale="0.000000">
+      <iteration number="1" duration="0.004" multiObjectiveValue="8.76246081377223" compliance="8.76246081377222" plain_greyness="0.959518076635192" plain_greyness_penalty="0.91876" volume="0.400000000000001" greyness="0.889219859029033" fscale="0.000000">
+        <excitation index="0" objective="8.7625" objective_weight="0.5"/>
+        <excitation index="1" objective="8.7625" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="2" duration="0.002" multiObjectiveValue="7.21989057347484" compliance="7.21989057347485" plain_greyness="0.878352091305055" plain_greyness_penalty="0.76975" volume="0.366573908349211" greyness="0.848390735160565" fscale="0.000000">
         <excitation index="0" objective="7.2199" objective_weight="0.5"/>
         <excitation index="1" objective="7.2199" objective_weight="0.5"/>
       </iteration>
-      <iteration number="2" duration="0.003" multiObjectiveValue="6.64082515927613" compliance="6.29341969503167" plain_greyness="0.819499090854173" plain_greyness_penalty="0.66994" volume="0.384869933551583" greyness="0.784725637327089" fscale="0.518561">
+      <iteration number="3" duration="0.003" multiObjectiveValue="6.64082515927613" compliance="6.29341969503167" plain_greyness="0.819499090854173" plain_greyness_penalty="0.66994" volume="0.384869933551583" greyness="0.784725637327089" fscale="0.518561">
         <excitation index="0" objective="6.2934" objective_weight="0.5"/>
         <excitation index="1" objective="6.6408" objective_weight="0.5"/>
       </iteration>
-      <iteration number="3" duration="0.003" multiObjectiveValue="6.54727552082885" compliance="5.87992340818702" plain_greyness="0.732211945812741" plain_greyness_penalty="0.53467" volume="0.391469922890703" greyness="0.733431212081289" fscale="1.248155">
+      <iteration number="4" duration="0.003" multiObjectiveValue="6.54727552082885" compliance="5.87992340818702" plain_greyness="0.732211945812741" plain_greyness_penalty="0.53467" volume="0.391469922890703" greyness="0.733431212081289" fscale="1.248155">
         <excitation index="0" objective="5.8799" objective_weight="0.5"/>
         <excitation index="1" objective="6.5473" objective_weight="0.5"/>
       </iteration>
-      <iteration number="4" duration="0.003" multiObjectiveValue="6.80378627955071" compliance="5.75828417371855" plain_greyness="0.657791936639665" plain_greyness_penalty="0.43138" volume="0.395228549215126" greyness="0.678899029093379" fscale="2.423647">
+      <iteration number="5" duration="0.003" multiObjectiveValue="6.80378627955071" compliance="5.75828417371855" plain_greyness="0.657791936639665" plain_greyness_penalty="0.43138" volume="0.395228549215126" greyness="0.678899029093379" fscale="2.423647">
         <excitation index="0" objective="5.7583" objective_weight="0.5"/>
         <excitation index="1" objective="6.8038" objective_weight="0.5"/>
       </iteration>
-      <iteration number="5" duration="0.003" multiObjectiveValue="7.21096461490944" compliance="5.76294856998016" plain_greyness="0.580993124608188" plain_greyness_penalty="0.33639" volume="0.39567566306896" greyness="0.641292173498338" fscale="4.304549">
+      <iteration number="6" duration="0.002" multiObjectiveValue="7.21096461490944" compliance="5.76294856998016" plain_greyness="0.580993124608188" plain_greyness_penalty="0.33639" volume="0.39567566306896" greyness="0.641292173498338" fscale="4.304549">
         <excitation index="0" objective="5.7629" objective_weight="0.5"/>
         <excitation index="1" objective="7.211" objective_weight="0.5"/>
       </iteration>
-      <iteration number="6" duration="0.004" multiObjectiveValue="7.47884986267887" compliance="5.78788616857633" plain_greyness="0.525769508664182" plain_greyness_penalty="0.27538" volume="0.39632366187679" greyness="0.600629351327145" fscale="6.140406">
+      <iteration number="7" duration="0.003" multiObjectiveValue="7.47884986267887" compliance="5.78788616857633" plain_greyness="0.525769508664182" plain_greyness_penalty="0.27538" volume="0.39632366187679" greyness="0.600629351327145" fscale="6.140406">
         <excitation index="0" objective="5.7879" objective_weight="0.5"/>
         <excitation index="1" objective="7.4788" objective_weight="0.5"/>
       </iteration>
-      <iteration number="7" duration="0.003" multiObjectiveValue="7.59368980710198" compliance="5.86425508723454" plain_greyness="0.456611141878935" plain_greyness_penalty="0.20758" volume="0.393591569648854" greyness="0.538827109146027" fscale="8.331352">
+      <iteration number="8" duration="0.003" multiObjectiveValue="7.59368980710198" compliance="5.86425508723454" plain_greyness="0.456611141878935" plain_greyness_penalty="0.20758" volume="0.393591569648854" greyness="0.538827109146027" fscale="8.331352">
         <excitation index="0" objective="5.8643" objective_weight="0.5"/>
         <excitation index="1" objective="7.5937" objective_weight="0.5"/>
       </iteration>
-      <iteration number="8" duration="0.003" multiObjectiveValue="7.19856276342272" compliance="6.05801325835311" plain_greyness="0.339781945669727" plain_greyness_penalty="0.11477" volume="0.389546782427005" greyness="0.516141474160985" fscale="9.937420">
+      <iteration number="9" duration="0.003" multiObjectiveValue="7.19856276342272" compliance="6.05801325835311" plain_greyness="0.339781945669727" plain_greyness_penalty="0.11477" volume="0.389546782427005" greyness="0.516141474160985" fscale="9.937420">
         <excitation index="0" objective="6.058" objective_weight="0.5"/>
         <excitation index="1" objective="7.1986" objective_weight="0.5"/>
       </iteration>
-      <iteration number="9" duration="0.003" multiObjectiveValue="6.78655179578515" compliance="5.95304300635761" plain_greyness="0.276563538787054" plain_greyness_penalty="0.075935" volume="0.395601056533178" greyness="0.495004223533429" fscale="10.976571">
+      <iteration number="10" duration="0.002" multiObjectiveValue="6.78655179578515" compliance="5.95304300635761" plain_greyness="0.276563538787054" plain_greyness_penalty="0.075935" volume="0.395601056533178" greyness="0.495004223533429" fscale="10.976571">
         <excitation index="0" objective="5.953" objective_weight="0.5"/>
         <excitation index="1" objective="6.7866" objective_weight="0.5"/>
       </iteration>
-      <iteration number="10" duration="0.003" multiObjectiveValue="6.60679591099704" compliance="5.9683587331092" plain_greyness="0.22877861955585" plain_greyness_penalty="0.051883" volume="0.398359109220292" greyness="0.485417704049977" fscale="12.305301">
+      <iteration number="11" duration="0.003" multiObjectiveValue="6.60679591099704" compliance="5.9683587331092" plain_greyness="0.22877861955585" plain_greyness_penalty="0.051883" volume="0.398359109220292" greyness="0.485417704049977" fscale="12.305301">
         <excitation index="0" objective="5.9684" objective_weight="0.5"/>
         <excitation index="1" objective="6.6068" objective_weight="0.5"/>
       </iteration>
-      <iteration number="11" duration="0.004" multiObjectiveValue="6.53881368413678" compliance="5.96659617518474" plain_greyness="0.198218610732414" plain_greyness_penalty="0.038895" volume="0.398814472624767" greyness="0.477099748857273" fscale="14.711784">
+      <iteration number="12" duration="0.003" multiObjectiveValue="6.53881368413678" compliance="5.96659617518474" plain_greyness="0.198218610732414" plain_greyness_penalty="0.038895" volume="0.398814472624767" greyness="0.477099748857273" fscale="14.711784">
         <excitation index="0" objective="5.9666" objective_weight="0.5"/>
         <excitation index="1" objective="6.5388" objective_weight="0.5"/>
       </iteration>
-      <iteration number="12" duration="0.003" multiObjectiveValue="6.46517133623907" compliance="5.98136301836415" plain_greyness="0.164239723635437" plain_greyness_penalty="0.026647" volume="0.399029844201123" greyness="0.471726645620434" fscale="18.156061">
+      <iteration number="13" duration="0.003" multiObjectiveValue="6.46517133623907" compliance="5.98136301836415" plain_greyness="0.164239723635437" plain_greyness_penalty="0.026647" volume="0.399029844201123" greyness="0.471726645620434" fscale="18.156061">
         <excitation index="0" objective="5.9814" objective_weight="0.5"/>
         <excitation index="1" objective="6.4652" objective_weight="0.5"/>
       </iteration>
-      <iteration number="13" duration="0.003" multiObjectiveValue="6.36363318003189" compliance="5.99197395536649" plain_greyness="0.133021520584699" plain_greyness_penalty="0.01743" volume="0.399235854707815" greyness="0.471921885466974" fscale="21.323351">
+      <iteration number="14" duration="0.002" multiObjectiveValue="6.36363318003189" compliance="5.99197395536649" plain_greyness="0.133021520584699" plain_greyness_penalty="0.01743" volume="0.399235854707815" greyness="0.471921885466974" fscale="21.323351">
         <excitation index="0" objective="5.992" objective_weight="0.5"/>
         <excitation index="1" objective="6.3636" objective_weight="0.5"/>
       </iteration>
-      <iteration number="14" duration="0.003" multiObjectiveValue="6.32031554159542" compliance="5.97107067488676" plain_greyness="0.119671231755509" plain_greyness_penalty="0.014083" volume="0.399666385991628" greyness="0.470509223380696" fscale="24.799283">
+      <iteration number="15" duration="0.003" multiObjectiveValue="6.32031554159542" compliance="5.97107067488676" plain_greyness="0.119671231755509" plain_greyness_penalty="0.014083" volume="0.399666385991628" greyness="0.470509223380696" fscale="24.799283">
         <excitation index="0" objective="5.9711" objective_weight="0.5"/>
         <excitation index="1" objective="6.3203" objective_weight="0.5"/>
       </iteration>
-      <iteration number="15" duration="0.002" multiObjectiveValue="6.32193741589206" compliance="5.97394675536479" plain_greyness="0.107055944688616" plain_greyness_penalty="0.011248" volume="0.399702491928081" greyness="0.469841844679325" fscale="30.938379">
+      <iteration number="16" duration="0.003" multiObjectiveValue="6.32193741589205" compliance="5.97394675536479" plain_greyness="0.107055944688616" plain_greyness_penalty="0.011248" volume="0.399702491928081" greyness="0.469841844679324" fscale="30.938379">
         <excitation index="0" objective="5.9739" objective_weight="0.5"/>
         <excitation index="1" objective="6.3219" objective_weight="0.5"/>
       </iteration>
-      <iteration number="16" duration="0.003" multiObjectiveValue="6.3046069885149" compliance="5.97371880494806" plain_greyness="0.093769185235963" plain_greyness_penalty="0.0086061" volume="0.399673199149185" greyness="0.467723428020226" fscale="38.448002">
+      <iteration number="17" duration="0.003" multiObjectiveValue="6.30460698851491" compliance="5.97371880494806" plain_greyness="0.0937691852359623" plain_greyness_penalty="0.0086061" volume="0.399673199149185" greyness="0.467723428020227" fscale="38.448002">
         <excitation index="0" objective="5.9737" objective_weight="0.5"/>
         <excitation index="1" objective="6.3046" objective_weight="0.5"/>
       </iteration>
-      <iteration number="17" duration="0.003" multiObjectiveValue="6.23067676338715" compliance="5.98523795428184" plain_greyness="0.0751019909674177" plain_greyness_penalty="0.0054911" volume="0.39971354271135" greyness="0.471248216230823" fscale="44.697526">
+      <iteration number="18" duration="0.003" multiObjectiveValue="6.23067676338714" compliance="5.98523795428181" plain_greyness="0.0751019909674186" plain_greyness_penalty="0.0054911" volume="0.39971354271135" greyness="0.471248216230821" fscale="44.697526">
         <excitation index="0" objective="5.9852" objective_weight="0.5"/>
         <excitation index="1" objective="6.2307" objective_weight="0.5"/>
       </iteration>
-      <iteration number="18" duration="0.003" multiObjectiveValue="6.22785917892591" compliance="5.96218200103918" plain_greyness="0.0741644890681457" plain_greyness_penalty="0.005353" volume="0.399779669474415" greyness="0.468944101758" fscale="49.631061">
+      <iteration number="19" duration="0.002" multiObjectiveValue="6.22785917892591" compliance="5.96218200103919" plain_greyness="0.0741644890681433" plain_greyness_penalty="0.005353" volume="0.399779669474415" greyness="0.468944101758" fscale="49.631061">
         <excitation index="0" objective="5.9622" objective_weight="0.5"/>
         <excitation index="1" objective="6.2279" objective_weight="0.5"/>
       </iteration>
-      <iteration number="19" duration="0.003" multiObjectiveValue="6.26852493917686" compliance="5.95948437187285" plain_greyness="0.0671965648730544" plain_greyness_penalty="0.004382" volume="0.399769865936776" greyness="0.461813801521378" fscale="70.525242">
+      <iteration number="20" duration="0.004" multiObjectiveValue="6.26852493917691" compliance="5.95948437187285" plain_greyness="0.0671965648730553" plain_greyness_penalty="0.004382" volume="0.399769865936776" greyness="0.461813801521373" fscale="70.525242">
         <excitation index="0" objective="5.9595" objective_weight="0.5"/>
         <excitation index="1" objective="6.2685" objective_weight="0.5"/>
       </iteration>
-      <iteration number="20" duration="0.003" multiObjectiveValue="6.17781045101413" compliance="6.00792819612645" plain_greyness="0.0472583129656295" plain_greyness_penalty="0.0021398" volume="0.399344253036929" greyness="0.466096844430089" fscale="79.390482">
+      <iteration number="21" duration="0.003" multiObjectiveValue="6.17781045101423" compliance="6.00792819612659" plain_greyness="0.0472583129656249" plain_greyness_penalty="0.0021398" volume="0.399344253036928" greyness="0.466096844430089" fscale="79.390482">
         <excitation index="0" objective="6.0079" objective_weight="0.5"/>
         <excitation index="1" objective="6.1778" objective_weight="0.5"/>
       </iteration>
-      <iteration number="21" duration="0.003" multiObjectiveValue="6.10696921532238" compliance="5.95915821339823" plain_greyness="0.0428950221204832" plain_greyness_penalty="0.0017552" volume="0.399470948543037" greyness="0.463655033716382" fscale="84.213538">
+      <iteration number="22" duration="0.002" multiObjectiveValue="6.10696921532243" compliance="5.95915821339825" plain_greyness="0.0428950221204858" plain_greyness_penalty="0.0017552" volume="0.399470948543037" greyness="0.463655033716379" fscale="84.213538">
         <excitation index="0" objective="5.9592" objective_weight="0.5"/>
         <excitation index="1" objective="6.107" objective_weight="0.5"/>
       </iteration>
-      <iteration number="22" duration="0.003" multiObjectiveValue="6.09719354961074" compliance="5.96598616211119" plain_greyness="0.0388066592998151" plain_greyness_penalty="0.0014293" volume="0.399924194547969" greyness="0.463060371811866" fscale="91.795561">
+      <iteration number="23" duration="0.003" multiObjectiveValue="6.09719354961078" compliance="5.96598616211124" plain_greyness="0.0388066592998108" plain_greyness_penalty="0.0014293" volume="0.399924194547969" greyness="0.463060371811864" fscale="91.795561">
         <excitation index="0" objective="5.966" objective_weight="0.5"/>
         <excitation index="1" objective="6.0972" objective_weight="0.5"/>
       </iteration>
-      <iteration number="23" duration="0.003" multiObjectiveValue="6.12805180108131" compliance="5.96916871362171" plain_greyness="0.0376499078975926" plain_greyness_penalty="0.0013432" volume="0.399991434689147" greyness="0.460328895807788" fscale="118.285605">
+      <iteration number="24" duration="0.003" multiObjectiveValue="6.12805180108129" compliance="5.96916871362169" plain_greyness="0.0376499078975898" plain_greyness_penalty="0.0013432" volume="0.399991434689147" greyness="0.460328895807787" fscale="118.285605">
         <excitation index="0" objective="5.9692" objective_weight="0.5"/>
         <excitation index="1" objective="6.1281" objective_weight="0.5"/>
       </iteration>
-      <iteration number="24" duration="0.003" multiObjectiveValue="6.20654069954399" compliance="5.9923979681764" plain_greyness="0.0332493160448134" plain_greyness_penalty="0.00104" volume="0.399900270184615" greyness="0.450914000665102" fscale="205.902832">
+      <iteration number="25" duration="0.003" multiObjectiveValue="6.2065406995436" compliance="5.99239796817639" plain_greyness="0.0332493160448126" plain_greyness_penalty="0.00104" volume="0.399900270184616" greyness="0.450914000665137" fscale="205.902832">
         <excitation index="0" objective="5.9924" objective_weight="0.5"/>
         <excitation index="1" objective="6.2065" objective_weight="0.5"/>
       </iteration>
-      <iteration number="25" duration="0.003" multiObjectiveValue="6.16792452054266" compliance="6.10919250976438" plain_greyness="0.0172725244971127" plain_greyness_penalty="0.0002648" volume="0.399297733364552" greyness="0.462463183423197" fscale="221.801767">
+      <iteration number="26" duration="0.003" multiObjectiveValue="6.16792452054239" compliance="6.10919250976381" plain_greyness="0.0172725244971652" plain_greyness_penalty="0.0002648" volume="0.399297733364556" greyness="0.462463183423132" fscale="221.801767">
         <excitation index="0" objective="6.1092" objective_weight="0.5"/>
         <excitation index="1" objective="6.1679" objective_weight="0.5"/>
       </iteration>
-      <iteration number="26" duration="0.003" multiObjectiveValue="6.3417445077664" compliance="5.97862683013128" plain_greyness="0.040473194195235" plain_greyness_penalty="0.0015581" volume="0.399300656192846" greyness="0.447069242032037" fscale="233.046642">
+      <iteration number="27" duration="0.003" multiObjectiveValue="6.34174450776275" compliance="5.9786268301316" plain_greyness="0.0404731941950429" plain_greyness_penalty="0.0015581" volume="0.399300656192856" greyness="0.447069242032038" fscale="233.046642">
         <excitation index="0" objective="5.9786" objective_weight="0.5"/>
         <excitation index="1" objective="6.3417" objective_weight="0.5"/>
       </iteration>
-      <iteration number="27" duration="0.003" multiObjectiveValue="6.23318681615081" compliance="6.19466793513303" plain_greyness="0.0138562824805761" plain_greyness_penalty="0.00016528" volume="0.398820349691421" greyness="0.464091853333876" fscale="233.046642">
+      <iteration number="28" duration="0.003" multiObjectiveValue="6.23318681615061" compliance="6.19466793513288" plain_greyness="0.0138562824805808" plain_greyness_penalty="0.00016528" volume="0.398820349691425" greyness="0.464091853333884" fscale="233.046642">
         <excitation index="0" objective="6.1947" objective_weight="0.5"/>
         <excitation index="1" objective="6.2332" objective_weight="0.5"/>
       </iteration>
-      <iteration number="28" duration="0.003" multiObjectiveValue="6.84728272451513" compliance="5.99457754018388" plain_greyness="0.0607505693587861" plain_greyness_penalty="0.0035701" volume="0.397718180087875" greyness="0.446863120043223" fscale="238.844259">
+      <iteration number="29" duration="0.003" multiObjectiveValue="6.84728272451565" compliance="5.99457754018384" plain_greyness="0.060750569358819" plain_greyness_penalty="0.0035701" volume="0.397718180087874" greyness="0.446863120043223" fscale="238.844259">
         <excitation index="0" objective="5.9946" objective_weight="0.5"/>
         <excitation index="1" objective="6.8473" objective_weight="0.5"/>
       </iteration>
-      <iteration number="29" duration="0.003" multiObjectiveValue="6.25063807648687" compliance="6.21669353022971" plain_greyness="0.0129214093332496" plain_greyness_penalty="0.00014212" volume="0.398167538677307" greyness="0.457971336373915" fscale="238.844259">
+      <iteration number="30" duration="0.003" multiObjectiveValue="6.25063807648687" compliance="6.21669353022974" plain_greyness="0.012921409333248" plain_greyness_penalty="0.00014212" volume="0.398167538677306" greyness="0.457971336373934" fscale="238.844259">
         <excitation index="0" objective="6.2167" objective_weight="0.5"/>
         <excitation index="1" objective="6.2506" objective_weight="0.5"/>
       </iteration>
-      <iteration number="30" duration="0.004" multiObjectiveValue="6.45558761955265" compliance="6.04135268338222" plain_greyness="0.0425498374487277" plain_greyness_penalty="0.0017264" volume="0.398542133952465" greyness="0.447090185133619" fscale="239.942990">
+      <iteration number="31" duration="0.003" multiObjectiveValue="6.45558761955315" compliance="6.04135268338211" plain_greyness="0.0425498374487691" plain_greyness_penalty="0.0017264" volume="0.398542133952463" greyness="0.447090185133619" fscale="239.942990">
         <excitation index="0" objective="6.0414" objective_weight="0.5"/>
         <excitation index="1" objective="6.4556" objective_weight="0.5"/>
       </iteration>
-      <iteration number="31" duration="0.003" multiObjectiveValue="6.23239107658387" compliance="6.19214015028762" plain_greyness="0.0139519126461941" plain_greyness_penalty="0.00016775" volume="0.398897350192698" greyness="0.451506203577812" fscale="239.942990">
+      <iteration number="32" duration="0.003" multiObjectiveValue="6.23239107658391" compliance="6.19214015028769" plain_greyness="0.0139519126461929" plain_greyness_penalty="0.00016775" volume="0.398897350192697" greyness="0.451506203577814" fscale="239.942990">
         <excitation index="0" objective="6.1921" objective_weight="0.5"/>
         <excitation index="1" objective="6.2324" objective_weight="0.5"/>
       </iteration>
-      <iteration number="32" duration="0.003" multiObjectiveValue="6.23784737907293" compliance="6.09689089854839" plain_greyness="0.0250951017533291" plain_greyness_penalty="0.00058057" volume="0.399436659783243" greyness="0.45045827466451" fscale="242.788168">
+      <iteration number="33" duration="0.003" multiObjectiveValue="6.23784737907294" compliance="6.09689089854842" plain_greyness="0.0250951017533356" plain_greyness_penalty="0.00058057" volume="0.399436659783242" greyness="0.450458274664512" fscale="242.788168">
         <excitation index="0" objective="6.0969" objective_weight="0.5"/>
         <excitation index="1" objective="6.2378" objective_weight="0.5"/>
       </iteration>
-      <iteration number="33" duration="0.003" multiObjectiveValue="6.18682894375097" compliance="6.10085077662624" plain_greyness="0.019818297594123" plain_greyness_penalty="0.00035413" volume="0.399918791314038" greyness="0.451066196385455" fscale="242.788168">
+      <iteration number="34" duration="0.003" multiObjectiveValue="6.18682894375096" compliance="6.10085077662625" plain_greyness="0.0198182975941281" plain_greyness_penalty="0.00035413" volume="0.399918791314038" greyness="0.451066196385457" fscale="242.788168">
         <excitation index="0" objective="6.1009" objective_weight="0.5"/>
         <excitation index="1" objective="6.1868" objective_weight="0.5"/>
       </iteration>
-      <iteration number="34" duration="0.003" multiObjectiveValue="6.18512736135834" compliance="6.09014323678994" plain_greyness="0.0203007861883467" plain_greyness_penalty="0.00037252" volume="0.399961497791661" greyness="0.451312297561958" fscale="254.977011">
+      <iteration number="35" duration="0.003" multiObjectiveValue="6.18512736135832" compliance="6.0901432367899" plain_greyness="0.0203007861883523" plain_greyness_penalty="0.00037252" volume="0.399961497791662" greyness="0.451312297561961" fscale="254.977011">
         <excitation index="0" objective="6.0901" objective_weight="0.5"/>
         <excitation index="1" objective="6.1851" objective_weight="0.5"/>
       </iteration>
-      <iteration number="35" duration="0.004" multiObjectiveValue="6.21094133835932" compliance="6.08577797811145" plain_greyness="0.0197005094321262" plain_greyness_penalty="0.00034971" volume="0.399962076187066" greyness="0.451099576762322" fscale="357.907121">
+      <iteration number="36" duration="0.003" multiObjectiveValue="6.21094133835918" compliance="6.08577797811139" plain_greyness="0.0197005094321324" plain_greyness_penalty="0.00034971" volume="0.399962076187066" greyness="0.451099576762325" fscale="357.907121">
         <excitation index="0" objective="6.0858" objective_weight="0.5"/>
         <excitation index="1" objective="6.2109" objective_weight="0.5"/>
       </iteration>
-      <iteration number="36" duration="0.003" multiObjectiveValue="6.21941227509615" compliance="6.08775027160077" plain_greyness="0.0189731994185704" plain_greyness_penalty="0.00032304" volume="0.399981743291761" greyness="0.450938152344339" fscale="407.577005">
+      <iteration number="37" duration="0.003" multiObjectiveValue="6.21941227509599" compliance="6.08775027160075" plain_greyness="0.0189731994185738" plain_greyness_penalty="0.00032304" volume="0.399981743291761" greyness="0.450938152344344" fscale="407.577005">
         <excitation index="0" objective="6.0878" objective_weight="0.5"/>
         <excitation index="1" objective="6.2194" objective_weight="0.5"/>
       </iteration>
-      <iteration number="37" duration="0.003" multiObjectiveValue="6.23683076032609" compliance="6.09010707923861" plain_greyness="0.0185276871412146" plain_greyness_penalty="0.00030722" volume="0.399986212139091" greyness="0.450129938019663" fscale="477.585342">
+      <iteration number="38" duration="0.003" multiObjectiveValue="6.23683076032598" compliance="6.09010707923855" plain_greyness="0.0185276871412218" plain_greyness_penalty="0.00030722" volume="0.399986212139091" greyness="0.450129938019669" fscale="477.585342">
         <excitation index="0" objective="6.0901" objective_weight="0.5"/>
         <excitation index="1" objective="6.2368" objective_weight="0.5"/>
       </iteration>
-      <iteration number="38" duration="0.003" multiObjectiveValue="6.26355094437675" compliance="6.1033510811316" plain_greyness="0.0173705743504416" plain_greyness_penalty="0.000268" volume="0.399945463366971" greyness="0.448691231017854" fscale="597.770265">
+      <iteration number="39" duration="0.003" multiObjectiveValue="6.26355094437678" compliance="6.1033510811315" plain_greyness="0.0173705743504463" plain_greyness_penalty="0.000268" volume="0.399945463366971" greyness="0.448691231017852" fscale="597.770265">
         <excitation index="0" objective="6.1034" objective_weight="0.5"/>
         <excitation index="1" objective="6.2636" objective_weight="0.5"/>
       </iteration>
-      <iteration number="39" duration="0.003" multiObjectiveValue="6.27805734618836" compliance="6.12934012317177" plain_greyness="0.0160192634561671" plain_greyness_penalty="0.00022558" volume="0.399867468943299" greyness="0.448745739563581" fscale="659.271037">
+      <iteration number="40" duration="0.003" multiObjectiveValue="6.2780573461883" compliance="6.12934012317187" plain_greyness="0.0160192634561654" plain_greyness_penalty="0.00022558" volume="0.399867468943298" greyness="0.448745739563582" fscale="659.271037">
         <excitation index="0" objective="6.1293" objective_weight="0.5"/>
         <excitation index="1" objective="6.2781" objective_weight="0.5"/>
       </iteration>
-      <iteration number="40" duration="0.003" multiObjectiveValue="6.34956465380193" compliance="6.12503019376415" plain_greyness="0.0161565028500666" plain_greyness_penalty="0.00022972" volume="0.399997446350614" greyness="0.447322500816828" fscale="977.428486">
+      <iteration number="41" duration="0.003" multiObjectiveValue="6.34956465380315" compliance="6.12503019376419" plain_greyness="0.0161565028500671" plain_greyness_penalty="0.00022972" volume="0.399997446350614" greyness="0.447322500816828" fscale="977.428486">
         <excitation index="0" objective="6.125" objective_weight="0.5"/>
         <excitation index="1" objective="6.3496" objective_weight="0.5"/>
       </iteration>
-      <iteration number="41" duration="0.004" multiObjectiveValue="6.3504982995227" compliance="6.1622555212066" plain_greyness="0.014877673512377" plain_greyness_penalty="0.00019259" volume="0.399801571654944" greyness="0.447492666926314" fscale="977.428486">
+      <iteration number="42" duration="0.003" multiObjectiveValue="6.35049829952372" compliance="6.16225552120668" plain_greyness="0.0148776735123764" plain_greyness_penalty="0.00019259" volume="0.399801571654944" greyness="0.44749266692631" fscale="977.428486">
         <excitation index="0" objective="6.1623" objective_weight="0.5"/>
         <excitation index="1" objective="6.3505" objective_weight="0.5"/>
       </iteration>

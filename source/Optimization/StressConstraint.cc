@@ -61,9 +61,9 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
   // global initializations
   if(type == Function::LOCAL_BUCKLING_LOAD_FACTOR || type == Function::GLOBAL_BUCKLING_LOAD_FACTOR)
     // for the local buckling load factor we need the norm of the stress
-    M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetHillMandelMatrix(domain->GetGrid()->GetDim());
+    M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetHillMandelMatrix(domain->GetDim());
   else
-    M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
+    M = dynamic_cast<MechPDE*>(em->context->ToPDE(App::MECH, true))->GetVonMisesMatrix(domain->GetDim());
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
     tf = TransferFunction(App::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());
@@ -285,7 +285,7 @@ void StressConstraint<T>::CalcElemAdjointRHS(DesignElement* de, double alpha, Ve
 {
   bool harmonic = em->context->IsComplex();
 
-  Matrix<T> stress_transp(1, domain->GetGrid()->GetDim() == 2 ? 3 : 6);
+  Matrix<T> stress_transp(1, domain->GetDim() == 2 ? 3 : 6);
   Matrix<T> rhs_transp;
 
   // any bilinear shall do, hence take any region

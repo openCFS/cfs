@@ -1273,10 +1273,11 @@ void Domain::SetGridMap( const std::map<std::string, Grid* >& gridMap ) {
   useExternalGridMap_ = true;
 }
 
+unsigned int Domain::GetDim() const 
+{ 
+  return gridMap_.begin()->second->GetDim(); 
+}
 
-// *************
-//   PrintGrid
-// *************
 void Domain::PrintGrid()
 {
 

@@ -25,88 +25,40 @@ public:
    * @param lower_violation the maximal violation */
   void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation) override;
 
-  /** Set's up distance neighborhood (all nodes of a shape) */
-  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality) override;
-
   /** sets radius for spaghetti.py to visualize the stuff */
   void AddToDensityHeader(PtrParamNode pn) override;
 
   /** the spaghetti python script */
   PyObject* GetPythonModule() override;
 
-  typedef enum { NO_TIP = -1, START, END, INNER } Tip;
-
-  static Enum<Tip> tip;
-
-  /** This represents a single design variable (which can be fixed)
-   * set dof and tip if applicable
-   * Public as used in DensityFile  */
-  class Variable : public ShapeParamElement
+  struct Noodle : public Feature 
   {
   public:
 
-    static std::string ToString(const StdVector<Variable>& vec, bool show_fixed = true);
-
-    static Vector<double> AsVector(const StdVector<Variable>& vec);
-
-    /** optional late constructor */
-    void InitInnerNode(int noodle_idx, Dof dof, double val, double lower, double upper);
-
-    void Parse(PtrParamNode pn, int noodle, double interpolate_value = -12.34);
-
-    /** all other BaseDesignElement children do this in the constructor.
-     * @see SetOptIndex() */
-    void SetIndex(int idx) { index_ = idx; }
-
-    void ToInfo(PtrParamNode in) const;
-
-    /** for debug info */
-    std::string ToString() const override;
-
-
-    std::string GetLabel() const override;
-
-    /** does not apply for all */
-    Tip tip = NO_TIP;
-
-    /** subject to optimization or fixed */
-    bool fixed = false;
-
-    /** noodle index */
-    int noodle = -1;
-  };
-
-  struct Noodle
-  {
-  public:
-
-    /** NORMAL means we have vector a - which is for 2D, POINTS are 3D */
+    /** NORMAL means we have vector a - which is for 2D, POINTS are 3D as a normal cannot be defined in 3D by a scalar */
     typedef enum { NO_TYPE = -1, NORMAL = 0, POINTS = 1 } Type;
 
     Noodle();
 
-    void Parse(PtrParamNode pn, int idx);
+    const char* GetName() override { return "noodle"; } 
 
-    void ToInfo(PtrParamNode info);
+    void ToInfo(PtrParamNode info) override;
 
     /** helper for a and r */
-    void ToInfo(PtrParamNode in, Variable::Type type, const std::string& label, int dim = -1) const;
-    void CompareToInfoHelper(const Variable& v0, const Variable& test, std::string& fixed, std::string& lower, std::string& upper) const;
+    void ToInfo(PtrParamNode in, FeatureVariable::Type type, const std::string& label, int dim = -1) const  override;
 
     /** for debug purpose */
-    std::string ToString();
+    std::string ToString() const override;
 
-    int GetTotalVariables() const;
+    void Parse(PtrParamNode noodle, int idx) override;
 
-    int GetOptVariables() const { return opt_variables_; }
+    int GetTotalVariables() const override;
 
-    /** check all components of point */
-    bool IsFixed(const StdVector<Variable>& point) const;
+    bool IsExtended() const override { return a.GetSize() > 0; }
 
-    int CountNonFixed(const StdVector<Variable>& point) const;
-
-    /** Helper for Variable::Parser() in case of inner */
-    double Interpolate(double start, double end, unsigned int idx, unsigned int n);
+    /** Helper for FeatureVariable::Parser() in case of inner */
+    double Interpolate(double start, double end, unsigned int idx, unsigned int n_segments) const
+    { return start + (end-start)/(n_segments-1) * idx;}
 
     /** to make it easier generic also for 2d */
     bool HasAlpha() const { return type == POINTS; }
@@ -114,40 +66,23 @@ public:
     /** do we have normals or inner points */
     bool HasInner() const { return dim_ == 3; }
 
-    /** Variable objects are the read design variables in a technical sense.
-      points contains all nodal coordinates with first point (2d or 3d) the tip start P and the last the tip end Q.
-      In the POINTS case (3d) the points in between are the alternative variables to normals a.
-      The in between points are either automatically created with interpolated values or a single inner point
-      gives initial/upper/lower - all also by mathparser. inner is only necessary if the bounds for P and Q are not clear */
-    StdVector<StdVector<Variable> > points;
-
-    /** the scalar profile variable */
-    Variable p;
-
     /** the scalar scaling in the geometry projection style */
-    Variable alpha;
+    FeatureVariable alpha;
 
     /** the segments-1 normal variables only for NORMAL mode */
-    StdVector<Variable> a;
+    StdVector<FeatureVariable> a;
 
     /** the segments-1 radius variables only for POINTS, could be extended also for 2D */
-    StdVector<Variable> r;
-
-    /** shape index */
-    int idx = -1;
+    StdVector<FeatureVariable> r;
 
     /** up to now obtained by dim_ */
     Type type = NO_TYPE;
-
-  private:
-    int opt_variables_ = -1;
   };
 
   /** structured access to the full design space. Note that spaghetti is a plural of noodle.
    * Within the noodles are all Variables referenced in FeaturedDesign::shape_param_ and FeaturedDesign::opt_shape_param_
    * @See SetupDesign(), also for ordering within (opt_)shape_param_ */
-  StdVector<Noodle> spaghetti;
-  StdVector<int> opt_indices;
+  StdVector<Noodle> spaghetti; // instances for FeaturedDesign::features_;
 
 private:
 
@@ -155,6 +90,12 @@ private:
    * FeaturedDesgin::shape_param_ and opt_shape_param_ get references.
    * Ordering via type: First node, then profile, then normal */
   void SetupDesign(PtrParamNode pn) override;
+
+
+  void SetupParsedFeatures(PtrParamNode base) override;
+
+  /** our detailed implementation for SetupVirtualShapeElementMap() */
+  void SetupVirtualShapeElementMapBending(Feature* f, StdVector<Function::Local::Identifier>& vem, StdVector<BaseDesignElement*>& nodes, bool two_signs, int sign_1, int sign_2) override;
 
   /** Map structure to rho (DesignSpace::data). Sets DesignSpace::data.
    *  Shall be called by ReadDesignFromExtern(). */
@@ -165,12 +106,10 @@ private:
    *  @param f the function we add the stuff to the gradient. */
   void MapFeatureGradient(const Function* f) override;
 
+
   /** get generic special results from python.
    * MapFeatureGradient() is called for every function and the generic design might be for the next call only. */
   void PrepareSpecialResults() override;
-
-  /** Helper for SetupDesign(). Stores the variable to shape_param_ and opt_shape_param_ */
-  void AddVariable(Variable* var);
 
   /** call cfs_init in python file */
   void PythonInit(PtrParamNode pn);

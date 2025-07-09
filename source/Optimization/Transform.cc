@@ -57,7 +57,7 @@ DesignElement* Transform::FindSource(const DesignElement* de) const
   // we assume that the barycenters are calculated!
   assert(domain->GetGrid()->regionData[space_->regions[0][0].regionId].barycenters == true);
 
-  assert(domain->GetGrid()->GetDim() == 2); // nothing else implemented yet
+  assert(domain->GetDim() == 2); // nothing else implemented yet
 
   // calculate source coordinates
   double x = de->elem->extended->barycenter[0];

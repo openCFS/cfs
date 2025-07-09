@@ -55,7 +55,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 {
   type_ = type.Parse(pn->Get("type")->As<string>());
 
-  dim = domain->GetGrid()->GetDim();
+  dim = domain->GetDim();
 
   transIsoType_ = transIsoType.Parse(pn->Get("isoplane")->As<string>());
 

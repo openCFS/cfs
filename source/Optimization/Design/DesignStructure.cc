@@ -736,7 +736,7 @@ double DesignStructure::FindFilterRadius(Filter::FilterSpace space, const Design
       double tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
       // The radius is <value> times square/cube edge length where the
       // square/cube has the volume of the element
-      double radius = value * std::pow(tmp, 1.0/ (double) domain->GetGrid()->GetDim());
+      double radius = value * std::pow(tmp, 1.0/ (double) domain->GetDim());
       LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " from volume " << tmp << " to radius " << radius;
       return radius;
     }

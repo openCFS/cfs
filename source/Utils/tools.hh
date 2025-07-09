@@ -341,27 +341,32 @@ namespace CoupledField {
   double SmoothMax(double left, double right, double beta, bool normalize = false);
 
   /** Calculates the continuous Kreisselmeier and Steinhauser max approximation for arbitrary values.
+  * @see the SoftMax function (common in AI) and the p-norm are available in FeatureMappingDesign.hh - move when needed
   * @param beta - -1 is special and makes real max, otherwise beta needs to be > 0
   * @param normalize - applies normalization by number of values */
-  double SmoothMax(const StdVector<double>& values, double beta, bool normalize = false);
+  double SmoothMax(const Vector<double>& values, double beta, bool normalize = false);
 
   /** @param deriv -1 for left or 1 for right value to derive for */
   double DerivSmoothMax(double left, double right, double beta, int derive);
 
   /** @param derive index within values. */
-  double DerivSmoothMax(const StdVector<double>& values, double beta, unsigned int derive);
+  double DerivSmoothMax(const Vector<double>& values, double beta, unsigned int derive);
 
   /** @see SmoothMax(double, double, double, bool) */
   double SmoothMin(double left, double right, double beta, bool normalize = false);
 
   /** @see SmoothMax(const StdVector<double>&, double, bool) */
   double SmoothMin(const StdVector<double>& values, double beta, bool normalize = false);
+  double SmoothMin(const Vector<double>& values, double beta, bool normalize = false);
+  double SmoothMin(const double* values, size_t size, double beta, bool normalize = false);
 
   /** @see DerivSmoothMax(double, double, double, int) */
   double DerivSmoothMin(double left, double right, double beta, int derive);
 
-  /** @see DerivSmoothMax(const StdVector<double>&, double, unsigned int) */
+  /** @see DerivSmoothMax() */
+  double DerivSmoothMin(const Vector<double>& values, double beta, unsigned int derive);
   double DerivSmoothMin(const StdVector<double>& values, double beta, unsigned int derive);
+  double DerivSmoothMin(const double* values, size_t size, double beta, unsigned int derive);
 
   /** Calculates an approximation of the abs function:A(x) = sqrt(x^2 + eps^2) - eps
    * As used in Poulsen; A new scheme for imposing a minimum length scale in topology optimization; 2003

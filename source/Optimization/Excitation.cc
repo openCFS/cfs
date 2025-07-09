@@ -110,7 +110,7 @@ unsigned int MultipleExcitation::GetNumberHomogenization(App::Type app) const
   if(!DoHomogenization())
     return 0;
   else{
-    UInt dim = domain->GetGrid()->GetDim();
+    UInt dim = domain->GetDim();
     switch(app)
     {
       case App::MECH:
@@ -240,7 +240,8 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
 
   // we have no "do_transform" either there is transformation or not
   num_trans_  = opt->GetDesign()->transform.GetSize();
-  assert(!opt->GetDesign()->data.IsEmpty() && opt->GetDesign()->data[0].simp != NULL);
+  assert(!opt->GetDesign()->data.IsEmpty());
+  assert(opt->GetDesign()->data[0].simp != NULL);
   int num_robust =  opt->GetDesign()->data[0].simp->filter.GetSize();
 
   robust_.Resize(manager->context.GetSize());
@@ -494,7 +495,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
 
 int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context* ctxt)
 {
-  unsigned int dim = domain->GetGrid()->GetDim();
+  unsigned int dim = domain->GetDim();
   int cases = GetNumberHomogenization(ctxt->ToApp());
 
   assert(excitations.GetCapacity() >= base + cases * GetNumberMeta(ctxt, true)); // so we need no copy constructor in ApplyTransformation()

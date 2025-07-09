@@ -37,7 +37,7 @@ MagSIMP::MagSIMP()
 {
   assert(close(nu_0,1.0/(4 * M_PI * 1e-7)));
 
-  sel_x_.Resize(domain->GetGrid()->GetDim(), domain->GetGrid()->GetDim());
+  sel_x_.Resize(domain->GetDim(), domain->GetDim());
   sel_x_.Init();
   sel_x_[0][0] = 1;
 
@@ -306,7 +306,7 @@ double MagSIMP::CalcMagFluxDensity(Excitation& excite, Function* f)
       assert(bdb->GetBOp());
       bdb->GetBOp()->CalcOpMat(M, lp, ptFe);
       assert(M.GetNumCols() == a.GetSize());
-      assert(M.GetNumRows() == domain->GetGrid()->GetDim());
+      assert(M.GetNumRows() == domain->GetDim());
       LOG_DBG3(ms) << "CMFD: e= " << e << " ip=" << ip << "/(" << intPoints[ip].coord.ToString() << ") w=" << weights[ip] << " jacDet=" << lp.jacDet << " M_" << ip << "=" << M.ToString();
 
       // flux_denx = M * a
@@ -933,7 +933,7 @@ void MagSIMP::SetElementK(Function* f, DesignElement* de, const TransferFunction
 
     //LOG_DBG3(ms) << "e=" << de->elem->elemNum << " K_0=" << stiffness.ToString();
 
-    double nu_r = GetRelactivity(de->elem, domain->GetGrid()->GetDim());
+    double nu_r = GetRelactivity(de->elem, domain->GetDim());
     // simulation: BDB with D=(d 0; 0 d) with d = nu_0*nu_r
     // optimization: d = nu_0 * nu_r * f(rho) - nu_0 * f(rho) + nu_0
     // derivative: d = nu_0 * nu_r * f'(rho) - nu_0 * f'(rho)
