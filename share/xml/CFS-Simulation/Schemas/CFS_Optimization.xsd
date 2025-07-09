@@ -3480,6 +3480,7 @@
             <xsd:element name="local" type="DT_Local" minOccurs="0" maxOccurs="1" />
             <!-- local and global python function -->
             <xsd:element name="python" type="DT_PythonFunction" minOccurs="0" maxOccurs="1" />
+            <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1" />
             <!--  -->
             <xsd:element name="tune" minOccurs="0" maxOccurs="1" type="DT_Tune">
               <xsd:annotation>
