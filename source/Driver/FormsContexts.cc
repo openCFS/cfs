@@ -507,10 +507,14 @@ Enum<BiLinearForm::Type> BiLinearForm::type;
        id2 = feFct2_.lock()->GetFctId();
        break;
      case BiLinearForm::SEC_PRIM:
-       this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
-       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
-       id1 = feFct2_.lock()->GetFctId();
-       id2 = feFct1_.lock()->GetFctId();
+       //  this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
+       //  this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
+       //  id1 = feFct2_.lock()->GetFctId();
+       //  id2 = feFct1_.lock()->GetFctId();
+       this->feFct1_.lock()->GetFeSpace()->GetElemEqns(eqnVec1,volESlave);
+       this->feFct2_.lock()->GetFeSpace()->GetElemEqns(eqnVec2,volEMaster);
+       id1 = feFct1_.lock()->GetFctId();
+       id2 = feFct2_.lock()->GetFctId();
        break;
      default:
        EXCEPTION("Undefined coupling direction");
