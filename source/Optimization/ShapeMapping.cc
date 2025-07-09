@@ -13,7 +13,7 @@ namespace CoupledField {
 DEFINE_LOG(ShapeMap, "shapeMap")
 
 ShapeMapping::ShapeMapping()
- : SIMP()
+ : AcouSIMP()
 {
 
 }
@@ -26,7 +26,7 @@ ShapeMapping::~ShapeMapping()
 
 void ShapeMapping::PostInit()
 {
-  SIMP::PostInit();
+  AcouSIMP::PostInit();
 }
 
 } // end of namespace
