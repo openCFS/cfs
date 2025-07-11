@@ -44,7 +44,7 @@ namespace CoupledField {
       //! Destructor
       virtual ~invEBHysteresis();
 
-      void Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim);
+      void Init(std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList, UInt dim);
 
       // This shall act as a unified handling for updating states from one timestep to another, triggered by the SolveStepEB.
       // Originally this was handled via flags but manually updating the states (via an explicit call in SolveStepEB) is way 
@@ -62,7 +62,7 @@ namespace CoupledField {
       
       Vector<Double> Eval_2D_invEBM_TAN(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
       Vector<Double> Eval_3D_Brauer(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
-      Vector<Double> Eval_3D_invEBM_TAN(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
+      Vector<Double> Eval_3D_invEBM(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
 
       // --------------- FE related functions --------------- //
 
@@ -134,6 +134,17 @@ namespace CoupledField {
 
       // --------------- HELPER FUNCTIONS: Solve linear systems (END) --------------- //
 
+      // --------------- HELPER FUNCTIONS: Handle lookup tables for anhysteresis (START) --------------- //
+      
+      Double LinInterp1D(Double norm_J, std::vector<Double> J_lut, std::vector<Double> H_lut);
+      Double FiniteDifference1D(Double norm_J, std::vector<Double> J_lut, std::vector<Double> H_lut);
+      Double IntTrapz1D(Double norm_J, std::vector<Double> J_lut, std::vector<Double> H_lut);
+
+
+
+      // --------------- HELPER FUNCTIONS: Handle lookup tables for anhysteresis (START) --------------- //
+
+
     private:
       //==============
       UInt dim_; 
@@ -143,13 +154,16 @@ namespace CoupledField {
       UInt numElems_;
 
       Double Js_;
+      string lookup_table_file_;
       Double A_;
+      Double p_0_, p_1_, p_2_;
       Double mu0_;
       UInt numS_;
       Double chi_factor_;
       UInt jacobian_method_;
       UInt anhyst_type_;
       UInt ndx_g_;
+      std::vector<Double> J_lut_, H_lut_;
 
 
       StdVector< StdVector<Double> > B_prev_;

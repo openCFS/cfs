@@ -992,6 +992,11 @@ namespace CoupledField {
               material->SetAnhystMagModel("analytic_anhysteresis");
               material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/Js")->As<Double>(), MaterialType(MAG_JS_INVEB), Global::REAL);
               material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/A")->As<Double>(), MaterialType(MAG_A_INVEB), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/p_0")->As<Double>(), MaterialType(MAG_P0_INVEB), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/p_1")->As<Double>(), MaterialType(MAG_P1_INVEB), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/p_2")->As<Double>(), MaterialType(MAG_P2_INVEB), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/anhyst_type")->As<Double>(), MaterialType(MAG_ANHYST_TYPE_INVEB), Global::REAL);
+              material->SetString(model->Get("Anhysteresis_model/analytic_anhysteresis/lookup_table_file")->As<string>(), MaterialType(MAG_LOOKUP_TABLE_FILE_INVEB));
             }
             material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_INVEB), Global::REAL);
             material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_INVEB), Global::REAL);

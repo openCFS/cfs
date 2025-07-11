@@ -2,6 +2,9 @@
 #include <fstream>
 #include <vector>
 #include <cmath>
+#include <algorithm> // For std::min
+#include <numeric>   // Required for std::accumulate
+#include <variant>
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 
@@ -30,7 +33,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
     invEBHysteresis::~invEBHysteresis() {
     }
 
-    void invEBHysteresis::Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim) {
+    void invEBHysteresis::Init(std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList, UInt dim) {
 
       dim_ = dim;
       mu0_ = 4 * M_PI * 1e-7;
@@ -47,7 +50,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       }
 
 
-if (ParameterMap.size() < 5)
+    if (ParameterMap.size() < 5)
     {
       EXCEPTION("The model needs 5 parameters!");
     }
@@ -55,9 +58,27 @@ if (ParameterMap.size() < 5)
     chi_factor_ = ParameterMap["chi_factor"];
     jacobian_method_ = ParameterMap["jacobian_method"];
     anhyst_type_ = ParameterMap["anhyst_type"]; // 1 is tan
-    if (anhyst_type_ == 1){ // tan anhysteresis model
+    if (anhyst_type_ == 1) { // tan anhysteresis model
       Js_ = ParameterMap["Js"];
       A_ = ParameterMap["A"];
+    } else if (anhyst_type_ == 2) {
+      p_0_ = ParameterMap["p_0"];
+      p_1_ = ParameterMap["p_1"];
+      p_2_ = ParameterMap["p_2"];
+    } else if (anhyst_type_ == 3) {
+      lookup_table_file_ = StringParameterMap["lookup_table_file"];
+      std::ifstream file(lookup_table_file_);
+      double x, y;
+      // Check if the file was successfully opened
+      if (!file) {
+          EXCEPTION("Error: Unable to open file: " << lookup_table_file_ << std::endl);
+      }
+      while (file >> x >> y) {
+          J_lut_.push_back(x);
+          H_lut_.push_back(y);
+      }
+      // Close the file
+      file.close();
     }
 
     isMH_ = ParameterMap["isMH"];
@@ -88,6 +109,34 @@ if (ParameterMap.size() < 5)
     saveTmpStageVecs_ = false;
 
     alreadyHasNu_.Resize(numElems_, false);
+
+    std::cout << "\n***********************************************" << "\n";
+    std::cout << "INFORMATION ON THE USED MAGNETIC MATERIAL MODEL" << "\n";
+    std::cout << "***********************************************" << "\n";
+    if (anhyst_type_ == 1) { // tan anhysteresis model
+      std::cout << "Anhysteresis_type: analytic tan() function" << "\n";
+      std::cout << "H(J) = A*tan(pi/2 * J/Js)" << "\n";
+      std::cout << "Js = " << Js_ << " T \n";
+      std::cout << "A = " << A_ << " A/m \n";
+      std::cout << "Hysteresis model: Inverse Energy-Based Hysteresis Model" << "\n";
+      std::cout << "numS = " << numS_ << " \n";
+      std::cout << "chi = " << chi_factor_ << " A/m \n";
+    } else if (anhyst_type_ == 2) {
+      std::cout << "Anhysteresis_type: analytic Brauer model" << "\n";
+      std::cout << "H(B) = (p_0 + p_1*B^(2*p_2))*B" << "\n";
+      std::cout << "p_0 = " << p_0_ << " \n";
+      std::cout << "p_1 = " << p_1_ << " \n";
+      std::cout << "p_2 = " << p_2_ << " \n";
+      std::cout << "Hysteresis model: No Hysteresis possible with this anhysteresis type" << "\n";
+    } else if (anhyst_type_ == 3) {
+      std::cout << "Anhysteresis_type: Lookup Table" << "\n";
+      std::cout << "H(J) = lookup_table(J)" << "\n";
+      std::cout << "Absolute lookup table file path: " << lookup_table_file_ << "\n";
+      std::cout << "Hysteresis model: Inverse Energy-Based Hysteresis Model" << "\n";
+      std::cout << "numS = " << numS_ << " \n";
+      std::cout << "chi = " << chi_factor_ << " A/m \n";
+    }
+    std::cout << "***********************************************" << "\n";
     }
 
     Vector<Double> invEBHysteresis::GetFieldIntensity(Vector<Double> BVec, const Integer ElemNum) {
@@ -434,30 +483,15 @@ if (ParameterMap.size() < 5)
       // define needed variables
       Vector<Double> ret;
       
-      /* if (dim_ == 2){
-        if ( anhyst_type_ == 1 ){
-          // full invEB + tan anhysteresis
-          //ret = Eval_2D_invEBM_TAN(B_n, saveTmpStageVecs_, idx);
-          EXCEPTION("2D")
-        }
-      }
-      else if (dim_ == 3) {
-        if ( anhyst_type_ == 1 ) {
-          // full invEB + tan anhysteresis
-          ret = Eval_3D_invEBM_TAN(B_n, saveTmpStageVecs_, idx);
-        }
-      }
-      return ret; */
-      
       if (dim_ == 2) {
         if (anhyst_type_ == 1) {
-          //ret = Eval_invEBM_TAN<2>(B_n, saveTmpStageVecs_, idx);
-          EXCEPTION("2D")
+          ret = Eval_2D_invEBM_TAN(B_n, saveTmpStageVecs_, idx);
         }
       } else if (dim_ == 3) {
-        if (anhyst_type_ == 1) {
-          //ret = Eval_3D_Brauer(B_n, saveTmpStageVecs_, idx);
-          ret = Eval_3D_invEBM_TAN(B_n, saveTmpStageVecs_, idx);
+        if (anhyst_type_ == 1 || anhyst_type_ == 3) {
+          ret = Eval_3D_invEBM(B_n, saveTmpStageVecs_, idx);
+        } else if (anhyst_type_ == 2) {
+          ret = Eval_3D_Brauer(B_n, saveTmpStageVecs_, idx);
         }
       }
       return ret;
@@ -563,7 +597,7 @@ if (ParameterMap.size() < 5)
 
     } 
 
-    Vector<Double> invEBHysteresis::Eval_3D_invEBM_TAN(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
+    Vector<Double> invEBHysteresis::Eval_3D_invEBM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
       // define needed variables
       Vector<Double>     ret;
       StdVector<Double>  weight(numS_);
@@ -574,7 +608,7 @@ if (ParameterMap.size() < 5)
       Matrix<Double>     hessian(3*numS_, 3*numS_), negative_hessian(3*numS_, 3*numS_);
       Matrix<Double>     delta_J_k(3,numS_);
       Matrix<Double>     eta(3,numS_);
-      Double             phi_der0, phi_der00, tolerance_newton, eps_newton; // line search / Newton parameter
+      Double             phi_der0, phi_der00, tolerance_newton, tolerance_newton_abs, eps_newton, phi_der_old, diff; // line search / Newton parameter
       UInt               max_newton_iter;  // Newton parameter
       Vector<Double>     solution_linear_system(3*numS_);
       StdVector<Double>  J_x_k_sol, J_y_k_sol, J_z_k_sol;
@@ -600,9 +634,11 @@ if (ParameterMap.size() < 5)
       J_x_k_sol.Resize(numS_, 0.0);
       J_y_k_sol.Resize(numS_, 0.0);
       J_z_k_sol.Resize(numS_, 0.0);
-      max_newton_iter = 100;       // some Newton cofigurations (should be accessible from the XML-File??)
-      tolerance_newton = 1e-12;
+      max_newton_iter = 30;       // some Newton cofigurations (should be accessible from the XML-File??)
+      tolerance_newton = 1e-7;
+      tolerance_newton_abs = 1e-6;
       eps_newton = 1e-14;
+      phi_der_old = 1e8;
 
       // apply Newton method
       for(UInt ndx = 0; ndx < max_newton_iter; ndx++){ // Newton method iterations
@@ -637,10 +673,11 @@ if (ParameterMap.size() < 5)
           J_k[2][kdx] = J_k[2][kdx] + eta[2][kdx]*delta_J_k[2][kdx];
         }
         // check stopping criterion
+        diff = std::abs(phi_der0 - phi_der_old);
         if (ndx == 0) {
           phi_der00 = phi_der0;
         }
-        if ( std::abs(phi_der0) < (tolerance_newton*std::abs(phi_der00) + eps_newton) ) {
+        if ( (std::abs(phi_der0) < (tolerance_newton*std::abs(phi_der00) + eps_newton)) || (diff<tolerance_newton_abs) ) {
           break;
         }
       } // NEWTON for loop end
@@ -822,11 +859,17 @@ if (ParameterMap.size() < 5)
     double Js = Js_;
     double epsilon = 1e-8;
     double A = A_;
+    std::vector<Double> J_lut = J_lut_;
+    std::vector<Double> H_lut = H_lut_;
 
     // calc. magnitude
     norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0],2) + std::pow(J[1],2) + std::pow(J[2],2))),2) + epsilon);
-    gradient_internal_energy_magnitude = A * std::tan((M_PI/2) * (norm_J / Js));
-    
+    if (anhyst_type_ == 1) { // TAN
+      gradient_internal_energy_magnitude = A * std::tan((M_PI/2) * (norm_J / Js));
+    } else if (anhyst_type_ == 3) { // lookup table
+      gradient_internal_energy_magnitude = LinInterp1D(norm_J,J_lut,H_lut);
+    }
+      
     // calc. direction
     gradient_internal_energy_direction[0] = J[0]/norm_J;
     gradient_internal_energy_direction[1] = J[1]/norm_J;
@@ -1030,7 +1073,8 @@ if (ParameterMap.size() < 5)
       Matrix<Double> hessian1(3, 3);
       Matrix<Double> hessian2(3, 3); 
       Double         norm_J, factor1, factor2, sec_factor; 
-      
+      std::vector<Double> J_lut = J_lut_;
+      std::vector<Double> H_lut = H_lut_;      
       // parameter (anhysteretic)
       double Js = Js_;
       double epsilon = 1e-8;
@@ -1038,9 +1082,15 @@ if (ParameterMap.size() < 5)
 
       // pre-computations for hessian
       norm_J = std::sqrt(std::pow((std::sqrt(std::pow(J[0],2) + std::pow(J[1],2) + std::pow(J[2],2))),2) + epsilon);
-      factor1 = A * std::tan((M_PI/2) * (norm_J / Js));
-      sec_factor = 1.0/std::cos(norm_J * M_PI/ 2.0/ Js);
-      factor2 = (A*M_PI/2.0/Js)*std::pow(sec_factor,2); 
+      if (anhyst_type_ == 1) {
+        factor1 = A * std::tan((M_PI/2) * (norm_J / Js));
+        sec_factor = 1.0/std::cos(norm_J * M_PI/ 2.0/ Js);
+        factor2 = (A*M_PI/2.0/Js)*std::pow(sec_factor,2); 
+      } else if (anhyst_type_ == 3) {
+        factor1 = LinInterp1D(norm_J,J_lut,H_lut);
+        factor2 = FiniteDifference1D(norm_J,J_lut,H_lut);
+      }
+
 
       // part 1
       hessian1[0][0] =  factor1*(1.0/norm_J - J[0]*J[0]/(norm_J*norm_J*norm_J));
@@ -1228,7 +1278,7 @@ if (ParameterMap.size() < 5)
       delta = 0.5; 
       gamma = 0.1;
       num_pin = numS_;
-      max_line_search_iter = 1000;
+      max_line_search_iter = 50;
       for(UInt kdx = 0; kdx < num_pin; kdx++){
          eta0[0][kdx] = 0; eta0[1][kdx] = 0;  eta0[2][kdx] = 0;
          eta[0][kdx] = 1; eta[1][kdx] = 1;  eta[2][kdx] = 1;
@@ -1414,7 +1464,8 @@ if (ParameterMap.size() < 5)
       Vector<Double>  norm_J(numS_);
       Vector<Double>  internal_energy(numS_);
       UInt            num_pin;
-
+      std::vector<Double> J_lut = J_lut_;
+      std::vector<Double> H_lut = H_lut_;
       // init. variables
       Js = Js_;
       A = A_;
@@ -1427,11 +1478,16 @@ if (ParameterMap.size() < 5)
       
       // compute internal energy for all k
       for(UInt kdx = 0; kdx < num_pin; kdx++){
-        if (norm_J[kdx] < Js) {
-          internal_energy[kdx] = -(2*A*Js/M_PI)*std::log(std::cos( (M_PI/2)*norm_J[kdx] / Js) );
-        } else {
-          internal_energy[kdx] = HUGE_VAL;
+        if (anhyst_type_ == 1) {
+          if (norm_J[kdx] < Js) {
+            internal_energy[kdx] = -(2*A*Js/M_PI)*std::log(std::cos( (M_PI/2)*norm_J[kdx] / Js) );
+          } else {
+            internal_energy[kdx] = HUGE_VAL;
+          }
+        } else if (anhyst_type_ == 3) {
+          internal_energy[kdx] = IntTrapz1D(norm_J[kdx], J_lut, H_lut);
         }
+
       }
 
       // return
@@ -1443,20 +1499,12 @@ if (ParameterMap.size() < 5)
       Vector<Double>     ret;
       Vector<Double>     H_out(dim_);
 
-
-      //!! MAKE IT JUST LINEAR (FOR TESTING)!!
-      /* H_out[0] = (1/(mu0_*10))*B_n[0];
-      H_out[1] = (1/(mu0_*10))*B_n[1];
-      H_out[2] = (1/(mu0_*10))*B_n[2];
- */
-      //!! MAKE IT JUST NONLINEAR (FOR TESTING)!!
+      // BRAUER 3D MODEL
       Double norm_B_n;
-      Double p_0, p_1, p_2; // parameter
-      p_0 = 155.9; p_1 = 1.5; p_2 = 9.0;
       norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[2],2));
-      H_out[0] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[0];
-      H_out[1] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[1];
-      H_out[2] = (p_0 + (p_1*std::pow(norm_B_n,2*p_2)))*B_n[2];
+      H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
+      H_out[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
+      H_out[2] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[2];
 
       // return value
       ret.Push_back(H_out[0]);
@@ -1579,6 +1627,121 @@ if (ParameterMap.size() < 5)
 
       // return
       return x;
+    }
+
+
+
+
+
+
+
+    Double invEBHysteresis::LinInterp1D(Double norm_J, std::vector<Double> J_lut, std::vector<Double> H_lut) {
+      // define needed variables
+      UInt N = J_lut.size();
+      Double J1 = 0, J2 = 0, H1 = 0, H2 = 0, t = 0;
+
+      // handle out of bounds
+      if (norm_J <= J_lut[0]) {
+        return H_lut[0];
+      } else if (norm_J >= J_lut[N-1]) {
+        return H_lut[N-1];
+      }
+
+      // linear interpolation
+      for (int idx = 0; idx < N-1; idx++) {
+        if (norm_J >= J_lut[idx] && norm_J <= J_lut[idx+1]) { // find interval for the interpolation
+          J1 = J_lut[idx];
+          J2 = J_lut[idx+1];
+          H1 = H_lut[idx];
+          H2 = H_lut[idx+1];
+
+          // linear interpolation formula
+          t = (norm_J - J1) / (J2 - J1);
+          return H1 + t * (H2 - H1);
+        }
+      }
+    }
+
+    Double invEBHysteresis::FiniteDifference1D(Double norm_J, std::vector<Double> J_lut, std::vector<Double> H_lut) {
+      // define needed variables
+      UInt N = J_lut.size();
+      Double J1 = 0, J2 = 0, H1 = 0, H2 = 0;
+
+      // Handle boundary conditions
+      if (norm_J <= J_lut[0]) {
+        J1 = J_lut[0];
+        J2 = J_lut[1];
+        H1 = H_lut[0];
+        H2 = H_lut[1];
+        return (H2 - H1) / (J2 - J1);
+      } else if (norm_J >= J_lut[N-1]) {
+        J1 = J_lut[N-2];
+        J2 = J_lut[N-1];
+        H1 = H_lut[N-2];
+        H2 = H_lut[N-1];
+        return (H2 - H1) / (J2 - J1);
+      }
+
+      // Finite Differences
+      for (int idx = 0; idx < N-1; idx++) {
+        if (norm_J >= J_lut[idx] && norm_J <= J_lut[idx+1]) { // find interval for the interpolation
+          J1 = J_lut[idx];
+          J2 = J_lut[idx+1];
+          H1 = H_lut[idx];
+          H2 = H_lut[idx+1];
+          // finite difference formula
+          return (H2 - H1) / (J2 - J1);
+        }
+      }
+
+    }
+
+    Double invEBHysteresis::IntTrapz1D(Double norm_J, std::vector<Double> J_lut, std::vector<Double> H_lut) {
+      // define needed variables
+      UInt N = J_lut.size();
+      Double J_min, J_max, linspace_start, linspace_end, linspace_step, middle_sum;
+      UInt N_sub, u_val, dx;
+      //Clamp integration limit
+      J_min = 0;
+      J_max = J_lut[N-1];
+
+      // Split integration into 3 zones:
+
+      // Region 1: [0, r_min]
+      if (norm_J <= J_min) {
+        u_val = norm_J * H_lut[0];
+        return u_val;
+      } else {
+        u_val = J_min * H_lut[0];
+      }
+
+      // Region 2: [r_min, r_max]: trapezoidal rule
+      if (norm_J >= J_lut[N-1]) {
+        N_sub = 2; 
+      } else {
+        N_sub = 10;
+      }
+      std::vector<double> x_vals(N_sub), H_vals(N_sub);
+      linspace_start = J_min;
+      linspace_end = std::min(norm_J,J_max);
+      linspace_step = (N_sub > 1) ? (linspace_end - linspace_start) / (N_sub - 1) : 0;
+      for (int idx = 0; idx < N_sub; ++idx) {
+          x_vals[idx] = linspace_start + idx * linspace_step;
+          H_vals[idx] = LinInterp1D(x_vals[idx], J_lut, H_lut);
+      }
+      dx = x_vals[1] - x_vals[0];
+      middle_sum = std::accumulate(H_vals.begin() + 1, H_vals.end() - 1, 0.0);
+      // Trapezoidal integration
+      u_val = u_val + dx * (0.5*H_vals[0] + middle_sum + 0.5*H_vals[N-1]);
+
+      // Region 3: [r_max, norm_j]
+      if (norm_J > J_max) {
+          dx = norm_J - J_max;
+          u_val = u_val + dx * H_lut[N-1];  // Constant H
+      }
+
+      // return
+      return u_val;
     }
 
 

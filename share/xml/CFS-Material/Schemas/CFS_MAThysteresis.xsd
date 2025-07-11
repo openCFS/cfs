@@ -1043,20 +1043,58 @@
     
     <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_AnalyticFunction">
     <xsd:all>
-      <xsd:element name="Js" type="xsd:double" minOccurs="1">
+      <xsd:element name="anhyst_type" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            1 ... tan function H = A*tan((pi/2)*(J/Js))
+            2 ... Brauer model H = (p_0 + p_1*B^(2*p_2))*B [DOI: 10.1109/TMAG.1975.1058555]
+            3 ... Anhysteretic function via lookup table
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="Js" type="xsd:double" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation>
             Saturation polarization (mu0 times saturation magnetization)
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="A" type="xsd:double" minOccurs="1">
+      <xsd:element name="A" type="xsd:double" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation>
             Initial steepness of the anhysteretic curve (determines the initial permeability)
           </xsd:documentation>
         </xsd:annotation>  
-    </xsd:element>
+      </xsd:element>
+      <xsd:element name="p_0" type="xsd:double" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Initital reluctivity \nu = \nu(B = 0)
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="p_1" type="xsd:double" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Reluctivity that scales linearly with the magnetic flux density
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="p_2" type="xsd:double" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Defines exponent to scale reluctivity polinominaly
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="lookup_table_file" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Absolute path of the lookup table file
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+
     </xsd:all>
   </xsd:complexType>
 

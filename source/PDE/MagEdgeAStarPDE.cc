@@ -155,17 +155,22 @@ DEFINE_LOG(magEdgeAStarPde, "magEdgeAStarPde")
           BaseBDBInt * stiffInt = NULL;
 
           // init. EB Material Model
-          std::map<std::string, double> ParameterMap;
+          std::map<std::string, double> ParameterMap; 
+          std::map<std::string, string> StringParameterMap; 
           if(actMat->GetAnhystMagModel() == "analytic_anhysteresis"){
             actMat->GetScalar(ParameterMap["Js"], MAG_JS_INVEB, Global::REAL);
             actMat->GetScalar(ParameterMap["A"], MAG_A_INVEB, Global::REAL);
-            ParameterMap["anhyst_type"] = 1; // atan
+            actMat->GetScalar(ParameterMap["p_0"], MAG_P0_INVEB, Global::REAL);
+            actMat->GetScalar(ParameterMap["p_1"], MAG_P1_INVEB, Global::REAL);
+            actMat->GetScalar(ParameterMap["p_2"], MAG_P2_INVEB, Global::REAL);
+            actMat->GetScalar(ParameterMap["anhyst_type"], MAG_ANHYST_TYPE_INVEB, Global::REAL);
+            actMat->GetString(StringParameterMap["lookup_table_file"], MAG_LOOKUP_TABLE_FILE_INVEB);
           }
           actMat->GetScalar(ParameterMap["numS"], MAG_NUMS_INVEB, Global::REAL);
           actMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_INVEB, Global::REAL);
           actMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
           ParameterMap["isMH"] = 0;
-          matModelCoef_->InitModel(ParameterMap, actSDList);
+          matModelCoef_->InitModel(ParameterMap, StringParameterMap, actSDList);
           nu_nonlinear_eb = matModelCoef_;
           nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoef_);
 

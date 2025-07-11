@@ -78,6 +78,8 @@ public:
 
   void InitModel(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList);
 
+  void InitModel(std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList);
+
   // Register stress dependence of multiscale modle
   void RegisterStressDependence(PtrCoefFct stressCoef){
     stressCoef_ = stressCoef;

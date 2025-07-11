@@ -86,6 +86,13 @@ template<class T> void CoefFunctionMaterialModel<T>::InitModel(
 
 }
 
+template<class T> void CoefFunctionMaterialModel<T>::InitModel(
+    std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList) {
+
+  matModel_->Init(ParameterMap, StringParameterMap, entityList, spaceDim_);
+
+}
+
 template <class TYPE>
 void CoefFunctionMaterialModel<TYPE>::UpdateHistoryValues()
 {
