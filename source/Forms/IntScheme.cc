@@ -3,8 +3,17 @@
 
 #include "IntScheme.hh"
 
+
 // header for logging
 #include "DataInOut/Logging/LogConfigurator.hh"
+
+/* ------------------------------------------------------------------
+ * Compute nodes & weights of the n‑point Gauss‑Jacobi rule on (−1,1)
+ * with parameters alpha=2, beta=0 – handy for pyramid integration
+ * ------------------------------------------------------------------ */
+#include <algorithm>
+#include <limits>
+
 
 namespace CoupledField {
 
@@ -196,6 +205,99 @@ IntScheme::IntScheme() {
   // Fill integration points up to order 10
   FillInitialIntegPoints(10);
   }
+}
+
+
+/* ================================================================
+ *  elementary Jacobi polynomials and their first derivative
+ *    P_n^{(a,b)}  and  d/dx P_n^{(a,b)}
+ * ================================================================ */
+static double JacobiP(unsigned n, double a, double b, double x)
+{
+    /* recurrence:  cf.  G. H. Gautschi,  "Orthogonal Polynomials", Eq. (2.2.11) */
+    if (n == 0) return 1.0;
+    if (n == 1) return 0.5*((2.0 + a + b)*x + (a - b));
+
+    double Pkm1 = 1.0;                                   // P_0
+    double Pk   = 0.5*((2.0 + a + b)*x + (a - b));       // P_1
+
+    for (unsigned k = 1; k < n; ++k)
+    {
+        double k2 = static_cast<double>(k);
+        double A  = 2.0*(k2 + 1.0)*(k2 + a + b + 1.0);
+        double B  = (2.0*k2 + a + b + 1.0);
+        double C  = (2.0*k2 + a + b);
+        double D  = (2.0*k2 + a + b + 2.0);
+
+        double alpha_k =  B*( (C + 1.0)*x + a - b );
+        double beta_k  =  2.0*(k2 + a)*(k2 + b)*D / A;
+
+        double Pkp1 = ( alpha_k*Pk - beta_k*Pkm1 ) / D;
+
+        Pkm1 = Pk;
+        Pk   = Pkp1;
+    }
+    return Pk;
+}
+
+static void JacobiP_WithDerivative(unsigned n, double a, double b,
+                                   double x, double &Pn, double &dPn)
+{
+    Pn = JacobiP(n, a, b, x);
+    // d/dx  P_n^{(a,b)}(x)  =  0.5 (n + a + b + 1) P_{n-1}^{(a+1,b+1)}(x)
+    double Pnm1 = JacobiP((n == 0 ? 0 : n-1), a + 1.0, b + 1.0, x);
+    dPn = 0.5 * (n + a + b + 1.0) * Pnm1;
+}
+
+static void CalcGaussJacobiPointsWeights( UInt n,
+                                          StdVector<Double>& x,
+                                          StdVector<Double>& w,
+                                          double alpha = 2.0,
+                                          double beta  = 0.0 )
+{
+  x.Resize(n);  w.Resize(n);
+  if (n == 0) return;
+
+  std::vector<double> z(n);   // eigen-vector 0th component
+  /* ------------------------------------------------------------------
+   *  Newton iterations on the roots of  P_n^{(alpha,beta)}
+   * ------------------------------------------------------------------ */
+  const double PI = std::acos(-1.0);
+  for (UInt k = 0; k < n; ++k)
+  {
+      /* initial guess from Sturm sequence (Szegö, §6.63) */
+      double theta = (4.0*k + 3.0 + alpha - beta) * PI /
+                     (4.0*n + 2.0*alpha + 2.0*beta + 2.0);
+      double xi = std::cos(theta);
+
+      /* Newton refine */
+      for (unsigned it = 0; it < 60; ++it)
+      {
+          double Pn, dPn;
+          JacobiP_WithDerivative(n, alpha, beta, xi, Pn, dPn);
+          double dx = -Pn / dPn;
+          xi += dx;
+          if (std::abs(dx) < 1e-14) break;
+      }
+
+      x[k] = xi;
+      /* first component of the normalised eigen‑vector equivalently:
+       *  z_k = 1 / sqrt( \sum_{j=0}^{n} P_j(x_k)^2 / (2j + a + b + 1) )
+       * for Gauss rules it simplifies to:
+       */
+      double Pn, dPn;
+      JacobiP_WithDerivative(n, alpha, beta, xi, Pn, dPn);
+      z[k] = 1.0 / std::sqrt( dPn * dPn *
+               ( (2.0*n + alpha + beta + 1.0) /
+                 (2.0*(1.0 - xi*xi)) ) );   // see Gautschi, §4.4
+  }
+
+  double c = std::pow(2.0, alpha+beta+1.0)
+             * std::tgamma(alpha+1.0) * std::tgamma(beta+1.0)
+             / std::tgamma(alpha+beta+2.0);
+
+  for (UInt k = 0; k < n; ++k)
+      w[k] = c * z[k] * z[k];
 }
 
 void IntScheme::DefineIntPoints( Elem::ShapeType shapeType,
@@ -1659,209 +1761,121 @@ void IntScheme::DefineWedgePoints( IntegMethod method, const IntegOrder& order,
   }
 }
 
+/* ====================================================================== */
+/*  3‑D pyramid: Gauss rules of arbitrary order                           */
+/* ====================================================================== */
 void IntScheme::DefinePyraPoints( IntegMethod method, const IntegOrder& order,
-                                  StdVector<LocPoint>& points, 
-                                  StdVector<Double>& weights ) {
-  // Note: currently we only have one set of integration points,
-  // namely the Gauss method. In case the economical variant is
-  // requested, we return the standard method, until we might have
-  // the version of Segeth / Dolezel.
-  if (method == GAUSS  || method == GAUSS_ECO ) {
-    // -----------------------------
-    // GAUSS - Legendre Points
-    // -----------------------------
+                                  StdVector<LocPoint>& points,
+                                  StdVector<Double>& weights )
+{
+  if ( method != GAUSS && method != GAUSS_ECO )
+    EXCEPTION( "Integration points of method "
+               << IntegMethodEnum.ToString( method )
+               << " not defined for 3D pyramid elements" );
 
-    // some helper variables
-    std::map<UInt, std::vector<Double> > x, b, u_gauss, w;
-    std::vector<Double> pyraPoints;
-    UInt ord = 0;
-    UInt orderCube = 0;
-
-    static Double c2[][4] = 
+  // ---------- hard‑coded rules for p = 1 … 4 (old Montjoie tables) ------
+  UInt isoOrder = order.GetMaxOrder();
+  if ( isoOrder <= 4 )
+  {
+    // --- p = 1 ----------------------------------------------------------
+    if ( isoOrder == 1 )
     {
-      {0.0,  0.0,  0.25,  4.0/3.0},
-    };
-    Double z1 = (35 - 2 * sqrt(35.0)) / 140; // z1 = 0.16548457452714834224903816726341
-    Double z0 = (25 - (84 * z1) ) / 16; // z0 = 0.59027812465300348928690076732747
-    Double fac1 = sqrt(5.0 / 21.0); // fac1 = 0.48795003647426658967719231812005
-    Double w1 = 7.0 / 25.0; // w = 0.28
-    static Double c3[][4] = 
+      static Double c1[][4] = { { 0.0, 0.0, 0.25, 8.0 / 3.0 } };
+      Convert( Elem::ST_PYRA, 1, reinterpret_cast<Double*>( c1 ),
+               points, weights );
+      return;
+    }
+
+    // --- p = 2 ----------------------------------------------------------
+    if ( isoOrder == 2 )
     {
-      {  0.0,    0.0,  z0,  16.0/75.0},
-      {-fac1,  -fac1,  z1,  w1},
-      { fac1,  -fac1,  z1,  w1},
-      { fac1,   fac1,  z1,  w1},
-      {-fac1,   fac1,  z1,  w1}
-    };
-    fac1 = sqrt(4.0 / 27.0);
-    z0 = 1.0 / 6.0;
-    z1 = 1.0 / 4.0;
-    w1 = 9.0 / 20.0;
-    static Double c4[][4] = 
+      static Double c2[][4] =
+      {
+        { 0.0, 0.0, 0.25,     4.0 / 3.0 }
+      };
+      Convert( Elem::ST_PYRA, 1, reinterpret_cast<Double*>( c2 ),
+               points, weights );
+      return;
+    }
+
+    // --- p = 3 ----------------------------------------------------------
+    if ( isoOrder == 3 )
     {
-      {  0.0,    0.0,  0.5,  3.0/5.0},
-      {-fac1,  -fac1,  z0,  w1},
-      { fac1,  -fac1,  z0,  w1},
-      { fac1,   fac1,  z0,  w1},
-      {-fac1,   fac1,  z0,  w1},
-      {  0.0,    0.0,  z1,  -16.0/15.0},
-    };
+      const double z1  = (35.0 - 2.0 * std::sqrt( 35.0 )) / 140.0;
+      const double z0  = (25.0 - 84.0 * z1) / 16.0;
+      const double f1  = std::sqrt( 5.0 / 21.0 );
+      const double w0  = 16.0 / 75.0;
+      const double w1  =  7.0 / 25.0;
 
-    // Note: currently we do not care about non-isotropic integration order,
-    // so we only take the maximum.
-    UInt isoOrder = order.GetMaxOrder();
+      static Double c3[][4] =
+      {
+        { 0.0,    0.0,  z0,  w0 },
+        { -f1,   -f1,  z1,  w1 },
+        {  f1,   -f1,  z1,  w1 },
+        {  f1,    f1,  z1,  w1 },
+        { -f1,    f1,  z1,  w1 }
+      };
+      Convert( Elem::ST_PYRA, 5, reinterpret_cast<Double*>( c3 ),
+               points, weights );
+      return;
+    }
 
-    switch( isoOrder ) {
+    // --- p = 4 ----------------------------------------------------------
+    if ( isoOrder == 4 )
+    {
+      const double f1 = std::sqrt( 4.0 / 27.0 );
+      static Double c4[][4] =
+      {
+        {  0.0,  0.0, 0.5,  3.0/5.0 },
+        { -f1, -f1, 1.0/6.0,  9.0/20.0 },
+        {  f1, -f1, 1.0/6.0,  9.0/20.0 },
+        {  f1,  f1, 1.0/6.0,  9.0/20.0 },
+        { -f1,  f1, 1.0/6.0,  9.0/20.0 },
+        {  0.0,  0.0, 1.0/4.0, -16.0/15.0 }
+      };
+      Convert( Elem::ST_PYRA, 6, reinterpret_cast<Double*>( c4 ),
+               points, weights );
+      return;
+    }
+  }
 
-      case 1:
-        Convert(Elem::ST_PYRA, 1, (Double*)c2, points, weights);
-        break;
+  // ---------- generic tensor‑product rule for any p ≥ 1 -----------------
+  {
+    // 1‑D Gauss–Legendre for xi, eta
+    StdVector<Double> legPts, legWts;
+    CalcGaussLegendrePointsWeights( isoOrder, legPts, legWts );
 
-      case 2:
-        Convert(Elem::ST_PYRA, 5, (Double*)c3, points, weights);
-        break;
+    // 1‑D Gauss–Jacobi (alpha=2, beta=0) for tau on (‑1,1)
+    StdVector<Double> jacPts, jacWts;
+    CalcGaussJacobiPointsWeights( isoOrder, jacPts, jacWts, 2.0, 0.0 );
 
-      case 3:
-        Convert(Elem::ST_PYRA, 6, (Double*)c4, points, weights);
-        break;
+    const UInt nPts = isoOrder * isoOrder * isoOrder;
+    points.Resize( nPts );
+    weights.Resize( nPts );
 
-      case 4:
-      case 5:
-      case 6:
-        
-        // hard-coded change: if integration order
-        // 6 is requested for an element, we simply
-        // use 5 internally
-        if (isoOrder == 6 )
-          isoOrder = 5;
-        
-        // order 4 and 5 are given in one loop
-        //std::map<UInt, std::vector<Double> > x, b, u_gauss, w;
-        ord = 2;
-        x[ord].resize(ord);
-        x[ord][0] = 0.455848155988775;
-        x[ord][1] = 0.877485177344559;
+    UInt pos = 0;
+    for ( UInt k = 0; k < isoOrder; ++k )
+    {
+      const double s  = jacPts[k];           // (-1,1)
+      const double wtau = jacWts[k];
+      const double tau  = 0.5 * ( s + 1.0 );   // map -> (0,1)
+      const double J  = 0.25 * ( 1.0 - tau ) * ( 1.0 - tau );
 
-        b[ord].resize(ord);
-        b[ord][0] = 0.100785882079825;
-        b[ord][1] = 0.232547451253508;
+      for ( UInt j = 0; j < isoOrder; ++j )
+        for ( UInt i = 0; i < isoOrder; ++i )
+        {
+          LocPoint lp;
+          lp.coord.Resize( 3 );
+          lp.coord[0] = legPts[i] * ( 1.0 - tau );  // xhat
+          lp.coord[1] = legPts[j] * ( 1.0 - tau );  // yhat
+          lp.coord[2] = tau;                        // zhat
 
-        u_gauss[ord].resize(ord);
-        u_gauss[ord][0] = -std::sqrt(1.0/3.0);
-        u_gauss[ord][1] = -u_gauss[ord][0];
-
-        w[ord].resize(ord);
-        w[ord][0] = 1.0;
-        w[ord][1] = 1.0;
-
-        ord = 3;
-        x[ord].resize(ord);
-        x[ord][0] = 0.294997790111502;
-        x[ord][1] = 0.652996233961648;
-        x[ord][2] = 0.927005975926850;
-
-        b[ord].resize(ord);
-        b[ord][0] = 0.029950703008581;
-        b[ord][1] = 0.146246269259866;
-        b[ord][2] = 0.157136361064887;
-
-        u_gauss[ord].resize(ord);
-        u_gauss[ord][0] = -std::sqrt(3.0/5.0);
-        u_gauss[ord][1] =  0.0;
-        u_gauss[ord][2] = -u_gauss[ord][0];
-
-        w[ord].resize(ord);
-        w[ord][0] = 5.0 / 9.0;
-        w[ord][1] = 8.0 / 9.0;
-        w[ord][2] = 5.0 / 9.0;
-
-        ord = 4;
-        x[ord].resize(ord);
-        x[ord][0] = 0.204148582103227;
-        x[ord][1] = 0.482952704895632;
-        x[ord][2] = 0.761399262448138;
-        x[ord][3] = 0.951499450553003;
-
-        b[ord].resize(ord);
-        b[ord][0] = 0.010352240749918;
-        b[ord][1] = 0.068633887172923;
-        b[ord][2] = 0.143458789799214;
-        b[ord][3] = 0.110888415611278;
-
-        u_gauss[ord].resize(ord);
-        u_gauss[ord][0] = -0.861136311594053;
-        u_gauss[ord][1] = -0.339981043584856;
-        u_gauss[ord][2] = -u_gauss[ord][1];
-        u_gauss[ord][3] = -u_gauss[ord][0];
-
-        w[ord].resize(ord);
-        w[ord][0] = 0.347854845137454;
-        w[ord][1] = 0.652145154862546;
-        w[ord][2] = w[ord][1];
-        w[ord][3] = w[ord][0];
-
-        ord = 5;
-        x[ord].resize(ord);
-        x[ord][0] = 0.148945787052984;
-        x[ord][1] = 0.365666527369113;
-        x[ord][2] = 0.610113612934481;
-        x[ord][3] = 0.826519679228305;
-        x[ord][4] = 0.965421060081785;
-
-        b[ord].resize(ord);
-        b[ord][0] = 0.004113825203099;
-        b[ord][1] = 0.032055600722962;
-        b[ord][2] = 0.089200161221590;
-        b[ord][3] = 0.126198961899911;
-        b[ord][4] = 0.081764784285771;
-
-        u_gauss[ord].resize(ord);
-        u_gauss[ord][0] = -0.906179845938664;
-        u_gauss[ord][1] = -0.538469310105683;
-        u_gauss[ord][2] = 0.0;
-        u_gauss[ord][3] = -u_gauss[ord][1];
-        u_gauss[ord][4] = -u_gauss[ord][0];
-
-        w[ord].resize(ord);
-        w[ord][0] = 0.236926885056189;
-        w[ord][1] = 0.478628670499366;
-        w[ord][2] = 0.568888888888889;
-        w[ord][3] = w[ord][1];
-        w[ord][4] = w[ord][0];
-        
-        // We already have order 3 points from above so let's start at order 4.
-        orderCube = isoOrder*isoOrder*isoOrder;
-        pyraPoints.resize(orderCube * 4);
-
-        // std::cout << "Int points for order " << order << ":" << std::endl << std::endl;
-        for(UInt uz=0; uz < isoOrder; uz++) {
-          UInt idx_z = uz*isoOrder*isoOrder*4;
-          for(UInt gpy=0; gpy < isoOrder; gpy++) {
-            UInt idx_y = idx_z + gpy*isoOrder*4;
-            for(UInt gpx=0; gpx < isoOrder; gpx++) {
-              UInt idx_x = idx_y + gpx * 4;
-
-              pyraPoints[idx_x+0] = u_gauss[isoOrder][gpx] * x[isoOrder][uz];
-              pyraPoints[idx_x+1] = u_gauss[isoOrder][gpy] * x[isoOrder][uz];
-              pyraPoints[idx_x+2] = 1 - x[isoOrder][uz];
-              pyraPoints[idx_x+3] = w[isoOrder][gpx] * w[isoOrder][gpy] * b[isoOrder][uz];
-
-              // std::cout << pyraPoints[order][idx_x+0] <<", "<< pyraPoints[order][idx_x+1] <<", "<< pyraPoints[order][idx_x+2] <<", "<< pyraPoints[order][idx_x+3] <<", " << std::endl;
-            }
-          }
+          points[pos]  = lp;
+          weights[pos] = legWts[i] * legWts[j] * wtau * J;
+          ++pos;
         }
-        Convert(Elem::ST_PYRA, orderCube, (Double*) &pyraPoints[0], points, weights);
-        break;
-
-      default:
-        EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
-                   << " only defined up to order 5 for 3D pyra elements" );
-        break;
-    } // switch
-  } else {
-    EXCEPTION( "Integration points of method " << IntegMethodEnum.ToString(method)
-               << " not defined for 3D pyra elements" );
-  } 
+    }
+  }
 }
 
 

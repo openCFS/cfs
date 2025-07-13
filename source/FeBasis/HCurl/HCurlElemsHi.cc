@@ -786,6 +786,10 @@ void FeHCurlHiHex::CalcNumUnknowns() {
     edgeFncs[i] = unknowns;
     LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
     actNumFncs_ += unknowns;
+    // std::cout << "[HEX] edge " << i
+    //   << "  order=" << orderEdge_[i]
+    //   << "  grad="  << (useEdgeGrad_[i] ? "yes" : "no")
+    //   << "  -> "    << i << " DOFs\n";
   }
 
   // Faces
@@ -804,6 +808,10 @@ void FeHCurlHiHex::CalcNumUnknowns() {
       LOG_DBG(feHCurlHi) << "face " << i+1 << " has " << unknowns << "unknowns";
       actNumFncs_ += unknowns;
     }
+    // std::cout << "[HEX] face " << i
+    // << "  orders=(" << orderFace_[i][0] << "," << orderFace_[i][1] << ")"
+    // << "  grad="    << (useFaceGrad_[i] ? "yes" : "no")
+    // << "  -> "      << unknowns << " DOFs\n";
   }
 #endif
 
@@ -1080,6 +1088,14 @@ for( UInt n = 0; n < 3; ++n ) {  \
   shape[n][pos] = xpr[n];        \
   }                              \
 pos++;
+
+
+#undef  COPYSHFNC_DBG
+#define COPYSHFNC_DBG(TAG)         \
+    { std::cout << "[Pyra] " << TAG \
+                << " -> local pos " << pos << std::endl; \
+      COPYSHFNC }
+
 
 template<FeHCurlHiHex::DiffType DIFF_TYPE>
 void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& lpm,
@@ -2364,6 +2380,10 @@ void FeHCurlHiTet::CalcNumUnknowns() {
      edgeFncs[i] = unknowns;
      LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
      actNumFncs_ += unknowns;
+      //    std::cout << "[TET] edge " << i
+      // << "  order=" << orderEdge_[i]
+      // << "  grad="  << (useEdgeGrad_[i] ? "yes" : "no")
+      // << "  -> "    << i << " DOFs\n";
    }
 
    // Faces
@@ -2404,7 +2424,10 @@ void FeHCurlHiTet::CalcNumUnknowns() {
     faceFncs[iFace] = unknowns;
     LOG_DBG(feHCurlHi) << "face " << iFace+1 << " has " << unknowns << "unknowns";
     actNumFncs_ += unknowns;
-
+    // std::cout << "[TET] face " << iFace
+    // << "  orders=(" << orderFace_[iFace][0] << "," << orderFace_[iFace][1] << ")"
+    // << "  grad="    << (useFaceGrad_[iFace] ? "yes" : "no")
+    // << "  -> "      << unknowns << " DOFs\n";
   } //loop over all faces
 #endif
 
@@ -2461,214 +2484,327 @@ void FeHCurlHiTet::CalcNumUnknowns() {
 //  Pyramidal element
 // =======================
 
-FeHCurlHiPyra::FeHCurlHiPyra() : FeHCurlHi( Elem::ET_PYRA5) {
+FeHCurlHiPyra::FeHCurlHiPyra() : FeHCurlHi(Elem::ET_PYRA5) {}
 
-}
+FeHCurlHiPyra::~FeHCurlHiPyra() {}
 
-FeHCurlHiPyra::~FeHCurlHiPyra() {
-
-}
-
-void FeHCurlHiPyra::GetShFnc( Matrix<Double>& shape, 
+void FeHCurlHiPyra::GetShFnc(Matrix<Double>& shape,
                              const LocPointMapped& lpm,
-                             const Elem* elem, UInt comp ) {
-  
-  Matrix<Double> locShape;
-  CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
-
-  // Perform local->global gradient transformation
-  shape =  Transpose(lpm.jacInv) * locShape;
+                             const Elem* elem,
+                             UInt comp)
+{
+    Matrix<Double> locShape;
+    CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
+    shape = Transpose(lpm.jacInv) * locShape;   // local -> global
 }
 
-void FeHCurlHiPyra::GetCurlShFnc( Matrix<Double>& curl, 
+void FeHCurlHiPyra::GetCurlShFnc(Matrix<Double>& curl,
                                  const LocPointMapped& lpm,
-                                 const Elem* elem, UInt comp ) {
-
-  Matrix<Double> locCurl;    
-  CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
-  
-  // Perform local->global curl transformation
-  curl = lpm.jac * locCurl;
-  curl *= ( 1.0 / std::fabs(lpm.jacDet) );
+                                 const Elem* elem,
+                                 UInt comp)
+{
+    Matrix<Double> locCurl;
+    CalcLocShFnc2<CURL>(locCurl, lpm, elem, comp);
+    curl  = lpm.jac * locCurl;                  // local -> global
+    curl *= 1.0 / std::fabs(lpm.jacDet);
 }
 
-template<FeHCurlHi::DiffType DIFF_TYPE>
-void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape, 
+void FeHCurlHiPyra::CalcNumUnknowns()
+{
+  /* ------- vertex & edge counts  ---------------- */
+  actNumFncs_ = 0;
+  StdVector<UInt> &v  = entityFncs_[VERTEX],
+                  &e  = entityFncs_[EDGE],
+                  &f  = entityFncs_[FACE],
+                  &in = entityFncs_[INTERIOR];
+
+  v.Resize(shape_.numVertices); v.Init(0);
+  e.Resize(shape_.numEdges);
+  f.Resize(shape_.numFaces);    f.Init(0);
+  in.Resize(1);                 in.Init(0);
+
+  for (UInt k=0;k<shape_.numEdges;++k) {
+    UInt n = 1 + (useEdgeGrad_[k] ? orderEdge_[k] : 0);
+    e[k]   = n;  actNumFncs_ += n;
+    // std::cout << "[Pyra] edge " << k
+    //       << "  order=" << orderEdge_[k]
+    //       << "  grad="  << (useEdgeGrad_[k] ? "yes" : "no")
+    //       << "  -> "    << n << " DOFs\n";
+  }
+
+  /* ------- faces : Montjoie “Hp first family” --------------------- */
+  for (UInt i = 0; i < shape_.numFaces; ++i)
+  {
+      UInt n = 0;
+
+      /* face 0 is the square base ----------------------------------- */
+      if (i == 0)
+      {
+          UInt p1 = orderFace_[0][0],  p2 = orderFace_[0][1];      // isotropic ⇒ p1==p2
+          if (p1 > 0 && p2 > 0)
+          {
+              /* type-II + type-III for a quad face */
+              n  = p1 * p2                /* type-II  */
+                + p1 + p2;               /* type-III */
+              if (useFaceGrad_[0])        /* type-I   */
+                  n += p1 * p2;
+          }
+      }
+      /* faces 1-4 are triangular ------------------------------------ */
+      else
+      {
+          UInt p = orderFace_[i][0];                       // isotropic
+          if (p >= 2)
+          {
+            UInt nTypeIII = p - 1;                 // edge-attached
+            UInt nTypeII  = (p - 1) * p / 2;       // rot-grad
+            n      = nTypeIII + nTypeII;
+
+            if (useFaceGrad_[i])                   // optional gradients
+                n += nTypeII;               // same count as type II
+          }
+      }
+
+      entityFncs_[FACE][i] = n;
+      actNumFncs_         += n;
+      // std::cout << "[Pyra] face " << i
+      //     << "  orders=(" << orderFace_[i][0] << "," << orderFace_[i][1] << ")"
+      //     << "  grad="    << (useFaceGrad_[i] ? "yes" : "no")
+      //     << "  -> "      << n << " DOFs\n";
+  }
+
+  /* ------- interior bubbles (hp first family) -------------------- */
+  UInt p = orderInner_[0];
+  if (p>=3) {
+    UInt n = 0;
+    if (useInteriorGrad_)          n += (p-2)*(p-1)*p/6;   // grad family
+                                   n += (p-2)*(p-1)*p/3;   // curl family
+                                   n += (p-2)*(p-1);       // div-free
+    in[0] = n;  actNumFncs_ += n;
+  }
+
+  // std::cout << "[Pyra] total DOFs on element = "
+  //         << actNumFncs_ << std::endl;
+}
+
+/* ================================================================= */
+/*   Local shapes (grad / curl) –  Hp First-Family of Montjoie       */
+/* ================================================================= */
+template<FeHCurlHi::DiffType DIFF>
+void FeHCurlHiPyra::CalcLocShFnc2(Matrix<Double>& shape,
                                   const LocPointMapped& lpm,
-                                  const Elem* elem, UInt comp )
+                                  const Elem* elem, UInt)     /* comp ignored */
 {
   if (updateUnknowns_) CalcNumUnknowns();
 
-  /* reference coordinates */
-  AutoDiff<Double,3> x(lpm.lp.coord[0],0);
-  AutoDiff<Double,3> y(lpm.lp.coord[1],1);
-  AutoDiff<Double,3> z(lpm.lp.coord[2],2);      // z in [0,1]
+  /* reference coordinates -------------------------------------------------- */
+  AutoDiff<Double,3> x(lpm.lp.coord[0],0),
+                     y(lpm.lp.coord[1],1),
+                     z(lpm.lp.coord[2],2);                // z in [0,1]
 
-  /* CFS barycentric coordinates (Zaglmayr) */
-  AutoDiff<Double,3> λ[5] =
-  {
-    0.25*((1+x)*(1+y) - z + (x*y*z)/(1-z)),
-    0.25*((1-x)*(1+y) - z - (x*y*z)/(1-z)),
-    0.25*((1-x)*(1-y) - z + (x*y*z)/(1-z)),
-    0.25*((1+x)*(1-y) - z - (x*y*z)/(1-z)),
-    z
-  };
+  /* Zaglmayr barycentrics lambda0…lambda4 on the infinite pyramid ------------------- */
+  AutoDiff<Double,3> lambda[5] = {
+      0.25*((1.0 + x)*(1.0 + y) - z + (x*y*z)/(1.0 - z)),
+      0.25*((1.0 - x)*(1.0 + y) - z - (x*y*z)/(1.0 - z)),
+      0.25*((1.0 - x)*(1.0 - y) - z + (x*y*z)/(1.0 - z)),
+      0.25*((1.0 + x)*(1.0 - y) - z - (x*y*z)/(1.0 - z)),
+      z };
 
-  shape.Resize(3,actNumFncs_);
+  shape.Resize(3, actNumFncs_);
   shape.Init();
   UInt pos = 0;
-  StdVector<AutoDiff<Double,3>> buf;
 
-  /* ---------- edges ---------- */
+  // std::cout << "\n[Pyra] ---- CalcLocShFnc2 ("
+  //       << (DIFF == ID ? "ID" : "CURL") << ") ----\n";
+  UInt dbgStart = pos;   // pos is 0 here
+
+  /* ===========================================================
+   * 1. Edges  (lowest-order    +   Legendre edge bubbles)
+   * ===========================================================*/
+  StdVector<AutoDiff<Double,3>> P1;
   for (UInt e=0;e<shape_.numEdges;++e)
   {
-    UInt a = shape_.edgeVertices[e][0]-1;
-    UInt b = shape_.edgeVertices[e][1]-1;
-    if (elem->extended->edges[e]<0) std::swap(a,b);
+    UInt a = shape_.edgeVertices[e][0]-1,
+         b = shape_.edgeVertices[e][1]-1;
+    if (elem->extended->edges[e] < 0) std::swap(a,b);
 
-    /* lowest-order mode */
-    if (e<4)  /* base edge */
-      COPYSHFNC( Xpr_Diff_SVGradU<3,DIFF_TYPE>(λ[a],λ[b],λ[a]+λ[b]) )
-    else       /* vertical edge */
-      COPYSHFNC( Xpr_SGradU<3,DIFF_TYPE>(λ[a],λ[b]) )
+    /* lowest order (same as Montjoie Phi_e^0) */
+    Xpr_Diff_SVGradU<3,DIFF> xpr( lambda[a], lambda[b], lambda[a]+lambda[b] );
+    //COPYSHFNC_DBG("edge")
+    COPYSHFNC
 
-    /* edge bubbles */
-    if (useEdgeGrad_[e] && !onlyLowestOrder_)
+    /* higher-order bubbles : (lambda_a+lambda_b) P_n(t) grad(lambda_a−lambda_b) */
+    if (useEdgeGrad_[e] && orderEdge_[e]>=1 && !onlyLowestOrder_)
     {
-      UInt p = orderEdge_[e];               // p = 2 here
-      if (e<4)
-        ScaledIntLegendreP2(buf,p+1, λ[a]+λ[b], λ[b]-λ[a]);
-      else
-        IntLegendreP2(buf,p+1, 2.0*λ[b]-1.0);
+      ScaledIntLegendreP2(P1, orderEdge_[e]+1,
+                          lambda[a]+lambda[b], lambda[b]-lambda[a]);
+      for (UInt k=0;k<orderEdge_[e];++k) {
+        Xpr_GradU<3,DIFF> xpr( (lambda[a]+lambda[b]) * P1[k] );  
+        //COPYSHFNC_DBG("edge")
+        COPYSHFNC
+      }
+    }
+  }
+  if (onlyLowestOrder_) return;
 
-      for (UInt j=0;j<p;++j)
+  /* helper to reorder the four lateral faces w.r.t. local flags */
+  auto sortedFace = [&](UInt f)->StdVector<UInt>{
+      const StdVector<UInt>& u = shape_.faceVertices[f];
+      StdVector<UInt> idx;  Face::GetSortedIndices(idx,u,u.GetSize(),elem->extended->faceFlags[f]); return idx;};
+
+  /* ===========================================================
+   * 2. Faces (Hp-first-family)
+   *    – Triangular lateral faces (f=0…3)
+   * ===========================================================*/
+  StdVector<AutoDiff<Double,3>> Ui,Vj;
+  for (UInt f=1;f<5;++f)
+  {
+    UInt p = orderFace_[f][0];
+    if (p<2) continue;
+    auto ind = sortedFace(f);             // [v0 v1 v2]
+   
+    ScaledIntLegendreP2(Ui, p+1, lambda[ind[0]]+lambda[ind[1]], lambda[ind[1]]-lambda[ind[0]]);
+    StdVector<AutoDiff<Double,3>> tmp;
+    ScaledLegendre(tmp, p+1, lambda[ind[0]]+lambda[ind[1]]+lambda[ind[2]],
+                          2.0*lambda[ind[2]]-(lambda[ind[0]]+lambda[ind[1]]));
+    Vj.Resize(p);
+    for (UInt j=0;j<p;++j) Vj[j] = lambda[ind[2]]*tmp[j];
+
+    /* grad-fields (type I) */
+    if constexpr (DIFF == ID)               // build gradients only for ID
+    {
+      if (useFaceGrad_[f]) {
+        for (UInt i = 0; i < p-1; ++i)
+          for (UInt j = 0; j < p-1-i; ++j) {
+            Xpr_GradU<3,ID> xpr(Ui[i] * Vj[j]);
+            //COPYSHFNC_DBG("tri-face")
+            COPYSHFNC
+          }
+      }
+    }
+
+    /* rot-grad (type II) */
+    for (UInt i=0;i<p-1;++i){
+      for (UInt j=0;j<p-1-i;++j){
+        Xpr_Diff_VGradU<3,DIFF> xpr( Ui[i], Vj[j] );  
+        //COPYSHFNC_DBG("tri-face")
+        COPYSHFNC
+      }
+    }
+
+    /* edge attached (type III) */
+    for (UInt j=0;j<p-1;++j){
+      Xpr_Diff_SVGradU<3,DIFF> xpr( lambda[ind[0]], lambda[ind[1]], Vj[j] );  
+      //COPYSHFNC_DBG("tri-face")
+      COPYSHFNC
+    }
+  }
+
+  /* ===========================================================
+   * 3. Base quadrilateral face  (f=4) – two-direction tensor basis
+   * ===========================================================*/
+  {
+    UInt p = orderFace_[4][0];
+    if (p>=1)
+    {
+      auto ind = sortedFace(0);           // [v0 v1 v2 v3] – v2 opposite v0
+
+      AutoDiff<Double,3> xi = lambda[ind[1]] - lambda[ind[0]],
+                         eta = lambda[ind[3]] - lambda[ind[0]],
+                         zeta = lambda[ind[0]]+lambda[ind[1]]+lambda[ind[2]]+lambda[ind[3]]; // == 1-z
+      StdVector<AutoDiff<Double,3>> Lzeta,Leta;
+      ScaledIntLegendreP2(Lzeta,p+1, lambda[ind[0]]+lambda[ind[1]], xi);
+      ScaledIntLegendreP2(Leta,p+1, lambda[ind[0]]+lambda[ind[3]], eta);
+
+      /* grad fields */
+      if constexpr (DIFF == ID)
       {
-        AutoDiff<Double,3> w = (e<4) ? buf[j] : buf[j]*(λ[a]+λ[b]);
-        COPYSHFNC( Xpr_GradU<3,DIFF_TYPE>(w) )
+        if (useFaceGrad_[4]) {
+          for (UInt i = 0; i < p-1; ++i)
+            for (UInt j = 0; j < p-1; ++j) {
+              Xpr_GradU<3,ID> xpr(Lzeta[i] * Leta[j]);
+              //COPYSHFNC_DBG("base-quad")
+              COPYSHFNC
+            }
+        }
+      }
+
+      /* rot-grad */
+      for (UInt i=0;i<p-1;++i){
+        for (UInt j=0;j<p-1;++j){
+          Xpr_Diff_VGradU<3,DIFF> xpr( Lzeta[i], Leta[j] );  
+          //COPYSHFNC_DBG("base-quad")
+          COPYSHFNC
+        }
+      }
+
+      /* div-free (eta- and xi-attached) */
+      for (UInt i=0;i<p-1;++i){
+        Xpr_Diff_SVGradU<3,DIFF> xpr( lambda[ind[0]], lambda[ind[1]], Lzeta[i] );  
+        //COPYSHFNC_DBG("base-quad")
+        COPYSHFNC
+      }
+      for (UInt j=0;j<p-1;++j){
+        Xpr_Diff_SVGradU<3,DIFF> xpr( lambda[ind[0]], lambda[ind[3]], Leta[j] );  
+        //COPYSHFNC_DBG("base-quad")
+        COPYSHFNC
       }
     }
   }
 
-  if (onlyLowestOrder_) return;
-
-  /* ---------- base quad face (index 0) ---------- */
+  /* ===========================================================
+   * 4. Interior bubbles (hp first-family, p≥3)
+   * ===========================================================*/
   {
-    UInt p = orderFace_[0][0], q = orderFace_[0][1];
-    if (p>0 && q>0)
+    UInt p = orderInner_[0];
+    if (p>=3)
     {
-      UInt v0=0,v1=1,v3=3;
-      StdVector<AutoDiff<Double,3>> ui,vj;
-      ScaledIntLegendreP2(ui,p+1, λ[v1]+λ[v0], λ[v1]-λ[v0]);
-      ScaledIntLegendreP2(vj,q+1, λ[v3]+λ[v0], λ[v3]-λ[v0]);
+      StdVector<AutoDiff<Double,3>> Li,Lj,Lk;
+      ScaledIntLegendreP2(Li,p+1, lambda[0]+lambda[1], lambda[1]-lambda[0]);  // in-plane
+      ScaledLegendre(Lj,p+1, lambda[0]+lambda[1]+lambda[2], 2.0*lambda[2]-(lambda[0]+lambda[1]));
+      StdVector<AutoDiff<Double,3>> tmp;
+      Legendre(tmp,p+1, 2.0*lambda[4]-1.0);                    // vertical
+      Lk.Resize(p); for(UInt k=0;k<p;++k) Lk[k]=lambda[4]*tmp[k];
 
-      if (useFaceGrad_[0])
-        for (UInt i=0;i<p;++i)
-          for (UInt j=0;j<q;++j)
-            COPYSHFNC( Xpr_GradU<3,DIFF_TYPE>(ui[i]*vj[j]) )
+      /* grad-type */
+      if constexpr (DIFF == ID)
+      {
+        if (useInteriorGrad_) {
+          for (UInt i = 0; i < p-2; ++i)
+            for (UInt j = 0; j < p-2-i; ++j)
+              for (UInt k = 0; k < p; ++k) {
+                Xpr_GradU<3,ID> xpr(Li[i] * Lj[j] * Lk[k]);
+                COPYSHFNC
+              }
+        }
+      }
 
-      for (UInt i=0;i<p;++i)
-        for (UInt j=0;j<q;++j)
-          COPYSHFNC( Xpr_Diff_VGradU<3,DIFF_TYPE>(ui[i],vj[j]) )
+      /* curl-type */
+      for(UInt i=0;i<p-2;++i){
+        for(UInt j=0;j<p-2-i;++j){
+          for(UInt k=0;k<p;++k)
+          {
+            Xpr_Diff_VGradU<3,DIFF> xpr( Li[i],  Lj[j]*Lk[k] );
+            COPYSHFNC
+          }
+          for(UInt k=0;k<p;++k)
+          {
+            Xpr_Diff_VGradU<3,DIFF> xpr( Lj[j], Li[i]*Lk[k] );
+            COPYSHFNC
+          }
+        }
+      }
 
-      for (UInt j=0;j<q;++j)
-        COPYSHFNC( Xpr_Diff_SVGradU<3,DIFF_TYPE>(λ[v0],λ[v1],vj[j]) )
-      for (UInt i=0;i<p;++i)
-        COPYSHFNC( Xpr_Diff_SVGradU<3,DIFF_TYPE>(λ[v0],λ[v3],ui[i]) )
+      /* div-free */
+      for(UInt j=0;j<p-2;++j) for(UInt k=0;k<p;++k){
+        Xpr_Diff_SVGradU<3,DIFF> xpr( lambda[0], lambda[1], Lj[j]*Lk[k] );  
+        COPYSHFNC
+      }
     }
   }
 
-  /* ---------- four triangular side faces ---------- */
-  for (UInt f=1;f<5;++f)
-  {
-    UInt p = orderFace_[f][0];
-    if (p<=1) continue;
-
-    UInt v0 = shape_.faceVertices[f][0]-1;
-    UInt v1 = shape_.faceVertices[f][1]-1;
-    UInt apex = 4;
-
-    StdVector<AutoDiff<Double,3>> ui,leg,vj;
-    ScaledIntLegendreP2(ui,p+1, λ[v0]+λ[v1], λ[v1]-λ[v0]);
-    Legendre(leg,p+1, 2.0*λ[apex]-1.0);
-    vj.Resize(p);
-    for (UInt j=0;j<p;++j) vj[j] = λ[apex]*leg[j];
-
-    if (useFaceGrad_[f])
-      for (UInt i=0;i<=p-2;++i)
-        for (UInt j=0;j<=p-2-i;++j)
-          COPYSHFNC( Xpr_GradU<3,DIFF_TYPE>(ui[i]*vj[j]) )
-
-    for (UInt i=0;i<=p-2;++i)
-      for (UInt j=0;j<=p-2-i;++j)
-        COPYSHFNC( Xpr_Diff_SVGradU<3,DIFF_TYPE>(ui[i],vj[j],λ[v0]+λ[v1]) )
-
-    for (UInt j=0;j<=p-2;++j)
-      COPYSHFNC( Xpr_Diff_SVGradU<3,DIFF_TYPE>(λ[v0],λ[v1],vj[j]) )
-  }
-
-  /* interior modes start at p ≥ 3 – not needed for p = 2 */
-}
-
-void FeHCurlHiPyra::CalcNumUnknowns() {
-  actNumFncs_ = 0;
-
-   // Vertices 
-   StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
-   vertFncs.Resize(shape_.numVertices);
-   vertFncs.Init(0); // -> no unknowns on vertices
-
-   // Edges
-   StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
-   edgeFncs.Resize(shape_.numEdges);
-   UInt unknowns = 0;
-   for( UInt i = 0; i < shape_.numEdges; ++i ) {
-    unknowns = 1;                             // lowest-order
-    if (useEdgeGrad_[i] && !onlyLowestOrder_)
-        unknowns += orderEdge_[k];                 // edge bubbles
-    edgeFncs[k] = unknowns;
-    actNumFncs_ += unknowns;
-    LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
-   }
-
-
-  
-   // Faces
-  StdVector<UInt>& f = entityFncs_[FACE];
-  f.Resize(shape_.numFaces);
-  f.Init(0);
-
-  /* base quad is face 0 */
-  {
-    UInt p = orderFace_[0][0];
-    UInt q = orderFace_[0][1];
-    if (p>0 && q>0)
-    {
-      UInt n = p*q + p + q;                 // first-kind
-      if (useFaceGrad_[0]) n += p*q;        // gradients
-      f[0] = n;   actNumFncs_ += n;
-    }
-  }
-
-  /* four triangular sides: 1 … 4 */
-  for (UInt k=1;k<5;++k)
-  {
-    UInt p = orderFace_[k][0];
-    if (p>1)
-    {
-      UInt tri = (p-1)*p/2;                 // type-2
-      UInt n = tri + (p-1);                 // + type-3
-      if (useFaceGrad_[k]) n += tri;        // + type-1
-      f[k] = n;   actNumFncs_ += n;
-    }
-  }
-
-   // Interior
-   StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
-   innerFncs.Resize(1);
-   innerFncs.Init(0);
-
-
-   LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+  // std::cout << "[Pyra] shape vectors added: "
+  //         << pos - dbgStart << " / expected " << actNumFncs_ << std::endl;
 }
 
 }// end of namespace
