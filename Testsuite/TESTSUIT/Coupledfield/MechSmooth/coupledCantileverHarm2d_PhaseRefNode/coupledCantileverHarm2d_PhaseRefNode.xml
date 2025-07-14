@@ -1,0 +1,328 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+ 
+  <documentation>
+    <title>coupledCantileverHarm2d_PhaseRefNode</title>
+    <authors>
+      <author>Tobias Wilczacki</author>
+    </authors>
+    <date>2025-07-12</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references> 
+      Non Just functionality test
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+   	  This test is similar to the testcase cantileverTrans2d for mechanics where a cantilever is excited with a force and should test the implementation of a reference node for the complex results in the harmonic simulation
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="coupledCantileverHarm2d_PhaseRefNode.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="hdf"/>
+    </output>
+    <materialData/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region material="silizium" name="cantilev"/>
+      <region material="FluidMat" name="air"/>
+    </regionList>
+    <nodeList>
+    <nodes name="RefNode">
+        <coord x="1e-2" y="1e-3" z="0"/>
+    </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="4e3"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="planeStrain">
+
+        <regionList>
+          <region name="cantilev" />
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="BC_Fix">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <forceDensity name="BC_Load"> <!-- We can't use a force here since Trelis gives us surfaces instead of nodes and we can only apply nodal forces atm -->
+            <comp dof="y" value="-40000*1e3 * sin(2*pi*1e3*t)"/> <!-- 1e3: Scaling factor to get the same result as when using force instead of forceDensity on a set of nodes -->
+          </forceDensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+
+      <smooth subType="planeStrain">
+        <regionList>
+          <region name="air"/>
+        </regionList>
+
+        <bcsAndLoads>
+        
+          <normalStiffness name="BC_Top_smooth" value="1e10" volumeRegion="air"/>
+          
+          <fix name="BC_Fix_smooth">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          
+          <displacement name="BC_IF">
+            <coupling pdeName="mechanic">
+              <quantity name="mechDisplacement" />
+            </coupling>
+          </displacement>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="smoothVelocity">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </smooth>
+    </pdeList>
+
+    <couplingList>
+      <iterative PDEorder="mechanic;smooth">
+        <convergence logging="yes" maxNumIters="20" stopOnDivergence="no">
+          <quantity name="smoothDisplacement" value="1e-3" normType="rel"/>
+          <quantity name="smoothVelocity" value="1e-3" normType="rel"/>
+          <quantity name="mechDisplacement" value="1e-3" normType="rel"/>
+        </convergence>
+        <geometryUpdate EnableRefNode="yes" RefNodeName="RefNode" RefNodeDOFNumber="2" RefNodePhaseOffset="0.0">
+          <region name="cantilev"/>
+        </geometryUpdate>
+      </iterative>
+    </couplingList>
+    
+    <linearSystems getRidOfZeros="no">
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+  <sequenceStep index="2">
+  
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="4e3"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="planeStrain">
+
+        <regionList>
+          <region name="cantilev"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <fix name="BC_Fix">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <forceDensity name="BC_Load"> <!-- We can't use a force here since Trelis gives us surfaces instead of nodes and we can only apply nodal forces atm -->
+            <comp dof="y" value="-40000*1e3 * sin(2*pi*1e3*t)"/> <!-- 1e3: Scaling factor to get the same result as when using force instead of forceDensity on a set of nodes -->
+          </forceDensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement" complexFormat="amplPhase">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+
+      <smooth subType="planeStrain">
+        <regionList>
+          <region name="air"/>
+        </regionList>
+
+        <bcsAndLoads>
+        
+          <normalDamping name="BC_Top_smooth" value="100" volumeRegion="air"/>
+          
+          <fix name="BC_Fix_smooth">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          
+          <displacement name="BC_IF">
+            <coupling pdeName="mechanic">
+              <quantity name="mechDisplacement" />
+            </coupling>
+          </displacement>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="smoothVelocity">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </smooth>
+    </pdeList>
+
+    <couplingList>
+      <iterative PDEorder="mechanic;smooth">
+        <convergence logging="yes" maxNumIters="20" stopOnDivergence="no">
+          <quantity name="smoothDisplacement" value="1e-3" normType="rel"/>
+          <quantity name="smoothVelocity" value="1e-3" normType="rel"/>
+          <quantity name="mechDisplacement" value="1e-3" normType="rel"/>
+        </convergence>
+        <geometryUpdate EnableRefNode="yes" RefNodeName="RefNode" RefNodeDOFNumber="2" RefNodePhaseOffset="0.0">
+          <region name="cantilev"/>
+        </geometryUpdate>
+      </iterative>
+    </couplingList>
+    
+    <linearSystems getRidOfZeros="no">
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+  
+  <sequenceStep index="3">
+  
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="4e3"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="planeStrain">
+
+        <regionList>
+          <region name="cantilev" />
+        </regionList>
+        
+        <bcsAndLoads>
+          <fix name="BC_Fix">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <forceDensity name="BC_Load"> <!-- We can't use a force here since Trelis gives us surfaces instead of nodes and we can only apply nodal forces atm -->
+            <comp dof="y" value="-40000*1e3 * sin(2*pi*1e3*t)"/> <!-- 1e3: Scaling factor to get the same result as when using force instead of forceDensity on a set of nodes -->
+          </forceDensity>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement" complexFormat="amplPhase">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+
+      <smooth subType="planeStrain">
+        <regionList>
+          <region name="air"/>
+        </regionList>
+
+        <bcsAndLoads>
+        
+          <normalMass name="BC_Top_smooth" value="10e8" volumeRegion="air"/>
+          
+          <fix name="BC_Fix_smooth">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          
+          <displacement name="BC_IF">
+            <coupling pdeName="mechanic">
+              <quantity name="mechDisplacement" />
+            </coupling>
+          </displacement>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="smoothVelocity">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </smooth>
+    </pdeList>
+
+    <couplingList>
+      <iterative PDEorder="mechanic;smooth">
+        <convergence logging="yes" maxNumIters="20" stopOnDivergence="no">
+          <quantity name="smoothDisplacement" value="1e-3" normType="rel"/>
+          <quantity name="smoothVelocity" value="1e-3" normType="rel"/>
+          <quantity name="mechDisplacement" value="1e-3" normType="rel"/>
+        </convergence>
+        <geometryUpdate EnableRefNode="yes" RefNodeName="RefNode" RefNodeDOFNumber="2" RefNodePhaseOffset="0.0">
+          <region name="cantilev"/>
+        </geometryUpdate>
+      </iterative>
+    </couplingList>
+    
+    <linearSystems getRidOfZeros="no">
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>
