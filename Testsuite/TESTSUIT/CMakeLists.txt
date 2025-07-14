@@ -348,7 +348,7 @@ IF(USE_PARDISO)
   ADD_SUBDIRECTORY(Singlefield/LinFlow/PlaneWave3DGridVelC1Rotated)
   ADD_SUBDIRECTORY(Singlefield/LinFlow/PlaneWave3DGridVelC2Rotated)
   ADD_SUBDIRECTORY(Singlefield/LinFlow/PlaneWave3DGridVelC1C2Rotated)
-  ADD_SUBDIRECTORY(Singlefield/LinFlow/PlaneWave3DImpedace)
+  ADD_SUBDIRECTORY(Singlefield/LinFlow/PlaneWave3DImpedance)
 ENDIF(USE_PARDISO)
 
 #-------------------------------------------------------------------------------
