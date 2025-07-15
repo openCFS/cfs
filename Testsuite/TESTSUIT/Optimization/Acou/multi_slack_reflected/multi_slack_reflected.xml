@@ -12,9 +12,6 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
         <date>2025-02-27</date>
         <description>This file is used to minimize the reflected wave of an acoustic structure.
         It is a multiload optimization, in the slack formulation, for two frequencies used for testing small problems.
-        At the time this test was created the pressure of the exciation was still hardcoded in 
-        ErsatzMaterial::GetExcitationPressure() and ErsatzMaterial::GetExcitationRegion().
-        Expect small changes if those functions get properly implemented.
         This is a complex problem - This test is unstable for larger frequency steps.
         This test uses the same mesh as single_dynamic_out.</description>
     </documentation>
