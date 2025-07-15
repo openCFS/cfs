@@ -246,11 +246,11 @@ ADD_SUBDIRECTORY(Singlefield/Test/Geometry3D)
 #-------------------------------------------------------------------------------
 IF(USE_PARDISO)
   ADD_SUBDIRECTORY(Singlefield/ElecConduction/OhmsLaw)
+  add_subdirectory(Singlefield/ElecConduction/Transistor)
 ENDIF()
 ADD_SUBDIRECTORY(Singlefield/ElecConduction/NormalCurrDens)
 #ADD_SUBDIRECTORY(Singlefield/ElecConduction/SparkGap)
 #ADD_SUBDIRECTORY(Singlefield/ElecConduction/DiodeTempDep/)
-ADD_SUBDIRECTORY(Singlefield/ElecConduction/Transistor/)
 
 
 

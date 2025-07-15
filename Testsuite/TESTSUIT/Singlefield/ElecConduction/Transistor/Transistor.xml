@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation"> 
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation" xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"> 
   <documentation>
     <title>Transistor</title>
     <authors>
@@ -157,9 +157,9 @@
             </nonLinear>
           </standard>
         </solutionStrategy>
-        <!--<solverList>
+        <solverList>
           <pardiso/>
-        </solverList> -->
+        </solverList>
       </system>
     </linearSystems>
   </sequenceStep>
