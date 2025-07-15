@@ -51,7 +51,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID MATCHES "Clang"
   # adds debug information to the code such that vtune, valgrind, ... can show the lines of the hotspots
   # this is different from adding gprof support by -pg wich adds changes the code to generate an output file
   if(CFS_PROFILING)
-   set(CFS_PROF_FLAGS "-g -fno-omit-frame-pointer")
+   set(CFS_CXX_FLAGS "-g -fno-omit-frame-pointer ${CFS_CXX_FLAGS}")
   endif()  
   
   # we set CFS_OPT_FLAGS for release and CFSDEPS 
