@@ -393,7 +393,11 @@ def read_legacy_xml(filename, set, profile):
 def read_xml(xml, set, profile):
   # find scaling assuming equal mesh sizing
   nx, ny, nz = read_mesh_info_xml(xml)
+
+  # TODO: fix scaling
   scale = [1.0, float(ny)/nx, float(nz)/nx] # nz=1 ignored in 2D 
+  if ny > nx:
+     scale = [float(nx)/ny, 1.0, float(nz)/ny] # this is the correct scaling for y profile
   
   shapes = []
   sq = 'last()' if set == None else '@id="' + str(set) + '"'

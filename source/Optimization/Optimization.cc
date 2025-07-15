@@ -43,7 +43,6 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
-#include "Optimization/ShapeMapping.hh"
 #include "Optimization/Spaghetti.hh"
 #include "Optimization/SpaghettiParamMat.hh"
 #include "Optimization/SplineBoxOpt.hh"
@@ -775,6 +774,7 @@ Optimization* Optimization::CreateInstance()
   switch(method)
   {
   case ErsatzMaterial::SIMP_METHOD:
+  case ErsatzMaterial::SHAPE_MAP: // we have ShapeMap for mech SIMP but also
     switch(material)
     {
     case OptimizationMaterial::MECH:
@@ -815,9 +815,6 @@ Optimization* Optimization::CreateInstance()
     break;
   case ErsatzMaterial::SHAPE_GRAD:
     opt = new ShapeGrad();
-    break;
-  case ErsatzMaterial::SHAPE_MAP:
-    opt = new ShapeMapping();
     break;
   case ErsatzMaterial::SPAGHETTI:
     opt = new Spaghetti();
