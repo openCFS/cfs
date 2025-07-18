@@ -11,6 +11,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Results/ResultInfo.hh"
@@ -1263,10 +1264,20 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, T& retScal, c
       LOG_DBG3(designSpace) << "APD(s) el="  << lpm->ptEl->elemNum << " bimat heat dens=" << dens << " cond=" << bimat;
       bimat *= dens;
     }
+    else if(app == App::ACOUSTIC)
+    {
+      MaterialType mat_type = coef->GetMaterialType();
+      assert(mat_type == DENSITY || mat_type == ACOU_BULK_MODULUS);
+
+      // we either scale 1/rho (for the stiffness matrix) or 1/K (for the mass matrix)
+      dr->GetScndMaterial(ACOUSTIC, mat_type, coef->GetPDE())->GetScalar(bimat, *lpm);
+      //bimat_factor = GetErsatzMaterialFactor(idx, app, true);
+      //retScal += bimat_factor * bimat; //rho^p * 1/(density or bulk modulus) + (1-rho)^p * 1/(density or bulk modulus)
+    }
     else
       dr->GetScndMaterial(MECHANIC, DENSITY, coef->GetPDE())->GetScalar(bimat, *lpm);
-    bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
 
+    bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
     retScal += bimat_factor * bimat; // rho^p * E_l + (1-rho)^p * E_u
   }
   LOG_DBG3(designSpace) << "APD(s) el="  << lpm->ptEl->elemNum << " mt=" << MaterialTypeEnum.ToString(coef->GetMaterialType()) << " f=" << factor << " bf=" << bimat_factor << " -> " << retScal;
@@ -2338,12 +2349,21 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, MaterialClass
     {
       DesignRegion& dr = regions[d][r];
       if(dr.regionId == id)
+      {
+        LOG_DBG2(designSpace) << "GR: mc=" << mc << " mt=" << mt << " dr_sm=" << dr.scnd_materials.count(mc) <<  
+        " dr_sm_mc=" <<(dr.scnd_materials.count(mc) > 0 ? dr.scnd_materials[mc].count(mt) : -1);
+
+        for(auto mymc: dr.scnd_materials)
+          for(auto mymt: mymc.second)
+            {LOG_DBG2(designSpace) << "GR: mymc=" << mymc.first << " mymt=" << mymt.first << " mymt.name=" << MaterialTypeEnum.ToString(mymt.first);}
+
         if(dr.scnd_materials.count(mc) > 0 && dr.scnd_materials[mc].count(mt) > 0)
           return &dr;
+      }
     }
 
   if(throw_exception)
-    EXCEPTION("cannot find design region");
+    throw Exception("Cannot find design region " + std::to_string(id) + " for MaterialType::" + MaterialTypeEnum.ToString(mt));
   return NULL;
 }
 
@@ -2430,16 +2450,27 @@ PtrCoefFct DesignSpace::DesignRegion::GetScndMaterial(MaterialClass mc, Material
 
   if(scnd_materials.count(mc) == 0 || scnd_materials[mc].count(mt) == 0)
   {
+    // This part is only called once, because then we have saved it in the map
     #pragma omp critical (DR_GMB)
     {
       // apparently first run
       MaterialHandler* matLoader = domain->GetMaterialHandler();
       BaseMaterial* mat = matLoader->LoadMaterial(scnd_material, mc);
+      MathParser* mp = domain->GetMathParser();
 
       switch(mt)
       {
       case DENSITY:
-        scnd_materials[mc][mt] = mat->GetScalCoefFnc(DENSITY,Global::REAL);
+        if (mc != ACOUSTIC){
+          scnd_materials[mc][mt] = mat->GetScalCoefFnc(DENSITY,Global::REAL);
+        } else
+          // because in acoustics the density factor is 1/density
+          scnd_materials[mc][mt] = CoefFunction::Generate(mp, Global::REAL, CoefXprBinOp(mp, "1.0", mat->GetScalCoefFnc(DENSITY,Global::REAL), CoefXpr::OP_DIV));
+        break;
+
+      case ACOU_BULK_MODULUS:
+        // because in acoustics the bulk modulus factor is 1/bulk
+        scnd_materials[mc][mt] = CoefFunction::Generate(mp, Global::REAL, CoefXprBinOp(mp, "1.0",  mat->GetScalCoefFnc(ACOU_BULK_MODULUS,Global::REAL), CoefXpr::OP_DIV));
         break;
 
       case MECH_STIFFNESS_TENSOR:
@@ -2480,6 +2511,10 @@ PtrCoefFct DesignSpace::DesignRegion::GetSncdMaterial(const string& integrator)
     return GetScndMaterial(MECHANIC, DENSITY);
   if(integrator == "HeatConductivity")
     return GetScndMaterial(THERMIC, HEAT_CONDUCTIVITY_TENSOR);
+  if(integrator == "LaplaceIntegrator")
+    return GetScndMaterial(ACOUSTIC, DENSITY);
+  if(integrator == "MassIntegrator")
+    return GetScndMaterial(ACOUSTIC, ACOU_BULK_MODULUS);
   assert(false);
   return PtrCoefFct();
 }

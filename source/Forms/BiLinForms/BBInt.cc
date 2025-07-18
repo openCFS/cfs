@@ -82,7 +82,7 @@ namespace CoupledField{
 
        // Call the CalcBMat()-method
        this->bOperator_->CalcOpMat( bMat, lp, ptFe);
-       LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " bMat= " << bMat;
+       LOG_DBG3(bbint) << "e= " << ptElem->elemNum << " bMat= " << bMat.ToString();
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);

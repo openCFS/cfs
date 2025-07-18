@@ -243,6 +243,12 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
     case PIEZOCOUPLING:
       mc = PIEZO;
       break;
+    case ACOUSTIC:
+      // see AcousticPDE::DefineIntegrators()
+      assert(integrator == "LaplaceIntegrator" || integrator == "MassIntegrator");
+      mc = MaterialClass::ACOUSTIC;
+      mt = (integrator == "LaplaceIntegrator" ? DENSITY : ACOU_BULK_MODULUS);
+      break;
     default:
       assert(false);
     }
@@ -508,19 +514,16 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 
 AcouMat::AcouMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
-  system_   = ACOUSTIC;
-  // We wrap not a single material, but the pre-factors for stiffness and mass-matrix. Therefore NO_MATERIAL is used.
-  // e.g. 1 for the stiffness and rho^2/K^2 for the mass matrix.
+  system_ = ACOUSTIC;
+  // see AcousticPDE::DefineIntegrators()
   stiff.integrator = "LaplaceIntegrator";
   stiff.mc = MaterialClass::ACOUSTIC;
-  stiff.mt = NO_MATERIAL;
+  stiff.mt = DENSITY;
 
   mass.integrator = "MassIntegrator";
   mass.mc = stiff.mc;
-  mass.mt = NO_MATERIAL;
+  mass.mt = ACOU_BULK_MODULUS;
 }
-
-
 
 
 PiezoElecMat::PiezoElecMat(ErsatzMaterial* em, Context* ctxt) : MechMat(em, ctxt)

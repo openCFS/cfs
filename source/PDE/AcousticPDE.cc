@@ -138,6 +138,7 @@ namespace CoupledField{
           myParam_->Get("regionList")->GetByVal("region", "name", regionName.c_str());
       if (curRegNode->Get("complexFluid")->As<std::string>() == "yes") {
         complexFluidFormulation_ = true;
+        complexMatData_[actRegion] = true;  // this is important for optimization
         isMaterialComplex_ = true;
         if (this->analysistype_ != HARMONIC)
           EXCEPTION("Complex fluid region just allowed in harmonic analysis");
@@ -474,14 +475,15 @@ namespace CoupledField{
       LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffK = " << coeffK->ToString() << "\n";
       LOG_DBG(acousticpde) << "DefineIntegrators Fluid: coeffM = " << coeffM->ToString() << "\n";
 
-      // when we do optimization we wrap the original CoefFunction.
+      // Apply topology optimization factors
       if(domain->HasDesign())
       {
-        // We wrap not a single material, but the pre-factors for stiffness and mass-matrix. Therefore NO_MATERIAL is used.
-        // e.g. 1 for the stiffness and rho^2/K^2 for the mass matrix.
-        CoefFunctionOpt* tmpFnc1 = new CoefFunctionOpt(domain->GetDesign(), coeffM, NO_MATERIAL, this);
+        if(!complexFluidFormulation_)
+          throw Exception("Acoustic TopOpt needs the inhomogeneous Helmholtz equation (activate complexFluid)");
+        // We wrap not the material coefficients directly but already their reciprocal!
+        CoefFunctionOpt* tmpFnc1 = new CoefFunctionOpt(domain->GetDesign(), coeffM, ACOU_BULK_MODULUS, this); // 1/K
         coeffM.reset(tmpFnc1);
-        CoefFunctionOpt* tmpFnc2 = new CoefFunctionOpt(domain->GetDesign(), coeffK, NO_MATERIAL, this); // takes double and complex
+        CoefFunctionOpt* tmpFnc2 = new CoefFunctionOpt(domain->GetDesign(), coeffK, DENSITY, this); // 1/rho
         coeffK.reset(tmpFnc2);
       }
 

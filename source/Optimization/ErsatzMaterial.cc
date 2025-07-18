@@ -978,6 +978,7 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
   // j*omega*pamping*rho'*M - j*2*omega*pamping*rho*rho'*M = j*omega*pamping*rho'(1-2*rho)
   //
   // the eigenvalue derivative is u^T (K' - ev M') u
+  LOG_DBG3(em) << "AMTS: derivative=" << std::to_string(derivative);
   Assemble* assemble = ctxt->pde->GetAssemble(); // shall work even if current context != ctxt
 
   double mtv(0.0), mdv(0.0), m_factor(1.0);
@@ -1003,7 +1004,8 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
   double pamping_m = 0.0; // add on without omega
   // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
   RegionIdType regionId = de->elem->regionId;
-  if(ctxt->pde->GetDamping(regionId) == RAYLEIGH || ctxt->pde->GetDamping(regionId) == ADAPTED_LOSS_TANGENS_DELTA || ctxt->pde->GetDamping(regionId) == GLOBAL_RAYLEIGH)
+  bool damping = ctxt->pde->GetDamping(regionId) == RAYLEIGH || ctxt->pde->GetDamping(regionId) == ADAPTED_LOSS_TANGENS_DELTA || ctxt->pde->GetDamping(regionId) == GLOBAL_RAYLEIGH;
+  if(damping)
   {
     assert(mode != EIGENFREQ);
     SinglePDE* pde = ctxt->pde;
@@ -1026,12 +1028,19 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
   const unsigned int srows = S.GetNumRows();
   const unsigned int scols = S.GetNumCols();
   // we first add the K part of C (= pure imaginary). E.G. in the bloch case S=K might already have an imaginary part
-  for(unsigned int r = 0; r < srows; r++)
-    for(unsigned int c = 0; c < scols; c++)
-      S[r][c] = complex<double>(S[r][c].real(), S[r][c].imag() + omega * alpha_k * S[r][c].real());
-  LOG_DBG3(em) << "AMTS: 2. e=" << de->elem->elemNum << " add K o=" << omega << " a_K=" << alpha_k << " S=" << S.ToString();
-  // we the add the M part of C and the real mass part
-  complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*(alpha_m*m_factor  + pamping_m));
+  if (damping) 
+  {
+    for(unsigned int r = 0; r < srows; r++)
+      for(unsigned int c = 0; c < scols; c++)
+        S[r][c] = complex<double>(S[r][c].real(), S[r][c].imag() + omega * alpha_k * S[r][c].real());
+    LOG_DBG3(em) << "AMTS: 2. e=" << de->elem->elemNum << " add K o=" << omega << " a_K=" << alpha_k << " S=" << S.ToString();
+  }
+  // we add the real mass part
+  complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, 0);
+  // we the add the M part of C
+  if (damping)
+    damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*(alpha_m*m_factor  + pamping_m));
+  LOG_DBG3(em) << "AMTS: damp_mass =" << damp_mass;
   // multimaterial stuff
   int index = de->multimaterial != NULL ? de->multimaterial->index : -1;
   LOG_DBG3(em) << "AMTS: e=" << de->elem->elemNum << " S=" << S.ToString();
@@ -1040,6 +1049,7 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
     // only accessed as derivative in ParamMat case
     assert(this->method_ != ErsatzMaterial::PARAM_MAT);
     const Matrix<Complex>& M = dynamic_cast<const Matrix<Complex>&>(ctxt->mat->Mass(de->elem, bimaterial, index, (this->method_ == ErsatzMaterial::PARAM_MAT) ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    LOG_DBG3(em) << "AMTS: " << " bimat=" << std::to_string(bimaterial) << " M=" << M.ToString();
     assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
     Add<Complex, Complex>(S, damp_mass, M);
     LOG_DBG3(em) << "AMTS: 3. complex e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();
@@ -1048,6 +1058,7 @@ void ErsatzMaterial::AddMassToStiffness(Context* ctxt, const TransferFunction* m
   {
     // only accessed as derivative in ParamMat case
     const Matrix<double>& M = dynamic_cast<const Matrix<double>&>(ctxt->mat->Mass(de->elem, bimaterial, index, (this->method_ == ErsatzMaterial::PARAM_MAT) ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    LOG_DBG3(em) << "AMTS: " << " bimat=" << std::to_string(bimaterial) << " M=" << M.ToString();
     assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
     Add<Complex, double>(S, damp_mass, M);
     LOG_DBG3(em) << "AMTS: 3. real e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();

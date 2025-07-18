@@ -100,11 +100,14 @@ void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)
   {
   case DIRECTION:
   case OPT:
+  {
     // the element does not necessarily lay in the design space!
     // if ApplyPhysicalDesign() returns true, coefMat is already set
-    if(!design->ApplyPhysicalDesign<T>(this, scal, &lpm))
+    bool designset = design->ApplyPhysicalDesign<T>(this, scal, &lpm);
+    if(!designset)
       orgMat->GetScalar(scal, lpm);
     break;
+  }
   case ORG:
     orgMat->GetScalar(scal, lpm);
     break;

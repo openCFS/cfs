@@ -12,8 +12,9 @@ public:
 
   virtual ~AcouSIMP();
 
-private:
+  void PostInit() override;
 
+private:
   const Complex GetExcitationPressure(Function* f) override;
 
   const RegionIdType GetExcitationRegion(Function* f, const std::string& attr = "surfRegion") override;

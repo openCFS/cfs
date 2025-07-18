@@ -2,6 +2,8 @@
 #include "Optimization/AcouSIMP.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
 
 namespace CoupledField {
   class DenseMatrix;
@@ -9,6 +11,7 @@ namespace CoupledField {
 } // namespace CoupledField
 
 using namespace CoupledField;
+using std::complex;
 
 DEFINE_LOG(acs, "acouSimp");
 
@@ -18,6 +21,21 @@ AcouSIMP::AcouSIMP()
 
 AcouSIMP::~AcouSIMP()
 {
+}
+
+void AcouSIMP::PostInit(){
+  SIMP::PostInit();
+  assert(design != nullptr);
+  assert(context->pde != nullptr);
+  // we get the second material once to have it cached for later use which might be in parallel
+  // and causes exception in MathParserOMP::GetNewHandle()
+  for (StdVector<DesignSpace::DesignRegion>& drv: design->regions)
+    for (DesignSpace::DesignRegion& dr: drv)
+      if (dr.HasBiMaterial())
+      {
+        dr.GetScndMaterial(MaterialClass::ACOUSTIC, MaterialType::DENSITY, context->pde);
+        dr.GetScndMaterial(MaterialClass::ACOUSTIC, MaterialType::ACOU_BULK_MODULUS, context->pde);
+      }
 }
 
 const Complex AcouSIMP::GetExcitationPressure(Function* f) { 
