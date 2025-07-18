@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>Acoustic Optimization - BiMaterial verification</title>
+        <authors>
+            <author>Felix Huber</author>
+        </authors>
+        <date>2025-02-27</date>
+        <description>Verification for acoustic bimaterial for init=1.</description>
+    </documentation>
+
+    <fileFormats>
+        <input>
+            <mesh fileName="tube_4.mesh"/>
+        </input>
+        <output>
+            <hdf5 />
+            <info id="info"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    <domain geometryType="plane">
+        <regionList>
+            <region name="S_acou" material="air"/>
+            <region name="S_opt" material="air"/>
+        </regionList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <startFreq>800</startFreq>
+                <stopFreq>800</stopFreq>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_acou"/>
+                    <region name="S_opt"/>
+                </regionList>
+                <bcsAndLoads>
+                    <normalVelocity name="L_exc_surf" value="1"/>
+                    <absorbingBCs volumeRegion="S_acou" name="L_exc_surf" />
+                    <absorbingBCs volumeRegion="S_acou" name="L_out_surf" />
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                        <nodeList>
+                            <nodes name="L_exc" outputIds="info"/>
+                        </nodeList> 
+                    </nodeResult>
+                </storeResults>
+            </acoustic>
+        </pdeList>
+    </sequenceStep>
+</cfsSimulation>

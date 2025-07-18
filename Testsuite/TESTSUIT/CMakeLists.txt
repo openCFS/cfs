@@ -843,6 +843,7 @@ ENDIF(USE_SCPIP)
 
 # Acoustic tests
 if(TESTSUITE_INFO_XML)
+  add_subdirectory(Optimization/Acou/acou_bimaterial)
   if(USE_SNOPT)
     add_subdirectory(Optimization/Acou/multi_slack_reflected)
     add_subdirectory(Optimization/Acou/shape_map_dofx)

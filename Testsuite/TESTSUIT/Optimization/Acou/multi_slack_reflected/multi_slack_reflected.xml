@@ -44,8 +44,8 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
         <pdeList>
             <acoustic formulation="acouPressure">
                 <regionList>
-                    <region name="S_acou"/>
-                    <region name="S_opt"/>
+                    <region name="S_acou" complexFluid="yes"/>
+                    <region name="S_opt" complexFluid="yes"/>
                 </regionList>
                 <bcsAndLoads>
                     <normalVelocity name="L_exc_surf" value="1" />
