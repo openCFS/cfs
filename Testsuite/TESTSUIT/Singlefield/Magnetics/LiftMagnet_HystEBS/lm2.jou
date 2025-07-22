@@ -1,0 +1,114 @@
+
+
+reset 
+
+create vertex location 0.0375 0.175 0 
+create vertex location 0.0375 0.125 0 
+create vertex location 0.0375 0.075 0 
+create vertex location 0.0375 0.0625 0 
+create vertex location 0.0625 0.0625 0 
+create vertex location 0.0625 0.075 0 
+create vertex location 0.0625 0.125 0 
+create vertex location 0.0625 {0.125+0.0125} 0 
+create vertex location 0.15 {0.125+0.0125} 0 
+create vertex location  0.15 0.0625 0 
+create vertex location  0.175 0.0625 0 
+create vertex location  0.175 0.175 0 
+create vertex location  0.025 0.05 0 
+create vertex location  0.025 0.0375 0 
+create vertex location  0.175 0.0375 0 
+create vertex location  0.175 0.05 0 
+create vertex location  0.025 0.125 0 
+create vertex location  0.025 0.075 0 
+create vertex location  0.075 0.125 0 
+create vertex location  0.075 0.075 0 
+create vertex location  0 0.2 0 
+create vertex location  0 0.175 0 
+create vertex location  0 0.125 0 
+create vertex location  0 0.075 0 
+create vertex location  0 0.05 0 
+create vertex location  0 0 0 
+create vertex location  0.2 0 0 
+create vertex location  0.2 0.2 0 
+
+
+create surface vertex 13 14 15 16
+create surface vertex 17 2 3 18
+create surface vertex 7 19 20 6
+create surface vertex 1 4 5 8 9 10 11 12
+create surface vertex 21 26 27 28
+delete Vertex 23 25 24 22
+create surface vertex 3 6 7 2
+subtract surface 6 from surface 4 keep_tool
+subtract surface 8 6 2 3 7 1 from surface 5 keep_tool
+
+imprint all
+merge all
+
+sweep surface all direction 0 0 1 distance 0.005 merge
+
+curve 127  interval 2
+curve 127  scheme equal
+mesh curve 127 
+
+surface 44 6 2 3 34 1   scheme trimesh size 20e-3
+mesh surface 44 6 2 3 34 1
+surface 9  scheme trimesh size 10000
+mesh surface 9
+
+volume 5 redistribute nodes off 
+volume 5  scheme Sweep  source surface 9    target surface 70   sweep transform least squares 
+volume 5  autosmooth target on  fixed imprints off  smart smooth off 
+mesh volume 5
+volume 9 redistribute nodes off 
+volume 9  scheme Sweep  source surface 44    target surface 45   sweep transform least squares 
+volume 9  autosmooth target on  fixed imprints off  smart smooth off 
+mesh volume 9
+volume 1 redistribute nodes off 
+volume 1  scheme Sweep  source surface 1    target surface 14   sweep transform least squares 
+volume 1  autosmooth target on  fixed imprints off  smart smooth off 
+mesh volume 1
+volume 2 redistribute nodes off 
+volume 2  scheme Sweep  source surface 2    target surface 19   sweep transform least squares 
+volume 2  autosmooth target on  fixed imprints off  smart smooth off 
+mesh volume 2
+volume 6 redistribute nodes off 
+volume 6  scheme Sweep  source surface 6    target surface 29   sweep transform least squares 
+volume 6  autosmooth target on  fixed imprints off  smart smooth off 
+mesh volume 6
+volume 3 redistribute nodes off 
+volume 3  scheme Sweep  source surface 3   target surface 24   sweep transform least squares 
+volume 3  autosmooth target on  fixed imprints off  smart smooth off 
+mesh volume 3
+volume 7 redistribute nodes off 
+volume 7  scheme Sweep  source surface 34  target surface 35   sweep transform least squares 
+volume 7  autosmooth target on  fixed imprints off  smart smooth off 
+mesh volume 7
+
+
+block 1 add volume 9 6 7  1
+block 1 name "V_core"
+block 2 add volume 2
+block 2 name "V_coil1"
+block 3 add volume 3
+block 3 name "V_coil2"
+block 4 add volume 5
+block 4 name "V_air"
+
+nodeset 1 add surface in volume all with not is_merged
+nodeset 1 name "S_outer"
+
+export ansys cdb "lm2.cdb"  overwrite 
+
+
+
+
+
+
+
+
+
+
+
+
+

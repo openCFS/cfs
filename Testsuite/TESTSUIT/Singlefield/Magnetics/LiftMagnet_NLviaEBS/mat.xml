@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.cfs++.org/material file:/home/kroppert/Devel/CFS_SRC/latest_trunkGit/CFS/share/xml/CFS-Material/CFS_Material.xsd">
-
+    xsi:schemaLocation="http://www.cfs++.org/material file:/home/lukas/Devel/CFS_SRC/cfs/share/xml/CFS-Material/CFS_Material.xsd">
+    
   <material name="air">
     <acoustic>
       <density>
@@ -33,8 +33,27 @@
       </permeability>
     </magnetic>
   </material>
+
+  <material name="iron_linear">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>9.17431e5</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1000*1.256637061E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
   
-  <material name="iron">
+  <material name="iron_nonlin_EB">
     <magnetic>
       <electricConductivity>
         <linear>
@@ -52,16 +71,21 @@
         <model>
           <isotropic>
             <EBHysteresisModel>
-              <Ps>1.23e6</Ps>
-          		<A>38</A>
-          		<mu0>1</mu0>
-          		<numS>20</numS>
-          		<chi_factor>140</chi_factor>
+              <Approx_type>approxVPM</Approx_type>
+              <Anhysteresis_model>
+                <analytic_anhysteresis>
+                  <A>38</A>
+                  <Ps>1.23e6</Ps>
+                </analytic_anhysteresis>
+              </Anhysteresis_model>
+              <Jacobian_type>Broyden</Jacobian_type>
+              <numS>1</numS>
+              <chi_factor>0</chi_factor>
             </EBHysteresisModel>
           </isotropic>
         </model>
       </permeability>
     </magnetic>
   </material>
-
+  
 </cfsMaterialDataBase>

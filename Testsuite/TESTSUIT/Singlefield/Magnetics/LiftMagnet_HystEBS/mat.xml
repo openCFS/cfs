@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.cfs++.org/material file:/home/kroppert/Devel/CFS_SRC/latest_trunkGit/CFS/share/xml/CFS-Material/CFS_Material.xsd">
-
+    xsi:schemaLocation="http://www.cfs++.org/material file:/home/lukas/Devel/CFS_SRC/cfs/share/xml/CFS-Material/CFS_Material.xsd">
+    
   <material name="air">
     <acoustic>
       <density>
@@ -28,40 +28,13 @@
         <linear>
           <isotropic>
             <real> 1.256637061E-06 </real>
-            <!-- <real> 1 </real> -->
           </isotropic>
         </linear>
       </permeability>
     </magnetic>
   </material>
-  <material name="copper">
-    <elecConduction>
-      <electricConductivity>
-        <linear>
-          <isotropic>
-            <real>5e7</real>
-          </isotropic>
-        </linear>
-      </electricConductivity>
-    </elecConduction>
-    <magnetic>
-      <electricConductivity>
-        <linear>
-          <isotropic>
-            <real>5e7</real>
-          </isotropic>
-        </linear>
-      </electricConductivity>
-      <permeability>
-        <linear>
-          <isotropic>
-            <real> 1.256637061E-06 </real>
-          </isotropic>
-        </linear>
-      </permeability>
-    </magnetic>
-  </material>
-  <material name="iron_analytic">
+
+  <material name="iron_linear">
     <magnetic>
       <electricConductivity>
         <linear>
@@ -73,21 +46,46 @@
       <permeability>
         <linear>
           <isotropic>
-            <real> 1.256E-5 </real>
+            <real> 1000*1.256637061E-06 </real>
           </isotropic>
         </linear>
-        <nonlinear>
-          <isotropic>
-            <dependency></dependency>
-            <approxType>analytic</approxType>
-            <measAccuracy>1e2</measAccuracy>
-            <maxApproxVal>7e3</maxApproxVal>
-            <dataName></dataName>
-            <muExpr> (H_R lt 10) ? (1.256E-5) : (1.0e-01*1*sqrt(H_R^2)^(1-2)/((1+1.0e-1*sqrt(H_R^2)^1)^2)) </muExpr>
-            <muDerivExpr> (H_R lt 10) ? (-1) : (1.0e-4*1*sqrt(H_R^2)^(1-1)*(1-1)*(1e-4*(1+1))*sqrt(H_R^2)^1+1)/((sqrt(H_R^2)*(1e-4*sqrt(H_R^2)^1+1)^3)) </muDerivExpr>
-            </isotropic>
-        </nonlinear>
       </permeability>
     </magnetic>
   </material>
+  
+  <material name="iron_hyst_EB">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+        <model>
+          <isotropic>
+            <EBHysteresisModel>
+              <Approx_type>approxVPM</Approx_type>
+              <Anhysteresis_model>
+                <analytic_anhysteresis>
+                  <A>38</A>
+                  <Ps>1.23e6</Ps>
+                </analytic_anhysteresis>
+              </Anhysteresis_model>
+              <Jacobian_type>BFGS</Jacobian_type>
+              <numS>5</numS>
+              <chi_factor>60</chi_factor>
+            </EBHysteresisModel>
+          </isotropic>
+        </model>
+      </permeability>
+    </magnetic>
+  </material>
+  
 </cfsMaterialDataBase>
