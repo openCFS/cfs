@@ -40,6 +40,67 @@ LocPointMapped::LocPointMapped() :
 
 }
 
+
+// ---------- Pyramid rational map helpers ----------
+static inline void PyraLamAndGrads(double x, double y, double z,
+                                   double lam[5], double dlam[5][3])
+{
+  // rho = 1 - z
+  const double rho = 1.0 - z;
+  const double invrho = (std::fabs(rho) > 1e-12) ? 1.0/rho : 1.0/1e-12;
+  const double invrho2 = invrho*invrho;
+
+  // f = x*y*z / rho
+  const double f     = x*y*z * invrho;
+  const double dfx   = y*z * invrho;
+  const double dfy   = x*z * invrho;
+  const double dfz   = (x*y)*invrho + x*y*z*invrho2;
+
+  // lambda_1 ... lambda_4
+  lam[0] = 0.25*((1.0+x)*(1.0+y) - z + f);   // lambda_1
+  lam[1] = 0.25*((1.0-x)*(1.0+y) - z - f);   // lambda_2
+  lam[2] = 0.25*((1.0-x)*(1.0-y) - z + f);   // lambda_3
+  lam[3] = 0.25*((1.0+x)*(1.0-y) - z - f);   // lambda_4
+  lam[4] = z;                                // lambda_5
+
+  const double dP1dx =  (1.0+y);
+  const double dP1dy =  (1.0+x);
+  const double dP1dz = -1.0;
+
+  const double dP2dx = -(1.0+y);
+  const double dP2dy =  (1.0-x);
+  const double dP2dz = -1.0;
+
+  const double dP3dx = -(1.0-y);
+  const double dP3dy = -(1.0-x);
+  const double dP3dz = -1.0;
+
+  const double dP4dx =  (1.0-y);
+  const double dP4dy = -(1.0+x);
+  const double dP4dz = -1.0;
+
+  dlam[0][0] = 0.25*(dP1dx + dfx);
+  dlam[0][1] = 0.25*(dP1dy + dfy);
+  dlam[0][2] = 0.25*(dP1dz + dfz);
+
+  dlam[1][0] = 0.25*(dP2dx - dfx);
+  dlam[1][1] = 0.25*(dP2dy - dfy);
+  dlam[1][2] = 0.25*(dP2dz - dfz);
+
+  dlam[2][0] = 0.25*(dP3dx + dfx);
+  dlam[2][1] = 0.25*(dP3dy + dfy);
+  dlam[2][2] = 0.25*(dP3dz + dfz);
+
+  dlam[3][0] = 0.25*(dP4dx - dfx);
+  dlam[3][1] = 0.25*(dP4dy - dfy);
+  dlam[3][2] = 0.25*(dP4dz - dfz);
+
+  dlam[4][0] = 0.0;
+  dlam[4][1] = 0.0;
+  dlam[4][2] = 1.0;
+}
+
+
 /*
  * NACS ported version; main difference: compute JacobianDeterminant via CalcJDet function,
  * taking the depth of the setup into account; 
@@ -129,8 +190,8 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     
   } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 1) {
     // === 1D elements in 3D ===
-    jacDet = sqrt( jac[0][0] * jac[0][0] 
-                 + jac[1][0] * jac[1][0] 
+    jacDet = sqrt( jac[0][0] * jac[0][0]
+                 + jac[1][0] * jac[1][0]
                  + jac[2][0] * jac[2][0]);
     
   } else if (jac.GetNumRows() == 2) {
@@ -138,7 +199,7 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
     //see kaltenbacher, p.23, eq.(2.122)
     jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
   };
-
+  
   // safety check for negative Jacobian determinant
   if ( checkJacobi_ ) {
 	  if ( jacDet <= 0.0) {
@@ -2037,17 +2098,53 @@ Double LagrangeElemShapeMap::GetModelDepth(){
 }
 
 void LagrangeElemShapeMap::CalcJ(Matrix<Double>& jac, const LocPoint& lp) {
-  jac = coords_ * ptFe_->GetLocDerivShFnc( lp, ptElem_);
-//  jac *= depth_; // explicitly include depth_ of setup
-  /*
-   * Note: Scaling of jacobian not correct; only scale its determinant
-   * Explanation (thanks Jens!):  The Jacobian determinant is part of every integral form
-   * and thus causes the integrals to consider the "correct" depth of the 2d plane setup.
-   * In case of differential operations the inverse Jacobian is required in addition for the
-   * transform of the differential operator. Applying a scaling with depth_ to the Jacobian 
-   * would therewith affect these terms in a stronger way than terms without differential operators,
-   * like e.g., terms for the mass matrix. 
-   */
+  // --- SPECIAL CASE: rational pyramid --- //
+  if (ptElem_->type == Elem::ET_PYRA5 ||
+      ptElem_->type == Elem::ET_PYRA13 ||
+      ptElem_->type == Elem::ET_PYRA14)
+  {
+    double x = lp.coord[0];
+    double y = lp.coord[1];
+    double z = lp.coord[2];
+
+    double lam[5];
+    double dlam[5][3];
+    PyraLamAndGrads(x,y,z, lam, dlam);
+
+    jac.Resize(3,3);
+    jac.Init();
+
+    const UInt nNodes = std::min<UInt>(coords_.GetNumCols(), 5);
+    for (UInt a=0; a<nNodes; ++a)
+    {
+      jac[0][0] += coords_[0][a] * dlam[a][0];
+      jac[0][1] += coords_[0][a] * dlam[a][1];
+      jac[0][2] += coords_[0][a] * dlam[a][2];
+
+      jac[1][0] += coords_[1][a] * dlam[a][0];
+      jac[1][1] += coords_[1][a] * dlam[a][1];
+      jac[1][2] += coords_[1][a] * dlam[a][2];
+
+      jac[2][0] += coords_[2][a] * dlam[a][0];
+      jac[2][1] += coords_[2][a] * dlam[a][1];
+      jac[2][2] += coords_[2][a] * dlam[a][2];
+    }
+  }else{
+
+
+    jac = coords_ * ptFe_->GetLocDerivShFnc( lp, ptElem_);
+  //  jac *= depth_; // explicitly include depth_ of setup
+    /*
+    * Note: Scaling of jacobian not correct; only scale its determinant
+    * Explanation (thanks Jens!):  The Jacobian determinant is part of every integral form
+    * and thus causes the integrals to consider the "correct" depth of the 2d plane setup.
+    * In case of differential operations the inverse Jacobian is required in addition for the
+    * transform of the differential operator. Applying a scaling with depth_ to the Jacobian 
+    * would therewith affect these terms in a stronger way than terms without differential operators,
+    * like e.g., terms for the mass matrix. 
+    */
+  }
+
 }
 
 //! Calculation of Jacobian with given coordinates
@@ -2069,39 +2166,80 @@ Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac,
                                       const LocPoint& lp,
                                       bool useDepth)
 {
+  // --- SPECIAL CASE: rational pyramid --- //
+  if (ptElem_->type == Elem::ET_PYRA5 ||
+      ptElem_->type == Elem::ET_PYRA13 ||
+      ptElem_->type == Elem::ET_PYRA14)
+  {
+    // use rational lambdas instead of polynomial Lagrange derivs
+    double x = lp.coord[0];
+    double y = lp.coord[1];
+    double z = lp.coord[2];
 
-  deriv_ = ptFe_->GetLocDerivShFnc( lp, ptElem_);
-  jac = coords_ * deriv_;
+    double lam[5];
+    double dlam[5][3];
+    PyraLamAndGrads(x,y,z, lam, dlam);
 
-  Double jacDet = 0.0;
+    // coords_: dim x nNodes (dim=3), nNodes>=5
+    jac.Resize(3,3);
+    jac.Init();
 
-  if (jac.GetNumCols() == jac.GetNumRows()) {
+    const UInt nNodes = std::min<UInt>(coords_.GetNumCols(), 5);
+    for (UInt a=0; a<nNodes; ++a)
+    {
+      jac[0][0] += coords_[0][a] * dlam[a][0];
+      jac[0][1] += coords_[0][a] * dlam[a][1];
+      jac[0][2] += coords_[0][a] * dlam[a][2];
+
+      jac[1][0] += coords_[1][a] * dlam[a][0];
+      jac[1][1] += coords_[1][a] * dlam[a][1];
+      jac[1][2] += coords_[1][a] * dlam[a][2];
+
+      jac[2][0] += coords_[2][a] * dlam[a][0];
+      jac[2][1] += coords_[2][a] * dlam[a][1];
+      jac[2][2] += coords_[2][a] * dlam[a][2];
+    }
+
+    double jacDet = 0.0;
     jac.Determinant(jacDet);
-  } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
-    // 2D elements in 3D
-    Vector<Double> normal;
-    normal.Resize(3);
-    normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
-    normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
-    normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
-    jacDet = sqrt(
-        normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-  } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 1) {
-     // === 1D elements in 3D ===
-     jacDet = sqrt( jac[0][0] * jac[0][0] 
-                  + jac[1][0] * jac[1][0] 
-                  + jac[2][0] * jac[2][0]);
-  } else if (jac.GetNumRows() == 2) {
-    // 1D elements in 2D
-    //see kaltenbacher, p.23, eq.(2.122)
-    jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
-  }
 
-  if (useDepth) {
-    jacDet *= depth_; // explicitly include depth_ of setup Note: but ONLY to determinant!
+    if (useDepth) jacDet *= depth_;
+
+    return jacDet;
+  }else{
+
+
+    deriv_ = ptFe_->GetLocDerivShFnc( lp, ptElem_);
+    jac = coords_ * deriv_;
+    Double jacDet = 0.0;
+
+    if (jac.GetNumCols() == jac.GetNumRows()) {
+      jac.Determinant(jacDet);
+    } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 2) {
+      // 2D elements in 3D
+      Vector<Double> normal;
+      normal.Resize(3);
+      normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
+      normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
+      normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
+      jacDet = sqrt(
+          normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+    } else if (jac.GetNumRows() == 3 && jac.GetNumCols() == 1) {
+      // === 1D elements in 3D ===
+      jacDet = sqrt( jac[0][0] * jac[0][0]
+                    + jac[1][0] * jac[1][0]
+                    + jac[2][0] * jac[2][0]);
+    } else if (jac.GetNumRows() == 2) {
+      // 1D elements in 2D
+      //see kaltenbacher, p.23, eq.(2.122)
+      jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
+    }
+    if (useDepth) {
+      jacDet *= depth_; // explicitly include depth_ of setup Note: but ONLY to determinant!
+    }
+    
+    return jacDet;
   }
-  
-  return jacDet;
 }
 
 BaseFE* LagrangeElemShapeMap::GetBaseFE() {

@@ -1,0 +1,56 @@
+undo on
+reset
+
+create brick x 10 y 10 z 20
+webcut volume 1 zplane
+
+merge all
+imprint all
+
+
+#################################
+######### BLOCKS ###################
+#################################
+
+block 1 add volume 1
+block 1 name "V_Upper"
+
+block 2 add volume 2
+block 2 name "V_Lower"
+
+
+nodeset 1 add surface 7
+nodeset 1 name "S_Interface"
+
+nodeset 2 add surface 1 8 9 10 11 2  13 14 15 16
+nodeset 2 name "S_Outer"
+
+nodeset 3 add surface 14
+nodeset 3 name "S_CurrentOut_lower"
+
+nodeset 4 add surface 16
+nodeset 4 name "S_CurrentIn_lower"
+
+nodeset 5 add surface 10
+nodeset 5 name "S_CurrentOut_upper"
+
+nodeset 6 add surface 8
+nodeset 6 name "S_CurrentIn_upper"
+
+
+#################################
+######### MESH ####################
+#################################
+delete mesh
+
+volume 1 scheme polyhedron
+volume 1 size 3
+mesh volume 1 
+
+volume 2 scheme tet
+volume 2 size 3
+mesh volume 2
+volume all scale 1e-3
+
+save cub5 "mesh.cub5" overwrite journal
+export ansys cdb "mesh.cdb" overwrite

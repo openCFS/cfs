@@ -1,0 +1,32 @@
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/material https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd">
+
+  <material name="copper">
+    <elecConduction>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>5e7</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+    </elecConduction>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>5.7e7</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.256637061E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+</cfsMaterialDataBase>

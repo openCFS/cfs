@@ -4,13 +4,20 @@
 #include "FeBasis/Polynomials.hh"
 #include "Domain/ElemMapping/EdgeFace.hh"
 
+#include <cmath>
 namespace CoupledField {
+
 
 #define USE_FACES 1
 #define USE_INNER 1
 
+// --- Debug switches ---------------------------------------------------
+#define PYRA_DEBUG_MAT       0   // new interpolation-matrix debug
+
 // declare class specific logging stream
 DEFINE_LOG(feHCurlHi, "feHCurlHi")
+
+
 
 
 // ===============================================================
@@ -786,6 +793,11 @@ void FeHCurlHiHex::CalcNumUnknowns() {
     edgeFncs[i] = unknowns;
     LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
     actNumFncs_ += unknowns;
+    // std::cout << "[HEX] edge " << i
+    //   << "  order=" << orderEdge_[i]
+    //   << "  grad="  << (useEdgeGrad_[i] ? "yes" : "no")
+    //   << "  -> "    << i << " DOFs\n";
+
   }
 
   // Faces
@@ -804,6 +816,11 @@ void FeHCurlHiHex::CalcNumUnknowns() {
       LOG_DBG(feHCurlHi) << "face " << i+1 << " has " << unknowns << "unknowns";
       actNumFncs_ += unknowns;
     }
+    // std::cout << "[HEX] face " << i
+    // << "  orders=(" << orderFace_[i][0] << "," << orderFace_[i][1] << ")"
+    // << "  grad="    << (useFaceGrad_[i] ? "yes" : "no")
+    // << "  -> "      << unknowns << " DOFs\n";
+
   }
 #endif
 
@@ -830,6 +847,7 @@ void FeHCurlHiHex::CalcNumUnknowns() {
 #endif
 
   LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+
 }
 
 
@@ -1170,7 +1188,9 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
         // of all lambdas of one face
         AutoDiff<Double,3> sum_lambda = 0.0;
         for( UInt i = 0; i < 4; ++i)
+        {
           sum_lambda += lambda[ind[i]];
+        }
 
         // Parameterization of first edge, connecting the
         // local nodes of the face 1->2
@@ -2364,6 +2384,11 @@ void FeHCurlHiTet::CalcNumUnknowns() {
      edgeFncs[i] = unknowns;
      LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
      actNumFncs_ += unknowns;
+    //  std::cout << "[TET] edge " << i
+    //     << "  order=" << orderEdge_[i]
+    //     << "  grad="  << (useEdgeGrad_[i] ? "yes" : "no")
+    //     << "  -> "    << i << " DOFs\n";
+
    }
 
    // Faces
@@ -2404,6 +2429,10 @@ void FeHCurlHiTet::CalcNumUnknowns() {
     faceFncs[iFace] = unknowns;
     LOG_DBG(feHCurlHi) << "face " << iFace+1 << " has " << unknowns << "unknowns";
     actNumFncs_ += unknowns;
+    // std::cout << "[TET] face " << iFace
+    // << "  orders=(" << orderFace_[iFace][0] << "," << orderFace_[iFace][1] << ")"
+    // << "  grad="    << (useFaceGrad_[iFace] ? "yes" : "no")
+    // << "  -> "      << unknowns << " DOFs\n";
 
   } //loop over all faces
 #endif
@@ -2453,6 +2482,7 @@ void FeHCurlHiTet::CalcNumUnknowns() {
 #endif
 
    LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+
 }
 
 
@@ -2478,6 +2508,90 @@ void FeHCurlHiPyra::GetShFnc( Matrix<Double>& shape,
 
   // Perform local->global gradient transformation
   shape =  Transpose(lpm.jacInv) * locShape;
+
+#if PYRA_DEBUG_MAT
+  {
+    // Run once per process to avoid flooding
+    static bool done = false;
+    if (!done)
+    {
+      done = true;
+      const auto & shref = Elem::shapes[Elem::ET_PYRA5];
+      const int nedges = shref.numEdges;
+
+      // ---- Build start index of first DOF on every edge -----------------
+      StdVector<UInt> edgeStart(nedges);
+      UInt acc = 0;
+      for (int e = 0; e < nedges; ++e) {
+        edgeStart[e] = acc;
+        acc += entityFncs_[EDGE][e];
+      }
+
+      // ---- Simple 4-pt Gauss rule on [0,1] ------------------------------
+      const int NG = 4;
+      const double gp[NG] = { 0.0694318442029737, 0.3300094782075719,
+                              0.6699905217924281, 0.9305681557970262 };
+      const double gw[NG] = { 0.1739274225687269, 0.3260725774312731,
+                              0.3260725774312731, 0.1739274225687269 };
+
+      std::cout << "============= PYRAMID EDGE INTERPOLATION CHECK =============\n";
+      for (int e = 0; e < nedges; ++e)
+      {
+        int v0 = shref.edgeVertices[e][0]-1;
+        int v1 = shref.edgeVertices[e][1]-1;
+
+        // reference coordinates of end points
+        const CoupledField::Vector<Double> &A = shref.nodeCoords[v0];
+        const CoupledField::Vector<Double> &B = shref.nodeCoords[v1];
+
+        // orientation sign same as used in assembly
+        double sgn = (elem->extended->edges[e] < 0) ? -1.0 : 1.0;
+
+        // oriented tangent in reference space
+        double tx = sgn * (B[0] - A[0]);
+        double ty = sgn * (B[1] - A[1]);
+        double tz = sgn * (B[2] - A[2]);
+
+        // first DOF on that edge
+        UInt col = edgeStart[e];
+
+        // integral
+        double I = 0.0;
+        for (int g = 0; g < NG; ++g)
+        {
+          double t = gp[g];
+          double px = A[0] + t*(B[0]-A[0]);
+          double py = A[1] + t*(B[1]-A[1]);
+          double pz = A[2] + t*(B[2]-A[2]);
+
+          LocPointMapped lpmt = lpm;
+          lpmt.lp.coord[0] = px;
+          lpmt.lp.coord[1] = py;
+          lpmt.lp.coord[2] = pz;
+
+          Matrix<Double> locsh;
+          CalcLocShFnc2<ID>(locsh, lpmt, elem, comp);
+
+
+          double Nx = locsh(0, col);
+          double Ny = locsh(1, col);
+          double Nz = locsh(2, col);
+
+          I += gw[g] * (Nx*tx + Ny*ty + Nz*tz);
+        }
+
+        double tlen = std::sqrt(tx*tx + ty*ty + tz*tz);
+        std::cout << "[PYRA DEBUG] edge " << e
+                  << "  firstDOF=" << col
+                  << "  sgn=" << sgn
+                  << "  integral=" << I
+                  << "  |t|=" << tlen
+                  << std::endl;
+      }
+      std::cout << "=============================================================\n";
+    }
+  }
+#endif
 }
 
 void FeHCurlHiPyra::GetCurlShFnc( Matrix<Double>& curl, 
@@ -2498,128 +2612,329 @@ void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape,
                                   const Elem* elem, UInt comp ) {
   if (updateUnknowns_) CalcNumUnknowns();
 
-  AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
-  AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
-  
-  // trick: subtract a "tiny" part of z to ensure
-  // that the z-coordinate is well-defined
-  AutoDiff<Double, 3> z (lpm.lp.coord[2],2);
-  
-  AutoDiff<Double, 3> lambda[5] = { 0.25*((1.0 + x) * (1.0 + y) - z + (x*y*z)/(1.0-z)),
-                                    0.25*((1.0 - x) * (1.0 + y) - z - (x*y*z)/(1.0-z)),
-                                    0.25*((1.0 - x) * (1.0 - y) - z + (x*y*z)/(1.0-z)),
-                                    0.25*((1.0 + x) * (1.0 - y) - z - (x*y*z)/(1.0-z)),
-                                    z} ;
-  
+  AutoDiff<Double,3>  x (lpm.lp.coord[0],0);
+  AutoDiff<Double,3>  y (lpm.lp.coord[1],1);
+  AutoDiff<Double,3>  z (lpm.lp.coord[2],2);
+
+  // guarded against (1-z)->0
+  const double EPS = 1e-12;
+  AutoDiff<Double,3> one(1.0);
+  AutoDiff<Double,3> rho = one - z;                 // rho = 1 - z
+  double rho_val = rho.Val();
+  AutoDiff<Double,3> invrho = (rho_val < EPS) ? AutoDiff<Double,3>(0.0) : (1.0 / rho);
+  AutoDiff<Double,3> frac   = (rho_val < EPS) ? AutoDiff<Double,3>(0.0) : (x*y*z) * invrho;
+
+  AutoDiff<Double,3>  lam[5] =
+  {
+    0.25*((one+x)*(one+y) - z + frac),   // lambda_1
+    0.25*((one-x)*(one+y) - z - frac),   // lambda_2
+    0.25*((one-x)*(one-y) - z + frac),   // lambda_3
+    0.25*((one+x)*(one-y) - z - frac),   // lambda_4
+    z                                    // lambda_5 (apex)
+  };
+
+  //---------------------------------------------------------------------------
+  // 1) allocate output & keep running index
+  //---------------------------------------------------------------------------
+  if (updateUnknowns_) CalcNumUnknowns();
   UInt pos = 0;
-  shape.Resize(3,actNumFncs_);
+  shape.Resize(3, actNumFncs_);
   shape.Init();
-  for( UInt i = 0; i < 4; ++i ) {
 
-    UInt index1 = shape_.edgeVertices[i][0]-1; // i
-    UInt index2 = shape_.edgeVertices[i][1]-1; // j
-    UInt index3 = (index2+1)%4;                // k  
-    UInt index4 = (index1+3)%4;                // l
-    if ( elem->extended->edges[i] < 0 ) {
-      std::swap(index1, index2);  // fmax > f1 > f2
-      std::swap(index3, index4);
-    }
-    //    std::cerr << "edge #" << i+1 << ", " << index1+1 << " -> " << index2+1 << std::endl;
-    //    std::cerr << "edge j-k, " << index2+1 << ", " << index3+1 << std::endl;
-    //    std::cerr << "edge i-l, " << index1+1 << ", " << index4+1 << std::endl << std::endl;
-    //    std::cerr << "\n\n";
+  //---------------------------------------------------------------------------
+  // 2) EDGE functions  (horizontal edges first, then vertical)
+  //---------------------------------------------------------------------------
+  StdVector<AutoDiff<Double,3> > Vals;
+  // --- a) base-quad edges 0…3 -------------------------------------------
+  // vertices on the square base are lam[0], lam[1], lam[2], lam[3]
+  static const UInt baseEdge_lam[4][2] = { {0,1}, {1,2}, {2,3}, {3,0} };
 
+  for (UInt e = 0; e < 4; ++e)
+  {
+    UInt i1 = baseEdge_lam[e][0];
+    UInt i2 = baseEdge_lam[e][1];
+    UInt i3 = baseEdge_lam[(e+1)%4][1];
+    UInt i4 = baseEdge_lam[(e+3)%4][0];
 
-
-    AutoDiff<Double, 3>  arg1 = lambda[index2] + lambda[index3];
-    AutoDiff<Double, 3>  arg2 = lambda[index1] + lambda[index4];
-    // ===  standard Nedelec shape functions ===
-    Xpr_Diff_UGradV_min_WGradX<3,DIFF_TYPE> xpr(lambda[index1], arg1,
-                                                lambda[index2], arg2);
-
-    COPYSHFNC
-  } //loop: edges
-  
-  
-  // b) vertical edges (5-8)
-  for( UInt i = 4; i < 8; ++i ) {
-
-    UInt index1 = shape_.edgeVertices[i][0]-1;
-    UInt index2 = shape_.edgeVertices[i][1]-1;
-    if ( elem->extended->edges[i] < 0 ) {
-      std::swap(index1, index2);  // fmax > f1 > f2
+    if (elem->extended->edges[e] < 0) {
+      std::swap(i1,i2);
+      std::swap(i3,i4);
     }
 
-    // ===  standard Nedelec shape functions ===
-    Xpr_Diff_VGradU<3,DIFF_TYPE> xpr(lambda[index1], lambda[index2] );
-    COPYSHFNC
-  } //loop: edges
-     
-  return;
-  
+    // ---- lowest-order Nédélec edge function 
+    {
+      Xpr_Diff_UGradV_min_WGradX<3,DIFF_TYPE> xpr( lam[i1], lam[i2] + lam[i3],
+                                                  lam[i2],  lam[i1] + lam[i4] );
+      COPYSHFNC
+    }
+
+    // ---- higher-order edge gradients (if required)
+    UInt p = orderEdge_[e];
+    if (p > 1 && useEdgeGrad_[e] && !onlyLowestOrder_) {
+      // They should work but from time to time I get NaNs as a result and I do not know where this is coming from.
+      // I do not care too much about that since gradient fields are switched off per default anyway.
+      // This exception also catches all the following gradient field cases, which is why we just catch it here
+      EXCEPTION("FeHCurlHiPyra::CalcLocShFnc2 please switch off the gradient fields. They do not work with Hcurl pyras!")
+      // If anyone wants to tackle the problem - the implementation is here, just comment the exception above
+      StdVector<AutoDiff<Double,3> > ValsLoc;
+      ScaledIntLegendreP2(ValsLoc, p, lam[i2] + lam[i1], lam[i2] - lam[i1]);
+      for (UInt k = 1; k < p; ++k) {                  // skip k=0 -> already covered above
+        Xpr_GradU<3,DIFF_TYPE> xpr( ValsLoc[k-1] );   // grad of scalar edge poly
+        COPYSHFNC
+      }
+    }
+  }
+
+  // b) vertical pyramid edges 4...7
+  for (UInt e = 4; e < 8; ++e)
+  {
+    UInt i1 = shape_.edgeVertices[e][0]-1;
+    UInt i2 = shape_.edgeVertices[e][1]-1;
+    if (elem->extended->edges[e] < 0) std::swap(i1,i2);
+
+    /* ---- 2b-1  lowest order */
+    {
+      Xpr_Diff_VGradU<3,DIFF_TYPE> xpr(lam[i1], lam[i2]);
+      COPYSHFNC
+    }
+
+    /* ---- 2b-2  HO gradient bubble  */
+    UInt p = orderEdge_[e];
+    if (p > 1 && useEdgeGrad_[e] && !onlyLowestOrder_)
+    {
+      ScaledIntLegendreP2(Vals, p, lam[i2]+lam[i1], lam[i2]-lam[i1]);
+      for (UInt k = 0; k < p; ++k)
+      {
+        Xpr_GradU<3,DIFF_TYPE> xpr( Vals[k]*lam[i2] ); // bubble factor
+        COPYSHFNC
+      }
+    }
+  }
+
+  //---------------------------------------------------------------------------
+  // 3)  FACE functions   (4 triangular + 1 quadrilateral)
+  //---------------------------------------------------------------------------
+  //
+  //  3.1  Triangular faces (apex + two base vertices)  –  iFace=0...3
+  //
+  for (UInt f = 1; f < 5; ++f)   // faces 1...4 are the triangular ones
+  {
+    UInt ind[3] = { shape_.faceVertices[f][0]-1,
+                    shape_.faceVertices[f][1]-1,
+                    shape_.faceVertices[f][2]-1 };
+
+    UInt p  = orderFace_[f][0];          // Zaglmayr uses (p,q) but we only
+    UInt q  = orderFace_[f][1];          //   support p==q => isotropic
+
+    if (!useFaceGrad_[f] || p < 2 || onlyLowestOrder_)
+    {   /* skip – nothing to add */   }
+    else
+    {
+      StdVector<AutoDiff<Double,3> > ui, vj;
+
+      // u_i  : integrated Legendre in edge-direction lambda_ind0–lambda_ind1
+      ScaledIntLegendreP2(ui, p+1,
+                          lam[ind[1]]+lam[ind[0]],
+                          lam[ind[1]]-lam[ind[0]]);
+
+      // v_j  : scalar Legendre in “vertical” lambda_ind2
+      StdVector<AutoDiff<Double,3> > temp;
+      Legendre(temp, q+1, 2.0*lam[ind[2]] - 1.0);
+      vj.Resize(q);
+      for (UInt j=0;j<q;++j) vj[j] = lam[ind[2]] * temp[j];
+
+      /* ---- Type-I surface gradient fields  */
+      for (UInt i=0;i<=p-2;++i)
+        for (UInt j=0;j<=q-2-i;++j)
+        {
+          Xpr_GradU<3,DIFF_TYPE> xpr(ui[i]*vj[j]);
+          COPYSHFNC
+        }
+
+      /* ---- Type-II  tangential curls (u_i × grad(v_j))  */
+      for (UInt i=0;i<=p-2;++i)
+        for (UInt j=0;j<=q-1-i;++j)
+        {
+          Xpr_Diff_UGradV_min_WGradX<3,DIFF_TYPE>
+             xpr( ui[i+1], vj[j], ui[i], vj[j] );
+          COPYSHFNC
+        }
+    }
+  }
+
+  //
+  //  3.2  Base quad face (iFace == 0)
+  //
+  {
+    UInt f = 0;   // face‑0 is the quad base in OpenCFS
+    UInt p = orderFace_[f][0];
+    UInt q = orderFace_[f][1];
+
+    if (p > 0 && q > 0 && !onlyLowestOrder_)
+    {
+      //------------------------------------------------------------------
+      //  coordinate pull-back:
+      //        zeta = x/(1.0-z)   ,   eta = y/(1.0-z)
+      //------------------------------------------------------------------
+      // Reuse rho, rho_val, invrho from above to avoid division by ~0
+      AutoDiff<Double,3> xi, eta;
+      if (rho_val < EPS) {
+        // limit: (1-z)^2 multiplies all these anyway -> set to 0 safely
+        xi  = AutoDiff<Double,3>(0.0);
+        eta = AutoDiff<Double,3>(0.0);
+      } else {
+        xi  = x * invrho;
+        eta = y * invrho;
+      }
+
+      // Legendre bases
+      StdVector<AutoDiff<Double,3>> lp, lq, ip, iq;
+      Legendre(lp,  p+1, xi);
+      Legendre(lq,  q+1, eta);
+      IntLegendre(ip, p+1, xi);
+      IntLegendre(iq, q+1, eta);
+
+      // ---------- FAMILY A: surface gradients (add ONLY if useFaceGrad_[0]) ----------
+      if (useFaceGrad_[0]) {
+          for (UInt i=1; i<=p; ++i)
+            for (UInt j=0; j<=q; ++j) {
+              AutoDiff<Double,3> phi = ip[i-1]*lq[j]*rho*rho;
+              Xpr_GradU<3,DIFF_TYPE> xpr(phi);
+              COPYSHFNC
+            }
+
+          for (UInt i=0; i<=p; ++i)
+            for (UInt j=1; j<=q; ++j) {
+              AutoDiff<Double,3> phi = lp[i]*iq[j-1]*rho*rho;
+              Xpr_GradU<3,DIFF_TYPE> xpr(phi);
+              COPYSHFNC
+            }
+      }
+
+      // ---------- FAMILY B: “type-2” (p*q)  -- ALWAYS ----------
+      for (UInt i=0; i<p; ++i)
+        for (UInt j=0; j<q; ++j) {
+          AutoDiff<Double,3> u = lp[i+1]*lq[j]*rho*rho;   // NOTE: i+1 exists since i<p
+          AutoDiff<Double,3> v = lp[i]*lq[j+1]*rho*rho;
+          Xpr_Diff_UGradV_min_WGradX<3,DIFF_TYPE> xpr(u,v,u,v);
+          COPYSHFNC
+        }
+
+      // ---------- FAMILY C: “type-3” (p + q)  -- ALWAYS ----------
+      for (UInt i=0; i<p; ++i) {
+        AutoDiff<Double,3> u = ip[i]*rho*rho;          
+        Xpr_GradU<3,DIFF_TYPE> xpr(u);                 
+        COPYSHFNC
+      }
+      for (UInt j=0; j<q; ++j) {
+        AutoDiff<Double,3> v = iq[j]*rho*rho;
+        Xpr_GradU<3,DIFF_TYPE> xpr(v);
+        COPYSHFNC
+      }
+    }
+  }
+
+  //---------------------------------------------------------------------------
+  // 4)  INTERIOR bubble functions  
+  //---------------------------------------------------------------------------
+  if (useInteriorGrad_ &&
+      orderInner_[0]>0 && orderInner_[1]>0 && orderInner_[2]>0 &&
+      !onlyLowestOrder_)
+  {
+    UInt p = orderInner_[0];
+    UInt q = orderInner_[1];
+    UInt r = orderInner_[2];
+
+    StdVector<AutoDiff<Double,3> >  up,vq,wr;
+    IntLegendre(up, p+1, lam[0]-lam[2]);          // just one possible set
+    IntLegendre(vq, q+1, lam[1]-lam[3]);
+    IntLegendre(wr, r+1, 2.0*lam[4]-1.0);
+
+    for (UInt i=0;i<p;++i)
+      for (UInt j=0;j<q;++j)
+        for (UInt k=0;k<r;++k)
+        {
+          AutoDiff<Double,3> phi = up[i]*vq[j]*wr[k]*lam[4];   // bubble
+          Xpr_GradU<3,DIFF_TYPE> xpr(phi);                     // grad(phi)
+          COPYSHFNC
+        }
+  }
 }
 
 void FeHCurlHiPyra::CalcNumUnknowns() {
+  
   actNumFncs_ = 0;
 
-   // Vertices 
-   StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
-   vertFncs.Resize(shape_.numVertices);
-   vertFncs.Init(0); // -> no unknowns on vertices
+  /* ---- EDGES ---------------------------------------------------------- */
+  entityFncs_[EDGE].Resize(shape_.numEdges);
+  for (UInt e = 0; e < shape_.numEdges; ++e)
+  {
+      UInt n = 1;                            // always the lowest-order tangential mode
+      if (useEdgeGrad_[e])                   // add all gradient modes if requested
+          n += orderEdge_[e];                //  -> total = 1 + p  (p = orderEdge_[e])
 
-   // Edges
-   StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
-   edgeFncs.Resize(shape_.numEdges);
-   UInt unknowns = 0;
-   for( UInt i = 0; i < shape_.numEdges; ++i ) {
-     unknowns = 1; // Lowest order Nedelc functions
-     edgeFncs[i] = unknowns;
-     LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
-     actNumFncs_ += unknowns;
-   }
+      entityFncs_[EDGE][e] = n;
+      actNumFncs_         += n;
 
-   // Faces
-   StdVector<UInt>& faceFncs = entityFncs_[FACE];
-   faceFncs.Resize(shape_.numFaces);
-   faceFncs.Init(0);
-// #ifdef USE_FACES
-//   for( UInt i = 0; i < shape_.numFaces; ++i ) {
-//     if( orderFace_[i][0] > 0 &&
-//         orderFace_[i][1] > 0 ) {
-//       unknowns = orderFace_[i][0] * orderFace_[i][1] // face functions of 1st kind
-//                 + orderFace_[i][0] + orderFace_[i][1];
-//       if( useFaceGrad_[i])
-//         unknowns +=  orderFace_[i][0] * orderFace_[i][1];
-//       faceFncs[i] = unknowns;
-//       LOG_DBG(feHCurlHi) << "face " << i+1 << " has " << unknowns << "unknowns";
-//       actNumFncs_ += unknowns;
-//     }
-//   }
-// #endif
+  }
 
-   // Interior
-   StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
-   innerFncs.Resize(1);
-   innerFncs.Init(0);
+  /* ---- TRIANGULAR FACES (1...4) ---------------------------------------- */
+  entityFncs_[FACE].Resize(shape_.numFaces);
+  entityFncs_[FACE].Init(0);
+  for (UInt f = 1; f < 5; ++f) {
+    UInt p = orderFace_[f][0];  // isotropic
+    UInt q = orderFace_[f][1];
 
-//   #ifdef USE_INNER
-//   if( orderInner_[0] > 0 && 
-//       orderInner_[1] > 0 && 
-//       orderInner_[2] > 0 ) {
-//
-//     unknowns = 2 * (orderInner_[0] * orderInner_[1] * orderInner_[2]) 
-//                    + orderInner_[1] * orderInner_[2] 
-//                    + orderInner_[0] * (orderInner_[2] + orderInner_[1]);
-//     if( useInteriorGrad_ ) { 
-//       unknowns += orderInner_[0] * orderInner_[1] * orderInner_[2];
-//     }
-//     actNumFncs_ += unknowns;
-//     innerFncs[0] = unknowns;
-//     LOG_DBG(feHCurlHi) << "interior has " << unknowns << "unknowns";
-//   }
-// #endif
+    UInt n = 0;
+    if (!onlyLowestOrder_ && p > 1 && q > 1) {
+      // Type-I (surface gradients) only if useFaceGrad_
+      if (useFaceGrad_[f])
+        n += (p-1)*p/2;               // sum_{i=0}^{p-2} (p-1-i)
 
-   LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+      // Type-II tangential curls (always)
+      n += (p-1)*p/2;
+
+      // Type-III edge-blends (always)
+      n += (p-1);
+    }
+
+    entityFncs_[FACE][f] = n;
+    actNumFncs_         += n;
+  }
+
+  /* ---- QUAD BASE FACE (index 0) ------------------------------------ */
+  {
+    const UInt f = 0;
+    const UInt p = orderFace_[f][0];
+    const UInt q = orderFace_[f][1];
+
+    UInt n = 0;
+    if (!onlyLowestOrder_ && p > 0 && q > 0) {
+        // mandatory families (must match HEX):
+        // type-2 (p*q)  + type-3 (p + q)
+        n = p*q + p + q;
+
+        // optional surface-gradient family (HEX adds when useFaceGrad=true)
+        if (useFaceGrad_[f])
+            n += p*q;     
+
+    }
+
+    entityFncs_[FACE][f] = n;
+    actNumFncs_         += n;
+  }
+
+  /* ---- INTERIOR ------------------------------------------------------ */
+  entityFncs_[INTERIOR].Resize(1);
+  {
+    UInt n = 0;
+    if (useInteriorGrad_ && !onlyLowestOrder_)
+        n = orderInner_[0] * orderInner_[1] * orderInner_[2];
+    entityFncs_[INTERIOR][0] = n;
+    actNumFncs_             += n;
+  }
+
+  
 }
 
 }// end of namespace
