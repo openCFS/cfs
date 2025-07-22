@@ -100,7 +100,7 @@ namespace CoupledField {
                                Double phi, Double chi, Double &F_prime_orig, Double &F_prime_prime_orig);
     private:
       //==============
-      SMSM SMSM_model_;
+      std::unique_ptr<SMSM> SMSM_model_;
 
       UInt dim_; 
 
@@ -111,9 +111,11 @@ namespace CoupledField {
       Double Ps_;
       Double A_;
       Double mu0_;
-      Double numS_;
+      UInt numS_;
       Double chi_factor_;
-      Double jacobian_method_;
+      UInt jacobian_method_;
+      UInt anhyst_type_;
+      std::string approx_type_;
 
       StdVector< StdVector<Double> > Htotal_prev_;
       StdVector< StdVector<Double> > Mprev_iter_;

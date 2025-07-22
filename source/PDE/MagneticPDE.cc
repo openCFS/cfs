@@ -310,7 +310,7 @@ namespace CoupledField {
 
             stiff2->SetName("CurlCurlIntegrator-NL-Newton");
             //! mark the bi-linear form to be a Newton part
-            stiff2->SetNewtonBilinearForm();
+            stiff2->SetNewtonBiLinearForm();
 
             BiLinFormContext * stiffContext2 =
                     new BiLinFormContext(stiff2, STIFFNESS );
@@ -1196,26 +1196,6 @@ namespace CoupledField {
         DefineTimeDerivResult( COIL_CURRENT_DERIV1, 1, COIL_CURRENT );
       }
     }
-
-    // === MAGNETIC VECTOR POTENTIAL AVERAGED ===
-    shared_ptr<ResultInfo> dispNormal, dispVol;
-    shared_ptr<PtrCoefFct> coefFctA;
-    coefFctA = this->GetCoefFct(MAG_POTENTIAL);
-    
-    magVecPotAvg.reset(new ResultInfo);
-    magVecPotAvg->resultType = MAG_POTENTIAL_AVERAGED;
-    magVecPotAvg->dofNames = "";
-    magVecPotAvg->unit = MapSolTypeToUnit(MAG_POTENTIAL_AVERAGED);
-    magVecPotAvg->entryType = ResultInfo::SCALAR;
-    magVecPotAvg->definedOn = ResultInfo::REGION;
-    // Integrate normal displacement
-    shared_ptr<ResultFunctor> magVecPotAvgFct;
-    if(isComplex_)
-      magVecPotAvgFct.reset(new ResultFunctorIntegrate<Complex>(coefFctA, feFct, magVecPotAvg));
-    else
-      magVecPotAvgFct.reset(new ResultFunctorIntegrate<Double>(coefFctA, feFct, magVecPotAvg));
-    resultFunctors_[MAG_POTENTIAL_AVERAGED] = magVecPotAvgFct;
-    availResults_.insert(coefFctA);
 
     // from NACS
     // === ELECTRIC SCALAR POTENTIAL - 1ST DERIVATIVE===

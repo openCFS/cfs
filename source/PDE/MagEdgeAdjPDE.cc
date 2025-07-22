@@ -210,7 +210,7 @@ DEFINE_LOG(magEdgeAdjPde, "magEdgeAdjPde")
         BiLinearForm* stiff2 = NULL;
         stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
         stiff2->SetName("CurlCurlIntegrator-NL-Newton");
-        stiff2->SetNewtonBilinearForm();
+        stiff2->SetNewtonBiLinearForm();
 
         BiLinFormContext * stiffContext2 = new BiLinFormContext(stiff2, STIFFNESS );
         stiffContext2->SetEntities( actSDList, actSDList );

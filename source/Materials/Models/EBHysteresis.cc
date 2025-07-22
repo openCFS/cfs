@@ -36,6 +36,7 @@ DEFINE_LOG(eb, "EBHysteresis")
   {
     
     dim_ = dim;
+    mu0_ = 4 * M_PI * 1e-7;
 
     EntityIterator it = entityList->GetIterator();
     numElems_ = entityList->GetSize();
@@ -51,13 +52,11 @@ DEFINE_LOG(eb, "EBHysteresis")
     if (ParameterMap.size() < 5) {
       EXCEPTION("The model needs 5 parameters!");
     }
-    Ps_ = ParameterMap["Ps"];
-    A_ = ParameterMap["A"];
-    mu0_ = ParameterMap["mu0"];
     numS_ = ParameterMap["numS"];
     chi_factor_ = ParameterMap["chi_factor"];
     jacobian_method_ = ParameterMap["jacobian_method"];
     anhyst_type_ = ParameterMap["anhyst_type"]; // 1 is atan, 2 is MSM
+
     if (anhyst_type_ == 2)
     {
       // multiscale anhysteresis model
@@ -75,19 +74,23 @@ DEFINE_LOG(eb, "EBHysteresis")
     }
 
     isMH_ = ParameterMap["isMH"];
-    if(isMH_ == 1.0){
+    if(isMH_ == 1.0)
+    {
       varHandle_="cacheResult";
     } else {
       varHandle_="step";
     }
-    mu_0 = 1.256637061e-06;
 
-    Ps_ = ParameterMap["Ps"];
-    A_ = ParameterMap["A"];
-    mu0_ = ParameterMap["mu0"];
-    numS_ = ParameterMap["numS"];
-    chi_factor_ = ParameterMap["chi_factor"];
-    jacobian_method_ = ParameterMap["jacobian_method"];
+    switch (UInt(ParameterMap["approx_type"]))
+    {
+    case 1:
+      approx_type_ = "fullEB";
+      break;
+    case 2:
+      approx_type_ = "approxVPM";
+      break;
+    }
+
 
     Htotal_prev_.Resize(numElems_, StdVector<Double>(dim_));
     Mprev_iter_.Resize(numElems_, StdVector<Double>(dim_));
@@ -132,31 +135,38 @@ DEFINE_LOG(eb, "EBHysteresis")
           AtA[idx][jdx] += A[kdx][idx] * A[kdx][jdx];
         }
       }
-      Double a,b,c;
-      // Compute the coefficients of the characteristic polynomial directly
-      a = 1.0;
-      b = -1.0 * (A[0][0] + A[1][1] + A[2][2]);
-      c = A[0][0] * (A[1][1] * A[2][2] - A[2][1] * A[1][2]) +
-          A[1][1] * A[2][2] * A[0][0] +
-          A[2][2] * A[0][0] * A[1][1] -
-          A[0][1] * A[1][0] * A[2][2] -
-          A[1][2] * A[2][1] * A[0][0] -
-          A[2][0] * A[0][2] * A[1][1];
+    }
+    Double a,b,c;
+    // Compute the coefficients of the characteristic polynomial directly
+    a = 1.0;
+    b = -1.0 * (A[0][0] + A[1][1] + A[2][2]);
+    c = A[0][0] * (A[1][1] * A[2][2] - A[2][1] * A[1][2]) +
+        A[1][1] * A[2][2] * A[0][0] +
+        A[2][2] * A[0][0] * A[1][1] -
+        A[0][1] * A[1][0] * A[2][2] -
+        A[1][2] * A[2][1] * A[0][0] -
+        A[2][0] * A[0][2] * A[1][1];
 
-      Double discriminant = b * b - 4 * a * c;
-      Double lambda1 = (-b + std::sqrt(discriminant)) / (2 * a);
-      Double lambda2 = (-b - std::sqrt(discriminant)) / (2 * a);
-      Double lambda3 = (A[0][0] + A[1][1] + A[2][2]) - lambda1 - lambda2;
+    Double discriminant = b * b - 4 * a * c;
+    Double lambda1 = (-b + std::sqrt(discriminant)) / (2 * a);
+    Double lambda2 = (-b - std::sqrt(discriminant)) / (2 * a);
+    Double lambda3 = (A[0][0] + A[1][1] + A[2][2]) - lambda1 - lambda2;
 
-      Double svd1 = std::sqrt(std::abs(lambda1)); Double svd2 = std::sqrt(std::abs(lambda2)); Double svd3 = std::sqrt(std::abs(lambda3));
+    Double svd1 = std::sqrt(std::abs(lambda1)); 
+    Double svd2 = std::sqrt(std::abs(lambda2)); 
+    Double svd3 = std::sqrt(std::abs(lambda3));
 
-      if (svd1 >= svd2 && svd1 >= svd3) {
-          return svd1*std::pow(10,penaltyParameter/2);
-      } else if (svd2 >= svd1 && svd2 >= svd3) {
-          return svd2*std::pow(10,penaltyParameter/2);
-      } else {
-          return svd3*std::pow(10,penaltyParameter/2);
-      }
+    if (svd1 >= svd2 && svd1 >= svd3) 
+    {
+      return svd1*std::pow(10,penaltyParameter/2);
+    } 
+    else if (svd2 >= svd1 && svd2 >= svd3) 
+    {
+      return svd2*std::pow(10,penaltyParameter/2);
+    } 
+    else 
+    {
+      return svd3*std::pow(10,penaltyParameter/2);
     }
   }
 
@@ -241,14 +251,15 @@ DEFINE_LOG(eb, "EBHysteresis")
 
     // To obtain a good starting point for the quasi-Newton method in the first time step
     // and first Newton iteration the Jacobian is approximated by forward finite differences
-    //if(timeStep_== 1 && globalIter_ == 1){
-    if(globalIter_ == 1)
+    //if(timeStep_== 1 && iterTracker4Mu_ == 1){
+    if(iterTracker4Mu_ == 1)
     {
       Vector<Double> M;
       M = Evaluate(HVec, idx);
       StdVector<Double> B_k(dim_);
-      for(UInt i = 0; i < dim_; i++){
-          B_k[i] = mu_0 * (HVec[i] + M[i]);
+      for(UInt i = 0; i < dim_; i++)
+      {
+          B_k[i] = mu0_ * (HVec[i] + M[i]);
       }
       mu = EvaluateLocalMuFiniteDifferences(HVec, B_k, idx);
 
@@ -848,11 +859,12 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       mu[0][2] = 0.0;
       mu[1][2] = 0.0;
       mu[2][1] = 0.0;
-      for (UInt i = 0; i < dim_; i++){
-          if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
-            Matrix<Double> e = mu_[idx];
-              mu[i][i] = e[i][i];//mu_0; //e[i][i]; //mu_0;
-          } 
+      for (UInt i = 0; i < dim_; i++)
+      {
+        if (std::isinf(mu[i][i]) || std::isnan(mu[i][i])){
+          Matrix<Double> e = mu_[idx];
+            mu[i][i] = e[i][i];//mu_0; //e[i][i]; //mu_0;
+        } 
       }
     }
     if (idx == 32){
@@ -861,52 +873,6 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     return mu;
   }
 
-  Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector<Double> dB, UInt idx){
-
-    Matrix<Double> yyT(dim_, dim_);
-    Matrix<Double> BxBxT(dim_, dim_);
-    Matrix<Double> B_k1(dim_, dim_);
-    Matrix<Double> B = mu_[idx];
-    Double yTx;
-    Double xTBx;
-    StdVector<Double> y = dB;
-    StdVector<Double> x = dH;
-    StdVector<Double> Bx;
-
-    // yyT (outer product)
-    yyT[0][0] = y[0]*y[0]; yyT[0][1] = y[0]*y[1]; yyT[0][2] = y[0]*y[2];
-    yyT[1][0] = y[1]*y[0]; yyT[1][1] = y[1]*y[1]; yyT[1][2] = y[1]*y[2];
-    yyT[2][0] = y[2]*y[0]; yyT[2][1] = y[2]*y[1]; yyT[2][2] = y[2]*y[2];
-
-    // yTx (inner product)
-    yTx = (y[0]*x[0]) + (y[1]*x[1]) + (y[2]*x[2]);
-
-    // xTBx (inner product)
-    Bx[0] = B[0][0]*x[0] + B[0][1]*x[1] + B[0][2]*x[2];
-    Bx[1] = B[1][0]*x[0] + B[1][1]*x[1] + B[1][2]*x[2];
-    Bx[2] = B[2][0]*x[0] + B[2][1]*x[1] + B[2][2]*x[2];
-    xTBx = (x[0]*Bx[0]) + (x[1]*Bx[1]) + (x[2]*Bx[2]);
-
-    // BxBxT (outer product)
-    BxBxT[0][0] = Bx[0]*Bx[0]; BxBxT[0][1] = Bx[0]*Bx[1]; BxBxT[0][2] = Bx[0]*Bx[2];
-    BxBxT[1][0] = Bx[1]*Bx[0]; BxBxT[1][1] = Bx[1]*Bx[1]; BxBxT[1][2] = Bx[1]*Bx[2];
-    BxBxT[2][0] = Bx[2]*Bx[0]; BxBxT[2][1] = Bx[2]*Bx[1]; BxBxT[2][2] = Bx[2]*Bx[2];
-
-    // construct everything
-    B_k1[0][0] = B[0][0] + yyT[0][0]/yTx - BxBxT[0][0]/xTBx; 
-    B_k1[0][1] = B[0][1] + yyT[0][1]/yTx - BxBxT[0][1]/xTBx;
-    B_k1[0][2] = B[0][2] + yyT[0][2]/yTx - BxBxT[0][2]/xTBx;
-
-    B_k1[1][0] = B[1][0] + yyT[1][0]/yTx - BxBxT[1][0]/xTBx; 
-    B_k1[1][1] = B[1][1] + yyT[1][1]/yTx - BxBxT[1][1]/xTBx;
-    B_k1[1][2] = B[1][2] + yyT[1][2]/yTx - BxBxT[1][2]/xTBx;
-
-    B_k1[2][0] = B[2][0] + yyT[2][0]/yTx - BxBxT[2][0]/xTBx; 
-    B_k1[2][1] = B[2][1] + yyT[2][1]/yTx - BxBxT[2][1]/xTBx;
-    B_k1[2][2] = B[2][2] + yyT[2][2]/yTx - BxBxT[2][2]/xTBx;
-
-    return B_k1;
-  }
 
   Matrix<Double> EBHysteresis::EvaluateLocalMuGBM(StdVector<Double> dH, StdVector<Double> dB, UInt idx)
   {
