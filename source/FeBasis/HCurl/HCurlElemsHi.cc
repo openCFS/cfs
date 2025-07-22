@@ -4,20 +4,20 @@
 #include "FeBasis/Polynomials.hh"
 #include "Domain/ElemMapping/EdgeFace.hh"
 
+#include <cmath>
 namespace CoupledField {
+
 
 #define USE_FACES 1
 #define USE_INNER 1
+
+// --- Debug switches ---------------------------------------------------
+#define PYRA_DEBUG_MAT       0   // new interpolation-matrix debug
 
 // declare class specific logging stream
 DEFINE_LOG(feHCurlHi, "feHCurlHi")
 
 
-#ifndef PYRA_DOF_PRINT
-#define PYRA_DOF_PRINT(elemName, onlyLO, what, idx, val) \
-    //std::cout << "[DBG] " << elemName << " onlyLO=" << onlyLO \
-    //          << "  " << what << "[" << idx << "] = " << val << '\n';
-#endif
 
 
 // ===============================================================
@@ -848,10 +848,6 @@ void FeHCurlHiHex::CalcNumUnknowns() {
 
   LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
 
-  for (UInt f = 0; f < shape_.numFaces; ++f)
-    PYRA_DOF_PRINT("HEX ", onlyLowestOrder_, "face", f, entityFncs_[FACE][f]);
-for (UInt e = 0; e < shape_.numEdges; ++e)
-    PYRA_DOF_PRINT("HEX ", onlyLowestOrder_, "edge", e, entityFncs_[EDGE][e]);
 }
 
 
@@ -2487,10 +2483,6 @@ void FeHCurlHiTet::CalcNumUnknowns() {
 
    LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
 
-   for (UInt f = 0; f < shape_.numFaces; ++f)
-    PYRA_DOF_PRINT("TET ", onlyLowestOrder_, "face", f, entityFncs_[FACE][f]);
-for (UInt e = 0; e < shape_.numEdges; ++e)
-    PYRA_DOF_PRINT("TET ", onlyLowestOrder_, "edge", e, entityFncs_[EDGE][e]);
 }
 
 
@@ -2516,6 +2508,90 @@ void FeHCurlHiPyra::GetShFnc( Matrix<Double>& shape,
 
   // Perform local->global gradient transformation
   shape =  Transpose(lpm.jacInv) * locShape;
+
+#if PYRA_DEBUG_MAT
+  {
+    // Run once per process to avoid flooding
+    static bool done = false;
+    if (!done)
+    {
+      done = true;
+      const auto & shref = Elem::shapes[Elem::ET_PYRA5];
+      const int nedges = shref.numEdges;
+
+      // ---- Build start index of first DOF on every edge -----------------
+      StdVector<UInt> edgeStart(nedges);
+      UInt acc = 0;
+      for (int e = 0; e < nedges; ++e) {
+        edgeStart[e] = acc;
+        acc += entityFncs_[EDGE][e];
+      }
+
+      // ---- Simple 4-pt Gauss rule on [0,1] ------------------------------
+      const int NG = 4;
+      const double gp[NG] = { 0.0694318442029737, 0.3300094782075719,
+                              0.6699905217924281, 0.9305681557970262 };
+      const double gw[NG] = { 0.1739274225687269, 0.3260725774312731,
+                              0.3260725774312731, 0.1739274225687269 };
+
+      std::cout << "============= PYRAMID EDGE INTERPOLATION CHECK =============\n";
+      for (int e = 0; e < nedges; ++e)
+      {
+        int v0 = shref.edgeVertices[e][0]-1;
+        int v1 = shref.edgeVertices[e][1]-1;
+
+        // reference coordinates of end points
+        const CoupledField::Vector<Double> &A = shref.nodeCoords[v0];
+        const CoupledField::Vector<Double> &B = shref.nodeCoords[v1];
+
+        // orientation sign same as used in assembly
+        double sgn = (elem->extended->edges[e] < 0) ? -1.0 : 1.0;
+
+        // oriented tangent in reference space
+        double tx = sgn * (B[0] - A[0]);
+        double ty = sgn * (B[1] - A[1]);
+        double tz = sgn * (B[2] - A[2]);
+
+        // first DOF on that edge
+        UInt col = edgeStart[e];
+
+        // integral
+        double I = 0.0;
+        for (int g = 0; g < NG; ++g)
+        {
+          double t = gp[g];
+          double px = A[0] + t*(B[0]-A[0]);
+          double py = A[1] + t*(B[1]-A[1]);
+          double pz = A[2] + t*(B[2]-A[2]);
+
+          LocPointMapped lpmt = lpm;
+          lpmt.lp.coord[0] = px;
+          lpmt.lp.coord[1] = py;
+          lpmt.lp.coord[2] = pz;
+
+          Matrix<Double> locsh;
+          CalcLocShFnc2<ID>(locsh, lpmt, elem, comp);
+
+
+          double Nx = locsh(0, col);
+          double Ny = locsh(1, col);
+          double Nz = locsh(2, col);
+
+          I += gw[g] * (Nx*tx + Ny*ty + Nz*tz);
+        }
+
+        double tlen = std::sqrt(tx*tx + ty*ty + tz*tz);
+        std::cout << "[PYRA DEBUG] edge " << e
+                  << "  firstDOF=" << col
+                  << "  sgn=" << sgn
+                  << "  integral=" << I
+                  << "  |t|=" << tlen
+                  << std::endl;
+      }
+      std::cout << "=============================================================\n";
+    }
+  }
+#endif
 }
 
 void FeHCurlHiPyra::GetCurlShFnc( Matrix<Double>& curl, 
@@ -2529,16 +2605,14 @@ void FeHCurlHiPyra::GetCurlShFnc( Matrix<Double>& curl,
   curl = lpm.jac * locCurl;
   curl *= ( 1.0 / std::fabs(lpm.jacDet) );
 }
-zu checken:
-- jacobi matrix wird ja mit H1 elementen berechnet. passt da vl was ned?
-- vgl der massenmatrix einträge von hex und tet und pyra
+
 template<FeHCurlHi::DiffType DIFF_TYPE>
 void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape, 
                                   const LocPointMapped& lpm,
                                   const Elem* elem, UInt comp ) {
   if (updateUnknowns_) CalcNumUnknowns();
 
-    AutoDiff<Double,3>  x (lpm.lp.coord[0],0);
+  AutoDiff<Double,3>  x (lpm.lp.coord[0],0);
   AutoDiff<Double,3>  y (lpm.lp.coord[1],1);
   AutoDiff<Double,3>  z (lpm.lp.coord[2],2);
 
@@ -2571,30 +2645,41 @@ void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape,
   // 2) EDGE functions  (horizontal edges first, then vertical)
   //---------------------------------------------------------------------------
   StdVector<AutoDiff<Double,3> > Vals;
-  // a) base-quad edges 0...3
+  // --- a) base-quad edges 0…3 -------------------------------------------
+  // vertices on the square base are lam[0], lam[1], lam[2], lam[3]
+  static const UInt baseEdge_lam[4][2] = { {0,1}, {1,2}, {2,3}, {3,0} };
+
   for (UInt e = 0; e < 4; ++e)
   {
-    UInt i1 = shape_.edgeVertices[e][0]-1;         // starting vertex
-    UInt i2 = shape_.edgeVertices[e][1]-1;         // end vertex
-    UInt i3 = (i2+1) % 4;                          // next CCW base vertex
-    UInt i4 = (i1+3) % 4;                          // previous base vertex
-    if (elem->extended->edges[e] < 0) { std::swap(i1,i2); std::swap(i3,i4); }
+    UInt i1 = baseEdge_lam[e][0];
+    UInt i2 = baseEdge_lam[e][1];
+    UInt i3 = baseEdge_lam[(e+1)%4][1];
+    UInt i4 = baseEdge_lam[(e+3)%4][0];
 
-    /* ---- 2a-1  lowest-order Nédélec (edge-tangential) */
+    if (elem->extended->edges[e] < 0) {
+      std::swap(i1,i2);
+      std::swap(i3,i4);
+    }
+
+    // ---- lowest-order Nédélec edge function 
     {
-      Xpr_Diff_UGradV_min_WGradX<3,DIFF_TYPE> xpr(lam[i1], lam[i2]+lam[i3],
-                                                  lam[i2], lam[i1]+lam[i4]);
+      Xpr_Diff_UGradV_min_WGradX<3,DIFF_TYPE> xpr( lam[i1], lam[i2] + lam[i3],
+                                                  lam[i2],  lam[i1] + lam[i4] );
       COPYSHFNC
     }
 
-    /* ---- 2a-2  higher-order edge-gradients   (Zaglmayr §4.1.2) */
-    UInt p  = orderEdge_[e];
-    if (p > 1 && useEdgeGrad_[e] && !onlyLowestOrder_)
-    {
-      ScaledIntLegendreP2(Vals, p, lam[i2]+lam[i1], lam[i2]-lam[i1]);
-      for (UInt k = 0; k < p; ++k)
-      {
-        Xpr_GradU<3,DIFF_TYPE>  xpr( Vals[k] );
+    // ---- higher-order edge gradients (if required)
+    UInt p = orderEdge_[e];
+    if (p > 1 && useEdgeGrad_[e] && !onlyLowestOrder_) {
+      // They should work but from time to time I get NaNs as a result and I do not know where this is coming from.
+      // I do not care too much about that since gradient fields are switched off per default anyway.
+      // This exception also catches all the following gradient field cases, which is why we just catch it here
+      EXCEPTION("FeHCurlHiPyra::CalcLocShFnc2 please switch off the gradient fields. They do not work with Hcurl pyras!")
+      // If anyone wants to tackle the problem - the implementation is here, just comment the exception above
+      StdVector<AutoDiff<Double,3> > ValsLoc;
+      ScaledIntLegendreP2(ValsLoc, p, lam[i2] + lam[i1], lam[i2] - lam[i1]);
+      for (UInt k = 1; k < p; ++k) {                  // skip k=0 -> already covered above
+        Xpr_GradU<3,DIFF_TYPE> xpr( ValsLoc[k-1] );   // grad of scalar edge poly
         COPYSHFNC
       }
     }
@@ -2688,7 +2773,7 @@ void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape,
     if (p > 0 && q > 0 && !onlyLowestOrder_)
     {
       //------------------------------------------------------------------
-      //  Same coordinate pull-back NGSolve uses:
+      //  coordinate pull-back:
       //        zeta = x/(1.0-z)   ,   eta = y/(1.0-z)
       //------------------------------------------------------------------
       // Reuse rho, rho_val, invrho from above to avoid division by ~0
@@ -2737,8 +2822,8 @@ void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape,
 
       // ---------- FAMILY C: “type-3” (p + q)  -- ALWAYS ----------
       for (UInt i=0; i<p; ++i) {
-        AutoDiff<Double,3> u = ip[i]*rho*rho;          // or lp[i+1]*rho*rho ... keep consistent
-        Xpr_GradU<3,DIFF_TYPE> xpr(u);                 // choose the same expr you used on HEX
+        AutoDiff<Double,3> u = ip[i]*rho*rho;          
+        Xpr_GradU<3,DIFF_TYPE> xpr(u);                 
         COPYSHFNC
       }
       for (UInt j=0; j<q; ++j) {
@@ -2790,10 +2875,6 @@ void FeHCurlHiPyra::CalcNumUnknowns() {
 
       entityFncs_[EDGE][e] = n;
       actNumFncs_         += n;
-      // std::cout << "[Pyra] edge " << e
-      //     << "  order=" << orderEdge_[e]
-      //     << "  grad="  << (useEdgeGrad_[e] ? "yes" : "no")
-      //     << "  -> "    << n << " DOFs\n";
 
   }
 
@@ -2819,12 +2900,6 @@ void FeHCurlHiPyra::CalcNumUnknowns() {
 
     entityFncs_[FACE][f] = n;
     actNumFncs_         += n;
-
-    // std::cout <<"[Pyra] tria face " << f
-    //       << "  orders=(" << orderFace_[f][0] << "," << orderFace_[f][1] << ")"
-    //       << "  grad="    << (useFaceGrad_[f] ? "yes" : "no")
-    //       << "  -> "      << n << " DOFs\n";
-
   }
 
   /* ---- QUAD BASE FACE (index 0) ------------------------------------ */
@@ -2841,21 +2916,12 @@ void FeHCurlHiPyra::CalcNumUnknowns() {
 
         // optional surface-gradient family (HEX adds when useFaceGrad=true)
         if (useFaceGrad_[f])
-            n += p*q;     // add the extra p*q block
+            n += p*q;     
 
-        // your additional curl-type block ONLY if you really generate it
-        // and ONLY for p,q >= 2 (HEX doesn't have that for p=1)
-        // If you keep it, count it here as well:
-        // if (p > 1 && q > 1) n += p*q_extra;   // decide if you keep it
     }
 
     entityFncs_[FACE][f] = n;
     actNumFncs_         += n;
-
-    // std::cout <<"[Pyra] quad face " << f
-    //       << "  orders=(" << orderFace_[f][0] << "," << orderFace_[f][1] << ")"
-    //       << "  grad="    << (useFaceGrad_[f] ? "yes" : "no")
-    //       << "  -> "      << n << " DOFs\n";
   }
 
   /* ---- INTERIOR ------------------------------------------------------ */
@@ -2866,10 +2932,6 @@ void FeHCurlHiPyra::CalcNumUnknowns() {
         n = orderInner_[0] * orderInner_[1] * orderInner_[2];
     entityFncs_[INTERIOR][0] = n;
     actNumFncs_             += n;
-    // std::cout <<"[Pyra] interior " 
-    //       << "  orders=(" << orderInner_[0]
-    //       << "  grad="    << (useInteriorGrad_ ? "yes" : "no")
-    //       << "  -> "      << n << " DOFs\n";
   }
 
   

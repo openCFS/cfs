@@ -325,7 +325,7 @@ void IntScheme::FillInitialIntegPoints(UInt maxOrder){
   IntegMethod methodsPyra[2] = {GAUSS, GAUSS_ECO};
   for( UInt iMethod = 0; iMethod < 2; ++iMethod ) {
     IntegMethod method = methodsPyra[iMethod];
-    for( UInt isoOrder = 1; isoOrder <= 6; ++isoOrder) {
+    for( UInt isoOrder = 1; isoOrder <= maxOrder; ++isoOrder) {
       IntegOrder order;
       order.SetIsoOrder( isoOrder );
       DefineIntPoints( Elem::ST_PYRA, method, order, 
@@ -1666,35 +1666,44 @@ void IntScheme::DefinePyraPoints( IntegMethod method, const IntegOrder& order,
 
   // --- 1-D Gauss-Legendre nodes & weights on [-1,1]
   StdVector<Double> xi, wi;
-  CalcGaussLegendrePointsWeights( isoOrder-1, xi, wi );   // x-direction
+  CalcGaussLegendrePointsWeights( isoOrder, xi, wi );     // x-direction
   StdVector<Double> eta = xi,  wj = wi;                   // y-direction
-  StdVector<Double>  xiz,  wz;
-  CalcGaussLegendrePointsWeights( isoOrder-1, xiz,  wz );  // z (later remap)
+  StdVector<Double> xiz, wz;
+  CalcGaussLegendrePointsWeights( isoOrder, xiz, wz );    // z-direction 
 
-  // pre-allocate; every triple of 1-D points gives one 3-D point
-  const UInt nTot = isoOrder*isoOrder*isoOrder;
-  StdVector<Double> pyra(nTot*4);           // x,y,z,w  interleaved
+  const UInt nx = xi.GetSize();
+  const UInt ny = eta.GetSize();
+  const UInt nz = xiz.GetSize();
 
-  UInt idx = 0;
-  for (UInt k = 0; k < isoOrder; ++k)
+  const UInt nTot = nx*ny*nz;
+  points.Resize(nTot);
+  weights.Resize(nTot);
+
+  UInt pos = 0;
+  for (UInt k = 0; k < nz; ++k)
   {
     // map [-1,1] → [0,1]
-    const Double  z     = 0.5*(xiz[k] + 1.0);
-    const Double  scale = 1.0 - z;                // = (1-z)
-    const Double  wz_k  = 0.5 * wz[k] * scale*scale;
+    const Double z     = 0.5*(xiz[k] + 1.0);
+    const Double scale = 1.0 - z;                  // = (1-z)
+    const Double wz_k  = 0.5 * wz[k] * scale*scale; // Duffy factor for pyramid
 
-    for (UInt j = 0; j < isoOrder; ++j){
-      for (UInt i = 0; i < isoOrder; ++i , idx += 4)
+    for (UInt j = 0; j < ny; ++j)
+    {
+      for (UInt i = 0; i < nx; ++i, ++pos)
       {
-        pyra[idx+0] = xi[i]  * scale;             // x
-        pyra[idx+1] = eta[j] * scale;             // y
-        pyra[idx+2] = z;                          // z
-        pyra[idx+3] = wi[i] * wj[j] * wz_k;       // weight
+        LocPoint & lp = points[pos];
+        lp.coord.Resize(3);
+        lp.coord[0] = xi[i]  * scale;              // x
+        lp.coord[1] = eta[j] * scale;              // y
+        lp.coord[2] = z;                           // z
+
+        weights[pos] = wi[i] * wj[j] * wz_k;
+        lp.number    = pos;                        
       }
     }
   }
 
-  Convert( Elem::ST_PYRA, nTot, (Double*)&pyra[0], points, weights );
+  //Convert( Elem::ST_PYRA, nTot, (Double*)&pyra[0], points, weights );
 }
 
 
