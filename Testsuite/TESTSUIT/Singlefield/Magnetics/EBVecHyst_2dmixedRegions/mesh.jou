@@ -1,0 +1,32 @@
+reset
+undo on
+
+create surface rectangle width 4 zplane
+create surface circle radius 0.5 zplane
+subtract surface 2 from surface 1 keep_tool
+
+merge all
+imprint all
+
+surface all scheme trimesh
+surface 2 size 0.5
+surface 3 size 1.2
+mesh surface 2
+mesh surface 3
+
+block 1 add surface 3
+block 1 name "V_air"
+block 2 add surface 2
+block 2 name "V_probe"
+
+
+nodeset 1 add curve 2
+nodeset 1 name "S_left"
+nodeset 2 add curve 4
+nodeset 2 name "S_right"
+nodeset 3 add curve 1
+nodeset 3 name "S_top"
+nodeset 4 add curve 3
+nodeset 4 name "S_bot"
+
+export ansys cdb "mesh.cdb" overwrite

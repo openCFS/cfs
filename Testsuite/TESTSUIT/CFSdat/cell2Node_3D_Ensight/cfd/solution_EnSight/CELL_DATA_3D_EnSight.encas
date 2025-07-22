@@ -1,0 +1,23 @@
+FORMAT
+type:  ensight gold
+GEOMETRY
+model:  2  CELL_DATA_3D_EnSight.geo
+VARIABLE
+scalar per element:  1  pressure                                         CELL_DATA_3D_EnSight****.scl1
+scalar per element:  1  mean_x_velocity                                  CELL_DATA_3D_EnSight****.scl2
+scalar per element:  1  mean_y_velocity                                  CELL_DATA_3D_EnSight****.scl3
+scalar per element:  1  mean_z_velocity                                  CELL_DATA_3D_EnSight****.scl4
+scalar per element:  1  dp_dx                                            CELL_DATA_3D_EnSight****.scl5
+scalar per element:  1  dp_dy                                            CELL_DATA_3D_EnSight****.scl6
+scalar per element:  1  dp_dz                                            CELL_DATA_3D_EnSight****.scl7
+vector per element:  1  velocity                                         CELL_DATA_3D_EnSight****.vel
+TIME
+time set: 1 Model
+number of steps: 10
+filename start number:      106
+filename increment:         1
+time values:  8.37220e+02  8.38220e+02  8.39220e+02  8.40220e+02  8.41220e+02  8.42220e+02  8.43220e+02 
+ 8.44220e+02  8.45220e+02  8.46220e+02 
+time set:                   2 Model
+number of steps:            1
+time values:  8.37220e+02

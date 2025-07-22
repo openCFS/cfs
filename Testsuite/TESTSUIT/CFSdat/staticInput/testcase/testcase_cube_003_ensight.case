@@ -1,0 +1,15 @@
+FORMAT
+type: ensight gold
+GEOMETRY
+model: testcase_cube_003_ensight.geom
+VARIABLE
+scalar per node: Density_Derivative2 testcase_cube_003_ensight.s01
+scalar per node: Density testcase_cube_003_ensight.s02
+scalar per node: Eddy_Viscosity testcase_cube_003_ensight.s03
+scalar per node: Mach_Number testcase_cube_003_ensight.s04
+scalar per node: Pressure testcase_cube_003_ensight.s05
+scalar per node: Temperature testcase_cube_003_ensight.s06
+scalar per node: Total_Pressure testcase_cube_003_ensight.s07
+scalar per node: Turbulence_Eddy_Fr9 testcase_cube_003_ensight.s08
+scalar per node: Turbulence_Kineti10 testcase_cube_003_ensight.s09
+vector per node: Velocity testcase_cube_003_ensight.v10

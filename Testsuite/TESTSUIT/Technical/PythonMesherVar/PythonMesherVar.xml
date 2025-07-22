@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>create a mesh via embedded python mesh reader. Create a custom mesh via provided make_meshp.py</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2022-01-12</date>
+    <keywords>
+      <keyword>file format</keyword>
+    </keywords>
+    <references>Standard</references>
+    <isVerified>yes</isVerified>
+    <description>modify a bulk2d mesh by addding an circular inclusion region
+                 and name nodes at the boundary of the inclusion.
+                 The code is in make_mesh.py which is run via embedded python. 
+                 Then call call_cfs_input_reader() of mesh_tool.py to submit it to cfs
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <python fileName="make_mesh.py">
+        <option key="x_res" value="10"/>
+        <option key="inclusion_radius" value=".3"/>
+      </python>     
+    </input>
+    <output>
+       <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="moderate" name="mech" />
+      <region material="99lines" name="inclusion" />
+    </regionList>
+    <!-- alternatively we could create elements and nodes here, but not as
+    flexible as via python -->
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech" />
+          <region name="inclusion" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="outer_nodes"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="inclusion_nodes">
+             <comp dof="x" value="1"/>
+             <comp dof="y" value="1"/>           
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <regionResult type="mechTotalEnergy">
+            <allRegions/>
+          </regionResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+</cfsSimulation>

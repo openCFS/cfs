@@ -1,0 +1,124 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+ 
+  <documentation>
+    <title>container</title>
+    <authors>
+      <author>ascharner</author>
+    </authors>
+    <date>2023-02-08</date>
+    <keywords>
+      <keyword>transient</keyword>
+      <keyword>waterWaves</keyword>
+    </keywords>
+    <references>
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      This Testcase checks the rayleigh damping, an acceleration is applied in horizontal
+      direction to move the container and resulting pressure in the top left corner is measured.
+      The results are compared to the undamped case (Container2DraiyleighDamping_undamped.xml) 
+      in postprocess.ipynb
+    </description>
+  </documentation>
+  <fileFormats>
+    <input>
+      <!-- <cdb fileName="RectangularContainer.cdb"/> -->
+      <hdf5 fileName="Container2DrayleighDamping.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <variableList>
+      <var name="time_step" value="1e-2"/>
+      <var name="sim_time" value="0.2"/>
+      <var name="fade_time" value="0.5"/>
+      <var name="sim_steps" value="rint(sim_time/time_step)"/>
+    </variableList>
+    <regionList>
+      <region name="S_water" material="water"/>
+    </regionList>
+  </domain> 
+
+  <sequenceStep index="1">
+    <analysis>
+      <transient>
+        <numSteps>sim_steps</numSteps>
+        <deltaT>time_step</deltaT>
+      </transient>
+    </analysis>
+    <pdeList>
+      <waterWave timeStepAlpha="-0.3">
+        <regionList>
+          <region dampingId="Rayl" name="S_water"/>
+        </regionList>
+        <dampingList>
+          <rayleigh id="Rayl"/>
+        </dampingList>
+        <bcsAndLoads>
+          <freeSurfaceCondition name="L_surface" volumeRegion="S_water"/>
+          <acceleration name="L_coupling">
+            <!-- Produces an acceleration fade-in to 1 and subsequent fade-out to zero -->
+            <comp dof="x" value="(t lt 2*fade_time)? ((fadeIn(fade_time,1,t)- (t lt fade_time)? (fadeIn(fade_time,1,t-fade_time): 0)): 0)" />
+            <comp dof="y" value="0.0" />
+          </acceleration>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="waterPressure" complexFormat="realImag">
+            <allRegions/>
+            <nodeList>
+              <nodes name="P_left-surf" outputIds="txt,hdf5" />
+            </nodeList>
+          </nodeResult>
+        </storeResults>
+      </waterWave>
+    </pdeList>
+  </sequenceStep>
+<!-- eigenFrequency step was used to export the system matrices to verify the damping matrix in postprocess.ipynb -->
+<!--   <sequenceStep index="2">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>yes</isQuadratic>
+        <freqShift>1</freqShift>
+        <numModes>1</numModes>
+        <writeModes>yes</writeModes>
+      </eigenFrequency>
+    </analysis>
+    <pdeList>
+      <waterWave> 
+        <regionList>
+          <region dampingId="Rayl" name="S_water"/>
+        </regionList>
+        <dampingList>
+          <rayleigh id="Rayl"/>
+        </dampingList>
+        <bcsAndLoads>
+          <freeSurfaceCondition name="L_surface" volumeRegion="S_water"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="waterPressure" complexFormat="realImag">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="waterPosition">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </waterWave>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <exportLinSys format="matrix-market" mass="true" damping="true" stiffness="true"/>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep> -->
+</cfsSimulation>

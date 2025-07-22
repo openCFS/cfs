@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+	<documentation>
+		<title>CGNS Volume element conversion</title>
+		<authors>
+			<author>Andreas Wurzinger</author>
+		</authors>
+		<date>2023-02-09</date>
+		<keywords>
+			<keyword>file format</keyword>
+		</keywords>
+		<references>Standard</references>
+		<isVerified>yes</isVerified>
+		<description>Reads a volume mesh from CGNS file into cfs hdf5 file format (see README.md)
+		</description>
+	</documentation>
+	<fileFormats>
+		<input>
+			<cgns/>
+		</input>
+		<output>
+			<hdf5 />
+			<info />
+		</output>
+	</fileFormats>
+
+	<domain geometryType="3d">
+
+	</domain>
+
+</cfsSimulation>

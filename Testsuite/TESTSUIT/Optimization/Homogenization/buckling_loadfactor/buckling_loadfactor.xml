@@ -1,0 +1,175 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>buckling homogenization</title>
+    <authors>
+      <author>Daniel Huebner</author>
+    </authors>
+    <date>2022-11-30</date>
+    <keywords>
+      <keyword>buckling</keyword>
+    </keywords>
+    <references>Thomsen, Christian Rye, Fengwen Wang, and Ole Sigmund. "Buckling strength topology optimization of 2D periodic materials based on linearized bifurcation analysis." Computer Methods in Applied Mechanics and Engineering 339 (2018): 115-136.</references>
+    <isVerified>no</isVerified>
+    <description>
+      This computes the homogenized elasticity tensor and three smallest load
+      factors for an equilateral triangular lattice.  For this test, the RVE
+      contains three unit cells. To get the smallest load factor, i.e. the
+      buckling load factor, one should perform homogenizations with 2,3,...
+      unit cells in the RVE. 
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 directory="."/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="strong" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="middle1">
+        <coord x="0.4" y="0.4"/>
+      </nodes>
+      <nodes name="middle2">
+        <coord x="0.4" y="0.6"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+        <bcsAndLoads>
+          <periodic secondary="left" primary="right" dof="x" quantity="mechDisplacement"/>
+          <periodic secondary="left" primary="right" dof="y" quantity="mechDisplacement"/>
+          <periodic primary="top" secondary="bottom" dof="x" quantity="mechDisplacement"/>
+          <periodic primary="top" secondary="bottom" dof="y" quantity="mechDisplacement"/>
+          <fix name="middle1">
+            <comp dof="x"/>
+          </fix>
+          <fix name="middle2">
+            <comp dof="y"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/> 
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <sequenceStep index="2">
+    <analysis>
+      <buckling inverse="yes" stressFilter="-1">
+        <numModes>3</numModes>
+        <valueShift>1e-2</valueShift>
+        <calcModes normalization="solver"/>
+      </buckling>
+    </analysis>
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+        <bcsAndLoads>
+          <periodic secondary="left" primary="right" dof="x" quantity="mechDisplacement"/>
+          <periodic secondary="left" primary="right" dof="y" quantity="mechDisplacement"/>
+          <periodic primary="top" secondary="bottom" dof="x" quantity="mechDisplacement"/>
+          <periodic primary="top" secondary="bottom" dof="y" quantity="mechDisplacement"/>
+          <fix name="middle1">
+            <comp dof="x"/>
+          </fix>
+          <fix name="middle2">
+            <comp dof="y"/>
+          </fix>
+          <referenceLoad region="mech">
+            <referenceStress sequenceStep="0"/>
+          </referenceLoad>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <eigenSolver id="arpack"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <phist id="phist"/>
+          <arpack id="arpack">
+            <maxIt>100000</maxIt>
+            <which>SA</which>
+          </arpack>
+          <feast id="feast"/>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <loadErsatzMaterial file="buckling_loadfactor.start.density.xml"/>
+  
+  <optimization log="">
+    <costFunction type="homTensor" task="minimize" sequence="1" multiple_excitation="true">
+      <multipleExcitation type="homogenizationTestStrains" sequence="1"/>
+    </costFunction>
+    
+    <constraint type="bucklingLoadFactor" bound="upperBound" value="0" ev="1" sequence="2" mode="observation"/>
+    <constraint type="bucklingLoadFactor" bound="upperBound" value="0" ev="2" sequence="2" mode="observation"/>
+    <constraint type="bucklingLoadFactor" bound="upperBound" value="0" ev="3" sequence="2" mode="observation"/>
+
+    <optimizer type="evaluate" maxIterations="0"/>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <macrostress>
+        <comp dof="xx" value="-1.0"/>
+        <comp dof="yy" value="0.0"/>
+        <comp dof="xy" value="0.0"/>
+      </macrostress>
+      <design name="density" initial="1e-9" lower="1e-9" upper="1" region="mech"/>
+      <result value="genericElem" generic="buckling_homogenization_stress_xx" id="optResult_1"/>
+      <result value="genericElem" generic="buckling_homogenization_stress_yy" id="optResult_2"/>
+      <result value="genericElem" generic="buckling_homogenization_stress_xy" id="optResult_3"/>
+      <transferFunction type="identity" application="mech" design="density"/>
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="1"/>
+  </optimization>
+
+</cfsSimulation>

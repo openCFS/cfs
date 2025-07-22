@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+
+ <documentation>
+    <title> Channel with temperature dependent speed of sound and pml</title>
+    <authors>
+      <author>Manfred Kaltenbacher</author>
+    </authors>
+    <date>2016-02-19</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>temperature</keyword>
+      <keyword>pml</keyword>
+    </keywords>
+    <references>
+      To Be filled in 
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      Excitation on the right of the channel.
+      Temperature (and thereby speed of sound) varies with x-direction.
+      Therefore we need the formulation "acouPressureSOSatLaplace".
+      Additional, the PML is defined to cope with this formulation.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="channel.h5"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="airEl" material="air"/>
+      <region name="dampEl" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="bcLeft"/>
+      <surfRegion name="bcRight"/>
+    </surfRegionList>
+    <nodeList>
+      <nodes name="save">
+        <coord x="1" y="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>    200    </numSteps> 
+        <deltaT>     0.5e-04 </deltaT>
+      </transient>
+    </analysis>
+      
+    <pdeList>
+      <acoustic formulation="acouPressureSOSatLaplace">
+        <regionList>
+          <region name="airEl" flowId="flow"  temperatureId="T"/>
+          <region name="dampEl" dampingId="pml" temperatureId="T"/>
+        </regionList>
+
+        <dampingList>
+          <pml id="pml">
+            <type>inverseDist</type>
+            <dampFactor>1.0 </dampFactor>
+          </pml>
+        </dampingList>
+
+        <flowList>
+          <flow name="flow">
+            <comp dof="x" value="100"/>
+            <comp dof="y" value="0"/>
+          </flow>
+        </flowList>
+
+        <temperatureList>
+          <temperature name="T" value="288.150*(2.0+2.0-x)"/>
+        </temperatureList>
+
+        <bcsAndLoads>
+          <pressure name="bcLeft" value="(t lt 1.0/340.0) ? (1-(cos(2.0*pi*340.0/2.0*t))^2)*sin(2.0*pi*340.0*t) : 0" />
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    <linearSystems>
+      <system id="default">
+        <solverList>
+          <lis id="default">
+            <precond>
+              <iluk fill="1.0"/>
+            </precond>
+            <solver>
+              <FGMRES/>
+            </solver>
+          </lis>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

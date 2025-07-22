@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+    
+  <documentation>
+    <title>Void Heaviside</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-07-30</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Ole Sigmund; Morphology; 2007</references>
+    <isVerified>yes</isVerified>
+    <description>See solid_heaviside for general description.
+    The void Heaviside filter (modified Heaviside in Ole's paper) is a void feature size. In the initial iteration you see, that the physical design is thinned a lot. 
+    Therefore the non-physical design (mechPseudoDensity) needs to becode thicker such that the physcial design is not such thin that it disapeares.
+     By this no too small holes (void feature )may exist. This is also called the drilling tool size. The void features are also nicely rounded.</description>
+  </documentation>
+    
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+          <force name="right_lower">
+              <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>             
+          <regionResult type="mechDeformEnergy">
+            <allRegions/>
+          </regionResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod /> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+
+  <loadErsatzMaterial file="bulk2d_20_nice.density.xml" set="last"/>
+
+  <optimization>
+    <costFunction type="compliance" task="minimize" multiple_excitation="false">
+      <stopping queue="999" value="0.002" type="designChange" />
+    </costFunction>
+
+    <constraint type="volume" bound="upperBound" value="0.5" linear="false"/>
+
+    <optimizer type="scpip" maxIterations="10">
+
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.9" type="density">
+           <density type="void_heaviside" beta="8"/>
+        </filter>
+      </filters>
+
+      <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      <transferFunction type="simp" application="mech"  param="3" />
+
+      <export write="iteration" save="all" />
+
+    </ersatzMaterial>
+    <commit mode="each_forward" stride="1" />
+  </optimization>
+ 
+  
+</cfsSimulation>
+
+

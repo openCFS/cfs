@@ -1,0 +1,80 @@
+undo on 
+reset
+
+#{ h = 0.01  }
+#{ w = 0.9 }
+#{tol = 1e-6}
+
+##Create the surface
+create surface rectangle width { w } height { h } zplane 
+move Surface all x {w/2} y { h/2 } z 0 
+surface 1 scheme submap
+webcut surface all with plane xplane offset 0.15
+
+merge tolerance {tol}
+#imprint tolerant curve all
+#merge curve all
+
+##Name
+block 1 add surface 3 
+block 1 name "S_solid"
+
+block 2 add surface 2 
+block 2 name "S_flow"
+
+nodeset 1 add curve 9  
+nodeset 1 name "L_top_solid"
+
+nodeset 2 add curve 2  
+nodeset 2 name "L_left_solid"
+
+nodeset 3 add curve 10  
+nodeset 3 name "L_bottom_solid"
+
+nodeset 4 add curve 5
+nodeset 4 name "ABC2"
+nodeset 8 add curve 8
+nodeset 8 name "ABC1"
+
+
+nodeset 5 add curve 7  
+nodeset 5 name "L_top_flow"
+
+nodeset 6 add curve 4  
+nodeset 6 name "L_right_flow"
+
+nodeset 7 add curve 6  
+nodeset 7 name "L_bottom_flow"
+
+##Mesh
+
+curve 9 10  interval 70
+curve 9 10  scheme equal
+mesh curve 9 10 
+curve 6 7  interval 300
+curve 6 7 scheme equal
+mesh curve 6 7 
+curve 2 8  interval 10
+curve 2 8  scheme equal
+curve 4 5  interval 15
+curve 5 4  scheme equal
+mesh curve 2 4 
+mesh surface 2 3
+
+export ansys cdb "recsurf_coupled.cdb"  overwrite 
+
+export nastran "rec-coupled.bdf" overwrite everything
+
+
+
+
+
+
+
+
+
+
+
+
+
+

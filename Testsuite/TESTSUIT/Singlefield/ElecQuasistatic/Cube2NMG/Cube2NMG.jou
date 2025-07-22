@@ -1,0 +1,44 @@
+reset
+undo all
+
+#{rec_width = 1.0}
+#{rec_height = 0.5}
+#{tol = 0.1}
+
+#computational domain
+create surface rectangle width {rec_width} height {rec_height} zplane
+create surface rectangle width {rec_width} height {rec_height} zplane
+move Surface 2  x 0 y {rec_height} 
+
+#surface regions
+block 1 add surface 1
+block 1 name "trias"
+
+block 2 add surface 2
+block 2 name "quads"
+
+#lines
+nodeset 1 add curve 1
+nodeset 1 name "iface_lower"
+
+nodeset 2 add curve 7
+nodeset 2 name "iface_upper"
+
+nodeset 3 add curve 5
+nodeset 3 name "Electrode1"
+
+nodeset 4 add curve 3
+nodeset 4 name "Electrode2"
+
+#do mesh
+surface 1  scheme trimesh
+surface 1 size 0.4
+mesh surface 1
+
+surface 2  scheme submap
+surface 2 size 0.3
+mesh surface 2
+
+
+# export
+export ansys cdb "Cube2d_mesh.cdb"  overwrite

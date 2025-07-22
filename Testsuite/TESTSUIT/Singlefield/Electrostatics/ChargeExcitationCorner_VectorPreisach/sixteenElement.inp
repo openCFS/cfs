@@ -1,0 +1,126 @@
+! ---- Mesh script for assignment 4: piston type transducer ----
+/sys,echo "!Rod Scholl\n!PADT\n\n*CFOPEN,qtemp\n*CFWRITE,finish\n*CFWRITE,/clear\n*CFCLOSE\n!\n/input,qtemp\n/sys,rm qtemp" > qclear.mac
+
+finish
+qclear
+
+/filname,sixteenElement
+/prep7
+init
+
+height = 1.0
+width = 1.0
+Nx = 4
+Ny = 4
+dx = width/Nx
+dy = height/Ny
+tolx = dx/5
+toly = dy/5
+
+! Create geometry
+! > 1 area for each element to allow flexible assignment
+!	of materials to each element
+*do,ii,1,Nx,1
+*do,jj,1,Ny,1
+x1=(ii-1)*dx
+x2=x1+dx
+
+y1=(jj-1)*dy
+y2=y1+dy
+
+rectng,x1,x2,y1,y2
+*enddo
+*enddo
+
+asel,all
+aglue,all
+
+! assign mesh size
+lsel,all
+lsel,r,tan1,y
+lesize,all,dx
+
+lsel,all
+lsel,r,tan1,x
+lesize,all,dy
+
+! Create area components, mesh and write out
+setelems,'quadr',''
+asel,all
+amesh,all
+
+! Create area components
+*do,ii,1,Nx,1
+*do,jj,1,Ny,1
+x1=(ii-1)*dx
+x2=x1+dx
+
+y1=(jj-1)*dy
+y2=y1+dy
+
+asel,s,loc,x,x1,x2
+asel,r,loc,y,y1,y2
+cm,element_x%ii%_y%jj%,area
+esla,s
+welems,'element_x%ii%_y%jj%'
+*enddo
+*enddo
+
+setelems,'2d-line',''
+! Create line components along the outer boundary, mesh and write out
+*do,ii,1,Nx,1
+x1=(ii-1)*dx
+x2=x1+dx
+
+y1=-toly
+y2=+toly
+
+lsel,s,loc,x,x1,x2
+lsel,r,loc,y,y1,y2
+cm,bottom_x%ii%,line
+lmesh,all
+esll,s
+welems,'bottom_x%ii%'
+
+y1=height-toly
+y2=height+toly
+
+lsel,s,loc,x,x1,x2
+lsel,r,loc,y,y1,y2
+cm,top_x%ii%,line
+lmesh,all
+esll,s
+welems,'top_x%ii%'
+*enddo
+
+*do,jj,1,Ny,1
+y1=(jj-1)*dy
+y2=y1+dy
+
+x1=-tolx
+x2=+tolx
+
+lsel,s,loc,x,x1,x2
+lsel,r,loc,y,y1,y2
+cm,left_y%jj%,line
+lmesh,all
+esll,s
+welems,'left_y%jj%'
+
+x1=width-tolx
+x2=width+tolx
+
+lsel,s,loc,x,x1,x2
+lsel,r,loc,y,y1,y2
+cm,right_y%jj%,line
+lmesh,all
+esll,s
+welems,'right_y%jj%'
+*enddo
+
+!wsavelem,'center'
+
+allsel
+wnodes
+mkmesh
+!mkhdf5

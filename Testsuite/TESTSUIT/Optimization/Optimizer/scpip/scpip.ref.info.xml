@@ -1,0 +1,226 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="16" index="1">
+  <summary>
+    <timer wall="0" cpu="0.221971" calls="1"/>
+    <memory final="99872" peak="99872"/>
+  </summary>
+  <header id="">
+    <environment started="2015-Jan-21 11:31:20" host="eamc061"/>
+    <progOpts problem="scpip" parameterFile="/home/fwein/code/shared_test/TESTSUIT/Optimization/Optimizer/scpip/scpip.xml" schemaPath="/home/fwein/code/shared/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1">
+      <cfs version="15.01" name="Maximale Verwirrung" build="Release" svn_revision="13478 modified"/>
+    </progOpts>
+    <domain dimensions="2" elements="260" nodes="294">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="294" elems="260" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="14"/>
+        <nodes name="east" count="14"/>
+        <nodes name="left_lower" count="1"/>
+        <nodes name="right_lower" count="1"/>
+        <nodes name="left_upper" count="1"/>
+        <nodes name="right_upper" count="1"/>
+      </namedNodes>
+      <namedElements/>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep>
+    <!-- === SEQUENCE STEP ===-->
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="right_lower" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_LameMu" value="(0.38462,0)"/>
+          <property name="Mechanic_LameLambda" value="(0.57692,0)"/>
+          <property name="Rayleigh_Alpha" value="0.05"/>
+          <property name="Rayleigh_Beta" value="0.002"/>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="west" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="560" totalNumFreeEqns="560" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="560" lastFreeEqn="560" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="560" lastFreeIndex="560"/>
+          </sbmBlocks>
+          <setupTime wall="0" cpu="0.002006" calls="1"/>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="560" totalNumCols="560" totalNumNonZeros="9280" totalFillLevelPerCent="2.9592" totalMemory="0.070801">
+              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="560" numCols="560" numNonZeros="9280" fillLevelPerCent="2.9592" memory="0.070801" upperBandWidth="549" lowerBandWidth="549" avgBandWidth="200" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <directLDL>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="0.014217" calls="16"/>
+              </setup>
+              <solve>
+                <timer wall="0" cpu="0.004127" calls="16"/>
+              </solve>
+            </summary>
+          </directLDL>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="7e-06" calls="16"/>
+              </setup>
+              <precond>
+                <timer wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="0" cpu="0.048821" calls="16"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_directory="/home/fwein/code/shared_test/TESTSUIT/Optimization/Optimizer/scpip">
+    <header homogenization="no" maxwellHomogenization="no" material="mechanic">
+      <objective type="compliance" linear="no" task="minimize"/>
+      <constraints>
+        <constraint type="volume" linear="yes" mode="constraint" design="default" bound="upperBound" bound_value="0.5" delta_logging="no" excitation="0"/>
+      </constraints>
+      <regularization>
+        <filter target="density" type="maxEdge" value="1.5" contribution="linear" density="standard" periodicBCs="no" avg_radius="0.23077" avg_neighbors="7.2538">
+          <functions>
+            <objective name="compliance" filtered="yes"/>
+            <constraint name="volume" filtered="yes"/>
+          </functions>
+          <timer wall="0" cpu="0.000277" calls="1"/>
+        </filter>
+      </regularization>
+      <designSpace pamping="0">
+        <transferFunctions>
+          <transferFunction type="simp" application="mech" design="density" param="3"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="260" modelVariables="260" modelElements="260">
+          <design type="density" upperBound="1" lowerBound="0.001" physicalLowerBound="1e-09"/>
+        </designVariables>
+        <regions>
+          <region name="mech" elements="260" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <scpip>
+        <icntl i1="1" i2="1" i3="15" i4="1" i5="10" i6="0" i7="0" i8="0" i9="0" i10="0" i11="0" i12="0" i13="1"/>
+        <rcntl r1="1e-07" r2="1e+30" r3="1e+30" r4="0.01" r5="0.01" r6="0.01" r7="0"/>
+      </scpip>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <designSpace/>
+    <optimizer>
+      <summary>
+        <timer wall="0" cpu="0.090741" calls="145"/>
+      </summary>
+    </optimizer>
+    <process>
+      <iteration number="0" compliance="171.75" change="0.5" volume="0.5" max_f_grad="67.746"/>
+      <iteration number="1" compliance="125.02" change="0.44955" volume="0.47167" max_f_grad="10.7"/>
+      <iteration number="2" compliance="92.428" change="0.20259" volume="0.48715" max_f_grad="6.1634"/>
+      <iteration number="3" compliance="77.411" change="0.21487" volume="0.49196" max_f_grad="5.1809"/>
+      <iteration number="4" compliance="69.808" change="0.18273" volume="0.49535" max_f_grad="5.378"/>
+      <iteration number="5" compliance="65.121" change="0.19333" volume="0.49681" max_f_grad="5.3123"/>
+      <iteration number="6" compliance="61.946" change="0.14358" volume="0.4978" max_f_grad="5.4172"/>
+      <iteration number="7" compliance="59.298" change="0.16101" volume="0.49751" max_f_grad="5.4129"/>
+      <iteration number="8" compliance="56.509" change="0.17875" volume="0.49719" max_f_grad="5.3317"/>
+      <iteration number="9" compliance="54" change="0.16417" volume="0.49751" max_f_grad="5.2105"/>
+      <iteration number="10" compliance="51.79" change="0.20976" volume="0.49743" max_f_grad="5.034"/>
+      <iteration number="11" compliance="50.067" change="0.18047" volume="0.49804" max_f_grad="4.8628"/>
+      <iteration number="12" compliance="48.807" change="0.15813" volume="0.49848" max_f_grad="4.6786"/>
+      <iteration number="13" compliance="47.605" change="0.19368" volume="0.49827" max_f_grad="4.4902"/>
+      <iteration number="14" compliance="46.525" change="0.19283" volume="0.49837" max_f_grad="4.4125"/>
+      <iteration number="15" compliance="45.627" change="0.16632" volume="0.4986" max_f_grad="4.3543"/>
+    </process>
+    <summary problem="maximum number of iterations reached (15)">
+      <break converged="no">
+        <reason msg="SCPIP: maximum number of iterations reached (15)"/>
+      </break>
+    </summary>
+  </optimization>
+</cfsInfo>

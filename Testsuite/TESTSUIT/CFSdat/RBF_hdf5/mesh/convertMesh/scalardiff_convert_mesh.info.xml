@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+
+<cfsInfo error="
+Please provide 'reference_file' and 'file_under_test'
+In file '/home/kroppert/Devel/CFS_SRC/latest_trunk/trunk/source/cfstool/cfstool.cc' at line 1058
+" infoWriteCounter="0" infoRejectCounter="0"/>

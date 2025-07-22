@@ -1,0 +1,68 @@
+undo on 
+reset
+#{ r1 = 2e-2}
+#{ r2 = 3e-2}
+#{ r3 = 20e-2}
+create surface circle radius {r1} zplane 
+create surface circle radius {r2} zplane 
+create surface circle radius {r3} zplane 
+
+webcut surface all with plane xplane 
+webcut surface all with plane yplane 
+
+delete body 1 2 3 4 5 6 8 10 12
+
+subtract volume 9 7 from volume 11 keep
+subtract volume 7 from volume 9 keep
+delete body 7 9 11 
+
+##Name
+block 1 add surface 22
+block 1 name "S_2"
+
+block 2 add surface 23
+block 2 name "S_1"
+
+nodeset 1 add curve 56  
+nodeset 1 name "L_c0"
+
+nodeset 2 add curve 57  
+nodeset 2 name "L_x1"
+
+nodeset 3 add curve 59
+nodeset 3 name "L_y1"
+
+nodeset 4 add curve 58
+nodeset 4 name "ABC1"
+
+nodeset 5 add curve 52
+nodeset 5 name "ABC2"
+
+nodeset 6 add curve 53
+nodeset 6 name "L_x2"
+
+nodeset 7 add curve 55
+nodeset 7 name "L_y2"
+
+nodeset 8 add curve 54  
+nodeset 8 name "L_c2"
+
+##Mesh
+curve 57 59 interval 10
+curve 57 59 scheme equal
+
+curve 56 58  interval 20
+curve 56 58  scheme equal
+
+curve 52 54 interval 27
+curve 52 54  scheme equal
+
+curve 53 55  interval 80
+curve 53 55  scheme bias factor 0.95
+mesh surface 22 23 
+
+export ansys cdb "circles.cdb"  overwrite 
+
+
+
+

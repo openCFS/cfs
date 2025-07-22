@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+
+<cfsMaterialDataBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Material/CFS_Material.xsd"
+  xmlns="http://www.cfs++.org">
+
+  <material name="FluidMat">
+    <acoustic>
+      <density> 1.225 </density>
+      <compressionModulus> 1.406*1.015e5 </compressionModulus>
+    </acoustic>
+    <flow>
+      <!-- density at 20 -->
+     <density> 1.225 </density>
+     <dynamicViscosity>0 </dynamicViscosity> <!-- arbitrary for this testcase default: 1.825e-5 (Air 20°C)  -->
+     <bulkViscosity> 0</bulkViscosity><!-- un-physically high just to test the effect default: 1.34e-5 -->
+     <adiabaticExponent> 1.406 </adiabaticExponent>
+     <refPressure> 1.015e5 </refPressure>
+    </flow>
+    
+    <heatConduction>
+      <density>1.225</density>
+      <heatCapacity>
+        <linear>
+          <isotropic> 975.3</isotropic>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic> 25.18e-3</isotropic>
+        </linear>
+      </heatConductivity>
+      <refTemperature> 294.3 </refTemperature>
+    </heatConduction>
+  </material>
+</cfsMaterialDataBase>

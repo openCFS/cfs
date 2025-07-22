@@ -1,0 +1,119 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+
+  <material name="porous_NC2_Nv1">
+    <acoustic>
+      <density>
+        <linear>
+          <real>100</real>
+        </linear>
+        <inverseFormApproxTDEF>
+          <rationalFunctionApprox>
+            <linear>
+              <real>0.772093023255814</real>
+            </linear>
+            <poleListReal>
+              <rationalTerm>
+                <pole real="84764"/>
+                <residue real="-20397.84"/>
+              </rationalTerm>
+            </poleListReal>
+          </rationalFunctionApprox>
+        </inverseFormApproxTDEF>
+      </density>
+
+      <compressionModulus>
+        <linear>
+          <real>100</real>
+        </linear>
+        <inverseFormApproxTDEF>
+          <rationalFunctionApprox>
+            <linear>
+              <real>6.586619718309859e-06</real>
+            </linear>
+            <poleListReal>
+              <rationalTerm>
+                <pole real="591390"/>
+                <residue real="0.329943662"/>
+              </rationalTerm>
+              <rationalTerm>
+                <pole real="37500"/>
+                <residue real="0.13711268"/>
+              </rationalTerm>
+            </poleListReal>
+          </rationalFunctionApprox>
+        </inverseFormApproxTDEF>
+      </compressionModulus>
+    </acoustic>
+  </material>
+
+  <material name="porous_NC1_Nv4">
+    <acoustic>
+      <density>
+        <linear>
+          <real>100</real>
+        </linear>
+        <inverseFormApproxTDEF>
+          <rationalFunctionApprox>
+            <linear>
+              <real>0.772093023255814</real>
+            </linear>
+            <poleListReal>
+              <rationalTerm>
+                <pole real="84764"/>
+                <residue real="-20397.84"/>
+              </rationalTerm>
+            </poleListReal>
+          </rationalFunctionApprox>
+        </inverseFormApproxTDEF>
+      </density>
+
+      <compressionModulus>
+        <linear>
+          <real>100</real>
+        </linear>
+        <inverseFormApproxTDEF>
+          <rationalFunctionApprox>
+            <linear>
+              <real>6.586619718309859e-06</real>
+            </linear>
+            <poleListReal>
+              <rationalTerm>
+                <pole real="591390"/>
+                <residue real="0.329943662"/>
+              </rationalTerm>
+              <rationalTerm>
+                <pole real="37500"/>
+                <residue real="0.13711268"/>
+              </rationalTerm>
+              <rationalTerm>
+                <pole real="10040"/>
+                <residue real="0.06464789"/>
+              </rationalTerm>
+              <rationalTerm>
+                <pole real="3200"/>
+                <residue real="0.02612676"/>
+              </rationalTerm>
+            </poleListReal>
+          </rationalFunctionApprox>
+        </inverseFormApproxTDEF>
+      </compressionModulus>
+    </acoustic>
+  </material>
+
+  <material name="air">
+    <acoustic>
+      <density>
+        <linear>
+          <real>1.204</real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 142000</real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+
+</cfsMaterialDataBase>

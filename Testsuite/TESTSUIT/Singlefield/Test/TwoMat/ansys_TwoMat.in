@@ -1,0 +1,85 @@
+! ===========================================================================
+!  test example for test PDE;
+!  different materials.
+! ===========================================================================
+
+fini
+/clear
+/filname,TwoMat
+/prep7
+! initialize macros for .mesh-interface
+init
+
+! ===========================
+!  GEOMETRIC DEFINITIONS
+! ===========================
+l1  = 2   ! length of region 1
+l2  = 5   ! length of region 2
+l3  = 2   ! length of region 3
+h   = 5   ! height
+meshSize = 0.5 !mesh size
+eps = 1e-3
+
+! ===========================
+!  CREATE GEOMETRY
+! ===========================
+rectng,0,l1,0,h
+rectng,l1,l1+l2,0,h
+rectng,l1+l2,l1+l2+l3,0,h
+
+allsel
+nummrg,all,eps
+
+
+! ===========================
+!  CREATE MESH
+! ===========================
+! area mesh
+esize,meshSize
+setelems,'quadr'
+allsel
+amesh,all
+
+! generate surface mesh
+setelems,'2d-line'
+allsel
+lsel,s,loc,y,-eps,eps
+lmesh,all
+
+allsel
+lsel,s,loc,y,-eps+h,eps+h
+lsel,r,loc,x,-eps+l1,l1+l2+eps
+lmesh,all
+
+
+! ===========================
+!  Write to mesh file
+! ===========================
+allsel
+asel,s,loc,x,-eps,eps+l1
+asel,a,loc,x,-eps+l1+l2,l1+l2+l3+eps
+esla
+welems,'reg1'
+
+allsel
+asel,s,loc,x,l1-eps,l1+l2+eps
+esla
+welems,'reg2'
+
+allsel
+lsel,s,loc,y,-eps,eps
+esll
+welems,'bottom'
+
+allsel
+lsel,s,loc,y,-eps+h,h+eps
+lsel,r,loc,x,-eps+l1,l1+l2+eps
+esll
+welems,'top'
+
+! write all nodes
+allsel
+wnodes
+
+! make .hdf5 file
+mkhdf5

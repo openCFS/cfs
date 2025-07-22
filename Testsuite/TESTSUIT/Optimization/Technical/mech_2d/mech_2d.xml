@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Minimal default example for 2D topology optimization</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2021-07-13</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Standard</references>
+    <isVerified>yes</isVerified>
+    <description>Nothing special, just a default test. Design lower bound is generated as 1e-3 from physical 1e-9 with power law rho**3
+    </description>
+      </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1" y="0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="load">
+            <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <optimization>
+    <costFunction type="compliance" task="minimize" > 
+      <stopping queue="999" value="0.002" type="designChange"/>
+    </costFunction>
+    
+    <constraint type="volume" bound="upperBound" value="0.5" />
+    
+    <optimizer type="ocm"  maxIterations="10"/>
+      
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+        <filter neighborhood="maxEdge" value="1.5" type="density"/>
+      </filters>
+      
+     <!-- lower will become 1e-3 --> 
+     <design name="density" initial="0.5" physical_lower="1e-9" upper="1.0" />
+     <transferFunction application="mech" type="simp" param="3"/>
+     <export write="iteration" save="last"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+  
+</cfsSimulation>
+
+

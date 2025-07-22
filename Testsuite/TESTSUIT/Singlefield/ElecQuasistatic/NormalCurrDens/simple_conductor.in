@@ -1,0 +1,52 @@
+fini
+/clear
+/FILNAME,simpleConductor,1
+/prep7
+init
+
+a_cond = 2
+b_cond = 3
+h_cond = 4
+eps = 1e-2
+
+block,0,a_cond,0,b_cond,0,h_cond
+
+asel,s,loc,z,-eps,eps
+cm,ground,area
+
+asel,s,loc,z,h_cond-eps,h_cond+eps
+cm,hot,area
+
+allsel
+cm,conductor,volu
+
+setelems,'brick'
+esize,,5
+mshkey,1
+cmsel,s,conductor
+vmesh,all
+
+setelems,'quadr'
+cmsel,s,hot
+cmsel,a,ground
+amesh,all
+
+cmsel,s,conductor
+eslv,s
+welems,'conductor'
+
+cmsel,s,hot
+esla,s
+welems,'hot'
+
+cmsel,s,ground
+esla,s
+welems,'ground'
+
+allsel
+wnodes
+
+mkhdf5
+
+allsel
+eplot

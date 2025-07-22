@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+ 
+ <documentation>
+    <title>ShapeMap with shape induced symmetry: diagonal and mirror</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2016-12-27</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Fabian Wein</references>
+    <isVerified>no</isVerified>
+    <description>Preparation for fulls symmetry. We induce a diag symmetry element and mirror bottom-up to four total shapes.
+    For full symmetry the left-right mapping of the single x-shape is missing. </description>
+  </documentation>
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1.0" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <force name="load" >
+             <comp dof="y" value="-1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod/> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" sequence="1">
+      <stopping queue="5" value="0.001" type="relativeCostChange" />
+    </costFunction>
+    
+    <constraint type="slope" bound="upperBound" value="1.3/nx" design="node" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.4/nx" design="node" linear="true"/>   
+   
+    <constraint type="volume" bound="lowerBound" value="0.5" mode="observation"/>
+   
+    <!-- due to activated stopping criteria this shall run up to 28 only --> 
+    <optimizer type="scpip" maxIterations="30"/>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
+      <shapeMap beta="100" overlap="tanh_sum" enforce_bounds="true" relative_node_bound="-1" relative_profile_bound="-1">
+        <node dof="y" lower="0" upper="1" initial="0.45" bottom_up_sym="mirror" left_right_sym="none" diagonal_sym="mirror"/>
+        <profile fixed="1.5/nx" />
+      </shapeMap>
+      
+      <design name="density" initial=".5" physical_lower="1e-6" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <result value="shapeMapGrad" id="optResult_1" design="density" detail="node"/>
+      <result value="shapeMapGrad" id="optResult_2" design="density" detail="profile"/>
+      <result value="costGradient" id="optResult_3" design="density" />
+      
+      <export save="last" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

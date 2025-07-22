@@ -1,0 +1,123 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.cfs++.org/simulation 
+    ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+    
+    <documentation>
+        <title></title>
+        <authors>
+            <author>apapst</author>
+        </authors>
+        <date>2022-03-10</date>
+        <keywords>
+            <keyword>electrostatic</keyword>
+            <keyword>piezo</keyword>
+            <keyword>mechanic</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>no</isVerified>
+        <description>
+            Simple unitcube where potential-difference gets applied.
+            This leads to an electric field, which is then used for forwardcoupling 
+            towards the mechanic problem via "electric Strain" (similar as thermal strain).
+            
+            This testcase covers:
+                - Harmonic analysis
+        </description>
+    </documentation>  
+    
+	<fileFormats>
+		<input>
+			<hdf5 fileName="ElectricStrainUnitCubeHarmonic.h5ref"/>
+		</input>
+		<output>
+			<hdf5 />
+			<text id="txt" />
+		</output>
+		<materialData file="mat.xml" format="xml" />
+	</fileFormats>
+	<domain geometryType="3d">
+		<regionList>
+			<region name="Vol" material="PZT-4" />
+		</regionList>
+	</domain>
+	
+	<!-- ========================= -->
+	<!-- harmonic case -->
+	<!-- ========================= -->
+	<sequenceStep index="1">
+		<analysis>
+			<harmonic>
+				<frequencyList>
+					<freq value="1" />
+				</frequencyList>
+				<allowPostProc>yes</allowPostProc>
+			</harmonic>
+		</analysis>
+		<pdeList>
+			<electrostatic>
+				<regionList>
+					<region name="Vol" />
+				</regionList>
+				<bcsAndLoads>
+					<potential name="S_B" value="1e6" />
+					<ground name="S_T" />
+				</bcsAndLoads>
+				<storeResults>
+					<elemResult type="elecFieldIntensity">
+						<allRegions />
+					</elemResult>
+					<elemResult type="elecFluxDensity">
+						<allRegions />
+					</elemResult>
+				</storeResults>
+			</electrostatic>
+		</pdeList>
+	</sequenceStep>
+	<sequenceStep index="2">
+		<analysis>
+			<harmonic>
+				<frequencyList>
+					<freq value="1" />
+				</frequencyList>
+				<allowPostProc>yes</allowPostProc>
+			</harmonic>
+		</analysis>
+		<pdeList>
+			<mechanic subType="3d">
+				<regionList>
+					<region name="Vol" />
+				</regionList>
+				<bcsAndLoads>
+					<fix name="P_NWB">
+						<comp dof="z" />
+					</fix>
+					<fix name="P_SEB">
+						<comp dof="y" />
+						<comp dof="z" />
+					</fix>
+					<fix name="P_SWB">
+						<comp dof="x" />	
+						<comp dof="y" />
+						<comp dof="z" />
+					</fix>
+					<elecStrain name="Vol">
+						<excitation name="Vol">
+							<sequenceStep index="1">
+								<quantity name="elecFieldIntensity" pdeName="electrostatic"/>
+								<timeFreqMapping>
+									<continuous interpolation="linear"/>
+								</timeFreqMapping>
+							</sequenceStep>
+						</excitation>
+					</elecStrain>
+				</bcsAndLoads>
+				<storeResults>
+					<nodeResult type="mechDisplacement">
+						<allRegions />
+					</nodeResult>
+				</storeResults>
+			</mechanic>
+		</pdeList>
+	</sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>ShapeMap profile with linear shape function</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2017-11-03</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Fabian Wein</references>
+    <isVerified>no</isVerified>
+    <description>Optimize profile and shape, linear shape function is faster but has no smooth aggregation (yet)</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1.0" y="0."/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStress">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <force name="load" >
+             <comp dof="y" value="-1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" sequence="1" linear="false">
+      <stopping queue="55" value="0.00001" type="relativeCostChange"/>
+    </costFunction>
+
+    <constraint type="slope" bound="upperBound" value="1.1/nx" design="node" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.2/nx" design="node" linear="true"/>   
+    <constraint type="curvature" bound="upperBound" value="0.2/nx" design="profile" linear="true"/>   
+   
+    <constraint type="volume" bound="upperBound" value="0.5" mode="constraint" linear="false"/>
+   
+    <optimizer type="scpip" maxIterations="20">
+      <snopt>
+        <option name="major_optimality_tolerance" type="real" value="1e-8"/>
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
+      <!-- for such a small mesh as in the test case, the cannot be a sufficient order = .5 * (1/n)^2/sensitivity -->
+      <shapeMap overlap="max" sensitivity="1e-6" shape="linear" integration_order="20">
+       <node lower="0" initial="0.1" upper="1" dof="y"/>
+       <profile lower=".1" upper=".5" initial=".2"/>
+      </shapeMap>
+      
+      <design name="density" initial=".5" physical_lower="1e-6" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <result value="shapeMapIntOrder" id="optResult_1"/>
+      <result value="shapeMapMinMaxCorner" id="optResult_2" />
+      <result value="shapeMapGrad" id="optResult_3" detail="node"/>
+      <result value="shapeMapGrad" id="optResult_4" detail="profile"/>
+      <export save="last" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

@@ -1,0 +1,206 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="Pic255-ScalarPreisach">
+    <!-- Small signal parameter were determined by J. Ilg in "Bestimmung, Verifikation und Anwendung ..."
+          for a Pic255 plate of l x b x h = 30mm x 10mm x 2mm using the inverse method; taken from page 112
+         the large scale Preisach parameter stem from F. Wolf "Generalisiertes Preisach-Modell für ..."
+         for a Pic255 disc of r x h = 5mm x 2mm using a least squares fit to an extended muDat function; taken from page 137 for major loop -->
+    <!-- Note: Pic255 is transversal isotropic, i.e. the number of small signal parameter is reduced;
+          main axis for small signal parameter is the DEFAULT z-axis; if hyst operator is used, these
+          material parameter will be rotated accordingly to align along the current polarization direction -->
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7730 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+            12.45e10 7.85e10 8.05e10    0    0     0
+            7.85e10  12.45e10 7.85e10   0    0     0
+            8.05e10  7.85e10 12.06e10   0    0     0
+            0      0      0    2.03e10  0     0
+            0      0      0     0   2.03e10   0
+            0      0      0     0    0    2.03e10
+          </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            7.32e-9  0         0
+            0         7.32e-9  0
+            0         0         6.81e-9
+          </real>
+          </tensor>
+        </linear>
+      </permittivity>
+      <hystModel>
+        <elecPolarization>
+          <scalarPreisach>
+            <!-- Values from F. Wolf "Generalisiertes Preisach-Modell für ..." --><!-- saturation values not in table 9.1 on p 137; instead, values were guessed from images on p 137 --><!-- used units: input (E) V/m; output (D,P) C/m^2 --><inputSat> 3E06 </inputSat><outputSat> 0.45 </outputSat><!-- for scalar model, we have to set in which direction we want polarization to be applied;
+              if coupled piezo case is considered, all material tensors will be rotated such that the major axis aligns with
+              the polarization axis defined below -->
+			  <dirPolarization> 1 0 0 </dirPolarization>
+			  <weights>
+              <dim_weights> 100 </dim_weights>
+			  <weightType>
+                <muDatExtended>
+                  <A>1868.5</A><!-- B -->
+				  <h1>0.0109</h1>
+				  <h2>0.4496</h2>
+				  <sigma1>76.7391</sigma1>
+				  <sigma2>1675198</sigma2>
+				  <eta>1.2751</eta>
+				  <!-- as it can be seen from the images on page 137, the weighting function is normalized to
+                      the range -0.5 to 0.5; CFS requires / uses -1 to +1 instead; by setting belows flag to true,
+                      the muDat parameter will be readjusted automatically; if set to false, they will be taken directly -->
+                  <forHalfRange>true</forHalfRange>
+                </muDatExtended>
+              </weightType>
+              <anhystereticParameter>
+                <a>0.0538</a>
+                <b>4.6244</b>
+                <c>0</c>
+                <d>0.0E1</d>
+                <!-- onlyAnhyst = true would basically disable the whole Preisach model; we would only simulate with a
+                      non-linear material curve in this case; mainly for debugging or for materials which have nearly no
+                      remanence -->
+                <onlyAnhyst>false</onlyAnhyst>
+                <!-- see above -->
+                <forHalfRange>true</forHalfRange>
+                <!-- as the flag name already indicates: does P reach the value outputSat with or without the help of the anhysteretic parts? -->
+                <anhystPartCountsTowardsOutputSat>true</anhystPartCountsTowardsOutputSat>
+              </anhystereticParameter>
+            </weights>
+          </scalarPreisach>
+        </elecPolarization>
+        <!-- extra section for hysteretic piezo coupling; this section is defined in the electric rather than the piezo part
+          as it has to be read in by ElecPDE to correctly initialize the hysteresis operator -->
+          <piezoCouplingAndStrains>
+            <strainModeling>
+              <!-- irreversible strains are modeled as stated by formula 6.6 on page 101 -->
+			  <muDatWolf>
+                <!-- strain sat read out from figures on page 136;
+                S/100% = c1 + abs(p_s(e) + c2) + (e - 0.5)*c3 -->
+				<!-- p_s(e) is the hysteresis operator (can be the same as for polarization but 
+                  can also be a separate one (which is the case here) -->
+				  <strainSat>4.7e-3</strainSat>
+				  <!--  <strainSat>4.7e-3</strainSat>-->
+				  <c1>0</c1>
+				  <!-- <c2>0</c2>
+                <c3>0</c3>-->
+				<c2>-0.0963e-3</c2>
+				<c3>0.2732e-3</c3>
+				<!-- scales computed output such that actually strainSat is obtained -->
+				<scaleToStrainSat>true</scaleToStrainSat>
+				<!-- as above; note that the formula above is also based on the half-range as
+                  the c3 term has e-0.5; in CFS we work with e-1.0 instead -->
+				  <forHalfRange>true</forHalfRange>
+				  </muDatWolf>
+				  </strainModeling>
+				  <!-- here we have the option to define a separate hyst operator, i.e., use a different
+              hysteresis model to compute p_s(e) -->
+			  <hystOperatorForStrains>
+              <separateHystOperator>
+                <scalarPreisach>
+                  <!-- input sat for p_s(e) and S(e) is the same and can be
+                    read out from the images on page 136 again; however we do not know
+                    the correct value for outputSat as this would be the polarization that is
+                    used in the formula but not the strain-value itself; as the used p_s(e) curve
+                    is not shown, we just guess a value here and set the flag scaleToStrainSat (see above)
+                    to true -->
+					<inputSat> 3E06 </inputSat>
+					<outputSat> 0.45 </outputSat>
+					<dirPolarization> 1 0 0 </dirPolarization>
+					<weights>
+                    <dim_weights> 100 </dim_weights>
+					<weightType>
+                      <muDatExtended>
+                        <A>4.4320</A><!-- B -->
+                        <h1>0.0092</h1>
+                        <h2>0.4335</h2>
+                        <sigma1>34.2050</sigma1>
+                        <sigma2>137.5714</sigma2>
+                        <eta>1.1571</eta>
+                        <forHalfRange>true</forHalfRange>
+                      </muDatExtended>
+                    </weightType>
+                    <anhystereticParameter>
+                      <a>0.0015</a>
+                      <b>3.6414</b>
+                      <c>0</c>
+                      <d>0.0E1</d>
+                      <onlyAnhyst>false</onlyAnhyst>
+                      <forHalfRange>true</forHalfRange>
+                      <anhystPartCountsTowardsOutputSat>true</anhystPartCountsTowardsOutputSat>
+                    </anhystereticParameter>
+                  </weights>
+                </scalarPreisach>
+              </separateHystOperator>
+            </hystOperatorForStrains>
+            <smallSignalForm>
+              <!-- the small signal parameter taken from Ilg are in e-form -->
+<!--              <noSmallSignalCoupling></noSmallSignalCoupling>-->
+              <piezo_eform></piezo_eform>
+            </smallSignalForm>
+          </piezoCouplingAndStrains>
+        </hystModel>
+    </electric>
+    <piezo>
+      <piezoCoupling>
+        <linear>
+          <tensor dim1="3" dim2="6">
+            <real>
+          0     0    0    0 11.9 0
+          0     0    0   11.9  0 0
+          -6.86  -6.86 16.06 0  0  0
+        </real>
+          </tensor>
+        </linear>
+      </piezoCoupling>
+    </piezo>
+  </material>
+  <material name="Aluminum">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2690 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 70.3e9 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.345 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="Air">
+    <electric>
+      <permittivity>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+            8.85400E-12 0.00000E+00 0.00000E+00
+            0.00000E+00 8.85400E-12 0.00000E+00
+            0.00000E+00 0.00000E+00 8.85400E-12
+          </real>
+          </tensor>
+        </linear>
+      </permittivity>
+    </electric>
+  </material>
+</cfsMaterialDataBase>

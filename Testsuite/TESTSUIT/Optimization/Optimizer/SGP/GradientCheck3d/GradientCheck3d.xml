@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>3D gradientCheck SGP</title>
+    <authors>
+      <author>Bich Ngoc Vu</author>
+    </authors>
+    <date>2022-06-02</date>
+    <keywords>
+      <keyword>optimization</keyword>
+    </keywords>    
+    <references>
+      None
+    </references>
+    <isVerified>yes</isVerified>
+    <description> 
+       Gradient check for derivative of compliance w. r. t. material tensor entries  
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="GradientCheck3d.h5ref"/>
+    </input>
+    <output>
+      <hdf5 />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1.0" y="0.0" z="0.66667"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="back">
+              <comp dof="x"/>
+              <comp dof="y"/>
+              <comp dof="z"/>
+           </fix>
+           <force name="load">
+             <comp dof="y" value="-1"/>
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions />
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechTensor">
+            <allRegions/>
+          </elemResult>
+          <nodeResult type="mechRhsLoad">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+
+    
+  <optimization log="">
+    <costFunction type="compliance" task="minimize" >
+      <stopping queue="999" value="0.001" type="designChange"/>
+    </costFunction>
+
+    <optimizer type="sgp" maxIterations="20">
+      <sgp gradientCheck="true">
+        <!-- value can be 'exact' or 'asymptotes' (=0) -->
+        <option name="approximation" type="string" value="asymptotes"/>
+        <!-- number of levels of hierarichal grid for subproblem -->
+        <option name="levels" type="integer" value="3"/>
+        <!-- number of samples per level on hierarichal grid -->
+        <option name="samples_per_level" type="integer" value="5"/>
+        <!-- number of max. bisection steps for volume multiplier -->
+        <option name="max_bisections" type="integer" value="50"/>
+        <!-- globalization parameters -->
+        <option name="tau_init" type="real" value="1e-3"/>  
+        <option name="tau_factor" type="real" value="5"/>
+        <!-- filter type: 'linear' or 'non_linear' -->
+        <option name="filtering" type="string" value="linear"/>
+        <!-- penalty value for regularization term -->
+        <option name="p_filt_density" type="real" value="0.2"/>
+        <option name="p_filt_angle" type="real" value="0.2"/>
+        <!-- lower and upper bounds for volume multiplier -->
+        <option name="pmin_vol" type="real" value="0"/>
+        <option name="pmax_vol" type="real" value="500"/>
+      </sgp>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="paramMat">
+      <paramMat>
+        <designMaterials>
+          <designMaterial type="sgp-gradient-check">
+          </designMaterial>
+        </designMaterials>
+      </paramMat>
+      
+      <design name="mech_11" initial="0.11" lower="0.11" upper="0.11"/>
+      <design name="mech_12" initial="0.12" lower="0.12" upper="0.12"/>
+      <design name="mech_13" initial="0.13" lower="0.13" upper="0.13"/>
+      <design name="mech_14" initial="0" lower="0" upper="0"/>
+      <design name="mech_15" initial="0" lower="0" upper="0"/>
+      <design name="mech_16" initial="0" lower="0" upper="0"/>
+      <design name="mech_22" initial="0.22" lower="0.22" upper="0.22"/>
+      <design name="mech_23" initial="0.23" lower="0.23" upper="0.23"/>
+      <design name="mech_24" initial="0" lower="0" upper="0"/>
+      <design name="mech_25" initial="0" lower="0" upper="0"/>
+      <design name="mech_26" initial="0" lower="0" upper="0"/>
+      
+      <design name="mech_33" initial="0.33" lower="0.33" upper="0.33"/>
+      <design name="mech_34" initial="0" lower="0" upper="0"/>
+      <design name="mech_35" initial="0" lower="0" upper="0"/>
+      <design name="mech_36" initial="0" lower="0" upper="0"/>
+      
+      <design name="mech_44" initial="0.44" lower="0.44" upper="0.44"/>
+      <design name="mech_45" initial="0" lower="0" upper="0"/>
+      <design name="mech_46" initial="0" lower="0" upper="0"/>
+      
+      <design name="mech_55" initial="0.55" lower="0.55" upper="0.55"/>
+      <design name="mech_56" initial="0" lower="0" upper="0"/>
+      
+      <design name="mech_66" initial="0.66" lower="0.66" upper="0.66"/>
+      
+      <transferFunction design="density" type="identity" application="mech" param="1.0"/>
+      <result value="design" design="density" id="optResult_1" />
+      <result value="design" design="rotAngle" id="optResult_2" />
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>
+
+

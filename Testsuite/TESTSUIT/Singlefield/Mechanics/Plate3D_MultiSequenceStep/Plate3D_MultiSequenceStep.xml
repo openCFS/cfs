@@ -1,0 +1,192 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd">
+  
+  <documentation>
+    <title>Pressure Loaded 3D Plate</title>
+    <authors>
+      <author> ftoth </author>
+    </authors>
+    <date>2012-03-10</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+      <keyword>p-FEM-Legendre</keyword>
+    </keywords>
+    <references>
+      see Plate3D
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      This is a technical test to verify multi sequence steps
+      
+      The mesh is made slightly asymetrical to avoid ambiguous modes from double eigenvalues.
+    </description>
+  </documentation>
+  
+  
+  <fileFormats>
+    <input>
+      <mesh fileName="Plate3D.mesh"/>
+      <!--<cdb fileName="Plate3D.cdb"/>-->
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="plate" material="iso"/>
+    </regionList>
+    <nodeList>
+      <nodes name="top"/>
+      <nodes name="bot"/>
+    </nodeList>
+  </domain>
+  
+  <fePolynomialList>
+    <Legendre id="default">
+      <isoOrder>2</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+  
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d"> 
+        <regionList>
+          <region name="plate"/>
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="top" value="-100" /> 
+          <fix name="side">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+          <regionResult type="mechTotalEnergy">
+            <allRegions outputIds="txt"/>
+          </regionResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>    
+  </sequenceStep>
+  
+  <sequenceStep index="2">
+    <analysis>
+      <eigenFrequency>
+        <isQuadratic>no</isQuadratic>
+        <numModes>5</numModes>
+        <freqShift>0</freqShift>
+        <writeModes>yes</writeModes>
+      </eigenFrequency>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d"> 
+        <regionList>
+          <region name="plate"/>
+        </regionList>
+        <bcsAndLoads>
+          <preStress region="plate">
+            <computeLHS sequenceStep="1"/>
+          </preStress>
+          <fix name="side">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>    
+  </sequenceStep>
+  
+ <sequenceStep index="3">
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="30"/>
+          <freq value="40"/>
+        </frequencyList>
+      </harmonic>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d"> 
+        <regionList>
+          <region name="plate"/>
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="top" value="100"/> 
+          <fix name="side">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>    
+  </sequenceStep>
+  
+  <sequenceStep index="4">
+    <analysis>
+      <transient>
+        <numSteps>3</numSteps><!-- for steady solution ~500 -->
+        <deltaT>0.002</deltaT>
+      </transient>
+    </analysis>
+    <pdeList>
+      <mechanic subType="3d"> 
+        <regionList>
+          <region name="plate" dampingId="myDamp"/>
+        </regionList>
+        <dampingList>
+          <rayleigh id="myDamp"/>
+        </dampingList>
+        <bcsAndLoads>
+          <pressure name="top" value="-100*fadeIn(1/100,1,t)"/> 
+          <fix name="side">
+            <comp dof="x"/>
+            <comp dof="y"/>
+            <comp dof="z"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechStress">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>    
+  </sequenceStep> 
+  
+</cfsSimulation>

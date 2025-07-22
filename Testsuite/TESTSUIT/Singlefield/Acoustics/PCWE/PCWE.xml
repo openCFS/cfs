@@ -1,0 +1,116 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+
+ <documentation>
+    <title> Convective wave equation - Monopole source in a shear layer.</title>
+    <authors>
+      <author>Stefan Schoder</author>
+    </authors>
+    <date>2017-01-10</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>aeroacoustics</keyword>
+    </keywords>
+    <references>
+       privat comunication
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      3D model of a rectangular domain with point source in the center;
+      time domain computation.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="data_testsuite.cfs"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="fluid" material="air"/>
+    </regionList>
+    <nodeList>
+      <nodes name="vp-restr">
+        <coord x="0.0" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>5</numSteps>
+        <deltaT>0.01</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <acoustic formulation="acouPotential"  flowFormulation="standard">
+        <regionList>
+          <region name="fluid" flowId="fluid"/>
+        </regionList>
+
+        <flowList>
+          <flow name="fluid">
+            <grid dofs="all">
+              <defaultGrid quantity="meanFluidMechVelocity" dependtype="CONST" definedOn="node" snapToCFSTimeStep="true" sequenceStep="1">
+                <globalFactor>1</globalFactor>
+              </defaultGrid>
+            </grid>
+          </flow>
+        </flowList>
+
+        <bcsAndLoads>
+          <potential name="vp-restr" value="1.0 * sin(2*pi*t*20)"></potential>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPotential">
+            <allRegions/>
+          </nodeResult>
+          <nodeResult type="meanFluidMechVelocity">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+            <solver id="pardiso"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso id="pardiso">
+            <IterRefineSteps>10</IterRefineSteps>
+            <logging>yes</logging>
+            <stats>no</stats>
+          </pardiso>
+          <lis id="default">
+            <precond>
+              <jacobi/>
+            </precond>
+            <solver>        
+              <CG/>
+            </solver>      
+            <maxIter>10000</maxIter>        
+            <tolerance>1.0E-10</tolerance>
+            <logging>true</logging>
+          </lis>
+        </solverList>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>

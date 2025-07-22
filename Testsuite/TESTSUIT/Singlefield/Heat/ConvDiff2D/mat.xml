@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="unit">
+    <heatConduction>
+      <density>
+        <linear>
+          <real>1</real>
+        </linear>
+      </density>
+      <heatCapacity>
+        <linear>
+          <real>1</real>
+        </linear>
+      </heatCapacity>
+      <heatConductivity>
+        <linear>
+          <isotropic>
+            <real>1</real>
+          </isotropic>
+        </linear>
+      </heatConductivity>
+    </heatConduction>
+  </material>
+</cfsMaterialDataBase>

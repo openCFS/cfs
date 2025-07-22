@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>Plane Wave Axi</title>
+    <authors>
+      <author>dmayrhof</author>
+    </authors>
+    <date>2022-05-02</date>
+    <keywords>
+      <keyword>flow</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      3D reference computation
+    </references>
+    <isVerified>no</isVerified>
+    <description>
+      Axi-symmetric test case where a wave is excited with a 1-x^2 velocity profile that is damped out quickly due to very high artificial viscosity. Simple test case to check axi-symmetric implementation of the LinFlowPDE. For reference the 3D as well as the standard pane version have been computed and can be used for comparison (2D plane just to check that the solution is indeed different).
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <!--<cdb fileName="Channel.cdb"/>-->
+      <hdf5 fileName="PlaneWaveAxi.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="axi">
+    <regionList>
+      <region name="Chamber" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="Exc"/>
+      <surfRegion name="Sym"/>
+      <surfRegion name="BC_Fix"/>
+      <surfRegion name="BC_top"/>
+    </surfRegionList> 
+  </domain>
+  
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="orderVel">
+      <isoOrder>2</isoOrder> 
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="orderPres">
+       <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="integVel">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="integPres">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>15</numSteps>
+        <deltaT>5e-5</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel" presIntegId="integPres" velIntegId="integVel">
+        <regionList>
+          <region name="Chamber"/>
+        </regionList>
+               
+        <bcsAndLoads> 
+          <noSlip name="Sym">
+            <comp dof="r"/>         
+          </noSlip>
+          <noSlip name="BC_Fix">
+            <comp dof="r"/> 
+            <comp dof="z"/> 
+          </noSlip>
+          <noSlip name="BC_top">
+            <comp dof="r"/>
+            <comp dof="z"/>    
+          </noSlip>
+          <velocity name="Exc">
+            <comp dof="z" value="sin(2*pi*1000*t)*(1-(x/1e-4)^2)"/>
+          </velocity>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions outputIds="h5"/>         
+          </nodeResult>
+        </storeResults>
+      </fluidMechLin>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

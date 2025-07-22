@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+ <documentation>
+    <title>MMA implementation</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2021-08-31</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>C++ version of the difficult test case for mma.py mma-multiload.
+    The settings are to meet the Python implementation, not for best performance.</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+    <nodeList>
+      <nodes name="center_upper">
+        <coord x="1.5" y="2"/>
+      </nodes>
+      <nodes name="center_lower">
+        <coord x="1.5" y="0.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="south_west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="north_west"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="south_east"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <fix name="north_east"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+
+           <force name="center_upper">
+            <comp dof="y" value="1"/>
+          </force>
+          <force name="center_lower">
+            <comp dof="y" value="-1"/>
+          </force>
+          
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>          
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>             
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <optimization>
+    <costFunction type="slack" task="minimize" multiple_excitation="true">
+      <stopping queue="999" value="0.002" type="designChange" />
+    </costFunction>
+
+    <constraint type="compliance" bound="upperBound" value="slack" excitation="0"/>
+    <constraint type="compliance" bound="upperBound" value="slack" excitation="1"/>
+
+    <constraint type="volume" bound="upperBound" value="0.5" />
+
+    <!-- the test is very sensitive, especially in the first iterations. We test last and run a little longer -->
+    <optimizer type="mma" maxIterations="15" >
+      <mma max_sub_iter="20" sub_solver_type="newton" hessian_corr="false" constraint_penalty_c="0" verbose_dual_vars="true" sub_solve_tol="1e-5">
+        <asymptotes update="svanberg" dec=".7" inc="1.4285714285714286" initial="1.0"/>
+      </mma>
+    </optimizer>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      <filters>
+          <filter neighborhood="maxEdge" value="1.5" type="density"/>
+      </filters>
+
+      <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      <design name="slack" initial="0.5" lower="1e-3" upper="500.0" />
+
+      <transferFunction type="simp" application="mech" param="3" />
+
+      <export write="iteration" save="all" />
+    </ersatzMaterial>
+
+    <!-- visualize both load cases -->    
+    <commit mode="forward" stride="1" />
+  </optimization>
+  
+</cfsSimulation>
+
+

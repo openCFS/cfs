@@ -1,0 +1,159 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <!-- ================================================================= -->
+  <!--  xml input file for direct testing of hyst operators              -->
+  <!--                                                                   -->
+  <!--  during testing, a user-defined or predefined input signal is     -->
+  <!--  passed to a SINGLE hysteresis operator and its output is written -->
+  <!--  to file; by setting testInversion=True the output is used as     -->
+  <!--  input to the inversion scheme that is defined in mat.xml for the -->
+  <!--  corresponding material                                           -->
+  <!--                                                                   -->
+  <!--  intended usage:                                                  -->
+  <!--   1. test if hysteresis operator produces correct results         -->
+  <!--   2. performance measurements                                     -->
+  <!--   3. test of local inversion schemes                              -->
+  <!--   4. compute output of hysteresis operator for parameter matching -->
+  <!--                                                                   -->
+  <!--   idea behind this test: check loss factors of the extended       -->
+  <!--    Mayergoyz vector Preisach model                                -->
+  <!-- ================================================================= -->
+
+  <!--  Define I/O file and format definitions  -->
+  <fileFormats>
+    <input>
+      <mesh fileName="SSTRedux.mesh"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+
+    <!-- List of regions -->
+    <regionList>
+      <region name="stripe" material="Mayergoyz_5"/>
+        <region name="coil" material="air"/>
+      <region name="yoke" material="NdFeB"/>
+        <!--<region name="yoke" material="Air"/>-->
+        <region name="air" material="air"/>
+    </regionList>
+
+    <surfRegionList>
+      <surfRegion name="leftBoundary"/>
+      <surfRegion name="rightBoundary"/>
+      <surfRegion name="topBoundary"/>
+      <surfRegion name="bottomBoundary"/>
+    </surfRegionList>
+    
+    <elemList>
+      <elems name="observerInner"/>
+      <elems name="observerOuter"/>
+      <elems name="observerLine"/>
+    </elemList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>1</numSteps>
+        <deltaT>1</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <magnetic>
+        <regionList>
+            <region name="yoke"/>
+            <region name="air"/>
+            <region name="coil"/>
+            <!--<region name="stripe"/>-->
+            <region name="stripe" nonLinIds="h"/>
+          </regionList>
+          
+          <nonLinList>
+            <hysteresis id="h"/>
+          </nonLinList>
+          
+          <bcsAndLoads>
+            <fluxParallel name="topBoundary">
+              <comp dof="x"/>
+            </fluxParallel>
+            <fluxParallel name="bottomBoundary">
+              <comp dof="x"/>
+            </fluxParallel>
+            <fluxParallel name="rightBoundary">
+              <comp dof="y"/>
+            </fluxParallel>
+          </bcsAndLoads>
+                  
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="magFieldIntensity">
+            <allRegions/>
+          </elemResult>
+           <elemResult type="magMagnetization">
+            <allRegions/>
+          </elemResult>
+       </storeResults>
+      </magnetic>
+      
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <hysteretic>
+              <solutionMethod>
+                <Fixpoint_Global_H/>
+              </solutionMethod>
+              <lineSearch>
+                <None></None>
+              </lineSearch>
+              <stoppingCriteria>
+                <residual_relative value="1.0E-5"/>
+              </stoppingCriteria>
+              <maxIter>
+                200
+              </maxIter>
+              <performTests>
+                <testHysteresisOperator>
+                  <InputSignals>
+					<ReadFromFile OutputName="ROTLOSS-MEASINPUT" NameTagPerFile="Mayergoyz_5" FileContaining_x_over_steps="RotSignal_rotAmpl0.84_Hx.txt" FileContaining_y_over_steps="RotSignal_rotAmpl0.84_Hy.txt" AmplitudeScaling="1.0"/>
+                    <!--<Rotation OutputName="ROTLOSS" NameTagPerFile="###AMPLITUDE###-###NUMPERIODS###" AmplitudeScaling="###AMPLITUDE###" NumPeriods="###NUMPERIODS###" StepsPerPeriod="###STEPSPERPERIOD###" InitialAmplitudeScaling="###INITIALAMPLITUDE###"/>-->
+                    <!--<IncreasingRotation AmplitudeScaling="1" NumPeriods="2.0E0" NameTagPerFile="numAngles_###NUMANGLES###" StepsPerPeriod="50"/>-->
+                  </InputSignals>
+                  <PreisachPlaneResolution>200</PreisachPlaneResolution>
+                  <TestInversion>yes</TestInversion>
+				  <!-- if stop after tests = yes, results are not written to xml file -->
+                  <StopAfterTests>no</StopAfterTests>
+                  <PrintStatistics>yes</PrintStatistics>
+                  <WriteInputToFile>no</WriteInputToFile>
+                  <WriteResultsToFile>yes</WriteResultsToFile>
+                  <writeResultsToInfoXML>yes</writeResultsToInfoXML>
+                  <!-- store to history folder in order to automatically check results by ctest configuration -->
+                  <DirectoryForTestoutput>outputHystTest</DirectoryForTestoutput>
+                  <OutputIrrStrains>no</OutputIrrStrains>
+                  <MeasurePerformance>
+                    <activate>no</activate>
+                    <commonResultFile>"CollectedRuntimeForEval-rotloss.txt"</commonResultFile>
+                  </MeasurePerformance>
+                </testHysteresisOperator>
+                
+              </performTests>
+            </hysteretic>
+            
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+    
+    
+  </sequenceStep>
+</cfsSimulation>

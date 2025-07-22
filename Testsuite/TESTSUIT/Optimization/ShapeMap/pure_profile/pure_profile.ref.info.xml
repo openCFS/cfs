@@ -1,0 +1,266 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="28" infoRejectCounter="0">
+  <summary>
+    <timer wall="0" cpu="0.204269" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="173.44" peak="175.44"/>
+  </summary>
+  <header id="">
+    <environment started="2017-Oct-17 14:38:07" host="eamc061"/>
+    <progOpts problem="pure_profile" parameterFile="/home/fwein/code/cfs-test/TESTSUIT/Optimization/ShapeMap/pure_profile/pure_profile.xml" schemaPath="/home/fwein/code/cfs/share/xml" meshFile="" logConfFile="" detailed="no" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1">
+      <cfs version="17.8" name="AMGme" build="Release" svn_revision="15951 modified" svn_branch="Fabian_Wein_TopOpt_0415" exe="cfs_rel"/>
+    </progOpts>
+    <domain nx="20" ny="20" nz="1">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="400" nodes="441"/>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="441" elems="400" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="south" count="21"/>
+        <nodes name="north" count="21"/>
+        <nodes name="west" count="21"/>
+        <nodes name="east" count="21"/>
+        <nodes name="left_lower" count="1" coord="(0,0)"/>
+        <nodes name="right_lower" count="1" coord="(1,0)"/>
+        <nodes name="left_upper" count="1" coord="(0,1)"/>
+        <nodes name="right_upper" count="1" coord="(1,1)"/>
+        <nodes name="center" count="1" coord="(0.5,0.5)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="20" ny="20" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+  </header>
+  <calculation>
+    <process/>
+  </calculation>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt" BOp="StrainOperator2D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalForceInt" region="">
+                <entities name="right_lower" size="1" region="no_region"/>
+                <row pde="mechanic" result="mechDisplacement" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="99lines">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="MechanicStiffnessTensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.346154e+00  5.769231e-01  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  1.346154e+00  5.769231e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 5.769231e-01  5.769231e-01  1.346154e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.846154e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Emodulus" value="1"/>
+          <property name="Mechanic_PoissonRation" value="0.3"/>
+          <property name="Mechanic_Kmodulus" value="(0.83333,0)"/>
+          <property name="Mechanic_LameMu" value="(0.38462,0)"/>
+          <property name="Mechanic_LameLambda" value="(0.57692,0)"/>
+          <property name="Loss_TangensDelta" value="0.03"/>
+        </material>
+        <!-- List of defined Spaces-->
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="west" dofs="x y"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <!-- List of registered FeFunctions-->
+          <feFunctions totalNumEqns="840" totalNumFreeEqns="840" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="840" lastFreeEqn="840" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <!-- List of SBM-blocks-->
+          <sbmBlocks>
+            <block id="0" size="840" lastFreeIndex="840"/>
+          </sbmBlocks>
+          <!-- List of defined matrices-->
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="840" totalNumCols="840" totalNumNonZeros="14152" totalFillLevelPerCent="2.0057" totalMemory="0.10797">
+              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="840" numCols="840" numNonZeros="14152" fillLevelPerCent="2.0057" memory="0.10797" upperBandWidth="829" lowerBandWidth="829" avgBandWidth="299" symCounterPart="no" orderingType="Metis"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <cholmod>
+            <header>
+              <parameters>
+                <factorization>
+                  <nmethods default="0"/>
+                  <postorder default="1"/>
+                  <dbound default="0"/>
+                </factorization>
+                <supernodal>
+                  <method default="auto"/>
+                  <switch default="40"/>
+                </supernodal>
+                <output>
+                  <level default="3"/>
+                  <precise default="0"/>
+                </output>
+              </parameters>
+            </header>
+            <summary>
+              <setup>
+                <timer label="setup_cholmod" wall="0" cpu="0.014585" calls="11"/>
+              </setup>
+              <solve>
+                <timer label="solve_cholmod" wall="0" cpu="0.000417" calls="11"/>
+              </solve>
+            </summary>
+            <process>
+              <setup selected_factorization_method="1" ll_flop_count="9.3868e+05" nz_in_L="24868" nz_in_triA="7496" memory_usage="" memory_inuse="" malloc_count="" nrealloc_col="0" nrealloc_factor="0" ndbounds_hit="0">
+                <method id="1" lnz="24868" fl="9.3868e+05"/>
+              </setup>
+              <solver/>
+            </process>
+          </cholmod>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall="0" cpu="7e-06" calls="11"/>
+              </setup>
+              <precond>
+                <timer wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall="0" cpu="0.030266" calls="22"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+  <optimization haltopt_file="/home/fwein/code/cfs-test/TESTSUIT/Optimization/ShapeMap/pure_profile/HALTOPT">
+    <header>
+      <objective type="compliance" name="compliance" linear="no" filtered="yes" task="minimize"/>
+      <constraints>
+        <constraint type="slope" name="slope_(profile)" parameter="0" linear="yes" filtered="yes" locality="next" local_size="20" periodic="no" bound_value="0.05" bound="upperBound" design="profile"/>
+        <constraint type="volume" name="volume" linear="no" filtered="yes" bound_value="0.5" bound="upperBound" design="default"/>
+      </constraints>
+      <designSpace pamping="0">
+        <gradient_chain_rule>
+          <timer label="gradient_chain_rule" wall="0" cpu="0" calls="0" sub="true"/>
+        </gradient_chain_rule>
+        <shapeMap overlap="max">
+          <numInt max_order="11" sensitivity="1e-09" integration="tailored" tailored_order="1->11 0.1->11 0.01->11 0.001->11 0.0001->11 1e-05->9 1e-06->9 1e-07->7 1e-08->7 1e-09->5 1e-10->4 ">
+            <warning> resolution and beta combination allows no sufficient numerical integration for sensitvity 1.0000000000000001e-09</warning>
+
+          </numInt>
+          <mesh n="20 20 1" min="0 0" max="1 1" step="0.05 0.05"/>
+        </shapeMap>
+        <transferFunctions>
+          <transferFunction type="simp" application="mech" design="density" param="1"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="21" modelVariables="400" modelElements="400">
+          <design type="density" upperBound="1" lowerBound="1e-06" physicalLowerBound="1e-06"/>
+          <shapeParam idx="0" type="node" dof="y" fixed="0.0" variables="21" design="0" left_right_sym="none" bottom_up_sym="none"/>
+          <shapeParam idx="1" type="profile" lower="0.05" upper="1.0" clamp="no" variables="21" design="21" left_right_sym="none" bottom_up_sym="none"/>
+        </designVariables>
+        <regions>
+          <region name="mech" elements="400" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="mechanic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="1"/>
+      </excitations>
+      <snopt/>
+    </header>
+    <commit mode="forward" stride="1"/>
+    <optimizer>
+      <summary snopt_outputfile="pure_profile.snopt">
+        <snopt>
+          <timer wall="0" cpu="0.038039" calls="48"/>
+        </snopt>
+        <snopt_exit exit="0" info="32"/>
+        <evaluations f_evals="12" g_evals="11"/>
+      </summary>
+    </optimizer>
+    <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
+      <eval_objective>
+        <timer wall="0" cpu="0.014272" calls="58"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall="0" cpu="0.000143" calls="12"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall="0" cpu="0.025946" calls="11"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall="0" cpu="0.02396" calls="12"/>
+      </eval_grad_constraints>
+      <break converged="no"/>
+    </summary>
+    <process>
+      <iteration number="0" duration="0" compliance="1447.7" max_slope_profile="0" infeas_slope_profile="0" volume="0.125"/>
+      <iteration number="1" duration="0" compliance="91.188" max_slope_profile="0.027766" infeas_slope_profile="0" volume="0.33325"/>
+      <iteration number="2" duration="0" compliance="66.449" max_slope_profile="0.046779" infeas_slope_profile="0" volume="0.47588"/>
+      <iteration number="3" duration="0" compliance="43.569" max_slope_profile="0.05" infeas_slope_profile="5" volume="0.5"/>
+      <iteration number="4" duration="0" compliance="34.417" max_slope_profile="0.05" infeas_slope_profile="5" volume="0.5"/>
+      <iteration number="5" duration="0" compliance="31.371" max_slope_profile="0.05" infeas_slope_profile="4" volume="0.5"/>
+      <iteration number="6" duration="0" compliance="30.659" max_slope_profile="0.05" infeas_slope_profile="1" volume="0.5"/>
+      <iteration number="7" duration="0" compliance="30.568" max_slope_profile="0.05" infeas_slope_profile="1" volume="0.5"/>
+      <iteration number="8" duration="0" compliance="30.547" max_slope_profile="0.05" infeas_slope_profile="2" volume="0.5"/>
+      <iteration number="9" duration="0" compliance="30.541" max_slope_profile="0.05" infeas_slope_profile="3" volume="0.5"/>
+      <iteration number="10" duration="0" compliance="30.54" max_slope_profile="0.05" infeas_slope_profile="3" volume="0.5"/>
+    </process>
+  </optimization>
+</cfsInfo>

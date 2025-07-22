@@ -1,0 +1,224 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="silizium">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 2.3e3 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+            1.65682E+11 1.84091E+10 1.84091E+10 0.00000E+00 0.00000E+00 0.00000E+00
+            1.84091E+10 1.65682E+11 1.84091E+10 0.00000E+00 0.00000E+00 0.00000E+00
+            1.84091E+10 1.84091E+10 1.65682E+11 0.00000E+00 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 7.36364E+10 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 7.36364E+10 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 7.36364E+10
+          </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="0_5_3D_cross">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 1. </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+            1.099548e+00 4.488537e-01 4.488537e-01 0.00000E+00 0.00000E+00 0.00000E+00
+            4.488537e-01 1.099548e+00 4.488537e-01 0.00000E+00 0.00000E+00 0.00000E+00
+            4.488537e-01 4.488537e-01 1.099548e+00 0.00000E+00 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 3.163719e-01 0.00000E+00 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 3.163719e-01 0.00000E+00
+            0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 3.163719e-01
+          </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="Steel">
+    <mechanical>
+      <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "AISI 1005" -->
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.00E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.29 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <coefficients>
+            <alpha>1E+04</alpha>
+            <beta>1E-08</beta>
+            <!-- <measuredFreq>1E6</measuredFreq> -->
+          </coefficients>
+        </rayleigh>
+      </damping>
+    </mechanical>
+    <acoustic>
+      <!-- Data obtained from : "http://www.ondacorp.com"
+           Reference(s) :  -->
+      <density>
+        <linear>
+          <real> 7800 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.7152E+11 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="99lines">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
+      <!-- Data as in the 99-lines code by Sigmund -->
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <coefficients>
+            <alpha>0.05</alpha>
+            <beta>0.002</beta>
+            <!-- <measuredFreq>1Ee</measuredFreq> -->
+          </coefficients>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+  <material name="99mod">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
+      <!-- Data as in the 99-lines code by Sigmund -->
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1e5</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <coefficients>
+            <alpha>0.05</alpha>
+            <beta>0.002</beta>
+            <!-- <measuredFreq>1Ee</measuredFreq> -->
+          </coefficients>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+  <material name="scaled_titanium">
+    <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Titanium, Ti", only poissonNumber from table-->
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.34 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <coefficients>
+            <alpha>0.05</alpha>
+            <beta>0.002</beta>
+            <!-- <measuredFreq>1Ee</measuredFreq> -->
+          </coefficients>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+  <material name="scaled_aluminum">
+    <!-- Data obtained from : "http://www.matweb.com"
+           Reference(s) : "www.matweb.com"
+           Remarks : "Aluminum, Al", only poissonNumber from table-->
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7872 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>0.5862 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.36 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <coefficients>
+            <alpha>0.05</alpha>
+            <beta>0.002</beta>
+            <!-- <measuredFreq>1Ee</measuredFreq> -->
+          </coefficients>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

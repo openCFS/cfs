@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Groundmaterial Optimization</title>
+    <authors><author>Fabian Wein</author></authors>
+    <date>2024-08-15</date>
+    <description>Groundmaterial is a simplified variant of bimaterial optimization. 
+    It is E_ground + rho^3 * E_0, what means that we do not change the gradient.
+    For solid the material is E_ground + 1*E_0, so not precise. 
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="bottom_right" >
+             <comp dof="y" value="-1" />
+           </force>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <regionResult type="mechTotalEnergy">
+            <allRegions/>
+          </regionResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" >
+      <stopping value="1e-3" type="relativeCostChange" queue="1" condition="necessary" />
+    </costFunction>
+
+    <constraint type="volume" access="filtered" value=".5" bound="upperBound" />
+
+    <optimizer type="ocm" maxIterations="10"/>
+
+    <ersatzMaterial region="mech" material="mechanic" method="simp" >
+      <filters>
+        <filter neighborhood="maxEdge" value="1.5" type="density" />
+     </filters>
+
+      <design name="density" initial="0.5" lower="0" upper="1.0" groundmaterial="void" />
+      <transferFunction type="simp" application="mech" param="3" />
+      <export save="last" write="iteration" />
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

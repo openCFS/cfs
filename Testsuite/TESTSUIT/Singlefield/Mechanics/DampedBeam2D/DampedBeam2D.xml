@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Normal Damping in 2D</title>
+    <authors>
+      <author>Florian Toth</author>
+    </authors>
+    <date>2019-11-11</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>yes</isVerified>
+    <description>
+    A simply supported cantilever with daspot in the center.
+    Example taken from Int. J. Numer. Meth. Engng2008;73:344–360, DOI: 10.1002/nme.2076
+    </description>
+      
+  </documentation>
+  <fileFormats>
+    <input>
+      <hdf5 fileName="DampedBeam2D.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  <domain geometryType='plane'  printGridInfo="no">
+    <regionList>
+      <region name="S" material="refAlu" />
+    </regionList>
+  </domain>
+  <sequenceStep index="1">
+    <analysis>
+        <eigenFrequency>
+          <isQuadratic>yes</isQuadratic>
+          <numModes>3</numModes>
+          <freqShift>646</freqShift>
+          <writeModes>yes</writeModes>
+        </eigenFrequency>
+    </analysis>  
+    <pdeList>
+      <mechanic subType='planeStrain'>
+        <regionList>
+          <region name="S"/>
+        </regionList>        
+        <bcsAndLoads>
+          <fix name="P_lb">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <fix name="P_rb">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <concentratedElem name="P_cb" dof="y" dampingValue="5/0.05"/>
+        </bcsAndLoads>      
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+            <nodeList>
+              <nodes name="P_cb" outputIds="txt"/>
+            </nodeList>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination"/>
+            <matrix reordering="noReordering"/>
+            <eigenSolver id="palm"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+        <palm id="palm">
+        <PadeOrder>1</PadeOrder>
+        </palm>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

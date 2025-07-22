@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  
+  <documentation>
+    <title>2D closed magnetic circuit with hysteresis model</title>
+    <authors>
+      <author>Michael Nierla</author>
+    </authors>
+    <date>2019-06-18</date>
+    <keywords>
+      <keyword>magneticNodal</keyword>
+      <keyword>hysteresis</keyword>
+      <keyword>linesearch</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      Geometry:
+      2D-quarter model of a Single-Sheet-Tester (SST), consisting of
+      a thin material probe (made of hysteretic material), a thick 
+      ferrite-core for closing the magnetic circuit, an excitation
+      coil and a surrounding air region.
+      
+      Sketch:
+      
+      y-axis
+      |
+      | air
+      |_____________
+      |				|
+      |_ferrite_    |
+      |_________|   |
+      |         |   |
+      |_coil____|   |
+      |_________|___|
+      |_probe_____|______ x-axis
+      
+      Simulation/Solution of non-linear system
+      a) used hysteresis model: 
+      Mayergoyz Vector Preisach Model with 5 discrete directions
+      b) solution method for non-linear system:
+      Quasi-Newton scheme, using Finite-Differences for estimating/approximating
+      the Jacobian matrix, Jacobian is evaluated each iteration
+      > Quasi-Newton is a B-Based formulation (i.e., local inversion of Preisach Model is
+      required; see mat.xml)
+      c) used linesearch method for globalization:
+      inexact linesearch based on a non-monotonic Armijo-rule
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <mesh fileName="SSTRedux.mesh"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txtEntity" fileCollect="entity"/>
+      <text id="txtTime" fileCollect="timeFreq"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+    
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <variableList> 
+      <!-- take double length as in mesh due to symmetry -->
+      <var name="heightCoil" value="3e-3"/>
+      <var name="lengthCoil" value="6e-3"/> 
+      <var name="NumWindings" value="1000"/>
+      <var name="AmplitudeCurrent" value="1.25"/>
+      <var name="NumTimesteps" value="12"/>
+      <var name="TimestepLength" value="2e-3"/>
+    </variableList>
+    <regionList>
+      <region name="stripe" material="FECO_Mayergoyz_3"/>
+      <region name="coil" material="Air"/>
+      <region name="yoke" material="Epcos_N87"/>
+      <!--<region name="yoke" material="Air"/>-->
+      <region name="air" material="Air"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="leftBoundary"/>
+      <surfRegion name="rightBoundary"/>
+      <surfRegion name="topBoundary"/>
+      <surfRegion name="bottomBoundary"/>
+    </surfRegionList>
+    
+    <elemList>
+      <elems name="observerInner"/>
+      <elems name="observerOuter"/>
+      <elems name="observerLine"/>
+    </elemList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>NumTimesteps</numSteps>
+        <deltaT>TimestepLength</deltaT>
+      </transient>
+    </analysis>
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="yoke"/>
+          <region name="air"/>
+          <region name="coil"/>
+          <!--<region name="stripe"/>-->
+          <region name="stripe" nonLinIds="h"/>
+        </regionList>
+        
+        <nonLinList>
+          <hysteresis id="h"/>
+        </nonLinList>
+        
+        <bcsAndLoads>
+          <fluxParallel name="topBoundary">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxParallel name="bottomBoundary">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxParallel name="rightBoundary">
+            <comp dof="y"/>
+          </fluxParallel>
+        </bcsAndLoads>
+        
+        <coilList>
+          <coil id="excitation">
+            <source type="current" value="AmplitudeCurrent*sample1D('inputCurrent.txt',t,1)"/>
+            <part id="1">
+              <regionList>
+                <region name="coil"/>
+              </regionList>
+              <direction>
+                <analytic coordSysId="default">
+                  <comp dof="z" value="1"/>
+                </analytic>
+              </direction>
+              <wireCrossSection area="heightCoil*lengthCoil/NumWindings"/>
+            </part>
+          </coil>
+          
+        </coilList>
+        
+        <storeResults>
+          <elemResult type="magFieldIntensity">
+            <allRegions/>
+            <elemList>
+              <elems name="observerInner" outputIds="txtEntity"/>
+              <elems name="observerOuter" outputIds="txtEntity"/>
+            </elemList>
+          </elemResult>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="observerInner" outputIds="txtEntity"/>
+              <elems name="observerOuter" outputIds="txtEntity"/>
+            </elemList>
+          </elemResult>
+          <elemResult type="magPolarization">
+            <allRegions/>
+            <elemList>
+              <elems name="observerInner" outputIds="txtEntity"/>
+              <elems name="observerOuter" outputIds="txtEntity"/>
+            </elemList>
+          </elemResult>
+        </storeResults>
+        
+      </magnetic>      
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <!-- setup solution process for non-linear, hysteretic system -->
+            <!-- minLoggingToTerminal = 0 > disable direct output of non-linear iterations;
+              = 1 > write incremental, residual error, linesearch factor etc. to cout
+              after each iteration	
+              = 2 > as 1 but write out overview over all iterations at end of a timestep -->
+            <hysteretic loggingToFile="yes" loggingToTerminal="0">
+              <solutionMethod>
+		<!-- Global fixpoint method based on H-iteration (i.e., incomplete inversion on element level
+			many tiny iterations steps on system level; quite fast and reliable; contraction factor
+			should be larger than 1 to ensure contraction; the higher the value, however, the slower the
+			overall convergence process; Caution: if hyst operator is traced insufficiently or if the
+			the slope of the B-H curve is not estimated correctly, the resulting fixpoint-system matrix
+			will not be contractive and thus the iteration will fail -->
+                <Fixpoint_Global_H ContractionFactor="1.1E0"/>
+              </solutionMethod>
+              <lineSearch>
+		<!-- global fixpoint methods usually should not require a line-search as they are already globally
+			convergent; however, in some cases (see comment above) the estimate for the slopes is not
+			good enough and thus the FP iteration is either not contractive or too restrictive (i.e. too slow);
+			an exact linesearch like GoldenSection or QuadraticPolynomial might help here as it allows for
+			overrelaxation, too; -->
+                <None></None>
+              </lineSearch>
+              <stoppingCriteria>
+		<!-- here we can define different relative and absolute stopping criteria (use oxygen and ctrl+space to
+			get suggestions; the non-linear solution process is seen as successful if ALL listed criteria
+			are satisfied -->
+                <increment_relative value="1.0E-4" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>
+                <residual_relative value="1.0E-4" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>
+              </stoppingCriteria>
+              <evaluationDepth>
+		<!-- the name already reports the function; otherwise see tooltips in oxygen for further details -->
+                <evaluateAtIntegrationPoints_OneOperatorPerElement></evaluateAtIntegrationPoints_OneOperatorPerElement>
+              </evaluationDepth>
+              <failbackCriteria>
+		<!-- additional criteria that can be used to rescue a non-linear solution process; sometimes we cannot
+			get rid of the residual well enough, e.g., if we are stuck to a local minimum or if the iteration
+			process is too slow; in that case it might be useful to accept some looser criteria;
+			the non-linear solution process is seen to be sufficiently successful if ANY of the listed
+			criteria is satisfied -->
+                <residual_relative value="2.5E-4" firstCheck="10" checkingFrequency="2" scaleToSystemSize="no"/>
+                <residual_absolute value="1.0E-6" firstCheck="3" checkingFrequency="3" scaleToSystemSize="yes"/>
+              </failbackCriteria>
+		<!-- H-based fixpoint does not invert the hyst operator but basically does just one incomplete inversion
+			step on element level; therefore the global convergence strongly suffers which results in many
+			outer iterations -->
+              <maxIter>150</maxIter>
+            </hysteretic>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>
+

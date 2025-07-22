@@ -1,0 +1,22 @@
+Analysis initiated from SIMULIA established products
+Abaqus JOB plate3D_thermo
+Abaqus 2020
+Abaqus License Manager checked out the following licenses:
+Abaqus/Standard checked out 5 tokens from Flexnet server vmlic.ilsb.tuwien.ac.at.
+<40 out of 50 licenses remain available>.
+Begin Analysis Input File Processor
+Tue 10 Mar 2020 07:00:46 PM CET
+Run pre
+Tue 10 Mar 2020 07:00:47 PM CET
+End Analysis Input File Processor
+Begin Abaqus/Standard Analysis
+Tue 10 Mar 2020 07:00:47 PM CET
+Run standard
+Tue 10 Mar 2020 07:00:49 PM CET
+End Abaqus/Standard Analysis
+Begin SIM Wrap-up
+Tue 10 Mar 2020 07:00:49 PM CET
+Run SMASimUtility
+Tue 10 Mar 2020 07:00:49 PM CET
+End SIM Wrap-up
+Abaqus JOB plate3D_thermo COMPLETED

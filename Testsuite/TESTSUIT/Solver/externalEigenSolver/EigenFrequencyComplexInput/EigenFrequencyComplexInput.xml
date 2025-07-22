@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title></title>
+    <authors>
+      <author>Ben Heinrich</author>
+    </authors>
+    <date>2022-11-30</date>
+    <keywords>
+      <keyword>mechanic</keyword>
+      <keyword>eigenFrequency</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+    Simple mechanic domain with complex valued Young's modulus, to get a complex valued stiffness matrix.
+
+    This is a testcase for the eigenfrequency step solving a generalized EVP with complex valued system matrices.
+    The resulting eigenvalues and eigenvectors are imported from a matrix market file 
+    in coordinate format. 
+    The eigenfrequencies were compared with the results obtained with Arpack for the undamped case (only real material parameters)
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="EigenFrequencyComplexInput.h5ref"/>
+       <!--gmsh fileName="UnitSquareRefined.msh"/-->
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType='plane' >
+    <regionList>
+      <region material="UnitMaterialComplex" name="V_square"/>
+    </regionList>
+  </domain>
+  
+  <sequenceStep index="1">
+    <analysis>
+        <eigenFrequency>
+          <isQuadratic>no</isQuadratic>
+          <numModes>6</numModes>
+          <freqShift>0</freqShift>
+          <writeModes>yes</writeModes>
+        </eigenFrequency>
+    </analysis>  
+    
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="V_square" complexMaterial="yes"/> <!--disable complex material for Arpack-->
+        </regionList>
+        <bcsAndLoads>
+          <fix name="S_fixedy">
+            <comp dof="y"/>
+          </fix>
+          <fix name="S_fixedx">
+            <comp dof="x"/>
+          </fix>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <eigenSolver id="ext"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <external id="ext">
+            <logging>yes</logging>
+            <cmd>python3 EigenSolver.py</cmd>
+            <arguments>
+              <AFileName/>
+              <BFileName/>
+              <shiftPoint/>
+              <number/>
+              <tolerance>10e-9</tolerance>
+              <EigenValuesFileName/>
+              <EigenVectorsFileName/>
+            </arguments>
+          </external> 
+          <!--<arpack id="arpack"></arpack>-->
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+</cfsSimulation>

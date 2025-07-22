@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>ShapeMap 3D center node only</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2017-10-23</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Fabian Wein</references>
+    <isVerified>no</isVerified>
+    <description>Optimize only the 3d center node variables. This is a circular rod with fixed profile</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="0.5" z="0.5" y="1.0"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="bottom"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+              <comp dof="z"/>
+           </fix>
+           <force name="load" >
+             <comp dof="y" value="1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+<!--     <linearSystems> -->
+<!--       <system> -->
+<!--         <solverList> -->
+<!--           <cholmod /> -->
+<!--         </solverList> -->
+<!--       </system> -->
+<!--     </linearSystems> -->
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" sequence="1" linear="false">
+      <stopping queue="55" value="0.0001" type="relativeCostChange"/>
+    </costFunction>
+    
+    <constraint type="slope" bound="upperBound" value="1.1/nx" design="node" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.3/nx" design="node" linear="true"/>   
+   
+    <optimizer type="snopt" maxIterations="5">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon">
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
+      <shapeMap beta="40" overlap="max" enforce_bounds="false">
+       <center>
+         <node lower="0" upper="1" initial="0.2 + yi*0.3/ny" dof="x" />
+         <node lower="0" upper="1" initial="0.2 + yi*0.3/ny" dof="z"/>
+       </center> 
+       <profile fixed=".25"/>
+      </shapeMap>
+      
+      <design name="density" initial=".5" physical_lower="1e-9" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <result value="shapeMapGrad" id="optResult_1" detail="node_a"/>
+      <result value="shapeMapGrad" id="optResult_2" detail="node_b"/>
+      <result value="shapeMapGrad" id="optResult_3" detail="profile"/>
+      <result value="shapeMapIntOrder" id="optResult_4"  />
+      
+      <export save="all" write="iteration" density="false"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="99"/>
+  </optimization>
+</cfsSimulation>

@@ -1,0 +1,25 @@
+reset
+
+#{x = 1}
+#{p = 1.3}
+
+create curve location {-x/2} 0 0 location {x/2} 0 0
+create curve location {-x*p/2} {x} 0 location {x*p/2} {x} 0
+create curve vertex 2 4  
+create curve vertex 1 3  
+
+create surface curve 2 4 1 3
+sweep surface 1  perpendicular distance {x}
+
+nodeset 1 add surface 4  
+nodeset 1 name "S_small"
+nodeset 2 add surface 2  
+nodeset 2 name "S_large"
+set duplicate block elements off
+block 1 add volume 1
+block 1 name "Vol"
+
+volume 1  size auto factor 10
+mesh volume 1 
+
+export ansys cdb "./mesh.cdb"  overwrite 

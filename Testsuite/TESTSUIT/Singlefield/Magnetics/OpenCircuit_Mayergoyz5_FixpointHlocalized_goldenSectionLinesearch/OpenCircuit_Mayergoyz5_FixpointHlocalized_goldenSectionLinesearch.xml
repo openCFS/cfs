@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  
+  <documentation>
+    <title>2D open magnetic circuit with hysteresis model</title>
+    <authors>
+      <author>Michael Nierla</author>
+    </authors>
+    <date>2019-06-18</date>
+    <keywords>
+      <keyword>magneticNodal</keyword>
+      <keyword>hysteresis</keyword>
+      <keyword>linesearch</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      Geometry:
+      2D-quarter model consisting of
+      a thin material probe (made of hysteretic material) which
+	  is wound by a flat excitation coil and a surrounding air region.
+	  Note: the same geometry as for the ClosedCircurt*** testcases is used;
+			only difference: yoke-material is set to air
+      
+      Sketch:
+      
+      y-axis
+      |
+      | air
+      |
+      |				
+	  |	
+      |_________    
+      |         |   
+      |_coil____|   
+      |_________|_
+      |_probe_____|______ x-axis
+      
+      Aims of this test case:
+	  - apply localized H-base fix-point method (needs no local inversion!)
+	  - use an exact linesearch based on golden sectioning of the search interval
+		this kind of linesearch allows not only for overrelaxation but also for negative
+		stepping length! (but is very expensive!)
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <mesh fileName="SSTRedux.mesh"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+      <text id="txtEntity" fileCollect="entity"/>
+      <text id="txtTime" fileCollect="timeFreq"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+    
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <variableList> 
+      <!-- take double length as in mesh due to symmetry -->
+      <var name="heightCoil" value="3e-3"/>
+      <var name="lengthCoil" value="6e-3"/> 
+      <var name="NumWindings" value="1000"/>
+      <var name="AmplitudeCurrent" value="1.25"/>
+      <var name="NumTimesteps" value="6"/>
+      <var name="TimestepLength" value="3e-3"/>
+    </variableList>
+    <regionList>
+      <region name="stripe" material="FECO_Mayergoyz_5"/>
+      <region name="coil" material="Air"/>
+      <region name="yoke" material="Air"/>
+      <!--<region name="yoke" material="Air"/>-->
+      <region name="air" material="Air"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="leftBoundary"/>
+      <surfRegion name="rightBoundary"/>
+      <surfRegion name="topBoundary"/>
+      <surfRegion name="bottomBoundary"/>
+    </surfRegionList>
+    
+    <elemList>
+      <elems name="observerInner"/>
+      <elems name="observerOuter"/>
+      <elems name="observerLine"/>
+    </elemList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>NumTimesteps</numSteps>
+        <deltaT>TimestepLength</deltaT>
+      </transient>
+    </analysis>
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="yoke"/>
+          <region name="air"/>
+          <region name="coil"/>
+          <!--<region name="stripe"/>-->
+          <region name="stripe" nonLinIds="h"/>
+        </regionList>
+        
+        <nonLinList>
+          <hysteresis id="h"/>
+        </nonLinList>
+        
+        <bcsAndLoads>
+          <fluxParallel name="topBoundary">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxParallel name="bottomBoundary">
+            <comp dof="x"/>
+          </fluxParallel>
+          <fluxParallel name="rightBoundary">
+            <comp dof="y"/>
+          </fluxParallel>
+        </bcsAndLoads>
+        
+        <coilList>
+          <coil id="excitation">
+            <source type="current" value="AmplitudeCurrent*sample1D('inputCurrent.txt',t,1)"/>
+            <part id="1">
+              <regionList>
+                <region name="coil"/>
+              </regionList>
+              <direction>
+                <analytic coordSysId="default">
+                  <comp dof="z" value="1"/>
+                </analytic>
+              </direction>
+              <wireCrossSection area="heightCoil*lengthCoil/NumWindings"/>
+            </part>
+          </coil>
+          
+        </coilList>
+        
+        <storeResults>
+          <elemResult type="magFieldIntensity">
+            <allRegions/>
+            <elemList>
+              <elems name="observerInner" outputIds="txtEntity"/>
+              <elems name="observerOuter" outputIds="txtEntity"/>
+            </elemList>
+          </elemResult>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="observerInner" outputIds="txtEntity"/>
+              <elems name="observerOuter" outputIds="txtEntity"/>
+            </elemList>
+          </elemResult>
+          <elemResult type="magPolarization">
+            <allRegions/>
+            <elemList>
+              <elems name="observerInner" outputIds="txtEntity"/>
+              <elems name="observerOuter" outputIds="txtEntity"/>
+            </elemList>
+          </elemResult>
+        </storeResults>
+        
+      </magnetic>      
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <!-- setup solution process for non-linear, hysteretic system -->
+            <!-- minLoggingToTerminal = 0 > disable direct output of non-linear iterations;
+              = 1 > write incremental, residual error, linesearch factor etc. to cout
+              after each iteration	
+              = 2 > as 1 but write out overview over all iterations at end of a timestep -->
+            <hysteretic loggingToFile="yes" loggingToTerminal="0">
+              <solutionMethod>
+                <Fixpoint_Localized_H ContractionFactor="2.1E0"/>
+              </solutionMethod>
+              <lineSearch>
+                <Exact_GoldenSection>
+                  <maxIterLS>15</maxIterLS>
+                  <stoppingTol>1e-2</stoppingTol>
+                  <allowNegativeSteps>yes</allowNegativeSteps>
+                  <measurePerformance>no</measurePerformance>
+                </Exact_GoldenSection>
+              </lineSearch>
+              <stoppingCriteria>
+                <increment_relative value="1.0E-5" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>
+                <residual_relative value="1.0E-5" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>
+              </stoppingCriteria>
+              <evaluationDepth>
+                <evaluateAtIntegrationPoints_OneOperatorPerElement></evaluateAtIntegrationPoints_OneOperatorPerElement>
+              </evaluationDepth>
+              <failbackCriteria>
+                <residual_relative value="1.0E-4" firstCheck="10" checkingFrequency="2" scaleToSystemSize="no"/>
+                <residual_absolute value="1.0E-9" firstCheck="3" checkingFrequency="3" scaleToSystemSize="yes"/>
+              </failbackCriteria>
+              <maxIter>150</maxIter>
+            </hysteretic>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+  
+</cfsSimulation>
+

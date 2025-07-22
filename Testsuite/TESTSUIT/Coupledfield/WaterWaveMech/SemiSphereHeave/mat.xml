@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="normed1">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.0 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.0  </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="steel">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 7.9238e+03 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 2.068e11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>  0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>1e3</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.01</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+  <material name="air">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.2041 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.4170e+05 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="water">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 998.2 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.2e9  </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="water0">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 0.0 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 2.2e9  </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+  </material>
+  <material name="solid01">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 0.0 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.0 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.3 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+  <material name="mylar">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 1350 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 3.00E+09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.41 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>1e3</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.01</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+  <material name="disk">
+    <mechanical>
+      <density>
+        <linear>
+          <real> 757.18 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 3.00E+09 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.41 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

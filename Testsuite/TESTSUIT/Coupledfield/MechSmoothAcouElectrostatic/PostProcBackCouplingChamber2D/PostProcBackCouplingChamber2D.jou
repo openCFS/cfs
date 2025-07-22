@@ -1,0 +1,64 @@
+reset
+undo on
+
+
+#{h_el = 1e-4}; # element size
+#{b = 10*h_el}; # widht of the channel air
+#{h = 10*h_el}; # height of the channel air
+
+#{tol = 1e-6}
+merge tolerance {tol}
+
+
+# geometry
+
+create surface rectangle width {b/2} height {h} zplane
+move surface 1 x {b/4} y 0 z 0 
+
+create surface rectangle width {b/2} height {h} zplane
+move surface 2 x {3*b/4} y 0 z 0 
+
+
+# merge
+
+imprint tolerant volume all
+merge volume all
+
+
+# mesh
+
+surface all size {h_el}
+mesh surface all
+
+
+# blocks and nodesets
+
+block 1 add surface 1
+block 1 name "Air_l"
+
+block 2 add surface 2
+block 2 name "Air_r"
+
+nodeset 1 add curve 1
+nodeset 1 name "BC_Air_t_l"
+
+nodeset 2 add curve 2
+nodeset 2 name "BC_Air_l"
+
+nodeset 3 add curve 3
+nodeset 3 name "BC_Air_b_l"
+
+nodeset 4 add curve 4
+nodeset 4 name "BC_Air_mid"
+
+nodeset 5 add curve 5
+nodeset 5 name "BC_Air_t_r"
+
+nodeset 6 add curve 7
+nodeset 6 name "BC_Air_b_r"
+
+nodeset 7 add curve 8
+nodeset 7 name "BC_Air_r"
+
+export ansys cdb "PostProcBackCouplingChamber2D.cdb" overwrite
+

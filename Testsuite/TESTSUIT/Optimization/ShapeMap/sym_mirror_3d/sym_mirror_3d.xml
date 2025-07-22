@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.cfs++.org/simulation">
+ 
+ <documentation>
+    <title>ShapeMap with single symmetric mirrored 3d shape</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2018-03-06</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Fabian Wein</references>
+    <isVerified>no</isVerified>
+    <description>Symmetry mapping of a single shape which is mirrored</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region material="99lines" name="mech"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1" y="0.5" z="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+              <comp dof="z"/>
+           </fix>
+           <force name="right" >
+             <comp dof="y" value="-1"/>
+           </force>
+           
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_1">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_2">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_3">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_4">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_5">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="optResult_6">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" sequence="1" linear="false">
+      <stopping queue="55" value="0.0001" type="relativeCostChange"/>
+      <stopping type="maxHours" value="48"/>
+    </costFunction>
+    
+    <constraint type="volume" bound="upperBound" value="0.2" design="density" linear="false"/>
+    
+    <constraint type="curvature" bound="upperBound" value="0.3/nx" design="node" linear="true"/>
+    <constraint type="curvature" bound="upperBound" value="0.3/nx" design="profile" linear="true"/>
+   
+    <optimizer type="evaluate" maxIterations="40">
+    </optimizer>
+    
+    <ersatzMaterial region="mech" material="mechanic" method="shapeMap">
+      <!-- we cannot achieve sufficient integration anyway - so make it faster --> 
+      <shapeMap beta="60" overlap="max" enforce_bounds="false" integration_order="2" shape="linear">
+       <center bottom_up_sym="mirror" >
+         <node lower="0" upper="1" initial=".25" dof="y" />
+         <node lower="0" upper="1" initial=".4" dof="z"/>
+       </center> 
+       <profile lower=".2" upper=".5" initial=".2"/>
+      </shapeMap>
+      
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech"/>
+      <result value="shapeMapGrad" id="optResult_1" detail="node_a"/>
+      <result value="shapeMapGrad" id="optResult_2" detail="node_b"/>
+      <result value="shapeMapGrad" id="optResult_3" detail="profile"/>
+      <result value="shapeMapIntOrder" id="optResult_4"  />
+      <result value="costGradient" id="optResult_5" design="density" />
+      <result value="constraintGradient" id="optResult_6" design="density" detail="volume" />
+      
+      <export save="last" write="iteration" density="false"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

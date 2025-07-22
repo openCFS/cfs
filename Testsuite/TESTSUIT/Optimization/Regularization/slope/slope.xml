@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Slope Constraints</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2015-03-08</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Petersson, Sigmund; Slope constrained topology optimization; 1998</references>
+    <isVerified>yes</isVerified>
+    <description>Regularization w/o filter but many linear constraints. Can only be handles with snopt.
+        The physical and non-physical design has here only the penalization as difference.</description>
+  </documentation>
+
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info />
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region material="99lines" name="mech" />
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech" />
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="west"> 
+              <comp dof="x"/> <comp dof="y"/> 
+           </fix>
+           <force name="right_lower">
+            <comp dof="y" value="-1"/>
+          </force>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="physicalPseudoDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <optimization>
+    <costFunction type="compliance" task="minimize" > 
+      <stopping queue="999" value="0.002" type="designChange"/>
+    </costFunction>
+    
+    <constraint type="volume" bound="upperBound" value="0.5" />
+
+    <constraint type="slope" bound="upperBound" value="0.3" />
+
+    
+    <optimizer type="snopt"  maxIterations="20">
+      <!-- nCon is only for compatabiliy of old test cases -->
+      <snopt iteration="nCon"/>
+    </optimizer>
+      
+    <ersatzMaterial region="mech" material="mechanic" method="simp">
+      
+     <design name="density" initial="0.5" lower="1e-3" upper="1.0" />
+      
+     <transferFunction type="simp" application="mech" param="3" /> 
+     <export write="iteration" save="all"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+  
+</cfsSimulation>
+
+

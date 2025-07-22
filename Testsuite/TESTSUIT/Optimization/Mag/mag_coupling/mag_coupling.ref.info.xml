@@ -1,0 +1,486 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="114" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="1.708s" wall="1.708" cpu="1.37813" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="181.65" peak="183.65"/>
+  </summary>
+  <header id="">
+    <environment started="2019-Sep-13 13:39:19" host="mosim"/>
+    <progOpts problem="mag_coupling" parameterFile="/home/katharina/code/cfs-test/TESTSUIT/Optimization/Mag/mag_coupling/mag_coupling.xml" schemaPath="/home/katharina/code/katharina-magCoupling/CFS/share/xml" meshFile="" logConfFile="" detailed="no" openmp="compiled without">
+      <cfs version="18.03" name="AMGme" build="Release" svn_revision="N/A" svn_branch="A" exe="cfs"/>
+    </progOpts>
+    <domain>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="2" elements="1624" nodes="1555"/>
+      </grids>
+      <regions>
+        <region name="coil_in" id="0" type="volume" regular="no" hom="yes" nodes="45" elems="32" isQuadratic="no"/>
+        <region name="coil_out" id="1" type="volume" regular="no" hom="yes" nodes="21" elems="12" isQuadratic="no"/>
+        <region name="ferrite" id="2" type="volume" regular="no" hom="yes" nodes="174" elems="112" isQuadratic="no"/>
+        <region name="air" id="3" type="volume" regular="no" hom="yes" nodes="1475" elems="1328" isQuadratic="no"/>
+        <region name="FluxParallel_v" id="4" type="surface" regular="yes" hom="yes" nodes="86" elems="84" isQuadratic="no"/>
+        <region name="FluxParallel_h" id="5" type="surface" regular="no" hom="yes" nodes="58" elems="56" isQuadratic="no"/>
+      </regions>
+      <namedNodes/>
+      <namedElements/>
+      <globalMathParser Area="4.6e-05" Durchflutung="3" N="15" dt="0" f="0" step="0" t="0" t0="0"/>
+    </domain>
+    <update_results>
+      <timer wall-clock="0s" wall="0" cpu="0.00225" calls="2664"/>
+    </update_results>
+    <finish_step>
+      <timer wall-clock="0.57s" wall="0.57" cpu="0.569898" calls="72"/>
+    </finish_step>
+  </header>
+  <sequenceStep sequence="1">
+    <static/>
+    <PDE>
+      <magnetic>
+        <header>
+          <region name="air" damping="none"/>
+          <region name="coil_in" damping="none"/>
+          <region name="coil_out" damping="none"/>
+          <region name="ferrite" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BDBInt" complex="no" BOp="CurlOperatorAxi" region="coil_in">
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BDBInt" complex="no" BOp="CurlOperatorAxi" region="coil_out">
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BDBInt" complex="no" BOp="CurlOperatorAxi" region="ferrite">
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="CurlCurlIntegrator" type="BDBInt" complex="no" BOp="CurlOperatorAxi" region="air">
+                <row pde="magnetic" functionId="0" result="magPotential"/>
+                <column pde="magnetic" functionId="0" result="magPotential"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="CoilIntegrator" region="coil_in">
+                <entities name="coil_in" size="32" region="coil_in"/>
+                <row pde="magnetic" result="magPotential" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="CoilIntegrator" region="coil_out">
+                <entities name="coil_out" size="12" region="coil_out"/>
+                <row pde="magnetic" result="magPotential" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="Copper">
+          <regionList>
+            <region name="coil_in"/>
+            <region name="coil_out"/>
+          </regionList>
+          <property name="Magnetic_permeability" value="(1.2566e-06,0)">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256629e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256629e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256629e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_reluctivity" value="7.9578e+05">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.957798e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.957798e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.957798e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity" value="5.8e+08"/>
+          <property name="Density" value="0"/>
+          <property name="Magnetic_permeability" value="(1.2566e-06,0)">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256629e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256629e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256629e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_reluctivity" value="7.9578e+05">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.957798e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.957798e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.957798e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity" value="5.8e+08"/>
+          <property name="Density" value="0"/>
+        </material>
+        <material name="bh">
+          <regionList>
+            <region name="ferrite"/>
+          </regionList>
+          <property name="Magnetic_permeability" value="(0.002704,0)">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 2.703959e-03  0.000000e+00  0.000000e+00
+                 0.000000e+00  2.703959e-03  0.000000e+00
+                 0.000000e+00  0.000000e+00  2.703959e-03
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_reluctivity" value="369.83">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 3.698280e+02  0.000000e+00  0.000000e+00
+                 0.000000e+00  3.698280e+02  0.000000e+00
+                 0.000000e+00  0.000000e+00  3.698280e+02
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity" value="5.8e-07"/>
+          <property name="Density" value="0"/>
+        </material>
+        <material name="air">
+          <regionList>
+            <region name="air"/>
+          </regionList>
+          <property name="Magnetic_permeability" value="(1.2566e-06,0)">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256600e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256600e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256600e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_reluctivity" value="7.958e+05">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.957982e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.957982e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.957982e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <feSpaces>
+          <magPotential>
+            <h1Nodal>
+              <regionList>
+                <coil_in/>
+                <default order="1"/>
+                <coil_out/>
+                <ferrite/>
+                <air/>
+              </regionList>
+            </h1Nodal>
+          </magPotential>
+        </feSpaces>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="8.8e-05" calls="72"/>
+          </writeResults>
+        </summary>
+        <feFunctions>
+          <magPotential/>
+          <homDirichletBC>
+            <surfElemList name="FluxParallel_h" dofs="phi"/>
+            <surfElemList name="FluxParallel_v" dofs="phi"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </magnetic>
+    </PDE>
+    <OLAS>
+      <magnetic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="1415" totalNumFreeEqns="1415" totalNumDirichlet="0">
+            <function id="0" name="magPotential" numEqns="1415" lastFreeEqn="1415" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="1415" lastFreeIndex="1415"/>
+          </sbmBlocks>
+          <matrices>
+            <!-- Memory is in MByte-->
+            <system totalNumRows="1415" totalNumCols="1415" totalNumNonZeros="12299" totalFillLevelPerCent="0.61427" totalMemory="0.093834">
+              <matrix blockRow="0" blockCol="0" storageType="sparseSym" numRows="1415" numCols="1415" numNonZeros="12299" fillLevelPerCent="0.61427" memory="0.093834" upperBandWidth="1280" lowerBandWidth="1280" avgBandWidth="588" symCounterPart="no" orderingType="noReordering"/>
+            </system>
+          </matrices>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.008s" wall="0.008" cpu="0.039272" calls="36"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.018529" calls="144"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="1">
+                <symbfact cpu="0.006487" wall="0.006" peakMem="732" permanentMem="700"/>
+                <numfact cpu="0.000862" wall="0" peakMem="389"/>
+              </call>
+            </process>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="4.2e-05" calls="36"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </magnetic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.232s" wall="0.232" cpu="0.230541" calls="144"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.002s" wall="0.002" cpu="0.002738" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+  <optimization haltopt_file="/home/katharina/code/cfs-test/TESTSUIT/Optimization/Mag/mag_coupling/HALTOPT">
+    <header>
+      <objective type="magCoupling" name="magCoupling" linear="no" filtered="yes" task="maximize"/>
+      <multipleExcitations type="no_type"/>
+      <constraints>
+        <constraint type="volume" name="volume" linear="yes" filtered="yes" bound_value="0.5" bound="upperBound" design="default" excitation="1"/>
+      </constraints>
+      <designSpace pamping="0" regular="no" localElementCache="disabled">
+        <gradient_chain_rule>
+          <timer label="gradient_chain_rule" wall-clock="0s" wall="0" cpu="0.000106" calls="37" sub="true"/>
+        </gradient_chain_rule>
+        <transferFunctions>
+          <transferFunction type="simp" application="magnetic" design="density" param="1"/>
+        </transferFunctions>
+        <designVariables optimizationVariables="112" modelVariables="112" modelElements="112">
+          <design type="density" upperBound="1" lowerBound="0" physicalLowerBound="0"/>
+        </designVariables>
+        <regions>
+          <region name="ferrite" elements="112" bimaterial="-"/>
+        </regions>
+      </designSpace>
+      <sequence step="1" complex="no" harmonic="no" eigenvalue="no" bloch="no" material="magnetic" homogenization="no"/>
+      <excitations>
+        <excitation index="0" meta_idx="0" label="0" weight="1" normalized_weight="0.5" load="coil_in"/>
+        <excitation index="1" meta_idx="0" label="1" weight="1" normalized_weight="0.5" load="coil_out"/>
+      </excitations>
+      <magOptRegions>
+        <region name="ferrite" id="2" analysis="linear" pseudo_design="no"/>
+      </magOptRegions>
+      <snopt/>
+    </header>
+    <commit mode="each_forward" stride="1"/>
+    <summary problem="SNOPT: resource limit error - major iteration limit reached" snopt_exit="32">
+      <calcUKU>
+        <timer label="calc_U1KU2" wall-clock="0s" wall="0" cpu="0.029184" calls="72" sub="true"/>
+      </calcUKU>
+      <eval_objective>
+        <timer wall-clock="0.104s" wall="0.104" cpu="0.021828" calls="219"/>
+      </eval_objective>
+      <eval_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.000155" calls="37"/>
+      </eval_constraints>
+      <eval_grad_objective>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.02955" calls="36"/>
+      </eval_grad_objective>
+      <eval_grad_constraints>
+        <timer wall-clock="0s" wall="0" cpu="0.000229" calls="37"/>
+      </eval_grad_constraints>
+      <break converged="no"/>
+    </summary>
+    <optimizer>
+      <summary snopt_outputfile="mag_coupling.snopt">
+        <snopt>
+          <timer wall-clock="0.956s" wall="0.956" cpu="0.925564" calls="148"/>
+        </snopt>
+        <snopt_exit exit="0" info="32"/>
+        <evaluations f_evals="37" g_evals="36"/>
+      </summary>
+    </optimizer>
+    <process>
+      <iteration number="0" duration="0.3" magCoupling="0.17356" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.17356" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="1" duration="0.08" magCoupling="0.27701" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.27701" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="2" duration="0.035" magCoupling="0.4454" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.4454" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="3" duration="0.036" magCoupling="0.46724" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.46724" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="4" duration="0.036" magCoupling="0.48342" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.48342" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="5" duration="0.034" magCoupling="0.49794" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.49794" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="6" duration="0.034" magCoupling="0.50999" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.50999" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="7" duration="0.084" magCoupling="0.51953" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.51953" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="8" duration="0.09" magCoupling="0.53285" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.53285" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="9" duration="0.035" magCoupling="0.54375" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.54375" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="10" duration="0.034" magCoupling="0.55058" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.55058" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="11" duration="0.035" magCoupling="0.55538" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.55538" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="12" duration="0.035" magCoupling="0.56009" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.56009" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="13" duration="0.036" magCoupling="0.56429" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.56429" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="14" duration="0.035" magCoupling="0.56803" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.56803" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="15" duration="0.035" magCoupling="0.56885" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.56885" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="16" duration="0.035" magCoupling="0.56982" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.56982" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="17" duration="0.034" magCoupling="0.57114" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.57114" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="18" duration="0.036" magCoupling="0.5733" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.5733" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="19" duration="0.035" magCoupling="0.57471" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.57471" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="20" duration="0.035" magCoupling="0.57651" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.57651" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="21" duration="0.035" magCoupling="0.57886" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.57886" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="22" duration="0.035" magCoupling="0.57945" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.57945" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="23" duration="0.035" magCoupling="0.57956" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.57956" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="24" duration="0.036" magCoupling="0.58025" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58025" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="25" duration="0.035" magCoupling="0.58114" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58114" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="26" duration="0.036" magCoupling="0.58133" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58133" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="27" duration="0.035" magCoupling="0.58202" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58202" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="28" duration="0.035" magCoupling="0.58205" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58205" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="29" duration="0.036" magCoupling="0.58206" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58206" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="30" duration="0.036" magCoupling="0.58213" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58213" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="31" duration="0.034" magCoupling="0.58232" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58232" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="32" duration="0.037" magCoupling="0.58233" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58233" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="33" duration="0.035" magCoupling="0.5824" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.5824" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="34" duration="0.034" magCoupling="0.58245" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58245" objective_weight="0.5"/>
+      </iteration>
+      <iteration number="35" duration="0.037" magCoupling="0.58247" volume="0.5">
+        <excitation index="0" objective="0" objective_weight="0.5"/>
+        <excitation index="1" objective="0.58247" objective_weight="0.5"/>
+      </iteration>
+    </process>
+  </optimization>
+</cfsInfo>

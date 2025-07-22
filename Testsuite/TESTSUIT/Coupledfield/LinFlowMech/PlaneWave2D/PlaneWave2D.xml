@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+ 
+ <documentation>
+    <title> rectangular domain with cylindircal source and nitsche interface coupling to outer domain</title>
+    <authors>
+      <author>Hamideh Hassanpour</author>
+    </authors>
+    <date>2020-02-19</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>intersection operations</keyword>
+    </keywords>
+    <references>
+       no reflection at interface
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      couling over non-matching interface using the Nitsche method
+      Simple channel with mechanic displacement as an excitation on the left side
+      Both bulk and shear(dynamic) viscosities are in flow field considered 
+      The results are compared to COMSOL in python script
+    </description>
+  </documentation>   
+    <fileFormats>
+        <input>
+            <hdf5 fileName="PlaneWave2D.h5ref"/>
+<!--            <cdb fileName="recsurf_coupled.cdb"/>-->
+        </input>
+        <output>
+            <hdf5/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+    
+    <domain geometryType="plane">
+        <regionList>
+            <region name="S_flow" material="FluidMat"></region>
+            <region name="S_solid" material="solid"></region>
+        </regionList>
+        <surfRegionList>
+            <surfRegion name="ABC1"/>
+            <surfRegion name="ABC2"/>
+        </surfRegionList> 
+        <ncInterfaceList>
+            <ncInterface name="ABC_NC" primarySide="ABC1" secondarySide="ABC2"></ncInterface>
+        </ncInterfaceList>
+    </domain>
+    <fePolynomialList>
+        <Lagrange  spectral="false" id="velPolyId">
+            <isoOrder>2</isoOrder>
+        </Lagrange>
+        <Lagrange  spectral="false" id="presPolyId">
+            <isoOrder>1</isoOrder> 
+        </Lagrange>
+    </fePolynomialList>   
+    
+    <sequenceStep>
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <frequencyList>
+                    <freq value="10000"/>
+                </frequencyList>
+            </harmonic>
+        </analysis>
+        
+        <pdeList>
+            <mechanic subType="planeStrain">
+                <regionList>
+                    <region name="S_solid" polyId="velPolyId" />
+                </regionList>
+                <bcsAndLoads>
+                    <displacement name="L_left_solid">
+                        <comp dof="x" value="0.05"/>
+                    </displacement>
+                    <fix name="L_bottom_solid">
+                        <comp dof="y"/>
+                    </fix>
+                    <fix name="L_top_solid">
+                        <comp dof="y"/>
+                    </fix>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="mechVelocity">
+                        <regionList>
+                            <region name="S_solid"/>
+                        </regionList>
+                    </nodeResult>
+                    <nodeResult  type="mechDisplacement">
+                        <regionList>
+                            <region name="S_solid"/>
+                        </regionList>
+                    </nodeResult>
+                    <elemResult type="mechStress">
+                        <regionList>
+                            <region name="S_solid"/>
+                        </regionList>
+                    </elemResult>
+                </storeResults>
+            </mechanic>
+            
+            <fluidMechLin formulation="compressible" presPolyId="presPolyId" velPolyId="velPolyId">
+                <regionList>
+                    <region name="S_flow"/>
+                </regionList>
+                <bcsAndLoads>
+                    <noSlip name="L_bottom_flow">
+                        <comp dof="y"/>
+                        <comp dof="x"/>
+                    </noSlip>
+                    <noSlip name="L_top_flow">
+                        <comp dof="y"/>
+                    </noSlip>
+                    <pressure name="L_right_flow" value="0"></pressure>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="fluidMechPressure">
+                        <regionList>
+                            <region name="S_flow"/>
+                        </regionList>
+                    </nodeResult>
+                    <nodeResult type="fluidMechVelocity">
+                        <regionList>
+                            <region name="S_flow"/>
+                        </regionList>
+                    </nodeResult>
+                </storeResults>
+            </fluidMechLin>
+        </pdeList>
+        <couplingList>
+            <direct>
+                <linFlowMechDirect>
+                    <ncInterfaceList > 
+                        <ncInterface name="ABC_NC" formulation="Nitsche" nitscheFactor="25" IncludeSymmetrizationTerm="true"/>
+                    </ncInterfaceList>
+                </linFlowMechDirect>
+            </direct>
+        </couplingList>
+        <linearSystems>
+            <system>
+                <solutionStrategy>
+                    <standard/>
+                </solutionStrategy>
+                <solverList>
+                    <pardiso/>
+                </solverList>
+            </system>
+        </linearSystems>
+    </sequenceStep>
+</cfsSimulation>

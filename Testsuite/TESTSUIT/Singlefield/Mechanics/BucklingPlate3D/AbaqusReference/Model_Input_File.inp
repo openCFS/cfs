@@ -1,0 +1,68 @@
+************************************************
+*** Model input file for Euler Beam buckling ***
+************
+*** Mesh ***
+*Include, input = mesh_quad.inp
+**********************
+*** Load Parameter ***
+*PARAMETER
+tempLoad = 1.0
+E = 100e03
+nu = 0.3
+E_11 = E*(1-nu)/(1-nu-nu*nu*2)
+a_11 = 1/E_11
+***a_11 = 7.4285714e-06
+*****************
+**** MATERIAL ***
+*MATERIAL, NAME=elastic
+*ELASTIC, TYPE=ISOTROPIC
+<E>, <nu>
+*EXPANSION, TYPE=ORTHO
+<a_11>,0,0,0
+*INITIAL CONDITIONS,TYPE=TEMPERATURE
+ALLNODES , 0
+*****************
+**** SECTION ****
+*SOLID SECTION, ELSET=plate, MATERIAL=elastic, ORIENTATION=ori_std
+1.0
+*ORIENTATION, name = ori_std
+1.0, 0.0, 0.0, 0.0, 1.0, 0.0
+************
+**** BC ****
+*BOUNDARY
+BC_fix_xy, 1, 2
+BC_fix_yz, 2, 3
+*********************
+**** STEP Buckle ****
+*STEP, NAME=STEP-1, NLGEOM=NO
+*BUCKLE
+5,
+***********************
+*** Temperatur Load ***
+*TEMPERATURE
+ALLNODES , <tempLoad>
+**************
+*** Output ***
+*OUTPUT, FIELD
+*NODE OUTPUT
+U
+*END STEP
+*********************
+**** STEP Static ****
+*STEP, NAME=STEP-2, NLGEOM=NO
+*STATIC, DIRECT
+1,1,1,1
+***********************
+*** Temperatur Load ***
+*TEMPERATURE, OP=new
+ALLNODES , <tempLoad>
+**************
+*** Output ***
+*OUTPUT, FIELD
+*NODE OUTPUT
+U
+*NODE OUTPUT
+RF, CF
+*ELEMENT OUTPUT
+S
+*END STEP

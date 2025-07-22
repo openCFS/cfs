@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd" xmlns="http://www.cfs++.org/simulation">
+
+	<documentation>
+		<title>Acoustic</title>
+		<authors>
+			<author>awurzinger</author>
+		</authors>
+		<date>2023-11-23</date>
+		<keywords>
+			<keyword>acoustic</keyword>
+		</keywords>
+		<references></references>
+		<isVerified>yes</isVerified>
+		<description>
+			Plane wave propagation in 1D transient setup with convection velocity read from grid
+		</description>
+	</documentation>
+	<fileFormats>
+		<input>
+			<hdf5 fileName="PlaneWave2DConvectionTransientReadGrid.h5ref" />
+		</input>
+		<output>
+			<hdf5 />
+		</output>
+		<materialData file="mat.xml" format="xml" />
+	</fileFormats>
+
+	<domain geometryType="plane">
+		<regionList>
+			<region name="S_flow" material="FluidMat" />
+		</regionList>
+	</domain>
+	<fePolynomialList>
+
+		<Legendre id="velPolyId">
+			<isoOrder>2</isoOrder>
+		</Legendre>
+
+		<Legendre id="presPolyId">
+			<isoOrder>1</isoOrder>
+		</Legendre>
+	</fePolynomialList>
+
+	<sequenceStep index="1">
+		<analysis>
+			<transient>
+				<numSteps>36</numSteps>
+				<deltaT>0.5</deltaT>
+			</transient>
+		</analysis>
+		<pdeList>
+			<acoustic formulation="acouPressure" flowFormulation="withDivergence">
+				<regionList>
+					<region name="S_flow" flowId="myFlow" /><!---->
+				</regionList>
+
+				<flowList>
+					<flow name="myFlow">
+						<grid>
+							<defaultGrid dependtype="SPACE" quantity="meanFluidMechVelocity" definedOn="node" sequenceStep="1" />
+						</grid>
+					</flow>
+				</flowList>
+				<bcsAndLoads>
+					<pressure name="L_left" value="1.0*sin(t)" />
+				</bcsAndLoads>
+				<storeResults>
+					<nodeResult type="acouPressure">
+						<allRegions />
+					</nodeResult>
+					<nodeResult type="meanFluidMechVelocity">
+						<allRegions />
+					</nodeResult>
+				</storeResults>
+			</acoustic>
+		</pdeList>
+	</sequenceStep>
+
+</cfsSimulation>

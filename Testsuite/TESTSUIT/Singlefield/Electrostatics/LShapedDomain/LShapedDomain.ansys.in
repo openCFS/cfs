@@ -1,0 +1,326 @@
+! ===========================================================================
+!  Model of the L-shaped corner from Book of Demkowicz (p. 234)
+! ===========================================================================
+!
+! This input file creates the L-shaped domain for a Poisson-type problem with
+! prescribed Neumann / Dirichlet boundary in 3 different variants (see
+! parameter USE_GRADED)
+!
+! a) regular mesh with h-refinement (n = number of elements in one direction)
+! b) graded mesh with square elements with given progression factor 
+!    (default: 0.15) for p-refinement
+! c) graded mesh with circular elements with given progression factor 
+!    (default: 0.15) for p-refinement
+!
+
+fini
+/clear
+
+! initialize macros for .mesh-interface
+init
+
+! ===========================
+!  GEOMETRIC DEFINITIONS
+! ===========================
+l=1
+eps=l/1e4
+
+! ===========================
+!  Switch for meshing
+! ===========================
+! 0 : Uniform meshing
+! 1 : Graded meshing with factor 0.15 (square)
+! 2 : Graded meshing with factor 0.15 (circular)
+USE_GRADED=1
+
+! Progression factor for refinemen towards corner singularity
+PROG_FAC= 0.15
+
+! ===========================
+!  Uniform h-refinement
+! ===========================
+! Number of elements 
+n=3
+
+! Create dedicate filename for parameter variations
+*IF,USE_GRADED,EQ,0,THEN
+  /filname,l_shape-h-%n%
+*ELSEIF,USE_GRADED,EQ,1,THEN
+  /filname,l_shape-graded-%n%
+*ELSEIF,USE_GRADED,EQ,2,THEN
+  /filname,l_shape-graded-curved-%n%
+*ENDIF
+
+
+/prep7
+
+! initialize macros for .mesh-interface
+init
+
+*IF,USE_GRADED,EQ,0,THEN
+  ! ==============================
+  ! 1) CREATE GEOMETRY (UNGRADED)
+  ! ==============================
+  rectng,-l,0,0,l
+  rectng,0,l,0,l
+  rectng,0,l,-l,0
+  allsel
+  nummrg,kp,all
+  
+
+  allsel
+  lesize,all,,,n
+*ELSEIF,USE_GRADED,EQ,1,THEN
+  ! ===================================
+  ! 2) CREATE GEOMETRY (GRADED, SQUARE)
+  ! ===================================
+
+  ! Here we interpret n as the number of gradings
+  *DIM,edge,ARRAY,n
+  edge(n) = l
+  *DO,i,n-1,1,-1
+    edge(i) = edge(i+1)*PROG_FAC
+  *ENDDO
+
+  ! 1) Create the innermost structure
+  rectng,-edge(1),0,0,edge(1)
+  rectng,0,edge(1),0,edge(1)
+  rectng,0,edge(1),-edge(1),0
+
+
+  ! Create outer structures
+  *DO,i,2,n,1
+    prevL = edge(i-1)
+    actL = edge(i) 
+    allsel
+    *get,kMax,KP,0,NUM,MAX
+
+    ! keypoints
+    k,,-actL,0
+    k,,-actL,actL
+    k,,0,actL
+    k,,actL,actL
+    k,,actL,0
+    k,,actL,-actL
+    k,,0,-actL
+
+    ! lines
+    l,kMax+1,kMax+2
+    l,kMax+2,kMax+3
+    l,kMax+3,kMax+4
+    l,kMax+4,kMax+5
+    l,kMax+5,kMax+6
+    l,kMax+6,kMax+7
+
+    ! connecting lines
+    l,kp(-prevL,0,0),kMax+1
+    l,kp(-prevL,prevL,0),kMax+2
+    l,kp(0,prevL,0),kMax+3
+    l,kp(prevL,prevL,0),kMax+4
+    l,kp(prevL,0,0),kMax+5
+    l,kp(prevL,-prevL,0),kMax+6
+    l,kp(0,-prevL,0),kMax+7
+
+    ! crate areas
+    a,kp(-prevL,0,0),kp(-prevL,prevL,0),kmax+2,kmax+1
+    a,kp(-prevL,prevL,0),kp(0,prevL,0),kmax+3,kmax+2
+    a,kp(0,prevL,0),kp(prevL,prevL,0),kmax+4,kmax+3
+    a,kp(prevL,prevL,0),kp(prevL,0,0),kmax+5,kmax+4
+    a,kp(prevL,0,0),kp(prevL,-prevL,0),kmax+6,kmax+5
+    a,kp(prevL,-prevL,0),kp(0,-prevL,0),kmax+7,kmax+6
+
+   ! merge keypyoints
+    allsel
+    nummrg,kp
+    allsel
+    numcmp,kp
+
+  *ENDDO
+
+  allsel
+  lesize,all,,,1
+ 
+*ELSEIF,USE_GRADED,EQ,2,THEN
+  ! ===================================
+  ! 3) CREATE GEOMETRY (GRADED, CIRCULAR)
+  ! ===================================
+
+ ! Here we interpret n as the number of gradings
+  *DIM,edge,ARRAY,n
+  edge(n) = l
+  *DO,i,n-1,1,-1
+    edge(i) = edge(i+1)*PROG_FAC
+  *ENDDO
+
+  ! 1) Create innermost circle
+  ! --------------------------
+  k,1,0,0
+  k,2,0,-edge(1)
+  circ,1,edge(1),,2,270,6
+  
+  ! define connecting lines
+  l,1,9
+  l,1,8
+  l,1,7
+  l,1,6
+  l,1,5
+  l,1,4
+  l,1,3
+  l,1,6
+
+  al,7,8,6 
+  al,8,9,5
+  al,9,10,4
+  al,11,3,10
+  al,12,2,11
+  al,13,1,12
+
+
+  ! 2) Loop over intermediate circles
+  ! ---------------------------------
+
+  ! Create outer structures
+  *DO,i,2,n-1,1
+  !*DO,i,2,2,1
+    prevL = edge(i-1)
+    actL = edge(i) 
+    allsel
+    *get,kMax,KP,0,NUM,MAX
+    k,kmax+1,0,-actL
+
+    circ,1,actL,,kmax+1,270,6
+
+    ! switch to cylindric coordinate system
+    csys,1
+    
+    ! create connecting lines
+    allsel
+    ksel,s,loc,x,prevL,actL
+    cm,tmp,kp
+  
+    actAngle=315
+    prevAngle=270
+    *DO,k,1,6,1
+      *IF,actAngle,gt,360,THEN
+        actangle = actAngle-360
+      *ENDIF
+      *IF,prevAngle,gt,360,THEN
+        prevAngle = prevAngle-360
+      *ENDIF
+      allsel
+      csys,1
+      k1=kp(actL,prevAngle,0)
+      k2=kp(actL,actAngle,0)
+      k3=kp(prevL,actAngle,0)
+      k4=kp(prevL,prevAngle,0)
+      a,k1,k2,k3,k4
+      prevAngle = actAngle
+      actAngle = actAngle+45
+    *ENDDO
+    
+    ! merge keypyoints
+    allsel
+    nummrg,kp
+    allsel
+    numcmp,kp
+
+    ! switch back to global coordinate system
+    csys,0
+
+  *ENDDO
+
+  ! 3) Create outermoste rectangle
+  ! ---------------------------------
+  *get,kMax,KP,0,NUM,MAX
+  actL = edge(n)
+  prevL = edge(n-1)  
+  k,,0,-actL
+  k,,actL,-actL
+  k,,actL,0
+  k,,actL,actL
+  k,,0,actL
+  k,,-actL,actL
+  k,,-actL,0
+  
+  csys,1
+  actAngle=315
+    prevAngle=270
+    *DO,k,1,6,1
+      *IF,actAngle,gt,360,THEN
+        actangle = actAngle-360
+      *ENDIF
+      *IF,prevAngle,gt,360,THEN
+        prevAngle = prevAngle-360
+      *ENDIF
+      allsel
+      csys,1
+      k1=kMax+k
+      k2=kMax+k+1
+      k3=kp(prevL,actAngle,0)
+      k4=kp(prevL,prevAngle,0)
+      csys,0
+      l,k1,k2
+      csys,1
+      a,k1,k2,k3,k4
+      prevAngle = actAngle
+      actAngle = actAngle+45
+    *ENDDO
+
+  csys,0
+  allsel
+  lesize,all,,,1
+
+*ENDIF
+
+! ===========================
+!  CREATE MESH
+! ===========================
+mshkey,2
+allsel
+setelems,'quadr','quad'
+amesh,all
+
+
+! generate surface mesh
+allsel
+lsel,s,ext
+setelems,'2d-line','quad'
+lmesh,all
+
+allsel
+numcmp,elem
+numcmp,node
+
+! generate surface components
+allsel
+lsel,s,ext
+cm,tmp,line
+lsel,r,loc,x,-l+eps,0+eps,
+lsel,r,loc,y,-l+eps,0+eps
+cm,interior,line
+
+cmsel,s,tmp
+cmsel,u,interior
+cm,bound,line
+
+! ===========================
+!  Write MESH
+! ===========================
+asel,all
+esla
+welems,'domain'
+
+cmsel,s,interior
+esll
+welems,'interior'
+
+cmsel,s,bound
+esll
+welems,'bound'
+
+! write all nodes
+allsel
+wnodes
+
+! make .hdf5 file
+mkhdf5

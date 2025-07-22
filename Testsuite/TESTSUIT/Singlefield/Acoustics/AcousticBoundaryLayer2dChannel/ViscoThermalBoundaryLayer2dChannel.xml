@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+
+  <documentation>
+    <title>Bulk wave absorption</title>
+    <authors>
+      <author>ftoth</author>
+    </authors>
+    <date>2019-08-09</date>
+    <keywords>
+      <keyword>pml</keyword>
+    </keywords>    
+    <references>
+    </references>
+    <isVerified>no</isVerified>
+    <description> 
+       Simple channel computing viscosthermal acoustics
+       is computed  
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+<!--      <mesh fileName="channel2d.mesh"/>-->
+      <gmsh fileName="acou.msh" id="acouMesh"/>
+      <gmsh fileName="slit-visco.msh" id="panelMesh"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <regionList>
+      <region name="S_b" material="air"/>
+      <region name="S_t" material="air"/>
+      <region name="S_bPML" material="air"/>
+      <region name="S_tPML" material="air"/>
+      <region name="S_visco" material="air"/>
+    </regionList>
+    <ncInterfaceList>
+      <ncInterface name="I_tNC" primarySide="L_top_visco" secondarySide="L_top_acou"/>
+      <ncInterface name="I_bNC" primarySide="L_bottom_visco" secondarySide="L_bottom_acou"/>
+    </ncInterfaceList>
+  </domain>
+  
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="Lagrange2">
+       <isoOrder>2</isoOrder> 
+    </Lagrange>
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="Lagrange1">
+       <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+  
+  <integrationSchemeList>
+    <scheme id="Gauss2">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    <scheme id="Gauss1">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>
+  </integrationSchemeList>
+  
+  <sequenceStep>
+    <analysis>
+      <harmonic>
+        <numFreq>8</numFreq>
+        <startFreq>1e+3</startFreq>
+        <stopFreq>15e+3</stopFreq>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="S_tPML" dampingId="myPML" polyId="Lagrange2" integId="Gauss2"/>
+          <region name="S_t" polyId="Lagrange2" integId="Gauss2"/>
+          <region name="S_b" polyId="Lagrange2" integId="Gauss2"/>
+          <region name="S_bPML" dampingId="myPML" polyId="Lagrange2" integId="Gauss2"/>
+        </regionList>
+        <dampingList>
+          <pml id="myPML">
+            <type>inverseDist</type>
+            <dampFactor>1.0</dampFactor>
+          </pml>
+        </dampingList>
+        <bcsAndLoads>
+          <normalVelocity name="L_bPML" value="2/(1.205*sqrt(1.4261e5/1.205))"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="acouVelocity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </acoustic>
+      <fluidMechLin formulation="compressible" presPolyId="Lagrange1" velPolyId="Lagrange2" velIntegId="Gauss2" presIntegId="Gauss1">
+        <regionList>
+          <region name="S_visco"/>
+        </regionList>
+        <bcsAndLoads>
+          <noSlip name="L_center_visco">
+            <comp dof="x"/>
+          </noSlip>
+          <noSlip name="L_periodic_visco">
+            <comp dof="x"/> 
+          </noSlip>
+          <noSlip name="L_wall_visco">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </noSlip>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions/>         
+          </nodeResult>        
+        </storeResults>
+      </fluidMechLin>
+      <heatConduction>
+        <regionList>
+          <region name="S_visco" polyId="Lagrange2" integId="Gauss2"/>
+        </regionList>
+        <bcsAndLoads>
+          <temperature name="L_wall_visco" value="0"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="heatTemperature">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="heatFluxDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </heatConduction>
+    </pdeList>
+    
+    <couplingList>
+      <direct>
+        <linFlowAcouDirect>
+          <ncInterfaceList>
+            <ncInterface name="I_tNC"/>
+            <ncInterface name="I_bNC"/>
+          </ncInterfaceList>
+        </linFlowAcouDirect>
+        <linFlowHeatDirect>
+          <regionList>
+            <region name="S_visco"/>
+          </regionList>
+        </linFlowHeatDirect>
+      </direct>
+    </couplingList>
+    
+    <linearSystems>
+      <system>
+        <solverList>
+          <pardiso>
+            <IterRefineSteps>10</IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

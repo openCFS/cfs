@@ -1,0 +1,19 @@
+reset
+#{ r = 1 }
+#{ h = 0.25 }
+create sphere radius { r } ypositive zpositive
+volume 1 size { h }
+volume 1 scheme polyhedron
+mesh volume 1
+
+# blocks
+block 1 add volume 1
+block 1 name "V_sphere"
+nodeset 1 add surface 2
+nodeset 1 name "S_z"
+nodeset 2 add surface 1
+nodeset 2 name "S_y"
+nodeset 3 add surface 3
+nodeset 3 name "S_r"
+
+export ansys cdb "sphere.cdb" overwrite

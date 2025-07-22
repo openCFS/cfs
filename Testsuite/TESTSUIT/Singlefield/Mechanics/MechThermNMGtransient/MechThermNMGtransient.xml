@@ -1,0 +1,227 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+
+       
+    <fileFormats>
+        <input>
+            <hdf5 fileName="ElTh_NMGtransient.h5"/>
+        </input>
+        
+        <output>
+            <hdf5 id="hdf5"/>           
+        </output>
+        
+        <materialData file="IRmat_NL.xml"/>
+    </fileFormats>
+    
+    <domain geometryType="3d">
+        <regionList>
+            <region name="Vol_poly_A1" material="Si8res"/>
+            <region name="Vol_poly_F1" material="Al1"/>
+            <region name="Vol_poly_C1" material="Si8"/>
+            <region name="Vol_bpsg_B1" material="SiO2"/>
+            <region name="Vol_bpsg_F1" material="Al1"/>
+            <region name="Vol_bpsg_C1" material="Si8"/>
+            <region name="Vol_pm_G1" material="Cu1"/>
+            <region name="Vol_pm_F1" material="Al1"/>
+            <region name="Vol_pm_C1" material="Si8"/>
+            <region name="Vol_sub_C1" material="Si8"/>
+            <region name="Vol_sub_C2" material="Si8"/>
+            <region name="Vol_sub_C3" material="Si8"/>
+            <region name="Vol_bond_F1" material="Al1"/>
+            <region name="Vmicro_G1" material="Cu1"/>
+        </regionList>
+        <surfRegionList>
+           <surfRegion name="A_MOR_BotMicro" />
+           <surfRegion name="A_MOR_EastMicro" />
+           <surfRegion name="A_MOR_WestMicro" />
+           <surfRegion name="A_MOR_SouthMicro" />
+           <surfRegion name="A_MOR_NorthMicro" />
+           <surfRegion name="A_MOR_BotMacro" />
+           <surfRegion name="A_MOR_EastMacro" />
+           <surfRegion name="A_MOR_WestMacro" />
+           <surfRegion name="A_MOR_SouthMacro" />
+           <surfRegion name="A_MOR_NorthMacro" />
+        </surfRegionList>
+        <ncInterfaceList>
+            <ncInterface name="ncm1" primarySide="A_MOR_BotMacro" secondarySide="A_MOR_BotMicro"/>
+            <ncInterface name="ncm2" primarySide="A_MOR_EastMacro" secondarySide="A_MOR_EastMicro"/>
+            <ncInterface name="ncm3" primarySide="A_MOR_WestMacro" secondarySide="A_MOR_WestMicro"/>
+            <ncInterface name="ncm4" primarySide="A_MOR_SouthMacro" secondarySide="A_MOR_SouthMicro"/>
+            <ncInterface name="ncm5" primarySide="A_MOR_NorthMacro" secondarySide="A_MOR_NorthMicro"/>
+        </ncInterfaceList>
+        <nodeList>
+              <nodes name="N_Tsink" />
+              <nodes name="Vleft" />
+              <nodes name="Vright" />
+          </nodeList>
+    </domain>
+    
+   <sequenceStep index="1">
+         <analysis>
+            <transient>                
+                <numSteps>2</numSteps>          
+                <deltaT>0.5E-4</deltaT>                
+            </transient>            
+        </analysis>
+        
+        <pdeList>
+            <mechanic subType="3d" systemId="mechPDE">
+                <regionList>
+                    <region name="Vol_poly_A1" />
+                   <region name="Vol_poly_F1" />
+                   <region name="Vol_poly_C1" />
+                   <region name="Vol_bpsg_B1" />
+                   <region name="Vol_bpsg_F1" />
+                   <region name="Vol_bpsg_C1" />
+                   <region name="Vol_pm_G1"   />
+                   <region name="Vol_pm_F1"   />
+                  <region name="Vol_pm_C1"   />
+                  <region name="Vol_sub_C1"  />
+                  <region name="Vol_sub_C2"  />
+                  <region name="Vol_sub_C3"  />
+                  <region name="Vol_bond_F1" />
+                 <region name="Vmicro_G1" />
+                </regionList>
+                <ncInterfaceList>
+                   <ncInterface name="ncm1" nitscheFactor="100" formulation="Nitsche"/>
+                   <ncInterface name="ncm2" nitscheFactor="100" formulation="Nitsche"/>
+                   <ncInterface name="ncm3" nitscheFactor="100" formulation="Nitsche"/>
+                   <ncInterface name="ncm4" nitscheFactor="100" formulation="Nitsche"/>
+                   <ncInterface name="ncm5" nitscheFactor="100" formulation="Nitsche"/>
+                </ncInterfaceList>
+
+                <bcsAndLoads>
+                    <!--fix name="N_Tsink">
+                        <comp dof="x"/>
+                        <comp dof="z"/>
+                        <comp dof="y"/>
+                    </fix-->
+                    <thermalStrain name="Vol_poly_A1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_poly_F1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_poly_C1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_bpsg_B1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_bpsg_F1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_bpsg_C1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_pm_G1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_pm_F1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_pm_C1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_sub_C1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_sub_C2">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_sub_C3">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                    <thermalStrain name="Vol_bond_F1">
+                        <grid>
+                            <defaultGrid quantity="heatTemperature" dependtype="GENERAL" definedOn="node" sequenceStep="2">
+                                <globalFactor>1</globalFactor>
+                            </defaultGrid>
+                        </grid>
+                    </thermalStrain>          
+                </bcsAndLoads>
+
+                <storeResults>
+                    <elemResult type="mechStress">                   
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechThermalStress">                   
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechStrain">                   
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechThermalStrain">                   
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="vonMisesStress">                   
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </mechanic>            
+        </pdeList>
+
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLU/>
+        </solverList>
+      </system>
+    </linearSystems>
+
+
+        
+    </sequenceStep>
+    
+
+</cfsSimulation>

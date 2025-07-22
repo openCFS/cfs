@@ -1,0 +1,371 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="105" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="4.854s" wall="4.854" cpu="10.0352" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="455.12" peak="492"/>
+  </summary>
+  <header id="">
+    <environment started="2020-Jun-19 12:53:44" host="mo42"/>
+    <progOpts problem="BlochMode3D" parameterFile="/home/daniel/code/cfs_wien/Testsuite/TESTSUIT/Singlefield/Mechanics/BlochMode3D/BlochMode3D.xml" schemaPath="/home/daniel/code/cfs_wien/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="18.03" name="AMGme" build="Release" git_commit="75f1c59737348f10cc28f2e2e6ccbb3fd0f36bde" git_branch="fix-periodic-bcs" exe="cfswien.rel"/>
+      <openmp CFS_NUM_THREADS="4" MKL_NUM_THREADS="4" OMP_NUM_THREADS="4"/>
+    </progOpts>
+    <domain nx="3" ny="3" nz="3">
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <grids>
+        <grid gridId="default" dimensions="3" elements="27" nodes="64"/>
+      </grids>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="64" elems="26" isQuadratic="no"/>
+        <region name="inner" id="1" type="volume" regular="yes" hom="yes" nodes="8" elems="1" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="down" count="16"/>
+        <nodes name="up" count="16"/>
+        <nodes name="front" count="16"/>
+        <nodes name="back" count="16"/>
+        <nodes name="left" count="16"/>
+        <nodes name="right" count="16"/>
+        <nodes name="center" count="1" coord="(0.333333,0.333333,0.333333)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0.61179" nx="3" ny="3" nz="3" step="0" t="0" t0="0"/>
+    </domain>
+    <update_results>
+      <timer wall-clock="0s" wall="0" cpu="0.000236" calls="200"/>
+    </update_results>
+    <finish_step>
+      <timer wall-clock="0.214s" wall="0.214" cpu="0.668972" calls="100"/>
+    </finish_step>
+  </header>
+  <sequenceStep sequence="1">
+    <eigenFrequency>
+      <result>
+        <wave_vector step="0" k_x="0" k_y="0" k_z="0" id="wv_(0,0,0)">
+          <mode nr="1" frequency="0.137089617414081" errorbound="4.3162e-15"/>
+          <mode nr="2" frequency="0.137089617414081" errorbound="4.0275e-15"/>
+          <mode nr="3" frequency="0.195773788547537" errorbound="1.5222e-15"/>
+          <mode nr="4" frequency="0.583001733798856" errorbound="4.0993e-12"/>
+          <mode nr="5" frequency="0.613763498030864" errorbound="1.0892e-09"/>
+        </wave_vector>
+        <wave_vector step="1" k_x="0.62832" k_y="0" k_z="0" id="wv_(0.628319,0,0)">
+          <mode nr="1" frequency="0.149186778705983" errorbound="2.559e-15"/>
+          <mode nr="2" frequency="0.166895082907643" errorbound="2.51e-15"/>
+          <mode nr="3" frequency="0.216953847228158" errorbound="1.4971e-15"/>
+          <mode nr="4" frequency="0.579484879123978" errorbound="1.5216e-09"/>
+          <mode nr="5" frequency="0.587006349168785" errorbound="1.6029e-08"/>
+        </wave_vector>
+        <wave_vector step="2" k_x="1.2566" k_y="0" k_z="0" id="wv_(1.25664,0,0)">
+          <mode nr="1" frequency="0.180632556065696" errorbound="2.1106e-15"/>
+          <mode nr="2" frequency="0.209169033181879" errorbound="2.1362e-15"/>
+          <mode nr="3" frequency="0.290196451015045" errorbound="1.148e-15"/>
+          <mode nr="4" frequency="0.571680927225359" errorbound="1.0089e-09"/>
+          <mode nr="5" frequency="0.594422433960554" errorbound="1.0538e-08"/>
+        </wave_vector>
+        <wave_vector step="3" k_x="1.885" k_y="0" k_z="0" id="wv_(1.88496,0,0)">
+          <mode nr="1" frequency="0.223249304426373" errorbound="1.4506e-15"/>
+          <mode nr="2" frequency="0.251388622064138" errorbound="1.733e-15"/>
+          <mode nr="3" frequency="0.38947828000835" errorbound="8.3846e-16"/>
+          <mode nr="4" frequency="0.562084791667297" errorbound="1.8394e-11"/>
+          <mode nr="5" frequency="0.59397833238138" errorbound="6.0395e-09"/>
+        </wave_vector>
+        <wave_vector step="4" k_x="2.5133" k_y="0" k_z="0" id="wv_(2.51327,0,0)">
+          <mode nr="1" frequency="0.271534939033057" errorbound="1.0561e-15"/>
+          <mode nr="2" frequency="0.298342222220829" errorbound="8.5938e-16"/>
+          <mode nr="3" frequency="0.492870133309923" errorbound="2.6706e-13"/>
+          <mode nr="4" frequency="0.552298073559025" errorbound="8.2775e-10"/>
+          <mode nr="5" frequency="0.586141749202134" errorbound="2.481e-08"/>
+        </wave_vector>
+        <wave_vector step="5" k_x="3.1416" k_y="0" k_z="0" id="wv_(3.14159,0,0)">
+          <mode nr="1" frequency="0.322408782389019" errorbound="7.1431e-16"/>
+          <mode nr="2" frequency="0.348840110198244" errorbound="6.1573e-16"/>
+          <mode nr="3" frequency="0.544357019134095" errorbound="5.1113e-11"/>
+          <mode nr="4" frequency="0.566760641949389" errorbound="1.8114e-10"/>
+          <mode nr="5" frequency="0.602801506228895" errorbound="1.0602e-08"/>
+        </wave_vector>
+        <wave_vector step="6" k_x="3.1416" k_y="0.62832" k_z="0" id="wv_(3.14159,0.628319,0)">
+          <mode nr="1" frequency="0.328535913718069" errorbound="7.9267e-16"/>
+          <mode nr="2" frequency="0.350715946328147" errorbound="8.6095e-16"/>
+          <mode nr="3" frequency="0.549964436214045" errorbound="2.0202e-11"/>
+          <mode nr="4" frequency="0.579913485746329" errorbound="4.9785e-10"/>
+          <mode nr="5" frequency="0.611010300914978" errorbound="1.6608e-08"/>
+        </wave_vector>
+        <wave_vector step="7" k_x="3.1416" k_y="1.2566" k_z="0" id="wv_(3.14159,1.25664,0)">
+          <mode nr="1" frequency="0.346132390801346" errorbound="6.8039e-16"/>
+          <mode nr="2" frequency="0.36283195360598" errorbound="9.1499e-16"/>
+          <mode nr="3" frequency="0.563073286537708" errorbound="3.0058e-13"/>
+          <mode nr="4" frequency="0.603970009963123" errorbound="4.9694e-11"/>
+          <mode nr="5" frequency="0.637241387328531" errorbound="2.0823e-09"/>
+        </wave_vector>
+        <wave_vector step="8" k_x="3.1416" k_y="1.885" k_z="0" id="wv_(3.14159,1.88496,0)">
+          <mode nr="1" frequency="0.373385011524525" errorbound="5.4588e-16"/>
+          <mode nr="2" frequency="0.384114026093219" errorbound="5.1129e-16"/>
+          <mode nr="3" frequency="0.580519767724661" errorbound="1.5288e-15"/>
+          <mode nr="4" frequency="0.636795190367668" errorbound="5.2461e-11"/>
+          <mode nr="5" frequency="0.659071933807154" errorbound="7.2583e-10"/>
+        </wave_vector>
+        <wave_vector step="9" k_x="3.1416" k_y="2.5133" k_z="0" id="wv_(3.14159,2.51327,0)">
+          <mode nr="1" frequency="0.407762896230793" errorbound="7.2018e-16"/>
+          <mode nr="2" frequency="0.41318209084411" errorbound="6.5075e-16"/>
+          <mode nr="3" frequency="0.599670447492502" errorbound="4.5171e-15"/>
+          <mode nr="4" frequency="0.652830854820642" errorbound="8.3298e-11"/>
+          <mode nr="5" frequency="0.684199629185599" errorbound="4.3544e-09"/>
+        </wave_vector>
+        <wave_vector step="10" k_x="3.1416" k_y="3.1416" k_z="0" id="wv_(3.14159,3.14159,0)">
+          <mode nr="1" frequency="0.445154045741133" errorbound="5.6623e-16"/>
+          <mode nr="2" frequency="0.450290533108299" errorbound="5.5734e-16"/>
+          <mode nr="3" frequency="0.615464425363491" errorbound="4.057e-16"/>
+          <mode nr="4" frequency="0.658760015742194" errorbound="4.5715e-14"/>
+          <mode nr="5" frequency="0.726662234732623" errorbound="7.8729e-09"/>
+        </wave_vector>
+        <wave_vector step="11" k_x="3.1416" k_y="3.1416" k_z="0.62832" id="wv_(3.14159,3.14159,0.628319)">
+          <mode nr="1" frequency="0.446570681359322" errorbound="8.8142e-16"/>
+          <mode nr="2" frequency="0.454181481195508" errorbound="6.2671e-16"/>
+          <mode nr="3" frequency="0.618954092213312" errorbound="4.5605e-16"/>
+          <mode nr="4" frequency="0.655354123463113" errorbound="1.0677e-15"/>
+          <mode nr="5" frequency="0.735949755281643" errorbound="5.486e-09"/>
+        </wave_vector>
+        <wave_vector step="12" k_x="3.1416" k_y="3.1416" k_z="1.2566" id="wv_(3.14159,3.14159,1.25664)">
+          <mode nr="1" frequency="0.457412609938755" errorbound="1.0784e-15"/>
+          <mode nr="2" frequency="0.465501579424916" errorbound="5.444e-16"/>
+          <mode nr="3" frequency="0.630715533105405" errorbound="6.9089e-15"/>
+          <mode nr="4" frequency="0.656864778900782" errorbound="4.9219e-13"/>
+          <mode nr="5" frequency="0.730185785981008" errorbound="1.7115e-09"/>
+        </wave_vector>
+        <wave_vector step="13" k_x="3.1416" k_y="3.1416" k_z="1.885" id="wv_(3.14159,3.14159,1.88496)">
+          <mode nr="1" frequency="0.476939690993608" errorbound="6.6371e-16"/>
+          <mode nr="2" frequency="0.48367667684986" errorbound="6.4838e-16"/>
+          <mode nr="3" frequency="0.649517990323272" errorbound="1.1126e-12"/>
+          <mode nr="4" frequency="0.664885473775235" errorbound="3.7984e-11"/>
+          <mode nr="5" frequency="0.720201384807882" errorbound="7.6179e-10"/>
+        </wave_vector>
+        <wave_vector step="14" k_x="3.1416" k_y="3.1416" k_z="2.5133" id="wv_(3.14159,3.14159,2.51327)">
+          <mode nr="1" frequency="0.503926774800663" errorbound="6.6664e-16"/>
+          <mode nr="2" frequency="0.507858970867336" errorbound="3.5636e-16"/>
+          <mode nr="3" frequency="0.673946943690201" errorbound="6.9256e-10"/>
+          <mode nr="4" frequency="0.679652840856124" errorbound="5.9395e-09"/>
+          <mode nr="5" frequency="0.709993520149932" errorbound="1.0466e-08"/>
+        </wave_vector>
+        <wave_vector step="15" k_x="3.1416" k_y="3.1416" k_z="3.1416" id="wv_(3.14159,3.14159,3.14159)">
+          <mode nr="1" frequency="0.536998553193686" errorbound="1.4274e-11"/>
+          <mode nr="2" frequency="0.536998553193687" errorbound="7.465e-09"/>
+          <mode nr="3" frequency="0.700055849478052" errorbound="3.3274e-15"/>
+          <mode nr="4" frequency="0.702702337339268" errorbound="3.8091e-15"/>
+          <mode nr="5" frequency="0.825803265460937" errorbound="3.2312e-11"/>
+        </wave_vector>
+        <wave_vector step="16" k_x="2.5133" k_y="2.5133" k_z="2.5133" id="wv_(2.51327,2.51327,2.51327)">
+          <mode nr="1" frequency="0.437340167113579" errorbound="5.0796e-16"/>
+          <mode nr="2" frequency="0.437340167113579" errorbound="1.5167e-11"/>
+          <mode nr="3" frequency="0.65727967772999" errorbound="3.227e-14"/>
+          <mode nr="4" frequency="0.660671414899133" errorbound="3.9012e-14"/>
+          <mode nr="5" frequency="0.73419279830798" errorbound="1.4205e-11"/>
+        </wave_vector>
+        <wave_vector step="17" k_x="1.885" k_y="1.885" k_z="1.885" id="wv_(1.88496,1.88496,1.88496)">
+          <mode nr="1" frequency="0.340151526304417" errorbound="9.1575e-16"/>
+          <mode nr="2" frequency="0.340151526304417" errorbound="1.7497e-12"/>
+          <mode nr="3" frequency="0.623516656328342" errorbound="2.9526e-09"/>
+          <mode nr="4" frequency="0.628241728980546" errorbound="1.0728e-08"/>
+          <mode nr="5" frequency="0.629036473876483" errorbound="8.0053e-09"/>
+        </wave_vector>
+        <wave_vector step="18" k_x="1.2566" k_y="1.2566" k_z="1.2566" id="wv_(1.25664,1.25664,1.25664)">
+          <mode nr="1" frequency="0.248613123577119" errorbound="1.396e-15"/>
+          <mode nr="2" frequency="0.248613123577119" errorbound="1.4907e-15"/>
+          <mode nr="3" frequency="0.455752865585418" errorbound="6.1086e-16"/>
+          <mode nr="4" frequency="0.604953904950315" errorbound="2.0878e-09"/>
+          <mode nr="5" frequency="0.613804145489467" errorbound="6.3847e-09"/>
+        </wave_vector>
+        <wave_vector step="19" k_x="0.62832" k_y="0.62832" k_z="0.62832" id="wv_(0.628319,0.628319,0.628319)">
+          <mode nr="1" frequency="0.171861969220355" errorbound="4.4051e-15"/>
+          <mode nr="2" frequency="0.171861969220355" errorbound="2.5323e-15"/>
+          <mode nr="3" frequency="0.285682091357058" errorbound="1.0622e-15"/>
+          <mode nr="4" frequency="0.588612951085676" errorbound="2.9147e-11"/>
+          <mode nr="5" frequency="0.61179264329684" errorbound="2.121e-09"/>
+        </wave_vector>
+      </result>
+    </eigenFrequency>
+    <PDE>
+      <mechanic>
+        <header>
+          <region name="inner" damping="none"/>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="1.5391791e+00 7.9291045e-01 7.9291045e-01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+7.9291045e-01 1.5391791e+00 7.9291045e-01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+7.9291045e-01 7.9291045e-01 1.5391791e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 3.7313433e-01 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.7313433e-01 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 3.7313433e-01
+"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt">
+                <coef value="2.4626866e+01 1.2686567e+01 1.2686567e+01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+1.2686567e+01 2.4626866e+01 1.2686567e+01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+1.2686567e+01 1.2686567e+01 2.4626866e+01 0.0000000e+00 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 5.9701493e+00 0.0000000e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 5.9701493e+00 0.0000000e+00 
+0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 0.0000000e+00 5.9701493e+00
+"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="yes" BOp="StrainOperatorBloch3D" region="inner">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="LinElastInt" type="BDBInt" complex="yes" BOp="StrainOperatorBloch3D" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="yes" region="inner">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+              <bilinearForm integrator="MassInt" type="BBInt" complex="yes" region="mech">
+                <row pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <column pde="mechanic" functionId="0" result="mechDisplacement"/>
+                <destination feMatrix="mass" feMatrixMapped="mass" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="no"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms/>
+          </integrators>
+        </header>
+        <material name="stiff">
+          <regionList>
+            <region name="inner"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 2.462687e+01  1.268657e+01  1.268657e+01  0.000000e+00  0.000000e+00  0.000000e+00
+                 1.268657e+01  2.462687e+01  1.268657e+01  0.000000e+00  0.000000e+00  0.000000e+00
+                 1.268657e+01  1.268657e+01  2.462687e+01  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  5.970149e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.970149e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  5.970149e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(16,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.34,0)"/>
+          <property name="Density" value="(8,0)"/>
+        </material>
+        <material name="weak">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Mechanic_Stiffness_Tensor">
+            <tensor dim1="6" dim2="6">
+              <real>
+                 1.539179e+00  7.929104e-01  7.929104e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 7.929104e-01  1.539179e+00  7.929104e-01  0.000000e+00  0.000000e+00  0.000000e+00
+                 7.929104e-01  7.929104e-01  1.539179e+00  0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  3.731343e-01  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.731343e-01  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  0.000000e+00  3.731343e-01
+              </real>
+            </tensor>
+          </property>
+          <property name="Mechanic_Elasticity_Modulus" value="(1,0)"/>
+          <property name="Mechanic_Poisson_Ratio" value="(0.34,0)"/>
+          <property name="Density" value="(1,0)"/>
+        </material>
+        <feSpaces>
+          <mechDisplacement>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+                <inner/>
+              </regionList>
+            </h1Nodal>
+          </mechDisplacement>
+        </feSpaces>
+        <feFunctions>
+          <mechDisplacement/>
+          <homDirichletBC>
+            <nodeList name="center" dofs="x y z"/>
+          </homDirichletBC>
+          <inhomDirichletBC/>
+        </feFunctions>
+        <summary>
+          <writeResults>
+            <timer wall-clock="0s" wall="0" cpu="0.000147" calls="100"/>
+          </writeResults>
+        </summary>
+      </mechanic>
+    </PDE>
+    <OLAS>
+      <mechanic>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="78" totalNumFreeEqns="78" totalNumDirichlet="0">
+            <function id="0" name="mechDisplacement" numEqns="78" lastFreeEqn="78" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="78" lastFreeIndex="78"/>
+          </sbmBlocks>
+        </setup>
+        <solve_eigen>
+          <summary>
+            <setup>
+              <timer label="setup_arpack" wall-clock="0.089s" wall="0.089" cpu="0.198458" calls="20"/>
+            </setup>
+            <solve>
+              <timer label="solve_arpack" wall-clock="2.64s" wall="2.64" cpu="5.66929" calls="20"/>
+            </solve>
+          </summary>
+          <directLU>
+            <summary>
+              <setup>
+                <timer label="setup_directLU" wall-clock="0.004s" wall="0.004" cpu="0.014989" calls="2" sub="true"/>
+              </setup>
+              <solve>
+                <timer label="solve_directLU" wall-clock="0.075s" wall="0.075" cpu="0.186091" calls="29" sub="true"/>
+              </solve>
+            </summary>
+          </directLU>
+          <idPrecond>
+            <summary>
+              <setup>
+                <timer wall-clock="0s" wall="0" cpu="6.1e-05" calls="40" sub="true"/>
+              </setup>
+              <precond>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+              </precond>
+            </summary>
+          </idPrecond>
+          <header frequencies="5" type="LM" shift="0" computeMode="shift_and_invert" tol="1e-08" maxIter="5000" arnoldiVectors="156" scaling="1" logging="no" generalized="yes" quadratic="no" bloch="yes"/>
+          <arpack analysis_id="wv_(0.628319,0.628319,0.628319)">
+            <rci solve_x="1" solve_B_x="28" matvec_B_x="90" total="120"/>
+          </arpack>
+        </solve_eigen>
+      </mechanic>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="1.06s" wall="1.06" cpu="2.24057" calls="20"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <header>
+      <graph_setup>
+        <timer wall-clock="0.03s" wall="0.03" cpu="0.07614" calls="1"/>
+      </graph_setup>
+    </header>
+  </sequenceStep>
+</cfsInfo>

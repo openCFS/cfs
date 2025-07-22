@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>homogenize_only_3D</title>
+    <authors>
+      <author>Bich Ngoc Vu</author>
+    </authors>
+    <date>2020-03-19</date>
+    <keywords>
+      <keyword>SIMP</keyword>
+    </keywords>
+    <references>Ole Sigmund; Design of material structures using topology optimization; 1994, PhD thesis</references>
+    <isVerified>yes</isVerified>
+    <description> Computes homogenized 3D mech tensor(6 x 6 entries). 
+    We took the final result of 3d_ortho_max_e, apply thresholding (0.5) for a binary result and meshed it.
+    </description>
+  </documentation>  
+  
+  <fileFormats>
+    <output>
+      <hdf5 />
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <regionList>
+      <region name="mech" material="99lines"/>
+      <region name="void" material="soft"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="3d">
+        <regionList>
+          <region name="mech" />
+          <region name="void" />
+        </regionList>
+
+        <bcsAndLoads>
+           <periodic secondary="right" primary="left" dof="x" quantity="mechDisplacement"/>
+           <periodic secondary="right" primary="left" dof="y" quantity="mechDisplacement"/>
+           <periodic secondary="right" primary="left" dof="z" quantity="mechDisplacement"/>
+           <periodic primary="top"  secondary="bottom" dof="x"  quantity="mechDisplacement"/>
+           <periodic primary="top"  secondary="bottom" dof="y"  quantity="mechDisplacement"/>
+           <periodic primary="top"  secondary="bottom" dof="z"  quantity="mechDisplacement"/>
+           <periodic primary="front"  secondary="back" dof="x"  quantity="mechDisplacement"/>
+           <periodic primary="front"  secondary="back" dof="y"  quantity="mechDisplacement"/>
+           <periodic primary="front"  secondary="back" dof="z"  quantity="mechDisplacement"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions />
+          </nodeResult>
+       </storeResults>
+      </mechanic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solverList>
+          <directLDL/> 
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+
+  <optimization log="">
+    <costFunction type="homTensor" task="minimize" multiple_excitation="true">
+      <multipleExcitation type="homogenizationTestStrains" />
+    </costFunction>
+    <optimizer type="evaluate" maxIterations="0"/>
+    <ersatzMaterial method="simp" material="mechanic">
+      <regions>
+        <region name="mech"/>
+        <region name="void"/>
+      </regions>
+      <design name="density" initial="1" lower="1e-9" upper="1" region="mech"/>
+      <design name="density" initial="1" lower="1e-9" upper="1" region="void"/>
+      <transferFunction type="identity" application="mech" design="density"/>
+    </ersatzMaterial>
+  </optimization>  
+</cfsSimulation>

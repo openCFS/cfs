@@ -1,0 +1,40 @@
+reset
+#{ L = 0.02 }
+#{ H = 0.001 }
+#{Hpol = 0.0003}
+create surface rectangle width {L} height {H} zplane
+webcut body 1  with plane yplane offset {-H/2+Hpol}
+
+imprint body 1 2
+merge body 1 2
+
+curve 7 6  interval 2
+curve 7 6  scheme equal
+mesh curve 7 6
+
+curve 10 9  interval 4
+curve 10 9 scheme equal
+mesh curve 10 9
+
+curve 3 5 1 interval 20
+curve 3 5 1 scheme equal
+mesh curve 3 5 1
+
+mesh surface 2 3
+
+block 1 add surface 3
+block 1 name "Air"
+block 1 element type shell4
+
+block 2 add surface 2 
+block 2 name "Mat_Polarized"
+block 2 element type shell4
+
+nodeset 3 add curve 3
+nodeset 3 name "Electrode"
+
+nodeset 4 add curve 5
+nodeset 4 name "Edge_pol_mat"
+
+nodeset 5 add curve 1
+nodeset 5 name "Ground_surf"

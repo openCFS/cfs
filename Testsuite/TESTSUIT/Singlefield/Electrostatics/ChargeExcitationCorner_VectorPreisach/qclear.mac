@@ -1,0 +1,10 @@
+!Rod Scholl
+!PADT
+
+*CFOPEN,qtemp
+*CFWRITE,finish
+*CFWRITE,/clear
+*CFCLOSE
+!
+/input,qtemp
+/sys,rm qtemp

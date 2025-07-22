@@ -1,0 +1,341 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation">
+
+  <!-- ============================================================= -->
+  <!-- Magnetostrictive Simulation using a non-conforming Nitsche    -->
+  <!-- interface;                                                    --> 
+  <!--    left side of interface: magnetic only;                     -->
+  <!--    right hand side: iteratively coupled                       -->
+  <!--  Special/New: use mesh-smoothing/mesh-update to update        -->
+  <!--    interface                                                  -->
+  <!--  Using multisequence as permanent magnets are included        -->  
+  <!-- ============================================================= -->
+
+  <!--  Define I/O file and format definitions  -->
+  <fileFormats>
+    <input>
+      <hdf5/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <!-- Specify geometry and material information -->
+  <!-- 'geometryType' must be one of plane/axi/3d -->
+  <domain geometryType="plane">
+
+    <!-- List of regions -->
+    <regionList>
+      <region name="magnet" material="NdFeB"/>
+      <region name="probe" material="FeCo"/>
+      <region name="probe_air" material="air_stiff"/>
+      <region name="air_left" material="air"/>
+      <region name="air_right" material="air"/>
+    </regionList>
+
+    <!-- List of surface / boundary regions -->
+    <surfRegionList>
+      <surfRegion name="left"/>
+      <surfRegion name="right"/>
+      <surfRegion name="middleline"/>
+      <surfRegion name="top_left"/>
+      <surfRegion name="bot_left"/>
+      <surfRegion name="top_right"/>
+      <surfRegion name="bot_right"/>
+      <surfRegion name="interface_left"/>
+      <surfRegion name="interface_right_probe_air"/>
+      <surfRegion name="interface_right_air"/>
+    </surfRegionList>
+
+    <ncInterfaceList>
+      <!-- new: flag passiveGeomUpdate -> if set to yes, an interface will be treated as moving even though no movement was specified -->
+      <!--        this leads to an update of the nc-interface in each step, which normally is not desired for non-moving interfaces  -->
+      <!--        however, if the geometry changes (due to geometry updates in iterative coupling), we want to update the interface  -->
+      <!-- NOTE: if you set flag to "no" you will still encounter a change in the fluxDensitiy due to geometry update;the difference -->
+      <!--        lies in the fact, that in case of "no", the moving probe will see the magnetic field that the magnet would produce -->
+      <!--        if the probe weren't there; in other words, the probe moves through the magnetic field but its movement is not re- -->
+      <!--        cognized by the magnet, thus it does not couple back; by setting the flag to "yes", the magnet knows about the     -->
+      <!--        change in position (via the interface)                                                                             -->
+      <!-- Important: one interface region adjacent to the interface                                                                 -->
+      <ncInterface name="nc_interface_probe" primarySide="interface_left" secondarySide="interface_right_probe_air" storeIntegrationGrid="yes" passiveGeomUpdate="yes">
+        <generalMotion displace1="0" displace2="0" movingSide="secondary"/>
+      </ncInterface>
+      <ncInterface name="nc_interface_air" primarySide="interface_left" secondarySide="interface_right_air" storeIntegrationGrid="yes" passiveGeomUpdate="yes">
+        <generalMotion displace1="0" displace2="0" movingSide="secondary"/>
+      </ncInterface>
+      
+      <!-- for static sequence step, we do not need to update interface, so we set passiveGeomUpdate to no -->
+      <ncInterface name="nc_interface_probe_fix" primarySide="interface_left" secondarySide="interface_right_probe_air" storeIntegrationGrid="yes" passiveGeomUpdate="no">
+        <generalMotion displace1="0" displace2="0" movingSide="secondary"/>
+      </ncInterface>
+      <ncInterface name="nc_interface_air_fix" primarySide="interface_left" secondarySide="interface_right_air" storeIntegrationGrid="yes" passiveGeomUpdate="no">
+        <generalMotion displace1="0" displace2="0" movingSide="secondary"/>
+      </ncInterface>
+    </ncInterfaceList>
+
+    <!-- List of named elements -->
+    <elemList>
+      <elems name="observer"/>
+    </elemList>
+    
+    <nodeList>
+      <nodes name="observer_node"></nodes>
+    </nodeList>
+    
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static></static>
+    </analysis>
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="magnet"/>
+          <region name="probe"/>
+          <region name="probe_air"/>
+          <region name="air_right"/>
+          <region name="air_left"/>
+        </regionList>
+        
+        <ncInterfaceList>
+          <ncInterface name="nc_interface_air_fix" formulation="Nitsche"/>
+          <ncInterface name="nc_interface_probe_fix" formulation="Nitsche"/>
+        </ncInterfaceList>  
+        
+        <bcsAndLoads>
+          <fluxParallel name="left">
+            <comp dof="y"/>
+          </fluxParallel>
+          
+          <fluxParallel name="top_left">
+            <comp dof="x"/>
+          </fluxParallel>
+          
+          <fluxParallel name="bot_left">
+            <comp dof="x"/>
+          </fluxParallel>
+          
+          <fluxParallel name="top_right">
+            <comp dof="x"/>
+          </fluxParallel>
+          
+          <fluxParallel name="bot_right">
+            <comp dof="x"/>
+          </fluxParallel>
+          
+          <!-- right hand side shall be flux normal due to symmetry -->
+          
+          <fluxDensity name="magnet">
+            <comp dof="x" value="1"/>
+          </fluxDensity>
+          
+        </bcsAndLoads>
+        
+        <storeResults>
+          <elemResult type="magFluxDensity">
+           <allRegions/>
+            <elemList>
+              <elems name="observer" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+        </storeResults>        
+      </magnetic>
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix reordering="noReordering" storage="sparseNonSym"></matrix>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso>
+            <posDef>no</posDef>
+            <symStruct>no</symStruct>
+            <IterRefineSteps>100</IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+  <sequenceStep index="2">
+    <analysis>
+      <transient>
+        <numSteps>150</numSteps>
+        <deltaT>0.00025</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="magnet"/>
+          <region name="probe"/>
+          <region name="probe_air"/>
+          <region name="air_right"/>
+          <region name="air_left"/>
+        </regionList>
+        
+        <ncInterfaceList>
+          <ncInterface name="nc_interface_air" formulation="Nitsche"/>
+          <ncInterface name="nc_interface_probe" formulation="Nitsche"/>
+        </ncInterfaceList>  
+        
+        <initialValues>
+          <initialState>
+            <sequenceStep index="1"/>
+          </initialState>
+        </initialValues>
+        
+        <bcsAndLoads>
+          <fluxParallel name="left">
+            <comp dof="y"/>
+          </fluxParallel>
+          
+          <fluxParallel name="top_left">
+            <comp dof="x"/>
+          </fluxParallel>
+          
+          <fluxParallel name="bot_left">
+            <comp dof="x"/>
+          </fluxParallel>
+          
+          <fluxParallel name="top_right">
+            <comp dof="x"/>
+          </fluxParallel>
+          
+          <fluxParallel name="bot_right">
+            <comp dof="x"/>
+          </fluxParallel>
+          
+          <!-- right hand side shall be flux normal due to symmetry -->
+          
+          <fluxDensity name="magnet">
+            <comp dof="x" value="1"/>
+          </fluxDensity>
+          
+          <!-- for iterative coupling -->
+          <mechStrain name="probe">
+            <coupling pdeName="mechanic">
+              <quantity name="mechStrain"/>
+            </coupling>
+          </mechStrain>
+
+        </bcsAndLoads>
+        
+        <storeResults>
+          <elemResult type="magFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="observer" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+        </storeResults>
+      </magnetic>
+      
+      <mechanic>
+        <regionList>
+          <region name="air_right"/>
+          <region name="probe"/>
+          <region name="probe_air"/>
+        </regionList>
+        
+        <!-- no nc-interface here -->
+        
+        <bcsAndLoads>
+          <fix name="bot_right">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          
+          <fix name="interface_right_air">
+            <comp dof="x"/>
+          </fix>
+          
+          <fix name="interface_right_probe_air">
+            <comp dof="x"/>
+          </fix>
+          
+          <fix name="top_right">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+
+          <fix name="right">
+            <comp dof="x"/>
+          </fix>
+          
+          <!-- excite system by pushing probe upwards -->
+          <forceDensity name="middleline">
+            <comp dof="y" value="(t lt 1*0.0025)?0:(t gt 20*0.0025)?0:10000"/>
+          </forceDensity>
+          
+          <!-- for iterative coupling -->
+          <magFluxDensity name="probe">
+            <coupling pdeName="magnetic">
+              <quantity name="magFluxDensity"/>
+            </coupling>
+          </magFluxDensity>
+          
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+            <nodeList>
+              <nodes name="observer_node" outputIds="txt"/>
+            </nodeList>
+          </nodeResult>
+          <elemResult type="mechStrain">
+            <allRegions/>
+            <elemList>
+              <elems name="observer" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+        </storeResults>
+      </mechanic>
+     
+    </pdeList>
+    
+    <couplingList>
+      <iterative>
+        <convergence logging="yes" maxNumIters="100" stopOnDivergence="no">
+          <quantity name="mechStrain" value="1e-9" normType="rel"/>
+          <quantity name="magFluxDensity" value="1e-11" normType="rel"/>
+          <quantity name="mechDisplacement" value="1e-11" normType="rel"/>
+        </convergence>
+        
+        <geometryUpdate>
+          <region name="air_right"/>
+          <region name="probe_air"/>
+          <region name="probe"/>
+        </geometryUpdate>
+        
+      </iterative>
+    </couplingList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix reordering="noReordering" storage="sparseNonSym"></matrix>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <pardiso>
+            <posDef>no</posDef>
+            <symStruct>no</symStruct>
+            <IterRefineSteps>150</IterRefineSteps>
+          </pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+  
+</cfsSimulation>

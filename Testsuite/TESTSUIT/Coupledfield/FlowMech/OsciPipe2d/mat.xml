@@ -1,0 +1,79 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="water">
+    <flow>
+      <!-- 
+     Water at 20 degrees Celsius
+     http://www.engineeringtoolbox.com/water-density-specific-weight-d_595.html
+     http://www.engineeringtoolbox.com/water-dynamic-kinematic-viscosity-d_596.html 
+     -->
+      <!-- Density: \rho -->
+      <!--density> 998.2 </density-->
+      <density>
+        <linear>
+          <real> 100 </real>
+        </linear>
+      </density>
+      <!-- Dynamic viscosity: \mu -->
+      <!--dynamicViscosity> 1.002 </dynamicViscosity-->
+      <dynamicViscosity>
+        <linear>
+          <real> 0.002 </real>
+        </linear>
+      </dynamicViscosity>
+      <!-- Kinematic viscosity: \nu = \frac{\mu}{\rho} -->
+      <kinematicViscosity>
+        <linear>
+          <real> 10 </real>
+        </linear>
+      </kinematicViscosity>
+    </flow>
+  </material>
+  <material name="vivek">
+    <flow>
+      <!--
+     Water at 20 degrees Celsius
+     http://www.engineeringtoolbox.com/water-density-specific-weight-d_595.html
+     http://www.engineeringtoolbox.com/water-dynamic-kinematic-viscosity-d_596.html
+     -->
+      <!-- Density: \rho -->
+      <!--density> 998.2 </density-->
+      <density>
+        <linear>
+          <real> 1000 </real>
+        </linear>
+      </density>
+      <!-- Dynamic viscosity: \mu -->
+      <!--dynamicViscosity> 1.002 </dynamicViscosity-->
+      <dynamicViscosity>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </dynamicViscosity>
+      <!--kinematicViscosity> 1e-3 </kinematicViscosity-->
+    </flow>
+  </material>
+  <material name="steel">
+    <mechanical>
+      <density>
+        <linear>
+          <real>  7.84709e3 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+      2.74400E+11 1.08400E+11 1.08400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+      1.08400E+11 2.74400E+11 1.08400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+      1.08400E+11 1.08400E+11 2.74400E+11 0.00000E+00 0.00000E+00 0.00000E+00
+      0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10 0.00000E+00 0.00000E+00
+      0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10 0.00000E+00
+      0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 0.00000E+00 8.30000E+10
+     </real>
+          </tensor>
+        </linear>
+      </elasticity>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

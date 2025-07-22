@@ -1,0 +1,270 @@
+      Major iterations limit               0
+      Superbasics limit              64
+      Verify level               3
+      Major optimality tolerance  1.00000000E-09
+      Minor iterations limit          100000
+      Iterations limit         1000000
+1
+ 
+ SNMEMA EXIT 100 -- finished successfully
+ SNMEMA INFO 104 -- memory requirements estimated
+1
+ 
+ Parameters
+ ==========
+
+ Files
+ -----
+ Solution file..........         0       Old basis file ........         0       Standard input.........         5
+ Insert file............         0       New basis file ........         0       (Printer)..............        15
+ Punch file.............         0       Backup basis file......         0       (Specs file)...........         0
+ Load file..............         0       Dump file..............         0       Standard output........         6
+
+ Frequencies
+ -----------
+ Print frequency........       100       Check frequency........        60       Save new basis map.....       100
+ Summary frequency......       100       Factorization frequency        50       Expand frequency.......     10000
+
+ QP subproblems
+ --------------
+ QPsolver Cholesky......
+ Scale tolerance........     0.900       Minor feasibility tol..  1.00E-06       Iteration limit........   1000000
+ Scale option...........         0       Minor optimality  tol..  5.00E-10       Minor print level......         1
+ Crash tolerance........     0.100       Pivot tolerance........  3.25E-11       Partial price..........         1
+ Crash option...........         3       Elastic weight.........  1.00E+00       Prtl price section ( A)        64
+                                         New superbasics........        99       Prtl price section (-I)         2
+
+ The SQP Method
+ --------------
+ Minimize...............                 Cold start.............                 Proximal Point method..         1
+ Nonlinear objectiv vars        64       Objective Row..........         1       Function precision.....  3.00E-13
+ Unbounded step size....  1.00E+20       Superbasics limit......        64       Difference interval....  5.48E-07
+ Unbounded objective....  1.00E+15       Reduced Hessian dim....        64       Central difference int.  6.70E-05
+ Major step limit.......  2.00E+00       Derivative linesearch..                 Derivative option......         1
+ Major iterations limit.         0       Linesearch tolerance...   0.90000       Verify level...........         3
+ Minor iterations limit.    100000       Penalty parameter......  0.00E+00       Major Print Level......         1
+                                         Major optimality tol...  1.00E-09
+
+ Hessian Approximation
+ ---------------------
+ Full-Memory Hessian....                 Hessian updates........  99999999       Hessian frequency......  99999999
+                                                                                 Hessian flush..........  99999999
+
+ Miscellaneous
+ -------------
+ LU factor tolerance....      3.99       LU singularity tol.....  3.25E-11       Timing level...........         0
+ LU update tolerance....      3.99       LU swap tolerance......  1.22E-04       Debug level............         0
+ LU partial  pivoting...                 eps (machine precision)  2.22E-16       System information.....        No
+                                                                                 Sticky parameters......        No
+1
+ 
+
+ 
+
+ Matrix statistics
+ -----------------
+               Total      Normal        Free       Fixed     Bounded
+ Rows              2           1           1           0           0
+ Columns          64           0           0           0          64
+
+ No. of matrix elements                   64     Density      50.000
+ Biggest                          1.5625E-02  (excluding fixed columns,
+ Smallest                         1.5625E-02   free rows, and RHS)
+
+ No. of objective coefficients             0
+
+ Nonlinear constraints       0     Linear constraints       2
+ Nonlinear variables        64     Linear variables         0
+ Jacobian  variables         0     Objective variables     64
+ Total constraints           2     Total variables         64
+1
+ 
+
+ 
+ The user has defined      64   out of      64   first  derivatives
+
+ Verification of user-supplied problem derivatives.
+
+ The objective  gradients seem to be OK.
+
+ Gradient projected in one direction  -2.82309267353E-02
+ Difference approximation             -2.82300986968E-02
+
+ 
+ Column       x(j)        dx(j)    Element no.    Row        Derivative    Difference approxn
+      1  1.00000000E+00 -1.10E-06           Objective    4.10087829E-01    4.10077826E-01  ok
+      2  1.00000000E+00 -1.10E-06           Objective    6.07940569E-02    6.07917189E-02  ok
+      3  1.00000000E+00 -1.10E-06           Objective    3.68108114E-02    3.68078456E-02  ok
+      4  1.00000000E+00 -1.10E-06           Objective    1.51687223E-03    1.51610596E-03  ok
+      5  1.00000000E+00 -1.10E-06           Objective    2.73727958E-03    2.73658655E-03  ok
+      6  1.00000000E+00 -1.10E-06           Objective    3.57553738E-04    3.56959612E-04  ok
+      7  1.00000000E+00 -1.10E-06           Objective    3.90879518E-04    3.90389819E-04  ok
+      8  1.00000000E+00 -1.10E-06           Objective    3.77127114E-06    3.47006732E-06  ok
+      9  1.00000000E+00 -1.10E-06           Objective    3.62607662E-01    3.62602159E-01  ok
+     10  1.00000000E+00 -1.10E-06           Objective    1.56186611E-01    1.56178806E-01  ok
+     11  1.00000000E+00 -1.10E-06           Objective    1.16386380E-02    1.16333420E-02  ok
+     12  1.00000000E+00 -1.10E-06           Objective    6.58967018E-03    6.58457045E-03  ok
+     13  1.00000000E+00 -1.10E-06           Objective    2.19370441E-03    2.18953535E-03  ok
+     14  1.00000000E+00 -1.10E-06           Objective    7.44330786E-04    7.41124391E-04  ok
+     15  1.00000000E+00 -1.10E-06           Objective    3.01010117E-04    2.98844802E-04  ok
+     16  1.00000000E+00 -1.10E-06           Objective    4.46516274E-04    4.44355042E-04  ok
+     17  1.00000000E+00 -1.10E-06           Objective    7.56431447E-01    7.56417187E-01  ok
+     18  5.00000000E-01  8.22E-07           Objective    1.69324876E-03    1.69319996E-03  ok
+     19  1.00000000E+00 -1.10E-06           Objective    1.62507202E-03    1.62503577E-03  ok
+     20  3.00000000E-01  7.12E-07           Objective    8.56394159E-05    8.56347004E-05  ok
+     21  3.00000000E-01  7.12E-07           Objective    3.43223547E-05    3.43218752E-05  ok
+     22  3.00000000E-01  7.12E-07           Objective    2.62111829E-05    2.62098756E-05  ok
+     23  3.00000000E-01  7.12E-07           Objective    1.52479608E-05    1.52470292E-05  ok
+     24  3.00000000E-01  7.12E-07           Objective    4.80748801E-06    4.80587796E-06  ok
+     25  3.00000000E-01  7.12E-07           Objective    4.55374052E-03    4.55372080E-03  ok
+     26  3.00000000E-01  7.12E-07           Objective    2.18823747E-03    2.18822420E-03  ok
+     27  3.00000000E-01  7.12E-07           Objective    1.70562415E-04    1.70560373E-04  ok
+     28  3.00000000E-01  7.12E-07           Objective    2.23206124E-05    2.23201603E-05  ok
+     29  3.00000000E-01  7.12E-07           Objective    4.82452159E-04    4.82451149E-04  ok
+     30  3.00000000E-01  7.12E-07           Objective    7.10748144E-05    7.10708173E-05  ok
+     31  3.00000000E-01  7.12E-07           Objective    3.23564436E-05    3.23524997E-05  ok
+     32  3.00000000E-01  7.12E-07           Objective    4.68458196E-06    4.68278225E-06  ok
+     33  3.00000000E-01  7.12E-07           Objective    1.70313255E-03    1.70311055E-03  ok
+     34  3.00000000E-01  7.12E-07           Objective    1.06442267E-03    1.06441758E-03  ok
+     35  3.00000000E-01  7.12E-07           Objective    1.38034422E-03    1.38033458E-03  ok
+     36  3.00000000E-01  7.12E-07           Objective    1.91973965E-03    1.91972759E-03  ok
+     37  3.00000000E-01  7.12E-07           Objective    4.23079576E-04    4.23074580E-04  ok
+     38  3.00000000E-01  7.12E-07           Objective    1.73154061E-04    1.73145694E-04  ok
+     39  3.00000000E-01  7.12E-07           Objective    1.62852360E-04    1.62844244E-04  ok
+     40  3.00000000E-01  7.12E-07           Objective    1.69179173E-06    1.69137717E-06  ok
+     41  3.00000000E-01  7.12E-07           Objective    3.89245046E-06    3.89119653E-06  ok
+     42  3.00000000E-01  7.12E-07           Objective    6.56209346E-04    6.56198367E-04  ok
+     43  3.00000000E-01  7.12E-07           Objective    3.61280927E-03    3.61278537E-03  ok
+     44  3.00000000E-01  7.12E-07           Objective    7.23435888E-04    7.23429674E-04  ok
+     45  3.00000000E-01  7.12E-07           Objective    1.49873802E-04    1.49867976E-04  ok
+     46  3.00000000E-01  7.12E-07           Objective    1.76520891E-04    1.76513169E-04  ok
+     47  3.00000000E-01  7.12E-07           Objective    4.35373928E-04    4.35358581E-04  ok
+     48  3.00000000E-01  7.12E-07           Objective    5.57915708E-05    5.57885510E-05  ok
+     49  3.00000000E-01  7.12E-07           Objective    3.59544968E-06    3.59448831E-06  ok
+     50  3.00000000E-01  7.12E-07           Objective    1.47031544E-04    1.47028199E-04  ok
+     51  3.00000000E-01  7.12E-07           Objective    2.05176526E-04    2.05174045E-04  ok
+     52  3.00000000E-01  7.12E-07           Objective    1.31716876E-04    1.31710774E-04  ok
+     53  3.00000000E-01  7.12E-07           Objective    9.44479382E-04    9.44458509E-04  ok
+     54  3.00000000E-01  7.12E-07           Objective    1.18798695E-03    1.18796139E-03  ok
+     55  3.00000000E-01  7.12E-07           Objective    2.97389353E-04    2.97369536E-04  ok
+     56  3.00000000E-01  7.12E-07           Objective    3.48822987E-04    3.48815981E-04  ok
+     57  3.00000000E-01  7.12E-07           Objective    1.72808067E-06    1.72731581E-06  ok
+     58  3.00000000E-01  7.12E-07           Objective    1.16199821E-05    1.16194867E-05  ok
+     59  3.00000000E-01  7.12E-07           Objective    1.06429966E-04    1.06427819E-04  ok
+     60  3.00000000E-01  7.12E-07           Objective    5.62295606E-04    5.62288267E-04  ok
+     61  3.00000000E-01  7.12E-07           Objective    9.54213849E-04    9.54198506E-04  ok
+     62  3.00000000E-01  7.12E-07           Objective    5.16676634E-04    5.16654528E-04  ok
+     63  3.00000000E-01  7.12E-07           Objective    1.19224416E-03    1.19220379E-03  ok
+     64  3.00000000E-01  7.12E-07           Objective    5.74025639E-04    5.74009645E-04  ok
+
+     64  objective gradients out of     1  thru    64  seem to be OK.
+
+ -->  The largest relative error was    8.12E-06   in column    17
+ 
+1
+ 
+ 
+
+   Itns Major Minors    Step   nObj Feasible  Optimal      Objective     L+U BSwap     nS  condHz
+     93     0     57              1           3.7E-01  6.8847991E-02       2           47 2.0E+00 _  r
+1
+ 
+ SNOPTA EXIT  30 -- resource limit error
+ SNOPTA INFO  32 -- major iteration limit reached
+
+ Problem name                 FIXME
+ No. of iterations                  93   Objective value      6.8847990945E-02
+ No. of major iterations             0   Linear objective     0.0000000000E+00
+ Penalty parameter           0.000E+00   Nonlinear objective  6.8847990945E-02
+ No. of calls to funobj             66   No. of calls to funcon             66
+ No. of superbasics                 47   No. of basic nonlinears             1
+ No. of degenerate steps             0   Percentage                       0.00
+ Max x                       1 1.0E+00   Max pi                      2 1.0E+00
+ Max Primal infeas           0 0.0E+00   Max Dual infeas            17 7.4E-01
+1
+ 
+ Name           FIXME                    Objective Value      6.8847990945E-02
+
+ Status         Optimal Soln             Iteration     93    Superbasics    47
+
+ Objective               (Min)
+ RHS
+ Ranges
+ Bounds
+
+ Section 1 - Rows
+
+  Number  ...Row.. State  ...Activity...  Slack Activity  ..Lower Limit.  ..Upper Limit.  .Dual Activity    ..i
+ 
+      65  r      1    BS          .               .                None            None         -1.0          1
+      66  r      2    LL         0.50000          .              0.50000           None          0.80146      2
+1
+ 
+ Section 2 - Columns
+
+  Number  .Column. State  ...Activity...  .Obj Gradient.  ..Lower Limit.  ..Upper Limit.  Reduced Gradnt    m+j
+ 
+       1  x      1    LL         1.0             0.41009         0.00100         1.0             0.39757      3
+       2  x      2 N SBS         1.0             0.06079         0.00100         1.0             0.04827      4
+       3  x      3 N SBS         1.0             0.03681         0.00100         1.0             0.02429      5
+       4  x      4    UL         1.0             0.00152         0.00100         1.0            -0.01101      6
+       5  x      5    UL         1.0             0.00274         0.00100         1.0            -0.00979      7
+       6  x      6    UL         1.0             0.00036         0.00100         1.0            -0.01217      8
+       7  x      7    UL         1.0             0.00039         0.00100         1.0            -0.01213      9
+       8  x      8    UL         1.0             0.00000         0.00100         1.0            -0.01252     10
+       9  x      9    LL         1.0             0.36261         0.00100         1.0             0.35008     11
+      10  x     10    LL         1.0             0.15619         0.00100         1.0             0.14366     12
+      11  x     11    UL         1.0             0.01164         0.00100         1.0            -0.00088     13
+      12  x     12    UL         1.0             0.00659         0.00100         1.0            -0.00593     14
+      13  x     13    UL         1.0             0.00219         0.00100         1.0            -0.01033     15
+      14  x     14    UL         1.0             0.00074         0.00100         1.0            -0.01178     16
+      15  x     15    UL         1.0             0.00030         0.00100         1.0            -0.01222     17
+      16  x     16    UL         1.0             0.00045         0.00100         1.0            -0.01208     18
+      17  x     17 N  LL         1.0             0.75643         0.00100         1.0             0.74391     19
+      18  x     18 N SBS         0.50000         0.00169         0.00100         1.0            -0.01083     20
+      19  x     19    UL         1.0             0.00163         0.00100         1.0            -0.01090     21
+      20  x     20 N SBS         0.30000         0.00009         0.00100         1.0            -0.01244     22
+      21  x     21 N SBS         0.30000         0.00003         0.00100         1.0            -0.01249     23
+      22  x     22 N SBS         0.30000         0.00003         0.00100         1.0            -0.01250     24
+      23  x     23 N SBS         0.30000         0.00002         0.00100         1.0            -0.01251     25
+      24  x     24 N SBS         0.30000         0.00000         0.00100         1.0            -0.01252     26
+      25  x     25 N SBS         0.30000         0.00455         0.00100         1.0            -0.00797     27
+      26  x     26 N SBS         0.30000         0.00219         0.00100         1.0            -0.01033     28
+      27  x     27 N SBS         0.30000         0.00017         0.00100         1.0            -0.01235     29
+      28  x     28 N SBS         0.30000         0.00002         0.00100         1.0            -0.01250     30
+      29  x     29 N SBS         0.30000         0.00048         0.00100         1.0            -0.01204     31
+      30  x     30 N SBS         0.30000         0.00007         0.00100         1.0            -0.01245     32
+      31  x     31    BS         0.30000         0.00003         0.00100         1.0            -0.01249     33
+      32  x     32 N SBS         0.30000         0.00000         0.00100         1.0            -0.01252     34
+      33  x     33 N SBS         0.30000         0.00170         0.00100         1.0            -0.01082     35
+      34  x     34 N SBS         0.30000         0.00106         0.00100         1.0            -0.01146     36
+      35  x     35 N SBS         0.30000         0.00138         0.00100         1.0            -0.01114     37
+      36  x     36 N SBS         0.30000         0.00192         0.00100         1.0            -0.01060     38
+      37  x     37 N SBS         0.30000         0.00042         0.00100         1.0            -0.01210     39
+      38  x     38 N SBS         0.30000         0.00017         0.00100         1.0            -0.01235     40
+      39  x     39 N SBS         0.30000         0.00016         0.00100         1.0            -0.01236     41
+      40  x     40 N SBS         0.30000         0.00000         0.00100         1.0            -0.01252     42
+      41  x     41 N SBS         0.30000         0.00000         0.00100         1.0            -0.01252     43
+      42  x     42 N SBS         0.30000         0.00066         0.00100         1.0            -0.01187     44
+      43  x     43 N SBS         0.30000         0.00361         0.00100         1.0            -0.00891     45
+      44  x     44 N SBS         0.30000         0.00072         0.00100         1.0            -0.01180     46
+      45  x     45 N SBS         0.30000         0.00015         0.00100         1.0            -0.01237     47
+      46  x     46 N SBS         0.30000         0.00018         0.00100         1.0            -0.01235     48
+      47  x     47 N SBS         0.30000         0.00044         0.00100         1.0            -0.01209     49
+      48  x     48 N SBS         0.30000         0.00006         0.00100         1.0            -0.01247     50
+      49  x     49 N SBS         0.30000         0.00000         0.00100         1.0            -0.01252     51
+      50  x     50 N SBS         0.30000         0.00015         0.00100         1.0            -0.01238     52
+      51  x     51 N SBS         0.30000         0.00021         0.00100         1.0            -0.01232     53
+      52  x     52 N SBS         0.30000         0.00013         0.00100         1.0            -0.01239     54
+      53  x     53 N SBS         0.30000         0.00094         0.00100         1.0            -0.01158     55
+      54  x     54 N SBS         0.30000         0.00119         0.00100         1.0            -0.01133     56
+      55  x     55 N SBS         0.30000         0.00030         0.00100         1.0            -0.01223     57
+      56  x     56 N SBS         0.30000         0.00035         0.00100         1.0            -0.01217     58
+      57  x     57 N SBS         0.30000         0.00000         0.00100         1.0            -0.01252     59
+      58  x     58 N SBS         0.30000         0.00001         0.00100         1.0            -0.01251     60
+      59  x     59 N SBS         0.30000         0.00011         0.00100         1.0            -0.01242     61
+      60  x     60 N SBS         0.30000         0.00056         0.00100         1.0            -0.01196     62
+      61  x     61 N SBS         0.30000         0.00095         0.00100         1.0            -0.01157     63
+      62  x     62 N SBS         0.30000         0.00052         0.00100         1.0            -0.01201     64
+      63  x     63 N SBS         0.30000         0.00119         0.00100         1.0            -0.01133     65
+      64  x     64 N SBS         0.30000         0.00057         0.00100         1.0            -0.01195     66

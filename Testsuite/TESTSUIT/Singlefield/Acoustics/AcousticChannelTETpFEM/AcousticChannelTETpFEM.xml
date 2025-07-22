@@ -1,0 +1,100 @@
+﻿<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>3D Acoustic Channel TET using 5th order elements</title>
+    <authors>
+      <author>kroppert</author>
+    </authors>
+    <date>2016-07-05</date>
+    <keywords>
+      <keyword>acoustic</keyword>
+    </keywords>
+    <references>
+      3D example of Kaltenbacher "Numerical Simulation of Mechatronic Sensors and Actuators"      
+    </references>
+    <isVerified>no</isVerified>
+    <description>
+    </description>
+  </documentation>
+  
+
+  <fileFormats>
+    <input>
+<gmsh fileName="tetrahedral.msh"/>
+    </input>
+    <output> 
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+<domain geometryType="3d" printGridInfo="no">
+    <variableList>
+      <var name="k" value="9*pi/2"/> <!-- wave number -->
+      <var name="L" value="1"/> <!-- length of the rectangular domain -->
+    </variableList>
+    <regionList>
+      <region name="inner" material="air"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="source"/>
+      <surfRegion name="abc"/>
+    </surfRegionList>
+  </domain>
+
+  <fePolynomialList>
+    <Legendre id="default">
+<isoOrder>5</isoOrder>
+    </Legendre>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+   <scheme>
+     <method>Gauss</method>
+       <order>11</order>
+     <mode>absolute</mode>
+   </scheme>
+  </integrationSchemeList>
+
+
+  <sequenceStep index="1">
+    <analysis>
+      <harmonic>
+        <numFreq>    1   </numFreq>
+        <startFreq>  2.25 </startFreq>
+        <stopFreq>   2.25 </stopFreq>
+        <sampling> linear </sampling>
+      </harmonic>
+    </analysis>
+    
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="inner" polyId="default"/>
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="source" value="1.0"  coordSysId="default"/>
+          <pressure name="abc" value="0.0" coordSysId="default"/>
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure" complexFormat="realImag" >          
+            <regionList>
+              <region name="inner" writeResult="yes"/>
+            </regionList>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+ 
+
+    <linearSystems>
+      <system id="default">
+        <solverList>
+          <pardiso></pardiso>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

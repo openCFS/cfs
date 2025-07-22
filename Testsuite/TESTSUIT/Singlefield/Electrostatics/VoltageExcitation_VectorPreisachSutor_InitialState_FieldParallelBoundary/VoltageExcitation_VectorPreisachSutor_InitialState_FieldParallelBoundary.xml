@@ -1,0 +1,194 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  
+  <documentation>
+    <title>2D plate capacitor with hysteretic dielectric/piezoelectric material between the plates </title>
+    <authors>
+      <author>Michael Nierla</author>
+    </authors>
+    <date>2019-07-09</date>
+    <keywords>
+      <keyword>piezo</keyword>
+      <keyword>electrostatic</keyword>
+      <keyword>hysteresis</keyword>
+      <keyword>linesearch</keyword>
+      <keyword>transient</keyword>
+    </keywords>
+    <references>none</references>
+    <isVerified>no</isVerified>
+    <description>
+      Geometry:
+      Simple plate capacitor (size 3 m x3 m)
+      Left and right hand edges are electrodes
+            
+      Sketch:
+      
+      y-axis
+      |
+      |___________________ air
+      |                   |
+      |                   |				
+      |                   |
+      |                   |
+      |     dielectric/   |
+      |     piezoelectric |
+      |     material      |
+      |                   |      
+      |___________________|_______ x-axis
+      
+      Excitation:
+      Left hand edge: Potential excitation
+      Right hand edge: Ground
+      Top and bottom edge are special field-parallel boundary conditions.
+      For materials without remanence, these field-parallel boundary conditions are equal to the
+      default flux-parallel boundary conditions. In case of a remanent field it might however be the
+      case that the polarization is not parallel to the boundary (in practice this would be compensated by
+      surface charges on electrodes or remanent outgoing flux densities). For this particular setup
+      we require the field parallel boundary conditions to model an initial polarization state in y-direction.
+      This initial state shall be rotated along the x-axis by the voltage between left and right hand electrode.
+      
+      Aims of this test case:
+      - Test initial state for hysteresis operator
+      - Test field-parallel boundary conditions
+      - Apply a vector model to electrostatics
+
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="nineElement.h5"/>
+    </input> 
+    <output>
+      <hdf5/>
+      <text id="txt1" fileCollect="entity"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    
+    <regionList>
+      <region name="probe" material="Pic255-VectorPreisachSutor"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="left"/>
+      <surfRegion name="right"/>
+      <surfRegion name="top"/>
+      <surfRegion name="bot"/>
+    </surfRegionList>
+    
+    <elemList>
+      <elems name="center"></elems>
+    </elemList>
+  </domain>
+  
+  <sequenceStep>
+    
+    <analysis>
+      <transient>
+        <numSteps>105</numSteps>
+        <deltaT>1</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <electrostatic>
+        <regionList>
+          <region name="probe" nonLinIds="h"/>
+        </regionList>
+        
+        <nonLinList>
+          <hysteresis id="h"/>
+        </nonLinList>
+        
+        <bcsAndLoads>
+          <!--<charge name="left" value="0.6*sample1D('sig1.txt',t,1)"></charge>
+          <constraint name="left"/>-->
+          <ground name="right"/>
+           <potential name="left"  value="15e6*t/100"/>
+                  <fieldParallel name="top" volumeRegion="probe"/>
+            <fieldParallel name="bot" volumeRegion="probe"/>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions/>
+          </nodeResult>
+          
+          <elemResult type="elecFieldIntensity">        
+            <allRegions/>
+            <elemList>
+              <elems name="center" outputIds="txt1"/>
+            </elemList>
+          </elemResult>
+          
+          <elemResult type="elecPolarization">
+            <allRegions/>
+            <elemList>
+              <elems name="center" outputIds="txt1"/>
+            </elemList>
+          </elemResult>
+          
+          <elemResult type="elecFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="center" outputIds="txt1"/>
+            </elemList>
+          </elemResult>
+          
+        </storeResults>
+        
+      </electrostatic>
+      
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <hysteretic>
+              <solutionMethod>
+                <Fixpoint_Global_B ContractionFactor="2.0"/>
+                
+<!--                 start with fixpoint iteration, then switch to Newton scheme; update jacobian only every third iteration -->
+<!--                <QuasiNewton_FiniteDifferenceJacobian IterationsTillUpdate="3" initialNumberFPSteps="1"/>-->
+              </solutionMethod>
+              <lineSearch>
+                <Exact_GoldenSection>
+                  <maxIterLS>25</maxIterLS>
+                  <stoppingTol>1.0E-3</stoppingTol>
+                </Exact_GoldenSection>
+          <!--      
+                <Backtracking_Armijo>
+                  <maxIterLS>10</maxIterLS>
+                  <etaStart>1.0E0</etaStart>
+                  <etaMin>1.0E-3</etaMin>
+                  <decreaseFactor>5.0E-1</decreaseFactor>
+                  <rho>9.0E-1</rho>
+                </Backtracking_Armijo>-->
+                
+              </lineSearch>
+
+              <stoppingCriteria>
+                <increment_relative value="2.5E-5" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>
+                <residual_relative value="2.5E-5" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>
+              </stoppingCriteria>
+              <evaluationDepth>
+                <evaluateAtIntegrationPoints_OneOperatorPerElement></evaluateAtIntegrationPoints_OneOperatorPerElement>
+              </evaluationDepth>
+              <failbackCriteria>
+                <residual_relative value="2.5E-4" firstCheck="10" checkingFrequency="2" scaleToSystemSize="no"/>
+                <residual_absolute value="2.5E-5" firstCheck="3" checkingFrequency="3" scaleToSystemSize="yes"/>
+              </failbackCriteria>
+              <maxIter>35</maxIter>
+            </hysteretic>
+            
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,34 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="99lines">
+    <mechanical>
+      <density>
+        <linear> 
+          <real>1e-8</real>
+        </linear>
+      </density>
+      <!-- Data as in the 99-lines code by Sigmund -->
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real>1</real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real>0.3</real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>1000</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.03</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+    </mechanical>
+  </material>
+</cfsMaterialDataBase>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title></title>
+    <authors>
+      <author>M. Strondl</author>
+    </authors>
+    <date></date>
+    <keywords>
+      <keyword>acoustic</keyword>
+      <keyword>eigenValue</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>no</isVerified>
+    <description>
+	This is a testcase to the stochastic estimate function of FEAST.
+	This function provides an estimate for the amount of eigenvalues within the given search contour.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="stochasticEstimate.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType='plane' >
+    <regionList>
+      <region material="rho1K1" name="surf"/>
+    </regionList>
+  </domain>
+  
+  <sequenceStep index="1">
+    <analysis>
+        <eigenFrequency>
+          <isQuadratic>no</isQuadratic>
+          <minVal>8</minVal>
+          <maxVal>275</maxVal>
+          <writeModes>yes</writeModes>
+        </eigenFrequency>
+    </analysis>  
+    
+    <pdeList>
+      <acoustic formulation="acouPressure">
+        <regionList>
+          <region name="surf"/>
+        </regionList>
+        <bcsAndLoads></bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym" reordering="noReordering"/>
+            <eigenSolver id="feast"/>
+          </standard>
+        </solutionStrategy>
+        <eigenSolverList>
+          <feast id="feast">
+            <Ne>8</Ne>
+            <logging>true</logging>
+            <stopCrit>12</stopCrit>
+            <m0>15</m0><!-- initial subspace size : approximate number of EVs expected in search interval -->
+            <maxRefinementLoops>10</maxRefinementLoops>
+            <stochasticEstimate>yes</stochasticEstimate>
+          </feast>
+          <arpack id="arpack"></arpack>
+        </eigenSolverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

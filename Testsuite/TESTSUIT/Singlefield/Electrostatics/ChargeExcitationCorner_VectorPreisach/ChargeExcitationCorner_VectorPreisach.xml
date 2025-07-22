@@ -1,0 +1,212 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <!-- ============================================================= -->
+  <!--   SKELETON-XML-FILE: PLEASE REPLACE ALL "XXX" AND FILL OUT!  -->
+  <!-- ============================================================= -->
+
+  <!--  Define I/O file and format definitions  -->
+  <fileFormats>
+    <input>
+      <mesh fileName="sixteenElement.mesh"/>
+    </input>
+    <output>
+      <text/>
+      <hdf5/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <!-- Specify geometry and material information -->
+  <!-- 'geometryType' must be one of plane/axi/3d -->
+  <domain geometryType="plane">
+
+    <!-- List of regions -->
+    <regionList>
+      <region name="element_x1_y1" material="Air"/>
+      <region name="element_x1_y2" material="Air"/>
+      <region name="element_x1_y3" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x1_y4" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x2_y1" material="Air"/>
+      <region name="element_x2_y2" material="Air"/>
+      <region name="element_x2_y3" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x2_y4" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x3_y1" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x3_y2" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x3_y3" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x3_y4" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x4_y1" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x4_y2" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x4_y3" material="Pic255-VectorPreisachSutor"/>
+      <region name="element_x4_y4" material="Pic255-VectorPreisachSutor"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="bottom_x1"/>
+      <surfRegion name="top_x1"/>
+      <surfRegion name="bottom_x2"/>
+      <surfRegion name="top_x2"/>
+      <surfRegion name="bottom_x3"/>
+      <surfRegion name="top_x3"/>
+      <surfRegion name="bottom_x4"/>
+      <surfRegion name="top_x4"/>
+      <surfRegion name="left_y1"/>
+      <surfRegion name="right_y1"/>
+      <surfRegion name="left_y2"/>
+      <surfRegion name="right_y2"/>
+      <surfRegion name="left_y3"/>
+      <surfRegion name="right_y3"/>
+      <surfRegion name="left_y4"/>
+      <surfRegion name="right_y4"/>
+    </surfRegionList>
+    
+  </domain>
+  
+  <sequenceStep>
+    
+    <analysis>
+      <transient>
+        <numSteps>45</numSteps>
+        <deltaT>2.5</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <electrostatic>
+        <regionList>
+          <region name="element_x1_y1"/>
+          <region name="element_x1_y2"/>
+          <region name="element_x1_y3" nonLinIds="h2"/>
+          <region name="element_x1_y4" nonLinIds="h2"/>
+          <region name="element_x2_y1"/>
+          <region name="element_x2_y2"/>
+          <region name="element_x2_y3" nonLinIds="h2"/>
+          <region name="element_x2_y4" nonLinIds="h2"/>
+          <region name="element_x3_y1" nonLinIds="h2"/>
+          <region name="element_x3_y2" nonLinIds="h2"/>
+          <region name="element_x3_y3" nonLinIds="h2"/>
+          <region name="element_x3_y4" nonLinIds="h2"/>
+          <region name="element_x4_y1" nonLinIds="h2"/>
+          <region name="element_x4_y2" nonLinIds="h2"/>
+          <region name="element_x4_y3" nonLinIds="h2"/>
+          <region name="element_x4_y4" nonLinIds="h2"/>
+        </regionList>
+        
+        <nonLinList>
+          <hysteresis id="h2"/>
+        </nonLinList>
+        
+        <bcsAndLoads>
+          <charge name="left_y1" value="0.50*sample1D('sig1.txt',t,1)"></charge>
+          <charge name="left_y2" value="0.50*sample1D('sig1.txt',t,1)"></charge>
+          <constraint name="left_y1"/>
+          <constraint name="left_y2"/>
+          
+          <ground name="bottom_x3"></ground>
+          <ground name="bottom_x4"></ground>
+          
+          <fieldParallel name="top_x1" volumeRegion="element_x1_y4"/>
+          <fieldParallel name="top_x2" volumeRegion="element_x2_y4"/>
+          <fieldParallel name="top_x3" volumeRegion="element_x3_y4"/>
+          <fieldParallel name="top_x4" volumeRegion="element_x4_y4"/>
+          
+          <fieldParallel name="right_y1" volumeRegion="element_x4_y1"/>
+          <fieldParallel name="right_y2" volumeRegion="element_x4_y2"/>
+          <fieldParallel name="right_y3" volumeRegion="element_x4_y3"/>
+          <fieldParallel name="right_y4" volumeRegion="element_x4_y4"/>
+          
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions/>
+          </nodeResult>
+          
+          <elemResult type="elecFieldIntensity">        
+            <allRegions/>
+            <elemList>
+              <elems name="element_x3_y3" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+          
+          <elemResult type="elecPolarization">
+            <allRegions/>
+            <elemList>
+              <elems name="element_x3_y3" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+          
+          <elemResult type="elecFluxDensity">
+            <allRegions/>
+            <elemList>
+              <elems name="element_x3_y3" outputIds="txt"/>
+            </elemList>
+          </elemResult>
+          
+        </storeResults>
+        
+      </electrostatic>
+      
+    </pdeList>
+    
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <hysteretic>
+              <solutionMethod>
+                <!-- start with global fixpoint iteration, then switch to localized version -->
+                <Fixpoint_Localized_B ContractionFactor="1.45E0" initialNumberGlobalFPSteps="6"/>
+
+              </solutionMethod>
+              <lineSearch>
+                <Backtracking_SmallestResidual>
+                  <maxIterLS>18</maxIterLS>
+                  <etaStart>32.0E0</etaStart>
+                  <etaMin>2.5E-2</etaMin>
+                  <decreaseFactor>5E-1</decreaseFactor>
+                  <residualDecreaseForSuccess>1.0E-3</residualDecreaseForSuccess>
+                  <stoppingTol>1.0E-6</stoppingTol>
+                  <testOverrelaxation>no</testOverrelaxation>
+                </Backtracking_SmallestResidual>
+                
+                
+                
+             <!--   <Exact_GoldenSection>
+                  <maxIterLS>30</maxIterLS>
+                  <stoppingTol>1.0E-4</stoppingTol>
+                </Exact_GoldenSection>
+                <None></None>-->
+                
+                <!--            <None></None>
+                  <Backtracking_Armijo>
+                  <maxIterLS>10</maxIterLS>
+                  <etaStart>1.0E0</etaStart>
+                  <etaMin>1.0E-3</etaMin>
+                  <decreaseFactor>5.0E-1</decreaseFactor>
+                  <rho>9.0E-1</rho>
+                  </Backtracking_Armijo>
+                -->
+              </lineSearch>
+              
+              <stoppingCriteria>
+                <!--<increment_relative value="1E-6" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>-->
+                <residual_relative value="1E-8" checkingFrequency="1" firstCheck="1" scaleToSystemSize="no"/>
+              </stoppingCriteria>
+              <evaluationDepth>
+                <evaluateAtIntegrationPoints_OneOperatorPerElement></evaluateAtIntegrationPoints_OneOperatorPerElement>
+              </evaluationDepth>
+              <failbackCriteria>
+                <residual_absolute value="2.5E-14" firstCheck="20" checkingFrequency="10" scaleToSystemSize="yes"/>
+              </failbackCriteria>
+              <maxIter>400</maxIter>
+
+            </hysteretic>
+            
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+    
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,1263 @@
+! =================================================
+!
+!         -- exM3 -- Simplified Chip Model --
+!
+!             h5-FILE script
+!
+! Helmut Koeck
+! 22.01.2014
+!
+! Short Description:
+! This script generates the CFS-model for a NMG simulation. 
+!
+! =================================================
+fini
+/clear
+/filname,'ElTh_NMGlin'
+/prep7
+! initialize macros for .mesh-interface
+init
+
+/UIS,MSGPOP,3    !supress warning messages
+
+! set unit system to SI
+/units,SI
+
+! set system tolerances & conversion parameters
+btol,1e-6
+SI = 1e-3
+tol = 1e-11
+nrgfact = 1e-8
+
+
+! Selectors
+switch_bondW = 0   ! 0 means --> circle  1 means --> rectangular;
+switch_simType = 2 ! 0 --> thermal; 1 --> electrical; 2 --> elctro-thermal
+
+/com, ------------------------------------------------------------------
+/com, Geometric data
+/com, ------------------------------------------------------------------
+
+! absolute dimensions
+!Y: Layer thickness (absolute)
+
+/com, dimension not realistic - changed for the test example
+sub = 50e-3*SI!220e-3*SI
+
+PolySi = 2e-3*SI!700e-6*SI
+HDP = 4e-3*SI
+PM = 6e-3*SI
+
+Bond = 500e-3*SI
+
+! relative dimensions
+! Y: relative thickness
+z0 = 0
+z1 = sub
+z2 = z1 + PolySi
+z3 = z2 + HDP
+z4 = z3 + PM
+
+z_dim = 5
+
+! ARRAY definitions
+*DIM,z_coords_array,array,z_dim
+z_coords_array(1) = z0,z1,z2,z3,z4
+
+/com, Geometric data
+chip_X = 600e-3*SI
+chip_Y = 300e-3*SI
+bondArea_X = 50e-3*SI
+bondArea_Y = 300e-3*SI
+
+bondWire_X = 15e-3*SI   !rect X
+bondWire_Y = 15e-3*SI   !rect Y
+
+!substrate afterwards designed --> relative coordinates used (r_...)
+sub_X = 1000e-3*SI
+sub_Y = 700e-3*SI
+
+r_sub_X = 200e-3*SI
+r_sub_Y = 200e-3*SI
+
+! sensor data
+sens_X = 50e-3*SI
+sens_Y = 100e-3*SI
+
+r_sens_X = 300e-3*SI
+
+
+/com, Coordinates definition
+!sub corner points
+x0_sub = 0 + r_sub_X
+x1_sub = 0 - chip_X - r_sub_X
+y0_sub = 0 - r_sub_Y
+y1_sub = 0 + chip_Y + r_sub_Y
+
+*dim,sub_xy,array,4,2
+sub_xy(1,1) = x0_sub,x1_sub,x1_sub,x0_sub
+sub_xy(1,2) = y0_sub,y0_sub,y1_sub,y1_sub
+
+
+!chip corner points
+x0_chip = 0
+x1_chip = x0_chip - chip_X
+y0_chip = 0
+y1_chip = y0_chip + chip_Y
+
+*dim,chip_xy,array,4,2
+chip_xy(1,1) = x0_chip,x1_chip,x1_chip,x0_chip
+chip_xy(1,2) = y0_chip,y0_chip,y1_chip,y1_chip
+
+!bond area corner points
+x0_bondAleft = 0 - chip_X + bondArea_X
+x1_bondAleft = x0_bondAleft - bondArea_X
+y0_bondAleft = 0
+y1_bondAleft = y0_bondAleft + bondArea_Y
+
+*dim,bondAleft_xy,array,4,2
+bondAleft_xy(1,1) = x0_bondAleft,x1_bondAleft,x1_bondAleft,x0_bondAleft
+bondAleft_xy(1,2) = y0_bondAleft,y0_bondAleft,y1_bondAleft,y1_bondAleft
+
+x0_bondAright = 0
+x1_bondAright = x0_bondAright - bondArea_X
+y0_bondAright = 0
+y1_bondAright = y0_bondAright + bondArea_Y
+
+*dim,bondAright_xy,array,4,2
+bondAright_xy(1,1) = x0_bondAright,x1_bondAright,x1_bondAright,x0_bondAright
+bondAright_xy(1,2) = y0_bondAright,y0_bondAright,y1_bondAright,y1_bondAright
+
+!bond wire corner points (rectangular implementation)
+x0_bondWleft = 0 - chip_X + bondArea_X/2 + bondWire_X
+x1_bondWleft = 0 - chip_X + bondArea_X/2 - bondWire_X
+y0_bondWleft = 0 + chip_Y/2 - bondWire_Y
+y1_bondWleft = 0 + chip_Y/2 + bondWire_Y
+
+*dim,bondWleft_xy,array,4,2
+bondWleft_xy(1,1) = x0_bondWleft,x1_bondWleft,x1_bondWleft,x0_bondWleft
+bondWleft_xy(1,2) = y0_bondWleft,y0_bondWleft,y1_bondWleft,y1_bondWleft
+
+x0_bondWright = 0 - bondArea_X/2 + bondWire_X
+x1_bondWright = 0 - bondArea_X/2 - bondWire_X
+y0_bondWright = 0 + chip_Y/2 - bondWire_Y
+y1_bondWright = 0 + chip_Y/2 + bondWire_Y
+
+*dim,bondWright_xy,array,4,2
+bondWright_xy(1,1) = x0_bondWright,x1_bondWright,x1_bondWright,x0_bondWright
+bondWright_xy(1,2) = y0_bondWright,y0_bondWright,y1_bondWright,y1_bondWright
+
+
+! sensor corner points
+x0_sens = 0 - r_sens_X
+x1_sens = x0_sens - sens_X
+y0_sens = 0 + chip_Y - sens_Y
+y1_sens = y0_sens + sens_Y
+
+*dim,sens_xy,array,4,2
+sens_xy(1,1) = x0_sens,x1_sens,x1_sens,x0_sens
+sens_xy(1,2) = y0_sens,y0_sens,y1_sens,y1_sens
+
+
+/com, ------------------------------------------------------------------
+/com, 2D MODEL
+/com, ------------------------------------------------------------------
+
+/com, area definition
+
+
+! ### AREA LEVEL - 0 ###
+!substrate area
+ksel,none
+lsel,none
+asel,none
+*DO,ii,1,4
+     ptxy,sub_xy(ii,1),sub_xy(ii,2)
+*ENDDO
+poly
+*get,a_sub,area,N,num,max
+
+!chip area
+ksel,none
+lsel,none
+asel,none
+*DO,ii,1,4
+     ptxy,chip_xy(ii,1),chip_xy(ii,2)
+*ENDDO
+poly
+*get,a_chip,area,N,num,max
+
+!merging
+alls
+asba,a_sub,a_chip,,delete,keep  !subtracts areas from areas
+asel,u,area,,a_chip
+*get,a_sub,area,N,num,max
+
+! ### AREA LEVEL 1 ###
+!bond area 1 - left
+ksel,none
+lsel,none
+asel,none
+*DO,ii,1,4
+     ptxy,bondAleft_xy(ii,1),bondAleft_xy(ii,2)
+*ENDDO
+poly
+*get,a_bondAleft,area,N,num,max
+!bond area 1 - right
+ksel,none
+lsel,none
+asel,none
+*DO,ii,1,4
+     ptxy,bondAright_xy(ii,1),bondAright_xy(ii,2)
+*ENDDO
+poly
+*get,a_bondAright,area,N,num,max
+
+!merging
+ksel,none
+lsel,none
+asel,none
+alls
+asba,a_chip,a_bondAleft,,delete,keep  !subtracts areas from areas
+asel,u,area,,a_bondAleft
+asel,u,area,,a_bondAright
+asel,u,area,,a_sub
+*get,a_chip,area,N,num,max
+
+alls
+asba,a_chip,a_bondAright,,delete,keep
+asel,u,area,,a_bondAleft
+asel,u,area,,a_bondAright
+asel,u,area,,a_sub
+*get,a_chip,area,N,num,max
+
+alls
+asel,s,area,,a_chip
+cm,cma_chip,area
+
+
+
+! ### AREA LEVEL 2 ### -- rectangular bond implementation
+alls
+!bond wire - left
+ksel,none
+lsel,none
+asel,none
+*DO,ii,1,4
+     ptxy,bondWleft_xy(ii,1),bondWleft_xy(ii,2)
+*ENDDO
+poly
+*get,a_bondWleft,area,N,num,max
+
+!bond wire - right
+ksel,none
+lsel,none
+asel,none
+*DO,ii,1,4
+     ptxy,bondWright_xy(ii,1),bondWright_xy(ii,2)
+*ENDDO
+poly
+*get,a_bondWright,area,N,num,max
+
+!merging
+alls
+asba,a_bondAleft,a_bondWleft,,delete,keep
+asel,s,area,,a_bondWleft
+cm,cma_bondWleft,area
+
+alls
+asba,a_bondAright,a_bondWright,,delete,keep
+asel,s,area,,a_bondWright
+cm,cma_bondWright,area
+
+!final component naming
+alls
+asel,s,loc,x,bondAleft_xy(2,1)-tol,bondAleft_xy(1,1)+tol
+asel,u,area,,a_bondWleft
+*get,a_bondAleft,area,N,num,max
+cm,cma_bondAleft,area
+
+alls
+asel,s,loc,x,bondAright_xy(2,1)-tol,bondAright_xy(1,1)+tol
+asel,u,area,,a_bondWright
+*get,a_bondAright,area,N,num,max
+cm,cma_bondAright,area
+
+
+! MERGING & GLUING
+alls
+nummrg,kp,nrgfact
+alls
+aglue,all
+
+! define sub component after glueing
+alls
+cmsel,u,cma_chip
+cmsel,u,cma_bondAleft
+cmsel,u,cma_bondAright
+cmsel,u,cma_bondWleft
+cmsel,u,cma_bondWright
+cm,cma_sub,area
+
+/com, ------------------------------------------------------------------
+/com, NMG Implementation
+/com, ------------------------------------------------------------------
+
+ksel,none
+lsel,none
+asel,none
+*DO,ii,1,4
+     ptxy,sens_xy(ii,1),sens_xy(ii,2)
+*ENDDO
+poly
+*get,a_sens,area,N,num,max
+
+!merging
+alls
+cmsel,s,cma_chip
+*get,a_chip,area,N,num,max
+asel,a,area,,a_sens
+
+! rename cma_chip because merging deletes the component
+asba,a_chip,a_sens,,delete,keep
+asel,u,area,,a_sens
+cm,cma_chip,area
+
+! name the sensor area
+alls
+asel,s,area,,a_sens
+cm,cma_sens,area
+
+alls
+
+! MERGING & GLUING
+alls
+nummrg,kp,nrgfact
+alls
+aglue,all
+
+! define sub component after glueing
+alls
+cmsel,u,cma_chip
+cmsel,u,cma_bondAleft
+cmsel,u,cma_bondAright
+cmsel,u,cma_bondWleft
+cmsel,u,cma_bondWright
+cmsel,u,cma_sens
+cm,cma_sub,area
+
+alls
+
+
+/com, ------------------------------------------------------------------
+/com, ELEMENT DEFINITION
+/com, ------------------------------------------------------------------
+
+! Element selection/definition
+setelems,'brick' !,'quad'
+mshkey,1
+
+
+! -----------------------------------------------------------------
+
+! Mesh sizes
+ESIZE,15e-3*SI
+
+
+/com, ------------------------------------------------------------------
+/com, 3D MODEL
+/com, ------------------------------------------------------------------
+
+/com, Extrution
+alls
+vsel,none
+
+/com, extrude: layer 1 -->  substrate
+z_level=1
+
+cmsel,s,cma_sub
+vext,all,,,,,sub
+cm,cmv_sub_1,volu
+vsel,none
+
+cmsel,s,cma_chip
+vext,all,,,,,sub
+cm,cmv_chip_1,volu
+vsel,none
+
+! sensor 
+cmsel,s,cma_sens
+vext,all,,,,,sub
+cm,cmv_sens_1,volu
+vsel,none
+
+cmsel,s,cma_bondAleft
+vext,all,,,,,sub
+cm,cmv_bondAleft_1,volu
+vsel,none
+cmsel,s,cma_bondAright
+vext,all,,,,,sub
+cm,cmv_bondAright_1,volu
+vsel,none
+
+cmsel,s,cma_bondWright
+vext,all,,,,,sub
+cm,cmv_bondWright_1,volu
+vsel,none
+cmsel,s,cma_bondWleft
+vext,all,,,,,sub
+cm,cmv_bondWleft_1,volu
+vsel,none
+
+alls
+
+/com, extrude: layer 2 -->  poly
+z_level=2
+
+cmsel,s,cmv_sub_1
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+aplot
+vext,all,,,,,PolySi
+cmsel,u,cmv_sub_1
+cm,cmv_sub_%z_level%,volu
+vplot
+vsel,none
+
+cmsel,s,cmv_chip_1
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+aplot
+vext,all,,,,,PolySi
+cmsel,u,cmv_chip_1
+cm,cmv_chip_%z_level%,volu
+vplot
+vsel,none
+
+! sensor
+cmsel,s,cmv_sens_1
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+aplot
+vext,all,,,,,PolySi
+cmsel,u,cmv_sens_1
+cm,cmv_sens_%z_level%,volu
+vplot
+vsel,none
+
+cmsel,s,cmv_bondAleft_1
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,PolySi
+cmsel,u,cmv_bondAleft_1
+cm,cmv_bondAleft_%z_level%,volu
+vsel,none
+cmsel,s,cmv_bondAright_1
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,PolySi
+cmsel,u,cmv_bondAright_1
+cm,cmv_bondAright_%z_level%,volu
+vsel,none
+
+cmsel,s,cmv_bondWright_1
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,PolySi
+cmsel,u,cmv_bondWright_1
+cm,cmv_bondWright_%z_level%,volu
+vsel,none
+cmsel,s,cmv_bondWleft_1
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,PolySi
+cmsel,u,cmv_bondWleft_1
+cm,cmv_bondWleft_%z_level%,volu
+vsel,none
+
+alls
+
+/com, extrude: layer 3 -->  Oxide
+z_level=3
+
+cmsel,s,cmv_sub_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+aplot
+vext,all,,,,,HDP
+cmsel,u,cmv_sub_%z_level-1%
+cm,cmv_sub_%z_level%,volu
+vplot
+vsel,none
+
+cmsel,s,cmv_chip_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+aplot
+vext,all,,,,,HDP
+cmsel,u,cmv_chip_%z_level-1%
+cm,cmv_chip_%z_level%,volu
+vplot
+vsel,none
+
+! sensor
+cmsel,s,cmv_sens_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+aplot
+vext,all,,,,,HDP
+cmsel,u,cmv_sens_%z_level-1%
+cm,cmv_sens_%z_level%,volu
+vplot
+vsel,none
+
+cmsel,s,cmv_bondAleft_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,HDP
+cmsel,u,cmv_bondAleft_%z_level-1%
+cm,cmv_bondAleft_%z_level%,volu
+vsel,none
+cmsel,s,cmv_bondAright_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,HDP
+cmsel,u,cmv_bondAright_%z_level-1%
+cm,cmv_bondAright_%z_level%,volu
+vsel,none
+
+cmsel,s,cmv_bondWright_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,HDP
+cmsel,u,cmv_bondWright_%z_level-1%
+cm,cmv_bondWright_%z_level%,volu
+vsel,none
+cmsel,s,cmv_bondWleft_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,HDP
+cmsel,u,cmv_bondWleft_%z_level-1%
+cm,cmv_bondWleft_%z_level%,volu
+vsel,none
+
+alls
+
+/com, extrude: layer 4 -->  Power Metal
+z_level=4
+
+cmsel,s,cmv_sub_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+aplot
+vext,all,,,,,PM
+cmsel,u,cmv_sub_%z_level-1%
+cm,cmv_sub_%z_level%,volu
+vplot
+vsel,none
+
+cmsel,s,cmv_chip_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+aplot
+vext,all,,,,,PM
+cmsel,u,cmv_chip_%z_level-1%
+cm,cmv_chip_%z_level%,volu
+vplot
+vsel,none
+
+cmsel,s,cmv_bondAleft_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,PM
+cmsel,u,cmv_bondAleft_%z_level-1%
+cm,cmv_bondAleft_%z_level%,volu
+vsel,none
+cmsel,s,cmv_bondAright_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,PM
+cmsel,u,cmv_bondAright_%z_level-1%
+cm,cmv_bondAright_%z_level%,volu
+vsel,none
+
+cmsel,s,cmv_bondWright_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,PM
+cmsel,u,cmv_bondWright_%z_level-1%
+cm,cmv_bondWright_%z_level%,volu
+vsel,none
+cmsel,s,cmv_bondWleft_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,PM
+cmsel,u,cmv_bondWleft_%z_level-1%
+cm,cmv_bondWleft_%z_level%,volu
+vsel,none
+
+alls
+
+/com, extrude: layer 5 --> bond wires
+z_level=5
+
+cmsel,s,cmv_bondWright_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,Bond
+cmsel,u,cmv_bondWright_%z_level-1%
+cm,cmv_bondWright_%z_level%,volu
+vsel,none
+cmsel,s,cmv_bondWleft_%z_level-1%
+aslv,s
+asel,r,loc,z,z_coords_array(z_level)-tol,z_coords_array(z_level)+tol
+vext,all,,,,,Bond
+cmsel,u,cmv_bondWleft_%z_level-1%
+cm,cmv_bondWleft_%z_level%,volu
+vsel,none
+
+! MERGING
+alls
+nummrg,kp,nrgfact
+save,'solidMODEL',db
+
+
+/com, ------------------------------------------------------------------
+/com, 3D SENSOR MODEL
+/com, ------------------------------------------------------------------
+
+/com, unselect all in order to start new 2D MICRO model
+alls
+aplot
+vsel,none
+asel,none
+lsel,none
+ksel,none
+nsel,none
+
+/com, move workplane to MICRO z-level
+
+! define local coordinate system (z-location set to BPSG layer)
+local,400,CART,0,0,z3
+csys,400
+wpcsys       !create working plane at local coordinate system
+
+
+/com, area definition
+
+! ### MICRO SENSOR LEVEL 1 ###
+
+!MicroS area
+*DO,ii,1,4
+     ptxy,sens_xy(ii,1),sens_xy(ii,2)
+*ENDDO
+poly
+*get,a_MicroS,area,N,num,max
+
+cm,cma_MicroS,area
+
+/com, MICRO extrution
+z_level=4
+asel,none
+/com, extrude: micro layer (4)
+cmsel,s,cma_MicroS
+vext,cma_MicroS,,,,,PM
+cm,cmv_MicroS_%z_level%,volu
+
+! naming
+cm,cmv_MicroS,volu
+
+/com, ------------------------------------------------------------------
+/com, MICRO MESH
+/com, ------------------------------------------------------------------
+
+! --> horizontal mesh definition
+
+! L4 layer
+h_Micro = 5e-3*SI
+esize,12*h_Micro
+
+!vatt,103 ! Cu (electrically isolating)
+vsweep,all
+
+
+/com, ------------------------------------------------------------------
+/com, MACRO MESH
+/com, ------------------------------------------------------------------
+alls
+
+! plotting options
+/number,1     ! shows only colors (no numbers)
+/pnum,mat,1   ! shows material numbers/colors
+alls
+vplot
+
+! --> from INSIDE OUT
+esize,15e-2*SI
+
+! Poly layer
+z_level = 2
+vsel,none
+cmsel,s,cmv_chip_%z_level%
+cmsel,a,cmv_sens_%z_level%
+!vatt,2501 ! PolySi
+vsweep,all
+
+vsel,none
+cmsel,s,cmv_bondAleft_%z_level%
+cmsel,a,cmv_bondAright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+!vatt,102 ! Al
+vsweep,all
+
+vsel,none
+esize,15e-2*SI
+cmsel,s,cmv_sub_%z_level%
+!vatt,2701 ! Si (electrically isolating)
+vsweep,all
+
+
+! Oxide layer
+z_level = 3
+esize,HDP/2
+
+vsel,none
+cmsel,s,cmv_chip_%z_level%
+cmsel,a,cmv_sens_%z_level%
+!vatt,1101 ! SiOxide
+vsweep,all
+
+vsel,none
+cmsel,s,cmv_bondAleft_%z_level%
+cmsel,a,cmv_bondAright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+!vatt,102 ! Al
+vsweep,all
+
+vsel,none
+cmsel,s,cmv_sub_%z_level%
+!vatt,2701 ! Si (electrically isolating)
+vsweep,all
+
+! PM layer
+z_level = 4
+esize,PM/3
+vsel,none
+cmsel,s,cmv_chip_%z_level%
+!vatt,103 ! Cu (electrically isolating)
+vsweep,all
+
+vsel,none
+cmsel,s,cmv_bondAleft_%z_level%
+cmsel,a,cmv_bondAright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+!vatt,102 ! Al
+vsweep,all
+
+vsel,none
+cmsel,s,cmv_sub_%z_level%
+!vatt,2701 ! Si (electrically isolating)
+vsweep,all
+
+! Substrate layer
+z_level = 1
+esize,15e-2*SI
+vsel,none
+cmsel,s,cmv_chip_%z_level%
+cmsel,a,cmv_sens_%z_level%
+cmsel,a,cmv_bondAleft_%z_level%
+cmsel,a,cmv_bondAright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+cmsel,a,cmv_sub_%z_level%
+!vatt,2701 ! Si (electrically isolating)
+vsweep,all
+
+
+! Bond layer
+z_level = 5
+vsel,none
+cmsel,s,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+!vatt,102 ! Al
+vsweep,all
+
+
+
+/com, Count nodes and elements
+alls
+*get,EcountAll,elem,,count
+*get,NcountAll,nodes,,count
+
+save,'meshedMODEL',db
+
+
+/com, ------------------------------------------------------------------
+/com, NM IMPLEMENTATION
+/com, ------------------------------------------------------------------
+
+!NACS element definition
+setelems,'quadr'!,'quad'
+mshkey,1 !force mapped meshing
+
+
+!/com, Workplace setting
+!csys,0
+!wpcsys,1
+
+alls
+vplot
+vsel,none
+asel,none
+lsel,none
+ksel,none
+nsel,none
+
+/com, ------------------------------------------------------------------
+/com, NM bot - MICRO
+/com, ------------------------------------------------------------------
+
+cmsel,s,cmv_MicroS
+vplot
+aslv
+aplot
+
+!NM bot - CONTA
+z_level=3
+asel,r,loc,z,0-tol,0+tol
+aplot
+
+cm,NM_bot_micro,area
+amesh,all
+
+/com, ------------------------------------------------------------------
+/com, NM bot - MACRO
+/com, ------------------------------------------------------------------
+
+cmsel,s,cmv_sens_3
+vplot
+aslv
+aplot
+
+!NM bot - TARGE
+z_level=3
+asel,r,loc,z,0-tol,0+tol
+aplot
+
+cm,NM_bot_macro,area
+amesh,all
+
+!#######################################################################
+
+/com, ------------------------------------------------------------------
+/com, NM east - MICRO
+/com, ------------------------------------------------------------------
+
+cmsel,s,cmv_MicroS
+vplot
+aslv
+aplot
+
+!NM east - CONTA
+
+asel,r,loc,x,sens_xy(1,1)-tol,sens_xy(1,1)+tol
+aplot
+
+cm,NM_east_micro,area
+amesh,all
+
+
+/com, ------------------------------------------------------------------
+/com, NM east - MACRO
+/com, ------------------------------------------------------------------
+
+alls
+cmsel,s,cmv_chip_4
+vplot
+aslv
+aplot
+
+!NM east - TARGE
+
+asel,r,loc,x,sens_xy(1,1)-tol,sens_xy(1,1)+tol
+aplot
+asel,u,loc,y,sens_xy(1,1)-tol,sens_xy(1,2)+tol
+aplot
+
+cm,NM_east_macro,area
+amesh,all
+
+!#######################################################################
+
+/com, ------------------------------------------------------------------
+/com, NM west - MICRO
+/com, ------------------------------------------------------------------
+
+alls
+cmsel,s,cmv_MicroS
+vplot
+aslv
+aplot
+
+!NM west - CONTA
+
+asel,r,loc,x,sens_xy(2,1)-tol,sens_xy(2,1)+tol
+aplot
+
+cm,NM_west_micro,area
+amesh,all
+
+/com, ------------------------------------------------------------------
+/com, NM west - MACRO
+/com, ------------------------------------------------------------------
+
+alls
+cmsel,s,cmv_chip_4
+vplot
+aslv
+aplot
+
+!NM west - TARGE
+
+asel,r,loc,x,sens_xy(2,1)-tol,sens_xy(2,1)+tol
+aplot
+
+cm,NM_west_macro,area
+amesh,all
+
+!#######################################################################
+
+
+/com, ------------------------------------------------------------------
+/com, NM south - MICRO
+/com, ------------------------------------------------------------------
+alls
+cmsel,s,cmv_MicroS
+vplot
+aslv
+aplot
+
+!NM south - CONTA
+
+asel,r,loc,y,sens_xy(2,2)-tol,sens_xy(2,2)+tol
+aplot
+
+cm,NM_south_micro,area
+amesh,all
+
+/com, ------------------------------------------------------------------
+/com, NM south - MACRO
+/com, ------------------------------------------------------------------
+alls
+cmsel,s,cmv_chip_4
+vplot
+aslv
+aplot
+
+!NM south - TARGE
+
+asel,r,loc,y,sens_xy(1,2)-tol,sens_xy(1,2)+tol
+asel,u,loc,z,0-tol,0+tol
+asel,u,loc,z,PM-tol,PM+tol
+aplot
+
+cm,NM_south_macro,area
+amesh,all
+
+
+!#######################################################################
+
+
+/com, ------------------------------------------------------------------
+/com, NM north - MICRO
+/com, ------------------------------------------------------------------
+
+cmsel,s,cmv_MicroS
+vplot
+aslv
+aplot
+
+!NM north - CONTA
+
+asel,r,loc,y,sens_xy(1,2)+sens_Y-tol,sens_xy(1,2)+sens_Y+tol
+aplot
+
+cm,NM_north_micro,area
+amesh,all
+
+/com, ------------------------------------------------------------------
+/com, NM north - MACRO
+/com, ------------------------------------------------------------------
+
+cmsel,s,cmv_sub_4
+
+vplot
+aslv
+aplot
+
+!NM north - TARGE
+
+asel,r,loc,y,sens_xy(1,2)+sens_Y-tol,sens_xy(1,2)+sens_Y+tol
+aplot
+
+
+cm,NM_north_macro,area
+amesh,all
+
+alls
+
+
+!/com, Workplace setting
+csys,0
+wpcsys,1
+
+alls
+
+save,'meshedMODEL',db
+
+! =================================================
+!
+!          WRITE MODEL FILE - h5
+!
+!
+!
+! Helmut Koeck
+! 22.01.2014
+!
+! =================================================
+
+
+/com, ------------------------------------------------------------------
+/com, CFS definitions 
+/com, ------------------------------------------------------------------
+
+
+! Poly layer
+z_level = 2
+regn,'Vol_poly_A1','airmat2501','cmv_chip_%z_level%','cmv_sens_%z_level%'
+allsel,
+cmsel,s,cmv_chip_%z_level%,
+cmsel,a,cmv_sens_%z_level%
+eslv,
+welems,'Vol_poly_A1'
+
+!regn,'Vol_poly_F1','airmat102','cmv_bondAleft_%z_level%','cmv_bondAright_%z_level%','cmv_bondWleft_%z_level%','cmv_bondWright_%z_level%'
+allsel,
+cmsel,s,cmv_bondAleft_%z_level%
+cmsel,a,cmv_bondAright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+eslv,
+welems,'Vol_poly_F1'
+
+
+!regn,'Vol_poly_C1','airmat2701','cmv_sub_%z_level%'
+allsel,
+cmsel,s,cmv_sub_%z_level%
+eslv,
+welems,'Vol_poly_C1'
+
+! Oxide layer
+z_level = 3
+!regn,'Vol_bpsg_B1','airmat1101','cmv_chip_%z_level%','cmv_sens_%z_level%'
+allsel,
+cmsel,s,cmv_chip_%z_level%
+cmsel,a,cmv_sens_%z_level%
+eslv,
+welems,'Vol_bpsg_B1'
+
+!regn,'Vol_bpsg_F1','airmat102','cmv_bondAleft_%z_level%','cmv_bondAright_%z_level%','cmv_bondWleft_%z_level%','cmv_bondWright_%z_level%'
+allsel,
+cmsel,s,cmv_bondAleft_%z_level%
+cmsel,a,cmv_bondAright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+eslv,
+welems,'Vol_bpsg_F1'
+
+!regn,'Vol_bpsg_C1','airmat2701','cmv_sub_%z_level%'
+allsel,
+cmsel,s,cmv_sub_%z_level%
+eslv,
+welems,'Vol_bpsg_C1'
+
+
+! PM layer
+z_level = 4
+!regn,'Vol_pm_G1','airmat103','cmv_chip_%z_level%'
+allsel,
+cmsel,s,cmv_chip_%z_level%
+eslv,
+welems,'Vol_pm_G1'
+
+
+regn,'Vol_pm_F1','airmat102','cmv_bondAleft_%z_level%','cmv_bondAright_%z_level%','cmv_bondWleft_%z_level%','cmv_bondWright_%z_level%'
+allsel,
+cmsel,s,cmv_bondAleft_%z_level%
+cmsel,a,cmv_bondAright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+eslv,
+welems,'Vol_pm_F1'
+
+!regn,'Vol_pm_C1','airmat2701','cmv_sub_%z_level%'
+allsel,
+cmsel,s,cmv_sub_%z_level%
+eslv,
+welems,'Vol_pm_C1'
+
+
+! substrate layer
+z_level = 1
+!regn,'Vol_sub_C1','airmat2701','cmv_sub_%z_level%'
+allsel,
+cmsel,s,cmv_sub_%z_level%
+eslv,
+welems,'Vol_sub_C1'
+
+
+regn,'Vol_sub_C2','airmat2701','cmv_chip_%z_level%','cmv_sens_%z_level%'
+allsel,
+cmsel,s,cmv_chip_%z_level%
+cmsel,a,cmv_sens_%z_level%
+eslv,
+welems,'Vol_sub_C2'
+
+
+!regn,'Vol_sub_C3','airmat2701','cmv_bondAleft_%z_level%','cmv_bondAright_%z_level%','cmv_bondWleft_%z_level%','cmv_bondWright_%z_level%'
+allsel,
+cmsel,s,cmv_bondAleft_%z_level%
+cmsel,a,cmv_bondAright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+cmsel,a,cmv_bondWright_%z_level%
+eslv,
+welems,'Vol_sub_C3'
+
+
+! Bond layer
+z_level = 5
+regn,'Vol_bond_F1','airmat102','cmv_bondWright_%z_level%','cmv_bondWleft_%z_level%'
+allsel,
+cmsel,s,cmv_bondWright_%z_level%
+cmsel,a,cmv_bondWleft_%z_level%
+eslv,
+welems,'Vol_bond_F1'
+
+
+
+! ######## MICRO REGIONS ########
+alls
+cmsel,s,cmv_MicroS
+vplot
+
+! Layer4 - micro model 
+!regn,'Vmicro_G1','airmat103','cmv_MicroS'
+allsel,
+cmsel,s,cmv_MicroS
+eslv,
+welems,'Vmicro_G1'
+
+
+
+
+/com, ------------------------------------------------------------------
+/com, Define MORTAR interfaces
+/com, ------------------------------------------------------------------
+alls
+!micro
+!surfregion,'A_MOR_BotMicro','NM_bot_micro'
+allsel,
+cmsel,s,NM_bot_micro
+esla,
+welems,'A_MOR_BotMicro'
+
+!surfregion,'A_MOR_EastMicro','NM_east_micro'
+allsel,
+cmsel,s,NM_east_micro
+esla,
+welems,'A_MOR_EastMicro'
+
+!surfregion,'A_MOR_WestMicro','NM_west_micro'
+allsel,
+cmsel,s,NM_west_micro
+esla,
+welems,'A_MOR_WestMicro'
+
+!surfregion,'A_MOR_SouthMicro','NM_south_micro'
+allsel,
+cmsel,s,NM_south_micro
+esla,
+welems,'A_MOR_SouthMicro'
+
+!surfregion,'A_MOR_NorthMicro','NM_north_micro'
+allsel,
+cmsel,s,NM_north_micro
+esla,
+welems,'A_MOR_NorthMicro'
+
+
+!macro
+!surfregion,'A_MOR_BotMacro','NM_bot_macro'
+allsel,
+cmsel,s,NM_bot_macro
+esla,
+welems,'A_MOR_BotMacro'
+
+!surfregion,'A_MOR_EastMacro','NM_east_macro'
+allsel,
+cmsel,s,NM_east_macro
+esla,
+welems,'A_MOR_EastMacro'
+
+!surfregion,'A_MOR_WestMacro','NM_west_macro'
+allsel,
+cmsel,s,NM_west_macro
+esla,
+welems,'A_MOR_WestMacro'
+
+!surfregion,'A_MOR_SouthMacro','NM_south_macro'
+allsel,
+cmsel,s,NM_south_macro
+esla,
+welems,'A_MOR_SouthMacro'
+
+!surfregion,'A_MOR_NorthMacro','NM_north_macro'
+allsel,
+cmsel,s,NM_north_macro
+esla,
+welems,'A_MOR_NorthMacro'
+
+alls
+aplot
+asel,s,loc,z,0-tol,0+tol
+nsla,
+wnodbc,'N_Tsink'
+
+allsel
+z_level = 5
+cmsel,s,cmv_bondWleft_%z_level%
+aslv
+asel,r,loc,z,z_coords_array(z_level)+Bond-tol,z_coords_array(z_level)+Bond+tol
+nsla,s,1
+wnodbc,'Vleft'
+
+z_level = 5
+cmsel,s,cmv_bondWright_%z_level%
+aslv
+aplot
+asel,r,loc,z,z_coords_array(z_level)+Bond-tol,z_coords_array(z_level)+Bond+tol
+nsla,s,1
+wnodbc,'Vright'
+
+! write all nodes
+allsel
+wnodes
+
+/com, ------------------------------------------------------------------
+/com, write h5 FILE
+/com, ------------------------------------------------------------------
+mkhdf5
+

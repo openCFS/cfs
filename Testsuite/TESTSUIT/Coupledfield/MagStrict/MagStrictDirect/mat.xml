@@ -1,0 +1,241 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <material name="air">
+    <!-- pseudo properties to enable deformation of air to be included in simulation 
+values calculated form kompressionmodulus of air (1e5 Pa) and via K = E / (3-6*poisson) 
+poisson estimated to 0.49-->
+    <mechanical>
+      <density>
+        <linear>
+          <real> 1 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.49 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0.0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.25664e-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <material name="NdFeB">
+    <mechanical>
+      <density>
+        <linear>
+          <real>  7500 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <isotropic>
+            <elasticityModulus>
+              <real> 1.6E+11 </real>
+            </elasticityModulus>
+            <poissonNumber>
+              <real> 0.24 </real>
+            </poissonNumber>
+          </isotropic>
+        </linear>
+      </elasticity>
+    </mechanical>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>6.67E5</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>  1.3188E-6 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  <!-- magnetization in 3-direction -->
+  <material name="FeCo-neg">
+    <!-- FE_49 Co_49 V_2  Arbeitspunkt 0kA/m -->
+    <mechanical>
+      <density>
+        <linear>
+          <real> 8100 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+            3.1203E+11    1.3510E+11    1.2787E+11                0             0             0
+            1.3510E+11    3.1203E+11    1.2787E+11                0             0             0
+            1.2787E+11    1.2787E+11    3.1926E+11                0             0             0
+                     0             0             0       0.9389E+11             0             0
+                     0             0             0                0    0.9389E+11             0
+                     0             0             0                0             0    0.8846E+11
+          </real>
+          </tensor>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>5e3</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.01</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+      <!-- h = e * \mu^-1 -->
+      <!-- Werte für e aus Diss. Albach S.91 -->
+      <!-- Fuer iterative kopplung von magnetik zu mechanik -->
+      <magnetoStrictionTensor_h_mech dim1="3" dim2="6">
+        <real>
+                    0             0             0             0    -0.9292e+07         0
+                    0             0             0    -0.9292e+07             0         0
+          0.6195e+07   0.6195e+07    -1.2390e+07             0             0         0
+        </real>
+      </magnetoStrictionTensor_h_mech>
+    </mechanical>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0.0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+              6.2832e-05           0           0
+                       0  6.2832e-05           0
+                       0           0  6.2832e-05
+            </real>
+          </tensor>
+        </linear>
+      </permeability>
+      <!-- Fuer iterative kopplung von mechanik zu magnetik -->
+      <magnetoStrictionTensor_h_mag dim1="3" dim2="6">
+        <real>
+                    0             0             0             0    -0.9292e+07         0
+                    0             0             0    -0.9292e+07             0         0
+          0.6195e+07   0.6195e+07    -1.2390e+07             0             0         0
+        </real>
+      </magnetoStrictionTensor_h_mag>
+    </magnetic>
+    <magnetoStrictive>
+      <!-- Fuer direkte kopplung zwischen magnetik und mechanik -->
+      <magnetoStrictionTensor_h dim1="3" dim2="6">
+        <real>
+                    0             0             0             0    -0.9292e+07         0
+                    0             0             0    -0.9292e+07             0         0
+          0.6195e+07   0.6195e+07    -1.2390e+07             0             0         0
+        </real>
+      </magnetoStrictionTensor_h>
+    </magnetoStrictive>
+  </material>
+  <!-- magnetization in -3-direction -->
+  <material name="FeCo">
+    <!-- FE_49 Co_49 V_2 -->
+    <mechanical>
+      <density>
+        <linear>
+          <real> 8100 </real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim1="6" dim2="6">
+            <real>
+            3.1203E+11    1.3510E+11    1.2787E+11                0             0             0
+            1.3510E+11    3.1203E+11    1.2787E+11                0             0             0
+            1.2787E+11    1.2787E+11    3.1926E+11                0             0             0
+                     0             0             0       0.9389E+11             0             0
+                     0             0             0                0    0.9389E+11             0
+                     0             0             0                0             0    0.8846E+11
+          </real>
+          </tensor>
+        </linear>
+      </elasticity>
+      <damping>
+        <rayleigh>
+          <computeFromTanDeltaAtFrequency>
+            <centerFreq>5e3</centerFreq>
+            <ratioDeltaF>1e-2</ratioDeltaF>
+            <lossTangensDelta>0.01</lossTangensDelta>
+          </computeFromTanDeltaAtFrequency>
+        </rayleigh>
+      </damping>
+      <!-- h = e * \mu^-1 -->
+      <!-- Werte für e aus Diss. Albach S.91 -->
+      <magnetoStrictionTensor_h_mech dim1="3" dim2="6">
+        <real>
+                    0             0             0             0    0.9292e+07         0
+                    0             0             0    0.9292e+07             0         0
+          -0.6195e+07   -0.6195e+07    1.2390e+07             0             0         0
+        </real>
+      </magnetoStrictionTensor_h_mech>
+    </mechanical>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0.0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <tensor dim1="3" dim2="3">
+            <real>
+              6.2832e-05           0           0
+                       0  6.2832e-05           0
+                       0           0  6.2832e-05
+            </real>
+          </tensor>
+        </linear>
+      </permeability>
+      <magnetoStrictionTensor_h_mag dim1="3" dim2="6">
+        <real>
+                    0             0             0             0    0.9292e+07         0
+                    0             0             0    0.9292e+07             0         0
+          -0.6195e+07   -0.6195e+07    1.2390e+07             0             0         0
+        </real>
+      </magnetoStrictionTensor_h_mag>
+    </magnetic>
+    <magnetoStrictive>
+      <magnetoStrictionTensor_h dim1="3" dim2="6">
+        <real>
+                    0             0             0             0    0.9292e+07         0
+                    0             0             0    0.9292e+07             0         0
+          -0.6195e+07   -0.6195e+07    1.2390e+07             0             0         0
+        </real>
+      </magnetoStrictionTensor_h>
+    </magnetoStrictive>
+  </material>
+</cfsMaterialDataBase>

@@ -1,0 +1,166 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="5" infoRejectCounter="1">
+  <summary>
+    <timer wall-clock="0.541s" wall="0.541" cpu="0.535392" calls="1"/>
+  </summary>
+  <header id="">
+    <environment started="2022-Feb-05 02:23:16" host="Fabians-Flunder.fritz.box"/>
+    <progOpts problem="ExpressionHeatSource" parameterFile="/Users/fwein/code/master/Testsuite/TESTSUIT/Singlefield/Heat/ExpressionHeatSource/ExpressionHeatSource.xml" schemaPath="/Users/fwein/code/master/share/xml" meshFile="" logConfFile="" detailed="no" openmp="compiled without">
+      <cfs version="22.02" name="Frohes Fensterln" build="Debug" git_commit="a215f6086a9df296184931d09c1dcdc69e667693" git_branch="external_rhs" exe="cfs_master"/>
+    </progOpts>
+    <domain nx="10" ny="10" nz="1">
+      <grids>
+        <timer wall-clock="0.06s" wall="0.06" cpu="0.059955" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="100" nodes="121"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="mech" id="0" type="volume" regular="yes" hom="yes" nodes="121" elems="100" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="bottom" count="11"/>
+        <nodes name="top" count="11"/>
+        <nodes name="left" count="11"/>
+        <nodes name="right" count="11"/>
+        <nodes name="bottom_left" count="1" coord="(0,0)"/>
+        <nodes name="bottom_right" count="1" coord="(1,0)"/>
+        <nodes name="top_left" count="1" coord="(0,1)"/>
+        <nodes name="top_right" count="1" coord="(1,1)"/>
+        <nodes name="source" count="121"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0" f="0" nx="10" ny="10" nz="1" step="0" t="0" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.002s" wall="0.002" cpu="0.002175" calls="4"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <static>
+      <init_static>
+        <timer wall-clock="0.101s" wall="0.101" cpu="0.100229" calls="1"/>
+      </init_static>
+    </static>
+    <PDE>
+      <heatConduction>
+        <header>
+          <region name="mech" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="HeatConductivity" type="BDBInt" complex="no" BOp="GradientOperator" region="mech">
+                <coef type="CoefFunctionConst" value="[[80.4, 0],[0, 80.4]]"/>
+                <row pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <column pde="heatConduction" functionId="0" result="heatTemperature"/>
+                <destination feMatrix="stiffness" feMatrixMapped="system" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="NodalHeatInt">
+                <entities name="source" size="121" region="no_region"/>
+                <coef type="CoefFunctionExpression" value="((nx^2*max(.75-sqrt((.75-x)^2 + (.25-y)^2),0))  /  (121))"/>
+                <row pde="heatConduction" result="heatTemperature" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="Iron">
+          <regionList>
+            <region name="mech"/>
+          </regionList>
+          <property name="Heat_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 8.040000e+01  0.000000e+00  0.000000e+00
+                 0.000000e+00  8.040000e+01  0.000000e+00
+                 0.000000e+00  0.000000e+00  8.040000e+01
+              </real>
+            </tensor>
+          </property>
+          <property name="Heat_Conductivity_Scalar" value="(80.4,0)"/>
+          <property name="Heat_Capacity" value="444"/>
+          <property name="Density" value="7870"/>
+        </material>
+        <feSpaces>
+          <heatTemperature>
+            <h1Nodal>
+              <regionList>
+                <mech/>
+                <default order="1"/>
+              </regionList>
+            </h1Nodal>
+          </heatTemperature>
+        </feSpaces>
+        <feFunctions>
+          <heatTemperature/>
+          <homDirichletBC/>
+          <inhomDirichletBC>
+            <nodeList name="left" dofs="" value="( 1 + .1 * sin(pi*y) ) "/>
+          </inhomDirichletBC>
+        </feFunctions>
+      </heatConduction>
+    </PDE>
+    <OLAS>
+      <heatConduction>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="121" totalNumFreeEqns="110" totalNumDirichlet="11">
+            <function id="0" name="heatTemperature" numEqns="121" lastFreeEqn="110" numDirichlet="11">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="121" lastFreeIndex="110"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.001978" calls="1"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.000245" calls="1"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="0">
+                <symbfact cpu="0.001059" wall="0.001" peakMem="185" permanentMem="183"/>
+                <numfact cpu="0.000321" wall="0" peakMem="17"/>
+              </call>
+            </process>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="6e-06" calls="1"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </heatConduction>
+      <graph_setup>
+        <timer wall-clock="0.037s" wall="0.037" cpu="0.037306" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="0.083s" wall="0.083" cpu="0.083331" calls="2"/>
+        </assemble>
+      </summary>
+    </analysis>
+  </sequenceStep>
+</cfsInfo>

@@ -1,0 +1,85 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>Normal Current Density</title>
+    <authors>
+      <author>dperchto</author>
+    </authors>
+    <date>2016-03-09</date>
+    <keywords>
+      <keyword>electricConduction</keyword>
+    </keywords>
+    <references>
+      Kories, Taschenbuch der Elektrotechnik,
+      4th edition, p. 49
+    </references>
+    <isVerified>yes</isVerified>
+    <description>
+      This is a simple cuboid conductor. This example verifies the implementation of reading the normal
+      current density, i.e. specifying a known current if the area is known.
+      
+      dimensions: a = 2m, b = 3m, h = 4m
+      h is the dimension in z direction
+      conductivity is set to 1S/m
+      J = 1A/m^2 on inhomogeneous Neumann boundary
+      I = 1A/m^2 * 6m^2 = 6A
+      R = 4m / (6m^2 * 1S/m) = 4/6 Ohm
+      U = R*I = 4V
+      The potential on the hot electrode must be 4V, since the other one is grounded by a homogeneous
+      Dirichlet condition.
+    </description>
+  </documentation>
+  
+  <fileFormats>
+    <input>
+      <hdf5 fileName="simpleConductor.h5"/>
+    </input>
+    <output>
+      <hdf5 id="hdf5"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="3d">
+    <regionList>
+      <region name="conductor" material="dummy"/>
+    </regionList>
+    <surfRegionList>
+      <surfRegion name="hot"/>
+      <surfRegion name="ground"/>
+    </surfRegionList>
+  </domain>
+  
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <elecConduction>
+        <regionList>
+          <region name="conductor"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <ground name="ground"/>
+          <normalCurrentDensity name="hot">
+            <comp dof="z" value="-1.0"/>
+          </normalCurrentDensity>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="elecPotential">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="elecCurrentDensity">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </elecConduction>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>CoefFunctionGridElem</title>
+    <authors>
+      <author>dmayrhof</author>
+    </authors>
+    <date>2025-02-05</date>
+    <keywords>
+      <keyword>input</keyword>
+    </keywords>
+    <references> 
+          Non Just functionality test
+    </references>
+    <isVerified>no</isVerified>
+    <description>
+      Arbitrary example to test element based input. We create input data were the velocity is written out on elements, which is used as a "force" input for another simulation.
+      This test is not physical and just tests if some arbitrary result based on elements can be succesfully read in and used in another simulation with the "grid" tag.
+    </description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="GenInput.cfs"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane">
+    <variableList>
+      <var name="w_plate" value="3e-4"/>
+      <var name="w_air" value="1e-3"/>
+      <var name="h" value="1e-3"/>
+    </variableList>
+    
+    <regionList>
+      <region name="plate" material="FluidMat"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="ExcPre"/>
+      <surfRegion name="Fix_t"/>
+      <surfRegion name="Fix_b"/>
+    </surfRegionList>
+  </domain>
+
+  <sequenceStep index="1"> 
+    <analysis>
+      <transient>
+        <numSteps>15</numSteps>
+        <deltaT>2e-5</deltaT>
+      </transient>
+    </analysis>
+    
+    <pdeList>
+      <mechanic subType="planeStrain">
+      	<regionList>
+          <region name="plate"/>
+        </regionList>
+        
+        <bcsAndLoads>
+          <fix name="Fix_b">
+            <comp dof="y"/>
+          </fix>
+          <fix name="Fix_t">
+            <comp dof="y"/>
+          </fix>
+          <forceDensity name="plate">
+            <grid>
+              <defaultGrid quantity="mechVelocityElem" dependtype="GENERAL" definedOn="element" sequenceStep="1"/>
+            </grid>
+          </forceDensity>
+        </bcsAndLoads>
+         
+        <storeResults>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+          <elemResult type="mechVelocityElem">
+            <allRegions />
+          </elemResult>
+          <elemResult type="mechStrain">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>

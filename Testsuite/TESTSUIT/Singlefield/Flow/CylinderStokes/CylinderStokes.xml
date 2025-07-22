@@ -1,0 +1,171 @@
+<?xml version="1.0"?>
+
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+ xsi:schemaLocation="http://www.cfs++.org/simulation http://cfs-doc.mdmt.tuwien.ac.at/xml/CFS-Simulation/CFS.xsd"
+ xmlns="http://www.cfs++.org/simulation">
+  
+  <documentation>
+    <title>Steady channel flow - Stokes problem</title>
+    <authors>
+      <author>Simon Triebenbacher</author>
+    </authors>
+    <date>2012-03-09</date>
+    <keywords>
+      <keyword>CFD</keyword>
+      <keyword>FluidMechPerturbedPDE</keyword>
+    </keywords>    
+    <references>
+      @PHDTHESIS{Link2008,
+      author = {Gerhard Link},
+      title = {A Finite Element Scheme for Fluid--Solid--Acoustics Interactions
+      and its Application to Human Phonation},
+      school = {University Erlangen-Nuremberg},
+      year = {2008},
+      month = dec,
+      file = {:GerhardLinkDissertation.pdf:PDF},
+      owner = {simon},
+      timestamp = {2009.04.24},
+      url = {http://www.opus.ub.uni-erlangen.de/opus/volltexte/2008/1203/}
+      }
+    </references>
+    <isVerified>no</isVerified>
+    <description>cf. theory.pdf</description>
+  </documentation>
+  
+  
+  <fileFormats>
+    <input>
+      <!--<gmsh fileName="CylinderStokes.msh"/>-->
+      <hdf5 fileName="CylinderStokes.h5ref"/>
+    </input>
+    <output>
+      <hdf5 id="h5"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+  
+  <domain geometryType="plane" printGridInfo="yes">
+    <variableList>
+      <var name="H"    value="0.01"/>
+      <var name="L"    value="3*H"/>
+    </variableList>
+    <regionList>
+      <region name="channel" material="water"/>
+    </regionList>
+    
+    <surfRegionList>
+      <surfRegion name="wall"/>
+      <surfRegion name="cyl"/>
+      <surfRegion name="inflow"/>
+      <surfRegion name="outflow"/>
+    </surfRegionList>
+    
+    <nodeList>
+      <nodes name="pres_fix">
+        <coord x="L" y="H"/>
+      </nodes>
+    </nodeList>
+  </domain>
+  
+  <fePolynomialList>
+    <!-- Set second order polynomial for velocity -->
+    <Lagrange id="velPolyId">
+       <gridOrder/>
+    </Lagrange>
+    
+    <!-- Set first order polynomial for pressure -->
+    <Lagrange id="presPolyId">
+       <isoOrder>1</isoOrder> 
+    </Lagrange>
+  </fePolynomialList>
+
+  <integrationSchemeList>
+    <scheme id="velIntegId">
+      <method>Gauss</method>
+      <order>6</order>
+      <mode>absolute</mode>
+    </scheme>
+    
+    <scheme id="presIntegId">
+      <method>Gauss</method>
+      <order>4</order>
+      <mode>absolute</mode>
+    </scheme>    
+  </integrationSchemeList>  
+  
+  <sequenceStep>
+    <analysis>
+      <static/>
+    </analysis>
+    
+    <pdeList>
+      <fluidMech systemId="fluid" formulation="perturbed" enableC2="false" factorC1="1.0">
+        <regionList>
+          <region name="channel" flowId="myFlow"/>
+        </regionList>
+        
+        <flowList>
+          <flow name="myFlow">
+            <comp dof="x" value="0.02"/>
+          </flow>
+        </flowList>
+        
+        <bcsAndLoads>
+          <noPressure name="pres_fix"/>
+          
+          <noSlip name="wall">
+            <comp dof="y"/>
+          </noSlip>
+          
+          <noSlip name="cyl">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </noSlip>
+          
+          <velocity name="inflow">
+            <comp dof="x" value="0.001"/>
+          </velocity>
+        </bcsAndLoads>
+        
+        <storeResults>
+          <nodeResult type="fluidMechVelocity">
+            <allRegions/>         
+          </nodeResult>
+          <nodeResult type="fluidMechPressure">
+            <allRegions/>         
+          </nodeResult>
+          <elemResult type="fluidMechStrainRate">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="fluidMechStress">
+            <allRegions/>
+          </elemResult>
+          <!--nodeResult type="meanFluidMechVelocity">
+            <allRegions/>         
+          </nodeResult-->
+          <!--sensorArray fileName="vel-line.txt" type="fluidMechVelocity">
+            <parametric>
+            <list comp="x" start="1" stop="1" inc="0"/>
+            <list comp="y" start="0" stop="1" inc="0.01"/>
+            </parametric>
+          </sensorArray-->          
+        </storeResults>
+      </fluidMech>
+    </pdeList>
+    <linearSystems>
+      <system id="fluid">
+        <solutionStrategy>
+          <standard>
+            <setup idbcHandling="elimination" staticCondensation="no"/>
+            <!--exportLinSys baseName="stokes_mat_vel"/-->
+            <matrix storage="sparseNonSym"/>
+            <solver id="default"/>
+          </standard>
+        </solutionStrategy>
+        <solverList>
+          <umfpack/>
+        </solverList>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

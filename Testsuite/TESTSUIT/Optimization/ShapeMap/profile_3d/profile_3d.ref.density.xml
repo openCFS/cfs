@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+
+<cfsErsatzMaterial>
+  <header>
+    <mesh x="8" y="8" z="8"/>
+    <designSpace non_design_vicinity="no"/>
+    <design constant="false" enforce_bounds="false" fixed="false" initial=".5" name="density" physical_lower="1e-7" region="all" relative_bound="-1.0" scale="false" upper="1.0"/>
+    <transferFunction application="mech" type="identity"/>
+  </header>
+  <set id="16">
+    <shapeParamElement nr="0" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="1" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="2" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="3" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="4" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="5" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="6" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="7" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="8" type="node" dof="x" shape="0" ref="0" design="1"/>
+    <shapeParamElement nr="9" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="10" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="11" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="12" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="13" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="14" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="15" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="16" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="17" type="node" dof="z" shape="1" ref="0" design="0.5"/>
+    <shapeParamElement nr="18" type="profile" dof="x" shape="2" ref="0" design="0.501803"/>
+    <shapeParamElement nr="19" type="profile" dof="x" shape="2" ref="0" design="0.469161"/>
+    <shapeParamElement nr="20" type="profile" dof="x" shape="2" ref="0" design="0.449019"/>
+    <shapeParamElement nr="21" type="profile" dof="x" shape="2" ref="0" design="0.425864"/>
+    <shapeParamElement nr="22" type="profile" dof="x" shape="2" ref="0" design="0.395414"/>
+    <shapeParamElement nr="23" type="profile" dof="x" shape="2" ref="0" design="0.354177"/>
+    <shapeParamElement nr="24" type="profile" dof="x" shape="2" ref="0" design="0.314788"/>
+    <shapeParamElement nr="25" type="profile" dof="x" shape="2" ref="0" design="0.287899"/>
+    <shapeParamElement nr="26" type="profile" dof="x" shape="2" ref="0" design="0.273509"/>
+  </set>
+</cfsErsatzMaterial>

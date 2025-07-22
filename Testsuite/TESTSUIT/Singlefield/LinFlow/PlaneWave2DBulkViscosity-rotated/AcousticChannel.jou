@@ -1,0 +1,35 @@
+undo on 
+reset
+
+#{ h = 0.0001  }
+#{ w = 0.3 }
+
+create surface rectangle width { w } height { h } zplane 
+move Surface all x {w/2} y { h/2 } z 0 
+surface 1 scheme submap
+
+block 1 add surface 1 
+block 1 name "S_flow"
+
+nodeset 1 add curve 3  
+nodeset 1 name "L_bottom"
+
+nodeset 2 add curve 1  
+nodeset 2 name "L_top"
+
+nodeset 3 add curve 2
+nodeset 3 name "L_left"
+  
+nodeset 4 add curve 4  
+nodeset 4 name "L_right"
+
+#mesh
+curve 3 1  interval 300
+curve 3 1  scheme equal
+mesh curve 3 1 
+curve 2 4  interval 2
+curve 2 4  scheme equal
+mesh curve 2 4 
+mesh surface 1
+
+export ansys cdb "recsurf.cdb"  overwrite 
