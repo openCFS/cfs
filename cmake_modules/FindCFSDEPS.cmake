@@ -260,9 +260,9 @@ ENDIF(USE_SGPP)
 
 # PETSc requires mpi
 if(USE_PETSC)
-  SET(PETSC_VER "3.9.3")
+  SET(PETSC_VER "3.23.4")
   SET(PETSC_TGZ "petsc-${PETSC_VER}.tar.gz")
-  SET(PETSC_MD5 "7b71d705f66f9961cb0e2da3f9da79a1")
+  SET(PETSC_MD5 "2e48a67311b71bf3ac4ebd5c55428ff6")
   
   INCLUDE("${CFSDEPS_DIR}/petsc/External_PETSC.cmake")
 endif(USE_PETSC)

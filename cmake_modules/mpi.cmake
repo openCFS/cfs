@@ -11,19 +11,17 @@
 #
 # to make use of the mpi libs (petsc), cfs needs to be called by mpirun. 
 # If you have no scaling, try mpirun.hydra from mpic
-if(NOT CMAKE_C_COMPILER MATCHES "mpi")
-  message(FATAL_ERROR "For MPI usage CC needs to be set to a mpicc compiler. Recreate the build directory!")
-endif() 
-if(NOT CMAKE_CXX_COMPILER MATCHES "mpi")
-  message(FATAL_ERROR "For MPI usage CXX needs to be set to a mpicxx compiler. Recreate the build directory!")
-endif()
-if(NOT CMAKE_Fortran_COMPILER MATCHES "mpi") # case sensitive! workfs only like this with cmake 3.9.4
- message(FATAL_ERROR "For MPI usage FC needs to be set to a mpif90 compiler. Recreate the build directory!")
+
+# Detect MPI using CMake's built‐in FindMPI module
+include(FindMPI)
+find_package(MPI REQUIRED COMPONENTS C CXX Fortran)
+if(NOT MPI_C_FOUND OR NOT MPI_CXX_FOUND OR NOT MPI_Fortran_FOUND)
+  message(FATAL_ERROR "MPI compiler wrappers (mpicc, mpicxx, mpif90) not found. Please install or load an MPI distribution.")
 endif()
 
 # search for the mpi version in the path
 # CC=/usr/lib64/mpi/gcc/openmpi/bin/mpicc
-get_filename_component(MPI_BIN ${CMAKE_C_COMPILER} DIRECTORY) # is exported in def_use_mpi.hh.in
+get_filename_component(MPI_BIN ${MPI_C_COMPILER} DIRECTORY) # is exported in def_use_mpi.hh.in
 get_filename_component(MPI_BASE_DIR ${MPI_BIN} DIRECTORY)
 get_filename_component(MPI_BASE ${MPI_BASE_DIR} NAME) # is exported in def_use_mpi.hh.in
 # MPI_BASE shall be openmpi, mpich or intel64 or anything local installed with a version on it

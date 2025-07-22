@@ -17,7 +17,7 @@ set(PETSC_INSTALL  "${PETSC_PREFIX}/install")
 # no patches are required
 
 SET(MIRRORS
-  "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/${PETSC_TGZ}"
+  "https://web.cels.anl.gov/projects/petsc/download/release-snapshots/${PETSC_TGZ}"
   "${CFS_DS_SOURCES_DIR}/petsc/${PETSC_TGZ}")
 
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/petsc/${PETSC_TGZ}")
@@ -71,10 +71,10 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # special handling for mkl
   IF(USE_BLAS_LAPACK MATCHES "MKL")
-    SET(PETSC_BLAS " --with-blas-lapack-dir=${MKL_ROOT}")
+    SET(PETSC_BLAS "--with-blas-lapack-dir=${MKL_ROOT}")
   ELSE()
     # shall work at least for openblas
-    set(PETSC_BLAS " --with-blaslapack-lib=${LAPACK_LIB}")
+    set(PETSC_BLAS "--with-blaslapack-lib=${LAPACK_LIB}")
   ENDIF()       
  
   #-------------------------------------------------------------------------------
@@ -93,11 +93,8 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     BUILD_IN_SOURCE 1
     PATCH_COMMAND ""
     UPDATE_COMMAND ""
-    # petsc has a python2 configure, maybe later also python3 compatible?
-    # python2 config/configure.py  CC=$CC CXX=$CXX FC=$FC --prefix=/home/fwein/tmp/petsc-3.8.3/killme
-    # CC, .. shall be mpicc to be verified in mpi.cmake. Unfortunately there is no assert() in cmake :(
-    #Coudn't avoid copy paste for configure command as the configure command messes up things quotes
-    CONFIGURE_COMMAND python2 ${PETSC_SOURCE}/configure --with-cc=${CMAKE_C_COMPILER} --with-cxx=${CMAKE_CXX_COMPILER} --with-fc=${CMAKE_Fortran_COMPILER} --with-debugging=${PETSC_DEBUG} COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --prefix=${PETSC_INSTALL} --with-valgrind=0 --with-blas-lapack-dir=${MKL_ROOT_DIR}
+    # Force PETSc configure to use the MPI compiler wrappers
+    CONFIGURE_COMMAND ${CMAKE_COMMAND} -E env "CC=${MPI_C_COMPILER}" "CXX=${MPI_CXX_COMPILER}" "FC=${MPI_Fortran_COMPILER}" python3 ${PETSC_SOURCE}/configure --prefix=${PETSC_INSTALL}   --with-mpi-dir=${MPI_BASE_DIR} --with-debugging=${PETSC_DEBUG} COPTFLAGS=-O3 CXXOPTFLAGS=-O3 FOPTFLAGS=-O3 --with-valgrind=0 ${PETSC_BLAS}
     INSTALL_COMMAND make install
     BUILD_BYPRODUCTS ${PETSC_LIBRARY}
   )
