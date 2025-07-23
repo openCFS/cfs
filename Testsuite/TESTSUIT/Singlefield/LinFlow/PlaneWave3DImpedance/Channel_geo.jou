@@ -5,8 +5,8 @@ undo on
 set logging errors on file 'mesh_log.txt'
 
 #{b = 10e-3}; # widht of the channel
-#{h = 0.05}; # height of the channel
-#{h_el = b /4}; # element size
+#{h = 0.02}; # height of the channel
+#{h_el = b /12}; # element size
 
 #{tol = 1e-6}
 merge tolerance {tol}
@@ -16,8 +16,8 @@ merge tolerance {tol}
 
 brick x {h/2} y {b/2} z {b/2}
 brick x {h/2} y {b/2} z {b/2}
-brick x {h/2} y {b} z {b}
-brick x {h/2} y {b} z {b}
+brick x {h/2} y {b} z {b/2}
+brick x {h/2} y {b} z {b/2}
 move Volume 1  x {0} y 0 z 0
 move Volume 2  x {h/2} y 0 z 0
 move Volume 3  x {h} y 0 z 0
@@ -25,6 +25,7 @@ move Volume 4 x {1.5*h} y 0 z 0
 
 merge volume all
 unite volume 2 3
+
 
 # mesh
 volume 1 2 4 size {h_el} scheme submap
@@ -57,6 +58,7 @@ nodeset 5 name "BC_Top"
 Set Block Mixed Element Output Degenerate
 
 export ansys cdb "Channel_mesh.cdb" overwrite
+
 
 
 

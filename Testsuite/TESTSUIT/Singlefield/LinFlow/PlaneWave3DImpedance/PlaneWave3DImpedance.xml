@@ -67,12 +67,12 @@
     <analysis>
       <transient>
         <numSteps>50</numSteps>
-        <deltaT>5e-5</deltaT>
+        <deltaT>1e-5</deltaT>
       </transient>
     </analysis>
     
     <pdeList>
-      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel" enableGridVelC1="false" enableGridVelC2="false">
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel" enableGridVelC1="true" enableGridVelC2="true">
         <regionList>
           <region name="Channel" />
         </regionList>
@@ -91,7 +91,7 @@
           </noSlip>
           
           
-          <pressure name="Excite" value="sin(2*pi*f_exc*t)*(1-exp(-t/(3e-5)))"/>
+          <pressure name="Excite" value="50*sin(2*pi*f_exc*t)"/>
         </bcsAndLoads>
         
         <storeResults>
@@ -103,14 +103,14 @@
           </nodeResult>
           <surfRegionResult type="fluidMechVolumeFlowRate">
             <surfRegionList>
-              <surfRegion name="Imp_surface_1" outputIds="h5,txt"/>
-              <surfRegion name="Imp_surface_2" outputIds="h5,txt"/>
+              <surfRegion name="Imp_surface_1" outputIds="txt"/>
+              <surfRegion name="Imp_surface_2" outputIds="txt"/>
             </surfRegionList>
           </surfRegionResult>
           <surfRegionResult type="fluidMechAveragedPressure">
             <surfRegionList>
-              <surfRegion name="Imp_surface_1" outputIds="h5,txt"/>
-              <surfRegion name="Imp_surface_2" outputIds="h5,txt"/>
+              <surfRegion name="Imp_surface_1" outputIds="txt"/>
+              <surfRegion name="Imp_surface_2" outputIds="txt"/>
             </surfRegionList>
           </surfRegionResult>
         </storeResults>
