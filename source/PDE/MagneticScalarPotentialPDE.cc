@@ -150,10 +150,12 @@ namespace CoupledField
           moreThan1HystRegion = true;
           
           std::map<std::string, double> ParameterMap;
+          std::map<std::string, string> StringParameterMap; 
           if(actSDMat->GetAnhystMagModel() == "analytic_anhysteresis"){
             actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
             actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
-            ParameterMap["anhyst_type"] = 1; // atan
+            //ParameterMap["anhyst_type"] = 1; // atan
+            actSDMat->GetScalar(ParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB, Global::REAL);
           }else if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
             actSDMat->GetScalar(ParameterMap["AS"], MAG_MSM_AS, Global::REAL);
             actSDMat->GetScalar(ParameterMap["K1"], MAG_MSM_K1, Global::REAL);
@@ -161,17 +163,20 @@ namespace CoupledField
             actSDMat->GetScalar(ParameterMap["lambda100"], MAG_MSM_LAMBDA100, Global::REAL);
             actSDMat->GetScalar(ParameterMap["lambda111"], MAG_MSM_LAMBDA111, Global::REAL);
             actSDMat->GetScalar(ParameterMap["Ps"], MAG_MSM_PS, Global::REAL);
-            ParameterMap["anhyst_type"] = 2; // MSM
+            //ParameterMap["anhyst_type"] = 2; // MSM
+            actSDMat->GetScalar(ParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB, Global::REAL);
+            
           }
           actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["approx_type"], MAG_APPROX_TYPE, Global::REAL);
           ParameterMap["isMH"] = 0;
+          actSDMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_EB);
 
           
           //matModelCoef_->InitModel(ParameterMap, actSDList);          
-          matModelCoefm_[actRegion]->InitModel(ParameterMap, actSDList);
+          matModelCoefm_[actRegion]->InitModel(ParameterMap,StringParameterMap, actSDList);
 
           if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
             // check if we have a dependency of the anhysteretic curve with mechanical stress
@@ -265,6 +270,8 @@ namespace CoupledField
       // ===============================================================================================
       // NONLINEAR CASE AND NONLINEAR REGION: \int B(H) \gradPhi' (start)
       // ===============================================================================================
+      std::cout<<nonLinTypes.Find(PERMEABILITY);
+      std::cout<<PERMEABILITY;
       if (nonLinTypes.Find(PERMEABILITY) != -1) {
         if (modelName_ == "JilesAthertonModel")
         {

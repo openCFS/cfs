@@ -25,7 +25,7 @@ namespace CoupledField {
       //! Destructor
       virtual ~EBHysteresis();
 
-      void Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim);
+      void Init(std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList, UInt dim);
 
       Double ComputeMaterialParameter(Vector<Double> E, Integer ElemNum);
       Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> E, Integer ElemNum);
@@ -44,7 +44,7 @@ namespace CoupledField {
 
       /*
       =========================================================================================
-          Methods regarding the inverse schem
+          Methods regarding the inverse scheme
       =========================================================================================
       */
       Vector<Double> ComputeMaterialParamaterDerivative(Vector<Double> E, UInt idx);
@@ -116,6 +116,9 @@ namespace CoupledField {
       UInt jacobian_method_;
       UInt anhyst_type_;
       std::string approx_type_;
+      std::string pinning_forces_weight_;
+      StdVector<Double> kappa_file_, omega_file_;
+
 
       StdVector< StdVector<Double> > Htotal_prev_;
       StdVector< StdVector<Double> > Mprev_iter_;

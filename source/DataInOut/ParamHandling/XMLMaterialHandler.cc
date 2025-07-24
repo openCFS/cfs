@@ -1093,6 +1093,8 @@ namespace CoupledField {
               material->SetAnhystMagModel("analytic_anhysteresis");
               material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/Ps")->As<Double>(), MaterialType(MAG_PS_EB), Global::REAL);
               material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/A")->As<Double>(), MaterialType(MAG_A_EB), Global::REAL);
+              material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/anhyst_type")->As<Double>(), MaterialType(MAG_ANHYST_TYPE_EB), Global::REAL);
+            
             }
             if(model->Has("Anhysteresis_model/multiscale_anhysteresis")){
               material->SetAnhystMagModel("multiscale_anhysteresis");
@@ -1104,7 +1106,8 @@ namespace CoupledField {
               material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/Ps")->As<Double>(), MaterialType(MAG_MSM_PS), Global::REAL);
             }
             material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_EB), Global::REAL);
-            material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL);
+            material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL);// delete later
+            material->SetString(model->Get("pinning_forces_weights_file")->As<string>(), MaterialType(MAG_PINNING_FORCES_WEIGHTS_EB));
             if(model->Get("Jacobian_type")->As<std::string>() == "FD"){
               material->SetScalar(1, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
             }else if(model->Get("Jacobian_type")->As<std::string>() == "Broyden"){

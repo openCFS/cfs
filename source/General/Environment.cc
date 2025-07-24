@@ -563,6 +563,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add(MAG_MSM_LAMBDA100, "mag_msm_lambda100");
     MaterialTypeEnum.Add(MAG_MSM_LAMBDA111, "mag_msm_lambda111");
     MaterialTypeEnum.Add(MAG_MSM_PS, "mag_msm_Ps");
+    MaterialTypeEnum.Add(MAG_ANHYST_TYPE_EB, "mag_anhyst_type_EB");
+    MaterialTypeEnum.Add(MAG_PINNING_FORCES_WEIGHTS_EB, "mag_pinning_forces_weights_EB");
+
+
     // Magnetic inverse EB Hysteresis Parameters
     MaterialTypeEnum.Add(MAG_JS_INVEB, "mag_Js_invEB");
     MaterialTypeEnum.Add(MAG_A_INVEB, "mag_A_invEB");

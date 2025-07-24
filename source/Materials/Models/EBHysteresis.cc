@@ -32,7 +32,8 @@ DEFINE_LOG(eb, "EBHysteresis")
   {
   }
 
-  void EBHysteresis::Init(std::map<std::string, double> ParameterMap, shared_ptr<ElemList> entityList, UInt dim) 
+
+  void EBHysteresis::Init(std::map<std::string, double> ParameterMap, std::map<std::string, string> StringParameterMap, shared_ptr<ElemList> entityList, UInt dim) 
   {
     
     dim_ = dim;
@@ -57,7 +58,13 @@ DEFINE_LOG(eb, "EBHysteresis")
     jacobian_method_ = ParameterMap["jacobian_method"];
     anhyst_type_ = ParameterMap["anhyst_type"]; // 1 is atan, 2 is MSM
 
-    if (anhyst_type_ == 2)
+    if (anhyst_type_ == 1)
+    {
+      // atan anhysteresis model
+      Ps_ = ParameterMap["Ps"];
+      A_ = ParameterMap["A"];
+    }
+    else if (anhyst_type_ == 2)
     {
       // multiscale anhysteresis model
       SMSM_model_ = std::make_unique<SMSM>(ParameterMap["Ps"],
@@ -67,12 +74,21 @@ DEFINE_LOG(eb, "EBHysteresis")
                                            ParameterMap["lambda100"],
                                            ParameterMap["lambda111"],
                                            dim_);
-    }else{
-      // atan anhysteresis model
-      Ps_ = ParameterMap["Ps"];
-      A_ = ParameterMap["A"];
     }
-
+    pinning_forces_weight_ = StringParameterMap["pinning_forces_weights_file"];
+    std::ifstream file(pinning_forces_weight_);
+    double x, y;
+    // Check if the file was successfully opened
+    if (!file) {
+        EXCEPTION("Error: Unable to open file: " << pinning_forces_weight_ << std::endl);
+    }
+    while (file >> x >> y) {
+        kappa_file_.push_back(x);
+        omega_file_.push_back(y);
+    }
+    // Close the file
+    file.close();
+    numS_ = kappa_file_.GetSize(); // at this poiont the numS is overwritten - change later
     isMH_ = ParameterMap["isMH"];
     if(isMH_ == 1.0)
     {
@@ -997,7 +1013,9 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     StdVector<Double> chi(numS_);
     for (UInt i = 0; i < numS_; i++)
     {
-      chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
+      // chi[i] = chi_factor_ * i / (numS_ - 1) + 1e-22;
+      chi[i] = kappa_file_[i];
+      weight[i] = omega_file_[i];
     }
 
 
