@@ -67,6 +67,13 @@ namespace CoupledField
     isAllowed_.insert( MAG_MU0_EB );
     isAllowed_.insert( MAG_NUMS_EB );
     isAllowed_.insert( MAG_CHI_FACTOR_EB );
+    isAllowed_.insert( MAG_MSM_AS );
+    isAllowed_.insert( MAG_APPROX_TYPE );
+    isAllowed_.insert( MAG_MSM_K1 );
+    isAllowed_.insert( MAG_MSM_K2 );
+    isAllowed_.insert( MAG_MSM_LAMBDA100 );
+    isAllowed_.insert( MAG_MSM_LAMBDA111 );
+    isAllowed_.insert( MAG_MSM_PS );
     isAllowed_.insert( MAG_JACOBIAN_METHOD_EB );
 
     // -- inverse Energy based vectrohysteresis 
