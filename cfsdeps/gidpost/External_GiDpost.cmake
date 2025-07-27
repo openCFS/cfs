@@ -9,10 +9,10 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "gidpost")
-set(PACKAGE_VER "2.11") # not that we hide depecreced warnings in SimOutGiD.cc 
+set(PACKAGE_VER "2.13") # not that we hide depecreced warnings in SimOutGiD.cc 
 set(PACKAGE_FILE "gidpost-${PACKAGE_VER}.zip")
-set(PACKAGE_MD5 "20cbd5b359fb1b6ef4ae5d2f1f26a41e")
-set(DEPS_VER "-a") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
+set(PACKAGE_MD5 "3672d46422c1d9987e8985d40bcfa247")
+set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names.
 
@@ -52,8 +52,8 @@ set(DEPS_ARGS
 
 # --- it follows generic final block for cmake packages with a patch and no postinstall ---
 
-# we need to patch - we skip the append patch frin version 2.1 in 02.2025
-generate_patches_script()
+# no patch needed
+assert_unset(PATCHES_SCRIPT)
 
 # we have no postinstall, so don't call generate_postinstall_script()
 assert_unset(POSTINSTALL_SCRIPT)
@@ -76,7 +76,7 @@ if(${CFS_DEPS_PRECOMPILED} AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 # if not, build newly and possibly pack the stuff
 else()
   # patched cmake project    
-  create_external_cmake_patched()  
+  create_external_cmake()  
 
   # new data just built: shall we pack and store as precompiled?
   if(${CFS_DEPS_PRECOMPILED})
