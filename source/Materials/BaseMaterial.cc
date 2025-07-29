@@ -447,6 +447,9 @@ namespace CoupledField
   void BaseMaterial::SetAnhystMagModel( const std::string name ){
     anhystereticModel_ = name;
   }
+  void BaseMaterial::SetAnhystFormula( const std::string name ){
+    anhystereticFormula_ = name;
+  }
   
   void BaseMaterial::SetCoefFct( MaterialType matType, PtrCoefFct coef ) {
     

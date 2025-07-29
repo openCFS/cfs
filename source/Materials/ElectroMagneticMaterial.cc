@@ -64,9 +64,13 @@ namespace CoupledField
     // -- Energy based vectorhysteresis
     isAllowed_.insert( MAG_PS_EB );
     isAllowed_.insert( MAG_A_EB );
+    isAllowed_.insert( MAG_MSAT_PACEJKA_EB );
+    isAllowed_.insert( MAG_A_PACEJKA_EB );
+    isAllowed_.insert( MAG_B_PACEJKA_EB );
+    isAllowed_.insert( MAG_C_PACEJKA_EB );
     isAllowed_.insert( MAG_MU0_EB );
-    isAllowed_.insert( MAG_NUMS_EB );
-    isAllowed_.insert( MAG_CHI_FACTOR_EB );
+    isAllowed_.insert( MAG_NUMS_EB );//these two are the old implementation but they are still needed for the invEBHyst
+    isAllowed_.insert( MAG_CHI_FACTOR_EB ); //these two are the old implementation but they are still needed for the invEBHyst
     isAllowed_.insert( MAG_MSM_AS );
     isAllowed_.insert( MAG_APPROX_TYPE );
     isAllowed_.insert( MAG_MSM_K1 );
@@ -76,7 +80,10 @@ namespace CoupledField
     isAllowed_.insert( MAG_MSM_PS );
     isAllowed_.insert( MAG_JACOBIAN_METHOD_EB );
     isAllowed_.insert( MAG_ANHYST_TYPE_EB );
+    isAllowed_.insert( MAG_ANHYST_FORMULA_EB );
     isAllowed_.insert( MAG_PINNING_FORCES_WEIGHTS_EB );
+    isAllowed_.insert( MAG_WEIGHTS_FILE_PATH_EB );
+    
 
     // -- inverse Energy based vectrohysteresis 
     isAllowed_.insert( MAG_JS_INVEB );

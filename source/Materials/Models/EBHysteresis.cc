@@ -53,18 +53,27 @@ DEFINE_LOG(eb, "EBHysteresis")
     if (ParameterMap.size() < 5) {
       EXCEPTION("The model needs 5 parameters!");
     }
-    numS_ = ParameterMap["numS"];
-    chi_factor_ = ParameterMap["chi_factor"];
+    // numS_ = ParameterMap["numS"]; 
+    // chi_factor_ = ParameterMap["chi_factor"];
     jacobian_method_ = ParameterMap["jacobian_method"];
-    anhyst_type_ = ParameterMap["anhyst_type"]; // 1 is atan, 2 is MSM
-
-    if (anhyst_type_ == 1)
+    anhyst_type_ = StringParameterMap["anhyst_type"];
+    anhyst_formula_ = StringParameterMap["anhyst_formula"];
+    //anhyst_type_=1; // hardcoded to test 
+    if (anhyst_type_ == "analytic_anhysteresis")
     {
-      // atan anhysteresis model
-      Ps_ = ParameterMap["Ps"];
-      A_ = ParameterMap["A"];
+      if(anhyst_formula_ == "atan"){
+        Ps_ = ParameterMap["Ps"];
+        A_ = ParameterMap["A"];
+      }
+      if(anhyst_formula_ == "pacejka"){
+        m_sat_pacejka_ = ParameterMap["m_sat"];
+        a_pacejka_ = ParameterMap["a"];
+        b_pacejka_ = ParameterMap["b"];
+        c_pacejka_ = ParameterMap["c"];
+      }
+
     }
-    else if (anhyst_type_ == 2)
+    else if (anhyst_type_ == "multiscale_anhysteresis")
     {
       // multiscale anhysteresis model
       SMSM_model_ = std::make_unique<SMSM>(ParameterMap["Ps"],
@@ -75,7 +84,9 @@ DEFINE_LOG(eb, "EBHysteresis")
                                            ParameterMap["lambda111"],
                                            dim_);
     }
-    pinning_forces_weight_ = StringParameterMap["pinning_forces_weights_file"];
+    
+    pinning_forces_weight_ = StringParameterMap["weights_file_path"]+"/"+StringParameterMap["pinning_forces_weights_file"];
+    std::cout << pinning_forces_weight_<< std::endl;
     std::ifstream file(pinning_forces_weight_);
     double x, y;
     // Check if the file was successfully opened
@@ -299,7 +310,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       delta_B[i] = B_k[i] - B_k_0[i];
     }
 
-    if ((numS_ > 1) || (anhyst_type_ == 2))
+    if ((numS_ > 1) || (anhyst_type_ == "multiscale_anhysteresis"))
     { // hysteretic case
       switch (jacobian_method_)
       {
@@ -1018,27 +1029,51 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       weight[i] = omega_file_[i];
     }
 
+    if(anhyst_type_=="analytic_anhysteresis"){
+      if(anhyst_formula_=="pacejka"){
+        //check pacejka parameters
+        if(m_sat_pacejka_<=0){
+          EXCEPTION("m_sat cannot be negative or 0");
+        }
+        if(a_pacejka_<0){
+          EXCEPTION("a cannot be negative");
+        }
+        if((b_pacejka_*c_pacejka_)<0){
+          EXCEPTION("b times c cannot be negative");
+        }     
+      }
+    }
+
+    double sum = 0.0;
+    for (size_t i = 0; i < weight.size(); ++i) {
+      sum += weight[i];
+    }
+    //check weight distribution
+    if((sum-1)>0.01 ||(sum-1)<-0.01){
+      EXCEPTION("The sum of the weights must be equal to 1!");
+    }
+
 
     if (dim_ == 2)
-    {
-      if ((approx_type_ == "fullEB") && (anhyst_type_ == 2))
+    {// make deciscion not on anhyst type but on analytic 
+      if ((approx_type_ == "fullEB") && (anhyst_type_ == "multiscale_anhysteresis"))
       {
         // fullEB + Multiscale mode
         #pragma omp critical
         ret = Eval_2D_EBM_MSM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
-      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
+      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == "multiscale_anhysteresis"))
       {
         // VPM + Multiscale model
         #pragma omp critical
         ret = Eval_2D_VPM_MSM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
-      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 1))
+      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == "analytic_anhysteresis"))
       {
         // VPM + atan anhysteresis
-        ret = Eval_2D_VPM_ATAN(Hn, saveTmpStageVecs_, idx, weight, chi);
+        ret = Eval_2D_VPM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
-      else if ((approx_type_ == "fullEB") && (anhyst_type_ == 1))
+      else if ((approx_type_ == "fullEB") && (anhyst_type_ == "analytic_anhysteresis"))
       {
         // fullEB + atan anhysteresis
         ret = Eval_2D_EBM_ATAN(Hn, saveTmpStageVecs_, idx, weight, chi);
@@ -1046,24 +1081,24 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     }
     else if (dim_ == 3)
     {
-      if ((approx_type_ == "fullEB") && (anhyst_type_ == 2))
+      if ((approx_type_ == "fullEB") && (anhyst_type_ == "multiscale_anhysteresis"))
       {
         // fullEB + Multiscale model
         #pragma omp critical
         ret = Eval_3D_EBM_MSM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
-      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 2))
+      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == "multiscale_anhysteresis"))
       {
         // VPM + Multiscale model
         #pragma omp critical
         ret = Eval_3D_VPM_MSM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
-      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == 1))
+      else if ((approx_type_ == "approxVPM") && (anhyst_type_ == "analytic_anhysteresis"))
       {
         // VPM + atan anhysteresis
-        ret = Eval_3D_VPM_ATAN(Hn, saveTmpStageVecs_, idx, weight, chi);
+        ret = Eval_3D_VPM(Hn, saveTmpStageVecs_, idx, weight, chi);
       }
-      else if ((approx_type_ == "fullEB") && (anhyst_type_ == 1))
+      else if ((approx_type_ == "fullEB") && (anhyst_type_ == "analytic_anhysteresis"))
       {
         // fullEB + atan anhysteresis
         EXCEPTION("EBM+ATAN currently only implemented for 2D!");
@@ -1073,7 +1108,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
   }
 
 
-  Vector<Double> EBHysteresis::Eval_3D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  Vector<Double> EBHysteresis::Eval_3D_VPM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
     Vector<Double> ret;
     StdVector<Double> error, dir, HrxS_sol, HryS_sol, HrzS_sol, MxS_sol, MyS_sol, MzS_sol;
@@ -1132,10 +1167,17 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       }
       HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2) + std::pow(HrzS_sol[k], 2));
       if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
-      { // pure VPM with atan anhysteresis curve
-        MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
-        MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
-        MzS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrzS_sol[k] / HrS;
+      { 
+        if(anhyst_formula_=="atan"){
+          MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
+          MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
+          MzS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrzS_sol[k] / HrS;
+        }
+        else if(anhyst_formula_=="pacejka"){
+          MxS_sol[k] = m_sat_pacejka_ * std::sin(std::atan(a_pacejka_*HrS+b_pacejka_*std::atan(c_pacejka_*HrS))) * HrxS_sol[k] / HrS;
+          MyS_sol[k] = m_sat_pacejka_ * std::sin(std::atan(a_pacejka_*HrS+b_pacejka_*std::atan(c_pacejka_*HrS))) * HryS_sol[k] / HrS;
+          MzS_sol[k] = m_sat_pacejka_ * std::sin(std::atan(a_pacejka_*HrS+b_pacejka_*std::atan(c_pacejka_*HrS))) * HrzS_sol[k] / HrS;
+        }
       }
       else
       {
@@ -1169,7 +1211,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
   }
 
 
-  Vector<Double> EBHysteresis::Eval_2D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
+  Vector<Double> EBHysteresis::Eval_2D_VPM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi)
   {
     Vector<Double> ret;
     StdVector<Double> error, dir, HrxS_sol, HryS_sol, MxS_sol, MyS_sol;
@@ -1219,9 +1261,15 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
       }
       HrS = std::sqrt(std::pow(HrxS_sol[k], 2) + std::pow(HryS_sol[k], 2));
       if (std::sqrt(std::pow(HrS, 2)) > 1.0e-12)
-      { // pure VPM with atan anhysteresis curve
-        MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
-        MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
+      { 
+        if(anhyst_formula_=="atan"){
+          MxS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HrxS_sol[k] / HrS;
+          MyS_sol[k] = (2.0 * Ps_ / M_PI) * std::atan(HrS / A_) * HryS_sol[k] / HrS;
+        }
+        if(anhyst_formula_=="pacejka"){
+          MxS_sol[k] = m_sat_pacejka_ * std::sin(std::atan(a_pacejka_*HrS+b_pacejka_*std::atan(c_pacejka_*HrS))) * HrxS_sol[k] / HrS;
+          MyS_sol[k] = m_sat_pacejka_ * std::sin(std::atan(a_pacejka_*HrS+b_pacejka_*std::atan(c_pacejka_*HrS))) * HryS_sol[k] / HrS;
+        }
       }
       else
       {

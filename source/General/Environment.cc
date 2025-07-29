@@ -553,9 +553,13 @@ namespace CoupledField {
     // Magnetic EB Hysteresis Parameters
     MaterialTypeEnum.Add(MAG_PS_EB, "mag_Ps_EB");
     MaterialTypeEnum.Add(MAG_A_EB, "mag_A_EB");
+    MaterialTypeEnum.Add(MAG_MSAT_PACEJKA_EB, "mag_msat_Pacejka_EB");
+    MaterialTypeEnum.Add(MAG_A_PACEJKA_EB, "mag_a_Pacejka_EB");
+    MaterialTypeEnum.Add(MAG_B_PACEJKA_EB, "mag_b_Pacejka_EB");
+    MaterialTypeEnum.Add(MAG_C_PACEJKA_EB, "mag_c_Pacejka_EB");
     MaterialTypeEnum.Add(MAG_MU0_EB, "mag_mu0_EB");
-    MaterialTypeEnum.Add(MAG_NUMS_EB, "mag_numS_EB");
-    MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB");
+    MaterialTypeEnum.Add(MAG_NUMS_EB, "mag_numS_EB");//these two are the old implementation but they are still needed for the invEBHyst
+    MaterialTypeEnum.Add(MAG_CHI_FACTOR_EB, "mag_chi_factor_EB"); //these two are the old implementation but they are still needed for the invEBHyst
     MaterialTypeEnum.Add(MAG_MSM_AS, "mag_msm_AS");
     MaterialTypeEnum.Add(MAG_APPROX_TYPE, "mag_approx_type");
     MaterialTypeEnum.Add(MAG_MSM_K1, "mag_msm_K1");
@@ -564,7 +568,9 @@ namespace CoupledField {
     MaterialTypeEnum.Add(MAG_MSM_LAMBDA111, "mag_msm_lambda111");
     MaterialTypeEnum.Add(MAG_MSM_PS, "mag_msm_Ps");
     MaterialTypeEnum.Add(MAG_ANHYST_TYPE_EB, "mag_anhyst_type_EB");
+    MaterialTypeEnum.Add(MAG_ANHYST_FORMULA_EB, "mag_anhyst_formula_EB");
     MaterialTypeEnum.Add(MAG_PINNING_FORCES_WEIGHTS_EB, "mag_pinning_forces_weights_EB");
+    MaterialTypeEnum.Add(MAG_WEIGHTS_FILE_PATH_EB, "mag_weights_file_path_EB");
 
 
     // Magnetic inverse EB Hysteresis Parameters

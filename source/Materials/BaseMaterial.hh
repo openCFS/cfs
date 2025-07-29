@@ -415,6 +415,10 @@ namespace CoupledField {
     //! Set an anhysteretic material model
     virtual void SetAnhystMagModel( const std::string name );
     std::string GetAnhystMagModel(){return anhystereticModel_;};
+
+    //! Set an anhysteretic Formula
+    virtual void SetAnhystFormula( const std::string name );
+    std::string GetAnhystFormula(){return anhystereticFormula_;};
     
     //@}
 
@@ -550,6 +554,9 @@ namespace CoupledField {
 
     //! name of anhysteretic model version
     std::string anhystereticModel_;
+    
+    //! name of anhysteretic formula
+    std::string anhystereticFormula_;
 
     //! name of anhysteretic model version
     std::string hessiantype_;

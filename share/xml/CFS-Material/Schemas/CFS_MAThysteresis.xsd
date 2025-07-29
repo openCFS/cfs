@@ -933,8 +933,8 @@
         </xsd:element>        
       </xsd:choice>
       <xsd:element name="Jacobian_type" type="DT_EBHysteresis_JacobianType" minOccurs="1"/>
-      <xsd:element name="numS" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="chi_factor" type="xsd:double" minOccurs="1"/>
+      <!-- <xsd:element name="numS" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="chi_factor" type="xsd:double" minOccurs="1"/> -->
       <xsd:element name="pinning_forces_weights_file" type="xsd:string" minOccurs="0" maxOccurs="1">
       <xsd:annotation>
         <xsd:documentation>
@@ -944,23 +944,85 @@
       </xsd:element>
       <xsd:element name="deriv_A" type="xsd:string" minOccurs="0" maxOccurs="1"/>
       <xsd:element name="deriv_Ps" type="xsd:string" minOccurs="0" maxOccurs="1"/>      
-
     </xsd:sequence>
   </xsd:complexType>
 
+
     
+
   <xsd:complexType name="DT_EBHysteresis_AnhysteresisModel_AnalyticFunction">
-    <xsd:all>
-      <xsd:element name="anhyst_type" type="xsd:double" minOccurs="1">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="atan" type="DT_EBHysteresis_AnhystType_Atan">
+          <xsd:annotation>
+            <xsd:documentation>
+              The formula is
+              2*Ps/pi*atan(h/A)
+              it needs the parameters A and Ps
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="pacejka" type="DT_EBHysteresis_AnhystType_Pacejka">
+          <xsd:annotation>
+            <xsd:documentation>
+              pacejka formula - parameters m_sat, a, b, c
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:choice>
+
+
+
+
+      <!-- <xsd:element name="anhyst_type" type="DT_EBHysteresis_AnhystType" minOccurs="1" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation>
-            1 ... 2*Ps/pi*atan(h/A)
-            2 ... simplified multiscale model DOI: macht Lukas später
-            3 ... Lookuptable macht Lukas später
-            4 ... pacejka
+            Choose between 
+            2*Ps/pi*atan(h/A) - parameters A and Ps
+            simplified multiscale model DOI: macht Lukas später
+            Lookuptable macht Lukas später
+            pacejka formula - parameters m_sat, a, b, c
           </xsd:documentation>
         </xsd:annotation>
-      </xsd:element>
+      </xsd:element>       -->
+      <!-- <xsd:element name="anhyst_type" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            1 ... 2*Ps/pi*atan(h/A) - parameters A and Ps
+            2 ... simplified multiscale model DOI: macht Lukas später
+            3 ... Lookuptable macht Lukas später
+            4 ... pacejka formula - parameters m_sat, a, b, c
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element> -->
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- <xsd:complexType name="DT_EBHysteresis_AnhystType">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="atan" type="DT_EBHysteresis_AnhystType_Atan">
+          <xsd:annotation>
+            <xsd:documentation>
+              The formula is
+              2*Ps/pi*atan(h/A)
+              it needs the parameters A and Ps
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="pacejka" type="DT_EBHysteresis_AnhystType_Pacejka">
+          <xsd:annotation>
+            <xsd:documentation>
+              pacejka formula - parameters m_sat, a, b, c
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType> -->
+
+  <xsd:complexType name="DT_EBHysteresis_AnhystType_Atan">
+    <xsd:sequence>
       <xsd:element name="Ps" type="xsd:double" minOccurs="1">
         <xsd:annotation>
           <xsd:documentation>
@@ -974,11 +1036,42 @@
             Initial steepness of the anhysteretic curve (determines the initial permeability)
           </xsd:documentation>
         </xsd:annotation>  
-    </xsd:element>
-
-    </xsd:all>
+      </xsd:element>
+    </xsd:sequence>
   </xsd:complexType>
 
+  <xsd:complexType name="DT_EBHysteresis_AnhystType_Pacejka">
+    <xsd:sequence>
+      <xsd:element name="m_sat" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            satturation magnetization of the material
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="a" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            influences the satturated region of the BH curve
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="b" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            influences the region between linear and satturated region
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+      <xsd:element name="c" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            influences the linear region
+          </xsd:documentation>
+        </xsd:annotation>  
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
 
   <xsd:complexType name="DT_EBHysteresis_AnhysteresisModel_MultiscaleModel">
     <xsd:all>

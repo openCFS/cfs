@@ -133,6 +133,7 @@ namespace CoupledField
         }
         else if (modelName_ == "EBHysteresisModel")
         {
+          
           // if(moreThan1HystRegion){
           //   EXCEPTION("Currently only ONE hysteretic region is allowed!");
           // }
@@ -151,12 +152,31 @@ namespace CoupledField
           
           std::map<std::string, double> ParameterMap;
           std::map<std::string, string> StringParameterMap; 
+          actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
+          /// here is sill set the strong param map for the EBhst
           if(actSDMat->GetAnhystMagModel() == "analytic_anhysteresis"){
-            actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
-            actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
+            actSDMat->GetString(StringParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB);
+            if(actSDMat->GetAnhystFormula() == "atan"){
+              actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_EB);
+              actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
+            }
+
+            if(actSDMat->GetAnhystFormula() == "pacejka"){
+              actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_EB);
+              actSDMat->GetScalar(ParameterMap["m_sat"], MAG_MSAT_PACEJKA_EB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["a"], MAG_A_PACEJKA_EB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["b"], MAG_B_PACEJKA_EB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["c"], MAG_C_PACEJKA_EB, Global::REAL);
+
+            }
+
+
+
             //ParameterMap["anhyst_type"] = 1; // atan
-            actSDMat->GetScalar(ParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB, Global::REAL);
+            //actSDMat->GetScalar(ParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB, Global::REAL);
           }else if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
+            actSDMat->GetString(StringParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB);
             actSDMat->GetScalar(ParameterMap["AS"], MAG_MSM_AS, Global::REAL);
             actSDMat->GetScalar(ParameterMap["K1"], MAG_MSM_K1, Global::REAL);
             actSDMat->GetScalar(ParameterMap["K2"], MAG_MSM_K2, Global::REAL);
@@ -164,11 +184,11 @@ namespace CoupledField
             actSDMat->GetScalar(ParameterMap["lambda111"], MAG_MSM_LAMBDA111, Global::REAL);
             actSDMat->GetScalar(ParameterMap["Ps"], MAG_MSM_PS, Global::REAL);
             //ParameterMap["anhyst_type"] = 2; // MSM
-            actSDMat->GetScalar(ParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB, Global::REAL);
+            //actSDMat->GetScalar(ParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB, Global::REAL);
             
           }
-          actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
-          actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
+          //actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
+          //actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["approx_type"], MAG_APPROX_TYPE, Global::REAL);
           ParameterMap["isMH"] = 0;

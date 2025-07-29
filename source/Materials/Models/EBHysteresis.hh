@@ -76,8 +76,8 @@ namespace CoupledField {
       Vector<Double> Evaluate(Vector<Double> E, UInt idx);
 
       Vector<Double> Eval_2D_EBM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
-      Vector<Double> Eval_2D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
-      Vector<Double> Eval_3D_VPM_ATAN(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+      Vector<Double> Eval_2D_VPM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
+      Vector<Double> Eval_3D_VPM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
 
       Vector<Double> Eval_2D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
       Vector<Double> Eval_3D_VPM_MSM(Vector<Double> Hn, bool saveTmpStageVecs, UInt idx, StdVector<Double> weight, StdVector<Double> chi);
@@ -110,11 +110,17 @@ namespace CoupledField {
 
       Double Ps_;
       Double A_;
+      Double m_sat_pacejka_;
+      Double a_pacejka_;
+      Double b_pacejka_;
+      Double c_pacejka_;
       Double mu0_;
       UInt numS_;
       Double chi_factor_;
       UInt jacobian_method_;
-      UInt anhyst_type_;
+      //UInt anhyst_type_;
+      std::string anhyst_type_;
+      std::string anhyst_formula_;
       std::string approx_type_;
       std::string pinning_forces_weight_;
       StdVector<Double> kappa_file_, omega_file_;
