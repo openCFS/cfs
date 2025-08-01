@@ -9,14 +9,17 @@ clear_depencency_variables()
 
 # set mandatory variables for the macros in DependencyTools.cmake.
 set(PACKAGE_NAME "gidpost")
-set(PACKAGE_VER "2.13") # not that we hide depecreced warnings in SimOutGiD.cc 
+set(PACKAGE_VER "2.13") # note that we hide deprecated warnings in SimOutGiD.cc
 set(PACKAGE_FILE "gidpost-${PACKAGE_VER}.zip")
 set(PACKAGE_MD5 "3672d46422c1d9987e8985d40bcfa247")
 set(DEPS_VER "") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
 
 # the mirrors can point to arbitrary file names.
 
-set(PACKAGE_MIRRORS "https://downloads.gidsimulation.com/Tools/gidpost/${PACKAGE_FILE}") 
+# Define the primary and fallback URLs
+set(PACKAGE_MIRRORS "https://downloads.gidsimulation.com/Tools/gidpost/${PACKAGE_FILE}"
+                    "https://downloads.gidsimulation.com/Tools/gidpost/old/${PACKAGE_FILE}")
+                    
 # add default mirrors to PACKAGE_MIRRORS or replace all with LOCAL_PACKAGE_FILE if we already have it
 add_standard_mirrors_or_set_local()
 
