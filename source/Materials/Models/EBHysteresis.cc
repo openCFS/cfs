@@ -86,7 +86,6 @@ DEFINE_LOG(eb, "EBHysteresis")
     }
     
     pinning_forces_weight_ = StringParameterMap["weights_file_path"]+"/"+StringParameterMap["pinning_forces_weights_file"];
-    std::cout << pinning_forces_weight_<< std::endl;
     std::ifstream file(pinning_forces_weight_);
     double x, y;
     // Check if the file was successfully opened
@@ -310,7 +309,7 @@ DEFINE_LOG(eb, "EBHysteresis")
       delta_B[i] = B_k[i] - B_k_0[i];
     }
 
-    if ((numS_ > 1) || (anhyst_type_ == "multiscale_anhysteresis"))
+    if ((numS_ > 1) || (anhyst_type_ == "multiscale_anhysteresis") || (anhyst_formula_ == "pacejka"))
     { // hysteretic case
       switch (jacobian_method_)
       {
