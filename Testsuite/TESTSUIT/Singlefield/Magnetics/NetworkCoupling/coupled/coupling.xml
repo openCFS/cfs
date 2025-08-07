@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation file:/home/dominik/Devel/CFS_SRC/cfs/share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  <fileFormats>
+    <input>
+      
+      <internal id="network">
+        <network>
+          <nodeList>
+            <node Name="N1" x="0.15" y="0.1" z="0"/>
+            <node Name="N2" x="0.15" y="0.05" z="0"/>
+            <node Name="N3" x="0.15" y="0" z="0"/>
+            <node Name="N4" x="0.3" y="0.05" z="0"/>
+          </nodeList>
+          <elementList>
+            <elems Name="E1" TerminalA="N1" TerminalB="N2"/>
+            <elems Name="E2" TerminalA="N2" TerminalB="N3"/>
+            <elems Name="E3" TerminalA="N1" TerminalB="N4"/>
+          </elementList>
+        </network>
+      </internal>
+      <hdf5 fileName="MagneticNetworkCoil2D.cfs" id="mag" scaleFac="1"/>
+    </input>
+
+    <output>
+      <hdf5 id="h5"/>
+      <text id="txt"/>
+    </output>
+
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="coil" material="copper"/>
+      <region name="air" material="air"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>200</numSteps>
+        <deltaT>0.25e-3</deltaT>
+      </transient>
+
+    </analysis>
+
+    <pdeList>
+      <magnetic>
+        <regionList>
+          <region name="coil"/>
+          <region name="air"/>
+        </regionList>
+
+        <bcsAndLoads>
+          <elecNetworkGround name="N3"/>
+
+          <fluxParallel name="outer">
+            <comp dof=""/>
+          </fluxParallel>
+        </bcsAndLoads>
+
+        <network MeshID="network">
+          <passiveNetworkElement name="E2" type="Resistor" value="1"/>
+          <passiveNetworkElement name="E3" type="Resistor" value="1"/>
+          <networkSource name="E1" type="CurrentSource" value="(t lt 1e-2)? 0: 1" internalResistance="1" direction="BA"/>
+          <positiveTerminal femTerminal="coil" networkTerminal="N4"/>
+          <negativeTerminal femTerminal="coil" networkTerminal="N2"/>
+        </network>
+
+        <storeResults>
+          <nodeResult type="magPotential">
+						<regionList>
+              <region name="air" outputIds="h5"/>
+            </regionList>
+          </nodeResult> 
+          <elemResult type="magFluxDensity">
+            <regionList>
+              <region name="air"/>
+              <region name="coil"/>
+            </regionList>
+          </elemResult>
+          <elemResult type="magFieldIntensity">
+            <regionList>
+              <region name="air"/>
+              <region name="coil"/>
+            </regionList>
+          </elemResult>
+          <nodeResult type="elecNetworkPotential">
+            <regionList>
+              <region name="E1" outputIds="txt"/>
+              <region name="E2" outputIds="txt"/>
+              <region name="E3" outputIds="txt"/>
+            </regionList>
+          </nodeResult>
+       </storeResults>
+      </magnetic>
+    </pdeList>
+    <linearSystems getRidOfZeros="no">
+      <system>
+        <solutionStrategy>
+          <standard>
+            <matrix storage="sparseNonSym"/>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

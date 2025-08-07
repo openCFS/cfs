@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org file:/home/domini/Devel/CFS_SRC/latest_trunk/CFS/share/xml/CFS-Simulation/CFS.xsd"
+  xmlns="http://www.cfs++.org/simulation">
+  
+  <!--***************************    INPUTs and OUTPUTs    ***********************-->
+  <fileFormats> 
+    <input>
+       <cdb fileName="MagneticNetworkCoil2D.cdb" />
+    </input>
+    
+    <output>
+      <hdf5 id="hdf5" directory="."/>
+    </output>
+    
+  </fileFormats>
+  
+  <!--***************************  REGIONSs, SURFACEs and NODEs  ***********************-->
+    <!--domain geometryType="plane"-->
+    <domain geometryType="plane"/>
+
+</cfsSimulation>

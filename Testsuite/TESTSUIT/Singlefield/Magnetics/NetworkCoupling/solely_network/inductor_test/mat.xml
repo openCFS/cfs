@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material">
+  <!-- STANDARD LINEAR MATERIALS -->
+  <material name="copper">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>1e6</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1e-6</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+
+    <material name="air">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real>1e-6</real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+ 
+</cfsMaterialDataBase>

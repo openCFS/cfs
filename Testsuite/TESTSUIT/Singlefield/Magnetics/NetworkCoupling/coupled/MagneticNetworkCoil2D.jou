@@ -1,0 +1,54 @@
+reset
+undo on
+
+
+set logging errors on file 'mesh_log.txt'
+
+#{r = 1}; # radius of the inductor
+#{R = 20}; # radius of the air domain
+#{h_el = 1}; # element size
+#{rad_int = 10}; # radial intervals
+
+#{tol = 1e-6}
+merge tolerance {tol}
+
+
+# geometry
+
+create surface circle radius {R} zplane
+
+create surface circle radius {r} zplane
+
+subtract surface 2 from surface 1 keep
+delete surface 1
+
+merge volume all
+
+# mesh
+surface 2 size {h_el} scheme circle
+mesh surface 2
+
+surface 3 size {h_el} scheme hole rad_intervals {rad_int}
+mesh surface 3
+
+
+# blocks and nodesets
+
+block 1 add surface 2
+block 1 name "coil"
+
+block 2 add surface 3
+block 2 name "air"
+
+
+nodeset 1 add curve 4
+nodeset 1 name "outer"
+
+
+
+# use this command to enable the output of wedges inside your hex-blocks (otherwise you get holes)
+Set Block Mixed Element Output Degenerate
+
+export ansys cdb "MagneticNetworkCoil2D.cdb" overwrite
+
+
