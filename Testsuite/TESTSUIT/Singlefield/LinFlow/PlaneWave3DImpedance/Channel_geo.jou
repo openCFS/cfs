@@ -5,8 +5,8 @@ undo on
 set logging errors on file 'mesh_log.txt'
 
 #{b = 10e-3}; # widht of the channel
-#{h = 0.02}; # height of the channel
-#{h_el = b /12}; # element size
+#{h = 0.01}; # height of the channel
+#{h_el = b /10}; # element size
 
 #{tol = 1e-6}
 merge tolerance {tol}
@@ -16,48 +16,40 @@ merge tolerance {tol}
 
 brick x {h/2} y {b/2} z {b/2}
 brick x {h/2} y {b/2} z {b/2}
-brick x {h/2} y {b} z {b/2}
-brick x {h/2} y {b} z {b/2}
 move Volume 1  x {0} y 0 z 0
 move Volume 2  x {h/2} y 0 z 0
-move Volume 3  x {h} y 0 z 0
-move Volume 4 x {1.5*h} y 0 z 0
 
 merge volume all
-unite volume 2 3
 
 
 # mesh
-volume 1 2 4 size {h_el} scheme submap
-mesh volume 1 2 4
+volume 1 2 size {h_el} scheme submap
+mesh volume 1 2
 
 
 # blocks and nodesets
 
-block 1 add volume 1 2 4
+block 1 add volume 1 2
 block 1 name "Channel"
 
-nodeset 1 add surface 1 2 3 5 7 8 9 10 11 12 13 14 15 17 25 19 20 21 23
+nodeset 1 add surface 1 2 3 5 7 8 9 10 11
 nodeset 1 name "BC_Channel_Wall"
 
 nodeset 2 add surface 6
 nodeset 2 name "Imp_surface_1"
 
-nodeset 3 add surface 18
-nodeset 3 name "Imp_surface_2"
-
 nodeset 4 add surface 4
 nodeset 4 name "Excite"
 
-nodeset 5 add surface 24
+nodeset 5 add surface 12
 nodeset 5 name "BC_Top"
-
 
 
 # use this command to enable the output of wedges inside your hex-blocks (otherwise you get holes)
 Set Block Mixed Element Output Degenerate
 
 export ansys cdb "Channel_mesh.cdb" overwrite
+
 
 
 

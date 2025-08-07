@@ -23,7 +23,7 @@
   <fileFormats>
     <input>
       <hdf5 fileName="PlaneWave3DImpedance.h5ref"/>
-      <!--<cdb fileName="Channel_mesh.cdb"/>-->
+      <!--cdb fileName="Channel_mesh.cdb"/>-->
     </input>
     <output>
       <hdf5 id="h5"/>
@@ -45,7 +45,6 @@
       <surfRegion name="Excite"/>
       <surfRegion name="BC_Channel_Wall"/>
       <surfRegion name="Imp_surface_1"/>
-      <surfRegion name="Imp_surface_2"/>
       <surfRegion name="BC_Top"/>
     </surfRegionList> 
     
@@ -66,7 +65,7 @@
   <sequenceStep>
     <analysis>
       <transient>
-        <numSteps>50</numSteps>
+        <numSteps>10</numSteps>
         <deltaT>1e-5</deltaT>
       </transient>
     </analysis>
@@ -104,13 +103,11 @@
           <surfRegionResult type="fluidMechVolumeFlowRate">
             <surfRegionList>
               <surfRegion name="Imp_surface_1" outputIds="txt"/>
-              <surfRegion name="Imp_surface_2" outputIds="txt"/>
             </surfRegionList>
           </surfRegionResult>
           <surfRegionResult type="fluidMechAveragedPressure">
             <surfRegionList>
               <surfRegion name="Imp_surface_1" outputIds="txt"/>
-              <surfRegion name="Imp_surface_2" outputIds="txt"/>
             </surfRegionList>
           </surfRegionResult>
         </storeResults>
