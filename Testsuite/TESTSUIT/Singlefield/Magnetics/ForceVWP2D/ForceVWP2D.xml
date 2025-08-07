@@ -93,7 +93,11 @@
           <elemResult type="magElemPermeability">
             <allRegions/>
           </elemResult>     
-                       
+          <surfElemResult type="magForceVWPDensity" >
+            <surfElemList>
+              <surfElems name="interface" neighborRegion="air" outputIds="hdf5" writeAsHistResult="no"/>
+            </surfElemList>
+          </surfElemResult>               
           <surfRegionResult type="magForceVWP">
             <surfRegionList>
               <surfRegion name="interface" neighborRegion="air" outputIds="hdf5"/>
