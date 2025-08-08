@@ -31,7 +31,7 @@
         </regionList>
         <nodeList>
             <nodes name="N_gauge">
-                <coord x="0" y="0.01e-3" z="0"/>
+                <coord x="0" y="0.0" z="0"/>
             </nodes>
         </nodeList>
     </domain>
@@ -82,7 +82,7 @@
                         </part>
                     </coil>
                     <coil id="coil2">
-                        <source type="current" value="i*N*t"/>
+                        <source type="current" value="i*N*sin(t)"/>
                         <part id="1">
                             <regionList>
                                 <region name="V_coil2"/>

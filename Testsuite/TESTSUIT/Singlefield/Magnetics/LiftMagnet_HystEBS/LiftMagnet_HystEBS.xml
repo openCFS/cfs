@@ -82,7 +82,7 @@
                         </part>
                     </coil>
                     <coil id="coil2">
-                        <source type="current" value="i*N*t"/>
+                        <source type="current" value="i*N*sin(t)"/>
                         <part id="1">
                             <regionList>
                                 <region name="V_coil2"/>

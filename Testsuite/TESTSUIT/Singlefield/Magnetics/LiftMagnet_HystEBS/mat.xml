@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://www.cfs++.org/material file:/home/lukas/Devel/CFS_SRC/cfs/share/xml/CFS-Material/CFS_Material.xsd">
+    xsi:schemaLocation="http://www.cfs++.org/material file:/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Material/CFS_Material.xsd">
     
   <material name="air">
     <acoustic>
@@ -74,13 +74,14 @@
               <Approx_type>approxVPM</Approx_type>
               <Anhysteresis_model>
                 <analytic_anhysteresis>
-                  <A>38</A>
-                  <Ps>1.23e6</Ps>
+                  <atan>
+                    <Ps>1.23e6</Ps>
+                    <A>38</A>
+                  </atan>
                 </analytic_anhysteresis>
               </Anhysteresis_model>
               <Jacobian_type>BFGS</Jacobian_type>
-              <numS>5</numS>
-              <chi_factor>60</chi_factor>
+              <pinning_forces_weights_file>omega_kappa_hyst.txt</pinning_forces_weights_file>
             </EBHysteresisModel>
           </isotropic>
         </model>
