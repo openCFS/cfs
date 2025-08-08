@@ -574,10 +574,18 @@ namespace CoupledField {
 
 
     // Magnetic inverse EB Hysteresis Parameters
+    MaterialTypeEnum.Add(MAG_ANHYST_TYPE_INVEB, "mag_anhyst_type_invEB");
+    MaterialTypeEnum.Add(MAG_ANHYST_FORMULA_INVEB, "mag_anhyst_formula_invEB");
     MaterialTypeEnum.Add(MAG_JS_INVEB, "mag_Js_invEB");
     MaterialTypeEnum.Add(MAG_A_INVEB, "mag_A_invEB");
-    MaterialTypeEnum.Add(MAG_NUMS_INVEB, "mag_numS_invEB");
-    MaterialTypeEnum.Add(MAG_CHI_FACTOR_INVEB, "mag_chi_factor_invEB");
+    MaterialTypeEnum.Add(MAG_P0_INVEB, "mag_p0_invEB");
+    MaterialTypeEnum.Add(MAG_P1_INVEB, "mag_p1_invEB");
+    MaterialTypeEnum.Add(MAG_P2_INVEB, "mag_p2_invEB");
+    MaterialTypeEnum.Add(MAG_PINNING_FORCES_WEIGHTS_INVEB, "mag_pinning_forces_weights_invEB");
+    MaterialTypeEnum.Add(MAG_WEIGHTS_FILE_PATH_INVEB, "mag_weights_file_path_invEB");
+    MaterialTypeEnum.Add(MAG_LOOKUP_TABLE_FILE_INVEB, "mag_lookup_table_file_invEB");
+
+
 
     MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_EB, "mag_jacobian_method_EB");
     MaterialTypeEnum.Add(MAG_JACOBIAN_METHOD_INVEB, "mag_jacobian_method_invEB");

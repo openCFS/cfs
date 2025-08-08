@@ -209,17 +209,32 @@ namespace CoupledField {
           BaseBDBInt * stiffInt = NULL;
 
           // init. EB Material Model
+
           std::map<std::string, double> ParameterMap;
+          std::map<std::string, std::string> StringParameterMap;
           if(actSDMat->GetAnhystMagModel() == "analytic_anhysteresis"){
-            actSDMat->GetScalar(ParameterMap["Js"], MAG_JS_INVEB, Global::REAL);
-            actSDMat->GetScalar(ParameterMap["A"], MAG_A_INVEB, Global::REAL);
-            ParameterMap["anhyst_type"] = 1; // atan
+            actSDMat->GetString(StringParameterMap["anhyst_type"], MAG_ANHYST_TYPE_INVEB);
+            if(actSDMat->GetAnhystFormula() == "tan"){
+              actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
+              actSDMat->GetScalar(ParameterMap["Js"], MAG_JS_INVEB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["A"], MAG_A_INVEB, Global::REAL);
+              actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
+              actSDMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
+            } else if (actSDMat->GetAnhystFormula() == "brauer") {
+              actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
+              actSDMat->GetScalar(ParameterMap["p_0"], MAG_P0_INVEB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["p_1"], MAG_P1_INVEB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["p_2"], MAG_P2_INVEB, Global::REAL);
+            } else if (actSDMat->GetAnhystFormula() == "lookuptable") {
+              actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
+              actSDMat->GetString(StringParameterMap["lookup_table_file"], MAG_LOOKUP_TABLE_FILE_INVEB);
+              actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
+              actSDMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
+            }
           }
-          actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_INVEB, Global::REAL);
-          actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_INVEB, Global::REAL);
-          actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
           ParameterMap["isMH"] = 0;
-          matModelCoef_->InitModel(ParameterMap, actSDList);
+          actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
+          matModelCoef_->InitModel(ParameterMap,StringParameterMap, actSDList);
           nu_nonlinear_eb = matModelCoef_;
           nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoef_);
 

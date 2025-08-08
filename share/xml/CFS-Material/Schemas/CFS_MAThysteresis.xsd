@@ -938,7 +938,7 @@
       <xsd:element name="pinning_forces_weights_file" type="xsd:string" minOccurs="0" maxOccurs="1">
       <xsd:annotation>
         <xsd:documentation>
-          Absolute path of the file containing all pinning forces and weights in .txt format
+          file containing all pinning forces and weights in .txt format
         </xsd:documentation>
       </xsd:annotation>
       </xsd:element>
@@ -1150,13 +1150,43 @@
         </xsd:element>        
       </xsd:choice>
       <xsd:element name="Jacobian_type" type="DT_invEBHysteresis_JacobianType" minOccurs="1"/>
-      <xsd:element name="numS" type="xsd:double" minOccurs="1"/>
-      <xsd:element name="chi_factor" type="xsd:double" minOccurs="1"/>
+      <xsd:element name="pinning_forces_weights_file" type="xsd:string" minOccurs="1"></xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_AnalyticFunction">
+    <xsd:sequence>
+      <xsd:choice>
+        <xsd:element name="tan" type="DT_invEBHysteresis_AnhysteresisModel_Tan">
+          <xsd:annotation>
+            <xsd:documentation>
+              tan() function as inverse anhysteretic function
+              H = A * tan((pi * J)/(2*Js))
+              DOI: 10.1109/TMAG.2025.3544507
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="brauer" type="DT_invEBHysteresis_AnhysteresisModel_Brauer">
+          <xsd:annotation>
+            <xsd:documentation>
+              Brauer formula for H = H(B). (No hysteresis possible with this model)
+              DOI: 10.1109/TMAG.1975.1058555 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+        <xsd:element name="lookuptable" type="DT_invEBHysteresis_AnhysteresisModel_LUT">
+          <xsd:annotation>
+            <xsd:documentation>
+              A lookup table is provided to describe the anhysteretic function J = J(H)
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:element>
+      </xsd:choice>
     </xsd:sequence>
   </xsd:complexType>
 
     
-    <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_AnalyticFunction">
+    <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_Tan">
     <xsd:all>
       <xsd:element name="Js" type="xsd:double" minOccurs="1">
         <xsd:annotation>
@@ -1172,6 +1202,44 @@
           </xsd:documentation>
         </xsd:annotation>  
     </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_Brauer">
+    <xsd:all>
+      <xsd:element name="p_0" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            parameter p_0
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="p_1" type="xsd:double" minOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            parameter p_1
+          </xsd:documentation>
+        </xsd:annotation>  
+    </xsd:element>
+    <xsd:element name="p_2" type="xsd:double" minOccurs="1">
+      <xsd:annotation>
+        <xsd:documentation>
+          parameter p_2
+        </xsd:documentation>
+      </xsd:annotation>  
+  </xsd:element>
+    </xsd:all>
+  </xsd:complexType>
+
+  <xsd:complexType name="DT_invEBHysteresis_AnhysteresisModel_LUT">
+    <xsd:all>
+      <xsd:element name="lookup_table_file" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation>
+            Absolute path of the file containing to .txt file that contains all JH values of the anhysteretic curve
+          </xsd:documentation>
+        </xsd:annotation>
+        </xsd:element>
     </xsd:all>
   </xsd:complexType>
 

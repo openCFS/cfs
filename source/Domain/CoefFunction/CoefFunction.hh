@@ -830,6 +830,9 @@ public:
   virtual void InitModel(std::map<std::string, double> ParameterMap , UInt numElems){
     EXCEPTION("CoefFuncion::InitModel not overwritten by " << GetName());
   }
+  virtual void InitModel(std::map<std::string, double> ParameterMap, std::map<std::string, std::string> StringParameterMap , UInt numElems){
+    EXCEPTION("CoefFuncion::InitModel not overwritten by " << GetName());
+  }
 
   virtual void RegisterStressDependence(PtrCoefFct stressCoef){
     EXCEPTION("CoefFuncion::RegisterStressDependence not overwritten by " << GetName());

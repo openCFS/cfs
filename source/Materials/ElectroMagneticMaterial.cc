@@ -85,12 +85,20 @@ namespace CoupledField
     isAllowed_.insert( MAG_WEIGHTS_FILE_PATH_EB );
     
 
-    // -- inverse Energy based vectrohysteresis 
+    // -- inverse Energy based vectorhysteresis
+    isAllowed_.insert( MAG_ANHYST_TYPE_INVEB );
+    isAllowed_.insert( MAG_ANHYST_FORMULA_INVEB ); 
     isAllowed_.insert( MAG_JS_INVEB );
     isAllowed_.insert( MAG_A_INVEB );
-    isAllowed_.insert( MAG_NUMS_INVEB );
-    isAllowed_.insert( MAG_CHI_FACTOR_INVEB );
+    isAllowed_.insert( MAG_P0_INVEB );
+    isAllowed_.insert( MAG_P1_INVEB );
+    isAllowed_.insert( MAG_P2_INVEB );
+    isAllowed_.insert( MAG_PINNING_FORCES_WEIGHTS_INVEB );
+    isAllowed_.insert( MAG_WEIGHTS_FILE_PATH_INVEB );
+    isAllowed_.insert( MAG_LOOKUP_TABLE_FILE_INVEB );
     isAllowed_.insert( MAG_JACOBIAN_METHOD_INVEB );
+
+
 
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION );
     isAllowed_.insert( PRESCRIBED_MAGNETIZATION_X );
