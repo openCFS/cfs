@@ -1,7 +1,9 @@
 # this should be run from the CFS root directory
 
+# we use curl.exe and not curl for powershell as only curl.exe has the proper options and we don't use wget.exe which is available on Windows by default
+
 # install ccache (https://ccache.dev/download.html)
-wget.exe --quiet https://github.com/ccache/ccache/releases/download/v4.10.2/ccache-4.10.2-windows-x86_64.zip
+curl.exe -sS --quiet https://github.com/ccache/ccache/releases/download/v4.10.2/ccache-4.10.2-windows-x86_64.zip
 Expand-Archive -Path ccache-4.10.2-windows-x86_64.zip -DestinationPath ccache-extract
 New-Item -ItemType directory -Path cache/ccache
 Get-Childitem -Path ccache-extract -Include "ccache.exe" -File -Recurse | Copy-Item  -Destination cache/ccache
@@ -11,8 +13,9 @@ Remove-Item ccache-extract -Force -Recurse -ErrorAction SilentlyContinue
 
 # we install ifx and mkl from the same source
 # we get and install Intel oneAPI based on https://www.intel.com/content/www/us/en/developer/tools/oneapi/hpc-toolkit-download.html  
-wget.exe --quiet https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37c30c3-a846-4371-a85d-603e9a9eb94c/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe -O oneapi_offline.exe
-
+curl.exe -sS https://registrationcenter-download.intel.com/akdlm/IRC_NAS/a37c30c3-a846-4371-a85d-603e9a9eb94c/intel-oneapi-hpc-toolkit-2025.0.1.48_offline.exe -o oneapi_offline.exe
+# verify that the stuff could be downloaded from Intel
+ls oneapi_offline.exe 
 # install in two steps. We are Administrator, see https://learn.microsoft.com/de-de/archive/blogs/virtual_pc_guy/a-self-elevating-powershell-script
 # inspired by https://github.com/oneapi-src/oneapi-ci/blob/master/scripts/install_windows.bat
 # note that $CI_PROJECT_DIR is the current dir C:\GitLab-Runner\builds\openCFS\cfs
@@ -40,6 +43,6 @@ Remove-Item cache/oneAPI/mkl/latest/lib/*sycl* -Force  -Recurse
 Remove-Item cache/oneAPI/mkl/latest/bin/*sycl* -Force  -Recurse
 
 # install git
-wget.exe --quiet https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/PortableGit-2.43.0-64-bit.7z.exe
+curl.exe -sS https://github.com/git-for-windows/git/releases/download/v2.43.0.windows.1/PortableGit-2.43.0-64-bit.7z.exe
 ./PortableGit-2.43.0-64-bit.7z.exe -o"$env:CI_PROJECT_DIR/cache/git" -y
 Remove-Item PortableGit-2.43.0-64-bit.7z.exe -Force -Recurse -ErrorAction SilentlyContinue
