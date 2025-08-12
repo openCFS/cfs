@@ -30,8 +30,8 @@ class FinishedParsing(Exception):
 # @param x, y, z optional mesh size in case it is not given in the density file. Note, the smallest number is 1, not 0!!
 # @param set optional name of set, if not given use default
 # @param fill if the density is a subset of the mesh return 1D or fill with fill_value if fill is set
-def read_density(filename, attribute="design", x=None, y=None, z=None, set=None, fill = None):
-  vals, dim = read_density_as_vector(filename, 'density', attribute, set, mesh = True)
+def read_density(filename, attribute="design", x=None, y=None, z=None, set=None, fill = None, crop = False):
+  vals, dim = read_density_as_vector(filename, 'density', attribute, set, mesh = True, crop = crop)
   mx, my, mz = dim
 
   if x == None:
@@ -96,42 +96,48 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
 # @param attribute the scalar attribute: "design" (default), "physical", "nr"
 # @param set optionally give a set name (string) when not given the last is used
 # @param mesh shall also the mesh be returned as tuple of three ints?
+# @param crop does not return the dims from the header, but computes the dims of the actual design domain.
 # @return vector of floats for value and if mesh is set also a tuple of three ints
-def read_density_as_vector(filename, dt="density", attribute="design", set=None, mesh = False):
+def read_density_as_vector(filename, dt="density", attribute="design", set=None, mesh = False, crop=False):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
  
   class Handler( xml.sax.ContentHandler):
-   def __init__(self, dt="density", attribute="design", set=None):
-     self.dt = dt
-     self.att = attribute
-     self.set = set
-     self.in_set = False # only for proper set.
-     self.elem = 'shapeParamElement' if dt == 'node' or dt == 'profile' else 'element'
-     self.dim = (None, None, None) # will become tuple of three mesh ints
-     self.values = []
-     #print(self.elem, self.att)  
+    def __init__(self, dt="density", attribute="design", set=None):
+      self.dt = dt
+      self.att = attribute
+      self.set = set
+      self.in_set = False # only for proper set.
+      self.elem = 'shapeParamElement' if dt == 'node' or dt == 'profile' else 'element'
+      self.dim = (None, None, None) # will become tuple of three mesh ints
+      self.values = []
+      self.start_id = None  # id of the first element in the optimization domain
+      self.end_id = None  # id of the last element in the optimization domain
+      #print(self.elem, self.att)  
      
-   def startElement(self, tag, att):
-     #print('startElement', tag, attributes.keys(), attributes.values())
-     if not self.in_set:
-       if tag == 'set': 
-         # when no set is given or this set is the desired we read it
-         # when no set is given and there are many sets, the values will be overwritten. 
-         # we don't know in advcance how many sets are in the file
-         if self.set is None or att['id'] == self.set:
-           self.in_set = True
-           self.values = []
-       elif tag == 'mesh':
-         self.dim = (int(att['x']), int(att['y']), int(att['z']))    
-     elif tag == self.elem:
-       if att['type'] == self.dt:
-         self.values.append(float(att[self.att])) # als int or original string could be of interest      
-   
-   def endElement(self, tag):    
-     #print('endElement', tag)
-     if self.in_set and tag == 'set':
-       self.in_set = False # when we currently read a set, we are done now
+    def startElement(self, tag, att):
+      #print('startElement', tag, attributes.keys(), attributes.values())
+      if not self.in_set:
+        if tag == 'set': 
+          # when no set is given or this set is the desired we read it
+          # when no set is given and there are many sets, the values will be overwritten. 
+          # we don't know in advcance how many sets are in the file
+          if self.set is None or att['id'] == self.set:
+            self.in_set = True
+            self.values = []
+        elif tag == 'mesh':
+          self.dim = (int(att['x']), int(att['y']), int(att['z']))    
+      elif tag == self.elem:
+        if att['type'] == self.dt:
+          self.values.append(float(att[self.att]))  # als int or original string could be of interest 
+          if self.start_id is None:
+            self.start_id = int(att["nr"])
+          self.end_id = int(att["nr"])
+
+    def endElement(self, tag):
+      #print('endElement', tag)
+      if self.in_set and tag == 'set':
+        self.in_set = False # when we currently read a set, we are done now
 
   parser = xml.sax.make_parser()
   handler = Handler(dt, attribute, set)
@@ -140,6 +146,26 @@ def read_density_as_vector(filename, dt="density", attribute="design", set=None,
   
   if len(handler.values) == 0:
     raise RuntimeError("file '" + filename + "' seems to not contain a 'set'" + (" with id '" + set + "'" if set is not None else ""))
+  
+  # normally handler.dim contains the full mesh dimensions obtained from the xml file.
+  # for cases with a smaller optimization domain, we can use crop to set handler.dim
+  # to the actual optimization domain dimensions
+  if crop:
+    if handler.dim[2] != 1:
+      raise NotImplementedError("Cropping is only implemented for 2d problems.")
+    start_id = handler.start_id  
+    end_id = handler.end_id
+    x, y, z = handler.dim
+    # assuming the classic element numbering 
+    # (starting on lowest x and y and number row along x-axis
+    # when we reach the end we go to the next bigger y-row
+    # again starting from the left)
+    # we can calculate the actual optimization domain dimensions
+    # from the full domain dimensions (x,y,z) and 
+    # start and end element number:
+    crop_x = (end_id-1) % x - (start_id-1) % x + 1
+    crop_y = math.floor(end_id/x)  - math.floor(start_id/x)
+    handler.dim = (crop_x, crop_y, 1)
  
   if mesh:
     return handler.values, handler.dim

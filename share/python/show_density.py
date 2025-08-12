@@ -11,7 +11,7 @@ import glob
 
 
 #@ return image, density_array
-def density_to_image(filename, set, design, fillval=0.0, color='gray'):
+def density_to_image(filename, set, design, fillval=0.0, color='gray', crop=False, rot=0):
   if not is_valid_density_file(filename):
     print("not a valid density file given!")
     sys.exit(1)
@@ -21,7 +21,7 @@ def density_to_image(filename, set, design, fillval=0.0, color='gray'):
     print("the 'physical' design is not present, use non-physical 'design'")
     design = 'design'
   
-  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=fillval)
+  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=fillval, crop=crop)
 
   x, y, z = getDim(dens)
   
@@ -35,6 +35,14 @@ def density_to_image(filename, set, design, fillval=0.0, color='gray'):
   for i in range(y):
     for j in range(x):
       raw[y-i-1][j] = 255 - int(255 * min(dens[j][i],1))
+
+  # rotate by 90 deg
+  if rot:
+    if rot < 0:
+      raise ValueError("--rot must be > 0.")
+    for _ in range(rot):
+      raw = raw.T
+      raw = np.flip(raw, axis=0).astype("uint8")
 
   img = Image.fromarray(raw, 'L')
   # https://stackoverflow.com/questions/66641432/how-to-create-a-palette-based-png-with-alpha-channel
@@ -80,8 +88,8 @@ def print_grid_on_image(I, dens):
 
 
 # return image and density
-def get_image(input, set, design, fill=0.0, color='gray'):
-  img, dens = density_to_image(input, set, design, fill, color)
+def get_image(input, set, design, fill=0.0, color='gray', crop=False, rot=0):
+  img, dens = density_to_image(input, set, design, fill, color, crop, rot)
   
   if args.grid:
     print_grid_on_image(img,dens)
@@ -104,6 +112,8 @@ parser.add_argument('--animgif', help="write single animated gif for all sets to
 parser.add_argument('--savesets', help="write <savesets>_XXX.png files for all sets")
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
+parser.add_argument('--crop', help="only display the optimization region", action='store_true')
+parser.add_argument('--rot', help="rotate image by N*90deg", type=int, default=0)
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
 parser.add_argument('--resize', help="resize image to given size, give '<res>' or '<xres> <yres>' ", nargs='*', type=int, default=[800])
 parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
@@ -133,7 +143,7 @@ if args.info:
 
 elif args.saveall:
   for f in input:
-    img, den = get_image(f, args.set, args.design, color=args.color)
+    img, den = get_image(f, args.set, args.design, color=args.color, crop=args.crop, rot=args.rot)
     base = f[:-12] if f.endswith('.density.xml') else f
     print("save '" + base + ".png'")
     img.save(base + '.png')
@@ -143,7 +153,7 @@ elif (args.animgif or args.savesets):
   if len(input) > 1:
     # read from separate files
     for file in input:
-      img, den = get_image(file, args.set, args.design, args.fill, args.color)
+      img, den = get_image(file, args.set, args.design, args.fill, args.color, crop=args.crop, rot=args.rot)
       images.append(img)
   else:
     # read sets: TODO - read XML only once!
@@ -155,7 +165,7 @@ elif (args.animgif or args.savesets):
     print('read', len(sets),'sets from',input[0] + ': ',end='') # only python3
     for i in sets:
       print(i,' ',end='' if i < sets[-1] else '\n',flush=True)
-      img, den = get_image(input[0], str(i), args.design, args.fill, args.color)
+      img, den = get_image(input[0], str(i), args.design, args.fill, args.color, crop=args.crop, rot=args.rot)
       images.append(img)  
   if args.animgif:      
     # https://note.nkmk.me/en/python-pillow-gif/
@@ -168,7 +178,7 @@ elif (args.animgif or args.savesets):
       
 else: # neither info nor global functions
   for file in input:
-    img, den = get_image(file, args.set, args.design, args.fill, args.color)
+    img, den = get_image(file, args.set, args.design, args.fill, args.color, crop=args.crop, rot=args.rot)
     if args.tile:
       assert(img.size[0] == img.size[1]) # extend if you need
       if args.orgsize: # otherwise args.resize is set above
