@@ -591,8 +591,21 @@ cfsdeps:msvc2022:
   rules:
     - !reference [.cfsdeps,rules]
   variables:
-    # we build with ninja and each cfsdeps is build in parallel, so build the deps themselves serially  
-    BUILD_COMMAND: "cmake --build . --target cfsdeps --parallel 1"
+    # we build with ninja and each cfsdeps is build in parallel, so build the deps themselves serially
+    # build them in defined order such that already completed ones will be in the cache on a restart
+    # the list is more or less arbitrary, the last "cfsdeps" should make sure we have everything from the default config
+    BUILD_COMMAND: "cmake --build . --target boost --parallel 1 &&
+                    cmake --build . --target hdf5 --parallel 1 &&
+                    cmake --build . --target arpack --parallel 1 &&
+                    cmake --build . --target metis --parallel 1 &&
+                    cmake --build . --target ipopt --parallel 1 &&
+                    cmake --build . --target feast --parallel 1 &&
+                    cmake --build . --target lis --parallel 1 &&
+                    cmake --build . --target flann --parallel 1 &&
+                    cmake --build . --target muparser --parallel 1 &&
+                    cmake --build . --target vtk --parallel 1 &&
+                    cmake --build . --target ginkgo --parallel 1 &&
+                    cmake --build . --target cfsdeps --parallel 1"
     RUNNER_SCRIPT_TIMEOUT: 100m # set a script timeout lower than the job timeout (seems 120m in hosted windows runners) to ensure there is time for artifact and cache upload
   after_script:
     # just debug
