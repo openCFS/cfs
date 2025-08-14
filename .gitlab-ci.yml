@@ -619,6 +619,12 @@ cfsdeps:msvc2022:
   # set a timeout for the job (increasing the project-level setting) https://docs.gitlab.com/ci/yaml/#timeout
   # it must not exceed the runner timeout (seems to be 2h for GitLab hosted windows runners)
   timeout: 120m
+  # define retry on timeout. A retry should make use of a cache from the previous job
+  retry:
+    max: 2
+    when:
+      - stuck_or_timeout_failure
+      - job_execution_timeout
   # Set optional needs for optional jobs needed in the clear-cache case: install job and parallel builds of large cfsdeps
   needs:
     - job: install:msvc2022
