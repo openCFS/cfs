@@ -140,13 +140,13 @@ protected:
   /** Takes the density gradients and sums it up on the shape variables.
    *  To be called within WriteGradientToExtern().
    *  @param f the function we add the stuff to the gradient. */
-  virtual void MapFeatureGradient(const Function* f) = 0;
+  virtual void MapFeatureGradient(Function* f) = 0;
 
   /** set n_, nx_, ny_, nz_. Shall do verification of the lexicographic ordering later.
    * @see SetupLexicographicMesh() */
   void SetupMeshStructure();
 
-  /** set map_ */
+  /** set map */
   virtual void SetupMapping();
 
   /** called in the optimization case in PostInit().
@@ -189,7 +189,7 @@ protected:
     virtual double Distance(const Point& p, FeatureVariable::Tip* part = nullptr) const { assert(false); return -1.0; }
 
     /** for efficiency reason calculate all gradients at once. Is a waste for fixed variables */
-    virtual void GradDistance(const Point& X, FeatureVariable::Tip part, StdVector<double>& out) const { assert(false); }
+    virtual void GradDistance(const Point& X, FeatureVariable::Tip part, Vector<double>& out) const { assert(false); }
 
     int GetOptVariables() const { return opt_variables_; }
    
@@ -236,7 +236,7 @@ protected:
     ItemExtension* extension = nullptr;
 
     /** this is the index of the element within the rectangular lexicographic n_ domain.
-     * usually often the position of Item within map_ but not for complex designs as in solar heater */
+     * usually often the position of Item within map but not for complex designs as in solar heater */
     int lexicographic_pos = -1;
 
     /** This is the minimal corner value of all corners. Set by EvalAllCornerValues() */
@@ -282,7 +282,6 @@ protected:
 
   /** 2D variant */
   unsigned int LexicographicPos(unsigned int x, unsigned int y) const { return y * nx_ + x; }
-
 
   Boundary GetBoundary() const { return boundary_; }
 
@@ -340,10 +339,10 @@ protected:
   StdVector<int> opt_indices;
 
   /** mapping with size of elemval to ShapeParamElement pointers to design variables */
-  StdVector<Item> map_;
+  StdVector<Item> map;
 
   /** reference to optimization as we need it in MapFeatureGradient() to get the functions */
-  Optimization* opt_ = NULL; // set in PostInit() if we have optimization and not only external design for sim
+  Optimization* opt = nullptr; // set in PostInit() if we have optimization and not only external design for sim
 
 private:
   void SetEnums();

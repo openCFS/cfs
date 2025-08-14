@@ -37,15 +37,15 @@
 #include "Optimization/Optimizer/MMA.hh"
 #include "Optimization/Optimizer/DumasMMA.hh"
 #include "Optimization/ParamMat.hh"
+#include "Optimization/HeatSIMP.hh"
 #include "Optimization/PiezoSIMP.hh"
 #include "Optimization/MagSIMP.hh"
 #include "Optimization/AcouSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
+#include "Optimization/FeatureMappingParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
-#include "Optimization/Spaghetti.hh"
-#include "Optimization/SpaghettiParamMat.hh"
 #include "Optimization/SplineBoxOpt.hh"
 #include "Optimization/Transform.hh"
 #include "Optimization/Tune.hh"
@@ -585,6 +585,7 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SPAGHETTI_PARAM_MAT, "spaghettiParamMat");
   ErsatzMaterial::method.Add(ErsatzMaterial::SPLINE_BOX, "splineBox");
   ErsatzMaterial::method.Add(ErsatzMaterial::FEATURE_MAPPING, "featureMapping");
+  ErsatzMaterial::method.Add(ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT, "featureMappingAniso");
 
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
@@ -773,15 +774,20 @@ Optimization* Optimization::CreateInstance()
   switch(method)
   {
   case ErsatzMaterial::SIMP_METHOD:
-  case ErsatzMaterial::SHAPE_MAP: // we have ShapeMap for mech SIMP but also
+  case ErsatzMaterial::SHAPE_MAP: 
   case ErsatzMaterial::FEATURE_MAPPING:
+  case ErsatzMaterial::SPAGHETTI: // we have also SPAGHETTI_PARAM_MAT
+  {
     switch(material)
     {
     case OptimizationMaterial::MECH:
-    case OptimizationMaterial::HEAT:
     case OptimizationMaterial::ELEC:
     case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
+      break;
+
+    case OptimizationMaterial::HEAT:
+      opt = new HeatSIMP(); 
       break;
 
     case OptimizationMaterial::ACOUSTIC:
@@ -801,13 +807,18 @@ Optimization* Optimization::CreateInstance()
       break;
     }
     break;
+  } // simp, shape map, feature mapping
 
   // FMO, ShapeGrad, ...
+  case ErsatzMaterial::SPAGHETTI_PARAM_MAT: // for anisotroy we use ParamMat stuff
   case ErsatzMaterial::PARAM_MAT:
-    if(material == OptimizationMaterial::PIEZOCOUPLING)
-      opt = new PiezoParamMat();
-    else
+    if(material != OptimizationMaterial::PIEZOCOUPLING)
       opt = new ParamMat();
+    else
+      opt = new PiezoParamMat();
+    break;
+  case ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT:
+      opt = new FeatureMappingParamMat();
     break;
   case ErsatzMaterial::SHAPE_OPT:
   case ErsatzMaterial::SHAPE_PARAM_MAT:
@@ -815,12 +826,6 @@ Optimization* Optimization::CreateInstance()
     break;
   case ErsatzMaterial::SHAPE_GRAD:
     opt = new ShapeGrad();
-    break;
-  case ErsatzMaterial::SPAGHETTI:
-    opt = new Spaghetti();
-    break;
-  case ErsatzMaterial::SPAGHETTI_PARAM_MAT:
-    opt = new SpaghettiParamMat();
     break;
   case ErsatzMaterial::SPLINE_BOX:
     opt = new SplineBoxOpt();

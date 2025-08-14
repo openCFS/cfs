@@ -116,10 +116,10 @@ private:
    *  Shall be called by ReadDesignFromExtern(). */
   void MapFeatureToDensity() override;
 
-  /** Takes the density gradients and sums it up on the shape variables using map_.
+  /** Takes the density gradients and sums it up on the shape variables using map.
    *  To be called within WriteGradientToExtern().
    *  @param f the function we add the stuff to the gradient. */
-  void MapFeatureGradient(const Function* f) override;
+  void MapFeatureGradient(Function* f) override;
 
   /** assumes rectangular grid */
   void ReadFeature(string file_in, string key = "last");

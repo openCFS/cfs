@@ -91,11 +91,9 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   // for convenience
   assert(Optimization::manager.context.GetSize() > 0);
   // better not call SpaghettiDesign::IsMaterial() from this constructor
-  if(ErsatzMaterial::IsParamMat(method)) {
-    designMaterials.Resize(Optimization::manager.context.GetSize());
-    //initialize with null to avoid undefined behavior when destructor tries to delete uninitialized data
-    designMaterials.Init(NULL);
-  }
+  if(ErsatzMaterial::IsParamMat(method))
+    designMaterials.Resize(Optimization::manager.context.GetSize(), nullptr); // //initialize with null to avoid undefined behavior when destructor tries to delete uninitialized data
+
   regionIds_ = reg_data;
   design_id = 0;
   optimizer_ = NULL;
@@ -348,6 +346,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
                   || method == ErsatzMaterial::SPAGHETTI
                   || method == ErsatzMaterial::SPAGHETTI_PARAM_MAT
                   || method == ErsatzMaterial::FEATURE_MAPPING
+                  || method == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT
                   || method == ErsatzMaterial::SPLINE_BOX)
               {
                 DesignElement* ptr = &(data.Last());
@@ -375,6 +374,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     }
     LOG_DBG(designSpace) << "data size: " << elements << "*" << pn_design.GetSize() << "=" << data.GetSize();
   } // no design elements given
+
+  // determine regions domain bounds
+  domainBounds = domain->GetGrid()->CalcRegionsBoundingBox(regionIds_);
+  LOG_DBG(designSpace) << "DS: domainBounds=" << domainBounds.ToString();
 
   // copy to be extended by aux design
   full_data.Resize(data.GetSize());
@@ -514,7 +517,8 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
   case ErsatzMaterial::SHAPE_MAP:
     return new ShapeMapDesign(reg_data, pn, method);
   case ErsatzMaterial::FEATURE_MAPPING:
-    return new FeatureMappingDesign(reg_data, pn, method);
+  case ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT:
+    return new FeatureMappingDesign(reg_data, pn, method); // set anisotropic
   case ErsatzMaterial::SPAGHETTI:
   case ErsatzMaterial::SPAGHETTI_PARAM_MAT:
 #ifdef USE_EMBEDDED_PYTHON
@@ -707,6 +711,12 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
 void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material)
 {
   designMaterials[Optimization::context->context_idx] = new DesignMaterial(dm, material, design, this);
+  Optimization::context->dm = designMaterials[Optimization::context->context_idx];
+}
+
+void DesignSpace::SetDesignMaterial(DesignMaterial::Type type)
+{
+  designMaterials[Optimization::context->context_idx] = new DesignMaterial(type, this);
   Optimization::context->dm = designMaterials[Optimization::context->context_idx];
 }
 
@@ -1049,14 +1059,24 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& re
     {
       MaterialTensor<T> retTensor(VOIGT, &retMat, false);
       // this here is the standard case for design material!!!
-      bool ret = Optimization::context->dm->GetMechTensor(retTensor, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative());
+      bool ret = Optimization::context->dm->GetMechTensor(retTensor, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), false, coef);
+      // anisotropic spaghetti have bias (region material), the anisotropic tensor is given as param mat fixed values
       // we add the bias here as we have no coef in DesignMaterial::GetMechTensor()
       if(ret && Optimization::context->dm->HasBias() && coef->GetMaterialDerivative() == DesignElement::NO_DERIVATIVE)
       {
         const CoefFunctionConst<T>* org = dynamic_cast<const CoefFunctionConst<T>*>(coef->orgMat.get());
-        assert(org != NULL);
+        assert(org != nullptr);
         retMat.Add(1.0, org->GetTensor());
       }
+      // for anisotropic feature mapping the org material is the main material, but we may add ground material
+      DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
+      assert(!dr->HasBiMaterial()); // not implemented
+      if(ret && dr->HasGroundMaterial() && coef->GetMaterialDerivative() == DesignElement::NO_DERIVATIVE)
+      {
+       retMat.Add(1.0, dr->GetCachedTensor<T>(MECHANIC,coef->GetMaterialType()));
+       LOG_DBG3(designSpace) << "APD(M) el="  << lpm->ptEl->elemNum << " GM=" << dr->GetCachedTensor<T>(MECHANIC,coef->GetMaterialType()).ToString();
+      }
+
       LOG_DBG2(designSpace) << "APD: e=" << lpm->ptEl->elemNum << " dm=1 " << " d=" << DesignElement::type.ToString(coef->GetMaterialDerivative())
                             <<  " r=" << ret << " rm=" << retMat.ToString();
 
@@ -1183,18 +1203,14 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, Matrix<T>& re
   DesignRegion* dr = GetRegion(lpm->ptEl->regionId);
   if(dr->HasBiMaterial() && app != App::BUCKLING)
   {
-    Matrix<T> tmp;
-    MaterialClass mct = app == App::HEAT ? THERMIC : MECHANIC;
-    dr->GetScndMaterial(mct, coef->GetMaterialType(), coef->GetPDE())->GetTensor(tmp, *lpm);
+    const Matrix<T>& tmp = dr->GetCachedTensor<T>(app == App::HEAT ? THERMIC : MECHANIC, coef->GetMaterialType());
     bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
     LOG_DBG3(designSpace) << "APD(M) el="  << lpm->ptEl->elemNum << " before=" << retMat.ToString() << " bimat " << tmp.ToString() << " bf=" << bimat_factor;
     retMat.Add(bimat_factor,tmp); // rho^p * E_o + (1-rho)^p * E_b
   }
   else if(dr->HasGroundMaterial())
   {
-    Matrix<T> tmp;
-    MaterialClass mc = app == App::HEAT ? THERMIC : MECHANIC;
-    dr->GetScndMaterial(mc, coef->GetMaterialType(), coef->GetPDE())->GetTensor(tmp, *lpm);
+    const Matrix<T>& tmp = dr->GetCachedTensor<T>(app == App::HEAT ? THERMIC : MECHANIC, coef->GetMaterialType());
     retMat.Add(1.0, tmp);
     LOG_DBG3(designSpace) << "APD(M) el="  << lpm->ptEl->elemNum << " GM tmp=" << tmp.ToString();
   }
@@ -1262,24 +1278,25 @@ bool DesignSpace::ApplyPhysicalDesign(const CoefFunctionOpt* coef, T& retScal, c
     if(app == App::HEAT)
     {
       assert(coef->GetMaterialType() == NO_MATERIAL); // DENSITY * HEAT_CAPACITY
-      T dens;
-      dr->GetScndMaterial(THERMIC, DENSITY, coef->GetPDE())->GetScalar(dens, *lpm);
-      dr->GetScndMaterial(THERMIC, HEAT_CAPACITY, coef->GetPDE())->GetScalar(bimat, *lpm);
+      T dens = dr->GetCachedScalar<T>(THERMIC, DENSITY);
+      bimat  = dr->GetCachedScalar<T>(THERMIC, HEAT_CAPACITY);
       LOG_DBG3(designSpace) << "APD(s) el="  << lpm->ptEl->elemNum << " bimat heat dens=" << dens << " cond=" << bimat;
       bimat *= dens;
     }
     else if(app == App::ACOUSTIC)
     {
-      MaterialType mat_type = coef->GetMaterialType();
-      assert(mat_type == DENSITY || mat_type == ACOU_BULK_MODULUS);
-
+      assert(coef->GetMaterialType() == DENSITY || coef->GetMaterialType() == ACOU_BULK_MODULUS);
       // we either scale 1/rho (for the stiffness matrix) or 1/K (for the mass matrix)
-      dr->GetScndMaterial(ACOUSTIC, mat_type, coef->GetPDE())->GetScalar(bimat, *lpm);
-      //bimat_factor = GetErsatzMaterialFactor(idx, app, true);
-      //retScal += bimat_factor * bimat; //rho^p * 1/(density or bulk modulus) + (1-rho)^p * 1/(density or bulk modulus)
+      dr->GetScndMaterial(ACOUSTIC, coef->GetMaterialType(), coef->GetPDE())->GetScalar(bimat, *lpm);
+      // TODO: check why this fails! std::bad_variant_access: bad_variant_access
+      //bimat  = dr->GetCachedScalar<T>(ACOUSTIC, coef->GetMaterialType());
     }
     else
-      dr->GetScndMaterial(MECHANIC, DENSITY, coef->GetPDE())->GetScalar(bimat, *lpm);
+    {
+      // this is the default (MECHANIC) case
+      bimat = dr->GetCachedScalar<T>(MECHANIC, DENSITY);
+      // dr->GetScndMaterial(MECHANIC, DENSITY, coef->GetPDE())->GetScalar(bimat, *lpm);
+    }
 
     bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
     retScal += bimat_factor * bimat; // rho^p * E_l + (1-rho)^p * E_u
@@ -1953,6 +1970,7 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
     break;
   case DesignElement::CONSTRAINT_GRADIENT:
   case DesignElement::COST_GRADIENT:
+  case DesignElement::FUNCTION_GRADIENT:
     for(unsigned int i = start; i < end; i++)
       data[i].Reset(vs);
     break;
@@ -1960,6 +1978,12 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
     if(end-start > 0)
       throw Exception("value specifier not handled");
   }
+}
+
+void DesignSpace::ResetGradient(Function* f)
+{
+  for(DesignElement& de : data)
+    de.Reset(DesignElement::FUNCTION_GRADIENT, f);
 }
 
 inline
@@ -2412,6 +2436,17 @@ void DesignSpace::DesignRegion::SetGroundMaterial(const std::string& material)
   assert(!has_bimat);
   scnd_material = material;
   has_grndmat = true;
+}
+
+const DesignSpace::DesignRegion::CoefValue& DesignSpace::DesignRegion::GetCachedValue(MaterialClass mc, MaterialType mt) const
+{
+  assert(scnd_material_cached.size() > 0);
+  assert(scnd_material_cached.find(mc) != scnd_material_cached.end());
+  const auto& mtv = scnd_material_cached.at(mc);
+  
+  assert(mtv.size() > 0);
+  assert(mtv.find(mt) != mtv.end());
+  return mtv.at(mt);
 }
 
 void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)

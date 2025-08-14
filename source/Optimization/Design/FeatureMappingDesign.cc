@@ -1,7 +1,12 @@
 #define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 
 #include "Optimization/Design/FeatureMappingDesign.hh"
+#include "Optimization/Design/DesignMaterial.hh"
+#include "Optimization/Design/MaterialTensor.hh"
+#include "Optimization/Excitation.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 
 using std::string;
 using std::pair;
@@ -12,14 +17,17 @@ namespace CoupledField {
 
 DEFINE_LOG(fm, "featureMapping")
 
+Matrix<double> FeatureMappingDesign::aniso_base_tensor; // static member  
+
 FeatureMappingDesign::FeatureMappingDesign(StdVector<RegionIdType>& regionIds, PtrParamNode empn, ErsatzMaterial::Method method)
 : FeaturedDesign(regionIds, empn, method)
 {
   setup_timer_->Start();
 
-  assert(method == ErsatzMaterial::FEATURE_MAPPING);
+  assert(method == ErsatzMaterial::FEATURE_MAPPING || method == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT);
 
-  PtrParamNode pn = empn->Get(ErsatzMaterial::method.ToString(method)); 
+  anisotropic = method == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT;
+  PtrParamNode pn = empn->Get(ErsatzMaterial::method.ToString(ErsatzMaterial::FEATURE_MAPPING)); // featureMappingAniso has also a featureMapping element
 
   combine_ = combine.Parse(pn->Get("combine")->As<string>());
   if(combine_ != MAX)
@@ -30,13 +38,10 @@ FeatureMappingDesign::FeatureMappingDesign(StdVector<RegionIdType>& regionIds, P
   } 
   boundary_ = POLY;
 
-  //if (method == ErsatzMaterial::SPAGHETTI_PARAM_MAT)
-  //  orientation_ = orientation.Parse(pn->Get("orientation")->As<string>());
-
   order = pn->Get("order")->As<unsigned int>();
   transition = pn->Get("transition")->As<double>(); // make optional
 
-  // map_
+  // map
   SetupMapping();
 
   // setup pills with pills and shape_param_ and opt_shape_param_
@@ -72,15 +77,34 @@ FeatureMappingDesign::FeatureMappingDesign(StdVector<RegionIdType>& regionIds, P
     assert(false);
     break;
   }
-  assert(mapped_design_ != design_id);
 
-  MapFeatureToDensity(); // only so late because of python -> calls PythonUpdateSpaghetti()
-
-  LOG_DBG(fm) << "FMD data=" << data.GetSize() << " aux=" << aux_design_.GetSize() << " shape=" << opt_shape_param_.GetSize() << " -> N=" << GetNumberOfVariables();
   assert(GetNumberOfVariables() > 0);
+
+  if(anisotropic) 
+    aniso_current_variable.Reset(); 
+
 
   setup_timer_->Stop(); // python and map are subtimers, so count them here
 }
+
+
+void FeatureMappingDesign::PostInit(int objectives, int constraints)
+{
+  FeaturedDesign::PostInit(objectives, constraints);
+
+  setup_timer_->Start();
+  assert(mapped_design_ != design_id);
+  
+  CoefFunctionOpt* coef = Optimization::context->mat->GetMatCoef("LinElastInt", domain->GetDesign()->GetRegionId());
+  assert(dynamic_cast<CoefFunctionConst<double>*>(coef->orgMat.get()) != nullptr);
+  aniso_base_tensor = dynamic_cast<CoefFunctionConst<double>*>(coef->orgMat.get())->GetTensor();
+
+  // this calls Pill::Update() and in the anisotropic case we need DesignSpace set up
+  MapFeatureToDensity(); // only so late because of python -> calls PythonUpdateSpaghetti()
+  LOG_DBG(fm) << "PI data=" << data.GetSize() << " aux=" << aux_design_.GetSize() << " shape=" << opt_shape_param_.GetSize() << " -> N=" << GetNumberOfVariables();
+  setup_timer_->Stop(); // python and map are subtimers, so count them here
+}
+
 
 void FeatureMappingDesign::ToInfo(ErsatzMaterial* em)
 {
@@ -97,9 +121,9 @@ void FeatureMappingDesign::ToInfo(ErsatzMaterial* em)
 void FeatureMappingDesign::SetupMapping()
 {
   FeaturedDesign::SetupMapping();
-  assert(map_.GetSize() == nx_ * ny_); 
+  assert(map.GetSize() == nx_ * ny_); 
 
-  for(Item& item : map_)
+  for(Item& item : map)
   {
     ItemIP* item_ip = new ItemIP(); // we use ItemIP as extension
     if(order > 1)
@@ -108,16 +132,142 @@ void FeatureMappingDesign::SetupMapping()
   } 
 }
 
-inline FeatureMappingDesign::ItemIP* FeatureMappingDesign::GetItemIP(unsigned int item_idx)
+bool FeatureMappingDesign::GetAnisoMechTensor(const Elem* elem, MaterialTensor<double>& mt, DesignElement::Type direction, const CoefFunctionOpt* coef, DesignMaterial* dm) const
 {
-  assert(map_[item_idx].extension != nullptr);
-  assert(dynamic_cast<ItemIP*>(map_[item_idx].extension) != nullptr);
-  return dynamic_cast<ItemIP*>(map_[item_idx].extension);
+  // be aware, needs to be thread safe!
+
+  // single feature orientation: c_e = R(phi) rho_e c_0 R(phi)^T = rho_e R c_0 R^T = rho_e * rot_mat
+  // aggregated features with mrho_e is (smooth) max of rho_e^f for all features f
+  // c_e = (sum_f c_e^f / sum_f rho_e^f) * mrho_e
+  assert(coef->GetState() == CoefFunctionOpt::OPT || coef->GetState() == CoefFunctionOpt::DIRECTION); 
+  assert(dm != nullptr);
+  assert(dim_ == 2);
+  assert(Find(elem, false) != -1);
+  const Item& item = map[Find(elem, false)];
+  const ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
+  assert(ext->rho.GetSize() == pills.GetSize());
+
+  // sum_f c_e^f / sum_f rho_e^f -> not scaled yet
+  // we use mt to store the sum -> for evaluation we need not other variable
+  Matrix<double>& out = mt.GetMatrix(VOIGT); // output
+  out.Resize(3,3); // 2D
+  out.Init(); // set to zero
+  // sum_f c_e^f / sum_f rho_e^f) -> sum_c_e / sum_rho where c_e = rho_e * rot_mat
+  double sum_rho = ext->rho.Sum();
+  assert(sum_rho >= 0); // might be in the ground material case indeed zero!
+  for(unsigned int i = 0; i < pills.GetSize(); i++)
+    out.Add(ext->rho[i], pills[i].rot_mat); // rot_mat is precomputed in Pill::Update()
+  
+  // the (smooth) max rho_e to scale the avg tensor
+  double mrho_e = cmb_fnc->Eval(ext->rho);
+
+  LOG_DBG2(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " rho_e=" << ext->rho.ToString() << " mrho=" << mrho_e << " sum_c_e=" << out.ToString();
+
+  if(coef->GetState() == CoefFunctionOpt::OPT)
+  {
+    assert(direction == DesignElement::NO_DERIVATIVE);
+    assert(sum_rho > 1e-12 || mrho_e <= 1e-12); // if sum_rho is zero, mrho_e must be zero too
+    if(sum_rho > 1e-12)
+      out.Mult(mrho_e * 1.0/sum_rho); // scale to get c_e
+    else
+      out.Init(); // we are in the ground material case, no feature is active -> zero  
+
+    LOG_DBG2(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " m_rho_e=" << mrho_e << " sum_rho=" << sum_rho << " -> " << out.ToString();
+  }
+  else if(sum_rho > 1e-12) // we may divide by sum_rho
+  {
+    assert(coef->GetState() == CoefFunctionOpt::DIRECTION);
+    // mc_e = (sum_f c_e / sum_f rho_e) * mrho_e
+    // d_mc_e/d_s = (d_c_e/d_s * sum_rho - sum_c_e * d_rho_e/d_s) / (sum_f rho_e)^2 * mrho_e 
+    //            + (sum_f c_e / sum_f rho_e) * d_mrho_e/d_rho_e * d_rho_e/d_s
+    // in variables:
+    // dce_ds = (dc_ds * sum_rho - sum_c_e * drho_ds) / (sum_rho)^2 * mrho_e
+    //        + (sum_c_e / sum_rho) * dmrho_drho * drho_ds
+    int s = direction - DesignElement::FEATURE_MAPPING_PX;
+    assert(direction != DesignElement::NO_DERIVATIVE);
+    assert(direction == aniso_current_variable.var_type);
+    assert(s == aniso_current_variable.var_idx);
+    unsigned int fi = aniso_current_variable.feature_idx;   
+    
+    assert(s >= 0 && s <= 4);
+    assert(aniso_current_variable.feature_idx >= 0 && fi < pills.GetSize());  
+
+    const Pill& pill = pills[fi];
+
+    // d_rho_e/d_s is precomputed 
+    double drho_ds = ext->drho_ds_full[fi * num_var_by_feature + s]; 
+
+    // the single rho_e for the feature (before combining)
+    double rho_e = ext->rho[fi];
+
+    // sum_f c_e^f was stored in out above -> save it
+    Matrix<double> sum_c_e(out); 
+
+    // compute the derivate of a single material tensor by variable s of feature fi (no averaging) 
+    // C_e = R^T rho_e C_0 R where R=R(phi(s)) and rho_e = rho_e(s)
+    // d_C/d_s = 2 R^T rho_e C_0 d_R/d_s + R^T d_rho_e/d_s C_0 R
+    //          = rho_e 2 R^T C_0 d_R/d_s + d_rho_e/d_s R^T C_0 R with d_R/d_s = d_R/d_phi d_phi/d_s
+    //          = rho_e d_phi/d_s RCdR    + d_rho_e/d_s RCR  with dR = d_R/d_phi
+    // where rho_e R^T C_0 d_R/d_s is significant everywhere where rho_e != 0 (not rho_min)
+    // and d_rho_e/d_s R^T C_0 R is significant only where rho_e is > rho_min and < 1
+    out.Init(); // we use out as dc_ds
+    if(rho_e != 0.0)
+    { // we have it also in inner and rho_min
+      double dphi_ds = pill.GradAngle(s);
+      assert(aniso_current_variable.RCdR.NormL2() > 0);
+      out.Add(rho_e * dphi_ds, aniso_current_variable.RCdR); // rho * d_phi/d_s * RCdR (constant for given angle and variable)
+    }
+    if(rho_e != rhomin && rho_e != 1)
+      out.Add(drho_ds, pill.rot_mat);
+    // the single derivate by feature and variable d_c_0/d_s is computed 
+    LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " s=" << s << " fi=" << fi << " rho_e=" << rho_e << " dphi_ds=" << pill.GradAngle(s) << " -> out=dc_ds=" << out.ToString();
+
+    double dmrho_drho = cmb_fnc->Grad(ext->rho, pill.idx);
+
+    // dc_ds * sum_rho - sum_c_e * drho_ds)
+    out.Mult(sum_rho);
+    out.Add(-drho_ds, sum_c_e);
+
+    LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " s=" << s << " fi=" << fi << " sum_rho=" << sum_rho 
+                 << " sum_c_e=" << sum_c_e.ToString() << " drho_ds=" << drho_ds << " -> " << out.ToString();
+    out.Mult(mrho_e / (sum_rho * sum_rho)); 
+    LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " s=" << s << " mrho_e=" << mrho_e << " f=" << (mrho_e / (sum_rho * sum_rho)) << " -> " << out.ToString();
+    out.Add(dmrho_drho * drho_ds / sum_rho, sum_c_e);
+    LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " s=" << s << " dmrho_drho=" << dmrho_drho << " f=" << (dmrho_drho * drho_ds / sum_rho) << " -> " << out.ToString();
+  }
+  else
+  {
+    assert(coef->GetState() == CoefFunctionOpt::DIRECTION);
+    assert(sum_rho <= 1e-12); // if sum_rho is zero, we must be in the ground material case -> no derivative
+    out.Init(); 
+    LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " sum_rho=" << sum_rho << " is zero -> " << out.ToString();
+  }
+  LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " s=" << (direction < DesignElement::FEATURE_MAPPING_PX ? -1 : (direction - DesignElement::FEATURE_MAPPING_PX)) 
+               << " fi=" << aniso_current_variable.feature_idx << " -> " << mt.GetMatrix(VOIGT).ToString();
+
+  return true;   
 }
 
-FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateAddIP(FeatureMappingDesign::ItemIP::Storage storage, const Point& ref, FeatureMappingDesign::ItemIP* item_ip, double dx, double dy, int num)
+
+inline FeatureMappingDesign::ItemIP* FeatureMappingDesign::GetItemIP(unsigned int item_idx)
+{
+  assert(map[item_idx].extension != nullptr);
+  assert(dynamic_cast<ItemIP*>(map[item_idx].extension) != nullptr);
+  return dynamic_cast<ItemIP*>(map[item_idx].extension);
+}
+
+inline const FeatureMappingDesign::ItemIP* FeatureMappingDesign::GetItemIP(unsigned int item_idx) const
+{
+  assert(map[item_idx].extension != nullptr);
+  assert(dynamic_cast<const ItemIP*>(map[item_idx].extension) != nullptr);
+  return dynamic_cast<const ItemIP*>(map[item_idx].extension);
+}
+
+
+FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateAddIP(FeatureMappingDesign::ItemIP::Storage storage, const Point& ref, FeatureMappingDesign::ItemIP* item_ip, double dx, double dy)
 {
   IntegrationPoint* ip = nullptr;
+  unsigned int nf = features_.GetSize();  
   if(storage == ItemIP::CORNER)
   {
     corners.Push_back(IntegrationPoint());
@@ -131,11 +281,12 @@ FeatureMappingDesign::IntegrationPoint* FeatureMappingDesign::SetupDesignCreateA
     assert(item_ip->inner.GetCapacity() > item_ip->inner.GetSize()); 
     item_ip->inner.Push_back(ip);
   }
-  ip->dist.Resize(num);
-  ip->part.Resize(num, FeatureVariable::NO_TIP);
+  ip->dist.Resize(nf);
+  ip->part.Resize(nf, FeatureVariable::NO_TIP);
   ip->loc.Set(ref[0]+dx, ref[1]+dy); 
 
-  item_ip->rho.Resize(num);
+  item_ip->rho.Resize(nf);
+  item_ip->drho_ds_full.Resize(nf * num_var_by_feature); // 5 variables per feature
   
   // LOG_DBG3(fm) << "SDCAI c=" << center.ToString() << " dx=" << dx << " dy=" << dy << " ext=" << item_ip->ToString();
   return ip;
@@ -199,13 +350,12 @@ void FeatureMappingDesign::SetupFixedIntegrationPoints()
 {
   assert(dim_ == 2); 
 
-  int num = features_.GetSize();
-  assert(num >= 1);
+  assert(features_.GetSize() >= 1);
   Grid* grid = domain->GetGrid();
   Matrix<double> coords;
   Point center;
 
-  assert(map_.GetSize() == nx_ * ny_); 
+  assert(map.GetSize() == nx_ * ny_); 
 
   if(order == 1)
   {
@@ -213,19 +363,19 @@ void FeatureMappingDesign::SetupFixedIntegrationPoints()
     {
       for(unsigned int x = 0; x < nx_; x++)
       {
-        Item& item = map_[y * nx_ + x];
+        Item& item = map[y * nx_ + x];
         DesignElement* de = item.elemval;
         assert(de != nullptr);
         grid->GetElemNodesCoord(coords, de->elem->connect, false); // obtain element nodal coords, no update. )
         LagrangeElemShapeMap::CalcBarycenter(center, coords, domain); // get the barycenter of the element
         LOG_DBG3(fm) << "SD y=" << y << " x=" << x << " e=" << de->elem->elemNum << " c=" << center.ToString();// << " coords=" << coords.ToString();
-      
-        ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
+        
+        ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);      
         assert(ext->inner.GetCapacity() == 0); 
         assert(ext->corner.GetCapacity() == 0); 
         ext->inner.Reserve(1);
         ext->center = center;
-        SetupDesignCreateAddIP(ItemIP::INNER, center, ext, 0.0, 0.0, num); // barycenter
+        SetupDesignCreateAddIP(ItemIP::INNER, center, ext, 0.0, 0.0); // barycenter
       }
     }
   }
@@ -239,7 +389,7 @@ void FeatureMappingDesign::SetupFixedIntegrationPoints()
     {
       for(unsigned int x = 0; x < nx_; x++)
       {
-        Item& item = map_[y * nx_ + x];
+        Item& item = map[y * nx_ + x];
         DesignElement* de = item.elemval;
         assert(de != nullptr);
         // we are not sure about node ordering for pathological cases and therefore recompute everything from the element barycenter
@@ -258,34 +408,34 @@ void FeatureMappingDesign::SetupFixedIntegrationPoints()
         // B ----- X
   
         // the "home" ip for this element is X - max three other elements share this ip
-        IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, dx_/2, -dx_/2, num); // right lower corner X
+        IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, dx_/2, -dx_/2); // right lower corner X
         if(y > 0)
-          SetupDesignAddIP(ItemIP::CORNER, map_[(y-1) * nx_ + x], ip); // the item below shares the corner point X
+          SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + x], ip); // the item below shares the corner point X
         if(y > 0 && x < nx_-1)
-          SetupDesignAddIP(ItemIP::CORNER, map_[(y-1) * nx_ + (x+1)], ip); // diagonal below/right
+          SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + (x+1)], ip); // diagonal below/right
         if(x < nx_-1)
-          SetupDesignAddIP(ItemIP::CORNER, map_[y * nx_ + (x+1)], ip); // right
+          SetupDesignAddIP(ItemIP::CORNER, map[y * nx_ + (x+1)], ip); // right
         
         // special handling for upper most row  
         if(y == ny_-1) // right side but above
         {  
           // add IP A (right but above)
-          ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, dx_/2, dx_/2, num); // right upper corner A
+          ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, dx_/2, dx_/2); // right upper corner A
           if(x < nx_-1)
-            SetupDesignAddIP(ItemIP::CORNER, map_[y * nx_ + (x+1)], ip); // right neighbor
+            SetupDesignAddIP(ItemIP::CORNER, map[y * nx_ + (x+1)], ip); // right neighbor
         }
         // special handling vor first column
         if(x == 0) // left side 
         {
           // add IP V (below but left)
-          ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, -dx_/2, -dx_/2, num); // left lower corner B
+          ip = SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, -dx_/2, -dx_/2); // left lower corner B
           if(y > 0)
-            SetupDesignAddIP(ItemIP::CORNER, map_[(y-1) * nx_ + x], ip); 
+            SetupDesignAddIP(ItemIP::CORNER, map[(y-1) * nx_ + x], ip); 
         }
         if(x == 0 && y == ny_-1) // left upper corner o
         {
           // this node o is not shared by anyone
-          SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, -dx_/2, +dx_/2, num); // left upper corner o
+          SetupDesignCreateAddIP(ItemIP::CORNER, center, iip, -dx_/2, +dx_/2); // left upper corner o
         }
       } 
     } // end of y,x loop
@@ -298,7 +448,7 @@ void FeatureMappingDesign::SetupFixedIntegrationPoints()
  for(IntegrationPoint& ip : inners)
     LOG_DBG3(fm) << "SD inners IP loc=" << ip.loc.ToString();
 
-  for(Item& item : map_)
+  for(Item& item : map)
     LOG_DBG3(fm) << "SD map " << item.lexicographic_pos << " ext: " << item.extension->ToString();
 }
 
@@ -345,7 +495,7 @@ void FeatureMappingDesign::MapFeatureToDensity()
   mapping_timer_->Start();
   LOG_DBG(fm) << "MFTD called";
 
-  assert(!map_.IsEmpty());
+  assert(!map.IsEmpty());
 
   // the DesignElement might be updated, update the Feature internal representation
   for(Feature* f : features_)
@@ -357,7 +507,7 @@ void FeatureMappingDesign::MapFeatureToDensity()
 
 
   // We first make inners/corners to determine the distances for each Item
-  // when we next traverse map_, we know where we need higher integration
+  // when we next traverse map, we know where we need higher integration
   // finally, when we have all IP with distances, we can compute the density
   if(order == 1)
   {
@@ -392,7 +542,7 @@ void FeatureMappingDesign::MapFeatureToDensity()
       // we clear the inner points, as we will add them dynamically
       // we reserve the space for all inner points and use the capcity as flag to fill them dynamically
       // we do this in advance to not have to call IsConstant() when we check the two edges below
-      for(Item& item : map_)
+      for(Item& item : map)
       {
         ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
         ext->inner.Clear(false); // clear and do not keep capacity
@@ -407,14 +557,13 @@ void FeatureMappingDesign::MapFeatureToDensity()
       inners.clear(); // we cleared all inner and nothing points to the outdated list any more
 
       // we traverse the corners and create inner points for each Item where it is necessary
-      int num = features_.GetSize();
       Point base((int) dim_); // the left lower corner of the element
-      assert(map_.GetSize() == nx_ * ny_);
+      assert(map.GetSize() == nx_ * ny_);
       for(unsigned int y = 0; y < ny_; y++)
       {
         for(unsigned int x = 0; x < nx_; x++)
         {
-          Item& item = map_[y * nx_ + x];
+          Item& item = map[y * nx_ + x];
           ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
         
           if(ext->inner.GetCapacity() > 0) // this is our marker
@@ -441,27 +590,27 @@ void FeatureMappingDesign::MapFeatureToDensity()
                 // when the element below is not constant, we get B from it and continue - no corners left (no sharing across corners)
                 if(iy == 0 && y > 0 && GetItemIP((y-1) * nx_ + x)->inner.GetCapacity() > 0) {
                   LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy="  << iy << " -> (" << base[0]+ix*(dx_/(order-1)) << "," << base[1]+iy*(dx_/(order-1)) << ") "
-                               << " element below item=" << map_[(y-1) * nx_ + x].lexicographic_pos << " capacity=" << GetItemIP((y-1) * nx_ + x)->inner.GetCapacity()
+                               << " element below item=" << map[(y-1) * nx_ + x].lexicographic_pos << " capacity=" << GetItemIP((y-1) * nx_ + x)->inner.GetCapacity()
                                << " will be integrated and we get B from it our inner=" << ext->inner.GetSize();
                   continue; // skip B, as it is shared with the element below
                 }
                   
                 if(ix == 0 && x > 0 && GetItemIP(y * nx_ + (x-1))->inner.GetCapacity() > 0) {
                   LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy="  << iy << " -> (" << base[0]+ix*(dx_/(order-1)) << "," << base[1]+iy*(dx_/(order-1)) << ") "
-                               << " element left item=" << map_[y * nx_ + (x-1)].lexicographic_pos << " capacity=" << GetItemIP(y * nx_ + (x-1))->inner.GetCapacity()
+                               << " element left item=" << map[y * nx_ + (x-1)].lexicographic_pos << " capacity=" << GetItemIP(y * nx_ + (x-1))->inner.GetCapacity()
                                << " will be integrated and we get D from it our inner=" << ext->inner.GetSize();
                   continue; // skip D, as it is shared with the element left
                 }
 
                 // actually integrate integration point
-                IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::INNER, base, ext, ix*(dx_/(order-1)), iy*(dx_/(order-1)), num);
+                IntegrationPoint* ip = SetupDesignCreateAddIP(ItemIP::INNER, base, ext, ix*(dx_/(order-1)), iy*(dx_/(order-1)));
                 LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " ip=" << ip->loc.ToString() << " created and added to inner=" << ext->inner.GetSize()
                              << " capacity=" << ext->inner.GetCapacity();
 
                 // shall we share the upper edge (G),H,I with the upper element? Because of this not parallelizable
                 if(iy == order-1 && y < ny_-1)
                 {
-                  Item& above = map_[(y+1) * nx_ + x]; 
+                  Item& above = map[(y+1) * nx_ + x]; 
                   if(dynamic_cast<ItemIP*>(above.extension)->inner.GetCapacity() > 0) { // upper edge. The capacity is our marker for non-constant elements
                     LOG_DBG3(fm) << "MFTD item=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " share ip " << ip->loc.ToString() << " from " << item.lexicographic_pos 
                                   << " to above " << above.lexicographic_pos << " old inner=" << GetItemIP((y+1) * nx_ + x)->inner.GetSize();
@@ -472,7 +621,7 @@ void FeatureMappingDesign::MapFeatureToDensity()
                 // shall we share the right edge C,F,I with the right element?
                 if(ix == order-1 && x < nx_-1)
                 {
-                  Item& right = map_[y * nx_ + (x+1)];
+                  Item& right = map[y * nx_ + (x+1)];
                   if(dynamic_cast<ItemIP*>(right.extension)->inner.GetCapacity() > 0) { // right edge
                     LOG_DBG3(fm) << "MFTD tem=" << item.lexicographic_pos << " ix=" << ix << " iy=" << iy << " share ip " << ip->loc.ToString() << " from " << item.lexicographic_pos 
                                  << " with right " << right.lexicographic_pos << " old inner=" << GetItemIP(y * nx_ + (x+1))->inner.GetSize();;
@@ -501,7 +650,7 @@ void FeatureMappingDesign::MapFeatureToDensity()
 
   LOG_DBG(fm) << "MFTD test boundary func: " << bnd_fnc->DebugLog();
 
-  for(Item& item : map_)
+  for(Item& item : map)
   {
     ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
     LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " center=" << ext->center.ToString() << " corner=" << ext->corner.GetSize() << " inner=" << ext->inner.GetSize() << " -> " << IntegrationPoint::ToString(ext->inner);
@@ -510,21 +659,34 @@ void FeatureMappingDesign::MapFeatureToDensity()
 
   LOG_DBG3(fm) << "MFTD: start calculating distances for all features";
   // all integration points sets and their distances calculated, we can now integrate the density
-  for(Item& item : map_)
+
+  // working arrays for CalcGradRhoByFeature
+  Vector<double> ddist_ds;
+  StdVector<IntegrationPoint*> elem_ip;
+  Vector<double> drho_ds_vec;
+  assert(num_var_by_feature == features_.First()->GetAllVariables().GetSize());
+
+  for(Item& item : map)
   {
     ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
     LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " center=" << ext->center.ToString() << " corner=" << ext->corner.GetSize() << " inner=" << ext->inner.GetSize() << " -> " << IntegrationPoint::ToString(ext->inner);
     assert(order <= 2 || (ext->GetAllIP().GetSize() == 4 || ext->GetAllIP().GetSize() ==std::pow(order,dim_))); // we have at least corners, but for order > 2 we have also inner points
-    for(unsigned int i = 0; i < pills.GetSize(); i++)
+    for(unsigned int fi = 0; fi < pills.GetSize(); fi++)
     {
       // collect all computed distances from all element integration points by feature number
-      ext->FillDist(all_dist, i); 
-      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " f=" << i << " d=" << all_dist.ToString();
+      ext->FillDist(all_dist, fi);
+      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " f=" << fi << " d=" << all_dist.ToString();
       // project these distances by the boundary function (rhomin ... 1)
       bnd_fnc->Eval(all_dist, bnd);
       // integrate these projections to a single rho by feature -> before combine
-      ext->rho[i] = bnd_fnc->Integrate(bnd);
-      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " c=" << ext->center.ToString() << " f=" << i << " prj:#" << bnd.GetSize() << "->" << bnd.ToString() << " -> " << ext->rho[i];
+      ext->rho[fi] = bnd_fnc->Integrate(bnd);
+      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " c=" << ext->center.ToString() << " f=" << fi << " prj:#" << bnd.GetSize() << "->" << bnd.ToString() << " -> " << ext->rho[fi];
+
+      // calculate d_rho/d_s to be re-used in the gradient calculation.
+      CalcGradRhoByFeature(item, pills[fi], drho_ds_vec, ddist_ds, elem_ip); // drho_ds_vec is output, ddist_ds and elem_ip are working arrays
+      // sort drho_drho_ds_vec in the full d_rho_ds vector
+      for(unsigned int si = 0; si < num_var_by_feature; si++)
+        ext->drho_ds_full[fi * num_var_by_feature + si] = drho_ds_vec[si];
     }
     // combine for the element the rho of all features to the remaining element rho
     double rho = cmb_fnc->Eval(ext->rho);
@@ -539,7 +701,8 @@ void FeatureMappingDesign::MapFeatureToDensity()
   mapping_timer_->Stop();
 }
 
-void FeatureMappingDesign::MapFeatureGradient(const Function* func)
+
+void FeatureMappingDesign::MapFeatureGradient(Function* func)
 {
   // for many density based functions we could cache stuff, as all is same but d_J/d_rho_e where J is func
 
@@ -548,80 +711,28 @@ void FeatureMappingDesign::MapFeatureGradient(const Function* func)
 
   LOG_DBG(fm) << "MFG md= " << mapped_design_;
 
-  int N_ip = std::pow(order,dim_); // number of integration points 
-
+  // The sensitivity for isotropic and anisotropic features reads quite different.
+  // In the isotropic case almost all are products from chain rule 
   // d_J/d_s = sum_e d_J/d_rho_e * d_rho_e/d_s 
-  // with d_rho_e/d_s = 1/N_ip sum_i d_H/d_d * d_d/d_s
-  // the expensive part, the distance calculation is already done, therefore we parallelize only by feature, not by variable
-
-  // this is the case for max_rho_e via p-norm: rho_e = (sum_f rho_f^p)^(1/p)
-  // d_max_rho_r/d_s = (sum_f rho_f^p)^(1/p -1) * rho_f(s)^(p-1) * d_rho_f(s)/d_s 
-  // d_J/d_s = sum_e d_J/d_rho_e * (sum_f rho_f^p)^(1/p -1) * rho_f(s)^(p-1) * 1/N_ip sum_i d_H/d_d * d_d/d_s
+  //           with d_rho_e/d_s = 1/N_ip sum_i d_H/d_d * d_d/d_s
+  // In the anisotropic case the state dependent functions are like
+  // d_J/d_s = sum_e <lmbda_e, dK_e/d_s u_e> (ErsatzMaterial::CalcU1KU2())
+  //           with everything in dK_e/d_s
+  // in the non-state dependent but rho dependent case (volume) it is like isotropic
 
   // we contribute to d_J/d_s and in the end move it to the opt variables (e.g. considering linking)
   // fixed is 0
 
   // assume all features are equal - this is not opt variables. We skip later fixed optionally link later
-  unsigned int num_var_by_feature = features_.First()->GetAllVariables().GetSize(); 
+  assert(num_var_by_feature == features_.First()->GetAllVariables().GetSize()); 
   Vector<double> dJ_ds(features_.GetSize() * num_var_by_feature, 0.0);
-
-  StdVector<IntegrationPoint*> elem_ip; // elem inner + corner
   StdVector<FeatureVariable*> f_si;     // all variables of a feature
-  StdVector<double> ddist_ds(num_var_by_feature); // we calculate all gradients at once and store it then in the FeatureVariables
-  // for each element
-  for(Item& item : map_)
-  {
-    ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
-    // SIMP gradient: function by rho_e
-    double dJ_drho_e = item.elemval->GetPlainGradient(func);
 
-    // for each feature
-    for(unsigned int f = 0; f < pills.GetSize(); f++)
-    {
-      // the rho_e of this feature 
-      double rho_e_f = ext->rho[f];
-      // skip when we have constant feature rho_e (gradient is zero)
-      if(rho_e_f == 1 || rho_e_f == rhomin)
-        continue;
-
-      Feature& pill = pills[f];
-
-      // derivative of rho_f aggregation of all features (1.0 single feature)
-      double dmax_drho_f = cmb_fnc->Grad(ext->rho, f);
-
-      // obtain all (5) variables of the feature to use it for each IP. 
-      // we handle fixed below and handle connections later
-      pill.GetAllVariables(f_si);
-      assert(f_si.GetSize() == num_var_by_feature); // all constant
-
-      // for all integration points of the element
-      ext->GetAllIP(elem_ip);
-      LOG_DBG3(fm) << "MFG: item=" << item.lexicographic_pos << " f=" << f << " inner=" << ext->inner.GetSize() << " elem_ip=" << elem_ip.GetSize() 
-                   << " dJ_drho_e=" << dJ_drho_e << " dmax_drho_f=" << dmax_drho_f 
-                   << " rho_e_f=" << rho_e_f << " num_var_by_feature=" << num_var_by_feature;
-      assert(elem_ip.GetSize() ==4 || (int) elem_ip.GetSize() == N_ip); 
-      for(IntegrationPoint* ip : elem_ip)
-      {
-        // now we have the actual point X and distance for each IP know which part is closest
-
-        // derivative of boundary function (poly) by distance
-        double dH_ddist = bnd_fnc->Grad(ip->dist[f]);
-
-        // for all variables of the specific feature (P_x, P_y, Q_x, Q_y and p at once)
-        // this is the most tricky part in the derivatives
-        pill.GradDistance(ip->loc, ip->part[f], ddist_ds);
-
-        for(unsigned int s = 0; s < num_var_by_feature; s++)
-        {
-          FeatureVariable* var = f_si[s];
-          if(var->fixed) // skip fixed but process mapped variables
-            continue;
-          
-          dJ_ds[f * num_var_by_feature + s] += dJ_drho_e * dmax_drho_f * 1/N_ip * dH_ddist * ddist_ds[s];
-        }
-      }
-    }
-  }
+  // the isotropic or non-state dependent (volume) is purely chain rule and only factor sum_e dJ/drho * ...
+  if(!anisotropic || !func->IsStateDependent())
+    IsotropicGradientHelper(func, dJ_ds);
+  else  // anisotropic state has dJ/drho and dJ/dphi and is computed by sum_e <lmbd_e, dK/ds u_e> via ParamMat::SetElementK()
+    AnisotropicGradientHelper(func, dJ_ds);
 
   // copy from dJ_ds to our feature variables - handle mapping
   for(Feature& pill : pills)
@@ -644,6 +755,160 @@ void FeatureMappingDesign::MapFeatureGradient(const Function* func)
     LOG_DBG2(fm) << "MFG: func=" << func->ToString() << " opt[" << i << "]=" << opt_shape_param_[i]->GetPlainGradient(func) << " var=" << dynamic_cast<FeatureVariable*>(shape_param_[i])->ToString(); 
 
   gradient_timer_->Stop();
+}
+
+void FeatureMappingDesign::IsotropicGradientHelper(const Function* func, Vector<double>& dJ_ds) const
+{
+  // for many density based functions we could cache stuff, as all is same but d_J/d_rho_e where J is func
+  
+  // the expensive part, the distance calculation is already done, therefore we parallelize only by feature, not by variable
+
+  // this is the case for max_rho_e via p-norm: rho_e = (sum_f rho_f^p)^(1/p)
+  // d_max_rho_r/d_s = (sum_f rho_f^p)^(1/p -1) * rho_f(s)^(p-1) * d_rho_f(s)/d_s 
+  // d_J/d_s = sum_e d_J/d_rho_e * (sum_f rho_f^p)^(1/p -1) * rho_f(s)^(p-1) * 1/N_ip sum_i d_H/d_d * d_d/d_s
+
+  // we contribute to d_J/d_s and in the end move it to the opt variables (e.g. considering linking)
+  // fixed is 0
+
+  // assume all features are equal - this is not opt variables. We skip later fixed optionally link later
+  assert(num_var_by_feature == features_.First()->GetAllVariables().GetSize()); 
+  StdVector<FeatureVariable*> f_si;     // all variables of a feature
+
+  StdVector<IntegrationPoint*> elem_ip; // elem inner + corner
+  Vector<double> ddist_ds(num_var_by_feature); // we calculate all gradients at once and store it then in the FeatureVariables
+
+  Vector<double> drho_f_ds(num_var_by_feature); // d_rho/d_s for a single feature for CalcGradRhoByFeature()
+
+  // for each element
+  for(const Item& item : map)
+  {
+    const ItemIP* ext = dynamic_cast<const ItemIP*>(item.extension);
+    // SIMP gradient: function by rho_e
+    double dJ_drho_e = item.elemval->GetPlainGradient(func);
+
+    // for each feature
+    for(unsigned int f = 0; f < pills.GetSize(); f++)
+    {
+      // the rho_e of this feature 
+      double rho_e_f = ext->rho[f];
+      // skip when we have constant feature rho_e (gradient is zero)
+      if(rho_e_f == 1 || rho_e_f == rhomin)
+        continue;
+
+      const Feature& pill = pills[f];
+
+      // derivative of rho_f aggregation of all features (1.0 single feature)
+      double dmax_drho_f = cmb_fnc->Grad(ext->rho, f);
+
+      // drho_f_ds contains the return value
+      CalcGradRhoByFeature(item, pill, drho_f_ds, ddist_ds, elem_ip);
+      assert(dJ_ds.GetSize() == ext->drho_ds_full.GetSize());
+      for(unsigned int s = 0; s < num_var_by_feature; s++) 
+      {
+        dJ_ds[f * num_var_by_feature + s] += dJ_drho_e * dmax_drho_f * drho_f_ds[s];
+        LOG_DBG3(fm) << "IGH: item=" << item.lexicographic_pos << " f=" << f << " s=" << s 
+                   << " dJ_drho_e=" << dJ_drho_e << " dmax_drho_f=" << dmax_drho_f << " drho_f_ds=" << drho_f_ds[s] << " -> " <<  dJ_ds[f * num_var_by_feature + s];
+      } 
+    }
+  }
+}
+
+void FeatureMappingDesign::AnisotropicGradientHelper(Function* func, Vector<double>& dJ_ds)
+{
+  // for a single anisotropic feature we have
+  // C_e= rho_e * R*C0*R^T with R=R(phi(s)) and rho_e = rho_e(H(d(s))) as in the isotropic case
+  // for a state dependent function we have
+  // d_J/d_s = sum_e <lmbda_e, dK_e/d_s u_e> 
+  // where dK_e/d_s needs d_C_e/d_e = d(R*C0*R^T)/d_phi*d_phi/d_s rho_e + R^T C0 R d_rho_e/d_s
+  // the implementation is quite different from the isotropic case as we are based on CalcU1KU2()
+  // for every variable we execute the compliance, .... gradient calculation <lmbda_e, dK_e/d_s u_e> and sum it up
+  // see FeatueMappingParamMat::SetElementK() which eventually calls GetAnisoMechTensor() 
+  assert(num_var_by_feature == features_.First()->GetAllVariables().GetSize()); 
+  assert(opt != nullptr);
+  assert(func->IsStateDependent());
+
+  dJ_ds.Init();
+  assert(dJ_ds.GetSize() == features_.GetSize() * num_var_by_feature);
+
+  for(unsigned int f = 0; f < pills.GetSize(); f++)
+  {
+    aniso_current_variable.feature_idx = f;
+    for(unsigned int s = 0; s < num_var_by_feature; s++) 
+    {
+      assert(s <= (DesignElement::FEATURE_MAPPING_P - DesignElement::FEATURE_MAPPING_PX));
+      aniso_current_variable.var_type = (DesignElement::Type) (DesignElement::FEATURE_MAPPING_PX + s);
+      aniso_current_variable.var_idx = (int) s;
+      
+      // this speeds up the derivate for GetAnisoMechTensor() a lot
+      aniso_current_variable.RCdR = aniso_base_tensor; // copy the unrotated anisotropic tensor
+      MaterialTensor<double> RCdR(VOIGT, &(aniso_current_variable.RCdR), false); // wrap the MaterialTensor around the Matrix
+      Optimization::context->dm->RotateTensor(RCdR, DesignElement::ROTANGLE, true, pills[f].angle); // true means we provide the angle
+      LOG_DBG2(fm) << "AGH: func=" << func->ToString() << " f=" << f << " s=" << s << " angle=" << pills[f].angle 
+                   << " RCdR=" << RCdR.GetMatrix(VOIGT).ToString() << " acv.RCdR=" <<  aniso_current_variable.RCdR.ToString();
+      assert(aniso_current_variable.RCdR.NormL2() > 0);
+
+      for(Excitation* excite : func->ctxt->excitations)
+      {
+        // some objectives are only to be evaluated for the last excitation
+        if(!func->DoEvaluate(excite))
+          continue;
+        excite->Apply(true); // set the correct context
+        
+        // shall only affect DesignSpace::data -> density elements
+        ResetGradient(func);
+          
+        // calls FeatureMappingParamMat::SetElementK() for every element
+        opt->CalcFunction(*excite, func, true); 
+
+        // sum up all gradients -> they will later be handled for mapping
+        for(const Item& item : map) 
+        {
+          dJ_ds[f * num_var_by_feature + s] += item.elemval->GetPlainGradient(func);
+          LOG_DBG3(fm) << "AGH: func=" << func->ToString() << " f=" << f << " s=" << s << " + " << item.elemval->GetPlainGradient(func) << " -> dJ_s=" <<  dJ_ds[f * num_var_by_feature + s];
+        }
+        LOG_DBG2(fm) << "AGH: func=" << func->ToString() << " f=" << f << " s=" << s << " -> dJ_s=" <<  dJ_ds[f * num_var_by_feature + s];
+      }
+    } 
+  }
+  aniso_current_variable.Reset(); // The optimizer will compute the compliance gradient by rho -> set for FeatureMappingParamMat::SetElementK()
+}
+
+inline void FeatureMappingDesign::CalcGradRhoByFeature(const Item& item, const Feature& feature, Vector<double>& out, Vector<double>& ddist_ds, StdVector<IntegrationPoint*>& elem_ip) const
+{
+  int N_ip = std::pow(order,dim_); // number of integration points 
+  
+  // the expensive part, the distance calculation is already done
+
+  // d_rho/d_s = 1/N_ip * sum_i d_H/d_d * d_d/d_s
+
+  // assume all features are equal - this is not opt variables. We skip later fixed optionally link later
+  assert(num_var_by_feature == features_.First()->GetAllVariables().GetSize()); 
+  out.Resize(num_var_by_feature);
+  out.Init(0.0); // we sum up later
+
+  ddist_ds.Resize(num_var_by_feature);
+  ItemIP* ext = dynamic_cast<ItemIP*>(item.extension);
+  assert(feature.idx >= 0 && feature.idx <= (int) features_.GetSize());
+  unsigned int f = (unsigned int) feature.idx;
+
+  // for all integration points of the element
+  ext->GetAllIP(elem_ip);
+  LOG_DBG3(fm) << "CGRBF: item=" << item.lexicographic_pos << " f=" << f << " inner=" << ext->inner.GetSize() << " elem_ip=" << elem_ip.GetSize() << " num_var_by_feature=" << num_var_by_feature;
+  assert(elem_ip.GetSize() ==4 || (int) elem_ip.GetSize() == N_ip); 
+  for(IntegrationPoint* ip : elem_ip)
+  {
+    // now we have the actual point X and distance for each IP know which part is closest
+
+    // derivative of boundary function (poly) by distance
+    double dH_ddist = bnd_fnc->Grad(ip->dist[f]);
+
+    // for all variables of the specific feature (P_x, P_y, Q_x, Q_y and p at once)
+    // this is the most tricky part in the derivatives
+    feature.GradDistance(ip->loc, ip->part[f], ddist_ds); // output is the vector ddist_ds (including fixed)
+
+    // vectorial operation. Contains also values for fixed variables!
+    out.Add(1./N_ip * dH_ddist, ddist_ds);
+  }
 }
 
 
@@ -717,6 +982,14 @@ void FeatureMappingDesign::ReadDensityXml(PtrParamNode set, double& lower_violat
   MapFeatureToDensity();
 }
 
+
+void FeatureMappingDesign::AddToDensityHeader(PtrParamNode header)
+{
+  PtrParamNode pn = header->Get("featureMapping");
+  pn->Get("transition")->SetValue(transition);
+}
+
+
 FeatureVariable* FeatureMappingDesign::FindKey(const std::string& key) const
 {
   for(const Feature* f : features_)
@@ -765,6 +1038,7 @@ void FeatureMappingDesign::Pill::Update()
   Q.Set(points.Last()[0].GetPlainDesignValue(), points.Last()[1].GetPlainDesignValue());
 
   length = P.Dist(Q); // || Q - P ||
+  length2 = length*length;
 
   U = (Q-P) / length;
   V.Set(U[1], -U[0]);
@@ -773,8 +1047,23 @@ void FeatureMappingDesign::Pill::Update()
   dy = Q[1] - P[1]; // y-component
   dp_norm = Q[0] * P[1] - Q[1] * P[0]; // end_x*start_y - end_y*start_x
 
+  // only required in the anisotropic case
+  bool aniso = domain->GetDesign()->GetMethod() == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT;
+  if(aniso)
+  {
+    angle = std::atan2(dy, dx);
+
+    // we assume, we do anisotropy only in elasticity and we assume that we have in all design regions the same material
+    rot_mat = FeatureMappingDesign::aniso_base_tensor; // copy C_0
+    // RotateTensor needs a MaterialTensor which wraps a Matrix and assignes it with a notation (VOIGT)
+    MaterialTensor<double> RCR(VOIGT, &rot_mat, false); // false: do not copy 
+    // actually rot_mat is rotated
+    Optimization::context->dm->RotateTensor(RCR, DesignElement::NO_DERIVATIVE, true, angle); // true because we provide the angle
+  }
+
   LOG_DBG(fm) << "P:U: P=" << P.ToString() << " Q=" << Q.ToString() << " l=" << length << " U=" << U.ToString() << " V=" << V.ToString() 
-              << " dx= " << dx << " dy=" << dy << " dp_nom=" << dp_norm;
+              << " dx= " << dx << " dy=" << dy << " dp_nom=" << dp_norm << " angle=" << angle 
+              << (aniso ? " rot_mat=" + rot_mat.ToString() : "");
 }
 
 double FeatureMappingDesign::Pill::Distance(const Point& X, FeatureVariable::Tip* part) const
@@ -817,7 +1106,7 @@ double FeatureMappingDesign::Pill::Distance(const Point& X, FeatureVariable::Tip
   return dist;
 }
 
-void FeatureMappingDesign::Pill::GradDistance(const Point& X, FeatureVariable::Tip part, StdVector<double>& out) const
+void FeatureMappingDesign::Pill::GradDistance(const Point& X, FeatureVariable::Tip part, Vector<double>& out) const
 {
   assert(part != FeatureVariable::NO_TIP);
   assert(points.GetSize() == 2);
@@ -825,6 +1114,7 @@ void FeatureMappingDesign::Pill::GradDistance(const Point& X, FeatureVariable::T
 
   switch(part)
   {
+    // same order as in BaseDesignElement::FEATURE_MAPPING_PX, ...
   case FeatureVariable::START:
     out[0] = (P[0]-X[0])/X.Dist(P); 
     out[1] = (P[1]-X[1])/X.Dist(P);
@@ -879,6 +1169,32 @@ void FeatureMappingDesign::Pill::GradDistance(const Point& X, FeatureVariable::T
   }
 }
 
+inline double FeatureMappingDesign::Pill::GradAngle(int s) const
+{
+  assert(s >= 0 && s <= 4);
+  if(length < 1e-12)
+    return 0.0;
+
+  // angle = atan2(dy,dx) 
+  // dx = Q_x - P_x, dy = Q_y-P_y
+  // d_atan2/d_y = x/(x^2+y^2) d_atan2/d_x = -y/(x^2+y^2)
+  switch(s)  
+  {
+  case 0:
+    return  dy/length2; // P_x: -dy * -1 
+  case 1:
+    return -dx/length2; // P_y: dx * -1
+  case 2:    
+    return -dy/length2; // Q_x: -dy * 1 
+  case 3:  
+    return  dx/length2; // Q_y: dx * 1
+  case 4:  
+    return  0.0;       // p: no angle impact
+  default:
+    assert(false);
+  }
+  return -1.0;
+}
 
 inline void FeatureMappingDesign::BoundaryFunction::Eval(const Vector<double>& dist, Vector<double>& eval) const
 {
@@ -947,6 +1263,7 @@ inline double FeatureMappingDesign::Max::Grad(const Vector<double>& projected, u
   // Max combination is not really differentiable as only one feature can contribute, the others are 0
   // with more features 1, it is almost random. std::max_element() find another max than our Vector::Max() 
   // but as we are not differentiable anyway, we don't care
+  assert(num < projected.GetSize());
   unsigned int idx = std::distance(projected.GetPointer(), std::max_element(projected.GetPointer(), projected.GetPointer()+projected.GetSize()));
   LOG_DBG3(fm) << "Max:G prj=" << projected.ToString() << " by " << num << " idx=" << idx << " -> " << (num == idx ? 1.0 : 0.0);
   return num == idx ? 1.0 : 0.0; // when we have 1 feature only, this is the plain rho 
@@ -1007,6 +1324,16 @@ double FeatureMappingDesign::SoftMax::Grad(const Vector<double>& projected, unsi
   double x_j = projected[num];
   return std::exp(beta * x_j)*((1+beta*x_j)*sum_exp - beta*sum_x_exp)/(sum_exp*sum_exp);
 } 
+
+void FeatureMappingDesign::AnisoCurrentVariable::Reset()
+{
+  var_type = BaseDesignElement::NO_DERIVATIVE;
+  var_idx = -1;
+  feature_idx = -1;
+  assert(dim_ == 2);
+  RCdR.Resize(3,3);
+  RCdR.Init(); 
+}
 
 } // end of namespace
 

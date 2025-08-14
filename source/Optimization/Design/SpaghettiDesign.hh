@@ -104,7 +104,7 @@ private:
   /** Takes the density gradients and sums it up on the shape variables.
    *  To be called within WriteGradientToExtern().
    *  @param f the function we add the stuff to the gradient. */
-  void MapFeatureGradient(const Function* f) override;
+  void MapFeatureGradient(Function* f) override;
 
 
   /** get generic special results from python.

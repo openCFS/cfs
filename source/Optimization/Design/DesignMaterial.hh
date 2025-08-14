@@ -28,21 +28,20 @@ namespace CoupledField {
 
 /** This implements a function from $R^n$ to $R^{d \times d}$ for transforming a vector of Parameters
  * to a material tensor.  */
-template <class TYPE> class StdVector;
+//template <class TYPE> class StdVector;
 
-class ErsatzMaterial;
 class DesignSpace;
-class TransferFunction;
+class CoefFunctionOpt;
 
 class DesignMaterial
 {
 public:
-  typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
+  typedef enum { NO_TYPE=-1, FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
     DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
     DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC,
     DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR, DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,
     D_INTERP_IN718_TENSOR, D_INTERP_IN718_TENSOR_ROT, LAMINATES, D_LAMINATES,
-    HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, SGP_MATLAB, SGP_GRADIENTCHECK, HEAT} Type;
+    HOM_RECT, D_HOM_RECT, HOM_RECT_C1, HOM_ISO_C1, MSFEM_C1, SGP_MATLAB, SGP_GRADIENTCHECK, HEAT, FEATURE_MAPPING_ANISO } Type;
 
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -68,15 +67,19 @@ public:
      * @param pn pointer to PtrParamNode */ 
     DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, DesignSpace* space);
 
+    /** constructor for fake DesignMaterial to be used by FeatureMappingParamMat */
+    DesignMaterial(Type type, DesignSpace* space);
+
     ~DesignMaterial();
 
     bool GetTensor(MaterialTensor<double>& mt, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, MaterialTensorNotation notation, bool core = false);
 
     /** Calculate the derivative tensor from the given material parameters
      * Sets the Tensor in VOIGT notation.
-     * @param core if true, return the material tensor without multiplication with penalized pseudo-density */
-    bool GetMechTensor(MaterialTensor<double>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool core = false);
-    bool GetMechTensor(MaterialTensor<Complex>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool core = false);
+     * @param core if true, return the material tensor without multiplication with penalized pseudo-density
+     * @param coef only for FEATURE_MAPPING_ANISO */
+    bool GetMechTensor(MaterialTensor<double>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool core = false, const CoefFunctionOpt* coef = nullptr);
+    bool GetMechTensor(MaterialTensor<Complex>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool core = false, const CoefFunctionOpt* coef = nullptr);
 
     bool GetPiezoCouplingTensor(MaterialTensor<double>& mt, const Elem* elem, DesignElement::Type direction);
 
@@ -215,30 +218,30 @@ protected:
     CfsTLS<std::map<DesignElement::Type, double> > params_;
 
     /** mass is considered an independent design */
-    bool massIsDesign_;
+    bool massIsDesign_ = false;
 
     /** damping is also optimized */
-    bool dampingIsDesign_;
+    bool dampingIsDesign_ = false;
 
     /** shearing is optimized */
-    bool shearIsDesign_;
+    bool shearIsDesign_ = false;
 
     /** dimension of material catalogue */
     StdVector<double> catalogueSize_;
 
     /** multiply mass with this, can be used to scale tensor trace */
-    double massFactor_;
+    double massFactor_ = -1.0;
 
     /** for density times 2d tensor with constant trace */
-    double trace_;
+    double trace_ = -1.0;
 
     static Enum<Type> type;
-    Type type_;
+    Type type_ = NO_TYPE;
 
     static Enum<TransIsoType> transIsoType;
-    TransIsoType transIsoType_;
+    TransIsoType transIsoType_ = TRANSISO_YZ;
 
-    unsigned int dim;
+    unsigned int dim = 0;
 
 #ifdef USE_SGPP
     /** Grid for SGPP interpolation */
@@ -318,8 +321,7 @@ private:
      * @theta1 angle for rotation around first axis
      * @theta2 angle for rotation around second axis
      * @theta3 angle for rotation around third axis
-     * @direction if given direction of the derivative to be calculated
-     */
+     * @direction if given direction of the derivative to be calculated */
     void SetRotationMatrix(Matrix<double>& R, double theta1, double theta2, double theta3, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
     /** This exists only in Voigt notation! */
@@ -429,8 +431,8 @@ private:
      * The bias material is simply CoefFunctionOpt::orgMat */
     bool bias_ = false;
 
-    Interpolation interpolation_;
-    unsigned int level_;
+    Interpolation interpolation_ = NOTYPE;
+    unsigned int level_ = 0;
 
     ApproxData* interpolator11_ = nullptr;
     ApproxData* interpolator12_ = nullptr;

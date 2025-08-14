@@ -319,6 +319,17 @@ namespace CoupledField {
       actRegion = regions_[iRegion];
       actSDMat    = materials_[actRegion];
       
+      // in case we are not 3D, we add the plane stress/strain tensor to .info.xml
+      // in BaseMaterial::ToInfo() only the full tensor is stored 
+      if(tensorType_ != FULL)
+      {
+        // append new when a region has another material
+        PtrParamNode in = infoNode_->GetByVal("material", "name", actSDMat->GetName()); 
+        PtrCoefFct subTensor = actSDMat->GetSubTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
+        actSDMat->StoreTensor(in->Get("subtensor/tensor"), subTensor); // seems to create a string, hence we cannot add type to subsensor directly
+        in->Get("subtensor/type")->SetValue(subType_);
+      }
+      
       // Get current region name
       std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
       

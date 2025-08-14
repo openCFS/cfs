@@ -775,11 +775,6 @@ bool Function::DoEvaluateAlways(int context_sequence) const {
 }
 
 
-bool Function::IsExcitationSensitive() const {
-  return excite_sensitive_;
-}
-
-
 bool Function::IsSlackFunction() const
 {
   switch(type_)

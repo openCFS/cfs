@@ -4593,7 +4593,7 @@ namespace CoupledField {
 
     minMax.Resize(dim_,2);
     Double largeVal = 1e33;
-     for(UInt i = 0; i < dim_; i++ ) {
+    for(UInt i = 0; i < dim_; i++ ) {
        minMax[i][0] =   largeVal;
        minMax[i][1] = - largeVal;
      }

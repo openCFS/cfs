@@ -24,21 +24,19 @@ class MaterialTensor
     // validate: check if conversion is allowed - see ToVoigt()
     void ToHillMandel(bool validate = true);
 
+    void Replace(MaterialTensorNotation notation, const Matrix<TYPE>& m);
+
     /** returns new objects in Voigt / H-M notation **/
     // validate: see ToVoigt()
     MaterialTensor<TYPE> AsVoigt(bool validate = true) const;
     // validate: see ToVoigt()
     MaterialTensor<TYPE> AsHillMandel(bool validate = true) const;
 
-    // service functions for casting
-//    inline MaterialTensor<double> AsDouble() {
-//      return static_cast<MaterialTensor<double> >(*this);
-//    }
+    unsigned int GetDim() const { assert(matrix_); return matrix_->GetNumRows() > 3 ? 3 : 2; } 
 
     /** returns the matrix in the current notation.
      * Parameter notation is only used for checks in debug. matrix is NOT
-     * returned in notation "notation"! For this use AsVoigt() or AsHillMandel().
-     */
+     * converted to notation "notation"! For this use AsVoigt() or AsHillMandel(). */
     Matrix<TYPE>& GetMatrix(MaterialTensorNotation notation) {
       assert(notation == notation_);
       return *matrix_;
@@ -48,7 +46,7 @@ class MaterialTensor
 
   private:
     MaterialTensorNotation notation_ = NO_NOTATION;
-    Matrix<TYPE>* matrix_ = NULL;
+    Matrix<TYPE>* matrix_ = NULL; // with C++17 we could switch to std::variant
 
     bool delmem_ = true;
 

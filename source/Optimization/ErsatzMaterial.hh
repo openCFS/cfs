@@ -81,11 +81,11 @@ public:
   typedef enum
   {
     NO_METHOD, SIMP_METHOD, PARAM_MAT, SHAPE_GRAD, SHAPE_OPT, SHAPE_PARAM_MAT, SHAPE_MAP,
-    SPAGHETTI, SPAGHETTI_PARAM_MAT, SPLINE_BOX, FEATURE_MAPPING
+    SPAGHETTI, SPAGHETTI_PARAM_MAT, SPLINE_BOX, FEATURE_MAPPING, FEATURE_MAPPING_PARAM_MAT
   } Method;
 
   /** Actually everything with has material parameterization, e.g. rotated anisotropy as in spaghetti */
-  static bool IsParamMat(Method test) { return test ==  PARAM_MAT || test == SHAPE_PARAM_MAT || test == SPAGHETTI_PARAM_MAT; }
+  static bool IsParamMat(Method test) { return test == PARAM_MAT || test == SHAPE_PARAM_MAT || test == SPAGHETTI_PARAM_MAT || test == FEATURE_MAPPING_PARAM_MAT; }
 
   /** True for spaghetti and spaghettiParamMat */
   static bool IsSpaghetti(Method test) { return test ==  SPAGHETTI || test == SPAGHETTI_PARAM_MAT; }

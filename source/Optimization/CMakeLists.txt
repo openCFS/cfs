@@ -1,4 +1,4 @@
-SET(OPTIMIZATION_SRCS
+set(OPTIMIZATION_SRCS
   ErsatzMaterial.cc
   Optimization.cc
   Function.cc
@@ -22,8 +22,8 @@ SET(OPTIMIZATION_SRCS
   Objective.cc
   Context.cc
   ParamMat.cc
-  Tune.cc
- )
+  FeatureMappingParamMat.cc
+  Tune.cc)
 
 ADD_DEFINITIONS(-DUSE_4_CFS)
 

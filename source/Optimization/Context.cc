@@ -153,8 +153,10 @@ void Context::Update()
     infoNode->Get("bloch")->SetValue(bloch_);
     infoNode->Get("material")->SetValue(OptimizationMaterial::system.ToString(mat->GetSystem()));
 
-    // PARAM_MAT, SHAPE_PARAM_MAT (not tested), SPAGHETTI_PARAM_MAT (NOT SPAGHETTI)
-    if(dm == NULL &&  em->IsParamMat(em->GetMethod())) {
+    // read paramMat parameters but not for anisotropic feature mapping which does not use additional parameters
+    // PARAM_MAT, SHAPE_PARAM_MAT (not tested), SPAGHETTI_PARAM_MAT
+    if(dm == NULL && em->IsParamMat(em->GetMethod()) && em->GetMethod() != ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT) 
+    {
       // either em->pn->paramMat/designMaterials/designMaterial or em->pn->spaghetti/designMaterial
       std::string base = em->GetMethod() == ErsatzMaterial::SPAGHETTI_PARAM_MAT ? "spaghettiParamMat" : "paramMat/designMaterials";
       assert(em->pn->Has(base));

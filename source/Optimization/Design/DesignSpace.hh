@@ -37,6 +37,7 @@ namespace CoupledField
   class LocalElementCache;
   struct DensityFilterMat;
 
+  using std::complex;
 
   struct DensityFilterMat
     {
@@ -85,7 +86,10 @@ namespace CoupledField
       * @param dm ParamNode in XML
       * @param material optimization material object */
      void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material);
-
+     
+     /** For the FeatureMappingParamMat case we have no param design variables but need only the rotation. */
+     void SetDesignMaterial(DesignMaterial::Type type);
+     
      /** returns the type of the DesignMaterial of the Ersatzmaterial **/
      DesignMaterial::Type GetDesignMaterialType()
      {
@@ -154,6 +158,9 @@ namespace CoupledField
      /** returns the slack variable if present or throws an exception */
      virtual double GetSlackVariable() const { assert(false); return -1; }
      virtual double GetAlphaVariable() const { assert(false); return -1; }
+
+     /** To trigger anisotropic FeatureMapping in SIMP::SetElementK() */
+     virtual bool HasSpecificElementMaterialTensor() const { return false; }
 /*
 
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
@@ -271,9 +278,12 @@ namespace CoupledField
      virtual void WriteBoundsToExtern(double* x_l, double* x_u) const;
 
      /** Sets the value of the described design element to 0
-      * @param vs what values to set. Not all make sense -> exception
+      * @param vs what values to set. Not all make sense -> exception. 
       * @param design with design elements to set, DEFAULT applies for all design types */
      virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
+
+     /** Reset within all data DesignElement::Reset(FUNCTION_GRADIENT, f) */
+     void ResetGradient(Function* f);
 
      /** creates a gnuplot file for the current iteration. To be triggered by gradplot for FeaturedDesign stuff and only implemented shapeMap and spaghetti.
       * Called for every iteration
@@ -309,7 +319,7 @@ namespace CoupledField
 
      /** finds the index of the design element in design.data for the element.
       * Is very fast O(1) */
-     int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false)
+     inline int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false) const
      {
        // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
        int idx = elemToDesign[elemNum].first;
@@ -326,7 +336,7 @@ namespace CoupledField
       * @param throw_region_exception if no region matches returns -1 or throws exception
       * @return either the element index for GetErsatzMaterialFactor() or -1 if no region matches
       * @exception throw_region_exception suppresses only exceptions on non-matching regions! */
-     int Find(const Elem* elem, bool throw_exception)
+     int Find(const Elem* elem, bool throw_exception) const
      {
        // no extensions for pseudo designs implemented, yet!
        if(FindRegion(elem->regionId) >= 0)
@@ -532,12 +542,34 @@ namespace CoupledField
        void SetBiMaterial(const std::string& material);
        void SetGroundMaterial(const std::string& material);
 
-       /** Here we cache the lower end material class. Complicated because of piezo and stiffness, density */
-       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > scnd_materials;
+       /** double or complex<double>. Processes scnd_material_cached */
+       template <class T>
+       T GetCachedScalar(MaterialClass mc, MaterialType mt) const {
+        return std::get<T>(GetCachedValue(mc,mt));
+       }
+
+       template <class T>
+       const Matrix<T>& GetCachedTensor(MaterialClass mc, MaterialType mt) const {
+         return std::get<Matrix<T>>(GetCachedValue(mc,mt));
+       }
+
+       /** Here we cache the lower end material class. Complicated because of piezo and stiffness, density
+        * The PtrCoefFct could be CoefFunctionAnalytic */
+       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct>> scnd_materials;
+
+       /** Here we store the actual instance of the PtrCoefFct for the first element of the DR.
+        * You shall know if scalar or Matrix and real or complex as the variant can store only one version.
+        * Set by SIMP::AddSecondMaterialCache()  
+        * @see GetCachedScalar(), GetCachedTensor() */
+       typedef std::variant<double, complex<double>, Matrix<double>, Matrix<complex<double>>> CoefValue;
+       std::map<MaterialClass, std::map<MaterialType, CoefValue>> scnd_material_cached; 
 
        /** the label for the info.xml. bimaterial or ground matrial. Cannot be concurrently */
        std::string scnd_material;
      private:
+       /** extract from scnd_material_cached */
+       const CoefValue& GetCachedValue(MaterialClass, MaterialType) const;
+
        /* bitmaterial is rho^3 * E_0 + (1-rho)^3 * E_bimat. Not concurrentl with ground material  */
        bool has_bimat = false;
 
@@ -559,6 +591,10 @@ namespace CoupledField
      /** This is a vector of design and nested regions: regions[design][region].
       Design is here the unique design. */
      StdVector<StdVector<DesignRegion> > regions;
+
+     /** bounds of our regions. 
+      * @see Grid::CalcRegionsBoundingBox() */
+     Matrix<double> domainBounds;
 
      /** return a debug string with regions information */
      std::string DumpRegions() const;

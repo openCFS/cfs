@@ -16,9 +16,6 @@ class TransferFunction;
     /** constructor for parametric material optimization, most is already done in ErsatzMaterial */
     ParamMat();
 
-    /** virtual second phase initializer */
-    virtual void PostInit();
-    
   protected:
 
     /** provides the derivative of the material matrix/tensor at the current element, 
@@ -26,7 +23,7 @@ class TransferFunction;
      * @param de the current DesignElement (this provides the element as well as the direction)
      * @param app is ignored
      * @param outn pointer where the matrix should be stored */
-    virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode = STANDARD, double ev = -1.0)
+    virtual void SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode = STANDARD, double ev = -1.0) override
     {
       if(f->ctxt->IsComplex())
       {

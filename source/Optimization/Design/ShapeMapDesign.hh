@@ -345,15 +345,15 @@ private:
   void SetupOptParam();
 
   /** map shape design to rho (DesignSpace::data). Sets DesignSpace::data. Shall be called by ReadDesignFromExtern().
-   * Sets Item::ip_param_idx within map_ for fast MapShapeGradient() */
+   * Sets Item::ip_param_idx within map for fast MapShapeGradient() */
   void MapFeatureToDensity() override;
 
-  /** Takes the density gradients and sums it up on the shape variables using map_. To be called within WriteGradientToExtern().
+  /** Takes the density gradients and sums it up on the shape variables using map. To be called within WriteGradientToExtern().
    * All the tanh stuff is repeatedly calculated for each function. However WriteGradientToExtern(f) is not called after all simp function gradients are set,
    * therefore we cannot cache it.
-   * Uses Item::ip_param_idx within map_ set by MapShapeToDensity()
+   * Uses Item::ip_param_idx within map set by MapShapeToDensity()
    * @param f the function we add the stuff to the gradient. */
-  void MapFeatureGradient(const Function* f) override;
+  void MapFeatureGradient(Function* f) override;
 
   /** Index of rho in DesignSpace::data() by element coordinate */
   unsigned int DensityIdx(int x, int y) const { return y * nx_ + x; }
@@ -390,7 +390,7 @@ private:
   /** helper for debugging */
   void DumpMap();
 
-  /** Set all Item::corner_val in map_ */
+  /** Set all Item::corner_val in map */
   void EvalAllCornerValues();
 
   /** Find the corresponding profile variable - needs to identify the shape first :( */
@@ -548,8 +548,8 @@ private:
   };
 
   /** mapping with size of rho to ShapeMapVariable pointers to shape_param_
-   *  overrides FeaturedDesign::map_ because we override Item */
-  StdVector<Item> map_;
+   *  overrides FeaturedDesign::map because we override Item */
+  StdVector<Item> map;
 
   /** This structure evaluates a single integration point. It stores exp calculations to be reused for gradient calculations.
    * It is aware of Item::nodes */
@@ -565,7 +565,7 @@ private:
     void Init(ShapeMapDesign* smd);
 
     /** gives the coordinates for evaluation directly.
-     * @param idx element identification with map_ but the element is not read.
+     * @param idx element identification with map but the element is not read.
      * @param ip only used to set a, b, w, r, t but to for x, y */
     double Setup(const StdVector<ShapeMapVariable*>& nodes, const Vector<unsigned int>& idx, const StdVector<double>& ip, double beta);
 

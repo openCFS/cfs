@@ -18,13 +18,23 @@ def copy(source, target):
     print("would copy '" + source + "' -> '" + target + "' without --dry")  
 
 def clean(file):
-  if not os.path.exists(file):
-    return
-  if args.dry is False and args.clean:
-    print("remove local file '" + file + "'")
-    os.remove(file)    
+  if os.path.isdir(file):
+    if not os.listdir(file) == 0:
+      if args.dry is False and args.clean:
+        print("remove empty directory '" + file + "'")
+        shutil.rmtree(file)    
+      else:
+        print("would remove empty directory '" + file + "' with --clean and without --dry")  
+    else:  
+      print("directory '" + file + "' is not empty")
   else:
-    print("would remove local file '" + file + "' with --clean and without --dry")  
+    if not os.path.exists(file):
+      return
+    if args.dry is False and args.clean:
+      print("remove local file '" + file + "'")
+      os.remove(file)    
+    else:
+      print("would remove local file '" + file + "' with --clean and without --dry")  
   
 
 parser = argparse.ArgumentParser(description = 'Within a cfs test-case the reference files are created')
@@ -49,6 +59,7 @@ copy(name + '.mma', name + '.ref.mma')
 copy('nonlin.txt', 'nonlin.ref.txt')
 
 clean(os.path.join('results_hdf5', name + '.cfs'))
+clean('results_hdf5')
 clean(name + '.info.xml')
 clean(name + '.plot.dat')
 clean(name + '.density.xml')

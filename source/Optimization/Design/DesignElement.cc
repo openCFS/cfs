@@ -325,6 +325,12 @@ void BaseDesignElement::AddGradient(const Function* f, double d_value)
 
 void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
 {
+  if(vs == FUNCTION_GRADIENT)
+  {
+    assert(f != nullptr);
+    vs = f->IsObjective() ? COST_GRADIENT : CONSTRAINT_GRADIENT;
+  }
+
   switch(vs)
   {
   case COST_GRADIENT:
@@ -332,7 +338,7 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
       costGradient[i] = 0.0;
     break;
   case CONSTRAINT_GRADIENT:
-    if(f != NULL)
+    if(f != nullptr)
       constraintGradient[f->GetIndex()] = 0.0;
     else
       for(unsigned int i = 0, s = constraintGradient.GetSize(); i < s; ++i)
@@ -765,7 +771,7 @@ int DesignElement::GetOptResultIndex(SolutionType st)
 
 void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const
 {
-  // check for special result
+  // check for special result1
   if(    rd.value == OBJECTIVE
       || (rd.value == COST_GRADIENT && rd.detail != NONE)
       || rd.value == CONSTRAINT_GRADIENT
@@ -1203,6 +1209,11 @@ void DesignElement::SetEnums()
   type.Add(PROFILE, "profile");
   type.Add(NORMAL, "normal");
   type.Add(RADIUS, "radius");
+  type.Add(FEATURE_MAPPING_PX, "featureMappingPx");
+  type.Add(FEATURE_MAPPING_PY, "featureMappingPy");
+  type.Add(FEATURE_MAPPING_QX, "featureMappingQx");
+  type.Add(FEATURE_MAPPING_QY, "featureMappingQy");
+  type.Add(FEATURE_MAPPING_P,  "featureMappingP");        
   type.Add(CP, "controlpoint");
   type.Add(ALL_DESIGNS, "allDesigns");
 

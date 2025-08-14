@@ -36,12 +36,6 @@ ParamMat::ParamMat() : SIMP()
 //  }
 }
 
-void ParamMat::PostInit()
-{
-  ErsatzMaterial::PostInit();
-}
-
-
 template <class T1, class T2>
 void ParamMat::SetElementK(Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode mode, double ev)
 {

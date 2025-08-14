@@ -15,27 +15,11 @@ using std::complex;
 
 DEFINE_LOG(acs, "acouSimp");
 
-AcouSIMP::AcouSIMP()
+void AcouSIMP::InitSecondMaterialCache()
 {
-}
-
-AcouSIMP::~AcouSIMP()
-{
-}
-
-void AcouSIMP::PostInit(){
-  SIMP::PostInit();
-  assert(design != nullptr);
-  assert(context->pde != nullptr);
-  // we get the second material once to have it cached for later use which might be in parallel
-  // and causes exception in MathParserOMP::GetNewHandle()
-  for (StdVector<DesignSpace::DesignRegion>& drv: design->regions)
-    for (DesignSpace::DesignRegion& dr: drv)
-      if (dr.HasBiMaterial())
-      {
-        dr.GetScndMaterial(MaterialClass::ACOUSTIC, MaterialType::DENSITY, context->pde);
-        dr.GetScndMaterial(MaterialClass::ACOUSTIC, MaterialType::ACOU_BULK_MODULUS, context->pde);
-      }
+  // we need only stiffness and density for now
+  AddSecondMaterialCache(MaterialClass::ACOUSTIC, MaterialType::DENSITY);
+  AddSecondMaterialCache(MaterialClass::ACOUSTIC, MaterialType::ACOU_BULK_MODULUS);
 }
 
 const Complex AcouSIMP::GetExcitationPressure(Function* f) { 

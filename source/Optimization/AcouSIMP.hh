@@ -8,13 +8,14 @@ namespace CoupledField
 class AcouSIMP: public SIMP
 {
 public:
-  AcouSIMP();
+  AcouSIMP() {};
 
-  virtual ~AcouSIMP();
-
-  void PostInit() override;
+  virtual ~AcouSIMP() {};
 
 private:
+
+  void InitSecondMaterialCache() override;
+
   const Complex GetExcitationPressure(Function* f) override;
 
   const RegionIdType GetExcitationRegion(Function* f, const std::string& attr = "surfRegion") override;

@@ -215,7 +215,7 @@ namespace CoupledField
 
 #ifdef CHECK_INDEX
       if (i >= size_row_) 
-        EXCEPTION( "invalid index" );
+        EXCEPTION( "invalid index " << i << " for " << size_row_ << " rows");
 #endif
 
       return data_[i];

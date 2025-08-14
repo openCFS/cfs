@@ -60,7 +60,7 @@ void FeaturedDesign::PostInit(int objectives, int constraints)
   setup_timer_->Start();
 
   if(domain->GetOptimization() != NULL)
-    opt_ = domain->GetOptimization();
+    opt = domain->GetOptimization();
 
   if(domain->GetOptimization() != NULL)
     CheckPlausibility();
@@ -185,10 +185,10 @@ void FeaturedDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     MapFeatureGradient(f); // see comment above for what is necessary to cache the stuff
 
   assert(f != NULL);
-  assert(opt_->objectives.data.GetSize() == 1); // implement multi objective and be careful!
+  assert(opt->objectives.data.GetSize() == 1); // implement multi objective and be careful!
   assert(!(vs == DesignElement::COST_GRADIENT && !f->IsObjective()));
   assert(vs == DesignElement::COST_GRADIENT || vs == DesignElement::CONSTRAINT_GRADIENT);
-  assert(!opt_->GetMultipleExcitation()->DoMetaExcitation(f->ctxt)); // robustness and transformation don't make sense for feature map. In DesignSpace we do f->GetExcitation()->Apply()
+  assert(!opt->GetMultipleExcitation()->DoMetaExcitation(f->ctxt)); // robustness and transformation don't make sense for feature map. In DesignSpace we do f->GetExcitation()->Apply()
   assert(!(regions.GetSize() > 1 && GetMethod() != ErsatzMaterial::SPAGHETTI_PARAM_MAT)); // only param mat can have multiple designs
 
   assert(out.window.Initialized());
@@ -247,7 +247,7 @@ void FeaturedDesign::WriteGradientFile()
   gradplot_.precision(5);
   gradplot_.flags(std::ios::scientific);
 
-  int iter = opt_->GetCurrentIteration();
+  int iter = opt->GetCurrentIteration();
 
   int cnt = 0;
   if(iter == 0)
@@ -256,7 +256,7 @@ void FeaturedDesign::WriteGradientFile()
     for(const ShapeParamElement* spe : opt_shape_param_)
       gradplot_ << ++cnt << ": " << spe->GetLabel() << " \t";
 
-    for(const Function* f : opt_->GetFunctions(false))
+    for(const Function* f : opt->GetFunctions(false))
       if(!f->IsLocal())
         for(const ShapeParamElement* spe : opt_shape_param_)
           gradplot_ << ++cnt << ": d_" << f->ToString() << " / d_" << spe->GetLabel() << " \t";
@@ -267,7 +267,7 @@ void FeaturedDesign::WriteGradientFile()
   for(const ShapeParamElement* spe : opt_shape_param_)
     gradplot_ << spe->GetPlainDesignValue() << " \t";
 
-  for(const Function* f : opt_->GetFunctions(false))
+  for(const Function* f : opt->GetFunctions(false))
     if(!f->IsLocal())
       for(const ShapeParamElement* spe : opt_shape_param_)
         gradplot_ << spe->GetPlainGradient(f) << " \t";
@@ -339,17 +339,17 @@ void FeaturedDesign::SetupMapping()
   SetupMeshStructure();
 
   // set physical design, which is usually the density but for spaghetti also angles.
-  map_.Resize(data.GetSize());
+  map.Resize(data.GetSize());
   StdVector<Elem*> designElems;
 
   assert(GetRegionIds().GetSize() == 1);
   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assumes elements in designElems are ordered!
 
-  LOG_DBG(fd) << "SM: #map=" << map_.GetSize() << " #designElems=" << designElems.GetSize();
+  LOG_DBG(fd) << "SM: #map=" << map.GetSize() << " #designElems=" << designElems.GetSize();
 
-  for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
+  for(unsigned int i = 0, n = map.GetSize(); i < n; i++)
   {
-    Item& item = map_[i];
+    Item& item = map[i];
     item.elemval = &data[i]; // this could be the location to add an arbitrary element ordering layer towards the mesh
     item.lexicographic_pos = i; // this means we have a 1:1 map=data to tmp=virtual rectangular mesh for spaghetti -> corrected a few lines below
     //item.elemval = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
@@ -364,11 +364,11 @@ void FeaturedDesign::SetupMapping()
   // #designElems can be smaller nx_*ny_*ny_ -> see comment in SetupMeshStructure()
   assert(!(designElems.GetSize() > n_.Product()));
   assert(elements == designElems.GetSize());
-  assert(design.GetSize() * designElems.GetSize() == map_.GetSize()); // # slack is in aux design
+  assert(design.GetSize() * designElems.GetSize() == map.GetSize()); // # slack is in aux design
 
   if(designElems.GetSize() < n_.Product())
   {
-    // size of map_ and designElems differ for density + angles
+    // size of map and designElems differ for density + angles
     Matrix<double> mm;
     domain->GetGrid()->CalcBoundingBoxOfRegion(GetRegionIds().First(), mm);
     LOG_DBG(fd) << "SM: bb=" << mm.ToString();
@@ -394,12 +394,14 @@ void FeaturedDesign::SetupMapping()
           LOG_DBG3(fd) << "(" << x << "," << y << "," << z << ") g=" << glob.ToString() << " l=" << loc.coord.ToString() << " e=" << elem->elemNum << " idx=" << idx << " pos=" << pos;
           assert(pos < (int) virt_size);
           if(idx > -1)
-            for(unsigned int d = 0; d < design.GetSize(); d++) // such that it also works for design/angle
-              map_[d * elements + idx].lexicographic_pos = d * virt_size + pos;
+            for(unsigned int d = 0; d < design.GetSize(); d++)
+              map[d * elements + idx].lexicographic_pos = d * virt_size + pos;
         }
       }
     }
   }
+
+
 }
 
 
@@ -506,9 +508,9 @@ void FeaturedDesign::ToInfo(ErsatzMaterial* em)
 
 void FeaturedDesign::CheckPlausibility()
 {
-  assert(opt_ != NULL);
-  if(  (opt_->constraints.Has(Function::VOLUME) && opt_->constraints.Get(Function::VOLUME)->IsLinear())
-      || (opt_->objectives.Has(Function::VOLUME) && opt_->objectives.Get(Function::VOLUME)->IsLinear()))
+  assert(opt != NULL);
+  if(  (opt->constraints.Has(Function::VOLUME) && opt->constraints.Get(Function::VOLUME)->IsLinear())
+      || (opt->objectives.Has(Function::VOLUME) && opt->objectives.Get(Function::VOLUME)->IsLinear()))
     throw Exception("Set 'volume' function to non-linear for the parametrization.");
 }
 

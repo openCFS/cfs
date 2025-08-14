@@ -198,7 +198,7 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
 template <class T>
 const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat, DesignElement::Type direction, Global::ComplexPart entryType)
 {
-  LOG_DBG3(om) << "GEM int=" << integrator << " elem=" << (elem != NULL ? elem->elemNum : 4711) << " lb=" << lower_bimat << " d=" << direction << " et=" << entryType;
+  LOG_DBG3(om) << "CEM int=" << integrator << " elem=" << (elem != NULL ? elem->elemNum : 4711) << " lb=" << lower_bimat << " d=" << direction << " et=" << entryType;
 
   assert(entryType != Global::IMAG);
   assert(elem != NULL);
@@ -255,7 +255,7 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
 
     PtrCoefFct bimat = dr->GetScndMaterial(mc, mt);
 
-    LOG_DBG3(om) << "GEM: shadow=" << bimat->ToString();
+    LOG_DBG3(om) << "CEM: shadow=" << bimat->ToString();
 
     coef->SetToShadow(bimat);
   }
@@ -268,6 +268,8 @@ const Matrix<T>& OptimizationMaterial::ComputeElementMatrix(Matrix<T>& out, cons
   c->GetIntegrator()->CalcElementMatrix(out, it, it);
 
   coef->SetToOptimization(); // removes the shadow material and direction
+
+  LOG_DBG3(om) << "CEM: de=" << elem->elemNum << " d=" << direction << " s=" << coef->GetState() << " -> " << out.ToString();
 
   return out;
 }
@@ -282,7 +284,7 @@ const DenseMatrix& OptimizationMaterial::GetElementMatrix(OptimizationMaterial::
   // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
   //bool new_wave_vector = ctxt_->DoBloch() && ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
 
-  LOG_DBG(om) << "OM:S: sys=" << system_ << " el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial; // << " index=" << index;
+  LOG_DBG(om) << "GEM: sys=" << system_ << " el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial; // << " index=" << index;
 
   LocalElementCache* lec = space->elementCache;
   bool is_complex = ComplexElementMatrix(elem->regionId);

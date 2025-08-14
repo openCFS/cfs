@@ -47,7 +47,7 @@ SpaghettiDesign::SpaghettiDesign(StdVector<RegionIdType>& regionIds, PtrParamNod
   if(pn->Get("gradplot")->As<bool>()) // todo: move to FeaturedDesign
    gradplot_.open((progOpts->GetSimName() + ".grad.dat").c_str()); // the auto destructor does the job.
 
-  // map_
+  // map
   SetupMapping();
 
   // setup shaphetti with noodles and shape_param_ and opt_shape_param_
@@ -279,10 +279,10 @@ void SpaghettiDesign::MapFeatureToDensity()
   Vector<double> tmp(ret,true); // decref ret
   Py_XDECREF(func);
 
-  assert(!map_.IsEmpty());
-  assert(tmp.GetSize() >= map_.GetSize()); // map_ can be smaller if the domain is not convex
+  assert(!map.IsEmpty());
+  assert(tmp.GetSize() >= map.GetSize()); // map can be smaller if the domain is not convex
 
-  for(auto& item : map_)
+  for(auto& item : map)
     item.elemval->SetDesign(tmp[item.lexicographic_pos]);
 
   LOG_DBG(pasta)  << "MFTD: old mid=" << mapped_design_ << " current did=" << design_id << " size=" << tmp.GetSize();
@@ -294,7 +294,7 @@ void SpaghettiDesign::MapFeatureToDensity()
   mapping_timer_->Stop();
 }
 
-void SpaghettiDesign::MapFeatureGradient(const Function* f)
+void SpaghettiDesign::MapFeatureGradient(Function* f)
 {
   gradient_timer_->Start();
 
@@ -318,7 +318,7 @@ void SpaghettiDesign::MapFeatureGradient(const Function* f)
   // With Python we expect no hpc performance anyway
   //Vector<double> drho(nx_*ny_*nz_);
   Vector<double> drho = Vector<double>(nx_*ny_*nz_*design.GetSize(), 0);
-  for(auto& item : map_)
+  for(auto& item : map)
     drho[item.lexicographic_pos] = item.elemval->GetPlainGradient(f);
 
   // copy data to numpy array - does extensive range checks with good error message

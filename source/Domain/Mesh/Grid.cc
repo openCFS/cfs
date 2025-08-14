@@ -65,6 +65,26 @@ namespace CoupledField
     barycenters = false;
   }
 
+  Matrix<double> Grid::CalcRegionsBoundingBox(const StdVector<RegionIdType>& regs, CoordSystem* sys) 
+  {
+    Matrix<double> minMax;
+    CalcBoundingBoxOfRegion(regs[0], minMax, sys);
+
+    LOG_DBG(grid) << "CRBB regs=" << regs.ToString() << " minMax=" << minMax;
+
+    for(unsigned int i = 1; i < regs.GetSize(); i++)
+    {
+      Matrix<double> tmp;
+      CalcBoundingBoxOfRegion(regs[i], tmp, sys);
+      for(unsigned int d = 0; d < dim_; d++ ) 
+      {
+        minMax[d][0] = std::min(minMax[d][0],tmp[d][0]);
+        minMax[d][1] = std::max(minMax[d][1],tmp[d][1]);
+      }
+    }
+    return minMax;
+  }
+
   Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
   {
     #pragma omp critical

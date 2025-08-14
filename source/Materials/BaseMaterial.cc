@@ -91,11 +91,6 @@ namespace CoupledField
     name_ = name;
   }
 
-  // returns the name of the material
-  std::string BaseMaterial::GetName() const {
-    return name_;
-  }
-
   // returns the class of the material
   MaterialClass BaseMaterial::GetClass() const {
     return class_;

@@ -65,9 +65,88 @@ void SIMP::PostInit()
 {
   ErsatzMaterial::PostInit();
   
+  // if this hurts you, overwrite InitSecondMaterialCache()
+  InitSecondMaterialCache();
+
   // FIXME
   if(context->IsComplex()) mechRHS.Init<complex<double> >(design, App::PRESSURE); // in many cases NULL;
                       else mechRHS.Init<double>(design, App::PRESSURE);
+}
+
+void SIMP::InitSecondMaterialCache()
+{
+  // we are mechanic, elec or lbm in SIMP. The others are MagSIMP, AcouSIMP, PiezoSIMP 
+  // TODO make ElecSIMP once we do electric bi/ground material. 
+
+  AddSecondMaterialCache(MaterialClass::MECHANIC, MaterialType::MECH_STIFFNESS_TENSOR);
+  AddSecondMaterialCache(MaterialClass::MECHANIC, MaterialType::DENSITY);
+}
+
+void SIMP::AddSecondMaterialCache(MaterialClass mc, MaterialType mt)
+{
+  for (StdVector<DesignSpace::DesignRegion>& drv: design->regions)
+  {
+    for (DesignSpace::DesignRegion& dr: drv)
+    {
+      if (dr.HasScndMaterial())
+      {
+        // this also does some caching such that subsequent GetScndMaterial() 
+        // are possible from threads
+        PtrCoefFct coef = dr.GetScndMaterial(mc, mt);
+        const Elem* elem = design->data[dr.base].elem; // first element
+        shared_ptr<ElemShapeMap> esm = grid->GetElemShapeMap(elem);
+       
+        assert(elem->extended != nullptr);
+        assert(elem->extended->barycenter.data.GetSize() >= 2);
+        LocPoint lp(elem->extended->barycenter.data);
+        LocPointMapped lpm;
+        lpm.Set(lp, esm);
+        
+        LOG_DBG(simp) << "ASMC r=" << dr.regionId << " d=" << dr.design << " mc=" << MaterialClassEnum.ToString(mc) 
+                      << " mt=" << MaterialTypeEnum.ToString(mt) << " dim=" << CoefFunction::coefDimType.ToString(coef->GetDimType())
+                      << " cplx=" << coef->IsComplex() << " coef=" << coef->ToString();
+
+        assert(coef->GetDimType() == CoefFunction::SCALAR || coef->GetDimType() == CoefFunction::VECTOR || coef->GetDimType() == CoefFunction::TENSOR);
+
+        if(coef->GetDimType() == CoefFunction::TENSOR)
+        {
+          // we don't ask the pde if it is complex, as for most harmonic pdes, the material is real
+          if(!coef->IsComplex())
+          {
+            Matrix<double> val;
+            coef->GetTensor(val, lpm);
+            dr.scnd_material_cached[mc][mt] = val;
+          }
+          else
+          {
+            Matrix<complex<double>> val;
+            coef->GetTensor(val, lpm);
+            dr.scnd_material_cached[mc][mt] = val;
+          }
+        }
+        else
+        {
+          if(!coef->IsComplex()) 
+          {
+            // it is so stupid to have no void Get*() functions!
+            double val;
+            coef->GetScalar(val, lpm);
+            dr.scnd_material_cached[mc][mt] = val;
+          }
+          else
+          {
+            complex<double> val;
+            coef->GetScalar(val, lpm);
+            dr.scnd_material_cached[mc][mt] = val;
+         }
+        }
+      }
+      else
+      {
+        LOG_DBG(simp) << "ASMC r=" << dr.regionId << " d=" << dr.design << " has no second material";
+      }
+    }
+  }
 }
 
 void SIMP::SetElementK( Function* f, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)

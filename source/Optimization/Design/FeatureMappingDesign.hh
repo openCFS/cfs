@@ -6,6 +6,9 @@
 
 namespace CoupledField
 {
+class CoefFunctionOpt;
+class DesignMaterial;
+
 /** This is a rather traditional feature  implementation. ShapeMappingDesign is Fabian's original shape variant
  * SpaghettiDesign has the continuous spline variant to represent continuous fibers and is based in the python script 
  * for the core functionality. A reduced spaghetti noodle with one segment is same as a feature mapping pill.
@@ -17,11 +20,18 @@ namespace CoupledField
 class FeatureMappingDesign : public FeaturedDesign
 {
   struct ItemIP; // forward declaration
+  struct IntegrationPoint;
+
 public:
-  /** @method either SPAGHETTI or SPAGHETTI_PARAM_MAT */
+  /** @method either SPAGHETTI or SPAGHETTI_PARAM_MAT or FEATURE_MAPPING or FEATURE_MAPPING_PARAM_MAT
+   * @param anisotropic the param mat case where we orient by feature and do all in FeatureMappingDesign
+   */
   FeatureMappingDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method);
 
   virtual ~FeatureMappingDesign() {};
+
+  /** late inital MapDesignToDensity() */
+  virtual void PostInit(int objectives, int constraints) override;
 
     /** read the design and do a conditional mapping */
   int ReadDesignFromExtern(const double* space_in, bool doNotSetAndWriteCurrent = false) override;
@@ -34,8 +44,29 @@ public:
    * @param lower_violation the maximal violation */
   void ReadDensityXml(PtrParamNode set, double& lower_violation, double& upper_violation) override;
 
-protected:
+  /** add information about transition zone */
+  void AddToDensityHeader(PtrParamNode pn) override;
 
+
+  /** in the anisotropic case DesignSpace::ApplyPhysicalDesign() calls ParamMat::GetMechTensor() which calls this.
+   * Needs to be thread safe! */
+  bool GetAnisoMechTensor(const Elem* elem, MaterialTensor<double>& mt, DesignElement::Type direction, const CoefFunctionOpt* coef, DesignMaterial* dm) const;
+
+  /** in the anisotropic case we compute the gradient much different from the isotropic case. 
+   * In the isotropic case all is a product from feature to shape to element to integration point 
+   * In the anisotropic case we go by variable and need to communicate FeatureMappingParamMat::SetElement() the current variable */
+  struct AnisoCurrentVariable
+  {
+    void Reset(); // set to non-initialized
+    BaseDesignElement::Type var_type = BaseDesignElement::NO_DERIVATIVE; // set to FEATURE_MAPPING_PX, ... for shape derivatives in SetElementK()
+    int var_idx = -1; // 0 ... 4 max number of a single feature variables
+    int feature_idx = -1; // together with aniso_shape_derivative this specifies what we are currently deriving. Only used in the FeatureMappingParamMat case
+    Matrix<double> RCdR;  // working array for d_C_0/d_s which is the only feature and variable dependent (without rho_e)
+  };
+
+  AnisoCurrentVariable aniso_current_variable; // set by AnisotropicGradientHelper() and used in FeatureMappingParamMat::SetElementK()
+
+protected:
   /** A pill is a bar with P and Q end points and a circular cap and a width p. 
    * This are exactly the basic Feature variables. We add mapping to the base Feature */
   struct Pill : public Feature  
@@ -54,14 +85,23 @@ protected:
     double Distance(const Point& p, FeatureVariable::Tip* part = nullptr) const override;
 
     /** for efficiency reason calculate all gradients at once. Is a waste for fixed variables */
-    void GradDistance(const Point& X, FeatureVariable::Tip part, StdVector<double>& out) const override;
-  
+    void GradDistance(const Point& X, FeatureVariable::Tip part, Vector<double>& out) const override;
+
+    /** calculate the gradient of the angle in the anisotropic case, 0 for p
+     * @param s index 0 ... 4 */
+    inline double GradAngle(int s) const;
+
+    double angle = -1.0; // only for anisotropic
+
+    /** material tensor rotated by angle. Only anisotropic */ 
+    Matrix<double> rot_mat;
   protected:
     // this are helper variables for Pill for efficient distance calculation. Call Update() on every change!
     // P and Q are in Feature
     Point U; // normalized vector Q-P
     Point V; // normal to U
     double length = 0.0; // || start_ - end_ ||
+    double length2 = 0.0; // dx*dx + dy*dy w.o. sqrt
     double dx = 0.0; // the x-component of the vector from start to end
     double dy = 0.0; // 
     double dp_norm = 0.0; // Q_x*P_y - Q_y*P_x
@@ -170,7 +210,20 @@ private:
   /** Takes the density gradients and sums it up on the shape variables.
    *  To be called within WriteGradientToExtern().
    *  @param f the function we add the stuff to the gradient. */
-  void MapFeatureGradient(const Function* f) override;
+  void MapFeatureGradient(Function* f) override;
+
+  /** helper for the isotropic case for MapFeatureGradient() */
+  void IsotropicGradientHelper(const Function* func, Vector<double>& dJ_ds) const;
+
+  /** computes d_J/d_s = sum_e <lmbd_e, dK/ds u_e> with d_K/d_s containing d_rho/d_s and d_phi/d_s
+    We precompute stuff for FeatureMappingParamMat::SetElementK(), hence not thread safe! */
+  void AnisotropicGradientHelper(Function* func, Vector<double>& dJ_ds);
+
+  /** helper to calculate d_rho/d_s for a feature.  For all 5 variables at once.
+   * Not for rho_max!!
+   * ddist_ds and elem_ip are provided working data to save allocation, resized and filled by the function.
+   * This function is thread save */
+  inline void CalcGradRhoByFeature(const Item& item, const Feature& feature, Vector<double>& out, Vector<double>& ddist_ds, StdVector<IntegrationPoint*>& elem_ip) const;
 
   /** traverse all existing features (pills) and searches for first occurrence key.
    * consider to add simple formulas (-key, 1-key, key + 5, ...) when needed
@@ -200,6 +253,8 @@ private:
     StdVector<IntegrationPoint*> inner;  // higher order integration, also shared at edges
     Point center; // barycenter for debug and some order stuff
     Vector<double> rho; // integrated rho for each feature to be combined. Necessary for gradient calculation
+    Vector<double> drho_ds_full; // for any variable of any feature
+        
     std::string ToString() override;
     
     /** Get all distances for a given feature num from corner and inner */
@@ -213,13 +268,14 @@ private:
 
   /* helper for SetupDesign() to create an ip and add it to the extension of the given item
    @param ref the to be created integration point is ref + (dx,dy) */
-  IntegrationPoint* SetupDesignCreateAddIP(ItemIP::Storage storage, const Point& ref, ItemIP* item_ip, double dx, double dy, int num);
+  IntegrationPoint* SetupDesignCreateAddIP(ItemIP::Storage storage, const Point& ref, ItemIP* item_ip, double dx, double dy);
 
   /** helper for SetupDesign() to add ip at extension of item to corner or inner. */
   void SetupDesignAddIP(ItemIP::Storage storage, Item& item, IntegrationPoint* ip);
 
   /** convenience helper which does the dynamic_cast */
   inline ItemIP* GetItemIP(unsigned int item_idx); 
+  inline const ItemIP* GetItemIP(unsigned int item_idx) const; 
 
   /** All integration points at element corners shared by up to 4/8 items. Constant for lifetime
    * Used to compute if we are within the transition zone and might have to do higher order integration.
@@ -235,6 +291,8 @@ private:
 
   /** Add Pill : public Feature once needed */
   StdVector<Pill> pills;
+  /** the number of variables by feature, assume constant for all features */
+  const unsigned int num_var_by_feature = 5;
 
   /** for boundary functions linear and poly this is the full transition zone 2*h -> move to FeaturedDesign */
   double transition = -1;
@@ -242,6 +300,13 @@ private:
   /** the rhomin we use, extracted from the first density variable. */
   double rhomin = -1;
   double rhomax = -1;
+
+  /** do we do anisotropic feature mapping assuming the simulation material for the optimization regions to be 
+   * transversal isotropic (orthotropic in 2D) with the horizontal axis the main axis */
+  bool anisotropic = false;
+
+  /** for the anisotropic case only: we assume a single anisotropic tensor for optimization to be rotated by feature */
+  static Matrix<double> aniso_base_tensor;
 
   PtrParamNode fm_info_; // our own info
 };

@@ -111,6 +111,14 @@ public:
 
 protected:
 
+  /** this calls SetupSecondMaterialCache() for specific MC, MT combinations.
+   * Overwrite to change */
+  virtual void InitSecondMaterialCache();
+
+  /** this fills DesignSpace::DesignRegion::scnd_material_cached 
+   * for all design regions. Type is double, complex, Matrix<double>, Matrix<complex<double> > */
+  void AddSecondMaterialCache(MaterialClass, MaterialType);
+
   /** overwrites the ErsatzMaterial version, is overwritten in PiezoSIMP */
   virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
 

@@ -28,6 +28,7 @@ public:
   /** types for GetValue() and for the optimization results in the xml file.
    * The numbered values can also be applied to the python exported function opt_get_value */
   typedef enum { DESIGN = 0, COST_GRADIENT = 1, CONSTRAINT_GRADIENT = 2, WEIGHT = 3, NUM_NEIGHBOURS = 4,
+    FUNCTION_GRADIENT, /* combines COST_GRADIENT and CONSTRAINT_GRADIENT */
     OBJECTIVE, LEVEL_SET_VALUE, LEVEL_SET_STATE, TOPGRAD_VALUE, SHAPEGRAD_VALUE, SHAPEGRAD_NODE_VALUE,
     MAX_SLOPE, /* the max(abs()) of the 2 * dim slope constraints for each element */
     MAX_CHECKERBOARD, /* the max value per element */
@@ -64,7 +65,7 @@ public:
    * By definition the design elements are stored in the ordering of the type!!
    * make sure, that ALL_DESIGNS is the last with the highest number!!! */
   typedef enum { UNITY = -20, // unused stuff from ShapeOpt
-                 // wrapper design types representig a class of design types
+                 // wrapper design types representing a class of design types
                  SHAPE_MAP, // NODE or PROFILE
                  SPAGHETTI, // NODE, PROFILE, NORMAL
                  SPLINE_BOX, // e.g. CP
@@ -89,6 +90,7 @@ public:
                  NODE, PROFILE, // shape mapping and spaghetti
                  NORMAL, RADIUS, // spaghetti height and radius
                  CP,            // spline box control point
+                 FEATURE_MAPPING_PX, FEATURE_MAPPING_PY, FEATURE_MAPPING_QX, FEATURE_MAPPING_QY, FEATURE_MAPPING_P, // Pill::GradDistance() 
                  ALL_DESIGNS } Type; // ALL_DESIGNS needs to be last
 
   /** This defines how to access variables (design, objective_gradient, ...),
@@ -169,10 +171,10 @@ public:
   void AddGradient(const Function* f, double value);
 
   /** Reset either gradients of the class
-   * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT
+   * @param vs either COST_GRADIEN, CONSTRAINT_GRADIENT or FUNCTION_GRADIENT (needs f given!)
    * @param g this should preferably be a Function*, but it didn't work and
    *  it is currently only needed for Condition anyways */
-  void Reset(ValueSpecifier vs, Function* f = NULL);
+  void Reset(ValueSpecifier vs, Function* f = nullptr);
 
   /**  Gets the lower bound of the design variable -
    * up to now this are defaults by type */

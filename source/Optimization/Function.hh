@@ -279,7 +279,7 @@ class Function
     bool IsAdjointBased() const;
 
     /** Are we generally excitation sensitive? E.g. stress */
-    bool IsExcitationSensitive() const;
+    bool IsExcitationSensitive() const { return excite_sensitive_; }
 
     /** is this a slack type function ? */
     bool IsSlackFunction() const;

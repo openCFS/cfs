@@ -124,6 +124,12 @@ namespace CoupledField
          * @see CalcObjectiveGradient() for parameter description */
         virtual void CalcConstraintGradient(Condition* constraint = NULL, StdVector<double>* grad_out = NULL, Excitation* ev_only_excite = NULL);
 
+        /** Evaluates objective and constraint function and gradient.
+         * Implemented in ErsatzMaterial
+         * @param grad_out only used in derivative case
+         * @return zero for derivative */
+        virtual double CalcFunction(Excitation& excite, Function* f, bool derivative) = 0;
+
         /** This is brute force debug method which calculates the symmetry of a sqared
          * model with horizontal symmetry axis with lexicographic order (at least works for gid).
          * If there is a special result index for vs, access the relative element symmetry errors
@@ -375,11 +381,6 @@ namespace CoupledField
          * exclusively by CreateInstance() -> don't forget to call PostInit() afterwards! */
         Optimization();
 
-        /** Evaluates objective and constraint function and gradient.
-         * Implemented in ErsatzMaterial
-         * @param grad_out only used in derivative case
-         * @return zero for derivative */
-        virtual double CalcFunction(Excitation& excite, Function* f, bool derivative) = 0;
 
 
         /** called by CommitIteration(), to be overwritten if additional data should be

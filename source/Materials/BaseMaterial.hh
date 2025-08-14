@@ -118,11 +118,14 @@ namespace CoupledField {
     void ToInfo(PtrParamNode in, SubTensorType stt = NO_TENSOR,
                 const Vector<double>* rot = NULL);
 
+    /** helper for ToInfo(). If the  imaginary part is zero, only the real part is printed  */
+    void StoreTensor(PtrParamNode in, PtrCoefFct tensorFunc);
+
     //! set the name of the material set
     void SetName(const std::string &name);
 
     //! returns the name of the material
-    std::string GetName() const;
+    const std::string& GetName() const { return name_; }
 
     //! returns the class of the material
     MaterialClass GetClass() const;
@@ -350,7 +353,7 @@ namespace CoupledField {
       return vecHyst_;
     };
 
-    bool IsSetHysteresis () {
+    bool IsSetHysteresis() const {
       return isHysteresis_;
     };
 
@@ -493,8 +496,6 @@ namespace CoupledField {
                                     MaterialType* orthoProp,
                                     MaterialType tensorProp );
 
-    /** helper for ToInfo(). If the  imaginary part is zero, only the real part is printed  */
-    void StoreTensor(PtrParamNode in, PtrCoefFct tensorFunc);
 
 
     //! name of material

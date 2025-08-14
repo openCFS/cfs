@@ -301,11 +301,12 @@ public:
 
     /** This method decides if either GetFilteredValue() or GetPlainValue() is to be returned.
      * @param f mandatory for vs = CONSTRAINT_GRADIENT and to determine if we are filtered! */
-    double GetValue(ValueSpecifier vs, Access access, Function* f = NULL) const;
+    double GetValue(ValueSpecifier vs, Access access, Function* f = nullptr) const;
 
     /** internal helper to get the value by type
-     * @param g for sp = CONSTRAINT_GRADIENT only */
-    virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
+     * @param g for sp = CONSTRAINT_GRADIENT only.
+     * We are not virtual but we need the keyword to make the inline implementation link */
+    virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = nullptr) const;
 
     /** internal helper to get the cost gradient
      *  handles single and multi objective */

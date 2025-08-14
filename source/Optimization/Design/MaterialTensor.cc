@@ -42,6 +42,13 @@ MaterialTensor<TYPE>::~MaterialTensor()
   }
 }
 
+template <class TYPE>
+void MaterialTensor<TYPE>::Replace(MaterialTensorNotation notation, const Matrix<TYPE>& m)
+{
+  assert(notation_ == notation);
+  *matrix_ = m; // copy constructor fun
+}
+
 // in-place conversion of tensor to Voigt notation
 // throws an exception if validate=true and notation before conversion is already Voigt or None
 template <class TYPE>

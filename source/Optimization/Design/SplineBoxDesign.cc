@@ -875,8 +875,8 @@ void SplineBoxDesign::SetupVirtualMultiShapeElementMap(Function* f, StdVector<Fu
 
 void SplineBoxDesign::MapFeatureToDensity()
 {
-  assert(map_.GetSize() == domain->GetGrid()->GetNumElems());
-  assert(map_.GetSize() == data.GetSize());
+  assert(map.GetSize() == domain->GetGrid()->GetNumElems());
+  assert(map.GetSize() == data.GetSize());
 
   mapping_timer_->Start();
 
@@ -900,8 +900,8 @@ void SplineBoxDesign::MapFeatureToDensity()
     StdVector<double> local_ip(dim_); // the current ip within the element
 
     // loop over FE grid elements
-    for(unsigned int r = 0; r < map_.GetSize(); ++r) {
-      Item& item = map_[r];
+    for(unsigned int r = 0; r < map.GetSize(); ++r) {
+      Item& item = map[r];
       DesignElement* de = item.elemval;
 
       Vector<int> order(item.min_corner_value.GetSize());
@@ -980,10 +980,10 @@ void SplineBoxDesign::MapFeatureToDensity()
   mapping_timer_->Stop();
 }
 
-void SplineBoxDesign::MapFeatureGradient(const Function* f)
+void SplineBoxDesign::MapFeatureGradient(Function* f)
 {
   assert(design_id == mapped_design_); // we need the Item setting from MapShapeDesign for the current design!
-  assert(!(!f->IsObjective() && dynamic_cast<const Condition*>(f)->IsLocalCondition())); // it makes no sense for a local condition!!
+  assert(!(!f->IsObjective() && dynamic_cast<Condition*>(f)->IsLocalCondition())); // it makes no sense for a local condition!!
 
   gradient_timer_->Start();
 
@@ -1019,12 +1019,12 @@ void SplineBoxDesign::MapFeatureGradient(const Function* f)
     Vector<unsigned int> idx(dim_);
     StdVector<double>    local_ip(dim_); // the current ip within the element
 
-    Vector<int> order(map_[0].min_corner_value.GetSize());
+    Vector<int> order(map[0].min_corner_value.GetSize());
 
     // loop over FE grid elements -> why not parallel?!
-    for(unsigned int r = 0; r < map_.GetSize(); r++)
+    for(unsigned int r = 0; r < map.GetSize(); r++)
     {
-      Item& item = map_[r];
+      Item& item = map[r];
       DesignElement* de = item.elemval;
       Vector<double> log_dip_rho(dim_, 0.0);
 
@@ -1162,9 +1162,9 @@ void SplineBoxDesign::EvalAllCornerValues()
       }
     }
 
-    map_[e].min_corner_value[0] = vals.Min();
-    map_[e].max_corner_value[0] = vals.Max();
-    LOG_DBG2(SBD) << "EACV: e= " << e << " min= " << map_[e].min_corner_value[0] << " max= " << map_[e].max_corner_value[0];
+    map[e].min_corner_value[0] = vals.Min();
+    map[e].max_corner_value[0] = vals.Max();
+    LOG_DBG2(SBD) << "EACV: e= " << e << " min= " << map[e].min_corner_value[0] << " max= " << map[e].max_corner_value[0];
   }
 }
 
@@ -1553,7 +1553,7 @@ void SplineBoxDesign::ToInfo(ErsatzMaterial* em)
 
 void SplineBoxDesign::WriteBoxToVTK()
 {
-  unsigned int iteration = this->opt_->GetCurrentIteration();
+  unsigned int iteration = this->opt->GetCurrentIteration();
   // add leading zeros
   double nzeros = std::ceil(std::log10(domain->GetOptimization()->GetMaxIterations())) - std::to_string(iteration).length();
   std::string iter = std::string(nzeros > 0 ? nzeros : 0, '0') + std::to_string(iteration);

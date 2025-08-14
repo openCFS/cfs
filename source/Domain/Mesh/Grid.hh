@@ -616,6 +616,8 @@ namespace CoupledField
      * @return num rows == GetDim() or 3 for force_3D */
     Matrix<double>& CalcGridBoundingBox(CoordSystem* sys = NULL, bool force_3D = false);
 
+    /** @see CalcBoundingBoxOfRegion() */
+    Matrix<double> CalcRegionsBoundingBox(const StdVector<RegionIdType>& regs, CoordSystem* sys = nullptr);
 
     //! This method computes the x-y-z boundig box of a given region
     //! \param(in) reId the region to compute the box of

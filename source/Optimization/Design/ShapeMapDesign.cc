@@ -47,7 +47,7 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   if(pn->Get("shapeMap/gradplot")->As<bool>())
     gradplot_.open((progOpts->GetSimName() + ".grad.dat").c_str()); // the auto destructor does the job.
 
-  // set shape_, shape_param_ and map_, does not apply the mapping yet
+  // set shape_, shape_param_ and map, does not apply the mapping yet
   SetupDesign(pn->Get("shapeMap"));
 
   // numInt had to wait for n_, note that we give the this pointer within the constructor
@@ -502,37 +502,37 @@ void ShapeMapDesign::SetupShapeParam()
   }
   assert(dim_ == 3 || (int ) shape_param_.GetSize() == 2 * num_node_shape_params_); // doubles variables for 2D. In 3D different for center nodes
 
-  // set map_ to map from shape_param to DesignSpace::data, fill with shape_param_
-  map_.Resize(data.GetSize());
+  // set map to map from shape_param to DesignSpace::data, fill with shape_param_
+  map.Resize(data.GetSize());
   StdVector<Elem*> designElems;
   domain->GetGrid()->GetElems(designElems, GetRegionIds().First()); // FIXME assumes elements in designElems are ordered!
   assert(designElems.GetSize() <= nx_ * ny_ * nz_);
-  assert(map_.GetSize() == designElems.GetSize());
+  assert(map.GetSize() == designElems.GetSize());
   assert(num_node_shapes_ > 0);
 
   // num_nodes has no 3D second center nodes and is then smaller num_node_shapes_
   int num_nodes = num_node_shapes_ - FindCenters().GetSize();
   LOG_DBG(SMD) << "SSP nns=" << num_node_shapes_ << " fc=" << FindCenters().GetSize() << " -> nn=" << num_nodes;
 
-  for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
+  for(unsigned int i = 0, n = map.GetSize(); i < n; i++)
   {
-    map_[i].elemval = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
+    map[i].elemval = &(data[Find(designElems[i]->elemNum)]); // is very fast and gives a layer for arbitrary element ordering in the mesh
     // each design node connects to two density elements, also for 3D center node rods
     // this comes from the bilinear interpolation.
-    map_[i].nodes.Resize(num_nodes);
-    map_[i].min_corner_value.Resize(num_nodes);
-    map_[i].max_corner_value.Resize(num_nodes);
+    map[i].nodes.Resize(num_nodes);
+    map[i].min_corner_value.Resize(num_nodes);
+    map[i].max_corner_value.Resize(num_nodes);
     for(int s = 0; s < num_nodes; s++)
-      map_[i].nodes[s].Reserve(dim_ == 2 ? 2 : 4);
+      map[i].nodes[s].Reserve(dim_ == 2 ? 2 : 4);
   }
 
   // setup  coord_*_ stuff
   Matrix<double>    coords;   // within the element coordinates we perform the integration
-  domain->GetGrid()->GetElemNodesCoord(coords, map_.First().elemval->elem->connect, false); // no deformed mesh
+  domain->GetGrid()->GetElemNodesCoord(coords, map.First().elemval->elem->connect, false); // no deformed mesh
   coords.GetColMin(coord_min_);
   LOG_DBG(SMD) << "SSP data=" << " min coords=" << coords.ToString();
   LOG_DBG(SMD) << "SSP data=" << " min=" << coord_min_.ToString();
-  domain->GetGrid()->GetElemNodesCoord(coords, map_.Last().elemval->elem->connect, false); // no deformed mesh
+  domain->GetGrid()->GetElemNodesCoord(coords, map.Last().elemval->elem->connect, false); // no deformed mesh
   coords.GetColMax(coord_max_);
   LOG_DBG(SMD) << "SSP data=" << " max coords=" << coords.ToString();
   LOG_DBG(SMD) << "SSP data=" << " max=" << coord_max_.ToString();
@@ -555,9 +555,9 @@ void ShapeMapDesign::SetupShapeParam()
   for(unsigned int i = 0; i < dim_; i++)
     coord_step_[i] = (coord_max_[i] - coord_min_[i]) / (double) n_[i];
 
-  LOG_DBG(SMD) << "SSP data=" << data.GetSize() << " map=" << map_.GetSize() << " n_=" << n_.ToString();
+  LOG_DBG(SMD) << "SSP data=" << data.GetSize() << " map=" << map.GetSize() << " n_=" << n_.ToString();
 
-  // now set the nodes idx in map_::nodes. For every rho we store here the two (2D) or 4 (3D surface) ShapeMapVariables which have an bilinear interpolation
+  // now set the nodes idx in map::nodes. For every rho we store here the two (2D) or 4 (3D surface) ShapeMapVariables which have an bilinear interpolation
   // within the node per shape
 
   if(dim_ == 2)
@@ -595,9 +595,9 @@ void ShapeMapDesign::SetupShapeParam()
         for(unsigned int x = 0; x < nx_; x++){
           LOG_DBG2(SMD) << "SSP: x=" << x << ", y=" << y << " -> " << DensityIdx(x, y);
           if(y < (int) ny_) // are we the topmost node ontop of the last element
-            map_[DensityIdx(x, y)].nodes[shape->idx].Push_back(spe);
+            map[DensityIdx(x, y)].nodes[shape->idx].Push_back(spe);
           if(y-1 >= (int) 0) // node 2 participates to the lower element (2-1) and the upper element (2)
-            map_[DensityIdx(x, y-1)].nodes[shape->idx].Push_back(spe);
+            map[DensityIdx(x, y-1)].nodes[shape->idx].Push_back(spe);
         }
         break;
       }
@@ -607,9 +607,9 @@ void ShapeMapDesign::SetupShapeParam()
         for(unsigned y = 0; y < ny_; y++)  {
           LOG_DBG2(SMD) << "SSP: x=" << x << (x < (int) nx_ ? "+" : "!") << ", y=" << y << " -> " << DensityIdx(x, y);
           if(x < (int) nx_)
-            map_[DensityIdx(x, y)].nodes[shape->idx].Push_back(spe);
+            map[DensityIdx(x, y)].nodes[shape->idx].Push_back(spe);
           if(x-1 >= 0)
-            map_[DensityIdx(x-1, y)].nodes[shape->idx].Push_back(spe);
+            map[DensityIdx(x-1, y)].nodes[shape->idx].Push_back(spe);
         }
         break;
       }
@@ -621,7 +621,7 @@ void ShapeMapDesign::SetupShapeParam()
 
   if(dim_ == 3)
   {
-    for(int i = 0; i < num_node_shape_params_; i++) // traverse the ShapeMapVariables an set it to the proper map_::nodes
+    for(int i = 0; i < num_node_shape_params_; i++) // traverse the ShapeMapVariables an set it to the proper map::nodes
     {
       ShapeMapVariable* spe1 = dynamic_cast<ShapeMapVariable*>(shape_param_[i]); // will be first node param
       ShapeParam* shape = FindShape(spe1); // GetShape() not yet ready
@@ -667,9 +667,9 @@ void ShapeMapDesign::SetupShapeParam()
             {
               LOG_DBG2(SMD) << "SSP: x=" << x << (x < (int) nx_ ? "+" : "!") << ", y=" << y << " z=" << z << " -> " << DensityIdx(x, y);
               if(x < (int) nx_)  // not yet topmost plane
-                map_[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
+                map[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
               if(x-1 >= 0)  // also not the lowest plane
-                map_[DensityIdx(x-1, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
+                map[DensityIdx(x-1, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
             }
           }
           break;
@@ -684,9 +684,9 @@ void ShapeMapDesign::SetupShapeParam()
             for(unsigned int x = 0; x < nx_; x++)
             {
               if(y < (int) ny_)
-                map_[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
+                map[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
               if(y-1 >= 0)
-                map_[DensityIdx(x, y-1, z)].nodes[struct_idx].Push_back(spe1, spe2);
+                map[DensityIdx(x, y-1, z)].nodes[struct_idx].Push_back(spe1, spe2);
             }
           }
           break;
@@ -701,9 +701,9 @@ void ShapeMapDesign::SetupShapeParam()
             for(unsigned int x = 0; x < nx_; x++)
             {
               if(z < (int) nz_)
-                map_[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
+                map[DensityIdx(x, y, z)].nodes[struct_idx].Push_back(spe1, spe2);
               if(z-1 >= 0)
-                map_[DensityIdx(x, y, z-1)].nodes[struct_idx].Push_back(spe1, spe2);
+                map[DensityIdx(x, y, z-1)].nodes[struct_idx].Push_back(spe1, spe2);
             }
           }
           break;
@@ -1107,10 +1107,10 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     MapFeatureGradient(f); // see comment above for what is necessary to cache the stuff
 
   assert(f != NULL);
-  assert(opt_->objectives.data.GetSize() == 1); // implement multi objective and be careful!
+  assert(opt->objectives.data.GetSize() == 1); // implement multi objective and be careful!
   assert(!(vs == DesignElement::COST_GRADIENT && !f->IsObjective()));
   assert(vs == DesignElement::COST_GRADIENT || vs == DesignElement::CONSTRAINT_GRADIENT);
-  assert(!opt_->GetMultipleExcitation()->DoMetaExcitation(f->ctxt)); // robustness and transformation don't make sense for shape map. In DesignSpace we do f->GetExcitation()->Apply()
+  assert(!opt->GetMultipleExcitation()->DoMetaExcitation(f->ctxt)); // robustness and transformation don't make sense for shape map. In DesignSpace we do f->GetExcitation()->Apply()
   assert(design.GetSize() == 1); // only pseudo density, nothing else implemented yet
   assert(regions.GetSize() == 1); // needs to be as design shall be 1
 
@@ -1720,7 +1720,7 @@ int ShapeMapDesign::NumInt::FindOrder(double x1, double x2, double pos, double a
 
 void ShapeMapDesign::MapFeatureToDensity()
 {
-  assert(data.GetSize() == map_.GetSize());
+  assert(data.GetSize() == map.GetSize());
   mapping_timer_->Start();
 
   LOG_DBG(SMD) << "MSTD: di=" << design_id;
@@ -1744,16 +1744,16 @@ void ShapeMapDesign::MapFeatureToDensity()
     StdVector<double>    ip(dim_); // the current ip within the element
     // num_node_shapes_ can be larger Item::nodes as we are not interested in 3D center second shapes.
     // for each shape of the Item this is order obtained form the cornver_val. 0 = void, 1 = solid, >=2 need integration
-    Vector<int>          order(map_[0].nodes.GetSize());
+    Vector<int>          order(map[0].nodes.GetSize());
     // this helps us evaluation
     EvalAtIp eval(this);
 
      // the integration effort is not evenly distributed
      // dynamic scheduling fails for gcc9 and is 4 times slower!!!
      #pragma omp for schedule(static) reduction(+:cells_cnt,cells_order_sum)
-     for(int r = 0; r < (int) map_.GetSize(); r++)
+     for(int r = 0; r < (int) map.GetSize(); r++)
      {
-       Item& item = map_[r];
+       Item& item = map[r];
        DesignElement* de = item.elemval;
 
       DensityIdx(r, idx);
@@ -1859,10 +1859,10 @@ void ShapeMapDesign::MapFeatureToDensity()
   mapping_timer_->Stop();
 }
 
-void ShapeMapDesign::MapFeatureGradient(const Function* f)
+void ShapeMapDesign::MapFeatureGradient(Function* f)
 {
   assert(design_id == mapped_design_); // we need the Item setting from MapShapeDesign for the current design!
-  assert(!(!f->IsObjective() && dynamic_cast<const Condition*>(f)->IsLocalCondition())); // it makes no sense for a local condition!!
+  assert(!(!f->IsObjective() && dynamic_cast<Condition*>(f)->IsLocalCondition())); // it makes no sense for a local condition!!
 
   gradient_timer_->Start();
 
@@ -1909,16 +1909,16 @@ void ShapeMapDesign::MapFeatureGradient(const Function* f)
     Vector<unsigned int> idx(3);
     StdVector<double>    ip(dim_); // the current ip within the element
 
-    Vector<int>          order(map_[0].nodes.GetSize()); // see MapShapeToDensity()
-    StdVector<EvalAtIp>  eval(map_[0].nodes.GetSize());
+    Vector<int>          order(map[0].nodes.GetSize()); // see MapShapeToDensity()
+    StdVector<EvalAtIp>  eval(map[0].nodes.GetSize());
     for(unsigned int i = 0; i < eval.GetSize(); i++)
       eval[i].Init(this);
 
 
      #pragma omp for schedule(static) // dynamic fails for gcc9 and is much slower!
-     for(Integer r = 0; r < (Integer) map_.GetSize(); r++) // traverse all rho design elements
+     for(Integer r = 0; r < (Integer) map.GetSize(); r++) // traverse all rho design elements
      {
-       Item& item = map_[r];
+       Item& item = map[r];
        DesignElement* de = item.elemval;
        double log_da = 0.0;
        double log_db = 0.0;
@@ -2104,20 +2104,20 @@ void ShapeMapDesign::WriteGradientFile()
   gradplot_.precision(8);
   gradplot_.flags(std::ios::scientific);
 
-  assert(opt_->objectives.data.GetSize() == 1);
-  gradplot_ << "# iteration: " << opt_->GetCurrentIteration() << std::endl;
+  assert(opt->objectives.data.GetSize() == 1);
+  gradplot_ << "# iteration: " << opt->GetCurrentIteration() << std::endl;
   gradplot_ << "# gnuplot: plot \"" << progOpts->GetSimName() << ".grad.dat\"  u 1:6 every ::0::" << (shape_[0].end_opt-1) << " w lp";
   gradplot_ << ", \"" + progOpts->GetSimName() << ".grad.dat\"  u ($1-" << shape_[0].end_opt << "):6 every ::"
       << shape_[0].end_opt << "::" << (2*shape_[0].end_opt) << " w lp" << std::endl;
-  gradplot_ << "#(1) el \t(2) var \t(3) shape \t(4) dof \t(5) val \t(6) " << opt_->objectives.data[0]->ToString();
+  gradplot_ << "#(1) el \t(2) var \t(3) shape \t(4) dof \t(5) val \t(6) " << opt->objectives.data[0]->ToString();
 
   int cnt = 6; // will be preincremented
-  for(unsigned int g = 0; g < opt_->constraints.all.GetSize(); g++)
-    if(opt_->constraints.all[g]->HasDenseJacobian())
-      gradplot_ << " ("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + "\t";
+  for(unsigned int g = 0; g < opt->constraints.all.GetSize(); g++)
+    if(opt->constraints.all[g]->HasDenseJacobian())
+      gradplot_ << " ("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt->constraints.all[g]->ToString()) + "\t";
   gradplot_ << std::endl;
 
-  Function* c = opt_->objectives.data[0];
+  Function* c = opt->objectives.data[0];
   for(unsigned int e = 0; e < opt_shape_param_.GetSize(); e++)
   {
     ShapeParamElement* spe = opt_shape_param_[e];
@@ -2126,7 +2126,7 @@ void ShapeMapDesign::WriteGradientFile()
     gradplot_ << spe->dof_ << " \t" << spe->GetPlainDesignValue() << " \t" << (spe->GetPlainGradient(c) + dynamic_cast<ShapeMapVariable*>(opt_shape_param_[e])->sym->GetPlainSymGradient(c)) << " \t";
 
     for(unsigned int g = 0; g < spe->constraintGradient.GetSize(); g++)
-      if(opt_->constraints.all[g]->HasDenseJacobian())
+      if(opt->constraints.all[g]->HasDenseJacobian())
         gradplot_ << spe->constraintGradient[g] << " \t";
     gradplot_ << std::endl;
   }
@@ -2178,7 +2178,7 @@ void ShapeMapDesign::ExportLevelSet() const
 
 inline double ShapeMapDesign::DensityToLevelSet(int x, int y) const
 {
-  return 2.0 * map_[DensityIdx(x,y)].elemval->GetPlainDesignValue() - 1.0;
+  return 2.0 * map[DensityIdx(x,y)].elemval->GetPlainDesignValue() - 1.0;
 }
 
 void ShapeMapDesign::EvalAtIp::Init(ShapeMapDesign* smd)
@@ -2563,7 +2563,7 @@ void ShapeMapDesign::EvalAllCornerValues()
   StdVector<double> ip(dim_); // integration location 0 ... 1
   Vector<unsigned int> idx(3);
 
-  int num_nodes = map_[0].nodes.GetSize();
+  int num_nodes = map[0].nodes.GetSize();
   assert((unsigned int) num_nodes == num_node_shapes_ - FindCenters().GetSize());
 
   // temporary array. Could be used permanent instead of replicating it 4 to 8 times in Item::corner_vals
@@ -2594,7 +2594,7 @@ void ShapeMapDesign::EvalAllCornerValues()
         if(dim_ == 3)
           ip[2] =  z < nz_ ? 0 : 1.0;
 
-        Item& item = map_[DensityIdx(idx[0], idx[1], idx[2])]; // ignores z in 2D
+        Item& item = map[DensityIdx(idx[0], idx[1], idx[2])]; // ignores z in 2D
 
         for(int s = 0; s < num_nodes; s++)
         {
@@ -2620,7 +2620,7 @@ void ShapeMapDesign::EvalAllCornerValues()
     {
       for(unsigned int x = 0; x < nx_; x++)
       {
-        Item& item = map_[DensityIdx(x, y, z)]; // ignores z in 2D
+        Item& item = map[DensityIdx(x, y, z)]; // ignores z in 2D
 
         // NOTE: the 3D mapping is different form the coords definition of CFS as used in Eval() !
         // 2D -------------      : 3D --------- coords is 8 columns with 3 rows
@@ -2699,7 +2699,7 @@ void ShapeMapDesign::DumpMap()
     {
       for(unsigned int x = 0; x < nx_; x++)
       {
-        Item i = map_[DensityIdx(x, y, z)];
+        Item i = map[DensityIdx(x, y, z)];
         std::cout << "z=" << z << " y=" << y << " x=" << x << " elidx=" << DensityIdx(x, y, z) << " rho=" << i.elemval->GetPlainDesignValue()<< std::endl;
         // " min=" << i.min_corner_value << " max=" << i.max_corner_value << std::endl;
         for(unsigned int n = 0; n < i.nodes.GetSize(); n++)

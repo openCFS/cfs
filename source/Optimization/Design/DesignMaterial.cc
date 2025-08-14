@@ -18,6 +18,7 @@
 #include "Optimization/Design/DesignMaterial.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/MaterialTensor.hh"
+#include "Optimization/Design/FeatureMappingDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/TransferFunction.hh"
@@ -544,6 +545,14 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 }
 
+
+DesignMaterial::DesignMaterial(DesignMaterial::Type type, DesignSpace* space)
+{
+  space_ = space;
+  this->type_ = type;
+  dim = domain->GetDim();
+}
+
 DesignMaterial::~DesignMaterial() {
   if(interpolator11_) { delete interpolator11_; }
   if(interpolator12_) { delete interpolator12_; }
@@ -738,6 +747,9 @@ unsigned int DesignMaterial::RequiredParameters( OptimizationMaterial::System ma
     return r + 2;
   case D_INTERP_IN718_TENSOR_ROT:
     return r + 3 + (dim == 3 ? 3 : 1);
+  case FEATURE_MAPPING_ANISO:
+  case NO_TYPE:
+    return 0;
   }
 
   assert(false);
@@ -950,6 +962,10 @@ bool DesignMaterial::CheckRequiredDesigns(
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0);
     }
+  case FEATURE_MAPPING_ANISO:  
+  case NO_TYPE:
+    // we have no param mat variables
+    return false;
   }
   assert(false);
   return false;
@@ -3739,7 +3755,7 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
 
   Matrix<double>& t = mt.GetMatrix(VOIGT);
 
-  LOG_DBG3(dm) << "RT: input tensor=" << t.ToString();
+  LOG_DBG3(dm) << "RT: input tensor=" << t.ToString() << " d=" << direction  << " angles=" << angles << " rx=" << rx << " ry=" << ry << " rz=" << rz;
 
   int dim = t.GetNumRows() > 3 ? 3 : 2;
 
@@ -3812,20 +3828,20 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
     Q[5][3] = R[0][1]*R[1][2] + R[0][2]*R[1][1];
     Q[5][4] = R[0][0]*R[1][2] + R[0][2]*R[1][0];
   }
-  LOG_DBG3(dm) << "Corresponding Q is " << Q.ToString();
+  LOG_DBG3(dm) << "RT: Corresponding Q is " << Q.ToString();
   if(direction != DesignElement::ROTANGLETHIRD && direction != DesignElement::ROTANGLESECOND && direction != DesignElement::ROTANGLEFIRST && direction != DesignElement::ROTANGLE) {
     // calculate Q*t*Q' and store back to t. unfortunately MultT is the wrong way
-    Matrix<Double> help(dimQ, dimQ);
-    Q.Mult(t, help);
-    Matrix<Double> QT(dimQ, dimQ);
-    QT.Resize(dimQ, dimQ);
-    Q.Transpose(QT);
-    help.Mult(QT, t);
+    Matrix<double> help(dimQ, dimQ);
+    Q.Mult(t, help); // help = Q * t
+    Matrix<double> QT(dimQ, dimQ);
+    Q.Transpose(QT); // QT = Q^T
+    help.Mult(QT, t); // t = help * QT == Q * t * Q^T
+    LOG_DBG3(dm) << "RT: final tensor " << t.ToString();
   } else { // we need a derivative
-    Matrix<Double> dR(dim, dim);
+    Matrix<double> dR(dim, dim);
     SetRotationMatrix(dR, theta1, theta2, theta3, direction); // this now produces the derivative
 
-    Matrix<Double> dQ(dimQ, dimQ);
+    Matrix<double> dQ(dimQ, dimQ);
     // this part can be produced from the definition of Q above by sed 's/Q/dQ;s/R\(\[\d\]\[\d\]\)\*R\(\[\d\]\[\d\]\)/(dR\1*R\2+R\1*dR\2)/g', effectively using the product rule
     dQ[0][0] = (dR[0][0]*R[0][0]+R[0][0]*dR[0][0]);
     dQ[0][1] = (dR[0][1]*R[0][1]+R[0][1]*dR[0][1]);
@@ -3866,12 +3882,12 @@ void DesignMaterial::RotateTensor(MaterialTensor<double>& mt, DesignElement::Typ
       dQ[5][3] = (dR[0][1]*R[1][2]+R[0][1]*dR[1][2]) + (dR[0][2]*R[1][1]+R[0][2]*dR[1][1]);
       dQ[5][4] = (dR[0][0]*R[1][2]+R[0][0]*dR[1][2]) + (dR[0][2]*R[1][0]+R[0][2]*dR[1][0]);
     }
-    LOG_DBG3(dm) << "Corresponding dQ is " << dQ.ToString();
+    LOG_DBG3(dm) << "RT: Corresponding dQ is " << dQ.ToString();
 
     // we now, have to calculate dQ*t*Q' + Q*t*dQ'
     // we calculate dQ*t*Q' + (dQ*t*Q')' = dQ*t*Q' + Q''*t'*dQ' = dQ*t*Q' + Q*t*dQ'
     Matrix<Double> help(dimQ, dimQ);
-    dQ.Mult(t, help);
+    dQ.Mult(t, help); // help = dQ * t
     Q.Transpose(dQ); // dQ is no longer needed, we overwrite it
     help.Mult(dQ, t);
     t.Transpose(help);
@@ -3918,7 +3934,7 @@ void DesignMaterial::SetOneAxisRotationMatrix(Matrix<double>& R, double theta, i
       }
     }
   }
-  LOG_DBG2(dm) << "SOARM: rotation matrix around axis " << axis << " with angle theta=" << theta << " = " << R.ToString();
+  LOG_DBG2(dm) << "SOARM: rotation matrix axis=" << axis << " angle=" << theta << " d=" << derivative << " Q=" << Q.ToString() << " -> R=" << R.ToString();
 }
 
 void DesignMaterial::SetRotationMatrix(Matrix<double>& R, double theta1, double theta2, double theta3, DesignElement::Type direction) {
@@ -4187,7 +4203,7 @@ bool DesignMaterial::GetTensor(MaterialTensor<double>& mt, DesignElement::Type t
   return false;
 }
 
-bool DesignMaterial::GetMechTensor(MaterialTensor<Complex>& mtc, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, bool core)
+bool DesignMaterial::GetMechTensor(MaterialTensor<Complex>& mtc, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, bool core, const CoefFunctionOpt* coef)
 {
   assert(mtc.GetNotation() == VOIGT);
 
@@ -4204,7 +4220,7 @@ bool DesignMaterial::GetMechTensor(MaterialTensor<Complex>& mtc, SubTensorType s
   return true;
 }
 
-bool DesignMaterial::GetMechTensor(MaterialTensor<double>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, bool core)
+bool DesignMaterial::GetMechTensor(MaterialTensor<double>& mt, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, bool core, const CoefFunctionOpt* coef)
 {
   // FIXME! Check whether assertion makes sense
   //assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ != HOM_ISO_C1  && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC && type_ != DENSITY_TIMES_ROT_PA12));
@@ -4269,14 +4285,19 @@ bool DesignMaterial::GetMechTensor(MaterialTensor<double>& mt, SubTensorType sub
     ZeroMatrix(t, subTensor);
     break;
   }
-  default: // case default
-    throw Exception("DesignMaterial Type not implemented yet");
+  case FEATURE_MAPPING_ANISO:
+    assert(dynamic_cast<FeatureMappingDesign*>(space_) != nullptr);
+    dynamic_cast<FeatureMappingDesign*>(space_)->GetAnisoMechTensor(elem, mt, direction, coef, this);
+    break;
+  case NO_TYPE:
+    assert(false);
+    break;
   }
 
   LOG_DBG2(dm) << "GMT: e=" << elem->elemNum << " t=" << type.ToString(type_) << " d=" << DesignElement::type.ToString(direction) << " p=" << core << " -> " << mt.GetMatrix(VOIGT).ToString();
 
   assert(mt.GetMatrix(VOIGT).GetNumRows() >= 3 && mt.GetMatrix(VOIGT).GetNumCols() >= 3);
-
+  
   return true;
 }
 
@@ -4459,6 +4480,7 @@ void DesignMaterial::DumpParams()
 
 void DesignMaterial::SetEnums() {
   type.SetName("DesignMaterial::Type");
+  type.Add(NO_TYPE, "no-type");
   type.Add(FMO, "fmo");
   type.Add(ORTHOTROPIC, "orthotropic");
   type.Add(DENSITY_TIMES_ORTHOTROPIC, "density-times-orthotropic");
@@ -4487,6 +4509,8 @@ void DesignMaterial::SetEnums() {
   type.Add(SGP_MATLAB, "sgp-matlab");
   type.Add(SGP_GRADIENTCHECK, "sgp-gradient-check");
   type.Add(HEAT, "heat");
+  type.Add(FEATURE_MAPPING_ANISO, "featureMappingAniso"); 
+
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");

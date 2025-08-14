@@ -97,6 +97,12 @@ public:
   template <class T>
   const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const FormID& form_id, const Elem* elem, shared_ptr<CoefFunction> shadow);
 
+  /** If we don't have cached element matrices we compute them here. This is necessary for many param mat derivatives and also fallback.
+   * @return this is out, just a convenience function. */
+  template <class T>
+  const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
+                        DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
+
   /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
   bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
 
@@ -129,12 +135,6 @@ protected:
 
   /** This is the common function for Stiffness() and Mass(). It either calls ComputeElementMatrix() or gets the stuff from LocalElementCache */
   const DenseMatrix& GetElementMatrix(FormID& id, const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type mat_deriv = DesignElement::NO_DERIVATIVE);
-
-  /** If we don't have cached element matrices we compute them here. This is necessary for many param mat derivatives and also fallback.
-   * @return this is out, just a convenience function. */
-  template <class T>
-  const Matrix<T>& ComputeElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
-                        DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
 
   /** Very similar to GetElementMatrix() but for the vector, e.g. for rhs linear forms */
   void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,

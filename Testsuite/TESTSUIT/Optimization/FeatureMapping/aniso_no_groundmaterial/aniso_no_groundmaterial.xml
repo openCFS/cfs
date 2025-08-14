@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+ 
+  <documentation>
+    <title>Anisotropic Feature Mapping, Single Feature</title>
+    <authors>
+      <author>Fabian Wein</author>
+    </authors>
+    <date>2025-10-13</date>
+    <references>no</references>
+    <isVerified>no</isVerified>
+    <description>
+      For ansiotropic feature mapping it makes sense to have ground material, as the otherwise
+      the angle gradient lives everywhere, also in the void. It only removes when rho = 0 which requires
+      ground material. See the aniso_single test
+
+      This test captures the non-groundmaterial-case but it is not advised to use it.
+    </description>
+  </documentation>
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="aniso_no_groundmaterial.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <info/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <!-- we use the same material as for the anisotropic spaghetti tests. E_x = 1, E_y = 0.1 -->
+      <region name="mech" material="spaghetti_aniso"/>
+    </regionList>
+    <nodeList>
+      <nodes name="load">
+        <coord x="1" y="0.5"/>
+      </nodes>
+    </nodeList>
+  </domain>
+
+  <sequenceStep index="1">
+    <analysis>
+      <static/>
+    </analysis>
+
+    <pdeList>
+      <mechanic subType="planeStrain">
+        <regionList>
+          <region name="mech"/>
+        </regionList>
+
+        <bcsAndLoads>
+           <fix name="left"> 
+              <comp dof="x"/> 
+              <comp dof="y"/> 
+           </fix>
+           <force name="load" >
+             <comp dof="x" value="1"/>
+           </force>
+        </bcsAndLoads>
+        <storeResults>
+          <elemResult type="mechPseudoDensity">
+            <allRegions/>
+          </elemResult>
+          <elemResult type="mechTensor">
+            <allRegions />
+          </elemResult>
+          <nodeResult type="mechDisplacement">
+            <allRegions/>
+          </nodeResult>
+        </storeResults>
+      </mechanic>
+    </pdeList>
+    
+    <!-- <linearSystems>
+      <system>
+        <solverList>
+          <cholmod/>
+        </solverList>
+      </system>
+    </linearSystems> -->
+  </sequenceStep>
+    
+  <optimization>
+    <costFunction type="compliance" task="minimize" sequence="1" linear="false">
+      <stopping queue="2" value="1e-3" type="relativeCostChange" />
+    </costFunction>
+
+    <constraint type="volume" bound="upperBound" value="0.3" mode="constraint" linear="false"/>
+
+    <optimizer type="snopt" maxIterations="30" >
+      <snopt iteration="major">
+        <option name="major_optimality_tolerance" type="real" value="1e-6"/>
+        <option type="integer" name="verify_level" value="-1"/>
+      </snopt>
+    </optimizer>
+    
+    <!-- featureMappingAniso for rotating the region material by the pill orientation.
+         Otherwise the region material is just scaled, not rotated.-->
+    <ersatzMaterial region="mech" material="mechanic" method="featureMappingAniso">
+      <featureMapping transition=".1" order="3" combine="max" >
+        <pill>
+          <node dof="x" initial="0.1" upper="1" lower="0" tip="start"/>
+          <node dof="y" initial="0.2" upper="1" lower="0" tip="start"/>
+          <node dof="x" initial="0.9" upper="1" lower="0" tip="end"/>
+          <node dof="y" initial="0.7" upper="1" lower="0" tip="end"/>
+          <profile initial="0.1" lower="0.05" upper=".2" />
+        </pill>
+      </featureMapping>
+      <!-- the bounds are important, initial is ignored. -->
+      <design name="density" initial=".5" physical_lower="1e-3" upper="1.0"/>
+
+      <transferFunction type="identity" application="mech" />
+      <export save="all" write="iteration"/>
+      
+    </ersatzMaterial>
+    <commit mode="forward" stride="1"/>
+  </optimization>
+</cfsSimulation>

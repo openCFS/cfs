@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/material 
+https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd">
+
+
+
+  <!-- the aniso spaghetti material used by Jannis. It is originally 2D, the 0.4 offset are nonsense.
+   Shall be used as planeStrain. The aniso spaghetti tests are planeStress but this is irrelevant as the 2D tensor is given in ParaMat.
+   
+   cfs reads 3d tensors to 2d tensors sucht that yy becomes xx. -->
+  <material name="spaghetti_aniso">
+    <mechanical>
+      <density>
+        <linear>
+          <real>0.00155</real>
+        </linear>
+      </density>
+      <elasticity>
+        <linear>
+          <tensor dim2="6" dim1="6">
+            <real>
+              0.1  0.4  0.4  0    0    0               
+              0.4  1.0  0.12 0    0    0               
+              0.4  0.12 0.1  0    0    0               
+              0    0    0    0.05 0    0               
+              0    0    0    0    0.05 0               
+              0    0    0    0    0    0.05 
+            </real>
+          </tensor>
+        </linear> 
+      </elasticity>
+    </mechanical>
+  </material>
+ 
+</cfsMaterialDataBase>

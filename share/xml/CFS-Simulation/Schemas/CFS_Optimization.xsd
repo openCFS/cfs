@@ -1797,11 +1797,16 @@
                 <!-- spaghetti variant for anisotropy with designMaterial -->
                 <xsd:enumeration value="spaghettiParamMat" />
                 <!-- general standard feature mapping. ShapeMap is an older shape variant, spaghetti an older Python variant -->
-                 <xsd:enumeration value="featureMapping" >
+                <xsd:enumeration value="featureMapping" >
                   <xsd:annotation>
                     <xsd:documentation>general standard feature mapping. ShapeMap is an older shape variant, spaghetti an older Python variant</xsd:documentation>
                   </xsd:annotation>
                  </xsd:enumeration>
+                <xsd:enumeration value="featureMappingAniso" >
+                  <xsd:annotation>
+                    <xsd:documentation>anisotropic feature mapping oriented in feature direction for continuous carbon reinforced fibers</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -2860,7 +2865,7 @@
       <xsd:element name="pill" minOccurs="1" maxOccurs="unbounded" type="DT_Pill" />
     </xsd:sequence>
     <xsd:attribute name="transition" type="xsd:float" use="required">
-      <xsd:annotation><xsd:documentation>Transition zone in meter for intermediate density at feature boundary.</xsd:documentation></xsd:annotation>
+      <xsd:annotation><xsd:documentation>Transition zone in meter for intermediate density at feature boundary from void to solid</xsd:documentation></xsd:annotation>
     </xsd:attribute>  
     <xsd:attribute name="order" use="optional" type="xsd:unsignedInt" default="2">
       <xsd:annotation><xsd:documentation>Integration order for one pseudo density to be subject to power by dimension (2).</xsd:documentation></xsd:annotation>
