@@ -393,6 +393,11 @@ debian:latest:
     TAG: "latest"
 
 # older releases ... https://www.debian.org/releases/
+debian:12: # (bookworm)
+  extends: .platform
+  variables:
+    IMAGE: "debian"
+    TAG: "12"
 debian:11: # (bullseye)
   extends: .platform
   variables:
