@@ -24,7 +24,8 @@
             <var name="A" value="1"/>
         </variableList>
         <regionList>
-            <region name="V_core" material="iron_hyst_EB" />
+            <region name="V_plate" material="iron_hyst_EB1" />
+            <region name="V_core" material="iron_hyst_EB2" />
             <region name="V_coil1" material="air"/>
             <region name="V_coil2" material="air"/>
             <region name="V_air" material="air"/>
@@ -51,7 +52,7 @@
     <sequenceStep index="1">
         <analysis>
             <transient>
-                <numSteps>3</numSteps>
+                <numSteps>2</numSteps>
                 <deltaT>0.2</deltaT>
                 <allowPostProc>yes</allowPostProc>
             </transient>
@@ -60,6 +61,7 @@
         <pdeList>
             <magneticEdge formulation="mixedSFG">
                 <regionList>
+                    <region name="V_plate" VecPolyId="Hcurl" ScaPolyId="H1"/>                    
                     <region name="V_core" VecPolyId="Hcurl" ScaPolyId="H1"/>
                     <region name="V_coil1" VecPolyId="Hcurl" ScaPolyId="H1"/>
                     <region name="V_coil2" VecPolyId="Hcurl" ScaPolyId="H1"/>
@@ -108,7 +110,7 @@
     <sequenceStep index="2">
         <analysis>
             <transient initialTime="zero">
-                <numSteps>3</numSteps>
+                <numSteps>2</numSteps>
                 <deltaT>0.2</deltaT>
             </transient>
         </analysis>
@@ -117,6 +119,7 @@
         <pdeList>
             <magnetic formulation="Psi">
                 <regionList>
+                    <region name="V_plate" polyId="H11" nonLinIds="nl1"/>
                     <region name="V_core" polyId="H11" nonLinIds="nl1"/>
                     <region name="V_coil1" polyId="H11"/>
                     <region name="V_coil2" polyId="H11"/>
@@ -129,6 +132,14 @@
 
                 <bcsAndLoads>
                     <potential name="N_gauge" value="0"/>
+                    <fieldIntensity name="V_plate">
+                        <sequenceStep index="1">
+                            <quantity name="magFieldIntensity" pdeName="magneticEdgeMixedSFG" />
+                            <timeFreqMapping>
+                                <continuous  interpolation="linear"/>
+                            </timeFreqMapping>
+                        </sequenceStep>
+                    </fieldIntensity>                    
                     <fieldIntensity name="V_core">
                         <sequenceStep index="1">
                             <quantity name="magFieldIntensity" pdeName="magneticEdgeMixedSFG" />

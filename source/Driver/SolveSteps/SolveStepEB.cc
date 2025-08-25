@@ -22,7 +22,7 @@ namespace CoupledField
 
   SolveStepEB::SolveStepEB(StdPDE &apde) : StdSolveStep(apde)
   {
-    matModelCoef_ = apde.GetModelCoef();
+    matModelCoefm_ = apde.GetModelCoefm();
   }
 
   SolveStepEB::~SolveStepEB()
@@ -105,8 +105,6 @@ namespace CoupledField
         LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
         LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
-        // matModelCoef_->AllowUpdates(true);
-
         // set up RHS
         algsys_->InitRHS();
         assemble_->AssembleLinRHS();
@@ -152,9 +150,6 @@ namespace CoupledField
         LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
         LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
-
-        // matModelCoef_->AllowUpdates(false);
-
         // apply line search
         Double etaLineSearch = 1.0;
         if ( lineSearch_ == "none"){
@@ -179,10 +174,11 @@ namespace CoupledField
         LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
         LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
         LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
-
-        
-        matModelCoef_->AllowUpdates(true);
-        
+      
+        std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
+        for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
+            it->second->AllowUpdates(true);  
+        } 
         
         // residual
         algsys_->InitRHS();
@@ -213,8 +209,11 @@ namespace CoupledField
         performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
         if ( performOneMoreStep == 0){
           // now that we have reached our convergence threshold for this timestep, let's save the states in our model
-          matModelCoef_->UpdateHistoryValues();  
-          matModelCoef_->AllowUpdates(false);
+          std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
+          for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
+            it->second->UpdateHistoryValues(); 
+            it->second->AllowUpdates(false);
+          } 
           break;
         }
         

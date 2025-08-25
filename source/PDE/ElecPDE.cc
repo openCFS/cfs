@@ -280,7 +280,8 @@ namespace CoupledField {
         M = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numHarmonics_M_;
         nFFT = dynamic_cast<MultiHarmonicDriver*>(domain_->GetSingleDriver())->numFFT_;
 
-        multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, elecFieldCoef, N, M, baseFreq, nFFT, modelName_,matModelCoef_);
+        multiHarmCoef_->Init(feFunc, feSpace, regions_, materials_, ptGrid_, elecFieldCoef, N, M, baseFreq, nFFT, modelName_,
+                            matModelCoef_);
 
     }
     // now the handle for the mathparser should be in place, and ready to unlock!
@@ -465,7 +466,7 @@ namespace CoupledField {
               PtrCoefFct elecFieldCoef =  this->GetCoefFct(ELEC_FIELD_INTENSITY);
               epsilonNL = actSDMat->GetScalCoefFncNonLin( ELEC_PERMITTIVITY_SCALAR, Global::REAL, elecFieldCoef);
 
-              PtrCoefFct hystFluxTmp = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,epsilonNL,elecFieldCoef,CoefXpr::OP_MULT));
+              PtrCoefFct hystFluxTmp = CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_,epsilonNL,elecFieldCoef,CoefXpr::OP_MULT));               
               nlFluxCoef_->AddRegion(actRegion, hystFluxTmp);
             }
             if( dim_ == 2 ) {

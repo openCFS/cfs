@@ -76,6 +76,8 @@ namespace CoupledField {
     virtual shared_ptr<ResultInfo> GetResultInfo( SolutionType solType );
     
     shared_ptr<CoefFunctionMaterialModel<Complex>> GetModelCoef(){ return matModelCoef_; };
+
+    std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> > GetModelCoefm() { return matModelCoefm_;};
     
     virtual AnalysisType GetAnalysisType() const {
       return analysistype_;

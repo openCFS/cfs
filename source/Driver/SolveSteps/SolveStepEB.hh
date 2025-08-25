@@ -49,8 +49,7 @@ namespace CoupledField
   private:
 
     // Coefficient function for material model
-    shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
-
+    std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >  matModelCoefm_;
   };
 } // end of namespace
 
