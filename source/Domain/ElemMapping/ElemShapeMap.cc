@@ -309,85 +309,89 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions, const 
 #endif
 }
 
-void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemShapeMap> esm, const bool usePrimary, Double weight) {
+
+void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
+    Double weight, bool useMaster) {
+
   // ------------------------------------------------------
   //  1) Set "normal" element information (Jacobian, etc.)
   // ------------------------------------------------------
+
   // first, call "normal" set method, also valid for volume elements
   this->Set(lp, esm, weight);
-  // ------------------------------------------------------
-  //  2) Perform surface-element specific tasks
-  // ------------------------------------------------------
-  // set flag for surface mapped element (Set() sets it to false before)
+
+  //here we do basically the same thing as in SetSurf info but slightly different
+  //TODO: make this more GENERAL
+  // set flag for surface mapped element
   this->isSurface = true;
-  // get surface element and cast down to mortar element
-  const MortarNcSurfElem* mortarElem = dynamic_cast<const MortarNcSurfElem*>(this->shapeMap->GetSurfElem());
-  // get correct surface element
-  const SurfElem* surfElem = (usePrimary) ? mortarElem->ptPrimary : mortarElem->ptSecondary;
-  // get correct volume element
-  const Elem* volElem = surfElem->ptVolElems[0];
-  // shape map for assigned volume element
-  const shared_ptr<ElemShapeMap> esmVol =  this->shapeMap->GetGrid()->GetElemShapeMap(volElem, this->shapeMap->IsUpdated());
-  // get shape map of the corresponding surface element
-  const shared_ptr<ElemShapeMap> esmSurf = this->shapeMap->GetGrid()->GetElemShapeMap(surfElem, this->shapeMap->IsUpdated());
 
-  //in this special case, we need to transform local2Global wrt mortarelem
-  //then global2local wrt volume elem...
-  // global integration point, which is the lp transformed via th intersection element
-  Vector<Double> globIntPoint;
-  // local integration point determined by mapping the global point via the surfElem
-  // stored in a LocPoint object for lpmVol that is used to determine the normal vector
-  LocPoint lpVol, lpSurf;
-  // local normal vector of lpmVol that points out of the volElem in direction of the surfElem
-  Vector<Double> locNormal;
-  // Calculate global coordinates of integration point
-  this->shapeMap->Local2Global(globIntPoint, lp);
+  // get surface element
+  const SurfElem* surfElem = (shapeMap->GetSurfElem());
+  // cast down to mortar element
+  const MortarNcSurfElem * mortarElem =
+        dynamic_cast<const MortarNcSurfElem*>(surfElem);
+  // if we have not previously selected the correct volume neighbor, we
+  // have to do it now
+  shared_ptr<ElemShapeMap> esmVol;
 
-  // -------kirill (periodic boundary conditions)-------------------------------------------------------------------------------------
-  // For periodic boundary conditions, the intersection element may not coincide with the primary/secondary element.
+  const Elem * ptVolElem = NULL;
+  const SurfElem * ptSurfElem = NULL;
+  if(mortarElem){
+      if (useMaster){
+         ptVolElem = mortarElem->ptMaster->ptVolElems[0];
+         ptSurfElem = mortarElem->ptMaster;
+      }else{
+        ptVolElem = mortarElem->ptSlave->ptVolElems[0];
+        ptSurfElem = mortarElem->ptSlave;
+      }
+  }else{
+     ptVolElem = surfElem->ptVolElems[0];
+     ptSurfElem = surfElem;
+
+     if(!ptVolElem || !ptSurfElem){
+       Exception("Determination of volume element failed for not-mortar Case.");
+     }
+  }
+
+  // kirill:
+  // For periodic boundary conditions, the intersection element may not coincide with the master/slave element.
   // Therefore, the corresponding volume element will not lie adjacent to it. For this reason
-  // we must do the calculations with respect to the chosen 'surfElem' which is either primary or secondary
-  // and definitely connected with 'volElem'.
+  // we must do the calculations with respect to the chosen 'ptSurfElem' which is either master or slave
+  // and definitely connected with 'ptVolElem'.
+  shared_ptr<ElemShapeMap> esmSurfElem = shapeMap->GetGrid()->GetElemShapeMap(ptSurfElem, shapeMap->IsUpdated());
+
+  lpmVol.reset(new LocPointMapped());
+  esmVol =  shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
+      shapeMap->IsUpdated(),true);
+
+  LocPoint lpVol;
+  Vector<Double> locNormal;
+  //in this special case, we need to transform local2Global wrt mortarelem
+  //then global2local wrt volume elem
+  Vector<Double> globalPoint;
+  Vector<Double> localPoint;
+  esm->Local2Global(globalPoint, lp);
+
+  // kirill:
   // We cannot simply map the global point lying on our surface element to the volume element: in case of mortar element
   // for p.b.c., the global point can lie out of the volume element. That's why we first map the global point form the NC-element to
-  // the primary (or secondary) surface element in order to calculate the corresponding local point in the adjacent volume element.
-  // The mapping is performed in accordance with the transformation between the primary and the secondary surfaces.
-  if (mortarElem->transVect.GetSize() != 0)
-    esmSurf->TranslatePointOntoSurface(mortarElem->transVect, globIntPoint);
-  // -------kirill (periodic boundary conditions)-------------------------------------------------------------------------------------
+  // the master (or slave) surface element in order to calculate the corresponding local point in the adjacent volume element.
+  // The mapping is performed in accordance with the transformation between the master and the slave surfaces.
+  if (mortarElem->transVect.GetSize())
+    esmSurfElem->TranslatePointOntoSurface(mortarElem->transVect, globalPoint);
 
-  // ATTENTION! Global2Local on the volume element will cause integration points outside the element when the interface is not coplanar!
-  esmVol->Global2Local(lpVol.coord, globIntPoint);
-  // create new local point mapped for volume element
-  this->lpmVol.reset(new LocPointMapped());
-  esmVol->CalcNormalOutOfVolume(locNormal,lpVol,volElem,surfElem);
-  // assign integration points to the (new) volume element
-  this->lpmVol->Set(lpVol, esmVol, this->weight);
-  // calculate global normal pointing out of new volume element
-  this->normal = Transpose(this->lpmVol->jacInv) * locNormal;
-  this->normal /= this->normal.NormL2();
-  if (!usePrimary)
-    this->normal *= -1.0;
+  esmVol->Global2Local(localPoint, globalPoint);
+  lpVol.coord = localPoint;
+  lpVol.number = -1;
+  esmVol->CalcNormalOutOfVolume(locNormal,lpVol,ptVolElem,ptSurfElem);
+  //esmVol->GetLocalIntPoints4Surface(ptEl->connect, lp, lpVol, locNormal);
+  lpmVol->Set(lpVol, esmVol, weight);
 
-#ifndef NDEBUG
-  // sanity check if the surf->vol mapping is correct
-  Vector<Double> globVolIntPoint;
-  esmVol->Local2Global(globVolIntPoint, lpVol);
-  LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
-  LOG_DBG2(locPointMapped) "globCoordVol: " << globVolIntPoint << std::endl;
-  LOG_DBG2(locPointMapped) "locCoordVol: " << lpVol.coord << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) "globCoordMortarElem: " << globIntPoint << std::endl;
-  LOG_DBG2(locPointMapped) "locCoordMortarElem: " << this->lp.coord << std::endl;
-  LOG_DBG2(locPointMapped) "usePrimary:" << usePrimary << std::endl;
-  LOG_DBG2(locPointMapped) "surfElemNums---:" << mortarElem->ptPrimary->elemNum << ", " << mortarElem->ptSecondary->elemNum << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) "volElemNums---:" << mortarElem->ptPrimary->ptVolElems[0]->elemNum << ", " << mortarElem->ptSecondary->ptVolElems[0]->elemNum << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) "normal loc-----------:" << locNormal << std::endl;
-  LOG_DBG2(locPointMapped) "normal glob-------------------:" << this->normal << std::endl << std::endl;
-  LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
-  for (UInt iDim = 0; iDim < globIntPoint.GetSize(); ++iDim)
-    assert(abs(globIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
-  assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS));
-#endif
+  // calculate global normal pointing into current volume element
+  normal = Transpose(lpmVol->jacInv) * locNormal;
+  normal /= normal.NormL2();
+  if (!useMaster)
+    normal *= -1.0;
 }
 
 Vector<double>& LocPointMapped::GetGlobal(Vector<double>& coord, const LocPoint* loc, bool fallback, bool update) const
