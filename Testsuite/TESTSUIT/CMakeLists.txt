@@ -396,6 +396,7 @@ ADD_SUBDIRECTORY(Singlefield/Magnetics/MagVecPotAvg)
 ADD_SUBDIRECTORY(Singlefield/Magnetics/HarmonicLorentzForceMagEdgePDE)
 ADD_SUBDIRECTORY(Singlefield/Magnetics/HarmonicLorentzForceMagneticPDE)
 ADD_SUBDIRECTORY(Singlefield/Magnetics/Coil3DVelocityAV)
+ADD_SUBDIRECTORY(Singlefield/Magnetics/Coil3DVelocityAVNl)
 ADD_SUBDIRECTORY(Singlefield/Magnetics/Coil3DVelocityAV_SUPG)
 ADD_SUBDIRECTORY(Singlefield/Magnetics/Pyra3DCube)
 
