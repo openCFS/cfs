@@ -886,7 +886,7 @@ namespace CoupledField {
     
     for(UInt i=0;i<numStages;i++){
       //do initialization 
-      rhsVec_.Init();
+      rhsVec_.Init(); //set RHS to zero
       LOG_DBG(stdsolvestep) << "StepTransNonLin: Stage: " << i ;
       
       //we obtain a reference to the stage vectors of the scheme
@@ -913,7 +913,8 @@ namespace CoupledField {
       
       // setup right hand side
       Double loadFactor = 1.0;
-      Double RhsLinL2Norm = SetLinRHS(loadFactor);
+      //computes RHS due to loads and its norm; this part of RHS is stored in RhsLinVal_
+      Double RhsLinL2Norm = SetLinRHS(loadFactor); 
       
       // set iteration counter
       UInt iterationCounter=0;
@@ -947,7 +948,7 @@ namespace CoupledField {
             algsys_->UpdateRHS(matIt->first,stageRHS_,true);
           }
           
-          //substract from RHS the term K*sol
+          //substract from RHS the term K*sol: we assume effective stiffness matrix!!
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(STIFFNESS,solVec_,true); // we also or only need the updated version
           algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
@@ -1046,7 +1047,7 @@ namespace CoupledField {
             algsys_->UpdateRHS(matIt->first,stageRHS_,true);
           }
           
-          //substract from RHS the term K*sol
+          //substract from RHS the term K*sol: assums effecktive stiffness formulation!
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(STIFFNESS,solVec_,true);
           algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
