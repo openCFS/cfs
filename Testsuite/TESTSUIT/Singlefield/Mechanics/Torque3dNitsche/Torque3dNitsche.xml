@@ -24,6 +24,8 @@
       is the master side and a force in phi-direction is applied on its top
       surface. Another component of this force pulls into positive z-direction.
       The mesh consists of HEXA27 and QUAD9 elements.       
+      The stress state is not purely torsional and extensional, 
+      as the bottom fixation influences the stress distribution within the system.
     </description>
   </documentation>
   
@@ -54,14 +56,6 @@
 		   secondarySide="slave_iface"
 		   intersectionMethod="polygon"/>
     </ncInterfaceList>
-    
-    <coordSysList>
-      <cylindric id="cylCoordSys">
-      	<origin x="0.0" y="0.0" z="3.0"/>
-      	<zAxis x="0.0" y="0.0" z="4.0"/>
-      	<rAxis x="1.0" y="0.0" z="3.0"/>
-      </cylindric>
-    </coordSysList>
   </domain>
   
   <fePolynomialList>
