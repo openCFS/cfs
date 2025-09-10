@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <fileFormats>
+        <input>
+            <mesh fileName="opt_10.mesh"/>
+        </input>
+        <output>
+            <hdf5 />
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <regionList>
+            <region name="S_acou" material="air"/>
+            <region name="S_opt" material="air"/>
+            <region name="S_void" material="air"/>
+        </regionList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <harmonic>
+                <numFreq>1</numFreq>
+                <startFreq>500</startFreq>
+                <stopFreq>500</stopFreq>
+                <sampling>linear</sampling>
+            </harmonic>
+        </analysis>
+        <pdeList>
+            <acoustic formulation="acouPressure">
+                <regionList>
+                    <region name="S_acou" complexFluid="yes"/>
+                    <region name="S_opt" complexFluid="yes"/>
+                </regionList>
+                <bcsAndLoads>
+                    <normalVelocity name="L_exc_surf" value="1"/>
+                    <absorbingBCs volumeRegion="S_acou" name="L_exc_surf" />
+                    <absorbingBCs volumeRegion="S_acou" name="L_out_surf" />
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="acouPressure">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="pseudoDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="physicalPseudoDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <!-- <elemResult type="optResult_1">
+                        <allRegions/>
+                    </elemResult>  
+                    <elemResult type="optResult_2">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="optResult_3">
+                        <allRegions/>
+                    </elemResult>   -->
+                </storeResults>
+            </acoustic>
+        </pdeList>
+    </sequenceStep>
+    <optimization>
+        <costFunction type="reflectedWave" task="minimize" >
+            <stopping queue="5" value="0.7" type="belowFunction" function="greyness" condition="sufficient"/>
+            <stopping queue="5" value="1e-3" type="relativeCostChange" condition="necessary"/>
+            <output>
+                <acoustic name="L_exc" value="1" surfRegion="L_exc_surf" volumeNeighbour="S_acou"/>
+            </output>
+        </costFunction>
+
+        <constraint type="volume" access="plain" mode="constraint" bound="upperBound" value="0.9" linear="false"/>
+        <constraint type="greyness" access="default" mode="observation" />
+
+        <optimizer type="snopt" maxIterations="150"/>
+
+        <ersatzMaterial region="S_opt" material="acoustic" method="simp">
+            <designSpace local_element_cache="false"/>
+            <filters>
+                <!-- for nx = 100 dx = 0.00025 -> filter radius of 6 means 3mm dia mill-->
+                <filter neighborhood="maxEdge" value="3.1" type="density">
+                    <!-- 0 solid heaviside minimum feature, 1 void minimum hole size -->
+                    <density type="tanh" beta="1" eta="0.1"/>
+                </filter>
+            </filters>
+
+            <design name="density" initial="0.5" physical_lower="1e-9" upper="1.0"/>
+
+            <transferFunction type="simp" application="acoustic" param="1"/>
+            
+            <export save="last" write="iteration"/>
+        </ersatzMaterial>
+        <commit mode="forward" stride="10"/>
+    </optimization>
+</cfsSimulation>
