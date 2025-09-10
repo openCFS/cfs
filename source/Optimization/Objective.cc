@@ -200,6 +200,10 @@ string StoppingRule::DoStop(ObjectiveContainer* oc, ConditionContainer* cc, StdV
   case ABOVE_FUNCTION:
   case BELOW_FUNCTION:
     {
+      // this is a hotfix that checks greyness every 5th iteration
+      if(hs <= queue)
+        return "";
+
       Function* f = oc->Get(function, false); // no exception
       if(f == nullptr)
         f = (Function*) cc->Get(function, true); // now exception if we don't have it
