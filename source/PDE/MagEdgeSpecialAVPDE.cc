@@ -304,8 +304,8 @@ DEFINE_LOG(magEdgeSpecialAVPde, "magEdgeSpecialAVPde")
   // ======================================================
 
   void MagEdgeSpecialAVPDE::InitTimeStepping() {
-	// Use complete implicit scheme
-    Double gamma = 1.0;
+	// Use Trapezoidal
+    Double gamma = 0.5;
     GLMScheme * scheme = new Trapezoidal(gamma);
     TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
