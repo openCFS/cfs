@@ -311,7 +311,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
             B_prev_[idx][i] = BVec[i];
             H_prev_[idx][i] = H[i];
         }
-
+      }
+      if (idx == 1){
+        std::cout << "mu: " << 1.0/(nu[0][0]*mu0_) << "\n";
       }
 
       nu_[idx] = nu;    
@@ -1554,9 +1556,12 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       // BRAUER 3D MODEL
       Double norm_B_n;
       norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[2],2));
-      H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
+      /* H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
       H_out[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
-      H_out[2] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[2];
+      H_out[2] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[2]; */
+      H_out[0] = (1/(1000*mu0_))*B_n[0];
+      H_out[1] = (1/(1000*mu0_))*B_n[1];
+      H_out[2] = (1/(1000*mu0_))*B_n[2];
 
       // return value
       ret.Push_back(H_out[0]);
@@ -1574,14 +1579,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       // BRAUER 2-D MODEL
       Double norm_B_n;
       norm_B_n = norm_B_n + 1e-2;
-      //std::cout << "norm_B_n = " << norm_B_n << "\n";
       norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
-      /* H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
-      H_out[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1]; */
-      H_out[0] = (1/(10*mu0_))*B_n[0];
-      H_out[1] = (1/(10*mu0_))*B_n[1];
-      /* H_out[0] = H_out[0] + 1e-8;
-      H_out[1] = H_out[1] + 1e-8; */
+      H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
+      H_out[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
 
       // return value
       ret.Push_back(H_out[0]);

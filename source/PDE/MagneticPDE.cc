@@ -209,7 +209,6 @@ namespace CoupledField {
           BaseBDBInt * stiffInt = NULL;
 
           // init. EB Material Model
-
           std::map<std::string, double> ParameterMap;
           std::map<std::string, std::string> StringParameterMap;
           if(actSDMat->GetAnhystMagModel() == "analytic_anhysteresis"){

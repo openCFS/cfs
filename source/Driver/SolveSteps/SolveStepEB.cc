@@ -87,6 +87,7 @@ namespace CoupledField
       UInt iterationCounter=0;
 
       Double residualErr = 0.0;
+      Double residualErr0 = 0.0;
       Double incrementalErr = 0.0;
       Double solIncrL2Norm = 0.0;
       Double stageSolL2Norm  = 0.0;
@@ -112,6 +113,10 @@ namespace CoupledField
         assemble_->AssembleLinRHS();
         assemble_->AssembleNonLinRHS();
         algsys_->GetRHSVal( actRHS );
+        if(iterationCounter == 1){
+          residualErr0 = actRHS.NormL2();
+        }
+
 
         LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
         LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
@@ -190,6 +195,8 @@ namespace CoupledField
         assemble_->AssembleNonLinRHS();
         algsys_->GetRHSVal( actRHS );
         residualErr = actRHS.NormL2();
+        residualErr = std::abs(residualErr)/residualErr0;
+        //residualErr = std::abs(residualErr-residualErr0)/residualErr0;
 
         LOG_DBG2(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
         LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();

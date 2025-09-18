@@ -33,6 +33,9 @@ namespace CoupledField
 //    //! specifying coil results.
 //    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
 
+    //stores the field intensity for energy-based hystersis/nonlinear models
+    shared_ptr<CoefFunctionMulti> nonlinear_field_intensity_coef_;
+
     /** @see virtual SinglePDE::GetNativeSolutionType() */
     SolutionType GetNativeSolutionType() const { return MAG_POTENTIAL; }
 

@@ -79,6 +79,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       EXCEPTION("MagEdgePDE is just implemented for 3D setups!");
 
     multiHarmCoef_.reset(new CoefFunctionHarmBalance<Complex>());
+
+    // Be aware that the hysteresis via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
+    matModelCoef_.reset(new CoefFunctionMaterialModel<Complex>());
+    // init the nonlinear_field_intensity_coef_
+    nonlinear_field_intensity_coef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
   }
 
 
@@ -117,6 +122,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
 
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+    // Init material model for hysteretic transient analysis
+    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
+    {
+      matModelCoef_->Init(magFluxCoef, modelName_, dim_);
+    }
     // Create new harmonic balance coefficient function and register the regions and material
     UInt baseFreq=0, N, M, nFFT;
     if(analysistype_ == MULTIHARMONIC){
@@ -153,8 +163,64 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       feFunc->AddEntityList( actSDList );
 
 
+      
+      std::cout << "nonLinTypes.Find(PERMEABILITY): " << nonLinTypes.Find(PERMEABILITY) << "\n";
+      if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
+        if (modelName_ == "invEBHysteresisModel") { // use inverse energy-based Hysteresis model
+          // define needed variables
+          PtrCoefFct nu_nonlinear_eb = NULL;
+          PtrCoefFct field_intensity_eb = NULL;
+          BaseBDBInt * stiffInt = NULL;
+
+          // init. EB Material Model
+          std::map<std::string, double> ParameterMap;
+          std::map<std::string, std::string> StringParameterMap;
+          if(actMat->GetAnhystMagModel() == "analytic_anhysteresis"){
+            actMat->GetString(StringParameterMap["anhyst_type"], MAG_ANHYST_TYPE_INVEB);
+            if(actMat->GetAnhystFormula() == "tan"){
+              actMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
+              actMat->GetScalar(ParameterMap["Js"], MAG_JS_INVEB, Global::REAL);
+              actMat->GetScalar(ParameterMap["A"], MAG_A_INVEB, Global::REAL);
+              actMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
+              actMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
+            } else if (actMat->GetAnhystFormula() == "brauer") {
+              actMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
+              actMat->GetScalar(ParameterMap["p_0"], MAG_P0_INVEB, Global::REAL);
+              actMat->GetScalar(ParameterMap["p_1"], MAG_P1_INVEB, Global::REAL);
+              actMat->GetScalar(ParameterMap["p_2"], MAG_P2_INVEB, Global::REAL);
+            } else if (actMat->GetAnhystFormula() == "lookuptable") {
+              actMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
+              actMat->GetString(StringParameterMap["lookup_table_file"], MAG_LOOKUP_TABLE_FILE_INVEB);
+              actMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
+              actMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
+            }
+          }
+          ParameterMap["isMH"] = 0;
+          actMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
+          matModelCoef_->InitModel(ParameterMap,StringParameterMap, actSDList);
+          nu_nonlinear_eb = matModelCoef_;
+          nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoef_);
+
+          PtrCoefFct curCoef = NULL;
+          curCoef = materials_[actRegion]->GetTensorCoefFnc(MAG_RELUCTIVITY_TENSOR, FULL, Global::REAL);
+
+          // define integrators
+          if( dim_ == 3) { // 3D case
+              stiffInt = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nu_nonlinear_eb, 1.0, updatedGeo_);
+          } else {
+            EXCEPTION("For Edge elements, only 3D is possible!")
+          }
+          stiffInt->SetName("(dH/dB curl A, curl A',nonlinear case, nonlinear subregion)");
+          BiLinFormContext * stiffContext = new BiLinFormContext(stiffInt, STIFFNESS );
+          stiffContext->SetEntities( actSDList, actSDList );
+          stiffContext->SetFeFunctions( feFunc, feFunc );
+          assemble_->AddBiLinearForm( stiffContext );
+          bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, stiffInt));
+        } else {
+          EXCEPTION("Currently the only hysteresis model is: invEBHysteresisModel")
+        }
       // Switch, if region is linear / nonlinear
-      if ( ( nonLinTypes.Find(HYSTERESIS) == -1 ) && ( (nonLinTypes.GetSize() > 0) || (analysistype_ == MULTIHARMONIC) ) ) {
+      } else  if ( ( nonLinTypes.Find(HYSTERESIS) == -1 ) && ( (nonLinTypes.GetSize() > 0) || (analysistype_ == MULTIHARMONIC) ) ) {
 //        std::cout <<  "StiffnessMatrix - Case1: NonLin or Multiharmonic" << std::endl;
 
         // ================================
@@ -580,6 +646,82 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     //    if ( isMagnetoStrictCoupled_ == true ){
     //      magStrictFactor = -1.0;
     //    }
+
+    // ===============================================================
+    // ENERGY-BASED HYSTERETIC A-FORMULATION 3D (start) 
+    // ===============================================================
+    LinearForm * linearform_h_nl_curln = NULL;
+    LinearForm * linearform_h_lin_curln = NULL;
+    LinearForm * linearform_A_A = NULL;
+    RegionIdType actRegion;
+    // iterate over the region (or materials)
+    for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {
+        // set current region and material
+        actRegion = regions_[iRegion];
+        StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+
+        // Get current region name
+        std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+
+        // create new entity list
+        shared_ptr<ElemList> actSDList(new ElemList(ptGrid_));
+        actSDList->SetRegion(actRegion);
+
+        PtrCoefFct field_intensity_nl = NULL;
+        field_intensity_nl = matModelCoef_;
+        // ===============================================================================================
+        // NONLINEAR CASE AND NONLINEAR REGION: \int H(B) \curlN' (start)
+        // ===============================================================================================
+        if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
+          if (modelName_ == "invEBHysteresisModel") { // use inverse energy-based Hysteresis model
+            if( dim_ == 3 ) {
+              linearform_h_nl_curln = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3,Double>(), (1.0), GetCoefFct( MAG_FIELD_INTENSITY ), updatedGeo_);
+              linearform_A_A = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(), (0.0), GetCoefFct( MAG_POTENTIAL ), updatedGeo_);
+            } else {
+              EXCEPTION("For Edge elements, only 3D is possible!")
+            }
+          }
+          linearform_h_nl_curln->SetName("(H(B),curl N'): nonlinear problem; nonlinear subregion RHS");
+          linearform_h_nl_curln->SetSolDependent();
+          LinearFormContext *ctx = new LinearFormContext( linearform_h_nl_curln );
+          ctx->SetEntities( actSDList );
+          ctx->SetFeFunction(myFct);
+          assemble_->AddLinearForm(ctx);
+          linearform_A_A->SetName("(A, N'): nonlinear problem; linear subregion RHS");
+          linearform_A_A->SetSolDependent();
+          ctx = new LinearFormContext( linearform_A_A );
+          ctx->SetEntities( actSDList );
+          ctx->SetFeFunction(myFct);
+          assemble_->AddLinearForm(ctx);
+        } else {
+          if (modelName_ == "invEBHysteresisModel") { // NONLINEAR CASE BUT LINEAR REGION: \int H curlA'
+            if( dim_ == 3 ) {
+                linearform_h_lin_curln = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3,Double>(), (1.0), GetCoefFct( MAG_FIELD_INTENSITY ), updatedGeo_);
+                linearform_A_A = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(), (0.0), GetCoefFct( MAG_POTENTIAL ), updatedGeo_);
+            } else {
+                EXCEPTION("For Edge elements, only 3D is possible!")
+            }
+            linearform_h_lin_curln->SetName("(H,curl N'): nonlinear problem; linear subregion RHS");
+            linearform_h_lin_curln->SetSolDependent();
+            LinearFormContext *ctx = new LinearFormContext( linearform_h_lin_curln );
+            ctx->SetEntities( actSDList );
+            ctx->SetFeFunction(myFct);
+            assemble_->AddLinearForm(ctx);
+            linearform_A_A->SetName("(A, N'): nonlinear problem; linear subregion RHS");
+            linearform_A_A->SetSolDependent();
+            ctx = new LinearFormContext( linearform_A_A );
+            ctx->SetEntities( actSDList );
+            ctx->SetFeFunction(myFct);
+            assemble_->AddLinearForm(ctx);
+          }
+        }
+        // ===============================================================================================
+        // NONLINEAR CASE AND NONLINEAR REGION: \int H(B) \curlN' (end)
+        // ===============================================================================================
+    }
+    // ===============================================================
+    // ENERGY-BASED HYSTERETIC A-FORMULATION 3D (end) 
+    // ===============================================================
 
     // =================================
     //  Magnetization
@@ -1120,7 +1262,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     reluc->entryType = ResultInfo::SCALAR;
     DefineFieldResult( reluc_, reluc );
 
-    // === MAGNETIC FIELD INTENSITY ===
+    // =====================================================
+    // MAG_FIELD_INTENSITY (START)
+    // =====================================================
     shared_ptr<ResultInfo> magIntens(new ResultInfo);
     magIntens->resultType = MAG_FIELD_INTENSITY;
     magIntens->SetVectorDOFs(dim_, isaxi_);
@@ -1128,6 +1272,17 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     magIntens->unit = "A/m";
     magIntens->definedOn = ResultInfo::ELEMENT;
     magIntens->entryType = ResultInfo::VECTOR;
+    if (modelName_ == "invEBHysteresisModel") {
+      // The recipe how to actually evaluate H, is defined in FinalizePostProcResults()
+      shared_ptr<CoefFunctionMulti> hFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+      DefineFieldResult(hFunc, magIntens);     
+    } else {
+      DefineFieldResult( fieldIntensity_, magIntens );
+      availResults_.insert( magIntens );
+    }
+    // =====================================================
+    // MAG_FIELD_INTENSITY (END)
+    // =====================================================
 
     
     shared_ptr<ResultInfo> magJ ( new ResultInfo );
@@ -1149,9 +1304,6 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
     DefineFieldResult( magnetization_, magM );
     availResults_.insert( magM );
-
-    DefineFieldResult( fieldIntensity_, magIntens );
-    availResults_.insert( magIntens );
 
     GenerateMaxwellForce(vecComponents, bFunc, feFct);
 
@@ -1402,41 +1554,41 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       psiDotDens->AddRegion( coilRegsIt->first, integrand );
     }
 
-    // === CORE LOSS DENSITY ===
-    // This is a "density" per kg, not per m^3. That's why we cannot integrate it over
-    // the volume to get the core loss (see below).
+      // === CORE LOSS DENSITY ===
+      // This is a "density" per kg, not per m^3. That's why we cannot integrate it over
+      // the volume to get the core loss (see below).
 
-//TODO Core loss computation is disabled temporarily for harmonic analysis because otherwise we
-// get an error in AddRegion, due to the multiplication of a real- and a complex-valued
-// coefficient function. CHECK THIS !!!
-    if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
-shared_ptr<CoefFunctionMulti> cldCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
-BaseMaterial* actMat = NULL;
-regIt = regions_.Begin();
-for( ; regIt != regions_.End(); ++regIt ) {
-  RegionIdType actRegion = *regIt;
-  actMat = materials_[actRegion];
-  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( MAG_CORE_LOSS_PER_MASS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
-  cldCoef->AddRegion(actRegion, coreLossFct);
-}
+      //TODO Core loss computation is disabled temporarily for harmonic analysis because otherwise we
+      // get an error in AddRegion, due to the multiplication of a real- and a complex-valued
+      // coefficient function. CHECK THIS !!!
+          if( (analysistype_ != HARMONIC) && (analysistype_ != MULTIHARMONIC) ) {
+      shared_ptr<CoefFunctionMulti> cldCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
+      BaseMaterial* actMat = NULL;
+      regIt = regions_.Begin();
+      for( ; regIt != regions_.End(); ++regIt ) {
+        RegionIdType actRegion = *regIt;
+        actMat = materials_[actRegion];
+        PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( MAG_CORE_LOSS_PER_MASS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
+        cldCoef->AddRegion(actRegion, coreLossFct);
+      }
 
-// === CORE LOSS ===
-// The core loss per kg has to be multiplied by the density to get it per m^3.
-// Then we can integrate over the volume in order to get the core loss.
-shared_ptr<CoefFunctionMulti> clCoef =
-dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS]);
-actMat = NULL;
-regIt = regions_.Begin();
-for( ; regIt != regions_.End(); ++regIt ) {
-  RegionIdType actRegion = *regIt;
-  actMat = materials_[actRegion];
-  // core loss density in W/kg
-  PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( MAG_CORE_LOSS_PER_MASS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
-  // core loss density in W/m^3, which deserves to be called density
-  PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
-  PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
-  clCoef->AddRegion( actRegion, coreLossDensCoef );
-}
+      // === CORE LOSS ===
+      // The core loss per kg has to be multiplied by the density to get it per m^3.
+      // Then we can integrate over the volume in order to get the core loss.
+      shared_ptr<CoefFunctionMulti> clCoef =
+      dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS]);
+      actMat = NULL;
+      regIt = regions_.Begin();
+      for( ; regIt != regions_.End(); ++regIt ) {
+        RegionIdType actRegion = *regIt;
+        actMat = materials_[actRegion];
+        // core loss density in W/kg
+        PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( MAG_CORE_LOSS_PER_MASS, Global::REAL, GetCoefFct(MAG_FLUX_DENSITY) );
+        // core loss density in W/m^3, which deserves to be called density
+        PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
+        PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
+        clCoef->AddRegion( actRegion, coreLossDensCoef );
+      }
     }
 
 
@@ -1478,20 +1630,45 @@ for( ; regIt != regions_.End(); ++regIt ) {
     }
 
     if( analysistype_ == TRANSIENT){
-shared_ptr<CoefFunctionMulti> eddyLossCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
-shared_ptr<CoefFunctionMulti> eddyLossCoefN = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES]);
-regIt = regions_.Begin();
-for( ; regIt != regions_.End(); ++regIt ) {
-  RegionIdType actRegion = *regIt;
-  // J_total * E = J_total * dA/dt
-  PtrCoefFct partTmp = CoefFunction::Generate( mp_, part,
-  CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY), GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), CoefXpr::OP_MULT ) );
-  //PtrCoefFct partT = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, "t", partTmp, CoefXpr::OP_MULT ) );
+      shared_ptr<CoefFunctionMulti> eddyLossCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
+      shared_ptr<CoefFunctionMulti> eddyLossCoefN = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY_ON_NODES]);
+      regIt = regions_.Begin();
+      for( ; regIt != regions_.End(); ++regIt ) {
+        RegionIdType actRegion = *regIt;
+        // J_total * E = J_total * dA/dt
+        PtrCoefFct partTmp = CoefFunction::Generate( mp_, part,
+        CoefXprBinOp( mp_, GetCoefFct(ELEC_FIELD_INTENSITY), GetCoefFct(MAG_TOTAL_CURRENT_DENSITY), CoefXpr::OP_MULT ) );
+        //PtrCoefFct partT = CoefFunction::Generate( mp_, part, CoefXprBinOp( mp_, "t", partTmp, CoefXpr::OP_MULT ) );
 
-  eddyLossCoef->AddRegion(actRegion, partTmp);
-  eddyLossCoefN->AddRegion(actRegion, partTmp);
-}
+        eddyLossCoef->AddRegion(actRegion, partTmp);
+        eddyLossCoefN->AddRegion(actRegion, partTmp);
+      }
     }
+
+    // =====================================================
+    // MAG_FIELD_INTENSITY (START) 
+    // H = nu*B (linear case)
+    // H = H(B) (nonlinear/hysteresis case)
+    // =====================================================
+    if (modelName_ == "invEBHysteresisModel") {
+      shared_ptr<CoefFunctionMulti> hCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
+      StdVector<RegionIdType>::iterator regIt = regions_.Begin(); // check which kind of nonlinearity is specified in the different regions
+      regIt = regions_.Begin();
+      for (; regIt != regions_.End(); ++regIt) {
+        StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[*regIt]; // Just to find out which linear/nonlinear type is defined in this region
+        PtrCoefFct h; // to store field intensity h
+        if( nonLinTypes.Find(PERMEABILITY) != -1 ) { // hysteretic/nonlinear case
+          h = nonlinear_field_intensity_coef_;
+          hCoef->AddRegion(*regIt, h);
+        } else {
+          h = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FLUX_DENSITY ), reluc_, CoefXpr::OP_MULT));
+          hCoef->AddRegion(*regIt, h);
+        }
+      }
+    }
+    // =====================================================
+    // MAG_FIELD_INTENSITY (END) 
+    // =====================================================
 
   }
 
