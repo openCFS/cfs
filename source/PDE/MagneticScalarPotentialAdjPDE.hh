@@ -40,12 +40,7 @@ namespace CoupledField
     
     //! Destructor
     virtual ~MagneticScalarPotentialAdjPDE(){};
-    
-
-
-    //stores the flux for hystersis and nonlinear models
-    shared_ptr<CoefFunctionMulti> nlFluxCoef_;
-    
+       
     //! Initialize NonLinearities
     virtual void InitNonLin();
 
@@ -83,11 +78,23 @@ namespace CoupledField
     void InitTimeStepping();
 
     //! map containing the magnetic source field, e.g., from a previous sequence step
-    std::map<RegionIdType, PtrCoefFct> Hsmap_;
+    std::map<RegionIdType, PtrCoefFct> hPostproc_;
 
     //! Coefficient function, containing the overall permeability
     shared_ptr<CoefFunctionMulti> perm_;
    
+    //stores the flux for hystersis and nonlinear models
+    std::map<RegionIdType, shared_ptr<CoefFunctionMulti> >  nlFluxCoefm_;
+
+    //! map containing the magnetic field intensity of forward simulation, in case of design parameters
+    std::map<RegionIdType, PtrCoefFct> hPostprocParam_;
+
+    //! map containing the derivative of the anhysteresis curve
+    std::map<RegionIdType, PtrCoefFct> magAnhystDerivA_;
+    std::map<RegionIdType, PtrCoefFct> magAnhystDerivPs_;
+
+    //yes, when permeability depends on parameters
+    bool muDerivParam_;
   };
   
 #ifdef DOXYGEN_DETAILED_DOC

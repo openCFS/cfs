@@ -68,9 +68,6 @@ namespace CoupledField {
 
     anyRegionHasConductivity_ = false;
 
-    // Be aware that the hysteresis via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
-    matModelCoef_.reset(new CoefFunctionMaterialModel<Complex>());
-    // init the nonlinear_field_intensity_coef_
     nonlinear_field_intensity_coef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
   }
 
@@ -145,9 +142,12 @@ namespace CoupledField {
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
     // Init material model for hysteretic transient analysis
     if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
-    {
-      matModelCoef_->Init(magFluxCoef, modelName_, dim_);
+    {            
+      matModelCoefm_[actRegion].reset(new CoefFunctionMaterialModel<Complex>());
+      matModelCoefm_[actRegion]->Init(magFluxCoef, modelName_, dim_); 
+      //std::cout << "Init material: " << regionName << "  Size: " << matModelCoefm_.size() << std::endl;
     }
+
 
 	  double factor = 1.0;
 	  if ( isMagnetoStrictCoupled_ == true ){
@@ -233,9 +233,9 @@ namespace CoupledField {
           }
           ParameterMap["isMH"] = 0;
           actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
-          matModelCoef_->InitModel(ParameterMap,StringParameterMap, actSDList);
-          nu_nonlinear_eb = matModelCoef_;
-          nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoef_);
+          matModelCoefm_[actRegion]->InitModel(ParameterMap,StringParameterMap, actSDList);
+          nu_nonlinear_eb = matModelCoefm_[actRegion];
+          nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoefm_[actRegion]);
 
           // define integrators
           if( dim_ == 2) { // plane 2D case
@@ -740,7 +740,7 @@ namespace CoupledField {
         actSDList->SetRegion(actRegion);
 
         PtrCoefFct field_intensity_nl = NULL;
-        field_intensity_nl = matModelCoef_;
+        field_intensity_nl = matModelCoefm_[actRegion];
         // ===============================================================================================
         // NONLINEAR CASE AND NONLINEAR REGION: \int H(B) \curlN' (start)
         // ===============================================================================================

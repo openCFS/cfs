@@ -49,19 +49,17 @@ template<class TYPE> void CoefFunctionMaterialModel<TYPE>::Init( PtrCoefFct depC
   if (modelName_ == "JilesAthertonModel") {
 
     dimType_ = SCALAR;
-
-    static Jiles JilesModel;
-    matModel_ = &JilesModel;
+    //static ,means that all objects get the same matModel"!
+    //static Jiles JilesModel;
+    matModel_ = new Jiles();
   } else if(modelName_ == "EBHysteresisModel"){
     dimType_ = TENSOR;
-
-    static EBHysteresis EBHysteresisModel;
-    matModel_ = &EBHysteresisModel;
+    matModel_ = new EBHysteresis(); 
   } else if(modelName_ == "invEBHysteresisModel"){
     dimType_ = TENSOR;
-
-    static invEBHysteresis invEBHysteresisModel;
-    matModel_ = &invEBHysteresisModel;
+    //static ,means that all objects get the same matModel"!
+    //static invEBHysteresis invEBHysteresisModel;
+    matModel_ = new invEBHysteresis();
   } else {
 
     EXCEPTION("Model not implemented! ("<< modelName_<<")")

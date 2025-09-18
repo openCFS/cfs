@@ -1311,23 +1311,24 @@ namespace CoupledField {
       if ( domain_->GetRegion4Hyst() != NO_REGION_ID )
         ret = matModelCoefm_[domain_->GetRegion4Hyst()];
     }
-
-    // 1) look in fieldCoefs
-    if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
-      if( matCoefs_.find(type) == matCoefs_.end() ) {
-//      EXCEPTION( "No coefficient function for result type '"
-//          << SolutionTypeEnum.ToString( type ) << "' found");
+    else {
+      // 1) look in fieldCoefs
+      if ( fieldCoefs_.find(type) == fieldCoefs_.end() ) {
+        if( matCoefs_.find(type) == matCoefs_.end() ) {
+//        EXCEPTION( "No coefficient function for result type '"
+//            << SolutionTypeEnum.ToString( type ) << "' found");
+        } else {
+          ret = matCoefs_[type];
+       }
       } else {
-        ret = matCoefs_[type];
+        ret = fieldCoefs_[type];
       }
-    } else {
-      ret = fieldCoefs_[type];
     }
     if( !ret ) {
       LOG_DBG(singlepde) << pdename_ << ": \t=> NOT FOUND";
     } else {
       LOG_DBG(singlepde) << pdename_ << ": \t=> SUCCESS!";
-    }
+    }    
     return ret;
   }
   

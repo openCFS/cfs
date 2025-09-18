@@ -92,13 +92,16 @@ DEFINE_LOG(eb, "EBHysteresis")
     if (!file) {
         EXCEPTION("Error: Unable to open file: " << pinning_forces_weight_ << std::endl);
     }
+
+    kappa_file_.Clear();
+    omega_file_.Clear();
     while (file >> x >> y) {
         kappa_file_.push_back(x);
         omega_file_.push_back(y);
     }
     // Close the file
     file.close();
-    numS_ = kappa_file_.GetSize(); // at this poiont the numS is overwritten - change later
+    numS_ = kappa_file_.GetSize(); // at this point the numS is overwritten - change later
     isMH_ = ParameterMap["isMH"];
     if(isMH_ == 1.0)
     {
@@ -1206,6 +1209,7 @@ Matrix<Double> EBHysteresis::EvaluateLocalMuBFGS(StdVector<Double> dH, StdVector
     ret.Push_back(Px);
     ret.Push_back(Py);
     ret.Push_back(Pz);
+    //std::cout << "Name: " << pinning_forces_weight_ << std::endl;
     return ret;
   }
 

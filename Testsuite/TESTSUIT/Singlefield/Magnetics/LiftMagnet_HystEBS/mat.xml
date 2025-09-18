@@ -53,7 +53,7 @@
     </magnetic>
   </material>
   
-  <material name="iron_hyst_EB">
+  <material name="iron_hyst_EB1">
     <magnetic>
       <electricConductivity>
         <linear>
@@ -89,4 +89,40 @@
     </magnetic>
   </material>
   
+  <material name="iron_hyst_EB2">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+        <model>
+          <isotropic>
+            <EBHysteresisModel>
+              <Approx_type>approxVPM</Approx_type>
+              <Anhysteresis_model>
+                <analytic_anhysteresis>
+                  <atan>
+                    <Ps>1.23e6</Ps>
+                    <A>50</A>
+                  </atan>
+                </analytic_anhysteresis>
+              </Anhysteresis_model>
+              <Jacobian_type>BFGS</Jacobian_type>
+              <pinning_forces_weights_file>omega_kappa_hyst.txt</pinning_forces_weights_file>
+            </EBHysteresisModel>
+          </isotropic>
+        </model>
+      </permeability>
+    </magnetic>
+  </material>
+
 </cfsMaterialDataBase>
