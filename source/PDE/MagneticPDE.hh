@@ -133,6 +133,9 @@ namespace CoupledField
     //! density.
     std::set<shared_ptr<CoefFunctionFormBased> > mixedFormFunctor_;
     
+    //stores the flux for hystersis and nonlinear models
+    std::map<RegionIdType, shared_ptr<CoefFunctionMulti> >  nlFluxCoefm_;
+
   private:
     //! store velocity bilinear forms
     std::map<RegionIdType, BaseBDBInt*> velocityInts_;

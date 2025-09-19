@@ -165,7 +165,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
                     <nonLinear logging="yes" method="fixPoint" >
                                 <lineSearch type="minEnergy"/>
                                 <incStopCrit>100000</incStopCrit>
-                                <resStopCrit>1e-30</resStopCrit>
+                                <resStopCrit>1e-5</resStopCrit>
                                 <maxNumIters>30</maxNumIters>
                                 <abortOnMaxNumIters>yes</abortOnMaxNumIters>
                     </nonLinear>

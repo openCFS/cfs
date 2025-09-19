@@ -312,9 +312,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
             H_prev_[idx][i] = H[i];
         }
       }
-      if (idx == 1){
-        std::cout << "mu: " << 1.0/(nu[0][0]*mu0_) << "\n";
-      }
+      // if (idx == 1){
+      //   std::cout << "mu: " << 1.0/(nu[0][0]*mu0_) << "\n";
+      // }
 
       nu_[idx] = nu;    
       alreadyHasNu_[idx] = true;

@@ -140,14 +140,6 @@ namespace CoupledField {
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-    // Init material model for hysteretic transient analysis
-    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
-    {            
-      matModelCoefm_[actRegion].reset(new CoefFunctionMaterialModel<Complex>());
-      matModelCoefm_[actRegion]->Init(magFluxCoef, modelName_, dim_); 
-      //std::cout << "Init material: " << regionName << "  Size: " << matModelCoefm_.size() << std::endl;
-    }
-
 
 	  double factor = 1.0;
 	  if ( isMagnetoStrictCoupled_ == true ){
@@ -197,6 +189,14 @@ namespace CoupledField {
 
 		  //get possible nonlinearities defined in this region
 		  StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
+
+          // Init material model for hysteretic transient analysis
+      if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
+      {            
+        matModelCoefm_[actRegion].reset(new CoefFunctionMaterialModel<Complex>());
+        matModelCoefm_[actRegion]->Init(magFluxCoef, modelName_, dim_); 
+        //std::cout << "Init material: " << regionName << "  Size: " << matModelCoefm_.size() << std::endl;
+      }
 
 		  // ====================================================================
 		  //  NONLINEAR BH RELATION (NON-HYSTERETIC)
@@ -751,13 +751,14 @@ namespace CoupledField {
             } else {
               EXCEPTION("For Nodal elements, only 2D is possible!")
             }
+          
+            linearform_h_nl_curln->SetName("(H(B),curl N'): nonlinear problem; nonlinear subregion RHS");
+            linearform_h_nl_curln->SetSolDependent();
+            LinearFormContext *ctx = new LinearFormContext( linearform_h_nl_curln );
+            ctx->SetEntities( actSDList );
+            ctx->SetFeFunction(feFct);
+            assemble_->AddLinearForm(ctx);
           }
-          linearform_h_nl_curln->SetName("(H(B),curl N'): nonlinear problem; nonlinear subregion RHS");
-          linearform_h_nl_curln->SetSolDependent();
-          LinearFormContext *ctx = new LinearFormContext( linearform_h_nl_curln );
-          ctx->SetEntities( actSDList );
-          ctx->SetFeFunction(feFct);
-          assemble_->AddLinearForm(ctx);
         } else {
           if (modelName_ == "invEBHysteresisModel") { // NONLINEAR CASE BUT LINEAR REGION: \int B gradPhi'
             if( dim_ == 2 ) {
