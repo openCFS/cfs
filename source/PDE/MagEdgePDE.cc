@@ -80,9 +80,10 @@ namespace CoupledField
     multiHarmCoef_.reset(new CoefFunctionHarmBalance<Complex>());
 
     // Be aware that the hysteresis via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
-    matModelCoef_.reset(new CoefFunctionMaterialModel<Complex>());
+    matModelCoefm_.clear(); //matModelCoef_.reset(new CoefFunctionMaterialModel<Complex>());
+
     // init the nonlinear_field_intensity_coef_
-    nonlinear_field_intensity_coef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
+    //nonlinear_field_intensity_coef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
   }
 
   // *************
@@ -122,11 +123,6 @@ namespace CoupledField
     shared_ptr<FeSpace> feSpace = feFunc->GetFeSpace();
 
     PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-    // Init material model for hysteretic transient analysis
-    if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
-    {
-      matModelCoef_->Init(magFluxCoef, modelName_, dim_);
-    }
     // Create new harmonic balance coefficient function and register the regions and material
     UInt baseFreq = 0, N, M, nFFT;
     if (analysistype_ == MULTIHARMONIC)
@@ -152,6 +148,14 @@ namespace CoupledField
       if (useGradFields_)
       {
         feSpace->SetUseGradients(actRegion);
+      }
+
+          // Init material model for hysteretic transient analysis
+      if (((analysistype_ == STATIC) || (analysistype_ == TRANSIENT)) && nonLin_ && (modelName_ != "nonlinearCurve"))
+      {
+        //matModelCoef_->Init(magFluxCoef, modelName_, dim_);
+        matModelCoefm_[actRegion].reset(new CoefFunctionMaterialModel<Complex>());
+        matModelCoefm_[actRegion]->Init(magFluxCoef, modelName_, dim_); 
       }
 
       // get possible nonlinearities defined in this region
@@ -206,9 +210,12 @@ namespace CoupledField
           }
           ParameterMap["isMH"] = 0;
           actMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
-          matModelCoef_->InitModel(ParameterMap, StringParameterMap, actSDList);
-          nu_nonlinear_eb = matModelCoef_;
-          nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoef_);
+          matModelCoefm_[actRegion]->InitModel(ParameterMap, StringParameterMap, actSDList);
+          nu_nonlinear_eb = matModelCoefm_[actRegion]; //matModelCoef_;
+
+          nlFieldIntensitym_[actRegion].reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true)); 
+          nlFieldIntensitym_[actRegion]->AddRegion(actRegion, matModelCoefm_[actRegion]);
+          //nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoefm_[actRegion]);
 
           PtrCoefFct curCoef = NULL;
           curCoef = materials_[actRegion]->GetTensorCoefFnc(MAG_RELUCTIVITY_TENSOR, FULL, Global::REAL);
@@ -742,7 +749,7 @@ namespace CoupledField
       actSDList->SetRegion(actRegion);
 
       PtrCoefFct field_intensity_nl = NULL;
-      field_intensity_nl = matModelCoef_;
+      field_intensity_nl = matModelCoefm_[actRegion]; //matModelCoef_;
       // ===============================================================================================
       // NONLINEAR CASE AND NONLINEAR REGION: \int H(B) \curlN' (start)
       // ===============================================================================================
@@ -752,7 +759,7 @@ namespace CoupledField
         { // use inverse energy-based Hysteresis model
           if (dim_ == 3)
           {
-            linearform_h_nl_curln = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), (1.0), GetCoefFct(MAG_FIELD_INTENSITY), updatedGeo_);
+            linearform_h_nl_curln = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), (-1.0), GetCoefFct(MAG_FIELD_INTENSITY), updatedGeo_);
             linearform_A_A = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3, 1, Double>(), (0.0), GetCoefFct(MAG_POTENTIAL), updatedGeo_);
           }
           else
@@ -780,7 +787,7 @@ namespace CoupledField
         { // NONLINEAR CASE BUT LINEAR REGION: \int H curlA'
           if (dim_ == 3)
           {
-            linearform_h_lin_curln = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), (1.0), GetCoefFct(MAG_FIELD_INTENSITY), updatedGeo_);
+            linearform_h_lin_curln = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), (-1.0), GetCoefFct(MAG_FIELD_INTENSITY), updatedGeo_);
             linearform_A_A = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3, 1, Double>(), (0.0), GetCoefFct(MAG_POTENTIAL), updatedGeo_);
           }
           else
@@ -1830,7 +1837,7 @@ namespace CoupledField
         PtrCoefFct h;                                                   // to store field intensity h
         if (nonLinTypes.Find(PERMEABILITY) != -1)
         { // hysteretic/nonlinear case
-          h = nonlinear_field_intensity_coef_;
+          h = nlFieldIntensitym_[*regIt]; //nonlinear_field_intensity_coef_;
           hCoef->AddRegion(*regIt, h);
         }
         else
