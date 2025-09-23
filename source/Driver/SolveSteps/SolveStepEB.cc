@@ -24,6 +24,11 @@ namespace CoupledField
   {
     matModelCoefm_ = apde.GetModelCoefm();
   }
+  SolveStepEB::SolveStepEB(StdPDE &apde, UInt is_pseudo_time_stepping) : StdSolveStep(apde)
+  {
+    matModelCoefm_ = apde.GetModelCoefm();
+    pseudo_time_stepping_ = is_pseudo_time_stepping;
+  }
 
   SolveStepEB::~SolveStepEB()
   {
@@ -113,7 +118,7 @@ namespace CoupledField
         algsys_->GetRHSVal( actRHS );
         if(iterationCounter == 1){
           residualErr0 = actRHS.NormL2();
-          std::cout <<"residualErr0: " << residualErr0 << std::endl;
+          //std::cout <<"residualErr0: " << residualErr0 << std::endl;
           if ( residualErr0 < 1.0 )
             residualErr0 = 1.0;
         }
@@ -195,7 +200,6 @@ namespace CoupledField
         algsys_->GetRHSVal( actRHS );
         residualErr = actRHS.NormL2();
         residualErr = std::abs(residualErr)/residualErr0;
-        //residualErr = std::abs(residualErr-residualErr0)/residualErr0;
 
         LOG_DBG2(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
         LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();

@@ -24,6 +24,7 @@ namespace CoupledField
 
     //! Constructor
     SolveStepEB(StdPDE& apde);
+    SolveStepEB(StdPDE& apde, UInt is_pseudo_time_stepping);
 
     //! Destructor
     virtual ~SolveStepEB();
@@ -45,6 +46,10 @@ namespace CoupledField
     double GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& actSol, Double eta);
 
     double BrentMethod(SBM_Vector& solIncrement, SBM_Vector& actSol, Double a, Double b);
+
+  protected:
+
+    UInt pseudo_time_stepping_ = 0;
 
   private:
 

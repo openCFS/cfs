@@ -150,54 +150,56 @@ DEFINE_LOG(eb, "EBHysteresis")
   Double EBHysteresis::ComputeMaterialParameter(Vector<Double> HVec, const Integer ElemNum)
   {
     // This method gives the rho_art for the h-form.
-    Double penaltyParameter = 1e-6; // default value for n
+    Double beta = 1; // default value for n
     // SVD approach
-    Matrix<Double> A = ComputeTensorialMaterialParameter(HVec, ElemNum);
-    Matrix<Double> AtA(dim_, dim_);
-    for (UInt idx = 0; idx < 3; idx++)
-    {
-      for (UInt jdx = 0; jdx < 3; jdx++)
-      {
-        // Compute the (i, j)-th entry of AtA
-        for (UInt kdx = 0; kdx < 3; ++kdx)
-        {
-          AtA[idx][jdx] += A[kdx][idx] * A[kdx][jdx];
-        }
+    Matrix<Double> dBdH = ComputeTensorialMaterialParameter(HVec, ElemNum);
+    double frobeniusNormSq;
+    double determinant;
+    double determinantSq; 
+    double discriminant;
+    double maxEigenvalueATA;
+    if (dim_ == 2) {
+      frobeniusNormSq = dBdH[0][0]*dBdH[0][0] + dBdH[0][1]*dBdH[0][1] + dBdH[1][0]*dBdH[1][0] + dBdH[1][1]*dBdH[1][1];
+      determinant = dBdH[0][0]*dBdH[1][1]*dBdH[1][1] - dBdH[0][1]*dBdH[0][1]*dBdH[1][0]*dBdH[1][0];
+      determinantSq = determinant * determinant;
+      discriminant = std::sqrt(std::pow(frobeniusNormSq, 2) - 4 * determinantSq);
+      maxEigenvalueATA = (frobeniusNormSq + discriminant) / 2.0;
+      return std::sqrt(maxEigenvalueATA);
+    } else {
+      std::vector<std::vector<double>> ATA(3, std::vector<double>(3));
+      for (int i = 0; i < 3; ++i) {
+          for (int j = 0; j < 3; ++j) {
+              ATA[i][j] = dBdH[0][i] * dBdH[0][j] + 
+                          dBdH[1][i] * dBdH[1][j] + 
+                          dBdH[2][i] * dBdH[2][j];
+          }
       }
-    }
-    Double a,b,c;
-    // Compute the coefficients of the characteristic polynomial directly
-    a = 1.0;
-    b = -1.0 * (A[0][0] + A[1][1] + A[2][2]);
-    c = A[0][0] * (A[1][1] * A[2][2] - A[2][1] * A[1][2]) +
-        A[1][1] * A[2][2] * A[0][0] +
-        A[2][2] * A[0][0] * A[1][1] -
-        A[0][1] * A[1][0] * A[2][2] -
-        A[1][2] * A[2][1] * A[0][0] -
-        A[2][0] * A[0][2] * A[1][1];
+      // Power Iteration to find the largest eigenvalue of ATA
+      std::vector<double> v = {1.0, 1.0, 1.0}; // Initial non-zero vector
+      double maxEigenvalue = 0.0;
+      int num_iterations = 20;
+      for (int i = 0; i < num_iterations; ++i) {
+          // Multiply: new_v = ATA * v
+          std::vector<double> new_v(3, 0.0);
+          for(int row = 0; row < 3; ++row) {
+              for(int col = 0; col < 3; ++col) {
+                  new_v[row] += ATA[row][col] * v[col];
+              }
+          }
 
-    Double discriminant = b * b - 4 * a * c;
-    Double lambda1 = (-b + std::sqrt(discriminant)) / (2 * a);
-    Double lambda2 = (-b - std::sqrt(discriminant)) / (2 * a);
-    Double lambda3 = (A[0][0] + A[1][1] + A[2][2]) - lambda1 - lambda2;
+          // Find the norm (magnitude) of the new vector. This value converges to the max eigenvalue.
+          maxEigenvalue = std::sqrt(new_v[0] * new_v[0] + new_v[1] * new_v[1] + new_v[2] * new_v[2]);
 
-    Double svd1 = std::sqrt(std::abs(lambda1)); 
-    Double svd2 = std::sqrt(std::abs(lambda2)); 
-    Double svd3 = std::sqrt(std::abs(lambda3));
-
-    if (svd1 >= svd2 && svd1 >= svd3) 
-    {
-      return svd1*std::pow(10,penaltyParameter/2);
-    } 
-    else if (svd2 >= svd1 && svd2 >= svd3) 
-    {
-      return svd2*std::pow(10,penaltyParameter/2);
-    } 
-    else 
-    {
-      return svd3*std::pow(10,penaltyParameter/2);
+          // Normalize the vector for the next iteration
+          v[0] = new_v[0] / maxEigenvalue;
+          v[1] = new_v[1] / maxEigenvalue;
+          v[2] = new_v[2] / maxEigenvalue;
+      }
+      return std::sqrt(maxEigenvalue);
     }
   }
+
+    
 
   Vector<Double> EBHysteresis::GetFluxDensity(Vector<Double> HVec, const Integer ElemNum) 
   {
@@ -385,7 +387,7 @@ DEFINE_LOG(eb, "EBHysteresis")
 
   /*
   =========================================================================================
-      Methods regarding the inverse schem
+      Methods regarding the inverse scheme
   =========================================================================================
   */
   Vector<Double> EBHysteresis::ComputeMaterialParamaterDerivative(Vector<Double> HVec, UInt idx){

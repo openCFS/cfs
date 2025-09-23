@@ -1,0 +1,747 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="finished" infoWriteCounter="68" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="12.54s" wall="12.541" cpu="12.5353" calls="1"/>
+    <!-- memory in MB-->
+    <memory final="276" peak="279"/>
+  </summary>
+  <header id="">
+    <environment started="2025-Sep-23 13:15:43" host="L13" estimatedEnd="2025-Sep-23 13:15:56" remainingTime="0" timePerStep="0.1976"/>
+    <progOpts problem="H2d_hyst_atan_multidomain" parameterFile="/home/lukas/01_Arbeit/projects/CFS_Testsuites/testsuites/H2d_hyst_atan_multidomain/H2d_hyst_atan_multidomain.xml" schemaPath="/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
+      <cfs version="25.07" name="Just Jacobians" build="RELEASE" git_commit="1a15b31a1a79f23ad6f6b21181ac293fcffbadef-modified" git_branch="Kaltenbacher_LocalMag" compiled="Sep 22 2025" exe="/home/lukas/Devel/CFS_BIN/Kaltenbacher_LocalMag/bin/cfs"/>
+      <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
+    </progOpts>
+    <domain>
+      <grids>
+        <timer wall-clock="0.005s" wall="0.005" cpu="0.005484" calls="1"/>
+        <grid gridId="default" dimensions="2" elements="282" nodes="142"/>
+      </grids>
+      <coordinateSystems>
+        <system name="default"/>
+      </coordinateSystems>
+      <regions>
+        <region name="S_1" id="0" type="volume" regular="no" hom="yes" nodes="20" elems="25" isQuadratic="no"/>
+        <region name="S_2" id="1" type="volume" regular="no" hom="yes" nodes="61" elems="84" isQuadratic="no"/>
+        <region name="S_3" id="2" type="volume" regular="no" hom="yes" nodes="59" elems="60" isQuadratic="no"/>
+        <region name="S_4" id="3" type="volume" regular="no" hom="yes" nodes="73" elems="73" isQuadratic="no"/>
+        <region name="L_outer" id="4" type="surface" regular="no" hom="yes" nodes="40" elems="40" isQuadratic="no"/>
+      </regions>
+      <namedNodes>
+        <nodes name="N_gauge" count="1" coord="(-0.00349468,-0.01042)"/>
+      </namedNodes>
+      <namedElements/>
+      <globalMathParser dt="0.1" f="0" iterationCounter="3" step="63" t="6.3" t0="0"/>
+    </domain>
+    <results>
+      <timer wall-clock="0.114s" wall="0.114" cpu="0.192826" calls="1134"/>
+    </results>
+  </header>
+  <sequenceStep sequence="1">
+    <transient>
+      <header unit="s"/>
+      <init_transient>
+        <timer wall-clock="0.015s" wall="0.015" cpu="0.015136" calls="1"/>
+      </init_transient>
+    </transient>
+    <PDE>
+      <magneticHEdge>
+        <header>
+          <region name="S_4" damping="none"/>
+          <region name="S_1" damping="none"/>
+          <region name="S_2" damping="none"/>
+          <region name="S_3" damping="none"/>
+          <integrators>
+            <matrixBiLinearForms>
+              <bilinearForm integrator="(mu N,N): IdentityIntegrator" type="BBInt" complex="no" region="S_4">
+                <coef type="CoefFunctionConst" value="1.256637061e-06"/>
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="(p curlN,CurlN): CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="S_4">
+                <coef type="CoefFunctionConst" value="3.9738353049399492e-06"/>
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="(p_nl curlN,CurlN): CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="S_2">
+                <coef type="CoefFunctionMulti" value="CoefFunctionMulti defined on:
+regionId 1, value:
+"/>
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="(db/dh N,N): IdentityIntegrator" type="BDBInt" complex="no" coef="CoefFunctionMaterialModel" region="S_3">
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="(p_nl curlN,CurlN): CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="S_3">
+                <coef type="CoefFunctionMulti" value="CoefFunctionMulti defined on:
+regionId 2, value:
+"/>
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="(db/dh N,N): IdentityIntegrator" type="BDBInt" complex="no" coef="CoefFunctionMaterialModel" region="S_2">
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="yes" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="(p curlN,CurlN): CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="S_1">
+                <coef type="CoefFunctionConst" value="3.9738353049399492e-06"/>
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="(mu N,N): IdentityIntegrator" type="BBInt" complex="no" region="S_1">
+                <coef type="CoefFunctionConst" value="1.256637061e-06"/>
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+            </matrixBiLinearForms>
+            <rhsLinearForms>
+              <linearForm integrator="(p j,curlN): CoilIntegrator">
+                <entities name="S_1" size="25" region="S_1"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="(p curlh,curlN): residual">
+                <entities name="S_1" size="25" region="S_1"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="(b(h)_linear,N): residual">
+                <entities name="S_1" size="25" region="S_1"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="(p_nl curlh,curlN): residual">
+                <entities name="S_2" size="84" region="S_2"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="(b(h),N): residual">
+                <entities name="S_2" size="84" region="S_2"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="yes"/>
+              </linearForm>
+              <linearForm integrator="(p_nl curlh,curlN): residual">
+                <entities name="S_3" size="60" region="S_3"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="(b(h),N): residual">
+                <entities name="S_3" size="60" region="S_3"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="yes"/>
+              </linearForm>
+              <linearForm integrator="(p curlh,curlN): residual">
+                <entities name="S_4" size="73" region="S_4"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="no"/>
+              </linearForm>
+              <linearForm integrator="(b(h)_linear,N): residual">
+                <entities name="S_4" size="73" region="S_4"/>
+                <row pde="magneticHEdge" result="magFieldIntensity" solutionDependent="no"/>
+              </linearForm>
+            </rhsLinearForms>
+          </integrators>
+        </header>
+        <material name="air">
+          <regionList>
+            <region name="S_1"/>
+            <region name="S_4"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256637e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256637e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256637e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.25664e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.957747e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.957747e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.957747e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(795775,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(0,0)"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256637e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256637e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256637e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.25664e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.957747e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.957747e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.957747e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(795775,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(0,0)"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <material name="iron_hyst1">
+          <regionList>
+            <region name="S_2"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256600e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256600e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256600e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.2566e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.957982e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.957982e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.957982e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(795798,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(0,0)"/>
+          <property name="mag_Ps_EB" value="1230000"/>
+          <property name="mag_A_EB" value="38"/>
+          <property name="mag_jacobian_method_EB" value="4"/>
+          <property name="mag_approx_type" value="2"/>
+          <property name="mag_anhyst_type_EB" value="analytic_anhysteresis"/>
+          <property name="mag_anhyst_formula_EB" value="atan"/>
+          <property name="mag_pinning_forces_weights_EB" value="omega_kappa_hyst1.txt"/>
+          <property name="mag_weights_file_path_EB" value="/home/lukas/01_Arbeit/projects/CFS_Testsuites/testsuites/H2d_hyst_atan_multidomain"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <material name="iron_hyst2">
+          <regionList>
+            <region name="S_3"/>
+          </regionList>
+          <property name="Magnetic_Permeability_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 1.256600e-06  0.000000e+00  0.000000e+00
+                 0.000000e+00  1.256600e-06  0.000000e+00
+                 0.000000e+00  0.000000e+00  1.256600e-06
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Permeability_Scalar" value="(1.2566e-06,0)"/>
+          <property name="Magnetic_Reluctivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 7.957982e+05  0.000000e+00  0.000000e+00
+                 0.000000e+00  7.957982e+05  0.000000e+00
+                 0.000000e+00  0.000000e+00  7.957982e+05
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Reluctivity_Scalar" value="(795798,0)"/>
+          <property name="Magnetic_Conductivity_Tensor">
+            <tensor dim1="3" dim2="3">
+              <real>
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+                 0.000000e+00  0.000000e+00  0.000000e+00
+              </real>
+            </tensor>
+          </property>
+          <property name="Magnetic_Conductivity_Scalar" value="(0,0)"/>
+          <property name="mag_Ps_EB" value="1500000"/>
+          <property name="mag_A_EB" value="100"/>
+          <property name="mag_jacobian_method_EB" value="4"/>
+          <property name="mag_approx_type" value="2"/>
+          <property name="mag_anhyst_type_EB" value="analytic_anhysteresis"/>
+          <property name="mag_anhyst_formula_EB" value="atan"/>
+          <property name="mag_pinning_forces_weights_EB" value="omega_kappa_hyst2.txt"/>
+          <property name="mag_weights_file_path_EB" value="/home/lukas/01_Arbeit/projects/CFS_Testsuites/testsuites/H2d_hyst_atan_multidomain"/>
+          <property name="prescribedMagnetization" value="0"/>
+          <property name="Density" value="0"/>
+        </material>
+        <feSpaces>
+          <magFieldIntensity>
+            <hCurlHierarchical>
+              <regionList>
+                <S_1/>
+                <default order="0"/>
+                <S_2/>
+                <S_3/>
+                <S_4/>
+              </regionList>
+              <virtualNodes numVirtualNodes="383">
+                <INTERIOR numEntitiies="242" numVirtualNodes="0"/>
+                <FACE numEntitiies="242" numVirtualNodes="0"/>
+                <EDGE numEntitiies="383" numVirtualNodes="383"/>
+                <VERTEX numEntitiies="142" numVirtualNodes="0"/>
+              </virtualNodes>
+            </hCurlHierarchical>
+          </magFieldIntensity>
+        </feSpaces>
+        <feFunctions>
+          <magFieldIntensity/>
+          <homDirichletBC/>
+          <inhomDirichletBC/>
+        </feFunctions>
+      </magneticHEdge>
+    </PDE>
+    <OLAS>
+      <magneticHEdge>
+        <setup idbcHandling="elimination" staticCondensation="no">
+          <feFunctions totalNumEqns="383" totalNumFreeEqns="383" totalNumDirichlet="0">
+            <function id="0" name="magFieldIntensity" numEqns="383" lastFreeEqn="383" numDirichlet="0">
+              <usedInBlocks>
+                <block id="0"/>
+              </usedInBlocks>
+            </function>
+          </feFunctions>
+          <sbmBlocks>
+            <block id="0" size="383" lastFreeIndex="383"/>
+          </sbmBlocks>
+        </setup>
+        <solver>
+          <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
+            <summary>
+              <setup>
+                <timer label="setup_pardiso" wall-clock="0.001s" wall="0.001" cpu="0.045721" calls="216"/>
+              </setup>
+              <solve>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.009799" calls="216"/>
+              </solve>
+            </summary>
+            <process>
+              <call number="1">
+                <symbfact cpu="0.000759" wall="0" peakMem="267" permanentMem="267"/>
+                <numfact cpu="0.000257" wall="0" peakMem="38"/>
+              </call>
+            </process>
+          </pardiso>
+        </solver>
+        <precond>
+          <idPrecond>
+            <summary>
+              <precond_Id_setup>
+                <timer wall-clock="0s" wall="0" cpu="0.000201" calls="216"/>
+              </precond_Id_setup>
+              <precond_Id_run>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
+              </precond_Id_run>
+            </summary>
+          </idPrecond>
+        </precond>
+        <process>
+          <solver solutionIsOkay="yes"/>
+        </process>
+      </magneticHEdge>
+      <graph_setup>
+        <timer wall-clock="0.001s" wall="0.001" cpu="0.00081" calls="1" sub="true"/>
+      </graph_setup>
+    </OLAS>
+    <analysis>
+      <summary>
+        <assemble>
+          <timer wall-clock="8.334s" wall="8.334" cpu="12.091" calls="6264"/>
+        </assemble>
+      </summary>
+    </analysis>
+    <nonlinearConvergence>
+      <timer wall-clock="0s" wall="0" cpu="0" calls="0" sub="true"/>
+      <setup method="fixPoint" lineSearch="minEnergy" maxIter="40" incStopCrit="1e+05" residualStopCrit="0.0001" logging="yes"/>
+      <solStep value="1" analysis="step:1_time:0.1">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0094236" incrementalErr="1" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00075083" incrementalErr="0.12488" eta_linesearch="0.86147"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="9.9076e-06" incrementalErr="0.0026117" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="2" analysis="step:2_time:0.2">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0099679" incrementalErr="0.48362" eta_linesearch="0.93561"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0011447" incrementalErr="0.060069" eta_linesearch="0.94146"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="2.6725e-05" incrementalErr="0.0026896" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="3" analysis="step:3_time:0.3">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.018038" incrementalErr="0.33339" eta_linesearch="0.86634"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00077113" incrementalErr="0.051833" eta_linesearch="0.98634"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.4965e-05" incrementalErr="0.0014356" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="4" analysis="step:4_time:0.4">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.032144" incrementalErr="0.26035" eta_linesearch="0.7961"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00093214" incrementalErr="0.046209" eta_linesearch="0.9922"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.6176e-05" incrementalErr="0.0011623" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="5" analysis="step:5_time:0.5">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.042199" incrementalErr="0.21574" eta_linesearch="0.76683"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00061916" incrementalErr="0.042017" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="5.1837e-05" incrementalErr="0.0012845" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="6" analysis="step:6_time:0.6">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.059793" incrementalErr="0.18561" eta_linesearch="0.72001"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00066704" incrementalErr="0.038197" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.8625e-05" incrementalErr="0.0011783" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="7" analysis="step:7_time:0.7">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.067522" incrementalErr="0.16188" eta_linesearch="0.71708"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00049135" incrementalErr="0.03623" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.3299e-05" incrementalErr="0.0010521" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="8" analysis="step:8_time:0.8">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.078428" incrementalErr="0.14244" eta_linesearch="0.70732"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00068331" incrementalErr="0.033786" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="5.6638e-05" incrementalErr="0.00090047" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="9" analysis="step:9_time:0.9">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.080104" incrementalErr="0.12488" eta_linesearch="0.70928"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00050847" incrementalErr="0.032058" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.0863e-05" incrementalErr="0.0009101" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="10" analysis="step:10_time:1">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.079409" incrementalErr="0.10853" eta_linesearch="0.72879"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00056941" incrementalErr="0.030984" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="5.4752e-05" incrementalErr="0.00088413" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="11" analysis="step:11_time:1.1">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.073373" incrementalErr="0.092783" eta_linesearch="0.75318"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00055436" incrementalErr="0.029732" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="5.194e-05" incrementalErr="0.00078507" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="12" analysis="step:12_time:1.2">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.062999" incrementalErr="0.077202" eta_linesearch="0.78635"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00048863" incrementalErr="0.028934" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="5.3898e-05" incrementalErr="0.00076271" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="13" analysis="step:13_time:1.3">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.050805" incrementalErr="0.061794" eta_linesearch="0.8283"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00050066" incrementalErr="0.02744" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="7.5994e-05" incrementalErr="0.00081007" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="14" analysis="step:14_time:1.4">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.034276" incrementalErr="0.046537" eta_linesearch="0.88683"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00047994" incrementalErr="0.025681" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="6.5543e-05" incrementalErr="0.00064092" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="15" analysis="step:15_time:1.5">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.016876" incrementalErr="0.031732" eta_linesearch="0.94537"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00046597" incrementalErr="0.022591" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="8.8734e-05" incrementalErr="0.00066277" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="16" analysis="step:16_time:1.6">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0044896" incrementalErr="0.019902" eta_linesearch="0.98634"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0006889" incrementalErr="0.016048" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.00026574" incrementalErr="0.0022794" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="0.00022658" incrementalErr="0.001708" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="5" residualErr="0.00020247" incrementalErr="0.0027856" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="6" residualErr="0.00018836" incrementalErr="0.0026454" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="7" residualErr="0.00010258" incrementalErr="0.0015376" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="8" residualErr="5.1491e-05" incrementalErr="0.00092217" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="17" analysis="step:17_time:1.7">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0044192" incrementalErr="0.015959" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0016037" incrementalErr="0.023274" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.002365" incrementalErr="0.017092" eta_linesearch="0.99805"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="0.0017207" incrementalErr="0.017163" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="5" residualErr="0.00070354" incrementalErr="0.0084822" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="6" residualErr="0.0001858" incrementalErr="0.0031889" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="7" residualErr="0.00011241" incrementalErr="0.0017757" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="8" residualErr="0.00010848" incrementalErr="0.0019049" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="9" residualErr="4.8539e-05" incrementalErr="0.00081637" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="18" analysis="step:18_time:1.8">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0071421" incrementalErr="0.046795" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.001317" incrementalErr="0.032959" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.00020567" incrementalErr="0.006482" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="0.00010506" incrementalErr="0.0046009" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="5" residualErr="9.0525e-05" incrementalErr="0.0026801" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="19" analysis="step:19_time:1.9">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0090427" incrementalErr="0.062468" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00067023" incrementalErr="0.037011" eta_linesearch="0.99902"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="7.4032e-05" incrementalErr="0.0016206" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="20" analysis="step:20_time:2">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0083854" incrementalErr="0.083794" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0024255" incrementalErr="0.033886" eta_linesearch="0.98049"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.8894e-05" incrementalErr="0.003469" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="21" analysis="step:21_time:2.1">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0056816" incrementalErr="0.12241" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0017744" incrementalErr="0.020619" eta_linesearch="0.98342"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.00010449" incrementalErr="0.0038421" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="4.4432e-05" incrementalErr="0.0010743" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="22" analysis="step:22_time:2.2">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.011958" incrementalErr="0.16855" eta_linesearch="0.95122"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0015349" incrementalErr="0.034913" eta_linesearch="0.98244"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="7.4843e-05" incrementalErr="0.002911" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="23" analysis="step:23_time:2.3">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.024616" incrementalErr="0.2159" eta_linesearch="0.88586"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0035413" incrementalErr="0.050433" eta_linesearch="0.96195"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="8.3055e-05" incrementalErr="0.0048752" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="24" analysis="step:24_time:2.4">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.027912" incrementalErr="0.27038" eta_linesearch="0.83513"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0019963" incrementalErr="0.06215" eta_linesearch="0.98244"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.3842e-05" incrementalErr="0.0026877" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="25" analysis="step:25_time:2.5">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.031644" incrementalErr="0.35141" eta_linesearch="0.80976"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0039362" incrementalErr="0.084563" eta_linesearch="0.96976"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="7.0936e-05" incrementalErr="0.0047415" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="26" analysis="step:26_time:2.6">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.032914" incrementalErr="0.48133" eta_linesearch="0.76196"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0038622" incrementalErr="0.11453" eta_linesearch="0.97073"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.5169e-05" incrementalErr="0.0053531" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="27" analysis="step:27_time:2.7">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.033122" incrementalErr="0.74285" eta_linesearch="0.72976"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0022364" incrementalErr="0.17057" eta_linesearch="0.98244"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.1093e-05" incrementalErr="0.0065805" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="28" analysis="step:28_time:2.8">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.030229" incrementalErr="1.5493" eta_linesearch="0.71318"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0011444" incrementalErr="0.38065" eta_linesearch="0.99122"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="2.4115e-05" incrementalErr="0.010726" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="29" analysis="step:29_time:2.9">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.026496" incrementalErr="3.9828" eta_linesearch="0.71123"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.001461" incrementalErr="1.215" eta_linesearch="0.98537"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="2.8849e-05" incrementalErr="0.041318" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="30" analysis="step:30_time:3">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.027867" incrementalErr="1.1807" eta_linesearch="0.68489"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0017247" incrementalErr="0.24488" eta_linesearch="0.97561"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.1972e-05" incrementalErr="0.0091356" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="31" analysis="step:31_time:3.1">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.030249" incrementalErr="0.66344" eta_linesearch="0.65952"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00046901" incrementalErr="0.12802" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.124e-05" incrementalErr="0.004025" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="32" analysis="step:32_time:3.2">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.034797" incrementalErr="0.46111" eta_linesearch="0.6605"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00045588" incrementalErr="0.089536" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.1687e-05" incrementalErr="0.0028861" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="33" analysis="step:33_time:3.3">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.040998" incrementalErr="0.35377" eta_linesearch="0.66147"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00052735" incrementalErr="0.069719" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.9139e-05" incrementalErr="0.0025074" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="34" analysis="step:34_time:3.4">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.050904" incrementalErr="0.28857" eta_linesearch="0.65172"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00057102" incrementalErr="0.057419" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.0044e-05" incrementalErr="0.0018902" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="35" analysis="step:35_time:3.5">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.061722" incrementalErr="0.24425" eta_linesearch="0.64586"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00067233" incrementalErr="0.04918" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.3354e-05" incrementalErr="0.0015788" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="36" analysis="step:36_time:3.6">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.071206" incrementalErr="0.21159" eta_linesearch="0.64294"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00058818" incrementalErr="0.043277" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.8699e-05" incrementalErr="0.0013761" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="37" analysis="step:37_time:3.7">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.079289" incrementalErr="0.18588" eta_linesearch="0.64489"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00056234" incrementalErr="0.039116" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.1351e-05" incrementalErr="0.0013665" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="38" analysis="step:38_time:3.8">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.085994" incrementalErr="0.16439" eta_linesearch="0.65659"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00059458" incrementalErr="0.035976" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.3814e-05" incrementalErr="0.0012745" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="39" analysis="step:39_time:3.9">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.089305" incrementalErr="0.14563" eta_linesearch="0.66928"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00060642" incrementalErr="0.034093" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.8291e-05" incrementalErr="0.0011364" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="40" analysis="step:40_time:4">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.088517" incrementalErr="0.12852" eta_linesearch="0.68586"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00059175" incrementalErr="0.032538" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.8085e-05" incrementalErr="0.0010651" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="41" analysis="step:41_time:4.1">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.084078" incrementalErr="0.11225" eta_linesearch="0.70635"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00057213" incrementalErr="0.030704" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.4348e-05" incrementalErr="0.0010092" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="42" analysis="step:42_time:4.2">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.078258" incrementalErr="0.096581" eta_linesearch="0.72976"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00051292" incrementalErr="0.029421" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.2832e-05" incrementalErr="0.00087426" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="43" analysis="step:43_time:4.3">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.070803" incrementalErr="0.081227" eta_linesearch="0.76391"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00053973" incrementalErr="0.028346" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.4761e-05" incrementalErr="0.0007844" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="44" analysis="step:44_time:4.4">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.057675" incrementalErr="0.065831" eta_linesearch="0.80683"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00049885" incrementalErr="0.026652" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.9347e-05" incrementalErr="0.00074188" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="45" analysis="step:45_time:4.5">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.040737" incrementalErr="0.050493" eta_linesearch="0.86049"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00047438" incrementalErr="0.024693" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="8.1612e-05" incrementalErr="0.0010428" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="46" analysis="step:46_time:4.6">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.023465" incrementalErr="0.035562" eta_linesearch="0.92"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00045366" incrementalErr="0.022023" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.00011471" incrementalErr="0.00091162" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="9.5155e-05" incrementalErr="0.0014012" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="47" analysis="step:47_time:4.7">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0086474" incrementalErr="0.022173" eta_linesearch="0.97073"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00048877" incrementalErr="0.017748" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.0001658" incrementalErr="0.0014881" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="0.00017993" incrementalErr="0.0017174" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="5" residualErr="0.00013422" incrementalErr="0.0022794" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="6" residualErr="6.6525e-05" incrementalErr="0.00094653" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="48" analysis="step:48_time:4.8">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0023859" incrementalErr="0.015645" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0035931" incrementalErr="0.0233" eta_linesearch="0.9961"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.0011403" incrementalErr="0.016262" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="0.0004662" incrementalErr="0.0078326" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="5" residualErr="0.00025889" incrementalErr="0.0072846" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="6" residualErr="0.00011983" incrementalErr="0.0023065" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="7" residualErr="0.00012718" incrementalErr="0.0026893" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="8" residualErr="0.00010393" incrementalErr="0.0015815" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="9" residualErr="5.941e-05" incrementalErr="0.0013656" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="49" analysis="step:49_time:4.9">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0066072" incrementalErr="0.044252" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0013631" incrementalErr="0.028887" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.00024783" incrementalErr="0.011886" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="0.00011466" incrementalErr="0.0047108" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="5" residualErr="5.5074e-05" incrementalErr="0.0023893" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="50" analysis="step:50_time:5">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0085015" incrementalErr="0.056921" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00064434" incrementalErr="0.033103" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="9.8018e-05" incrementalErr="0.0020183" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="51" analysis="step:51_time:5.1">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0085951" incrementalErr="0.07152" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00090705" incrementalErr="0.03453" eta_linesearch="0.99512"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.7398e-05" incrementalErr="0.0015658" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="52" analysis="step:52_time:5.2">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0061435" incrementalErr="0.1051" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0012415" incrementalErr="0.022949" eta_linesearch="0.98927"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.9349e-05" incrementalErr="0.0021967" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="53" analysis="step:53_time:5.3">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.0086208" incrementalErr="0.15152" eta_linesearch="0.98244"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0012706" incrementalErr="0.027459" eta_linesearch="0.98537"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="9.9569e-05" incrementalErr="0.0038047" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="54" analysis="step:54_time:5.4">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.017741" incrementalErr="0.1965" eta_linesearch="0.92195"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0038109" incrementalErr="0.04467" eta_linesearch="0.95707"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="0.00010729" incrementalErr="0.0059999" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="4" residualErr="4.0157e-05" incrementalErr="0.0011506" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="55" analysis="step:55_time:5.5">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.026241" incrementalErr="0.24677" eta_linesearch="0.84488"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0019582" incrementalErr="0.054142" eta_linesearch="0.98244"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="5.1865e-05" incrementalErr="0.0028685" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="56" analysis="step:56_time:5.6">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.029256" incrementalErr="0.31688" eta_linesearch="0.8283"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0035361" incrementalErr="0.07426" eta_linesearch="0.97073"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="6.9659e-05" incrementalErr="0.0045003" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="57" analysis="step:57_time:5.7">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.034186" incrementalErr="0.42358" eta_linesearch="0.78342"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.003102" incrementalErr="0.09735" eta_linesearch="0.97756"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="4.1301e-05" incrementalErr="0.0047314" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="58" analysis="step:58_time:5.8">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.033644" incrementalErr="0.61691" eta_linesearch="0.74342"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.002795" incrementalErr="0.13817" eta_linesearch="0.97854"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.5075e-05" incrementalErr="0.0057311" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="59" analysis="step:59_time:5.9">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.033887" incrementalErr="1.0987" eta_linesearch="0.72098"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0015252" incrementalErr="0.24717" eta_linesearch="0.98829"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="2.6975e-05" incrementalErr="0.0077432" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="60" analysis="step:60_time:6">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.027695" incrementalErr="3.6764" eta_linesearch="0.7161"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00087674" incrementalErr="1.4143" eta_linesearch="0.9922"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="2.2654e-05" incrementalErr="0.043331" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="61" analysis="step:61_time:6.1">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.027762" incrementalErr="1.7218" eta_linesearch="0.70245"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.0022307" incrementalErr="0.36928" eta_linesearch="0.97171"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="3.1289e-05" incrementalErr="0.012883" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="62" analysis="step:62_time:6.2">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.030409" incrementalErr="0.81278" eta_linesearch="0.66733"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00063005" incrementalErr="0.15608" eta_linesearch="0.99512"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="2.9251e-05" incrementalErr="0.0051173" eta_linesearch="1"/>
+      </solStep>
+      <solStep value="63" analysis="step:63_time:6.3">
+        <iteration pdeName="magneticHEdge" nr="1" residualErr="0.033945" incrementalErr="0.53082" eta_linesearch="0.66245"/>
+        <iteration pdeName="magneticHEdge" nr="2" residualErr="0.00044938" incrementalErr="0.10103" eta_linesearch="1"/>
+        <iteration pdeName="magneticHEdge" nr="3" residualErr="2.9703e-05" incrementalErr="0.003116" eta_linesearch="1"/>
+      </solStep>
+    </nonlinearConvergence>
+  </sequenceStep>
+</cfsInfo>

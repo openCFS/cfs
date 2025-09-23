@@ -133,7 +133,6 @@ namespace CoupledField
           {            
             matModelCoefm_[actRegion].reset(new CoefFunctionMaterialModel<Complex>());
             matModelCoefm_[actRegion]->Init(magFieldCoef, modelName_, dim_); 
-
           }
 
           //TODO kroppert: I do not like that, we should pass the actSDMat instead of these ParameterMap-stuff
@@ -172,7 +171,6 @@ namespace CoupledField
             actSDMat->GetScalar(ParameterMap["Ps"], MAG_MSM_PS, Global::REAL);
             //ParameterMap["anhyst_type"] = 2; // MSM
             //actSDMat->GetScalar(ParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB, Global::REAL);
-            
           }
           actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_EB, Global::REAL);
           actSDMat->GetScalar(ParameterMap["approx_type"], MAG_APPROX_TYPE, Global::REAL);
