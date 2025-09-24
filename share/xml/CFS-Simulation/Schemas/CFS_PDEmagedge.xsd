@@ -58,6 +58,26 @@
             </xsd:annotation>
           </xsd:element>
 
+          <xsd:element name="isPseudoTimeStepping" type="xsd:float" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                Sets the flag if pseudo or real time stepping should be applied
+                pseudo (1): simulate more time steps, but NO time derivatives are involved (static case)
+                real (0): simulate more time steps, but time derivatives are involved (transient case)
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+          <!-- set delta for real time stepping -->
+          <xsd:element name="delta_t" type="xsd:double" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                sets time discretization value for real time stepping
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+
+
           <xsd:element name="thinElements" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:attribute name="maxAspectRatio" type="xsd:float" default="10"/>

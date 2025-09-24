@@ -1,0 +1,6 @@
+#1:iterationCounter 	2:residualErr 	3:incrementalErr 	4:etaLineSearch
+1	0.596549	1	1
+2	0.214099	0.196817	1
+3	0.140559	0.110626	1
+4	0.10862	0.064837	1
+5	0.0886638	0.0469794	1

@@ -134,6 +134,8 @@ namespace CoupledField
 
     //! Use gradient fields in shape functions (Edge elements of second kind)
     bool useGradFields_;
+
+    double dt_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

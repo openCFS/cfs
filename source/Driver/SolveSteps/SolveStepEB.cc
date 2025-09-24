@@ -23,6 +23,7 @@ namespace CoupledField
   SolveStepEB::SolveStepEB(StdPDE &apde) : StdSolveStep(apde)
   {
     matModelCoefm_ = apde.GetModelCoefm();
+    pseudo_time_stepping_ = 1;
   }
   SolveStepEB::SolveStepEB(StdPDE &apde, UInt is_pseudo_time_stepping) : StdSolveStep(apde)
   {
@@ -62,6 +63,8 @@ namespace CoupledField
     SBM_Vector stageSol(BaseMatrix::DOUBLE);
     SBM_Vector stageSol_temp(BaseMatrix::DOUBLE);
     SBM_Vector actRHS(BaseMatrix::DOUBLE);
+    SBM_Vector Linform_nm1(BaseMatrix::DOUBLE);
+    SBM_Vector Linform_nm1_temp(BaseMatrix::DOUBLE);
     
     //obtain the number of stages
     UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
@@ -101,144 +104,273 @@ namespace CoupledField
       // ===================================================================================
       std::cout << "iteration" << "     " << "residual 2-norm" << "     " <<"step 2-norm" << "           " <<"    eta    " << std::endl;
       std::cout << "---------" << "     " << "---------------" << "     " <<"-----------" << "           " <<"-----------" << std::endl;
-      while (true){
-        iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
-        stageSol_temp = stageSol;
+      // ###############################################################
+      // PSEUDO TIME STEPPING (START)
+      // ###############################################################
+      if (pseudo_time_stepping_ == 1) {
+        while (true){
+          iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
+          stageSol_temp = stageSol;
 
-        LOG_DBG2(solvestepeb) << "=============== Start iteration " << iterationCounter;
-        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG2(solvestepeb) << "=============== Start iteration " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
-        // set up RHS
-        algsys_->InitRHS();
-        assemble_->AssembleLinRHS();
-        assemble_->AssembleNonLinRHS();
-        algsys_->GetRHSVal( actRHS );
-        if(iterationCounter == 1){
-          residualErr0 = actRHS.NormL2();
-          //std::cout <<"residualErr0: " << residualErr0 << std::endl;
-          if ( residualErr0 < 1.0 )
-            residualErr0 = 1.0;
-        }
-
-
-        LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
-        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          // set up RHS
+          algsys_->InitRHS();
+          assemble_->AssembleLinRHS();
+          assemble_->AssembleNonLinRHS();
+          algsys_->GetRHSVal( actRHS );
+          if(iterationCounter == 1){
+            residualErr0 = actRHS.NormL2();
+            //std::cout <<"residualErr0: " << residualErr0 << std::endl;
+            if ( residualErr0 < 1.0 )
+              residualErr0 = 1.0;
+          }
 
 
-        // set up matrix
-        assemble_->AssembleMatrices(isNewton);
-        matrix_factor_.clear();
-        algsys_->InitMatrix(SYSTEM);
-        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
-          FeFctIdType fctId = fncIt->second->GetFctId();
-          fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_[fctId]);
-          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
-        }
-
-        LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup SYS matrix " << iterationCounter;
-        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
 
-        // solve system
-        PDE_.SetBCs();
-        algsys_->BuildInDirichlet();
-        algsys_->SetupPrecond();
-        algsys_->SetupSolver();
-        bool setIDBC = true;
-        algsys_->Solve(setIDBC);
-        algsys_->GetSolutionVal(solInc, setIDBC );
+          // set up matrix
+          assemble_->AssembleMatrices(isNewton);
+          matrix_factor_.clear();
+          algsys_->InitMatrix(SYSTEM);
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+            fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+            algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+          }
 
-        LOG_DBG2(solvestepeb) << "\n\t\t =============== after SOLVE " << iterationCounter;
-        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup SYS matrix " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
 
-        // apply line search
-        Double etaLineSearch = 1.0;
-        if ( lineSearch_ == "none"){
-          stageSol.Add(etaLineSearch, solInc);
-        }else if ( lineSearch_ == "minEnergy"){
-          etaLineSearch = ExactLineSearch(solInc, stageSol);
-          stageSol_temp.Add(etaLineSearch, solInc);
-          stageSol = stageSol_temp;
-        }else if ( lineSearch_ == "Armijo"){
-          etaLineSearch = LineSearchArmijo(solInc, stageSol);
-          stageSol_temp.Add(etaLineSearch, solInc);
-          stageSol = stageSol_temp;
-        }else if ( lineSearch_ == "Inexact"){
-          etaLineSearch = InexactLineSearch(solInc, stageSol);
-          stageSol_temp.Add(etaLineSearch, solInc);
-          stageSol = stageSol_temp;
-        }
 
-        LOG_DBG2(solvestepeb) << "\n\t\t =============== after LINESEARCH " << iterationCounter;
-        LOG_DBG2(solvestepeb) << "\n\t\t etaLineSearch " << etaLineSearch;
-        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
-      
-        std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
-        for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
-            it->second->AllowUpdates(true);  
-        } 
+          // solve system
+          PDE_.SetBCs();
+          algsys_->BuildInDirichlet();
+          algsys_->SetupPrecond();
+          algsys_->SetupSolver();
+          bool setIDBC = true;
+          algsys_->Solve(setIDBC);
+          algsys_->GetSolutionVal(solInc, setIDBC );
+
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== after SOLVE " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+
+          // apply line search
+          Double etaLineSearch = 1.0;
+          if ( lineSearch_ == "none"){
+            stageSol.Add(etaLineSearch, solInc);
+          }else if ( lineSearch_ == "minEnergy"){
+            etaLineSearch = ExactLineSearch(solInc, stageSol);
+            stageSol_temp.Add(etaLineSearch, solInc);
+            stageSol = stageSol_temp;
+          }else if ( lineSearch_ == "Armijo"){
+            etaLineSearch = LineSearchArmijo(solInc, stageSol);
+            stageSol_temp.Add(etaLineSearch, solInc);
+            stageSol = stageSol_temp;
+          }else if ( lineSearch_ == "Inexact"){
+            etaLineSearch = InexactLineSearch(solInc, stageSol);
+            stageSol_temp.Add(etaLineSearch, solInc);
+            stageSol = stageSol_temp;
+          }
+
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== after LINESEARCH " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t etaLineSearch " << etaLineSearch;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
         
-        // residual
-        algsys_->InitRHS();
-        assemble_->AssembleLinRHS();
-        assemble_->AssembleNonLinRHS();
-        algsys_->GetRHSVal( actRHS );
-        residualErr = actRHS.NormL2();
-        residualErr = std::abs(residualErr)/residualErr0;
-
-        LOG_DBG2(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
-        LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
-        LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
-
-        
-        // calculate incremental error ========================================
-        solIncrL2Norm = solInc.NormL2();
-        stageSolL2Norm  = stageSol.NormL2();
-        if ( stageSolL2Norm )
-          incrementalErr = solIncrL2Norm/stageSolL2Norm;
-        else {
-          incrementalErr = solIncrL2Norm;
-        }
-        std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr << "       " << etaLineSearch <<"\n" << std::scientific;
-        OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
-
-        // boolean variable, holds condition if another iteration step is necessary
-        performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-        if ( performOneMoreStep == 0){
-          // now that we have reached our convergence threshold for this timestep, let's save the states in our model
           std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
           for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
-            it->second->UpdateHistoryValues(); 
-            it->second->AllowUpdates(false);
+              it->second->AllowUpdates(true);  
           } 
-          break;
-        }
-        
-        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
-          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
-                  << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
-                  << "' at iteration '" << iterationCounter 
-                  << "'.\n ==> incremental error: " << incrementalErr
-                  << "\n ==> residual error: " << residualErr);
+          
+          // residual
+          algsys_->InitRHS();
+          assemble_->AssembleLinRHS();
+          assemble_->AssembleNonLinRHS();
+          algsys_->GetRHSVal( actRHS );
+          residualErr = actRHS.NormL2();
+          residualErr = std::abs(residualErr)/residualErr0;
+
+          LOG_DBG2(solvestepeb) << "\n\t\t =============== after RESIDUAL " << iterationCounter;
+          LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t stageSol_temp:" << stageSol_temp.ToString();
+          LOG_DBG2(solvestepeb) << "\n\t\t actRHS:" << actRHS.ToString();
+
+          
+          // calculate incremental error ========================================
+          solIncrL2Norm = solInc.NormL2();
+          stageSolL2Norm  = stageSol.NormL2();
+          if ( stageSolL2Norm )
+            incrementalErr = solIncrL2Norm/stageSolL2Norm;
+          else {
+            incrementalErr = solIncrL2Norm;
+          }
+          std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr << "       " << etaLineSearch <<"\n" << std::scientific;
+          OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+
+          // boolean variable, holds condition if another iteration step is necessary
+          performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+          if ( performOneMoreStep == 0){
+            // now that we have reached our convergence threshold for this timestep, let's save the states in our model
+            std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
+            for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
+              it->second->UpdateHistoryValues(); 
+              it->second->AllowUpdates(false);
+            } 
+            break;
+          }
+          
+          if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+            EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                    << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                    << "' at iteration '" << iterationCounter 
+                    << "'.\n ==> incremental error: " << incrementalErr
+                    << "\n ==> residual error: " << residualErr);
+          }
         }
       }
+      // ###############################################################
+      // PSEUDO TIME STEPPING (END)
+      // ###############################################################
+      // ###############################################################
+      // REAL TIME STEPPING (START)
+      // ###############################################################
+      if (pseudo_time_stepping_ == 0) {
+        while (true){
+          iterationCounter++; mParser_->SetValue(MathParser::GLOB_HANDLER, "iterationCounter", iterationCounter);
+          stageSol_temp = stageSol;
+
+          // set up RHS in two steps:
+          // 1) if Newton iteration counter is 1, then assemble the linear forms having quantities from the last time step (declared LINEAR)
+          // 2) assemble all linear forms that only contain values from the last NEWTON iteration (declared NONLINEAR)
+          if (iterationCounter == 1) {
+            algsys_->InitRHS();
+            assemble_->AssembleLinRHS();
+            algsys_->GetRHSVal(Linform_nm1);
+            assemble_->AssembleNonLinRHS();
+          } else {
+            algsys_->InitRHS(Linform_nm1);
+            assemble_->AssembleNonLinRHS();
+          }
+          if(iterationCounter == 1){
+            residualErr0 = actRHS.NormL2();
+            if ( residualErr0 < 1.0 )
+              residualErr0 = 1.0;
+          }
+
+          // set up matrix
+          assemble_->AssembleMatrices(isNewton);
+          matrix_factor_.clear();
+          algsys_->InitMatrix(SYSTEM);
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+            fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+            algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+          }
+
+          // solve system
+          PDE_.SetBCs();
+          algsys_->BuildInDirichlet();
+          algsys_->SetupPrecond();
+          algsys_->SetupSolver();
+          bool setIDBC = true;
+          algsys_->Solve(setIDBC);
+          algsys_->GetSolutionVal(solInc, setIDBC );
+
+          // apply line search
+          Double etaLineSearch = 1.0;
+          if ( lineSearch_ == "none"){
+            stageSol.Add(etaLineSearch, solInc);
+          }else if ( lineSearch_ == "minEnergy"){
+            Linform_nm1_temp = Linform_nm1;
+            etaLineSearch = ExactLineSearch(solInc, stageSol, Linform_nm1_temp);
+            stageSol_temp.Add(etaLineSearch, solInc);
+            stageSol = stageSol_temp;
+          }else if ( lineSearch_ == "Armijo"){
+            etaLineSearch = LineSearchArmijo(solInc, stageSol);
+            stageSol_temp.Add(etaLineSearch, solInc);
+            stageSol = stageSol_temp;
+          }else if ( lineSearch_ == "Inexact"){
+            etaLineSearch = InexactLineSearch(solInc, stageSol);
+            stageSol_temp.Add(etaLineSearch, solInc);
+            stageSol = stageSol_temp;
+          }
+
+          std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
+          for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
+              it->second->AllowUpdates(true);  
+          } 
+
+          // residual
+          algsys_->InitRHS(Linform_nm1);
+          //assemble_->AssembleLinRHS();
+          assemble_->AssembleNonLinRHS();
+          algsys_->GetRHSVal( actRHS );
+          residualErr = actRHS.NormL2();
+          residualErr = std::abs(residualErr)/residualErr0;
+
+          // calculate incremental error ========================================
+          solIncrL2Norm = solInc.NormL2();
+          stageSolL2Norm  = stageSol.NormL2();
+          if ( stageSolL2Norm )
+            incrementalErr = solIncrL2Norm/stageSolL2Norm;
+          else {
+            incrementalErr = solIncrL2Norm;
+          }
+          std::cout <<"    " << iterationCounter << "           " << residualErr << "       " << incrementalErr << "       " << etaLineSearch <<"\n" << std::scientific;
+          OutputNonLinIterInfo(pdename_, PDE_.GetSolveStep()->GetActStep(),iterationCounter, residualErr, incrementalErr, etaLineSearch, PDE_.IsIterCoupled() ? couplingIter_ : -1);
+
+          // boolean variable, holds condition if another iteration step is necessary
+          performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+          if ( performOneMoreStep == 0){
+            // now that we have reached our convergence threshold for this timestep, let's save the states in our model
+            std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
+            for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
+              it->second->AllowUpdates(true);  
+              assemble_->AssembleLinRHS();
+              it->second->UpdateHistoryValues(); 
+              it->second->AllowUpdates(false);
+            } 
+            break;
+          }
+          
+          if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+            EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                    << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                    << "' at iteration '" << iterationCounter 
+                    << "'.\n ==> incremental error: " << incrementalErr
+                    << "\n ==> residual error: " << residualErr);
+          }
+
+
+
+
+
+
+          
+        }
+      }
+      // ###############################################################
+      // REAL TIME STEPPING (END)
+      // ###############################################################
     } //stages
     
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
@@ -280,8 +412,17 @@ namespace CoupledField
     gamma = BrentMethod(solIncrement, stageSol, bottom_interval, top_interval);
     return gamma;
   }
+  double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol, SBM_Vector& Linform_nm1){
 
-  double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& stageSol,Double eta){
+    Double bottom_interval = 0.0 + 1e-6;
+    Double top_interval = 1; 
+    Double gamma = 0;
+    
+    gamma = BrentMethod(solIncrement, stageSol, bottom_interval, top_interval, Linform_nm1);
+    return gamma;
+  }
+
+  double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double eta){
     
     SBM_Vector residual_vector(BaseMatrix::DOUBLE);
     SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
@@ -294,7 +435,21 @@ namespace CoupledField
     algsys_->GetRHSVal( residual_vector );
     residual_vector.Inner(solIncrement,EnergyDerivative);
     stageSol = stageSol_temp;
+    return EnergyDerivative;
+  }
+  double SolveStepEB::GetLineSearchDerivativeFunctionValue(SBM_Vector& solIncrement, SBM_Vector& stageSol,Double eta, SBM_Vector& Linform_nm1){
+    
+    SBM_Vector residual_vector(BaseMatrix::DOUBLE);
+    SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
+    double EnergyDerivative = 0.0;
 
+
+    stageSol.Add(eta,solIncrement);
+    algsys_->InitRHS(Linform_nm1);
+    assemble_->AssembleNonLinRHS();
+    algsys_->GetRHSVal( residual_vector );
+    residual_vector.Inner(solIncrement,EnergyDerivative);
+    stageSol = stageSol_temp;
     return EnergyDerivative;
   }
 
@@ -461,6 +616,95 @@ namespace CoupledField
         Fa = Fb;
         b = b + new_step;
         Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b);
+        if (( Fb > 0.0 && Fc > 0.0 ) || ( Fb < 0.0 && Fc < 0.0 )){
+            c = a;
+            Fc = Fa;        
+        }
+    }
+    return b;
+  }
+  double SolveStepEB::BrentMethod(SBM_Vector& solIncrement, SBM_Vector& stageSol, Double a, Double b, SBM_Vector& Linform_nm1){
+
+    double Fa, Fb, Fc;
+    double c;
+    double tolerance = 1e-3;
+    double max_iter = 1e3;
+    double iter_counter = 0;
+    double prev_step = 0;
+    double tol_act = 0;
+    double eps = std::numeric_limits<Double>::min();
+    double new_step = 0;
+    double cb = 0;
+    double t1 = 0;
+    double t2 = 0;
+    double p = 0;
+    double q = 0;
+
+    SBM_Vector stageSol_temp(BaseMatrix::DOUBLE); stageSol_temp = stageSol;
+
+    Fa = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, a, Linform_nm1);
+    Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b, Linform_nm1);
+    c = a; 
+    Fc = Fa;
+
+    while(iter_counter < max_iter){
+        iter_counter  = iter_counter + 1;
+
+        prev_step = b - a;
+
+        if (std::abs(Fc) < std::abs(Fb)){ // swap for b to be best approximation
+            a = b ;
+            b = c ;
+            c = a ;
+            Fa = Fb ;
+            Fb = Fc ;
+            Fc = Fa ;
+        }
+
+        tol_act =  2*eps*std::abs(b) + tolerance/2 ;
+        new_step = (c-b)/2 ;
+
+        if ((std::abs(new_step) <= tol_act) || (std::abs(Fb) < eps)){
+            return b;
+        }
+        if ((std::abs(prev_step) >= tol_act) && ((std::abs(Fa-Fb))<eps)){
+            cb = c - b;
+            if (std::abs(a-c) < eps){ // linear interpolation, only two points available
+                t1 = Fb/Fa;
+                p = cb*t1;
+                q = 1.0 - t1;
+            }else { // three points, do quadratic inverse  interpolation
+                a = Fa/Fc;
+                t1 = Fb/Fc;
+                t2 = Fb/Fa;
+                p = t2*( cb*q*(q-t1) - (b-a)*(t1-1.0) );
+                q = (q-1.0)*(t1-1.0)*(t2-1.0);
+            }
+
+            if (p > 0){
+                q = -q;
+            }else {
+                p = -p;
+            }
+
+            if ((p < ( 0.75*cb*q-std::abs(tol_act*q)/2.0 )) && (p < abs(prev_step*q/2.0))){
+                new_step = p/q;
+            }
+        }
+
+        // step must be at least as large as tolerance
+        if (std::abs(new_step) < tol_act){
+            if (new_step > 0){
+                new_step = tol_act ;
+            } else{
+                new_step = -tol_act ;
+            }
+        }
+
+        a = b;
+        Fa = Fb;
+        b = b + new_step;
+        Fb = GetLineSearchDerivativeFunctionValue(solIncrement, stageSol, b, Linform_nm1);
         if (( Fb > 0.0 && Fc > 0.0 ) || ( Fb < 0.0 && Fc < 0.0 )){
             c = a;
             Fc = Fa;        

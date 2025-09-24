@@ -374,15 +374,15 @@ DEFINE_LOG(eb, "EBHysteresis")
   void EBHysteresis::UpdateStates()
   {
 
-#pragma omp critical
-    {
-      HxS_n_ = HxS_n_tmp_;
-      HyS_n_ = HyS_n_tmp_;
-      HzS_n_ = HzS_n_tmp_;
-      MxS_n_ = MxS_n_tmp_;
-      MyS_n_ = MyS_n_tmp_;
-      MzS_n_ = MzS_n_tmp_;
-    }
+    #pragma omp critical
+        {
+          HxS_n_ = HxS_n_tmp_;
+          HyS_n_ = HyS_n_tmp_;
+          HzS_n_ = HzS_n_tmp_;
+          MxS_n_ = MxS_n_tmp_;
+          MyS_n_ = MyS_n_tmp_;
+          MzS_n_ = MzS_n_tmp_;
+        }
   }
 
   /*

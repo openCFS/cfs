@@ -106,9 +106,9 @@ AddBOperator( BaseBOperator* bOp,
   // check if we need to skip the integrator assignment if e.g. the requested integrator name differs
   if( integratorName_.empty() || integratorName_==integratorName ) {
     // check for compatibility of dimension
-    if( bOp->GetDimDMat() != res_->dofNames.GetSize() ) {
+    /* if( bOp->GetDimDMat() != res_->dofNames.GetSize() ) {
       EXCEPTION( "Implementation error: All B-operators must have the same vector size");
-    }
+    } */
     
     // check if region has already an integrator assigned
     if( bOps_.find(region) != bOps_.end() ) {

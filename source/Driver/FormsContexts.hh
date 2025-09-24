@@ -274,6 +274,15 @@ namespace CoupledField
     //! solution) is present for the wrapped linearform
     bool IsNonLin();
 
+    //! Set type_of_linear_form
+    //  0 ... default value, automatic decision if linear/nonlinear
+    //  1 ... set to linear type
+    //  2 ... set to nonlinear type
+    void SetTypeLinearForm( UInt type_of_linear_form ){
+      typeLinearForm_ = type_of_linear_form;
+    }
+
+
     // ======================================================
     //  MAPPING METHODS
     // ======================================================
@@ -331,6 +340,8 @@ namespace CoupledField
 
     //! Pointer to FeFunction
     weak_ptr<BaseFeFunction> feFct_;
+
+    UInt typeLinearForm_;
 
   }; // class LinearFormContext
   

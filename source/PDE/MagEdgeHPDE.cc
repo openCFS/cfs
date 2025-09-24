@@ -238,29 +238,52 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             coilContext->SetFeFunction( feFunc );
             assemble_->AddLinearForm( coilContext );
           }
-          /* else if (is_pseudo_time_stepping == 0){   
-            // get resistivity in coil regions via conductivity
-            PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-            PtrCoefFct sigma = NULL;
-            PtrCoefFct rho = NULL;
+          else if (is_pseudo_time_stepping == 0){   
+            if(nonLin_ && (modelName_ == "EBHysteresisModel")) { // GENERAL NONLINEAR/HYSTERESIS CASE
+              // get resistivity in coil regions via conductivity
+              PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+              PtrCoefFct sigma = NULL;
+              PtrCoefFct rho = NULL;
 
-            constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-            sigma = actSDMat->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR, Global::REAL);
-            rho = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, sigma, CoefXpr::OP_DIV ) );
+              constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+              sigma = actSDMat->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR, Global::REAL);
+              rho = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, sigma, CoefXpr::OP_DIV ) );
 
-            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
-            PtrCoefFct jVec_coefFct = CoefFunction::Generate(mp_, part, jVec);
-            CoefXprVecScalOp rho_times_jVec = CoefXprVecScalOp(mp_, jVec_coefFct, rho, CoefXpr::OP_MULT);
-            jFct[0] = CoefFunction::Generate(mp_, part, rho_times_jVec);
-            coilCurrentDens_[actRegion] = jFct[0];
-            curInt = GetCurrentDensityInt( 1.0, jFct[0] );
-            curInt->SetName("(rho j,curlN): CoilIntegrator");
-            LinearFormContext * coilContext = new LinearFormContext( curInt );
-            coilContext->SetEntities( actSDList );
-            coilContext->SetFeFunction( feFunc );
-            coilContext->SetTypeLinearForm(2); // declared as nonlinear
-            assemble_->AddLinearForm( coilContext );
-          } */
+              CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
+              PtrCoefFct jVec_coefFct = CoefFunction::Generate(mp_, part, jVec);
+              CoefXprVecScalOp rho_times_jVec = CoefXprVecScalOp(mp_, jVec_coefFct, rho, CoefXpr::OP_MULT);
+              jFct[0] = CoefFunction::Generate(mp_, part, rho_times_jVec);
+              coilCurrentDens_[actRegion] = jFct[0];
+              curInt = GetCurrentDensityInt( 1.0, jFct[0] );
+              curInt->SetName("(rho j,curlN): CoilIntegrator");
+              LinearFormContext * coilContext = new LinearFormContext( curInt );
+              coilContext->SetEntities( actSDList );
+              coilContext->SetFeFunction( feFunc );
+              coilContext->SetTypeLinearForm(2); // declared as nonlinear
+              assemble_->AddLinearForm( coilContext );
+            } else { // TOTALLY LINEAR TRANSIENT PROBLEM (all regions are linear)
+              // get resistivity in coil regions via conductivity
+              PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+              PtrCoefFct sigma = NULL;
+              PtrCoefFct rho = NULL;
+
+              constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+              sigma = actSDMat->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR, Global::REAL);
+              rho = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, sigma, CoefXpr::OP_DIV ) );
+
+              CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), CoefXpr::OP_DIV);
+              PtrCoefFct jVec_coefFct = CoefFunction::Generate(mp_, part, jVec);
+              CoefXprVecScalOp rho_times_jVec = CoefXprVecScalOp(mp_, jVec_coefFct, rho, CoefXpr::OP_MULT);
+              jFct[0] = CoefFunction::Generate(mp_, part, rho_times_jVec);
+              coilCurrentDens_[actRegion] = jFct[0];
+              curInt = GetCurrentDensityInt( 1.0, jFct[0] );
+              curInt->SetName("(rho j,curlN): CoilIntegrator (all regions are linear)");
+              LinearFormContext * coilContext = new LinearFormContext( curInt );
+              coilContext->SetEntities( actSDList );
+              coilContext->SetFeFunction( feFunc );
+              assemble_->AddLinearForm( coilContext );
+            }
+          }
           else {
             EXCEPTION("ERROR: is_pseudo_time_stepping is either 1 or 0")
           }
@@ -295,7 +318,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
 
     // Get dt
-    Double dt = 0.1e-3;
+    Double dt = 1e-3;
+    //dt = myParam_->Get("analysis")->Get("transient")->Get("deltaT")->MathParse<double>();
+    //dt = myParam_->Get("delta_t")->MathParse<Double>();
     myParam_->GetValue("delta_t", dt, ParamNode::PASS);
 
     // get FEFunction and space
@@ -524,7 +549,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
       // ===================================================================
       // REAL TIME-STEPPING [START]
       // ===================================================================
-      /* if (is_pseudo_time_stepping == 0){
+      if (is_pseudo_time_stepping == 0){
         // ====================================================================
         // MASS INTEGRATOR [START] d/dt(c N, N)
         // The coefficient c of this integrator depends on the material case:
@@ -533,48 +558,116 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         //               (1/delta_t)*(db/dh) for the coefficient c.
         //               AND the matrix is in openCFS a STIFFNESS MATRIX then.
         // ====================================================================
+        double dt = 1e-3;       
+        myParam_->GetValue("delta_t", dt, ParamNode::PASS); 
+        PtrCoefFct muNL = NULL;
         PtrCoefFct mu = NULL;
-        double dt = 0.5e-3;
         BaseBDBInt *massInt = NULL;
+        if(nonLin_ && (modelName_ == "EBHysteresisModel")) { // GENERAL NONLINEAR/HYSTERESIS CASE
+          if (nonLinTypes.Find(PERMEABILITY) != -1){ // NONLINEAR/HYSTERESIS SUBREGION
+            if (modelName_ == "EBHysteresisModel"){ // EB HYSTERESIS MODEL
+              std::map<std::string, double> ParameterMap;
+              std::map<std::string, string> StringParameterMap; 
+              ParameterMap.clear();
+              StringParameterMap.clear();
+              actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
+              /// here is sill set the strong param map for the EBhst
+              if(actSDMat->GetAnhystMagModel() == "analytic_anhysteresis"){
+                actSDMat->GetString(StringParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB);
+                if(actSDMat->GetAnhystFormula() == "atan"){
+                  actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_EB);
+                  actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
+                  actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
+                }
 
-        if (nonLinTypes.Find(PERMEABILITY) != -1){ // NONLINEAR/HYSTERESIS CASE
-          if (modelName_ == "EBHysteresisModel"){ // this is the model we want to use!
-            // get nonlinear/hysteretic material parameter and save it in global variables for postprocessing
-            std::map<std::string, double> ParameterMap;
-            actSDMat->GetScalar(ParameterMap["Ps"], MAG_PS_EB, Global::REAL);
-            actSDMat->GetScalar(ParameterMap["A"], MAG_A_EB, Global::REAL);
-            actSDMat->GetScalar(ParameterMap["mu0"], MAG_MU0_EB, Global::REAL);
-            actSDMat->GetScalar(ParameterMap["numS"], MAG_NUMS_EB, Global::REAL);
-            actSDMat->GetScalar(ParameterMap["chi_factor"], MAG_CHI_FACTOR_EB, Global::REAL);
-            ParameterMap["isMH"] = 0;
-            matModelCoef_->InitModel(ParameterMap, actSDList);
-            mu = matModelCoef_;
-            nlFluxCoef_->AddRegion(actRegion, matModelCoef_);
-            nlScalCoef_->AddRegion(actRegion, matModelCoef_);
-            massInt = new BDBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,(1/dt),updatedGeo_);
-            massInt->SetName("((1/dt)*(db/dh) N,N): IdentityIntegrator, nonlinear time stepping");
+                if(actSDMat->GetAnhystFormula() == "pacejka"){
+                  actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_EB);
+                  actSDMat->GetScalar(ParameterMap["m_sat"], MAG_MSAT_PACEJKA_EB, Global::REAL);
+                  actSDMat->GetScalar(ParameterMap["a"], MAG_A_PACEJKA_EB, Global::REAL);
+                  actSDMat->GetScalar(ParameterMap["b"], MAG_B_PACEJKA_EB, Global::REAL);
+                  actSDMat->GetScalar(ParameterMap["c"], MAG_C_PACEJKA_EB, Global::REAL);
+
+                }
+              }else if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
+                actSDMat->GetString(StringParameterMap["anhyst_type"], MAG_ANHYST_TYPE_EB);
+                actSDMat->GetScalar(ParameterMap["AS"], MAG_MSM_AS, Global::REAL);
+                actSDMat->GetScalar(ParameterMap["K1"], MAG_MSM_K1, Global::REAL);
+                actSDMat->GetScalar(ParameterMap["K2"], MAG_MSM_K2, Global::REAL);
+                actSDMat->GetScalar(ParameterMap["lambda100"], MAG_MSM_LAMBDA100, Global::REAL);
+                actSDMat->GetScalar(ParameterMap["lambda111"], MAG_MSM_LAMBDA111, Global::REAL);
+                actSDMat->GetScalar(ParameterMap["Ps"], MAG_MSM_PS, Global::REAL);
+              }
+              actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_EB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["approx_type"], MAG_APPROX_TYPE, Global::REAL);
+              ParameterMap["isMH"] = 0;
+              actSDMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_EB);
+
+              matModelCoefm_[actRegion]->InitModel(ParameterMap,StringParameterMap, actSDList);
+
+              if(actSDMat->GetAnhystMagModel() == "multiscale_anhysteresis"){
+                // check if we have a dependency of the anhysteretic curve with mechanical stress
+                PtrCoefFct stresscoef;
+                //get coeff-Fnc to evaluate the temperature
+                StdVector<std::string> dispDofNames = feFunc->GetResultInfo()->dofNames;
+                shared_ptr<EntityList> ent = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+                ReadMaterialDependency( "permeability", dispDofNames, ResultInfo::VECTOR, false,
+                                        ent, stresscoef, updatedGeo_ );
+                matModelCoefm_[actRegion]->RegisterStressDependence(stresscoef);
+              }
+              // evaluate dbdh = mu
+              muNL = matModelCoefm_[actRegion];
+              nlFluxCoefm_[actRegion].reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true)); 
+              nlFluxCoefm_[actRegion]->AddRegion(actRegion, matModelCoefm_[actRegion]);
+              if (dim_ == 2) {
+                massInt = new BDBInt<>(new IdentityOperator<FeHCurl,2,1,Double>(),muNL,(1.0/dt),updatedGeo_);
+              } else {
+                massInt = new BDBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),muNL,(1.0/dt),updatedGeo_);
+              }
+              massInt->SetName("((1/dt)*(db/dh) N,N): IdentityIntegrator, nonlinear time stepping");
+              BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
+              // save defined integrator
+              massContext->SetEntities( actSDList, actSDList );
+              massContext->SetFeFunctions( feFunc, feFunc );
+              assemble_->AddBiLinearForm( massContext );
+              massInts_[actRegion] = massInt; // insert mass integrator to list of defined mass integrators
+            } else {
+              EXCEPTION("NO OTHER HYSTERESIS MODEL IMPLEMENTED!")
+            }
+          } else { // LINEAR CASE (SUBREGION)
+            // get linear material coefficient and save it in a global variable for postprocessing
+            mu = actSDMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
+            perm_->AddRegion(actRegion, mu);
+            // define linear integrator
+            if (dim_ == 2) {
+              massInt = new BBInt<>(new IdentityOperator<FeHCurl,2,1,Double>(),mu,(1.0/dt),updatedGeo_);
+            } else {
+              massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,(1.0/dt),updatedGeo_);
+            }
+            massInt->SetName("d/dt(mu N,N): IdentityIntegrator, linear time stepping");
             BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
             // save defined integrator
             massContext->SetEntities( actSDList, actSDList );
             massContext->SetFeFunctions( feFunc, feFunc );
             assemble_->AddBiLinearForm( massContext );
             massInts_[actRegion] = massInt; // insert mass integrator to list of defined mass integrators
-          } else {
-            EXCEPTION("NO OTHER HYSTERESIS MODEL IMPLEMENTED!")
           }
-        } else { // LINEAR CASE
-          // get linear material coefficient and save it in a global variable for postprocessing
-          mu = actSDMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
-          perm_->AddRegion(actRegion, mu);
-          // define linear integrator
-          massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0/dt,updatedGeo_);
-          massInt->SetName("d/dt(mu N,N): IdentityIntegrator, linear time stepping");
-          BiLinFormContext * massContext = new BiLinFormContext(massInt, STIFFNESS );
-          // save defined integrator
-          massContext->SetEntities( actSDList, actSDList );
-          massContext->SetFeFunctions( feFunc, feFunc );
-          assemble_->AddBiLinearForm( massContext );
-          massInts_[actRegion] = massInt; // insert mass integrator to list of defined mass integrators
+        } else { // GENERAL LINEAR CASE (All regions are linear)
+            // get linear material coefficient and save it in a global variable for postprocessing
+            mu = actSDMat->GetScalCoefFnc(MAG_PERMEABILITY_SCALAR, Global::REAL);
+            perm_->AddRegion(actRegion, mu);
+            // define linear integrator
+            if (dim_ == 2) {
+              massInt = new BBInt<>(new IdentityOperator<FeHCurl,2,1,Double>(),mu,1.0,updatedGeo_);
+            } else {
+              massInt = new BBInt<>(new IdentityOperator<FeHCurl,3,1,Double>(),mu,1.0,updatedGeo_);
+            }
+            massInt->SetName("d/dt(mu N,N): IdentityIntegrator, all regions, linear time stepping");
+            BiLinFormContext * massContext = new BiLinFormContext(massInt, DAMPING );
+            // save defined integrator
+            massContext->SetEntities( actSDList, actSDList );
+            massContext->SetFeFunctions( feFunc, feFunc );
+            assemble_->AddBiLinearForm( massContext );
+            massInts_[actRegion] = massInt; // insert mass integrator to list of defined mass integrators        
         }
         // ====================================================================
         // MASS INTEGRATOR [END] d/dt(c N, N)
@@ -597,7 +690,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         rho = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, sigma, CoefXpr::OP_DIV ) );
         resistivity_->AddRegion(actRegion, rho);
 
-        curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho,1.0, updatedGeo_);
+        if (dim_ == 2) {
+          curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,2, Double>(), rho,1.0, updatedGeo_);
+        } else {
+          curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), rho,1.0, updatedGeo_);
+        }
         curlcurl->SetName("(rho curlN,CurlN): CurlCurlIntegrator");
         BiLinFormContext * stiffContext = new BiLinFormContext(curlcurl, STIFFNESS );
         stiffContext->SetEntities( actSDList, actSDList );
@@ -612,8 +709,14 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // just define, but never assembled into global matrices
         // ====================================================================
         BaseBDBInt* AUX_curlcurl = NULL;
-        AUX_curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constOne,1.0, updatedGeo_);
-        AUX_curlcurl->SetName("(curlN,CurlN): Auxiliary,CurlCurlIntegrator (just for postprocessing: get curlh from h)");
+        PtrCoefFct constZero = NULL; // coefFct with 0 in every element
+        constZero = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        if (dim_ == 2) {
+          AUX_curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,2, Double>(), constZero,0.0, updatedGeo_);
+        } else {
+          AUX_curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), constZero,0.0, updatedGeo_);
+        }
+        AUX_curlcurl->SetName("(0*curlN,CurlN): Auxiliary,CurlCurlIntegrator (just for postprocessing: get curlh from h)");
         BiLinFormContext * AUX_stiffContext = new BiLinFormContext(AUX_curlcurl, STIFFNESS );
         AUX_stiffContext->SetEntities( actSDList, actSDList );
         AUX_stiffContext->SetFeFunctions( feFunc, feFunc );
@@ -624,7 +727,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
         // ====================================================================
         // AUXILIARY CURL-CURL INTEGRATOR [END]
         // ====================================================================
-      } */
+      }
       // ===================================================================
       // REAL TIME-STEPPING [END]
       // ===================================================================
@@ -675,7 +778,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     myParam_->GetValue("penaltyFunctionParameter", beta, ParamNode::PASS);
 
     // Get dt
-    Double dt = 0.1e-3;
+    Double dt = 1e-3;
     myParam_->GetValue("delta_t", dt, ParamNode::PASS);
 
     // Get the flag for pseudo time stepping
@@ -734,9 +837,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             CoefXprVecScalOp temp = CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), p, CoefXpr::OP_MULT);
             PtrCoefFct p_times_curlh = CoefFunction::Generate(mp_, Global::REAL, temp);
             if (dim_ == 2) {
-              lin1_pts = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, p_times_curlh, volRegions, coefUpdateGeo);
-            } else {
               lin1_pts = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 2,Double>(),-1.0, p_times_curlh, volRegions, coefUpdateGeo);
+            } else {
+              lin1_pts = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, p_times_curlh, volRegions, coefUpdateGeo);
             }
             lin1_pts->SetName("(p curlh,curlN): residual");
           }
@@ -797,14 +900,15 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
       // ===================================================================
       // REAL TIME-STEPPING [START]
       // ===================================================================     
-      /* if (is_pseudo_time_stepping == 0){
+      if (is_pseudo_time_stepping == 0){
         if(nonLin_ && (modelName_ == "EBHysteresisModel")) {
           PtrCoefFct fluxDensityNL = NULL;
-          fluxDensityNL = matModelCoef_;
+          fluxDensityNL = matModelCoefm_[actRegion];
           // ===============================================================================================
           // lin1_rts: (rho curlh,curlN) [START]
           // curlh:   is obtained by the mag. field intensity h from the last Newton iteration.
           // rho: resistivity of the region
+          // E = rho curlh ... ELEC_FIELD_INTENSITY
           // ===============================================================================================
           // generate the coefFct that is the multiplication of the curlh and rho (rho*curlh)
           PtrCoefFct sigma = NULL; // conductivity of the material
@@ -817,7 +921,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           rho = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, sigma, CoefXpr::OP_DIV ) );
 
           PtrCoefFct rho_times_curlh = CoefFunction::Generate(mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), rho, CoefXpr::OP_MULT));
-          lin1_rts = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, GetCoefFct( ELEC_FIELD_INTENSITY ), volRegions, coefUpdateGeo);
+          if (dim_ == 2) {
+            lin1_rts = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 2,Double>(),-1.0, GetCoefFct( ELEC_FIELD_INTENSITY ), volRegions, coefUpdateGeo);
+          } else {
+            lin1_rts = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3,Double>(),-1.0, GetCoefFct( ELEC_FIELD_INTENSITY ), volRegions, coefUpdateGeo);
+          }
           lin1_rts->SetName("(rho curlh,curlN): residual");
 
           LinearFormContext *ctx = new LinearFormContext(lin1_rts);
@@ -842,7 +950,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             else if (modelName_ == "EBHysteresisModel") // NONLINEAR CASE, AND NONLINEAR SUBREGION
             {
               isHystereticMat = true;
-              lin2_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(-1/dt), fluxDensityNL, coefUpdateGeo, false);
+              if (dim_ == 2) {
+                lin2_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,2>(),(-1/dt), fluxDensityNL, coefUpdateGeo, false);
+              } else {
+                lin2_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(-1/dt), fluxDensityNL, coefUpdateGeo, false);
+              }
             }
             lin2_rts->SetName("((1/delta_t)*b(h)_nonlin_n,N): residual");
             lin2_rts->SetSolDependent();
@@ -852,7 +964,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             ctx->SetTypeLinearForm(2); // declared as nonlinear
             assemble_->AddLinearForm(ctx);
           } else { // NONLINEAR CASE, BUT LINEAR SUBREGION
-            lin2_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(-1/dt), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+            if (dim_ == 2) {
+              lin2_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 2>(),(-1/dt), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+            } else {
+              lin2_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(-1/dt), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+            }
             lin2_rts->SetName("((1/delta_t)*b(h)_linear_n,N): residual");
             LinearFormContext *ctx = new LinearFormContext(lin2_rts);
             ctx->SetEntities(actSDList);
@@ -867,7 +983,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           // ===============================================================================================
           // lin3_rts: ((1/delta_t)*b(h)_{n-1},N),N) [START]
           // the b(h) is obtained by the used material model where the input is the mag. field intensity h
-          // from the last Newton iteration.
+          // from the last TIME step.
           // ===============================================================================================
           if (nonLinTypes.Find(PERMEABILITY) != -1 && modelName_ != "nonlinearCurve"){
             if (modelName_ == "JilesAthertonModel")
@@ -877,7 +993,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             else if (modelName_ == "EBHysteresisModel") // NONLINEAR CASE, AND NONLINEAR SUBREGION
             {
               isHystereticMat = true;
-              lin3_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(1/dt), fluxDensityNL, coefUpdateGeo, false);
+              if (dim_ == 2) {
+                  lin3_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,2>(),(1/dt), fluxDensityNL, coefUpdateGeo, false);
+                } else {
+                  lin3_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3>(),(1/dt), fluxDensityNL, coefUpdateGeo, false);
+                }
             }
             lin3_rts->SetName("((1/delta_t)*b(h)_nonlin_{n-1},N): residual");
             lin3_rts->SetSolDependent();
@@ -887,7 +1007,11 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
             ctx->SetTypeLinearForm(1); // declared as linear
             assemble_->AddLinearForm(ctx);
           } else { // NONLINEAR CASE, BUT LINEAR SUBREGION
-            lin3_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(1/dt), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+            if (dim_ == 2) {
+              lin3_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 2>(),(1/dt), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+            } else {
+              lin3_rts = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3>(),(1/dt), GetCoefFct( MAG_FLUX_DENSITY ), volRegions, coefUpdateGeo);
+            }
             lin3_rts->SetName("((1/delta_t)*b(h)_linear_{n-1},N): residual");
             LinearFormContext *ctx = new LinearFormContext(lin3_rts);
             ctx->SetEntities(actSDList);
@@ -899,7 +1023,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           // lin3_rts: (b(h),N) [END]
           // ===============================================================================================
         }
-      }  */
+      } 
       // ===================================================================
       // REAL TIME-STEPPING [END]
       // =================================================================== 
@@ -932,9 +1056,9 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
       Brmap_[ent[i]->GetRegion()] = br; // Here we store the flux density remanence field for every region to have it ready for postprocessing
 
       if (dim_ == 2) {
-        lin_br = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(), -1.0, br, coefUpdateGeo);
-      } else {
         lin_br = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,2,1,Double>(), -1.0, br, coefUpdateGeo);
+      } else {
+        lin_br = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,3,1,Double>(), -1.0, br, coefUpdateGeo);
       }
       lin_br->SetName("fluxIntegrator: (b_r,N)");
       LinearFormContext *ctx = new LinearFormContext( lin_br );
