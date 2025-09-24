@@ -174,19 +174,18 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       //check if a veloctyId is assigned 
       std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
 
-
         // =================================================================================
-        //  LINEAR STIFFNESS SECTION
+        //  STIFFNESS SECTION
         // =================================================================================
 
         /* ==============================================
-         * Handling of MATERIAL PARAMETERS
+         * Handling of material parameters
            ============================================== */
-        // RELUCTIVITY & PERMEABILITY
+        // Magnetic Reluctivity (+ Permeability)
         PtrCoefFct nuNl = NULL;
         PtrCoefFct permeability = NULL;
         if ( nonLinTypes.GetSize() > 0 ){
-          // nonlin reluctivity/permeability for static analysis - material 
+          // nonlin reluctivity/permeability for static analysis
           if ( analysistype_ != STATIC && nonLinTypes.Find(PERMEABILITY) == -1) {
             EXCEPTION("MagEdgeMixedAVPDE does only support *nonlinear reluctivity* for *static analysis*!")
           } else {   
@@ -219,10 +218,10 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
         /* ==============================================
          * Upper left STIFFNESS part:
-         * curl(A) \cdot curl(A’)
+         * \nu curl(A) \cdot curl(A’)
            ============================================== */
         if ( nonLinTypes.GetSize() > 0 ){
-          //nonlinear Permeability integrator
+          //nonlinear Integrator due to nl  permeability
           if ( analysistype_ != STATIC && nonLinTypes.Find(PERMEABILITY) == -1) {
             EXCEPTION("MagEdgeMixedAVPDE does only support *nonlinear reluctivity* for *static analysis*!")
           } else {
@@ -255,17 +254,17 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
             }
           }
         } else {
-        //linear
-        BaseBDBInt* stiffUpperLeft = NULL;
-        stiffUpperLeft = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
-        stiffUpperLeft->SetName("CurlACurlAIntegratorUpperLeft");
+          //linear Integrator
+          BaseBDBInt* stiffUpperLeft = NULL;
+          stiffUpperLeft = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
+          stiffUpperLeft->SetName("CurlACurlAIntegratorUpperLeft");
 
-        BiLinFormContext * stiffUpperLeftContext = new BiLinFormContext(stiffUpperLeft, STIFFNESS );
-        stiffUpperLeftContext->SetEntities( actSDList, actSDList );
-        stiffUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
-        assemble_->AddBiLinearForm( stiffUpperLeftContext );
-        // Add bdb-integrator to global list, needed for flux density evaluation
-        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffUpperLeft) );
+          BiLinFormContext * stiffUpperLeftContext = new BiLinFormContext(stiffUpperLeft, STIFFNESS );
+          stiffUpperLeftContext->SetEntities( actSDList, actSDList );
+          stiffUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
+          assemble_->AddBiLinearForm( stiffUpperLeftContext );
+          // Add bdb-integrator to global list, needed for flux density evaluation
+          bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffUpperLeft) );
         }
         /* ==============================================
          * Upper right STIFFNESS part:
@@ -526,7 +525,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         massUpperLeftContext->SetEntities( actSDList, actSDList );
         massUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
         assemble_->AddBiLinearForm( massUpperLeftContext );
-
     } // end for regions
   } // end DefineIntegrators
 
@@ -831,7 +829,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         eddyCurrentFuncElecScalPot.reset(new ResultFunctorIntegrate<Double>(ncd2, elecScalPotFeFct, ec2 ) );
       }
       resultFunctors_[MAG_EDDY_CURRENT2] = eddyCurrentFuncElecScalPot;
-
 
 
     // === MAGNETIC FLUX DENSITY ===

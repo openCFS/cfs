@@ -14,7 +14,10 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     </keywords>
     <references>Diploma Thesis; Lukas Schafferhofer</references>
     <isVerified>yes</isVerified>
-    <description> derived testcase from Coil3DVelocityAV: testcase for the implementation of nonlinear permeability for static analysis in MagEdgeMixedAVPDE.cc
+    <description>
+        derived testcase from Coil3DVelocityAV.
+        testcase for the implementation of nonlinear permeability for static analysis in MagEdgeMixedAVPDE.cc.
+        See Presentation_Coil3DVelocityAVNl.pdf for more detailed information on the implementation.
     </description>
   </documentation>
     <fileFormats>
