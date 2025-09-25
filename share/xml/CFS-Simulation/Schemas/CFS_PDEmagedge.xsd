@@ -196,6 +196,11 @@
                     <xsd:documentation>Specifies the value of the magnetic vector potential (being in the tangential plane)</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                <xsd:element name="fluxNormal" type="DT_BcHomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Magnetic field is forced to be normal to the surface. H-formulation: Homogenous Dirichlet boundary condition (ONLY FOR THE H-FORMULATION).</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
 
                 <xsd:element name="elecPotential" type="DT_BcInhomScalar">
                   <xsd:annotation>

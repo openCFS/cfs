@@ -1104,6 +1104,12 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
     // MAG_FIELD_INTENSITY (END)
     // =====================================================
 
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    hdbcSolNameMap_[MAG_FIELD_INTENSITY] = "fluxNormal";
+    idbcSolNameMap_[MAG_FIELD_INTENSITY] = "potential";
+
   }
 
 
