@@ -131,6 +131,7 @@ namespace CoupledField
           }
 
 
+
           LOG_DBG2(solvestepeb) << "\n\t\t =============== after setup RHS " << iterationCounter;
           LOG_DBG2(solvestepeb) << "\n\t\t solInc:" << solInc.ToString();
           LOG_DBG2(solvestepeb) << "\n\t\t stageSol:" << stageSol.ToString();
@@ -294,6 +295,11 @@ namespace CoupledField
           bool setIDBC = true;
           algsys_->Solve(setIDBC);
           algsys_->GetSolutionVal(solInc, setIDBC );
+          string nr_unknowns_string = solInc.ToString();
+          UInt nr_unknowns = std::count(nr_unknowns_string.begin(), nr_unknowns_string.end(), ',');
+          // The number of vector entries is the number of commas + 1
+          nr_unknowns = nr_unknowns + 1;
+          //std::cout << "nr_unknowns: " << nr_unknowns << "\n";
 
           // apply line search
           Double etaLineSearch = 1.0;
@@ -325,7 +331,8 @@ namespace CoupledField
           assemble_->AssembleNonLinRHS();
           algsys_->GetRHSVal( actRHS );
           residualErr = actRHS.NormL2();
-          residualErr = std::abs(residualErr)/residualErr0;
+          //residualErr = std::abs(residualErr)/(residualErr0*nr_unknowns);
+          residualErr = std::abs(residualErr)/(residualErr0);
 
           // calculate incremental error ========================================
           solIncrL2Norm = solInc.NormL2();
@@ -414,7 +421,7 @@ namespace CoupledField
   }
   double SolveStepEB::ExactLineSearch(SBM_Vector& solIncrement, SBM_Vector& stageSol, SBM_Vector& Linform_nm1){
 
-    Double bottom_interval = 0.0 + 1e-6;
+    Double bottom_interval = 0.0 + 1e-3;
     Double top_interval = 1; 
     Double gamma = 0;
     

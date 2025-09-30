@@ -63,20 +63,14 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       if(anhyst_formula_ == "tan"){ // tan anhysteresis model
         Js_ = ParameterMap["Js"];
         A_ = ParameterMap["A"];
-        pinning_forces_weight_ = StringParameterMap["weights_file_path"]+"/"+StringParameterMap["pinning_forces_weights_file"];
-        std::ifstream file_lut(pinning_forces_weight_); // lut ... lookuptable
-        double x_lut, y_lut;
-        // Check if the file was successfully opened
-        if (!file_lut) {
-            EXCEPTION("Error: Unable to open file: " << pinning_forces_weight_ << std::endl);
-        }
-        while (file_lut >> x_lut >> y_lut) {
-            kappa_file_.push_back(x_lut);
-            omega_file_.push_back(y_lut);
-        }
-        // Close the file
-        file_lut.close();
-        numS_ = kappa_file_.GetSize();
+      } else if(anhyst_formula_ == "atan"){ // atan anhysteresis model
+        Ms_ = ParameterMap["Ms"];
+        A_ = ParameterMap["A"];
+      } else if(anhyst_formula_ == "pacejka"){ // Pacejka anhysteresis model
+        Ms_ = ParameterMap["Ms"];
+        pa_ = ParameterMap["pa"];
+        pb_ = ParameterMap["pb"];
+        pc_ = ParameterMap["pc"];
       } else if (anhyst_formula_ == "brauer") { // only anhysteresis model realised in this environment
         p_0_ = ParameterMap["p_0"];
         p_1_ = ParameterMap["p_1"];
@@ -94,25 +88,26 @@ DEFINE_LOG(inveb, "invEBHysteresis")
             H_lut_.push_back(y_lut);
         }
         // Close the file
-        file_lut.close();     
-        pinning_forces_weight_ = StringParameterMap["weights_file_path"]+"/"+StringParameterMap["pinning_forces_weights_file"];
-        std::ifstream file_pfw(pinning_forces_weight_); // pfw ... pinning forces and weigths
-        double x_pfw, y_pfw;
-        // Check if the file was successfully opened
-        if (!file_pfw) {
-            EXCEPTION("Error: Unable to open file: " << pinning_forces_weight_ << std::endl);
-        }
-        while (file_pfw >> x_pfw >> y_pfw) {
-            kappa_file_.push_back(x_pfw);
-            omega_file_.push_back(y_pfw);
-        }
-        // Close the file
-        file_pfw.close();
-        numS_ = kappa_file_.GetSize();  
+        file_lut.close();      
       }
     } else {
       EXCEPTION("NO OTHER MODEL IMPLEMENTED")
     }
+    // GET HYSTERESIS PARAMETER
+    pinning_forces_weight_ = StringParameterMap["weights_file_path"]+"/"+StringParameterMap["pinning_forces_weights_file"];
+    std::ifstream file_lut(pinning_forces_weight_); // lut ... lookuptable
+    double x_lut, y_lut;
+    // Check if the file was successfully opened
+    if (!file_lut) {
+        EXCEPTION("Error: Unable to open file: " << pinning_forces_weight_ << std::endl);
+    }
+    while (file_lut >> x_lut >> y_lut) {
+        kappa_file_.push_back(x_lut);
+        omega_file_.push_back(y_lut);
+    }
+    // Close the file
+    file_lut.close();
+    numS_ = kappa_file_.GetSize();
     isMH_ = ParameterMap["isMH"];
     if (isMH_ == 1.0)
     {
@@ -122,9 +117,25 @@ DEFINE_LOG(inveb, "invEBHysteresis")
     {
       varHandle_ = "step";
     }
+    std::cout << "approx_type: " << UInt(ParameterMap["approx_type"]) << "\n";
+    switch (UInt(ParameterMap["approx_type"]))
+    {
+    case 1:
+      approx_type_ = "fullInvEB";
+      break;
+    case 2:
+      approx_type_ = "approxVSM";
+      std::cout << "approx_type_: " << approx_type_ << "\n";
+      break;
+    }
 
     B_prev_.Resize(numElems_, StdVector<Double>(dim_));
     H_prev_.Resize(numElems_, StdVector<Double>(dim_));
+
+    B_prev_VSM_tmp_.Resize(numElems_, StdVector<Double>(dim_));
+    H_prev_VSM_tmp_.Resize(numElems_, StdVector<Double>(dim_));
+    B_prev_VSM_.Resize(numElems_, StdVector<Double>(dim_));
+    H_prev_VSM_.Resize(numElems_, StdVector<Double>(dim_));
 
     J_x_k_n_.Resize(numElems_, StdVector<Double>(numS_));
     J_y_k_n_.Resize(numElems_, StdVector<Double>(numS_));
@@ -133,6 +144,14 @@ DEFINE_LOG(inveb, "invEBHysteresis")
     J_x_k_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
     J_y_k_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
     J_z_k_n_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+
+    w_state_x_old_.Resize(numElems_, StdVector<Double>(numS_));
+    w_state_y_old_.Resize(numElems_, StdVector<Double>(numS_));
+    w_state_z_old_.Resize(numElems_, StdVector<Double>(numS_));
+
+    w_state_x_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+    w_state_y_tmp_.Resize(numElems_, StdVector<Double>(numS_));
+    w_state_z_tmp_.Resize(numElems_, StdVector<Double>(numS_));
 
     nu_.Resize(numElems_, Matrix<Double>(dim_, dim_));
 
@@ -167,7 +186,17 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       std::cout << "p_0 = " << p_0_ << " \n";
       std::cout << "p_1 = " << p_1_ << " \n";
       std::cout << "p_2 = " << p_2_ << " \n";
-      std::cout << "Hysteresis model: No Hysteresis possible with this anhysteresis type" << "\n";
+      std::cout << "Hysteresis model: Vector Stop Model" << "\n";
+      std::cout << "r_value = [";
+      for(UInt idx = 0; idx < numS_; idx++) {
+        std::cout << " " << omega_file_[idx] << " ";
+      }
+      std::cout << "]\n";
+      std::cout << "p_weight = [";
+      for(UInt idx = 0; idx < numS_; idx++) {
+        std::cout << " " << kappa_file_[idx] << " ";
+      }
+      std::cout << "]\n";
     } else if (anhyst_formula_ == "lookuptable") {
       std::cout << "Anhysteresis_type: Lookup Table" << "\n";
       std::cout << "H(J) = lookup_table(J)" << "\n";
@@ -251,7 +280,8 @@ DEFINE_LOG(inveb, "invEBHysteresis")
             break;
           case 2:
             // use Broyden method
-            nu = EvaluateLocalNuGBM(delta_H, delta_B, idx);
+            EXCEPTION("Broyden not implemented!")
+            //nu = EvaluateLocalNuGBM(delta_H, delta_B, idx);
             break;
           case 3:
             // use simple finite differences
@@ -265,13 +295,14 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         for (UInt i = 0; i < dim_; ++i) {
             B_prev_[idx][i] = BVec[i];
             H_prev_[idx][i] = H[i];
+            B_prev_VSM_tmp_[idx][i] = BVec[i];
         }
       } else { // 3D case
         if( timeStep_ == 1 && iterTracker4Nu_ == 1){ // starting value at nu = diag(1/(mu0*1));
           for(UInt i = 0; i < dim_; i++) {
             for(UInt j = 0; j < dim_; j++) {
               if (i == j) {
-                nu[i][j] = 1/(mu0_*1000);
+                nu[i][j] = 1/(mu0_*100);
               } else {
                 nu[i][j] = 0;
               }
@@ -296,7 +327,8 @@ DEFINE_LOG(inveb, "invEBHysteresis")
             break;
           case 2:
             // use Broyden method
-            nu = EvaluateLocalNuGBM(delta_H, delta_B, idx);
+            EXCEPTION("Broyden not implemented!")
+            //nu = EvaluateLocalNuGBM(delta_H, delta_B, idx);
             break;
           case 3:
             // use simple finite differences
@@ -312,9 +344,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
             H_prev_[idx][i] = H[i];
         }
       }
-      // if (idx == 1){
-      //   std::cout << "mu: " << 1.0/(nu[0][0]*mu0_) << "\n";
-      // }
+      if (idx == 1){
+         std::cout << "mu: " << 1.0/(nu[0][0]*mu0_) << "\n";
+      }
 
       nu_[idx] = nu;    
       alreadyHasNu_[idx] = true;
@@ -430,119 +462,48 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       return B_k1; // this is the new nu
     }
 
-    Matrix<Double> invEBHysteresis::EvaluateLocalNuGBM(Vector<Double> dH, Vector<Double> dB, UInt idx){
-      Matrix<Double> nu;
-      nu.Resize(dim_,dim_);
-
-      Matrix<Double> gxT(dim_, dim_);
-      Matrix<Double> B_k1(dim_, dim_);
-      Matrix<Double> B = nu_[idx];
-      Double norm_x, norm_x_squared;
-      Vector<Double> y = dH;
-      Vector<Double> x = dB;
-      Vector<Double> Bx(dim_), g(dim_);
-
-      if(dim_ == 2){
-
-        // B*x 
-        Bx[0] = B[0][0]*x[0] + B[0][1]*x[1];
-        Bx[1] = B[1][0]*x[0] + B[1][1]*x[1];
-
-        // norm_x^2
-        norm_x = std::sqrt(std::pow(x[0],2) + std::pow(x[1],2));
-        norm_x_squared = std::pow(norm_x,2);
-
-        // g = (y - B*x) / norm_x^2
-        g[0] = (y[0] - Bx[0])/norm_x_squared;
-        g[1] = (y[1] - Bx[1])/norm_x_squared;
-
-        // g*xT (outer product)
-        gxT[0][0] = g[0]*x[0]; gxT[0][1] = g[0]*x[1]; 
-        gxT[1][0] = g[1]*x[0]; gxT[1][1] = g[1]*x[1]; 
-        
-        // construct everything B + gxT
-        B_k1[0][0] = B[0][0] + gxT[0][0]; 
-        B_k1[0][1] = B[0][1] + gxT[0][1];
-        B_k1[1][0] = B[1][0] + gxT[1][0]; 
-        B_k1[1][1] = B[1][1] + gxT[1][1];
-
-        if ( (std::isnan(B_k1[0][0])) || (std::isnan(B_k1[1][1])) || (std::isnan(B_k1[0][1])) || (std::isnan(B_k1[1][0])) ) {
-          B_k1[0][0] = 1.0/mu0_; B_k1[0][1] = 0.0;
-          B_k1[1][0] = 0.0;      B_k1[1][1] = 1.0/mu0_;
-        }
-        if ( (std::isinf(B_k1[0][0])) || (std::isinf(B_k1[1][1])) || (std::isinf(B_k1[0][1])) || (std::isinf(B_k1[1][0])) ) {
-          B_k1[0][0] = 1.0/mu0_; B_k1[0][1] = 0.0;
-          B_k1[1][0] = 0.0;      B_k1[1][1] = 1.0/mu0_;
-        }
-        
-        
-      }else{ // 3D version
-        Vector<Double> dD_minus_epsilon_km1_times_dE(dim_);
-        Vector<Double> dBvec(dim_);
-        Matrix<Double> rightM(dim_,dim_);
-        dD_minus_epsilon_km1_times_dE[0] = dH[0] - (nu_[idx][0][0]*dB[0] + nu_[idx][0][1]*dB[1] + nu_[idx][0][2]*dB[2]);
-        dD_minus_epsilon_km1_times_dE[1] = dH[1] - (nu_[idx][1][0]*dB[0] + nu_[idx][1][1]*dB[1] + nu_[idx][1][2]*dB[2]);
-        dD_minus_epsilon_km1_times_dE[2] = dH[2] - (nu_[idx][2][0]*dB[0] + nu_[idx][2][1]*dB[1] + nu_[idx][2][2]*dB[2]);
-
-        dBvec[0] = dB[0];
-        dBvec[1] = dB[1];
-        dBvec[2] = dB[2];
-        dD_minus_epsilon_km1_times_dE.ScalarDiv(dBvec.NormL2_squared());
-        
-        rightM.DyadicMult(dD_minus_epsilon_km1_times_dE, dBvec);
-        
-        nu[1][0] = nu_[idx][1][0] + rightM[1][0];
-        nu[0][1] = nu_[idx][0][1] + rightM[0][1];
-        nu[0][2] = nu_[idx][0][2] + rightM[0][2];
-        nu[2][0] = nu_[idx][2][0] + rightM[2][0];
-        nu[1][2] = nu_[idx][1][2] + rightM[1][2];
-        nu[2][1] = nu_[idx][2][1] + rightM[2][1];
-        nu[0][0] = nu_[idx][0][0] + rightM[0][0];
-        nu[1][1] = nu_[idx][1][1] + rightM[1][1];
-        nu[2][2] = nu_[idx][2][2] + rightM[2][2];
-
-        LOG_DBG3(inveb)<< "\n\t dD_minus_epsilon_km1_times_dE = " << dD_minus_epsilon_km1_times_dE.ToString()
-                    << "\n\t dBvec = " << dBvec.ToString()
-                    << "\n\t rightM = " << rightM.ToString();
-
-        nu[0][1] = 0.0;
-        nu[1][0] = 0.0;
-        nu[2][0] = 0.0;
-        nu[0][2] = 0.0;
-        nu[1][2] = 0.0;
-        nu[2][1] = 0.0;
-        for (UInt i = 0; i < dim_; i++){
-            if (std::isinf(nu[i][i]) || std::isnan(nu[i][i])){
-              Matrix<Double> e = nu_[idx];
-                nu[i][i] = e[i][i]; //e[i][i]; //mu_0;
-            } 
-        }
-      }
-      return nu;  
-    }
-
-
-
 
     Vector<Double> invEBHysteresis::Evaluate(Vector<Double> B_n, UInt idx) {
       // define needed variables
       Vector<Double> ret;
       
       if (dim_ == 2) {
-        if (anhyst_formula_ == "tan" || anhyst_formula_ == "lookuptable" ) {
+        if (approx_type_ == "fullInvEB") {
           ret = Eval_2D_invEBM(B_n, saveTmpStageVecs_, idx);
-        } else if (anhyst_formula_ == "brauer") {
-          ret = Eval_2D_Brauer(B_n, saveTmpStageVecs_, idx);
+        } else if (approx_type_ == "approxVSM") {
+          ret = Eval_2D_VSM(B_n, saveTmpStageVecs_, idx);
+        } else {
+          EXCEPTION("WRONG approx_type_");
         }
       } else if (dim_ == 3) {
-        if (anhyst_formula_ == "tan" || anhyst_formula_ == "lookuptable") {
+        if (approx_type_ == "fullInvEB") {
           ret = Eval_3D_invEBM(B_n, saveTmpStageVecs_, idx);
-        } else if (anhyst_formula_ == "brauer") {
-          ret = Eval_3D_Brauer(B_n, saveTmpStageVecs_, idx);
+        } else if (approx_type_ == "approxVSM") {
+          ret = Eval_3D_VSM(B_n, saveTmpStageVecs_, idx);
+        } else {
+          EXCEPTION("WRONG approx_type_");
         }
       }
       return ret;
     }
+
+    Vector<Double> invEBHysteresis::Eval_2D_Brauer(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
+      // define needed variables
+      Vector<Double>     ret;
+      Vector<Double>     H_out(dim_);
+
+      // BRAUER 3D MODEL
+      Double norm_B_n;
+      norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
+      H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
+      H_out[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
+
+      // return value
+      ret.Push_back(H_out[0]);
+      ret.Push_back(H_out[1]);
+      return ret;
+
+    } 
 
     Vector<Double> invEBHysteresis::Eval_2D_invEBM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
       // define needed variables
@@ -1541,54 +1502,255 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         } else if (anhyst_formula_ == "lookuptable") {
           internal_energy[kdx] = IntTrapz1D(norm_J[kdx], J_lut, H_lut);
         }
-
       }
 
       // return
       return internal_energy;
     }
 
-    Vector<Double> invEBHysteresis::Eval_3D_Brauer(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
-      // define needed variables
-      Vector<Double>     ret;
-      Vector<Double>     H_out(dim_);
+    Vector<Double> invEBHysteresis::Eval_2D_VSM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
+      
+      Vector<Double> r_values(numS_);   // Thresholds [T]
+      Vector<Double> p_weights(numS_);      // Weights [A/m]
+      UInt num_pin = numS_;
+      for(UInt i = 0; i < numS_; i++){ // hysteresis parameter
+        p_weights[i] = kappa_file_[i];
+        r_values[i] = omega_file_[i];
+      }
 
-      // BRAUER 3D MODEL
-      Double norm_B_n;
-      norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[2],2));
-      /* H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
-      H_out[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
-      H_out[2] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[2]; */
-      H_out[0] = (1/(1000*mu0_))*B_n[0];
-      H_out[1] = (1/(1000*mu0_))*B_n[1];
-      H_out[2] = (1/(1000*mu0_))*B_n[2];
+      // NECCESSARY VARIABLES
+      Vector<Double>     ret;
+      double norm_w_cand;
+      Matrix<Double> w_state(num_pin,dim_), w_old(num_pin,dim_);
+
+      Vector<Double>H_hyst(dim_), H_an(dim_), H_out(dim_), w_cand(dim_);
+      StdVector<Double>  w_x_state_sol, w_y_state_sol;
+      w_x_state_sol.Resize(num_pin, 0.0);
+      w_y_state_sol.Resize(num_pin, 0.0);
+
+      StdVector<Double>& w_state_x_old = w_state_x_old_[idx]; // get w_state from previous time step
+      StdVector<Double>& w_state_y_old = w_state_y_old_[idx];
+
+      // CALCULATE HYSTERETIC PART
+      H_hyst[0] = 0; H_hyst[1] = 0;
+      for(UInt kdx = 0; kdx < num_pin; kdx++){ // loop over all particles
+        // get state + B-field from last time step
+        w_old[kdx][0] = w_state_x_old[kdx];
+        w_old[kdx][1] = w_state_y_old[kdx];
+        // Calculate the candidate output vector
+        w_cand[0] = w_old[kdx][0] + (B_n[0] - B_prev_VSM_[idx][0]);
+        w_cand[1] = w_old[kdx][1] + (B_n[1] - B_prev_VSM_[idx][1]);
+        norm_w_cand = std::sqrt(std::pow(w_cand[0],2) + std::pow(w_cand[1],2));
+        // Apply the spherical 'stop' to get the current state
+        if (norm_w_cand > r_values[kdx]) {
+          w_state[kdx][0] = r_values[kdx]*w_cand[0] / norm_w_cand;
+          w_state[kdx][1] = r_values[kdx]*w_cand[1] / norm_w_cand;
+        } else {
+          w_state[kdx][0] = w_cand[0];
+          w_state[kdx][1] = w_cand[1];
+        }
+        // Add the weighted contribution to the total hysteretic field
+        H_hyst[0] = H_hyst[0] + p_weights[kdx]*w_state[kdx][0];
+        H_hyst[1] = H_hyst[1] + p_weights[kdx]*w_state[kdx][1];
+        // save state + B-field for the next time step
+      }
+      
+      if(saveTmpStageVecs){
+        for(UInt kdx = 0; kdx < num_pin; kdx++) {
+          w_x_state_sol[kdx] = w_state[kdx][0];
+          w_y_state_sol[kdx] = w_state[kdx][1];
+        }
+        w_state_x_tmp_[idx] = w_x_state_sol;
+        w_state_y_tmp_[idx] = w_y_state_sol;
+      }
+
+      // CALCULATE ANHYSTERETIC PART 
+      if (anhyst_formula_ == "brauer") {
+        Double norm_B_n;
+        norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
+        H_an[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
+        H_an[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
+      } else if (anhyst_formula_ == "atan" || anhyst_formula_ == "pacejka") { // all anhysteretic functions that are described via M(H)
+        H_an = Anhyst_2D_VSM(B_n);
+      } else {
+        EXCEPTION("WRONG anhyst_formula_");
+      }
+
+      // PUT BOTH TOGETHER
+      H_out[0] = H_hyst[0] + H_an[0];
+      H_out[1] = H_hyst[1] + H_an[1];
+
+      // return value
+      ret.Push_back(H_out[0]);
+      ret.Push_back(H_out[1]);
+      return ret;
+    }
+
+
+    Vector<Double> invEBHysteresis::Eval_3D_VSM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
+
+      Vector<Double> r_values;   // Thresholds [T]
+      Vector<Double> p_weights;      // Weights [A/m]
+      UInt num_pin = numS_;
+      for(UInt i = 0; i < numS_; i++){ // hysteresis parameter
+        p_weights[i] = kappa_file_[i];
+        r_values[i] = omega_file_[i];
+      }
+
+      // NECCESSARY VARIABLES
+      Vector<Double>     ret;
+      double norm_w_cand;
+      Matrix<Double> w_state(num_pin,dim_), w_old(num_pin,dim_);
+
+      Vector<Double>H_hyst(dim_), H_an(dim_), H_out(dim_), w_cand(dim_);
+      StdVector<Double>  w_x_state_sol, w_y_state_sol, w_z_state_sol;
+      w_x_state_sol.Resize(num_pin, 0.0);
+      w_y_state_sol.Resize(num_pin, 0.0);
+      w_z_state_sol.Resize(num_pin, 0.0);
+
+      StdVector<Double>& w_state_x_old = w_state_x_old_[idx]; // get w_state from previous time step
+      StdVector<Double>& w_state_y_old = w_state_y_old_[idx];
+      StdVector<Double>& w_state_z_old = w_state_z_old_[idx];
+
+      // CALCULATE HYSTERETIC PART
+      for(UInt kdx = 0; kdx < num_pin; kdx++){ // loop over all particles
+        // get state + B-field from last time step
+        w_old[kdx][0] = w_state_x_old[kdx];
+        w_old[kdx][1] = w_state_y_old[kdx];
+        w_old[kdx][2] = w_state_z_old[kdx];
+        // Calculate the candidate output vector
+        w_cand[0] = w_old[kdx][0] + (B_n[0] - B_prev_[idx][0]);
+        w_cand[1] = w_old[kdx][1] + (B_n[1] - B_prev_[idx][1]);
+        w_cand[2] = w_old[kdx][2] + (B_n[2] - B_prev_[idx][2]);
+        norm_w_cand = std::sqrt(std::pow(w_cand[0],2) + std::pow(w_cand[1],2) + std::pow(w_cand[2],2));
+        // Apply the spherical 'stop' to get the current state
+        if (norm_w_cand > r_values[kdx]) {
+          w_state[kdx][0] = r_values[kdx]*w_cand[0] / norm_w_cand;
+          w_state[kdx][1] = r_values[kdx]*w_cand[1] / norm_w_cand;
+          w_state[kdx][2] = r_values[kdx]*w_cand[2] / norm_w_cand;
+        } else {
+          w_state[kdx][0] = w_cand[0];
+          w_state[kdx][1] = w_cand[1];
+          w_state[kdx][2] = w_cand[2];
+        }
+        // Add the weighted contribution to the total hysteretic field
+        H_hyst[0] = H_hyst[0] + p_weights[kdx]*w_state[kdx][0];
+        H_hyst[1] = H_hyst[1] + p_weights[kdx]*w_state[kdx][1];
+        H_hyst[2] = H_hyst[2] + p_weights[kdx]*w_state[kdx][2];
+        // save state + B-field for the next time step
+      }
+      if(saveTmpStageVecs){
+        for(UInt kdx = 0; kdx < num_pin; kdx++) {
+          w_x_state_sol[kdx] = w_state[kdx][0];
+          w_y_state_sol[kdx] = w_state[kdx][1];
+          w_z_state_sol[kdx] = w_state[kdx][2];
+        }
+        w_state_x_tmp_[idx] = w_x_state_sol;
+        w_state_y_tmp_[idx] = w_y_state_sol;
+        w_state_z_tmp_[idx] = w_z_state_sol;
+      }
+
+      // CALCULATE ANHYSTERETIC PART 
+      if (anhyst_formula_ == "brauer") {
+        Double norm_B_n;
+        norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[2],2));
+        H_an[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
+        H_an[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
+        H_an[2] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[2];
+      } else {
+        EXCEPTION("WRONG anhyst_formula_")
+      }
+
+      // PUT BOTH TOGETHER
+      H_out[0] = H_hyst[0] + H_an[0];
+      H_out[1] = H_hyst[1] + H_an[1];
+      H_out[2] = H_hyst[2] + H_an[2];
 
       // return value
       ret.Push_back(H_out[0]);
       ret.Push_back(H_out[1]);
       ret.Push_back(H_out[2]);
       return ret;
+    }
 
-    } 
+    Vector<Double> invEBHysteresis::Anhyst_2D_VSM(Vector<Double> B_n){
 
-    Vector<Double> invEBHysteresis::Eval_2D_Brauer(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
-      // define needed variables
-      Vector<Double>     ret;
-      Vector<Double>     H_out(dim_);
+      // NEEDED VARIABLES
+      UInt max_iter;
+      Double norm_B_n, B_x_dir, B_y_dir, tolerance, norm_J, J_sat, J_low, J_high, J_mid, f_mid, f_low, norm_H;
+      Vector<Double> H_vec(dim_);
 
-      // BRAUER 2-D MODEL
-      Double norm_B_n;
-      norm_B_n = norm_B_n + 1e-2;
+      // NEEDED QUANTITIES
       norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
-      H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
-      H_out[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
+      B_x_dir = B_n[0]/norm_B_n;
+      B_y_dir = B_n[1]/norm_B_n;
+      if (std::isnan(B_x_dir)) {
+        B_x_dir = 0;
+      }
+      if (std::isnan(B_y_dir)) {
+        B_y_dir = 0;
+      }
 
-      // return value
-      ret.Push_back(H_out[0]);
-      ret.Push_back(H_out[1]);
-      return ret;
-    } 
+      // --- BISECTION METHOD FOR SCALAR J (Polarization in Tesla) ---
+      max_iter = 10000;
+      tolerance = 1e-14;
+      // search interval
+      if (anhyst_formula_ == "atan" || anhyst_formula_ == "pacejka") { // check how the satiration is described
+        J_sat = mu0_ * Ms_ * 0.99999;
+      }  else {
+        EXCEPTION("WRONG anhyst_formula_")
+      }
+        
+      J_low = -J_sat;
+      J_high = J_sat;
+      // first guess
+      f_low = Root_Function_2D_VSM(J_low, norm_B_n);
 
+      // iterative bisection start
+      for (int iter_counter; iter_counter < max_iter; iter_counter++){
+        J_mid = (J_low + J_high)/2;
+        f_mid = Root_Function_2D_VSM(J_mid, norm_B_n);
+        if (f_low*f_mid < 0){
+          J_high = J_mid;
+        } else {
+          J_low = J_mid;
+          f_low = f_mid;
+        }
+        // convergence check
+        if (std::abs(J_high - J_low) < tolerance) {
+          break;
+        }
+      }
+      norm_J = (J_low + J_high)/2;
+
+      // get H field
+      norm_H = (1/mu0_)*(norm_B_n-norm_J);
+      H_vec[0] = norm_H*B_x_dir;
+      H_vec[1] = norm_H*B_y_dir; 
+
+      // RETURN
+      return H_vec;
+    }
+    Double invEBHysteresis::Root_Function_2D_VSM(Double norm_J, Double norm_B_n){
+
+      // NEEDED VARIABLES
+      Double norm_H, g_prime_val;
+
+      // get intermediate H field
+      norm_H = (1/mu0_)*(norm_B_n-norm_J);
+
+      // Calculate the anhysteretic polarization J_an(H)
+      if (anhyst_formula_ == "atan"){
+        g_prime_val = mu0_*(2*Ms_/M_PI)*std::atan(norm_H/A_);
+      } else if (anhyst_formula_ == "pacejka") {
+        g_prime_val = mu0_ * ( Ms_*std::sin(std::atan(pa_*norm_H + pb_*std::atan(pc_*norm_H))) );
+      }  else {
+        EXCEPTION("WRONG anhyst_formula_");
+      }
+
+      // The function f(J) = (1/mu0) * (J - J_an(H))
+      return (1/mu0_)*(norm_J - g_prime_val);
+    }
 
 
 
@@ -1827,9 +1989,16 @@ DEFINE_LOG(inveb, "invEBHysteresis")
     void invEBHysteresis::UpdateStates() {
       #pragma omp critical
       {
+        // for full invEB
         J_x_k_n_ = J_x_k_n_tmp_;
         J_y_k_n_ = J_y_k_n_tmp_;
         J_z_k_n_ = J_z_k_n_tmp_;
+
+        // for vector stop model
+        B_prev_VSM_ = B_prev_VSM_tmp_; 
+        w_state_x_old_ = w_state_x_tmp_;
+        w_state_y_old_ = w_state_y_tmp_;
+        w_state_z_old_ = w_state_z_tmp_;
       }
     }
 

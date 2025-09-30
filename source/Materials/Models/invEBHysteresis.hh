@@ -51,7 +51,7 @@ namespace CoupledField {
       void UpdateStates();
       void AllowUpdates(bool allow);
       
-      // --------------- General hysteresis operator functions --------------- //
+      // --------------- General hysteresis operator functions (start) --------------- //
 
       // recipe to evaluate the hysteresis operator
       Matrix<Double> ComputeTensorialMaterialParameter(Vector<Double> B, Integer ElemNum);
@@ -59,10 +59,14 @@ namespace CoupledField {
       // Evaluate the hystersis operator for all available cases
       Vector<Double> Evaluate(Vector<Double> B, UInt idx);
       
-      Vector<Double> Eval_2D_Brauer(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
-      Vector<Double> Eval_2D_invEBM(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
-      Vector<Double> Eval_3D_Brauer(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
-      Vector<Double> Eval_3D_invEBM(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx);
+      // Available hysteresis / nonlinear models
+      Vector<Double> Eval_2D_invEBM(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx); // 2D exact inversed hyyteresis operator (LAVET)
+      Vector<Double> Eval_2D_Brauer(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx); // 2D Vector Stop Model (VSM)
+      Vector<Double> Eval_2D_VSM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx); // 2D Vector Stop Model (VSM)
+      Vector<Double> Eval_3D_invEBM(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx); // 3D exact inversed hyyteresis operator (LAVET)
+      Vector<Double> Eval_3D_VSM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx); // 3D Vector Stop Model (VSM)
+
+      // --------------- General hysteresis operator functions (end) --------------- //
 
       // --------------- FE related functions --------------- //
 
@@ -76,7 +80,7 @@ namespace CoupledField {
       Matrix<Double> EvaluateLocalNuBFGS(Vector<Double> dH, Vector<Double> dB, UInt idx);
 
       // this methods is for the FE - Formulation and give the material tensor: Broyden update
-      Matrix<Double> EvaluateLocalNuGBM(Vector<Double> dH, Vector<Double> dB, UInt idx);
+      //Matrix<Double> EvaluateLocalNuGBM(Vector<Double> dH, Vector<Double> dB, UInt idx);
 
       // --------------- HELPER FUNCTIONS: evaluation of the hysteresis operator (START) --------------- //
 
@@ -117,6 +121,14 @@ namespace CoupledField {
 
       // --------------- HELPER FUNCTIONS: evaluation of the hysteresis operator (END) --------------- //
 
+      // --------------- HELPER FUNCTIONS: evaluation of the vector stop model (START) --------------- //
+
+      Vector<Double> Anhyst_2D_VSM(Vector<Double> B_n);
+      Double Root_Function_2D_VSM(Double norm_J, Double norm_B_n);
+
+
+      // --------------- HELPER FUNCTIONS: evaluation of the vector stop model (END) --------------- //
+
       // --------------- HELPER FUNCTIONS: Solve linear systems (START) --------------- //
 
       // solves a linear system using gaussian elimination
@@ -153,15 +165,16 @@ namespace CoupledField {
 
       UInt numElems_;
 
-      Double Js_;
+      Double Js_,Ms_;
       string lookup_table_file_;
-      Double A_;
+      Double A_, pa_, pb_, pc_;
       Double p_0_, p_1_, p_2_;
       Double mu0_;
       UInt numS_;
       UInt jacobian_method_;
       std::string anhyst_type_;
       std::string anhyst_formula_;
+      std::string approx_type_;
       std::string pinning_forces_weight_;
       UInt ndx_g_;
       std::vector<Double> J_lut_, H_lut_;
@@ -170,6 +183,19 @@ namespace CoupledField {
 
       StdVector< StdVector<Double> > B_prev_;
       StdVector< StdVector<Double> > H_prev_;
+
+      StdVector< StdVector<Double> > B_prev_VSM_;
+      StdVector< StdVector<Double> > H_prev_VSM_;      
+      StdVector< StdVector<Double> > B_prev_VSM_tmp_;
+      StdVector< StdVector<Double> > H_prev_VSM_tmp_;
+
+      StdVector< StdVector<Double> > w_state_x_old_;
+      StdVector< StdVector<Double> > w_state_y_old_;
+      StdVector< StdVector<Double> > w_state_z_old_;
+
+      StdVector< StdVector<Double> > w_state_x_tmp_;
+      StdVector< StdVector<Double> > w_state_y_tmp_;
+      StdVector< StdVector<Double> > w_state_z_tmp_;
 
       StdVector< StdVector<Double> > J_x_k_prev_;
       StdVector< StdVector<Double> > J_y_k_prev_;

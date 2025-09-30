@@ -1128,21 +1128,6 @@ namespace CoupledField {
               material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/lambda111")->As<Double>(), MaterialType(MAG_MSM_LAMBDA111), Global::REAL);
               material->SetScalar(model->Get("Anhysteresis_model/multiscale_anhysteresis/Ps")->As<Double>(), MaterialType(MAG_MSM_PS), Global::REAL);
             }
-            // if(model->Has("Anhysteresis_model/analytic_anhysteresis/anhyst_type")){
-              
-
-
-            //   // material->SetAnhystMagModel("analytic_anhysteresis");
-            //   // // material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/anhyst_type")->As<Double>(), MaterialType(MAG_ANHYST_TYPE_EB), Global::REAL);
-            //   // material->SetScalar(1, MaterialType(MAG_), Global::REAL);
-
-            //   // // material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/Ps")->As<Double>(), MaterialType(MAG_PS_EB), Global::REAL);
-            //   // // material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/A")->As<Double>(), MaterialType(MAG_A_EB), Global::REAL);
-              
-            // }
-
-            // material->SetScalar(model->Get("numS")->As<Double>(), MaterialType(MAG_NUMS_EB), Global::REAL);
-            // material->SetScalar(model->Get("chi_factor")->As<Double>(), MaterialType(MAG_CHI_FACTOR_EB), Global::REAL);// delete later
             material->SetString(model->Get("pinning_forces_weights_file")->As<string>(), MaterialType(MAG_PINNING_FORCES_WEIGHTS_EB));
             if(model->Get("Jacobian_type")->As<std::string>() == "FD"){
               material->SetScalar(1, MaterialType(MAG_JACOBIAN_METHOD_EB), Global::REAL);
@@ -1174,6 +1159,13 @@ namespace CoupledField {
           else if (perm->Get("model")->Get("isotropic")->Has("invEBHysteresisModel")) 
           {
             model = perm->Get("model")->Get("isotropic")->Get("invEBHysteresisModel");
+            if(model->Get("Approx_type")->As<std::string>() == "fullInvEB"){
+              material->SetScalar(1, MaterialType(MAG_APPROX_TYPE), Global::REAL);   
+            }else if(model->Get("Approx_type")->As<std::string>() == "approxVSM"){
+              material->SetScalar(2, MaterialType(MAG_APPROX_TYPE), Global::REAL);
+            }else{
+              EXCEPTION("Approx_type of name "<<model->Get("Approx_type")->As<std::string>()<<" not implemented");
+            }
             if(model->Has("Anhysteresis_model/analytic_anhysteresis")){
               material->SetAnhystMagModel("analytic_anhysteresis");
               material->SetString("analytic_anhysteresis", MaterialType(MAG_ANHYST_TYPE_INVEB));
@@ -1182,6 +1174,18 @@ namespace CoupledField {
                 material->SetAnhystFormula("tan");// should be ocsolete -- delete later
                 material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/tan/Js")->As<Double>(), MaterialType(MAG_JS_INVEB), Global::REAL);
                 material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/tan/A")->As<Double>(), MaterialType(MAG_A_INVEB), Global::REAL);
+              } else if(model->Has("Anhysteresis_model/analytic_anhysteresis/atan")){
+                material->SetString("atan", MaterialType(MAG_ANHYST_FORMULA_INVEB));
+                material->SetAnhystFormula("atan");
+                material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/atan/Ms")->As<Double>(), MaterialType(MAG_MS_INVEB), Global::REAL);
+                material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/atan/A")->As<Double>(), MaterialType(MAG_A_INVEB), Global::REAL);
+              } else if(model->Has("Anhysteresis_model/analytic_anhysteresis/pacejka")){
+                material->SetString("pacejka", MaterialType(MAG_ANHYST_FORMULA_INVEB));
+                material->SetAnhystFormula("pacejka");
+                material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/pacejka/Ms")->As<Double>(), MaterialType(MAG_MS_INVEB), Global::REAL);
+                material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/pacejka/a")->As<Double>(), MaterialType(MAG_PA_INVEB), Global::REAL);
+                material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/pacejka/b")->As<Double>(), MaterialType(MAG_PB_INVEB), Global::REAL);
+                material->SetScalar(model->Get("Anhysteresis_model/analytic_anhysteresis/pacejka/c")->As<Double>(), MaterialType(MAG_PC_INVEB), Global::REAL);
               } else if(model->Has("Anhysteresis_model/analytic_anhysteresis/brauer")){
                 material->SetString("brauer", MaterialType(MAG_ANHYST_FORMULA_INVEB));
                 material->SetAnhystFormula("brauer");

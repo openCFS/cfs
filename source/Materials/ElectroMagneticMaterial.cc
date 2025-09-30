@@ -89,6 +89,10 @@ namespace CoupledField
     isAllowed_.insert( MAG_ANHYST_TYPE_INVEB );
     isAllowed_.insert( MAG_ANHYST_FORMULA_INVEB ); 
     isAllowed_.insert( MAG_JS_INVEB );
+    isAllowed_.insert( MAG_MS_INVEB );
+    isAllowed_.insert( MAG_PA_INVEB );
+    isAllowed_.insert( MAG_PB_INVEB );
+    isAllowed_.insert( MAG_PC_INVEB );
     isAllowed_.insert( MAG_A_INVEB );
     isAllowed_.insert( MAG_P0_INVEB );
     isAllowed_.insert( MAG_P1_INVEB );

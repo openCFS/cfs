@@ -578,6 +578,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add(MAG_ANHYST_TYPE_INVEB, "mag_anhyst_type_invEB");
     MaterialTypeEnum.Add(MAG_ANHYST_FORMULA_INVEB, "mag_anhyst_formula_invEB");
     MaterialTypeEnum.Add(MAG_JS_INVEB, "mag_Js_invEB");
+    MaterialTypeEnum.Add(MAG_MS_INVEB, "mag_Ms_invEB");
+    MaterialTypeEnum.Add(MAG_PA_INVEB, "mag_pa_invEB");
+    MaterialTypeEnum.Add(MAG_PB_INVEB, "mag_pb_invEB");
+    MaterialTypeEnum.Add(MAG_PC_INVEB, "mag_pc_invEB");
     MaterialTypeEnum.Add(MAG_A_INVEB, "mag_A_invEB");
     MaterialTypeEnum.Add(MAG_P0_INVEB, "mag_p0_invEB");
     MaterialTypeEnum.Add(MAG_P1_INVEB, "mag_p1_invEB");

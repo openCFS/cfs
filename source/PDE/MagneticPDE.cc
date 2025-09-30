@@ -208,7 +208,7 @@ namespace CoupledField {
           PtrCoefFct field_intensity_eb = NULL;
           BaseBDBInt * stiffInt = NULL;
 
-          // init. EB Material Model
+          // init. inv. EB Material Model
           std::map<std::string, double> ParameterMap;
           std::map<std::string, std::string> StringParameterMap;
           if(actSDMat->GetAnhystMagModel() == "analytic_anhysteresis"){
@@ -217,8 +217,16 @@ namespace CoupledField {
               actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
               actSDMat->GetScalar(ParameterMap["Js"], MAG_JS_INVEB, Global::REAL);
               actSDMat->GetScalar(ParameterMap["A"], MAG_A_INVEB, Global::REAL);
-              actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
-              actSDMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
+            } else if(actSDMat->GetAnhystFormula() == "atan"){
+              actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
+              actSDMat->GetScalar(ParameterMap["Ms"], MAG_MS_INVEB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["A"], MAG_A_INVEB, Global::REAL);
+            } else if(actSDMat->GetAnhystFormula() == "pacejka"){
+              actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
+              actSDMat->GetScalar(ParameterMap["Ms"], MAG_MS_INVEB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["pa"], MAG_PA_INVEB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["pb"], MAG_PB_INVEB, Global::REAL);
+              actSDMat->GetScalar(ParameterMap["pc"], MAG_PC_INVEB, Global::REAL);
             } else if (actSDMat->GetAnhystFormula() == "brauer") {
               actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
               actSDMat->GetScalar(ParameterMap["p_0"], MAG_P0_INVEB, Global::REAL);
@@ -227,10 +235,11 @@ namespace CoupledField {
             } else if (actSDMat->GetAnhystFormula() == "lookuptable") {
               actSDMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
               actSDMat->GetString(StringParameterMap["lookup_table_file"], MAG_LOOKUP_TABLE_FILE_INVEB);
-              actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
-              actSDMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
             }
           }
+          actSDMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
+          actSDMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
+          actSDMat->GetScalar(ParameterMap["approx_type"], MAG_APPROX_TYPE, Global::REAL);
           ParameterMap["isMH"] = 0;
           actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
           matModelCoefm_[actRegion]->InitModel(ParameterMap,StringParameterMap, actSDList);
