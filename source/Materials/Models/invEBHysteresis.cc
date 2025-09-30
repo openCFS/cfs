@@ -1571,7 +1571,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         H_an[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
         H_an[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
       } else if (anhyst_formula_ == "atan" || anhyst_formula_ == "pacejka") { // all anhysteretic functions that are described via M(H)
-        H_an = Anhyst_2D_VSM(B_n);
+        H_an = Anhyst_VSM(B_n);
       } else {
         EXCEPTION("WRONG anhyst_formula_");
       }
@@ -1589,8 +1589,8 @@ DEFINE_LOG(inveb, "invEBHysteresis")
 
     Vector<Double> invEBHysteresis::Eval_3D_VSM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
 
-      Vector<Double> r_values;   // Thresholds [T]
-      Vector<Double> p_weights;      // Weights [A/m]
+      Vector<Double> r_values(numS_);   // Thresholds [T]
+      Vector<Double> p_weights(numS_);      // Weights [A/m]
       UInt num_pin = numS_;
       for(UInt i = 0; i < numS_; i++){ // hysteresis parameter
         p_weights[i] = kappa_file_[i];
@@ -1613,15 +1613,16 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       StdVector<Double>& w_state_z_old = w_state_z_old_[idx];
 
       // CALCULATE HYSTERETIC PART
+      H_hyst[0] = 0; H_hyst[1] = 0; H_hyst[2] = 0;
       for(UInt kdx = 0; kdx < num_pin; kdx++){ // loop over all particles
         // get state + B-field from last time step
         w_old[kdx][0] = w_state_x_old[kdx];
         w_old[kdx][1] = w_state_y_old[kdx];
         w_old[kdx][2] = w_state_z_old[kdx];
         // Calculate the candidate output vector
-        w_cand[0] = w_old[kdx][0] + (B_n[0] - B_prev_[idx][0]);
-        w_cand[1] = w_old[kdx][1] + (B_n[1] - B_prev_[idx][1]);
-        w_cand[2] = w_old[kdx][2] + (B_n[2] - B_prev_[idx][2]);
+        w_cand[0] = w_old[kdx][0] + (B_n[0] - B_prev_VSM_[idx][0]);
+        w_cand[1] = w_old[kdx][1] + (B_n[1] - B_prev_VSM_[idx][1]);
+        w_cand[2] = w_old[kdx][2] + (B_n[2] - B_prev_VSM_[idx][2]);
         norm_w_cand = std::sqrt(std::pow(w_cand[0],2) + std::pow(w_cand[1],2) + std::pow(w_cand[2],2));
         // Apply the spherical 'stop' to get the current state
         if (norm_w_cand > r_values[kdx]) {
@@ -1639,6 +1640,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         H_hyst[2] = H_hyst[2] + p_weights[kdx]*w_state[kdx][2];
         // save state + B-field for the next time step
       }
+      
       if(saveTmpStageVecs){
         for(UInt kdx = 0; kdx < num_pin; kdx++) {
           w_x_state_sol[kdx] = w_state[kdx][0];
@@ -1653,12 +1655,14 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       // CALCULATE ANHYSTERETIC PART 
       if (anhyst_formula_ == "brauer") {
         Double norm_B_n;
-        norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[2],2));
+        norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[1],2));
         H_an[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
         H_an[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
         H_an[2] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[2];
+      } else if (anhyst_formula_ == "atan" || anhyst_formula_ == "pacejka") { // all anhysteretic functions that are described via M(H)
+        H_an = Anhyst_VSM(B_n);
       } else {
-        EXCEPTION("WRONG anhyst_formula_")
+        EXCEPTION("WRONG anhyst_formula_");
       }
 
       // PUT BOTH TOGETHER
@@ -1673,22 +1677,38 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       return ret;
     }
 
-    Vector<Double> invEBHysteresis::Anhyst_2D_VSM(Vector<Double> B_n){
+    Vector<Double> invEBHysteresis::Anhyst_VSM(Vector<Double> B_n){
 
       // NEEDED VARIABLES
       UInt max_iter;
-      Double norm_B_n, B_x_dir, B_y_dir, tolerance, norm_J, J_sat, J_low, J_high, J_mid, f_mid, f_low, norm_H;
+      Double norm_B_n, B_x_dir, B_y_dir, B_z_dir, tolerance, norm_J, J_sat, J_low, J_high, J_mid, f_mid, f_low, norm_H;
       Vector<Double> H_vec(dim_);
 
       // NEEDED QUANTITIES
-      norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
-      B_x_dir = B_n[0]/norm_B_n;
-      B_y_dir = B_n[1]/norm_B_n;
-      if (std::isnan(B_x_dir)) {
-        B_x_dir = 0;
-      }
-      if (std::isnan(B_y_dir)) {
-        B_y_dir = 0;
+      if (dim_ == 2) { // 2D case
+        norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
+        B_x_dir = B_n[0]/norm_B_n;
+        B_y_dir = B_n[1]/norm_B_n;
+        if (std::isnan(B_x_dir)) {
+          B_x_dir = 0;
+        }
+        if (std::isnan(B_y_dir)) {
+          B_y_dir = 0;
+        }
+      } else { // 3D case
+        norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[2],2));
+        B_x_dir = B_n[0]/norm_B_n;
+        B_y_dir = B_n[1]/norm_B_n;
+        B_z_dir = B_n[2]/norm_B_n;
+        if (std::isnan(B_x_dir)) {
+          B_x_dir = 0;
+        }
+        if (std::isnan(B_y_dir)) {
+          B_y_dir = 0;
+        }   
+        if (std::isnan(B_z_dir)) {
+          B_z_dir = 0;
+        }        
       }
 
       // --- BISECTION METHOD FOR SCALAR J (Polarization in Tesla) ---
@@ -1704,12 +1724,12 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       J_low = -J_sat;
       J_high = J_sat;
       // first guess
-      f_low = Root_Function_2D_VSM(J_low, norm_B_n);
+      f_low = Root_Function_VSM(J_low, norm_B_n);
 
       // iterative bisection start
       for (int iter_counter; iter_counter < max_iter; iter_counter++){
         J_mid = (J_low + J_high)/2;
-        f_mid = Root_Function_2D_VSM(J_mid, norm_B_n);
+        f_mid = Root_Function_VSM(J_mid, norm_B_n);
         if (f_low*f_mid < 0){
           J_high = J_mid;
         } else {
@@ -1725,13 +1745,19 @@ DEFINE_LOG(inveb, "invEBHysteresis")
 
       // get H field
       norm_H = (1/mu0_)*(norm_B_n-norm_J);
-      H_vec[0] = norm_H*B_x_dir;
-      H_vec[1] = norm_H*B_y_dir; 
+      if (dim_ == 2) { // 2D case
+        H_vec[0] = norm_H*B_x_dir;
+        H_vec[1] = norm_H*B_y_dir; 
+      } else { // 3D case
+        H_vec[0] = norm_H*B_x_dir;
+        H_vec[1] = norm_H*B_y_dir; 
+        H_vec[2] = norm_H*B_z_dir; 
+      }
 
       // RETURN
       return H_vec;
     }
-    Double invEBHysteresis::Root_Function_2D_VSM(Double norm_J, Double norm_B_n){
+    Double invEBHysteresis::Root_Function_VSM(Double norm_J, Double norm_B_n){
 
       // NEEDED VARIABLES
       Double norm_H, g_prime_val;

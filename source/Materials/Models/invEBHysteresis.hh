@@ -123,8 +123,8 @@ namespace CoupledField {
 
       // --------------- HELPER FUNCTIONS: evaluation of the vector stop model (START) --------------- //
 
-      Vector<Double> Anhyst_2D_VSM(Vector<Double> B_n);
-      Double Root_Function_2D_VSM(Double norm_J, Double norm_B_n);
+      Vector<Double> Anhyst_VSM(Vector<Double> B_n);
+      Double Root_Function_VSM(Double norm_J, Double norm_B_n);
 
 
       // --------------- HELPER FUNCTIONS: evaluation of the vector stop model (END) --------------- //
