@@ -7,12 +7,12 @@ clear_depencency_variables()
 set(PACKAGE_NAME "boost")
 # note that any newer version than 1.78.0 causes > 30 wrong test results, e.g. ExpressionHeatSource
 # probably in conjunction with muparser 2.2.6. There is a branch upgrade_boost which contains changes to compille 1.84
-#set(PACKAGE_VER "1.78.0")  
-#set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
-#set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
-set(PACKAGE_VER "1.71.0")  
-set(PACKAGE_FILE "boost_1_71_0.tar.bz2") # does not reflect PACKAGE_VER style
-set(PACKAGE_MD5 "4cdf9b5c2dc01fb2b7b733d5af30e558") # 1.71.0
+set(PACKAGE_VER "1.78.0")  
+set(PACKAGE_FILE "boost_1_78_0.tar.bz2") # does not reflect PACKAGE_VER style
+set(PACKAGE_MD5 "db0112a3a37a3742326471d20f1a186a") # 1.78.0
+# set(PACKAGE_VER "1.71.0")  
+# set(PACKAGE_FILE "boost_1_71_0.tar.bz2") # does not reflect PACKAGE_VER style
+# set(PACKAGE_MD5 "4cdf9b5c2dc01fb2b7b733d5af30e558") # 1.71.0
 
 set(DEPS_VER "-c") # set to "-a", "-b", when dependency changed with same PACKAGE_VER. Reset to "" with new PACKAGE_VER.
   

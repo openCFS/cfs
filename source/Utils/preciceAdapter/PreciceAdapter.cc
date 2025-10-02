@@ -132,7 +132,9 @@ namespace CoupledField
             {"Displacement", {"mechDisplacement", SolutionType::MECH_DISPLACEMENT}},
             {"MagneticFluxDensity", {"magFluxDensity", SolutionType::MAG_FLUX_DENSITY}},
             {"MagneticFieldIntensity", {"magFieldIntensity", SolutionType::MAG_FIELD_INTENSITY}},
-            {"JouleLossDensity", {"magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY}}
+            {"JouleLossDensity", {"magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY}},
+            {"p", {"acouPressure", SolutionType::ACOU_PRESSURE}},
+            {"acouRhsLoad", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}}
         };
 
         auto it = conversionMap.find(precicename);
@@ -198,7 +200,7 @@ namespace CoupledField
                 runtimeReadResults_.push_back(std::make_unique<ElementResult>(config));
                 runtimeReadResults_.back()->allocateData(cfsElemNumsVec_.size());
             } else {
-                EXCEPTION("PreciceAdapter: reading nodal values is not tested!");
+                // EXCEPTION("PreciceAdapter: reading nodal values is not tested!");
                 runtimeReadResults_.push_back(std::make_unique<NodeResult>(config));
                 runtimeReadResults_.back()->allocateData(cfsNodeNumsVec_.size());
             }
