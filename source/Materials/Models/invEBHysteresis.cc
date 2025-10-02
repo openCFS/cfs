@@ -302,7 +302,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
           for(UInt i = 0; i < dim_; i++) {
             for(UInt j = 0; j < dim_; j++) {
               if (i == j) {
-                nu[i][j] = 1/(mu0_*100);
+                nu[i][j] = 1/(mu0_*1000);
               } else {
                 nu[i][j] = 0;
               }
@@ -432,7 +432,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         B_k1[2][2] = B[2][2] + yyT[2][2]/yTx - BxBxT[2][2]/xTBx;
 
         // do some safety checks
-        B_k1[0][0] = std::abs(B_k1[0][0]); 
+        /* B_k1[0][0] = std::abs(B_k1[0][0]); 
         B_k1[0][1] = std::abs(B_k1[0][1]);
         B_k1[0][2] = std::abs(B_k1[0][2]);
 
@@ -442,7 +442,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
 
         B_k1[2][0] = std::abs(B_k1[2][0]); 
         B_k1[2][1] = std::abs(B_k1[2][1]);
-        B_k1[2][2] = std::abs(B_k1[2][2]);
+        B_k1[2][2] = std::abs(B_k1[2][2]); */
 
         if ( (std::isnan(B_k1[0][0])) || (std::isnan(B_k1[0][1])) || (std::isnan(B_k1[0][2]))
           || (std::isnan(B_k1[1][0])) || (std::isnan(B_k1[1][1])) || (std::isnan(B_k1[1][2]))
@@ -481,29 +481,12 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         } else if (approx_type_ == "approxVSM") {
           ret = Eval_3D_VSM(B_n, saveTmpStageVecs_, idx);
         } else {
+          std::cout << "approx_type_: " << approx_type_ << "\n";
           EXCEPTION("WRONG approx_type_");
         }
       }
       return ret;
     }
-
-    Vector<Double> invEBHysteresis::Eval_2D_Brauer(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
-      // define needed variables
-      Vector<Double>     ret;
-      Vector<Double>     H_out(dim_);
-
-      // BRAUER 3D MODEL
-      Double norm_B_n;
-      norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2));
-      H_out[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
-      H_out[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
-
-      // return value
-      ret.Push_back(H_out[0]);
-      ret.Push_back(H_out[1]);
-      return ret;
-
-    } 
 
     Vector<Double> invEBHysteresis::Eval_2D_invEBM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx){
       // define needed variables
@@ -1655,7 +1638,7 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       // CALCULATE ANHYSTERETIC PART 
       if (anhyst_formula_ == "brauer") {
         Double norm_B_n;
-        norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[1],2));
+        norm_B_n = std::sqrt(std::pow(B_n[0],2) + std::pow(B_n[1],2) + std::pow(B_n[2],2));
         H_an[0] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[0];
         H_an[1] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[1];
         H_an[2] = (p_0_ + (p_1_*std::pow(norm_B_n,2*p_2_)))*B_n[2];
@@ -1666,9 +1649,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       }
 
       // PUT BOTH TOGETHER
-      H_out[0] = H_hyst[0] + H_an[0];
-      H_out[1] = H_hyst[1] + H_an[1];
-      H_out[2] = H_hyst[2] + H_an[2];
+      H_out[0] = 0*H_hyst[0] + H_an[0];
+      H_out[1] = 0*H_hyst[1] + H_an[1];
+      H_out[2] = 0*H_hyst[2] + H_an[2];
 
       // return value
       ret.Push_back(H_out[0]);

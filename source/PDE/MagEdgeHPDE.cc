@@ -50,8 +50,8 @@
 #include "Domain/Results/ResultFunctor.hh"
 namespace CoupledField {
 
-// declare class specific logging stream
-DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
+  // declare class specific logging stream
+  DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
 
 
   // **************
@@ -1214,8 +1214,7 @@ DEFINE_LOG(magEdgeHPde, "magEdgeHPde")
           b = nlFluxCoefm_[*regIt];
         }
         bCoef->AddRegion(*regIt, b);
-      }
-      else{ // classical nonlinear case and linear case
+      } else { // classical nonlinear case and linear case
         if(Brmap_.find(*regIt) != Brmap_.end()){ // There is a remancence flux density in the region prescribed
           PtrCoefFct br;
           br = Brmap_[*regIt];

@@ -12,6 +12,7 @@ SET(PDE_SRCS
   MagBasePDE.cc
   MagEdgePDE.cc
   MagEdgeHPDE.cc
+  MagEdgeAStarPDE.cc
   MagEdgeAdjPDE.cc
   MagEdgeSpecialAVPDE.cc
   MagEdgeMixedAVPDE.cc

@@ -75,7 +75,7 @@ namespace CoupledField
     
     UInt pos = 0;
 
-    LOG_DBG2(solvestepeb) << "STARTING SetpTransNonLin() =============================================";
+    LOG_DBG2(solvestepeb) << "STARTING SetTransNonLin() =============================================";
     LOG_DBG2(solvestepeb) << "numStages:" << numStages;
     LOG_DBG2(solvestepeb) << "actTime_:" << actTime_;
 
@@ -366,13 +366,6 @@ namespace CoupledField
                     << "'.\n ==> incremental error: " << incrementalErr
                     << "\n ==> residual error: " << residualErr);
           }
-
-
-
-
-
-
-          
         }
       }
       // ###############################################################

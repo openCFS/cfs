@@ -269,6 +269,7 @@
               <xsd:enumeration value="H"/> 
               <xsd:enumeration value="mixedSFG"/>
               <xsd:enumeration value="regulSFG"/>
+              <xsd:enumeration value="AStar"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute> 

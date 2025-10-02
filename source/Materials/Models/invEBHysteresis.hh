@@ -61,7 +61,6 @@ namespace CoupledField {
       
       // Available hysteresis / nonlinear models
       Vector<Double> Eval_2D_invEBM(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx); // 2D exact inversed hyyteresis operator (LAVET)
-      Vector<Double> Eval_2D_Brauer(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx); // 2D Vector Stop Model (VSM)
       Vector<Double> Eval_2D_VSM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx); // 2D Vector Stop Model (VSM)
       Vector<Double> Eval_3D_invEBM(Vector<Double> Bn, bool saveTmpStageVecs, UInt idx); // 3D exact inversed hyyteresis operator (LAVET)
       Vector<Double> Eval_3D_VSM(Vector<Double> B_n, bool saveTmpStageVecs, UInt idx); // 3D Vector Stop Model (VSM)

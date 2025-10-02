@@ -170,10 +170,8 @@ namespace CoupledField
       feFunc->AddEntityList(actSDList);
 
       std::cout << "nonLinTypes.Find(PERMEABILITY): " << nonLinTypes.Find(PERMEABILITY) << "\n";
-      if (nonLinTypes.Find(PERMEABILITY) != -1)
-      {
-        if (modelName_ == "invEBHysteresisModel")
-        { // use inverse energy-based Hysteresis model
+      if (nonLinTypes.Find(PERMEABILITY) != -1) {
+        if (modelName_ == "invEBHysteresisModel"){ // use inverse energy-based Hysteresis model
           // define needed variables
           PtrCoefFct nu_nonlinear_eb = NULL;
           PtrCoefFct field_intensity_eb = NULL;
@@ -182,32 +180,25 @@ namespace CoupledField
           // init. EB Material Model
           std::map<std::string, double> ParameterMap;
           std::map<std::string, std::string> StringParameterMap;
-          if (actMat->GetAnhystMagModel() == "analytic_anhysteresis")
-          {
+          if (actMat->GetAnhystMagModel() == "analytic_anhysteresis"){
             actMat->GetString(StringParameterMap["anhyst_type"], MAG_ANHYST_TYPE_INVEB);
-            if (actMat->GetAnhystFormula() == "tan")
-            {
+            if (actMat->GetAnhystFormula() == "tan"){
               actMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
               actMat->GetScalar(ParameterMap["Js"], MAG_JS_INVEB, Global::REAL);
               actMat->GetScalar(ParameterMap["A"], MAG_A_INVEB, Global::REAL);
-              actMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
-              actMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
-            }
-            else if (actMat->GetAnhystFormula() == "brauer")
-            {
+            } else if (actMat->GetAnhystFormula() == "brauer") {
               actMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
               actMat->GetScalar(ParameterMap["p_0"], MAG_P0_INVEB, Global::REAL);
               actMat->GetScalar(ParameterMap["p_1"], MAG_P1_INVEB, Global::REAL);
               actMat->GetScalar(ParameterMap["p_2"], MAG_P2_INVEB, Global::REAL);
-            }
-            else if (actMat->GetAnhystFormula() == "lookuptable")
-            {
+            } else if (actMat->GetAnhystFormula() == "lookuptable") {
               actMat->GetString(StringParameterMap["anhyst_formula"], MAG_ANHYST_FORMULA_INVEB);
               actMat->GetString(StringParameterMap["lookup_table_file"], MAG_LOOKUP_TABLE_FILE_INVEB);
-              actMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
-              actMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
             }
           }
+          actMat->GetString(StringParameterMap["weights_file_path"], MAG_WEIGHTS_FILE_PATH_EB);
+          actMat->GetString(StringParameterMap["pinning_forces_weights_file"], MAG_PINNING_FORCES_WEIGHTS_INVEB);
+          actMat->GetScalar(ParameterMap["approx_type"], MAG_APPROX_TYPE, Global::REAL);
           ParameterMap["isMH"] = 0;
           actMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
           matModelCoefm_[actRegion]->InitModel(ParameterMap, StringParameterMap, actSDList);
@@ -221,12 +212,9 @@ namespace CoupledField
           curCoef = materials_[actRegion]->GetTensorCoefFnc(MAG_RELUCTIVITY_TENSOR, FULL, Global::REAL);
 
           // define integrators
-          if (dim_ == 3)
-          { // 3D case
+          if (dim_ == 3){ // 3D case
             stiffInt = new BDBInt<>(new CurlOperator<FeHCurl, 3, Double>(), nu_nonlinear_eb, 1.0, updatedGeo_);
-          }
-          else
-          {
+          } else {
             EXCEPTION("For Edge elements, only 3D is possible!")
           }
           stiffInt->SetName("(dH/dB curl A, curl A',nonlinear case, nonlinear subregion)");
@@ -235,14 +223,7 @@ namespace CoupledField
           stiffContext->SetFeFunctions(feFunc, feFunc);
           assemble_->AddBiLinearForm(stiffContext);
           bdbInts_.insert(std::pair<RegionIdType, BaseBDBInt *>(actRegion, stiffInt));
-          // } else {
-          //   EXCEPTION("Currently the only hysteresis model is: invEBHysteresisModel")
-          // }
-
-          // Switch, if region is linear / nonlinear
-        }
-        else if ((nonLinTypes.Find(HYSTERESIS) == -1) && ((nonLinTypes.GetSize() > 0) || (analysistype_ == MULTIHARMONIC)))
-        {
+        } else if ((nonLinTypes.Find(HYSTERESIS) == -1) && ((nonLinTypes.GetSize() > 0) || (analysistype_ == MULTIHARMONIC))){
           //        std::cout <<  "StiffnessMatrix - Case1: NonLin or Multiharmonic" << std::endl;
 
           // ================================
@@ -360,9 +341,7 @@ namespace CoupledField
             assemble_->AddBiLinearForm(stiffContext2);
           }
         }
-      }
-      else
-      {
+      } else {
         //        std::cout << "StiffnessMatrix - Case2: Hyst or Linear" << std::endl;
         // ***************************************
         // HYSTERESIS + LINEAR PART
@@ -447,7 +426,7 @@ namespace CoupledField
       // Mass Matrix
       // ============================================================
       if ((matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && nonLinTypes.GetSize() == 0) ||
-          (matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && analysistype_ == MULTIHARMONIC))
+          (matDepenTypes.Find(NLELEC_CONDUCTIVITY) != -1 && analysistype_ == MULTIHARMONIC)) 
       {
         // =================================================
         // Pure temperature-dependent nonlinear Mass Matrix
@@ -480,9 +459,21 @@ namespace CoupledField
 
         // insert mass integrator to list of defined mass integrators
         massInts_[actRegion] = massInt;
-      }
-      else
-      {
+      } else if ( nonLinTypes.Find(PERMEABILITY) != -1  && modelName_ == "invEBHysteresisModel"  ) {
+        PtrCoefFct regularization_parameter;
+        BaseBDBInt *massInt;
+        BiLinFormContext *massContext;
+
+        regularization_parameter = CoefFunction::Generate(mp_, Global::REAL, lexical_cast<std::string>(1e-2 * 1000*4*M_PI*1e-7));
+        massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl, 3, Double>(), regularization_parameter, 1.0);
+        massInt->SetName("MassIntegrator (regularization_parameter)");
+        massContext = new BiLinFormContext(massInt, STIFFNESS);
+        massContext->SetEntities(actSDList, actSDList);
+        massContext->SetFeFunctions(feFunc, feFunc);
+        assemble_->AddBiLinearForm(massContext);
+        // insert mass integrator to the list of defined mass integrators
+        massInts_[actRegion] = massInt;
+      } else {
         //        std::cout <<  "MassMatrix - Case2: Standard linear Mass Matrix" << std::endl;
         // =================================================
         // Standard linear Mass Matrix
@@ -753,17 +744,12 @@ namespace CoupledField
       // ===============================================================================================
       // NONLINEAR CASE AND NONLINEAR REGION: \int H(B) \curlN' (start)
       // ===============================================================================================
-      if (nonLinTypes.Find(PERMEABILITY) != -1)
-      {
-        if (modelName_ == "invEBHysteresisModel")
-        { // use inverse energy-based Hysteresis model
-          if (dim_ == 3)
-          {
-            linearform_h_nl_curln = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), (-1.0), GetCoefFct(MAG_FIELD_INTENSITY), updatedGeo_);
+      if (nonLinTypes.Find(PERMEABILITY) != -1) {
+        if (modelName_ == "invEBHysteresisModel") { // use inverse energy-based Hysteresis model
+          if (dim_ == 3){
+            linearform_h_nl_curln = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), (-1.0), field_intensity_nl, updatedGeo_);
             linearform_A_A = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3, 1, Double>(), (0.0), GetCoefFct(MAG_POTENTIAL), updatedGeo_);
-          }
-          else
-          {
+          } else {
             EXCEPTION("For Edge elements, only 3D is possible!")
           }
 
@@ -780,18 +766,12 @@ namespace CoupledField
           ctx->SetFeFunction(myFct);
           assemble_->AddLinearForm(ctx);
         }
-      }
-      else
-      {
-        if (modelName_ == "invEBHysteresisModel")
-        { // NONLINEAR CASE BUT LINEAR REGION: \int H curlA'
-          if (dim_ == 3)
-          {
+      } else {
+        if (modelName_ == "invEBHysteresisModel") { // NONLINEAR CASE BUT LINEAR REGION: \int H curlA'
+          if (dim_ == 3) {
             linearform_h_lin_curln = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(), (-1.0), GetCoefFct(MAG_FIELD_INTENSITY), updatedGeo_);
-            linearform_A_A = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3, 1, Double>(), (0.0), GetCoefFct(MAG_POTENTIAL), updatedGeo_);
-          }
-          else
-          {
+            linearform_A_A = new BUIntegrator<Double>(new IdentityOperator<FeHCurl, 3, 1, Double>(), (-1.0), GetCoefFct(MAG_POTENTIAL), updatedGeo_);
+          } else {
             EXCEPTION("For Edge elements, only 3D is possible!")
           }
           linearform_h_lin_curln->SetName("(H,curl N'): nonlinear problem; linear subregion RHS");

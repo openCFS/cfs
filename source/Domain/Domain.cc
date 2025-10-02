@@ -55,6 +55,7 @@
 #include "PDE/MagneticScalarPotentialAdjPDE.hh"
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MagEdgeHPDE.hh"
+#include "PDE/MagEdgeAStarPDE.hh"
 #include "PDE/MagEdgeAdjPDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MagEdgeMixedSFGPDE.hh"
@@ -817,6 +818,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new MagEdgeRegulSFGPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       } else if(formulation == "H"){
         ptSinglePde_[i] = new MagEdgeHPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } else if(formulation == "AStar"){
+        ptSinglePde_[i] = new MagEdgeAStarPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       } else{
         EXCEPTION("Formulation of MagEdgePDE not known!");
       }
