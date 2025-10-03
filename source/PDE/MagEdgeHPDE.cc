@@ -1180,8 +1180,8 @@ namespace CoupledField {
     // =====================================================
     shared_ptr<ResultInfo> magFieldIntensCurl(new ResultInfo);
     magFieldIntensCurl->resultType = MAG_FIELD_INTENSITY_CURL;
-    /* magFieldIntensCurl->SetVectorDOFs(dim_, isaxi_); */
-    magFieldIntensCurl->dofNames = " ";
+    magFieldIntensCurl->SetVectorDOFs(dim_, isaxi_);
+    magFieldIntensCurl->dofNames = vecComponents;
     magFieldIntensCurl->unit = "A/m^2";
     magFieldIntensCurl->definedOn = ResultInfo::ELEMENT;
     magFieldIntensCurl->entryType = ResultInfo::VECTOR;
