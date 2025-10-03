@@ -130,6 +130,8 @@ namespace CoupledField
     //! regions.
     std::set<RegionIdType> regularizedRegions_;
 
+    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
+
   private:
 
     //! Use gradient fields in shape functions (Edge elements of second kind)

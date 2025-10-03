@@ -329,8 +329,6 @@ namespace CoupledField {
 
     PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
 
-    // currently we are only allowed to have one hysteresis region
-    bool moreThan1HystRegion = false;
     for(UInt iRegion = 0; iRegion < regions_.GetSize() ; iRegion ++){
       // set current region and materials
       actRegion = regions_[iRegion];
@@ -493,7 +491,6 @@ namespace CoupledField {
             EXCEPTION("Jiles-Atherton model not implemented for MagEdgeHPDE");
           }
           else if (modelName_ == "EBHysteresisModel"){ // (this is the model we want to use!)
-            moreThan1HystRegion = true;
             if (dim_ == 2) {
               p = CoefFunction::Generate(mp_, Global::REAL,lexical_cast<std::string>(mu_regularize*std::pow(10,beta/2)));
               curlcurl = new BBInt<>(new  CurlOperator<FeHCurl,2, Double>(), nlScalCoefm_[actRegion],1.0, updatedGeo_);
@@ -772,7 +769,6 @@ namespace CoupledField {
     BaseMaterial * actSDMat = NULL;
 
     bool coefUpdateGeo = true;
-    bool isHystereticMat = false;
 
     Double beta = 1;
     myParam_->GetValue("penaltyFunctionParameter", beta, ParamNode::PASS);
@@ -863,7 +859,6 @@ namespace CoupledField {
             }
             else if (modelName_ == "EBHysteresisModel") // NONLINEAR CASE, AND NONLINEAR SUBREGION
             {
-              isHystereticMat = true;
               if (dim_ == 2) {
                 lin2_pts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,2>(),(-1.0), fluxDensityNL, coefUpdateGeo, false);
               } else {
@@ -949,7 +944,6 @@ namespace CoupledField {
             }
             else if (modelName_ == "EBHysteresisModel") // NONLINEAR CASE, AND NONLINEAR SUBREGION
             {
-              isHystereticMat = true;
               if (dim_ == 2) {
                 lin2_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,2>(),(-1/dt), fluxDensityNL, coefUpdateGeo, false);
               } else {
@@ -992,7 +986,6 @@ namespace CoupledField {
             }
             else if (modelName_ == "EBHysteresisModel") // NONLINEAR CASE, AND NONLINEAR SUBREGION
             {
-              isHystereticMat = true;
               if (dim_ == 2) {
                   lin3_rts = new BUIntegrator<Double>( new IdentityOperator<FeHCurl,2>(),(1/dt), fluxDensityNL, coefUpdateGeo, false);
                 } else {
@@ -1131,18 +1124,55 @@ namespace CoupledField {
     // =====================================================
     // MAG_FLUX_DENSTIY (START)
     // =====================================================
-    shared_ptr<ResultInfo> magFlux(new ResultInfo);
-    magFlux->resultType = MAG_FLUX_DENSITY;
-    magFlux->SetVectorDOFs(dim_, isaxi_);
-    magFlux->dofNames = vecComponents;
-    magFlux->unit = "Vs/m^2";
-    magFlux->definedOn = ResultInfo::ELEMENT;
-    magFlux->entryType = ResultInfo::VECTOR;
+    shared_ptr<ResultInfo> magFluxDens(new ResultInfo);
+    magFluxDens->resultType = MAG_FLUX_DENSITY;
+    magFluxDens->SetVectorDOFs(dim_, isaxi_);
+    magFluxDens->dofNames = vecComponents;
+    magFluxDens->unit = "Vs/m^2";
+    magFluxDens->definedOn = ResultInfo::ELEMENT;
+    magFluxDens->entryType = ResultInfo::VECTOR;
     // The recipe about how to actually evaluate B, is defined in FinalizePostProcResults()
     shared_ptr<CoefFunctionMulti> bFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
-    DefineFieldResult(bFunc, magFlux);
+    DefineFieldResult(bFunc, magFluxDens);
     // =====================================================
     // MAG_FLUX_DENSTIY (END)
+    // =====================================================
+
+    PtrCoefFct bbFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
+    // =====================================================
+    // MAGNETIC NORMAL FLUX DENSITY (START)
+    // This is just to get the flux, so you can not plot
+    // this quantity.
+    // =====================================================
+    shared_ptr<ResultInfo> normFlux(new ResultInfo);
+    normFlux->resultType = MAG_NORMAL_FLUX_DENSITY;
+    normFlux->dofNames = "";
+    normFlux->unit = "Vs/m^2";
+    normFlux->entryType = ResultInfo::SCALAR;
+    normFlux->definedOn = ResultInfo::ELEMENT;
+    shared_ptr<CoefFunctionSurf> sNormFDens;
+    sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
+    DefineFieldResult(sNormFDens, normFlux);
+    surfCoefFcts_[sNormFDens] = bbFunc;
+    // =====================================================
+    // MAGNETIC NORMAL FLUX DENSITY (END)
+    // =====================================================
+
+    // =====================================================
+    // MAG_FLUX (START)
+    // =====================================================
+    shared_ptr<ResultInfo> magFlux(new ResultInfo);
+    magFlux->resultType = MAG_FLUX;
+    magFlux->dofNames = "";
+    magFlux->unit = "Vs";
+    magFlux->entryType = ResultInfo::SCALAR;
+    magFlux->definedOn = ResultInfo::SURF_REGION;
+    shared_ptr<ResultFunctor> magFluxFct;
+    magFluxFct.reset(new ResultFunctorIntegrate<Double>(sNormFDens,feFunc, magFlux));
+    resultFunctors_[MAG_FLUX] = magFluxFct;
+    availResults_.insert(magFlux);
+    // =====================================================
+    // MAG_FLUX (END)
     // =====================================================
 
     // =====================================================
@@ -1150,8 +1180,8 @@ namespace CoupledField {
     // =====================================================
     shared_ptr<ResultInfo> magFieldIntensCurl(new ResultInfo);
     magFieldIntensCurl->resultType = MAG_FIELD_INTENSITY_CURL;
-    magFieldIntensCurl->SetVectorDOFs(dim_, isaxi_);
-    magFieldIntensCurl->dofNames = vecComponents;
+    /* magFieldIntensCurl->SetVectorDOFs(dim_, isaxi_); */
+    magFieldIntensCurl->dofNames = " ";
     magFieldIntensCurl->unit = "A/m^2";
     magFieldIntensCurl->definedOn = ResultInfo::ELEMENT;
     magFieldIntensCurl->entryType = ResultInfo::VECTOR;
@@ -1180,6 +1210,89 @@ namespace CoupledField {
     // ELEC_FIELD_INTENSITY (END)
     // =====================================================
 
+    // =====================================================
+    // MAG_TOTAL_CURRENT_DENSITY (START)
+    // =====================================================
+    shared_ptr<ResultInfo> magTotCurrentDens(new ResultInfo);
+    magTotCurrentDens->resultType = MAG_TOTAL_CURRENT_DENSITY;
+    magTotCurrentDens->SetVectorDOFs(dim_, isaxi_);
+    magTotCurrentDens->dofNames = vecComponents;
+    magTotCurrentDens->unit = "A/m^2";
+    magTotCurrentDens->definedOn = ResultInfo::ELEMENT;
+    magTotCurrentDens->entryType = ResultInfo::VECTOR;
+    // The recipe about how to actually evaluate J_total, is defined in FinalizePostProcResults()
+    shared_ptr<CoefFunctionMulti> JTotalFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    DefineFieldResult(JTotalFunc, magTotCurrentDens);
+    // =====================================================
+    // MAG_TOTAL_CURRENT_DENSITY (END)
+    // =====================================================
+
+    // =====================================================
+    // MAG_COIL_CURRENT_DENSITY (START)
+    // =====================================================
+    shared_ptr<ResultInfo> magCoilCurrentDens(new ResultInfo);
+    magCoilCurrentDens->resultType = MAG_COIL_CURRENT_DENSITY;
+    magCoilCurrentDens->dofNames = vecComponents;
+    magCoilCurrentDens->unit = "A/m^2";
+    magCoilCurrentDens->definedOn = ResultInfo::ELEMENT;
+    magCoilCurrentDens->entryType = ResultInfo::VECTOR;
+    availResults_.insert(magCoilCurrentDens);
+    shared_ptr<CoefFunctionMulti> JCoilFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    DefineFieldResult(JCoilFunc, magCoilCurrentDens);
+    // =====================================================
+    // MAG_COIL_CURRENT_DENSITY (START)
+    // =====================================================
+
+    // =====================================================
+    // MAG_EDDY_CURRENT_DENSITY (START)
+    // =====================================================
+    shared_ptr<ResultInfo> magEddyCurrentDens(new ResultInfo);
+    magEddyCurrentDens->resultType = MAG_EDDY_CURRENT_DENSITY;
+    magEddyCurrentDens->SetVectorDOFs(dim_, isaxi_);
+    magEddyCurrentDens->dofNames = vecComponents;
+    magEddyCurrentDens->unit = "A/m^2";
+    magEddyCurrentDens->definedOn = ResultInfo::ELEMENT;
+    magEddyCurrentDens->entryType = ResultInfo::VECTOR;
+    // The recipe about how to actually evaluate J_eddy, is defined in FinalizePostProcResults()
+    shared_ptr<CoefFunctionMulti> JEddyFunc(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_));
+    DefineFieldResult(JEddyFunc, magEddyCurrentDens);
+    // =====================================================
+    // MAG_EDDY_CURRENT_DENSITY (END)
+    // =====================================================
+
+    // =====================================================
+    // MAG_JOULE_LOSS_POWER_DENSITY (START)
+    // =====================================================
+    shared_ptr<ResultInfo> magJouleLossPowerDens(new ResultInfo);
+    magJouleLossPowerDens->resultType = MAG_JOULE_LOSS_POWER_DENSITY;
+    magJouleLossPowerDens->dofNames = " ";
+    magJouleLossPowerDens->unit = "W/m^3";
+    magJouleLossPowerDens->definedOn = ResultInfo::ELEMENT;
+    magJouleLossPowerDens->entryType = ResultInfo::SCALAR;
+    // The recipe about how to actually evaluate p_eddy, is defined in FinalizePostProcResults()
+    shared_ptr<CoefFunctionMulti> pJouleFunc(new CoefFunctionMulti(CoefFunction::SCALAR, dim_, 1, isComplex_));
+    DefineFieldResult(pJouleFunc, magJouleLossPowerDens);
+    // =====================================================
+    // MAG_JOULE_LOSS_POWER_DENSITY (END)
+    // =====================================================
+
+    // =====================================================
+    // MAG_JOULE_LOSS_POWER (START)
+    // =====================================================
+    shared_ptr<ResultInfo> magJouleLossPower(new ResultInfo);
+    magJouleLossPower->resultType = MAG_JOULE_LOSS_POWER;
+    magJouleLossPower->dofNames = " ";
+    magJouleLossPower->unit = "W";
+    magJouleLossPower->definedOn = ResultInfo::REGION;
+    magJouleLossPower->entryType = ResultInfo::SCALAR;
+    availResults_.insert(magJouleLossPower);
+    shared_ptr<ResultFunctor> PJouleFunc;
+    PJouleFunc.reset(new ResultFunctorIntegrate<Double>(pJouleFunc, feFunc, magJouleLossPower));
+    resultFunctors_[MAG_JOULE_LOSS_POWER] = PJouleFunc; 
+    // =====================================================
+    // MAG_JOULE_LOSS_POWER (END)
+    // =====================================================
+
   }
 
   // **********************************************************
@@ -1193,9 +1306,25 @@ namespace CoupledField {
 
     shared_ptr<CoefFunctionMulti> bCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FLUX_DENSITY]);
     shared_ptr<CoefFunctionMulti> eCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[ELEC_FIELD_INTENSITY]);
-    shared_ptr<CoefFunctionMulti> iCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_TOTAL_CURRENT_DENSITY]);
+    shared_ptr<CoefFunctionMulti> JTotalCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_TOTAL_CURRENT_DENSITY]);
+    shared_ptr<CoefFunctionMulti> JCoilCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_COIL_CURRENT_DENSITY]);
+    shared_ptr<CoefFunctionMulti> JEddyCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_EDDY_CURRENT_DENSITY]);
+    shared_ptr<CoefFunctionMulti> pJouleCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER_DENSITY]);
+    shared_ptr<CoefFunctionMulti> PJouleCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_JOULE_LOSS_POWER]);
     StdVector<RegionIdType>::iterator regIt = regions_.Begin();
-    regIt = regions_.Begin();
+
+    // =====================================================
+    // MAG_COIL_CURRENT_DENSITY (START)
+    // =====================================================
+    // loop over all coil coefficients and add contribution to coef
+    std::map<RegionIdType, PtrCoefFct>::iterator coilIt = coilCurrentDens_.begin();
+    for (; coilIt != coilCurrentDens_.end(); coilIt++)
+    {
+      JCoilCoef->AddRegion(coilIt->first, coilIt->second);
+    }
+    // =====================================================
+    // MAG_COIL_CURRENT_DENSITY (END)
+    // =====================================================
 
     for (; regIt != regions_.End(); ++regIt){
       // =====================================================
@@ -1236,6 +1365,34 @@ namespace CoupledField {
       eCoef->AddRegion(*regIt, e);
       // =====================================================
       // ELEC_FIELD_INTENSITY (END)
+      // =====================================================
+
+      // =====================================================
+      // MAG_TOTAL_CURRENT_DENSITY (START)
+      // =====================================================
+      PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      PtrCoefFct J_total = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FIELD_INTENSITY_CURL ), constOne, CoefXpr::OP_MULT));
+      JTotalCoef->AddRegion(*regIt, J_total);
+      // =====================================================
+      // MAG_TOTAL_CURRENT_DENSITY (END)
+      // =====================================================
+
+      // =====================================================
+      // MAG_EDDY_CURRENT_DENSITY (START)
+      // =====================================================
+      PtrCoefFct J_eddy = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, GetCoefFct( MAG_TOTAL_CURRENT_DENSITY ), GetCoefFct(MAG_COIL_CURRENT_DENSITY), CoefXpr::OP_SUB)); 
+      JEddyCoef->AddRegion(*regIt, J_eddy);
+      // =====================================================
+      // MAG_EDDY_CURRENT_DENSITY (END)
+      // =====================================================
+
+      // =====================================================
+      // MAG_JOULE_LOSS_POWER_DENSITY (START)
+      // =====================================================
+      PtrCoefFct p_joule = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, GetCoefFct( MAG_TOTAL_CURRENT_DENSITY ), GetCoefFct(ELEC_FIELD_INTENSITY), CoefXpr::OP_MULT)); 
+      pJouleCoef->AddRegion(*regIt, p_joule);
+      // =====================================================
+      // MAG_JOULE_LOSS_POWER_DENSITY (END)
       // =====================================================
     }
   }
