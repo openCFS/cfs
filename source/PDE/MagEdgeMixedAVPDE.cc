@@ -174,29 +174,41 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
       //check if a veloctyId is assigned 
       std::string velocityId = curRegNode->Get("velocityId")->As<std::string>();
 
-      if ( nonLinTypes.GetSize() > 0 ){
         // =================================================================================
-        //  NONLINEAR SECTION
-        // =================================================================================
-        EXCEPTION("MagEdgeMixedAVPDE does not support nonlinear reluctivity yet!";)
-      } else {
-        // =================================================================================
-        //  LINEAR STIFFNESS SECTION
+        //  STIFFNESS SECTION
         // =================================================================================
 
         /* ==============================================
          * Handling of material parameters
            ============================================== */
-        // Magnetic Reluctivity
-        PtrCoefFct nuNl = NULL;
-        nuNl = actMat->GetScalCoefFnc( MAG_RELUCTIVITY_SCALAR, Global::REAL);
-        // Add material to global, distributed reluctivity coefficient function
-        reluc_->AddRegion(actRegion, nuNl);
+        // Magnetic Reluctivity (+ Permeability)
+        PtrCoefFct nuCoef = NULL;
+        PtrCoefFct permeability = NULL;
+        if ( nonLinTypes.GetSize() > 0 ){
+          // nonlin reluctivity/permeability for static analysis
+          if ( analysistype_ != STATIC && nonLinTypes.Find(PERMEABILITY) == -1) {
+            EXCEPTION("MagEdgeMixedAVPDE does only support *nonlinear reluctivity* for *static analysis*!")
+          } else {   
+            
+            PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+            nuCoef = actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY_SCALAR, Global::REAL, magFluxCoef);
+              
+            PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+            permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, nuCoef, CoefXpr::OP_DIV ) );
+            matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+          }
+        } else {
+          // linear reluctivity
+          // Magnetic Reluctivity
+          nuCoef = actMat->GetScalCoefFnc( MAG_RELUCTIVITY_SCALAR, Global::REAL);
+          // Add material to global, distributed reluctivity coefficient function
+          reluc_->AddRegion(actRegion, nuCoef);
 
-        // Magnetic Permeability
-        PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-        PtrCoefFct permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, nuNl, CoefXpr::OP_DIV ) );
-        matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+          // Magnetic Permeability
+          PtrCoefFct constOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+          permeability = CoefFunction::Generate( mp_,  Global::REAL, CoefXprBinOp(mp_, constOne, nuCoef, CoefXpr::OP_DIV ) );
+          matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+        }
 
         // Electric Conductivity
         Double conductivity;
@@ -206,19 +218,54 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
 
         /* ==============================================
          * Upper left STIFFNESS part:
-         * curl(A) \cdot curl(A’)
+         * \nu curl(A) \cdot curl(A’)
            ============================================== */
-        BaseBDBInt* stiffUpperLeft = NULL;
-        stiffUpperLeft = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuNl, 1.0, updatedGeo_) ;
-        stiffUpperLeft->SetName("CurlACurlAIntegratorUpperLeft");
+        if ( nonLinTypes.GetSize() > 0 ){
+          //nonlinear Integrator due to nl  permeability
+          if ( analysistype_ != STATIC && nonLinTypes.Find(PERMEABILITY) == -1) {
+            EXCEPTION("MagEdgeMixedAVPDE does only support *nonlinear reluctivity* for *static analysis*!")
+          } else {
+            BaseBDBInt* stiffNonLin = NULL;
+            stiffNonLin = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuCoef, 1.0, updatedGeo_);   
+            stiffNonLin->SetName("CurlACurlAIntegratorUpperLeft-NL");
 
-        BiLinFormContext * stiffUpperLeftContext = new BiLinFormContext(stiffUpperLeft, STIFFNESS );
-        stiffUpperLeftContext->SetEntities( actSDList, actSDList );
-        stiffUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
-        assemble_->AddBiLinearForm( stiffUpperLeftContext );
-        // Add bdb-integrator to global list, needed for flux density evaluation
-        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffUpperLeft) );
+            BiLinFormContext * stiffContext = new BiLinFormContext(stiffNonLin, STIFFNESS );   
+            stiffContext->SetEntities( actSDList, actSDList );
+            stiffContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
+            assemble_->AddBiLinearForm( stiffContext );
+            bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffNonLin) );
+            reluc_->AddRegion(actRegion, nuCoef);  
+            
+            // newton
+            if( nonLinMethod_ == NEWTON ) {
+              //BaseBOperator* bOp = new CurlOperator<FeHCurl,3, Double>();
+              PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+              PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, FULL, Global::REAL, magFluxCoef );
+              //create stiffness integrator
+              BiLinearForm* stiffNonLinNewton = NULL;
+              stiffNonLinNewton = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_);
+              stiffNonLinNewton->SetName("CurlCurlIntegrator-NL-Newton");
+              stiffNonLinNewton->SetNewtonBiLinearForm();
+    
+              BiLinFormContext * stiffContext2 = new BiLinFormContext(stiffNonLinNewton, STIFFNESS );
+              stiffContext2->SetEntities( actSDList, actSDList );
+              stiffContext2->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
+              assemble_->AddBiLinearForm( stiffContext2 );
+            }
+          }
+        } else {
+          //linear Integrator
+          BaseBDBInt* stiffUpperLeft = NULL;
+          stiffUpperLeft = new BBInt<>(new  CurlOperator<FeHCurl,3, Double>(), nuCoef, 1.0, updatedGeo_) ;
+          stiffUpperLeft->SetName("CurlACurlAIntegratorUpperLeft");
 
+          BiLinFormContext * stiffUpperLeftContext = new BiLinFormContext(stiffUpperLeft, STIFFNESS );
+          stiffUpperLeftContext->SetEntities( actSDList, actSDList );
+          stiffUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
+          assemble_->AddBiLinearForm( stiffUpperLeftContext );
+          // Add bdb-integrator to global list, needed for flux density evaluation
+          bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffUpperLeft) );
+        }
         /* ==============================================
          * Upper right STIFFNESS part:
          * \sigma grad(V) \cdot A’
@@ -478,7 +525,6 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
         massUpperLeftContext->SetEntities( actSDList, actSDList );
         massUpperLeftContext->SetFeFunctions( magVecPotFeFunc, magVecPotFeFunc );
         assemble_->AddBiLinearForm( massUpperLeftContext );
-     } // END OF NONLIN/LIN PART
     } // end for regions
   } // end DefineIntegrators
 
