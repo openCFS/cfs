@@ -1602,8 +1602,8 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       UInt edgeVertices[] =
       { 1, 2, // #1
         2, 3, // #2
-        4, 3, // #3
-        1, 4, // #4
+        3, 4, // #3
+        4, 1, // #4
         1, 5, // #5
         2, 5, // #6
         3, 5, // #7

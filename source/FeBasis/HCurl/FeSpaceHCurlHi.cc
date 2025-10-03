@@ -216,7 +216,7 @@ namespace CoupledField{
 
     //ToDo: save the information...
     // QUERY FOR USER PARAMS IS STILL TO COME
-    refElems_[region][Elem::ET_LINE2]  = new FeHCurlHiLine();
+    //refElems_[region][Elem::ET_LINE2]  = new FeHCurlHiLine();
     refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
     refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
