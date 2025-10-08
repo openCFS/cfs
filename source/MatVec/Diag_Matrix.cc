@@ -41,6 +41,11 @@ namespace CoupledField {
       data_[i] += alpha * data[i];
     }
   }
+
+  template<typename T>
+  inline void Diag_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat ) {
+    EXCEPTION("Complex Add is not implemented for Diag_Matrix.");
+  }
   
   // ******************************************
   //   Add (another matrix, only index subset)
@@ -50,6 +55,13 @@ namespace CoupledField {
                             const std::set<UInt>& rowIndices,
                             const std::set<UInt>& colIndices ) {
     EXCEPTION("Not implemented");
+  }
+
+  template<typename T>
+  void Diag_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat,
+                            const std::set<UInt>& rowIndices,
+                            const std::set<UInt>& colIndices ) {
+    EXCEPTION("Complex Add is not implemented for Diag_Matrix.");
   }
 
 

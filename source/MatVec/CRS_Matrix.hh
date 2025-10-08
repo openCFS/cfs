@@ -576,7 +576,10 @@ namespace CoupledField {
     void Scale( Double factor, 
                 const std::set<UInt>& rowIndices,
                 const std::set<UInt>& colIndices ); 
-
+    // //! OVERLOAD: Scale method for complex factor
+    // void Scale( Complex factor, 
+    //             const std::set<UInt>& rowIndices,
+    //             const std::set<UInt>& colIndices ) override;
 
     void MultT_type(const Vector<Complex> &mvec, Vector<Complex> &rvec)const;
     void MultTAdd_type( const Vector<Complex> &mvec, Vector<Complex> &rvec )const;
@@ -629,12 +632,16 @@ namespace CoupledField {
     //! \f$A = A + \alpha B\f$. In doing so the sparsity structure of the
     //! matrix mat is assumed to be identical to this matrix' structure.
     void Add( const Double alpha, const StdMatrix& mat );
-    
+    //! OVERLOAD: Add with complex factor
+    void Add( const Complex alpha, const StdMatrix& mat );
     //! \copydoc StdMatrix::Add(Double,StdMatrix,std::set<UInt>,std::set<UInt>)
     void Add( const Double a, const StdMatrix& mat,
               const std::set<UInt>& rowIndices,
               const std::set<UInt>& colIndices );
-    
+    //! OVERLOAD: Add with complex factor
+    void Add( const Complex a, const StdMatrix& mat,
+              const std::set<UInt>& rowIndices,
+              const std::set<UInt>& colIndices );
     //@}
 
 

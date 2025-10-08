@@ -184,9 +184,13 @@ namespace CoupledField {
     //! the bandwidth of the matrix mat is assumed to be identical to the
     //! bandwidth of this matrix.
     void Add( const Double a, const StdMatrix& mat);
+    void Add( const Complex a, const StdMatrix& mat);
 
     //! \copydoc StdMatrix::Add(Double,StdMatrix,std::set<UInt>,std::set<UInt>)
     void Add( const Double a, const StdMatrix& mat,
+              const std::set<UInt>& rowIndices,
+              const std::set<UInt>& colIndices );
+    void Add( const Complex a, const StdMatrix& mat,
               const std::set<UInt>& rowIndices,
               const std::set<UInt>& colIndices );
 

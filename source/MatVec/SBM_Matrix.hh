@@ -486,6 +486,11 @@ namespace CoupledField {
               std::map<UInt, std::set<UInt> >& colIndPerBlock );
     //@}
 
+    //! OVERLOAD: Add method for scalar multiple with complex factors
+    void Add( const Complex fac, const BaseMatrix& mat,
+              std::map<UInt, std::set<UInt> >& rowIndPerBlock,
+              std::map<UInt, std::set<UInt> >& colIndPerBlock );
+
     //! This array contains pointers to the entries, i.e. the standard
     //! matrices, of the dense super-block-matrix. The storage follows the
     //! standard C layout, but the submat_ vector is 1-based.

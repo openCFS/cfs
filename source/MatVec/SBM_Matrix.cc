@@ -340,6 +340,92 @@ namespace CoupledField {
     }
   }
 
+  // Overloaded function for complex-valued factor
+  void SBM_Matrix::Add( const Complex fac, const BaseMatrix& mat,
+                        std::map<UInt, std::set<UInt> >& rowIndPerBlock,
+                        std::map<UInt, std::set<UInt> >& colIndPerBlock ) {
+    
+    // Downcast BaseMatrix to SBM_Matrix
+    try {
+
+      const SBM_Matrix& sbmMat = dynamic_cast<const SBM_Matrix&>(mat);
+
+      // Make sure that both matrices are either symmetric
+      // or unsymmetric
+      if ( amSymm_ != sbmMat.amSymm_ ) {
+        EXCEPTION( "SBM_Matrix::Add: Cannot mix symmetric and "
+            << "unsymmetric matrices in Add() so far!" );
+      }
+
+      StdMatrix *auxMat = NULL;
+      
+      // fill the row / col sets. If a set is empty,
+      // all rows / cols are taken
+      std::set<UInt> rowBlocks, colBlocks;
+      if( rowIndPerBlock.size() == 0 )  {
+        for( UInt i = 0; i < this->nrows_; ++i ) 
+          rowBlocks.insert(i);
+      } else {
+        std::map<UInt, std::set<UInt> >::iterator rowIt;
+        rowIt = rowIndPerBlock.begin();
+        for( ; rowIt != rowIndPerBlock.end(); rowIt++ ) 
+          rowBlocks.insert( rowIt->first);
+      }
+      if( colIndPerBlock.size() == 0 )  {
+        for( UInt i = 0; i < this->ncols_; ++i ) 
+          colBlocks.insert(i);
+      } else {
+        std::map<UInt, std::set<UInt> >::iterator colIt;
+        colIt = colIndPerBlock.begin();
+        for( ; colIt != colIndPerBlock.end(); colIt++ ) 
+          colBlocks.insert( colIt->first);
+      }
+      
+      // Iterate over all SBM rows / cols in given index sets
+      std::set<UInt>::iterator rowIt, colIt;
+      
+      for( rowIt = rowBlocks.begin(); 
+          rowIt != rowBlocks.end(); ++rowIt ) {
+        
+        for( colIt = colBlocks.begin(); 
+            colIt != colBlocks.end(); ++colIt ) {
+          
+          const UInt rowInd = *rowIt;
+          const UInt colInd = *colIt;
+          UInt index = ComputeIndex( rowInd, colInd);
+          
+          // Get hold of submatrix
+          auxMat = sbmMat.subMat_[index];
+          
+          // Only perform addition, if submatrix is not NULL
+          if ( auxMat != NULL ) {
+
+            
+            // Check whether our submatrix is NULL, in this case
+            // we copy the submatrix and scale it
+            if ( subMat_[index] == NULL ) {
+              subMat_[index] = CopyStdMatrixObject( *auxMat );
+              // This now calls the Complex version of Scale
+              subMat_[index]->Scale( fac,
+                                     rowIndPerBlock[rowInd],
+                                     colIndPerBlock[colInd] );
+            }
+
+            // Both submatrices are not NULL so do a simple scaled addition
+            // This now calls the Complex version of Scale
+            subMat_[index]->Add( fac, *auxMat,
+                                 rowIndPerBlock[rowInd],
+                                 colIndPerBlock[colInd] );
+          }
+        }
+      }
+    }
+    // Test whether downcast was successful
+    catch(std::bad_alloc &e) {
+      EXCEPTION( WRONG_CAST_MSG );
+    }
+  }
+
 
   // **********************************
   //   Perform a residual computation

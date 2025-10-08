@@ -1523,7 +1523,16 @@ namespace CoupledField {
         data_[i] += alpha * data[i];
       }
   }
-  
+  template<typename T>
+  void CRS_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat ) {
+    EXCEPTION("Complex Add is not implemented for CRS_Matrix.");
+  }
+
+  template<>
+  void CRS_Matrix<Complex>::Add( const Complex alpha, const StdMatrix& mat ) {
+    EXCEPTION("Complex Add is not implemented for CRS_Matrix.");
+  }
+
   template<>
   void CRS_Matrix<Complex>::Add( const Double alpha, const StdMatrix& mat ) {
 
@@ -1653,6 +1662,13 @@ namespace CoupledField {
         }
       } // if column set is nonzero
     } // if one set is nonzero
+  }
+
+  template<typename T>
+  void CRS_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat,
+                           const std::set<UInt>& rowIndices,
+                           const std::set<UInt>& colIndices ) {
+    EXCEPTION("Complex Add is not implemented for CRS_Matrix.");
   }
 
   // *************

@@ -1153,6 +1153,12 @@ inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
     }
   }
 
+  template<typename T>
+  void SCRS_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat )
+  {
+    EXCEPTION("Complex Add is not implemented for SCRS_Matrix.");
+  }
+
 
 
   // Specialization for complex matrices
@@ -1191,10 +1197,22 @@ inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
       }
     }
   }
+
+  template<>
+  void SCRS_Matrix<Complex>::Add( const Complex alpha, const StdMatrix& mat ) {
+    EXCEPTION("Complex Add is not implemented for SCRS_Matrix.");
+  }
   
   // ******************************************
   //   Add (another matrix, only index subset)
   // ******************************************
+  template<typename T>
+  void SCRS_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat,
+                            const std::set<UInt>& rowIndices,
+                            const std::set<UInt>& colIndices) {
+    EXCEPTION("Complex Add is not implemented for SCRS_Matrix.");
+  }
+
   template<typename T>
   void SCRS_Matrix<T>::Add( const Double alpha, const StdMatrix& mat,
                             const std::set<UInt>& rowIndices,
