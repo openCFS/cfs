@@ -1900,6 +1900,11 @@ namespace CoupledField
     }
   }
 
+  void Assemble::Matrix2Complex(Matrix<Complex>& complexMat,Matrix<Double>& origMat){
+    complexMat.Resize( origMat.GetNumRows(), origMat.GetNumCols() );
+    complexMat.SetPart( Global::REAL, origMat );
+  }
+
   void Assemble::Matrix2Harmonic(Matrix<Complex>& harmMat,
                                  Matrix<Double>& origMat,
                                  FEMatrixType matrixType,
@@ -2103,9 +2108,10 @@ namespace CoupledField
     
     case BasePDE::HARMONIC25D:
         matrixMap_[SYSTEM]    = SYSTEM;
-        matrixMap_[STIFFNESS] = SYSTEM;
-        matrixMap_[DAMPING]   = SYSTEM;
-        matrixMap_[MASS]      = SYSTEM;
+        matrixMap_[STIFFNESS] = STIFFNESS;
+        matrixMap_[DAMPING]   = DAMPING;
+        matrixMap_[DAMPING_AUX] = DAMPING_AUX;
+        matrixMap_[MASS]      = MASS;
         break;
 
     default:
@@ -2230,15 +2236,16 @@ namespace CoupledField
       Double omega;
       if(isMultHarmDiag){
         omega = 2 * M_PI * f;
-      } else if (analysisType_ == BasePDE::HARMONIC25D) {
-        //for 2.5d harmonic analysis, we calculate the factor (omega_kz^2 - omega_base^2) for the mass matrix here
-        dest == MASS ? omega = std::pow(mp_->Eval( mHandle_),2.0) - std::pow(mp_->Eval( baseOmega25D_),2.0) : omega = mp_->Eval( baseOmega25D_);
-      } else{
+      } else {
         omega = mp_->Eval( mHandle_ );
       }
 
-      Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
-
+      if ( analysisType_ == BasePDE::HARMONIC25D) {
+        Matrix2Complex( harmMat, elemMat);
+      } else {
+        Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
+      }
+      
       if( analysisType_ == BasePDE::MULTIHARMONIC){
         algsys_->SetElementMatrix_MultHarm( mappedDest, harmMat,
                                             fctId1, eqnVec1,
@@ -2281,15 +2288,12 @@ namespace CoupledField
     Double omega;
     if(isMultHarmDiag){
       omega = 2 * M_PI * f;
-    } else if (analysisType_ == BasePDE::HARMONIC25D) {
-      //for 2.5d harmonic analysis, we calculate the factor (omega_kz^2 - omega_base^2) for the mass matrix here
-      dest == MASS ? omega = std::pow(mp_->Eval( mHandle_),2.0) - std::pow(mp_->Eval( baseOmega25D_),2.0) : omega = mp_->Eval( baseOmega25D_);
-    } else{
+    } else {
       omega = mp_->Eval( mHandle_ );
     }
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
-       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC25D)
+       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
     else
       harmMat = elemMat;
