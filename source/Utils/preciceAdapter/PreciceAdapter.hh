@@ -44,7 +44,11 @@ namespace CoupledField
 
                 enum Exchangetype {READ=0, WRITE=1};
 #ifdef USE_PRECICE
-                virtual bool IsCouplingOngoing() override{ return this->participant_->isCouplingOngoing();}
+                virtual bool IsCouplingOngoing() override{ 
+                         if (this->participant_ == nullptr) {
+                            EXCEPTION("Error: Precice participant is null in IsCouplingOngoing()."); 
+                         }
+                        return this->participant_->isCouplingOngoing();}
                 virtual bool RequiresWritingCheckpoint() override{ return this->participant_->requiresWritingCheckpoint();}
                 virtual bool RequiresReadingCheckpoint()  override{ return this->participant_->requiresReadingCheckpoint();}
                 virtual Double GetMaxTimeStepSize() override{ return this->participant_->getMaxTimeStepSize();}

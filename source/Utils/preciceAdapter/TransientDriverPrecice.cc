@@ -50,7 +50,11 @@ namespace CoupledField {
                             << " isPartOfSequence: " << isPartOfSequence;
 
     preciceAdapter_ = domain_->GetPreciceAdapter();
-  
+
+    std::cout << "Using TransientDriverPrecice" << std::endl;
+    if(!preciceAdapter_)
+      EXCEPTION("No precice adapter set in domain!")
+      
   }
 
   // ==============
@@ -101,9 +105,8 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetNumTimeSteps(restartStep_+numstep_);
     
     //just initialize some variables
-    ptPDE_->GetSolveStep()->InitTimeStepping();    
+    ptPDE_->GetSolveStep()->InitTimeStepping();
     resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
-    
 
     // following the description of https://precice.org/couple-your-code-implicit-coupling.html
     // but we do not explicitely save the state because we store all steps and overwrite

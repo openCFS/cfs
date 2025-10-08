@@ -92,9 +92,16 @@ namespace CoupledField
         paramNode_->Get("fileFormats/preciceCoupling/participantMeshName")->GetValue("name", participantMeshName_);
         paramNode_->Get("fileFormats/preciceCoupling/precice_configFile")->GetValue("file", configFileName_);
         sequenceStep_ = paramNode_->Get("fileFormats/preciceCoupling")->Get("sequenceStep")->As<int>();
+
+        std::cout << "PreciceAdapter: Configuration parameters:" << std::endl;
+        std::cout << "  Participant Name: " << participantName_ << std::endl;
+        std::cout << "  Participant Mesh Name: " << participantMeshName_ << std::endl;
+        std::cout << "  Precice Config File: " << configFileName_ << std::endl;
+        std::cout << "  Sequence Step: " << sequenceStep_ << std::endl;
     }
 
     void PreciceAdapter::readPreciceConfiguration() {
+        std::cout << "PreciceAdapter: reading precice configuration from file: " << configFileName_ << std::endl;
         // Use PreciceConfigReader to read additional configuration.
         try {
             PreciceConfigReader configReader(configFileName_);
@@ -132,7 +139,9 @@ namespace CoupledField
             {"Displacement", {"mechDisplacement", SolutionType::MECH_DISPLACEMENT}},
             {"MagneticFluxDensity", {"magFluxDensity", SolutionType::MAG_FLUX_DENSITY}},
             {"MagneticFieldIntensity", {"magFieldIntensity", SolutionType::MAG_FIELD_INTENSITY}},
-            {"JouleLossDensity", {"magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY}}
+            {"JouleLossDensity", {"magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY}},
+            {"Pressure", {"acouPressure", SolutionType::ACOU_PRESSURE}},
+            {"acouRhsLoad", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}}
         };
 
         auto it = conversionMap.find(precicename);
@@ -146,6 +155,7 @@ namespace CoupledField
 
 
     void PreciceAdapter::createPreciceParticipant() {
+        std::cout << "PreciceAdapter: creating PreCICE participant..." << std::endl;
         if (domain_->GetGridMap().size() > 1)
         {
             EXCEPTION("PreciceAdapter: works only with one grid per simulation - until now");
@@ -160,6 +170,9 @@ namespace CoupledField
         // Create the PreCICE participant instance.
         participant_ = std::make_unique<precice::Participant>(participantName_, configFileName_, rank_, size_);
 
+        std::cout << "PreciceAdapter: created PreCICE participant '" << participantName_
+                  << "' with config file '" << configFileName_ << "'" << std::endl;
+
         // Create the relevant data structures for storing data of the participant (read-data and write-data)
         for (const auto &entry : activeParticipantConfig_.writeData) {
             ResultConfig config;
@@ -171,6 +184,12 @@ namespace CoupledField
             config.quantitydim = (needElemMesh_) ?
                 participant_->getDataDimensions(participantMeshName_ + "_elem", config.precicename) :
                 participant_->getDataDimensions(participantMeshName_, config.precicename);
+
+            std::cout << "PreciceAdapter: Preparing to register write-data entry: " << config.precicename
+                      << " on mesh: " << config.meshName
+                      << " with dimension: " << config.quantitydim << std::endl;
+
+            std::cout << "CFSName is: " << config.cfsname << std::endl;
 
             // Decide whether to create a node- or element-based result.
             // For example, if you decide based on the mesh name:
@@ -184,6 +203,7 @@ namespace CoupledField
             }
         }
 
+        std::cout << "PreciceAdapter: Registered " << runtimeWriteResults_.size() << " write-data entries." << std::endl;
 
         for (const auto &entry : activeParticipantConfig_.readData) {
             ResultConfig config;
@@ -194,13 +214,20 @@ namespace CoupledField
             config.meshName = entry.mesh;
             config.quantitydim = participant_->getDataDimensions(participantMeshName_, config.precicename);
 
+            std::cout << "PreciceAdapter: Preparing to register read-data entry: " << config.precicename
+                      << " on mesh: " << config.meshName
+                      << " with dimension: " << config.quantitydim << std::endl;
+
+            std::cout << "CFSName is: " << config.cfsname << std::endl;
+
             if (config.meshName.find("_elem") != std::string::npos) {
                 runtimeReadResults_.push_back(std::make_unique<ElementResult>(config));
                 runtimeReadResults_.back()->allocateData(cfsElemNumsVec_.size());
             } else {
-                EXCEPTION("PreciceAdapter: reading nodal values is not tested!");
+                // EXCEPTION("PreciceAdapter: reading nodal values is not tested!");
                 runtimeReadResults_.push_back(std::make_unique<NodeResult>(config));
                 runtimeReadResults_.back()->allocateData(cfsNodeNumsVec_.size());
+                std::cout << "PreciceAdapter: Registered " << runtimeReadResults_.size() << " read-data entries." << std::endl;
             }
         }
 
@@ -220,10 +247,14 @@ namespace CoupledField
             participant_->setMeshVertices(participantElemMeshName_, flatElemCoords_, preciceElemNumsVec_);
         }
 
+        std::cout << "PreciceAdapter: Registered mesh '" << participantMeshName_ << "' with "
+                  << cfsNodeNumsVec_.size() << " nodes." << std::endl;
+
     }
 
     void PreciceAdapter::setupMeshAndCoordinates() {
         // Get grid from the cfs domain and flatten node coordinates.
+        std::cout << "PreciceAdapter: setting up mesh and coordinates..." << std::endl;
         GridCFS* gridCFS = dynamic_cast<GridCFS*>(domain_->GetGrid());
         if (!gridCFS) {
             EXCEPTION("PreciceAdapter: Domain's grid is not of type GridCFS as expected.");
@@ -300,21 +331,28 @@ namespace CoupledField
     // maybe we are not yet in the correct sequence step, therefore,
     // continue
     TransientDriverPrecice* tp = dynamic_cast<TransientDriverPrecice*>(domain_->GetSingleDriver());
+
     if(!tp){
         return;
     }else{
         if(!(tp->GetActSequenceStep() == sequenceStep_)){
+            std::cout << "PreciceAdapter: Not the correct sequence step, skipping precice initialization" << std::endl;
             return;
         }
     }
 
     // Step 4: Create the PreCICE participant.
     if(!isInit_){
+        std::cout << "Not yet initialized" << std::endl;
+
         createPreciceParticipant();
+
+        std::cout << "PreciceAdapter: Precice participant created." << std::endl;
         
         // This is such a DIRTY HACK!!!! This should actually be set by precice!!!!!!!!!
         // This ONLY WORKS for initializing the "Temperature"
         if(participant_->requiresInitialData()){
+            std::cout << "PreciceAdapter: Participant requires initial data - initializing 'Temperature' to 293.15K" << std::endl;
             for (auto &result : runtimeWriteResults_) {
                 if(result->getConfig().precicename == "Temperature"){
                     if (result->getResultType() == ResultType::NODE) {
@@ -337,7 +375,6 @@ namespace CoupledField
                 }
             }
         }
-
 
         participant_->initialize();
         isInit_ = true;
@@ -364,6 +401,7 @@ namespace CoupledField
 
     void PreciceAdapter::RegisterSinglePDE(SinglePDE* pde){
         singlePDE_ = pde;
+        std::cout << "PreciceAdapter: Registered SinglePDE." << std::endl;
     }
 
 
@@ -513,6 +551,7 @@ namespace CoupledField
 
     void PreciceAdapter::RegisterExternalResults()
     {
+    std::cout << "PreciceAdapter: Registering external results with OpenCFS result handler..." << std::endl;
     #ifdef USE_PRECICE
     // Get the result handler from the domain.
     ResultHandler* resHandler = domain_->GetResultHandler();

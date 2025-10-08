@@ -31,7 +31,8 @@ CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::CoefFunctionGridNodalDefaultPrec
                                                     :CoefFunctionGridNodal<DATA_TYPE>(ptDomain, configNode, regions){
   //====================================================
   // Determine information about source grid and result
-  //====================================================                                          
+  //====================================================     
+  
   this->inputId_ = "default";
   this->gridId_ = "default";
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
@@ -43,9 +44,11 @@ CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::CoefFunctionGridNodalDefaultPrec
 
   //lets determine the destination region and set it to our source regions
   this->DetermineResult(this->inputId_,this->aSeqStep_);
+
   this->dimDof_ = this->resultInfo_->dofNames.GetSize();
+
   // Determine which steps are available
-  this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
+  //this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
 
   this->SetRegions(regions);
   this->InitSolVec();
@@ -160,8 +163,6 @@ template class CoefFunctionGridNodalDefaultPrecice<Double>;
 template class CoefFunctionGridNodalDefaultPrecice<Complex>;
 
 } // namespace CoupledField
-
-
 
 #else
 
