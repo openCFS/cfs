@@ -778,6 +778,12 @@ namespace CoupledField {
         const std::map<FEMatrixType, Double>& matFactors,
         const bool isMultHarm = false);
 
+    //! OVERLOAD: Constructs the effective system matrix with complex factors
+    void ConstructEffectiveMatrix(
+        const FeFctIdType fctId,
+        const std::map<FEMatrixType, Complex>& matFactors,
+        const bool isMultHarm = false);
+
     //! Pass a Dirichlet value to %OLAS
 
     //! This method passes the value of a given inhomogeneous Dirichlet

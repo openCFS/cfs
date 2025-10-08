@@ -3514,6 +3514,68 @@ namespace CoupledField {
     idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
   }
 
+  //! OVERLOAD: Constructs the effective system matrix with complex factors
+  void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId,
+                            const std::map<FEMatrixType,Complex> &matFactors,
+                            const bool isMultHarm) {
+    
+    LOG_DBG(algSys) << "Constructing effective system matrix for feFunction "
+        << "with id " << fctId;
+    if (IS_LOG_ENABLED(algSys, dbg)) {
+      LOG_DBG(algSys) << "Factors are:";
+      std::map<FEMatrixType,Complex>::const_iterator it = matFactors.begin();
+      for( ; it != matFactors.end(); ++it ) {
+        LOG_DBG(algSys) << feMatrixType.ToString(it->first) << ": " << it->second;
+      }
+    }
+
+    typename std::map<FEMatrixType,Complex>::const_iterator it;
+    SBM_Matrix *sys = sysMat_[SYSTEM];
+
+    // As one functionId can be spread over many SBM blocks, we
+    // have to map the fctId to (sbmBlocks,indices)
+    std::map<UInt, std::set<UInt> > freeIndPerBlock, fixedIndPerBlock;
+    std::map<UInt, std::set<UInt> > dummyFreeSet;
+    MapCompleteFctIdToIndex(fctId, freeIndPerBlock, fixedIndPerBlock, true);
+
+    // If there are no affected free dofs, leave immediately
+    if( freeIndPerBlock.size() == 0 ) {
+      return;
+    }
+
+    // It's okay, if there are no factors, if there is only a system
+    // matrix and no other ones
+    if ( matFactors.empty() == true ) {
+      if ( matrixTypes_.size() == 1 && sys != NULL ) {
+        // Also assemble the effective auxilliary system matrix for moving
+        // IDBCs to the right-hand side
+        // The IDBC handler needs to be overloaded as well.
+        idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
+        // EXCEPTION("BuildSystemMatrix for complex factors in IDBC_Handler not yet implemented");
+        // Now we are done
+        return;
+      }
+    }
+
+    // In multiharmonic analysis, we have to adapt the mass part
+    if(isMultHarm){
+      EXCEPTION("Complex factor overload for multiharmonic case not yet implemented.");
+    } else {
+      for ( it = matFactors.begin(); it != matFactors.end(); it++ ) {
+        if ( sysMat_[(*it).first] != NULL  && std::abs((*it).second) != 0.0 ) {
+          std::map<UInt, std::set<UInt> > dummyFreeSet;
+          // This will call the new Complex overload of SBM_Matrix::Add
+          sys->Add( (*it).second, *sysMat_[(*it).first],
+              dummyFreeSet, freeIndPerBlock );
+        }
+      }
+    }
+
+    // The IDBC handler also needs its BuildSystemMatrix method overloaded.
+    idbcHandler_->BuildSystemMatrix( matFactors, freeIndPerBlock );
+
+  }
+
   void AlgebraicSys::PrintKeff(){
     if(effMat_ == NULL){
       std::cout << "effMat == NULL" << std::endl;
