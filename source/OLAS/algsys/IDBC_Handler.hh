@@ -104,7 +104,9 @@ namespace CoupledField {
     //! @copydoc BaseIDBC_Handler::BuiltSystemMatrix()
     void BuildSystemMatrix( const std::map<FEMatrixType, Double> &factors,
                             std::map<UInt, std::set<UInt> >& indicesPerBlock );
-
+    //! OVERLOAD: BuildSystemMatrix with complex factors
+    void BuildSystemMatrix( const std::map<FEMatrixType, Complex> &factors,
+                            std::map<UInt, std::set<UInt> >& indicesPerBlock );
     //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
     void AddIDBCToRHS( SBM_Vector *rhs, bool deltaIDBC = false  );
 

@@ -383,6 +383,13 @@ namespace CoupledField {
     // Adapt internal status flags
     addIDBCPossible_ = true;
   }
+
+  template <typename T>
+  void IDBC_Handler<T>::BuildSystemMatrix( const std::map<FEMatrixType, Complex> &factors,
+                     std::map<UInt, std::set<UInt> >& colInd ) {
+    EXCEPTION("BuildSystemMatrix not implemented for complex factors");
+  }
+
   // ****************
   //   AddIDBCToRHS
   // ****************

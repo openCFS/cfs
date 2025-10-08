@@ -121,6 +121,9 @@ namespace CoupledField {
     void BuildSystemMatrix( const std::map<FEMatrixType, Double> &factors,
                             std::map<UInt, std::set<UInt> >& indicesPerBlock ) {
     }
+    void BuildSystemMatrix( const std::map<FEMatrixType, Complex> &factors,
+                            std::map<UInt, std::set<UInt> >& indicesPerBlock ) {
+    }
 
     //! @copydoc BaseIDBC_Handler::RemoveIDBCFromRHS()
     inline void RemoveIDBCFromRHS( SBM_Vector *rhs, bool deltaIDBC = false ) {

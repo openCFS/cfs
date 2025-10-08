@@ -41,7 +41,10 @@ namespace CoupledField {
     virtual void
     BuildSystemMatrix( const std::map<FEMatrixType, Double> &factors,
                        std::map<UInt, std::set<UInt> >& indicesPerBlock ) = 0;
-
+    //! OVERLOAD: BuildSystemMatrix with complex factors
+    virtual void
+    BuildSystemMatrix( const std::map<FEMatrixType, Complex> &factors,
+                       std::map<UInt, std::set<UInt> >& indicesPerBlock ) = 0;
     //! Adapt system matrix
 
     //! This method can be used by those approaches that require a
