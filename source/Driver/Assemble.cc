@@ -68,14 +68,6 @@ namespace CoupledField
     // Set expression for omega
     mHandle_ = mp->GetNewHandle();
     mp->SetExpr(mHandle_, "2*pi*f");
-
-    // for 2.5d harmonic analysis, set expression for analysis frequency
-    if (analysisType_ == BasePDE::HARMONIC25D) {
-      baseOmega25D_ = mp->GetNewHandle();
-      mp->SetExpr(baseOmega25D_, "2*pi*baseFreqHarmonic25D");
-    } else {
-      baseOmega25D_ = 0;
-    }
     
     // the timer object is used in every AssembleMatrices() call
     info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
@@ -1853,7 +1845,7 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::HARMONIC25D || analysisType_ == BasePDE::MULTIHARMONIC
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
 		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         matReassemble_[actContext.GetDestMat()] = true;
@@ -1900,6 +1892,11 @@ namespace CoupledField
     }
   }
 
+  void Assemble::Matrix2Complex(Matrix<Complex>& complexMat,Matrix<Double>& origMat){
+    complexMat.Resize( origMat.GetNumRows(), origMat.GetNumCols() );
+    complexMat.SetPart( Global::REAL, origMat );
+  }
+
   void Assemble::Matrix2Harmonic(Matrix<Complex>& harmMat,
                                  Matrix<Double>& origMat,
                                  FEMatrixType matrixType,
@@ -1935,9 +1932,7 @@ namespace CoupledField
         break;
       case MASS:
         derivOrder = 2;
-        // in harmonic 2.5d analysis, we calculate the factor for mass matrix in
-        // InsertMatrix() method and then pass the factor directly here
-        factor = (analysisType_ == BasePDE::HARMONIC25D) ? omega : -omega*omega;
+        factor = -omega*omega;
         break;
       case MASS_UPDATE:
         derivOrder = 2;
@@ -1994,10 +1989,8 @@ namespace CoupledField
       factor = Complex(0.0, omega);
       break;
     case MASS:
-      // BLOCH CHECK for 1st time derivative order!\
-      // in harmonic 2.5d analysis, we calculate the factor for mass matrix in
-      // InsertMatrix() method and then pass the factor directly here
-      factor = (analysisType_ == BasePDE::HARMONIC25D) ? Complex(omega, 0.0) : Complex(-omega*omega, 0.0);
+      // BLOCH CHECK for 1st time derivative order!
+      factor = Complex(-omega*omega, 0.0);
       break;
     case MASS_UPDATE:
       // BLOCH CHECK for 1st time derivative order!
@@ -2103,9 +2096,10 @@ namespace CoupledField
     
     case BasePDE::HARMONIC25D:
         matrixMap_[SYSTEM]    = SYSTEM;
-        matrixMap_[STIFFNESS] = SYSTEM;
-        matrixMap_[DAMPING]   = SYSTEM;
-        matrixMap_[MASS]      = SYSTEM;
+        matrixMap_[STIFFNESS] = STIFFNESS;
+        matrixMap_[DAMPING]   = DAMPING;
+        matrixMap_[DAMPING_AUX] = DAMPING_AUX;
+        matrixMap_[MASS]      = MASS;
         break;
 
     default:
@@ -2230,15 +2224,16 @@ namespace CoupledField
       Double omega;
       if(isMultHarmDiag){
         omega = 2 * M_PI * f;
-      } else if (analysisType_ == BasePDE::HARMONIC25D) {
-        //for 2.5d harmonic analysis, we calculate the factor (omega_kz^2 - omega_base^2) for the mass matrix here
-        dest == MASS ? omega = std::pow(mp_->Eval( mHandle_),2.0) - std::pow(mp_->Eval( baseOmega25D_),2.0) : omega = mp_->Eval( baseOmega25D_);
-      } else{
+      } else {
         omega = mp_->Eval( mHandle_ );
       }
 
-      Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
-
+      if ( analysisType_ == BasePDE::HARMONIC25D) {
+        Matrix2Complex( harmMat, elemMat);
+      } else {
+        Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
+      }
+      
       if( analysisType_ == BasePDE::MULTIHARMONIC){
         algsys_->SetElementMatrix_MultHarm( mappedDest, harmMat,
                                             fctId1, eqnVec1,
@@ -2281,18 +2276,16 @@ namespace CoupledField
     Double omega;
     if(isMultHarmDiag){
       omega = 2 * M_PI * f;
-    } else if (analysisType_ == BasePDE::HARMONIC25D) {
-      //for 2.5d harmonic analysis, we calculate the factor (omega_kz^2 - omega_base^2) for the mass matrix here
-      dest == MASS ? omega = std::pow(mp_->Eval( mHandle_),2.0) - std::pow(mp_->Eval( baseOmega25D_),2.0) : omega = mp_->Eval( baseOmega25D_);
-    } else{
+    } else {
       omega = mp_->Eval( mHandle_ );
     }
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
-       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC25D)
-      Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
-    else
+       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC) {
+        Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
+    } else {
       harmMat = elemMat;
+    }
 
     if(analysisType_ == BasePDE::MULTIHARMONIC){
       algsys_->SetElementMatrix_MultHarm( mappedDest, harmMat,

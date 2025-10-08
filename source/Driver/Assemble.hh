@@ -175,6 +175,9 @@ namespace CoupledField {
     //! Assemble linearForms of right hand side
     void AssembleRHSLinForms(bool nonLin );
 
+    //! Transform real-valued matrix to complex-valued
+    void Matrix2Complex(Matrix<Complex>& harmMat, Matrix<Double>& origMat);
+
     //! Transform real-valued element matrix to harmonic representation
     void Matrix2Harmonic( Matrix<Complex>& harmMat,
                           Matrix<Double>& origMat,
@@ -235,9 +238,6 @@ namespace CoupledField {
     
     //! Handle for expression
     unsigned int mHandle_;
-
-    //! Handle for 2.5d harmonic analysis base angular frequency
-    unsigned int baseOmega25D_;
 
     //! Flag indicating if system was already assembled
     bool isFirstTime_;

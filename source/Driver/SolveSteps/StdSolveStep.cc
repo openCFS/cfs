@@ -1409,6 +1409,52 @@ namespace CoupledField {
       StepHarmonicLin();
     }
   }
+
+  void StdSolveStep::SolveStepHarmonic25D(Double ExcitationFreq, Double WaveNumFreq) {
+    algsys_->InitRHS();
+    PDE_.SetRhsValues();
+    assemble_->AssembleLinRHS();
+    assemble_->AssembleMatrices();
+    PDE_.SetBCs();
+    algsys_->GetRHSVal( rhsVec_ );
+    algsys_->InitMatrix(SYSTEM);
+
+    Double BaseOmega = 2*M_PI*ExcitationFreq;
+    Double WaveNumOmega = 2*M_PI*WaveNumFreq;
+
+    // Pre Factor for Global Mass Matrix
+    Complex FactorM = Complex(WaveNumOmega*WaveNumOmega - BaseOmega*BaseOmega, 0.0);
+    // Pre Factor for Global Damping Matrix (Impedance BC)
+    Complex FactorC = Complex(0.0, BaseOmega);
+    // Pre Factor for Global Damping Auxiliary Matrix (Absorbing BC)
+    Complex SqrtRootResult = std::sqrt(-FactorM);
+    Complex FactorABC = Complex(0.0, 0.0);
+    // We have to distinguish between two cases,
+    // Case 1: Omega^2 > Omega_kz^2, the squared root is real
+    if (std::abs(SqrtRootResult.real()) > 1.0E-12) {
+      // the prefactor is then (i * sqrt(Omega^2 - Omega_kz^2))
+      FactorABC = Complex(0.0,1.0) * SqrtRootResult;
+    } // Case 2: Omega^2 < Omega_kz^2, the squared root is imaginary
+    else if (std::abs(SqrtRootResult.imag()) > 1.0E-12) {
+      // the prefactor is then sqrt(Omega_kz^2 - Omega^2)
+      FactorABC = Complex(std::abs(SqrtRootResult.imag()), 0.0);
+    }
+
+    std::map<FEMatrixType,Complex> dynamicStiffnessMatrixFactors;
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(STIFFNESS,Complex(1.0,0.0)) );
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(DAMPING,FactorC) );
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(DAMPING_AUX,FactorABC) );
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(MASS,FactorM) );
+    algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors);
+    
+    // Incorporate Boundary conditions and
+    // recalc the preconditioner eventually
+    algsys_->BuildInDirichlet();
+    algsys_->SetupPrecond();
+    algsys_->SetupSolver();
+    algsys_->Solve();
+    algsys_->GetSolutionVal(solVec_);
+  }
   
   
   void StdSolveStep::StepHarmonicLin() {

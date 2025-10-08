@@ -257,7 +257,8 @@ namespace CoupledField {
   // ******************************************************
   //   Perform a scaled matrix-matrix addition on a subset
   // ******************************************************
-  void SBM_Matrix::Add( const Double fac, const BaseMatrix& mat,
+  template <typename U>
+  void SBM_Matrix::Add( const U fac, const BaseMatrix& mat,
                         std::map<UInt, std::set<UInt> >& rowIndPerBlock,
                         std::map<UInt, std::set<UInt> >& colIndPerBlock ) {
     
@@ -339,7 +340,6 @@ namespace CoupledField {
       EXCEPTION( WRONG_CAST_MSG );
     }
   }
-
 
   // **********************************
   //   Perform a residual computation
@@ -727,13 +727,9 @@ namespace CoupledField {
 
   // explicit template instantiation
 /*
-  template void SBM_Matrix::Add(const Double fac, const BaseMatrix& mat,
-                                std::map<UInt, std::set<UInt> >& rowIndPerBlock,
-                                std::map<UInt, std::set<UInt> >& colIndPerBlock);
-  template void SBM_Matrix::Add(const Complex fac, const BaseMatrix& mat,
-                                std::map<UInt, std::set<UInt> >& rowIndPerBlock,
-                                std::map<UInt, std::set<UInt> >& colIndPerBlock);
   template void SBM_Matrix::Add( const Double fac, const BaseMatrix &mat );
   template void SBM_Matrix::Add( const Complex fac, const BaseMatrix &mat );
 */
+  template void SBM_Matrix::Add(const Double fac, const BaseMatrix& mat, std::map<UInt, std::set<UInt> >& rowIndPerBlock, std::map<UInt, std::set<UInt> >& colIndPerBlock);
+  template void SBM_Matrix::Add(const Complex fac, const BaseMatrix& mat, std::map<UInt, std::set<UInt> >& rowIndPerBlock, std::map<UInt, std::set<UInt> >& colIndPerBlock);
 }

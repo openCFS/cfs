@@ -29,6 +29,7 @@ namespace CoupledField {
     void BuildSystemMatrix( const std::map<FEMatrixType,
                             Double> &factors,
                             std::map<UInt, std::set<UInt> >& indPerBlock) {};
+    void BuildSystemMatrix( const std::map<FEMatrixType,Complex> &factors, std::map<UInt, std::set<UInt> >& indPerBlock) {};
 
     //! @copydoc BaseIDBC_Handler::AdaptSystemMatrix()
     void AdaptSystemMatrix( SBM_Matrix &sysMat ) {};

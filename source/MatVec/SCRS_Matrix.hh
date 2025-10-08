@@ -2,6 +2,7 @@
 #define OLAS_SCRS_MATRIX_HH
 
 #include <iostream>
+#include <type_traits>
 
 
 
@@ -489,11 +490,13 @@ namespace CoupledField {
     //! \f$A = A + \alpha B\f$. In doing so the sparsity structure of the
     //! matrix mat is assumed to be identical to this matrix' structure.
     void Add( const Double alpha, const StdMatrix& mat );
+    void Add( const Complex alpha, const StdMatrix& mat );
 
     //! \copydoc StdMatrix::Add(Double,StdMatrix,std::set<UInt>,std::set<UInt>)
     void Add( const Double a, const StdMatrix& mat,
               const std::set<UInt>& rowIndices,
               const std::set<UInt>& colIndices );
+    void Add( const Complex a, const StdMatrix& mat, const std::set<UInt>& rowIndices, const std::set<UInt>& colIndices );
     //@}
 
 
@@ -656,6 +659,10 @@ namespace CoupledField {
     //! value is NO_PATTERN_ID.
     PatternIdType patternID_;
 
+    //! Templated Add Method
+    //! The template is only enable if Matrix type is not Double and the Factor is not Complex
+    template <typename U,typename = typename std::enable_if<! (std::is_same<T, Double>::value && std::is_same<U, Complex>::value)>::type>
+    void AddTemplate( const U a, const StdMatrix& mat, const std::set<UInt>& rowIndices, const std::set<UInt>& colIndices );
   };
 
 

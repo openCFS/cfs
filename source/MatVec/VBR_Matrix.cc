@@ -930,10 +930,20 @@ namespace CoupledField {
     EXCEPTION("Implement me");
   }
 
+  template<typename T>
+  void VBR_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat ) {
+    EXCEPTION("Complex Add-subset is not implemented for VBR_Matrix.");
+  }
+
   template<>
   void VBR_Matrix<Complex>::Add( const Double alpha, const StdMatrix& mat ) {
 
     EXCEPTION("Implement me");
+  }
+
+  template<>
+  void VBR_Matrix<Complex>::Add( const Complex alpha, const StdMatrix& mat ) {
+    EXCEPTION("Complex Add-subset is not implemented for VBR_Matrix.");
   }
 
   template<typename T>
@@ -941,6 +951,11 @@ namespace CoupledField {
                            const std::set<UInt>& rowIndices,
                            const std::set<UInt>& colIndices ) {
     EXCEPTION("Not implemented");
+  }
+
+  template<typename T>
+  void VBR_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat, const std::set<UInt>& rowIndices, const std::set<UInt>& colIndices ) {
+    EXCEPTION("Complex Add-subset is not implemented for VBR_Matrix.");
   }
 
   template <typename T>

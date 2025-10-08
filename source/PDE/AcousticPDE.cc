@@ -1887,6 +1887,8 @@ namespace CoupledField{
         FEMatrixType targetMatrix = DAMPING;
         if(updatedGeo_){
           targetMatrix = DAMPING_UPDATE;
+        } else if(this->analysistype_ == HARMONIC25D) {
+          targetMatrix = DAMPING_AUX;
         }
 
         abcInt->SetName("abcIntegrator");

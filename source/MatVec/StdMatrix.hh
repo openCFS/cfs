@@ -217,6 +217,8 @@ namespace CoupledField {
     //! this matrix' structure. It offers an appropriate interface for
     //! StdMatrices.
     virtual void Add( const Double a, const StdMatrix& mat) = 0;
+    //! OVERLOAD: Add with Complex
+    virtual void Add( const Complex a, const StdMatrix& mat) = 0;
     
     //! Add the multiple of a matrix to this matrix (entries given by index)
 
@@ -236,7 +238,8 @@ namespace CoupledField {
     virtual void Add( const Double a, const StdMatrix& mat,
                       const std::set<UInt>& rowIndices,
                       const std::set<UInt>& colIndices ) = 0;
-
+    //! OVERLOAD: Add with Complex
+    virtual void Add( const Complex a, const StdMatrix& mat, const std::set<UInt>& rowIndices, const std::set<UInt>& colIndices ) = 0;
     //! Perform a matrix-vector multiplication rvec = this*mvec
 
     //! This method performs a matrix-vector multiplication rvec = this*mvec.
@@ -378,6 +381,10 @@ namespace CoupledField {
                         const std::set<UInt>& colIndices) {
       EXCEPTION("StdMatrix::Scale: Method must be implemented by derived " \
                 "class, but is not!");
+    };
+    //! OVERLOAD: Scale with Complex
+    virtual void Scale( Complex factor, const std::set<UInt>& rowIndices, const std::set<UInt>& colIndices) {
+      EXCEPTION("StdMatrix::Scale (Complex): Method must be implemented by derived class, but is not!");
     };
     //@}
     

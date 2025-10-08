@@ -1,10 +1,9 @@
-import sys
-import os
 import numpy as np
 import h5py
 import shutil
+import os
 
-def PostProcessHarmonic25d(file_name, copy_file_name, pos_list = np.array([0.0]), create_copy = True):
+def PostProcessHarmonic25d(file_name, copy_file_name, pos_list = np.array([0.0]), create_copy = True, rho=1.205, K=1.41767e5):
     """
         Function to evaluate the inverse fourier transform at given position
 
@@ -12,9 +11,13 @@ def PostProcessHarmonic25d(file_name, copy_file_name, pos_list = np.array([0.0])
             file_name ... CFS result file that contains the wavenumber spectrum (from 2.5d harmonic simulation)
             copy_file_name ... Name of copied result file which is going to store the postprocessed results
             pos_list ... A list of positions for inverse fourier transform evaluation
-            create_copy ... Store evaluated results in a new copied result file 
+            create_copy ... Store evaluated results in a new copied result file
+            rho ... Density of air, default: 1.205 kg/m^3
+            K ... Compression Modulus, default: 141767 Pa
     """
-    
+    ######### Calculate Speed of Sound based on Material Properties ########
+    c0 = np.sqrt(K / rho)
+
     ######### Create a copy of original result file if True ########
     if create_copy:
         try:
@@ -72,55 +75,47 @@ def PostProcessHarmonic25d(file_name, copy_file_name, pos_list = np.array([0.0])
     for i in range(1,NumSteps+1):
         step = h5_pos['Results/Mesh/MultiStep_1/Step_%d' % i]
         freq = step.attrs.__getitem__("StepValue") # we stored the frequency value in hdf5
-        wavenumbers[i-1] = (2 * np.pi * freq) / 342.9999455620972 # we have to calculate the actual wavenumbers k = 2*pi*f / c0 c0...speed of sound
-    wavenumbers = np.concatenate((-1*np.flip(wavenumbers),wavenumbers))
-    # check if the first element of our wavenumber spectrum is 0
-    _spectrum_start_with_zero = True if np.abs(wavenumbers[int(len(wavenumbers)/2)]) < 1e-12 else False
+        wavenumbers[i-1] = (2 * np.pi * freq) / c0 # we have to calculate the actual wavenumbers k = 2*pi*f / c0 c0...speed of sound
+    # wavenumbers = np.concatenate((-1*np.flip(wavenumbers),wavenumbers))
+    WaveNumberStepSize = wavenumbers[1] - wavenumbers[0]
+    wavenumbers = wavenumbers.ravel()
 
     ### Loop through Regions
     for region in list(h5_pos['Results/Mesh/MultiStep_1/Step_1/acouPressure'].keys()):
-        ### for each evaluation position perform the inverse fourier transform using trapezoidal rule and write to steps ###
-        step_num = 1
-        for z in pos_list:
-            # compute coeff exp(-i*kz*z)
-            coeff = np.exp(-1j*wavenumbers*z)
-            # compute numerical integration with trapezoidal rule
-            # first, initialize the integrated solution with (f(xn) + f(x0)) / 2 with f = p * e^1j*kz*z
-            step = h5_pos['Results/Mesh/MultiStep_1/Step_%d' % stepvalue_idx[-1]]
-            pressure_real = step['acouPressure/%s/Nodes/Real' % region][:].ravel() # real part of fourier spectrum
-            pressure_imag = step['acouPressure/%s/Nodes/Imag' % region][:].ravel() # imag part of fourier spectrum
-            pressure_complex = pressure_real + 1j*pressure_imag
-            solution = pressure_complex * (coeff[0] + coeff[-1]) / 2
+        
+        #### Integration using Trapezoidal Rule ####
+        
+        coeff = np.cos(pos_list[:, np.newaxis] * wavenumbers)
 
-            # if the spectrum starts with k=0, we don't want to count this step twice
-            # so we add this single step to the soultion
-            if _spectrum_start_with_zero:
-                step = h5_pos['Results/Mesh/MultiStep_1/Step_%d' % stepvalue_idx[0]]
-                pressure_real = step['acouPressure/%s/Nodes/Real' % region][:].ravel() # real part of fourier spectrum
-                pressure_imag = step['acouPressure/%s/Nodes/Imag' % region][:].ravel() # imag part of fourier spectrum
-                pressure_complex = pressure_real + 1j*pressure_imag
-                solution += pressure_complex
-                start_idx = 1
-            else:
-                start_idx = 0
-            
-            for i in np.arange(start_idx,len(stepvalue_idx)-1):
-                step = h5_pos['Results/Mesh/MultiStep_1/Step_%d' % stepvalue_idx[i]]
-                pressure_real = step['acouPressure/%s/Nodes/Real' % region][:].ravel() # real part of fourier spectrum
-                pressure_imag = step['acouPressure/%s/Nodes/Imag' % region][:].ravel() # imag part of fourier spectrum
-                pressure_complex = pressure_real + 1j*pressure_imag
-                solution += pressure_complex * (coeff[int(len(coeff)/2)+i] + coeff[int(len(coeff)/2)-1-i])
-            solution *= (wavenumbers[-1] - wavenumbers[-2]) # multiply with delta x
-            solution /= 2 * np.pi # divide the amplitude by 2*pi
+        FirstStep = h5_pos['Results/Mesh/MultiStep_1/Step_%d' % stepvalue_idx[0]]
+        LastStep = h5_pos['Results/Mesh/MultiStep_1/Step_%d' % stepvalue_idx[-1]]
+        PressureRealFirstStep = FirstStep['acouPressure/%s/Nodes/Real' % region][:].ravel()
+        PressureRealLastStep = LastStep['acouPressure/%s/Nodes/Real' % region][:].ravel()
+        PressureImagFirstStep = FirstStep['acouPressure/%s/Nodes/Imag' % region][:].ravel()
+        PressureImagLastStep = LastStep['acouPressure/%s/Nodes/Imag' % region][:].ravel()
 
+        SolReal = PressureRealFirstStep*coeff[:,0][:,np.newaxis] + PressureRealLastStep*coeff[:,-1][:,np.newaxis]
+        SolImag = PressureImagFirstStep*coeff[:,0][:,np.newaxis] + PressureImagLastStep*coeff[:,-1][:,np.newaxis]
+        
+        for i in np.arange(1,len(stepvalue_idx)-1):
+            step = h5_pos['Results/Mesh/MultiStep_1/Step_%d' % stepvalue_idx[i]]
+            PressureReal = step['acouPressure/%s/Nodes/Real' % region][:].ravel()
+            PressureImag = step['acouPressure/%s/Nodes/Imag' % region][:].ravel()
+            SolReal += 2*PressureReal*coeff[:,i][:,np.newaxis]
+            SolImag += 2*PressureImag*coeff[:,i][:,np.newaxis]
+
+        SolReal *= WaveNumberStepSize / 2 / np.pi
+        SolImag *= WaveNumberStepSize / 2 / np.pi
+
+        #### Write Results To File ####
+        for step_num, z in enumerate(pos_list,start=1):
             actStep = h5_pos['Results/Mesh/MultiStep_2'].create_group('Step_%d' % step_num) # create a new group
             actStep.attrs.__setitem__(name='StepValue', value = z) # store the z value to group attribute
             
-            result_real = actStep.create_dataset(name = 'acouPressure/%s/Nodes/Real' % region, shape=solution.shape)
-            result_imag = actStep.create_dataset(name = 'acouPressure/%s/Nodes/Imag' % region, shape=solution.shape)
-            result_real[:] = solution.real
-            result_imag[:] = solution.imag
-            step_num += 1
+            result_real = actStep.create_dataset(name = 'acouPressure/%s/Nodes/Real' % region, shape=SolReal[0].shape)
+            result_imag = actStep.create_dataset(name = 'acouPressure/%s/Nodes/Imag' % region, shape=SolImag[0].shape)
+            result_real[:] = SolReal[step_num-1]
+            result_imag[:] = SolImag[step_num-1]
     ######## Perform Inverse Fourier Transform for each position z in the pos_list and store ########
 
     ######## don't forget to close the file afterwards ########

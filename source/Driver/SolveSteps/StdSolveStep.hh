@@ -106,6 +106,8 @@ namespace CoupledField
 
     //!  base method for solving one harmonic step 
     virtual void SolveStepHarmonic();
+
+    void SolveStepHarmonic25D(Double ExcitationFreq, Double WaveNumFreq);
     
     //! solves for one linear frequency step 
     virtual void StepHarmonicLin();

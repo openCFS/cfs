@@ -773,9 +773,10 @@ namespace CoupledField {
     //! \param matFactors a map which contains for each matrixtype (DAMPING,
     //!                   STIFFNESS,...) the according factor
     //! \param isMultHarm flag if multiharmonic analysis
+    template<typename T>
     void ConstructEffectiveMatrix( 
         const FeFctIdType fctId,
-        const std::map<FEMatrixType, Double>& matFactors,
+        const std::map<FEMatrixType, T>& matFactors,
         const bool isMultHarm = false);
 
     //! Pass a Dirichlet value to %OLAS

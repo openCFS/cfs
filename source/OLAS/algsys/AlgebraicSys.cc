@@ -3448,21 +3448,22 @@ namespace CoupledField {
     REFACTOR;
   }
 
+  template<typename T>
   void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId,
-                            const std::map<FEMatrixType,Double> &matFactors,
+                            const std::map<FEMatrixType,T> &matFactors,
                             const bool isMultHarm) {
 
     LOG_DBG(algSys) << "Constructing effective system matrix for feFunction "
         << "with id " << fctId;
     if (IS_LOG_ENABLED(algSys, dbg)) {
       LOG_DBG(algSys) << "Factors are:";
-      std::map<FEMatrixType,Double>::const_iterator it = matFactors.begin();
+      typename std::map<FEMatrixType,T>::const_iterator it = matFactors.begin();
       for( ; it != matFactors.end(); ++it ) {
         LOG_DBG(algSys) << feMatrixType.ToString(it->first) << ": " << it->second;
       }
     }
 
-    factorMap::const_iterator it;
+    typename std::map<FEMatrixType,T>::const_iterator it;
     SBM_Matrix *sys = sysMat_[SYSTEM];
 
     // As one functionId can be spread over many SBM blocks, we
@@ -5535,4 +5536,6 @@ namespace CoupledField {
    template void AlgebraicSys::
    SetDirichletMH( const FeFctIdType, Integer, const Complex&, UInt&);
 
+  template void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId, const std::map<FEMatrixType,Complex> &matFactors, const bool isMultHarm);
+  template void AlgebraicSys::ConstructEffectiveMatrix( const FeFctIdType fctId, const std::map<FEMatrixType,Double> &matFactors, const bool isMultHarm);
 }// end of Namespace
