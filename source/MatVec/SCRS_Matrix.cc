@@ -1210,7 +1210,115 @@ inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
   void SCRS_Matrix<T>::Add( const Complex alpha, const StdMatrix& mat,
                             const std::set<UInt>& rowIndices,
                             const std::set<UInt>& colIndices) {
-    EXCEPTION("Complex Add is not implemented for SCRS_Matrix.");
+    EXCEPTION("Can not multiply a Double Matrix with Complex value");     
+  }
+
+  template<>
+  void SCRS_Matrix<Complex>::Add( const Complex alpha, const StdMatrix& mat,
+                            const std::set<UInt>& rowIndices,
+                            const std::set<UInt>& colIndices) {
+                              
+    // Down-cast input matrix
+    const SCRS_Matrix<Complex>& scrsMat = dynamic_cast<const SCRS_Matrix<Complex>&>(mat);
+
+    // Obtain pointer to data array of other matrix
+    const Complex *data = scrsMat.GetDataPointer();
+    
+    // Distinguish 4 cases:
+    // 1) Neither row- nor col-indices are set (i.e. take all indices)
+    //    -> use standard Add methods
+    // 2) Row and col-indices are set and contain all rows / cols
+    //    -> use standard Add methods
+    if( (rowIndices.size() == 0 && colIndices.size() == 0) ||
+        (rowIndices.size() == this->nrows_ &&
+         colIndices.size() == this->ncols_ ) ) {
+      // use standard method
+      this->Add(alpha, mat);
+      return;
+    }
+    
+    // 3) Both sets are non-empty sub-sets of all indices
+    //    --> loop over row / column indices to be set
+    std::set<UInt>::const_iterator rowIt, colIt;
+    if( rowIndices.size() > 0 && colIndices.size() > 0 ) {
+      UInt k, rs;
+      UInt j;
+      rowIt = rowIndices.begin();
+
+      // loop over all rows in the rowIndex set
+      for( ; rowIt != rowIndices.end(); ++rowIt ) {
+        k = rowPtr_[*rowIt];
+        rs = rowPtr_[*rowIt+1] - k;
+        // loop over all columns of the current row
+        colIt = colIndices.begin();
+        for ( j = 0; j < rs; j++ ) {
+          // iterate over desired column indices until the
+          // current column index is smaller
+          while( *colIt < colInd_[k] && colIt != colIndices.end() ) 
+            colIt++;
+          // only perform operation, if column indices match
+          if( *colIt == colInd_[k] )
+            data_[k] += alpha * data[k];
+          k++;
+        }
+      }
+    } else {
+      // 4) Only one set is empty: rowIndices or colIndices
+      //    -> either loop over all rows and take into account only
+      //       selected column
+      //    -> or loop over selected rows and take into account
+
+      if ( rowIndices.size() > 0 ) {
+        //    -> either loop over selected rows and take into account
+        //       all columns
+        std::set<UInt>::const_iterator rowIt;
+        UInt k, rs;
+        UInt j;
+        rowIt = rowIndices.begin();
+
+        // loop over all rows in the rowIndex set
+        for( ; rowIt != rowIndices.end(); ++rowIt ) {
+          k = rowPtr_[*rowIt];
+          rs = rowPtr_[*rowIt+1] - k;
+
+          // loop over all columns of the current row
+          for ( j = 0; j < rs; j++ ) {
+            data_[k] += alpha * data[k];
+            k++;
+          }
+        }
+      } else {
+        //  -> or loop over all rows and take into account only
+        //     selected columns
+        //this is simpler right now we can assume that all matrices have the same graph
+       // Obtain pointer to data array of other matrix
+        const Complex *data = dynamic_cast<const SCRS_Matrix<Complex>&>(mat).GetDataPointer();
+        //another optimization check if data in set is continuous
+        std::set<UInt>::iterator starting  = colIndices.begin();
+        std::set<UInt>::iterator ending = colIndices.end();
+        UInt min = *starting;
+        UInt max = *colIndices.rbegin();
+        UInt size = colIndices.size();
+        if( (max - min) == (size-1)){
+#pragma omp parallel for
+          for ( Integer i = 0; i < (Integer) numEntries_; i++ ) {
+            if (colInd_[i] >= min && colInd_[i] <= max)
+              data_[i] += alpha * data[i];
+          }
+        }else{
+          // we have to searach the set for every entry (nnz_ * O(log sizeof(colIndices)))
+#pragma omp parallel for
+          for ( Integer i = 0; i < (Integer) numEntries_; i++ ) {
+            if (colIndices.find(colInd_[i]) != ending)
+              data_[i] += alpha * data[i];
+          }
+        }
+      } // if column set is nonzero
+      //EXCEPTION( "This method is only implemented for the case of "
+      //    << "non-empty row and column index sets!" );
+    }
+
+    // EXCEPTION("Complex Add is not implemented for SCRS_Matrix.");
   }
 
   template<typename T>

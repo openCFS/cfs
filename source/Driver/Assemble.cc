@@ -2110,7 +2110,7 @@ namespace CoupledField
         matrixMap_[SYSTEM]    = SYSTEM;
         matrixMap_[STIFFNESS] = STIFFNESS;
         matrixMap_[DAMPING]   = DAMPING;
-        matrixMap_[DAMPING_AUX] = DAMPING_AUX;
+        matrixMap_[DAMPING_AUX] = AUXILIARY;
         matrixMap_[MASS]      = MASS;
         break;
 
@@ -2243,7 +2243,8 @@ namespace CoupledField
       if ( analysisType_ == BasePDE::HARMONIC25D) {
         // Dirty hack for Damping Matrices
         if (dest == DAMPING || dest == DAMPING_AUX) {
-          Matrix2Harmonic(harmMat, elemMat, dest, context.GetEntryType(), 1.0);
+          // Matrix2Harmonic(harmMat, elemMat, dest, context.GetEntryType(), 1.0);
+          Matrix2Complex( harmMat, elemMat);
         } else {
           Matrix2Complex( harmMat, elemMat);
         }
@@ -2304,7 +2305,8 @@ namespace CoupledField
     } else if (domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC25D) {
       // Dirty hack for Damping Matrices
         if (dest == DAMPING || dest == DAMPING_AUX) {
-          Matrix2Harmonic(harmMat, elemMat, dest, context.GetEntryType(), 1.0);
+          // Matrix2Harmonic(harmMat, elemMat, dest, context.GetEntryType(), 1.0);
+          harmMat = elemMat;
         } else {
           harmMat = elemMat;
         }
