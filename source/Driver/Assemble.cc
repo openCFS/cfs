@@ -1853,7 +1853,7 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::HARMONIC25D || analysisType_ == BasePDE::MULTIHARMONIC
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::MULTIHARMONIC
 		     || analysisType_ ==BasePDE::INVERSESOURCE || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         matReassemble_[actContext.GetDestMat()] = true;
@@ -2241,7 +2241,13 @@ namespace CoupledField
       }
 
       if ( analysisType_ == BasePDE::HARMONIC25D) {
-        Matrix2Complex( harmMat, elemMat);
+        // Dirty hack for Damping Matrices
+        if (dest == DAMPING || dest == DAMPING_AUX) {
+          Matrix2Harmonic(harmMat, elemMat, dest, context.GetEntryType(), 1.0);
+        } else {
+          Matrix2Complex( harmMat, elemMat);
+        }
+        
       } else {
         Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
       }
@@ -2293,10 +2299,18 @@ namespace CoupledField
     }
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
-       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC)
-      Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
-    else
+       domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC) {
+        Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
+    } else if (domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC25D) {
+      // Dirty hack for Damping Matrices
+        if (dest == DAMPING || dest == DAMPING_AUX) {
+          Matrix2Harmonic(harmMat, elemMat, dest, context.GetEntryType(), 1.0);
+        } else {
+          harmMat = elemMat;
+        }
+    } else {
       harmMat = elemMat;
+    }
 
     if(analysisType_ == BasePDE::MULTIHARMONIC){
       algsys_->SetElementMatrix_MultHarm( mappedDest, harmMat,

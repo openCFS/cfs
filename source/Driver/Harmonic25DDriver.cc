@@ -163,9 +163,39 @@ namespace CoupledField {
       // Perform steps for the solution
       ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
       ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
-      ptPDE_->GetSolveStep()->PreStepHarmonic();
-      ptPDE_->GetSolveStep()->SolveStepHarmonic();
-      ptPDE_->GetSolveStep()->PostStepHarmonic();
+      
+      // BaseSolveStep *step = ptPDE_->GetSolveStep();
+      // StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(step);
+      // StdPDE *PDE_ = dynamic_cast<StdPDE*>(ptPDE_);
+
+      // // ptPDE_->GetSolveStep()->PreStepHarmonic();
+      // sstep->GetAlgSys()->InitRHS();
+      
+      // // ptPDE_->GetSolveStep()->SolveStepHarmonic();
+      // PDE_->SetRhsValues();
+      // sstep->GetAssemble()->AssembleMatrices();
+
+      // PDE_->SetBCs();
+
+      // sstep->GetAlgSys()->InitMatrix(SYSTEM);
+      // Double omega = 2*M_PI*actFreq_;
+      // std::map<FEMatrixType,Double> dynamicStiffnessMatrixFactors;
+      // dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS,1.0) );
+      // dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING,1.0) );
+      // dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,omega*omega) );
+      // sstep->GetAlgSys()->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors);
+      
+      // sstep->GetAlgSys()->BuildInDirichlet();
+
+      // if(sstep->GetAssemble()->IsMatrixUpdated() ) {
+      //   sstep->GetAlgSys()->SetupPrecond();
+      //   sstep->GetAlgSys()->SetupSolver();
+      // }
+
+      // sstep->GetAlgSys()->Solve();
+      BaseSolveStep *step = ptPDE_->GetSolveStep();
+      StdSolveStep *sstep = dynamic_cast<StdSolveStep*>(step);
+      sstep->SolveStepHarmonic25D(baseFreq_, actFreq_);
 
       return actFreq_;
     }

@@ -1409,6 +1409,62 @@ namespace CoupledField {
       StepHarmonicLin();
     }
   }
+
+  void StdSolveStep::SolveStepHarmonic25D(Double ExcitationFreq, Double WaveNumFreq) {
+    algsys_->InitRHS();
+    PDE_.SetRhsValues();
+    assemble_->AssembleLinRHS();
+    assemble_->AssembleMatrices();
+    PDE_.SetBCs();
+    algsys_->GetRHSVal( rhsVec_ );
+    algsys_->InitMatrix(SYSTEM);
+
+    Double BaseOmega = 2*M_PI*ExcitationFreq;
+    Double WaveNumOmega = 2*M_PI*WaveNumFreq;
+    Double FactorM = WaveNumOmega*WaveNumOmega - BaseOmega*BaseOmega;
+    Double FactorC = std::sqrt(-FactorM);
+
+    std::map<FEMatrixType,Double> dynamicStiffnessMatrixFactors;
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS,1.0) );
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING,FactorC) );
+    dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,FactorM) );
+    algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors);
+    algsys_->BuildInDirichlet();
+    // Incorporate Boundary conditions and
+    // recalc the preconditioner eventually
+    algsys_->BuildInDirichlet();
+
+
+    // Comment: For each Step we have to call algsys_->SetupSolver
+    // if( assemble_->IsMatrixUpdated() ) {
+    //   // check if getRidOfZeros() should be used by defining useGetRidOfZeros_
+    //   SetupGetRidOfZerosActive();
+    //   // get rid of unnecessary zeros (if applicable)
+    //   if( useGetRidOfZeros_ ) {
+    //     algsys_->GetRidOfZeros<Complex>(getRidOfZerosTol_);
+    //   }
+
+    //   algsys_->SetupPrecond();
+    //   algsys_->SetupSolver();
+    // }
+
+    algsys_->SetupPrecond();
+    algsys_->SetupSolver();
+    
+    algsys_->Solve();
+
+    // we store the old (non-optimized) matrix back IMMIDEATELY so that all matrix update operations work again
+    // afterwards, we notify the solver that the matrix pattern might change again in the next step
+    // if( useGetRidOfZeros_ ) {
+    //   algsys_->RestoreSystemMatrixFromBackup();
+    //   algsys_->GetSolver()->SetNewMatrixPattern();
+    // }
+
+    // Since the entries of solVec_ are pointers to the SingleVector
+    // of the FE function, it automatically inserts the values there
+    // This Step is essential for getting solution vector written in the HDF5 File, Why?
+    algsys_->GetSolutionVal(solVec_);
+  }
   
   
   void StdSolveStep::StepHarmonicLin() {
