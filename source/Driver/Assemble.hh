@@ -289,6 +289,12 @@ namespace CoupledField {
 
     /** The object is within a ParamNode and deleted there! */
     boost::shared_ptr<Timer> timer_;
+
+    //! Subtimer for matrix assemble
+    boost::shared_ptr<Timer> matrixTimer_;
+
+    //! Subtimer for RHS assemble
+    boost::shared_ptr<Timer> rhsTimer_;
     
     //! Flag, if progress bar should be printed
     bool printProgressBar_;
