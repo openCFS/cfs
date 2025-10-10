@@ -71,6 +71,12 @@ namespace CoupledField
     
     // the timer object is used in every AssembleMatrices() call
     info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
+
+    // Sub timer
+    matrixTimer_ = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->Get("assemble_matrices/timer")->AsTimer();
+    matrixTimer_->SetSub();
+    rhsTimer_ = info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble")->Get("assemble_rhs/timer")->AsTimer();
+    rhsTimer_->SetSub();
   }
 
   Assemble::~Assemble() {
@@ -466,6 +472,7 @@ namespace CoupledField
     LOG_DBG(assemble) << "AM_Std: AssembleMatrices_Std() enter sequence=" << domain->GetDriver()->GetActSequenceStep();
 
     timer_->Start();
+    matrixTimer_->Start();
 
     // Reset for matrix update
     matrixUpdated_ = false;
@@ -731,6 +738,7 @@ namespace CoupledField
     // except: CheckNonLinearities sets one of these, or Optimization does
     matReassemble_.clear();
 
+    matrixTimer_->Stop();
     timer_->Stop();
 
        // algsys_->GetMatrix(STIFFNESS)->Export("assemble_stiff.mtx");
@@ -1082,6 +1090,7 @@ namespace CoupledField
     FeFctIdType fctId1, fctId2;
 
     timer_->Start();
+    matrixTimer_->Start();
 
     // Reset for matrix update
     matrixUpdated_ = false;
@@ -1335,6 +1344,7 @@ namespace CoupledField
     matReassemble_.clear();
 
     timer_->Stop();
+    matrixTimer_->Stop();
 
   }
 
@@ -1346,6 +1356,7 @@ namespace CoupledField
     FeFctIdType fctId1, fctId2;
 
     timer_->Start();
+    matrixTimer_->Start();
 
     // Reset for matrix update
     matrixUpdated_ = false;
@@ -1539,6 +1550,7 @@ namespace CoupledField
     matReassemble_.clear();
 
     timer_->Stop();
+    matrixTimer_->Stop();
   }
 
 
@@ -1560,6 +1572,7 @@ namespace CoupledField
     StdVector<LinearFormContext*>::iterator formsIt;
 
     timer_->Start();
+    rhsTimer_->Start();
 
     // iterate over all descriptors
     for(formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++)
@@ -1663,6 +1676,7 @@ namespace CoupledField
                           << actContext.GetEntities()->GetName() << "'" );
       }
     }
+    rhsTimer_->Stop();
     timer_->Stop();
   }
 
