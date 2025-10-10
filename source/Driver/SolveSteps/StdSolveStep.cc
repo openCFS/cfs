@@ -1419,26 +1419,14 @@ namespace CoupledField {
     algsys_->GetRHSVal( rhsVec_ );
     algsys_->InitMatrix(SYSTEM);
 
-    // Multiplying with Double valued factor works already
-    // Double BaseOmega = 2*M_PI*ExcitationFreq;
-    // Double WaveNumOmega = 2*M_PI*WaveNumFreq;
-    // Double FactorM = WaveNumOmega*WaveNumOmega - BaseOmega*BaseOmega;
-    // Double FactorC = std::sqrt(-FactorM);
-
-    // std::map<FEMatrixType,Double> dynamicStiffnessMatrixFactors;
-    // dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(STIFFNESS,1.0) );
-    // dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(DAMPING,FactorC) );
-    // dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Double>(MASS,FactorM) );
-    // algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors);
-
     Double BaseOmega = 2*M_PI*ExcitationFreq;
     Double WaveNumOmega = 2*M_PI*WaveNumFreq;
 
     // Pre Factor for Global Mass Matrix
     Complex FactorM = Complex(WaveNumOmega*WaveNumOmega - BaseOmega*BaseOmega, 0.0);
-    // Pre Factor for Global Damping Matrix from Impedance BC
+    // Pre Factor for Global Damping Matrix (Impedance BC)
     Complex FactorC = Complex(0.0, BaseOmega);
-    // Pre Factor for Global Damping Auxiliary Matrix from Absorbing BC
+    // Pre Factor for Global Damping Auxiliary Matrix (Absorbing BC)
     Complex SqrtRootResult = std::sqrt(-FactorM);
     Complex FactorAUX = Complex(0.0, 0.0);
     if (SqrtRootResult.real() != 0.0) {
@@ -1447,8 +1435,6 @@ namespace CoupledField {
       FactorAUX = Complex(std::abs(SqrtRootResult.imag()), 0.0);
     }
 
-    // Complex FactorAUX = Complex(0.0,1.0) * std::sqrt(-FactorM);
-
     std::map<FEMatrixType,Complex> dynamicStiffnessMatrixFactors;
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(STIFFNESS,Complex(1.0,0.0)) );
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(DAMPING,FactorC) );
@@ -1456,12 +1442,9 @@ namespace CoupledField {
     dynamicStiffnessMatrixFactors.insert( std::pair<FEMatrixType,Complex>(MASS,FactorM) );
     algsys_->ConstructEffectiveMatrix(NO_FCT_ID, dynamicStiffnessMatrixFactors);
     
-    
-    algsys_->BuildInDirichlet();
     // Incorporate Boundary conditions and
     // recalc the preconditioner eventually
     algsys_->BuildInDirichlet();
-
 
     // Comment: For each Step we have to call algsys_->SetupSolver
     // if( assemble_->IsMatrixUpdated() ) {

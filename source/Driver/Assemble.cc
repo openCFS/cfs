@@ -68,14 +68,6 @@ namespace CoupledField
     // Set expression for omega
     mHandle_ = mp->GetNewHandle();
     mp->SetExpr(mHandle_, "2*pi*f");
-
-    // for 2.5d harmonic analysis, set expression for analysis frequency
-    if (analysisType_ == BasePDE::HARMONIC25D) {
-      baseOmega25D_ = mp->GetNewHandle();
-      mp->SetExpr(baseOmega25D_, "2*pi*baseFreqHarmonic25D");
-    } else {
-      baseOmega25D_ = 0;
-    }
     
     // the timer object is used in every AssembleMatrices() call
     info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
@@ -1940,9 +1932,7 @@ namespace CoupledField
         break;
       case MASS:
         derivOrder = 2;
-        // in harmonic 2.5d analysis, we calculate the factor for mass matrix in
-        // InsertMatrix() method and then pass the factor directly here
-        factor = (analysisType_ == BasePDE::HARMONIC25D) ? omega : -omega*omega;
+        factor = -omega*omega;
         break;
       case MASS_UPDATE:
         derivOrder = 2;
@@ -2000,9 +1990,7 @@ namespace CoupledField
       break;
     case MASS:
       // BLOCH CHECK for 1st time derivative order!\
-      // in harmonic 2.5d analysis, we calculate the factor for mass matrix in
-      // InsertMatrix() method and then pass the factor directly here
-      factor = (analysisType_ == BasePDE::HARMONIC25D) ? Complex(omega, 0.0) : Complex(-omega*omega, 0.0);
+      factor = Complex(-omega*omega, 0.0);
       break;
     case MASS_UPDATE:
       // BLOCH CHECK for 1st time derivative order!
@@ -2241,14 +2229,7 @@ namespace CoupledField
       }
 
       if ( analysisType_ == BasePDE::HARMONIC25D) {
-        // Dirty hack for Damping Matrices
-        if (dest == DAMPING || dest == DAMPING_AUX) {
-          // Matrix2Harmonic(harmMat, elemMat, dest, context.GetEntryType(), 1.0);
-          Matrix2Complex( harmMat, elemMat);
-        } else {
-          Matrix2Complex( harmMat, elemMat);
-        }
-        
+        Matrix2Complex( harmMat, elemMat);
       } else {
         Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
       }
@@ -2302,14 +2283,6 @@ namespace CoupledField
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::INVERSESOURCE ||
        domain->GetDriver()->GetAnalysisType() == BasePDE::MULTIHARMONIC) {
         Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
-    } else if (domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC25D) {
-      // Dirty hack for Damping Matrices
-        if (dest == DAMPING || dest == DAMPING_AUX) {
-          // Matrix2Harmonic(harmMat, elemMat, dest, context.GetEntryType(), 1.0);
-          harmMat = elemMat;
-        } else {
-          harmMat = elemMat;
-        }
     } else {
       harmMat = elemMat;
     }

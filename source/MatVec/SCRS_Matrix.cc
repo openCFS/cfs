@@ -1317,8 +1317,6 @@ inline void SCRS_Matrix<T>::AddToMatrixEntry( UInt i, UInt j, const T& v )
       //EXCEPTION( "This method is only implemented for the case of "
       //    << "non-empty row and column index sets!" );
     }
-
-    // EXCEPTION("Complex Add is not implemented for SCRS_Matrix.");
   }
 
   template<typename T>

@@ -239,9 +239,6 @@ namespace CoupledField {
     //! Handle for expression
     unsigned int mHandle_;
 
-    //! Handle for 2.5d harmonic analysis base angular frequency
-    unsigned int baseOmega25D_;
-
     //! Flag indicating if system was already assembled
     bool isFirstTime_;
 
