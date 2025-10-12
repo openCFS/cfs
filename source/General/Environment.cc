@@ -492,6 +492,13 @@ namespace CoupledField {
     MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_2, "Electric_Conductivity_2" );
     MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_3, "Electric_Conductivity_3" );
 
+    // -- Electric Network --
+    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_TENSOR, "Electric_Network_Conductivity_Tensor" );
+    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_SCALAR, "Electric_Network_Conductivity_Scalar" );
+    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_1, "Electric_Network_Conductivity_1" );
+    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_2, "Electric_Network_Conductivity_2" );
+    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_3, "Electric_Network_Conductivity_3" );
+
     // -- Flow --
     MaterialTypeEnum.Add( FLUID_ADIABATIC_EXPONENT, "Flow_Adiabatic_Exponent");
     MaterialTypeEnum.Add( FLUID_DYNAMIC_VISCOSITY, "Flow_Dynamic_Viscosity" );

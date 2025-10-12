@@ -1149,6 +1149,18 @@ namespace CoupledField {
       densFct = CoefFunction::Generate( mp_, Global::REAL, "0.0");
     }
     material->SetCoefFct( DENSITY, densFct );
+
+
+    // read electric network conductivity
+    PtrParamNode condNetwork = mag->Get("electricNetworkConductivity", ParamNode::PASS);
+    if ( condNetwork ) {
+      if (condNetwork->Has("linear")) {  
+        PtrCoefFct condFct;
+        // generate a complex valued coefficient function, if only real part is given, the imaginary part will be set to 0
+        condFct = ReadScalarLin(mag, "electricNetworkConductivity", Global::COMPLEX);
+        material->SetCoefFct(ELEC_NETWORK_CONDUCTIVITY_SCALAR, condFct); // set it to the material          
+      }
+    }
     
   }
   

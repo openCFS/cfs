@@ -1810,6 +1810,8 @@ namespace CoupledField {
       entNetworkNeg = ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST,networkTerminalNegative );
 
       WARN("Only constant conductivity can be treated. Please ensure that this is the case!");
+      PtrCoefFct constCondNetwork =
+        materials_[evalRegion]->GetScalCoefFnc(ELEC_NETWORK_CONDUCTIVITY_SCALAR,Global::REAL);
       PtrCoefFct constCond =
         materials_[evalRegion]->GetScalCoefFnc(MAG_CONDUCTIVITY_SCALAR,Global::REAL);
       
@@ -1823,7 +1825,7 @@ namespace CoupledField {
           EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
           // we don't consider any geometry update, hence, we set the last bool to false
-          stiffnessCouplingIntPosLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCond, 1.0, false);
+          stiffnessCouplingIntPosLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, 1.0, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -1844,7 +1846,7 @@ namespace CoupledField {
           EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
           // we don't consider any geometry update, hence, we set the last bool to false
-          stiffnessCouplingIntNegLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCond, -1.0, false);
+          stiffnessCouplingIntNegLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, -1.0, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -1893,7 +1895,7 @@ namespace CoupledField {
           // we don't consider any geometry update, hence, we set the last bool to false
 
           // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
-          stiffnessCouplingIntPosFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCond, surfAreaFem, false);
+          stiffnessCouplingIntPosFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCondNetwork, surfAreaFem, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -1916,7 +1918,7 @@ namespace CoupledField {
           // we don't consider any geometry update, hence, we set the last bool to false
 
           // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
-          stiffnessCouplingIntNegFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCond, surfAreaFem, false);
+          stiffnessCouplingIntNegFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCondNetwork, surfAreaFem, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -1940,7 +1942,7 @@ namespace CoupledField {
           // we don't consider any geometry update, hence, we set the last bool to false
 
           // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
-          stiffnessCouplingIntPosOffDiagFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCond, -surfAreaFem, false);
+          stiffnessCouplingIntPosOffDiagFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCondNetwork, -surfAreaFem, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -1962,7 +1964,7 @@ namespace CoupledField {
           // we don't consider any geometry update, hence, we set the last bool to false
 
           // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
-          stiffnessCouplingIntNegOffDiagFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCond, -surfAreaFem, false);
+          stiffnessCouplingIntNegOffDiagFL = new BBInt<Double,Double>(new IdentityOperator<FeH1,0,1>, constCondNetwork, -surfAreaFem, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");

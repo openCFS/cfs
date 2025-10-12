@@ -90,9 +90,9 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 #else
     elemMat += Transpose(aMat_) * this->bMat_ * this->factor_*fac;
 #endif
-    std::cout << "A mat " << this->aMat_.ToString() << std::endl;
-    std::cout << "B mat " << this->bMat_.ToString() << std::endl;
-    std::cout << "Elem mat " << elemMat.ToString() << std::endl;
+    //std::cout << "A mat " << this->aMat_.ToString() << std::endl;
+    //std::cout << "B mat " << this->bMat_.ToString() << std::endl;
+    //std::cout << "Elem mat " << elemMat.ToString() << std::endl;
   }
 }
 
@@ -257,8 +257,8 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       //this->aOperator_->OverrideIsSurfOperator(false);
     }
 
-    std::cout << "A mat " << this->aMat_.ToString() << std::endl;
-    std::cout << "B mat " << this->bMat_.ToString() << std::endl;
+    //std::cout << "A mat " << this->aMat_.ToString() << std::endl;
+    //std::cout << "B mat " << this->bMat_.ToString() << std::endl;
     // Calculate scalar factor
     this->coefScalar_->GetScalar(fac, lpm);
     fac *= MAT_DATA_TYPE(lpm.jacDet * weights[iIntPts]); 
@@ -268,7 +268,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
 #else
     elemMat += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
 #endif
-    std::cout << "Elem mat " << elemMat.ToString() << std::endl;
+    //std::cout << "Elem mat " << elemMat.ToString() << std::endl;
   }
 }
 
