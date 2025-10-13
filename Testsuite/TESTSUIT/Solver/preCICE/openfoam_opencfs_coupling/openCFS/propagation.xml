@@ -1,0 +1,168 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+	<documentation>
+		<title>Sound propagation simulation</title>
+		<authors>
+			<author>Andreas Wurzinger</author>
+		</authors>
+		<date>2022-01-13</date>
+		<keywords>
+			<keyword>aeroacoustics</keyword>
+			<keyword>nonmatching grids</keyword>
+			<keyword>pml</keyword>
+			<keyword>transient</keyword>
+		</keywords>
+		<references></references>
+		<isVerified>yes</isVerified>
+		<description>
+			Propagation simulation solving the aeroacoustic wave equation for the acoustic scalar potential
+		</description>
+	</documentation>
+	<fileFormats>
+		<!-- Data Input -->
+		<input>
+			<hdf5 fileName="sourceRegion.cfs" />
+			<!-- <hdf5 fileName="PML.cfs" id="id2" />
+			<hdf5 fileName="propagationRegion.cfs" id="id3" /> -->
+		</input>
+		<!-- Data Output -->
+		<output>
+			<hdf5 />
+			<text id="txt" />
+		</output>
+		<!-- Material File -->
+		<materialData file="air.xml" format="xml" />
+		<preciceCoupling>
+			<participantName name="openCFS" />
+			<participantMeshName name="openCFSMesh" />
+			<!-- <precice_configFile file="/home/thk/openfoam_opencfs_coupling/precice-config.xml" /> -->
+			<precice_configFile file="../precice-config.xml" />
+			<sequenceStep>1</sequenceStep>
+		</preciceCoupling>
+	</fileFormats>
+
+	<domain geometryType="plane">
+		<!-- User-defined Variables -->
+		<variableList>
+			<!-- Material parameters for source term scaling -->
+			<var name="rho" value="1.204" />
+			<var name="c" value="343.5" />
+			<!-- Parameter for spatial blending function -->
+			<var name="sigma" value="0.6" />
+			<!-- Parameter for temporal blending function -->
+			<var name="tau" value="20e-3" />
+		</variableList>
+		<!-- Volume Regions -->
+		<regionList>
+			<region name="internal" material="air_20deg" />
+			<!-- <region name="prop" material="air_20deg" />
+			<region name="pml" material="air_20deg" /> -->
+		</regionList>
+		<!-- Surface Regions -->
+		<surfRegionList>
+			<!-- <surfRegion name="BC_IFin" />
+			<surfRegion name="BC_IFout" />
+			<surfRegion name="bc" />
+			<surfRegion name="ifborder" /> -->
+		</surfRegionList>
+		<!-- Non-conforming Interfaces -->
+		<ncInterfaceList>
+			<!-- <ncInterface name="NC1" primarySide="BC_IFin" secondarySide="bc" />
+			<ncInterface name="NC2" primarySide="ifborder" secondarySide="BC_IFout" /> -->
+		</ncInterfaceList>
+		<!-- User-defined Points -->
+		<elemList>
+			<elems name="mic1e">
+				<coord x="1" y="0" />
+			</elems>
+			<elems name="mic2e">
+				<coord x="0" y="3" />
+			</elems>
+		</elemList>
+		<nodeList>
+			<nodes name="mic1">
+				<coord x="1" y="0" />
+			</nodes>
+			<nodes name="mic2">
+				<coord x="0" y="3" />
+			</nodes>
+		</nodeList>
+	</domain>
+
+	<sequenceStep>
+		<!-- Analysis Type -->
+		<analysis>
+			<transient>
+				<numSteps>201</numSteps>
+				<deltaT>5e-5</deltaT>
+			</transient>
+		</analysis>
+
+		<!-- PDE Definition -->
+		<pdeList>
+			<acoustic formulation="acouPotential">
+				<!-- Computation Domain -->
+				<regionList>
+					<region name="internal" />
+					<!-- <region name="prop" />
+					<region name="pml" dampingId="myPml" /> -->
+				</regionList>
+
+				<!-- Non-conforming Interface Definition -->
+				<ncInterfaceList>
+					<!-- <ncInterface name="NC1" formulation="Nitsche" />
+					<ncInterface name="NC2" formulation="Nitsche" /> -->
+				</ncInterfaceList>
+
+				<!-- Damping Model -->
+				<dampingList>
+					<pml id="myPml">
+						<type>inverseDist</type>
+						<dampFactor>1</dampFactor>
+					</pml>
+				</dampingList>
+
+				<!-- Boundary Conditions and Volume Loads -->
+				<bcsAndLoads>
+					<!-- <rhsValues name="internal">
+						<grid>
+							<defaultGrid quantity="acouRhsLoad" dependtype="GENERAL"
+								definedOn="node">
+								<globalFactor>
+									(-1.0 / (rho*c^2)) * fadeIn(tau, 1, t) *
+									((sqrt(x^2+y^2) lt 1.9)? exp(-0.5*(x^2+y^2)/sigma^2) : 0) </globalFactor>
+							</defaultGrid>
+						</grid>
+					</rhsValues> -->
+				</bcsAndLoads>
+
+				<!-- Results Definition -->
+				<storeResults>
+					<!-- Export point array -->
+					<!-- <sensorArray fileName="mics/micArrayResults_2m_acouPotentialD1_CellCentroid" csv="yes" type="acouPotentialD1" delimiter=",">
+						<coordinateFile fileName="mics/MicPos.txt" xCoordColumn="1" yCoordColumn="2" delimiter="," />
+					</sensorArray>
+					<sensorArray fileName="mics/micArrayResults_2m_acouIntensity_CellCentroid" csv="yes" type="acouIntensity" delimiter=",">
+						<coordinateFile fileName="mics/MicPos.txt" xCoordColumn="1" yCoordColumn="2" delimiter="," />
+					</sensorArray> -->
+					<!-- Export node result -->
+					<!-- <nodeResult type="acouPotentialD1">
+						<allRegions />
+						<nodeList>
+							<nodes name="mic1" />
+							<nodes name="mic2" />
+						</nodeList>
+					</nodeResult>
+					< Export element result >
+					<elemResult type="acouIntensity">
+						<allRegions />
+						<elemList>
+							<elems name="mic1e" />
+							<elems name="mic2e" />
+						</elemList>
+					</elemResult> -->
+				</storeResults>
+			</acoustic>
+		</pdeList>
+	</sequenceStep>
+</cfsSimulation>

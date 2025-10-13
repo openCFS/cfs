@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.cfs++.org/material 
+	https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd" >
+  
+  <material name="air_-10deg">
+    <acoustic>
+      <density> <linear> <real> 1.341 </real></linear></density>
+      <compressionModulus> <linear> <real> 1.4198e5 </real></linear></compressionModulus>
+    </acoustic>
+  </material>
+  
+  <material name="air_-5deg">
+    <acoustic>
+      <density> <linear> <real>1.317</real> </linear></density>
+      <compressionModulus> <linear> <real> 1.4198e5 </real></linear></compressionModulus>
+    </acoustic>
+  </material>
+  
+  <material name="air_0deg">
+    <acoustic>
+      <density> <linear> <real> 1.293 </real></linear></density>
+      <compressionModulus> <linear> <real>1.4198e5</real> </linear></compressionModulus>
+    </acoustic>
+  </material>
+  
+  <material name="air_5deg">
+    <acoustic>
+      <density> <linear> <real> 1.270 </real></linear></density>
+      <compressionModulus> <linear> <real> 1.4198e5 </real></linear></compressionModulus>
+    </acoustic>
+  </material>
+  
+  <material name="air_10deg">
+    <acoustic>
+      <density> <linear> <real> 1.247 </real></linear></density>
+      <compressionModulus> <linear> <real> 1.4198e5 </real></linear></compressionModulus>
+    </acoustic>
+  </material>
+  
+  <material name="air_15deg">
+    <acoustic>
+      <density> <linear> <real> 1.225 </real></linear></density>
+      <compressionModulus> <linear> <real> 1.4198e5 </real></linear></compressionModulus>
+    </acoustic>
+  </material>
+  
+  <material name="air_20deg">
+    <acoustic>
+      <density> <linear> <real> 1.204 </real></linear></density>
+      <compressionModulus> <linear> <real>1.4198e5 </real></linear></compressionModulus>
+    </acoustic>
+  </material>
+  
+  <material name="air_25deg">
+    <acoustic>
+      <density> <linear> <real>1.185 </real></linear></density>
+      <compressionModulus> <linear> <real>1.4198e5 </real></linear></compressionModulus>
+    </acoustic>
+  </material>
+  
+  <material name="air_30deg">
+    <acoustic>
+      <density> <linear> <real> 1.164 </real></linear></density>
+      <compressionModulus> <linear> <real> 1.4198e5 </real></linear></compressionModulus>
+    </acoustic>
+  </material>
+</cfsMaterialDataBase>
