@@ -177,10 +177,16 @@ namespace CoupledField {
       freqCutoff_ = param_->Get("cutoffFreq")->MathParse<Double>();
       freqResolution_ = param_->Get("freqResolution")->MathParse<Double>();
 
-      // calculate how many steps we have to compute, adding 1 to include the 0 Hz point
-      numFreq_ = static_cast<int>(std::ceil(freqCutoff_/ freqResolution_)) + 1;
+      if (param_->Has("startFreq")) {
+        startFreq_ = param_->Get("startFreq")->MathParse<Double>();
+      }
+      
+      assert(freqCutoff_ >= startFreq_ && "Cutoff Frequency must be greater than or equal Start Frequency!");
 
-      // Initialize the vector and set the first element to 0 Hz
+      // calculate how many steps we have to compute, adding 1 to include the Start Frequency
+      numFreq_ = static_cast<int>(std::ceil((freqCutoff_-startFreq_)/ freqResolution_)) + 1;
+
+      // Initialize the vector and set the first element to start Frequency 
       waveNum_.Resize(numFreq_);
       waveNum_[0].freq = startFreq_;
       waveNum_[0].step = 1; //1-based

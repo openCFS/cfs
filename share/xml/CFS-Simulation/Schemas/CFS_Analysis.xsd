@@ -649,14 +649,21 @@
           <xsd:element name="excitationFreq" type="xsd:token" minOccurs="1" maxOccurs="1">
             <xsd:annotation>
               <xsd:documentation>
-                Frequency of interest
+                Frequency of interest = Excitation Frequency of 3D Problem
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          <xsd:element name = "startFreq" type = "xsd:token" default = "0.0" minOccurs = "0">
+            <xsd:annotation>
+              <xsd:documentation>
+                Start frequency of the wavenumber spectrum in Hz (optional default = 0)
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
           <xsd:element name="cutoffFreq" type="xsd:token" minOccurs="1" maxOccurs="1">
             <xsd:annotation>
               <xsd:documentation>
-                The upper bound of the wavenumber spectrum
+                The upper bound of the wavenumber spectrum in Hz
               </xsd:documentation>
             </xsd:annotation>
           </xsd:element>
