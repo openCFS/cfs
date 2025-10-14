@@ -100,7 +100,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 
 		<!-- PDE Definition -->
 		<pdeList>
-			<acoustic formulation="acouPotential">
+			<acoustic formulation="acouPressure">
 				<!-- Computation Domain -->
 				<regionList>
 					<region name="internal" />
@@ -152,15 +152,18 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 							<nodes name="mic1" />
 							<nodes name="mic2" />
 						</nodeList>
-					</nodeResult>
-					< Export element result >
-					<elemResult type="acouIntensity">
+					</nodeResult> -->
+					<!-- < Export element result > -->
+					<!-- <elemResult type="acouPressure">
 						<allRegions />
 						<elemList>
 							<elems name="mic1e" />
 							<elems name="mic2e" />
 						</elemList>
 					</elemResult> -->
+					<nodeResult type="acouPressure">
+						<allRegions/>
+					</nodeResult>
 				</storeResults>
 			</acoustic>
 		</pdeList>
