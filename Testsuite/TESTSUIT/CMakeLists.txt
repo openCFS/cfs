@@ -64,6 +64,7 @@ if(USE_ARPACK)
 endif()
 if(USE_PRECICE)
   ADD_SUBDIRECTORY(Solver/preCICE/openfoam_opencfs_coupling)
+endif()
 if(TESTSUITE_PYTHON)
   # these external solver test cases rely on python
   ADD_SUBDIRECTORY(Solver/externalSolver/staticRealCoord)
