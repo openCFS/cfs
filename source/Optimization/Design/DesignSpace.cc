@@ -56,7 +56,7 @@
 #include <iomanip>
 
 using namespace CoupledField;
-
+using DE = DesignElement; // shortcut
 namespace CoupledField {
 template <class TYPE> class Vector;
 }
@@ -733,8 +733,15 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
     pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
-    if(warn && !added)
-      info_->SetWarning("'" + SolutionTypeEnum.ToString(rd.solutionType) + "' defined as 'result' in optimization but not referenced in pde " + pde->GetName());
+    if(warn && !added) {
+      assert(opt_res->definedOn == ResultInfo::NODE || opt_res->definedOn == ResultInfo::ELEMENT);
+      std::stringstream ss;
+      ss << "'" << SolutionTypeEnum.ToString(rd.solutionType) 
+          << "' defined as 'result' in optimization, but not referenced as " 
+          << (opt_res->definedOn == ResultInfo::NODE ? "node" : "element")
+          << "Result";
+      info_->SetWarning(ss.str());
+    }
   }
 }
 
@@ -788,17 +795,16 @@ double DesignSpace::CalcAverageDensityAtNode(int nodeId, bool derivative)
     return tmp / (double) found;
 }
 
-double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
+double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs, ResultDescription& descr)
 {
   ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
-//  if(shopt == NULL) EXCEPTION("No level set optimizer activated");
   // Commented out for state tracking values at nodes
   // FIXME maybe throw an Exception? This should not be called without a levelset
-  if (shopt != NULL) {
-    if (shopt->ptrLS_ == NULL)
+  if(shopt != nullptr) 
+  {
+    if(shopt->ptrLS_ == nullptr)
       return 0.0;
-    else
-      assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != NULL);
+    assert(shopt->ptrLS_->GetNodePointer(nodeNumber) != nullptr);
   }
 
   switch(vs)
@@ -825,6 +831,15 @@ double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueS
     return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcStateTrackingAtNode(nodeNumber);
   case DesignElement::TEMP_AT_INTERFACE:
     return dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->CalcTempAtInterface(nodeNumber);
+  case DesignElement::FEATURE_DISTANCE:
+  case DesignElement::FEATURE_PROJECTED:
+  {
+    FeatureMappingDesign* fmd = dynamic_cast<FeatureMappingDesign*>(this);
+    if(fmd == nullptr)
+      throw Exception("no feature mapping design but feature mapping result requested: " + DesignElement::valueSpecifier.ToString(vs));
+    return fmd->GetNodalSpecialResult(nodeNumber, descr);
+  }  
+
   default:
     EXCEPTION("case not implemented")
   }
@@ -838,14 +853,26 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   // I hate it!!! :(
   ri->resultType = (SolutionType) rd.solutionType;
   // no space and brackets to have no problems with info.xml and no problems with the paraview calculator
-  if(rd.value == DesignElement::GENERIC_ELEM)
+  if(rd.value == DE::GENERIC_ELEM)
     ri->resultName = rd.generic;
   else
-    ri->resultName = DesignElement::valueSpecifier.ToString(rd.value) + "_"
-                   + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
-                   + DesignElement::type.ToString(rd.design) + "_"
-                   + DesignElement::access.ToString(rd.access)
-                   + (rd.excitation >= 0 ? ("_ex_" + lexical_cast<string>(rd.excitation)) : "");
+  {
+    string access = "_" + DE::access.ToString(rd.access);
+    if(rd.design == DE::FEATURE || rd.design == DE::ALL_FEATURES || rd.value == DE::FEATURE_GRAD || rd.detail == DE::GRAD_DISTANCE)
+    {
+      assert(rd.access == DE::PLAIN);
+      access = ""; // skip irrelevant data _plain
+    }
+    string feature_id = "";
+    if(rd.design == DE::FEATURE || FeatureVariable::IsFeatureVariable(rd.design))
+      feature_id = "_" + rd.generic; // in the DE::FEATURE case it is even feature_2
+    ri->resultName = DE::valueSpecifier.ToString(rd.value) + "_"
+                   + (rd.detail != DE::NONE ? (DE::detail.ToString(rd.detail) + "_") : "")
+                   + DE::type.ToString(rd.design) 
+                   + feature_id
+                   + access
+                   + (rd.excitation >= 0 ? ("_ex_" + std::to_string(rd.excitation)) : "");
+  }
   ri->unit = "";
   ri->entryType = ResultInfo::SCALAR;
   ri->dofNames = "";
@@ -854,17 +881,19 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
   // in most cases we are on elements,
   switch(rd.value)
   {
-  case DesignElement::LEVEL_SET_VALUE:
-  case DesignElement::LEVEL_SET_STATE:
-  case DesignElement::SHAPEGRAD_NODE_VALUE:
-  case DesignElement::LEVEL_SET_GRAD_XP:
-  case DesignElement::LEVEL_SET_GRAD_XN:
-  case DesignElement::LEVEL_SET_GRAD_YP:
-  case DesignElement::LEVEL_SET_GRAD_YN:
-  case DesignElement::LEVEL_SET_GRAD_ZP:
-  case DesignElement::LEVEL_SET_GRAD_ZN:
-  case DesignElement::HEAT_NODAL_TRACK_VAL:
-  case DesignElement::TEMP_AT_INTERFACE:
+  case DE::LEVEL_SET_VALUE:
+  case DE::LEVEL_SET_STATE:
+  case DE::SHAPEGRAD_NODE_VALUE:
+  case DE::LEVEL_SET_GRAD_XP:
+  case DE::LEVEL_SET_GRAD_XN:
+  case DE::LEVEL_SET_GRAD_YP:
+  case DE::LEVEL_SET_GRAD_YN:
+  case DE::LEVEL_SET_GRAD_ZP:
+  case DE::LEVEL_SET_GRAD_ZN:
+  case DE::HEAT_NODAL_TRACK_VAL:
+  case DE::TEMP_AT_INTERFACE:
+  case DE::FEATURE_DISTANCE:
+  case DE::FEATURE_PROJECTED:
     ri->definedOn = ResultInfo::NODE;
     break;
   default:
@@ -893,7 +922,7 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
     if(rd.excitation >= 0 && lexical_cast<string>(rd.excitation) != excitation)
       continue;
 
-    if (rd.solutionType < OPT_RESULT_1 || rd.solutionType > OPT_RESULT_66)
+    if(rd.solutionType < OPT_RESULT_1 || rd.solutionType >= OPT_RESULT_BOUND)
       throw Exception("invalid solution type");
 
     return rd.solutionType - OPT_RESULT_1;
@@ -938,6 +967,10 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
   if(dt == DesignElement::MECH_TRACE && Optimization::context->dm != NULL)
     return 0;
+  // feature mapping designs do not apply - return 0 for special results
+  if(dt == DE::FEATURE || FeatureVariable::IsFeatureVariable(dt))
+    return 0;
+
   // search where in data we are
   int base = -1;
   for(unsigned int i = 0; i < design.GetSize(); i++)
@@ -2240,7 +2273,7 @@ void DesignSpace::FillNodeResults(Result<T>& result, ResultDescription& descr)
   for(it.Begin(); !it.IsEnd(); it++ )
   {
     unsigned int node = it.GetNode();
-    actSol[it.GetPos()] = GetNodalValue(node, descr.value);
+    actSol[it.GetPos()] = GetNodalValue(node, descr.value, descr);
   }
 }
 
@@ -2295,7 +2328,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       DesignElement* org = &data[data_index];
 
       // we need to transform manually only for smart design with excitation given. The physicalPseudoDensity has it by itself
-      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType <= OPT_RESULT_66 && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
+      if(descr.solutionType >= OPT_RESULT_1 && descr.solutionType < OPT_RESULT_BOUND && descr.access == DesignElement::SMART && descr.excitation >= 0 && ex != NULL && ex->transform != NULL)
       {
         DesignElement* trans = ApplyTransformations(org, org, NULL);
         trans->GetValue(descr, result_value, dofs);

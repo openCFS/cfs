@@ -134,6 +134,8 @@ public:
     return Point::Dist(*this, other);
   }
 
+  double Dist(const Vector<double>& other) const;
+
   /** Difference to another point but w/o return value to save memory in loops
    * dist = this - other */
   void Dist(const Point& other, Point& dist) const
@@ -145,6 +147,19 @@ public:
     dist[2] = data[2] - other.data[2];
   }
   
+  /** is this point sufficiently close to another coordinate? 
+   * Handles smoothly 2D and 3D in common (later needs z=0)
+   * @return true if any component is within eps */
+  inline bool Close(const Vector<double>& other, double eps = 1e-8) const
+  {
+    if((std::abs(other[0] - data[0]) > eps) || (std::abs(other[1] - data[1]) > eps))
+      return false;
+    if(other.GetSize() == 3)
+      return std::abs(other[0] - data[0]) <= eps; // false if larger
+    else
+      return data[2] == 0.0; // false if we are not zero, what is required if other is 2D only
+  }
+
   size_t GetHash() const {
     size_t hash = std::hash<double>()(data[0]) - std::hash<double>()(data[1]); 
     hash += std::hash<double>()(data[2]);

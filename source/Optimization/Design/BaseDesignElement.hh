@@ -59,6 +59,9 @@ public:
     GENERIC_ELEM, /** with attribute generic with content from .info.xml, e.g. for Python spaghetti */
     FILTERED_DESIGN,
     DIFF_FILTERED_DESIGN, /** x - F*x, where F is filter matrix and x is the design vector */
+    FEATURE_DISTANCE,     /** for feature mapping the signed distance function (min for allFeatures or by feature). Order >= 2 */
+    FEATURE_PROJECTED,    /** the feature mapping distance applied to the boundary function (max for allFeatures or by feature) */
+    FEATURE_GRAD,         /** element wise gradient of feature mapping function, combine or feature_rho by feature idx in generic and possibly design */
   } ValueSpecifier;
 
   /** The type of this design element, influences the Get*Bound() methods.
@@ -90,7 +93,10 @@ public:
                  NODE, PROFILE, // shape mapping and spaghetti
                  NORMAL, RADIUS, // spaghetti height and radius
                  CP,            // spline box control point
-                 FEATURE_MAPPING_PX, FEATURE_MAPPING_PY, FEATURE_MAPPING_QX, FEATURE_MAPPING_QY, FEATURE_MAPPING_P, // Pill::GradDistance() 
+                 FEATURE_MAPPING_PX, FEATURE_MAPPING_PY, FEATURE_MAPPING_QX, FEATURE_MAPPING_QY, FEATURE_MAPPING_P, 
+                 FEATURE_MAPPING_PZ, FEATURE_MAPPING_QZ, // special case for 3D
+                 ALL_FEATURES,   // have this after feature mapping variables to have them >= FEATURE_MAPPING_PX and < ALL_FEATURES
+                 FEATURE, 
                  ALL_DESIGNS } Type; // ALL_DESIGNS needs to be last
 
   /** This defines how to access variables (design, objective_gradient, ...),

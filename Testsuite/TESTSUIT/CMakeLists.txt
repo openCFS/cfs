@@ -949,6 +949,8 @@ IF(USE_SNOPT)
 ENDIF(USE_SNOPT)
 
 # Feature Mapping block
+add_subdirectory(Optimization/FeatureMapping/iso_results)
+add_subdirectory(Optimization/FeatureMapping/aniso_results)
 if(USE_DUMAS)
  add_subdirectory(Optimization/FeatureMapping/single_midpoint)
  add_subdirectory(Optimization/FeatureMapping/map_single)

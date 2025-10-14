@@ -326,10 +326,6 @@ void SimInputEnsight::FillResultMap(){
   FillResultMap(OPT_RESULT_14, ResultInfo::SCALAR);
   FillResultMap(OPT_RESULT_15, ResultInfo::SCALAR);
   FillResultMap(OPT_RESULT_16, ResultInfo::SCALAR);
-  FillResultMap(OPT_RESULT_17, ResultInfo::SCALAR);
-  FillResultMap(OPT_RESULT_18, ResultInfo::SCALAR);
-  FillResultMap(OPT_RESULT_19, ResultInfo::SCALAR);
-  FillResultMap(OPT_RESULT_20, ResultInfo::SCALAR);
 }
 
 

@@ -11,34 +11,35 @@ def copy(source, target):
   if not os.path.exists(source):
     print("cannot find '" + source + "' -> ignore ")
     return
-  if args.dry is False:    
+  if not args.onlyclean and not args.dry:    
     print("copy '" + source + "' -> '" + target + "'")
     shutil.copy(source, target)
   else:
-    print("would copy '" + source + "' -> '" + target + "' without --dry")  
+    print("would copy '" + source + "' -> '" + target + "' without " + ("--dry" if args.dry else "--onlyclean"))  
 
 def clean(file):
   if os.path.isdir(file):
     if not os.listdir(file) == 0:
-      if args.dry is False and args.clean:
+      if (args.dry is False and args.clean) or args.onlyclean:
         print("remove empty directory '" + file + "'")
         shutil.rmtree(file)    
       else:
-        print("would remove empty directory '" + file + "' with --clean and without --dry")  
+        print("would remove empty directory '" + file + "' with --onlyclean or --clean and without --dry")  
     else:  
       print("directory '" + file + "' is not empty")
   else:
     if not os.path.exists(file):
       return
-    if args.dry is False and args.clean:
+    if (args.dry is False and args.clean) or args.onlyclean:
       print("remove local file '" + file + "'")
       os.remove(file)    
     else:
-      print("would remove local file '" + file + "' with --clean and without --dry")  
+      print("would remove local file '" + file + "' with  --onlyclean or --clean and without --dry")  
   
 
-parser = argparse.ArgumentParser(description = 'Within a cfs test-case the reference files are created')
-parser.add_argument('--clean', help="remove known local files not mean for submission", action='store_true')
+parser = argparse.ArgumentParser(description = 'Within a cfs test-case the reference files are created/overwritten')
+parser.add_argument('--clean', help="remove known local files not mean for submission and write ref files", action='store_true')
+parser.add_argument('--onlyclean', help="remove only known local files from local run", action='store_true')
 parser.add_argument('--dry', help="doesn't do anything but shows what would be done", action='store_true')
 args = parser.parse_args()
 
@@ -49,6 +50,7 @@ if 'TESTSUIT' not in pwd:
 
 name = os.path.basename(pwd)
 
+# copy and clean respect --dry and --onlyclean
 copy(os.path.join('results_hdf5', name + '.cfs'), name + '.h5ref')
 copy(name + '.info.xml', name + '.ref.info.xml')
 copy(name + '.plot.dat', name + '.ref.plot.dat')

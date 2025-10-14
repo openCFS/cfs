@@ -347,6 +347,9 @@ template<typename T> class ElemStoreSol;
 
     /** Extremal element. For Complex separate for real and imaginary part */
     T Min() const;
+ 
+    /** some index of the smallest number. Not implemented yet for complex */
+    unsigned int ArgMin() const;
 
     T Max() const;
 

@@ -50,7 +50,6 @@ def copy_redist(target):
     cpl_base = dir_cand(["C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\windows\\redist\\intel64_win\\compiler", # e.g. oneAPI 2023.0.2
                          "C:\\Program Files (x86)\\Intel\\oneAPI\\compiler\\latest\\bin"]) # e.g. oneAPI 2024.2.2
     cpl_files = ['libiomp5md.dll','libifcoremd.dll','libmmd.dll','svml_dispmd.dll']
-    copy_redist_helper(mkl_base, mkl_files, target)
     copy_redist_helper(cpl_base, cpl_files, target)
   # on Linux we assume gcc Fortran and therefore gnu openmp (no libiomp.so needed)
 

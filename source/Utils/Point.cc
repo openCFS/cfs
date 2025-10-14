@@ -42,6 +42,17 @@ double Point::Dot(const Point& other) const
   return sum;
 }
 
+double Point::Dist(const Vector<double>& other) const
+{
+  assert(data.GetSize() == 3);
+  assert(other.GetSize() == 2 || other.GetSize() == 3);
+  double preSqrt = (data[0]-other[0]) * (data[0]-other[0]) + (data[1]-other[1]) * (data[1]-other[1]);
+  if(other.GetSize() == 3)
+    preSqrt += (data[2]-other[2]) * (data[2]-other[2]);
+
+  return std::sqrt(preSqrt);
+}
+
 std::string Point::ToString() const
 {
    std::ostringstream os;

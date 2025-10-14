@@ -12,7 +12,7 @@
     </keywords>
     <references>Fabian Wein, thesis</references>
     <isVerified>yes</isVerified>
-    <description>Tests and illustrates output internal otimization data</description>
+    <description>Tests and illustrates output internal optimization data</description>
   </documentation>
 
   <fileFormats>
@@ -113,5 +113,3 @@
   </optimization>
   
 </cfsSimulation>
-
-

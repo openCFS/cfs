@@ -47,14 +47,21 @@ public:
   /** add information about transition zone */
   void AddToDensityHeader(PtrParamNode pn) override;
 
-
   /** in the anisotropic case DesignSpace::ApplyPhysicalDesign() calls ParamMat::GetMechTensor() which calls this.
+   * Will be called indirectly by AnisotropicGradientHelper num_var_by_feature * num_features * num_element!
+   * Uses aniso_current_variable structure to know which variable we have to derive to.
    * Needs to be thread safe! */
   bool GetAnisoMechTensor(const Elem* elem, MaterialTensor<double>& mt, DesignElement::Type direction, const CoefFunctionOpt* coef, DesignMaterial* dm) const;
 
-  /** in the anisotropic case we compute the gradient much different from the isotropic case. 
-   * In the isotropic case all is a product from feature to shape to element to integration point 
-   * In the anisotropic case we go by variable and need to communicate FeatureMappingParamMat::SetElement() the current variable */
+  /** to handle nodal special results like "featureDistance". order needs to be >= 2.
+   * Uses node_ip_result_map */
+  double GetNodalSpecialResult(unsigned int nodeNumb, const ResultDescription& descr);
+
+  /** To be used in GetAnisoMechTensor and set in AnisotropicGradientHelper().
+   * In the anisotropic case we compute the gradient much different from the isotropic case. 
+   * In the isotropic case all it is a product from feature to shape to element to integration point 
+   * In the anisotropic case we go by variable and need to communicate FeatureMappingParamMat::SetElement() the current variable 
+   * From the AnisotropicGradientHelper, s * N times GetAnisoMechTensor() is called */
   struct AnisoCurrentVariable
   {
     void Reset(); // set to non-initialized
@@ -62,6 +69,11 @@ public:
     int var_idx = -1; // 0 ... 4 max number of a single feature variables
     int feature_idx = -1; // together with aniso_shape_derivative this specifies what we are currently deriving. Only used in the FeatureMappingParamMat case
     Matrix<double> RCdR;  // working array for d_C_0/d_s which is the only feature and variable dependent (without rho_e)
+ 
+    StdVector<int> dJ_ds_res_idx;      // d_J/d_s:      <result value="featureGrad"      detail="compliance"   design="feature_var_Px" generic="1" ../>
+    StdVector<int> dmrho_drho_res_idx; // d_mrho/d_rho: <result value="featureGrad"      detail="combine"      design="feature"        generic="1" ../>
+    StdVector<int> dmrho_ds_res_idx;   // d_mrho/d_s:   <result value="featureGrad"      detail="combine"      design="feature_var_Px" generic="1" ../>
+    StdVector<int> drho_ds_res_idx;    // d_rho/d_s:    <result value="featureGrad"      detail="featureRho"   design="feature_var_Px" generic="1" ../>
   };
 
   AnisoCurrentVariable aniso_current_variable; // set by AnisotropicGradientHelper() and used in FeatureMappingParamMat::SetElementK()
@@ -126,6 +138,8 @@ protected:
     double rhomin = -1;
   };
 
+  /** third-order polynomial. See (15) in the review paper
+   * prj(x) = 3/4*(1-rho_min) * (phi/h) - phi^3/(3 h^3)) + .5*(1+rho_min) with phi=is phi(x) */
   struct Poly : public BoundaryFunction
   {
     Poly(double transition, double rhomin);
@@ -273,14 +287,43 @@ private:
   /** helper for SetupDesign() to add ip at extension of item to corner or inner. */
   void SetupDesignAddIP(ItemIP::Storage storage, Item& item, IntegrationPoint* ip);
 
+  /** when we have nodal results, we set up here the mapping from node to index in corners. -1 for no mapping */
+  void SetupNodeIPMap(); 
+
   /** convenience helper which does the dynamic_cast */
   inline ItemIP* GetItemIP(unsigned int item_idx); 
   inline const ItemIP* GetItemIP(unsigned int item_idx) const; 
 
+  /** helper for special results with a lot of sanity checks and exceptions in case */
+  const Pill& GetFeatureForResult(const ResultDescription& rd) const;
+  /* helper to read 'detail' 'feature_var_Px', ... 'feature_var_P' 
+  @ return zero base < num_var_by_feature (5) */
+  int GetVariableForResult(const ResultDescription& rd) const;
+
+  /** for d_J/d_s, d_mrho/d_s or d_mrho/d_feature where mrho is 'combine'
+   * 
+   * when function is given, we have the case
+   *  <result value="featureGrad" detail="compliance" design="feature_var_Px" generic="1" id="optResult_9" />
+   * and return of size all variables (#feature * 5) the special result index for DesignElement or -1 if not matching.
+   * By this we can have many results for the different features and variables.
+   * 
+   * This is d_mrho/d_f 
+   * <result value="featureGrad" detail="combine" design="feature" generic="1" id="optResult_11" />
+   * the return vector then has the size of number of features 
+   * @param d_s false for d_mrho/d_f */
+  StdVector<int> GetSpecialResultIndices(const Function* f, DesignElement::Detail detail = DesignElement::NONE, bool d_s = true) const;
+
   /** All integration points at element corners shared by up to 4/8 items. Constant for lifetime
    * Used to compute if we are within the transition zone and might have to do higher order integration.
-   * There is no specific ordering guaranteed */
+   * There is no specific ordering guaranteed!! */
   StdVector<IntegrationPoint> corners; 
+
+  /** Cache finding proper node for GetNodalSpecialResults(). -1 if there is no mapping to the 1-base nodeNumber.
+   * Has size corners+1 with element 0 = -1 as there is no nodeNumber 0 and nodeNumber 1 belongs to index node 0.
+   * The value is the 0-based index of corners which corresponds to the 1-based node number.
+   * Requires order >= 2.
+   * @see SetupNodeIPMap(); */
+  StdVector<int> node_ip_result_map; 
 
   /** If integration order is 1 or > 2 there are the "inner" ip, 
    * however many of them are also shared on edges by 2 Item for order > 2.

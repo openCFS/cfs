@@ -189,7 +189,8 @@ public:
 
   static void CompareToInfoHelper(const FeatureVariable* v0, const FeatureVariable* test, std::string& fixed, std::string& lower, std::string& upper);
 
-  void Parse(PtrParamNode pn, int feature, double interpolate_value = -12.34);
+  /** parse the available data from pn, add feature index and var is a description (FEATURE_MAPPIN_PX, NORMAL, ...) */
+  void Parse(PtrParamNode pn, int feature, Type var, double interpolate_value = -12.34);
 
   /** all other BaseDesignElement children do this in the constructor.
    * @see SetOptIndex() */
@@ -201,6 +202,10 @@ public:
   std::string ToString() const override;
 
   std::string GetLabel() const override;
+
+  static bool IsFeatureVariable(BaseDesignElement::Type type) { 
+    return type >= BaseDesignElement::FEATURE_MAPPING_PX && type < BaseDesignElement::ALL_FEATURES; 
+  }
 
   /** does not apply for all */
   Tip tip = NO_TIP;
@@ -218,6 +223,8 @@ public:
 
   /** pill/noodle index */
   int feature = -1;
+
+  BaseDesignElement::Type var; // FEATURE_MAPPING_PX, NODE, RADIUS, ... 
 };
 
 
@@ -275,6 +282,10 @@ public:
       GLOBAL_BUCKLING_LOAD_FACTOR, /*!< globalized microscopic load factor */
       SIN,  /*!< sine value, e.g. for filteredDesign: F*sin(x)*/
       COS,  /*!< cosine value, e.g. for filteredDesign: F*cos(x)*/
+      GRAD_DISTANCE, /*< featureDistance/Projected d/ds by feature_var_Px with feature idx in 'generic' */
+      FEATURE_PART,  /*< featureDistance closest part idx 0,1,2 for given feature at integration point */
+      FEATURE_RHO,   /*< featureGrad d_rho_e/d_feature of feature 'generic' for 'feature_var_Px',..  */
+      COMBINE,       /*< featureGrad d_mrho_e/d_feature or d_mrho_e/d_s depending on 'design' is 'feature' or 'feature_var_Px',.. and 0-based feature index in 'generic' */
     } Detail;
 
     /** Gets the design element
@@ -526,43 +537,43 @@ public:
 std::ostream & operator << ( std::ostream & out, const DesignID& id);
 
 
-/** <p>A result description holds the result element in the xml file which describes what data from
+/** A result description holds the result element in the xml file which describes what data from
  * a DesignElement is to be written to the cfs output. The following parameters have to be given
- * in the optimization elment: <result id="optResult_1" design="density" access="plain" value="costGradient"/>
- * This is referenced by the solution type optResult_1/2/3.</p> */
+ * in the optimization element: <result id="optResult_1" design="density" access="plain" value="costGradient"/>
+ * This is referenced by the solution type optResult_1/2/3/... */
 class ResultDescription
 {
 public:
   /** empty destructor for StdVector() and default in DesignSpace::ExtractResult().
    * Does NOT initialize all elements! */
-  ResultDescription();
+  ResultDescription() {};
 
-  /** reads itsef from the xml element.
+  /** reads itself from the xml element.
    * @param pn our data */
   ResultDescription(PtrParamNode pn);
 
   /** debug output */
   std::string ToString();
 
-  SolutionType solutionType;
+  SolutionType solutionType = NO_SOLUTION_TYPE;
 
   /** Finds the proper design element by element number. DEFAULT if not given */
-  DesignElement::Type design;
+  DesignElement::Type design = DesignElement::DEFAULT;
 
   /** optionally filtered or plain */
-  DesignElement::Access access;
+  DesignElement::Access access = DesignElement::PLAIN;
 
   /** Which of the values? */
-  DesignElement::ValueSpecifier value;
+  DesignElement::ValueSpecifier value = DesignElement::DESIGN;
 
   /** An optional detail for values COST_GRADIENT and OBJECTIVE in PiezoSIMP case */
-  DesignElement::Detail detail;
+  DesignElement::Detail detail = DesignElement::NONE;
 
   /** for value = generic only */
   std::string generic;
 
   /** An optional excitation index. Negative for not set*/
-  int excitation;
+  int excitation = -1;
 };
 
 inline

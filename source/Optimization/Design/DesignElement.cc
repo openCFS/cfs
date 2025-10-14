@@ -468,9 +468,10 @@ Vector<double> FeatureVariable::AsVector(const StdVector<FeatureVariable>& vec)
 }
 
 
-void FeatureVariable::Parse(PtrParamNode pn, int feature_idx, double interpolate_value)
+void FeatureVariable::Parse(PtrParamNode pn, int feature_idx, Type var, double interpolate_value)
 {
   this->feature = feature_idx;
+  this->var = var;
 
   MathParser* mp = domain->GetMathParser();
   unsigned int handle = mp->GetNewHandle();
@@ -655,7 +656,7 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
   this->pseudoElementIndex_ = pseudoElementIndex;
   this->upper_ = 1.0;
   this->lower_ = 1.0;
-  this->specialResult.Resize(66, 0.0);
+  this->specialResult.Resize(OPT_RESULT_BOUND - OPT_RESULT_1, 0.0);
   this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetDim()-1),0.0);
 }
 
@@ -668,7 +669,7 @@ DesignElement::DesignElement(Type dt, double lower, double upper, Elem* elem, un
   if(!elem->extended)
     this->elem->extended = new ExtendedElementInfo;
 
-  this->specialResult.Resize(66, 0.0);
+  this->specialResult.Resize(OPT_RESULT_BOUND - OPT_RESULT_1, 0.0);
   this->index_ = index;
   this->multimaterial = mm;
   this->interfaceDrivenLoadGrad_.Resize(4 * (domain->GetDim()-1),0.0);
@@ -763,7 +764,7 @@ unsigned int DesignElement::GetElementSolutionIndex() const
 
 int DesignElement::GetOptResultIndex(SolutionType st)
 {
-  if(st < OPT_RESULT_1 || st > OPT_RESULT_66)
+  if(st < OPT_RESULT_1 || st >= OPT_RESULT_BOUND)
     return -1;
   else
     return static_cast<int>(st)-static_cast<int>(OPT_RESULT_1); // OPT_RESULT_1 -> 0
@@ -799,7 +800,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == SPLINE_BOX_INT_CORNER
       || rd.value == GENERIC_ELEM
       || rd.value == FILTERED_DESIGN
-      || rd.value == DIFF_FILTERED_DESIGN)
+      || rd.value == DIFF_FILTERED_DESIGN
+      || rd.value == FEATURE_GRAD)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -1209,13 +1211,15 @@ void DesignElement::SetEnums()
   type.Add(PROFILE, "profile");
   type.Add(NORMAL, "normal");
   type.Add(RADIUS, "radius");
-  type.Add(FEATURE_MAPPING_PX, "featureMappingPx");
-  type.Add(FEATURE_MAPPING_PY, "featureMappingPy");
-  type.Add(FEATURE_MAPPING_QX, "featureMappingQx");
-  type.Add(FEATURE_MAPPING_QY, "featureMappingQy");
-  type.Add(FEATURE_MAPPING_P,  "featureMappingP");        
+  type.Add(FEATURE_MAPPING_PX, "feature_var_Px");
+  type.Add(FEATURE_MAPPING_PY, "feature_var_Py");
+  type.Add(FEATURE_MAPPING_QX, "feature_var_Qx");
+  type.Add(FEATURE_MAPPING_QY, "feature_var_Qy");
+  type.Add(FEATURE_MAPPING_P,  "feature_var_P");        
   type.Add(CP, "controlpoint");
-  type.Add(ALL_DESIGNS, "allDesigns");
+  type.Add(ALL_FEATURES, "allFeatures");   // e.g. featureDistance -> min of all distances
+  type.Add(FEATURE, "feature");            // 0-based index specified in "generic" as number
+  type.Add(ALL_DESIGNS, "allDesigns");     // ALL_DESIGNS needs last enum value   
 
   access.SetName("DesignElement::Access");
   access.Add(PLAIN, "plain");
@@ -1266,6 +1270,9 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(GENERIC_ELEM, "genericElem");
   valueSpecifier.Add(FILTERED_DESIGN, "filteredDesign");
   valueSpecifier.Add(DIFF_FILTERED_DESIGN, "diffFilteredDesign");
+  valueSpecifier.Add(FEATURE_DISTANCE, "featureDistance");
+  valueSpecifier.Add(FEATURE_PROJECTED, "featureProjected");
+  valueSpecifier.Add(FEATURE_GRAD, "featureGrad");
 
   detail.SetName("DesignElement::Detail");
   detail.Add(NONE, "none");
@@ -1295,6 +1302,8 @@ void DesignElement::SetEnums()
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
   detail.Add(GLOBAL_DESIGN, "globalDesign");
   detail.Add(STRESS, "stress");
+  
+  // secific data - e.g. for debuging   
   detail.Add(PROJECTION_FILTER, "projectionFilter");
   detail.Add(SM_NODE, "node");
   detail.Add(SM_NODE_A, "node_a");
@@ -1306,6 +1315,10 @@ void DesignElement::SetEnums()
   detail.Add(GLOBAL_BUCKLING_LOAD_FACTOR, "globalBucklingLoadFactor");
   detail.Add(SIN, "sin");
   detail.Add(COS, "cos");
+  detail.Add(GRAD_DISTANCE, "gradDistance"); // nodal derivative of featureDistance/Projection by 'design' feature_var_Px, ...
+  detail.Add(FEATURE_PART, "featurePart");   // nodal 'featureDistance' feature part idx 0,1,2 for given feature
+  detail.Add(FEATURE_RHO, "featureRho");     // for element 'featureGrad'
+  detail.Add(COMBINE, "combine");            // for element 'featureGrad'
 }
 
 
@@ -1930,17 +1943,6 @@ string VicinityElement::ToString() const
   return ss.str();
 }
 
-
-ResultDescription::ResultDescription()
-{
-  // does not set all!!
-  access = DesignElement::PLAIN;
-  value  = DesignElement::DESIGN;
-  design = DesignElement::DEFAULT;
-  detail = DesignElement::NONE;
-  solutionType = NO_SOLUTION_TYPE;
-  excitation = -1;
-}
 
 ResultDescription::ResultDescription(PtrParamNode pn)
 {

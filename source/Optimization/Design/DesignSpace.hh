@@ -689,9 +689,9 @@ namespace CoupledField
      double DetermineBound(PtrParamNode pn, TransferFunction* tf, const string& bound);
 
      /** Extracts a nodal value */
-     double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
+     double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs, ResultDescription& descr);
 
-     /** Helper method for ExtraxtResults() */
+     /** Helper method for ExtractResults() */
      template <class T>
      void FillElementResults(Result<T>& result, ResultDescription& descr);
 

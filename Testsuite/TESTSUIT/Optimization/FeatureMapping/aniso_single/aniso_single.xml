@@ -24,9 +24,9 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
       
       We actually always have the multi features case (see the aniso_two test) but for one feature it breaks down to the above form 
 
-      While standard feature mapping only has gradient where rho_e is not constant (within transition zone of boundary),
-      we have a angle derivate everywhere, where rho_e is not 0. Therefore we prefer to use the ground material approach,
-      where we add a constant void everywhere and can rho_min allow to be 0.
+      This is the anisotropic variant of feature mapping. Here, it is used with a single-oriented pill. 
+      Unlike Greifenstein et al. (Efficient Spline Design via Feature Mapping for Continuous Fiber-Reinforced Structures, 2023), our approach involves different anisotropic modeling and maintains the same feature orientation throughout. 
+      See ansio_two for the new aggregation.    
     </description>
   </documentation>
 

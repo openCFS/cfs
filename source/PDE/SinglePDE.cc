@@ -821,6 +821,8 @@ namespace CoupledField {
 
     // fetch result node and leave, if none is present
     PtrParamNode resultNode = myParam_->Get("storeResults", ParamNode::PASS);
+    LOG_DBG2(singlepde) << "CSR" << "storeResults -> " << (!resultNode ? "yes" : "no");
+    
     if( !resultNode )
       return false;
 

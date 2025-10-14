@@ -9,6 +9,8 @@ DEFINE_LOG(fd, "featuredDesign")
 Enum<FeaturedDesign::IntStrategy> FeaturedDesign::intStrategy_;
 unsigned int FeaturedDesign::dim_ = 99;
 
+using DE = DesignElement; // shortcut
+
 FeaturedDesign::FeaturedDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
 : AuxDesign(regionIds, pn, method)
 {
@@ -602,21 +604,21 @@ void FeaturedDesign::Feature::Parse(PtrParamNode pn, int idx)
   // add tip
   StdVector<FeatureVariable>& start = points.First();
   start.Resize(dim_);
-  start[0].Parse(pn->GetByVal("node", "dof", "x", "tip", "start"),idx);
-  start[1].Parse(pn->GetByVal("node", "dof", "y", "tip", "start"),idx);
+  start[0].Parse(pn->GetByVal("node", "dof", "x", "tip", "start"),idx, DE::FEATURE_MAPPING_PX);
+  start[1].Parse(pn->GetByVal("node", "dof", "y", "tip", "start"),idx, DE::FEATURE_MAPPING_PY);
   if(dim_ == 3)
-    start[2].Parse(pn->GetByVal("node", "dof", "z", "tip", "start"),idx);
+    start[2].Parse(pn->GetByVal("node", "dof", "z", "tip", "start"),idx, DE::FEATURE_MAPPING_PZ);
   opt_variables_ += FeatureVariable::CountRealVariables(start);
 
   StdVector<FeatureVariable>& end = points.Last();
   end.Resize(dim_);
-  end[0].Parse(pn->GetByVal("node", "dof", "x", "tip", "end"),idx);
-  end[1].Parse(pn->GetByVal("node", "dof", "y", "tip", "end"),idx);
+  end[0].Parse(pn->GetByVal("node", "dof", "x", "tip", "end"),idx, DE::FEATURE_MAPPING_QX);
+  end[1].Parse(pn->GetByVal("node", "dof", "y", "tip", "end"),idx, DE::FEATURE_MAPPING_QY);
   if(dim_ == 3)
-    end[2].Parse(pn->GetByVal("node", "dof", "z", "tip", "end"),idx);
+    end[2].Parse(pn->GetByVal("node", "dof", "z", "tip", "end"),idx, DE::FEATURE_MAPPING_QZ);
   opt_variables_ += FeatureVariable::CountRealVariables(end);
 
-  p.Parse(pn->Get("profile"),idx); // exactly one
+  p.Parse(pn->Get("profile"),idx, DE::FEATURE_MAPPING_P); // exactly one
   opt_variables_ += p.IsVariable() ? 1 : 0;
 
   LOG_DBG(fd) << "F:P ov=" << opt_variables_ << " " << ToString();

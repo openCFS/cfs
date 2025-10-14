@@ -1547,7 +1547,7 @@
                 <xsd:attribute name="value" type="xsd:float" use="required" />
               </xsd:complexType>
             </xsd:element>
-            <xsd:element name="result" minOccurs="0" maxOccurs="66">
+            <xsd:element name="result" minOccurs="0" maxOccurs="16">
               <xsd:complexType>
                 <!-- mandatory to give the type. The type is one of a list of types -->
                 <xsd:attribute name="id" use="required">
@@ -1569,56 +1569,6 @@
                       <xsd:enumeration value="optResult_14"/>
                       <xsd:enumeration value="optResult_15"/>
                       <xsd:enumeration value="optResult_16"/>
-                      <xsd:enumeration value="optResult_17"/>
-                      <xsd:enumeration value="optResult_18"/>
-                      <xsd:enumeration value="optResult_19"/>
-                      <xsd:enumeration value="optResult_20"/>
-                      <xsd:enumeration value="optResult_21"/>
-                      <xsd:enumeration value="optResult_22"/>
-                      <xsd:enumeration value="optResult_23"/>
-                      <xsd:enumeration value="optResult_24"/>
-                      <xsd:enumeration value="optResult_25"/>
-                      <xsd:enumeration value="optResult_26"/>
-                      <xsd:enumeration value="optResult_27"/>
-                      <xsd:enumeration value="optResult_28"/>
-                      <xsd:enumeration value="optResult_29"/>
-                      <xsd:enumeration value="optResult_30"/>
-                      <xsd:enumeration value="optResult_31"/>
-                      <xsd:enumeration value="optResult_32"/>
-                      <xsd:enumeration value="optResult_33"/>
-                      <xsd:enumeration value="optResult_34"/>
-                      <xsd:enumeration value="optResult_35"/>
-                      <xsd:enumeration value="optResult_36"/>
-                      <xsd:enumeration value="optResult_37"/>
-                      <xsd:enumeration value="optResult_38"/>
-                      <xsd:enumeration value="optResult_39"/>
-                      <xsd:enumeration value="optResult_40"/>
-                      <xsd:enumeration value="optResult_41"/>
-                      <xsd:enumeration value="optResult_42"/>
-                      <xsd:enumeration value="optResult_43"/>
-                      <xsd:enumeration value="optResult_44"/>
-                      <xsd:enumeration value="optResult_45"/>
-                      <xsd:enumeration value="optResult_46"/>
-                      <xsd:enumeration value="optResult_47"/>
-                      <xsd:enumeration value="optResult_48"/>
-                      <xsd:enumeration value="optResult_49"/>
-                      <xsd:enumeration value="optResult_50"/>
-                      <xsd:enumeration value="optResult_51"/>
-                      <xsd:enumeration value="optResult_52"/>
-                      <xsd:enumeration value="optResult_53"/>
-                      <xsd:enumeration value="optResult_54"/>
-                      <xsd:enumeration value="optResult_55"/>
-                      <xsd:enumeration value="optResult_56"/>
-                      <xsd:enumeration value="optResult_57"/>
-                      <xsd:enumeration value="optResult_58"/>
-                      <xsd:enumeration value="optResult_59"/>
-                      <xsd:enumeration value="optResult_60"/>
-                      <xsd:enumeration value="optResult_61"/>
-                      <xsd:enumeration value="optResult_62"/>
-                      <xsd:enumeration value="optResult_63"/>
-                      <xsd:enumeration value="optResult_64"/>
-                      <xsd:enumeration value="optResult_65"/>  
-                      <xsd:enumeration value="optResult_66"/>  
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1694,6 +1644,15 @@
                       <xsd:enumeration value="tempAtInterface" />
                       <!-- for attribute generic where possible content is found within the .info.xml -->
                       <xsd:enumeration value="genericElem" />
+                      <xsd:enumeration value="featureDistance">
+                        <xsd:annotation><xsd:documentation>nodal feature mapping distance (either min or by feature). Only for order at least 2 </xsd:documentation></xsd:annotation>
+                       </xsd:enumeration>  
+                      <xsd:enumeration value="featureProjected">
+                        <xsd:annotation><xsd:documentation>projected nodal feature mapping distance (either max or by feature). Only for order at least 2 </xsd:documentation></xsd:annotation>
+                      </xsd:enumeration>  
+                      <xsd:enumeration value="featureGrad">
+                        <xsd:annotation><xsd:documentation>element feature mapping derivative by </xsd:documentation></xsd:annotation>
+                      </xsd:enumeration>  
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>
@@ -1992,7 +1951,18 @@
   <!-- This describes the design element which is a list of possible values -->
   <xsd:simpleType name="DT_Design">
     <xsd:restriction base="xsd:token">
-      <xsd:enumeration value="density" />
+      <xsd:enumeration value="allDesigns">
+        <xsd:annotation><xsd:documentation>default value</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="density">
+        <xsd:annotation><xsd:documentation>standard value for most simp results</xsd:documentation></xsd:annotation>  
+      </xsd:enumeration>
+      <xsd:enumeration value="allFeatures">
+        <xsd:annotation><xsd:documentation>when doing feature mapping and alternative is 'feature' and 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="feature">
+        <xsd:annotation><xsd:documentation>when doing feature mapping and the 0-based feature index is given in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
       <xsd:enumeration value="rhsDensity" />
       <xsd:enumeration value="polarization" />
       <!-- trace for elastic FMO and other paramMat stuff, mech_11, mech_22 and mech_33 -->
@@ -2003,6 +1973,22 @@
       <xsd:enumeration value="spaghetti" />
       <!-- summarized the spline box variables -->
       <xsd:enumeration value="spline_box" />
+      <!-- feature mapping variable -->
+      <xsd:enumeration value="feature_var_Px">
+        <xsd:annotation><xsd:documentation>for featureDistance/Projected to 'gradDistance' by start tip x with feature idx in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="feature_var_Py">
+        <xsd:annotation><xsd:documentation>for featureDistance/Projected to 'gradDistance' by start tip y with feature idx in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="feature_var_Qx">
+        <xsd:annotation><xsd:documentation>for featureDistance/Projected to 'gradDistance' by end tip x with feature idx in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="feature_var_Qy">
+        <xsd:annotation><xsd:documentation>for featureDistance/Projected to 'gradDistance' by end tip y with feature idx in 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="feature_var_P">
+        <xsd:annotation><xsd:documentation>for featureDistance/Projected to 'gradDistance' by profile width</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
       <!-- all elasticity tensor coefficients for elast FMO -->
       <xsd:enumeration value="mech_all" />
       <!-- trace for piezo FMO for permitivity -->
@@ -2012,7 +1998,6 @@
       <!-- all piezoc coupling tensor coefficients for piezo FMO -->
       <xsd:enumeration value="piezo_all" />
       <!-- Constraint is defined per element and uses all designs on that element -->
-      <xsd:enumeration value="allDesigns"/> 
       <xsd:enumeration value="emodul"/>
       <xsd:enumeration value="poisson"/>
       <xsd:enumeration value="lamelambda"/>
@@ -2448,6 +2433,19 @@
       <xsd:enumeration value="globalJump" />
       <xsd:enumeration value="globalDesign" />
       <xsd:enumeration value="globalStress" />
+      <!-- feature mapping-->
+      <xsd:enumeration value="gradDistance">
+        <xsd:annotation><xsd:documentation>for featureDistance/Projected to derive by 'design' feature_P_x, ...</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="featurePart">
+        <xsd:annotation><xsd:documentation>debuging: for 'featureDistance' closest part idx 0,1,2 for 'feature' and 'generic'</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="featureRho">
+        <xsd:annotation><xsd:documentation>for 'featureGrad' d_rho/d_s for feature 'generic' by 'design' 'feature_var_Px', .. </xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
+      <xsd:enumeration value="combine">
+        <xsd:annotation><xsd:documentation>for 'featureGrad' d_mrho/d_s or d_rho/d_feature with 'design' as 'feature_var_Px', .. or 'feature'. 'generic' has 0-based feature idx</xsd:documentation></xsd:annotation>
+      </xsd:enumeration>
       <!-- Shape mapping -->
       <!-- for 2D -->
       <xsd:enumeration value="node" />

@@ -2,6 +2,7 @@
 #define TOOLS_2001
 
 #include <cmath>
+#include <charconv>
 #include <string>
 #include <iostream>
 #include <boost/lexical_cast.hpp>
@@ -410,6 +411,15 @@ namespace CoupledField {
    * e.g. s=1,e=4,n=4: -> 1e1, 1e2, 1e3, 1e4 or s=2, e=-2, n=5 -> 1e2, 1e1, 1e0, 1e-1, 1e-2
    * is actually std::pow(10, Linspace(s,e,n)) */
   Vector<double> LogspaceBase(double start_exponent, double end_exponent, int n);
+
+  /** test if a string is of the given value. E.g. int or double */
+  template<class T>
+  bool IsType(const std::string& s) 
+  {
+    T value;
+    auto [ptr, ec] = std::from_chars(s.data(), s.data() + s.size(), value);
+    return ec == std::errc() && ptr == s.data() + s.size();
+  }
 
   // omp_get_thread_num
   inline unsigned int GetThreadNum()

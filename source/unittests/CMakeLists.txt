@@ -53,11 +53,6 @@ if(NOT APPLE AND NOT WIN32)
   set(CFS_LINK_FLAGS "-lrt")
 endif()
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.0) # there is no >= and also there is no 5.0.0.0
-  # the current boost test case is crap :(
-  set(CMAKE_CXX_FLAGS "${CFS_SUPPRESSIONS} -Wno-terminate")
-endif() 
-
 # Even if we did not compile openCFS itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.
 if(OPENMP_FOUND)
@@ -65,3 +60,4 @@ if(OPENMP_FOUND)
 endif()
 
 SET_TARGET_PROPERTIES(cfstest PROPERTIES LINK_FLAGS "${CFS_LINK_FLAGS}")
+

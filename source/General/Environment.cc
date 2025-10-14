@@ -385,7 +385,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(HOMOGENIZED_TENSOR, "homogenizedTensor");
     // the actual result type is given in result descriptions
     // in the xml file in the optimization element.
-    for(unsigned int i = 0; i < 66; i++)
+    for(unsigned int i = 0; i < (OPT_RESULT_BOUND - OPT_RESULT_1); i++)
       SolutionTypeEnum.Add( (SolutionType) (OPT_RESULT_1 + i), "optResult_" + std::to_string(i+1));
       // SolutionTypeEnum.Add(OPT_RESULT_1, "optResult_1");
 

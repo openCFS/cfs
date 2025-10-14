@@ -616,7 +616,8 @@ void SpaghettiDesign::Noodle::Parse(PtrParamNode noodle, int idx)
         // either we have inner or require clear lower and upper from P and Q
         if(noodle->HasByVal("inner", "dof", dof)) // either interpolate for value or math parser stuff
         {
-          point[d].Parse(noodle->GetByVal("inner", "dof", dof), this->idx, inter);
+          // not really sure, if NODE is right here - but is has no use anyway here
+          point[d].Parse(noodle->GetByVal("inner", "dof", dof), this->idx,  DesignElement::NODE, inter);
           point[d].tip = FeatureVariable::INNER;
         }
         else
@@ -643,7 +644,7 @@ void SpaghettiDesign::Noodle::Parse(PtrParamNode noodle, int idx)
 
     a.Resize(n-1);
     for(int i = 0; i < n-1; i++)
-      a[i].Parse(noodle->Get("normal"),this->idx);
+      a[i].Parse(noodle->Get("normal"),this->idx, DesignElement::NORMAL);
 
     opt_variables_ += !a.IsEmpty() && !a[0].fixed ? a.GetSize() : 0;
   }
@@ -660,11 +661,11 @@ void SpaghettiDesign::Noodle::Parse(PtrParamNode noodle, int idx)
 
     r.Resize(n-1);
     for(int i = 0; i < n-1; i++)
-      r[i].Parse(noodle->Get("radius"),this->idx);
+      r[i].Parse(noodle->Get("radius"),this->idx, DesignElement::RADIUS);
 
     opt_variables_ += !r.IsEmpty() && !r[0].fixed ? r.GetSize() : 0;
 
-    alpha.Parse(noodle->Get("alpha"),idx); // exactly one
+    alpha.Parse(noodle->Get("alpha"),idx, DesignElement::ALPHA); // exactly one
     opt_variables_ += alpha.fixed ? 0 : 1;
   }
 

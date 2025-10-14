@@ -442,7 +442,10 @@ namespace CoupledField {
     assert(size_ > 0);
     Complex m = data_[0];
 
-    for(unsigned int i = 1; i < size_; ++i) {
+    for(unsigned int i = 1; i < size_; ++i) 
+    {
+      // WARNING! This code does not find the smallest complex value subject to a norm
+      // but an artifical complex number of smallest real and smallest imaginary part
       if(data_[i].real() < m.real())
         m.real(data_[i].real());
       if(data_[i].imag() < m.imag())
@@ -480,6 +483,20 @@ namespace CoupledField {
     }
 
     return m;
+  }
+
+  template <typename T>
+  unsigned int Vector<T>::ArgMin() const
+  {
+    T* it = std::min_element(data_, data_ + size_);
+    size_t index = std::distance(data_, it);
+    return (unsigned int) index; // maybe we switch Vector to size_t once_ ...
+  }
+
+  template <>
+  unsigned int Vector<Complex>::ArgMin() const
+  {
+    throw Exception("not implemented"); // as (who knows why?)  Min() is  (<min of real>,<min of imag>),  there is no ArgMin()
   }
 
   template <typename T>

@@ -12,6 +12,7 @@ using std::string;
 using std::pair;
 using std::make_pair;
 using std::to_string;
+using DE = DesignElement; // shortcut
 
 namespace CoupledField {
 
@@ -132,6 +133,229 @@ void FeatureMappingDesign::SetupMapping()
   } 
 }
 
+const FeatureMappingDesign::Pill& FeatureMappingDesign::GetFeatureForResult(const ResultDescription& rd) const
+{
+  string value = DE::valueSpecifier.ToString(rd.value);
+  
+  assert(rd.detail == DE::NONE || rd.detail == DE::GRAD_DISTANCE || rd.detail == DE::FEATURE_PART);
+
+  if(rd.detail != DE::GRAD_DISTANCE && rd.design != DE::FEATURE)
+    throw Exception("result '" + value + "'/'none' needs 'design' 'allFeatures' or 'feature'/'generic'");
+  if(rd.generic == "")
+    throw Exception("result '" + value + "'/'feature' needs 0-based feature index in 'generic'");
+  if(!IsType<unsigned int>(rd.generic))  
+    throw Exception("result '" + value + "'/'feature' has no number 'generic' but '" + rd.generic + "'");
+  
+  int fi = std::stoi(rd.generic); 
+
+  if(fi < 0 || fi >= (int) pills.GetSize())
+    throw Exception("result '" + value + "'/'feature' needs 0-based feature index smaller " + std::to_string(pills.GetSize()) + " in 'generic'");
+
+  return pills[fi];
+}
+
+int FeatureMappingDesign::GetVariableForResult(const ResultDescription& rd) const
+{
+   int s = rd.design - DE::FEATURE_MAPPING_PX;
+   if(s < 0 || s >= (int) num_var_by_feature)
+     throw Exception("expect result 'detail' from 'feature_var_Px', ..., 'feature_var_P'");
+   assert(s >= 0 && s < (int) num_var_by_feature);
+   return s;
+}
+
+
+StdVector<int> FeatureMappingDesign::GetSpecialResultIndices(const Function* f, DesignElement::Detail detail, bool d_s) const
+{
+  assert((f != nullptr && detail == DE::NONE) || (f == nullptr && (detail == DE::COMBINE || detail == DE::FEATURE_RHO)));
+
+  assert(shape_param_.GetSize() == pills.GetSize() * num_var_by_feature);
+
+  // we have the case d_J/d_s, d_rho/d_s, d_mrho/d_s and d_mrho/d_f 
+  // where m_rho is the combined rho 
+  // and J is compliance,volume,... In case you need to add the function string to CFS_Optimization.xsd and the enum.
+  
+  StdVector<int> res;
+
+  // test for d_mrho/d_feature
+  if(d_s == false)
+  {
+    assert(f == nullptr && detail == DE::COMBINE);
+    res.Resize(pills.GetSize(), -1);
+
+    for(const Pill& pill : pills)
+    {
+      for(const ResultDescription& rd : resultDescriptions)
+      {
+        bool detail_match = rd.detail == DE::COMBINE || rd.detail == DE::FEATURE_RHO;
+        if(rd.value == DE::FEATURE_GRAD && detail_match && rd.design == DE::FEATURE && std::stoi(rd.generic) == pill.idx) 
+        {
+          res[pill.idx] = rd.solutionType - OPT_RESULT_1;
+          break; 
+        }
+      }
+    }
+  }
+  else
+  {
+    assert(d_s == true);
+    // we have the case d_J/d_s or d_mrho/d_s
+    res.Resize(shape_param_.GetSize(), -1);
+
+    DE::Detail test = detail;
+    if(f != nullptr)
+    {
+      std::string name = Function::type.ToString(f->GetType()); // 'compliance', 'volume', ...
+      // check if we have the function name defined as DesignElement::Detail, if not it just needs to be added there and in the schema
+      assert(DE::detail.IsValid(name)); 
+      test = DE::detail.Parse(name);
+    }
+    // we loop over all possible combinations
+    for(unsigned int si = 0; si < shape_param_.GetSize(); si++)
+    {
+      const FeatureVariable* var = dynamic_cast<FeatureVariable*>(shape_param_[si]);
+      assert(var != nullptr);
+      assert(var->feature >= 0 && var->feature < (int) pills.GetSize());
+      assert(var->var != DE::NO_TYPE);
+      // check every result (if we have any)
+      for(const ResultDescription& rd : resultDescriptions)
+      {
+        // <result value="featureGrad" detail="compliance" design="feature_var_Px" generic="1" id="optResult_9" />
+        LOG_DBG2(fm) << "GSRI si=" << si << " rd.v=" << DE::valueSpecifier.ToString(rd.value) << " var=" << var->var 
+                     << " rd.d=" << DE::type.ToString(rd.design) << " f=" << var->feature << " rd.g=" << rd.generic;
+        if(rd.value == DE::FEATURE_GRAD && rd.detail == test && rd.design == var->var && std::stoi(rd.generic) == var->feature) 
+        {
+          res[si] = rd.solutionType - OPT_RESULT_1;
+          LOG_DBG2(fm) << "GSRI res[" << si << "] <- " << res[si];
+          break; 
+        }
+      }
+    }
+  }
+  LOG_DBG2(fm) << "GSRI f=" << (f ? f->ToString() : "-") << " detail=" << detail << " d_s=" << d_s << " -> " << res.ToString();
+  return res;
+}
+
+
+double FeatureMappingDesign::GetNodalSpecialResult(unsigned int nodeNumber, const ResultDescription& rd) 
+{
+  // we assume non-parallel execution!
+  if(node_ip_result_map.IsEmpty())
+    SetupNodeIPMap();
+ 
+  bool prj = rd.value == DE::FEATURE_PROJECTED;
+  bool all = rd.design == DE::ALL_FEATURES;
+  assert(all || rd.design == DE::FEATURE || (rd.design >= DE::FEATURE_MAPPING_PX && rd.design <= DE::FEATURE_MAPPING_P));
+
+  assert(rd.value == DE::FEATURE_DISTANCE || prj);
+  assert(nodeNumber <= node_ip_result_map.GetSize()); // we assume 1-base nodeNumber
+  assert(nodeNumber > 0); 
+  assert(node_ip_result_map[nodeNumber] != -1);
+  LOG_DBG2(fm) << "GNSR nodeNumber=" << nodeNumber << " node_ip_result_map[nn]=" << node_ip_result_map[nodeNumber-1];
+ 
+  const IntegrationPoint& ip = corners[node_ip_result_map[nodeNumber]];
+
+  if(rd.detail != DE::NONE && rd.detail != DE::GRAD_DISTANCE && rd.detail != DE::FEATURE_PART)
+    throw Exception("result 'featureDistance/Projected' allows 'detail' 'none'/'gradDistance'/'allows 'detail' 'none'/'gradDistance'");
+
+  // dummy pill if not needed
+  const Pill& pill = (rd.design == DE::FEATURE || FeatureVariable::IsFeatureVariable(rd.design))? GetFeatureForResult(rd) : pills[0]; 
+  
+   if(rd.detail == DE::FEATURE_PART)
+   {
+     if(all)
+     {
+       unsigned int idx = ip.dist.ArgMin();
+       assert(idx < ip.part.GetSize());
+       return (double) 3 * idx + ip.part[idx]; // P, inner, Q
+     }
+     else
+       return (double) ip.part[pill.idx]; // technically -1,0,1,2
+   }
+    
+
+  // common for detail 'none' (default) and 'gradDistance'
+  double dist = -1.0;
+  if(rd.design == DE::ALL_FEATURES)
+    dist = ip.dist.Min();
+  else // rd.design == DE::FEATURE
+    dist = ip.dist[pill.idx];
+  
+
+  if(rd.detail == DE::NONE)
+  {
+    return prj ? bnd_fnc->Eval(dist) : dist;
+  }
+  else
+  {
+    assert(rd.detail == DE::GRAD_DISTANCE);
+
+    Vector<double> ddist_ds(num_var_by_feature); // we have only the vector grad
+    pill.GradDistance(ip.loc, ip.part[pill.idx], ddist_ds); // output is the vector ddist_ds (including fixed)
+
+    double dH_ddist = prj ? bnd_fnc->Grad(dist) : 1.0; // we multiply below    
+    int s = GetVariableForResult(rd); // 0 ... 4
+    return dH_ddist * ddist_ds[s];
+  }
+}
+
+void FeatureMappingDesign::SetupNodeIPMap()
+{
+  // don't call in parallel!
+  // when we have nodal special results,  DesignSpace::GetNodalValue() calls GetNodalSpecialResult() for each node number
+  // we do here a mapping from the node coordinates to the integration points loc in corners.
+  // we need to assume that not the full mesh is design and then search by coordinate.
+  if(order < 2)
+    throw Exception("order at least 2 required for result featureDistance");
+
+  assert(node_ip_result_map.IsEmpty());
+
+  Grid* grid = domain->GetGrid();
+  unsigned int grid_nodes = grid->GetNumNodes();
+  node_ip_result_map.Resize(grid_nodes+1, -1); // we have 1-based nodeNumber, -1 means no mapping 
+
+  // we compare by node coordinate and integration point loc.
+  // we need this, if not all regions are design domain
+  // note that the integration point loc is calculated. One could also go via grid Elem corner nodes
+
+  // note that corners is almost ordered by coordinates but has a hick-up in the beginning
+
+  int next_idx = 0; // index within integration points corner vector
+  StdVector<unsigned int> nodeList; // nodes of current region
+  Vector<double> coord; // grid coordinate of mesh node (2D)
+  for(Grid::RegionData& reg : grid->regionData) 
+  {
+    grid->GetNodesByRegion(nodeList, reg.id);
+    for(unsigned int nn : nodeList)
+    {
+        grid->GetNodeCoordinate(coord, nn, false); // not updated
+        // search an hope for more or less consecutive but have hick-ups when a horizontal line starts (left side).
+        next_idx = std::max(next_idx - 2, 0); 
+        int cnt = 0;
+
+        while(true)
+        {
+          IntegrationPoint& ip = corners[next_idx];
+          //LOG_DBG3(fm) << "SNIM: nn=" << nn << " si=" << start_idx << " next_idx=" << next_idx << " c=" << coord.ToString() << " ip.l=" << ip.loc.ToString() << " d=" << ip.loc.Dist(coord);
+
+          if(ip.loc.Close(coord))
+          {
+            node_ip_result_map[nn] = next_idx;
+            LOG_DBG3(fm) << "SNIM: nn=" << nn << " idx=" << next_idx << " cnt=" << cnt << " c=" << coord.ToString() << " ip.l=" << ip.loc.ToString();
+            break;
+          }
+          else
+          {
+            next_idx = next_idx <  (int) corners.GetSize()-1 ? next_idx + 1 : 0; // increment with wrap
+            if(++cnt > (int) corners.GetSize())
+              throw Exception("cannot match node " + to_string(nn) + " with coord " + coord.ToString() + " to integration points. Wrong nodeResult region?");     
+        }
+      }
+    } // region finished
+  } // all regions finished
+  LOG_DBG3(fm) << "SNIPM: node_ip_result_map=" << node_ip_result_map.ToString();
+}    
+
+
 bool FeatureMappingDesign::GetAnisoMechTensor(const Elem* elem, MaterialTensor<double>& mt, DesignElement::Type direction, const CoefFunctionOpt* coef, DesignMaterial* dm) const
 {
   // be aware, needs to be thread safe!
@@ -154,7 +378,7 @@ bool FeatureMappingDesign::GetAnisoMechTensor(const Elem* elem, MaterialTensor<d
   out.Init(); // set to zero
   // sum_f c_e^f / sum_f rho_e^f) -> sum_c_e / sum_rho where c_e = rho_e * rot_mat
   double sum_rho = ext->rho.Sum();
-  assert(sum_rho >= 0); // might be in the ground material case indeed zero!
+  assert(sum_rho >= 0);
   for(unsigned int i = 0; i < pills.GetSize(); i++)
     out.Add(ext->rho[i], pills[i].rot_mat); // rot_mat is precomputed in Pill::Update()
   
@@ -165,7 +389,7 @@ bool FeatureMappingDesign::GetAnisoMechTensor(const Elem* elem, MaterialTensor<d
 
   if(coef->GetState() == CoefFunctionOpt::OPT)
   {
-    assert(direction == DesignElement::NO_DERIVATIVE);
+    assert(direction == DE::NO_DERIVATIVE);
     assert(sum_rho > 1e-12 || mrho_e <= 1e-12); // if sum_rho is zero, mrho_e must be zero too
     if(sum_rho > 1e-12)
       out.Mult(mrho_e * 1.0/sum_rho); // scale to get c_e
@@ -183,8 +407,8 @@ bool FeatureMappingDesign::GetAnisoMechTensor(const Elem* elem, MaterialTensor<d
     // in variables:
     // dce_ds = (dc_ds * sum_rho - sum_c_e * drho_ds) / (sum_rho)^2 * mrho_e
     //        + (sum_c_e / sum_rho) * dmrho_drho * drho_ds
-    int s = direction - DesignElement::FEATURE_MAPPING_PX;
-    assert(direction != DesignElement::NO_DERIVATIVE);
+    int s = direction - DE::FEATURE_MAPPING_PX;
+    assert(direction != DE::NO_DERIVATIVE);
     assert(direction == aniso_current_variable.var_type);
     assert(s == aniso_current_variable.var_idx);
     unsigned int fi = aniso_current_variable.feature_idx;   
@@ -208,7 +432,7 @@ bool FeatureMappingDesign::GetAnisoMechTensor(const Elem* elem, MaterialTensor<d
     // d_C/d_s = 2 R^T rho_e C_0 d_R/d_s + R^T d_rho_e/d_s C_0 R
     //          = rho_e 2 R^T C_0 d_R/d_s + d_rho_e/d_s R^T C_0 R with d_R/d_s = d_R/d_phi d_phi/d_s
     //          = rho_e d_phi/d_s RCdR    + d_rho_e/d_s RCR  with dR = d_R/d_phi
-    // where rho_e R^T C_0 d_R/d_s is significant everywhere where rho_e != 0 (not rho_min)
+    // where rho_e R^T C_0 d_R/d_s is significant everywhere, where rho_e != 0 (not rho_min)
     // and d_rho_e/d_s R^T C_0 R is significant only where rho_e is > rho_min and < 1
     out.Init(); // we use out as dc_ds
     if(rho_e != 0.0)
@@ -219,10 +443,20 @@ bool FeatureMappingDesign::GetAnisoMechTensor(const Elem* elem, MaterialTensor<d
     }
     if(rho_e != rhomin && rho_e != 1)
       out.Add(drho_ds, pill.rot_mat);
-    // the single derivate by feature and variable d_c_0/d_s is computed 
+
+    // includes angle stuff  
+    if(aniso_current_variable.drho_ds_res_idx[fi * num_var_by_feature + s] != -1)
+      item.elemval->specialResult[aniso_current_variable.drho_ds_res_idx[fi * num_var_by_feature + s]] = drho_ds;
+
+    // the single derivate by feature and variable d_C_0/d_s is computed 
     LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " s=" << s << " fi=" << fi << " rho_e=" << rho_e << " dphi_ds=" << pill.GradAngle(s) << " -> out=dc_ds=" << out.ToString();
 
     double dmrho_drho = cmb_fnc->Grad(ext->rho, pill.idx);
+
+    if(aniso_current_variable.dmrho_drho_res_idx[fi] != -1)
+      item.elemval->specialResult[aniso_current_variable.dmrho_drho_res_idx[fi]] = dmrho_drho;
+    if(aniso_current_variable.drho_ds_res_idx[fi * num_var_by_feature + s] != -1)
+      item.elemval->specialResult[aniso_current_variable.drho_ds_res_idx[fi * num_var_by_feature + s]] = dmrho_drho * drho_ds;
 
     // dc_ds * sum_rho - sum_c_e * drho_ds)
     out.Mult(sum_rho);
@@ -242,7 +476,7 @@ bool FeatureMappingDesign::GetAnisoMechTensor(const Elem* elem, MaterialTensor<d
     out.Init(); 
     LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " sum_rho=" << sum_rho << " is zero -> " << out.ToString();
   }
-  LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " s=" << (direction < DesignElement::FEATURE_MAPPING_PX ? -1 : (direction - DesignElement::FEATURE_MAPPING_PX)) 
+  LOG_DBG3(fm) << "GAT e=" << elem->elemNum << " d=" << direction << " s=" << (direction < DE::FEATURE_MAPPING_PX ? -1 : (direction - DE::FEATURE_MAPPING_PX)) 
                << " fi=" << aniso_current_variable.feature_idx << " -> " << mt.GetMatrix(VOIGT).ToString();
 
   return true;   
@@ -442,14 +676,14 @@ void FeatureMappingDesign::SetupFixedIntegrationPoints()
   } // order >= 2 - corner
 
   // optional debug logging
-  for(IntegrationPoint& ip : corners)
-    LOG_DBG3(fm) << "SD corners IP loc=" << ip.loc.ToString();
+  for(unsigned int i = 0; i < corners.GetSize(); i++)
+    LOG_DBG3(fm) << "SFIP: corners[" << i << "].loc=" << corners[i].loc.ToString();
 
  for(IntegrationPoint& ip : inners)
-    LOG_DBG3(fm) << "SD inners IP loc=" << ip.loc.ToString();
+    LOG_DBG3(fm) << "SFIP: inners IP loc=" << ip.loc.ToString();
 
   for(Item& item : map)
-    LOG_DBG3(fm) << "SD map " << item.lexicographic_pos << " ext: " << item.extension->ToString();
+    LOG_DBG3(fm) << "SFIP: map " << item.lexicographic_pos << " ext: " << item.extension->ToString();
 }
 
 std::string FeatureMappingDesign::ItemIP::ToString()
@@ -680,7 +914,9 @@ void FeatureMappingDesign::MapFeatureToDensity()
       bnd_fnc->Eval(all_dist, bnd);
       // integrate these projections to a single rho by feature -> before combine
       ext->rho[fi] = bnd_fnc->Integrate(bnd);
-      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " c=" << ext->center.ToString() << " f=" << fi << " prj:#" << bnd.GetSize() << "->" << bnd.ToString() << " -> " << ext->rho[fi];
+      LOG_DBG3(fm) << "MFTD: item=" << item.lexicographic_pos << " c=" << ext->center.ToString() << " f=" << fi << " prj:#" << bnd.GetSize() 
+                   << " prj=" << bnd.ToString() << "->" << bnd.ToString() << " -> " << ext->rho[fi];
+      assert(ext->rho[fi] >= 0);                   
 
       // calculate d_rho/d_s to be re-used in the gradient calculation.
       CalcGradRhoByFeature(item, pills[fi], drho_ds_vec, ddist_ds, elem_ip); // drho_ds_vec is output, ddist_ds and elem_ip are working arrays
@@ -772,12 +1008,15 @@ void FeatureMappingDesign::IsotropicGradientHelper(const Function* func, Vector<
 
   // assume all features are equal - this is not opt variables. We skip later fixed optionally link later
   assert(num_var_by_feature == features_.First()->GetAllVariables().GetSize()); 
-  StdVector<FeatureVariable*> f_si;     // all variables of a feature
+  // we use the precomputed ext->drho_ds_full
 
-  StdVector<IntegrationPoint*> elem_ip; // elem inner + corner
-  Vector<double> ddist_ds(num_var_by_feature); // we calculate all gradients at once and store it then in the FeatureVariables
-
-  Vector<double> drho_f_ds(num_var_by_feature); // d_rho/d_s for a single feature for CalcGradRhoByFeature()
+  StdVector<int> dJ_ds_res_idx = GetSpecialResultIndices(func);
+  StdVector<int> dmrho_ds_res_idx = GetSpecialResultIndices(nullptr, DE::COMBINE, true); // d_mrho_d_s
+  StdVector<int> drho_ds_res_idx = GetSpecialResultIndices(nullptr, DE::FEATURE_RHO, true); // d_rho_d_s
+  assert(dJ_ds_res_idx.GetSize() == pills.GetSize() * num_var_by_feature && dJ_ds_res_idx.GetSize() == dmrho_ds_res_idx.GetSize() &&  dJ_ds_res_idx.GetSize() == drho_ds_res_idx.GetSize());
+  
+  StdVector<int> dmrho_drho_res_idx = GetSpecialResultIndices(nullptr, DE::COMBINE, false); // d_mrho_d_feature
+  assert(dmrho_drho_res_idx.GetSize() == pills.GetSize()); 
 
   // for each element
   for(const Item& item : map)
@@ -791,23 +1030,40 @@ void FeatureMappingDesign::IsotropicGradientHelper(const Function* func, Vector<
     {
       // the rho_e of this feature 
       double rho_e_f = ext->rho[f];
-      // skip when we have constant feature rho_e (gradient is zero)
-      if(rho_e_f == 1 || rho_e_f == rhomin)
-        continue;
 
-      const Feature& pill = pills[f];
+      // skip when we have constant feature rho_e (gradient is zero) but stay if we have the special result
+      if((rho_e_f == 1 || rho_e_f == rhomin) && dmrho_drho_res_idx[f] == -1)
+        continue;
 
       // derivative of rho_f aggregation of all features (1.0 single feature)
       double dmax_drho_f = cmb_fnc->Grad(ext->rho, f);
 
-      // drho_f_ds contains the return value
-      CalcGradRhoByFeature(item, pill, drho_f_ds, ddist_ds, elem_ip);
+      if(dmrho_drho_res_idx[f] != -1)
+      {
+        item.elemval->specialResult[dmrho_drho_res_idx[f]] = dmax_drho_f;
+        LOG_DBG3(fm) << "IGH f=" << f << " dmax_drho_f=" << dmax_drho_f << " -> s_r[" << dmrho_drho_res_idx[f] << "]";
+        if(rho_e_f == 1 || rho_e_f == rhomin) // in that case drho_ds is zero and all results contain this
+          continue;
+      }
+
       assert(dJ_ds.GetSize() == ext->drho_ds_full.GetSize());
       for(unsigned int s = 0; s < num_var_by_feature; s++) 
       {
-        dJ_ds[f * num_var_by_feature + s] += dJ_drho_e * dmax_drho_f * drho_f_ds[s];
+        unsigned int idx = f * num_var_by_feature + s;
+        double value = dJ_drho_e * dmax_drho_f * ext->drho_ds_full[idx]; 
+        dJ_ds[idx] += value;
+
+        if(drho_ds_res_idx[idx] != -1)
+          item.elemval->specialResult[drho_ds_res_idx[idx]] = ext->drho_ds_full[idx]; // we automatically have the proper feature
+
+        if(dmrho_ds_res_idx[idx] != -1)
+          item.elemval->specialResult[dmrho_ds_res_idx[idx]] = dmax_drho_f * ext->drho_ds_full[idx];
+
+        if(dJ_ds_res_idx[idx] != -1)
+          item.elemval->specialResult[dJ_ds_res_idx[idx]] = value;
+
         LOG_DBG3(fm) << "IGH: item=" << item.lexicographic_pos << " f=" << f << " s=" << s 
-                   << " dJ_drho_e=" << dJ_drho_e << " dmax_drho_f=" << dmax_drho_f << " drho_f_ds=" << drho_f_ds[s] << " -> " <<  dJ_ds[f * num_var_by_feature + s];
+                   << " dJ_drho_e=" << dJ_drho_e << " dmax_drho_f=" << dmax_drho_f << " drho_f_ds=" << ext->drho_ds_full[idx] << " dJ_ds[" << idx << "] += " << value <<  " -> " <<  dJ_ds[idx];
       } 
     }
   }
@@ -827,6 +1083,13 @@ void FeatureMappingDesign::AnisotropicGradientHelper(Function* func, Vector<doub
   assert(opt != nullptr);
   assert(func->IsStateDependent());
 
+  // of size num_vars_by_feature * num_features
+  aniso_current_variable.dJ_ds_res_idx = GetSpecialResultIndices(func);
+  aniso_current_variable.dmrho_ds_res_idx = GetSpecialResultIndices(nullptr, DE::COMBINE, true); // d_mrho_d_s
+  aniso_current_variable.drho_ds_res_idx = GetSpecialResultIndices(nullptr, DE::FEATURE_RHO, true); // d_rho_d_s
+  // of size num_features
+  aniso_current_variable.dmrho_drho_res_idx = GetSpecialResultIndices(nullptr, DE::COMBINE, false); // d_mrho_d_rho within feature
+
   dJ_ds.Init();
   assert(dJ_ds.GetSize() == features_.GetSize() * num_var_by_feature);
 
@@ -835,14 +1098,14 @@ void FeatureMappingDesign::AnisotropicGradientHelper(Function* func, Vector<doub
     aniso_current_variable.feature_idx = f;
     for(unsigned int s = 0; s < num_var_by_feature; s++) 
     {
-      assert(s <= (DesignElement::FEATURE_MAPPING_P - DesignElement::FEATURE_MAPPING_PX));
-      aniso_current_variable.var_type = (DesignElement::Type) (DesignElement::FEATURE_MAPPING_PX + s);
+      assert(s <= (DE::FEATURE_MAPPING_P - DE::FEATURE_MAPPING_PX));
+      aniso_current_variable.var_type = (DE::Type) (DE::FEATURE_MAPPING_PX + s);
       aniso_current_variable.var_idx = (int) s;
       
       // this speeds up the derivate for GetAnisoMechTensor() a lot
       aniso_current_variable.RCdR = aniso_base_tensor; // copy the unrotated anisotropic tensor
       MaterialTensor<double> RCdR(VOIGT, &(aniso_current_variable.RCdR), false); // wrap the MaterialTensor around the Matrix
-      Optimization::context->dm->RotateTensor(RCdR, DesignElement::ROTANGLE, true, pills[f].angle); // true means we provide the angle
+      Optimization::context->dm->RotateTensor(RCdR, DE::ROTANGLE, true, pills[f].angle); // true means we provide the angle
       LOG_DBG2(fm) << "AGH: func=" << func->ToString() << " f=" << f << " s=" << s << " angle=" << pills[f].angle 
                    << " RCdR=" << RCdR.GetMatrix(VOIGT).ToString() << " acv.RCdR=" <<  aniso_current_variable.RCdR.ToString();
       assert(aniso_current_variable.RCdR.NormL2() > 0);
@@ -865,6 +1128,8 @@ void FeatureMappingDesign::AnisotropicGradientHelper(Function* func, Vector<doub
         {
           dJ_ds[f * num_var_by_feature + s] += item.elemval->GetPlainGradient(func);
           LOG_DBG3(fm) << "AGH: func=" << func->ToString() << " f=" << f << " s=" << s << " + " << item.elemval->GetPlainGradient(func) << " -> dJ_s=" <<  dJ_ds[f * num_var_by_feature + s];
+          if(aniso_current_variable.dJ_ds_res_idx[f * num_var_by_feature + s] != -1)
+             item.elemval->specialResult[aniso_current_variable.dJ_ds_res_idx[f * num_var_by_feature + s]] = item.elemval->GetPlainGradient(func);
         }
         LOG_DBG2(fm) << "AGH: func=" << func->ToString() << " f=" << f << " s=" << s << " -> dJ_s=" <<  dJ_ds[f * num_var_by_feature + s];
       }
@@ -963,7 +1228,7 @@ void FeatureMappingDesign::ReadDensityXml(PtrParamNode set, double& lower_violat
       EXCEPTION("shapeParamElement nr=" << pnnr << " in density.xml has not expected 'shape' value " << var->feature);
 
     if(DesignElement::type.Parse(pn->Get("type")->As<string>()) != var->GetType())
-      EXCEPTION("shapeParamElement nr=" << pnnr << " in density.xml has not expected 'type' value " << DesignElement::type.ToString(var->GetType()));
+      EXCEPTION("shapeParamElement nr=" << pnnr << " in density.xml has not expected 'type' value " << DE::type.ToString(var->GetType()));
 
     if(var->GetType() == FeatureVariable::NODE)
     {
@@ -1058,7 +1323,7 @@ void FeatureMappingDesign::Pill::Update()
     // RotateTensor needs a MaterialTensor which wraps a Matrix and assignes it with a notation (VOIGT)
     MaterialTensor<double> RCR(VOIGT, &rot_mat, false); // false: do not copy 
     // actually rot_mat is rotated
-    Optimization::context->dm->RotateTensor(RCR, DesignElement::NO_DERIVATIVE, true, angle); // true because we provide the angle
+    Optimization::context->dm->RotateTensor(RCR, DE::NO_DERIVATIVE, true, angle); // true because we provide the angle
   }
 
   LOG_DBG(fm) << "P:U: P=" << P.ToString() << " Q=" << Q.ToString() << " l=" << length << " U=" << U.ToString() << " V=" << V.ToString() 
@@ -1114,7 +1379,7 @@ void FeatureMappingDesign::Pill::GradDistance(const Point& X, FeatureVariable::T
 
   switch(part)
   {
-    // same order as in BaseDesignElement::FEATURE_MAPPING_PX, ...
+    // same order as in DE::FEATURE_MAPPING_PX, ...
   case FeatureVariable::START:
     out[0] = (P[0]-X[0])/X.Dist(P); 
     out[1] = (P[1]-X[1])/X.Dist(P);
@@ -1242,7 +1507,10 @@ inline double FeatureMappingDesign::Poly::Eval(double d) const
   if(IsInside(d))  
     return 1;
 
-  return fac * (((d*d*d)/(3*h3))-(d/h))+bias; // d = -phi!
+  double res = fac * (((d*d*d)/(3*h3))-(d/h))+bias; // d = -phi!
+  assert(res >= -1e-16);
+  res = std::max(res,0.0); // remove numerical artefacts to be very slightly negative
+  return res;
 }
 
 inline double FeatureMappingDesign::Poly::Grad(double d) const
@@ -1327,7 +1595,7 @@ double FeatureMappingDesign::SoftMax::Grad(const Vector<double>& projected, unsi
 
 void FeatureMappingDesign::AnisoCurrentVariable::Reset()
 {
-  var_type = BaseDesignElement::NO_DERIVATIVE;
+  var_type = DE::NO_DERIVATIVE;
   var_idx = -1;
   feature_idx = -1;
   assert(dim_ == 2);

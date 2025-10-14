@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+
+<cfsInfo status="running" infoWriteCounter="1" infoRejectCounter="0">
+  <summary>
+    <timer wall-clock="0.009s" wall="0.009" cpu="0.008786" calls="1"/>
+  </summary>
+  <header>
+    <environment started="2025-Oct-22 17:01:42" host="monaoc.mi.uni-erlangen.de"/>
+  </header>
+</cfsInfo>
