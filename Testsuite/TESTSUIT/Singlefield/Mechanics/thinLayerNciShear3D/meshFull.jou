@@ -1,0 +1,58 @@
+reset
+
+# VARIABLES
+{L = 1}
+{t = 2*L/100}
+{size = 0.1}
+
+# GEOMETRY
+# --- planes
+create Vertex 0 0 0		# for reference
+create brick x {L/2} y {L} z {L}
+create brick x {L/2} y {L} z {L}
+create brick x {t} y {L} z {L}
+create vertex x 0 y {L/2} z {-L/2}
+create vertex x {L+t} y {L/2} z {-L/2}
+
+# --- have 0|0|0 at left|bottom|front corner
+move volume 1 x {L/4}  y {L/2} z {-L/2} include_merged 
+move volume 2 x {L*3/4+t} y {L/2} z {-L/2}include_merged
+move volume 3 x {L/2+t/2} y {L/2} z {-L/2} include_merged
+
+merge surface 6 16
+merge surface 10 18
+
+# MESH
+volume 1 2 3 size {size}
+mesh volume 1 2 3
+
+# DOMAIN AND BOUNDARIES
+block 1 add volume 1
+block 1 name "V_left"
+
+block 2 add volume 2
+block 2 name "V_right"
+
+block 3 add volume 3
+block 3 name "V_tlr"
+
+nodeset 1 add surface 4
+nodeset 1 name "S_left"
+
+nodeset 2 add surface 12
+nodeset 2 name "S_right"
+
+nodeset 5 add surface 5 11 17
+nodeset 5 name "S_top"
+
+nodeset 7 add surface 3 9 15
+nodeset 7 name "S_bottom"
+
+nodeset 9 add surface 1 7 13
+nodeset 9 name "S_front"
+
+nodeset 11 add surface 2 8 14
+nodeset 11 name "S_back"
+
+# SAVING
+export ansys cdb "meshFull.cdb"  overwrite 

@@ -1,0 +1,100 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title> Non-Conforming 2D Mechanics with thinLayer formulation </title>
+        <authors>
+            <author>vfilkin</author>
+        </authors>
+        <date>2024-03-23</date>
+        <keywords>
+            <keyword>mechanic</keyword>
+            <keyword>nonmatching grids</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>no</isVerified>
+        <description> 
+            Mechanics/Shear 2D - thinLayer - Nci
+            Non-conforming mesh with thinLayer formulation for vector fields
+            Dimensions: square with sidelength 1. + thin layer thickness 0.02.
+            2D version to thinLayerNciExtension2D.xml
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <input>
+            <!-- <cdb fileName="mesh.cdb"/> -->
+             <hdf5 fileName="mesh.cfs"/>
+        </input>
+        <output>
+            <hdf5/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <regionList>
+            <region name="V_left" material="Steel"/>
+            <region name="V_right" material="Steel"/>
+        </regionList>
+        <surfRegionList>
+            <surfRegion name="NCI_rightMaster" />
+            <surfRegion name="NCI_leftSlave" />
+        </surfRegionList>
+        <ncInterfaceList>
+            <ncInterface name="nciThinLayer" primarySide="NCI_rightMaster" secondarySide="NCI_leftSlave"/>
+        </ncInterfaceList>       
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+
+        <pdeList>
+            <mechanic subType="planeStrain">
+                <regionList>
+                    <region name="V_left"/>
+                    <region name="V_right"/>
+                </regionList>
+
+                <ncInterfaceList>
+                    <ncInterface name="nciThinLayer" formulation="Nitsche">
+                        <thinLayer layerThickness="0.02" layerMaterial="Copper"/>
+                    </ncInterface>
+                </ncInterfaceList>
+
+                <bcsAndLoads>
+                    <fix name="S_left">
+                        <comp dof="x" />
+                        <comp dof="y" />
+                    </fix>
+                    <traction name="S_right" >
+                        <comp dof="y" value="1e9" />
+                    </traction>
+                    <traction name="S_left" >
+                        <comp dof="y" value="-1e9" />
+                    </traction>
+                    <traction name="S_top" >
+                        <comp dof="x" value="1e9" />
+                    </traction>
+                    <traction name="S_bottom" >
+                        <comp dof="x" value="-1e9" />
+                    </traction>
+                </bcsAndLoads>
+
+                <storeResults>
+                    <nodeResult type="mechDisplacement">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="mechStress">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </mechanic>
+        </pdeList>
+
+    </sequenceStep>
+
+</cfsSimulation>
