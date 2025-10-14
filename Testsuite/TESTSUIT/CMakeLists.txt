@@ -63,7 +63,7 @@ if(USE_ARPACK)
   ADD_SUBDIRECTORY(Solver/Arpack/EigenValueDriver_Quadratic)
 endif()
 if(USE_PRECICE)
-  ADD_SUBDIRECTORY(Solver/preCICE/openfoam_opencfs_coupling)
+  ADD_SUBDIRECTORY(Solver/preCICE)
 endif()
 if(TESTSUITE_PYTHON)
   # these external solver test cases rely on python
