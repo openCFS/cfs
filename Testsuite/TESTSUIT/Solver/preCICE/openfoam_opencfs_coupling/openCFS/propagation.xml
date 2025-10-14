@@ -124,16 +124,17 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 
 				<!-- Boundary Conditions and Volume Loads -->
 				<bcsAndLoads>
-					<!-- <rhsValues name="internal">
+					<rhsValues name="internal">
 						<grid>
 							<defaultGrid quantity="acouRhsLoad" dependtype="GENERAL"
 								definedOn="node">
-								<globalFactor>
+								<!-- <globalFactor>
 									(-1.0 / (rho*c^2)) * fadeIn(tau, 1, t) *
-									((sqrt(x^2+y^2) lt 1.9)? exp(-0.5*(x^2+y^2)/sigma^2) : 0) </globalFactor>
+									((sqrt(x^2+y^2) lt 1.9)? exp(-0.5*(x^2+y^2)/sigma^2) : 0) 
+								</globalFactor> -->
 							</defaultGrid>
 						</grid>
-					</rhsValues> -->
+					</rhsValues>
 				</bcsAndLoads>
 
 				<!-- Results Definition -->

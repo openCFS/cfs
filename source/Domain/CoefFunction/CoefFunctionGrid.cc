@@ -146,9 +146,9 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                       configNode->Get("defaultGrid"), tmpNode, regions,type));
           }else{
             // precice case
-            EXCEPTION("CoefFunctionGridNodalDefaultPrecice currently disabled");
-            // ret.reset(new CoefFunctionGridNodalDefaultPrecice<Double>(ptDomain,
-            //           configNode->Get("defaultGrid"), tmpNode, regions,type));
+            // EXCEPTION("CoefFunctionGridNodalDefaultPrecice currently disabled");
+            ret.reset(new CoefFunctionGridNodalDefaultPrecice<Double>(ptDomain,
+                      configNode->Get("defaultGrid"), tmpNode, regions,type));
           }
         }
       }

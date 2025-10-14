@@ -16,7 +16,7 @@ if(USE_PRECICE)
   NodeResult.cc
   ElementResult.cc
   CoefFunctionGridElemDefaultPrecice.cc
-  #CoefFunctionGridNodalDefaultPrecice.cc
+  CoefFunctionGridNodalDefaultPrecice.cc
   TransientDriverPrecice.cc
   )
 
