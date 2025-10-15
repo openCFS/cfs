@@ -118,7 +118,10 @@ void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMa
   ptSol.Init();
 
   // handle this with the preciceAdapter_
-  elemSol = preciceAdapter_->GetElemResult(this->solType_, sourceElem->elemNum);
+  //Klaus has here GetElemResult, which i guess is because we are interpolating?
+  //otherwise we would use GetNodeResult?
+  //elemSol = preciceAdapter_->GetElemResult(this->solType_, sourceElem->elemNum);
+  elemSol = preciceAdapter_->GetNodeResult(this->solType_, sourceElem->elemNum);
 
   CoefMat = elemSol[0];
 }

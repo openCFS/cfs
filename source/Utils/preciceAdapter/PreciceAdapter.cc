@@ -615,6 +615,7 @@ namespace CoupledField
     Vector<Double> PreciceAdapter::GetElemResult(SolutionType solType, int elemNum)
     {
         for (const auto &result : runtimeReadResults_) {
+            std::cout << result->getConfig().solutiontype << std::endl;
             if (result->getConfig().solutiontype == solType) {
                 if (result->getResultType() == ResultType::ELEMENT) {
                     ElementResult* er = dynamic_cast<ElementResult*>(result.get());
