@@ -45,7 +45,17 @@ CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::CoefFunctionGridNodalDefaultPrec
   //lets determine the destination region and set it to our source regions
   this->DetermineResult(this->inputId_,this->aSeqStep_);
 
-  this->dimDof_ = this->resultInfo_->dofNames.GetSize();
+  std::cout << "type: " << type << std::endl;
+
+  if(type == ResultInfo::SCALAR){
+    this->dimDof_ = 1;
+    this->dimType_ = CoefFunction::SCALAR;
+  }else if(type == ResultInfo::VECTOR){
+    this->dimDof_ = this->resultInfo_->dofNames.GetSize();
+    this->dimType_ = CoefFunction::VECTOR;
+  }
+  
+  //this->dimDof_ = this->resultInfo_->dofNames.GetSize();
 
   // Determine which steps are available
   //this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
@@ -55,13 +65,6 @@ CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::CoefFunctionGridNodalDefaultPrec
 
   preciceAdapter_ = ptDomain->GetPreciceAdapter();
 
-  if(type == ResultInfo::SCALAR){
-    this->dimDof_ = 1;
-    this->dimType_ = CoefFunction::SCALAR;
-  }else if(type == ResultInfo::VECTOR){
-    this->dimDof_ = this->resultInfo_->dofNames.GetSize();
-    this->dimType_ = CoefFunction::VECTOR;
-  }
 }
 
 // ========================
@@ -140,10 +143,19 @@ void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::SetRegions(shared_ptr<Regio
 
 
 template<typename DATA_TYPE>
-void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::DetermineResult(std::string inputID,UInt seqStep){
+void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::DetermineResult(std::string inputID, UInt seqStep){
   //obtain availResults and search for the requested one
   StdVector<shared_ptr<ResultInfo> > results;
   std::map<shared_ptr<BaseResult>, shared_ptr<ResultHandler::ResultContext> > test = *this->domain_->GetResultHandler()->GetResultContexts();
+  //std::cout << "Result name: " << test.first->GetResultInfo()->resultName << std::endl;
+
+  if (!test.empty()) {
+    auto it = test.begin();
+    std::cout << "Result name: " 
+              << it->first->GetResultInfo()->resultName 
+              << std::endl;
+  }
+
   for (const auto &entry : test) {
     std::cout << "Result name: " << entry.first->GetResultInfo()->resultName << std::endl;
       

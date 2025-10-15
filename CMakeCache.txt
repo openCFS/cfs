@@ -35,4 +35,3 @@ CMAKE_CPACK_COMMAND:INTERNAL=/usr/bin/cpack
 CMAKE_CTEST_COMMAND:INTERNAL=/usr/bin/ctest
 //Path to CMake installation.
 CMAKE_ROOT:INTERNAL=/usr/share/cmake-3.22
-

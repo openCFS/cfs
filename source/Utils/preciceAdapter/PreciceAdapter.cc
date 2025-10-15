@@ -555,8 +555,13 @@ namespace CoupledField
     #ifdef USE_PRECICE
     // Get the result handler from the domain.
     ResultHandler* resHandler = domain_->GetResultHandler();
+
+    std::cout << "ResultHandler initialised" << std::endl;
+
     if(!resHandler)
         EXCEPTION("PreciceAdapter::RegisterElementResults: No result handler available.");
+
+    std::cout << "runtimeReadResults.size() = " << runtimeReadResults_.size() << std::endl;
 
     if(runtimeReadResults_.size() == 0) return;
 
@@ -565,9 +570,13 @@ namespace CoupledField
 
     // get the entity list of the entities on which the pde is defined on
     StdVector<RegionIdType> regions = singlePDE_->GetRegions();
-    
 
+    std::cout << "regions.ToString() (PreciceAdapter.cc): " << regions.ToString() << std::endl;
+    
    shared_ptr<EntityList> list = gridCFS->GetEntityList(EntityList::ListType::ELEM_LIST, gridCFS->GetRegionName(regions[0]));
+
+   std::cout << list << std::endl;
+
    if(list){
         // For each runtime quantity that is element-based (i.e. does not have nodal results)
         for(auto &result : runtimeReadResults_) {

@@ -72,6 +72,22 @@ namespace CoupledField {
     LOG_DBG(resHandler) << "postProcId: " << postProcName;
     LOG_DBG(resHandler) << "-------------------";
 
+    std::cout << "Registering result: (ResultHandler.cc)" << std::endl;
+    std::cout << "-------------------" << std::endl;
+    std::cout << "name: " << actDof.resultName << std::endl;
+    std::cout << "dofs: " << actDof.dofNames.Serialize() << std::endl;
+    std::cout << "resultList: " << sol->GetEntityList()->GetName() << std::endl;
+    std::cout << "saveBegin: " << saveBegin << std::endl;
+    std::cout << "saveEnd: " << saveEnd << std::endl;
+    std::cout << "saveInc: " << saveInc << std::endl;
+    std::cout << "writeResult: " << writeResult << std::endl;
+    std::cout << "isFinal: 0" << std::endl;
+    std::cout << "outputDest: " << outDestNames.Serialize() << std::endl;
+    std::cout << "postProcId: " << postProcName << std::endl;
+    std::cout << "-------------------" << std::endl;
+
+
+
     // check, if result context was already created
     shared_ptr<ResultContext> actContext;
   
@@ -277,6 +293,9 @@ namespace CoupledField {
         WARN("Result '" << actResult.GetResultInfo()->resultName << "' on '"
           << (*it)->GetEntityList()->GetName() << "' was not provided in step " << actStep_);
 
+      std::cout << actResult.ToString();
+
+
       // check, if result is to be written 
       if( actContext.writeResult && (!actContext.isFinal ) ) {
         // iterate over all outputs
@@ -291,6 +310,8 @@ namespace CoupledField {
           // If not, we have to perform mapping
           // =================================================
           ResultInfo & info = *(actContext.result->GetResultInfo());
+          std::cout << "OutputIds_[outId]: " << outGridIds_[outId] << std::endl;
+          std::cout << "info.definedOn: " << info.definedOn << std::endl;
           if( outGridIds_[outId] != "default" &&
               (info.definedOn == ResultInfo::NODE || 
               info.definedOn == ResultInfo::ELEMENT ||
