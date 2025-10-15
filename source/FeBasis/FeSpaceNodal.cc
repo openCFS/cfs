@@ -130,6 +130,7 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
       // the PDE exists, retrieve the updateGeometry-flag
       updateGeo = feFct->GetPDE()->IsUpdatedGeo();
     } else {
+      std::cout << "THE PDE DOES NOT EXIST!" << std::endl;
       // the PDE does not exist (can be the case if external data is applied), set the flag to false
       updateGeo = false;
     }
