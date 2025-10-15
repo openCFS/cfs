@@ -24,7 +24,7 @@
   <fileFormats>
     <input>
       <hdf5 fileName="AcousticHarmonic25D.h5ref"/>
-      <!--cdb fileName="quater_sphere.cdb"/-->
+      <!-- <cdb fileName="quater_sphere.cdb"/> -->
     </input>
     <output>
       <hdf5/>
@@ -41,10 +41,10 @@
   <sequenceStep index="1">
     <analysis>
       <harmonic25d>
-        <excitationFreq>100</excitationFreq>
+        <excitationFreq>100.1</excitationFreq>
         <cutoffFreq>120</cutoffFreq>
         <!-- We use a coarse frequency resolution in the test case to reduce run time. -->
-        <freqResolution>5</freqResolution>
+        <freqResolution>10</freqResolution>
         <!-- For validation, use the following resolution instead  -->
         <!-- <freqResolution>0.25</freqResolution> -->
       </harmonic25d>

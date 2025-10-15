@@ -1,6 +1,35 @@
 import numpy as np
 import scipy as sp
 
+def wavenumber_spectrum(ExcitationFreq, freq, r, rho = 1.205, K = 1.41767e5):
+    """
+    Analytical Solution of Wavenumber Spectrum of 3D Point Source Free Radiation
+    
+    Input:
+
+    ExcitationFreq ... 3D Point Source Excitation Frequency
+    freq ... frequency corresponding to axial wavenumber kz, freq = kz*c0 / 2pi
+    r ... Distance to point source on the 2D Plane r = sqrt(x^2 + y^2)
+
+    Output:
+
+    solution in wavenumber domain p(r(x,y),kz(freq))
+    """
+    from scipy.special import hankel2, kv
+    import numpy as np
+
+    c0 = np.sqrt(K / rho)
+    k = ExcitationFreq*2*np.pi / c0
+    kz = freq*2*np.pi / c0
+    if np.isclose(k, np.abs(kz),rtol=1e-10):
+        return np.NaN
+    elif k > np.abs(kz):
+        kxy = np.sqrt(k**2 - kz**2)
+        return (-1j / 4) * hankel2(0, kxy*r + 0j)
+    elif k < np.abs(kz):
+        kxy = np.sqrt(kz**2 - k**2)
+        return (1/(2*np.pi))*kv(0, kxy*r + 0j)
+
 def SphericalWaveAnalytic(rhsValue, freq, r, result_type='Pressure', rho = 1.24, c0 = 343, sphere = 'full'):
     '''
     Helper function to generate analytical solution of a monopole sound source.
