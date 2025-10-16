@@ -72,21 +72,20 @@ namespace CoupledField {
     LOG_DBG(resHandler) << "postProcId: " << postProcName;
     LOG_DBG(resHandler) << "-------------------";
 
-    std::cout << "Registering result: (ResultHandler.cc)" << std::endl;
-    std::cout << "-------------------" << std::endl;
-    std::cout << "name: " << actDof.resultName << std::endl;
-    std::cout << "dofs: " << actDof.dofNames.Serialize() << std::endl;
-    std::cout << "resultList: " << sol->GetEntityList()->GetName() << std::endl;
-    std::cout << "saveBegin: " << saveBegin << std::endl;
-    std::cout << "saveEnd: " << saveEnd << std::endl;
-    std::cout << "saveInc: " << saveInc << std::endl;
-    std::cout << "writeResult: " << writeResult << std::endl;
-    std::cout << "isFinal: 0" << std::endl;
-    std::cout << "outputDest: " << outDestNames.Serialize() << std::endl;
-    std::cout << "postProcId: " << postProcName << std::endl;
-    std::cout << "-------------------" << std::endl;
-
-
+    /*
+    std::cout << "Registering result: (ResultHandler.cc)" << "\n";
+    std::cout << "-------------------" << "\n";
+    std::cout << "name: " << actDof.resultName << "\n";
+    std::cout << "dofs: " << actDof.dofNames.Serialize() << "\n";
+    std::cout << "resultList: " << sol->GetEntityList()->GetName() << "\n";
+    std::cout << "saveBegin: " << saveBegin << "\n";
+    std::cout << "saveEnd: " << saveEnd << "\n";
+    std::cout << "saveInc: " << saveInc << "\n";
+    std::cout << "writeResult: " << writeResult << "\n";
+    std::cout << "isFinal: 0" << "\n";
+    std::cout << "outputDest: " << outDestNames.Serialize() << "\n";
+    std::cout << "postProcId: " << postProcName << "\n";
+    std::cout << "-------------------" << "\n"; */
 
     // check, if result context was already created
     shared_ptr<ResultContext> actContext;
@@ -198,6 +197,9 @@ namespace CoupledField {
       LOG_DBG(resHandler) << "IsNeeded for '" << actResult.GetResultInfo()->resultName
                           << "' on '"<< actResult.GetEntityList()->GetName() << "' is '"
                           << (IsOutput( **contextIt ) == true ? "true" : "false") << "'";
+      std::cout << "IsNeeded for '" << actResult.GetResultInfo()->resultName
+                << "' on '"<< actResult.GetEntityList()->GetName() << "' is '"
+                << (IsOutput( **contextIt ) == true ? "true" : "false") << "'" << "\n";
       if(IsOutput( **contextIt))
         isNeeded_.insert((*contextIt)->result);
     }
@@ -216,16 +218,16 @@ namespace CoupledField {
 
   void ResultHandler::UpdateResult( shared_ptr<BaseResult> sol ) {
 
-
     shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("results/timer")->AsTimer();
     timer->Start();
 
     LOG_DBG(resHandler) << "UR: " << sol->GetResultInfo()->ToString();
-    
+    //std::cout << "UR: " << sol->GetResultInfo()->ToString() << "\n";
     // check, if result is to be updated
-    if(isNeeded_.find(sol) == isNeeded_.end())
+    if(isNeeded_.find(sol) == isNeeded_.end()){
+      std::cout << sol->GetEntityList()->GetName() << "\n";
       WARN("Result '" << sol->GetResultInfo()->resultName << "' on entitylist '" << sol->GetEntityList()->GetName() << "' is not needed in step " << actStep_);
-
+    }
     // Set flag for update to true
     isUpdated_.insert( sol );
 
@@ -254,7 +256,6 @@ namespace CoupledField {
         timer->Start();
         actContext.functor->EvalResult(actContext.result);
         timer->Stop();
-
         UpdateResult(actContext.result);
 
       }
@@ -288,10 +289,12 @@ namespace CoupledField {
       LOG_DBG(resHandler) << "Checking result '"<< actResult.GetResultInfo()->resultName
                           << "' on '" << actResult.GetEntityList()->GetName() << "' for writing out";
 
+      std::cout << "Checking result '"<< actResult.GetResultInfo()->resultName
+                << "' on '" << actResult.GetEntityList()->GetName() << "' for writing out" << "\n";
       // Check, if result was updated at all
-      if(isUpdated_.find(*it) == isUpdated_.end())
+      if(isUpdated_.find(*it) == isUpdated_.end()) 
         WARN("Result '" << actResult.GetResultInfo()->resultName << "' on '"
-          << (*it)->GetEntityList()->GetName() << "' was not provided in step " << actStep_);
+           << (*it)->GetEntityList()->GetName() << "' was not provided in step " << actStep_);
 
       std::cout << actResult.ToString();
 
@@ -310,17 +313,21 @@ namespace CoupledField {
           // If not, we have to perform mapping
           // =================================================
           ResultInfo & info = *(actContext.result->GetResultInfo());
-          std::cout << "OutputIds_[outId]: " << outGridIds_[outId] << std::endl;
-          std::cout << "info.definedOn: " << info.definedOn << std::endl;
+          std::cout << "OutputIds_[outId]: " << outGridIds_[outId] << "\n";
+          std::cout << "info.definedOn: " << info.definedOn << "line 317 of ResultHandler.cc \n";
+
           if( outGridIds_[outId] != "default" &&
               (info.definedOn == ResultInfo::NODE || 
               info.definedOn == ResultInfo::ELEMENT ||
               info.definedOn == ResultInfo::SURF_ELEM ) ) {
             
+            std::cout << "we are performing interpolation in ln 324 ResultHandler.cc \n";
+            
             // security check: if no result functor is present, we leave
-            if( !actContext.functor )
+            if( !actContext.functor ){
+              std::cout << "No result functor present! \n";
               continue;
-
+            }
             // obtain destination grid and get the element / node list
             Grid * destGrid = domain->GetGrid( outGridIds_[outId] );
             shared_ptr<BaseResult> res;
@@ -331,6 +338,8 @@ namespace CoupledField {
          
           } else {
             // Standard case, no interpolation necessary
+
+            std::cout << "Standard case, no interpolation \n";
             
             // Add current result to given output file
             LOG_DBG(resHandler) << "Adding result '" << actResult.GetResultInfo()->resultName
@@ -510,7 +519,7 @@ namespace CoupledField {
       StdVector<std::string> oldDest, outDest;
       postProcs[i]->GetOutDestNames( oldDest );
       LOG_DBG(resHandler) << "outputDest of " << postProcName << " is '" << oldDest.Serialize() << "'";
-      LOG_DBG(resHandler) << "size of outputDest is " << outDest.GetSize() << std::endl;
+      LOG_DBG(resHandler) << "size of outputDest is " << outDest.GetSize() << "\n";
       if( oldDest.GetSize() == 1 ) {
         if( oldDest[0] == "" ) {
           GetDefaultOutputs( nextContext->result, outDest );
