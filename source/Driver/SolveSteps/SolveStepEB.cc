@@ -229,7 +229,18 @@ namespace CoupledField
 
           // boolean variable, holds condition if another iteration step is necessary
           performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-          if ( performOneMoreStep == 0){
+
+          if ( iterationCounter == nonLinMaxIter_ && performOneMoreStep == true ) {
+            if ( abortOnMaxIter_ ) {
+              EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                      << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                      << "' at iteration '" << iterationCounter 
+                      << "'.\n ==> incremental error: " << incrementalErr
+                      << "\n ==> residual error: " << residualErr);
+            }
+          }
+
+          if ( performOneMoreStep == false || ( iterationCounter == nonLinMaxIter_ && abortOnMaxIter_ == false) ) {
             // now that we have reached our convergence threshold for this timestep, let's save the states in our model
             std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
             for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
@@ -237,15 +248,7 @@ namespace CoupledField
               it->second->AllowUpdates(false);
             } 
             break;
-          }
-          
-          if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
-            EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
-                    << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
-                    << "' at iteration '" << iterationCounter 
-                    << "'.\n ==> incremental error: " << incrementalErr
-                    << "\n ==> residual error: " << residualErr);
-          }
+          }          
         }
       }
       // ###############################################################
@@ -347,25 +350,49 @@ namespace CoupledField
 
           // boolean variable, holds condition if another iteration step is necessary
           performOneMoreStep = (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
-          if ( performOneMoreStep == 0){
+          if ( iterationCounter == nonLinMaxIter_ && performOneMoreStep == true ) {
+            if ( abortOnMaxIter_ ) {
+              EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                      << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                      << "' at iteration '" << iterationCounter 
+                      << "'.\n ==> incremental error: " << incrementalErr
+                      << "\n ==> residual error: " << residualErr);
+            }
+          }
+
+          if ( performOneMoreStep == false || ( iterationCounter == nonLinMaxIter_ && abortOnMaxIter_ == false ) ) {
             // now that we have reached our convergence threshold for this timestep, let's save the states in our model
             std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
             for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
-              it->second->AllowUpdates(true);  
-              assemble_->AssembleLinRHS();
               it->second->UpdateHistoryValues(); 
               it->second->AllowUpdates(false);
             } 
+            if ( iterationCounter == nonLinMaxIter_ && abortOnMaxIter_ == false ) {
+              std::cout << "    " << "maxIteration reached, not convergenced, but we go on!" <<"\n" << std::scientific;
+            }
             break;
-          }
+          }    
+
+
+          // if ( performOneMoreStep == 0){
+          //   // now that we have reached our convergence threshold for this timestep, let's save the states in our model
+          //   std::map<RegionIdType, shared_ptr<CoefFunctionMaterialModel<Complex>> >::iterator it;
+          //   for (it = matModelCoefm_.begin(); it != matModelCoefm_.end(); it++) {
+          //     it->second->AllowUpdates(true);  
+          //     assemble_->AssembleLinRHS();
+          //     it->second->UpdateHistoryValues(); 
+          //     it->second->AllowUpdates(false);
+          //   } 
+          //   break;
+          // }
           
-          if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
-            EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
-                    << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
-                    << "' at iteration '" << iterationCounter 
-                    << "'.\n ==> incremental error: " << incrementalErr
-                    << "\n ==> residual error: " << residualErr);
-          }
+          // if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
+          //   EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+          //           << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+          //           << "' at iteration '" << iterationCounter 
+          //           << "'.\n ==> incremental error: " << incrementalErr
+          //           << "\n ==> residual error: " << residualErr);
+          // }
         }
       }
       // ###############################################################
