@@ -17,7 +17,8 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     </references>
     <isVerified>yes</isVerified>
     <description>
-   	  This test is similar to the testcase cantileverTrans2d for mechanics where a cantilever is excited with a force and should test the implementation of a reference node for the complex results in the harmonic simulation
+   	  This test is similar to the testcase cantileverTrans2d for mechanics where a cantilever is excited with a force and should test the implementation of a reference node for the complex results in the harmonic simulation. For each sequence step a different boundary condition is used for the smoothPDE: NormalStiffness, NormalDamping, NoramlMass.
+   	  
     </description>
   </documentation>
   
@@ -128,9 +129,6 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
             <matrix storage="sparseNonSym"/>
           </standard>
         </solutionStrategy>
-        <solverList>
-          <pardiso/>
-        </solverList>
       </system>
     </linearSystems>
     
@@ -222,9 +220,6 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
             <matrix storage="sparseNonSym"/>
           </standard>
         </solutionStrategy>
-        <solverList>
-          <pardiso/>
-        </solverList>
       </system>
     </linearSystems>
     
@@ -317,9 +312,6 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
             <matrix storage="sparseNonSym"/>
           </standard>
         </solutionStrategy>
-        <solverList>
-          <pardiso/>
-        </solverList>
       </system>
     </linearSystems>
     
