@@ -15,8 +15,8 @@
     </references>
     <isVerified>yes</isVerified>
     <description>
-    Test for the Result Variables for the acoustic impedance calculation. A Channel with 2 Areas at 2 different diameters to calculate the acoustic impedance.
-    Adapted from the PlaneWave3D Testcases.
+    Test for the result variables for the acoustic impedance calculation. A Channel were the result variables fluidMechVolumeFlowRate and fluidMechAveragedPressure are evaluated in the middle of the channel to calculate the acoustic impedance. Adapted from the PlaneWave3D Testcases.
+    Taking the pressure p(t=0.0425)=21.7Pa and the velocity v(t=0.0425)=0.36m/s to calculate the fluidMechAveragedPressure and fluidMechVolumeFlowRate. As the pressure excitation is the same throughout the cross section it is equal to the fluidMechAveragedPressure. The fluidMechVolumeFlowRate Q can be calculate using the area of the cross section A=25e-6m^2: Q=v*A=0.36m/s*25e-6m^2=9m^3/s. Those numbers are quite similar to the numerical results if the simulation time is increased to 84 steps.
     </description>
   </documentation>
   
@@ -66,12 +66,12 @@
     <analysis>
       <transient>
         <numSteps>10</numSteps>
-        <deltaT>1e-5</deltaT>
+        <deltaT>2e-5</deltaT>
       </transient>
     </analysis>
     
     <pdeList>
-      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel" enableGridVelC1="true" enableGridVelC2="true">
+      <fluidMechLin formulation="compressible" presPolyId="orderPres" velPolyId="orderVel">
         <regionList>
           <region name="Channel" />
         </regionList>
@@ -90,7 +90,7 @@
           </noSlip>
           
           
-          <pressure name="Excite" value="50*sin(2*pi*f_exc*t)"/>
+          <pressure name="Excite" value="50*sin(2*pi*f_exc*t)*(1-exp(-t/(3e-3)))"/>
         </bcsAndLoads>
         
         <storeResults>
@@ -114,12 +114,5 @@
       </fluidMechLin>
     </pdeList>
     
-    <linearSystems>
-      <system>
-        <solverList>
-          <pardiso/>
-        </solverList>
-      </system>
-    </linearSystems>
   </sequenceStep>
 </cfsSimulation>
