@@ -83,10 +83,35 @@
                     </xsd:complexType>                  
                   </xsd:element>                       
                 </xsd:sequence>
-                <xsd:attribute name="EnableRefNode" type="DT_CFSBool" use="optional" default="no"/>
-                <xsd:attribute name="RefNodeName" type="xsd:token" use="optional" default=""/>
-                <xsd:attribute name="RefNodeDOFNumber" type="xsd:int" use="optional" default="0"/>
-                <xsd:attribute name="RefNodePhaseOffset" type="xsd:double" use="optional" default="0.0"/>
+                <xsd:attribute name="EnableRefNode" type="DT_CFSBool" use="optional" default="no">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                    Enables the definition of a reference node. This reference node has a phase of 0 and all 
+                    results in this region are converted to be relativ to the phase of the reference node.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="RefNodeName" type="xsd:token" use="optional" default="">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                    Name of the reference node (e.g. nodeList, nodeSet). 
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="RefNodeDOFNumber" type="xsd:int" use="optional" default="0">
+                   <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                    Degrees of freedom of the reference node.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
+                <xsd:attribute name="RefNodePhaseOffset" type="xsd:double" use="optional" default="0.0">
+                   <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                    Phase offset of the reference node. This is set to 0 by default and can be used to add a phase offset to the whole region.
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:attribute>
               </xsd:complexType>
             </xsd:element>
           </xsd:sequence>
