@@ -1883,13 +1883,16 @@ namespace CoupledField {
       LOG_TRACE(singlepde) << pdename_ << ": Reading initial state";
       
       PtrParamNode isInfo = icInfo->Get("initialState");
+
       
       // Ensure, that we have a static or transient analysis
       // Comment dmayrhofer 20250114: I added the functionality for the harmonic case too,
-      // although only the real part of the deformation will be considered
+      // although only the real part of the deformation will be considered  
+
       if( !( analysistype_ == STATIC || analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) ) {
-        WARN( "Initial conditions are only meaningful in a transient analysis and "
-            << "will be omitted for this type of analysis" );
+        WARN( "Initial conditions are only meaningful in a transient analysis and"
+            << "for a special case in harmonic computations, where pre-deformation is used." 
+            << "Hence, the initial condition will be omitted for this type of analysis.");
       }
       
       PtrParamNode srcNode = isNode->GetChild();

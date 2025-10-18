@@ -312,7 +312,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         EntityIterator nodeIt = nodes->GetIterator();
 
         // Loop over all nodes
-        //if(this->)
         Vector<Double> offset(dim), totalOffset(nodes->GetSize() * dim );
         StdVector<UInt> nodeNums(nodes->GetSize());
         UInt pos = 0;

@@ -1093,6 +1093,7 @@ namespace CoupledField {
     //      dynamic_cast<FeFunction<T>& >(*feFct);
     //feFct->entities_
     //
+    
     bool convertDoubleToComplex = (std::is_same<T,Complex>::value && !feFct->IsComplex());
 
     StdVector<shared_ptr<EntityList> > intersect;
