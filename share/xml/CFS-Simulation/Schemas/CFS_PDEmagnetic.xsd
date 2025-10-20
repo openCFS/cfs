@@ -248,32 +248,84 @@
                     </xsd:attribute>
                   </xsd:complexType>
                 </xsd:element>
-                <xsd:element name="positiveTerminal" minOccurs="0" maxOccurs="unbounded">
+
+                <xsd:element name="individualCoupling" minOccurs="0" maxOccurs="unbounded">
                   <xsd:annotation>
-                    <xsd:documentation>
-                      Terminal definition for the coupling of network elements to the FEM simulation.
-                      The FEMTerminal tag is used to define the coupling surface, while the 
-                      NetworkTerminal tag is used to define the coupling node from the network.
-                    </xsd:documentation>
+                    <xsd:documentation>Defines FEM-LEM coupling for a region</xsd:documentation>
                   </xsd:annotation>
                   <xsd:complexType>
-                    <xsd:attribute name="femTerminal" type="xsd:token" use="required"/>
-                    <xsd:attribute name="networkTerminal" type="xsd:token" use="required"/>
-                    <!--<xsd:attribute name="volRegion" type="xsd:token" use="required"/>-->
+                    <xsd:sequence>
+                      <xsd:element name="positiveTerminal" minOccurs="1" maxOccurs="1">
+                        <xsd:annotation>
+                          <xsd:documentation>
+                            Terminal definition for the coupling of network elements to the FEM simulation.
+                            The FEMTerminal tag is used to define the coupling surface, while the 
+                            NetworkTerminal tag is used to define the coupling node from the network.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                        <xsd:complexType>
+                          <xsd:attribute name="femTerminal" type="xsd:token" use="required"/>
+                          <xsd:attribute name="networkTerminal" type="xsd:token" use="required"/>
+                          <!--<xsd:attribute name="volRegion" type="xsd:token" use="required"/>-->
+                        </xsd:complexType>
+                      </xsd:element>
+                      <xsd:element name="negativeTerminal" minOccurs="1" maxOccurs="1">
+                        <xsd:annotation>
+                          <xsd:documentation>
+                            Terminal definition for the coupling of network elements to the FEM simulation.
+                            The FEMTerminal tag is used to define the coupling surface, while the 
+                            NetworkTerminal tag is used to define the coupling node from the network.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                        <xsd:complexType>
+                          <xsd:attribute name="femTerminal" type="xsd:token" use="required"/>
+                          <xsd:attribute name="networkTerminal" type="xsd:token" use="required"/>
+                          <!--<xsd:attribute name="volRegion" type="xsd:token" use="required"/>-->
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                    <xsd:attribute name="Resistance" type="xsd:token" use="required"/>  
+                    <xsd:attribute name="numberOfWindings" type="xsd:token" use="required"/>
                   </xsd:complexType>
                 </xsd:element>
-                <xsd:element name="negativeTerminal" minOccurs="0" maxOccurs="unbounded">
+                <xsd:element name="coil" minOccurs="0" maxOccurs="unbounded">
                   <xsd:annotation>
-                    <xsd:documentation>
-                      Terminal definition for the coupling of network elements to the FEM simulation.
-                      The FEMTerminal tag is used to define the coupling surface, while the 
-                      NetworkTerminal tag is used to define the coupling node from the network.
-                    </xsd:documentation>
+                    <xsd:documentation>Defines FEM-LEM coupling for a coil (coupling surfaces have to be different!)</xsd:documentation>
                   </xsd:annotation>
                   <xsd:complexType>
-                    <xsd:attribute name="femTerminal" type="xsd:token" use="required"/>
-                    <xsd:attribute name="networkTerminal" type="xsd:token" use="required"/>
-                    <!--<xsd:attribute name="volRegion" type="xsd:token" use="required"/>-->
+                    <xsd:sequence>
+                      <xsd:element name="positiveTerminal" minOccurs="1" maxOccurs="1">
+                        <xsd:annotation>
+                          <xsd:documentation>
+                            Terminal definition for the coupling of network elements to the FEM simulation.
+                            The FEMTerminal tag is used to define the coupling surface, while the 
+                            NetworkTerminal tag is used to define the coupling node from the network.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                        <xsd:complexType>
+                          <xsd:attribute name="femTerminal" type="xsd:token" use="required"/>
+                          <xsd:attribute name="networkTerminal" type="xsd:token" use="required"/>
+                          <!--<xsd:attribute name="volRegion" type="xsd:token" use="required"/>-->
+                        </xsd:complexType>
+                      </xsd:element>
+                      <xsd:element name="negativeTerminal" minOccurs="1" maxOccurs="1">
+                        <xsd:annotation>
+                          <xsd:documentation>
+                            Terminal definition for the coupling of network elements to the FEM simulation.
+                            The FEMTerminal tag is used to define the coupling surface, while the 
+                            NetworkTerminal tag is used to define the coupling node from the network.
+                          </xsd:documentation>
+                        </xsd:annotation>
+                        <xsd:complexType>
+                          <xsd:attribute name="femTerminal" type="xsd:token" use="required"/>
+                          <xsd:attribute name="networkTerminal" type="xsd:token" use="required"/>
+                          <!--<xsd:attribute name="volRegion" type="xsd:token" use="required"/>-->
+                        </xsd:complexType>
+                      </xsd:element>
+                    </xsd:sequence>
+                    <xsd:attribute name="Resistance" type="xsd:token" use="required"/>  
+                    <xsd:attribute name="numberOfWindings" type="xsd:token" use="required"/>
+                    <xsd:attribute name="numberOfWindings2" type="xsd:token" use="required"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -485,6 +537,8 @@
       <xsd:enumeration value="optResult_7"/>
       <xsd:enumeration value="optResult_8"/>
       <xsd:enumeration value="optResult_9"/>
+
+      <xsd:enumeration value="elecNetworkCurrent"/>
     </xsd:restriction>
   </xsd:simpleType>
 

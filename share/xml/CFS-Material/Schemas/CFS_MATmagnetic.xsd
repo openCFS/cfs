@@ -28,7 +28,6 @@
       <xsd:element name="density" type="DT_MagneticScalarLinear" minOccurs="0"/>
       <xsd:element name="coreLoss" type="DT_CoreLoss" minOccurs="0"/>
       <xsd:element name="permittivity" type="DT_MagnPermittivity" minOccurs="0"/>
-      <xsd:element name="electricNetworkConductivity" type="DT_ElecNetworkConductivity" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
   
@@ -214,15 +213,6 @@
   <xsd:complexType name="DT_CoreLoss">
     <xsd:sequence>
       <xsd:element name="dataName" type="xsd:string"/>
-    </xsd:sequence>
-  </xsd:complexType>
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of electric conductivity for networks-->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_ElecNetworkConductivity">
-    <xsd:sequence>
-      <xsd:element name="linear" type="DT_ScalarType"/>
     </xsd:sequence>
   </xsd:complexType>
 

@@ -236,12 +236,6 @@ namespace CoupledField
     isAllowed_.insert( TRACE_FORCE_RETRACING );
     isAllowed_.insert( TRACE_JAC_RESOLUTION );
 
-    // electric network coupling
-    isAllowed_.insert( ELEC_NETWORK_CONDUCTIVITY_SCALAR );
-    //isAllowed_.insert( ELEC_NETWORK_CONDUCTIVITY_TENSOR );
-    //isAllowed_.insert( ELEC_NETWORK_CONDUCTIVITY_1 );
-    //isAllowed_.insert( ELEC_NETWORK_CONDUCTIVITY_2 );
-    //isAllowed_.insert( ELEC_NETWORK_CONDUCTIVITY_3 );
   }
 
 

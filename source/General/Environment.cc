@@ -308,6 +308,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_NETWORK_POTENTIAL, "elecNetworkPotential");
     SolutionTypeEnum.Add(ELEC_NETWORK_RHS_LOAD, "elecNetworkRhsLoad");
     SolutionTypeEnum.Add(ELEC_NETWORK_AUX, "elecNetworkAux");
+    SolutionTypeEnum.Add(ELEC_NETWORK_CURRENT, "elecNetworkCurrent");
 
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
@@ -491,13 +492,6 @@ namespace CoupledField {
     MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_1, "Electric_Conductivity_1" );
     MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_2, "Electric_Conductivity_2" );
     MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_3, "Electric_Conductivity_3" );
-
-    // -- Electric Network --
-    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_TENSOR, "Electric_Network_Conductivity_Tensor" );
-    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_SCALAR, "Electric_Network_Conductivity_Scalar" );
-    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_1, "Electric_Network_Conductivity_1" );
-    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_2, "Electric_Network_Conductivity_2" );
-    MaterialTypeEnum.Add( ELEC_NETWORK_CONDUCTIVITY_3, "Electric_Network_Conductivity_3" );
 
     // -- Flow --
     MaterialTypeEnum.Add( FLUID_ADIABATIC_EXPONENT, "Flow_Adiabatic_Exponent");
@@ -1179,6 +1173,7 @@ namespace CoupledField {
       case MAG_TOTAL_POTENTIAL:
       case MAG_REDUCED_POTENTIAL:
       case ELEC_NETWORK_RHS_LOAD:
+      case ELEC_NETWORK_CURRENT:
         return "A";
         break;
         
