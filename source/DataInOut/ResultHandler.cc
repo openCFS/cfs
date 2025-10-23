@@ -222,13 +222,14 @@ namespace CoupledField {
     timer->Start();
 
     LOG_DBG(resHandler) << "UR: " << sol->GetResultInfo()->ToString();
-    //std::cout << "UR: " << sol->GetResultInfo()->ToString() << "\n";
+    std::cout << "UR: " << sol->GetResultInfo()->ToString() << "\n";
     // check, if result is to be updated
     if(isNeeded_.find(sol) == isNeeded_.end()){
-      std::cout << sol->GetEntityList()->GetName() << "\n";
+      std::cout << "isNeeded_.find(sol) == isNeeded.end()" << sol->GetEntityList()->GetName() << "\n";
       WARN("Result '" << sol->GetResultInfo()->resultName << "' on entitylist '" << sol->GetEntityList()->GetName() << "' is not needed in step " << actStep_);
     }
     // Set flag for update to true
+    //here the result should be put into isUpdated, but it doesnt happen?? -> because function never gets called lol
     isUpdated_.insert( sol );
 
     LOG_DBG(resHandler) << "Result '" << sol->GetResultInfo()->resultName << "' was provided on '" << sol->GetEntityList()->GetName() << "' in step " << actStep_;
@@ -259,6 +260,11 @@ namespace CoupledField {
         UpdateResult(actContext.result);
 
       }
+      std::cout << "------------------\n";
+      std::cout << "we are in UpdateResults() for loop of ResultHandler.cc, ln 251 \n";
+      std::cout << "result: " << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType) << "\n";
+      std::cout << "actContext.functor: " << actContext.functor << "\n";
+      std::cout << "actContext.result: " << actContext.result->GetEntityList()->GetName() << "\n";
     }
   }
 
@@ -269,7 +275,10 @@ namespace CoupledField {
     // -----------------------
     // First, update results
     // -----------------------
+    //UPDATE RESULTS SHOULD PROVIDE THE RESULT!!!
+    //THIS IS EXCATLY WHATS GOING WRONG
     UpdateResults();
+
     
     // shared amongst e.g. WriteResults, UpdateResults, FinishStep
     shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("results/timer")->AsTimer();
@@ -301,6 +310,7 @@ namespace CoupledField {
 
       // check, if result is to be written 
       if( actContext.writeResult && (!actContext.isFinal ) ) {
+        std::cout << "we are writing the result \n";
         // iterate over all outputs
         for(UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++) {
           // skip if only streaming is set and this is no streamingHandler

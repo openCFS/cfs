@@ -364,6 +364,7 @@ namespace CoupledField {
 
       // Create new step group.
       try {
+        std::cout << stepName.str() << "\n";
         currMeshStepGroup_= currMSMeshGroup_.openGroup(stepName.str());
       } catch (H5::Exception& ) {
         try {

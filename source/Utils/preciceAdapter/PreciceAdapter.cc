@@ -526,6 +526,7 @@ namespace CoupledField
         for (auto &result : runtimeWriteResults_) {
             if (result->getResultType() == ResultType::NODE) {
                 NodeResult* nr = dynamic_cast<NodeResult*>(result.get());
+                std::cout << "WE ACTUALLY HAVE NODE\n"; 
                 if (nr) {
                     nr->updateFromOpenCFS(contexts, cfsNodeNumsVec_);
                     nr->writeData(cfsNodeNumsVec_);
@@ -534,6 +535,7 @@ namespace CoupledField
                 }
             } else { // ELEMENT-based result.
                 ElementResult* er = dynamic_cast<ElementResult*>(result.get());
+                std::cout << "WE ACTUALLY HAVE ELEMENT\n"; 
                 if (er) {
                     er->updateFromOpenCFS(contexts, cfsElemNumsVec_);
                     er->writeData(cfsElemNumsVec_);
@@ -615,7 +617,8 @@ namespace CoupledField
     Vector<Double> PreciceAdapter::GetElemResult(SolutionType solType, int elemNum)
     {
         for (const auto &result : runtimeReadResults_) {
-            std::cout << result->getConfig().solutiontype << "\n";
+            std::cout << "solutiontype: " << result->getConfig().solutiontype << "\n";
+            std::cout <<  "resulttype: " << static_cast<int>(result->getResultType()) << "\n";
             if (result->getConfig().solutiontype == solType) {
                 if (result->getResultType() == ResultType::ELEMENT) {
                     ElementResult* er = dynamic_cast<ElementResult*>(result.get());

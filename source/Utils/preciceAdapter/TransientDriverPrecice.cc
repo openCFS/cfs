@@ -91,6 +91,9 @@ namespace CoupledField {
     endStep_ = numstep_ ;
     actTime_  = firstdt_ * startStep + initialTime_;
     Double  cfs_dt = firstdt_;
+
+    std::cout << "actTimeStep_: " << actTimeStep_ << ", actTime_: " << actTime_ << ", firstdt_: " << firstdt_ << ", initialTime_: " << initialTime_ << std::endl;
+    std::cout << "endStep_: " << endStep_ << std::endl;
   
     UInt checkpointStep = 0;
     Double checkpointTime = 0.0;
@@ -128,11 +131,13 @@ namespace CoupledField {
       if( actTimeStep_ == startStep+1) {
         timer_->Start();
       }
-
+      // timer_->Start();
 
       cfs_dt = this->GetDeltaT();
       double precice_dt =  preciceAdapter_->GetMaxTimeStepSize();
       double dt = (cfs_dt <= precice_dt) ? cfs_dt : precice_dt;
+
+      std::cout << "cfs_dt: " << cfs_dt << ", precice_dt: " << precice_dt << ", using dt: " << dt << std::endl;
 
 
 
@@ -171,6 +176,7 @@ namespace CoupledField {
         break;
       }
 
+      std::cout << "so far, we dont get to preciceAdapter_->Advance(), right?\n";
 
       preciceAdapter_->Advance(dt);
 
