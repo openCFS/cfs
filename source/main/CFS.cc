@@ -258,7 +258,7 @@ int CFS::Run()
     if(progOpts->GetPrintGrid())
       PrintGrid();
     else
-      SolveProblem();
+      SolveProblem(); // at this point start "openFoam/icoFoam"
 
     python->CallHook(PythonKernel::POST_SOLVE_PROBLEM);
 
