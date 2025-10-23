@@ -90,7 +90,7 @@
 #include "CoefFunctionGridElemDefault.hh"
 #include "Utils/preciceAdapter/IPreciceAdapter.hh"
 #include "Utils/preciceAdapter/CoefFunctionGridElemDefaultPrecice.hh"
-// #include "Utils/preciceAdapter/CoefFunctionGridNodalDefaultPrecice.hh"
+#include "Utils/preciceAdapter/CoefFunctionGridNodalDefaultPrecice.hh"
 //#include "CoefFunctionGridHigherDefault.hh"
 //#include "CoefFunctionGridHigherInterp.hh"
 #include "Driver/BaseDriver.hh"

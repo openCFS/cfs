@@ -40,6 +40,10 @@ namespace CoupledField {
     }
 
     const std::vector<ParticipantConfig>& getParticipants() const {
+      std::cout << "Number of participants: " << participants.size() << std::endl;
+      for (const auto &p : participants){
+        std::cout << "Participant: " << p.name << std::endl;
+      }
       return participants;
     }
 

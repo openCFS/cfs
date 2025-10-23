@@ -31,7 +31,8 @@ CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::CoefFunctionGridNodalDefaultPrec
                                                     :CoefFunctionGridNodal<DATA_TYPE>(ptDomain, configNode, regions){
   //====================================================
   // Determine information about source grid and result
-  //====================================================                                          
+  //====================================================     
+  
   this->inputId_ = "default";
   this->gridId_ = "default";
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
@@ -44,6 +45,8 @@ CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::CoefFunctionGridNodalDefaultPrec
   //lets determine the destination region and set it to our source regions
   this->DetermineResult(this->inputId_,this->aSeqStep_);
 
+  std::cout << "type: " << type << "\n";
+
   if(type == ResultInfo::SCALAR){
     this->dimDof_ = 1;
     this->dimType_ = CoefFunction::SCALAR;
@@ -52,14 +55,16 @@ CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::CoefFunctionGridNodalDefaultPrec
     this->dimType_ = CoefFunction::VECTOR;
   }
   
-  this->dimDof_ = this->resultInfo_->dofNames.GetSize();
+  //this->dimDof_ = this->resultInfo_->dofNames.GetSize();
+
   // Determine which steps are available
-  this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
+  //this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
 
   this->SetRegions(regions);
   this->InitSolVec();
 
   preciceAdapter_ = ptDomain->GetPreciceAdapter();
+
 }
 
 // ========================
@@ -90,7 +95,7 @@ void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::GetVector(Vector<DATA_TYPE>
   }
 
   // handle this with the preciceAdapter_
-  std::cout<<"handle this with the preciceAdapter_"<<std::endl;
+  std::cout << "handle this with the preciceAdapter_" << "\n";
   //this->GetElemSolution( CoefMat, sourceElem->elemNum);
 }
 
@@ -113,7 +118,18 @@ void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::GetScalar(DATA_TYPE& CoefMa
   ptSol.Init();
 
   // handle this with the preciceAdapter_
-  elemSol = preciceAdapter_->GetElemResult(this->solType_, sourceElem->elemNum);
+  //Klaus has GetElemResult here, which i guess is because we are interpolating?
+  //otherwise we would use GetNodeResult?
+  //elemSol = preciceAdapter_->GetElemResult(this->solType_, sourceElem->elemNum);
+  elemSol = preciceAdapter_->GetNodeResult(this->solType_, sourceElem->elemNum);
+
+  //elemSol = [0] here, elemSol[0] = 0, maybe thats okay?
+  //only okay if supposed to be 0 for first step i guess
+  if(elemSol.GetSize() != 1){
+    EXCEPTION("Elem solution has wrong size: " << elemSol.GetSize() << ", should be 1 for scalar.");
+  }
+  //std::cout << "elemSol: " << elemSol << "\n";
+  //std::cout << "elemSol[0]:" << elemSol[0] << "\n";
 
   CoefMat = elemSol[0];
 }
@@ -138,12 +154,21 @@ void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::SetRegions(shared_ptr<Regio
 
 
 template<typename DATA_TYPE>
-void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::DetermineResult(std::string inputID,UInt seqStep){
+void CoefFunctionGridNodalDefaultPrecice<DATA_TYPE>::DetermineResult(std::string inputID, UInt seqStep){
   //obtain availResults and search for the requested one
   StdVector<shared_ptr<ResultInfo> > results;
   std::map<shared_ptr<BaseResult>, shared_ptr<ResultHandler::ResultContext> > test = *this->domain_->GetResultHandler()->GetResultContexts();
+  //std::cout << "Result name: " << test.first->GetResultInfo()->resultName << "\n";
+
+  if (!test.empty()) {
+    auto it = test.begin();
+    std::cout << "Result name: " 
+              << it->first->GetResultInfo()->resultName 
+              << "\n";
+  }
+
   for (const auto &entry : test) {
-    std::cout << "Result name: " << entry.first->GetResultInfo()->resultName << std::endl;
+    std::cout << "Result name: " << entry.first->GetResultInfo()->resultName << "\n";
       
     if( entry.first->GetResultInfo()->resultType == this->solType_ ) {
       this->resultInfo_ = entry.first->GetResultInfo();
@@ -161,8 +186,6 @@ template class CoefFunctionGridNodalDefaultPrecice<Double>;
 template class CoefFunctionGridNodalDefaultPrecice<Complex>;
 
 } // namespace CoupledField
-
-
 
 #else
 

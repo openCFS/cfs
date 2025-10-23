@@ -711,6 +711,7 @@ void CoefFunction::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& gl
   ptGrid->GetElemsAtGlobalCoords( globCoord, localCoords, elems, srcEntities );
 
   LocPointMapped lpm;
+  std::cout << numEntries << "\n";
   for( UInt i = 0; i < numEntries; ++i ) {
     if (elems[i] == NULL ) {
       WARN("Could not find suitable element for position " << globCoord[i]  
