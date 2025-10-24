@@ -60,10 +60,10 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 		</regionList>
 		<!-- Surface Regions -->
 		<surfRegionList>
-			<!-- <surfRegion name="BC_IFin" />
-			<surfRegion name="BC_IFout" />
+			<!-- <surfRegion name="BC_IFin" /> -->
+			<!-- <surfRegion name="BC_IFout" /> -->
 			<surfRegion name="bc" />
-			<surfRegion name="ifborder" /> -->
+			<!-- <surfRegion name="ifborder" /> -->
 		</surfRegionList>
 		<!-- Non-conforming Interfaces -->
 		<ncInterfaceList>
@@ -124,17 +124,17 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 
 				<!-- Boundary Conditions and Volume Loads -->
 				<bcsAndLoads>
-					<rhsValues name="internal">
+					<!-- <rhsValues name="internal">
 						<grid>
-							<defaultGrid quantity="acouRhsLoad" dependtype="GENERAL"
-								definedOn="node">
-								<!-- <globalFactor>
-									(-1.0 / (rho*c^2)) * fadeIn(tau, 1, t) *
-									((sqrt(x^2+y^2) lt 1.9)? exp(-0.5*(x^2+y^2)/sigma^2) : 0) 
-								</globalFactor> -->
+							<defaultGrid quantity="acouRhsLoad" dependtype="GENERAL" definedOn="node">
 							</defaultGrid>
 						</grid>
-					</rhsValues>
+					</rhsValues> -->
+					<pressure name="bc">
+						<grid>
+							<defaultGrid quantity="acouPressure" dependtype="GENERAL" definedOn="node"/>
+						</grid>
+					</pressure>
 				</bcsAndLoads>
 
 				<!-- Results Definition -->
@@ -163,6 +163,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 						</elemList>
 					</elemResult> -->
 					<nodeResult type="acouPressure">
+						<!-- <nodeResult type="acouRhsLoad"> -->
 						<allRegions/>
 					</nodeResult>
 				</storeResults>

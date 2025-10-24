@@ -7,13 +7,16 @@
     enabled="true" />
 </log>
 
-<data:scalar name="Pressure" />
+<data:scalar name="Pressure"/>
+<!-- <data:scalar name="acouRhsLoad"/> -->
 
 <mesh name="openCFSMesh" dimensions="2">
-    <use-data name="Pressure" />
+    <use-data name="Pressure"/>
+    <!-- <use-data name="acouRhsLoad"/> -->
 </mesh>
 <mesh name="openFOAMMesh" dimensions="2">
-    <use-data name="Pressure" />
+    <use-data name="Pressure"/>
+    <!-- <use-data name="acouRhsLoad"/> -->
 </mesh>
 
 <participant name="openFOAM">
@@ -26,6 +29,7 @@
     <provide-mesh name="openCFSMesh"/>
     <receive-mesh name="openFOAMMesh" from="openFOAM"/>
     <read-data name="Pressure" mesh="openCFSMesh"/>
+    <!-- <read-data name="acouRhsLoad" mesh="openCFSMesh"/> -->
     <mapping:nearest-neighbor direction="read" from="openFOAMMesh" to="openCFSMesh" constraint="conservative"/>
 </participant>
 
@@ -41,6 +45,7 @@
     <max-time-windows value="20"/> 
     <time-window-size value="5e-5"/>
     <exchange data="Pressure" mesh="openFOAMMesh" from="openFOAM" to="openCFS"/>
+    <!-- <exchange data="acouRhsLoad" mesh="openFOAMMesh" from="openFOAM" to="openCFS"/> -->
 </coupling-scheme:serial-explicit>
 
 </precice-configuration>
