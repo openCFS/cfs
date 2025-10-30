@@ -258,7 +258,11 @@ namespace CoupledField {
         actContext.functor->EvalResult(actContext.result);
         timer->Stop();
         UpdateResult(actContext.result);
-
+      }
+      else if(!actContext.functor) {
+        WARN("No result functor present for result '"
+          << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType)
+             << "' on '" << actContext.result->GetEntityList()->GetName() << "'!\n");
       }
       std::cout << "------------------\n";
       std::cout << "we are in UpdateResults() for loop of ResultHandler.cc, ln 251 \n";
@@ -288,9 +292,14 @@ namespace CoupledField {
     // iterate over all results, which are needed
     for(auto it = isNeeded_.begin(); it != isNeeded_.end(); it++ )
     {
+      
       // store context
       ResultContext & actContext = *(resultContexts_[*it]);
       BaseResult & actResult  = *(actContext.result);
+      if( !actContext.functor ){
+              WARN("No result functor present! \n");
+              continue;
+      }
 
       if(actContext.sequenceStep != sequenceStep_)
         continue;
@@ -335,7 +344,7 @@ namespace CoupledField {
             
             // security check: if no result functor is present, we leave
             if( !actContext.functor ){
-              std::cout << "No result functor present! \n";
+              WARN("No result functor present! \n");
               continue;
             }
             // obtain destination grid and get the element / node list
