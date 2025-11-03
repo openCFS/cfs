@@ -176,8 +176,6 @@ namespace CoupledField {
         break;
       }
 
-      std::cout << "so far, we dont get to preciceAdapter_->Advance(), right?\n";
-
       preciceAdapter_->Advance(dt);
 
 

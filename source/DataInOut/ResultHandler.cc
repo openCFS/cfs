@@ -197,9 +197,6 @@ namespace CoupledField {
       LOG_DBG(resHandler) << "IsNeeded for '" << actResult.GetResultInfo()->resultName
                           << "' on '"<< actResult.GetEntityList()->GetName() << "' is '"
                           << (IsOutput( **contextIt ) == true ? "true" : "false") << "'";
-      std::cout << "IsNeeded for '" << actResult.GetResultInfo()->resultName
-                << "' on '"<< actResult.GetEntityList()->GetName() << "' is '"
-                << (IsOutput( **contextIt ) == true ? "true" : "false") << "'" << "\n";
       if(IsOutput( **contextIt))
         isNeeded_.insert((*contextIt)->result);
     }
@@ -229,7 +226,7 @@ namespace CoupledField {
       WARN("Result '" << sol->GetResultInfo()->resultName << "' on entitylist '" << sol->GetEntityList()->GetName() << "' is not needed in step " << actStep_);
     }
     // Set flag for update to true
-    //here the result should be put into isUpdated, but it doesnt happen?? -> because function never gets called lol
+    //here the result should be put into isUpdated, but it doesnt happen?? -> because function never gets called
     isUpdated_.insert( sol );
 
     LOG_DBG(resHandler) << "Result '" << sol->GetResultInfo()->resultName << "' was provided on '" << sol->GetEntityList()->GetName() << "' in step " << actStep_;
@@ -279,8 +276,6 @@ namespace CoupledField {
     // -----------------------
     // First, update results
     // -----------------------
-    //UPDATE RESULTS SHOULD PROVIDE THE RESULT!!!
-    //THIS IS EXCATLY WHATS GOING WRONG
     UpdateResults();
 
     
@@ -296,8 +291,9 @@ namespace CoupledField {
       // store context
       ResultContext & actContext = *(resultContexts_[*it]);
       BaseResult & actResult  = *(actContext.result);
+      // this was a problem because it was only done in an if statement below
+      // security check: if no result functor is present, we leave
       if( !actContext.functor ){
-              WARN("No result functor present! \n");
               continue;
       }
 
@@ -306,25 +302,19 @@ namespace CoupledField {
 
       LOG_DBG(resHandler) << "Checking result '"<< actResult.GetResultInfo()->resultName
                           << "' on '" << actResult.GetEntityList()->GetName() << "' for writing out";
-
-      std::cout << "Checking result '"<< actResult.GetResultInfo()->resultName
-                << "' on '" << actResult.GetEntityList()->GetName() << "' for writing out" << "\n";
       // Check, if result was updated at all
       if(isUpdated_.find(*it) == isUpdated_.end()) 
         WARN("Result '" << actResult.GetResultInfo()->resultName << "' on '"
            << (*it)->GetEntityList()->GetName() << "' was not provided in step " << actStep_);
 
-      std::cout << actResult.ToString();
-
-
       // check, if result is to be written 
       if( actContext.writeResult && (!actContext.isFinal ) ) {
-        std::cout << "we are writing the result \n";
         // iterate over all outputs
         for(UInt iOut = 0; iOut < actContext.outputIds.GetSize(); iOut++) {
           // skip if only streaming is set and this is no streamingHandler
-          if (streamOnly && !simOutputHandlers_[actContext.outputIds[iOut]]->IsStreaming())
+          if (streamOnly && !simOutputHandlers_[actContext.outputIds[iOut]]->IsStreaming()){
             continue;
+          }
 
           std::string outId = actContext.outputIds[iOut];
           // =================================================
@@ -332,16 +322,11 @@ namespace CoupledField {
           // If not, we have to perform mapping
           // =================================================
           ResultInfo & info = *(actContext.result->GetResultInfo());
-          std::cout << "OutputIds_[outId]: " << outGridIds_[outId] << "\n";
-          std::cout << "info.definedOn: " << info.definedOn << "line 317 of ResultHandler.cc \n";
-
           if( outGridIds_[outId] != "default" &&
               (info.definedOn == ResultInfo::NODE || 
               info.definedOn == ResultInfo::ELEMENT ||
               info.definedOn == ResultInfo::SURF_ELEM ) ) {
-            
-            std::cout << "we are performing interpolation in ln 324 ResultHandler.cc \n";
-            
+                        
             // security check: if no result functor is present, we leave
             if( !actContext.functor ){
               WARN("No result functor present! \n");
@@ -358,8 +343,6 @@ namespace CoupledField {
           } else {
             // Standard case, no interpolation necessary
 
-            std::cout << "Standard case, no interpolation \n";
-            
             // Add current result to given output file
             LOG_DBG(resHandler) << "Adding result '" << actResult.GetResultInfo()->resultName
                 << "' on '" << actResult.GetEntityList()->GetName() << "' to '"
@@ -774,10 +757,6 @@ namespace CoupledField {
 
   void ResultHandler::Dump()
   {
-    std::cout << "ResultHandler[sequenceStep=" << sequenceStep_ 
-              << "; actStep=" << actStep_ << " actStepVal=" << actStepVal_ 
-              << "; needed=" << isNeeded_.size() << "; updated=" << isUpdated_.size()
-              << std::endl;
     
     std::set<shared_ptr<BaseResult> >::iterator iter;
     
