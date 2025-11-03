@@ -211,6 +211,10 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
   elemMat.Resize( nrFncsA * this->aOperator_->GetDimDof(), nrFncsB * this->bOperator_->GetDimDof() );
   elemMat.Init();
 
+  //Matrix<MAT_DATA_TYPE> elemMat2;
+  //elemMat2.Resize( nrFncsA * this->aOperator_->GetDimDof(), nrFncsB * this->bOperator_->GetDimDof() );
+  //elemMat2.Init();
+
   // Loop over all integration points
   LocPointMapped lpm;
   const UInt numIntPts = intPoints.GetSize();
@@ -231,7 +235,7 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       //this->bOperator_->OverrideIsSurfOperator(this->overrideSurfaceInt_);
 
       // Calculate A-matrix (first differential operator)
-      this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeB );
+      this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeA );
 
       // Calculate B-matrix (second differential operator)
       this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeB );
@@ -251,17 +255,20 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
       this->aOperator_->CalcOpMat( this->aMat_, lpm, ptFeA );
 
       // Calculate B-matrix (second differential operator)
-      this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeA );
+      this->bOperator_->CalcOpMat( this->bMat_, lpm, ptFeB );
 
       // reset it
       //this->aOperator_->OverrideIsSurfOperator(false);
     }
-
+    
     //std::cout << "A mat " << this->aMat_.ToString() << std::endl;
     //std::cout << "B mat " << this->bMat_.ToString() << std::endl;
+    //std::cout << "weight " << weights[iIntPts] << std::endl;
     // Calculate scalar factor
     this->coefScalar_->GetScalar(fac, lpm);
     fac *= MAT_DATA_TYPE(lpm.jacDet * weights[iIntPts]); 
+    //std::cout << "fac " << fac << std::endl;
+    //std::cout << "factor_ " << this->factor_ << std::endl;
 
 #ifdef NDEBUG
     aMat_.Mult_Blas(this->bMat_,elemMat,true,false,this->factor_*fac,1.0);
@@ -269,6 +276,9 @@ template< class COEF_DATA_TYPE, class B_DATA_TYPE>
     elemMat += Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
 #endif
     //std::cout << "Elem mat " << elemMat.ToString() << std::endl;
+
+    //elemMat2 = Transpose(this->aMat_) * this->bMat_ * this->factor_*fac;
+    //std::cout << "Elem mat2 " << elemMat2.ToString() << std::endl;
   }
 }
 

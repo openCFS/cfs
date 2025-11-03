@@ -132,6 +132,9 @@ namespace CoupledField
         shared_ptr<BaseTimeScheme> myScheme5(new TimeSchemeGLM(*mainScheme));
         feFunctions_[ELEC_NETWORK_AUX]->SetTimeScheme(myScheme5);
       }
+
+      shared_ptr<BaseTimeScheme> myScheme6(new TimeSchemeGLM(*mainScheme));
+      feFunctions_[COIL_INDUCED_NETWORK_VOLTAGE]->SetTimeScheme(myScheme6);      
     }
   }
 

@@ -284,7 +284,8 @@
                         </xsd:complexType>
                       </xsd:element>
                     </xsd:sequence>
-                    <xsd:attribute name="Resistance" type="xsd:token" use="required"/>  
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                    <xsd:attribute name="resistance" type="xsd:token" use="required"/>  
                     <xsd:attribute name="numberOfWindings" type="xsd:token" use="required"/>
                   </xsd:complexType>
                 </xsd:element>
@@ -323,13 +324,15 @@
                         </xsd:complexType>
                       </xsd:element>
                     </xsd:sequence>
-                    <xsd:attribute name="Resistance" type="xsd:token" use="required"/>  
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>  
+                    <xsd:attribute name="resistance" type="xsd:token" use="required"/>  
                     <xsd:attribute name="numberOfWindings" type="xsd:token" use="required"/>
-                    <xsd:attribute name="numberOfWindings2" type="xsd:token" use="required"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
               <xsd:attribute name="MeshID" type="xsd:token" use="required"/>
+              <xsd:attribute name="enableTimeDepBackCouplingTermFEM" type="xsd:boolean" use="optional" default="true"/>
+              <xsd:attribute name="enableTimeDepBackCouplingTermNetwork" type="xsd:boolean" use="optional" default="true"/>
             </xsd:complexType>
           </xsd:element>
 
@@ -491,10 +494,12 @@
   <xsd:simpleType name="DT_MagneticNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotential"/>
+      <xsd:enumeration value="magPotentialD1"/>
       <xsd:enumeration value="magRhsLoad"/>
       <xsd:enumeration value="elecPotential"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="elecNetworkPotential"/>
+      <xsd:enumeration value="coilInducedNetworkVoltage"/>
     </xsd:restriction>
   </xsd:simpleType>
 

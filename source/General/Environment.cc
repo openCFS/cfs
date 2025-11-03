@@ -309,6 +309,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_NETWORK_RHS_LOAD, "elecNetworkRhsLoad");
     SolutionTypeEnum.Add(ELEC_NETWORK_AUX, "elecNetworkAux");
     SolutionTypeEnum.Add(ELEC_NETWORK_CURRENT, "elecNetworkCurrent");
+    SolutionTypeEnum.Add(COIL_INDUCED_NETWORK_VOLTAGE, "coilInducedNetworkVoltage");
 
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
@@ -1209,6 +1210,7 @@ namespace CoupledField {
       case ELEC_POTENTIAL:
       case COIL_VOLTAGE:
       case ELEC_NETWORK_POTENTIAL:
+      case COIL_INDUCED_NETWORK_VOLTAGE:
         return "V";
         break;
 
