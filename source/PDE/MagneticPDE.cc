@@ -2191,7 +2191,7 @@ namespace CoupledField {
           EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
           // we don't consider any geometry update, hence, we set the last bool to false
-          stiffnessCouplingIntPosPosLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, -1.0, false);
+          stiffnessCouplingIntPosPosLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, -2.0, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -2211,7 +2211,7 @@ namespace CoupledField {
           EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
           // we don't consider any geometry update, hence, we set the last bool to false
-          stiffnessCouplingIntPosNegLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, 1.0, false);
+          stiffnessCouplingIntPosNegLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, 2.0, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -2232,7 +2232,7 @@ namespace CoupledField {
           EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
           // we don't consider any geometry update, hence, we set the last bool to false
-          stiffnessCouplingIntNegPosLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, 1.0, false);
+          stiffnessCouplingIntNegPosLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, 2.0, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -2253,7 +2253,7 @@ namespace CoupledField {
           EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
         } else {
           // we don't consider any geometry update, hence, we set the last bool to false
-          stiffnessCouplingIntNegNegLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, -1.0, false);
+          stiffnessCouplingIntNegNegLF = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, -2.0, false);
         }
       } else {
         EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -2280,7 +2280,7 @@ namespace CoupledField {
             EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
           } else {
             // we don't consider any geometry update, hence, we set the last bool to false
-            stiffnessCouplingIntPosLF2 = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, -1.0, false);
+            stiffnessCouplingIntPosLF2 = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, -2.0, false);
           }
         } else {
           EXCEPTION("3D FEM-LEM coupling is not supported!");
@@ -2301,7 +2301,7 @@ namespace CoupledField {
             EXCEPTION("Axi-symmetric FEM-LEM coupling is not supported!");
           } else {
             // we don't consider any geometry update, hence, we set the last bool to false
-            stiffnessCouplingIntNegLF2 = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, 1.0, false);
+            stiffnessCouplingIntNegLF2 = new ABInt<Double,Double>(new IdentityOperator<FeH1>, new IdentityOperator<FeH1,0,1>, constCondNetwork, 2.0, false);
           }
         } else {
           EXCEPTION("3D FEM-LEM coupling is not supported!");
