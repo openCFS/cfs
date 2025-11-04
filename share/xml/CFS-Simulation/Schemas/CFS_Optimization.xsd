@@ -2419,6 +2419,8 @@
       <xsd:enumeration value="filteringGap" />
       <xsd:enumeration value="gap" />
       <xsd:enumeration value="compliance" />
+      <xsd:enumeration value="dynamicOutput" />
+      <xsd:enumeration value="reflectedWave" />
       <xsd:enumeration value="greyness" />
       <xsd:enumeration value="realvolume" />
       <xsd:enumeration value="homTracking" />
@@ -2720,43 +2722,8 @@
   <!-- A pill is a simplified noodle with only one segment. Two parallel lines and half circle caps as end --> 
   <xsd:complexType name="DT_Pill">
     <xsd:sequence>
-      <xsd:element name="node" minOccurs="4" maxOccurs="6">
-        <xsd:annotation>
-          <xsd:documentation>We need the nodes for dof=x and dof=y for tip=stat and tip=end</xsd:documentation>
-        </xsd:annotation>
-        <xsd:complexType>
-          <xsd:attribute name="dof" use="required" type="DT_Axis" />
-          <xsd:attribute name="tip" use="required">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="start" />
-                <xsd:enumeration value="end" />
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
-          <!-- lower, upper and initial go together or fixed or map! We apply the mathparser to inital/lower/upper -->
-          <xsd:attribute name="initial" type="xsd:token" use="optional" />
-          <xsd:attribute name="lower" type="xsd:token" use="optional" />
-          <xsd:attribute name="upper" type="xsd:token" use="optional" />
-          <xsd:attribute name="fixed" type="xsd:token" use="optional">
-            <xsd:annotation>
-              <xsd:documentation>Fix variable, will not be subject to optimization. No initial/lower/upper</xsd:documentation>
-            </xsd:annotation>
-          </xsd:attribute>
-          <xsd:attribute name="key" type="xsd:token" use="optional">
-            <xsd:annotation>
-              <xsd:documentation>Provide a unique token. Allows to map to this key (e.g. share the value)</xsd:documentation>
-            </xsd:annotation>
-          </xsd:attribute>
-          <xsd:attribute name="map" type="xsd:token" use="optional">
-            <xsd:annotation>
-              <xsd:documentation>Refer to a key (over all featurs) and use it's value. Remove this variable from optimization. No inital/lower/upper/map</xsd:documentation>
-            </xsd:annotation>
-          </xsd:attribute>
-        </xsd:complexType>
-      </xsd:element>
-
-      <xsd:element name="profile" minOccurs="1" maxOccurs="1" type="DT_FeatureMappingVariable">
+      <xsd:element name="node" minOccurs="4" maxOccurs="6" type="DT_FeatureMappingVariableMappingNode" />
+      <xsd:element name="profile" minOccurs="1" maxOccurs="1" type="DT_FeatureMappingVariableMapping">
         <xsd:annotation>
           <xsd:documentation>The profile is double the half width w. Radius needs to be larger w</xsd:documentation>
         </xsd:annotation>
@@ -3293,6 +3260,48 @@
     <xsd:attribute name="lower" type="xsd:token" use="optional" />
     <xsd:attribute name="upper" type="xsd:token" use="optional" />
     <xsd:attribute name="fixed" type="xsd:token" use="optional" />
+  </xsd:complexType>
+
+  <!-- add the attributes key and map to DT_FeatureMappingVariable -->
+  <xsd:complexType name="DT_FeatureMappingVariableMapping">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FeatureMappingVariable">
+        <xsd:attribute name="key" type="xsd:token" use="optional">
+          <xsd:annotation>
+            <xsd:documentation>Provide a unique token. Allows to map to this key (e.g. share the value)</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="map" type="xsd:token" use="optional">
+        <xsd:annotation>
+          <xsd:documentation>Refer to a key (over all featurs) and use it's value. Remove this variable from optimization. No inital/lower/upper/map</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- add the attributes dof and tip to DT_FeatureMappingVariableMapping -->
+  <xsd:complexType name="DT_FeatureMappingVariableMappingNode">
+    <xsd:complexContent>
+      <xsd:extension base="DT_FeatureMappingVariableMapping">
+        <xsd:attribute name="dof" use="required" type="DT_Axis">
+          <xsd:annotation>
+            <xsd:documentation>Degree of freedom x, y, or z</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+       <xsd:attribute name="tip" use="required">
+          <xsd:annotation>
+            <xsd:documentation>Sets the point of the pill to either start or end</xsd:documentation>
+          </xsd:annotation>
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="start" />
+              <xsd:enumeration value="end" />
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
   </xsd:complexType>
 
   <!-- The possible excitations we have -->

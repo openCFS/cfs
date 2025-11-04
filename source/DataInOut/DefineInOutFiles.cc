@@ -91,7 +91,6 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
   fs::path mfp = progOpts->GetMeshFile();
   string meshFile = mfp.string();
   string simName = progOpts->GetSimName();
-  string fileName = "default";
   string actId, actGridId;
 
   // resest map
@@ -135,7 +134,7 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
     PtrParamNode actNode = inputOptionNodes[i];
     informat = actNode->GetName();
     actId = actNode->Get("id")->As<string>();
-    actNode->GetValue("fileName", fileName, ParamNode::PASS);
+    string fileName = actNode->Has("fileName") ? actNode->GetAsFilePath("fileName") : "default";
     actNode->GetValue("gridId", actGridId, ParamNode::EX);
 
     if (i == 0)
@@ -271,7 +270,7 @@ DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
       rootNode->Get("fileFormats")->Get("materialData", ParamNode::PASS);
   if (matNode)
   {
-    matNode->GetValue("file", fileName);
+    fileName = matNode->GetAsFilePath("file");
     matNode->GetValue("format", format);
   }
   else

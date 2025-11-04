@@ -295,7 +295,15 @@ namespace CoupledField
      *  INSERT: A new node is generated with the value of the ret variable as new value
      *  APPEND: A new node is generated anyway and the value of the ret variable  is set as new value */
     template<typename TYPE>
-    void GetValue(const std::string& name, TYPE& ret, ActionType = EX );        
+    void GetValue(const std::string& name, TYPE& ret, ActionType = EX );   
+    
+    /** Access the value of the current node and return a string path.
+     * 
+     * This logic enables path parsing at a single point.
+     * For now, replaceing ~ witht the home directory is implemented 
+     * 
+     */
+    string GetAsFilePath(const std::string& name, ActionType = DEFAULT);
         
     /** This Get() version overwrites with throwException=false a preset value and does nothing if the
     *  value does not exist. So you do not need to check with Has() first.<br>

@@ -390,8 +390,10 @@ void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemSh
   LOG_DBG2(locPointMapped) "normal glob-------------------:" << this->normal << std::endl << std::endl;
   LOG_DBG2(locPointMapped) << "------------------------------------------------------------------------------------------------------------" << std::endl;
   for (UInt iDim = 0; iDim < globIntPoint.GetSize(); ++iDim)
+  {
     assert(abs(globIntPoint[iDim] - globVolIntPoint[iDim]) < EPS);
     assert(esmVol->CoordIsInsideElem(lpVol.coord, NORM_EPS*1e3));
+  }
 #endif
 }
 

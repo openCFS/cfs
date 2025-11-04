@@ -16,6 +16,8 @@
 #include <fstream>
 #include <string>
 #include <utility>
+#include <cstdlib>
+#include <boost/filesystem.hpp>
 
 using namespace std;
 using namespace boost;
@@ -712,6 +714,29 @@ void ParamNode::GetValue(const std::string& name, TYPE& ret, ActionType action)
   // setting it uniquely (action == INSERT) or appending it (action==APPEND)
   PtrParamNode myNode = this->Get(name, action);
   myNode->SetValue(ret);
+}
+
+string ParamNode::GetAsFilePath(const string& name, ActionType action)
+{
+  // get the string path
+  string path = this->Get(name, action)->As<string>();
+
+  // replace ~ with home directory
+  if (path.empty() || path[0] != '~')
+    return path;
+
+  #ifdef _WIN32
+      const char* home = std::getenv("USERPROFILE");
+  #else
+      const char* home = std::getenv("HOME");
+  #endif
+    if (!home)
+        return path;  // fallback: return unchanged if HOME/USERPROFILE not set
+
+  // Construct expanded path
+  boost::filesystem::path expanded(home);
+  expanded /= path.substr(2); // skip the "~/" or "~\" 
+  return expanded.string();
 }
 
 /************************************************************************

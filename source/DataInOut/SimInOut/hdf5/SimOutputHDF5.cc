@@ -658,10 +658,8 @@ namespace CoupledField {
     std::ifstream fin;
     std::ostringstream dumpStr;
 
-    fileNames.push_back(progOpts->GetParamFileStr());
-    fileNames.push_back(myParam_->GetRoot()->Get("fileFormats")
-                        ->Get("materialData")
-                        ->Get("file")->As<std::string>());
+    fileNames.push_back(progOpts->GetParamFileStr());   
+    fileNames.push_back(myParam_->GetRoot()->Get("fileFormats")->Get("materialData")->GetAsFilePath("file"));
 
     dataSetNames.push_back("ParameterFile");
     dataSetNames.push_back("MaterialFile");

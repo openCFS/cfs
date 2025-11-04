@@ -96,9 +96,17 @@ void FeatureMappingDesign::PostInit(int objectives, int constraints)
   setup_timer_->Start();
   assert(mapped_design_ != design_id);
   
-  CoefFunctionOpt* coef = Optimization::context->mat->GetMatCoef("LinElastInt", domain->GetDesign()->GetRegionId());
-  assert(dynamic_cast<CoefFunctionConst<double>*>(coef->orgMat.get()) != nullptr);
-  aniso_base_tensor = dynamic_cast<CoefFunctionConst<double>*>(coef->orgMat.get())->GetTensor();
+  if (Optimization::context->mat->GetSystem() == OptimizationMaterial::MECH)
+  {
+    CoefFunctionOpt* coef = Optimization::context->mat->GetMatCoef("LinElastInt", domain->GetDesign()->GetRegionId());
+    assert(dynamic_cast<CoefFunctionConst<double>*>(coef->orgMat.get()) != nullptr);
+    aniso_base_tensor = dynamic_cast<CoefFunctionConst<double>*>(coef->orgMat.get())->GetTensor();
+  } else 
+  {
+    bool aniso = domain->GetDesign()->GetMethod() == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT;
+    if (aniso)
+      throw Exception("Anisotropic material only supportet for MechPDE.");
+  }
 
   // this calls Pill::Update() and in the anisotropic case we need DesignSpace set up
   MapFeatureToDensity(); // only so late because of python -> calls PythonUpdateSpaghetti()
@@ -206,7 +214,7 @@ StdVector<int> FeatureMappingDesign::GetSpecialResultIndices(const Function* f, 
     {
       std::string name = Function::type.ToString(f->GetType()); // 'compliance', 'volume', ...
       // check if we have the function name defined as DesignElement::Detail, if not it just needs to be added there and in the schema
-      assert(DE::detail.IsValid(name)); 
+      assert(DE::detail.IsValid(name));
       test = DE::detail.Parse(name);
     }
     // we loop over all possible combinations

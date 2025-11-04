@@ -5,7 +5,6 @@ import os
 import sys
 import argparse
 import numpy as np
-import lxml
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 from matplotlib.patches import PathPatch
@@ -14,24 +13,27 @@ from PIL import Image
 
 import cfs_utils as ut
 
+
 class Global:
   # the default value are for easy debugging via import
   def __init__(self):
     self.shapes = []         # array of pills
-    self.n = [10,10,1]       # [nx, ny, nz]
+    self.n = [10, 10, 1]       # [nx, ny, nz]
     self.transition = -1.0   # optional transition zone width, -1 means not set
-  
-glob = Global()    
-    
+
+glob = Global()
+
+
 # minimal and maximal are vectors.
-def create_figure(res, minimal, maximal):
+def create_figure(res, minimal, maximal, scale):
+  # calculate dpi such that the maximum dimension equals res / dpi
+  dpi = res / 100.0 * scale
 
-  dpi_x = res / ((maximal[0] - minimal[0]) * 100.0) 
-
-  fig = plt.figure(dpi=100, figsize=(dpi_x*round(max(1,maximal[0])), dpi_x*round(max(1,maximal[1]))))
+  fig = plt.figure(dpi=100, figsize=(round(dpi * maximal[0]), round(dpi * maximal[1])))
   ax = fig.add_subplot(111)
-  ax.set_xlim(min(0,minimal[0]), max(1,maximal[0]))
-  ax.set_ylim(min(0,minimal[1]), max(1,maximal[1]))
+  ax.set_xlim(minimal[0], maximal[0])
+  ax.set_ylim(minimal[1], maximal[1])
+  ax.set_aspect('equal', adjustable='box')
   return fig, ax
 
 def dump_shapes(shapes):
@@ -208,29 +210,31 @@ def plot_data(res, shapes, detail, domain, ghost):
   UR = np.array(domain[1]) # upper right
   minimal = LL - .5 * ghost * (UR-LL)
   maximal = UR + .5 * ghost * (UR-LL)
-  
+
+  # find the maximum dimension
+  Dx = (maximal[0] - minimal[0])
+  Dy = (maximal[1] - minimal[1])
+  scale = 1 / max(Dx, Dy)
+
   lineopacity = 0.5 if args.gray else 1 # opacity value for plotting lines and points    
 
-  fig, sub = create_figure(res, minimal, maximal)
+  fig, sub = create_figure(res, minimal, maximal, scale)
 
   if detail >= 1: # we plot the domain line alo for ghost=0 as we might have --noaxis
     # draw real domain
-    sub.add_line(plt.Line2D((LL[0],LL[1]),(UR[0],LL[1]), color='black'))
-    sub.add_line(plt.Line2D((UR[0],LL[1]),(UR[0],UR[1]), color='black'))
-    sub.add_line(plt.Line2D((UR[0],UR[1]),(LL[0],UR[1]), color='black'))
-    sub.add_line(plt.Line2D((LL[0],UR[1]),(LL[0],LL[1]), color='black'))
+    sub.add_line(plt.Line2D((LL[0], UR[0], UR[0], LL[0], LL[0]), (LL[1], LL[1], UR[1], UR[1], LL[1]), color='black'))
 
   for s in shapes:
-    #print('plot s',s)
-    if s.p < 1e-10: # omit zero-width shapes
+    # print('plot s',s)
+    if s.p < 1e-10:  # omit zero-width shapes
       continue
 
-    c = s.color   
- 
+    c = s.color
+
     if detail > 0:
       # start and endpoint
-      fig.gca().add_artist(plt.Circle(s.P, 0.01, alpha=lineopacity, color = c)) 
-      fig.gca().add_artist(plt.Circle(s.Q, 0.01, alpha=lineopacity, color = c))
+      fig.gca().add_artist(plt.Circle(s.P, 0.1 * s.p, alpha=lineopacity, color=c)) 
+      fig.gca().add_artist(plt.Circle(s.Q, 0.1 * s.p, alpha=lineopacity, color=c))
       tail = '_{' + str(s.id) + '}$'
       if detail > 2:
         plt.annotate('$P' + tail, s.P, fontsize=26, xytext=(3,3), textcoords='offset points', alpha=lineopacity, color = c)
