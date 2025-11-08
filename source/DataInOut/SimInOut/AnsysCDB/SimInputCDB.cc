@@ -2201,7 +2201,7 @@ namespace CoupledField {
 
       if (regtype == "NODE" || regtype == "node") {
         StoreNodeGroup(regnam,numdata,dataVal);
-      } else if (regtype == "ELEM" || regtype == "elem") {
+      } else if (regtype == "ELEM" || regtype == "ELEMENT" || regtype == "elem") {
         // test dimension of element type of first element in component
         // if this equals model dimension -> region
         // otherwise -> element group
