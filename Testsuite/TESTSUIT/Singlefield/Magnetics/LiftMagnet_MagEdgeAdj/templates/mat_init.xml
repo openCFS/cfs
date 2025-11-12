@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='utf-8'?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+xsi:schemaLocation="http://www.cfs++.org/material 
+https://opencfs.gitlab.io/cfs/xml/CFS-Material/CFS_Material.xsd" >
+
+  <material name="air">
+      <acoustic>
+            <!-- Data obtained from : www.wikipedia.de -> "Luft" und "Kompressionsmodul" und "Adiabatenexponent"  
+      Reference(s) :  -->
+      <!-- Remarks : Standardbedingungen bei Temp. T=20 degree und Druckp=1013 hPa"
+                     Kompressionsmodul aus Adiabatenexponent gamma = 1,40 berechnet -->
+      <density>
+        <linear>
+          <real> 1.204 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.41855E+05 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic> 
+          <real>0</real>
+          </isotropic>
+        </linear>  
+      </electricConductivity>
+      <!-- Permeability: http://www.ee.surrey.ac.uk/Workshop/advice/coils/mu/#mu0"
+           Remarks : "Name: K0.5Na0.5Nb03, air fired" -->
+      <permeability>
+        <linear>
+         <isotropic>
+            <real>  1.2566e-6 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+
+  <material name="iron">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic> 
+          <real>5.800E7</real>
+          </isotropic>
+        </linear>        
+      </electricConductivity>
+      <permeability>
+        <linear>
+         <isotropic>
+            <real>  0.002703959339762703 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+
+    <material name="iron-analytic">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic> <real>5.800E7 </real></isotropic>
+        </linear> 
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic> <real>0.002703959339762703 </real></isotropic>
+        </linear>
+        <nonlinear>
+          <isotropic>
+            <!-- 
+              It is also possible to specify an analytic function for the materail properties, for the Newton method also its derivative must be given.
+              because the analytic expressions cannot be evaluated at 0 (divide by 0) we use an if-statement in c-like syntax.
+            -->
+            <dependency></dependency>
+            <approxType>analytic</approxType>
+            <measAccuracy>0</measAccuracy>
+            <maxApproxVal>0</maxApproxVal>
+            <dataName></dataName>
+            <nuExpr>(B_R lt 0.000100) ? (369.848737661584) : ((B_R*5.600e-01-1.257e-06*3.700e+02+sqrt(B_R^2*5.600e-01^2+2*B_R*1.257e-06*5.600e-01*3.700e+02-2*B_R*5.600e-01+1.257e-06^2*3.700e+02^2+2*1.257e-06*3.700e+02+1)-1)/(2*B_R*1.257e-06*5.600e-01)) </nuExpr>
+            <nuDerivExpr>(B_R lt 0.000100) ? (206.924814302143) : (-(B_R*1.257e-06*5.600e-01*3.700e+02-B_R*5.600e-01+1.257e-06^2*3.700e+02^2-1.257e-06*3.700e+02*sqrt(B_R^2*5.600e-01^2+2*B_R*1.257e-06*5.600e-01*3.700e+02-2*B_R*5.600e-01+1.257e-06^2*3.700e+02^2+2*1.257e-06*3.700e+02+1)+2*1.257e-06*3.700e+02-sqrt(B_R^2*5.600e-01^2+2*B_R*1.257e-06*5.600e-01*3.700e+02-2*B_R*5.600e-01+1.257e-06^2*3.700e+02^2+2*1.257e-06*3.700e+02+1)+1)/(2*B_R^2*1.257e-06*5.600e-01*sqrt(B_R^2*5.600e-01^2+2*B_R*1.257e-06*5.600e-01*3.700e+02-2*B_R*5.600e-01+1.257e-06^2*3.700e+02^2+2*1.257e-06*3.700e+02+1))) </nuDerivExpr>
+          </isotropic>
+        </nonlinear>
+      </permeability>
+    </magnetic>
+  </material>
+
+  <material name="iron-table">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic><real>5.800E7</real></isotropic>
+        </linear>        
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic><real> 0.002703959339762703 </real></isotropic>
+        </linear>
+        <nonlinear>
+          <isotropic>
+            <!-- 
+              CFS interpolates the tabulated data in 'bh.fnc' using splines:
+               *) format for 'bh.fnc': 1st-collumn=H, 2nd-collumn=B 
+               *) an analysis will produce addintional files for information: e.g. '*.func.dat' contains the spline fit evaluated at 1600 points
+            -->
+            <dependency></dependency>
+            <approxType>smoothSplines</approxType>
+            <measAccuracy>0.05</measAccuracy>
+            <maxApproxVal>3.0</maxApproxVal>
+            <dataName>bh.fnc</dataName>
+          </isotropic>
+        </nonlinear>
+      </permeability>
+    </magnetic>
+  </material>
+  
+  <material name="alu">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic> 
+          <real>3.5e+7</real>
+          </isotropic>
+        </linear>        
+      </electricConductivity>
+      <permeability>
+        <linear>
+         <isotropic>
+            <real>  1.2566e-6 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+  
+  <material name="copper">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic> 
+          <real>5.96e+7</real>
+          </isotropic>
+        </linear>        
+      </electricConductivity>
+      <permeability>
+        <linear>
+         <isotropic>
+            <real>  1.256629e-6 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>    
+  
+
+</cfsMaterialDataBase>

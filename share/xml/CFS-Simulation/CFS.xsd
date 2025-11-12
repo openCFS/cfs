@@ -29,6 +29,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEmagneticScalarPotentialAdj.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagedge.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEmagedgeAdj.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDEmagedgeTOAdj.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEsmooth.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>

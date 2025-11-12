@@ -108,7 +108,7 @@ namespace CoupledField
 
     TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
     shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
-    if ( pdename_ == "magneticEdgeAdj" )
+    if ( pdename_ == "magneticEdgeAdj" || pdename_ == "magneticEdgeAdjTO" )
       feFunctions_[MAG_POTENTIAL_ADJ]->SetTimeScheme(myScheme);
     else
       feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
@@ -116,7 +116,7 @@ namespace CoupledField
     // Important: Create a new time scheme for each additional feFunction
     // NEW: from NACS - copy stepping scheme from mag potential
     shared_ptr<TimeSchemeGLM> mainScheme;
-    if ( pdename_ == "magneticEdgeAdj" )
+    if ( pdename_ == "magneticEdgeAdj" || pdename_ == "magneticEdgeAdjTO")
       mainScheme = dynamic_pointer_cast<TimeSchemeGLM>(
             feFunctions_[MAG_POTENTIAL_ADJ]->GetTimeScheme());
     else
@@ -277,30 +277,51 @@ namespace CoupledField
     }
 
     shared_ptr<BaseFeFunction> feFct;
-    if ( pdename_ == "magneticEdgeAdj" )
+    if ( pdename_ == "magneticEdgeAdj" || pdename_ == "magneticEdgeAdjTO")
       feFct = feFunctions_[MAG_POTENTIAL_ADJ];
     else 
       feFct = feFunctions_[MAG_POTENTIAL];
 
-    // === MAGNETIC FLUX DENSITY ===
-    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
-    fluxDens->resultType = MAG_FLUX_DENSITY;
-    fluxDens->dofNames = vecComponents;
-    fluxDens->unit = "Vs/m^2";
-    fluxDens->definedOn = ResultInfo::ELEMENT;
-    fluxDens->entryType = ResultInfo::VECTOR;
-    fluxDens->SetFeFunction(feFct); //feFunctions_[MAG_POTENTIAL]);
-    availResults_.insert( fluxDens );
-    shared_ptr<CoefFunctionFormBased> bFunc;
-    if( isComplex_ ) {
-      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
+    if ( pdename_ == "magneticEdgeAdjTO") {
+      // === MAGNETIC FLUX DENSITY ADJOINT ===
+      shared_ptr<ResultInfo> fluxDensAdj(new ResultInfo);
+      fluxDensAdj->resultType = MAG_FLUX_DENSITY_ADJ;
+      fluxDensAdj->dofNames = vecComponents;
+      fluxDensAdj->unit = "Vs/m^2";
+      fluxDensAdj->definedOn = ResultInfo::ELEMENT;
+      fluxDensAdj->entryType = ResultInfo::VECTOR;
+      fluxDensAdj->SetFeFunction(feFct); //feFunctions_[MAG_POTENTIAL]);
+      availResults_.insert( fluxDensAdj );
+      shared_ptr<CoefFunctionFormBased> bFunc;
+      if( isComplex_ ) {
+        bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDensAdj));
+      } else {
+        bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDensAdj));
+      }
+      DefineFieldResult( bFunc, fluxDensAdj );
+      stiffFormCoefs_.insert(bFunc);
     } else {
-      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
-    }
-    DefineFieldResult( bFunc, fluxDens );
-    stiffFormCoefs_.insert(bFunc);
 
-    fluxDensityDefined_ = true;
+      // === MAGNETIC FLUX DENSITY ===
+      shared_ptr<ResultInfo> fluxDens(new ResultInfo);
+      fluxDens->resultType = MAG_FLUX_DENSITY;
+      fluxDens->dofNames = vecComponents;
+      fluxDens->unit = "Vs/m^2";
+      fluxDens->definedOn = ResultInfo::ELEMENT;
+      fluxDens->entryType = ResultInfo::VECTOR;
+      fluxDens->SetFeFunction(feFct); //feFunctions_[MAG_POTENTIAL]);
+      availResults_.insert( fluxDens );
+      shared_ptr<CoefFunctionFormBased> bFunc;
+      if( isComplex_ ) {
+        bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
+      } else {
+        bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
+      }
+      DefineFieldResult( bFunc, fluxDens );
+      stiffFormCoefs_.insert(bFunc);
+
+    }
+  fluxDensityDefined_ = true;
   }
 
 
@@ -327,7 +348,7 @@ namespace CoupledField
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace;
-    if ( pdename_ == "magneticEdgeAdj" )
+    if ( pdename_ == "magneticEdgeAdjTO" )
       mySpace = feFunctions_[MAG_POTENTIAL_ADJ]->GetFeSpace();
     else 
       mySpace = feFunctions_[MAG_POTENTIAL]->GetFeSpace();
@@ -497,7 +518,7 @@ namespace CoupledField
          */
         // define field intensity on non-hysteretic region, too!
         shared_ptr<BaseFeFunction> feFct ;
-        if ( pdename_ == "magneticEdgeAdj" )
+        if ( pdename_ == "magneticEdgeAdj" || pdename_ == "magneticEdgeAdjTO")
           feFct = feFunctions_[MAG_POTENTIAL_ADJ];
         else
           feFct = feFunctions_[MAG_POTENTIAL];
@@ -558,7 +579,7 @@ namespace CoupledField
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
     shared_ptr<BaseFeFunction> feFunc ;    
-    if ( pdename_ == "magneticEdgeAdj" )
+    if ( pdename_ == "magneticEdgeAdj" || pdename_ == "magneticEdgeAdjTO")
       feFunc = feFunctions_[MAG_POTENTIAL_ADJ];
     else 
       feFunc = feFunctions_[MAG_POTENTIAL];

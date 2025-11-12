@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+    <fileFormats>
+        <input>
+            <cdb fileName="LiftMagnet_MagEdgeAdj.cdb"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <!-- specify your material input file here -->
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <!-- material assignment -->
+    <domain geometryType="3d">
+        <variableList>
+            <!-- define used varaibles here -->
+            <var name="N" value="400"/>
+            <var name="A" value="1e-3"/><!-- coil cross section -->
+            <var name="i" value="10000"/>
+        </variableList>
+
+        <regionList>
+        <!-- specify your regions and give them a material -->
+            <region name="V_core" material="iron"/>
+            <region name="V_air" material="air"/>
+            <region name="V_design_domain" material="iron"/> 
+            <region name="V_outer_coil_part" material="copper"/>
+            <region name="V_inner_coil_part" material="copper"/> 
+            <region name="V_armature" material="iron"/>
+            <region name="V_objective_domain" material="air"/>
+        </regionList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+        <pdeList>
+            <magneticEdge formulation="TOAdjoint">
+                <regionList>
+                    <!-- specify your regions here -->
+                    <region name="V_core"/>
+                    <region name="V_air"/>
+                    <region name="V_design_domain"/>
+                    <region name="V_outer_coil_part"/>
+                    <region name="V_inner_coil_part"/>
+                    <region name="V_armature"/>
+                    <region name="V_objective_domain"/>
+                </regionList>
+                <bcsAndLoads>
+                    <fluxParallel name="S_outer_air">
+                    </fluxParallel>
+                    <fluxParallel name="S_front">
+                    </fluxParallel>
+                    <fluxParallel name="S_back">
+                    </fluxParallel>
+                </bcsAndLoads>
+                <coilList>
+                    <coil id="coil">
+                        <source type="current" value="i*N/A"/>
+                        <part id="1">
+                            <regionList>
+                                <region name="V_outer_coil_part"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="-1.0"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1"/>
+                        </part>
+                        <part id="2">
+                            <regionList>
+                                <region name="V_inner_coil_part"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="1.0"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1"/>
+                        </part>
+                    </coil>
+                </coilList>
+                <storeResults>
+<!-- 
+                        Define outputs here:
+                        The magnetic potential is a nodal result, the flux density and field intensity are element results.
+                    -->
+                    <elemResult type="magFluxDensity">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="magFieldIntensity">
+                        <allRegions/>
+                    </elemResult>
+                    <regionResult type="magEnergy">
+                        <regionList><region name="V_objective_domain" /></regionList>
+                    </regionResult>
+                </storeResults>
+            </magneticEdge>
+            
+        </pdeList>
+    </sequenceStep>
+</cfsSimulation>

@@ -962,11 +962,11 @@ namespace CoupledField {
             postProcNames.Push_back( regionNodes[i]->Get("postProcId")->As<std::string>() );
             outDestNames.Push_back( regionNodes[i]->Get("outputIds")->As<std::string>() );
             writeResults.Push_back( regionNodes[i]->Get("writeResult")->As<std::string>() );
-            if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
-                 candidate->resultType == MAG_FORCE_MAXWELL ||
-               candidate->resultType == MAG_FORCE_VWP) {
-              neighborRegions.Push_back( regionNodes[i]->Get("neighborRegion")->As<std::string>());
-            }
+            // if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
+            //      candidate->resultType == MAG_FORCE_MAXWELL ||
+            //    candidate->resultType == MAG_FORCE_VWP) {
+            //   neighborRegions.Push_back( regionNodes[i]->Get("neighborRegion")->As<std::string>());
+            // }
           }
         }
       }
@@ -1015,14 +1015,14 @@ namespace CoupledField {
             }
           }
 
-          if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
-               candidate->resultType == MAG_FORCE_MAXWELL ||
-             candidate->resultType == MAG_FORCE_VWP) {
-            std::string neighborReg =  neighborRegions[iRegion];
-            RegionIdType surfRegionId = ptGrid_->GetRegion().Parse( regionNames[iRegion] );
-            RegionIdType volNeighborRegionId = ptGrid_->GetRegion().Parse( neighborReg );
-            fnc->GetCoefFct()->SetVolNeighborRegionId(surfRegionId,volNeighborRegionId);
-            }
+          // if ( candidate->resultType == MAG_FORCE_MAXWELL_DENSITY ||
+          //      candidate->resultType == MAG_FORCE_MAXWELL ||
+          //    candidate->resultType == MAG_FORCE_VWP) {
+          //   std::string neighborReg =  neighborRegions[iRegion];
+          //   RegionIdType surfRegionId = ptGrid_->GetRegion().Parse( regionNames[iRegion] );
+          //   RegionIdType volNeighborRegionId = ptGrid_->GetRegion().Parse( neighborReg );
+          //   fnc->GetCoefFct()->SetVolNeighborRegionId(surfRegionId,volNeighborRegionId);
+          //   }
 
           // update sequence step for result handler (also done in ResultHandler::BeginMultiSequenceStep, but AFTER reading the xml for the current step, hence we would be one step behind regarding reading e.g. postproc results from the xml)
           // nevertheless, it appears that we have to keep it in ResultHandler::BeginMultiSequenceStep as well since not setting the sequence step in this routine breaks stuff

@@ -1251,21 +1251,21 @@ namespace CoupledField {
     PtrCoefFct bFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
 
 //    // === MAGNETIC FLUX DENSITY ===
-//    shared_ptr<ResultInfo> fluxDens(new ResultInfo);
-//    fluxDens->resultType = MAG_FLUX_DENSITY;
-//    fluxDens->dofNames = vecComponents;
-//    fluxDens->unit = "Vs/m^2";
-//    fluxDens->definedOn = ResultInfo::ELEMENT;
-//    fluxDens->entryType = ResultInfo::VECTOR;
-//    availResults_.insert( fluxDens );
-//    shared_ptr<CoefFunctionFormBased> bFunc;
-//    if( isComplex_ ) {
-//      bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
-//    } else {
-//      bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
-//    }
-//    DefineFieldResult( bFunc, fluxDens );
-//    stiffFormCoefs_.insert(bFunc);
+  //  shared_ptr<ResultInfo> fluxDens(new ResultInfo);
+  //  fluxDens->resultType = MAG_FLUX_DENSITY;
+  //  fluxDens->dofNames = vecComponents;
+  //  fluxDens->unit = "Vs/m^2";
+  //  fluxDens->definedOn = ResultInfo::ELEMENT;
+  //  fluxDens->entryType = ResultInfo::VECTOR;
+  //  availResults_.insert( fluxDens );
+  //  shared_ptr<CoefFunctionFormBased> bFunc;
+  //  if( isComplex_ ) {
+  //    bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
+  //  } else {
+  //    bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
+  //  }
+  //  DefineFieldResult( bFunc, fluxDens );
+  //  stiffFormCoefs_.insert(bFunc);
 
     // === MAGNETIC NORMAL FLUX DENSITY ===
     shared_ptr<ResultInfo> normFlux(new ResultInfo);
@@ -1565,93 +1565,7 @@ namespace CoupledField {
             isComplex_));
     DefineFieldResult( tcdCoef, tcd );
 
-    GenerateLorentzForceResults(vecComponents, tcdCoef, bFunc, part, feFct);
-
- 	// === MAXWELL FORCE DENSITY ===
-	shared_ptr<ResultInfo> mfd(new ResultInfo);
-	mfd->resultType = MAG_FORCE_MAXWELL_DENSITY;
-	mfd->dofNames = vecComponents;
-	mfd->unit = MapSolTypeToUnit(mfd->resultType);
-	mfd->definedOn = ResultInfo::SURF_ELEM;
-	mfd->entryType = ResultInfo::VECTOR;
-	availResults_.insert( mfd );
-
-	// Note: The positive normal direction in this case is defined as the
-	//       inward facing one.
-	shared_ptr<CoefFunctionSurfMaxwell> maxForceDens(new CoefFunctionSurfMaxwell(false, matCoefs_, ptGrid_, -1.0, mfd));
-	DefineFieldResult(maxForceDens, mfd);
-	surfCoefFcts_[maxForceDens] = bFunc;
-
-  // === MAXWELL NORMAL_FORCE DENSITY ===
-  shared_ptr<ResultInfo> mfdN(new ResultInfo);
-  mfdN->resultType = MAG_NORMALFORCE_MAXWELL_DENSITY;
-  mfdN->dofNames = vecComponents;
-  mfdN->unit = MapSolTypeToUnit(mfdN->resultType);
-  mfdN->definedOn = ResultInfo::SURF_ELEM;
-  mfdN->entryType = ResultInfo::VECTOR;
-  availResults_.insert( mfdN );
-  shared_ptr<CoefFunctionSurfMaxwell> maxNormalForceDens(new CoefFunctionSurfMaxwell(false,
-                                                         matCoefs_, ptGrid_, -1.0, mfdN));
-  DefineFieldResult(maxNormalForceDens, mfdN);
-  surfCoefFcts_[maxNormalForceDens] = bFunc;
-
-  // === MAXWELL TANGENTIAL_FORCE DENSITY ===
-  shared_ptr<ResultInfo> mfdT(new ResultInfo);
-  mfdT->resultType = MAG_TANGENTIALFORCE_MAXWELL_DENSITY;
-  mfdT->dofNames = vecComponents;
-  mfdT->unit = MapSolTypeToUnit(mfdT->resultType);
-  mfdT->definedOn = ResultInfo::SURF_ELEM;
-  mfdT->entryType = ResultInfo::VECTOR;
-  availResults_.insert( mfdT );
-  shared_ptr<CoefFunctionSurfMaxwell> maxTangentialForceDens(new CoefFunctionSurfMaxwell(false,
-                                                             matCoefs_, ptGrid_, -1.0, mfdT));
-  DefineFieldResult(maxTangentialForceDens, mfdT);
-  surfCoefFcts_[maxTangentialForceDens] = bFunc;
-
-
-  if( analysistype_ != HARMONIC ) {
-	// === MAXWELL FORCE (TOTAL) ===
-	shared_ptr<ResultInfo> mf(new ResultInfo);
-	mf->resultType = MAG_FORCE_MAXWELL;
-	mf->dofNames = vecComponents;
-	mf->unit = "N";
-	mf->definedOn = ResultInfo::SURF_REGION;
-	mf->entryType = ResultInfo::VECTOR;
-	availResults_.insert( mf );
-
-	// build result functor for integration
-	shared_ptr<ResultFunctor> mfFunc;
-	if( isComplex_ ) {
-		mfFunc.reset(new ResultFunctorIntegrate<Complex>(maxForceDens, feFct, mf ) );
-	} else {
-		mfFunc.reset(new ResultFunctorIntegrate<Double>(maxForceDens, feFct, mf ) );
-	}
-	resultFunctors_[MAG_FORCE_MAXWELL] = mfFunc;
-
-
-	// === VIRTUAL WORK PRINCIPLE FORCE (TOTAL) ===
-	shared_ptr<ResultInfo> vwp(new ResultInfo);
-	vwp->resultType = MAG_FORCE_VWP;
-	vwp->dofNames = vecComponents;
-	vwp->unit = "N";
-	vwp->definedOn = ResultInfo::SURF_REGION;
-	vwp->entryType = ResultInfo::VECTOR;
-	availResults_.insert( vwp );
-
-	// define and save coefFunction
-	shared_ptr<CoefFunctionSurfVWP> vwpForce(new CoefFunctionSurfVWP(false, matCoefs_,
-              1.0, vwp));
-	surfCoefFcts_[vwpForce] = bFunc;
-
-	// build result functor for integration
-	shared_ptr<ResultFunctor> vwpFunc;
-	if( isComplex_ ) {
-		vwpFunc.reset(new ResultFunctorVWP<Complex>(vwpForce, feFct, vwp, ptGrid_ ) );
-	} else {
-		vwpFunc.reset(new ResultFunctorVWP<Double>(vwpForce, feFct, vwp, ptGrid_ ) );
-	}
-	resultFunctors_[MAG_FORCE_VWP] = vwpFunc;
-    }
+    // GenerateLorentzForceResults(vecComponents, tcdCoef, bFunc, part, feFct);
 
     // === MAGNETIC ENERGY ===
 //    if( isMixed_)

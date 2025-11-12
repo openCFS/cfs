@@ -389,8 +389,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     customReorderPDE_  = false;
 
     // Initialize solution map
-    solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
-    solutionMap_[MAG_FORCE_MAXWELL_DENSITY] = MAG_FORCE_MAXWELL;
     solutionMap_[ELEC_POWER_DENSITY] = ELEC_POWER;
   }
   

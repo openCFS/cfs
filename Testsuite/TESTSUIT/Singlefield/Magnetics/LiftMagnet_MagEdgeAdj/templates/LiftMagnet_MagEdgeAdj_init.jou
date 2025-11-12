@@ -1,0 +1,171 @@
+reset
+undo on
+
+# Define the mesh size
+#{size = 2.5e-3}
+
+# Define the lengths of the model
+#{height_armature = 20e-3}
+#{width_armature = 20e-3}
+#{displacement_y_armature = 5e-3}
+#{height_objective = 30e-3}
+#{width_objective = 5e-3}
+#{height_design = 60e-3}
+#{width_design = 15e-3}
+
+#{height_coil = 10e-3}
+#{width_coil = 40e-3}
+#{distance_x_coil = 5e-3}
+#{distance_y_coil = 5e-3}
+
+#{diameter_core = 15e-3}
+#{outer_width_core = 2*distance_x_coil + width_coil + diameter_core}
+#{inner_height_core = height_design - 2*diameter_core}
+#{inner_width_core = 2*distance_x_coil + width_coil}
+
+# create vertex {} {} 0 #
+# create curve vertex 1 2
+#create surface curve 1 2 3 4
+
+# createvertices
+#design domain
+create vertex 0 0 0 #1
+create vertex 0 {height_design} 0 #2
+create vertex {width_design} 0 0 #3
+create vertex {width_design} {height_design} 0 #4
+# objective domain
+create vertex 0 {height_objective} 0 #5
+create vertex {-width_objective} 0 0 #6
+create vertex {-width_objective} {height_objective} 0 #7
+# armature
+create vertex -{width_objective} {height_armature + displacement_y_armature} 0 #8
+create vertex {-width_objective - width_armature} {displacement_y_armature} 0 #9
+create vertex {-width_objective - width_armature} {height_armature + displacement_y_armature} 0 #10
+create vertex {-width_objective} {displacement_y_armature} 0 #11
+# core
+create vertex {width_design + outer_width_core} 0 0 #12
+create vertex {width_design + outer_width_core} {height_design} 0 #13
+create vertex {width_design} {diameter_core} 0 #14
+create vertex {width_design + inner_width_core} {diameter_core} 0 #15
+create vertex {width_design + inner_width_core} {diameter_core + inner_height_core} 0 #16
+create vertex {width_design} {diameter_core + inner_height_core} 0 #17
+# inner coil part
+create vertex {width_design + distance_x_coil} {diameter_core + inner_height_core - distance_y_coil - height_coil} 0 #18
+create vertex {width_design + distance_x_coil + width_coil} {diameter_core + inner_height_core - distance_y_coil - height_coil} 0 #19
+create vertex {width_design + distance_x_coil + width_coil} {diameter_core + inner_height_core - distance_y_coil} 0 #20
+create vertex {width_design + distance_x_coil} {diameter_core + inner_height_core - distance_y_coil} 0 #21
+# outer coil part
+create vertex {width_design + distance_x_coil} {2*diameter_core + inner_height_core + distance_y_coil} 0 #22
+create vertex {width_design + distance_x_coil + width_coil} {2*diameter_core + inner_height_core + distance_y_coil} 0 #23
+create vertex {width_design + distance_x_coil + width_coil} {2*diameter_core + inner_height_core + distance_y_coil + height_coil} 0 #24
+create vertex {width_design + distance_x_coil} {2*diameter_core + inner_height_core + distance_y_coil + height_coil} 0 #25
+
+# air domain
+create vertex {-width_objective - width_armature - width_design - outer_width_core} {-height_design} 0 # 26
+create vertex {2*width_design + 2*outer_width_core} {-height_design} 0 #27
+create vertex {2*width_design + 2*outer_width_core} {2*height_design} 0 #28
+create vertex {-width_objective - width_armature - width_design - outer_width_core} {2*height_design} 0 #29
+
+# create curves
+create curve vertex 1 2
+create curve vertex 2 4
+create curve vertex 3 4
+create curve vertex 3 1
+create curve vertex 1 5
+create curve vertex 1 6
+create curve vertex 6 7 
+create curve vertex 5 7
+create curve vertex 11 9
+create curve vertex 9 10
+create curve vertex 10 8 
+create curve vertex 8 11
+create curve vertex 3 12
+create curve vertex 12 13
+create curve vertex 13 4
+create curve vertex 14 15
+create curve vertex 15 16
+create curve vertex 16 17
+create curve vertex 4 17
+create curve vertex 3 14
+#inner coil
+create curve vertex 18 19
+create curve vertex 19 20
+create curve vertex 20 21
+create curve vertex 21 18
+#outer coil
+create curve vertex 22 23
+create curve vertex 23 24
+create curve vertex 24 25
+create curve vertex 25 22
+#air
+create curve vertex 26 27
+create curve vertex 27 28
+create curve vertex 28 29
+create curve vertex 29 26
+
+
+# create surfaces
+create surface curve 1 2 3 4
+create surface curve 5 6 7 8
+create surface curve 9 10 11 12
+create surface curve 13 14 15 16 17 18 19 20
+create surface curve 21 22 23 24 #inner coil
+create surface curve 25 26 27 28 #outer coil
+create surface curve 29 30 31 32
+
+intersect 6 with 7 keep
+subtract 8 from 7
+intersect 5 with 7 keep
+subtract 9 from 7
+intersect 4 with 7 keep
+subtract 10 from 7
+intersect 3 with 7 keep
+subtract 11 from 7
+intersect 2 with 7 keep
+subtract 12 from 7
+intersect 1 with 7 keep
+subtract 13 from 7
+
+#create pseudo 2d
+sweep surface all  direction z distance 0.01
+
+# merge and impring all
+imprint all
+merge all
+
+surface 1 to 6 size {size}
+surface 73 83  size {size}
+mesh surface 1 to 6
+mesh surface 73 83
+
+curve with z_coord > 0 and z_coord <0.01 interval 1
+mesh curve with z_coord > 0 and z_coord <0.01
+
+mesh volume all
+
+
+#define regions
+block 1 add volume 1
+block 1 name "V_design_domain"
+block 2 add volume 4
+block 2 name "V_core"
+block 3 add volume 6
+block 3 name "V_outer_coil_part"
+block 4 add volume 5
+block 4 name "V_inner_coil_part"
+block 5 add volume 3
+block 5 name "V_armature"
+block 6 add volume 2
+block 6 name "V_objective_domain"
+block 7 add volume 14 16
+block 7 name "V_air"
+
+nodeset 1 add surface 59 60 61 62
+nodeset 1 name "S_outer_air"
+nodeset 2 add surface 1 2 3 4 5 6 73 83
+nodeset 2 name "S_front"
+nodeset 3 add surface 84 74 54 49 44 35 30 25
+nodeset 3 name "S_back"
+
+
+export ansys cdb "geometry.cdb" overwrite

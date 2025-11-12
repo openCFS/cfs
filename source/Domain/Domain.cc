@@ -57,6 +57,7 @@
 #include "PDE/MagEdgeHPDE.hh"
 #include "PDE/MagEdgeAStarPDE.hh"
 #include "PDE/MagEdgeAdjPDE.hh"
+#include "PDE/MagEdgeAdjTOPDE.hh"
 #include "PDE/MagEdgeMixedAVPDE.hh"
 #include "PDE/MagEdgeMixedSFGPDE.hh"
 #include "PDE/MagEdgeRegulSFGPDE.hh"
@@ -820,9 +821,16 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new MagEdgeHPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       } else if(formulation == "AStar"){
         ptSinglePde_[i] = new MagEdgeAStarPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
-      } else{
+      } else if(formulation == "TOAdjoint"){
+        ptSinglePde_[i] = new MagEdgeAdjTOPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
+      } 
+      else{
         EXCEPTION("Formulation of MagEdgePDE not known!");
       }
+    }
+    else if (actPdeName == "magneticEdgeAdjTO") {
+      // allow the alternative tag name used in your coupling list
+      ptSinglePde_[i] = new MagEdgeAdjTOPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "magneticEdgeAdj") {
       ptSinglePde_[i] = new MagEdgeAdjPDE(defaultGrid, actPdeNode, infoNode, simState_, this);  

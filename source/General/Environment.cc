@@ -255,9 +255,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUX_INDUCED_STRAIN, "fluxIndStrain");
 
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
+    SolutionTypeEnum.Add(MAG_FLUX_DENSITY_ADJ, "magFluxDensityAdj");
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY_SURF, "magFluxDensitySurf");
     SolutionTypeEnum.Add(MAG_FLUX, "magFlux");
+    SolutionTypeEnum.Add(MAG_FLUX_ADJ, "magFluxAdj");
     SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
+    SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY_ADJ, "magNormalFluxDensityAdj");
     SolutionTypeEnum.Add(MAG_AVERAGED_FLUX_DENSITY, "magAveragedFluxDensity"); 
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY_CURL, "magFieldIntensityCurl");
@@ -401,6 +404,11 @@ namespace CoupledField {
     for(unsigned int i = 0; i < 66; i++)
       SolutionTypeEnum.Add( (SolutionType) (OPT_RESULT_1 + i), "optResult_" + std::to_string(i+1));
       // SolutionTypeEnum.Add(OPT_RESULT_1, "optResult_1");
+
+    // Topology optimization : derivatives
+    SolutionTypeEnum.Add(GRAD_PARAM1, "gradParam1");
+    SolutionTypeEnum.Add(GRAD_PARAM2, "gradParam2");
+    SolutionTypeEnum.Add(GRAD_PARAM3, "gradParam3");
 
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
@@ -1239,6 +1247,10 @@ namespace CoupledField {
         return "A/s";
         break;
 
+      case MAG_ELEM_PERMEABILITY:
+        return "Vs/Am";
+        break;
+
       case MAG_RHS_LOAD:
         return "Am";
         break;
@@ -1272,6 +1284,7 @@ namespace CoupledField {
         break;
 
       case MAG_FLUX:
+      case MAG_FLUX_ADJ:
       case COIL_LINKED_FLUX:
       case COIL_VOLTAGE_INTEGRAL:
         return "Vs";
@@ -1290,20 +1303,18 @@ namespace CoupledField {
         break;
 
       case MAG_FLUX_DENSITY:
+      case MAG_FLUX_DENSITY_ADJ:
       case MAG_AVERAGED_FLUX_DENSITY:
       case MAG_FLUX_DENSITY_SURF:
       case MAG_CURL_ADJ:
       case MAG_NORMAL_FLUX_DENSITY:
+      case MAG_NORMAL_FLUX_DENSITY_ADJ:
         return "Vs/m^2";
         break;
 
       case ELEC_POTENTIAL_DERIV_1:
         return "V/s";
         break;
-
-
-      case MAG_ELEM_PERMEABILITY:
-        return "Vs/Am";
 
       case MAG_POLARIZATION:
         return "Vs/m^2";
@@ -1809,6 +1820,10 @@ namespace CoupledField {
        out = NLELEC_TRIPOLE_TEMP_DEP;
     } else if( in == "elecPermittivity") {
        out = NLELEC_PERMITTIVITY;
+    } else if( in == "matReluctivity") {
+       out = MAT_RELUCTIVITY;
+    } else if( in == "matPermeability") {
+       out = MAT_PERMEABILITY;
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
                  << "'NonLinType' item!" );
@@ -1891,6 +1906,12 @@ namespace CoupledField {
         break;
       case NLELEC_PERMITTIVITY:
         out = "elecPermittivity";
+        break;
+      case MAT_RELUCTIVITY:
+        out = "matReluctivity";
+        break;
+      case MAT_PERMEABILITY:
+        out = "matPermeability";
         break;
       default:
         EXCEPTION( "No conversion found for 'NonLinType' " << in );
