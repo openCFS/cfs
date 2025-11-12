@@ -2756,8 +2756,7 @@ namespace CoupledField {
     }
   }
 
-  void GridCFS::GetElemsNextToNode( StdVector<const Elem*> & elemList,
-                                     const UInt & node) {
+  void GridCFS::GetElemsNextToNode( StdVector<const Elem*>& elemList, const UInt& node) {
     SetNodesToElemsMap();
     
     const UInt maxIdx = nodeElemMapIndices_[node + 1];
@@ -2769,8 +2768,8 @@ namespace CoupledField {
     }
   }
 
-  void GridCFS::GetElemsNextToNode( StdVector<const Elem*> & elemList,
-                                     const UInt & node,
+  void GridCFS::GetElemsNextToNode( StdVector<const Elem*>& elemList,
+                                     const UInt& node,
                                      const StdVector<RegionIdType>& regionIds) {
     SetNodesToElemsMap();
     
@@ -2911,7 +2910,7 @@ namespace CoupledField {
     #pragma omp critical (CoefFunctionAccumulator)
     {
       if(!mappedNodeToElems_) {
-	nodeElemMapIndices_.Resize(GetNumNodes()+2);
+        nodeElemMapIndices_.Resize(GetNumNodes()+2);
         nodeElemMapIndices_.Init(0);
         for (UInt e = 0; e < numElems_; e++) {
           Elem* elem = orderedElems_[e];

@@ -146,6 +146,9 @@ namespace CoupledField
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
     
+    /** we have a multimap bdbInts_, usually a normal map shall work. Create it */
+    std::map<RegionIdType, BaseBDBInt*> UniquePrimaryBDBInt();
+
     /** return sub type. The string is stored internally any we need to convert. :(
      * @return if StdPDE::subType_ is not set we return NO_TENSOR  */
     virtual SubTensorType GetSubTensorType() const;
@@ -267,12 +270,11 @@ namespace CoupledField
                Domain* domain);
 
     //! private copy constructor
-    SinglePDE & operator= (const StdPDE & myPDE) {
-      EXCEPTION( "Not implemented" );
-
-      // For compiler
-      return *this;
-      }
+    SinglePDE & operator= (const StdPDE& myPDE) 
+    {
+      assert(false); // not implemented
+      return *this; // for the compiler :(
+    }
 
     //! Helper function for ReadRhsLoad ...
     void ReadEntities( const std::string& elemName,
@@ -307,7 +309,6 @@ namespace CoupledField
     //! method FinalizePostProcResults()
     virtual void DefinePostProcResults() {};
     
-    
     //! Finalize post-processing results
      
     //! This method finalizes the setup of postprocessing results, e.g. 
@@ -330,10 +331,9 @@ namespace CoupledField
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
-    
+
     //! define surface integrators needed for this pde
     virtual void DefineSurfaceIntegrators( )=0;
-
 
     //! Read material depenecy information
 

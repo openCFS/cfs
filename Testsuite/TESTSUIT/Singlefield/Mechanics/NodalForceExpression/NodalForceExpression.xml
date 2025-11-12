@@ -48,7 +48,7 @@
               <comp dof="y"/> 
            </fix>
            <!-- Ihe inclusion nodes are circular around the center (0.5, 0.5).
-                Therefore the nodal force is outwards. The force is devided by
+                Therefore the nodal force is outwards. The force is divided by
                 the number of nodes in inclusion_nodes.
                 See info.xml in assemble, possibly you need to run cfs with -d (for detailed) -->
            <force name="inclusion_nodes">

@@ -126,9 +126,9 @@ class Element:
 # gid Mesh
 class Mesh:
   # provides the structure of the mesh, does not fill it. Use create_2d_mesh or create_3d_mesh for it
-  # @row_major is standard. Fastest variable is x, slowest is z (3d) or y (2d). If not created like this, some methos fail
+  # @row_major is standard. Fastest variable is x, slowest is z (3d) or y (2d). If not created like this, some methods fail
   def __init__(self, nx = -1, ny = -1, nz = -1, row_major = True):
-   self.nodes = [] # the nodes shall be an numpy array with 2 or three columns - some tools first usa a list and convert thend
+   self.nodes = [] # the nodes shall be an numpy array with 2 or three columns - some tools first use a list and convert them
    if nx > 0 and ny > 0 and nz <= 0:
      self.nodes = np.zeros(((nx+1) * (ny+1), 2)) 
    if nx * ny * nz > 0:
@@ -158,6 +158,13 @@ class Mesh:
         return x * self.ny + y
     else: # no col_major in 3D yet
       return z * (self.ny*self.nx) + y * self.nx + x
+
+  # return element area/volume
+  def element_size(self, e):
+    if self.nz <= 0:
+      return self.dx * self.dy
+    else:
+      return self.dx * self.dy * self.dz
 
   # determines mesh dimension by number of node coordinates
   def is2d(self):
@@ -528,7 +535,7 @@ def create_3d_mesh(x_res, y_res = None, z_res = None, width = 1.0, height = None
     ny = nx
     height = width
   elif y_res is None:
-    ny = round(nx * (height/width)) # is int
+    ny = max(round(nx * (height/width)), 1) # is int
   elif height is None:
     height = round(width * (ny / nx),14)
 
@@ -536,7 +543,7 @@ def create_3d_mesh(x_res, y_res = None, z_res = None, width = 1.0, height = None
     nz = nx
     depth = width
   elif z_res is None:
-    nz = round(nx * (depth/width))
+    nz = max(round(nx * (depth/width)), 1)
   elif depth is None:
     depth = round(width * (nz / nx), 14)        
   

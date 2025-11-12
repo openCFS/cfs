@@ -135,17 +135,22 @@ def remove(xml, path, unique = True):
 # to get text inside a xml tag, e.g. material tensor from .info.xml:
 # xpath(xml, "//iteration[last()]/homogenizedTensor/tensor/real/text()") gives a string
 # the manulal operation with namespaces would be xml.xpath("//cfs:cfsSimulation", namespaces={"cfs": "http://www.cfs++.org/simulation"})
-def xpath(xml, path):
+# @param uniqueness_check if True we need exactly one hit, else anything goes
+# @return if not uniqueness_check, a string. Otherwise plain xml.xpath with namespace service
+def xpath(xml, path, uniqueness_check = True):
   # assume lxml first
   try:
     res = xml.xpath(path, namespaces = namespace(path))  
-    if  len(res) == 0:
-      raise RuntimeError(path + " not found with ns='" + str(namespace(path)) + "'")
-    if len(res) > 1:
-      str(res)
-      raise RuntimeError(path + " has " + str(len(res)) + " hits")
-    data = res[0]
-    return str(data)
+    if uniqueness_check:
+      if  len(res) == 0:
+        raise RuntimeError(path + " not found with ns='" + str(namespace(path)) + "'")
+      if len(res) > 1:
+        str(res)
+        raise RuntimeError(path + " has " + str(len(res)) + " hits")
+      data = res[0]
+      return str(data)
+    else:
+      return res
   except AttributeError: # this happens when xml is from libxml2 and not lxml
     raise RuntimeError('parameter seems to be no lxml attribute ' + str(xml))
 

@@ -2,6 +2,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Results/ResultInfo.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
@@ -27,7 +28,8 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
 {
   EntityList::ListType entityListType = res->GetEntityList()->GetType();
   bool updatedGeo = true; //TODO: let the PDE set this flag
-  // optimization results are generated in DesignSpace(). This includes complicated ones like opt_result_*
+  LOG_DBG(resfunc) << "FCF:ER " << res->ToString() << " opt=" << res->GetResultInfo()->fromOptimization << " #el=" << res->GetEntityList()->GetSize() << " elt=" << entityListType;
+  // optimization results are generated in DesignSpace(). This includes complicated ones l ike opt_result_*
   if(res->GetResultInfo()->fromOptimization)
   {
     if(domain->HasDesign())
@@ -39,16 +41,13 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
     return;
   }
 
-  LOG_DBG(resfunc) << "ER " << res->ToString();
-
   // TODO element based interpolation from elemResults to nodeResults very slow
   // check for (combination of node list and fefunction) or coil list
   // since the coil list is used with the FeSpaceConst which does not have elements
-  if( ( entityListType == EntityList::NODE_LIST && typeid(*coef_) == typeid(FeFunction<TYPE>) )
-      || (entityListType == EntityList::COIL_LIST) )
+  FeFunction<TYPE>* feFct = dynamic_cast<FeFunction<TYPE>*>(coef_.get()); // The FeFunction has ExtractResult()
+  if((entityListType == EntityList::NODE_LIST && feFct != nullptr)|| (entityListType == EntityList::COIL_LIST) )
   {
-    FeFunction<TYPE> & feFct=  dynamic_cast<FeFunction<TYPE>&> (*coef_);
-    feFct.ExtractResult(res);
+    feFct->ExtractResult(res);
     return;
   }
 
@@ -57,6 +56,8 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
   Vector<TYPE>& vec = actSol.GetVector();
   Vector<TYPE> tempField;
   vec.Resize( it.GetSize() * this->dim_ );
+
+  LOG_DBG(resfunc) << "FCF:ER #el=" << it.GetSize() << " dim=" << this->dim_;
 
   switch( entityListType ) 
   {
@@ -115,9 +116,8 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
         shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap( el, updatedGeo );
         lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
-
         LOG_DBG3(resfunc) << "ER NT e=" << el->elemNum << " temField=" << tempField.ToString();
-
+        assert(tempField.GetSize() >= dim_);
         // loop over dofs
         for(UInt iDim = 0; iDim < dim_; iDim++ ) {
           vec[i*dim_ + iDim] = tempField[iDim];
@@ -159,8 +159,8 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::GetVector(Vector<TYPE>& vec, c
           tmp.ConvertToVec_UpperTriangular(vec);
         break;
       }
-    default:
-      EXCEPTION("Missing case statement");
+    case CoefFunction::NO_DIM:
+      throw Exception("invalid result");
       break;
   }
   LOG_DBG2(resfunc) << "FCF::GV vec=" << vec.ToString();

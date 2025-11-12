@@ -37,6 +37,7 @@ DEFINE_LOG(dm, "designMaterial")
 
 using namespace CoupledField;
 using std::string;
+using std::to_string;
 
 Enum<DesignMaterial::Type> DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
@@ -92,22 +93,21 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
   // read non-design parameters
   ParamNodeList params = pn->GetList("param");
-  for (unsigned int i = 0; i < params.GetSize(); i++) {
-    DesignElement::Type dt = DesignElement::type.Parse(
-        params[i]->Get("name")->As<string>());
+  for(unsigned int i = 0; i < params.GetSize(); i++) 
+  {
+    DesignElement::Type dt = DesignElement::type.Parse(params[i]->Get("name")->As<string>());
     SetParameter(dt, params[i]->Get("value")->As<Double>(), true);
-    if (d.Find(dt) < 0) {
+    if (d.Find(dt) < 0) 
       d.Push_back(dt);
-    }
-    if (d.Find(DesignElement::SHEAR1) < 0 && type_ != HOM_RECT_C1) {
+    if (d.Find(DesignElement::SHEAR1) < 0 && type_ != HOM_RECT_C1) 
       SetParameter(DesignElement::SHEAR1, 0.5, true);
-    }
   }
-  if (!CheckRequiredDesigns(d)) {
+  if(!CheckRequiredDesigns(d)) 
     throw Exception("Not all Parameters for chosen DesignMaterial given. See DesignMaterial::CheckRequiredDesigns().");
-  }else if(d.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed
-    domain->GetInfoRoot()->Get("optimization/designSpace/header")->SetWarning("There are designs specified that are not used!");
-  }
+  if(d.GetSize() > r) 
+  {
+    LOG_DBG3(dm) << "DM: Warning: " << d.GetSize() << " designs specified but required are only " << r;
+  } 
 
   if(type_ == HOM_RECT || type_ == D_HOM_RECT)
   {

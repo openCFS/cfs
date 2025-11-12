@@ -2661,7 +2661,7 @@ namespace CoupledField {
       DefineTimeDerivResult( MECH_ACCELERATION, 2, MECH_DISPLACEMENT );
       aFct = timeDerivFeFunctions_[MECH_ACCELERATION];
       //feFunctions_[MECH_ACCELERATION] = aFct;
-    }
+    } // end guard for not static and not buckling
     
     // === MECHANIC RHS ===
     shared_ptr<ResultInfo> rhs(new ResultInfo);
@@ -3341,24 +3341,6 @@ namespace CoupledField {
         reactionForceFct.reset(new ResultFunctorIntegrate<Double>(normalStressFct, feFct, reactionForceInfo));
     resultFunctors_[MECH_FORCE] = reactionForceFct;
     availResults_.insert(reactionForceInfo);
-
-    // === DENSITY ===
-//    shared_ptr<ResultInfo> matDens(new ResultInfo);
-//    matDens->resultType = DENSITY;
-//    matDens->dofNames = "";
-//    matDens->unit = "Ws/m^3";
-//    matDens->entryType = ResultInfo::SCALAR;
-//    matDens->definedOn = ResultInfo::ELEMENT;
-//    PtrCoefFct one = CoefFunction::Generate(mp_, Global::REAL, "1.0", "0.0");
-//    //densCoeff = actSDMat->GetScalCoefFnc( DENSITY,Global::REAL );
-//    shared_ptr<ResultFunctor> oneFunc;
-//    if( isComplex_ ) {
-//      oneFunc.reset(new CoefFunctionBdBKernel<Complex>(one, 1.0));
-//    } else {
-//      oneFunc.reset(new CoefFunctionBdBKernel<Double>(one, 1.0));
-//    }
-//    DefineFieldResult( densFunc, kinEnergyDens );
-//    massFormCoefs_.insert(kedFunc);
 
     // === MECH_TENSOR_HILL_MANDEL converts to HillMandel notation
     shared_ptr<ResultInfo> mech_tensor_hm(new ResultInfo);

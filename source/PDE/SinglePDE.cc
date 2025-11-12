@@ -4566,6 +4566,25 @@ namespace CoupledField {
     assemble_->AddBiLinearForm(eulerStiffContext);
   }
 
+  std::map<RegionIdType, BaseBDBInt*> SinglePDE::UniquePrimaryBDBInt()
+  {
+    std::map<RegionIdType, BaseBDBInt*> bdbIntsMap;
+
+    for(auto it = bdbInts_.begin(); it != bdbInts_.end(); ++it) 
+    {
+      RegionIdType region = it->first;
+      BaseBDBInt* integrator = it->second;
+      
+      // Check if region key already exists
+      if(bdbIntsMap.find(region) != bdbIntsMap.end()) 
+        throw Exception("BDB integrators multimap has duplicate region " + std::to_string(region));
+      
+      bdbIntsMap[region] = integrator;
+    }
+
+    return bdbIntsMap;
+  }
+
 
   template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Double>&, std::string);
   template void SinglePDE::ReadUserHistValues(PtrParamNode, ResultInfo::EntryType, Vector<Complex>&, std::string);

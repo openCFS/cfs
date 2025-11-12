@@ -175,7 +175,7 @@ public:
                     shared_ptr<ResultInfo> info,
                     TYPE factor = 1.0 );
   //! Destructor
-  virtual ~CoefFunctionFlux();
+  virtual ~CoefFunctionFlux() {}; 
 
   virtual string GetName() const { return "CoefFunctionFlux"; }
 
@@ -226,6 +226,7 @@ protected:
   //! Additional factor
   TYPE factor_;
 };
+
 
 // ==========================================================================
 //  COEFFICIENT FUNCTION EIGEN
@@ -416,7 +417,8 @@ protected:
 /**
  * Calculates scalar values (e.g. pressure) from lattice Boltzmann(LBM) particle distribution function values
  */
-template<class TYPE> class CoefFunctionLBM : public CoefFunctionFormBased
+template<class TYPE> 
+class CoefFunctionLBM : public CoefFunctionFormBased
 {
 public:
   CoefFunctionLBM(LatticeBoltzmannPDE* lbm, shared_ptr<BaseFeFunction> feFct,shared_ptr<ResultInfo> resInfo);
@@ -476,8 +478,9 @@ private:
   shared_ptr<FeFunction<TYPE> > feFct_;
 
   MaterialTensorNotation notation_;
-
 };
+
+
 
 } // end of namespace
 #endif

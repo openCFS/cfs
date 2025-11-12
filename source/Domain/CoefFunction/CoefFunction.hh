@@ -290,10 +290,13 @@ public:
   }
 
   //! Return real-valued element averaged value
-  virtual void GetAvgElemValue(Double & vec, const Elem* elem) {
-    EXCEPTION( "CoefFunction::GetAvgElemValue<Double> not overwritten by " << GetName());
+  virtual void GetAvgElemValue(Double& vec, const Elem* elem) {
+    throw Exception("CoefFunction::GetAvgElemValue<Double> not overwritten by " + GetName());
   }
 
+  virtual void GetAvgElemValue(Complex& vec, const Elem* elem) {
+    throw Exception("CoefFunction::GetAvgElemValue<Complex> not overwritten by " + GetName());
+  }
 
   //! Return real-valued scalar at integration point
   virtual void GetScalar(Double& scal, const LocPointMapped& lpm ) {

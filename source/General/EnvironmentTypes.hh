@@ -98,7 +98,7 @@ namespace CoupledField {
     MECH_KIN_ENERGY, MECH_DEFORM_ENERGY, MECH_TOTAL_ENERGY,
     MECH_POWER, MECH_DEF_SURF_VOLUME, MECH_WEIGHT, MECH_DYADIC_STRAIN_SUM, MECH_QUAD_DISP_SUM,
     // -- coupling quantities --
-    MECH_FORCE, MECH_VELOCITY_ELEM,
+    MECH_FORCE /* surface region results */, MECH_VELOCITY_ELEM,
 
     // -- optimization properties
     MECH_PSEUDO_DENSITY, // this is historical. We shall switch to PSEUDO_DENSITY as in mag

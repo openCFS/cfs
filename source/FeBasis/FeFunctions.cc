@@ -16,35 +16,27 @@
 namespace CoupledField {
   DEFINE_LOG(fefunc, "feFunction")
 
- 
-// Helper macro to generate prefix for logging output
-#define PREFIX  SolutionTypeEnum.ToString(result_->resultType) << ": "
- 
-    BaseFeFunction::BaseFeFunction(MathParser* mp) {
-
-    fctId_ = NO_FCT_ID;
-    pde_ = NULL;
-    grid_ = NULL;
+  
+  BaseFeFunction::BaseFeFunction(MathParser* mp) 
+  {
     if(mp) {
       mp_ = mp;
       mHandle_ = mp_->GetNewHandle();
-    } else  {
-      mp_ = NULL;
-    }
-    algsys_ = NULL;
+    } 
 
     // initialize members of coefficient function
     dependType_ = CoefFunction::GENERAL;
     isAnalytic_ = false;
     dimType_ = NO_DIM;
-
   }
 
   BaseFeFunction::~BaseFeFunction(){
     idBcs_.Clear();
-
   }
   
+  string BaseFeFunction::ToString() {
+    return SolutionTypeEnum.ToString(result_->resultType) + ": ";
+  }
   
   shared_ptr<ResultInfo> BaseFeFunction::GetResultInfo(){
     return result_;
@@ -162,7 +154,7 @@ namespace CoupledField {
   }
 
   void BaseFeFunction::AddHomDirichletBc( shared_ptr<HomDirichletBc> bc ){
-    LOG_DBG(fefunc) << PREFIX << "AddHomDirichletBc()";
+    LOG_DBG(fefunc) << ToString() << "AddHomDirichletBc()";
     hdBcs_.Push_back( bc );
     entities_.Push_back(bc->entities);
     if( bc->entities->GetDefineType() == EntityList::REGION) {
@@ -171,7 +163,7 @@ namespace CoupledField {
   }
 
   void BaseFeFunction::AddInhomDirichletBc( shared_ptr<InhomDirichletBc> bc ){
-    LOG_DBG(fefunc) << PREFIX << "AddInhomDirichletBc()";
+    LOG_DBG(fefunc) << ToString() << "AddInhomDirichletBc()";
     idBcs_.Push_back(bc);
     entities_.Push_back(bc->entities);
     if( bc->entities->GetDefineType() == EntityList::REGION) {
@@ -195,7 +187,7 @@ namespace CoupledField {
 
   void BaseFeFunction::AddExternalDataSource( PtrCoefFct coef,
                                               const StdVector<shared_ptr<EntityList> >& lists){
-    LOG_DBG(fefunc) << PREFIX << "AddExternalDataSource()" << "size of lists is " << lists.GetSize();
+    LOG_DBG(fefunc) << ToString() << "AddExternalDataSource()" << "size of lists is " << lists.GetSize();
     this->externalDataCoefs_[coef] = lists;
   }
 
@@ -449,23 +441,23 @@ namespace CoupledField {
    }
 
   template<typename T>
-  void FeFunction<T>::ExtractResult( shared_ptr<BaseResult> res ) {
-
-    ResultInfo& resInfo = *(res->GetResultInfo() );
-    UInt numDofs = resInfo.dofNames.GetSize();
+  void FeFunction<T>::ExtractResult(shared_ptr<BaseResult> res) 
+  {
+    ResultInfo* resInfo = res->GetResultInfo().get();
+    UInt numDofs = resInfo->dofNames.GetSize();
 
     shared_ptr<EntityList> list = res->GetEntityList();
-    Vector<T> & actSol = dynamic_cast<Result<T>&>(*res).GetVector();
-    actSol.Resize( list->GetSize() * numDofs );
-    LOG_DBG(fefunc) << PREFIX << "ExtractResult for size " << actSol.GetSize();
+    assert(dynamic_cast<Result<T>*>(res.get()) != nullptr);
+    Vector<T>& actSol = dynamic_cast<Result<T>&>(*res).GetVector();
+    actSol.Resize(list->GetSize() * numDofs);
+    LOG_DBG(fefunc) << ToString() << "ExtractResult for size " << actSol.GetSize();
 
     EntityIterator it = list->GetIterator();
     actSol.Init();
 
     StdVector<Integer> eqnNums;
     UInt pos = 0;
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
-
+    for(it.Begin(); !it.IsEnd(); it++) {
       // get equation numbers
       feSpace_->GetEqns( eqnNums, it );
 
@@ -483,10 +475,9 @@ namespace CoupledField {
           //now we obtain the global coords of the
           //node assuming that everything is the same grid. if not, we are in trouble anyway
           nodeNum = it.GetNode();
-        }else if(it.GetType() == EntityList::ELEM_LIST ||
-                 it.GetType() == EntityList::SURF_ELEM_LIST){
+        }else if(it.GetType() == EntityList::ELEM_LIST || it.GetType() == EntityList::SURF_ELEM_LIST){
           //determine global coord of element midpoint
-          EXCEPTION("Interpolation for extract result not implemented for the Element case");
+          throw Exception("Interpolation for extract result not implemented for the Element case");
         }
         // try to find the correct element, being one belonging to the regionlist of
         // this fefunction
@@ -513,7 +504,9 @@ namespace CoupledField {
           actSol[pos++] = dofSol[iDim];
         }
       }else{
-        Vector<T> & vals = *coeffs_;
+        // the equations case
+        assert(coeffs_ != nullptr && coeffs_->GetSize() > 0);
+        Vector<T>& vals = *coeffs_;
         for ( UInt iDof = 0; iDof < eqnNums.GetSize(); iDof++ ){
           // check for homogeneous Dirichlet boundary condition
           if ( eqnNums[iDof] != 0 ) {
@@ -706,13 +699,13 @@ namespace CoupledField {
   }
 
   template<typename T>
-  void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
-                                         const EntityIterator& it ){
-    LOG_DBG(fefunc) << PREFIX << "GetEntitySolution()";
-    Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
+  void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, const EntityIterator& it )
+  {
+    LOG_DBG(fefunc) << ToString() << "FE:GES: #es=" << elemSol.GetSize() << " it=" << it.ToString();
+    Vector<T>& temp = dynamic_cast<Vector<T>&>(elemSol);
 
     StdVector<Integer> eqns;
-    Vector<T> & vals = *coeffs_;
+    Vector<T>& vals = *coeffs_;
     feSpace_->GetEqns(eqns, it);
 
     temp.Resize(eqns.GetSize());
@@ -738,8 +731,7 @@ namespace CoupledField {
       // try to find the correct element, being one belonging to the regionlist of
       // this fefunction
       LocPoint lp;
-      const Elem* myElem = 
-          grid_->GetElemAtNode(nodeNum, lp, regions_ );
+      const Elem* myElem = grid_->GetElemAtNode(nodeNum, lp, regions_);
       if( !myElem ) {
         WARN("Some elements were skipped during the interpolation");
         temp.Init();
@@ -771,10 +763,10 @@ namespace CoupledField {
    void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol, const EntityIterator& it ){
      //for now we put the unkowns in the columns
      //and the dof entrys in rows
-     Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
+     Matrix<T>& temp = dynamic_cast<Matrix<T>&>(elemSol);
      UInt dofsPerUnknown = result_->dofNames.GetSize();
      StdVector<Integer> eqns;
-     Vector<T> & vals = *coeffs_;
+     Vector<T>& vals = *coeffs_;
      temp.Resize(feSpace_->GetNumFunctions(it), dofsPerUnknown);
      for(UInt iDof = 0 ; iDof < dofsPerUnknown ; iDof++) {
        feSpace_->GetEqns(eqns, it,iDof);
@@ -791,9 +783,9 @@ namespace CoupledField {
   template<typename T>
   void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
                                          const Elem* elem ) {
-    LOG_DBG(fefunc) << PREFIX << "GetElemSolution()";
+    LOG_DBG(fefunc) << ToString() << "GetElemSolution()";
     StdVector<Integer> eqns;
-    const Vector<T> & vals = *coeffs_;
+    const Vector<T>& vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
     elemSol.Resize(eqns.GetSize());
     for(UInt i= 0 ; i< eqns.GetSize(); i++){
@@ -812,10 +804,10 @@ namespace CoupledField {
     // InHomogeneous BCs
     // ==================================================
     //loop over all inhomogeneous BCs
-    LOG_DBG(fefunc) << PREFIX << "ApplyBC() (inhomogeneous)";
+    LOG_DBG(fefunc) << ToString() << "FE:ApplyBC() (inhomogeneous)";
 
     for ( UInt i = 0; i < idBcs_.GetSize(); i++ ) {
-      InhomDirichletBc const & actBc = *(idBcs_[i]);
+      InhomDirichletBc const& actBc = *(idBcs_[i]);
       
       // get time derivation order of boundary condition
       // (e.g. 2 for mech acceleration, 0 for mech displacement
@@ -955,13 +947,13 @@ namespace CoupledField {
   
   template<typename T>
   void FeFunction<T>::ApplyLoads(){
-	  //LOG_DBG(fefunc) << PREFIX << "ApplyLoads()";
+	  //LOG_DBG(fefunc) << ToString() << "ApplyLoads()";
 	  //loop over all loads
 	  LoadCoefList::iterator it = loadCoefs_.begin();
 	  // Loop over all coeffunctions
 	  for ( ; it != loadCoefs_.end(); ++it  ) {
 		  PtrCoefFct ptCoef = it->first;
-		  StdVector<shared_ptr<EntityList> > & lists = it->second;
+		  StdVector<shared_ptr<EntityList> >& lists = it->second;
 
 		  CoefFunction::CoefInverseType type = ptCoef->GetInverseType();
 		  CoefFunction::CoefInverseSourceApprox typeApprox = ptCoef->GetInverseSourceApproxType();
@@ -1000,7 +992,7 @@ namespace CoupledField {
 	  // Loop over all coeffunctions
 	  for ( ; it != loadCoefs_.end(); ++it  ) {
 		  PtrCoefFct ptCoef = it->first;
-		  StdVector<shared_ptr<EntityList> > & lists = it->second;
+		  StdVector<shared_ptr<EntityList> >& lists = it->second;
 
 		  std::map<Integer, T> coefs;
 		  feSpace_->MapCoefFctToSpace( lists, ptCoef, shared_from_this(), coefs, false );
@@ -1059,17 +1051,17 @@ namespace CoupledField {
   template<typename T>
   void FeFunction<T>::ApplyExternalData(){
 
-    LOG_DBG(fefunc) << PREFIX << "ApplyExternalData()";
+    LOG_DBG(fefunc) << ToString() << "ApplyExternalData()";
     LoadCoefList::iterator it = externalDataCoefs_.begin();
     // Loop over all loads
     for ( ; it != externalDataCoefs_.end(); ++it  ) {
       PtrCoefFct curFnc = it->first;
-      StdVector<shared_ptr<EntityList> > & lists = it->second;
+      StdVector<shared_ptr<EntityList> >& lists = it->second;
 
       // Map coefficient function onto the actual FeSpace
       std::map<Integer, T> coefs;
       feSpace_->MapCoefFctToSpace( lists, curFnc, shared_from_this(), coefs, false );
-      Vector<T> & myVals = *this->coeffs_;
+      Vector<T>& myVals = *this->coeffs_;
       typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
       for( ; coefIt != coefs.end(); ++coefIt ) {
         Integer eqnNr = coefIt->first;
@@ -1082,7 +1074,7 @@ namespace CoupledField {
   template<typename T>
   void FeFunction<T>::InitFromFeFunction( shared_ptr<BaseFeFunction> feFct ) {
    
-    LOG_DBG(fefunc) << PREFIX << "Initialize from other FeFunction";
+    LOG_DBG(fefunc) << ToString() << "Initialize from other FeFunction";
     
     // Get related spaces
     shared_ptr<FeSpace> otherSpace = feFct->GetFeSpace();
@@ -1101,14 +1093,11 @@ namespace CoupledField {
     EntityList::Intersect( this->entities_, feFct->GetEntityList(), intersect );
 
     // Loop over all entities
-    LOG_DBG3(fefunc) << PREFIX << "Entities to be transferred: ";
-    for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
-    // Check if all entities have the same approximation
-      bool isSame = this->feSpace_
-          ->IsSameEntityApproximation( intersect[iList],otherSpace);
-      LOG_DBG3(fefunc) << PREFIX << "\t" << intersect[iList]->GetName()
-          << " (same approximation: " 
-          << (isSame ? "true" : "false") << ")";
+    LOG_DBG3(fefunc) << ToString() << "Entities to be transferred: ";
+    for(UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
+      // Check if all entities have the same approximation
+      bool isSame = this->feSpace_->IsSameEntityApproximation(intersect[iList],otherSpace);
+      LOG_DBG3(fefunc) << ToString() << "\t" << intersect[iList]->GetName() << " (same approximation: " << (isSame ? "true" : "false") << ")";
       sameApprox &= isSame;
     }
     
@@ -1120,7 +1109,7 @@ namespace CoupledField {
       // Map coefficient function onto the actual FeSpace using the general mechanism
       std::map<Integer, T> coefs;
       feSpace_->MapCoefFctToSpace( intersect, feFct, shared_from_this(), coefs, false );
-      Vector<T> & myVals = *this->coeffs_;
+      Vector<T>& myVals = *this->coeffs_;
       typename std::map<Integer, T>::const_iterator coefIt = coefs.begin();
       for( ; coefIt != coefs.end(); ++coefIt ) {
         Integer eqnNr = coefIt->first;
@@ -1133,10 +1122,10 @@ namespace CoupledField {
       //  Copy entries
       // ---------------
       LOG_DBG(fefunc)<< "=> Applying Copy Based Algorithm <= ";
-      Vector<T> & myVec = *(this->coeffs_);
+      Vector<T>& myVec = *(this->coeffs_);
       myVec.Init();
       if(convertDoubleToComplex){
-        FeFunction<Double> & otherFct =
+        FeFunction<Double>& otherFct =
               dynamic_cast<FeFunction<Double>& >(*feFct);
         for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
           shared_ptr<EntityList> actList = intersect[iList];
@@ -1158,8 +1147,7 @@ namespace CoupledField {
           } // loop: elements
         } // loop: lists
       }else{
-        FeFunction<T> & otherFct =
-                      dynamic_cast<FeFunction<T>& >(*feFct);
+        FeFunction<T>& otherFct = dynamic_cast<FeFunction<T>& >(*feFct);
         for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
           shared_ptr<EntityList> actList = intersect[iList];
 
@@ -1181,7 +1169,7 @@ namespace CoupledField {
         } // loop: lists
       }
     }
-    LOG_DBG(fefunc) << PREFIX << "Finished initialization from other FeFunction";
+    LOG_DBG(fefunc) << ToString() << "Finished initialization from other FeFunction";
   }
 
   template<typename T>
@@ -1193,12 +1181,11 @@ namespace CoupledField {
     // apply identity operator to it
     BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
     idOp_->ApplyOp(vec, lpm, ptFe, elemSol );
-    LOG_DBG(fefunc) << PREFIX << ": Requesting vector solution of point in elem " << lpm.ptEl->elemNum << ". Sol[0] = " << vec[0]; 
+    LOG_DBG(fefunc) << ToString() << ": Requesting vector solution of point in elem " << lpm.ptEl->elemNum << ". Sol[0] = " << vec[0]; 
   }
   
   template<typename T>
-  void FeFunction<T>::GetAvgElemValue(T & vec, 
-                         const Elem* elem) {
+    void FeFunction<T>::GetAvgElemValue(T& vec, const Elem* elem) {
     // get element solution
     Vector<T> elemSol;
     GetElemSolution( elemSol, elem);
@@ -1208,13 +1195,11 @@ namespace CoupledField {
       vec += elemSol[i];
     }
     vec /= elemSol.GetSize();
-    LOG_DBG(fefunc) << PREFIX << ": Requesting average solution of element " << elem->elemNum << ". Sol = " << vec;
-
-   }
+    LOG_DBG(fefunc) << ToString() << ": Requesting average solution of element " << elem->elemNum << ". Sol = " << vec;
+  }
   
   template<typename T>
-  void FeFunction<T>::GetScalar(T & scal, 
-                                const LocPointMapped& lpm ){
+  void FeFunction<T>::GetScalar(T& scal, const LocPointMapped& lpm ){
     // get element solution
     Vector<T> elemSol, temp;
     GetElemSolution( elemSol, lpm.ptEl);
@@ -1228,8 +1213,8 @@ namespace CoupledField {
     scal = temp[0];
   }
   
-  
-  // Explicit template instantiation
-  template class FeFunction<Double>;
-  template class FeFunction<Complex>;
-}
+// Explicit template instantiation
+template class FeFunction<Double>;
+template class FeFunction<Complex>;
+
+} // end of namespace

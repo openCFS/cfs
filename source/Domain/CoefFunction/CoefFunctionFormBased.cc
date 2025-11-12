@@ -234,17 +234,10 @@ CoefFunctionFlux( shared_ptr<BaseFeFunction> feFct,
 
   // set inherited attributes
   dimType_ = CoefFunction::VECTOR;
-
 }
 
-template<class TYPE, bool TRANS> CoefFunctionFlux<TYPE,TRANS>::
-~CoefFunctionFlux() {
-
-
-}
-template<class TYPE, bool TRANS> void CoefFunctionFlux<TYPE,TRANS>::
-AddIntegrator( BaseBDBInt* form,  
-               RegionIdType region ) {
+template<class TYPE, bool TRANS> void CoefFunctionFlux<TYPE,TRANS>::AddIntegrator( BaseBDBInt* form,  RegionIdType region ) 
+{
 #ifdef USE_OPENMP
   if(omp_get_num_threads()!=1){
     EXCEPTION("Call from parallel region which is not safe.")
@@ -800,9 +793,12 @@ template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::G
 template<class TYPE, App::Type APP> void CoefFunctionHomogenization<TYPE,APP>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
 {
   std::map<RegionIdType, BaseBDBInt* >& forms = this->forms_.Mine();
+  LOG_DBG(cff) << "CFH:GT #forms=" << forms.size() << " el=" << lpm.ptEl->elemNum << " reg=" << lpm.ptEl->regionId;
   BaseBDBInt* form = forms[lpm.ptEl->regionId];
-
-  LOG_DBG(cff) << "CFH:GT #forms=" << forms.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
+  if(form == nullptr)
+    throw Exception("Have no tensor data for element " + std::to_string(lpm.ptEl->elemNum) + " in region " + domain->GetGrid()->regionData[lpm.ptEl->regionId].name);
+  
+  LOG_DBG(cff) << "CFH:GT form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
 
   // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
   form->GetCoef()->GetTensor(tensor, lpm);

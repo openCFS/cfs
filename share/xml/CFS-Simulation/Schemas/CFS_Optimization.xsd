@@ -2729,6 +2729,11 @@
         </xsd:annotation>
       </xsd:element>
     </xsd:sequence>
+    <xsd:attribute name="comment" type="xsd:token">
+      <xsd:annotation>
+         <xsd:documentation>This is purely a space to comment a pill for ease in editing</xsd:documentation>
+        </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
    
   <!-- end of DT_Pill -->

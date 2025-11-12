@@ -101,13 +101,10 @@ void FeatureMappingDesign::PostInit(int objectives, int constraints)
     CoefFunctionOpt* coef = Optimization::context->mat->GetMatCoef("LinElastInt", domain->GetDesign()->GetRegionId());
     assert(dynamic_cast<CoefFunctionConst<double>*>(coef->orgMat.get()) != nullptr);
     aniso_base_tensor = dynamic_cast<CoefFunctionConst<double>*>(coef->orgMat.get())->GetTensor();
-  } else 
-  {
-    bool aniso = domain->GetDesign()->GetMethod() == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT;
-    if (aniso)
-      throw Exception("Anisotropic material only supportet for MechPDE.");
-  }
-
+  } 
+  else if(domain->GetDesign()->GetMethod() == ErsatzMaterial::FEATURE_MAPPING_PARAM_MAT)
+    throw Exception("Anisotropic material only supported for MechPDE.");
+  
   // this calls Pill::Update() and in the anisotropic case we need DesignSpace set up
   MapFeatureToDensity(); // only so late because of python -> calls PythonUpdateSpaghetti()
   LOG_DBG(fm) << "PI data=" << data.GetSize() << " aux=" << aux_design_.GetSize() << " shape=" << opt_shape_param_.GetSize() << " -> N=" << GetNumberOfVariables();

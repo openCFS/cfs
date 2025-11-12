@@ -43,10 +43,7 @@ namespace CoupledField {
   
   The class has methods to
   - Aquire the solution of an element
-  - Add Result
-*/
-
-
+  - Add Result */
 class BaseFeFunction : public CoefFunction, 
                        public boost::enable_shared_from_this<BaseFeFunction> {
 public:
@@ -283,10 +280,14 @@ public:
   //! and fills the appropriate info into the algebraic system
   virtual void ApplyGeomInfo() = 0;
 
+
+  /** helper for logging/debugging */
+  string ToString();
+
 protected:
 
   //! Identifier for the function
-  FeFctIdType fctId_;
+  FeFctIdType fctId_ = NO_FCT_ID;
   
   //! Pointer to finite element function space
   shared_ptr<FeSpace> feSpace_;
@@ -323,23 +324,22 @@ protected:
 
   //! Pointer to the creating PDE
   //shared_ptr<StdPDE> pde_;
-  SinglePDE* pde_;
+  SinglePDE* pde_ = nullptr;
 
   //! Pointer to the grid 
-  Grid* grid_;
+  Grid* grid_ = nullptr;
   
   //! Handle for MathParser object
   unsigned int mHandle_;
 
   //! pointer to algebraic system
-  AlgebraicSys* algsys_;
+  AlgebraicSys* algsys_ = nullptr;
   
   //! Pointer to MathParser
-  MathParser * mp_;
+  MathParser* mp_ = nullptr;
 
   //! pointer to timestepping scheme
   shared_ptr<BaseTimeScheme> timeScheme_;
-  
 };
 
 
@@ -363,18 +363,18 @@ public:
   void SetTimeDerivOrder( UInt i, shared_ptr<FeFunction<T> > feFct  );
   
   //! \see BaseFeFunction::Finalize()
-  void Finalize();
+  void Finalize() override;
   
   //! \see BaseFeFunction::CleanUp 
-  void CleanUp();
+  void CleanUp() override;
   
   
-  virtual bool IsComplex() const {
+  virtual bool IsComplex() const override {
     return std::is_same<T,Complex>::value;
-    
   }
+
   //! \copydoc BaseFeFunction::SetResultInfo 
-  void SetResultInfo( shared_ptr<ResultInfo> info );
+  void SetResultInfo( shared_ptr<ResultInfo> info ) override;
   
   /////////////////////////////////////////////////////////////////
   // Solution Access functions 
@@ -382,24 +382,19 @@ public:
   //
   
   //! Copy values into result object
-  void ExtractResult( shared_ptr<BaseResult> res ); 
+  void ExtractResult( shared_ptr<BaseResult> res ) override; 
   
   //! Get solution for specific entity
-  void GetEntitySolution( SingleVector& elemSol, 
-                          const EntityIterator& it );
+  virtual void GetEntitySolution(SingleVector& elemSol, const EntityIterator& it) override;
   
    //! Get solution as matrix for specific entity
-  void GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
-                                   const EntityIterator& it );
-  
-  
+  void GetEntitySolutionAsMatrix(DenseMatrix& elemSol, const EntityIterator& it) override;
+    
   //! Get solution for specific element 
-  void GetElemSolution( Vector<T>& elemSol,
-                        const Elem* elem );
-  
+  void GetElemSolution(Vector<T>& elemSol, const Elem* elem);
   
   //! Return vector containing the function coefficients
-  SingleVector* GetSingleVector() {return coeffs_;}
+  SingleVector* GetSingleVector() override {return coeffs_;}
     
   //! Return complete coefficient vector
   Vector<T>& GetVector() {return *coeffs_;}
@@ -408,24 +403,24 @@ public:
   const Vector<T>& GetVector() const {return *coeffs_;}
 
   //! Incorporate boundary conditions
-  virtual void ApplyBC();
+  virtual void ApplyBC() override;
   
   //! Incorporate load conditions, the characteristic here is that the values will be
   //! added, not set as in ApplyBCs
-  virtual void ApplyLoads();
+  virtual void ApplyLoads() override;
 
   //! incorporate loads defined in values
   virtual void ApplyLoads(PtrCoefFct& values);
 
   //! Set the feFunction to values obtained by external data sources
-  virtual void ApplyExternalData();
+  virtual void ApplyExternalData() override;
 
 
   //! Create a connection between OLAS-equations and geometry
 
   //! Checks if nodal- (Lagrangian-) FE or edge- (Nédéléc-) is used
   //! and fills the appropriate info into the algebraic system
-  virtual void ApplyGeomInfo();
+  virtual void ApplyGeomInfo() override;
 
   // ========================================================================
    //  Coefficient Function Interface
@@ -433,32 +428,25 @@ public:
    //@{ \name Access Methods of CoefFunction interface
 
   //! Return complex-valued vector at integration point
-  virtual void GetVector(Vector<T>& vec, 
-                         const LocPointMapped& lpm );
+  virtual void GetVector(Vector<T>& vec, const LocPointMapped& lpm) override;
 
-  //! Return real-valued element averaged value
-  virtual void GetAvgElemValue(T & vec, 
-                         const Elem* elem); 
+  void GetAvgElemValue(T& vec, const Elem* elem) override;
 
   //! Return complex-valued scalar at integration point
-  virtual void GetScalar(T& scalar, 
-                         const LocPointMapped& lpm );
-   
+  virtual void GetScalar(T& scalar, const LocPointMapped& lpm) override;
    //@}
   
   //! generates an interpolation operator by determining the space used
-  BaseBOperator* GenerateInterpolationOperator(UInt dim, UInt dofDim);
+  BaseBOperator* GenerateInterpolationOperator(UInt dim, UInt dofDim) override;
 
   //! Generate interpolation bilinear form
-  BiLinearForm* GenerateInterpolBilinForm( UInt spaceDim, UInt dofDim,
-                                           bool updatedGeo );
+  BiLinearForm* GenerateInterpolBilinForm(UInt spaceDim, UInt dofDim, bool updatedGeo) override;
   
   //! Generate interpolation linear form
-  LinearForm* GenerateInterpolLinForm( UInt spaceDim, UInt dofDim, PtrCoefFct,
-                                       bool updatedGeo );
+  LinearForm* GenerateInterpolLinForm(UInt spaceDim, UInt dofDim, PtrCoefFct, bool updatedGeo) override;
   
   //! \copydoc BaseFeFunction::InitFromFeFunction
-  void InitFromFeFunction( shared_ptr<BaseFeFunction> feFct );
+  void InitFromFeFunction(shared_ptr<BaseFeFunction> feFct) override;
   
 protected:
 
@@ -466,7 +454,7 @@ protected:
   void UpdateTimeDeriv();
   
   //! Coefficient vector
-  Vector<T> * coeffs_;
+  Vector<T>* coeffs_;
   
   //! Interpolation operator
   BaseBOperator* idOp_;
@@ -476,8 +464,7 @@ protected:
   
   //! Factor for time derivative
   T factor_;
-};  
-
+};
 
 }  // namespace CoupledField
 #endif

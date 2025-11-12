@@ -412,7 +412,36 @@ namespace CoupledField {
    * is actually std::pow(10, Linspace(s,e,n)) */
   Vector<double> LogspaceBase(double start_exponent, double end_exponent, int n);
 
-  /** test if a string is of the given value. E.g. int or double */
+  /** Convert a map to vector indexed by key
+   * Assumes keys are non-negative integers that can be used as vector indices
+   * @param inputMap Input map with integer-like keys
+   * @return Vector where index corresponds to key value - empty keys have default value (0, nullptr, ...)
+   * @throws Exception if any key is negative or keys are not contiguous (gaps are filled with default values) */  
+  template<typename KEY_TYPE, typename VALUE_TYPE>
+  StdVector<VALUE_TYPE> MapToVector(const std::map<KEY_TYPE, VALUE_TYPE>& inputMap)
+  {
+    if(inputMap.empty()) 
+      return StdVector<VALUE_TYPE>();
+
+    // Check that all keys are >= 0
+    for(const auto& pair : inputMap) 
+      if(pair.first < 0) 
+        throw Exception("Map has negative key " + std::to_string(pair.first));
+
+    // Find the maximum key to determine vector size
+    KEY_TYPE maxKey = inputMap.rbegin()->first;
+    
+    // Create vector with size = maxKey + 1, initialized with default values
+    StdVector<VALUE_TYPE> result((unsigned int) (maxKey + 1));
+    
+    // Fill vector with values at corresponding indices
+    for(const auto& pair : inputMap) 
+      result[(unsigned int) pair.first] = pair.second;
+
+    return result;
+  }
+
+  /** test if a string is of the given value. E.g. int or double without try/catch */
   template<class T>
   bool IsType(const std::string& s) 
   {
