@@ -5,11 +5,10 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
 https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
     <fileFormats>
         <input>
-            <cdb fileName="LiftMagnet_MagEdgeAdj.cdb"/>
+            <hdf5 fileName="topopt_parameters.cfs"/>
         </input>
         <output>
             <hdf5/>
-            <text id="txt"/>
         </output>
         <!-- specify your material input file here -->
         <materialData file="mat.xml" format="xml"/>
@@ -41,17 +40,24 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
             <static/>
         </analysis>
         <pdeList>
-            <magneticEdge formulation="TOAdjoint">
+            <magneticEdge>
                 <regionList>
                     <!-- specify your regions here -->
                     <region name="V_core"/>
                     <region name="V_air"/>
-                    <region name="V_design_domain"/>
+                    <region name="V_design_domain" matDependIds="dep1"/>
                     <region name="V_outer_coil_part"/>
                     <region name="V_inner_coil_part"/>
                     <region name="V_armature"/>
-                    <region name="V_objective_domain"/>
+                    <region name="V_objective_domain"/> 
                 </regionList>
+                <matDependencyList>
+				  <matPermeability id="dep1">
+				    <grid> 
+                       <defaultGrid  quantity="magElemPermeability" definedOn="element"  dependtype="CONST" snapToCFSTimeStep="true" sequenceStep="1" />
+                    </grid>						  
+				  </matPermeability>
+				</matDependencyList>
                 <bcsAndLoads>
                     <fluxParallel name="S_outer_air">
                     </fluxParallel>
@@ -88,10 +94,9 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
                     </coil>
                 </coilList>
                 <storeResults>
-<!-- 
-                        Define outputs here:
-                        The magnetic potential is a nodal result, the flux density and field intensity are element results.
-                    -->
+                    <elemResult type="magPotential">
+                        <allRegions/>
+                    </elemResult>
                     <elemResult type="magFluxDensity">
                         <allRegions/>
                     </elemResult>
@@ -103,7 +108,84 @@ https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
                     </regionResult>
                 </storeResults>
             </magneticEdge>
-            
+
+            <magneticEdgeAdjTO>
+                <regionList>
+                    <!-- specify your regions here -->
+                    <region name="V_core"/>
+                    <region name="V_air"/>
+                    <region name="V_design_domain" matDependIds="dep1"/>
+                    <region name="V_outer_coil_part"/>
+                    <region name="V_inner_coil_part"/>
+                    <region name="V_armature"/>
+                    <region name="V_objective_domain"/> 
+                </regionList>
+                <matDependencyList>
+				  <matPermeability id="dep1">
+				    <grid> 
+                       <defaultGrid  quantity="magElemPermeability" definedOn="element"  dependtype="CONST" snapToCFSTimeStep="true" sequenceStep="1" />
+                    </grid>						  
+				  </matPermeability>
+				</matDependencyList>
+                <bcsAndLoads>
+                    <fluxParallel name="S_outer_air">
+                    </fluxParallel>
+                    <fluxParallel name="S_front">
+                    </fluxParallel>
+                    <fluxParallel name="S_back">
+                    </fluxParallel>
+                    <fluxDensity name="V_objective_domain">
+                        <coupling pdeName="magneticEdge">
+                            <quantity name="magFluxDensity"/>
+                        </coupling>
+                    </fluxDensity>
+                </bcsAndLoads>
+                <coilList>
+                    <coil id="coil">
+                        <source type="current" value="i*N/A"/>
+                        <part id="1">
+                            <regionList>
+                                <region name="V_outer_coil_part"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="-1.0"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1"/>
+                        </part>
+                        <part id="2">
+                            <regionList>
+                                <region name="V_inner_coil_part"/>
+                            </regionList>
+                            <direction>
+                                <analytic>
+                                    <comp dof="z" value="1.0"/>
+                                </analytic>
+                            </direction>
+                            <wireCrossSection area="1"/>
+                        </part>
+                    </coil>
+                </coilList>
+                <storeResults>
+                    <elemResult type="magFluxDensityAdj">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="gradParam1">
+						<regionList>
+							<region name="V_design_domain" />
+						</regionList>
+					</elemResult>	
+                </storeResults>
+            </magneticEdgeAdjTO>
+        
         </pdeList>
+
+        <couplingList>
+      		<iterative PDEorder="magneticEdge; magneticEdgeAdjTO">
+                    <convergence logging="yes" maxNumIters="1" stopOnDivergence="no"/>
+                </iterative>        
+    	</couplingList>
+
     </sequenceStep>
 </cfsSimulation>
