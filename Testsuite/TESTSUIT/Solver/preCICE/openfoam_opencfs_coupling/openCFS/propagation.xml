@@ -100,7 +100,9 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 
 		<!-- PDE Definition -->
 		<pdeList>
-			<acoustic formulation="acouPressure">
+			<!-- <acoustic formulation="acouPressure"> -->
+			 <acoustic formulation="acouPotential">
+				<!-- <acoustic formulation="acouPotential" timeStepAlpha="0.5"/> -->
 				<!-- Computation Domain -->
 				<regionList>
 					<region name="internal" />
@@ -124,17 +126,17 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 
 				<!-- Boundary Conditions and Volume Loads -->
 				<bcsAndLoads>
-					<!-- <rhsValues name="internal">
+					<rhsDensity name="internal">
 						<grid>
 							<defaultGrid quantity="acouRhsLoad" dependtype="GENERAL" definedOn="node">
 							</defaultGrid>
 						</grid>
-					</rhsValues> -->
-					<pressure name="bc">
+					</rhsDensity>
+					<!-- <pressure name="bc">
 						<grid>
 							<defaultGrid quantity="acouPressure" dependtype="GENERAL" definedOn="node"/>
 						</grid>
-					</pressure>
+					</pressure> -->
 				</bcsAndLoads>
 
 				<!-- Results Definition -->
@@ -162,8 +164,8 @@ xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cf
 							<elems name="mic2e" />
 						</elemList>
 					</elemResult> -->
-					<nodeResult type="acouPressure">
-						<!-- <nodeResult type="acouRhsLoad"> -->
+					<!-- <nodeResult type="acouPressure"> -->
+						<nodeResult type="acouRhsLoad">
 						<allRegions/>
 					</nodeResult>
 				</storeResults>
