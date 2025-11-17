@@ -370,7 +370,7 @@ namespace CoupledField
         else
         {
 
-          std::cout << " - Linear material case - " << std::endl;
+          // std::cout << " - Linear material case - " << std::endl;
           // ===============================
           //  Standard Stiffness Integrator
           // ===============================
@@ -390,7 +390,7 @@ namespace CoupledField
           PtrCoefFct permeability = NULL;
 
           // TOAdjoint : read the necessary material parameter from h5 file !
-          std::cout << " - TOAdjoint : read the necessary material parameter from h5 file !" << std::endl;
+          // std::cout << " - [TOAdjoint] : read the necessary material parameter from h5 file !" << std::endl;
 
           shared_ptr<ResultInfo> resultInfo = GetResultInfo(MAG_ELEM_PERMEABILITY); 
           shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
@@ -834,7 +834,7 @@ namespace CoupledField
 
       if (curHystCoef != NULL)
       {
-        std::cout << "Hysteresis region found" << std::endl;
+        // std::cout << "Hysteresis region found" << std::endl;
         // NEW: we do not pass the hysteresis coefficient function
         // directly but instead a special class that returns the
         // correctly weighted term

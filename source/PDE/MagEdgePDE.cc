@@ -169,7 +169,7 @@ namespace CoupledField
       // pass entitylist ot fespace / fefunction
       feFunc->AddEntityList(actSDList);
 
-      std::cout << "nonLinTypes.Find(PERMEABILITY): " << nonLinTypes.Find(PERMEABILITY) << "\n";
+      // std::cout << "nonLinTypes.Find(PERMEABILITY): " << nonLinTypes.Find(PERMEABILITY) << "\n";
       if (nonLinTypes.Find(PERMEABILITY) != -1) {
         if (modelName_ == "invEBHysteresisModel"){ // use inverse energy-based Hysteresis model
           // define needed variables
@@ -381,28 +381,22 @@ namespace CoupledField
           PtrCoefFct constOne = CoefFunction::Generate(mp_, Global::REAL, "1.0");
           PtrCoefFct mu0 = CoefFunction::Generate(mp_, Global::REAL, "795774.716369");
           PtrCoefFct permeability = NULL;
-          if (onlyVacuum_)
-          {
-            curCoef = mu0;
-            permeability = mu0;
-          }
-          else
-          {
-            curCoef = actMat->GetScalCoefFnc(MAG_RELUCTIVITY_SCALAR, Global::REAL); // actMat->GetTensorCoefFnc(MAG_RELUCTIVITY,FULL,Global::REAL );
-            permeability = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, curCoef, CoefXpr::OP_DIV));
-          }
-          matCoefs_[MAG_ELEM_PERMEABILITY]->AddRegion(actRegion, permeability);
+          // New part :
+          // TOAdjoint : read the necessary material parameter from h5 file !
+          // std::cout << " - [TOForward] : read the necessary material parameter from h5 file !" << std::endl;
 
-          if (domain->HasDesign())
-          {
-            cfo = new CoefFunctionOpt(domain->GetDesign(), curCoef, MAG_RELUCTIVITY_SCALAR, this);
-            curCoef.reset(cfo);
-          }
+          shared_ptr<ResultInfo> resultInfo = GetResultInfo(MAG_ELEM_PERMEABILITY); 
+          shared_ptr<EntityList> entity = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+        
+          ReadMaterialDependency( "matPermeability", resultInfo->dofNames, resultInfo->entryType, false,
+                                  entity, permeability, updatedGeo_ );
+                  
+          PtrCoefFct reluctivity = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, constOne, 
+                                                         permeability, CoefXpr::OP_DIV));
+          reluc_->AddRegion(actRegion, reluctivity);  
+          matCoefs_[MAG_ELEM_RELUCTIVITY]->AddRegion(actRegion, reluctivity);
 
-          curlcurl = new BBInt<>(new CurlOperator<FeHCurl, 3, Double>(), curCoef, 1.0, updatedGeo_);
-          //        std::cout << "Add scalar - linear - actRegionId = " << actRegion << std::endl;
-          // add also material to global, distributed reluctivity coefficient function
-          reluc_->AddRegion(actRegion, curCoef);
+          curlcurl = new BBInt<>(new CurlOperator<FeHCurl, 3, Double>(), reluctivity, 1.0, updatedGeo_);
 
           // when we have a CoefFunctionOpt, we tell it the proper form, which we only have now
           if (cfo)
@@ -826,7 +820,7 @@ namespace CoupledField
 
       if (curHystCoef != NULL)
       {
-        std::cout << "Hysteresis region found" << std::endl;
+        // std::cout << "Hysteresis region found" << std::endl;
         // NEW: we do not pass the hysteresis coefficient function
         // directly but instead a special class that returns the
         // correctly weighted term
@@ -1380,6 +1374,9 @@ namespace CoupledField
     reluc->unit = "Am/Vs";
     reluc->definedOn = ResultInfo::ELEMENT;
     reluc->entryType = ResultInfo::SCALAR;
+
+    shared_ptr<CoefFunctionMulti> relucFct(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, false));
+    matCoefs_[MAG_ELEM_RELUCTIVITY] = relucFct;
     DefineFieldResult(reluc_, reluc);
 
     // =====================================================

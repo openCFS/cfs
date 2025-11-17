@@ -168,4 +168,4 @@ nodeset 3 add surface 84 74 54 49 44 35 30 25
 nodeset 3 name "S_back"
 
 
-export ansys cdb "geometry.cdb" overwrite
+export ansys cdb "LiftMagnet_MagEdgeAdj.cdb" overwrite
