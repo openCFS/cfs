@@ -571,25 +571,38 @@ namespace CoupledField {
   // TIME STEPPING SECTION
   // ======================================================
 
-  void FlowPDE::InitTimeStepping() {
+  void FlowPDE::InitTimeStepping()
+  {
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-    GLMScheme * schemeV = new Trapezoidal(0.5);
-    GLMScheme * schemeP = new Trapezoidal(0.5);
+    // Create schemes from XML or use default Trapezoidal
+    GLMScheme* schemeV = nullptr;
+    GLMScheme* schemeP = nullptr;
+    if (integrationScheme)
+    {
+      schemeV = GetXmlDefinedScheme(integrationScheme);
+      schemeP = GetXmlDefinedScheme(integrationScheme);
+    }
+    else
+    {
+      schemeV = new Trapezoidal(0.5);
+      schemeP = new Trapezoidal(0.5);
+    }
 
-//    Double gamma = 0.5;
-//    GLMScheme * schemeV = new Trapezoidal(gamma);
-//    GLMScheme * schemeP = new Trapezoidal(gamma);
-
-    if ( nonLinTotalFormulation_ ) {
-      shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0 ) );
-      shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0 ) );
+    if (nonLinTotalFormulation_)
+    {
+      shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0));
+      shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0));
       feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
       feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
     }
-    else {
-      TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-      shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0, nlType ) );
-      shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0, nlType ) );
+    else
+    {
+      TimeSchemeGLM::NonLinType nlType = (nonLin_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+      shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0, nlType));
+      shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0, nlType));
       feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
       feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
     }

@@ -1777,31 +1777,34 @@ namespace CoupledField {
     solveStep_ = new StdSolveStep(*this);
   }
 
-  void LinFlowPDE::InitTimeStepping() {
+  void LinFlowPDE::InitTimeStepping()
+  {
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-    GLMScheme * schemeV = new Trapezoidal(0.5);
-    GLMScheme * schemeP = new Trapezoidal(0.5);
-    // Important: Create a new time scheme just for the Lagrange multiplier unknowns, as otherwise the
-	  // size of the vectors does not match!
-    GLMScheme * schemeL = NULL;
-    GLMScheme * schemeL_1 = NULL;
-    if ( useLagrangeMultVec_ ) {
-	    schemeL = new Trapezoidal(0.5);
-    }
-    if ( useLagrangeMultScal_ ) {
-      schemeL_1 = new Trapezoidal(0.5);
-    }
+    auto makeScheme = [&]() -> GLMScheme* {
+      if (integrationScheme)
+        return GetXmlDefinedScheme(integrationScheme);
+      else
+        return new Trapezoidal(0.5);
+    };
 
-    shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(schemeV, 0) );
-    shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(schemeP, 0) );
+    shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(makeScheme(), 0));
+    shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(makeScheme(), 0));
     feFunctions_[FLUIDMECH_VELOCITY]->SetTimeScheme(mySchemeV);
     feFunctions_[FLUIDMECH_PRESSURE]->SetTimeScheme(mySchemeP);
-    if ( useLagrangeMultVec_ ) {
-      shared_ptr<BaseTimeScheme> mySchemeL(new TimeSchemeGLM(schemeL, 0) );
+
+    // Important: Create a new time scheme just for the Lagrange multiplier unknowns, as otherwise the
+    // size of the vectors does not match!
+    if (useLagrangeMultVec_)
+    {
+      shared_ptr<BaseTimeScheme> mySchemeL(new TimeSchemeGLM(makeScheme(), 0));
       feFunctions_[LAGRANGE_MULT]->SetTimeScheme(mySchemeL);
     }
-    if ( useLagrangeMultScal_ ) {
-      shared_ptr<BaseTimeScheme> mySchemeL_1(new TimeSchemeGLM(schemeL_1, 0) );
+    if (useLagrangeMultScal_)
+    {
+      shared_ptr<BaseTimeScheme> mySchemeL_1(new TimeSchemeGLM(makeScheme(), 0));
       feFunctions_[LAGRANGE_MULT_1]->SetTimeScheme(mySchemeL_1);
     }
   }

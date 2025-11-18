@@ -659,18 +659,28 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
   // TIME-STEPPING SECTION
   // ======================================================
 
-  void MagEdgeMixedAVPDE::InitTimeStepping() {
-	// Use complete implicit scheme
-    Double gamma = 1.0;
-    GLMScheme * scheme = new Trapezoidal(gamma);
-    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
+  void MagEdgeMixedAVPDE::InitTimeStepping()
+  {
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
+
+    auto makeScheme = [&]() -> GLMScheme* {
+      if (integrationScheme)
+        return GetXmlDefinedScheme(integrationScheme);
+      else
+        return new Trapezoidal(1.0);
+    };
+
+    TimeSchemeGLM::NonLinType nlType = (nonLin_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+
+    // Use complete implicit scheme
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(makeScheme(), 0, nlType));
     feFunctions_[MAG_POTENTIAL]->SetTimeScheme(myScheme);
 
     // Important: Create a new time scheme just for the elec potential unknowns, as otherwise the
     // size of the vectors does not match!
-    GLMScheme * scheme2 = new Trapezoidal(gamma);
-    shared_ptr<BaseTimeScheme> myScheme2(new TimeSchemeGLM(scheme2, 0, nlType) );
+    shared_ptr<BaseTimeScheme> myScheme2(new TimeSchemeGLM(makeScheme(), 0, nlType));
     feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme2);
   }
 

@@ -1459,12 +1459,25 @@ namespace CoupledField {
 		}
   }
   
-  void ElecPDE::InitTimeStepping() {
-    Double gamma = 1.0;
-    GLMScheme * scheme = new Trapezoidal(gamma);
-    
-    TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
+  void ElecPDE::InitTimeStepping()
+  {
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
+
+    // Create scheme from XML or use default Trapezoidal
+    GLMScheme* scheme = nullptr;
+    if (integrationScheme)
+    {
+      scheme = GetXmlDefinedScheme(integrationScheme);
+    }
+    else
+    {
+      scheme = new Trapezoidal(1.0);
+    }
+
+    TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresis_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType));
     feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
   }
   

@@ -1839,23 +1839,34 @@ void HeatPDE::DefineSolveStep() {
 // TIME STEPPING SECTION
 // ======================================================
 
-void HeatPDE::InitTimeStepping() {
+  void HeatPDE::InitTimeStepping()
+  {
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-  // Until now no effective mass formulation in the trapezoidal
-  //  integration scheme is implemented!
-  Double gamma = 0.5; 
-  GLMScheme * scheme = new Trapezoidal(gamma);
+    // Create scheme from XML or use default Trapezoidal
+    // Until now no effective mass formulation in the trapezoidal
+    // integration scheme is implemented!
+    GLMScheme* scheme = nullptr;
+    if ( integrationScheme ) {
+      scheme = GetXmlDefinedScheme(integrationScheme);
+    }
+    else {
+      scheme = new Trapezoidal(0.5);
+    }
 
-  if ( nonLinTotalFormulation_ ) {
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0)); //, nlType) );
-    feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
+    if (nonLinTotalFormulation_)
+    {
+      shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0));
+      feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
+    }
+    else
+    {
+      TimeSchemeGLM::NonLinType nlType = (nonLin_) ? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+      shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType));
+      feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
+    }
   }
-  else {
-    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
-    feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
-  }
-}
 
 
 void HeatPDE::DefinePrimaryResults() {

@@ -9,6 +9,7 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "Domain/BCs.hh"
 #include "Domain/Results/BaseResults.hh"
+#include "Driver/TimeSchemes/GLMSchemeLib.hh"
 
 namespace CoupledField
 {
@@ -442,6 +443,8 @@ namespace CoupledField
       //! The parameters are stored as strings that contain mathParser expressions.
       std::string alpha, beta;
     };
+
+    GLMScheme* GetXmlDefinedScheme(PtrParamNode &timeIntegration);
 
   protected:
     

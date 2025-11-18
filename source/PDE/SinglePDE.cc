@@ -4679,4 +4679,41 @@ namespace CoupledField {
       }
     }
   }
+
+  GLMScheme* SinglePDE::GetXmlDefinedScheme(PtrParamNode &timeIntegration)
+  {
+    GLMScheme* scheme = nullptr;
+    Double gamma;
+
+    if (PtrParamNode trapNode = timeIntegration->Get("trapezoidal", ParamNode::PASS))
+    {
+      trapNode->GetValue("gamma", gamma);
+      scheme = new Trapezoidal(gamma);
+    }
+    else if (PtrParamNode newmarkNode = timeIntegration->Get("newmark", ParamNode::PASS))
+    {
+      Double beta;
+      Double alpha;
+
+      newmarkNode->GetValue("gamma", gamma);
+      newmarkNode->GetValue("beta", beta);
+      newmarkNode->GetValue("alpha", alpha);
+
+      scheme = new Newmark(gamma, beta, alpha);
+    }
+    else if (timeIntegration->Get("bdf2", ParamNode::PASS))
+    {
+      scheme = new Bdf2();
+    }
+    else if (timeIntegration->Get("rk4", ParamNode::PASS))
+    {
+      scheme = new RungeKutta4();
+    }
+    else
+    {
+      Exception("Provided time integration scheme is not implemented");
+    }
+
+    return scheme;
+  }
 } // end of namespace

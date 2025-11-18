@@ -1035,6 +1035,7 @@ if(USE_CGNS)
 endif()
 add_subdirectory(Technical/CoefFunctionGridElem)
 add_subdirectory(Technical/Pyra2ndOrder)
+add_subdirectory(Technical/xmlTimeIntegration)
 #-------------------------------------------------------------------------------
 # CFSdat
 #-------------------------------------------------------------------------------

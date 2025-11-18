@@ -271,10 +271,24 @@ namespace CoupledField {
     solveStep_ = new StdSolveStep(*this);
   }
 
-  void ElecQuasistaticPDE::InitTimeStepping() {
+  void ElecQuasistaticPDE::InitTimeStepping()
+  {
+    // Check if time integration is defined in XML input
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 1.0) );
+    // Create scheme from XML or use default Trapezoidal
+    GLMScheme* scheme = nullptr;
+    if (integrationScheme)
+    {
+      scheme = GetXmlDefinedScheme(integrationScheme);
+    }
+    else
+    {
+      scheme = new Trapezoidal(1.0);
+    }
 
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 1.0));
     feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
   }
   

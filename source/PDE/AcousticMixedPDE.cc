@@ -922,17 +922,29 @@ namespace CoupledField{
      DefineFieldResult( meanFlowCoef_, flowvelocity );
    }
 
-   void AcousticMixedPDE::InitTimeStepping(){
-     shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
-     shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
+   void AcousticMixedPDE::InitTimeStepping()  {
 
-     feFunctions_[ACOU_PRESSURE]->SetTimeScheme(mySchemeP);
-     feFunctions_[ACOU_VELOCITY]->SetTimeScheme(mySchemeV);
+    PtrParamNode transientNode = myParam_->GetParent()->GetParent()->Get("analysis")->Get("transient", ParamNode::PASS);
+    PtrParamNode integrationScheme = transientNode->Get("integrationScheme", ParamNode::PASS);
 
-     if(this->isTimeDomPML_){
-       shared_ptr<BaseTimeScheme> mySchemeQ(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
-       feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(mySchemeQ);
-     }
+    // define based on XML or use the default for this PDE
+    auto makeScheme = [&]() -> GLMScheme* {
+      if (integrationScheme)
+        return GetXmlDefinedScheme(integrationScheme);
+      else
+        return new Bdf2();
+    };
+
+    shared_ptr<BaseTimeScheme> mySchemeV(new TimeSchemeGLM(makeScheme(), 0) );
+    shared_ptr<BaseTimeScheme> mySchemeP(new TimeSchemeGLM(makeScheme(), 0) );
+
+    feFunctions_[ACOU_PRESSURE]->SetTimeScheme(mySchemeP);
+    feFunctions_[ACOU_VELOCITY]->SetTimeScheme(mySchemeV);
+
+    if(this->isTimeDomPML_){
+      shared_ptr<BaseTimeScheme> mySchemeQ(new TimeSchemeGLM(makeScheme(), 0) );
+      feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(mySchemeQ);
+    }
    }
 
    void AcousticMixedPDE::ReadDampingInformation() {
