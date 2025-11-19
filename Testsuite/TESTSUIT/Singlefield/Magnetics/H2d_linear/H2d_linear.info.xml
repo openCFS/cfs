@@ -2,19 +2,19 @@
 
 <cfsInfo status="finished" infoWriteCounter="6" infoRejectCounter="0">
   <summary>
-    <timer wall-clock="0.123s" wall="0.123" cpu="0.109705" calls="1"/>
+    <timer wall-clock="0.106s" wall="0.106" cpu="0.105398" calls="1"/>
     <!-- memory in MB-->
-    <memory final="274" peak="279"/>
+    <memory final="273" peak="279"/>
   </summary>
   <header id="">
-    <environment started="2025-Sep-23 12:44:14" host="L13"/>
+    <environment started="2025-Nov-17 13:21:23" host="L13"/>
     <progOpts problem="H2d_linear" parameterFile="/home/lukas/01_Arbeit/projects/CFS_Testsuites/testsuites/H2d_linear/H2d_linear.xml" schemaPath="/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml" meshFile="" logConfFile="" detailed="no">
-      <cfs version="25.07" name="Just Jacobians" build="RELEASE" git_commit="1a15b31a1a79f23ad6f6b21181ac293fcffbadef-modified" git_branch="Kaltenbacher_LocalMag" compiled="Sep 22 2025" exe="/home/lukas/Devel/CFS_BIN/Kaltenbacher_LocalMag/bin/cfs"/>
+      <cfs version="25.07" name="Just Jacobians" build="RELEASE" git_commit="b094acad61f57ca8fe7ed905ea42e8165760429a-modified" git_branch="Kaltenbacher_LocalMag" compiled="Oct  1 2025" exe="/home/lukas/Devel/CFS_BIN/Kaltenbacher_LocalMag/bin/cfs"/>
       <openmp CFS_NUM_THREADS="1" MKL_NUM_THREADS="1" OMP_NUM_THREADS="1"/>
     </progOpts>
     <domain>
       <grids>
-        <timer wall-clock="0.006s" wall="0.006" cpu="0.004914" calls="1"/>
+        <timer wall-clock="0.005s" wall="0.005" cpu="0.004555" calls="1"/>
         <grid gridId="default" dimensions="2" elements="282" nodes="142"/>
       </grids>
       <coordinateSystems>
@@ -34,14 +34,14 @@
       <globalMathParser dt="1" f="0" step="1" t="1" t0="0"/>
     </domain>
     <results>
-      <timer wall-clock="0.001s" wall="0.001" cpu="0.002793" calls="18"/>
+      <timer wall-clock="0.001s" wall="0.001" cpu="0.002049" calls="18"/>
     </results>
   </header>
   <sequenceStep sequence="1">
     <transient>
       <header unit="s"/>
       <init_transient>
-        <timer wall-clock="0.017s" wall="0.017" cpu="0.015023" calls="1"/>
+        <timer wall-clock="0.013s" wall="0.013" cpu="0.013078" calls="1"/>
       </init_transient>
     </transient>
     <PDE>
@@ -53,13 +53,6 @@
           <region name="S_3" damping="none"/>
           <integrators>
             <matrixBiLinearForms>
-              <bilinearForm integrator="(p curlN,CurlN): CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="S_3">
-                <coef type="CoefFunctionConst" value="0.0039738353049399494"/>
-                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
-                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
-                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
-                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
-              </bilinearForm>
               <bilinearForm integrator="(mu N,N): IdentityIntegrator" type="BBInt" complex="no" region="S_1">
                 <coef type="CoefFunctionConst" value="1.256637061e-06"/>
                 <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
@@ -74,7 +67,7 @@
                 <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
               </bilinearForm>
-              <bilinearForm integrator="(mu N,N): IdentityIntegrator" type="BBInt" complex="no" region="S_3">
+              <bilinearForm integrator="(mu N,N): IdentityIntegrator" type="BBInt" complex="no" region="S_2">
                 <coef type="CoefFunctionConst" value="0.0012566370610000001"/>
                 <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
                 <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
@@ -95,8 +88,15 @@
                 <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
                 <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
               </bilinearForm>
-              <bilinearForm integrator="(mu N,N): IdentityIntegrator" type="BBInt" complex="no" region="S_2">
+              <bilinearForm integrator="(mu N,N): IdentityIntegrator" type="BBInt" complex="no" region="S_3">
                 <coef type="CoefFunctionConst" value="0.0012566370610000001"/>
+                <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
+                <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
+                <attributes entryType="RealPart" counterPart="no" symmetric="yes" solutionDependent="no" updatedGeo="yes"/>
+              </bilinearForm>
+              <bilinearForm integrator="(p curlN,CurlN): CurlCurlIntegrator" type="BBInt" complex="no" BOp="CurlOperator" region="S_3">
+                <coef type="CoefFunctionConst" value="0.0039738353049399494"/>
                 <row pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
                 <column pde="magneticHEdge" functionId="0" result="magFieldIntensity"/>
                 <destination feMatrix="stiffness" feMatrixMapped="stiffness" feSecondMatrix="no_fe_matrix" feSecondMatrixFac="0.0  "/>
@@ -302,16 +302,16 @@
           <pardiso hermitean="no" symStruct="no" symmetric="yes" posDef="no" pardiso_matrix="-2" solver="direct">
             <summary>
               <setup>
-                <timer label="setup_pardiso" wall-clock="0.002s" wall="0.002" cpu="0.001414" calls="1"/>
+                <timer label="setup_pardiso" wall-clock="0s" wall="0" cpu="0.000846" calls="1"/>
               </setup>
               <solve>
-                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="0.000103" calls="1"/>
+                <timer label="solve_pardiso" wall-clock="0s" wall="0" cpu="5e-05" calls="1"/>
               </solve>
             </summary>
             <process>
               <call number="0">
-                <symbfact cpu="0.001013" wall="0.002" peakMem="267" permanentMem="267"/>
-                <numfact cpu="0.000348" wall="0" peakMem="38"/>
+                <symbfact cpu="0.000637" wall="0" peakMem="267" permanentMem="267"/>
+                <numfact cpu="0.000173" wall="0" peakMem="38"/>
               </call>
             </process>
           </pardiso>
@@ -320,7 +320,7 @@
           <idPrecond>
             <summary>
               <precond_Id_setup>
-                <timer wall-clock="0s" wall="0" cpu="1e-06" calls="1"/>
+                <timer wall-clock="0s" wall="0" cpu="0" calls="1"/>
               </precond_Id_setup>
               <precond_Id_run>
                 <timer wall-clock="0s" wall="0" cpu="0" calls="0"/>
@@ -333,13 +333,13 @@
         </process>
       </magneticHEdge>
       <graph_setup>
-        <timer wall-clock="0s" wall="0" cpu="0.000671" calls="1" sub="true"/>
+        <timer wall-clock="0s" wall="0" cpu="0.00065" calls="1" sub="true"/>
       </graph_setup>
     </OLAS>
     <analysis>
       <summary>
         <assemble>
-          <timer wall-clock="0.002s" wall="0.002" cpu="0.001696" calls="2"/>
+          <timer wall-clock="0.002s" wall="0.002" cpu="0.001786" calls="2"/>
         </assemble>
       </summary>
     </analysis>

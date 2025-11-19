@@ -125,7 +125,7 @@ namespace CoupledField
           algsys_->GetRHSVal( actRHS );
           if(iterationCounter == 1){
             residualErr0 = actRHS.NormL2();
-            //std::cout <<"residualErr0: " << residualErr0 << std::endl;
+            std::cout <<"residual error @ iteration 0: " << residualErr0 << std::endl;
             if ( residualErr0 < 1.0 )
               residualErr0 = 1.0;
           }
@@ -273,6 +273,7 @@ namespace CoupledField
           }
           if(iterationCounter == 1){
             residualErr0 = actRHS.NormL2();
+            std::cout <<"residual error @ iteration 0: " << residualErr0 << std::endl;
             if ( residualErr0 < 1.0 )
               residualErr0 = 1.0;
           }

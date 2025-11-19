@@ -1,6 +1,7 @@
 <?xml version="1.0"?>
 <cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/material file:/Users/kroppert/Devel/CFS_SRC/cfs/share/xml/CFS-Material/CFS_Material.xsd">
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/material 
+  /home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Material/CFS_Material.xsd">
 
   <material name="air">
     <acoustic>
@@ -52,115 +53,7 @@
     </magnetic>
   </material>
 
-  <material name="iron_nonlin_VPM">
-    <magnetic>
-      <electricConductivity>
-        <linear>
-          <isotropic>
-            <real>0</real>
-          </isotropic>
-        </linear>
-      </electricConductivity>
-      <permeability>
-        <linear>
-          <isotropic>
-            <real> 1.2566E-06 </real>
-          </isotropic>
-        </linear>
-        <model>
-          <isotropic>
-            <EBHysteresisModel>
-              <Approx_type>approxVPM</Approx_type>
-              <Anhysteresis_model>
-                <!-- <analytic_anhysteresis>
-                  <A>38</A>
-                  <Ps>1.23e6</Ps>
-                </analytic_anhysteresis> -->
-                <multiscale_anhysteresis>
-                  <AS>3e-3</AS>
-                  <K1>0.0</K1>
-                  <K2>0.0</K2>
-                  <lambda100>9.0e-6</lambda100>
-                  <lambda111>9.0e-6</lambda111>
-                  <Ps>1.4e6</Ps>
-                </multiscale_anhysteresis>
-              </Anhysteresis_model>
-              <Jacobian_type>Broyden</Jacobian_type>
-              <numS>1</numS>
-              <chi_factor>0</chi_factor>
-            </EBHysteresisModel>
-          </isotropic>
-        </model>
-      </permeability>
-    </magnetic>
-  </material>
-
-
-  <material name="iron_nonlin_EB">
-    <magnetic>
-      <electricConductivity>
-        <linear>
-          <isotropic>
-            <real>0</real>
-          </isotropic>
-        </linear>
-      </electricConductivity>
-      <permeability>
-        <linear>
-          <isotropic>
-            <real> 1.2566E-06 </real>
-          </isotropic>
-        </linear>
-        <model>
-          <isotropic>
-            <EBHysteresisModel>
-              <Approx_type>fullEB</Approx_type>
-              <Anhysteresis_model>
-                <!-- <analytic_anhysteresis>
-                  <A>38</A>
-                  <Ps>1.23e6</Ps>
-                </analytic_anhysteresis> -->
-                <multiscale_anhysteresis>
-                  <AS>1e-2</AS>
-                  <K1>0.0</K1>
-                  <K2>0.0</K2>
-                  <lambda100>0.0</lambda100>
-                  <lambda111>0.0</lambda111>
-                  <Ps>1.23e6</Ps>
-                </multiscale_anhysteresis>
-              </Anhysteresis_model>
-              <Jacobian_type>Broyden</Jacobian_type>
-              <numS>1</numS>
-              <chi_factor>0</chi_factor>
-            </EBHysteresisModel>
-          </isotropic>
-        </model>
-      </permeability>
-    </magnetic>
-  </material>
-
-  <material name="iron_hyst_VPM">
-    <mechanical>
-      <density>
-        <linear>
-          <real>7860</real>
-        </linear>
-      </density>
-      <elasticity>
-        <linear>
-          <isotropic>
-            <elasticityModulus>
-              <real>210e3</real>
-            </elasticityModulus>
-            <poissonNumber>
-              <real>0.3</real>
-            </poissonNumber>
-          </isotropic>
-        </linear>
-      </elasticity>
-    </mechanical>
-
-
+  <material name="iron_nonlin_atan">
     <magnetic>
       <electricConductivity>
         <linear>
@@ -181,21 +74,14 @@
               <Approx_type>approxVPM</Approx_type>
               <Anhysteresis_model>
                 <analytic_anhysteresis>
-                  <A>38</A>
-                  <Ps>1.23e6</Ps>
+                  <atan>
+                    <Ps>1.23e6</Ps>
+                    <A>38</A>
+                  </atan>
                 </analytic_anhysteresis>
-                <!-- <multiscale_anhysteresis>
-                  <AS>3e-3</AS>
-                  <K1>0.0</K1>
-                  <K2>0.0</K2>
-                  <lambda100>9.0e-6</lambda100>
-                  <lambda111>9.0e-6</lambda111>
-                  <Ps>1.4e6</Ps>
-                </multiscale_anhysteresis> -->
               </Anhysteresis_model>
-              <Jacobian_type>BFGS</Jacobian_type>
-              <numS>5</numS>
-              <chi_factor>60</chi_factor>
+              <Jacobian_type>Broyden</Jacobian_type>
+              <pinning_forces_weights_file>omega_kappa.txt</pinning_forces_weights_file>
             </EBHysteresisModel>
           </isotropic>
         </model>
@@ -203,30 +89,7 @@
     </magnetic>
   </material>
 
-
-
-  <material name="iron_hyst_EB">
-    <mechanical>
-      <density>
-        <linear>
-          <real>7860</real>
-        </linear>
-      </density>
-      <elasticity>
-        <linear>
-          <isotropic>
-            <elasticityModulus>
-              <real>210e3</real>
-            </elasticityModulus>
-            <poissonNumber>
-              <real>0.3</real>
-            </poissonNumber>
-          </isotropic>
-        </linear>
-      </elasticity>
-    </mechanical>
-
-
+  <material name="iron_nonlin_pacejka">
     <magnetic>
       <electricConductivity>
         <linear>
@@ -244,24 +107,19 @@
         <model>
           <isotropic>
             <EBHysteresisModel>
-              <Approx_type>fullEB</Approx_type>
+              <Approx_type>approxVPM</Approx_type>
               <Anhysteresis_model>
                 <analytic_anhysteresis>
-                  <A>38</A>
-                  <Ps>1.23e6</Ps>
+                  <pacejka>
+                    <m_sat>1.23e6</m_sat>
+                    <a>6.391e-3</a>
+                    <b>2000</b>
+                    <c>0.00151e-3</c>
+                  </pacejka>
                 </analytic_anhysteresis>
-                <!-- <multiscale_anhysteresis>
-                  <AS>1e-2</AS>
-                  <K1>0.0</K1>
-                  <K2>0.0</K2>
-                  <lambda100>9.0e-6</lambda100>
-                  <lambda111>9.0e-6</lambda111>
-                  <Ps>1.23e6</Ps>
-                </multiscale_anhysteresis> -->
               </Anhysteresis_model>
               <Jacobian_type>Broyden</Jacobian_type>
-              <numS>4</numS>
-              <chi_factor>140</chi_factor>
+              <pinning_forces_weights_file>omega_kappa.txt</pinning_forces_weights_file>
             </EBHysteresisModel>
           </isotropic>
         </model>

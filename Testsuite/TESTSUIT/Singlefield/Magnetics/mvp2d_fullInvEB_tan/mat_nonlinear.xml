@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<cfsMaterialDataBase xmlns="http://www.cfs++.org/material"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/material 
+  /home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Material/CFS_Material.xsd">
+
+  <material name="air">
+    <acoustic>
+      <density>
+        <linear>
+          <real> 1.204 </real>
+        </linear>
+      </density>
+      <compressionModulus>
+        <linear>
+          <real> 1.41855E+05 </real>
+        </linear>
+      </compressionModulus>
+    </acoustic>
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.256637061E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+
+  <material name="iron_linear">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1000*1.256637061E-06 </real>
+          </isotropic>
+        </linear>
+      </permeability>
+    </magnetic>
+  </material>
+
+  <material name="iron_fullInvEB_atan">
+    <magnetic>
+      <electricConductivity>
+        <linear>
+          <isotropic>
+            <real>0</real>
+          </isotropic>
+        </linear>
+      </electricConductivity>
+      <permeability>
+        <linear>
+          <isotropic>
+            <real> 1.2566E-06 </real>
+          </isotropic>
+        </linear>
+        <model>
+          <isotropic>
+            <invEBHysteresisModel>
+              <Approx_type>fullInvEB</Approx_type>
+              <Anhysteresis_model>
+                <analytic_anhysteresis>
+                  <tan>
+                    <A>38</A>
+                    <Js>1.5457</Js>
+                  </tan>
+                </analytic_anhysteresis>
+              </Anhysteresis_model>
+              <Jacobian_type>BFGS</Jacobian_type>
+              <pinning_forces_weights_file>omega_kappa_fullInvEB.txt</pinning_forces_weights_file>
+            </invEBHysteresisModel>
+          </isotropic>
+        </model>
+      </permeability>
+    </magnetic>
+  </material>
+</cfsMaterialDataBase>

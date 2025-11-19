@@ -34,7 +34,7 @@ namespace CoupledField
     virtual ~MagneticPDE();
 
     //stores the field intensity for energy-based hystersis/nonlinear models
-    shared_ptr<CoefFunctionMulti> nonlinear_field_intensity_coef_;
+    std::map<RegionIdType, shared_ptr<CoefFunctionMulti> > nonlinear_field_intensity_coefm_;
     
     //! pass pointer to mechanicalPDE for later use in nonlinear material evaluation
     void SetMagnetoStrictCoupling(SinglePDE *mechanicPDE);
@@ -132,9 +132,6 @@ namespace CoupledField
     //! the grad-grad-term. We need it for the calculation of the eddy current
     //! density.
     std::set<shared_ptr<CoefFunctionFormBased> > mixedFormFunctor_;
-    
-    //stores the flux for hystersis and nonlinear models
-    std::map<RegionIdType, shared_ptr<CoefFunctionMulti> >  nlFluxCoefm_;
 
   private:
     //! store velocity bilinear forms

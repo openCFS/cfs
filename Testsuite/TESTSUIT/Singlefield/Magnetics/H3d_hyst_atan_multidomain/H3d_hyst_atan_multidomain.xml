@@ -43,7 +43,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
     <sequenceStep index="1">
         <analysis>
             <transient>
-                <numSteps>63</numSteps>
+                <numSteps>1</numSteps>
                 <deltaT>0.1</deltaT>
                 <allowPostProc>yes</allowPostProc>
             </transient>
@@ -54,12 +54,13 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
                 <regionList>
                     <region name="V_1" VecPolyId="vP" />
                     <region name="V_2" VecPolyId="vP" nonLinIds="nl1"/>
-                    <region name="V_3" VecPolyId="vP" nonLinIds="nl1"/>
+                    <region name="V_3" VecPolyId="vP" nonLinIds="nl2"/>
                     <region name="V_4" VecPolyId="vP" />
                 </regionList>
 
                 <nonLinList>
                     <permeability id="nl1" model="EBHysteresisModel"/>
+                    <permeability id="nl2" model="EBHysteresisModel"/>
                 </nonLinList>
 
 

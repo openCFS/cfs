@@ -68,7 +68,8 @@ namespace CoupledField {
 
     anyRegionHasConductivity_ = false;
 
-    nonlinear_field_intensity_coef_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
+    // Be aware that the hysteresis via CoefFunctionMaterialModel does not use the isHysteresis_ flag!
+    matModelCoefm_.clear();
   }
 
   MagneticPDE::~MagneticPDE()
@@ -244,7 +245,8 @@ namespace CoupledField {
           actSDMat->GetScalar(ParameterMap["jacobian_method"], MAG_JACOBIAN_METHOD_INVEB, Global::REAL);
           matModelCoefm_[actRegion]->InitModel(ParameterMap,StringParameterMap, actSDList);
           nu_nonlinear_eb = matModelCoefm_[actRegion];
-          nonlinear_field_intensity_coef_->AddRegion(actRegion, matModelCoefm_[actRegion]);
+          nonlinear_field_intensity_coefm_[actRegion].reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_, 1, isComplex_, true));
+          nonlinear_field_intensity_coefm_[actRegion]->AddRegion(actRegion, matModelCoefm_[actRegion]);
 
           // define integrators
           if( dim_ == 2) { // plane 2D case
@@ -1998,30 +2000,28 @@ namespace CoupledField {
       }
     }
 
-      // =====================================================
-      // MAG_FIELD_INTENSITY (START) 
-      // H = nu*B (linear case)
-      // H = H(B) (nonlinear/hysteresis case)
-      // =====================================================
-      if (modelName_ == "invEBHysteresisModel") {
-        shared_ptr<CoefFunctionMulti> hCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
-        StdVector<RegionIdType>::iterator regIt = regions_.Begin(); // check which kind of nonlinearity is specified in the different regions
-        regIt = regions_.Begin();
-        for (; regIt != regions_.End(); ++regIt) {
-          StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[*regIt]; // Just to find out which linear/nonlinear type is defined in this region
-          PtrCoefFct h; // to store field intensity h
-          if( nonLinTypes.Find(PERMEABILITY) != -1 ) { // hysteretic/nonlinear case
-            h = nonlinear_field_intensity_coef_;
-            hCoef->AddRegion(*regIt, h);
-          } else {
-            h = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FLUX_DENSITY ), reluc_, CoefXpr::OP_MULT));
-            hCoef->AddRegion(*regIt, h);
-          }
+    // =====================================================
+    // MAG_FIELD_INTENSITY (START) 
+    // H = nu*B (linear case)
+    // H = H(B) (nonlinear/hysteresis case)
+    // =====================================================
+    if (modelName_ == "invEBHysteresisModel") {
+      shared_ptr<CoefFunctionMulti> hCoef = dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
+      StdVector<RegionIdType>::iterator regIt = regions_.Begin(); // check which kind of nonlinearity is specified in the different regions
+      regIt = regions_.Begin();
+      for (; regIt != regions_.End(); ++regIt) {
+        StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[*regIt]; // Just to find out which linear/nonlinear type is defined in this region
+        if( nonLinTypes.Find(PERMEABILITY) != -1 ) { // hysteretic/nonlinear case
+          hCoef->AddRegion(*regIt, nonlinear_field_intensity_coefm_[*regIt]);
+        } else {
+          PtrCoefFct h = CoefFunction::Generate( mp_, Global::REAL, CoefXprVecScalOp(mp_, GetCoefFct( MAG_FLUX_DENSITY ), reluc_, CoefXpr::OP_MULT));
+          hCoef->AddRegion(*regIt, h);
         }
       }
-      // =====================================================
-      // MAG_FIELD_INTENSITY (END) 
-      // =====================================================
+    }
+    // =====================================================
+    // MAG_FIELD_INTENSITY (END) 
+    // =====================================================
 
 
   }

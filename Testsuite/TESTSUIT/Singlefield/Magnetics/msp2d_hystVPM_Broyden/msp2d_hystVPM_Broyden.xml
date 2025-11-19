@@ -44,7 +44,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
         <analysis>
             <transient>
                 <numSteps>1</numSteps>
-                <deltaT>1</deltaT>
+                <deltaT>0.1</deltaT>
                 <allowPostProc>yes</allowPostProc>
             </transient>
         </analysis>
@@ -91,7 +91,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
         <analysis>
             <transient initialTime="zero">
                 <numSteps>1</numSteps>
-                <deltaT>1</deltaT>
+                <deltaT>0.1</deltaT>
             </transient>
         </analysis>
 
