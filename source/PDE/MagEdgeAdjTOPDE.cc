@@ -1080,9 +1080,9 @@ namespace CoupledField
       else
       {
         // classical implementation
-        Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
-        PtrCoefFct factor = CoefFunction::Generate(mp_, part,
-                                                   CoefXprBinOp(mp_, reluc_, coef[i], CoefXpr::OP_MULT));
+        // Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+        // PtrCoefFct factor = CoefFunction::Generate(mp_, part, CoefXprBinOp(mp_, reluc_, coef[i], CoefXpr::OP_MULT));
+        PtrCoefFct factor = coef[i];
 
         if (isComplex_)
         {
@@ -1092,7 +1092,7 @@ namespace CoupledField
         else
         {
           lin = new BUIntegrator<Double>(new CurlOperator<FeHCurl, 3, Double>(),
-                                         -1.0, factor, coefUpdateGeo);
+                                         -2.0, factor, coefUpdateGeo);
         }
       }
 
@@ -1257,8 +1257,15 @@ namespace CoupledField
           bForward = BfieldForward_[*regIt];
           // get coef of MAG_FLUX_DENSITY_ADJ: is adjoint solution!
           PtrCoefFct bFieldAdj = this->GetCoefFct(MAG_FLUX_DENSITY_ADJ);
+          PtrCoefFct mu = perme_->GetRegionCoef(actRegion);
+          PtrCoefFct nu = reluc_->GetRegionCoef(actRegion);
+          PtrCoefFct nu_squared = CoefFunction::Generate( mp_, Global::REAL,
+                                        CoefXprBinOp( mp_, nu, nu, CoefXpr::OP_MULT ) );
+          
+          PtrCoefFct bProduct = CoefFunction::Generate( mp_, Global::REAL,
+                                        CoefXprBinOp( mp_, bForward, bFieldAdj, CoefXpr::OP_MULT) );
           mult1 = CoefFunction::Generate( mp_, Global::REAL,
-                             CoefXprBinOp(mp_, bForward, bFieldAdj, CoefXpr::OP_MULT) );
+                             CoefXprBinOp(mp_, nu_squared, bProduct, CoefXpr::OP_MULT) );
           scalMult1->AddRegion(actRegion, mult1);
 
           //curl of B-field from forward simulation
