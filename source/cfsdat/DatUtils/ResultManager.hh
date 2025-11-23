@@ -31,9 +31,9 @@
 #include "Domain/Results/BaseResults.hh"
 
 //Dat
-#include "cfsdat/Utils/Defines.hh"
-#include "cfsdat/Utils/DataStructs.hh"
-#include "cfsdat/Utils/ResultCache.hh"
+#include "cfsdat/DatUtils/Defines.hh"
+#include "cfsdat/DatUtils/DataStructs.hh"
+#include "cfsdat/DatUtils/ResultCache.hh"
 #include "EqnNumberingSimple.hh"
 
 #define DEBUG

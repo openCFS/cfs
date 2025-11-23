@@ -16,7 +16,7 @@
 #define GAUSSDERIVATIVE_HH_
 
 #include "cfsdat/Filters/BaseFilter.hh"
-#include "cfsdat/Utils/DerivativeMatrix.hh"
+#include "cfsdat/DatUtils/DerivativeMatrix.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/ElemMapping/Elem.hh"
 

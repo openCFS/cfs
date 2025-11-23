@@ -16,7 +16,7 @@
 
 #include <def_use_cgal.hh>
 #include <def_use_flann.hh>
-#include <cfsdat/Utils/Point.hh>
+#include <cfsdat/DatUtils/Point.hh>
 #include <Filters/BaseMeshFilterType.hh>
 #include "MatVec/Vector.hh"
 

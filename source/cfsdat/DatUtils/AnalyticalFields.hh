@@ -15,7 +15,7 @@
 #ifndef SOURCE_CFSDAT_UTILS_ANALYTICALFIELDS_HH_
 #define SOURCE_CFSDAT_UTILS_ANALYTICALFIELDS_HH_
 
-#include "cfsdat/Utils/Defines.hh"
+#include "cfsdat/DatUtils/Defines.hh"
 #include "MatVec/Vector.hh"
 
 namespace CFSDat{

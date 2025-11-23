@@ -13,8 +13,8 @@
 //================================================================================================
 
 #include "RotatingSubstDt.hh"
-#include "Utils/AnalyticalFields.hh"
-#include "Utils/EqnNumberingSimple.hh"
+#include "DatUtils/AnalyticalFields.hh"
+#include "DatUtils/EqnNumberingSimple.hh"
 #include <vector>
 #include <algorithm>
 

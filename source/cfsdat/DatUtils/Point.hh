@@ -15,7 +15,7 @@
 
 //Definition of a point for kd-search-tree CGAL of FLANN
 
-#include "cfsdat/Utils/Defines.hh"
+#include "cfsdat/DatUtils/Defines.hh"
 #include <def_use_cgal.hh>
 #include <def_use_flann.hh>
 #ifdef USE_CGAL

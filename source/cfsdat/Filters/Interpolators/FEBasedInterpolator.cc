@@ -36,7 +36,7 @@
 #include "FeBasis/H1/H1Elems.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "Domain/Mesh/Grid.hh"
-#include "cfsdat/Utils/KNNIndexSearch.hh"
+#include "cfsdat/DatUtils/KNNIndexSearch.hh"
 
 #include <algorithm>
 #include <vector>

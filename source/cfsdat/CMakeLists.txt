@@ -41,11 +41,11 @@ SET(CFSDAT_SRCS
   Filters/SignalProcessing/TimeMeanFilter.cc
   Filters/SynteticSources/BaseSNGR.cc
   Filters/Utils/VolumeMultiplication.cc
-  Utils/KNNIndexSearch.cc
-  Utils/EqnNumberingSimple.cc
-  Utils/CFSDatProgramOptions.cc
-  Utils/ResultManager.cc
-  Utils/ResultCache.cc
+  DatUtils/KNNIndexSearch.cc
+  DatUtils/EqnNumberingSimple.cc
+  DatUtils/CFSDatProgramOptions.cc
+  DatUtils/ResultManager.cc
+  DatUtils/ResultCache.cc
 #  Utils/KNNSearch.cc
 )
 

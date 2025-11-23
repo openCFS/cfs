@@ -20,7 +20,7 @@
 #include "Utils/ThreadLocalStorage.hh"
 #include "boost/shared_ptr.hpp"
 #include "Domain/Results/BaseResults.hh"
-#include "cfsdat/Utils/Defines.hh"
+#include "cfsdat/DatUtils/Defines.hh"
 
 
 namespace CFSDat{

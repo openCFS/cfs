@@ -19,8 +19,8 @@
 
 #include "cfsdat/Filters/BaseFilter.hh"
 #include "DataInOut/SimInput.hh"
-#include "cfsdat/Utils/ResultManager.hh"
-#include "cfsdat/Utils/DataStructs.hh"
+#include "cfsdat/DatUtils/ResultManager.hh"
+#include "cfsdat/DatUtils/DataStructs.hh"
 
 namespace CFSDat{
 

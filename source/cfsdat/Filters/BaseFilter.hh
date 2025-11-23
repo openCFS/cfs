@@ -17,7 +17,7 @@
 
 #include <map>
 #include <set>
-#include <cfsdat/Utils/DataStructs.hh>
+#include <cfsdat/DatUtils/DataStructs.hh>
 #include <boost/shared_ptr.hpp>
 // https://github.com/boostorg/uuid/issues/91 applies for the gitlabrunners with cfsdat
 #define BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
@@ -25,9 +25,9 @@
 #include <boost/uuid/uuid_generators.hpp>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "cfsdat/Utils/DataStructs.hh"
-#include "cfsdat/Utils/ResultManager.hh"
-#include "cfsdat/Utils/Defines.hh"
+#include "cfsdat/DatUtils/DataStructs.hh"
+#include "cfsdat/DatUtils/ResultManager.hh"
+#include "cfsdat/DatUtils/Defines.hh"
 #include "Utils/Timer.hh"
 
 namespace CFSDat{

@@ -17,7 +17,7 @@
 
 #include "DataInOut/SimInput.hh"
 #include <Filters/MeshFilter.hh>
-#include "Utils/InterpolationMatrix.hh"
+#include "DatUtils/InterpolationMatrix.hh"
 #include "AbstractInterpolator.hh"
 
 

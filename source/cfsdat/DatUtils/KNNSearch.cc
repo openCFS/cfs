@@ -14,7 +14,7 @@
 
 #include "KNNSearch.hh"
 #include <def_use_cgal.hh>
-#include <cfsdat/Utils/Point.hh>
+#include <cfsdat/DatUtils/Point.hh>
 #include "MatVec/Vector.hh"
 
 namespace CFSDat{

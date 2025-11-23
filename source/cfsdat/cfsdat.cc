@@ -52,10 +52,10 @@
 
 //CFSDatIncludes
 #include "cfsdat/Filters/BaseFilter.hh"
-#include "cfsdat/Utils/CFSDatProgramOptions.hh"
-#include "cfsdat/Utils/ResultManager.hh"
-#include "cfsdat/Utils/DataStructs.hh"
-#include "cfsdat/Utils/Defines.hh"
+#include "cfsdat/DatUtils/CFSDatProgramOptions.hh"
+#include "cfsdat/DatUtils/ResultManager.hh"
+#include "cfsdat/DatUtils/DataStructs.hh"
+#include "cfsdat/DatUtils/Defines.hh"
 
 #ifdef USE_OPENMP
 #include <omp.h>

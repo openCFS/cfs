@@ -17,8 +17,8 @@
 
 #include "General/Environment.hh"
 #include "Domain/Results/BaseResults.hh"
-#include "cfsdat/Utils/Defines.hh"
-#include "cfsdat/Utils/ResultCache.hh"
+#include "cfsdat/DatUtils/Defines.hh"
+#include "cfsdat/DatUtils/ResultCache.hh"
 #include "EqnNumberingSimple.hh"
 
 #include <boost/fusion/include/sequence.hpp>

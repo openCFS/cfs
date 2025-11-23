@@ -16,7 +16,7 @@
 
 
 #include "DataInOut/SimInput.hh"
-//#include <cfsdat/Utils/Point.hh>
+//#include <cfsdat/DatUtils/Point.hh>
 #include <Filters/MeshFilter.hh>
 #include <def_use_cgal.hh>
 
