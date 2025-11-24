@@ -1,20 +1,35 @@
 <?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-xsi:schemaLocation="http://www.cfs++.org/simulation 
-/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Simulation/CFS.xsd">
-    
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
 
-    <!-- define which files are needed for simulation input & output-->
+    <documentation>
+        <title>3D transient magnetic source field generation (mixedSFG)</title>
+        <authors>
+            <author>Lukas Domenig</author>
+        </authors>
+        <date>2025-11-24</date>
+        <keywords>
+            <keyword>magneticEdge</keyword>
+            <keyword>transient</keyword>
+        </keywords>
+        <references> no references, only functionality test </references>
+        <isVerified>yes</isVerified>
+        <description> Transient analysis using the mixed H-formulation (mixedSFG) to generate a
+            source magnetic field on a 3D geometry. The setup includes a coil with a sinusoidal
+            current source (10*sin(t)). </description>
+    </documentation>
+
+
     <fileFormats>
         <input>
-            <cdb fileName="mesh3d_circles.cdb"/>
+            <hdf5 fileName="msp3d_sfg.h5ref" />
         </input>
         <output>
-            <hdf5 id="hdf5"/>
-            <text id="txt"/>
+            <hdf5 id="hdf5" />
+            <text id="txt" />
         </output>
-        <materialData file="mat.xml" format="xml"/>
+        <materialData file="mat.xml" format="xml" />
     </fileFormats>
 
     <domain geometryType="3d">
@@ -26,7 +41,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
         </regionList>
         <nodeList>
             <nodes name="N_gauge">
-                <coord x="0" y="0.01e-3" z="0"/>
+                <coord x="0" y="0.01e-3" z="0" />
             </nodes>
         </nodeList>
     </domain>
@@ -61,35 +76,35 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
 
                 <coilList>
                     <coil id="coil_S_1">
-                        <source type="current" value="10*sin(t)"/>
+                        <source type="current" value="10*sin(t)" />
                         <part id="1">
                             <regionList>
-                                <region name="V_1"/>
+                                <region name="V_1" />
                             </regionList>
                             <direction>
                                 <analytic>
-                                    <comp dof="z" value="1.0"/>
+                                    <comp dof="z" value="1.0" />
                                 </analytic>
                             </direction>
-                            <wireCrossSection area="1"/>
+                            <wireCrossSection area="1" />
                         </part>
                     </coil>
                 </coilList>
-    
+
                 <storeResults>
                     <elemResult type="magFieldIntensity">
-                        <allRegions outputIds="hdf5"/>
+                        <allRegions outputIds="hdf5" />
                     </elemResult>
-                </storeResults>	
+                </storeResults>
             </magneticEdge>
         </pdeList>
         <linearSystems>
             <system>
-              <solverList>
-                <ginkgo></ginkgo>
-              </solverList>
+                <solverList>
+                    <ginkgo></ginkgo>
+                </solverList>
             </system>
-          </linearSystems>
+        </linearSystems>
     </sequenceStep>
 
 </cfsSimulation>

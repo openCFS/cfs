@@ -112,7 +112,25 @@ namespace CoupledField {
   void MagEdgeHPDE::DefineSolveStep(){
 
     UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
-    myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
+    PtrParamNode steppingNode = myParam_->Get("hysteresisTimeStepping", ParamNode::PASS);
+
+    if (steppingNode) {
+        // 2. Read "yes" or "no". CFS++ automatically parses "yes" as true and "no" as false.
+        bool use_time_derivatives = false; 
+        steppingNode->GetValue("useTimeDerivatives", use_time_derivatives);
+
+        // 3. Convert to your existing logic
+        // If we USE derivatives, it is NOT pseudo time stepping.
+        if (use_time_derivatives) {
+            is_pseudo_time_stepping = 0.0; // Real time stepping
+        } else {
+            is_pseudo_time_stepping = 1.0; // Pseudo/Static time stepping
+        }
+    } 
+    else {
+        // Default behavior if tag is missing
+        is_pseudo_time_stepping = 0.0; 
+    }
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
       solveStep_ = new SolveStepEB(*this, is_pseudo_time_stepping);
     } 
@@ -220,7 +238,25 @@ namespace CoupledField {
           // 1 ... pseudo time stepping ( simulate more time steps, but no time derivatives are involved )
           // 0 ... real time stepping (time derivatives are involved) 
           UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
-          myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
+          PtrParamNode steppingNode = myParam_->Get("hysteresisTimeStepping", ParamNode::PASS);
+
+          if (steppingNode) {
+              // 2. Read "yes" or "no". CFS++ automatically parses "yes" as true and "no" as false.
+              bool use_time_derivatives = false; 
+              steppingNode->GetValue("useTimeDerivatives", use_time_derivatives);
+
+              // 3. Convert to your existing logic
+              // If we USE derivatives, it is NOT pseudo time stepping.
+              if (use_time_derivatives) {
+                  is_pseudo_time_stepping = 0.0; // Real time stepping
+              } else {
+                  is_pseudo_time_stepping = 1.0; // Pseudo/Static time stepping
+              }
+          } 
+          else {
+              // Default behavior if tag is missing
+              is_pseudo_time_stepping = 0.0; 
+          }
           // ===================================================================
           // PSEUDO TIME-STEPPING [START]
           // ===================================================================
@@ -314,14 +350,36 @@ namespace CoupledField {
     // Get the flag for pseudo time stepping
     // 1 ... pseudo time stepping ( simulate more time steps, but no time derivatives are involved )
     // 0 ... real time stepping (time derivatives are involved) 
-    UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
-    myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
-
     // Get dt
     Double dt = 1e-3;
+    UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
+    PtrParamNode steppingNode = myParam_->Get("hysteresisTimeStepping", ParamNode::PASS);
+
+    if (steppingNode) {
+        // 2. Read "yes" or "no". CFS++ automatically parses "yes" as true and "no" as false.
+        bool use_time_derivatives = false; 
+        steppingNode->GetValue("useTimeDerivatives", use_time_derivatives);
+
+        // 3. Convert to your existing logic
+        // If we USE derivatives, it is NOT pseudo time stepping.
+        if (use_time_derivatives) {
+            is_pseudo_time_stepping = 0.0; // Real time stepping
+        } else {
+            is_pseudo_time_stepping = 1.0; // Pseudo/Static time stepping
+        }
+
+        // 4. Read deltaT
+        steppingNode->GetValue("deltaT", dt);
+    } 
+    else {
+        // Default behavior if tag is missing
+        is_pseudo_time_stepping = 0.0; 
+    }
+
+
     //dt = myParam_->Get("analysis")->Get("transient")->Get("deltaT")->MathParse<double>();
     //dt = myParam_->Get("delta_t")->MathParse<Double>();
-    myParam_->GetValue("delta_t", dt, ParamNode::PASS);
+    //myParam_->GetValue("delta_t", dt, ParamNode::PASS);
 
     // get FEFunction and space
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[MAG_FIELD_INTENSITY];
@@ -775,13 +833,34 @@ namespace CoupledField {
 
     // Get dt
     Double dt = 1e-3;
-    myParam_->GetValue("delta_t", dt, ParamNode::PASS);
+    //myParam_->GetValue("delta_t", dt, ParamNode::PASS);
 
     // Get the flag for pseudo time stepping
     // 1 ... pseudo time stepping ( simulate more time steps, but no time derivatives are involved )
     // 0 ... real time stepping (time derivatives are involved) 
     UInt is_pseudo_time_stepping = 1; // per default pseudo time stepping is used
-    myParam_->GetValue("isPseudoTimeStepping", is_pseudo_time_stepping, ParamNode::PASS);
+    PtrParamNode steppingNode = myParam_->Get("hysteresisTimeStepping", ParamNode::PASS);
+
+    if (steppingNode) {
+        // 2. Read "yes" or "no". CFS++ automatically parses "yes" as true and "no" as false.
+        bool use_time_derivatives = false; 
+        steppingNode->GetValue("useTimeDerivatives", use_time_derivatives);
+
+        // 3. Convert to your existing logic
+        // If we USE derivatives, it is NOT pseudo time stepping.
+        if (use_time_derivatives) {
+            is_pseudo_time_stepping = 0.0; // Real time stepping
+        } else {
+            is_pseudo_time_stepping = 1.0; // Pseudo/Static time stepping
+        }
+
+        // 4. Read deltaT
+        steppingNode->GetValue("deltaT", dt);
+    } 
+    else {
+        // Default behavior if tag is missing
+        is_pseudo_time_stepping = 0.0; 
+    }
 
     // iterate over the region (or materials)
     for (UInt iRegion = 0; iRegion < regions_.GetSize(); iRegion++) {

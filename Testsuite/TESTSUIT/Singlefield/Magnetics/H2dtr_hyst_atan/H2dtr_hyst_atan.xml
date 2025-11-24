@@ -1,14 +1,38 @@
 <?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-xsi:schemaLocation="http://www.cfs++.org/simulation 
-/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Simulation/CFS.xsd">
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation
+  ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>2D transient magnetic field simulation with hysteresis and quasistatic materials</title>
+        <authors>
+          <author>Lukas Domenig</author>
+        </authors>
+        <date>2025-11-24</date>
+        <keywords>
+          <keyword>magneticEdge</keyword>
+          <keyword>transient</keyword>
+          <keyword>hysteresis</keyword>
+          <keyword>nonlinear</keyword>
+          <keyword>EBHysteresisModel</keyword>
+        </keywords>
+        <references>
+            no references, only functionality test
+        </references>
+        <isVerified>yes</isVerified>
+        <description>
+          Transient analysis of a magnetic field using the H-formulation (magneticEdge)
+          on a 2D plane geometry with quasistatic material definitions. The setup includes 
+          a coil with a sinusoidal current source (8e4*sin(t)), a nonlinear hysteresis region,
+          and calculation of electric field intensity.
+        </description>
+    </documentation>
     
 
-    <!-- define which files are needed for simulation input & output-->
     <fileFormats>
         <input>
-            <cdb fileName="mesh2d_circles.cdb"/>
+            <hdf5 fileName="H2dtr_hyst_atan.h5ref"/>
         </input>
         <output>
             <hdf5 id="hdf5"/>

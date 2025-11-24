@@ -1,20 +1,43 @@
-<?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-xsi:schemaLocation="http://www.cfs++.org/simulation 
-/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Simulation/CFS.xsd">
-    
+Here is the adapted file for H2d_linear.xml.
 
-    <!-- define which files are needed for simulation input & output-->
+I have updated the Title, Keywords, and Description to reflect that this is a linear simulation
+(removing references to hysteresis and nonlinear models) and corrected the coil source value in the
+description to 8e2.
+XML
+
+<?xml version="1.0"?>
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>2D transient linear magnetic field simulation using H-formulation</title>
+        <authors>
+            <author>Lukas Domenig</author>
+        </authors>
+        <date>2025-11-24</date>
+        <keywords>
+            <keyword>magneticEdge</keyword>
+            <keyword>transient</keyword>
+            <keyword>linear</keyword>
+        </keywords>
+        <references> no references, only functionality test </references>
+        <isVerified>yes</isVerified>
+        <description> Transient analysis of a magnetic field using the H-formulation (magneticEdge)
+            on a 2D plane geometry. The setup includes a coil with a sinusoidal current source
+            (8e2*sin(t)) and linear magnetic regions (iron_linear). </description>
+    </documentation>
+
+
     <fileFormats>
         <input>
-            <cdb fileName="mesh2d_circles.cdb"/>
+            <hdf5 fileName="H2d_linear.h5ref" />
         </input>
         <output>
-            <hdf5 id="hdf5"/>
-            <text id="txt"/>
+            <hdf5 id="hdf5" />
+            <text id="txt" />
         </output>
-        <materialData file="mat_linear.xml" format="xml"/>
+        <materialData file="mat_linear.xml" format="xml" />
     </fileFormats>
 
     <domain geometryType="plane">
@@ -26,7 +49,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
         </regionList>
         <nodeList>
             <nodes name="N_gauge">
-                <coord x="0.0" y="0.0"/>
+                <coord x="0.0" y="0.0" />
             </nodes>
         </nodeList>
     </domain>
@@ -61,29 +84,29 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
 
                 <coilList>
                     <coil id="coil_S_1">
-                        <source type="current" value="8e2*sin(t)"/>
+                        <source type="current" value="8e2*sin(t)" />
                         <part id="1">
                             <regionList>
-                                <region name="S_1"/>
+                                <region name="S_1" />
                             </regionList>
                             <direction>
                                 <analytic>
-                                    <comp dof="z" value="1.0"/>
+                                    <comp dof="z" value="1.0" />
                                 </analytic>
                             </direction>
-                            <wireCrossSection area="1"/>
+                            <wireCrossSection area="1" />
                         </part>
                     </coil>
                 </coilList>
-    
+
                 <storeResults>
                     <elemResult type="magFieldIntensity">
-                        <allRegions outputIds="hdf5"/>
+                        <allRegions outputIds="hdf5" />
                     </elemResult>
                     <elemResult type="magFluxDensity">
-                        <allRegions outputIds="hdf5"/>
+                        <allRegions outputIds="hdf5" />
                     </elemResult>
-                </storeResults>	
+                </storeResults>
             </magneticEdge>
         </pdeList>
     </sequenceStep>

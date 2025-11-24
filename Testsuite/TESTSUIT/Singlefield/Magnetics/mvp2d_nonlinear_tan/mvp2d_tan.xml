@@ -1,14 +1,35 @@
 <?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-xsi:schemaLocation="http://www.cfs++.org/simulation 
-/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Simulation/CFS.xsd">
-    
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation
+  ../../../../../share/xml/CFS-Simulation/CFS.xsd">
 
-    <!-- define which files are needed for simulation input & output-->
+    <documentation>
+        <title>2D transient magnetic simulation (MVP) with inverse nonlinear material (Atan)</title>
+        <authors>
+          <author>Lukas Domenig</author>
+        </authors>
+        <date>2025-11-24</date>
+        <keywords>
+          <keyword>transient</keyword>
+          <keyword>nonlinear</keyword>
+          <keyword>invEBHysteresisModel</keyword>
+        </keywords>
+        <references>
+            no references, only functionality test
+        </references>
+        <isVerified>yes</isVerified>
+        <description>
+          Transient analysis of a magnetic field using the A-formulation (Magnetic Vector Potential) 
+          on a 2D plane geometry. The setup includes a coil with a constant current source (8e4) 
+          and a region defined by an inverse nonlinear material model (iron_fullInvEB_atan), but no hysteresis.
+        </description>
+    </documentation>
+
+
     <fileFormats>
         <input>
-            <cdb fileName="mesh2d_circles.cdb"/>
+            <hdf5 fileName="mvp2d_tan.h5ref"/>
         </input>
         <output>
             <hdf5 id="hdf5"/>

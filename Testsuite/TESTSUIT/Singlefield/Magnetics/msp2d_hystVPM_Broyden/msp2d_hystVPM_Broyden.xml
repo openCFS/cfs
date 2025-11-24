@@ -1,20 +1,39 @@
 <?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-xsi:schemaLocation="http://www.cfs++.org/simulation 
-/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Simulation/CFS.xsd">
-    
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd">
 
-    <!-- define which files are needed for simulation input & output-->
+    <documentation>
+        <title>2D transient magnetic simulation with MSP (Psi) and H-formulation coupling</title>
+        <authors>
+            <author>Lukas Domenig</author>
+        </authors>
+        <date>2025-11-24</date>
+        <keywords>
+            <keyword>magneticEdge</keyword>
+            <keyword>transient</keyword>
+            <keyword>hysteresis</keyword>
+            <keyword>nonlinear</keyword>
+            <keyword>EBHysteresisModel</keyword>
+        </keywords>
+        <references> no references, only functionality test </references>
+        <isVerified>yes</isVerified>
+        <description> Two-step transient analysis. Step 1 calculates the source magnetic field using
+            the regularized H-formulation (regulSFG) with a constant current source (8e2). Step 2
+            solves the magnetic scalar potential (Psi) formulation with a nonlinear hysteresis
+            model, using the field intensity from Step 1 as an input load. </description>
+    </documentation>
+
+
     <fileFormats>
         <input>
-            <cdb fileName="mesh2d_circles.cdb"/>
+            <hdf5 fileName="msp2d_hystVPM_Broyden.h5ref" />
         </input>
         <output>
-            <hdf5 id="hdf5"/>
-            <text id="txt"/>
+            <hdf5 id="hdf5" />
+            <text id="txt" />
         </output>
-        <materialData file="mat_hyst.xml" format="xml"/>
+        <materialData file="mat_hyst.xml" format="xml" />
     </fileFormats>
 
     <domain geometryType="plane">
@@ -26,7 +45,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
         </regionList>
         <nodeList>
             <nodes name="N_gauge">
-                <coord x="0.0" y="0.0"/>
+                <coord x="0.0" y="0.0" />
             </nodes>
         </nodeList>
     </domain>
@@ -61,30 +80,29 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
 
                 <coilList>
                     <coil id="coil_S_1">
-                        <source type="current" value="8e2"/>
+                        <source type="current" value="8e2" />
                         <part id="1">
                             <regionList>
-                                <region name="S_1"/>
+                                <region name="S_1" />
                             </regionList>
                             <direction>
                                 <analytic>
-                                    <comp dof="z" value="1.0"/>
+                                    <comp dof="z" value="1.0" />
                                 </analytic>
                             </direction>
-                            <wireCrossSection area="1"/>
+                            <wireCrossSection area="1" />
                         </part>
                     </coil>
                 </coilList>
-    
+
                 <storeResults>
                     <elemResult type="magFieldIntensity">
-                        <allRegions outputIds="hdf5"/>
+                        <allRegions outputIds="hdf5" />
                     </elemResult>
-                </storeResults>	
+                </storeResults>
             </magneticEdge>
         </pdeList>
     </sequenceStep>
-
 
 
     <sequenceStep index="2">
@@ -99,10 +117,10 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
         <pdeList>
             <magnetic formulation="Psi">
                 <regionList>
-                    <region name="S_1" polyId="H1"/>
-                    <region name="S_2" polyId="H1" nonLinIds="nl1"/>
-                    <region name="S_3" polyId="H1"/>
-                    <region name="S_4" polyId="H1"/>
+                    <region name="S_1" polyId="H1" />
+                    <region name="S_2" polyId="H1" nonLinIds="nl1" />
+                    <region name="S_3" polyId="H1" />
+                    <region name="S_4" polyId="H1" />
                 </regionList>
 
                 <nonLinList>
@@ -110,12 +128,12 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
                 </nonLinList>
 
                 <bcsAndLoads>
-                    <potential name="N_gauge" value="0"/>
+                    <potential name="N_gauge" value="0" />
                     <fieldIntensity name="S_1">
                         <sequenceStep index="1">
                             <quantity name="magFieldIntensity" pdeName="magneticEdgeRegulSFG" />
                             <timeFreqMapping>
-                                <continuous  interpolation="linear"/>
+                                <continuous interpolation="linear" />
                             </timeFreqMapping>
                         </sequenceStep>
                     </fieldIntensity>
@@ -123,7 +141,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
                         <sequenceStep index="1">
                             <quantity name="magFieldIntensity" pdeName="magneticEdgeRegulSFG" />
                             <timeFreqMapping>
-                                <continuous  interpolation="linear"/>
+                                <continuous interpolation="linear" />
                             </timeFreqMapping>
                         </sequenceStep>
                     </fieldIntensity>
@@ -131,7 +149,7 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
                         <sequenceStep index="1">
                             <quantity name="magFieldIntensity" pdeName="magneticEdgeRegulSFG" />
                             <timeFreqMapping>
-                                <continuous  interpolation="linear"/>
+                                <continuous interpolation="linear" />
                             </timeFreqMapping>
                         </sequenceStep>
                     </fieldIntensity>
@@ -139,38 +157,38 @@ xsi:schemaLocation="http://www.cfs++.org/simulation
                         <sequenceStep index="1">
                             <quantity name="magFieldIntensity" pdeName="magneticEdgeRegulSFG" />
                             <timeFreqMapping>
-                                <continuous  interpolation="linear"/>
+                                <continuous interpolation="linear" />
                             </timeFreqMapping>
                         </sequenceStep>
                     </fieldIntensity>
                 </bcsAndLoads>
-                
+
                 <storeResults>
                     <nodeResult type="magPotential">
-                      <allRegions />
+                        <allRegions />
                     </nodeResult>
                     <elemResult type="magFluxDensity">
-                      <allRegions />                
+                        <allRegions />
                     </elemResult>
                     <elemResult type="magFieldIntensity">
-                      <allRegions />
+                        <allRegions />
                     </elemResult>
                 </storeResults>
             </magnetic>
         </pdeList>
         <linearSystems>
             <system>
-            <solutionStrategy>
-                <standard>
-                    <nonLinear logging="yes" method="fixPoint" >
-                                <lineSearch type="minEnergy"/>
-                                <incStopCrit>100000</incStopCrit>
-                                <resStopCrit>1e-5</resStopCrit>
-                                <maxNumIters>20</maxNumIters>
-                                <abortOnMaxNumIters>yes</abortOnMaxNumIters>
-                    </nonLinear>
-                </standard>
-            </solutionStrategy>
+                <solutionStrategy>
+                    <standard>
+                        <nonLinear logging="yes" method="fixPoint">
+                            <lineSearch type="minEnergy" />
+                            <incStopCrit>100000</incStopCrit>
+                            <resStopCrit>1e-5</resStopCrit>
+                            <maxNumIters>20</maxNumIters>
+                            <abortOnMaxNumIters>yes</abortOnMaxNumIters>
+                        </nonLinear>
+                    </standard>
+                </solutionStrategy>
             </system>
         </linearSystems>
     </sequenceStep>

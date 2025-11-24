@@ -1,14 +1,39 @@
 <?xml version="1.0"?>
-<cfsSimulation xmlns="http://www.cfs++.org/simulation" 
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-xsi:schemaLocation="http://www.cfs++.org/simulation 
-/home/lukas/Devel/CFS_SRC_Kaltenbacher_LocalMag/cfs/share/xml/CFS-Simulation/CFS.xsd">
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.cfs++.org/simulation
+  ../../../../../share/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title>2D transient magnetic simulation with MSP (Psi) and H-formulation coupling</title>
+        <authors>
+          <author>Lukas Domenig</author>
+        </authors>
+        <date>2025-11-24</date>
+        <keywords>
+          <keyword>magneticEdge</keyword>
+          <keyword>transient</keyword>
+          <keyword>hysteresis</keyword>
+          <keyword>nonlinear</keyword>
+          <keyword>EBHysteresisModel</keyword>
+        </keywords>
+        <references>
+            no references, only functionality test
+        </references>
+        <isVerified>yes</isVerified>
+        <description>
+          Two-step transient analysis. Step 1 calculates the source magnetic field using 
+          the regularized H-formulation (regulSFG) with a constant current source (8e4). 
+          Step 2 solves the magnetic scalar potential (Psi) formulation with a nonlinear 
+          hysteresis model (fullEB), using the field intensity from Step 1 as an input load.
+          Test the BFGS update rule.
+        </description>
+    </documentation>
     
 
-    <!-- define which files are needed for simulation input & output-->
     <fileFormats>
         <input>
-            <cdb fileName="mesh2d_circles.cdb"/>
+            <hdf5 fileName="msp2d_hystEB_BFGS.h5ref"/>
         </input>
         <output>
             <hdf5 id="hdf5"/>
