@@ -122,14 +122,14 @@ namespace CoupledField {
         // 3. Convert to your existing logic
         // If we USE derivatives, it is NOT pseudo time stepping.
         if (use_time_derivatives) {
-            is_pseudo_time_stepping = 0.0; // Real time stepping
+            is_pseudo_time_stepping = 0; // Real time stepping
         } else {
-            is_pseudo_time_stepping = 1.0; // Pseudo/Static time stepping
+            is_pseudo_time_stepping = 1; // Pseudo/Static time stepping
         }
     } 
     else {
         // Default behavior if tag is missing
-        is_pseudo_time_stepping = 0.0; 
+        is_pseudo_time_stepping = 1; 
     }
     if(nonLin_ && (modelName_ == "EBHysteresisModel")){
       solveStep_ = new SolveStepEB(*this, is_pseudo_time_stepping);
@@ -248,14 +248,14 @@ namespace CoupledField {
               // 3. Convert to your existing logic
               // If we USE derivatives, it is NOT pseudo time stepping.
               if (use_time_derivatives) {
-                  is_pseudo_time_stepping = 0.0; // Real time stepping
+                  is_pseudo_time_stepping = 0; // Real time stepping
               } else {
-                  is_pseudo_time_stepping = 1.0; // Pseudo/Static time stepping
+                  is_pseudo_time_stepping = 1; // Pseudo/Static time stepping
               }
           } 
           else {
               // Default behavior if tag is missing
-              is_pseudo_time_stepping = 0.0; 
+              is_pseudo_time_stepping = 1; 
           }
           // ===================================================================
           // PSEUDO TIME-STEPPING [START]
@@ -363,9 +363,9 @@ namespace CoupledField {
         // 3. Convert to your existing logic
         // If we USE derivatives, it is NOT pseudo time stepping.
         if (use_time_derivatives) {
-            is_pseudo_time_stepping = 0.0; // Real time stepping
+            is_pseudo_time_stepping = 0; // Real time stepping
         } else {
-            is_pseudo_time_stepping = 1.0; // Pseudo/Static time stepping
+            is_pseudo_time_stepping = 1; // Pseudo/Static time stepping
         }
 
         // 4. Read deltaT
@@ -373,7 +373,7 @@ namespace CoupledField {
     } 
     else {
         // Default behavior if tag is missing
-        is_pseudo_time_stepping = 0.0; 
+        is_pseudo_time_stepping = 1; 
     }
 
 
@@ -849,9 +849,9 @@ namespace CoupledField {
         // 3. Convert to your existing logic
         // If we USE derivatives, it is NOT pseudo time stepping.
         if (use_time_derivatives) {
-            is_pseudo_time_stepping = 0.0; // Real time stepping
+            is_pseudo_time_stepping = 0; // Real time stepping
         } else {
-            is_pseudo_time_stepping = 1.0; // Pseudo/Static time stepping
+            is_pseudo_time_stepping = 1; // Pseudo/Static time stepping
         }
 
         // 4. Read deltaT
@@ -859,7 +859,7 @@ namespace CoupledField {
     } 
     else {
         // Default behavior if tag is missing
-        is_pseudo_time_stepping = 0.0; 
+        is_pseudo_time_stepping = 1; 
     }
 
     // iterate over the region (or materials)
