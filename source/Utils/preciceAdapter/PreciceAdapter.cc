@@ -141,6 +141,7 @@ namespace CoupledField
             {"MagneticFieldIntensity", {"magFieldIntensity", SolutionType::MAG_FIELD_INTENSITY}},
             {"JouleLossDensity", {"magJouleLossPowerDensity", SolutionType::MAG_JOULE_LOSS_POWER_DENSITY}},
             {"Pressure", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}},
+            {"PressureTemporalDerivative", {"acouRhsLoad", SolutionType::ACOU_RHS_LOAD}}
         };
 
         auto it = conversionMap.find(precicename);

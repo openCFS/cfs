@@ -244,12 +244,13 @@ namespace CoupledField {
     // iterate over all results, which are needed
     for(auto it = isNeeded_.begin(); it != isNeeded_.end(); it++)
     {
+      auto iterator = *it;
       ResultContext& actContext = *(resultContexts_[*it]);
-
+      
       if(actContext.functor) {
         LOG_DBG(resHandler) << "Evaluating result '" << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
-                            << "' on '" << actContext.result->GetEntityList()->GetName() << "'";
-
+        << "' on '" << actContext.result->GetEntityList()->GetName() << "'";
+        
         shared_ptr<Timer> timer = domain->GetInfoRoot()->Get(ParamNode::HEADER)->Get("results/timer")->AsTimer();
         timer->Start();
         actContext.functor->EvalResult(actContext.result);
@@ -259,13 +260,15 @@ namespace CoupledField {
       else if(!actContext.functor) {
         WARN("No result functor present for result '"
           << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType)
-             << "' on '" << actContext.result->GetEntityList()->GetName() << "'!\n");
-      }
-      std::cout << "------------------\n";
+          << "' on '" << actContext.result->GetEntityList()->GetName() << "'!\n");
+        }
       std::cout << "we are in UpdateResults() for loop of ResultHandler.cc, ln 251 \n";
+      std::cout << "Iterator used:" << iterator << "\n";
       std::cout << "result: " << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType) << "\n";
       std::cout << "actContext.functor: " << actContext.functor << "\n";
       std::cout << "actContext.result: " << actContext.result->GetEntityList()->GetName() << "\n";
+      std::cout << "------------------\n";
+
     }
   }
 
@@ -293,6 +296,7 @@ namespace CoupledField {
       BaseResult & actResult  = *(actContext.result);
       // this was a problem because it was only done in an if statement below
       // security check: if no result functor is present, we leave
+      // but maybe this is also the reason why we cannot output acouRhsLoad?
       if( !actContext.functor ){
               continue;
       }
