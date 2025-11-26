@@ -614,7 +614,11 @@ namespace CoupledField {
         //               AND the matrix is in openCFS a STIFFNESS MATRIX then.
         // ====================================================================
         double dt = 1e-3;       
-        myParam_->GetValue("delta_t", dt, ParamNode::PASS); 
+        PtrParamNode steppingNode = myParam_->Get("hysteresisTimeStepping", ParamNode::PASS);
+        if (steppingNode) {
+          // Read deltaT
+          steppingNode->GetValue("deltaT", dt);
+        } 
         PtrCoefFct muNL = NULL;
         PtrCoefFct mu = NULL;
         BaseBDBInt *massInt = NULL;
