@@ -5,6 +5,7 @@
 
 namespace CoupledField{
 
+
   // forward class declaration
   class BaseResult;
   class ResultHandler;
