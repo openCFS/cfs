@@ -1,0 +1,77 @@
+reset
+undo on
+
+
+set logging errors on file 'mesh_log.txt'
+
+#{l = 25e-3}; # widht of the channel
+#{b = 3e-3}; # height of the channel
+#{h = 1e-3}; # height of the channel
+#{h_el = 10e-3}; # element size
+
+#{tol = 1e-6}
+merge tolerance {tol}
+
+
+# geometry
+
+brick x {l} y {b} z {h}
+move volume 1 x 0 y 0 z {h/2} 
+
+brick x {l} y {b} z {h}
+move volume 2 x 0 y 0 z {h+h/2} 
+
+brick x {l} y {b} z {h}
+move volume 3 x 0 y 0 z {2*h+h/2} 
+
+
+merge volume all
+
+
+# mesh
+volume all size {1.5*h}
+
+mesh volume 1
+
+volume 3 scheme tetmesh
+mesh volume 3
+
+volume 2 scheme tetmesh
+mesh volume 2
+
+
+# blocks and nodesets
+
+block 1 add volume 1
+block 1 name "Channel_hex"
+
+block 2 add volume 2
+block 2 name "Channel_pyra"
+
+block 3 add volume 3
+block 3 name "Channel_tet"
+
+
+
+
+nodeset 1 add surface 4
+nodeset 1 name "Excite_l_hex"
+nodeset 2 add surface 10
+nodeset 2 name "Excite_l_pyra"
+nodeset 3 add surface 16
+nodeset 3 name "Excite_l_tet"
+
+nodeset 4 add surface 6
+nodeset 4 name "Excite_r_hex"
+nodeset 5 add surface 12
+nodeset 5 name "Excite_r_pyra"
+nodeset 6 add surface 18
+nodeset 6 name "Excite_r_tet"
+
+
+
+# use this command to enable the output of wedges inside your hex-blocks (otherwise you get holes)
+#Set Block Mixed Element Output Degenerate
+
+export ansys cdb "Channel_mesh.cdb" overwrite
+

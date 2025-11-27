@@ -2631,47 +2631,47 @@ namespace CoupledField {
 
     	 // Order is the same as in source paper, just index ist changed to follow
     	 // our elements standard numbering
-    	 shape[1]  = 0.25 * ( point[0]+point[1]-1) *
+    	 shape[0]  = 0.25 * ( point[0]+point[1]-1) *
     			 ( (1+point[0]) * (1+point[1]) - point[2] );
-    	 shape[0]  = 0.25 * ( point[0]-point[1]-1) *
+    	 shape[3]  = 0.25 * ( point[0]-point[1]-1) *
     			 ( (1+point[0]) * (1-point[1]) - point[2] );
-    	 shape[3]  = 0.25 * (-point[0]-point[1]-1) *
+    	 shape[2]  = 0.25 * (-point[0]-point[1]-1) *
     			 ( (1-point[0]) * (1-point[1]) - point[2] );
-    	 shape[2]  = 0.25 * (-point[0]+point[1]-1) *
+    	 shape[1]  = 0.25 * (-point[0]+point[1]-1) *
     			 ( (1-point[0]) * (1+point[1]) - point[2] );
     	 shape[4]  = point[2] * ( 2 * point[2] - 1);
-    	 shape[5]  = 0.0;
     	 shape[8]  = 0.0;
     	 shape[7]  = 0.0;
     	 shape[6]  = 0.0;
-    	 shape[10] = 0.0;
+    	 shape[5]  = 0.0;
     	 shape[9]  = 0.0;
     	 shape[12] = 0.0;
     	 shape[11] = 0.0;
+    	 shape[10] = 0.0;
 
     	 if (point[2] != 1.0)
     	 {
     		 Double fac = (point[0] * point[1] * point[2]) / (1-point[2]);
-    		 shape[1]  += 0.25 * ( point[0]+point[1]-1) * (+fac);
-    		 shape[0]  += 0.25 * ( point[0]-point[1]-1) * (-fac);
-    		 shape[3]  += 0.25 * (-point[0]-point[1]-1) * (+fac);
-    		 shape[2]  += 0.25 * (-point[0]+point[1]-1) * (-fac);
+    		 shape[0]  += 0.25 * ( point[0]+point[1]-1) * (+fac);
+    		 shape[3]  += 0.25 * ( point[0]-point[1]-1) * (-fac);
+    		 shape[2]  += 0.25 * (-point[0]-point[1]-1) * (+fac);
+    		 shape[1]  += 0.25 * (-point[0]+point[1]-1) * (-fac);
     		 shape[4]  += 0.0;
-    		 shape[5]  += (1+point[0]-point[2]) * (1-point[1]-point[2])*
+    		 shape[8]  += (1+point[0]-point[2]) * (1-point[0]-point[2])*
     				 (1+point[1]-point[2])/(2*(1-point[2]));
-    		 shape[8]  += (1+point[0]-point[2])*(1-point[0]-point[2])*
-    				 (1-point[1]-point[2])/(2*(1-point[2]));
-    		 shape[7]  += (1-point[0]-point[2])*(1-point[1]-point[2])*
+    		 shape[7]  += (1+point[0]-point[2])*(1-point[0]-point[2])*
     				 (1+point[1]-point[2])/(2*(1-point[2]));
     		 shape[6]  += (1+point[0]-point[2])*(1-point[0]-point[2])*
     				 (1+point[1]-point[2])/(2*(1-point[2]));
-    		 shape[10] += point[2]*(1+point[0]-point[2])*
+    		 shape[5]  += (1+point[0]-point[2])*(1-point[0]-point[2])*
+    				 (1+point[1]-point[2])/(2*(1-point[2]));
+    		 shape[9] += point[2]*(1+point[0]-point[2])*
     				 (1+point[1]-point[2])/(1-point[2]);
-    		 shape[9]  += point[2]*(1+point[0]-point[2])*
-    				 (1-point[1]-point[2])/(1-point[2]);
-    		 shape[12] += point[2]*(1-point[0]-point[2])*
+    		 shape[12]  += point[2]*(1+point[0]-point[2])*
     				 (1-point[1]-point[2])/(1-point[2]);
     		 shape[11] += point[2]*(1-point[0]-point[2])*
+    				 (1-point[1]-point[2])/(1-point[2]);
+    		 shape[10] += point[2]*(1-point[0]-point[2])*
     				 (1+point[1]-point[2])/(1-point[2]);
     	 }
      }
@@ -2693,26 +2693,30 @@ namespace CoupledField {
 
     	 if (point[2]==1)
     	 {
-    		 deriv[1][0] = 0.25*( (1+point[0])*(1+point[1])-point[2]+
+    		 deriv[0][0] = 0.25*( (1+point[0])*(1+point[1])-point[2]+
     				 (point[0]+point[1]-1)*(1+point[1]));
-    		 deriv[1][1] = 0.25*( (1+point[0])*(1+point[1])-point[2]+
+    		 deriv[0][1] = 0.25*( (1+point[0])*(1+point[1])-point[2]+
     				 (point[0]+point[1]-1)*(1+point[0]));
-    		 deriv[1][2] = 0.25*( -point[0]-point[1]+1);
-    		 deriv[0][0] = 0.25*( (1+point[0])*(1-point[1])-point[2]+
+    		 deriv[0][2] = 0.25*( -point[0]-point[1]+1);
+    		 deriv[3][0] = 0.25*( (1+point[0])*(1-point[1])-point[2]+
     				 (point[0]-point[1]-1)*(1-point[1]));
-    		 deriv[0][1] = 0.25*( -(1+point[0])*(1-point[1])+point[2]+
+    		 deriv[3][1] = 0.25*( -(1+point[0])*(1-point[1])+point[2]+
     				 (point[0]-point[1]-1)*(-1-point[0]));
-    		 deriv[0][2] = 0.25*( -point[0]+point[1]+1);
-    		 deriv[3][0] = 0.25*( -(1-point[0])*(1-point[1])+point[2]+
+    		 deriv[3][2] = 0.25*( -point[0]+point[1]+1);
+    		 deriv[2][0] = 0.25*( -(1-point[0])*(1-point[1])+point[2]+
     				 (-point[0]-point[1]-1)*(-1+point[1]));
-    		 deriv[3][1] = 0.25*( -(1-point[0])*(1-point[1])+point[2]+
+    		 deriv[2][1] = 0.25*( -(1-point[0])*(1-point[1])+point[2]+
     				 (-point[0]-point[1]-1)*(-1+point[0]));
-    		 deriv[3][2] = 0.25*( point[0]+point[1]+1);
-    		 deriv[2][0] = 0.25*( -(1-point[0])*(1+point[1])+point[2]+
+    		 deriv[2][2] = 0.25*( point[0]+point[1]+1);
+    		 deriv[1][0] = 0.25*( -(1-point[0])*(1+point[1])+point[2]+
     				 (-point[0]+point[1]-1)*(-1-point[1]));
-    		 deriv[2][1] = 0.25*( (1-point[0])*(1+point[1])-point[2]+
+    		 deriv[1][1] = 0.25*( (1-point[0])*(1+point[1])-point[2]+
     				 (-point[0]+point[1]-1)*(1-point[0]));
-    		 deriv[2][2] = 0.25*( point[0]-point[1]+1);
+    		 deriv[1][2] = 0.25*( point[0]-point[1]+1);
+
+    		 deriv[5][0] = 0.0;
+    		 deriv[5][1] = 0.0;
+    		 deriv[5][2] = 0.0;
 
     		 deriv[6][0] = 0.0;
     		 deriv[6][1] = 0.0;
@@ -2726,9 +2730,9 @@ namespace CoupledField {
     		 deriv[8][1] = 0.0;
     		 deriv[8][2] = 0.0;
 
-    		 deriv[5][0] = 0.0;
-    		 deriv[5][1] = 0.0;
-    		 deriv[5][2] = 0.0;
+    		 deriv[9][0] = 0.0;
+    		 deriv[9][1] = 0.0;
+    		 deriv[9][2] = 0.0;
 
     		 deriv[10][0] = 0.0;
     		 deriv[10][1] = 0.0;
@@ -2741,67 +2745,63 @@ namespace CoupledField {
     		 deriv[12][0] = 0.0;
     		 deriv[12][1] = 0.0;
     		 deriv[12][2] = 0.0;
-
-    		 deriv[9][0] = 0.0;
-    		 deriv[9][1] = 0.0;
-    		 deriv[9][2] = 0.0;
     	 }
     	 else
     	 {
-    		 deriv[1][0] = 0.25*((1+point[0])*(1+point[1])-point[2]+
+    		 deriv[0][0] = 0.25*((1+point[0])*(1+point[1])-point[2]+
     				 point[0]*point[1]*point[2]/(1-point[2])+
     				 (point[0]+point[1]-1)*(1+point[1]+
     						 point[1]*point[2]/(1-point[2])));
-    		 deriv[1][1] = 0.25*((1+point[0])*(1+point[1])-point[2]+
+    		 deriv[0][1] = 0.25*((1+point[0])*(1+point[1])-point[2]+
     				 point[0]*point[1]*point[2]/(1-point[2])+
     				 (point[0]+point[1]-1)*(1+point[0]+point[0]*
     						 point[2]/(1-point[2])));
-    		 deriv[1][2] = 0.25*((point[0]+point[1]-1)*(-1+point[0]*point[1]/
+    		 deriv[0][2] = 0.25*((point[0]+point[1]-1)*(-1+point[0]*point[1]/
     				 (1-point[2])+point[0]*point[1]*point[2]/
     				 ((1-point[2])*(1-point[2]))));
 
-    		 deriv[0][0] = 0.25*((1+point[0])*(1-point[1])-point[2]-point[0]*
+    		 deriv[3][0] = 0.25*((1+point[0])*(1-point[1])-point[2]-point[0]*
     				 point[1]*point[2]/(1-point[2])+
     				 (point[0]-point[1]-1)*(1-point[1]-
     						 point[1]*point[2]/(1-point[2])));
-    		 deriv[0][1] = 0.25*(-(1+point[0])*(1-point[1])+point[2]+point[0]*
+    		 deriv[3][1] = 0.25*(-(1+point[0])*(1-point[1])+point[2]+point[0]*
     				 point[1]*point[2]/(1-point[2])+
     				 (point[0]-point[1]-1)*(-1-point[0]-
     						 point[0]*point[2]/(1-point[2])));
-    		 deriv[0][2] = 0.25*((point[0]-point[1]-1)*(-1-point[0]*point[1]/
+    		 deriv[3][2] = 0.25*((point[0]-point[1]-1)*(-1-point[0]*point[1]/
     				 (1-point[2])-point[0]*point[1]*point[2]/
     				 ((1-point[2])*(1-point[2]))));
 
-    		 deriv[3][0] = 0.25*(-(1-point[0])*(1-point[1])+point[2]-point[0]*
+    		 deriv[2][0] = 0.25*(-(1-point[0])*(1-point[1])+point[2]-point[0]*
     				 point[1]*point[2]/(1-point[2])+(-point[0]-
     						 point[1]-1)*(-1+point[1]+point[1]*point[2]/
     								 (1-point[2])));
-    		 deriv[3][1] = 0.25*(-(1-point[0])*(1-point[1])+point[2]-point[0]*
+    		 deriv[2][1] = 0.25*(-(1-point[0])*(1-point[1])+point[2]-point[0]*
     				 point[1]*point[2]/(1-point[2])+
     				 (-point[0]-point[1]-1)*(-1+point[0]+point[0]*
     						 point[2]/(1-point[2])));
-    		 deriv[3][2] = 0.25*((-point[0]-point[1]-1)*(-1+point[0]*point[1]/
+    		 deriv[2][2] = 0.25*((-point[0]-point[1]-1)*(-1+point[0]*point[1]/
     				 (1-point[2])+point[0]*point[1]*point[2]/
     				 ((1-point[2])*(1-point[2]))));
 
-    		 deriv[2][0] = 0.25*(-(1-point[0])*(1+point[1])+point[2]+point[0]*
+    		 deriv[1][0] = 0.25*(-(1-point[0])*(1+point[1])+point[2]+point[0]*
     				 point[1]*point[2]/(1-point[2])+(-point[0]+
     						 point[1]-1)*(-1-point[1]-point[1]*
     								 point[2]/(1-point[2])));
-    		 deriv[2][1] = 0.25*((1-point[0])*(1+point[1])-point[2]-point[0]*
+    		 deriv[1][1] = 0.25*((1-point[0])*(1+point[1])-point[2]-point[0]*
     				 point[1]*point[2]/(1-point[2])+
     				 (-point[0]+point[1]-1)*(1-point[0]-point[0]*
     						 point[2]/(1-point[2])));
-    		 deriv[2][2] = 0.25*((-point[0]+point[1]-1)*(-1-point[0]*point[1]/
+    		 deriv[1][2] = 0.25*((-point[0]+point[1]-1)*(-1-point[0]*point[1]/
     				 (1-point[2])-point[0]*point[1]*point[2]/
     				 ((1-point[2])*(1-point[2]))));
 
-    		 deriv[5][0] = .5*(1-point[1]-point[2])*(1+point[1]-point[2])/
+    		 deriv[8][0] = .5*(1-point[1]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2]);
-    		 deriv[5][1] = -.5*(1+point[0]-point[2])*(1+point[1]-point[2])/
+    		 deriv[8][1] = -.5*(1+point[0]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2])+.5*(1+point[0]-point[2])*
     				 (1-point[1]-point[2])/(1-point[2]);
-    		 deriv[5][2] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
+    		 deriv[8][2] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2])-.5*(1+point[0]-point[2])*
     				 (1+point[1]-point[2])/(1-point[2])-.5*
     				 (1+point[0]-point[2])*(1-point[1]-point[2])/
@@ -2809,12 +2809,12 @@ namespace CoupledField {
     				 (1-point[1]-point[2])*(1+point[1]-point[2])/
     				 ((1-point[2])*(1-point[2]));
 
-    		 deriv[8][0] = .5*(1-point[0]-point[2])*(1-point[1]-point[2])/
+    		 deriv[7][0] = .5*(1-point[0]-point[2])*(1-point[1]-point[2])/
     				 (1-point[2])-.5*(1+point[0]-point[2])*
     				 (1-point[1]-point[2])/(1-point[2]);
-    		 deriv[8][1] = -.5*(1+point[0]-point[2])*(1-point[0]-point[2])/
+    		 deriv[7][1] = -.5*(1+point[0]-point[2])*(1-point[0]-point[2])/
     				 (1-point[2]);
-    		 deriv[8][2] = -.5*(1-point[0]-point[2])*(1-point[1]-point[2])/
+    		 deriv[7][2] = -.5*(1-point[0]-point[2])*(1-point[1]-point[2])/
     				 (1-point[2])-.5*(1+point[0]-point[2])*
     				 (1-point[1]-point[2])/(1-point[2])-.5*
     				 (1+point[0]-point[2])*(1-point[0]-point[2])/
@@ -2822,24 +2822,24 @@ namespace CoupledField {
     				 (1-point[0]-point[2])*(1-point[1]-point[2])/
     				 ((1-point[2])*(1-point[2]));
 
-    		 deriv[7][0] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
+    		 deriv[6][0] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2]);
-    		 deriv[7][1] = -.5*(1-point[0]-point[2])*(1+point[1]-point[2])/
+    		 deriv[6][1] = -.5*(1-point[0]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2])+.5*(1-point[0]-point[2])*
     				 (1-point[1]-point[2])/(1-point[2]);
-    		 deriv[7][2] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
+    		 deriv[6][2] = -.5*(1-point[1]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2])-.5*(1-point[0]-point[2])*
     				 (1+point[1]-point[2])/(1-point[2])-.5*(1-point[0]-
     						 point[2])*(1-point[1]-point[2])/(1-point[2])+
     						 .5*(1-point[0]-point[2])*(1-point[1]-point[2])*
     						 (1+point[1]-point[2])/((1-point[2])*(1-point[2]));
 
-    		 deriv[6][0] = .5*(1-point[0]-point[2])*(1+point[1]-point[2])/
+    		 deriv[5][0] = .5*(1-point[0]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2])-.5*(1+point[0]-point[2])*
     				 (1+point[1]-point[2])/(1-point[2]);
-    		 deriv[6][1] = .5*(1+point[0]-point[2])*(1-point[0]-point[2])/
+    		 deriv[5][1] = .5*(1+point[0]-point[2])*(1-point[0]-point[2])/
     				 (1-point[2]);
-    		 deriv[6][2] = -.5*(1-point[0]-point[2])*(1+point[1]-point[2])/
+    		 deriv[5][2] = -.5*(1-point[0]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2])-.5*(1+point[0]-point[2])*
     				 (1+point[1]-point[2])/(1-point[2])-.5*(1+point[0]-
     						 point[2])*(1-point[0]-point[2])/
@@ -2847,33 +2847,33 @@ namespace CoupledField {
     						 (1-point[0]-point[2])*(1+point[1]-point[2])/
     						 ((1-point[2])*(1-point[2]));
 
-    		 deriv[10][0] = point[2]*(1+point[1]-point[2])/(1-point[2]);
-    		 deriv[10][1] = point[2]*(1+point[0]-point[2])/(1-point[2]);
-    		 deriv[10][2] = (1+point[0]-point[2])*(1+point[1]-point[2])/
+    		 deriv[9][0] = point[2]*(1+point[1]-point[2])/(1-point[2]);
+    		 deriv[9][1] = point[2]*(1+point[0]-point[2])/(1-point[2]);
+    		 deriv[9][2] = (1+point[0]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2])-point[2]*(1+point[1]-point[2])/
     				 (1-point[2])-point[2]*(1+point[0]-point[2])/
     				 (1-point[2])+point[2]*(1+point[0]-point[2])*
     				 (1+point[1]-point[2])/((1-point[2])*(1-point[2]));
 
-    		 deriv[9][0] = point[2]*(1-point[1]-point[2])/(1-point[2]);
-    		 deriv[9][1] = -point[2]*(1+point[0]-point[2])/(1-point[2]);
-    		 deriv[9][2] = (1+point[0]-point[2])*(1-point[1]-point[2])/
+    		 deriv[12][0] = point[2]*(1-point[1]-point[2])/(1-point[2]);
+    		 deriv[12][1] = -point[2]*(1+point[0]-point[2])/(1-point[2]);
+    		 deriv[12][2] = (1+point[0]-point[2])*(1-point[1]-point[2])/
     				 (1-point[2])-point[2]*(1-point[1]-point[2])/
     				 (1-point[2])-point[2]*(1+point[0]-point[2])/
     				 (1-point[2])+point[2]*(1+point[0]-point[2])*
     				 (1-point[1]-point[2])/((1-point[2])*(1-point[2]));
 
-    		 deriv[12][0] = -point[2]*(1-point[1]-point[2])/(1-point[2]);
-    		 deriv[12][1] = -point[2]*(1-point[0]-point[2])/(1-point[2]);
-    		 deriv[12][2] = (1-point[0]-point[2])*(1-point[1]-point[2])/
+    		 deriv[11][0] = -point[2]*(1-point[1]-point[2])/(1-point[2]);
+    		 deriv[11][1] = -point[2]*(1-point[0]-point[2])/(1-point[2]);
+    		 deriv[11][2] = (1-point[0]-point[2])*(1-point[1]-point[2])/
     				 (1-point[2])-point[2]*(1-point[1]-point[2])/
     				 (1-point[2])-point[2]*(1-point[0]-point[2])/
     				 (1-point[2])+point[2]*(1-point[0]-point[2])*
     				 (1-point[1]-point[2])/((1-point[2])*(1-point[2]));
 
-    		 deriv[11][0] = -point[2]*(1+point[1]-point[2])/(1-point[2]);
-    		 deriv[11][1] = point[2]*(1-point[0]-point[2])/(1-point[2]);
-    		 deriv[11][2] = (1-point[0]-point[2])*(1+point[1]-point[2])/
+    		 deriv[10][0] = -point[2]*(1+point[1]-point[2])/(1-point[2]);
+    		 deriv[10][1] = point[2]*(1-point[0]-point[2])/(1-point[2]);
+    		 deriv[10][2] = (1-point[0]-point[2])*(1+point[1]-point[2])/
     				 (1-point[2])-point[2]*(1+point[1]-point[2])/
     				 (1-point[2])-point[2]*(1-point[0]-point[2])/
     				 (1-point[2])+point[2]*(1-point[0]-point[2])*

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+  <documentation>
+    <title>Pyramid2ndOrderShapeFunctions</title>
+    <authors>
+      <author>fritzenwallner, wagnes, maierhofer</author>
+    </authors>
+    <date>2026-02-19</date>
+    <isVerified>no</isVerified>
+    <description>
+      Acoustic velocity in a channel with constant pressure boundary conditions.
+      This example verifies the solution on a mesh containing second-order pyramid elements.
+      The reference solution has been obtained by using first order ansatz functions.
+    </description>
+  </documentation>
+  <fileFormats>
+    <!-- Data Input -->
+    <input>
+      <hdf5 fileName="Pyra2ndOrder.h5ref" />
+    </input>
+    <!-- Data Output -->
+    <output>
+      <hdf5 />
+      <text />
+    </output>
+    <!-- Material File -->
+    <materialData file="mat.xml" format="xml" />
+  </fileFormats>
+
+  <domain geometryType="3d">
+    <!-- Volume Regions -->
+    <regionList>
+      <region name="Channel_hex" material="unity" />
+      <region name="Channel_pyra" material="unity" />
+      <region name="Channel_tet" material="unity" />
+    </regionList>
+  </domain>
+
+  <fePolynomialList>
+    <Lagrange id="default">
+      <isoOrder>2</isoOrder>
+    </Lagrange>
+  </fePolynomialList>
+
+  <sequenceStep index="1">
+    <!-- Analysis Type -->
+    <analysis>
+      <harmonic>
+        <frequencyList>
+          <freq value="10" />
+        </frequencyList>
+      </harmonic>
+    </analysis>
+
+    <!-- PDE Definition -->
+    <pdeList>
+      <acoustic formulation="acouPressure" >
+        <regionList>
+          <region name="Channel_hex" />
+          <region name="Channel_pyra" />
+          <region name="Channel_tet" />
+        </regionList>
+        <bcsAndLoads>
+          <pressure name="Excite_l_hex" value="1"/>
+          <pressure name="Excite_l_pyra" value="1"/>
+          <pressure name="Excite_l_tet" value="1"/>
+
+          <pressure name="Excite_r_hex" value="0"/>
+          <pressure name="Excite_r_pyra" value="0"/>
+          <pressure name="Excite_r_tet" value="0"/>
+
+        </bcsAndLoads>
+        <storeResults>
+          <nodeResult type="acouPressure">
+            <allRegions />
+          </nodeResult>
+          <elemResult type="acouVelocity">
+            <allRegions />
+          </elemResult>
+        </storeResults>
+      </acoustic>
+    </pdeList>
+  </sequenceStep>
+</cfsSimulation>
