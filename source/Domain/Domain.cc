@@ -1353,8 +1353,15 @@ void Domain::InitPreciceAdapter(SinglePDE* pde)
   // way. The problem is in a multisequence step when a sequence step
   // requires an earlier sequence step's value, it creates a new domain
   // instance, which would then just hold the the garbage pointer of preciceAdapter_
-  this->preciceAdapter_ = CoupledField::gPreciceAdapter;
-  this->preciceAdapter_->initialize(this, pde);
+  IPreciceAdapter* adapter = CoupledField::gPreciceAdapter;
+  if(!adapter)
+    return;
+
+  this->preciceAdapter_ = adapter;
+  if(adapter->IsPreciceDummy())
+    return;
+
+  adapter->initialize(this, pde);
 
 }
 

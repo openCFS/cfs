@@ -277,9 +277,9 @@ if(BUILD_HWLOC)
   INCLUDE("${CFSDEPS_DIR}/hwloc/External_HWLOC.cmake")
 endif(BUILD_HWLOC)
 
-# if(USE_PRECICE)
-#   include("${CFSDEPS_DIR}/precice/External_PRECICE.cmake")
-# endif()
+if(USE_PRECICE)
+  include("${CFSDEPS_DIR}/precice/External_PRECICE.cmake")
+endif()
 
 # ghost is required for phist or could be used standalone
 if(BUILD_GHOST)
@@ -321,4 +321,3 @@ endif()
 #-------------------------------------------------------------------------------
 ADD_CUSTOM_TARGET(cfsdeps)
 ADD_DEPENDENCIES(cfsdeps ${CFSDEPS})
-

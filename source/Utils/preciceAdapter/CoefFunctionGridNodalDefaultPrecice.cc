@@ -198,7 +198,7 @@ CoefFunctionGridNodalDefaultPrecice<T>::CoefFunctionGridNodalDefaultPrecice(
     boost::shared_ptr<ParamNode> curInfo,
     boost::shared_ptr<RegionList> region,
     ResultInfo::EntryType /*entryType*/)
-  : CoefFunctionGridElem<T>(domain, configNode, region)
+  : CoefFunctionGridNodal<T>(domain, configNode, region)
 {
     // Dummy constructor: no additional functionality.
 }

@@ -66,6 +66,19 @@
 #include "FeBasis/H1/FeSpaceH1Hi.hh"
 using std::string;
 
+namespace {
+
+bool IsPreciceCouplingConfigured(const CoupledField::PtrParamNode& paramRoot)
+{
+  if(!paramRoot)
+    return false;
+
+  CoupledField::PtrParamNode fileFormats = paramRoot->Get("fileFormats", CoupledField::ParamNode::PASS);
+  return fileFormats && fileFormats->Has("preciceCoupling");
+}
+
+}
+
 //coefFunctions
 #include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
@@ -78,6 +91,8 @@ using std::string;
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
+
+#include "Utils/preciceAdapter/IPreciceAdapter.hh"
 
 // used by Mortar coupling
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
@@ -371,7 +386,17 @@ namespace CoupledField {
   
     void SinglePDE::Init_Stage2() {
     
-    domain_->InitPreciceAdapter(this);
+    IPreciceAdapter* preciceAdapter = domain_->GetPreciceAdapter();
+    const bool preciceConfigured = IsPreciceCouplingConfigured(domain_->GetParamRoot());
+    if(preciceConfigured && preciceAdapter && !preciceAdapter->IsPreciceDummy())
+      domain_->InitPreciceAdapter(this);
+    else
+      LOG_DBG(singlepde) << pdename_ << ": Skipping PreCICE initialization (configured="
+                         << preciceConfigured << ", adapter="
+                         << (preciceAdapter ? "available" : "missing")
+                         << ", dummy="
+                         << (preciceAdapter ? preciceAdapter->IsPreciceDummy() : true)
+                         << ")";
 
     // =====================================================================
     // read in boundary conditions
