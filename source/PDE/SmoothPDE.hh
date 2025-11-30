@@ -69,12 +69,7 @@ protected:
 
     /** Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
      * @param isComplex either from complex material or bloch mode */
-    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex);
-
-    /** Returns a stiffness integrator appropriate to the actual problem (e.g. 3D) with the material tensor scaled by a given factor
-     * @param isComplex either from complex material or bloch mode
-     * @param scalingFactor is a factor the material tensor to be multiplied by */
-    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, shared_ptr<BaseFeFunction> feFct, bool isComplex);
 
     //! Return flux integrator used for Nitsche coupling
     template<typename DATA_TYPE>
