@@ -43,7 +43,7 @@
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
-                    <xsd:attribute name="nonLinId" type="xsd:token"
+                    <xsd:attribute name="nonLinIds" type="xsd:token"
                     use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
@@ -151,6 +151,11 @@
   <xsd:complexType name="DT_SmoothNonLinStrain">
     <xsd:complexContent>
       <xsd:extension base="DT_NonLinBasic">
+        <xsd:attribute name="scalingFactor" type="xsd:double" default="1.0" use="optional">
+          <xsd:annotation>
+            <xsd:documentation>Defines a scaling factor (double) that can be used to linearly scale the non-linear strain stiffening.</xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute> 
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

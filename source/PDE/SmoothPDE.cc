@@ -164,36 +164,36 @@ namespace CoupledField {
 
       
       // ====================================================================
-      //  Standard Linear Stiffness
+      //  Standard Linear Stiffness (with potential non-linear scaling)
       // ====================================================================
-      if( !nonLin_ ) {
+      
         
-        PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-        
-        BaseBDBInt* stiffInt;
-        
-        stiffInt =  GetStiffIntegrator(actSDMat, actRegion, isComplex);
-        
-        stiffInt->SetName("LinElastInt");
-        stiffInt->SetFeSpace( mySpace);
-        
-        BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
-        stiffIntDescr->SetEntities( actSDList, actSDList );
-        stiffIntDescr->SetFeFunctions( myFct, myFct );
-        
-        
-        assemble_->AddBiLinearForm( stiffIntDescr );
-        
-        // Important: Add bdb-integrator to global list, as we need them later
-        // for calculation of postprocessing results
-        bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
-        LOG_TRACE(smoothpde) << "Add Lin BDB" << std::endl;
-        
-        // write to info-xml
-        PtrParamNode form = infoNode_->Get("header")->Get("integrators")->Get("matrixBiLinearForms")->GetByVal("bilinearForm","integrator","LinElastInt",ParamNode::APPEND);
-        PtrParamNode coef = form->Get("coef", ParamNode::APPEND);
-        coef->Get("value")->SetValue(stiffInt->GetCoef()->ToString());
-      }
+      PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      
+      BaseBDBInt* stiffInt;
+      
+      stiffInt =  GetStiffIntegrator(actSDMat, actRegion, myFct, isComplex);
+      
+      stiffInt->SetName("LinElastInt");
+      stiffInt->SetFeSpace( mySpace);
+      
+      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
+      stiffIntDescr->SetEntities( actSDList, actSDList );
+      stiffIntDescr->SetFeFunctions( myFct, myFct );
+      
+      
+      assemble_->AddBiLinearForm( stiffIntDescr );
+      
+      // Important: Add bdb-integrator to global list, as we need them later
+      // for calculation of postprocessing results
+      bdbInts_.insert( std::pair<RegionIdType, BaseBDBInt*>(actRegion,stiffInt) );
+      LOG_TRACE(smoothpde) << "Add Lin BDB" << std::endl;
+      
+      // write to info-xml
+      PtrParamNode form = infoNode_->Get("header")->Get("integrators")->Get("matrixBiLinearForms")->GetByVal("bilinearForm","integrator","LinElastInt",ParamNode::APPEND);
+      PtrParamNode coef = form->Get("coef", ParamNode::APPEND);
+      coef->Get("value")->SetValue(stiffInt->GetCoef()->ToString());
+      
       
       // in the end, at the region to the feFunction      // to be implemented
       myFct->AddEntityList( actSDList );
@@ -439,22 +439,74 @@ namespace CoupledField {
     } // for
   }
   
-  BaseBDBInt* SmoothPDE::GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex)
+  BaseBDBInt* SmoothPDE::GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, shared_ptr<BaseFeFunction> feFct, bool isComplex)
   {
     // Get region name
     std::string regionName = ptGrid_->GetRegion().ToString( regionId );
+
+    // get list of nonlinearities
+    StdVector<NonLinType> & nonLinTypes = regionNonLinTypes_[regionId];
+
+    PtrCoefFct preFac = CoefFunction::Generate( mp_, Global::REAL, "1.0");;
+
+    // for non-lin scaling factor used for strain stiffening (modified preFac from above)
+    if ( nonLinTypes.Find(STRAIN_STIFFENING) != -1 ) {
+      StdVector<std::string> stressComponents;
+      if( subType_ == "3d" || subType_ == "2.5d") {
+        stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
+      } else if( subType_ == "planeStrain" ) {
+        stressComponents = "xx", "yy", "xy";
+      } else if( subType_ == "planeStress" ) {
+        stressComponents = "xx", "yy", "xy";
+      } else if( subType_ == "axi" ) {
+        stressComponents = "rr", "zz", "rz", "phiphi";
+      }
+      shared_ptr<CoefFunctionFormBased> energyFunc;
+      shared_ptr<ResultInfo> strain(new ResultInfo);
+      strain->resultType = MECH_STRAIN;
+      strain->dofNames = stressComponents;
+      strain->unit =  "";
+      strain->entryType = ResultInfo::TENSOR;
+      strain->definedOn = ResultInfo::ELEMENT;
+      shared_ptr<CoefFunctionFormBased> strainFunc;
+      // scaling fac to steer the influence of the strain stiffening
+      PtrCoefFct scalingFac = CoefFunction::Generate( mp_, Global::REAL, std::to_string(nonLinScalarFac_));
+
+      if( isComplex_ ) {
+        strainFunc.reset(new CoefFunctionBOp<Complex>(feFct, strain));
+        PtrCoefFct squaredStrain = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, strainFunc, strainFunc, CoefXpr::OP_MULT));
+        PtrCoefFct rootFunc = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprUnaryOp(mp_, squaredStrain, CoefXpr::OP_SQRT));
+        PtrCoefFct scaledRootFunc = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, scalingFac, rootFunc, CoefXpr::OP_MULT));
+        preFac = CoefFunction::Generate(mp_, Global::COMPLEX, 
+          CoefXprBinOp(mp_, CoefFunction::Generate( mp_, Global::REAL, "1.0"), scaledRootFunc, CoefXpr::OP_ADD));
+      } else {
+        strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
+        PtrCoefFct squaredStrain = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, strainFunc, strainFunc, CoefXpr::OP_MULT));
+        PtrCoefFct rootFunc = CoefFunction::Generate(mp_, Global::REAL, CoefXprUnaryOp(mp_, squaredStrain, CoefXpr::OP_SQRT));
+        PtrCoefFct scaledRootFunc = CoefFunction::Generate(mp_, Global::REAL, CoefXprBinOp(mp_, scalingFac, rootFunc, CoefXpr::OP_MULT));
+        preFac = CoefFunction::Generate(mp_, Global::REAL, 
+          CoefXprBinOp(mp_, CoefFunction::Generate( mp_, Global::REAL, "1.0"), scaledRootFunc, CoefXpr::OP_ADD));
+      }
+      stiffFormCoefs_.insert(strainFunc);
+    } // strain stiffening end
     
     // ------------------------
     //  Obtain linear material
     // ------------------------
     shared_ptr<CoefFunction > curCoef;
-    if( isComplex )
+    PtrCoefFct stiffCoef;
+    if ( isComplex ) {
       curCoef = actSDMat->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
-    else
+      stiffCoef = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, preFac, CoefXpr::OP_MULT));
+    } else {
       curCoef = actSDMat->GetTensorCoefFnc(SMOOTH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
+      stiffCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, preFac, CoefXpr::OP_MULT));
+    }
+    
+    
     
     // store coefficient function for later use (e.g. in boundary integrators)
-    regionStiffness_[regionId] = curCoef;
+    regionStiffness_[regionId] = stiffCoef;
     
     // ----------------------------------------
     //  Determine correct stiffness integrator 
@@ -467,9 +519,9 @@ namespace CoupledField {
     //  Standard Stiffness
     // ====================
     if (isComplex )
-      integ = new BDBInt<Complex>(bOp, curCoef, 1.0, updatedGeo_);
+      integ = new BDBInt<Complex>(bOp, stiffCoef, 1.0, updatedGeo_);
     else
-      integ = new BDBInt<Double>(bOp, curCoef, 1.0, updatedGeo_);
+      integ = new BDBInt<Double>(bOp, stiffCoef, 1.0, updatedGeo_);
     
     return integ;
   }
@@ -524,13 +576,10 @@ namespace CoupledField {
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
-  void SmoothPDE::InitTimeStepping()  {
-//    Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
-//    GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
-//
-//    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-//    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme1, 0, nlType) );
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
+  void SmoothPDE::InitTimeStepping()  
+  {
+    // we do not require a special time stepping scheme for the non-linear strain stiffening, so we set it to NONE all the time
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::BDF2, TimeSchemeGLM::NONE) );
     
     feFunctions_[SMOOTH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }

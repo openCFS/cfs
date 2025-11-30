@@ -374,6 +374,9 @@ namespace CoupledField {
     
     // Coefficient function for material model
     shared_ptr<CoefFunctionMaterialModel<Complex>> matModelCoef_;
+
+    // scalar factor used to influence the non-linearity
+    double nonLinScalarFac_;
     //@}
     
     

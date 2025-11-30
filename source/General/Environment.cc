@@ -1702,6 +1702,8 @@ namespace CoupledField {
       out = MATERIAL;
     } else if( in == "geometric") {
       out = GEOMETRIC;
+    } else if( in == "strainStiffening") {
+      out = STRAIN_STIFFENING;
     } else if( in == "hysteresis") {
       out = HYSTERESIS;
     } else if( in == "piezoMicroHF") {
@@ -1768,6 +1770,9 @@ namespace CoupledField {
         break;
       case GEOMETRIC:
         out = "geometric";
+        break;
+      case STRAIN_STIFFENING:
+        out = "strainStiffening";
         break;
       case HYSTERESIS:
         out = "hysteresis";

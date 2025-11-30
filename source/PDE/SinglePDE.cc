@@ -533,8 +533,13 @@ namespace CoupledField {
         std::string actId = nonLinNodes[i]->Get("id")->As<std::string>();
 
         // thermal radiation BC doesn't have model name attribute
-        if (actTypeString != "thermalRadiation") {
+        if (actTypeString != "thermalRadiation" && actTypeString != "strainStiffening") {
           modelName_ = nonLinNodes[i]->Get("model")->As<std::string>();
+        }
+
+        // thermal radiation BC doesn't have model name attribute
+        if (actTypeString == "strainStiffening") {
+          nonLinScalarFac_ = nonLinNodes[i]->Get("scalingFactor")->As<Double>();
         }
 
         //std::cout << "actTypeString " << actTypeString << std::endl;
