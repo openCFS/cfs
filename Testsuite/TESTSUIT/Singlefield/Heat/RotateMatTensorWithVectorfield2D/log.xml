@@ -1,0 +1,7 @@
+<logging>
+  <!-- Regular debug for the module -->
+  <stream name="coeffunctionRotationValidation" level="dbg3">
+    <file name="coeffunctionRot.txt"/>
+  </stream >
+
+</logging>

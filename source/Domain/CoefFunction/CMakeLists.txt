@@ -38,6 +38,8 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionConversion.hh
   CoefFunctionSUPG.cc
   CoefFunctionSUPG.hh
+  CoefFunctionRotation.cc
+  CoefFunctionRotation.hh
 )
 
 if(USE_EMBEDDED_PYTHON)

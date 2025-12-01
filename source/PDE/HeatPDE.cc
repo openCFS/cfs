@@ -22,6 +22,7 @@
 #include "Domain/CoefFunction/CoefFunctionMapping.hh"
 #include "Domain/CoefFunction/CoefFunctionComplexToReal.hh"
 #include "Domain/CoefFunction/CoefFunctionSUPG.hh"
+#include "Domain/CoefFunction/CoefFunctionRotation.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -310,6 +311,33 @@ void HeatPDE::DefineIntegrators() {
       if (isLinFlowPDECoupled_ && isCouplingFormulationSymmetric_) {
         curCoef = CoefFunction::Generate(mp_, Global::REAL, CoefXprTensScalOp(mp_, curCoef, refTemp, CoefXpr::OP_DIV));
       }
+
+      // alligns the heat conductivity tensor with a vector field
+      std::string rotationId = curRegNode->Get("rotateMaterialTensorsId")->As<std::string>();      
+      if((rotationId != "")) {
+        LOG_DBG(heatcondpde) << "rotateMaterialTensorsId: " << rotationId;
+
+        // reads from the rotationList, gets rotation
+        PtrParamNode rotation = myParam_->Get("rotationList")->GetByVal("rotation","name",rotationId.c_str());
+        PtrParamNode rotNode_1 = rotation->Get("refVec");
+        PtrParamNode rotNode_2 = rotation->Get("targetVec");
+        shared_ptr<ResultInfo> rotInfo ( new ResultInfo );
+        rotInfo->SetVectorDOFs(dim_, isaxi_);
+        rotInfo->definedOn = ResultInfo::ELEMENT;
+        rotInfo->entryType = ResultInfo::VECTOR;
+
+        // Read vector fields as coefficient function
+        PtrCoefFct vec1, vec2;
+        std::set<UInt> definedDofs;
+        ReadUserFieldValues( actSDList, rotNode_1, rotInfo->dofNames, rotInfo->entryType, isComplex_, vec1, definedDofs, updatedGeo_ );
+        ReadUserFieldValues( actSDList, rotNode_2, rotInfo->dofNames, rotInfo->entryType, isComplex_, vec2, definedDofs, updatedGeo_ );
+        LOG_DBG(heatcondpde) << "vector 1 (start): " << vec1;
+        LOG_DBG(heatcondpde) << "vector 2 (start): " << vec2;
+        // saves the conductivity tensoras a rotation coefficient function
+        CoefFunctionRotation* tmpRotCoeff = new CoefFunctionRotation(curCoef, vec1, vec2);
+        curCoef.reset(tmpRotCoeff);
+      }
+
 
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
       if(domain->HasDesign()) {

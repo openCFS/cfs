@@ -48,6 +48,7 @@
                     <xsd:attribute name="nonLinIds" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="velocityId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="rotateMaterialTensorsId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -109,6 +110,28 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Type of rotation (optional) -->
+          <xsd:element name="rotationList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>This list contains rotations to be applied to all material tensors of specified regions</xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded" minOccurs="1">
+                <xsd:element name="rotation">
+                  <xsd:annotation>
+                    <xsd:documentation>A rotation is defined by 2 vectors, a reference vector and a target vector.</xsd:documentation>
+                  </xsd:annotation>
+                  <xsd:complexType>
+                    <xsd:sequence>
+                      <xsd:element name="refVec" type="DT_BcInhomVector"/>
+                      <xsd:element name="targetVec" type="DT_BcInhomVector"/>
+                    </xsd:sequence>
+                    <xsd:attribute name="name" type="xsd:token" use="required"/>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
 
           <!-- Surface regions on which results can be calculated-->
 

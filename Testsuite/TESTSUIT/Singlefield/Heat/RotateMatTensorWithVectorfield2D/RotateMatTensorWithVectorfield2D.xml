@@ -1,0 +1,106 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.cfs++.org/simulation https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+    
+    <documentation>
+    <title>Heat PDE</title>
+    <authors>
+      <author>mhofmarc, msocaciu</author>
+    </authors>
+    <date>2026-01-22</date>
+    <keywords>
+      <keyword>heatConduction</keyword>
+    </keywords>
+    <references></references>
+    <isVerified>yes</isVerified>
+    <description>
+    Test case for 2D alignment of the heat conduction tensor with a vector field.
+    The rotateMaterialTensorsId is assigned to a region where the heatConduction problem is applied and a rotation is needed.
+    For this Id a rotation list with a reference vector field and a target vector field is created.
+    The heat conduction tensor is rotated from the reference vector field to the target vector field.
+    </description>
+  </documentation>
+  
+    <fileFormats>
+      <input>
+        <hdf5 fileName="RotateMatTensorWithVectorfield2D.h5ref"/>
+      </input>
+        <output>
+            <hdf5 />
+            <text id="txt" />
+        </output>
+        <materialData file="mat.xml" format="xml" />
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <regionList>
+            <region name="S_U" material="iron" >
+                <matRotation alpha="0.0" beta="0.0" gamma="0.0" />
+            </region>
+        </regionList>
+    </domain>
+
+     <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+        <pdeList>
+            <elecConduction>
+                <regionList>
+                    <region name="S_U"/>
+                </regionList>
+                <bcsAndLoads>
+                    <normalCurrentDensity name="L_left">
+                        <comp dof="y" value="1.0" />
+                    </normalCurrentDensity>
+                    <potential name="L_right" value="0"/>
+                </bcsAndLoads>
+                <storeResults>
+                    <elemResult type="elecCurrentDensity">
+                        <allRegions/>
+                    </elemResult>
+                </storeResults>
+            </elecConduction>
+        </pdeList>
+    </sequenceStep>
+
+    <sequenceStep index="2">
+        <analysis>
+            <static />
+        </analysis>
+        <pdeList>
+            <heatConduction>
+                <regionList>
+                    <region name="S_U" rotateMaterialTensorsId="rotation" />
+                </regionList>
+                <rotationList>
+                    <rotation name="rotation">
+                        <refVec>
+                            <comp dof="x" value="1" />
+                        </refVec>
+                        <targetVec>
+                            <sequenceStep index="1">
+                                <quantity name="elecCurrentDensity" pdeName="elecConduction"/>
+                                <timeFreqMapping>
+                                    <constant/>
+                                </timeFreqMapping>
+                            </sequenceStep>
+                        </targetVec>
+                    </rotation>
+                </rotationList>   
+                <bcsAndLoads>
+                    <heatFlux name="L_inner" value="1000"/>
+                    <heatTransport name="L_outer" volumeRegion="S_U" heatTransferCoefficient="100" bulkTemperature="20.0"/>
+                </bcsAndLoads>
+                <storeResults>
+                    <nodeResult type="heatTemperature">
+                        <allRegions />
+                    </nodeResult>
+                    <elemResult type="heatFluxDensity">
+                        <allRegions />
+                    </elemResult>
+                </storeResults>
+            </heatConduction>
+        </pdeList>
+    </sequenceStep>
+</cfsSimulation>
