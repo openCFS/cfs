@@ -1,0 +1,26 @@
+# 1-element unit square for Strain Stiffening verification
+reset
+# Geometry Generation
+create surface rectangle width 1 height 1 zplane
+
+# Move it so the corners are at (0,0) and (1,1)
+move surface 1 x 0.5 y 0.5 z 0
+
+# Meshing
+curve all interval 1
+surface 1 scheme map
+mesh surface 1
+
+# Define Regions
+block 1 add  surface 1
+block 1 name "computational_domain"
+
+nodeset 1 add node with x_coord < 0.001
+nodeset 1 name "left_edge"
+
+nodeset 2 add node with x_coord > 0.999
+nodeset 2 name "right_edge"
+
+
+export ansys cdb "unit_square.cdb" overwrite
+

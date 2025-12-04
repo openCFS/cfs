@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfsSimulation xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+               xsi:schemaLocation="http://www.cfs++.org/simulation ../../../../../share/xml/CFS-Simulation/CFS.xsd"
+               xmlns="http://www.cfs++.org/simulation">
+
+
+  <documentation>
+    <title>TransientUniaxialStrainStiffening2D</title>
+    <authors>
+      <author>celebic, sabathy, schratter</author>
+    </authors>
+    <date>2026-02-07</date>
+    <keywords>
+      <keyword>smooth</keyword>
+      <keyword>output</keyword>
+    </keywords>
+    <references> 
+      PDF to verify the simulated results with analytical measurements
+    </references>
+    <isVerified>no</isVerified>
+    <description>
+      Transient uniaxial deformation of a domain under pressure governed by the smooth PDE with strain stiffening.
+      This example verifies the strain-dependent scaling factor using an analytical reference solution.
+    </description>
+  </documentation>
+
+
+  <fileFormats>
+    <input>
+      <hdf5 fileName="TransientUniaxialStrainStiffening2D.h5ref"/>
+    </input>
+    <output>
+      <hdf5/>
+      <text id="txt"/>
+    </output>
+    <materialData file="mat.xml" format="xml"/>
+  </fileFormats>
+
+  <domain geometryType="plane">
+    <regionList>
+      <region name="computational_domain" material="TestMaterial"/>
+    </regionList>
+  </domain>
+
+  <sequenceStep>
+    <analysis>
+      <transient>
+        <numSteps>10</numSteps>
+        <deltaT>5e-05</deltaT>
+      </transient>
+    </analysis>
+
+    <pdeList>
+      <smooth subType="planeStrain">
+        <regionList>
+          <region name="computational_domain" nonLinIds="test"/>
+        </regionList>
+
+        <nonLinList>
+          <strainStiffening id="test" scalingFactor="2.0"/>
+        </nonLinList>
+
+        <bcsAndLoads>
+          <fix name="left_edge">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <fix name="right_edge">
+            <comp dof="y"/>
+          </fix>
+          <pressure name="right_edge" value="400"/>
+        </bcsAndLoads>
+
+        <storeResults>
+          <nodeResult type="smoothDisplacement">
+             <allRegions/>
+          </nodeResult>
+          <elemResult type="smoothStrain">
+            <allRegions/>
+          </elemResult>
+        </storeResults>
+      </smooth>
+    </pdeList>
+
+    <linearSystems>
+      <system>
+        <solutionStrategy>
+          <standard>
+            <nonLinear logging="yes">
+              <lineSearch type="none"/>
+              <incStopCrit> 1e-5 </incStopCrit>
+              <resStopCrit> 1e-5 </resStopCrit>
+              <maxNumIters> 200 </maxNumIters>
+            </nonLinear>
+          </standard>
+        </solutionStrategy>
+      </system>
+    </linearSystems>
+  </sequenceStep>
+</cfsSimulation>

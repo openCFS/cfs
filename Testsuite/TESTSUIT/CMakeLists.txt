@@ -185,6 +185,9 @@ ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2d)
 ADD_SUBDIRECTORY(Singlefield/Smooth/RotatedChamberL2Norm2D)
 ADD_SUBDIRECTORY(Singlefield/Smooth/ChamberL2Norm2DHarmonic)
 ADD_SUBDIRECTORY(Singlefield/Smooth/StaticShearStrainStiffening2D)
+IF(USE_PARDISO)
+  ADD_SUBDIRECTORY(Singlefield/Smooth/TransientUniaxialStrainStiffening2D)
+ENDIF(USE_PARDISO)
 
 #-------------------------------------------------------------------------------
 # Subdirectories for Split PDE test cases.
