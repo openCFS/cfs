@@ -1,0 +1,66 @@
+reset
+# VARIABLES
+{R_outer = 0.8}
+{R_mid = 0.5}
+{R_inner = 0.3}
+{size_inner = 0.02}
+{size_outer = 0.04}
+
+# GEOMETRY
+create vertex 0 0 0		# reference
+create vertex {R_inner} 0 0
+create vertex {R_mid} 0 0
+create vertex {R_outer} 0 0
+create vertex 0 {R_inner} 0
+create vertex 0 {R_mid} 0
+create vertex 0 {R_outer} 0
+
+create surface circle center vertex 1 6 3
+create surface circle center vertex 1 7 4
+subtract surface 1 from surface 2
+create surface circle center vertex 1 8 3
+create surface circle center vertex 1 5 2
+subtract body 4 from body 3
+
+create vertex {R_outer} {-R_outer}  0
+create vertex {-R_outer} {-R_outer} 0
+create vertex {-R_outer} {R_outer} 0
+create surface vertex 7 1 4 11 12 13
+
+subtract body 5 from body 2 3
+
+# MESH
+surface 9 size {size_inner}
+surface 8 size {size_outer}
+mesh surface 8 9
+
+# DOMAIN AND BOUNDARIES
+block 1 add surface 9
+block 1 name "V_in"
+
+block 2 add surface 8
+block 2 name "V_out"
+
+
+nodeset 1 add curve 20
+nodeset 1 name "S_in"
+
+nodeset 2 add curve 14
+nodeset 2 name "S_out"
+
+nodeset 3 add curve 15 19
+nodeset 3 name "S_y"
+
+nodeset 4 add curve 17 13
+nodeset 4 name "S_x"
+
+
+nodeset 9 add curve 18
+nodeset 9 name "NCIinMaster"
+
+nodeset 10 add curve 16
+nodeset 10 name "NCIoutSlave"
+
+# SAVING
+export ansys cdb "\\wsl.localhost\Ubuntu\home\isabellaunix\Devel\CFS_SRC\cfs\Testsuite\TESTSUIT\Singlefield\Mechanics\thinLayerNciAnnulus2D\mesh.cdb"  overwrite 
+

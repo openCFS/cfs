@@ -1,0 +1,51 @@
+reset
+# VARIABLES
+{R_outer = 0.8}
+{R_mid = 0.5}
+{R_inner = 0.3}
+{size = 0.025}
+{thickness = 0.01}
+
+# GEOMETRY
+create sphere radius {R_mid} inner radius {R_inner} zpositive ypositive xpositive
+create sphere radius {R_mid + thickness} inner radius {R_mid}  zpositive ypositive xpositive
+create sphere radius {R_outer + thickness} inner radius {R_mid + thickness} zpositive ypositive xpositive
+
+imprint all
+merge all
+
+# MESH
+volume 1 2 3 size {size}
+mesh volume 1 2 3
+
+imprint all
+merge all
+
+# DOMAIN AND BOUNDARIES
+block 1 add volume 1
+block 1 name "V_in"
+
+block 2 add volume 3
+block 2 name "V_out"
+
+block 3 add volume 2
+block 3 name "V_mid"
+
+nodeset 1 add surface 1
+nodeset 1 name "S_in"
+
+nodeset 2 add surface 15
+nodeset 2 name "S_out"
+
+nodeset 3 add surface 3 8 13
+nodeset 3 name "S_yz"
+
+nodeset 4 add surface 2 7 12
+nodeset 4 name "S_xy"
+
+nodeset 5 add surface 4 9 14
+nodeset 5 name "S_xz"
+
+
+# SAVING
+export ansys cdb "meshFull.cdb"  overwrite 

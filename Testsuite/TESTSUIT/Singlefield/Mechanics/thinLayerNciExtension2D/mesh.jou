@@ -1,0 +1,53 @@
+reset
+
+# GEOMETRY
+create vertex 0 0 0
+create surface rectangle width 0.5 height 0.1 zplane 
+create surface rectangle width 0.5 height 0.1 zplane 
+
+# MESH
+surface 1 size 0.1
+mesh surface 1
+
+surface 2 size 0.05
+mesh surface 2
+
+move Surface 2 x 0.5 include_merged 
+
+# DOMAINS AND BOUNDARIES
+block 1 add surface 1
+block 1 name "V_left"
+
+block 2 add surface 2
+block 2 name "V_right"
+
+nodeset 1 add curve 2  
+nodeset 1 name "S_left"
+
+nodeset 2 add curve 8  
+nodeset 2 name "S_right"
+
+nodeset 3 add curve 4  
+nodeset 3 name "NCI_leftSlave"
+
+nodeset 4 add curve 6 
+nodeset 4 name "NCI_rightMaster"
+
+nodeset 5 add curve 1 
+nodeset 5 name "S_top_left"
+
+nodeset 6 add curve 5
+nodeset 6 name "S_top_right"
+
+nodeset 7 add curve 3
+nodeset 7 name "S_bottom_left"
+
+nodeset 8 add curve 7
+nodeset 8 name "S_bottom_right"
+
+# SAVING
+export ansys cdb "mesh.cdb"  overwrite 
+
+
+
+

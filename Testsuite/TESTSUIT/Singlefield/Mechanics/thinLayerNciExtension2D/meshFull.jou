@@ -1,0 +1,43 @@
+reset
+
+#{thickness = 0.02}
+
+create vertex 0 0 0
+create surface rectangle width 0.5 height 0.1 zplane 
+create surface rectangle width 0.5 height 0.1 zplane 
+create surface rectangle width {thickness} height 0.1 zplane 
+
+move Surface 2 x {0.5 + thickness} include_merged 
+move Surface 3 x {0.25 + thickness/2} include_merged 
+
+imprint all
+merge all
+
+surface 1 2 3 size 0.01
+mesh surface 1 2 3
+
+imprint all
+merge all
+
+block 1 add surface 1
+block 1 name "V_left"
+
+block 2 add surface 2
+block 2 name "V_right"
+
+block 3 add surface 3
+block 3 name "V_mid"
+
+nodeset 1 add curve 2  
+nodeset 1 name "S_left"
+
+nodeset 2 add curve 8  
+nodeset 2 name "S_right"
+
+nodeset 5 add curve 1 5 9
+nodeset 5 name "S_top"
+
+nodeset 8 add curve 3 7 11
+nodeset 8 name "S_bottom"
+
+export ansys cdb "meshFull.cdb"  overwrite 

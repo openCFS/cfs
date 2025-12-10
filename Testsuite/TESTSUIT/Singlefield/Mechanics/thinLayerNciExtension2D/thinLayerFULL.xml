@@ -1,0 +1,108 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title> Non-Conforming 2D Mechanics with thinLayer formulation </title>
+        <authors>
+            <author>vfilkin</author>
+        </authors>
+        <date>2024-03-23</date>
+        <keywords>
+            <keyword>mechanic</keyword>
+            <keyword>nonmatching grids</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>no</isVerified>
+        <description> 
+            Mechanics 2D. extension beam.
+            Non-conforming mesh with thinLayer formulation for vector fields
+            Dimensions: width 0.1. length 1 + layerthicknessFULL=0.02.
+            fully modelled version to thinLayerNciExtension2D.xml
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <input>
+            <!-- <cdb fileName="meshFull.cdb"/> -->
+             <hdf5 fileName="meshFull.cfs"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <domain geometryType="plane">
+        <regionList>
+            <region name="V_left" material="Steel"/> 
+            <region name="V_right" material="Steel"/>
+            <region name="V_mid" material="Copper"/>
+        </regionList>
+        <nodeList>
+            <nodes name="fixNode">
+                <coord x="-0.25" y="0"/>
+            </nodes>
+        </nodeList>
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <static>
+            </static>
+        </analysis>
+
+        <pdeList>
+            <mechanic> <!-- subType="planeStrain"-->
+                <regionList>
+                    <!-- define regions to be included in the analysis -->
+                    <region name="V_left"/>
+                    <region name="V_right"/>
+                    <region name="V_mid"/>
+                </regionList>
+
+                <bcsAndLoads>
+                    <traction name="S_right" >
+                        <comp dof="x" value="10e6" />
+                    </traction>
+                    <fix name="S_left">
+                        <comp dof="x" />
+                    </fix>
+                    <fix name="fixNode">
+                        <comp dof="y" />
+                    </fix>
+                </bcsAndLoads>
+
+                <storeResults>
+
+                    <nodeResult type="mechDisplacement">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="mechStress">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechStrain">
+                        <allRegions />
+                    </elemResult>
+
+                    <sensorArray fileName="sensorArray/Disp_full_trac10e6_t002.csv" type="mechDisplacement" csv="yes" delimiter=",">
+                        <parametric>
+                          <list comp="x" start="-0.25" stop="0.85" inc="0.001"/>
+                          <list comp="y" start="-0.05" stop="-0.05" inc="0"/>
+                        </parametric>
+                    </sensorArray>
+                    <sensorArray fileName="sensorArray/Strain_full_trac10e6_t002.csv" type="mechStrain" csv="yes" delimiter=",">
+                        <parametric>
+                          <list comp="x" start="-0.25" stop="0.75" inc="0.001"/>
+                          <list comp="y" start="-0.05" stop="-0.05" inc="0"/>
+                        </parametric>
+                    </sensorArray>
+
+                </storeResults>
+            </mechanic>
+        </pdeList>
+
+    </sequenceStep>
+
+</cfsSimulation>

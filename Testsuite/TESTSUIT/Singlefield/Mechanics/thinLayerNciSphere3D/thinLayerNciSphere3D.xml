@@ -1,0 +1,100 @@
+<cfsSimulation xmlns="http://www.cfs++.org/simulation"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.cfs++.org/simulation 
+https://opencfs.gitlab.io/cfs/xml/CFS-Simulation/CFS.xsd">
+
+    <documentation>
+        <title> Non-Conforming 3D Mechanics with thinLayer Formulation </title>
+        <authors>
+            <author>vfilkin</author>
+        </authors>
+        <date>2025-10-20</date>
+        <keywords>
+            <keyword>mechanic</keyword>
+            <keyword>nonmatching grids</keyword>
+        </keywords>
+        <references></references>
+        <isVerified>no</isVerified>
+        <description> 
+            Mechanics 3D - thinLayer - Nci
+            Non-conforming mesh with thinLayer formulation for vector fields
+            Dimensions: 1/8th hollow Sphere with R_outer 0.8. R_inner 0.3. (R_mid 0.5.) thin layer thickness 0.01.
+            Boundary Conditions: 3 symmetry planes fixed in plane normal direction. outside surface has a prescribed pressure of 1e7.
+            Materials: The sphere has material steel. The thin layer section has material copper.
+            Validation: Paraview. comparison with fully modelled version.
+        </description>
+    </documentation>
+
+    <fileFormats>
+        <input>
+            <!-- <cdb fileName="mesh.cdb"/> -->
+            <hdf5 fileName="mesh.cfs"/>
+        </input>
+        <output>
+            <hdf5/>
+            <text id="txt"/>
+        </output>
+        <materialData file="mat.xml" format="xml"/>
+    </fileFormats>
+
+    <domain geometryType="3d">
+        <regionList>
+            <region name="V_in" material="Steel"/>
+            <region name="V_out" material="Steel"/>
+        </regionList>
+        <surfRegionList>
+            <surfRegion name="NCIinMaster" />
+            <surfRegion name="NCIoutSlave" />
+        </surfRegionList>
+        <ncInterfaceList>
+            <ncInterface name="nciThinLayer" primarySide="NCIinMaster" secondarySide="NCIoutSlave"/>
+        </ncInterfaceList> 
+    </domain>
+
+    <sequenceStep index="1">
+        <analysis>
+            <static/>
+        </analysis>
+
+        <pdeList>
+            <mechanic subType="3d">
+                <regionList>
+                    <region name="V_in"/>
+                    <region name="V_out"/>
+                </regionList>
+
+                <ncInterfaceList>
+                    <ncInterface name="nciThinLayer" formulation="Nitsche">
+                        <thinLayer layerThickness="0.01" layerMaterial="Copper"/>
+                    </ncInterface>
+                </ncInterfaceList>
+
+                <bcsAndLoads>
+                    <pressure name="S_out" value="1e7"/>
+                    <fix name="S_yz">
+                        <comp dof="x"/>
+                    </fix>
+                    <fix name="S_xy">
+                        <comp dof="z"/>
+                    </fix>
+                    <fix name="S_xz">
+                        <comp dof="y"/>
+                    </fix>
+                </bcsAndLoads>
+
+                <storeResults>
+                    <nodeResult type="mechDisplacement">
+                        <allRegions/>
+                    </nodeResult>
+                    <elemResult type="mechStress">
+                        <allRegions/>
+                    </elemResult>
+                    <elemResult type="mechStrain">
+                        <allRegions />
+                    </elemResult>
+                </storeResults>
+                
+            </mechanic>
+        </pdeList>
+    </sequenceStep>
+
+</cfsSimulation>

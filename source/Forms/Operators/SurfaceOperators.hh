@@ -1613,6 +1613,156 @@ void SurfaceTangentialHollowIncompressibleStrainOperator2D<FE, D, D_DOF, TYPE>::
   dummyMat.Transpose(bMat);
 }
 
+template <class FE, UInt D, UInt D_DOF = 1, class TYPE = Double>
+class SurfaceIdentityOperatorNormalTrans : public BaseBOperator
+{
+  //! Calculates the transposed normal-projected identity operator for vector functions for NCIs
+  //! This class implements the transposed identity operator for vectorial shape
+  //! functions,  which gets projected in normal direction. The element matrix
+  //! is computed as:
+  //! b = ( N_1*n_x, N_1*n_y, N1_*n_z, N_2*n_x, N_2*n_y, N2_*n_z, .. )
+  //!   = n^T * N
+  //!
+  //! and is of size (1 x ( DIM_SPACE * number of functions).
+public:
+  // ------------------
+  //  STATIC CONSTANTS
+  // ------------------
+  //@{
+  //! \name Static constants
+
+  //! Order of differentiation
+  static const UInt ORDER_DIFF = 0;
+
+  //! Number of components of the problem (scalar, vector)
+  static const UInt DIM_DOF = D_DOF;
+
+  //! Dimension of the underlying domain / space
+  static const UInt DIM_SPACE = D;
+
+  //! Dimension of the finite element
+  static const UInt DIM_ELEM = D;
+
+  //! Dimension of the related material
+  static const UInt DIM_D_MAT = 1;
+  //@}
+
+  SurfaceIdentityOperatorNormalTrans()
+  {
+    return;
+  }
+
+  //! Copy constructor
+  SurfaceIdentityOperatorNormalTrans(const SurfaceIdentityOperatorNormalTrans &other) : BaseBOperator(other) {}
+
+  //! \copydoc BaseBOperator::Clone()
+  virtual SurfaceIdentityOperatorNormalTrans *Clone()
+  {
+    return new SurfaceIdentityOperatorNormalTrans(*this);
+  }
+
+  virtual ~SurfaceIdentityOperatorNormalTrans()
+  {
+    return;
+  }
+
+  virtual void CalcOpMat(Matrix<Double> &bMat, const LocPointMapped &lp, BaseFE *ptFe);
+
+  virtual void CalcOpMatTransposed(Matrix<Double> &bMat, const LocPointMapped &lp, BaseFE *ptFe);
+
+  // avoid reimplementation of complex operator by making the bas class function
+  // available
+  using BaseBOperator::CalcOpMat;
+
+  using BaseBOperator::CalcOpMatTransposed;
+
+  // ===============
+  //  QUERY METHODS
+  // ===============
+  //@{ \name Query Methods
+  //! \copydoc BaseBOperator::GetDiffOrder
+  virtual UInt GetDiffOrder() const
+  {
+    return ORDER_DIFF;
+  }
+
+  //! \copydoc BaseBOperator::GetDimDof()
+  virtual UInt GetDimDof() const
+  {
+    return DIM_DOF;
+  }
+
+  //! \copydoc BaseBOperator::GetDimSpace()
+  virtual UInt GetDimSpace() const
+  {
+    return DIM_SPACE;
+  }
+
+  //! \copydoc BaseBOperator::GetDimElem()
+  virtual UInt GetDimElem() const
+  {
+    return DIM_ELEM;
+  }
+
+  //! \copydoc BaseBOperator::GetDimDMat()
+  virtual UInt GetDimDMat() const
+  {
+    return DIM_D_MAT;
+  }
+  //@}
+protected:
+};
+
+template <class FE, UInt D, UInt D_DOF, class TYPE>
+void SurfaceIdentityOperatorNormalTrans<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double> &bMat, const LocPointMapped &lp, BaseFE *ptFe)
+{
+
+  // ensure, that the surface information (i.e. normal direction)
+  // is set at the mapped local point
+  assert(lp.isSurface);
+  assert(D == ptFe->shape_.dim);
+  const UInt numFncs = ptFe->GetNumFncs();
+
+  // Set correct size of matrix B and initialize with zeros
+  bMat.Resize(1, DIM_DOF * numFncs);
+  bMat.InitValue(0.0);
+
+  Vector<Double> s;
+  FE *fe = (static_cast<FE *>(ptFe));
+  for (UInt d = 0; d < DIM_DOF; d++)
+  {
+    fe->GetShFnc( s, lp.lpmVol->lp, lp.lpmVol->shapeMap->GetElem() , d);
+    for (UInt sh = 0; sh < numFncs; sh++)
+    {
+      bMat[0][DIM_DOF * sh + d] = s[sh] * lp.normal[d];
+    }
+  }
+}
+
+template <class FE, UInt D, UInt D_DOF, class TYPE>
+void SurfaceIdentityOperatorNormalTrans<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Matrix<Double> &bMat, const LocPointMapped &lp, BaseFE *ptFe)
+{
+
+  // ensure, that the surface information (i.e. normal direction)
+  // is set at the mapped local point
+  assert(lp.isSurface);
+
+  const UInt numFncs = ptFe->GetNumFncs();
+  // Set correct size of matrix B and initialize with zeros
+  bMat.Resize(DIM_DOF * numFncs, 1);
+  bMat.InitValue(0.0);  
+
+  Vector<Double> s;
+  FE *fe = (static_cast<FE *>(ptFe));
+  for (UInt d = 0; d < DIM_DOF; d++)
+  {
+    fe->GetShFnc( s, lp.lpmVol->lp, lp.lpmVol->shapeMap->GetElem() , d);
+    for (UInt sh = 0; sh < numFncs; sh++)
+    {
+      bMat[DIM_DOF * sh + d][0] = s[sh] * lp.normal[d];
+    }
+  }
+}
 
 }
 #endif
