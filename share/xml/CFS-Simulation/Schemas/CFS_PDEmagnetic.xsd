@@ -273,12 +273,11 @@
                         <xsd:annotation>
                           <xsd:documentation>
                             Terminal definition for the coupling of network elements to the FEM simulation.
-                            The FEMTerminal tag is used to define the coupling surface, while the 
+                            The FEMTerminal tag is not necessary (defined in the positive part), while the 
                             NetworkTerminal tag is used to define the coupling node from the network.
                           </xsd:documentation>
                         </xsd:annotation>
                         <xsd:complexType>
-                          <xsd:attribute name="femTerminal" type="xsd:token" use="required"/>
                           <xsd:attribute name="networkTerminal" type="xsd:token" use="required"/>
                           <!--<xsd:attribute name="volRegion" type="xsd:token" use="required"/>-->
                         </xsd:complexType>
