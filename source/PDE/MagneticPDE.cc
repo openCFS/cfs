@@ -1960,7 +1960,7 @@ namespace CoupledField {
             // we don't consider any geometry update, hence, we set the last bool to false
 
             // in a FEM context this looks fance, but actually we only write a single entry in the system matrix!
-            stiffnessCouplingIntPosFL = new BBInt<Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, constCondNetwork, surfAreaFem, false);
+            stiffnessCouplingIntPosFL = new BBInt<Double,Double>(new IdentityOperatorLem<FeH1, 2, 1, Double>, constCondNetwork, surfAreaFem, false);
           }
         } else {
           EXCEPTION("3D FEM-LEM coupling is not supported!");
