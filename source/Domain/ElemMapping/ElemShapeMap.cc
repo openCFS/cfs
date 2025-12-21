@@ -352,12 +352,12 @@ void LocPointMapped::SetWithNitscheSurface(const LocPoint& lp, shared_ptr<ElemSh
   // for p.b.c., the global point can lie out of the volume element. That's why we first map the global point form the NC-element to
   // the primary (or secondary) surface element in order to calculate the corresponding local point in the adjacent volume element.
   // The mapping is performed in accordance with the transformation between the primary and the secondary surfaces.
-  if (mortarElem->transVect.GetSize() != 0 && !mortarElem->rotationCenter.GetSize()) {
-    esmSurf->TranslatePointOntoSurface(mortarElem->transVect, globIntPoint);
+  if (mortarElem->transVect != nullptr && !mortarElem->rotationCenter.GetSize()) {
+    esmSurf->TranslatePointOntoSurface(*(mortarElem->transVect), globIntPoint);
   }
   else if (mortarElem->rotationCenter.GetSize()) {
     // in case of cake-piece projection we also need to rotate...
-    esmSurf->TransferPointOntoSurface(mortarElem->transVect, mortarElem->rotationCenter, mortarElem->rotationAngle, globIntPoint);
+    esmSurf->TransferPointOntoSurface(*(mortarElem->transVect), mortarElem->rotationCenter, mortarElem->rotationAngle, globIntPoint);
   }
   // -------kirill (periodic boundary conditions)-------------------------------------------------------------------------------------
 

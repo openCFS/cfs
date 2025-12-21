@@ -49,6 +49,9 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType GetSecondaryVolRegion() const { return secondaryVolRegion_; }
     RegionIdType GetMovingVolRegion() const { return movingVolRegion_; }
     StdVector<RegionIdType> GetConnectedVolRegions() const { return connectedVolRegions_; }
+    
+    // getter for the translation vector reference
+    const Vector<Double> &GetTranslationVector() const { return translationVector_; }
 
     //! return if the interface is a coplanar interface
     bool IsCoplanar() const { return isCoplanar_; }

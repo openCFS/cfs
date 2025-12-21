@@ -1453,7 +1453,7 @@ namespace CoupledField {
     ncElem->type = Elem::ET_LINE2;
     ncElem->ptPrimary = ifaceElem1;
     ncElem->ptSecondary = ifaceElem2;
-    ncElem->transVect = translationVector_;
+    ncElem->transVect = (mutualProjection_ || cakePieceProjection_) ? &GetTranslationVector() : nullptr;
     ncElem->rotationAngle = cakePieceRotationAngle_;
     ncElem->rotationCenter = cakePieceRotationCenter_;
     ncElem->projectedPrimary = projElem;
@@ -2301,7 +2301,7 @@ namespace CoupledField {
             elemToAdd->ptPrimary = primarySurfElems_[primaryIndex];
             elemToAdd->ptSecondary = secondarySurfElems_[secondaryIndex];
             elemToAdd->projectedPrimary = nullptr;
-            elemToAdd->transVect = translationVector_;
+            elemToAdd->transVect = (mutualProjection_ || cakePieceProjection_) ? &GetTranslationVector() : nullptr;
           #ifdef USE_OPENMP
             // set lock to add elements to the grid
             omp_set_lock(&elemListLock_);
@@ -2414,7 +2414,7 @@ namespace CoupledField {
             elemToAdd->ptPrimary = primarySurfElems_[primaryIndex];
             elemToAdd->ptSecondary = secondarySurfElems_[secondaryIndex];
             elemToAdd->projectedPrimary = projectedPrimaryElement;
-            elemToAdd->transVect = translationVector_;
+            elemToAdd->transVect = (mutualProjection_ || cakePieceProjection_) ? &GetTranslationVector() : nullptr;
           #ifdef USE_OPENMP
             // set lock to add elements to the grid
             omp_set_lock(&elemListLock_);
@@ -2617,7 +2617,7 @@ namespace CoupledField {
         elemToAdd->ptPrimary = primaryElement;
         elemToAdd->ptSecondary = secondaryElement;
         elemToAdd->projectedPrimary = projectedPrimaryElement;
-        elemToAdd->transVect = translationVector_;
+        elemToAdd->transVect = (mutualProjection_ || cakePieceProjection_) ? &GetTranslationVector() : nullptr;
       #ifdef USE_OPENMP
         // set lock to add elements to the grid
         omp_set_lock(&elemListLock_);

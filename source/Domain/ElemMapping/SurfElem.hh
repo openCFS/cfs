@@ -100,7 +100,7 @@ namespace CoupledField
    *  non-matching grid are working again.
    */
   struct MortarNcSurfElem : public NcSurfElem {
-    MortarNcSurfElem() : NcSurfElem() {transVect.Resize(0);}
+    MortarNcSurfElem() : NcSurfElem() {}
     //! pointers to primary/secondary elements
     SurfElem *ptPrimary = nullptr;
     SurfElem *ptSecondary = nullptr;
@@ -108,9 +108,9 @@ namespace CoupledField
     //! transport the integration points of intersection elements back into the original elements.
     shared_ptr<SurfElem> projectedPrimary = nullptr;
     
-    // the plainest, but, obviously, not the most effective way to store the information
-    // about the parallel projection between the master and the slave in case of translational p.b.c.
-    Vector<Double> transVect;
+    // Store the information about parallel projection between the primary and secondary surface in case of
+    // translational p.b.c by reference
+    const Vector<Double> *transVect = nullptr;
     // in case cake-piece projection (non-parallel surfaces, but aligned in a wedge or cake-piece shape)
     // also store the rotation vector and the center of rotation
     Vector<Double> rotationCenter;
