@@ -145,7 +145,6 @@ def xpath(xml, path, uniqueness_check = True):
       if  len(res) == 0:
         raise RuntimeError(path + " not found with ns='" + str(namespace(path)) + "'")
       if len(res) > 1:
-        str(res)
         raise RuntimeError(path + " has " + str(len(res)) + " hits")
       data = res[0]
       return str(data)

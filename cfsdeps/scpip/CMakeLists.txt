@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16) # cmake 4.0 does not allow < 3.5
+cmake_minimum_required(VERSION 3.5) # cmake 4.0 does not allow < 3.5
 
 project(scpip Fortran)
 

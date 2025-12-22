@@ -1,4 +1,6 @@
 set(CMAKE_SOURCE_DIR "@CMAKE_SOURCE_DIR@")
+set(DEPS_PREFIX  "@DEPS_PREFIX@")
+set(PACKAGE_NAME "@PACKAGE_NAME@")
 
 include("${CMAKE_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
@@ -9,5 +11,8 @@ if(@CMAKE_Fortran_COMPILER_ID@ MATCHES "IntelLLVM")
   # legacy code from the 1974!! to determine machine precission fails - set hard coded eps
   list(APPEND PATCHES "scpip-ifx.patch")
 endif()
+
+# not really a patch but a complete replacement
+file(COPY "${CMAKE_SOURCE_DIR}/cfsdeps/${PACKAGE_NAME}/CMakeLists.txt" DESTINATION "${DEPS_PREFIX}/src/${PACKAGE_NAME}")
 
 apply_patches("${PATCHES}" "${CMAKE_SOURCE_DIR}/cfsdeps/scpip")
