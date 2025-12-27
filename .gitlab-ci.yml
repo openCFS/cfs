@@ -1497,7 +1497,6 @@ pages:
   # switch off cloning any code
   variables:
     GIT_SUBMODULE_STRATEGY: none
-    GIT_STRATEGY: none
   rules:
     # only for release pipelines in our namespace
     - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAMESPACE == "openCFS"
@@ -1506,10 +1505,12 @@ pages:
     - doxygen
   script:
     - mkdir -p public # create public dir
+    # copy index page
+    - cp .gitlab/pages/index.html public
     # publish XML scheme
     - tar -xzvf "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" # extract the build (for XML schema)
     - cp -r "CFS-$CI_COMMIT_SHA-Linux/share/xml" "public/." # publish XML scheme
-    # publish the builds
+    # publish the builds (not used any more)
     - mv "build/CFS-$CI_COMMIT_REF_SLUG-Linux.tar.gz" "public/." # move to public
     # - mv "build/CFS-$CI_COMMIT_REF_SLUG-Windows.zip" "public/." # windows is too large
     # publish doxygen
