@@ -4,7 +4,7 @@
 
 ## Check before assigning to a maintainer for review
 
-* [ ] The history is clean (squashed into meaninful commits and commit messages)
+* [ ] The history is clean (squashed into meaningful commits and commit messages)
 * [ ] New Code is well-documented and understandable
 * [ ] In case of new functionality, there is a test case (also mentioned in the description)
 * [ ] Every commit passes the pipeline
