@@ -55,7 +55,6 @@ variables:
       - "test"
       - "nightly"
       - "release"
-      - "pipeline"
     description: "The type of the pipeline: usually you want 'test', 'manual', or 'nightly'. Other options are for pipeline-experiments only!"
   # all rules:changes:compare_to use this value - it can be set in as a variable when creating a pipeline
   # since branch and MR pipelines show a different behavior without this option, we set it (see https://docs.gitlab.com/ee/ci/yaml/#ruleschanges)
@@ -85,10 +84,6 @@ workflow:
   name: "$CFS_PIPELINE_NAME"
   rules:
   # put the most specific rules first - we have a release tag (in the correct format)
-  - if: $CI_PIPELINE_SOURCE == "pipeline" # the pipeline was triggered by CFS
-    variables:
-      CFS_PIPELINE_TYPE: "testsuite"
-      CFS_PIPELINE_NAME: "Triggered by $TESTSUITE_PROJECT !$TESTSUITE_MR of $TESTSUITE_BRANCH"
   # tags with 20* should be protected in the GitLab repo settings
   - if: $CI_COMMIT_TAG && $CI_COMMIT_TAG =~ /20[0-9][0-9][A-Z]/
     variables:
