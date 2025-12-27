@@ -72,8 +72,6 @@
     CXX: cl
     FC: ifx
     #CI_DEBUG_TRACE: "true"
-    GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
-    CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
     # define config by variable # cfsdat leads to build error on Windows?
     CFS_CONFIG_OPTIONS: "-DBUILD_CFSDAT=OFF -DCFS_TESTSUITE=OFF"
     # set the default cache policy (for build jobs) to pull
@@ -169,9 +167,6 @@
 .windows-shared-test:
   <<: *windows-shared_tags
   variables:
-    # Override already defined variable to get submodules
-    # see https://docs.gitlab.com/ee/ci/yaml/yaml_optimization.html#merge-details for merge-details with 'extends'
-    GIT_SUBMODULE_STRATEGY: recursive
     RUNNER_AFTER_SCRIPT_TIMEOUT: 15m # increase the timeout
   rules:
     - !reference [.ctest_default, rules]

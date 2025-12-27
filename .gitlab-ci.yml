@@ -24,6 +24,7 @@ include:
 # https://docs.gitlab.com/ee/ci/variables/#variables-expressions
 variables:
   GIT_STRATEGY: fetch # this is faster than clone and should re-use a workspace
+  GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
   CDASH_TRACK: Gitlab # will be overwritten by nightly schedule
   CTEST_PROGRESS_OUTPUT: "ON" # makes the ctest output shorter, see https://cmake.org/cmake/help/latest/envvar/CTEST_PROGRESS_OUTPUT.html#envvar:CTEST_PROGRESS_OUTPUT
   # build options for the maximal config
@@ -46,8 +47,6 @@ variables:
   CCACHE_SLOPPINESS: "file_macro,locale,time_macros"
   CCACHE_STATSLOG: $CI_PROJECT_DIR/build/ccache.log
   CCACHE_MAXSIZE: 200M
-  # default ref for artifacts in downstream (Testsuite) pipelines
-  CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_COMMIT_REF_NAME # for the build artifacts
   # set the pipeline type via variable, see https://docs.gitlab.com/ee/ci/yaml/#variablesoptionsq
   CFS_PIPELINE_TYPE:
     value: "test"
@@ -108,15 +107,11 @@ workflow:
     variables:
       CFS_PIPELINE_TYPE: "manual"
       CFS_PIPELINE_NAME: "Manual for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
-      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggered pipelines
-      CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_MERGE_REQUEST_REF_PATH # for build artifacts
   # run automatically for not-Draft merge requests
   - if: $CI_MERGE_REQUEST_IID
     variables:
       CFS_PIPELINE_TYPE: "test"
       CFS_PIPELINE_NAME: "Test for MR${CI_MERGE_REQUEST_IID}: $CI_COMMIT_TITLE"
-      CFS_UPSTREAM_REF_FOR_SUBMODULE: $CI_MERGE_REQUEST_REF_PATH # ref path for artifacts in triggered pipelines
-      CFS_UPSTREAM_REF_FOR_BUILD_ARTIFACTS: $CI_MERGE_REQUEST_REF_PATH # for build artifacts
   # do not run branch pipelines if a merge request is open (avoid duplicates)
   - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS && $CI_PIPELINE_SOURCE !~ /web/ && $CI_PIPELINE_SOURCE !~ /schedule/
     when: never
@@ -507,7 +502,6 @@ rhel:9:
   tags:
     - saas-linux-small-amd64
   variables: &cfsdeps-variables
-    CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
     RUNNER_SCRIPT_TIMEOUT: 150m # set a script timeout lower than the job timeout to ensure there is time for artifact and cache upload
   rules:
     # include the cfsdeps stage even if there are no changes by setting the variable BUILD_CFSDEPS or merge request label "build-cfsdeps"
@@ -666,8 +660,6 @@ cfsdeps:msvc2022:
   tags:
     - saas-linux-small-amd64
   variables:
-    GIT_SUBMODULE_STRATEGY: none # we do not need the testsuite for building
-    CI_PIPELINE_NO_TESTSUITE: "ON" # we define it to ignore the inclusion of TESTSUITE_DIR
     # using the Unix Makefile generator (every Linux but gcc14-musl), this variable builds cfs parallel.
     # the cfsdeps will be build in sequence but automatically with the availabe number of cores.
     # currently (04.2025) all gitlab runners seem to run with 2 threads
@@ -1415,8 +1407,6 @@ doxygen:
   image: $BUILD_ENVIRONMENT_REGISTRY/fedora41:$BUILD_ENVIRONMENT_TAG
   tags:
     - saas-linux-small-amd64
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
   rules:
     - if: $CFS_PIPELINE_TYPE == "test"
     - if: $CFS_PIPELINE_TYPE == "release" && ( $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH )
@@ -1451,7 +1441,6 @@ cdash:report:
     - saas-linux-small-amd64
   # switch off cloning any code
   variables:
-    GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
   rules:
     - if: $CFS_PIPELINE_TYPE == "test"
@@ -1487,16 +1476,12 @@ cdash:report:
   before_script: []
   # switch off cloning any code
   variables:
-    GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
 
 pages:
   stage: deploy
   tags:
     - saas-linux-small-amd64
-  # switch off cloning any code
-  variables:
-    GIT_SUBMODULE_STRATEGY: none
   rules:
     # only for release pipelines in our namespace
     - if: $CFS_PIPELINE_TYPE == "release" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PROJECT_NAMESPACE == "openCFS"
@@ -1527,7 +1512,6 @@ pages:
   stage: deploy
   variables:
     # switch off cloning any code and add common variables
-    GIT_SUBMODULE_STRATEGY: none
     GIT_STRATEGY: none
     # see https://docs.gitlab.com/ee/user/packages/generic_packages/index.html for PACKAGE_REGISTRY_URL format
     #                                                    projects/:id/packages/generic/:package_name/:package_version/:file_name
