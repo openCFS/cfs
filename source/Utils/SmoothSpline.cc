@@ -384,34 +384,41 @@ namespace CoupledField
     double f0,f1,f2,f3,p0,p1,p2,p3;
     double z, val, p;
 
-    i = GetInterval(t);
+    if ( t <= xEnd_ ) {
+      i = GetInterval(t);
 
-    if ( i == -1 ) {
-      i = ind_; 
+      if ( i == -1 ) {
+        i = ind_; 
+      }
+
+      j  = 2*i;
+
+      f0 = coef_[j];
+      f1 = coef_[j+2];
+      f2 = coef_[j+1];
+      f3 = coef_[j+3];
+
+      p = xStart_;
+
+      for (k=0; k<i; k++) {
+        p += h_[k];
+      }
+
+      z = ( t - p ) / h_[i];
+
+      // prime value         
+      p0 = HermitePrime(z,0)/h_[i];
+      p1 = HermitePrime(z,1)/h_[i];
+      p2 = HermitePrime(z,2);
+      p3 = HermitePrime(z,3);
+    
+      val= f0*p0+f1*p1+f2*p2+f3*p3;
+    } 
+    else {
+      // slope of linear extrapolation to compute (in case of magnetics) magnetic flux density B
+      val = (y_[numMeas_-1] - y_[numMeas_-2])/(x_[numMeas_-1] - x_[numMeas_-2]);
     }
 
-    j  = 2*i;
-
-    f0 = coef_[j];
-    f1 = coef_[j+2];
-    f2 = coef_[j+1];
-    f3 = coef_[j+3];
-
-    p = xStart_;
-
-    for (k=0; k<i; k++) {
-      p += h_[k];
-    }
-
-    z = ( t - p ) / h_[i];
-
-    // prime value         
-    p0 = HermitePrime(z,0)/h_[i];
-    p1 = HermitePrime(z,1)/h_[i];
-    p2 = HermitePrime(z,2);
-    p3 = HermitePrime(z,3);
-  
-    val= f0*p0+f1*p1+f2*p2+f3*p3;
   
     return val;
   }
