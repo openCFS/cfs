@@ -33,6 +33,7 @@
 #include "Domain/Results/ResultFunctor.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionContactForceDensity.hh"
+#include "Domain/CoefFunction/CoefFunctionGeom.hh"
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -778,6 +779,19 @@ namespace CoupledField {
     // DefineFieldResult( energyFunc, defEnergy );
 
     stiffFormFunctors_.insert(energyFunc);
+
+
+    // === SMOOTH JACOBIAN ===
+    shared_ptr<ResultInfo> jac(new ResultInfo);
+    jac->resultType = SMOOTH_JACOBIAN;
+    jac->dofNames = "";
+    jac->unit =  "";
+    jac->entryType = ResultInfo::SCALAR;
+    jac->definedOn = ResultInfo::ELEMENT;
+    shared_ptr<CoefFunctionGeom> coefFctJac;
+    coefFctJac.reset(new CoefFunctionGeom("Jacobian"));
+
+    DefineFieldResult( coefFctJac, jac );
   }
   void SmoothPDE::ReadContact(StdVector<std::string>& surfList1,
                                   StdVector<std::string>& surfList2,

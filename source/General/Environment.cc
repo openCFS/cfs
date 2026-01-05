@@ -166,6 +166,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SMOOTH_CONTACT_FORCE, "smoothContactForce");
     SolutionTypeEnum.Add(SMOOTH_DEFORM_ENERGY_DENS, "smoothDeformEnergyDensity");
     SolutionTypeEnum.Add(SMOOTH_DEFORM_ENERGY, "smoothDeformEnergy");
+    SolutionTypeEnum.Add(SMOOTH_JACOBIAN, "smoothJacobian");
     
     //acoustics
     SolutionTypeEnum.Add(ACOU_PRESSURE, "acouPressure");
@@ -1293,6 +1294,7 @@ namespace CoupledField {
       case MECH_PSEUDO_DENSITY:
       case PSEUDO_DENSITY:
       case PHYSICAL_PSEUDO_DENSITY:
+      case SMOOTH_JACOBIAN:
         return "";
         break;
 

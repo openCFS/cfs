@@ -295,6 +295,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="smoothDeformEnergyDensity"/>
       <xsd:enumeration value="smoothStrain"/>
+      <xsd:enumeration value="smoothJacobian"/>
     </xsd:restriction>
   </xsd:simpleType>
 
