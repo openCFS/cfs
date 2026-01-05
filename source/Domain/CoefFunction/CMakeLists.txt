@@ -11,6 +11,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionDistance.cc
   CoefFunctionDummy.cc
   CoefFunctionExpression.cc
+  CoefFunctionGeom.cc
   CoefFunctionGrid.cc
   CoefFunctionGridNodal.cc
   CoefFunctionGridNodalSource.cc
