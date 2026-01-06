@@ -194,6 +194,11 @@ namespace CoupledField{
     //! flag indicating if we have almost PML (better stability in 3D)
     bool isAPML_;
 
+    //! flag indicating if we have a shifted PML (CFS PML)
+    bool hasShiftedPML_;
+    std::map<RegionIdType, Double> alphaMap_; 
+    std::map<RegionIdType, Double> kappaMap_; 
+
     //! need wave-PDE for changing density
     bool complexFluidFormulation_;
 

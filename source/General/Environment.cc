@@ -204,6 +204,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_KIN_ENERGY, "acouKinEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
+    SolutionTypeEnum.Add(ACOU_PMLAUXSCALARSHIFT, "acouPmlAuxScalarShift");
 
     SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
     SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");

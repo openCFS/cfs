@@ -67,6 +67,7 @@ namespace CoupledField{
     updatedGeo_        = false;
     isTimeDomPML_      = false;
     isAPML_            = false;
+    hasShiftedPML_     = false;
     complexFluidFormulation_ = false;
     isOnlyOneMaterial_ = true;
     timeDomainEqFluidFormulation_ = false;
@@ -116,6 +117,13 @@ namespace CoupledField{
         crSpaces[ACOU_PMLAUXSCALAR] =
             FeSpace::CreateInstance(myParam_,scalarpml,FeSpace::H1, ptGrid_);
         crSpaces[ACOU_PMLAUXSCALAR]->Init(solStrat_);
+      }
+
+      if(this->hasShiftedPML_){
+        PtrParamNode scalarPmlShift = infoNode->Get(SolutionTypeEnum.ToString(ACOU_PMLAUXSCALARSHIFT));
+        crSpaces[ACOU_PMLAUXSCALARSHIFT] =
+          FeSpace::CreateInstance(myParam_,scalarPmlShift,FeSpace::H1, ptGrid_);
+        crSpaces[ACOU_PMLAUXSCALARSHIFT]->Init(solStrat_);
       }
 
       PtrParamNode vectorPML = infoNode->Get("TransientPMLVectorAuxVar");
@@ -290,6 +298,14 @@ namespace CoupledField{
           // only consider damping information for the current damping id
           if (actId != actDampingId)
             continue;
+
+          // check if a shifted PML is used
+          std::string actForm = dampNodes[iChild]->Get("formulation")->As<std::string>();
+          if (actForm=="shifted") {
+            hasShiftedPML_ = true;
+            alphaMap_[actRegionId] = dampNodes[iChild]->Get("frqShiftCoef")->Get("value")->As<double>();
+            kappaMap_[actRegionId] = dampNodes[iChild]->Get("scalingCoef")->Get("value")->As<double>();
+          }
 
           // determine type of damping
           DampingType actType;
@@ -894,6 +910,46 @@ namespace CoupledField{
       assemble_->AddBiLinearForm(Context_CgradNu);
       assemble_->AddBiLinearForm(Context_dNudt);
       assemble_->AddBiLinearForm(Context_P);
+    }
+
+    if (this->hasShiftedPML_) {
+      shared_ptr<FeSpace> scalShiftSpace = feFunctions_[ACOU_PMLAUXSCALARSHIFT]->GetFeSpace();
+      scalShiftSpace->SetRegionApproximation(eList->GetRegion(), polyId, integId);
+      feFunctions_[ACOU_PMLAUXSCALARSHIFT]->AddEntityList(eList);
+
+      // get alpha and kappa
+      Double alpha = alphaMap_[actRegion];
+      Double kappa = kappaMap_[actRegion];
+      
+      BaseBDBInt *pXiStiff = new BBInt<>(new IdentityOperator<FeH1, DIM>(), mechAcouFactor, -kappa, updatedGeo_);
+      BaseBDBInt *xiXiDamp = new BBInt<>(new IdentityOperator<FeH1, DIM>(), one, 1.0, updatedGeo_);
+      BaseBDBInt *xiXiStiff = new BBInt<>(new IdentityOperator<FeH1, DIM>(), one, alpha, updatedGeo_);
+      BaseBDBInt *xiPStiff = new BBInt<>(new IdentityOperator<FeH1, DIM>(), one, 1.0, updatedGeo_);
+
+      // the scalar auxiliary variable is called Xi...
+      pXiStiff->SetName("acouPML_pXiStiff");
+      xiXiDamp->SetName("acouPML_xiXiDamp");
+      xiXiStiff->SetName("acouPML_xiXiStiff");
+      xiPStiff->SetName("acouPML_xiPStiff");
+
+      BiLinFormContext *Context_pXiStiff = new BiLinFormContext(pXiStiff, STIFFNESS);
+      BiLinFormContext *Context_xiXiDamp = new BiLinFormContext(xiXiDamp, DAMPING);
+      BiLinFormContext *Context_xiXiStiff = new BiLinFormContext(xiXiStiff, STIFFNESS);
+      BiLinFormContext *Context_xiPStiff = new BiLinFormContext(xiPStiff, STIFFNESS);
+
+      Context_pXiStiff->SetEntities(eList, eList);
+      Context_pXiStiff->SetFeFunctions(feFunctions_[formulation_], feFunctions_[ACOU_PMLAUXSCALARSHIFT]);
+      Context_xiXiDamp->SetEntities(eList, eList);
+      Context_xiXiDamp->SetFeFunctions(feFunctions_[ACOU_PMLAUXSCALARSHIFT], feFunctions_[ACOU_PMLAUXSCALARSHIFT]);
+      Context_xiXiStiff->SetEntities(eList, eList);
+      Context_xiXiStiff->SetFeFunctions(feFunctions_[ACOU_PMLAUXSCALARSHIFT], feFunctions_[ACOU_PMLAUXSCALARSHIFT]);
+      Context_xiPStiff->SetEntities(eList, eList);
+      Context_xiPStiff->SetFeFunctions(feFunctions_[ACOU_PMLAUXSCALARSHIFT], feFunctions_[formulation_]);
+
+      assemble_->AddBiLinearForm(Context_pXiStiff);
+      assemble_->AddBiLinearForm(Context_xiXiDamp);
+      assemble_->AddBiLinearForm(Context_xiXiStiff);
+      assemble_->AddBiLinearForm(Context_xiPStiff);
     }
   }
 
@@ -3541,6 +3597,19 @@ namespace CoupledField{
         DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALAR], pmlScal );
       }
 
+      if(this->hasShiftedPML_){
+        shared_ptr<ResultInfo> pmlScalShift ( new ResultInfo );
+        pmlScalShift->resultType = ACOU_PMLAUXSCALARSHIFT;
+        pmlScalShift->dofNames = "";
+        pmlScalShift->unit = "-";
+        pmlScalShift->definedOn = ResultInfo::NODE;
+        pmlScalShift->entryType = ResultInfo::SCALAR;
+        feFunctions_[ACOU_PMLAUXSCALARSHIFT]->SetResultInfo(pmlScalShift);
+        results_.Push_back( pmlScalShift );
+        pmlScalShift->SetFeFunction(feFunctions_[ACOU_PMLAUXSCALARSHIFT]);
+        DefineFieldResult( feFunctions_[ACOU_PMLAUXSCALARSHIFT], pmlScalShift );
+      }
+
       shared_ptr<ResultInfo> pmlVec ( new ResultInfo );
       pmlVec->resultType = ACOU_PMLAUXVEC;
       pmlVec->dofNames = vecDofNames;
@@ -3658,6 +3727,12 @@ namespace CoupledField{
         GLMScheme * scheme3 = new Newmark(0.5,0.25,alpha);
         shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
+      }
+
+      if(this->hasShiftedPML_){
+        GLMScheme * scheme4 = new Newmark(0.5,0.25,alpha);
+        shared_ptr<BaseTimeScheme> scalSchemeShift(new TimeSchemeGLM(scheme4,0));
+        feFunctions_[ACOU_PMLAUXSCALARSHIFT]->SetTimeScheme(scalSchemeShift);
       }
     }
 
