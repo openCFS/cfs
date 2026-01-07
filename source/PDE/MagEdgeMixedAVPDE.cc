@@ -947,6 +947,11 @@ DEFINE_LOG(magEdgeMixedAVPde, "magEdgeMixedAVPde")
     reluc->entryType = ResultInfo::SCALAR;
     DefineFieldResult( reluc_, reluc );
 
+    PtrCoefFct magFluxDensityFunc = this->GetCoefFct(MAG_FLUX_DENSITY);
+    GenerateMaxwellForce(vecComponents, magFluxDensityFunc, magVecPotFeFct);
+
+    GenerateVWPForce(vecComponents, magFluxDensityFunc, magVecPotFeFct);
+
   }
 
   void MagEdgeMixedAVPDE::FinalizePostProcResults() {

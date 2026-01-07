@@ -354,6 +354,7 @@
       <xsd:enumeration value="elecPotential"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="lagrangeMultiplier1"/>
+      <xsd:enumeration value="meanFluidMechVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
   
