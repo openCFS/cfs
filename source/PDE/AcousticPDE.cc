@@ -300,11 +300,13 @@ namespace CoupledField{
             continue;
 
           // check if a shifted PML is used
-          std::string actForm = dampNodes[iChild]->Get("formulation")->As<std::string>();
-          if (actForm=="shifted") {
-            hasShiftedPML_ = true;
-            alphaMap_[actRegionId] = dampNodes[iChild]->Get("frqShiftCoef")->Get("value")->As<double>();
-            kappaMap_[actRegionId] = dampNodes[iChild]->Get("scalingCoef")->Get("value")->As<double>();
+          if (dampString=="pml") {
+            std::string actForm = dampNodes[iChild]->Get("formulation")->As<std::string>();
+            if (actForm=="shifted") {
+              hasShiftedPML_ = true;
+              alphaMap_[actRegionId] = dampNodes[iChild]->Get("frqShiftCoef")->Get("value")->As<double>();
+              kappaMap_[actRegionId] = dampNodes[iChild]->Get("scalingCoef")->Get("value")->As<double>();
+            }
           }
 
           // determine type of damping
@@ -613,7 +615,7 @@ namespace CoupledField{
         c0R = c0;
       }
 
-      if (pmlFormul == "classic") {
+      if (pmlFormul == "classic" || pmlFormul == "shifted") {
         // here we only have a diagonal Jacobi matrix, so we store values as vector
         coeffPMLVector.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, true));
         coeffPMLDeterminant.reset(new CoefFunctionPML<Complex>(pmlNode, c0R, actSDList, regions_, false));
@@ -663,7 +665,7 @@ namespace CoupledField{
       }
     } else {
       // Define transient integrators for non-harmonic cases
-      if (pmlFormul == "classic") {
+      if (pmlFormul == "classic" || pmlFormul == "shifted") {
         DefineTransientPMLInts<DIM>(actSDList, pmlDampId, actRegion, tempId);
         stiffInt = new BBInt<Double>(new GradientOperator<FeH1, DIM>(), coeffK, 1.0, updatedGeo_);
         massInt = new BBInt<Double>(new IdentityOperator<FeH1, DIM, 1, Double>(), coeffM, 1.0, updatedGeo_);
