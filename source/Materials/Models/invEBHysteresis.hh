@@ -217,6 +217,9 @@ namespace CoupledField {
       //! Pointer to math parser instance
       MathParser* mp_;
 
+      //! Cached pointer to iteration counter for fast access
+      Double* iterationCounterPtr_;
+
       UInt iterTracker4Nu_;
       UInt timeStep_;
       double isMH_;

@@ -23,7 +23,7 @@ DEFINE_LOG(eb, "EBHysteresis")
   EBHysteresis::EBHysteresis() : Model(),
                                  numElems_{0},
                                  Ps_{0}, A_{0}, mu0_{0}, numS_{0}, chi_factor_{0}, jacobian_method_{0},
-                                 mp_{nullptr}, iterTracker4Mu_{0},
+                                 mp_{nullptr}, iterationCounterPtr_{nullptr}, iterTracker4Mu_{0},
                                  isMH_{false}
   {
   }
@@ -141,6 +141,8 @@ DEFINE_LOG(eb, "EBHysteresis")
     mu_.Resize(numElems_, Matrix<Double>(dim_, dim_));
 
     mp_ = domain->GetMathParser();
+    // Cache pointer to iteration counter for fast access (avoids expensive GetExprVars calls)
+    iterationCounterPtr_ = mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter");
     iterTracker4Mu_ = 0;
     saveTmpStageVecs_ = false;
 
@@ -261,13 +263,13 @@ DEFINE_LOG(eb, "EBHysteresis")
     UInt idx = ElemNum2Idx_[ElemNum];
     // the idea of this if is that the mu_ should only get updated for a new iteration (we might have several integration points
     // in one element and since we only use ONE hysteresis operator for one element, this is correct).
-    int currentIter = 0;
-    
-    // Protect the non-thread-safe MathParser access
-    #pragma omp critical (math_parser_access)
-    {
-      currentIter = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+
+    // Use cached pointer for fast access (no locking needed for reading a double)
+    // Lazy initialization: the variable may not exist when Init() is called
+    if (!iterationCounterPtr_) {
+      iterationCounterPtr_ = mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter");
     }
+    int currentIter = iterationCounterPtr_ ? static_cast<int>(*iterationCounterPtr_) : 0;
 
     if(iterTracker4Mu_ != currentIter){
       iterTracker4Mu_ = currentIter;

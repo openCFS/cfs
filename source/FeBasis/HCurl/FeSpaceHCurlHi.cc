@@ -575,7 +575,7 @@ namespace CoupledField{
   
   BaseFE* FeSpaceHCurlHi::GetFe( const EntityIterator ent ){
     RegionIdType eRegion = GetVolElem(ent.GetElem())->regionId;
-    
+
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
       eRegion = ALL_REGIONS;
@@ -609,32 +609,26 @@ namespace CoupledField{
       myFe = refMap[ent.GetElem()->type];
     }
 
-    // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
+    // ToDo: Currently hard coded to isotropic order. Here we should generalize the
     // setting of entity orders.
     assert (myFe);
-    
+
     return myFe;
   }
   
   BaseFE* FeSpaceHCurlHi::GetFe( UInt elemNum ){
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
     assert(feFct);
-    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum); 
-    
+    const Elem * ptElem = feFct->GetGrid()->GetElem(elemNum);
+
     // Note: if the element is a surface element, we must omit the regionId
     // and look for the neigbor
     RegionIdType eRegion = GetVolElem(ptElem)->regionId;
-    //RegionIdType eRegion = ptElem->regionId;
-
-    std::string regionName = ptGrid_->GetRegion().ToString(eRegion);
-
-
 
     //Check if the region is there, otherwise fall back to default
     if(refElems_.find(eRegion) == refElems_.end()){
       eRegion = ALL_REGIONS;
     }
-
 
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");
@@ -664,7 +658,7 @@ namespace CoupledField{
       SetElemGrad( ptElem, myFe, eRegion, true );
       myFe = refMap[ptElem->type];
     }
-    
+
     return myFe;
   }
 

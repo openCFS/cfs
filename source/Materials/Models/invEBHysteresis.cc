@@ -24,9 +24,9 @@ DEFINE_LOG(inveb, "invEBHysteresis")
 
 
     invEBHysteresis::invEBHysteresis() : Model(),
-    numElems_{0}, 
+    numElems_{0},
     Js_{0}, A_{0}, numS_{0}, jacobian_method_{0},
-    mp_{nullptr},
+    mp_{nullptr}, iterationCounterPtr_{nullptr},
     isMH_{false}
     {}
 
@@ -156,6 +156,8 @@ DEFINE_LOG(inveb, "invEBHysteresis")
     nu_.Resize(numElems_, Matrix<Double>(dim_, dim_));
 
     mp_ = domain->GetMathParser();
+    // Cache pointer to iteration counter for fast access (avoids expensive GetExprVars calls)
+    iterationCounterPtr_ = mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter");
     iterTracker4Nu_ = 0;
     saveTmpStageVecs_ = false;
 
@@ -233,8 +235,15 @@ DEFINE_LOG(inveb, "invEBHysteresis")
       UInt idx = ElemNum2Idx_[ElemNum];
       // the idea of this if is that the mu_ should only get updated for a new iteration (we might have several integration points
       // in one element and since we only use ONE hysteresis operator for one element, this is correct).
-      if(iterTracker4Nu_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-        iterTracker4Nu_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+
+      // Use cached pointer for fast access (no locking needed for reading a double)
+      // Lazy initialization: the variable may not exist when Init() is called
+      if (!iterationCounterPtr_) {
+        iterationCounterPtr_ = mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter");
+      }
+      UInt currentIter = iterationCounterPtr_ ? static_cast<UInt>(*iterationCounterPtr_) : 0;
+      if(iterTracker4Nu_ != currentIter){
+        iterTracker4Nu_ = currentIter;
         LOG_DBG3(inveb) << "\n\t Trigger new iteration"<< std::endl;
         alreadyHasNu_.Init(false);
       }

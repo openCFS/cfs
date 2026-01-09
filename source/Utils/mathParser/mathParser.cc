@@ -650,8 +650,34 @@ namespace CoupledField {
     }
     EXCEPTION("Variable " << varName << " is not registered in mathparser");
   }
-  
-  
+
+
+  Double* MathParser::GetValuePtr( unsigned int handle,
+                                   const std::string& varName ) {
+    // Look for related variable pool
+    PoolMap::iterator poolsIt = pools_.find( handle );
+    if ( poolsIt != pools_.end() ) {
+      VarPool::iterator varIt = poolsIt->second.find( varName );
+      if ( varIt != poolsIt->second.end() ) {
+        return &(varIt->second);
+      }
+    }
+
+    // If not in local pool and not global handler, check global pool
+    if ( handle != GLOB_HANDLER ) {
+      PoolMap::iterator globPoolsIt = pools_.find( GLOB_HANDLER );
+      if ( globPoolsIt != pools_.end() ) {
+        VarPool::iterator globVarIt = globPoolsIt->second.find( varName );
+        if ( globVarIt != globPoolsIt->second.end() ) {
+          return &(globVarIt->second);
+        }
+      }
+    }
+
+    return nullptr;
+  }
+
+
   UInt MathParser::GetNumExprs( unsigned int handle ) {
     
     // Get parser related to handle
