@@ -261,8 +261,16 @@ DEFINE_LOG(eb, "EBHysteresis")
     UInt idx = ElemNum2Idx_[ElemNum];
     // the idea of this if is that the mu_ should only get updated for a new iteration (we might have several integration points
     // in one element and since we only use ONE hysteresis operator for one element, this is correct).
-    if(iterTracker4Mu_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter")){
-      iterTracker4Mu_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+    int currentIter = 0;
+    
+    // Protect the non-thread-safe MathParser access
+    #pragma omp critical (math_parser_access)
+    {
+      currentIter = mp_->GetExprVars(MathParser::GLOB_HANDLER, "iterationCounter");
+    }
+
+    if(iterTracker4Mu_ != currentIter){
+      iterTracker4Mu_ = currentIter;
       LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
       alreadyHasMu_.Init(false);
     }
