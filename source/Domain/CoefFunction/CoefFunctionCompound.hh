@@ -10,12 +10,11 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
 #include "Utils/ThreadLocalStorage.hh"
+#include "Utils/mathParser/mathParser.hh"
 //#include "FeBasis/FeFunctions.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 
 namespace CoupledField {
-
-class MathParser;
 
 //! Coefficient class, which is formed by a compound of several others
 
@@ -204,6 +203,12 @@ protected:
 
   //! Map variable names to tensor valued variables
   TLMap<std::string, Matrix<Double> > tensorVars_;
+
+  //! Cached coordinate pointers for fast coordinate setting
+  CoordPtrs coordPtrs_;
+
+  //! Flag to track if coordinate pointers have been initialized
+  bool coordPtrsInitialized_;
 };
 
 // ===========================================================================
@@ -362,6 +367,15 @@ protected:
   
   //! Map variable names to tensor valued variables (imag part )
   TLMap<std::string, Matrix<Double> > tensorVarsImag_;
+
+  //! Cached coordinate pointers for fast coordinate setting (real handle)
+  CoordPtrs coordPtrsReal_;
+
+  //! Cached coordinate pointers for fast coordinate setting (imag handle)
+  CoordPtrs coordPtrsImag_;
+
+  //! Flag to track if coordinate pointers have been initialized
+  bool coordPtrsInitialized_;
 };
 
 

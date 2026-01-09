@@ -297,6 +297,45 @@ namespace CoupledField {
 
   }
 
+  CoordPtrs MathParser::GetCoordPtrs( unsigned int handle,
+                                      const CoordSystem& coosy ) {
+    CoordPtrs ptrs;
+    ptrs.numCoords = coosy.GetDim();
+
+    // Get pointers to coordinate variables
+    for ( UInt i = 1; i <= ptrs.numCoords; i++ ) {
+      std::string varName = coosy.GetDofName(i);
+      ptrs.coords[i-1] = GetValuePtr( handle, varName );
+    }
+
+    // Initialize remaining pointers to nullptr
+    for ( UInt i = ptrs.numCoords; i < 3; i++ ) {
+      ptrs.coords[i] = nullptr;
+    }
+
+    return ptrs;
+  }
+
+  void MathParser::SetCoordinatesDirect( const CoordPtrs& ptrs,
+                                         const CoordSystem& coosy,
+                                         const Vector<Double>& globCoord ) {
+    // Get local representation of global vector
+    Vector<Double> locCoord;
+    coosy.Global2LocalCoord( locCoord, globCoord );
+
+    UInt maxDim = locCoord.GetSize();
+    if ( maxDim == 3 && coosy.GetDim() == 2 ) {
+      maxDim = 2;
+    }
+
+    // Directly set coordinate values via cached pointers (no map lookups)
+    for ( UInt i = 0; i < maxDim && i < ptrs.numCoords; i++ ) {
+      if ( ptrs.coords[i] != nullptr ) {
+        *(ptrs.coords[i]) = locCoord[i];
+      }
+    }
+  }
+
   void MathParser::SetExpr( unsigned int handler, const std::string & expr) {
 
     // Get parser related to handler

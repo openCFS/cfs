@@ -142,7 +142,8 @@ DEFINE_LOG(eb, "EBHysteresis")
 
     mp_ = domain->GetMathParser();
     // Cache pointer to iteration counter for fast access (avoids expensive GetExprVars calls)
-    iterationCounterPtr_ = mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter");
+    // Note: iterationCounter may not exist yet, so this may return nullptr (handled via lazy init)
+    iterationCounterPtr_ = mp_ ? mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter") : nullptr;
     iterTracker4Mu_ = 0;
     saveTmpStageVecs_ = false;
 
@@ -266,7 +267,7 @@ DEFINE_LOG(eb, "EBHysteresis")
 
     // Use cached pointer for fast access (no locking needed for reading a double)
     // Lazy initialization: the variable may not exist when Init() is called
-    if (!iterationCounterPtr_) {
+    if (!iterationCounterPtr_ && mp_) {
       iterationCounterPtr_ = mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter");
     }
     int currentIter = iterationCounterPtr_ ? static_cast<int>(*iterationCounterPtr_) : 0;

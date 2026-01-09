@@ -18,7 +18,13 @@ namespace CoupledField {
 
   //! Forward class declarations
   class CoordSystem;
-  
+
+  //! Structure to hold cached coordinate variable pointers for fast direct access
+  struct CoordPtrs {
+    Double* coords[3];  //!< Pointers to coordinate variables (x,y,z or r,phi,z etc)
+    UInt numCoords;     //!< Number of valid coordinate pointers (2 or 3)
+  };
+
   //! Handles mathematical parser for different contexts
   class MathParser{
 
@@ -241,6 +247,27 @@ namespace CoupledField {
     virtual void SetCoordinates( unsigned int handle,
                          const CoordSystem &coosy,
                          const Vector<Double> &globCoord );
+
+    //! Get cached pointers to coordinate variables for fast direct access
+
+    //! This method returns cached pointers to coordinate variables,
+    //! allowing SetCoordinatesDirect to bypass expensive map lookups.
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param coosy Coordinate system to get variable names from
+    //! \return Structure containing pointers to coordinate variables
+    //! \note Call this once during initialization, then use SetCoordinatesDirect
+    CoordPtrs GetCoordPtrs( unsigned int handle, const CoordSystem& coosy );
+
+    //! Set coordinates directly using pre-cached pointers (no map lookups)
+
+    //! This method sets coordinate values directly using pointers obtained
+    //! from GetCoordPtrs, bypassing all map lookups and signal notifications.
+    //! \param ptrs Cached coordinate pointers from GetCoordPtrs
+    //! \param coosy Coordinate system for coordinate transformation
+    //! \param globCoord Global coordinates to transform and set
+    static void SetCoordinatesDirect( const CoordPtrs& ptrs,
+                                      const CoordSystem& coosy,
+                                      const Vector<Double>& globCoord );
     //@}
     
     // =======================================================================
