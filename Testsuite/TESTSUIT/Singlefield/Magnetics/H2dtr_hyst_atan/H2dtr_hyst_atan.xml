@@ -75,8 +75,10 @@
 
         <pdeList>
             <magneticEdge formulation="H">
-                <isPseudoTimeStepping>0</isPseudoTimeStepping>
-                <delta_t>0.1</delta_t>
+                <hysteresisTimeStepping>
+                    <useTimeDerivatives>yes</useTimeDerivatives>
+                    <deltaT>0.1</deltaT>
+                </hysteresisTimeStepping>
                 <regionList>
                     <region name="S_1" VecPolyId="vP" />
                     <region name="S_2" VecPolyId="vP" nonLinIds="nl1"/>

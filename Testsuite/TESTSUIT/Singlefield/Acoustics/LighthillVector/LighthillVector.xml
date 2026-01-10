@@ -70,7 +70,7 @@
         <bcsAndLoads>               
           <rhsDensityVector name="CAA_Pipe2">
            <grid>
-            <defaultGrid quantity="acouRhsLoadDensityVector" dependtype="GENERAL">
+            <defaultGrid quantity="acouRhsLoadDensityVector" dependtype="GENERAL" definedOn="element">
               <globalFactor>-1</globalFactor>  <!-- the factor -1 is necessary and comes from the weak formulation -->
             </defaultGrid>
            </grid>        

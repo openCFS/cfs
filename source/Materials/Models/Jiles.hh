@@ -2,6 +2,7 @@
 #define FILE_JILES_2004
 
 #include <list>
+#include <atomic>
 
 #include <boost/utility.hpp>
 
@@ -31,7 +32,7 @@ public:
 
   void RampUp(Integer Nt, Double E, Integer idx);
 
-  void saveValues(bool InstantSave);
+  void saveValues(bool InstantSave, Integer idx = -1);
 
 private:
   //==============
@@ -71,6 +72,7 @@ private:
 
   Vector<Integer> isFirstTime_;
   bool isFirstTimeFinished_;
+  std::atomic<UInt> numInitialized_;  //!< Atomic counter for initialized elements (OpenMP safe)
 
   UInt timeStep_;
 

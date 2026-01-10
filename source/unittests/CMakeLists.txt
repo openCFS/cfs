@@ -17,14 +17,12 @@ set(UNIT_TESTS_SRC
 #  cubicinttests.cc
 )
 
-set(TARGET_LL 
+set(TARGET_LL
   matvec
   design
   cfsgeneral
   utils
   datainout)
-#  paramh
-#  utils)
 
 if(USE_EMBEDDED_PYTHON)
   list(APPEND TARGET_LL ${Python_LIBRARIES})
@@ -47,16 +45,19 @@ endif()
 
 TARGET_LINK_LIBRARIES(cfstest ${TARGET_LL})
 
-# this is only necessary for legacy system with glibc <= 2.17 (check with ldd --version)
-# new apple system have no more librt dll, probably same for Windows
+# Linux-specific link flags:
+# - librt is needed for glibc <= 2.17
+# - --start-group fixes circular dependencies between static libraries
+#   (e.g., materials->utils for BiLinInterpolate/TriLinInterpolate).
+#   The linker auto-adds --end-group at the end if missing.
 if(NOT APPLE AND NOT WIN32)
-  set(CFS_LINK_FLAGS "-lrt")
+  set(CFS_LINK_FLAGS "-Wl,--start-group -lrt")
 endif()
 
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.0) # there is no >= and also there is no 5.0.0.0
   # the current boost test case is crap :(
   set(CMAKE_CXX_FLAGS "${CFS_SUPPRESSIONS} -Wno-terminate")
-endif() 
+endif()
 
 # Even if we did not compile openCFS itself with OpenMP enabled, we may have
 # compiled external libraries like LIS with OpenMP support.

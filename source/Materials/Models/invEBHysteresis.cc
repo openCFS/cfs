@@ -242,13 +242,17 @@ DEFINE_LOG(inveb, "invEBHysteresis")
         iterationCounterPtr_ = mp_->GetValuePtr(MathParser::GLOB_HANDLER, "iterationCounter");
       }
       UInt currentIter = iterationCounterPtr_ ? static_cast<UInt>(*iterationCounterPtr_) : 0;
-      if(iterTracker4Nu_ != currentIter){
-        iterTracker4Nu_ = currentIter;
-        LOG_DBG3(inveb) << "\n\t Trigger new iteration"<< std::endl;
-        alreadyHasNu_.Init(false);
-      }
-      if( (timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_))){
-        timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+      // OpenMP fix: Use critical section to ensure only one thread updates iteration state
+      #pragma omp critical (invEBHysteresis_iteration_update)
+      {
+        if(iterTracker4Nu_ != currentIter){
+          iterTracker4Nu_ = currentIter;
+          LOG_DBG3(inveb) << "\n\t Trigger new iteration"<< std::endl;
+          alreadyHasNu_.Init(false);
+        }
+        if( (timeStep_ != mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_))){
+          timeStep_ = mp_->GetExprVars(MathParser::GLOB_HANDLER, varHandle_);
+        }
       }
     
       if(alreadyHasNu_[idx] == true){

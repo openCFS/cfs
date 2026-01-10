@@ -272,10 +272,14 @@ DEFINE_LOG(eb, "EBHysteresis")
     }
     int currentIter = iterationCounterPtr_ ? static_cast<int>(*iterationCounterPtr_) : 0;
 
-    if(iterTracker4Mu_ != currentIter){
-      iterTracker4Mu_ = currentIter;
-      LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
-      alreadyHasMu_.Init(false);
+    // OpenMP fix: Use critical section to ensure only one thread updates iteration state
+    #pragma omp critical (EBHysteresis_iteration_update)
+    {
+      if(iterTracker4Mu_ != currentIter){
+        iterTracker4Mu_ = currentIter;
+        LOG_DBG3(eb) << "\n\t Trigger new iteration"<< std::endl;
+        alreadyHasMu_.Init(false);
+      }
     }
    
     if(alreadyHasMu_[idx] == true){
