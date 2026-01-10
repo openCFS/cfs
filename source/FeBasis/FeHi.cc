@@ -11,11 +11,12 @@ DEFINE_LOG(feHi, "feHi")
 
   FeHi::FeHi(Elem::FEType feType  ) {
     myFeType_ = feType;
-    elemShape_ = Elem::shapes[feType]; 
-    
+    elemShape_ = Elem::shapes[feType];
+
     updateUnknowns_ = true;
     isoOrder_ = 0;
     maxOrder_ = 0;
+    isIsotropic_ = false;  // Must initialize to false so SetIsoOrder() doesn't early-exit before orderEdge_ is set
   }
 
   FeHi::FeHi(const FeHi& other){
