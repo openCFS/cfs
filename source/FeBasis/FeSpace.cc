@@ -1351,20 +1351,36 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       //Get "dimension" of one Unknown
       UInt dofsPerUnknown = GetNumDofs();
 
-      StdVector<UInt> nodes;
+      // Thread-local caching: check if we already have results for this element
+      UInt& lastElemNum             = lastElemNum_.Mine();
+      StdVector<Integer>& lastEqns  = lastEqns_.Mine();
+      StdVector<UInt>& eqnNodes     = eqnNodes_.Mine();
+
+      UInt elemNum = elem->elemNum;
+      if( elemNum == lastElemNum && lastEqns.GetSize() > 0 ) {
+        eqns = lastEqns;
+        return;
+      }
+
       //this function uses hash maps... pretty dangerous for concurrent access
 #pragma omp critical (FeSpace_GetNodesOfElementCall)
       {
-      this->GetNodesOfElement(nodes,elem);
+      this->GetNodesOfElement(eqnNodes,elem);
       }
-      eqns.Resize( nodes.GetSize() * dofsPerUnknown );
-      eqns.Init();
-      for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+      UInt nrNodes = eqnNodes.GetSize();
+      eqns.Resize( nrNodes * dofsPerUnknown );
+      UInt pos = 0;
+      for (UInt iNode = 0; iNode < nrNodes; iNode++ ) {
+        const StdVector<Integer>& nodeEqns = nodeMap_[eqnNodes[iNode]];
         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
-          eqns[(iNode*dofsPerUnknown) + iDof] = 
-              nodeMap_[nodes[iNode]][iDof];
+          eqns[pos + iDof] = nodeEqns[iDof];
         }
+        pos += dofsPerUnknown;
       }
+
+      // Store in thread-local cache
+      lastElemNum = elemNum;
+      lastEqns = eqns;
     }
     
     void FeSpace::GetEntityListEqns(StdVector<Integer>& eqns, 
