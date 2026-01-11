@@ -242,7 +242,7 @@ void Jiles::RampUp(Integer Nt, Double E, Integer idx) {
   tmp_E = E / Nt;
   for (int i = 1; i < Nt-1; i++) {
     Evaluate(tmp_E * i, idx);
-    saveValues(true, idx);  // OpenMP fix: pass idx to only save this element's values
+    saveValues(true, -1);  // Use -1 to trigger full vector copy (original behavior)
   }
 }
 double Jiles::Evaluate(Double E, Integer idx) {

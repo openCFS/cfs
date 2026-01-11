@@ -52,6 +52,14 @@ namespace CoupledField {
         target += src;
       }
     }
+    // Generic fallback for other types (Integer, UInt, etc.) - uses critical section
+    template<typename T>
+    static inline void AddTo(T & target, const T & src){
+      #pragma omp critical (SYNCACCESS_GENERIC_UPDATE)
+      {
+        target += src;
+      }
+    }
     static inline void Set(Double & target   , const Double  & src){
 //      #pragma omp atomic write
         target = src;
@@ -71,6 +79,11 @@ namespace CoupledField {
       target += src;
     }
     static inline void AddTo(Complex & target  , const Complex & src){
+      target += src;
+    }
+    // Generic fallback for other types (Integer, UInt, etc.)
+    template<typename T>
+    static inline void AddTo(T & target, const T & src){
       target += src;
     }
     static inline void Set(Double & target   , const Double  & src){

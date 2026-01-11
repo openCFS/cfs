@@ -1625,6 +1625,61 @@ namespace CoupledField
           }
         } else {
           // That should be STATIC, TRANSIENT, EIGENFREQUENCY, EIGENVALUE or BUCKLING
+#ifdef USE_OPENMP
+          // Parallel RHS assembly using same pattern as matrix assembly
+          #pragma omp parallel num_threads(CFS_NUM_THREADS)
+          {
+            UInt numT = CFS_NUM_THREADS;
+            UInt aThread = GetThreadNum();
+
+            // Clone the form for this thread (thread-local copy)
+            LinearForm* threadForm = form->Clone();
+
+            // Calculate work distribution
+            UInt chunksize = std::floor(size/numT);
+            UInt start = chunksize * aThread;
+            UInt end = (aThread==numT-1)? size : (chunksize * (aThread+1));
+
+            // Thread-local vectors
+            Vector<Double> localElemVec;
+            StdVector<Integer> localEqnVec;
+            FeFctIdType localFctId;
+
+            // Get iterator for this thread's portion
+            EntityIterator localEntIt = actContext.GetEntities()->GetIterator();
+            localEntIt.Begin();
+            localEntIt += start;
+
+            // Process elements in this thread's chunk
+            for (UInt i = start; i < end; ++i) {
+              // Calculate real valued element vector
+              if( threadForm->IsExtractReal() ){
+                Vector<Complex> tmp;
+                threadForm->CalcElemVector(tmp, localEntIt);
+                localElemVec = tmp.GetPart(Global::REAL);
+              } else {
+                threadForm->CalcElemVector(localElemVec, localEntIt);
+              }
+
+              // Map equation numbers
+              actContext.MapEqns(localEntIt, localEqnVec, localFctId);
+
+              // Perform remapping
+              ReMapEquations(localEqnVec, localFctId);
+
+              // Pass element vector to algebraic system (uses atomic operations internally)
+              if(!localEqnVec.IsEmpty())
+                algsys_->SetElementRHS(localElemVec, localFctId, localEqnVec, h);
+
+              // Advance iterator
+              localEntIt++;
+            }
+
+            // Clean up cloned form
+            delete threadForm;
+          }
+#else
+          // Serial version (same as before)
           Vector<Double> elemVec;
           // iterate over all entities
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -1647,7 +1702,7 @@ namespace CoupledField
             }else{
               form->CalcElemVector(elemVec, entIt);
             }
-            
+
             // Map equation numbers. eqnVec can be empty if nodes are not in system (e.g. not simulated region)
             actContext.MapEqns(entIt, eqnVec, fctId);
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.GetSize() << " -> " << eqnVec.ToString();
@@ -1664,6 +1719,7 @@ namespace CoupledField
               algsys_->SetElementRHS(elemVec, fctId, eqnVec, h);
             LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
+#endif
         }
       } catch (Exception& e) {
         RETHROW_EXCEPTION(e, "Could not calculate RHS vector for LinearForm '"
