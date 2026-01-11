@@ -791,13 +791,14 @@ namespace CoupledField {
   void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
                                          const Elem* elem ) {
     LOG_DBG(fefunc) << PREFIX << "GetElemSolution()";
-    StdVector<Integer> eqns;
+    // Use thread-local work buffer to avoid per-call allocations
+    StdVector<Integer>& eqns = work_eqns_.Mine();
     const Vector<T> & vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
     elemSol.Resize(eqns.GetSize());
     for(UInt i= 0 ; i< eqns.GetSize(); i++){
       if( eqns[i] != 0 ) {
-        elemSol[i] = factor_ * vals[std::abs(eqns[i])-1]; 
+        elemSol[i] = factor_ * vals[std::abs(eqns[i])-1];
       } else {
         elemSol[i] = 0.0;
       }

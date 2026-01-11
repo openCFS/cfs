@@ -11,6 +11,7 @@
 
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField {
 
@@ -476,7 +477,10 @@ protected:
   
   //! Factor for time derivative
   T factor_;
-};  
+
+  //! Thread-local work buffer for GetElemSolution to avoid per-call allocations
+  mutable CfsTLS<StdVector<Integer>> work_eqns_;
+};
 
 
 }  // namespace CoupledField

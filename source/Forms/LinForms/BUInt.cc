@@ -80,19 +80,20 @@ CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
 
 	// Declare necessary variables
   const Elem* ptElem = ent.GetElem();
-  Matrix<Double> bMat;
-  Vector<VEC_DATA_TYPE> cVec;
-  StdVector<LocPoint> intPoints;
-  StdVector<Double> weights;
+  // Use work buffers instead of local variables to avoid per-call allocations
+  Matrix<Double>& bMat = work_bMat_;
+  Vector<VEC_DATA_TYPE>& cVec = work_cVec_;
+  StdVector<LocPoint>& intPoints = work_intPoints_;
+  StdVector<Double>& weights = work_weights_;
   UInt nrFncs = 0;
   VEC_DATA_TYPE fac(0.0);
 
-  //Surface: inverse of jacobian
-  Vector<VEC_DATA_TYPE> pt1;
-  Vector<VEC_DATA_TYPE> pt2;
-  Matrix<Double> JacT;
-  Matrix<Double> TF;
-  Matrix<Double> TFinv;
+  //Surface: inverse of jacobian (use work buffers)
+  Vector<VEC_DATA_TYPE>& pt1 = work_pt1_;
+  Vector<VEC_DATA_TYPE>& pt2 = work_pt2_;
+  Matrix<Double>& JacT = work_JacT_;
+  Matrix<Double>& TF = work_TF_;
+  Matrix<Double>& TFinv = work_TFinv_;
 
    // Obtain FE element from feSpace and integration scheme
   IntegOrder order;
