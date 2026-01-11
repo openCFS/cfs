@@ -480,6 +480,12 @@ protected:
 
   //! Thread-local work buffer for GetElemSolution to avoid per-call allocations
   mutable CfsTLS<StdVector<Integer>> work_eqns_;
+
+  //! Thread-local cache for element solution to avoid redundant recomputation
+  //! When the same element is queried multiple times (e.g., from different
+  //! coefficient functions in UpdateXpr), the cached result is returned.
+  mutable CfsTLS<UInt> lastElemNum_;
+  mutable CfsTLS<Vector<T>> lastElemSol_;
 };
 
 

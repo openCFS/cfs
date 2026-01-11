@@ -283,6 +283,22 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+    <xsd:attribute name="tolerance" type="DT_PosFloat" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Convergence tolerance for iterative line search methods (e.g., Brent method).
+          Default: 1e-3. Lower values give more precise line search but require more iterations.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="maxIter" type="xsd:positiveInteger" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>
+          Maximum iterations for iterative line search methods.
+          Default: 1000.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
   <xsd:complexType name="DT_StopIter">

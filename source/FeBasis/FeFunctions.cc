@@ -791,6 +791,24 @@ namespace CoupledField {
   void FeFunction<T>::GetElemSolution( Vector<T>& elemSol,
                                          const Elem* elem ) {
     LOG_DBG(fefunc) << PREFIX << "GetElemSolution()";
+
+    // Thread-local caching: check if we already computed solution for this element
+    // This avoids redundant GetElemEqns calls when the same element is queried
+    // multiple times from different coefficient functions in UpdateXpr
+    UInt& lastNum = lastElemNum_.Mine();
+    Vector<T>& lastSol = lastElemSol_.Mine();
+
+    UInt elemNum = elem->elemNum;
+    if (elemNum == lastNum && lastSol.GetSize() > 0) {
+      // Cache hit - return cached solution
+      elemSol.Resize(lastSol.GetSize());
+      for (UInt i = 0; i < lastSol.GetSize(); i++) {
+        elemSol[i] = lastSol[i];
+      }
+      return;
+    }
+
+    // Cache miss - compute the solution
     // Use thread-local work buffer to avoid per-call allocations
     StdVector<Integer>& eqns = work_eqns_.Mine();
     const Vector<T> & vals = *coeffs_;
@@ -802,6 +820,13 @@ namespace CoupledField {
       } else {
         elemSol[i] = 0.0;
       }
+    }
+
+    // Store in cache for potential reuse
+    lastNum = elemNum;
+    lastSol.Resize(elemSol.GetSize());
+    for (UInt i = 0; i < elemSol.GetSize(); i++) {
+      lastSol[i] = elemSol[i];
     }
   }
   
@@ -1185,22 +1210,22 @@ namespace CoupledField {
   }
 
   template<typename T>
-  void FeFunction<T>::GetVector(Vector<T>& vec, 
+  void FeFunction<T>::GetVector(Vector<T>& vec,
                                 const LocPointMapped& lpm ){
-    // get element solution
-    Vector<T> elemSol;
+    // get element solution (use thread-local buffer to avoid per-call allocation)
+    thread_local Vector<T> elemSol;
     GetElemSolution( elemSol, lpm.ptEl);
     // apply identity operator to it
     BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
     idOp_->ApplyOp(vec, lpm, ptFe, elemSol );
-    LOG_DBG(fefunc) << PREFIX << ": Requesting vector solution of point in elem " << lpm.ptEl->elemNum << ". Sol[0] = " << vec[0]; 
+    LOG_DBG(fefunc) << PREFIX << ": Requesting vector solution of point in elem " << lpm.ptEl->elemNum << ". Sol[0] = " << vec[0];
   }
   
   template<typename T>
-  void FeFunction<T>::GetAvgElemValue(T & vec, 
+  void FeFunction<T>::GetAvgElemValue(T & vec,
                          const Elem* elem) {
-    // get element solution
-    Vector<T> elemSol;
+    // get element solution (use thread-local buffer to avoid per-call allocation)
+    thread_local Vector<T> elemSol;
     GetElemSolution( elemSol, elem);
     // average
     vec = 0.;
@@ -1213,10 +1238,11 @@ namespace CoupledField {
    }
   
   template<typename T>
-  void FeFunction<T>::GetScalar(T & scal, 
+  void FeFunction<T>::GetScalar(T & scal,
                                 const LocPointMapped& lpm ){
-    // get element solution
-    Vector<T> elemSol, temp;
+    // get element solution (use thread-local buffers to avoid per-call allocation)
+    thread_local Vector<T> elemSol;
+    thread_local Vector<T> temp;
     GetElemSolution( elemSol, lpm.ptEl);
     // apply identity operator to it
     if( feSpace_->GetSpaceType() == FeSpace::SpaceType::CONSTANT){

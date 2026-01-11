@@ -539,8 +539,8 @@ namespace CoupledField
 
     double Fa, Fb, Fc;
     double c;
-    double tolerance = 1e-3;
-    double max_iter = 1e3;
+    double tolerance = lineSearchTolerance_;
+    double max_iter = lineSearchMaxIter_;
     double iter_counter = 0;
     double prev_step = 0;
     double tol_act = 0;
@@ -628,8 +628,8 @@ namespace CoupledField
 
     double Fa, Fb, Fc;
     double c;
-    double tolerance = 1e-3;
-    double max_iter = 1e3;
+    double tolerance = lineSearchTolerance_;
+    double max_iter = lineSearchMaxIter_;
     double iter_counter = 0;
     double prev_step = 0;
     double tol_act = 0;

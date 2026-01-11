@@ -86,6 +86,8 @@ namespace CoupledField {
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
     nonLinMaxIter_ = 10;
+    lineSearchTolerance_ = 1e-3;  // Brent method default
+    lineSearchMaxIter_ = 1000;    // Brent method default
     minValidValue_ = -std::numeric_limits<double>::max();// = DBL_MAX;
     maxValidValue_ = std::numeric_limits<double>::max();// = DBL_MAX;
     
@@ -2480,8 +2482,18 @@ namespace CoupledField {
       // type of line search
       if( nonLinNode->Has("lineSearch") ) {
         nonLinNode->Get( "lineSearch")->GetValue( "type", lineSearch_,ParamNode::PASS );
+        // optional line search parameters
+        PtrParamNode lineSearchNode = nonLinNode->Get("lineSearch");
+        if( lineSearchNode->Has("tolerance") ) {
+          lineSearchNode->GetValue( "tolerance", lineSearchTolerance_, ParamNode::PASS );
+        }
+        if( lineSearchNode->Has("maxIter") ) {
+          lineSearchNode->GetValue( "maxIter", lineSearchMaxIter_, ParamNode::PASS );
+        }
+        LOG_DBG3(stdsolvestep) << "\tlineSearch tolerance: " << lineSearchTolerance_;
+        LOG_DBG3(stdsolvestep) << "\tlineSearch maxIter: " << lineSearchMaxIter_;
       }
-      
+
       // incremental stopping criterion
       nonLinNode->GetValue( "incStopCrit", incStopCrit_, ParamNode::PASS );
       

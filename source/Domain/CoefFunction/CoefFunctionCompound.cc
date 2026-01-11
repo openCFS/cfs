@@ -279,7 +279,12 @@ RegisterCoefFct( const std::string& name,
 void CoefFunctionCompound<Double>::
 UpdateXpr( const LocPointMapped& lpm ) {
   //should be fine if parallel or not...
-  
+
+  // Thread-local work buffer to avoid per-call allocation
+  // Using thread_local ensures proper initialization regardless of when
+  // the CoefFunctionCompound object was created
+  thread_local Vector<Complex> work_vecComplex;
+
   // loop over all registered coefficients and update their values
   std::map<std::string, PtrCoefFct >::iterator it = coefs_.begin();
   for( ; it != coefs_.end(); ++it ) {
@@ -297,9 +302,8 @@ UpdateXpr( const LocPointMapped& lpm ) {
       // stresses which we need to assemble the buckling pde. For assembly
       // the values have to be real again.
       if (it->second->IsComplex()) {
-        Vector<Complex> vec;
-        it->second->GetVector( vec, lpm );
-        vecVars_[name] = vec.GetPart(Global::REAL);
+        it->second->GetVector( work_vecComplex, lpm );
+        vecVars_[name] = work_vecComplex.GetPart(Global::REAL);
       } else {
         it->second->GetVector( vecVars_[name], lpm );
       }
@@ -663,12 +667,18 @@ RegisterCoefFct( const std::string& name,
 
 void CoefFunctionCompound<Complex>::
 UpdateXpr( const LocPointMapped& lpm ) {
-  
+
 //#ifdef USE_OPENMP
 //  if(omp_get_num_threads() == 1 && CFS_NUM_THREADS>1){
 //    WARN("Calling from serial region. May be dangerous")
 //  }
 //#endif
+
+  // Thread-local work buffers to avoid per-call allocation
+  // Using thread_local ensures proper initialization regardless of when
+  // the CoefFunctionCompound object was created
+  thread_local Vector<Complex> work_vecComplex;
+  thread_local Matrix<Complex> work_matComplex;
 
   // loop over all registered coefficients and update their values
   std::map<std::string, PtrCoefFct >::iterator it = coefs_.begin();
@@ -676,31 +686,29 @@ UpdateXpr( const LocPointMapped& lpm ) {
     const std::string & name = it->first;
     // query dimType
     CoefDimType dim = coefDimTypes_[name];
-    
+
     if( dim == SCALAR ) {
       Complex temp;
       it->second->GetScalar( temp, lpm );
       scalVarsReal_[name] = temp.real();
       scalVarsImag_[name] = temp.imag();
-//      std::cerr << "setting " << name << " to (" << temp.real() 
-//          << ", " << temp.imag()<< ")\n"; 
+//      std::cerr << "setting " << name << " to (" << temp.real()
+//          << ", " << temp.imag()<< ")\n";
     } else if( dim == VECTOR ) {
-      Vector<Complex> temp;
-      it->second->GetVector( temp, lpm );
-      vecVarsReal_[name] = temp.GetPart(Global::REAL);
-      vecVarsImag_[name] = temp.GetPart(Global::IMAG);
-//      std::cerr << "setting " << name << " to \n\tREAL:" 
-//          << (temp.GetPart(Global::REAL)).ToString() 
-//          << "\n\tIMAG: " << (temp.GetPart(Global::IMAG)).ToString() << "\n";
+      it->second->GetVector( work_vecComplex, lpm );
+      vecVarsReal_[name] = work_vecComplex.GetPart(Global::REAL);
+      vecVarsImag_[name] = work_vecComplex.GetPart(Global::IMAG);
+//      std::cerr << "setting " << name << " to \n\tREAL:"
+//          << (work_vecComplex.GetPart(Global::REAL)).ToString()
+//          << "\n\tIMAG: " << (work_vecComplex.GetPart(Global::IMAG)).ToString() << "\n";
     } else if( dim == TENSOR ) {
-      Matrix<Complex> temp;
-      it->second->GetTensor( temp, lpm );
-      tensorVarsReal_[name] = temp.GetPart(Global::REAL);
-      tensorVarsImag_[name] = temp.GetPart(Global::IMAG);
+      it->second->GetTensor( work_matComplex, lpm );
+      tensorVarsReal_[name] = work_matComplex.GetPart(Global::REAL);
+      tensorVarsImag_[name] = work_matComplex.GetPart(Global::IMAG);
     } else {
       EXCEPTION( "Unknown dimension type of coefficient function '" << name << "'")
     }
-    
+
   }
 }
 

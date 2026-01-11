@@ -47,7 +47,8 @@ public:
   //! Calc complex valued operator matrix
   virtual void CalcOpMat(Matrix<Complex> & bMat,
                          const LocPointMapped& lp, BaseFE* ptFe ){
-    Matrix<Double> realMat;
+    // Use thread-local work buffer to avoid per-call allocation
+    thread_local Matrix<Double> realMat;
     this->CalcOpMat(realMat,lp,ptFe);
     const UInt nrow = realMat.GetNumRows();
     const UInt ncol = realMat.GetNumCols();
@@ -57,9 +58,10 @@ public:
 
   //! Calculate transposed complex valued operator matrix
   virtual void CalcOpMatTransposed(Matrix<Complex> & bMat,
-                                   const LocPointMapped& lp, 
+                                   const LocPointMapped& lp,
                                    BaseFE* ptFe ){
-    Matrix<Double> realMat;
+    // Use thread-local work buffer to avoid per-call allocation
+    thread_local Matrix<Double> realMat;
     this->CalcOpMatTransposed(realMat,lp,ptFe);
     const UInt nrow = realMat.GetNumRows();
     const UInt ncol = realMat.GetNumCols();
@@ -81,7 +83,8 @@ public:
                        const LocPointMapped& lp,
                        BaseFE* ptFe,
                        const Vector<Double>& solVec ){
-    Matrix<Double> bOp;
+    // Use thread-local work buffer to avoid per-call allocation
+    thread_local Matrix<Double> bOp;
     CalcOpMat(bOp,lp,ptFe);
 
     retVec = bOp * solVec;
@@ -92,7 +95,8 @@ public:
                        const LocPointMapped& lp,
                        BaseFE* ptFe,
                        const Vector<Complex>& solVec ){
-    Matrix<Double> bOp;
+    // Use thread-local work buffer to avoid per-call allocation
+    thread_local Matrix<Double> bOp;
     CalcOpMat(bOp,lp,ptFe);
     retVec = bOp * solVec;
     }
@@ -102,17 +106,19 @@ public:
                                 const LocPointMapped& lp,
                                 BaseFE* ptFe,
                                 const Vector<Double>& solVec ){
-    Matrix<Double> bOp;
+    // Use thread-local work buffer to avoid per-call allocation
+    thread_local Matrix<Double> bOp;
     CalcOpMat(bOp,lp,ptFe);
     retVec = Transpose(bOp) * solVec;
   }
-  
+
   //! Apply the transposed operator matrix on a vector
   virtual void ApplyOpTranspose(Vector<Complex>& retVec,
                                 const LocPointMapped& lp,
                                 BaseFE* ptFe,
                                 const Vector<Complex>& solVec ){
-    Matrix<Double> bOp;
+    // Use thread-local work buffer to avoid per-call allocation
+    thread_local Matrix<Double> bOp;
     CalcOpMat(bOp,lp,ptFe);
     retVec = Transpose(bOp) * solVec;
   }
