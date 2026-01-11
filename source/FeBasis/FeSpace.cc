@@ -438,10 +438,11 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                                    BaseFE::EntityType entType){
     nodes.Clear(true);
 
-    EntityNodesType& vNodes = vNodesCont_[BaseFE::VERTEX];
-    EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
-    EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
-    EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
+    // Use const references for thread-safe read-only access
+    const EntityNodesType& vNodes = vNodesCont_[BaseFE::VERTEX];
+    const EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
+    const EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
+    const EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
 
     // Get hold of element
     BaseFE * ptFe = this->GetFe(ptElem->elemNum);
@@ -451,7 +452,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       UInt numNodes = ptElem->connect.GetSize();
       if( entType == BaseFE::VERTEX || entType == BaseFE::ALL ) {
         for( UInt i = 0; i < numNodes; ++i ) {
-          const StdVector<UInt>& vertexNodes = vNodes[ptElem->connect[i]];
+          const StdVector<UInt>& vertexNodes = vNodes.at(ptElem->connect[i]);
           for( UInt j = 0; j < vertexNodes.GetSize(); ++j ) {
             nodes.Push_back(vertexNodes[j]);
           }
@@ -468,7 +469,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numEdges; ++i ) {
-            const StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
+            const StdVector<UInt>& edgeNodes = eNodes.at(std::abs(ptElem->extended->edges[i]));
             ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
             for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
               nodes.Push_back(edgeNodes[perm[j]]);
@@ -476,7 +477,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           }
         } else {
           for( UInt i = 0; i < numEdges; ++i ) {
-            const StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
+            const StdVector<UInt>& edgeNodes = eNodes.at(std::abs(ptElem->extended->edges[i]));
             for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
               nodes.Push_back(edgeNodes[j]);
             }
@@ -493,14 +494,14 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numFaces; ++i ) {
             ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
-            const StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
+            const StdVector<UInt>& faceNodes = fNodes.at(std::abs(ptElem->extended->faces[i]));
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[perm[j]]);
             }
           }
         } else {
           for( UInt i = 0; i < numFaces; ++i ) {
-            const StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
+            const StdVector<UInt>& faceNodes = fNodes.at(std::abs(ptElem->extended->faces[i]));
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[j]);
             }
@@ -513,12 +514,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     {
       if( iNodes.size() ) {
         if( entType == BaseFE::INTERIOR || entType == BaseFE::ALL ) {
-          StdVector<UInt>& intNodes = iNodes[ptElem->elemNum];
+          const StdVector<UInt>& intNodes = iNodes.at(ptElem->elemNum);
           for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
             nodes.Push_back(intNodes[j]);
           }
         }
-      } 
+      }
     }
 
     // Ensure, that at least one virtual node is present
@@ -1362,11 +1363,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         return;
       }
 
-      //this function uses hash maps... pretty dangerous for concurrent access
-#pragma omp critical (FeSpace_GetNodesOfElementCall)
-      {
+      // GetNodesOfElement now uses .at() for thread-safe read-only access
       this->GetNodesOfElement(eqnNodes,elem);
-      }
       UInt nrNodes = eqnNodes.GetSize();
       eqns.Resize( nrNodes * dofsPerUnknown );
       UInt pos = 0;

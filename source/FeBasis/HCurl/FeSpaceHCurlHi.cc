@@ -497,9 +497,10 @@ namespace CoupledField{
                                           BaseFE::EntityType entType){
     nodes.Clear();
     nodes.Reserve(30);
-    EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
-    EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
-    EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
+    // Use const references and .at() for thread-safe read-only access
+    const EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
+    const EntityNodesType& fNodes = vNodesCont_[BaseFE::FACE];
+    const EntityNodesType& iNodes = vNodesCont_[BaseFE::INTERIOR];
 
     // Collect edge nodes
     {
@@ -507,7 +508,7 @@ namespace CoupledField{
       if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
 
         for( UInt i = 0; i < numEdges; ++i ) {
-          StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
+          const StdVector<UInt>& edgeNodes = eNodes.at(std::abs(ptElem->extended->edges[i]));
           for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
             nodes.Push_back(edgeNodes[j]);
           }
@@ -524,7 +525,7 @@ namespace CoupledField{
         if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
 
           for( UInt i = 0; i < numFaces; ++i ) {
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
+            const StdVector<UInt>& faceNodes = fNodes.at(std::abs(ptElem->extended->faces[i]));
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[j]);
             }
@@ -536,12 +537,12 @@ namespace CoupledField{
       {
         if( iNodes.size() ) {
           if( entType == BaseFE::INTERIOR || entType == BaseFE::ALL ) {
-            StdVector<UInt>& intNodes = iNodes[ptElem->elemNum];
+            const StdVector<UInt>& intNodes = iNodes.at(ptElem->elemNum);
             for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
               nodes.Push_back(intNodes[j]);
             }
           }
-        } 
+        }
       }
     } // if: !lowestOrder
 

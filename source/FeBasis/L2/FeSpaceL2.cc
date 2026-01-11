@@ -278,32 +278,32 @@ namespace CoupledField{
                                     const Elem* ptElem,
                                     BaseFE::EntityType entType){
      UInt elemNum = ptElem->elemNum;
-     if(virtualNodes_.find(elemNum) ==virtualNodes_.end()){
+     // Use .find() and .at() for thread-safe read-only access
+     auto elemIt = virtualNodes_.find(elemNum);
+     if(elemIt == virtualNodes_.end()){
 
        EXCEPTION("FeSpace::GetNodesOfElement: Could not find requested element #"
-           << ptElem->elemNum << " of region " 
+           << ptElem->elemNum << " of region "
            <<  ptGrid_->GetRegion().ToString(ptElem->regionId));
      }
+     const ElemVirtualNodes& elemNodes = elemIt->second;
      if(entType == BaseFE::ALL){
-       nodes.Resize(virtualNodes_[elemNum][BaseFE::VERTEX].vNodes.GetSize()+
-                    virtualNodes_[elemNum][BaseFE::EDGE].vNodes.GetSize()+
-                    virtualNodes_[elemNum][BaseFE::FACE].vNodes.GetSize()+
-                    virtualNodes_[elemNum][BaseFE::INTERIOR].vNodes.GetSize());
-       ElemVirtualNodes::iterator nodeIt = virtualNodes_[elemNum].begin();
+       nodes.Resize(elemNodes.at(BaseFE::VERTEX).vNodes.GetSize()+
+                    elemNodes.at(BaseFE::EDGE).vNodes.GetSize()+
+                    elemNodes.at(BaseFE::FACE).vNodes.GetSize()+
+                    elemNodes.at(BaseFE::INTERIOR).vNodes.GetSize());
        UInt c = 0;
-       while(nodeIt !=virtualNodes_[elemNum].end()){
-
-         StdVector<UInt> & entNodes =  nodeIt->second.vNodes;
+       for(auto nodeIt = elemNodes.begin(); nodeIt != elemNodes.end(); ++nodeIt){
+         const StdVector<UInt>& entNodes = nodeIt->second.vNodes;
          for (UInt i = 0; i < entNodes.GetSize(); i++ ){
-           nodes[c++] =  entNodes[i];
+           nodes[c++] = entNodes[i];
          }
-         nodeIt++;
        }
      }else{
-       nodes.Resize(virtualNodes_[elemNum][entType].vNodes.GetSize());
-       const StdVector<UInt>& entNodes =  virtualNodes_[elemNum][entType].vNodes;
+       const StdVector<UInt>& entNodes = elemNodes.at(entType).vNodes;
+       nodes.Resize(entNodes.GetSize());
        for (UInt i = 0; i < entNodes.GetSize(); i++ ){
-         nodes[i] =  entNodes[i];
+         nodes[i] = entNodes[i];
        }
      }
    }
