@@ -8,9 +8,9 @@
 #ifndef FILE_INTEGRATION_SCHEME_HH_
 #define FILE_INTEGRATION_SCHEME_HH_
 
-#include <boost/functional/hash.hpp>
 #include <boost/array.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
+#include <functional> // for std::hash
 
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
@@ -122,6 +122,19 @@ namespace CoupledField {
 
   /** necessary hash function for unordered_maps of key type involving IntegOrder */
   std::size_t hash_value(const IntegOrder& p);
+} // namespace CoupledField
+
+// Explicit specialization of std::hash must be injected into namespace std.
+// This allows IntegOrder to be used as a key in std::unordered_map.
+namespace std {
+  template<> struct hash<CoupledField::IntegOrder> {
+    std::size_t operator()(const CoupledField::IntegOrder& p) const {
+      return CoupledField::hash_value(p);
+    }
+  };
+}
+
+namespace CoupledField {
 
   //! Class defining Numerical Integration
 
@@ -269,10 +282,10 @@ private:
                                          StdVector<Double>& weights );
 
     /** typedef for map of integration points. We need a hash_value() function for IntegOrder */
-    typedef boost::unordered_map< IntegOrder, IntegrationPoints > IntPointMap;
+    typedef std::unordered_map< IntegOrder, IntegrationPoints > IntPointMap;
 
     //! typedef for map of integration weights
-    typedef boost::unordered_map< IntegOrder, IntegrationWeights > IntWeightMap;
+    typedef std::unordered_map< IntegOrder, IntegrationWeights > IntWeightMap;
 
     //! Map with integration points for each element type According to the Template Parameter Integration Scheme
     std::map<IntegMethod, IntPointMap > intPoints_;

@@ -2,7 +2,7 @@
 #define FILE_CFS_H1_ELEMENTS_HH
 
 #include "FeBasis/BaseFE.hh"
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
   #include <omp.h>
@@ -151,10 +151,10 @@ namespace CoupledField {
     // =======================================================================
 
     //! Stores Shape Functions for each integration point defined
-    boost::unordered_map<Integer, Vector<Double> > shapeFncsAtIp_;
+    std::unordered_map<Integer, Vector<Double> > shapeFncsAtIp_;
 
     //! Stores shape function derivatives for each integration point
-    boost::unordered_map<Integer, Matrix<Double> > shapeFncDerivsAtIp_;
+    std::unordered_map<Integer, Matrix<Double> > shapeFncDerivsAtIp_;
     
     // ======================================================================
     //  Incompatible modes for mechanical softening 
@@ -181,10 +181,10 @@ namespace CoupledField {
     }
 
     //! Stores Shape Functions for each integration point defined
-    boost::unordered_map<Integer, Vector<Double> > icModesAtIp_;
+    std::unordered_map<Integer, Vector<Double> > icModesAtIp_;
 
     //! Stores shape function derivatives for each integration point
-    boost::unordered_map<Integer, Matrix<Double> > icModesDerivsAtIp_;
+    std::unordered_map<Integer, Matrix<Double> > icModesDerivsAtIp_;
 
     //@}
   private:

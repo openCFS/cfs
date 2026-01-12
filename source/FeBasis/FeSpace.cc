@@ -881,7 +881,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // Loop over entity types
     PtrParamNode vNodeInfo = infoNode_->Get("virtualNodes");
     
-    boost::unordered_map<BaseFE::EntityType, EntityNodesType>::const_iterator typeIt;
+    std::unordered_map<BaseFE::EntityType, EntityNodesType>::const_iterator typeIt;
     typeIt = vNodesCont_.begin();
     UInt numVirtNodes = 0;
     for( ; typeIt != vNodesCont_.end(); ++typeIt ) {
@@ -904,7 +904,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     
     
     // trim all vectors to get unused memory back
-    boost::unordered_map<BaseFE::EntityType, EntityNodesType>::iterator it;
+    std::unordered_map<BaseFE::EntityType, EntityNodesType>::iterator it;
     it = vNodesCont_.begin();
     for( ; it != vNodesCont_.end(); ++it ) {
       EntityNodesType & evn = it->second;
@@ -1427,7 +1427,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     shared_ptr<ResultInfo> feFctResult;
     StdVector< shared_ptr<EntityList> > fctEntList;
     StdVector< shared_ptr<EntityList> >::iterator entIt;
-    boost::unordered_map< Integer , StdVector<BcType> >::iterator bcIt;
+    std::unordered_map< Integer , StdVector<BcType> >::iterator bcIt;
     UInt actNode = 0;
     NodeTypeMap::const_iterator it;
     shared_ptr<BaseFeFunction> feFct = feFunction_.lock(); // request a strong pointer
@@ -1871,8 +1871,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // ---------------
     //  NODES
     // ---------------
-    boost::unordered_map< Integer , StdVector<Integer> >::const_iterator nodeIt = nodeMap_.eqns.begin();
-    boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
+    std::unordered_map< Integer , StdVector<Integer> >::const_iterator nodeIt = nodeMap_.eqns.begin();
+    std::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
 
     out << "EQUATION MAPPING" << std::endl << std::endl;
     out << "nodeNr | type | comp | eqnNr | SBM |  index 1 / 0    |  BC " << std::endl;
@@ -1914,7 +1914,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   
 
 
-  void FeSpace::CreateEquIndGeomMap(boost::unordered_map< Integer, BaseFeFunction::EqNodeGeom>& eqIndGeomMap,
+  void FeSpace::CreateEquIndGeomMap(std::unordered_map< Integer, BaseFeFunction::EqNodeGeom>& eqIndGeomMap,
                                     UInt& maxEqn, UInt& dim){
     // since it's only used for lowest order FE-functions, the node-entity is
     // whether vertex or edge (for edge-elements)
@@ -1931,8 +1931,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       /************** H1 Lagrange - Version *******************/
       // 1) loop over every node and store it's equations,
       //    index and grid-geometry
-      boost::unordered_map< Integer , StdVector<Integer> >::const_iterator nodeIt = nodeMap_.eqns.begin();
-      boost::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
+      std::unordered_map< Integer , StdVector<Integer> >::const_iterator nodeIt = nodeMap_.eqns.begin();
+      std::unordered_map< Integer , StdVector<BcType> >::iterator nodeBcIt;
       maxEqn = 0;
       while(nodeIt != nodeMap_.eqns.end()){
         BaseFeFunction::EqNodeGeom nMap;

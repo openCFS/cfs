@@ -16,7 +16,7 @@
 #define SIMINPUTENSIGHT_HH_
 
 #include "DataInOut/SimInOut/VTKBased/SimInputVTKBased.hh"
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 namespace CoupledField{
 
@@ -110,7 +110,7 @@ private:
   //! store the number of available timesteps
   UInt numAvailSteps_;
 
-  boost::unordered_map<UInt,Double> elemVolumes_;
+  std::unordered_map<UInt,Double> elemVolumes_;
 
   //! set of available results
   std::set<SolutionType> availResults_;

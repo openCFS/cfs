@@ -1302,8 +1302,8 @@ namespace CoupledField {
       // loop over all functions Ids
       for( UInt iFct = 0; iFct < bi.eqnToIndex.GetSize(); ++iFct ) {
         FeFctIdType fctId = iFct;
-        boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-        boost::unordered_map<UInt, UInt>::iterator eqnToIndexIt = eqnToIndex.begin();
+        std::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+        std::unordered_map<UInt, UInt>::iterator eqnToIndexIt = eqnToIndex.begin();
         for( ; eqnToIndexIt != eqnToIndex.end(); ++eqnToIndexIt ) {
           UInt eqnNr = eqnToIndexIt->first;
           UInt index = eqnToIndexIt->second;
@@ -1631,8 +1631,8 @@ namespace CoupledField {
 
       // Loop over all functions
       for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
-        boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-        boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
+        std::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+        std::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
 
         // Here we have to distinguish two cases:
         // a) PENALTY: We have to reorder all equations, as also the IDBC
@@ -1835,8 +1835,8 @@ namespace CoupledField {
 
       // Loop over all functions
       for( UInt iFct = 0; iFct < numFcts; ++iFct ) {
-        boost::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
-        boost::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
+        std::unordered_map<UInt, UInt> & eqnToIndex = bi.eqnToIndex[iFct];
+        std::unordered_map<UInt, UInt>::iterator it = eqnToIndex.begin();
 
         // Here we have to distinguish two cases:
         // a) PENALTY: We have to reorder all equations, as also the IDBC
@@ -2150,9 +2150,9 @@ namespace CoupledField {
 
       // loop over all blocks
       for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
-        const boost::unordered_map<UInt, UInt> & eqnToIndexSet =
+        const std::unordered_map<UInt, UInt> & eqnToIndexSet =
             blockInfo_[iBlock]->eqnToIndex[actFctId];
-        boost::unordered_map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
+        std::unordered_map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
         // loop over equations
         for( ; eqnIt != eqnToIndexSet.end(); ++eqnIt ) {
           indices[eqnIt->first-1] = eqnIt->second;
@@ -2212,9 +2212,9 @@ namespace CoupledField {
 
       // loop over all blocks
       for( UInt iBlock = 0; iBlock < numBlocks_; ++iBlock ) {
-        const boost::unordered_map<UInt, UInt> & eqnToIndexSet =
+        const std::unordered_map<UInt, UInt> & eqnToIndexSet =
             blockInfo_[iBlock]->eqnToIndex[actFctId];
-        boost::unordered_map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
+        std::unordered_map<UInt, UInt>::const_iterator eqnIt = eqnToIndexSet.begin();
         // loop over equations
         for( ; eqnIt != eqnToIndexSet.end(); ++eqnIt ) {
           const UInt index = eqnIt->second;
@@ -4978,14 +4978,14 @@ namespace CoupledField {
     }
   }
 
-  void AlgebraicSys::SetEdgeIndexMap(boost::unordered_map<Integer, Double>& lengths,
-                                     boost::unordered_map< Integer, StdVector<Integer> >& eNodes){
+  void AlgebraicSys::SetEdgeIndexMap(std::unordered_map<Integer, Double>& lengths,
+                                     std::unordered_map< Integer, StdVector<Integer> >& eNodes){
     dim_ = 1;
     edge_ = true;
 
     //loop over all indices
-    boost::unordered_map< Integer , Double >::const_iterator lIt = lengths.begin();
-    boost::unordered_map< Integer , StdVector<Integer> >::const_iterator eIt = eNodes.begin();
+    std::unordered_map< Integer , Double >::const_iterator lIt = lengths.begin();
+    std::unordered_map< Integer , StdVector<Integer> >::const_iterator eIt = eNodes.begin();
     while(lIt != lengths.end() ){
       StdVector<Integer> e = eIt->second;
       Double l = lIt->second;
@@ -5044,8 +5044,8 @@ namespace CoupledField {
     // also fill edgeIndNode_, basically the same as geomIndEdge_ only without the
     // unnecessary stuff
     UInt nRows = 0;
-    boost::unordered_map<Integer, StdVector<UInt> > tempNodesOfEdge;
-    boost::unordered_map<Integer, StdVector<Double> > tempLengthOfEdge;
+    std::unordered_map<Integer, StdVector<UInt> > tempNodesOfEdge;
+    std::unordered_map<Integer, StdVector<Double> > tempLengthOfEdge;
     edgeIndNode_.Resize(geomIndEdge_.size());
     for(UInt i = 0; i < geomIndEdge_.size(); ++i ){
       StdVector<Integer> nodes = geomIndEdge_[i].eNodes;
@@ -5084,7 +5084,7 @@ namespace CoupledField {
     // data pointer of auxiliary matrix
     StdVector<Double> dataAux;
     UInt rSize = 0;
-    //boost::unordered_map< Integer, EdgeGeom>::const_iterator eIt = geomIndEdge_.begin(); //old version
+    //std::unordered_map< Integer, EdgeGeom>::const_iterator eIt = geomIndEdge_.begin(); //old version
     // loop over every node and collect connected neighbours
     for(UInt nIt = 0; nIt < nRows; ++nIt){
       Integer nNum = nodeNumIndex_[nIt]; //real nodeNumber

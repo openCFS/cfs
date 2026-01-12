@@ -11,6 +11,7 @@
 
 #include <string>
 #include <map>
+#include <unordered_map>
 
 #include "CoefFunction.hh"
 #include "FeBasis/BaseFE.hh"
@@ -193,7 +194,7 @@ protected:
   Vector<Double> nuFreqTmp_;
 
   //! Map for getting the position of a certain elemNum in the freqTimeRes_ construct
-  boost::unordered_map<UInt, UInt> positionOfElem_;
+  std::unordered_map<UInt, UInt> positionOfElem_;
 
   std::string modelName_;
 

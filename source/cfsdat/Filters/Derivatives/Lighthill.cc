@@ -17,6 +17,8 @@
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include <algorithm>
 #include <vector>
+#include <tuple>
+#include <unordered_map>
 
 #ifdef USE_CGAL
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
@@ -290,7 +292,7 @@ void Lighthill::LighthillSourceTerm(Vector<Double>& tempRetVec, bool isTensorFor
 // later on this should be refactored into KNNSearch.hh and KNNSearch.cc
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef Kernel::Point_3 Point_3;
-typedef boost::tuple<Point_3,CF::UInt> Point_and_int;
+typedef std::tuple<Point_3,CF::UInt> Point_and_int;
 
 //definition of the property map
 struct My_point_property_map{
@@ -303,7 +305,7 @@ struct My_point_property_map{
 //get function for the property map
 inline My_point_property_map::reference
 get(My_point_property_map,My_point_property_map::key_type p)
-{return boost::get<0>(p);}
+{return std::get<0>(p);}
 
 typedef CGAL::Random_points_in_cube_3<Point_3>                                          Random_points_iterator;
 typedef CGAL::Search_traits_3<Kernel>                                                   Traits_base;
@@ -348,7 +350,7 @@ void Lighthill::PrepareCalculation(){
   // which nodeNumber belongs to which entry...we also can't hardcode it
   // because we have dynamical storage of the neighbours, means we can not
   // predict the size
-  boost::unordered_map<UInt, UInt> sEnt;
+  std::unordered_map<UInt, UInt> sEnt;
   for(UInt i = 0; i < globSrcNodeEntity.GetSize(); ++i){
     sEnt[globSrcNodeEntity[i]] = i + 1;
   }
@@ -617,8 +619,13 @@ void Lighthill::PrepareCalculation(){
     }
   }
 
-  Tree treeEtN(boost::make_zip_iterator(boost::make_tuple( pointsEtN.begin(),indicesEtN.begin() )),
-      boost::make_zip_iterator(boost::make_tuple( pointsEtN.end(),indicesEtN.end() ) ) );
+  StdVector<Point_and_int> searchPoints;
+  searchPoints.Reserve(pointsEtN.size());
+  size_t i = 0;
+  for(const auto& pt : pointsEtN)
+    searchPoints.Push_back(std::make_tuple(pt, indicesEtN[i++]));
+
+  Tree treeEtN(searchPoints.begin(), searchPoints.end());
 
 
   for(CF::UInt trgEnt = 0; trgEnt < maxNumSrcNodeEntities; trgEnt++) {
@@ -654,7 +661,7 @@ void Lighthill::PrepareCalculation(){
       CF::Double dmax = 0.0;
       for(K_neighbor_search::iterator it = searchEtN.begin(); it != searchEtN.end(); it++) {
         // the following +1 is necessary because then it's the entity-number and not index
-        sM.Push_back(boost::get<1>(it->first) + 1 );
+        sM.Push_back(std::get<1>(it->first) + 1 );
         CF::Double distance = tr_dist.inverse_of_transformed_distance(it->second);
         srcDist.Push_back(distance );
         if (distance > dmax) {

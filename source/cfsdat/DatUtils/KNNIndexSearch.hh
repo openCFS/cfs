@@ -22,6 +22,7 @@
 
 #include <utility>
 #include <vector>
+#include <tuple>
 
 //CFS
 #include "MatVec/Vector.hh"
@@ -53,7 +54,7 @@ namespace CFSDat{
 // later on this should be refactored into KNNSearch.hh and KNNSearch.cc
 typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
 typedef Kernel::Point_3 Point_3;
-typedef boost::tuple<Point_3,UInt> Point_and_int;
+typedef std::tuple<Point_3,UInt> Point_and_int;
 
 //definition of the property map
 struct My_point_property_map{
@@ -66,7 +67,7 @@ struct My_point_property_map{
 //get function for the property map
 inline My_point_property_map::reference
 get(My_point_property_map,My_point_property_map::key_type p)
-{return boost::get<0>(p);}
+{return std::get<0>(p);}
 
 typedef CGAL::Random_points_in_cube_3<Point_3>                                          Random_points_iterator;
 typedef CGAL::Search_traits_3<Kernel>                                                   Traits_base;

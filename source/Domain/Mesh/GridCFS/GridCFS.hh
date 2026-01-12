@@ -12,6 +12,8 @@ namespace CoupledField
   struct Elem;
   struct SurfElem;
 
+#include <unordered_map>
+
   //! Implementation of a simple, one level grid.
 
   //! This class implements the base class Grid. Is is a simple
@@ -591,7 +593,7 @@ namespace CoupledField
 
     //! helper struct for storing the number of neighbour-elements for every node
     struct NodeNeighbourElems{
-      boost::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
+      std::unordered_map<UInt, StdVector<Elem*> > nodeNeighElems;
       RegionIdType regID;
     };
 

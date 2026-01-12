@@ -3,6 +3,8 @@
 
 #include "FeBasis/FeSpaceHi.hh"
 #include <boost/array.hpp>
+#include <unordered_map>
+#include <unordered_set>
 
 #include "Utils/ThreadLocalStorage.hh"
 
@@ -135,16 +137,16 @@ protected:
   std::map< RegionIdType, bool> useGradients_;
   
   //! Set containing all edges, where use of gradient was adjusted
-  boost::unordered_set<UInt> adjustedGradEdges_;
+  std::unordered_set<UInt> adjustedGradEdges_;
 
   //! Set containing all faces, where use of gradient was adjusted
-  boost::unordered_set<UInt> adjustedGradFaces_;
+  std::unordered_set<UInt> adjustedGradFaces_;
 
   //! Map usage of gradients of adjusted edges (key: edge number)
-  boost::unordered_map<UInt, bool> gradEdges_;
+  std::unordered_map<UInt, bool> gradEdges_;
 
   //! Map usage of gradients of adjusted faces (key: face number)
-  boost::unordered_map<UInt, bool> gradFaces_;
+  std::unordered_map<UInt, bool> gradFaces_;
 
   
 private:

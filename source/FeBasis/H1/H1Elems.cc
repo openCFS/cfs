@@ -20,11 +20,11 @@ namespace CoupledField {
     this->completeType_ = other.completeType_;
     this->hasICModes_ = other.hasICModes_;
     if(other.preComputShFnc_){
-      this->shapeFncsAtIp_ = boost::unordered_map<Integer, Vector<Double> >(other.shapeFncsAtIp_);
-      this->shapeFncDerivsAtIp_ = boost::unordered_map<Integer, Matrix<Double> >(other.shapeFncDerivsAtIp_);
+      this->shapeFncsAtIp_ = std::unordered_map<Integer, Vector<Double> >(other.shapeFncsAtIp_);
+      this->shapeFncDerivsAtIp_ = std::unordered_map<Integer, Matrix<Double> >(other.shapeFncDerivsAtIp_);
       if(this->hasICModes_){
-        this->icModesAtIp_ = boost::unordered_map<Integer, Vector<Double> >(other.icModesAtIp_);
-        this->icModesDerivsAtIp_ = boost::unordered_map<Integer, Matrix<Double> >(other.icModesDerivsAtIp_);
+        this->icModesAtIp_ = std::unordered_map<Integer, Vector<Double> >(other.icModesAtIp_);
+        this->icModesDerivsAtIp_ = std::unordered_map<Integer, Matrix<Double> >(other.icModesDerivsAtIp_);
       }
     }
     this->locDeriv_ = other.locDeriv_;

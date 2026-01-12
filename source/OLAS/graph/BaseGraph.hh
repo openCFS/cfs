@@ -6,7 +6,7 @@
 
 #include "General/Environment.hh"
 #include "BaseOrdering.hh"
-#include <boost/unordered_set.hpp>
+#include <unordered_set>
 
 namespace CoupledField {
 
@@ -391,7 +391,7 @@ namespace CoupledField {
     StdVector<std::pair<UInt,UInt> > sortedBlocks_;
 
     //! set for faster add of element neighbors
-    boost::unordered_set<UInt>* setElements_ = NULL;
+    std::unordered_set<UInt>* setElements_ = NULL;
 
     //! flag to check if element_ pointer is ready
     bool setToElemDone_;

@@ -15,7 +15,6 @@
 #include "Utils/tools.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim.hpp>
-#include <boost/functional/hash.hpp>
 
 
 DEFINE_LOG(sicdb, "SimInputCDB")

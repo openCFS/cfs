@@ -18,7 +18,9 @@
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
 //#include "cfsdat/DatUtils/KNNSearch.hh"
 #include <algorithm>
+#include <boost/tuple/tuple.hpp>
 #include <vector>
+#include <tuple>
 
 #ifdef USE_CGAL
 #include <def_use_cgal.hh>
@@ -143,7 +145,7 @@ void RBFInterpolator::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>
  // later on this should be refactored into KNNSearch.hh and KNNSearch.cc
  typedef CGAL::Exact_predicates_inexact_constructions_kernel Kernel;
  typedef Kernel::Point_3 Point_3;
- typedef boost::tuple<Point_3,CF::UInt> Point_and_int;
+ typedef std::tuple<Point_3,CF::UInt> Point_and_int;
 
  //definition of the property map
  struct My_point_property_map{
@@ -156,7 +158,7 @@ void RBFInterpolator::GetUsedMappedEntities(const str1::shared_ptr<EqnMapSimple>
  //get function for the property map
  inline My_point_property_map::reference
  get(My_point_property_map,My_point_property_map::key_type p)
- {return boost::get<0>(p);}
+ {return std::get<0>(p);}
 
  typedef CGAL::Random_points_in_cube_3<Point_3>                                          Random_points_iterator;
  typedef CGAL::Search_traits_3<Kernel>                                                   Traits_base;
@@ -521,8 +523,13 @@ void RBFInterpolator::PrepareCGAL(){
       sCoord[srcEnt] = pCoord;
     }
   }
-  Tree tree(boost::make_zip_iterator(boost::make_tuple( points.begin(),indices.begin() )),
-            boost::make_zip_iterator(boost::make_tuple( points.end(),indices.end() ) ) );
+
+  StdVector<Point_and_int> searchPoints;
+  searchPoints.Reserve(points.size());
+  size_t i = 0;
+  for(const auto& pt : points)
+    searchPoints.Push_back(std::make_tuple(pt, indices[i++]));
+  Tree tree(searchPoints.begin(), searchPoints.end());
 
   std::cout<< "\t\t 4/5 Boundary handling if activated " << std::endl;
 
@@ -592,7 +599,7 @@ void RBFInterpolator::PrepareCGAL(){
         CF::UInt i = 0;
         CF::Double dmax = 0.0;
         for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++, i++) {
-          srcIndices[i] = boost::get<1>(it->first);
+          srcIndices[i] = std::get<1>(it->first);
           CF::Double distance = tr_dist.inverse_of_transformed_distance(it->second);
           srcDist[i] = distance;
           if (distance > dmax) {
@@ -644,7 +651,7 @@ void RBFInterpolator::PrepareCGAL(){
 
 
       } else {
-        targetSourceIndex[trgEnt] = boost::get<1>(search.begin()->first);
+        targetSourceIndex[trgEnt] = std::get<1>(search.begin()->first);
       }
     } else {
       if (numNN_ == 1) {

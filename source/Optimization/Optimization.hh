@@ -4,6 +4,7 @@
 #include <stddef.h>
 #include <iosfwd>
 #include <string>
+#include <tuple>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
@@ -339,7 +340,7 @@ namespace CoupledField
 
            /** here ErsatzMaterial::CommitIteration() stores bloch information for plot.dat writing.
             * First entry is bandgap then the ev_min or ev_max info for each ev constraint. First label then the value */
-           StdVector<boost::tuple<std::string, double> > bloch_info;
+           StdVector<std::tuple<std::string, double> > bloch_info;
 
            /** if set write the gradient of the design to logfile */
            bool designGradient;

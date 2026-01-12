@@ -6,7 +6,7 @@
 #include  "OLAS/multigrid/ppflags.hh"
 
 #include <boost/config.hpp>
-#include <boost/unordered/unordered_map.hpp>
+#include <unordered_map>
 #include <iostream>
 #include <fstream>
 
@@ -120,7 +120,7 @@ class Agglomerate
         StdVector<Integer> nodeNumIndex_;
         //! inverse of nodeNumIndex_, this means value of
         //! indexNodeNum_[i]  is the index in the system matrix
-        boost::unordered_map<UInt, UInt> indexNodeNum_;
+        std::unordered_map<UInt, UInt> indexNodeNum_;
         StdVector< StdVector< Integer> > Agglomerates_;
         //! index map from i_h to i_H
         StdVector<Integer> CoarseIndex_;

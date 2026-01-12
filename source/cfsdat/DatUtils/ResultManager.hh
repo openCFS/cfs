@@ -24,7 +24,7 @@
 #define BOOST_UUID_RANDOM_PROVIDER_FORCE_POSIX
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 //CFS
 #include "General/Environment.hh"
@@ -452,7 +452,7 @@ private:
 
   bool isFinalized_;
 
-  typedef boost::unordered_map<uuids::uuid,std::pair<InfoPtr,ResPtr> > UuidMap;
+  typedef std::unordered_map<uuids::uuid,std::pair<InfoPtr,ResPtr> > UuidMap;
 
   //map storing for each result id a pair of infos and the actual result
   //will get changed during result compression

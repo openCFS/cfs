@@ -68,7 +68,7 @@ namespace CoupledField {
     // Allocate memory for linked lists
     if ( numNodes_ > 0 ) {
       element_ = new std::vector<UInt>[numNodes_];
-      setElements_ = new boost::unordered_set<UInt>[numNodes_];
+      setElements_ = new std::unordered_set<UInt>[numNodes_];
     }
     else {
       element_ = NULL;

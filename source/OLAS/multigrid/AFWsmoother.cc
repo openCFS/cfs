@@ -5,6 +5,7 @@
 /* $Id: AFWsmoother.cc 15673 2017-05-12 19:46:39Z kroppert $ */
 
 #include "OLAS/multigrid/AFWsmoother.hh"
+#include <unordered_map>
 
 namespace CoupledField {
 /**********************************************************/
@@ -54,7 +55,7 @@ CreatePatches(const CRS_Matrix<Double>& AuxMatrix,
   // value of nodeNumIndex is the real node-number, used in edgeIndNode
 
   // "invert" edgeIndNode, so that we get indices in edgeIndNode for every node
-  boost::unordered_map<Integer, StdVector<UInt> > edgesOfNode;
+  std::unordered_map<Integer, StdVector<UInt> > edgesOfNode;
   for(UInt i = 0; i < edgeIndNode.GetSize(); ++i ){
     StdVector<Integer> nodes = edgeIndNode[i];
     StdVector<UInt>& t1 = edgesOfNode[nodes[0]];

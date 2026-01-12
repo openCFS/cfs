@@ -1,7 +1,7 @@
 #ifndef FILE_CFS_SIMINPUT_HDF5_HH
 #define FILE_CFS_SIMINPUT_HDF5_HH
 
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 #include <DataInOut/SimInput.hh>
 #include "H5Cpp.h"
 
@@ -230,19 +230,19 @@ namespace CoupledField {
     StdVector<Double> nodeCoords_;
     
     // Map from mesh file node numbers to grid node numbers
-    boost::unordered_map<UInt, UInt> f2GNodeNumMap_;
+    std::unordered_map<UInt, UInt> f2GNodeNumMap_;
 
     // Map from grid node numbers to mesh file numbers
-    boost::unordered_map<UInt, UInt> g2FNodeNumMap_;
+    std::unordered_map<UInt, UInt> g2FNodeNumMap_;
     
     // Map from mesh file elem numbers to grid elem numbers
-    boost::unordered_map<UInt, UInt> f2GElemNumMap_;
+    std::unordered_map<UInt, UInt> f2GElemNumMap_;
 
     // Map from grid elem numbers to mesh file elem numbers
-    boost::unordered_map<UInt, UInt> g2FElemNumMap_;
+    std::unordered_map<UInt, UInt> g2FElemNumMap_;
     
     // Map from grid entity nodes to indices of mesh entity nodes
-    boost::unordered_map<std::string, StdVector<UInt> > entityNodeMap_;    
+    std::unordered_map<std::string, StdVector<UInt> > entityNodeMap_;    
 
     // Coordinate system into which the node coordinates should be mapped
     std::string coordSysId_;

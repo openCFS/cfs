@@ -361,10 +361,10 @@ namespace CoupledField{
     // edges / faces adjusted.
 
     // Create temporary map for edges
-    boost::unordered_map<UInt, bool> edgeGrads;
+    std::unordered_map<UInt, bool> edgeGrads;
     
     // Loop over all adjusted edges
-    boost::unordered_set<UInt>::const_iterator edgeIt = adjustedGradEdges_.begin();
+    std::unordered_set<UInt>::const_iterator edgeIt = adjustedGradEdges_.begin();
     for( ; edgeIt != adjustedGradEdges_.end(); ++edgeIt ) {
       edgeGrads[*edgeIt] = gradEdges_[*edgeIt];
     } // loop over edges
@@ -372,8 +372,8 @@ namespace CoupledField{
     // store only adjusted edges back
     gradEdges_ = edgeGrads;
     
-    boost::unordered_map<UInt, bool> faceGrads;
-    boost::unordered_set<UInt>::const_iterator faceIt = adjustedGradFaces_.begin();
+    std::unordered_map<UInt, bool> faceGrads;
+    std::unordered_set<UInt>::const_iterator faceIt = adjustedGradFaces_.begin();
       for( ; faceIt != adjustedGradFaces_.end(); ++faceIt ) {
         faceGrads[*faceIt] = gradFaces_[*faceIt];
       } // loop over edges

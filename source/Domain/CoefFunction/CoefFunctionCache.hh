@@ -10,6 +10,7 @@
 #include "CoefFunction.hh"
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeFunctions.hh"
+#include <unordered_map>
 
 namespace CoupledField  {
 
@@ -21,7 +22,7 @@ namespace CoupledField  {
 //
 //! If GetScalar() or GetVector() or GetTensor() is called, a check is performed if
 //! this has already been done during runtime for the element and the cached coefFct.
-//! If not: Values are returned and saved in a boost::unordered_map
+//! If not: Values are returned and saved in a std::unordered_map
 //! Else: Cached Values are returned, no (repeated) evaluation done.
 //! Tested with CoefFunctionEigen (principal strain, principal stress)
 
@@ -67,17 +68,17 @@ protected:
   shared_ptr<ResultInfo> res_;
 
   //! Map which takes the cached data
-  boost::unordered_map<UInt, std::pair<Vector<Double> , TYPE > > cached_data_scal_;
-  boost::unordered_map<UInt, std::pair<Vector<Double> , Vector<TYPE> > > cached_data_vec_;
-  boost::unordered_map<UInt, std::pair<Vector<Double> , Matrix<TYPE> > > cached_data_mat_;
+  std::unordered_map<UInt, std::pair<Vector<Double> , TYPE > > cached_data_scal_;
+  std::unordered_map<UInt, std::pair<Vector<Double> , Vector<TYPE> > > cached_data_vec_;
+  std::unordered_map<UInt, std::pair<Vector<Double> , Matrix<TYPE> > > cached_data_mat_;
 
   //Iterator
-  typename boost::unordered_map<UInt, std::pair<Vector<Double>, TYPE > >::iterator it_scal_;
-  typename boost::unordered_map<UInt, std::pair<Vector<Double>, Vector<TYPE> > >::iterator it_vec_; //typename: the compiler likes it ;)
-  typename boost::unordered_map<UInt, std::pair<Vector<Double>, Matrix<TYPE> > >::iterator it_mat_;
+  typename std::unordered_map<UInt, std::pair<Vector<Double>, TYPE > >::iterator it_scal_;
+  typename std::unordered_map<UInt, std::pair<Vector<Double>, Vector<TYPE> > >::iterator it_vec_; //typename: the compiler likes it ;)
+  typename std::unordered_map<UInt, std::pair<Vector<Double>, Matrix<TYPE> > >::iterator it_mat_;
 
-  //boost::unordered_map<UInt, std::pair<Vector<Double> , Vector<TYPE> > > cached_data_boost_;
-  //typename boost::unordered_map<UInt, std::pair<Vector<Double>, Vector<TYPE> > >::iterator it_boost_;
+  //std::unordered_map<UInt, std::pair<Vector<Double> , Vector<TYPE> > > cached_data_boost_;
+  //typename std::unordered_map<UInt, std::pair<Vector<Double>, Vector<TYPE> > >::iterator it_boost_;
 
   MathParser* mp_ = nullptr;
   unsigned int mHandleTime_;

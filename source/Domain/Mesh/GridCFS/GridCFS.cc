@@ -5026,7 +5026,7 @@ namespace CoupledField {
     } // loop: elements
     
     // In the end free any non-needed memory
-    boost::unordered_map<UInt, NodeElemMatch>::iterator it;
+    std::unordered_map<UInt, NodeElemMatch>::iterator it;
     it = midNodeProjections_.begin();
     for( ; it != midNodeProjections_.end(); ++it ) {
       it->second.Trim();

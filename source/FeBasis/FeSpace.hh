@@ -14,7 +14,7 @@
 #include "MatVec/Matrix.hh"
 #include "Forms/IntScheme.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 namespace CoupledField {
 
@@ -178,10 +178,10 @@ public:
   struct SingleEqnMap{
 
     //! Map for every node (key to map) its equations (values)
-    boost::unordered_map< Integer, StdVector<Integer> > eqns;
+    std::unordered_map< Integer, StdVector<Integer> > eqns;
     
     //! Map for every node (key to map) its boundary conditions types
-    boost::unordered_map< Integer,StdVector<BcType> > BcKeys;
+    std::unordered_map< Integer,StdVector<BcType> > BcKeys;
     
     
     //! Map for storing constraint information
@@ -507,7 +507,7 @@ public:
 
   //! Create a map of equation-index-geometry for AMG-solver/preconditioner
   //! ONLY for single-PDE's with lowest order Lagrange- or edge-elements
-  void CreateEquIndGeomMap(boost::unordered_map< Integer, BaseFeFunction::EqNodeGeom>&,
+  void CreateEquIndGeomMap(std::unordered_map< Integer, BaseFeFunction::EqNodeGeom>&,
                           UInt&, UInt&);
 
 protected:
@@ -661,7 +661,7 @@ protected:
   std::map<UInt,StdVector<UInt> > gridToVirtualNodes_;
 
   //! Map for every node the type geometric entitytype it belongs to (V/E/F/I)
-  typedef boost::unordered_map<UInt, BaseFE::EntityType> NodeTypeMap;
+  typedef std::unordered_map<UInt, BaseFE::EntityType> NodeTypeMap;
   NodeTypeMap nodesType_;
 
   
@@ -670,7 +670,7 @@ protected:
   //! This map type can be used to assign an enumerable geometric 
   //! entity (e.g. node/edge/face/element number, used as key in the map)
   //! a list of virtual nodes (value of map).
-  typedef boost::unordered_map<UInt, StdVector<UInt> > EntityNodesType;
+  typedef std::unordered_map<UInt, StdVector<UInt> > EntityNodesType;
   
   //! Global map for continuous virtual node numbers
   
@@ -679,7 +679,7 @@ protected:
   //! contains a map (see EntityNodesType) which globally holds for each
   //! unique entity number (e.g. node/edge/face/interior number) a 
   //! list of virtual Nodes
-  boost::unordered_map<BaseFE::EntityType, EntityNodesType> vNodesCont_;
+  std::unordered_map<BaseFE::EntityType, EntityNodesType> vNodesCont_;
   
   // ====================================================================
   // CACHE ACCESS TO LAST USED EQUATIONS

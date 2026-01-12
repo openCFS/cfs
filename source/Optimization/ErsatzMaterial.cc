@@ -501,7 +501,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   // now the stuff prepared in ErsatzMaterial::CommitIteration()
   // in case of bloch_info
   for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
-    iteration->Get(boost::get<0>(log.bloch_info[i]))->SetValue(boost::get<1>(log.bloch_info[i]));
+    iteration->Get(std::get<0>(log.bloch_info[i]))->SetValue(std::get<1>(log.bloch_info[i]));
 
   // add our multiple excitation stuff here.
   // the .plot.dat already has a simplified output in Optimization.cc
@@ -604,8 +604,8 @@ PtrParamNode ErsatzMaterial::CommitIteration()
 
       // replace the key, we have only "bandgap" in log
       //iter->Get("bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID()))->SetValue(upper - lower);
-      boost::get<0>(log.bloch_info.First()) ="bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID());
-      boost::get<1>(log.bloch_info.First()) = upper - lower;
+      std::get<0>(log.bloch_info.First()) ="bandgap_" + lexical_cast<string>(g->GetEigenValueID()) + "_" + lexical_cast<string>(n->GetEigenValueID());
+      std::get<1>(log.bloch_info.First()) = upper - lower;
 
       LOG_DBG(em) << "CI g=" << g->ToString() << "/" << g->GetEigenValueID() << " n=" << n->ToString() << "/" << n->GetEigenValueID();
       break; // assume only one lower/upper constraint gap
@@ -628,7 +628,7 @@ PtrParamNode ErsatzMaterial::CommitIteration()
          SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, g->GetBound() == Condition::LOWER_BOUND, &freq);
 
          //iter->Get(Condition::type.ToString(g->GetType()) + "_" + lexical_cast<string>(g->GetEigenValueID())+ (g->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max"))->SetValue(freq);
-         boost::get<1>(log.bloch_info[c+1]) = freq; // first entry is gap
+         std::get<1>(log.bloch_info[c+1]) = freq; // first entry is gap
          ev_done[g->GetEigenValueID()] = true;
          LOG_DBG(em) << "CI g=" << g->ToString() << " evid=" << g->GetEigenValueID() << " b=" << g->GetBound() << " mm=" << freq;
       }
@@ -1274,7 +1274,7 @@ double ErsatzMaterial::CalcHomTensor(Objective* c, Condition* g, bool derivative
   {
     Matrix<double> hom_tensor = CalcHomogenizedTensor(f);
     if(c->HasHomogenizationEntry())
-      return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
+      return hom_tensor[std::get<0>(c->coord)-1][std::get<1>(c->coord)-1];
     else
     {
       std::cout << "Homogenized Tensor (" << tensorNotation.ToString(f->GetNotation()) << "): " << std::endl << hom_tensor.ToString() << std::endl;
@@ -3266,11 +3266,11 @@ double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool deriv
     // PLANE_STRESS: E = E11 * (1-v^2)
 
     StdVector<double> dE11;
-    CalcHomogenizedTensorEntry(f, boost::make_tuple(1,1,1.0), true, dE11, f->GetExcitation()->meta_index);
+    CalcHomogenizedTensorEntry(f, std::make_tuple(1,1,1.0), true, dE11, f->GetExcitation()->meta_index);
     StdVector<double> dE12;
-    CalcHomogenizedTensorEntry(f, boost::make_tuple(1,2,1.0), true, dE12, f->GetExcitation()->meta_index);
+    CalcHomogenizedTensorEntry(f, std::make_tuple(1,2,1.0), true, dE12, f->GetExcitation()->meta_index);
     StdVector<double> dE22;
-    CalcHomogenizedTensorEntry(f, boost::make_tuple(2,2,1.0), true, dE22, f->GetExcitation()->meta_index);
+    CalcHomogenizedTensorEntry(f, std::make_tuple(2,2,1.0), true, dE22, f->GetExcitation()->meta_index);
 
     double grad(0.0);
 
@@ -3518,7 +3518,7 @@ void ErsatzMaterial::CalcHomFrobeniusProductGradient(const Matrix<double>& par, 
   {
     for (unsigned int x = 0;x < par.GetNumCols();x++)
     {
-      boost::tuple<int,int,double> entry = boost::make_tuple(x + 1, y + 1, 0.0);
+      std::tuple<int,int,double> entry = std::make_tuple(x + 1, y + 1, 0.0);
       tmp_grad_out.Init(0.0);
       CalcHomogenizedTensorEntry(f, entry, true, tmp_grad_out, meta);
       double d_ij = par[y][x];
@@ -3544,9 +3544,9 @@ double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool deriva
   // E11 = <0,0,x>
   for(unsigned int i = 0; i < g->coords.GetSize(); i++)
   {
-    boost::tuple<int, int, double>& entry = g->coords[i];
+    std::tuple<int, int, double>& entry = g->coords[i];
     double t = CalcHomogenizedTensorEntry(g, entry, derivative, grad, meta);
-    double factor = boost::get<2>(entry);
+    double factor = std::get<2>(entry);
 
     if(derivative)
     {
@@ -3565,25 +3565,25 @@ double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool deriva
       Matrix<double>& ht = homogenizedTensor[g->GetExcitation()->meta_index];
       LOG_DBG(em) << "CHTC: g=" << g->ToString() <<  " ht_idx=" << g->GetExcitation()->meta_index;
 
-      ht[boost::get<0>(entry)-1][boost::get<1>(entry)-1] = t;
+      ht[std::get<0>(entry)-1][std::get<1>(entry)-1] = t;
       // all tensors are symmetric. Makes reading easier!
-      ht[boost::get<1>(entry)-1][boost::get<0>(entry)-1] = t;
+      ht[std::get<1>(entry)-1][std::get<0>(entry)-1] = t;
 
-      LOG_DBG(em) << "CHTC: g=" << g->ToString() << " coord=" << i << " [" << boost::get<0>(entry)-1
-                   << "][" << boost::get<1>(entry)-1 << "] = " << t;
+      LOG_DBG(em) << "CHTC: g=" << g->ToString() << " coord=" << i << " [" << std::get<0>(entry)-1
+                   << "][" << std::get<1>(entry)-1 << "] = " << t;
     }
   }
   return result;
 }
 
-double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
+double ErsatzMaterial::CalcHomogenizedTensorEntry(Function* f, const std::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
 {
   const double cube_vol = grid->CalcHullVolume();
   Context* ctxt = f->ctxt;
 
   assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
-  const unsigned int ij = boost::get<0>(entry) - 1;
-  const unsigned int kl = boost::get<1>(entry) - 1;
+  const unsigned int ij = std::get<0>(entry) - 1;
+  const unsigned int kl = std::get<1>(entry) - 1;
 
   // the test strain itself shall be independent of the meta excitation
   assert(ctxt->excitations[ij]->test_strain == ctxt->GetExcitation(ij, meta)->test_strain);

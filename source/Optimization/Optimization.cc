@@ -253,7 +253,7 @@ void Optimization::PostInitSecond()
 
   // add the bandgap stuff in front of the constraints
   for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++) // might be emtpy!
-    log.AddToHeader(boost::get<0>(log.bloch_info[i]));
+    log.AddToHeader(std::get<0>(log.bloch_info[i]));
 
   // constraints.ToInfo() is called in PostInitSecond()
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
@@ -1540,7 +1540,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 
   // we might have bloch information calculated int ErsatzMaterial::CommitIteration()
   for(unsigned int i = 0; i < log.bloch_info.GetSize(); i++)
-    *out << " \t" << boost::get<1>(log.bloch_info[i]);
+    *out << " \t" << std::get<1>(log.bloch_info[i]);
 
   // For iteration 0 we want also the constraint values but they were not evaluated.
   // For any iteration we need to evaluate the observe constraints
@@ -1713,14 +1713,14 @@ void Optimization::Log::Init(Optimization* opt, const string& log_name, PtrParam
     plot_ev = progOpts->DoDetailedInfo();
 
     // see ErsatzMaterial::CommitInteration()
-    bloch_info.Push_back(boost::make_tuple("bandgap", -1.0));
+    bloch_info.Push_back(std::make_tuple("bandgap", -1.0));
 
     StdVector<string> found;
     for(unsigned int i = 0; i < ev.GetSize(); i++) {
       std::string key = "ev_" + lexical_cast<string>(ev[i]->GetEigenValueID()) + (ev[i]->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max");
       // we have wave vector times each ev, add only one!
       if(!found.Contains(key)) {
-        bloch_info.Push_back(boost::make_tuple(key, -1.0));
+        bloch_info.Push_back(std::make_tuple(key, -1.0));
         found.Push_back(key);
       }
     }

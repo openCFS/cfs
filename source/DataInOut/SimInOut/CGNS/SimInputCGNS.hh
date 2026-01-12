@@ -18,6 +18,7 @@
 
 #include <string>
 #include <set>
+#include <unordered_map>
 
 #include <cgnslib.h>
 
@@ -197,7 +198,7 @@ namespace CoupledField{
     
     //! Convert a polyhedron into a proper element
     static Elem::FEType PolyhedronToFE(cgsize_t numFaces, cgsize_t *faces,
-        boost::unordered_map<cgsize_t, StdVector< StdVector<UInt> > > & polyConn,
+        std::unordered_map<cgsize_t, StdVector< StdVector<UInt> > > & polyConn,
         StdVector< StdVector<UInt> > &connect, UInt offset = 0);
     
     //! Convert CGNS field name to NACS solution type
@@ -268,7 +269,7 @@ namespace CoupledField{
     std::map<std::string, Integer> nameToZoneIdx_;
     
     //! Mapping (per zone) from NACS element number to CGNS cell index 
-    StdVector< boost::unordered_map<UInt, cgsize_t> > elemToCellIdx_;
+    StdVector< std::unordered_map<UInt, cgsize_t> > elemToCellIdx_;
     
     //! Range of cell indices per region or group
     std::map<std::string, std::pair<cgsize_t, cgsize_t> > cellRange_;

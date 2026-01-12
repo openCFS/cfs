@@ -20,7 +20,7 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/StateSolution.hh"
 #include "Utils/StdVector.hh"
-#include "boost/tuple/tuple.hpp"
+#include <tuple>
 
 namespace CoupledField {
 class DenseMatrix;
@@ -380,7 +380,7 @@ protected:
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @param meta the meta excitation index (rotations, robust) or 0 for standard case
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(Function* f, const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
+  double CalcHomogenizedTensorEntry(Function* f, const std::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
 
   /** Calculates globalized local functions: globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c

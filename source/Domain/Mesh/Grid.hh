@@ -7,9 +7,9 @@
 
 #include <set>
 #include <map>
+#include <unordered_map>
+#include <unordered_set>
 #include <boost/array.hpp>
-#include <boost/unordered_map.hpp>
-#include <boost/unordered_set.hpp>
 
 #if defined(USE_CGAL) && defined(USE_LIBFBI)
 #error "Either USE_CGAL or USE_LIBFBI can be active, but not both!"
@@ -1213,7 +1213,7 @@ namespace CoupledField
   protected:
 
     //! Return for a list of entitylists all element numbers
-    void GetElemNums( boost::unordered_set<UInt>& elemNums, 
+    void GetElemNums( std::unordered_set<UInt>& elemNums, 
                       std::set<UInt>& dims,
                       const StdVector<shared_ptr<EntityList> >& entities );
     
@@ -1224,7 +1224,7 @@ namespace CoupledField
     //@{
     //! Store for mid-side nodes the elements and the local coordinates
     typedef StdVector<std::pair<const Elem*, LocPoint> > NodeElemMatch; 
-    boost::unordered_map<UInt, NodeElemMatch> midNodeProjections_;
+    std::unordered_map<UInt, NodeElemMatch> midNodeProjections_;
     //@}
     
     //! Trigger projection of mid-side nodes to element interior

@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <unordered_map>
 
 
 namespace CFSDat{
@@ -96,7 +97,7 @@ void GradientDifferentiator::PrepareCalculation(){
   // which nodeNumber belongs to which entry...we also can't hardcode it
   // because we have dynamical storage of the neighbours, means we can not
   // predict the size
-  boost::unordered_map<UInt, UInt> sEnt;
+  std::unordered_map<UInt, UInt> sEnt;
   for(UInt i = 0; i < globSrcEntity.GetSize(); ++i){
     sEnt[globSrcEntity[i]] = i + 1;
   }

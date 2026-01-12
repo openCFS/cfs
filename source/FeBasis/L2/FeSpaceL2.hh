@@ -16,6 +16,7 @@
 #define FESPACEL2_HH_
 
 #include "FeBasis/FeSpaceNodal.hh"
+#include <unordered_map>
 
 namespace CoupledField {
 
@@ -133,7 +134,7 @@ public:
   //! the virtual node numbers in the correct ordering
   //! This Variable could be extended to store also the coordinates of all nodes
   //! created
-  boost::unordered_map< UInt, ElemVirtualNodes > virtualNodes_;
+  std::unordered_map< UInt, ElemVirtualNodes > virtualNodes_;
   
   // ====================================================================
   // Store surface elements

@@ -5,6 +5,7 @@
 #include <complex>
 #include <string>
 #include <utility>
+#include <variant>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 // we need it for the template implementation
@@ -324,7 +325,6 @@ namespace CoupledField
        // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
        if(elemNum >= elemToDesign.GetSize()) 
          EXCEPTION("DesignSpace::Find: elemNum " << elemNum << " out of bounds (size=" << elemToDesign.GetSize() << ")");
-
        int idx = elemToDesign[elemNum].first;
        // reset pseudo designs when we don't look for them explicitly
        if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)

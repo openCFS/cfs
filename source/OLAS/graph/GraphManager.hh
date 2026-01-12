@@ -4,7 +4,7 @@
 #include <string>
 #include "General/Environment.hh"
 #include "OLAS/graph/BaseOrdering.hh"
-#include <boost/unordered_map.hpp>
+#include <unordered_map>
 
 namespace CoupledField {
 
@@ -66,7 +66,7 @@ class IDBC_Graph;
     typedef struct {
 
       //! Map (fctId,eqnNr) to matrix / vector index
-      StdVector<boost::unordered_map<UInt, UInt> > eqnToIndex;
+      StdVector<std::unordered_map<UInt, UInt> > eqnToIndex;
 
       //! Define mappings for subBlocks
       //! 1st index: subBlockIndex

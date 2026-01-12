@@ -35,12 +35,21 @@
 #include <boost/uuid/uuid_io.hpp>
 #include <boost/mpl/range_c.hpp>
 #include <boost/mpl/for_each.hpp>
+#include <boost/functional/hash.hpp>
 #include <typeinfo>
 #if !defined(WIN32)
   #include <cxxabi.h>
 #endif
 
 using namespace boost::placeholders;
+
+namespace std {
+  template<> struct hash<boost::uuids::uuid> {
+    std::size_t operator()(const boost::uuids::uuid& uid) const {
+      return boost::hash<boost::uuids::uuid>()(uid);
+    }
+  };
+}
 
 namespace CFSDat{
 

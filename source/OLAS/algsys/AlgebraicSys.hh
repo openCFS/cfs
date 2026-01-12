@@ -13,6 +13,8 @@
 #include "Utils/ThreadLocalStorage.hh"
 //#include "OLAS/solver/BaseEigenSolver.hh"
 
+#include <unordered_map>
+
 namespace CoupledField {
 
   // Forward declarations
@@ -1022,8 +1024,8 @@ namespace CoupledField {
     //!                corresponding edge is the value
     //! \param eNodes  Map where system matrix-index is the key and the node-numbers
     //!                of the corresponding edge are the values
-    void SetEdgeIndexMap(boost::unordered_map<Integer, Double>& lengths,
-                         boost::unordered_map< Integer, StdVector<Integer> >& eNodes);
+    void SetEdgeIndexMap(std::unordered_map<Integer, Double>& lengths,
+                         std::unordered_map< Integer, StdVector<Integer> >& eNodes);
 
     //! Build auxiliary matrix for algebraic multigrid solver/preconditioner
 
@@ -1430,7 +1432,7 @@ namespace CoupledField {
     //! Special structure for edge-AMG geomIndEdge_[i] contains
     //! the coordinates of the two nodes of edge i (already in correct
     //! orientation)
-    boost::unordered_map< Integer, EdgeGeom> geomIndEdge_;
+    std::unordered_map< Integer, EdgeGeom> geomIndEdge_;
 
     //! Special structure for edge-AMG geomIndEdge_[i] contains
     //! the indices in the auxiliary-matrix of the two nodes
@@ -1438,7 +1440,7 @@ namespace CoupledField {
     StdVector< StdVector< Integer> > edgeIndNode_;
 
     //! Map for nodeNum <-> index in auxiliary matrix
-    boost::unordered_map< Integer, UInt> indexNodeNum_;
+    std::unordered_map< Integer, UInt> indexNodeNum_;
 
     //! vector for index <-> nodeNum in auxiliary matrix
     StdVector<Integer> nodeNumIndex_;

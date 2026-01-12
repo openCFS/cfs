@@ -12,6 +12,9 @@ namespace CoupledField {
 class FeHi;
 class Assemble;
 
+#include <unordered_set>
+#include <unordered_map>
+
 //! Class for hierarchical finite elements
 class FeSpaceHi: public FeSpace {
 
@@ -115,16 +118,16 @@ protected:
   void FixHigherOrderAnisoDofs( );
 
   //! Set containing all edges, where the min/max rule gets applied
-  boost::unordered_set<UInt> adjustedEdges_;
+  std::unordered_set<UInt> adjustedEdges_;
 
   //! Set containing all faces, where the min/max rule gets applied
-  boost::unordered_set<UInt> adjustedFaces_;
+  std::unordered_set<UInt> adjustedFaces_;
 
   //! Map containing the order of adjusted edges (key: edge number)
-  boost::unordered_map<UInt, UInt> orderEdges_;
+  std::unordered_map<UInt, UInt> orderEdges_;
 
   //! Map containing the order of adjusted faces (key: face number)
-  boost::unordered_map<UInt, boost::array<UInt, 2> > orderFaces_;
+  std::unordered_map<UInt, boost::array<UInt, 2> > orderFaces_;
 
   //! Associate entity name with mapping context
   std::map<std::string, MapContext*> entityCtx_;

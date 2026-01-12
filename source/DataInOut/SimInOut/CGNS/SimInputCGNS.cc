@@ -15,6 +15,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <unordered_set>
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
@@ -748,7 +749,7 @@ namespace CoupledField {
     //==================================================================
     
     // Prepare element to cell number map 
-    boost::unordered_map<UInt, cgsize_t> & elem2cell = elemToCellIdx_[zone-1];
+    std::unordered_map<UInt, cgsize_t> & elem2cell = elemToCellIdx_[zone-1];
     elem2cell.reserve(zoneSize[1]);
     
     // How many connectivity datasets are there?
@@ -805,7 +806,7 @@ namespace CoupledField {
     std::copy(faceSec.begin(), faceSec.end(), std::back_inserter(secOrder));
     
     // prepare map for polygon connectivity
-    boost::unordered_map<cgsize_t, StdVector< StdVector<UInt> > > polyConn;
+    std::unordered_map<cgsize_t, StdVector< StdVector<UInt> > > polyConn;
     polyConn.reserve(numPolygons);
     
     // Variables used for reading element connectivity
@@ -818,7 +819,7 @@ namespace CoupledField {
     Elem::FEType feType;
     StdVector<UInt> connect, groupElems;
     StdVector< StdVector<UInt> > polyElems;
-    boost::unordered_set<UInt> sectionNodes;
+    std::unordered_set<UInt> sectionNodes;
     
     for (Integer sec = 0; sec < nSections; ++sec) {
       CGNS_CHECK_EX( cg_section_read(fileHandle_, base, zone, secOrder[sec],
@@ -1306,7 +1307,7 @@ namespace CoupledField {
   
   // Convert a polyhedron into a proper element
   Elem::FEType SimInputCGNS::PolyhedronToFE(cgsize_t numFaces, cgsize_t *faces,
-      boost::unordered_map<cgsize_t, StdVector< StdVector<UInt> > > & polyConn,
+      std::unordered_map<cgsize_t, StdVector< StdVector<UInt> > > & polyConn,
       StdVector< StdVector<UInt> > &connect, UInt offset)
   {
     Elem::FEType feType = Elem::ET_UNDEF;

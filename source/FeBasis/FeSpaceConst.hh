@@ -23,6 +23,7 @@
 #define FESPACECONST_HH
 
 #include "FeBasis/FeSpace.hh"
+#include <unordered_map>
 
 namespace CoupledField {
 
@@ -129,13 +130,13 @@ private:
   bool isAVExc_;
 
   //! maps every inserted ElemList to a CoilList (only needed for MagEdgeSpecialAVPDE)
-  boost::unordered_map<UInt, EntityIterator> elemToCoilMap_;
+  std::unordered_map<UInt, EntityIterator> elemToCoilMap_;
 
   //! checks the passed entity iterator if it is allowed
   void CheckEntityType(const EntityIterator ent) const;
 
   //! maps entity id provided by EntityIterator::GetIdString() to equation number
-  boost::unordered_map<std::string,Integer> equationMap_;
+  std::unordered_map<std::string,Integer> equationMap_;
 
 };
 

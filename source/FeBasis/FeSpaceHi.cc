@@ -376,11 +376,11 @@ void FeSpaceHi::AdjustEntityOrder() {
   // edges / faces adjusted.
 
   // Create temporary map for edges
-  boost::unordered_map<UInt, UInt> edgeOrders;
+  std::unordered_map<UInt, UInt> edgeOrders;
 
   // Loop over all adjusted edges
   LOG_DBG(feSpaceHi) << "Adjusting edge order";
-  boost::unordered_set<UInt>::const_iterator edgeIt = adjustedEdges_.begin();
+  std::unordered_set<UInt>::const_iterator edgeIt = adjustedEdges_.begin();
   for( ; edgeIt != adjustedEdges_.end(); ++edgeIt ) {
     LOG_DBG3(feSpaceHi) << "\tOrder of edge #" << *edgeIt 
         << " is " <<  orderEdges_[*edgeIt];
@@ -394,11 +394,11 @@ void FeSpaceHi::AdjustEntityOrder() {
   if( ptGrid_->GetDim() < 3) return;
 
   // Create temporary map for faces
-  boost::unordered_map<UInt, boost::array<UInt,2> > faceOrders;
+  std::unordered_map<UInt, boost::array<UInt,2> > faceOrders;
 
   // Loop over all adjusted faces
   LOG_DBG(feSpaceHi) << "Adjusting face order";
-  boost::unordered_set<UInt>::const_iterator faceIt = adjustedFaces_.begin();
+  std::unordered_set<UInt>::const_iterator faceIt = adjustedFaces_.begin();
   for( ; faceIt != adjustedFaces_.end(); ++faceIt ) {
     LOG_DBG3(feSpaceHi) << "\tOrder of face #" << *faceIt 
         << " is " <<  orderFaces_[*faceIt][0]

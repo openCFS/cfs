@@ -1,5 +1,6 @@
 #include "FeFunctions.hh"
 
+#include <unordered_map>
 #include <boost/bind/bind.hpp>
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/tools.hh"
@@ -1009,7 +1010,7 @@ namespace CoupledField {
   template<typename T>
   void FeFunction<T>::ApplyGeomInfo(){
 
-    boost::unordered_map< Integer, EqNodeGeom> eqIndGeomMap;
+    std::unordered_map< Integer, EqNodeGeom> eqIndGeomMap;
     UInt maxEqn, dim;
     feSpace_->CreateEquIndGeomMap(eqIndGeomMap, maxEqn, dim);
     //this EqNodeGeom could be used later on, but now we only need
@@ -1024,7 +1025,7 @@ namespace CoupledField {
     }
 
 
-    boost::unordered_map< Integer , EqNodeGeom >::const_iterator eqIt = eqIndGeomMap.begin();
+    std::unordered_map< Integer , EqNodeGeom >::const_iterator eqIt = eqIndGeomMap.begin();
     if( edge != true){
       while(eqIt != eqIndGeomMap.end() ){
         //used for mech and poisson
@@ -1034,8 +1035,8 @@ namespace CoupledField {
       this->algsys_->SetGeomIndexMap(indGeom, dim);
     }else{
 
-      boost::unordered_map< Integer, StdVector<Integer> > eNodes;
-      boost::unordered_map< Integer, Double > lengths;
+      std::unordered_map< Integer, StdVector<Integer> > eNodes;
+      std::unordered_map< Integer, Double > lengths;
       while(eqIt != eqIndGeomMap.end() ){
         eNodes[eqIt->second.indexNum - 1] = eqIt->second.eNodes;
         Vector<Double> n1, n2;

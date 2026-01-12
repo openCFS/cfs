@@ -137,7 +137,7 @@ void FeSpaceConst::Finalize(){
     EntityIterator entIt = entListVec[k]->GetIterator();
     this->CheckEntityType(entIt);
     while ( !(entIt.IsEnd()) ){
-      std::pair<boost::unordered_map<std::string,Integer>::iterator,bool> ret;
+      std::pair<std::unordered_map<std::string,Integer>::iterator,bool> ret;
       ret = equationMap_.insert( std::pair<std::string,Integer>(
           entIt.GetIdString(), (Integer)numEqns_ + 1) );
       if( ret.second ){
