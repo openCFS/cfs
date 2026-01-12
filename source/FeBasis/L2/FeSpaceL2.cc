@@ -288,10 +288,12 @@ namespace CoupledField{
      }
      const ElemVirtualNodes& elemNodes = elemIt->second;
      if(entType == BaseFE::ALL){
-       nodes.Resize(elemNodes.at(BaseFE::VERTEX).vNodes.GetSize()+
-                    elemNodes.at(BaseFE::EDGE).vNodes.GetSize()+
-                    elemNodes.at(BaseFE::FACE).vNodes.GetSize()+
-                    elemNodes.at(BaseFE::INTERIOR).vNodes.GetSize());
+       // Calculate total size using find() to handle missing entity types
+       UInt totalSize = 0;
+       for(auto nodeIt = elemNodes.begin(); nodeIt != elemNodes.end(); ++nodeIt){
+         totalSize += nodeIt->second.vNodes.GetSize();
+       }
+       nodes.Resize(totalSize);
        UInt c = 0;
        for(auto nodeIt = elemNodes.begin(); nodeIt != elemNodes.end(); ++nodeIt){
          const StdVector<UInt>& entNodes = nodeIt->second.vNodes;
@@ -300,10 +302,15 @@ namespace CoupledField{
          }
        }
      }else{
-       const StdVector<UInt>& entNodes = elemNodes.at(entType).vNodes;
-       nodes.Resize(entNodes.GetSize());
-       for (UInt i = 0; i < entNodes.GetSize(); i++ ){
-         nodes[i] = entNodes[i];
+       auto entIt = elemNodes.find(entType);
+       if( entIt != elemNodes.end() ) {
+         const StdVector<UInt>& entNodes = entIt->second.vNodes;
+         nodes.Resize(entNodes.GetSize());
+         for (UInt i = 0; i < entNodes.GetSize(); i++ ){
+           nodes[i] = entNodes[i];
+         }
+       } else {
+         nodes.Clear();
        }
      }
    }

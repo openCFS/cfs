@@ -452,9 +452,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       UInt numNodes = ptElem->connect.GetSize();
       if( entType == BaseFE::VERTEX || entType == BaseFE::ALL ) {
         for( UInt i = 0; i < numNodes; ++i ) {
-          const StdVector<UInt>& vertexNodes = vNodes.at(ptElem->connect[i]);
-          for( UInt j = 0; j < vertexNodes.GetSize(); ++j ) {
-            nodes.Push_back(vertexNodes[j]);
+          auto it = vNodes.find(ptElem->connect[i]);
+          if( it != vNodes.end() ) {
+            const StdVector<UInt>& vertexNodes = it->second;
+            for( UInt j = 0; j < vertexNodes.GetSize(); ++j ) {
+              nodes.Push_back(vertexNodes[j]);
+            }
           }
         }
       }
@@ -469,17 +472,23 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numEdges; ++i ) {
-            const StdVector<UInt>& edgeNodes = eNodes.at(std::abs(ptElem->extended->edges[i]));
-            ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
-            for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
-              nodes.Push_back(edgeNodes[perm[j]]);
+            auto it = eNodes.find(std::abs(ptElem->extended->edges[i]));
+            if( it != eNodes.end() ) {
+              const StdVector<UInt>& edgeNodes = it->second;
+              ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
+              for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
+                nodes.Push_back(edgeNodes[perm[j]]);
+              }
             }
           }
         } else {
           for( UInt i = 0; i < numEdges; ++i ) {
-            const StdVector<UInt>& edgeNodes = eNodes.at(std::abs(ptElem->extended->edges[i]));
-            for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
-              nodes.Push_back(edgeNodes[j]);
+            auto it = eNodes.find(std::abs(ptElem->extended->edges[i]));
+            if( it != eNodes.end() ) {
+              const StdVector<UInt>& edgeNodes = it->second;
+              for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
+                nodes.Push_back(edgeNodes[j]);
+              }
             }
           }
         }
@@ -493,17 +502,23 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numFaces; ++i ) {
-            ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
-            const StdVector<UInt>& faceNodes = fNodes.at(std::abs(ptElem->extended->faces[i]));
-            for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
-              nodes.Push_back(faceNodes[perm[j]]);
+            auto it = fNodes.find(std::abs(ptElem->extended->faces[i]));
+            if( it != fNodes.end() ) {
+              ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
+              const StdVector<UInt>& faceNodes = it->second;
+              for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
+                nodes.Push_back(faceNodes[perm[j]]);
+              }
             }
           }
         } else {
           for( UInt i = 0; i < numFaces; ++i ) {
-            const StdVector<UInt>& faceNodes = fNodes.at(std::abs(ptElem->extended->faces[i]));
-            for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
-              nodes.Push_back(faceNodes[j]);
+            auto it = fNodes.find(std::abs(ptElem->extended->faces[i]));
+            if( it != fNodes.end() ) {
+              const StdVector<UInt>& faceNodes = it->second;
+              for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
+                nodes.Push_back(faceNodes[j]);
+              }
             }
           }
         }
@@ -514,9 +529,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     {
       if( iNodes.size() ) {
         if( entType == BaseFE::INTERIOR || entType == BaseFE::ALL ) {
-          const StdVector<UInt>& intNodes = iNodes.at(ptElem->elemNum);
-          for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
-            nodes.Push_back(intNodes[j]);
+          auto it = iNodes.find(ptElem->elemNum);
+          if( it != iNodes.end() ) {
+            const StdVector<UInt>& intNodes = it->second;
+            for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
+              nodes.Push_back(intNodes[j]);
+            }
           }
         }
       }

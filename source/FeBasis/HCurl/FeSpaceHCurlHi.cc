@@ -508,9 +508,12 @@ namespace CoupledField{
       if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
 
         for( UInt i = 0; i < numEdges; ++i ) {
-          const StdVector<UInt>& edgeNodes = eNodes.at(std::abs(ptElem->extended->edges[i]));
-          for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
-            nodes.Push_back(edgeNodes[j]);
+          auto it = eNodes.find(std::abs(ptElem->extended->edges[i]));
+          if( it != eNodes.end() ) {
+            const StdVector<UInt>& edgeNodes = it->second;
+            for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
+              nodes.Push_back(edgeNodes[j]);
+            }
           }
         }
       }
@@ -525,9 +528,12 @@ namespace CoupledField{
         if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
 
           for( UInt i = 0; i < numFaces; ++i ) {
-            const StdVector<UInt>& faceNodes = fNodes.at(std::abs(ptElem->extended->faces[i]));
-            for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
-              nodes.Push_back(faceNodes[j]);
+            auto it = fNodes.find(std::abs(ptElem->extended->faces[i]));
+            if( it != fNodes.end() ) {
+              const StdVector<UInt>& faceNodes = it->second;
+              for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
+                nodes.Push_back(faceNodes[j]);
+              }
             }
           }
         }
@@ -537,9 +543,12 @@ namespace CoupledField{
       {
         if( iNodes.size() ) {
           if( entType == BaseFE::INTERIOR || entType == BaseFE::ALL ) {
-            const StdVector<UInt>& intNodes = iNodes.at(ptElem->elemNum);
-            for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
-              nodes.Push_back(intNodes[j]);
+            auto it = iNodes.find(ptElem->elemNum);
+            if( it != iNodes.end() ) {
+              const StdVector<UInt>& intNodes = it->second;
+              for( UInt j = 0; j < intNodes.GetSize(); ++j ) {
+                nodes.Push_back(intNodes[j]);
+              }
             }
           }
         }
