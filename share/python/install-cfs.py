@@ -143,7 +143,7 @@ if __name__ == "__main__":
                     for member in archive.getmembers():
                         if not os.path.exists( os.path.join(install_dir,member.name) ):
                             print(" ",member.name)
-                            archive.extract(member)
+                            archive.extract(member, path=install_dir)
                         else:
                             print(" ",member.name,"already exists")
     
