@@ -131,7 +131,8 @@ def read_xml(filename, density = False, set = None, quiet = False):
     if len(physical) != np.prod(glob.n):
       print('cannot visualize density: there are',len(physical),'rho_e in the .density.xml set but mesh is',glob.n[0],'x',glob.n[1])
     else:
-      rho = np.reshape(physical,(glob.n[0],glob.n[1]))
+      # Fortran order (x changes fastest) 
+      rho = np.reshape(physical,(glob.n[0],glob.n[1]), order='F')
 
   while True: # exit with break
     idx = len(shapes)
@@ -159,6 +160,7 @@ def plot_rho(fig, domain, rho):
   if rho is None:
     return
   assert len(rho.shape) == 2
+  # domain is [[min_x, min_y], [max_x, max_y]]
   nx, ny = rho.shape
   bx = domain[0][0] # base
   by = domain[0][1]
@@ -167,7 +169,7 @@ def plot_rho(fig, domain, rho):
   ax = fig.gca()
   for y in range(ny):
     for x in range(nx):
-      ax.fill([bx+x*dx, bx+(x+1)*dx, bx+(x+1)*dx,bx+x*dx], [by+y*dy, by+y*dy, by+(y+1)*dy,by+(y+1)*dy], color=str(max(1-rho[y,x],0)), zorder=0)
+      ax.fill([bx+x*dx, bx+(x+1)*dx, bx+(x+1)*dx,bx+x*dx], [by+y*dy, by+y*dy, by+(y+1)*dy,by+(y+1)*dy], color=str(max(1-rho[x,y],0)), zorder=0)
 
 def plot_outline(s, sub, p, fill, linestyle='-'):
   # code based on Patrick Jung's pltviz.py 
@@ -271,11 +273,11 @@ if __name__ == '__main__':
   parser.add_argument('--noaxis', help="dont plot axis and ticks", action='store_true')
 
   args = parser.parse_args()
-  
   if not os.path.exists(args.input):
     print("error: cannot find '" + args.input + "'")
     os.sys.exit()
   file = args.input 
+  
   colors = ['tab:gray'] if args.gray else ['b', 'g', 'r', 'c', 'm', 'y', 'tab:orange', 'tab:brown', 'cornflowerblue', 'lime', 'tab:gray']
   
   if args.interactive or args.animate:
