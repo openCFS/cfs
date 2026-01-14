@@ -108,6 +108,9 @@ namespace CoupledField {
     //! this is true if the result is not depending on time/frequency
     bool isStatic;
 
+    //! this is true if the PDE lives on the deformed geometry
+    bool updatedGeometry = false;
+
     /** Gives back a debug summary of the result info */
     std::string ToString() const; 
  

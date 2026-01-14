@@ -27,7 +27,7 @@ template<class TYPE> FieldCoefFunctor<TYPE>::~FieldCoefFunctor() {
 template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseResult> res )
 {
   EntityList::ListType entityListType = res->GetEntityList()->GetType();
-  bool updatedGeo = true; //TODO: let the PDE set this flag
+  bool updatedGeo = res->GetResultInfo()->updatedGeometry; // check if we need to evaluate the result on updated geometry
   LOG_DBG(resfunc) << "FCF:ER " << res->ToString() << " opt=" << res->GetResultInfo()->fromOptimization << " #el=" << res->GetEntityList()->GetSize() << " elt=" << entityListType;
   // optimization results are generated in DesignSpace(). This includes complicated ones l ike opt_result_*
   if(res->GetResultInfo()->fromOptimization)
