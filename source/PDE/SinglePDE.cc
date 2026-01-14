@@ -1190,6 +1190,9 @@ namespace CoupledField {
 
         }
       }
+
+      // finally, let the PDE set the info if the result shall be computed on the updated geometry or not
+      candidate->updatedGeometry = this->IsUpdatedGeo();
     } catch( Exception &ex ) {
       RETHROW_EXCEPTION(ex, "Could not determine storeResults for quantity '"
           << quantity << "' within pde '" << pdename_ << "'" );
