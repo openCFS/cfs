@@ -15,6 +15,7 @@
       <system name="default"/>
       <domain min_x="0" max_x="1" min_y="0" max_y="1"/>
     </coordinateSystems>
+    <optimizationDomain min_x="0" max_x="1" min_y="0" max_y="1"/>
   </header>
   <set id="0">
     <element nr="1" type="density" design="0.64411105316" physical="0.23380127979"/>

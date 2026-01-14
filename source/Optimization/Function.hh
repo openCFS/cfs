@@ -492,7 +492,7 @@ class Function
         const static int MATERIAL_SIGN;
 
         /** default constructor for StdVector() */
-        Identifier() : element(NULL), sign(NO_SIGN)  {}
+        Identifier() {};
 
         /** @param prev if NONE neighbor is size 1 otherwise size two */
         Identifier(BaseDesignElement* elem, BaseDesignElement* prev, BaseDesignElement* next, int si = NO_SIGN);
@@ -638,7 +638,7 @@ class Function
         /** debug output */
         std::string ToString() const;
 
-        BaseDesignElement* element; // this represents DesignSpace::data[element_idx]
+        BaseDesignElement* element = nullptr; // this represents DesignSpace::data[element_idx]
 
         /** this are all design elements for the local function. For slopes a spatial neighborhood, for
          * globalLaminatesVolumes the variables stiff1, stiff2 for the same FE-Element, ...
@@ -652,7 +652,7 @@ class Function
          *  in case we do not do this, sign will be -1000, else -1 for X_N, 1 for X_P.
          *  for spline box design with cones constraints, sign will be between -12 and 12
          *  and indicate which equation of linear cone to use */
-        int sign;
+        int sign = NO_SIGN;
 
         StdVector<int> signs;
 
@@ -677,7 +677,7 @@ class Function
       StdVector<Identifier> virtual_elem_map;
 
       /** We need the design space to access the values */
-      DesignSpace* space;
+      DesignSpace* space = nullptr;
 
       /** Store the local values. At least used for LOCAL_STRESS. See LocalCondition::Get/SetValue() */
       StdVector<double> local_values;
@@ -727,40 +727,40 @@ class Function
         void ToInfo(PtrParamNode info);
 
       private:
-        double radius;
-        double value;
-        Filter::FilterSpace fs;
+        double radius = -1.0;
+        double value  = -1.0;
+        Filter::FilterSpace fs = Filter::NO_FILTER;
       }; // end of struct NeighborhoodStructure
 
 
-      NeighborhoodStructure* structure_;
+      NeighborhoodStructure* structure_ = nullptr;
 
-      Function* func_;
+      Function* func_ = nullptr;
 
-      Locality locality_;
+      Locality locality_ = DEFAULT;
 
       /** Functions based on a relaxed max formulation have beta for the Kreiselmeier/Steinhauser
        * continuation. This is (global) checkerboard. -1 is real max = infinity */
-      double beta_;
+      double beta_ = -1.0;
 
       /** relaxation parameter to smooth abs by A(x) = sqrt(x^2 + eps^2) - eps. */
-      double eps_;
+      double eps_ = -1.0;
 
       /** power for globalization */
-      double power_;
+      double power_ = -1.0;
 
       /** For oscillation we can define if we want the constraint for void, material or both.
        * Such different feature sized can be defined */
-      Phase phase_;
+      Phase phase_ = BOTH;
 
       /** normalize global function */
-      bool normalize_;
+      bool normalize_ = false;
 
       /** are we a local condition or globalized (condition or objective) */
-      bool globalized_;
+      bool globalized_ = false;
 
       /** @see GetElementDimension() */
-      int element_dimension_;
+      int element_dimension_ = 0;
     };
 
 

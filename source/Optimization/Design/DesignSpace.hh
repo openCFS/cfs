@@ -322,6 +322,9 @@ namespace CoupledField
      inline int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false) const
      {
        // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
+       if(elemNum >= elemToDesign.GetSize()) 
+         EXCEPTION("DesignSpace::Find: elemNum " << elemNum << " out of bounds (size=" << elemToDesign.GetSize() << ")");
+
        int idx = elemToDesign[elemNum].first;
        // reset pseudo designs when we don't look for them explicitly
        if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)

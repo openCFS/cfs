@@ -119,10 +119,8 @@
       <export write="iteration" save="all" />
 
     </ersatzMaterial>
-    <commit mode="each_forward" stride="99" />
+    <commit mode="each_forward" stride="1" />
   </optimization>
  
   
 </cfsSimulation>
-
-
