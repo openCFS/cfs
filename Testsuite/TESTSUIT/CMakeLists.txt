@@ -184,6 +184,7 @@ ADD_SUBDIRECTORY(Singlefield/AcousticMixed/channel3d_sfem_abc)
 ADD_SUBDIRECTORY(Singlefield/Smooth/plungertrans2d)
 ADD_SUBDIRECTORY(Singlefield/Smooth/RotatedChamberL2Norm2D)
 ADD_SUBDIRECTORY(Singlefield/Smooth/ChamberL2Norm2DHarmonic)
+ADD_SUBDIRECTORY(Singlefield/Smooth/StaticShearStrainStiffening2D)
 
 #-------------------------------------------------------------------------------
 # Subdirectories for Split PDE test cases.
