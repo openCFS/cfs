@@ -1075,6 +1075,8 @@ namespace CoupledField {
     LOG_DBG3(gridcfs) << "Interior surface elements for DG-Methods" << std::endl;
     LOG_DBG3(gridcfs) << "==================================================" << std::endl;
     for(UInt iElem = 0; iElem < interiorSurfElems.GetSize();++iElem){
+      LOG_DBG2(gridcfs) << "EDGDE add interior se=" << interiorSurfElems[iElem]->elemNum << " edge=" << interiorSurfElems[iElem]->extended->edges[0]
+                        << " vE=" << interiorSurfElems[iElem]->ptVolElems[0]->elemNum << " conn=" << interiorSurfElems[iElem]->connect.ToString();
       LOG_DBG3(gridcfs) << "Added surfElem # " << interiorSurfElems[iElem]->elemNum;
       LOG_DBG3(gridcfs) << " with Edge # " << interiorSurfElems[iElem]->extended->edges[0];
       LOG_DBG3(gridcfs) << " and volElem # " << interiorSurfElems[iElem]->ptVolElems[0]->elemNum;
@@ -1095,6 +1097,8 @@ namespace CoupledField {
     LOG_DBG3(gridcfs) << "exterior surface elements for DG-Methods" << std::endl;
     LOG_DBG3(gridcfs) << "==================================================" << std::endl;
     for(UInt iElem = 0; iElem < exteriorSurfElems.GetSize();++iElem){
+      LOG_DBG2(gridcfs) << "EDGDE add exterior se=" << exteriorSurfElems[iElem]->elemNum << " edge=" << exteriorSurfElems[iElem]->extended->edges[0]
+                        << " vE=" << exteriorSurfElems[iElem]->ptVolElems[0]->elemNum << " conn=" << exteriorSurfElems[iElem]->connect.ToString();
       LOG_DBG3(gridcfs) << "Added surfElem # " << exteriorSurfElems[iElem]->elemNum;
       LOG_DBG3(gridcfs) << " with Edge # " << exteriorSurfElems[iElem]->extended->edges[0];
       LOG_DBG3(gridcfs) << " and volElem # " << exteriorSurfElems[iElem]->ptVolElems[0]->elemNum;
@@ -3199,6 +3203,9 @@ namespace CoupledField {
           ptrLayerConnectivity  = &layerConnectivity[0];
           // assign type, region, and connectivity to element
           this->SetElemData(addedElemIds[iLayers][iSurfElems], currLayerElemType, layerRegionId, ptrLayerConnectivity);
+
+          LOG_DBG2(gridcfs) << "GEL: sr=" << surfRegionId << " el=" << addedElemIds[iLayers][iSurfElems] << " sel=" << addedSurfElemIds[iLayers][iSurfElems] << " conn=" << layerConnectivity.ToString();
+
           // point on the surface-element connectivity
           ptrLayerConnectivity  = &layerConnectivity[numNodesInSurfElement];
           this->SetElemData(addedSurfElemIds[iLayers][iSurfElems], currSurfElemType, newSurfRegionId, ptrLayerConnectivity);
