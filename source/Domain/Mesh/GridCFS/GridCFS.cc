@@ -2589,6 +2589,7 @@ namespace CoupledField {
       for(UInt i=0; i<numElems; i++)
       {
         elems.Push_back(dynamic_cast<SurfElem*>(surfElems_[index][i]));
+        LOG_DBG2(gridcfs) << "GSE r=" << regionId << " se=" << surfElems_[index][i]->elemNum << " conn=" << surfElems_[index][i]->connect.ToString();
       }
 
     } else {

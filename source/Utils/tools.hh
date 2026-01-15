@@ -297,6 +297,16 @@ namespace CoupledField {
   template <class TYPE>
   std::string ToString(const StdVector<StdVector<TYPE> >& data, bool new_line = false);
 
+  template <class TYPE>
+  std::string ToString(const std::vector<TYPE>& data)
+  {
+    std::ostringstream os;
+    os << "[";
+    for(unsigned int i = 0; i < data.size(); i++)
+      os << data[i] << ((i < data.size()-1) ? ", ": "]");
+    return os.str();
+  }
+
   /** converts data arrays to strings such that they can be copy & pasted from log to matlab.
    * Redundant to StdVector::ToString() but there the complex special implementation was not possible */
   template <class TYPE>

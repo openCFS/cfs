@@ -10,12 +10,15 @@
 #include <cstdarg>
 #include <cctype>
 #include <cstdlib>
-
+#include "SimInputCDB.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "Utils/tools.hh"
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/trim.hpp>
 #include <boost/functional/hash.hpp>
 
-#include "SimInputCDB.hh"
+
+DEFINE_LOG(sicdb, "SimInputCDB")
 
 namespace CoupledField {
 
@@ -558,6 +561,8 @@ namespace CoupledField {
 
       ElemFacesType& eFaces = elemFaces_[feType];
       std::vector<UInt>& volTopo = topology_[ansElemNum];
+
+      LOG_DBG2(sicdb) << "GVEF el=" << ansElemNum << " conn=" <<  ToString(volTopo);
 
       // Iterate over faces of volume element
       for(UInt face=0, n=eFaces.size(); face<n; face++)
@@ -2391,6 +2396,7 @@ namespace CoupledField {
 
     for (UInt el=0; el < elemNumbers.GetSize(); el++) {
       UInt ansElemNum = elemNumbers[el];
+      LOG_DBG2(sicdb) << "GSEG el=" << ansElemNum << " conn=" <<  ToString(topology_[ansElemNum]);
       for (UInt elNode=0; elNode < topology_[ansElemNum].size() ; elNode++) {
         elGrpNodeSet.insert(topology_[ansElemNum][elNode]);
       }
@@ -2529,6 +2535,8 @@ namespace CoupledField {
       {
         continue;
       }
+
+      LOG_DBG2(sicdb) << "GVRFNC: el=" << ansElemNum << " conn=" <<  ToString(topology_[ansElemNum]);
 
       UInt numNodes = Elem::shapes[feType].numNodes;
       std::copy(&topology_[ansElemNum][0],
